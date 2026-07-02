@@ -8,9 +8,9 @@ decisions or write-ups. Keep each to a line or two; being vague is fine if it
 keeps it short. Don't add findings, measurements, or rationale here — that
 belongs in the work itself when it happens.
 
-A long-horizon future direction (deferred indefinitely, not near-term) may live
-here or as a short trigger in the relevant `docs/` spec — whichever fits; neither
-is forced. A spec trigger is rediscovered when that area is worked on again.
+A long-horizon future direction (deferred indefinitely, not near-term) does not
+belong here — it lives as a short trigger in the owning doc's `Future` section,
+rediscovered when that area is worked on again.
 
 Rules:
 
@@ -18,6 +18,18 @@ Rules:
 - Delete sections once fully done (no archive here).
 - Move durable decisions/specs into the relevant doc under `docs/`, leaving a
   link behind.
+
+## Docs corpus redesign
+
+- Documentation intent + invariants rewritten and split out to
+  `docs/documentation.md`; realignment of the rest of the corpus pending. Full
+  restructure license agreed (merge/split/rename docs).
+- Add the docs link checker to `pnpm run lint` (the agreed minimal doc-check
+  automation).
+- Skill-file invariant digests (e.g. `remdo-simplify`'s docs checklist) predate
+  the rewrite; realign them with `docs/documentation.md`.
+- Reconsider the `index.md` files (`docs/index.md`, `docs/outliner/index.md`)
+  during realignment: drop them or change their shape/role.
 
 ## Scratchpad maintenance
 

@@ -95,7 +95,7 @@ During dialog, ask whether the change is one concern or several — structural
 splits (separate phases, separate specs, separate tasks) are cheap to make now
 and expensive once code is written. Record the decisions dialog produces — the
 split choice, and why a design was chosen over alternatives — in `docs/todo.md`:
-the spec describes target behavior only (invariant #5), so the *why* lives there
+the spec describes target behavior only (invariant #4), so the *why* lives there
 until it moves into a `docs/` rationale or is dropped, rather than being
 memory-carried.
 
@@ -124,7 +124,7 @@ new reality. Track any not-yet-built parts, gaps, or sequencing in `docs/todo.md
 (the "Target behavior only" invariant), not as caveats in the prose.
 
 Comply with the documentation invariants
-(`docs/contributing.md#documentation`) so static checks pass without rework, and
+(`docs/documentation.md`) so static checks pass without rework, and
 aim for a minimal, coherent, non-redundant end state even at the cost of larger
 doc edits.
 
@@ -348,8 +348,8 @@ Choose by the *activity*, not the phase number:
   `remdo-refine` skill.
 - Bringing `origin/main` into the branch: `remdo-sync` skill.
 - Integration after report (merge / PR): `superpowers:finishing-a-development-branch`.
-- Doc map (navigation): `docs/index.md`. Doc workflow + invariants (spec-as-docs
-  must comply): `docs/contributing.md#documentation`. Deferral/todo rules:
+- Doc map (navigation): `docs/index.md`. Documentation intent + invariants
+  (spec-as-docs must comply): `docs/documentation.md`. Deferral/todo rules:
   `docs/todo.md`.
 - Git workflow / branch prefixes: `docs/contributing.md`.
 - Global commit/index defaults: `AGENTS.md` ("Safety & Process").

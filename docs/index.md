@@ -3,8 +3,8 @@
 ## Purpose
 
 Provide the entry point for RemDo documentation navigation: the map of every
-doc and its summary. Doc workflow and the documentation invariants live in
-`docs/contributing.md#documentation`.
+doc and its summary. The documentation intent and invariants live in
+[docs/documentation.md](documentation.md).
 
 ## Documentation Map
 
@@ -12,8 +12,9 @@ Length buckets: Short (<300 words), Medium (300–800), Long (800–1500), Very 
 (>1500). Update a doc’s bucket only when it crosses a boundary.
 Map format: maintain alphabetical order and wrap entries at ~100 characters per
 line (align continuation lines by two spaces).
-Keep the map current—refresh summaries/buckets only when they are materially
-outdated or a doc’s role materially changes.
+Keep the map current—refresh summaries only when they are materially
+outdated or a doc’s role materially changes. Exception: the `docs/todo.md`
+summary stays as-is.
 
 - `docs/access-model.md` (Long). Document access model for RemDo:
   owner-backed access, direct local-user grants, cross-server source linking,
@@ -27,23 +28,21 @@ outdated or a doc’s role materially changes.
   the settable input variables vs. derived values, dev/prod port regimes,
   `APP_PUBLIC_URL`-vs-bind-`PORT` separation, the secret bootstrap contract, and
   admin enrollment.
-- `docs/contributing.md` (Medium). Runtime baselines, Git workflow (`origin/main`
-  as PR baseline and fork point, `origin/main...HEAD` merge-base range for local
-  review) and branch-prefix conventions, editor feature module layout, pre-1.0
-  compatibility policy (no default migration/back-compat requirements), and the
-  doc
-  workflow + documentation invariants.
+- `docs/contributing.md` (Medium). Contribution conventions: Git workflow and
+  branch prefixes, runtime baseline, pre-1.0 compatibility policy, code
+  comments, and editor feature modules.
 - `docs/dev/dependency-maintenance.md` (Medium). Standing policy for dependency
   refresh work — durable rules and self-healing mechanisms (pnpm release-age
   gate, why Dependabot version updates are off for pnpm catalogs, independent
   security alerts, build-script approval, Node/Docker base lag). Individual
   workarounds live as `TODO:`/`FIXME:` markers at their code sites, not here.
-- `docs/run-modes.md` (Long). Supported run modes: local dev, test stacks, CI,
-  self-hosted app runtimes, managed cloud, and backup execution.
+- `docs/documentation.md` (Medium). Documentation intent and invariants: the
+  read-cost metric, the reference-only corpus shape, the invariants, and their
+  external sources.
 - `docs/hints.md` (Short). UX hint concepts for search, note controls, and
   structural selection guidance.
 - `docs/index.md` (Medium). Documentation map: every doc plus its summary and
-  length bucket. Doc workflow and invariants live in `docs/contributing.md`.
+  length bucket.
 - `docs/outliner/body.md` (Short). Note body: optional rich-text region attached
   to a note via `Shift+Enter`, with its own trapped inline selection world (it is
   still a restricted kind of note, selectable structurally as part of its owner).
@@ -64,13 +63,13 @@ outdated or a doc’s role materially changes.
   list types); single-source invariants rule.
 - `docs/outliner/insertion.md` (Medium). Caret-mode `Enter` behavior, zoom-boundary
   insertion rules, focus rules, and paste placement pointer.
-- `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,
-  rendering, and toggle commands.
 - `docs/outliner/links.md` (Medium). Note-linking behavior and the
   internal-vs-external link boundary: the `@`-specific query/ranking and commit
   over the shared trigger lifecycle, path-token picker matching shared with
   search, runtime fully qualified link identity, clipboard/persistence docId
   boundaries, and cross-document boundaries.
+- `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,
+  rendering, and toggle commands.
 - `docs/outliner/menu.md` (Medium). Quick action menu entry points, note vs.
   children vs. view action scopes, and actions (toggle checked/fold/zoom/child
   list types/fold view to level).
@@ -105,9 +104,7 @@ outdated or a doc’s role materially changes.
 - `docs/principles.md` (Medium). Durable project assumptions: privacy,
   transparency, deployment goals, multi-origin direction, and the boundary
   between principles and replaceable tooling choices.
-- `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs;
-  tracks paste-placement e2e follow-up and prod schema recovery decisions.
-Whenever you edit any of these docs, update their summaries/buckets here so the
-map stays trustworthy.
-The `docs/todo.md` summary should remain as-is and should not be automatically
-updated like other doc entries.
+- `docs/run-modes.md` (Long). Supported run modes: local dev, test stacks, CI,
+  self-hosted app runtimes, managed cloud, and backup execution.
+- `docs/todo.md` (Very long). Active work scratchpad: near-term reminders that
+  move into docs or code once durable.

@@ -235,7 +235,7 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 - [RemDo refine](../../../.claude/skills/remdo-refine/SKILL.md)
 - [RemDo sweep](../remdo-sweep/SKILL.md)
 - [Agent guidelines](../../../AGENTS.md)
-- [Documentation invariants](../../../docs/contributing.md#documentation)
+- [Documentation invariants](../../../docs/documentation.md#invariants)
 - [Runtime baseline](../../../docs/contributing.md#runtime-baseline)
 - [Compatibility policy](../../../docs/contributing.md#compatibility-policy-pre-10)
 - [Editor feature modules](../../../docs/contributing.md#editor-feature-modules)

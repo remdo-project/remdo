@@ -13,7 +13,7 @@ AGENTS.md is the only doc you must read at the start of every session. Do one
 full pass through the `docs/` folder when you onboard; after that, before coding,
 identify the feature area and read the matching sections from the `docs/index.md`
 map (the documentation navigation) — do not reread unrelated docs. For the
-documentation invariants, see `docs/contributing.md#documentation`.
+documentation invariants, see `docs/documentation.md`.
 
 When working, deep-link to the authoritative doc (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
@@ -88,7 +88,7 @@ sections to docs.
   is scratch that is allowed to be mid-transformation (e.g. docs ahead of code) —
   don't raise such incoherencies while they stay uncommitted. At commit time,
   either the committed state is coherent or an ultra-short `docs/todo.md` trigger
-  covers the gap (per `docs/contributing.md#documentation` invariant 9); add that
+  covers the gap (per `docs/documentation.md` invariant 4); add that
   trigger yourself and note it in the commit rather than asking.
 - The Git index may be used by the developer as private review bookkeeping.
   Treat staged vs unstaged state as semantically invisible: it does not mark

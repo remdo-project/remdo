@@ -112,7 +112,7 @@ coordinating session triages the returned findings and owns the loop.
    one-line cite of a shared rule where self-containment matters (not a full
    restatement). Reading the whole touched file, not just the diff hunk, is what
    catches redundancy against unchanged upstream text. Also check each touched doc
-   against the **documentation invariants** (`docs/contributing.md#documentation`)
+   against the **documentation invariants** (`docs/documentation.md`)
    and fix any violation.
 2. **Internal review** — `/code-review` at max effort against the diff under
    review (the resolved range's base, or the working-tree changes).

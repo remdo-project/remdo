@@ -1,5 +1,9 @@
 # Contributing
 
+The conventions RemDo changes must follow: Git workflow, runtime and
+compatibility baselines, and rules for comments and editor feature modules.
+How docs themselves are written lives in [docs/documentation.md](documentation.md).
+
 ## Git Workflow
 
 `origin/main` is the canonical **PR/review baseline** — what work is ultimately
@@ -48,8 +52,8 @@ authoritative.
 
 ## Compatibility Policy (Pre-1.0)
 
-RemDo is currently pre-1.0. Backward compatibility is not guaranteed unless a
-task or spec explicitly says otherwise.
+Backward compatibility is not guaranteed unless a task or spec explicitly says
+otherwise.
 
 Default policy:
 
@@ -61,50 +65,6 @@ Default policy:
    the task/spec explicitly requires compatibility.
 5. If a change intentionally includes backward-compatible behavior, call that
    out in the task wrap-up message rather than as a review finding.
-
-## Documentation
-
-`docs/index.md` is the documentation map (every doc plus its summary); use it to
-navigate. The invariants below govern how docs are written and maintained; the
-agent-facing doc workflow (read before coding, deep-link to sources, fix
-superseded docs in the same change) lives in `AGENTS.md`.
-
-### Documentation invariants
-
-These invariants apply to every doc in the corpus, and to agent skill files
-(`.claude/skills/**`), which carry the same risks — except where an invariant is
-inherently about the corpus's shape rather than a doc's content: skills are not in
-the documentation map, and their `References` sections link sibling skills rather
-than only external sources.
-
-1. **Single source per topic.** Each behavior MUST be defined exactly once, in
-   the doc best suited to it. Likewise, each precise term MUST be defined once —
-   in concepts or the glossary — and MUST NOT be redefined or shadowed by any
-   other doc.
-2. **Top-down linking.** Links SHOULD point from higher-level docs into detailed
-   ones. Same-level links SHOULD appear only where they add clear value.
-3. **Self-contained behavior.** A doc's behavior MUST be clear without external
-   sources. A final `References` section is for external sources only (specs,
-   standards, third-party docs) and MUST contain all of them; cross-doc links
-   within this corpus MUST be inline, never collected into `References`.
-4. **Cross-doc consistency.** Two docs MUST NOT make contradictory claims about
-   the intended system.
-5. **Spec, not status.** A doc's normative spec MUST describe target behavior
-   only. Gaps, partial status, sequencing, and deferral decisions MUST live in
-   `docs/todo.md`. A doc MAY carry a `Future` section listing deferred
-   long-horizon directions as brief triggers (not specs, not target behavior); a
-   direction MAY instead live in `docs/todo.md` — either place is fine.
-6. **No superseded contract.** A doc MUST NOT describe behavior the project has
-   deliberately moved away from.
-7. **No broken links.** Every inbound link MUST resolve, and the documentation
-   map MUST be current.
-8. **Minimal by default.** State the rule, not the inventory: a clause MUST be
-   omitted unless its absence would let someone misuse the contract. This
-   includes anything the reader can confirm in code, plus rationale and how-to
-   steps.
-9. **No untracked divergence.** Any divergence between a doc's claim and the code
-   MUST be recorded in `docs/todo.md`. A recorded divergence that no longer
-   exists MUST have its entry deleted.
 
 ## Code Comments
 
