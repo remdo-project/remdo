@@ -121,20 +121,16 @@ bootstrap). Still to come:
   it lands, `ALLOW_SIGNUP` is the signup control and also the source-side
   "accept registration" gate.
 
-## Source-linking PR (in progress)
+## Source-linking follow-ups
 
-Building: admin-managed source linking. Home admins add + register sources from
+Admin-managed source linking is built: home admins add + register sources from
 the `/admin` panel (register-home ceremony → persisted credentials →
-swappable-auth activation); the **admin-managed DB model replaces the
-`LINKABLE_REMDO_SERVERS_JSON` env config entirely** (env var removed). Home admin
-actions gate on the admin role; the source accepts registration only from an
-authenticated account while public (`ALLOW_SIGNUP`-backed for now). Ports the
-parked `feat/cross-server-source-linking` reference (register-home, registration
-handles/codes, source-server-store, `createSwappableServerAuth`, `http-origin`
-SSRF/CSRF hardening, OAuth consent) re-gated on the admin role, plus the full
-source-server admin panel and the two-server Docker E2E.
+swappable-auth activation); the admin-managed DB model replaced the
+`LINKABLE_REMDO_SERVERS_JSON` env config; home admin actions gate on the admin
+role; the source accepts registration only from an authenticated account while
+public (`ALLOW_SIGNUP`-backed). Two-server Docker E2E green.
 
-Deferred to follow-up PRs (not this one):
+Deferred to follow-up PRs:
 
 - Runtime public-policy toggle UI (see above) — this PR builds swappable-auth but
   not the toggle.
