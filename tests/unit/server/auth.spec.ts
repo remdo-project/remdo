@@ -104,6 +104,8 @@ describe('normalizeSourceIssuer', () => {
     // host is not loopback; the home must expect that or issuer validation fails.
     expect(normalizeSourceIssuer('http://source.example')).toBe('https://source.example');
     expect(normalizeSourceIssuer('http://192.168.1.10:7070')).toBe('https://192.168.1.10:7070');
+    // A DNS name that merely starts with "127." is public, not loopback.
+    expect(normalizeSourceIssuer('http://127.example.com')).toBe('https://127.example.com');
   });
 
   it('leaves an https source unchanged', () => {

@@ -1,5 +1,5 @@
 import { Alert, Badge, Button, Container, Group, Paper, Stack, Text, TextInput, Title } from '@mantine/core';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface AdminSourceServer {
   id: string;
@@ -15,8 +15,9 @@ interface PendingClaim {
 }
 
 // After the source redirects back, the URL carries the handle this home issued
-// and the one-time code to pull the registered credentials with. Read it once at
-// mount and clear it from the address bar.
+// and the one-time code to pull the registered credentials with. Pure read (no
+// side effects), so it is safe as a render-phase state initializer; the address
+// bar is cleared separately from an effect.
 function readPendingClaim(): PendingClaim | null {
   if (typeof globalThis.location === 'undefined') {
     return null;
@@ -28,14 +29,13 @@ function readPendingClaim(): PendingClaim | null {
   if (!sourceId || !handle || !code) {
     return null;
   }
-  globalThis.history.replaceState(null, '', globalThis.location.pathname);
   return { sourceId, handle, code };
 }
 
 // Admin requests are authorized by the caller's admin-role session cookie; there
 // is no secret in the body. A GET has no body.
 async function adminGet<T>(path: string): Promise<T> {
-  const response = await fetch(path);
+  const response = await fetch(path, { credentials: 'same-origin' });
   const data = await response.json() as { error?: string } & T;
   if (!response.ok) {
     throw new Error(data.error ?? 'Source server request failed.');
@@ -47,6 +47,7 @@ async function adminPost<T>(path: string, body: Record<string, unknown> = {}): P
   const response = await fetch(path, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
+    credentials: 'same-origin',
     body: JSON.stringify(body),
   });
   const data = await response.json() as { error?: string } & T;
@@ -69,6 +70,15 @@ export default function AdminSourceServersRoute() {
   const [notice, setNotice] = useState<string | null>(
     initialClaim ? 'Signed in on the source. Finish registering this home below.' : null,
   );
+
+  // Strip the one-time claim params from the address bar after they are read into
+  // state — an effect, not the render-phase initializer, so a double render (e.g.
+  // StrictMode) cannot clear the URL before the first read captures the claim.
+  useEffect(() => {
+    if (initialClaim && typeof globalThis.location !== 'undefined') {
+      globalThis.history.replaceState(null, '', globalThis.location.pathname);
+    }
+  }, [initialClaim]);
 
   // Fire-and-forget: handlers are wired to onClick (void), errors surface via state.
   const run = (action: () => Promise<void>): void => {

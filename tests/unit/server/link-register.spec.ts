@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { config } from '#config';
 import { deriveSourceId } from '#server/remdo-oauth/config';
+import { extractSessionCookie } from '#server/auth/session-cookie';
 import { createTestResource } from '../_support/test-resource';
 import { createServerAppHarness } from './_support/server-app-harness';
 
@@ -19,6 +20,18 @@ function postJson(app: Harness['app'], path: string, body: unknown, headers: Hea
 // enrollment); source-server management and registration gate on that role.
 async function adminHeaders(harness: Harness): Promise<Headers> {
   return harness.createSessionHeaders();
+}
+
+// A signed-in but non-admin session (normal signup grants role 'user'). The
+// role gate must refuse it — the behavior that distinguishes the role model from
+// the old shared-secret gate, where any secret-holder passed.
+async function nonAdminHeaders(harness: Harness): Promise<Headers> {
+  const signUp = await harness.app.request('/api/auth/sign-up/email', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'user@example.com', password: 'user-password-01', name: 'Plain User' }),
+  });
+  return new Headers({ cookie: extractSessionCookie(signUp) });
 }
 
 async function addSource(harness: Harness, headers: Headers): Promise<string> {
@@ -40,6 +53,22 @@ describe('home-side registration initiation', () => {
     // No session → not an admin → 403.
     const response = await postJson(harness.app, `/api/link/source-servers/${id}/register`, {});
     expect(response.status).toBe(403);
+  });
+
+  it('refuses a signed-in non-admin user (role gate, not just session)', async () => {
+    const harness = createHarness({ allowSignup: true });
+    const admin = await adminHeaders(harness);
+    const id = await addSource(harness, admin);
+    const user = await nonAdminHeaders(harness);
+    // A valid session that lacks the admin role must be refused — this is the
+    // gate the old shared-secret model did not enforce.
+    const register = await postJson(harness.app, `/api/link/source-servers/${id}/register`, {}, user);
+    expect(register.status).toBe(403);
+    // Same gate on the source-server admin API.
+    const list = await harness.app.request('/api/admin/source-servers', { headers: user });
+    expect(list.status).toBe(403);
+    const add = await postJson(harness.app, '/api/admin/source-servers', { url: 'https://other.example' }, user);
+    expect(add.status).toBe(403);
   });
 
   it('returns a source redirect URL carrying a handle and the home origin', async () => {

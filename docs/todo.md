@@ -150,6 +150,24 @@ deferring does not churn the gate's interface):
   settings + a "public source" preset) once the source-linking work lands.
 - Source-side `clientPrivileges` to restrict raw OAuth client creation — a
   separate boundary from the home-side role gate.
+- Rate-limit `POST /api/link/register-home`: it calls `auth.api.registerOAuthClient`
+  server-side, which bypasses Better Auth's HTTP-layer `rateLimit.register`, so a
+  signed-in source user can register unbounded OAuth clients. Enforce a limit in
+  the RemDo route (the `oauthProvider` `rateLimit.register` config only guards the
+  raw HTTP endpoint).
+- `register-home` accepts any bare-origin `home`, so a signed-in source user who
+  clicks Authorize on a phished `/oauth/register-home?home=<evil>` registers a
+  client with an attacker `redirect_uri` and is handed the one-time code. Bind
+  registration to known/expected homes (or require an explicit source-side
+  confirmation of the home origin) rather than trusting the query param.
+- `claim-registration` authorizes on the one-time code alone and returns the
+  client secret; the code rides in the home admin's address bar (`/admin?code=…`)
+  until an effect strips it. Consider binding the claim to the issuing handle/home
+  origin and moving the code out of the URL so a leaked URL can't claim the secret.
+- `POST /source-servers/:id/claim` burns the source's one-time code (via
+  `claim-registration`) before `setSourceServerCredentials` persists locally; a
+  persist failure strands the flow (code gone, handle kept) and needs a full
+  re-register. Make the claim idempotent or persist-before-consume.
 - Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
   the Better Auth admin plugin.
 - Tradeoff (standing): the admin secret is a permanent gate — any user who learns

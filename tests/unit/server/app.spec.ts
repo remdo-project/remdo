@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { config } from '#config';
 import { HTTP_STATUS } from '#platform/http/status';
 import { extractSessionCookie } from '#server/auth/session-cookie';
+import { listCurrentUserSourceServers } from '#server/documents/source-servers';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 import { createTestResource } from '../_support/test-resource';
 import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';
@@ -226,6 +227,23 @@ describe('remdo api app', () => {
 
     expect(response.status).toBe(HTTP_STATUS.NOT_FOUND);
     await expect(response.json()).resolves.toEqual({ error: 'Source server not found.' });
+  });
+
+  it('omits credential-less (unregistered) sources from the user source-server projection', async () => {
+    // An admin can add a source before completing register-home; that row has no
+    // credentials and no OAuth provider, so it must not appear in a user's
+    // linkable-source list — a Link on it would fail with no provider.
+    const harness = createHarness({
+      sourceServers: [
+        TEST_SOURCE_SERVER,
+        { id: 'pending', label: 'Pending Source', baseUrl: 'https://pending.example', credentials: null },
+      ],
+    });
+    const headers = await harness.createSessionHeaders();
+
+    const projected = await listCurrentUserSourceServers(harness.auth, headers);
+
+    expect(projected.map((server) => server.id)).toEqual([TEST_SOURCE_SERVER.id]);
   });
 
   it('proxies linked source current-user bootstrap with the stored source token', async () => {

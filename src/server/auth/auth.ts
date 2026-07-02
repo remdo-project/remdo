@@ -36,11 +36,16 @@ export const REMDO_SERVER_OAUTH_SCOPES = [
 // over https unless the host is loopback (localhost / .localhost / ::1 / 127.*),
 // so the home must classify the same way or requireIssuerValidation rejects the
 // token as an issuer mismatch.
+// Matches the 127.0.0.0/8 loopback block by shape (four numeric octets, first
+// 127), not by textual prefix — `127.example.com` is a public DNS name, not
+// loopback, and must not skip the https upgrade.
+const IPV4_LOOPBACK_PATTERN = /^127(?:\.\d{1,3}){3}$/u;
+
 function isLoopbackForDevScheme(hostname: string): boolean {
   return hostname === 'localhost'
     || hostname.endsWith('.localhost')
     || hostname === '::1'
-    || hostname.startsWith('127.');
+    || IPV4_LOOPBACK_PATTERN.test(hostname);
 }
 
 export function normalizeSourceIssuer(baseUrl: string): string {

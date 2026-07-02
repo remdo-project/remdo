@@ -20,15 +20,20 @@ async function submitConsent(accept: boolean): Promise<void> {
   const response = await fetch('/api/auth/oauth2/consent', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
+    credentials: 'same-origin',
     body: JSON.stringify({ accept, oauth_query: readOAuthQuery() }),
   });
   const data = await response.json().catch(() => ({})) as { error?: string; redirect?: boolean; url?: string };
   if (!response.ok) {
     throw new Error(data.error ?? 'Consent request failed.');
   }
-  if (data.url) {
-    globalThis.location.assign(data.url);
+  // A successful consent must hand back a redirect target; without one there is
+  // nowhere to go, so surface it as an error rather than leaving the buttons
+  // stuck in their loading state with no feedback.
+  if (!data.url) {
+    throw new Error('Consent did not return a redirect target.');
   }
+  globalThis.location.assign(data.url);
 }
 
 export default function OAuthConsentRoute() {

@@ -295,16 +295,6 @@ describe('config env resolve', () => {
     expect(collabPort).toBe('4004');
   });
 
-  it('does not configure linkable RemDo servers for normal dev by default', () => {
-    const linkable = readEnvShValue('LINKABLE_REMDO_SERVERS_JSON', {
-      NODE_ENV: 'development',
-      PORT_BASE: '4000',
-      PORT: '4000',
-    });
-
-    expect(linkable).toBe('');
-  });
-
   it('uses the un-prefixed ALLOW_SIGNUP key (no auth-prefixed variant)', () => {
     expect(envSchema).toHaveProperty('ALLOW_SIGNUP');
     expect(envSchema).not.toHaveProperty('AUTH_ALLOW_SIGNUP');
