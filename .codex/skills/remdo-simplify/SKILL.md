@@ -1,6 +1,8 @@
 ---
 name: remdo-simplify
 description: Use only when explicitly requested — e.g. "run a simplify review", "find simplifications", "what could be simpler here", or a `remdo-refine`-style loop calling for its read-only simplify finder. Runs a read-only RemDo simplification review over a selected diff, reporting code, test, and documentation opportunities to make the end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Does not edit files, stage, commit, or run mutating checks.
+context: fork
+agent: Explore
 ---
 
 # RemDo Simplify
@@ -20,7 +22,10 @@ Avoid speculative architecture and personal style preferences.
 
 The pass is intentionally read-only so it can serve as an independent
 simplification finder — for a `remdo-refine`-style quality loop, or run standalone
-before an editing pass.
+before an editing pass. The frontmatter's `context: fork` + `agent: Explore`
+(Claude Code) runs it in a fresh, edit-tool-free context, so the review never
+inherits the caller's implementation memory; a runtime that ignores those keys
+should be given the same isolation by the caller (a fresh subagent).
 
 ## Non-goals
 
@@ -144,8 +149,10 @@ Look for opportunities to:
 
 ### Docs and skill files
 
-For touched docs and skills, read the whole file, not just the hunk. Then apply
-the RemDo documentation invariants:
+For touched docs and skills, read each file whole — in load order (entry doc →
+its dependencies → the file), not just the hunk; whole-file reading is what
+catches redundancy against unchanged upstream text. Then apply the RemDo
+documentation invariants:
 
 - Keep each behavior and precise term single-sourced.
 - Keep behavior self-contained, but link to a shared rule instead of restating it
