@@ -36,8 +36,14 @@ env AUTH_URL="${SOURCE_ORIGIN}" pnpm run dev:users
 echo "Starting OAuth home: ${HOME_ORIGIN}"
 echo "OAuth home alias: ${HOME_LOCALHOST_ORIGIN}"
 echo "OAuth source: ${SOURCE_ORIGIN}"
-echo "Add + register the source from the home admin panel at ${HOME_ORIGIN}/admin,"
-echo "then link a user account against it."
+# The source must advertise the SAME host-IP origin the home links it by, or
+# Better Auth rejects host-IP requests as an invalid origin. A plain
+# `HOST=0.0.0.0 pnpm run dev` derives AUTH_URL=http://localhost:PORT, so the
+# source needs AUTH_URL set explicitly.
+echo "Start the source dev server with:"
+echo "  HOST=0.0.0.0 AUTH_URL=${SOURCE_ORIGIN} pnpm run dev"
+echo "Then add + register the source from the home admin panel at ${HOME_ORIGIN}/admin,"
+echo "and link a user account against it."
 echo "Tunnel from a remote browser host: tools/remote/open-remdo-tunnel.sh <user>@<host>:${PORT_BASE}"
 
 cleanup_home_container

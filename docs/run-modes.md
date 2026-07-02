@@ -118,10 +118,13 @@ per-mode facts.
   beside `pnpm run dev`. `pnpm run dev:docker` starts a Docker home server at
   `127.0.0.1:(PORT_BASE + 40)` for manual source linking against the dev server,
   and redirects the matching `localhost` URL to that canonical browser origin.
-  Start the source dev server with `HOST=0.0.0.0 pnpm run dev` so the Docker
-  home can reach it; the source is linked by its host-IP origin (shared by the
-  browser and the container), and the home is registered on it through the
-  home's `/admin` panel — not preconfigured.
+  The source is linked by its host-IP origin (shared by the browser and the
+  container), so start the source dev server advertising that origin —
+  `HOST=0.0.0.0 AUTH_URL=http://<host-ip>:<PORT> pnpm run dev` (the `dev:docker`
+  output prints the exact command). A plain `HOST=0.0.0.0 pnpm run dev` derives a
+  `localhost` `AUTH_URL` and Better Auth then rejects the host-IP requests. The
+  home is registered on the source through the home's `/admin` panel — not
+  preconfigured.
   Current dev mode runs the web app with the RemDo API mounted in the Vite dev
   server, plus the Y-Sweet collaboration server. Server modes run the standalone
   API server with Better Auth plus a SQLite-backed document registry.
