@@ -32,10 +32,6 @@ export const envSchema = {
   APP_PUBLIC_URL: str,
   // Canonical auth URL. tools/env.defaults.sh derives this for local dev modes.
   AUTH_URL: str,
-  // Stable dev-only OAuth client used by the Docker home server to link the dev source server.
-  REMDO_DEV_OAUTH_CLIENT_ID: str,
-  REMDO_DEV_OAUTH_CLIENT_SECRET: str,
-  REMDO_DEV_HOME_ORIGIN: str,
   // Product signup policy. tools/env.defaults.sh sets true outside production.
   ALLOW_SIGNUP: boolish,
   PREVIEW_PORT: port,

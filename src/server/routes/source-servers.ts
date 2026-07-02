@@ -21,10 +21,6 @@ function resolveSourceErrorStatus(upstreamStatus: number): 401 | 403 | 404 | 500
     : HTTP_STATUS.INTERNAL_SERVER_ERROR;
 }
 
-function resolveSourceServerApiOrigin(server: { baseUrl: string }): string {
-  return server.baseUrl;
-}
-
 export function createSourceServerRoutes({
   auth,
   logError,
@@ -77,7 +73,7 @@ export function createSourceServerRoutes({
         return access;
       }
 
-      const response = await fetch(`${resolveSourceServerApiOrigin(access.server)}/api/current-user`, {
+      const response = await fetch(`${access.server.baseUrl}/api/current-user`, {
         headers: {
           authorization: `Bearer ${access.accessToken}`,
         },
@@ -107,7 +103,7 @@ export function createSourceServerRoutes({
         return access;
       }
 
-      const response = await fetch(`${resolveSourceServerApiOrigin(access.server)}/api/documents/${
+      const response = await fetch(`${access.server.baseUrl}/api/documents/${
         encodeURIComponent(normalizedDocId)
       }/sync-tokens`, {
         method: 'POST',

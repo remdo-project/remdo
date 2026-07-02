@@ -14,8 +14,6 @@ function resolveTestConfig(values: EnvValues, options?: Parameters<typeof resolv
 function readEnvShValue(name: string, overrides: NodeJS.ProcessEnv): string {
   const env = { ...process.env, ...overrides };
   delete env.AUTH_URL;
-  delete env.LINKABLE_REMDO_SERVERS_JSON;
-  delete env.REMDO_DEV_HOME_ORIGIN;
   // The dev shell exports already-derived ports; drop them so env.sh re-derives
   // from the overridden PORT_BASE instead of echoing the inherited value.
   delete env.COLLAB_SERVER_PORT;

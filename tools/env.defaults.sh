@@ -40,9 +40,6 @@ if [ -z "${YSWEET_SERVER_TOKEN:-}" ] && [ "${NODE_ENV}" != "production" ]; then
   YSWEET_SERVER_TOKEN="AAAgOkIiPro6W2lCzxyW6BDQkuOmTVSfs0MZh-4PGTM_st0"
 fi
 
-: "${REMDO_DEV_OAUTH_CLIENT_ID:=remdo-home-dev}"
-: "${REMDO_DEV_OAUTH_CLIENT_SECRET:=remdo-dev-client-secret-0123456789}"
-: "${REMDO_DEV_HOME_ORIGIN:=http://localhost:${PORT}}"
 # AUTH_URL is not derived here: the TS config owner (config/env/resolve.ts)
 # computes the identical dev value (http://<host>:<PORT>) and is the single
 # source every consumer reads through config.env.AUTH_URL.
@@ -101,5 +98,3 @@ export NODE_ENV HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI V
 export HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT API_SERVER_PORT YSWEET_CONNECTION_STRING
 export PREVIEW_PORT PLAYWRIGHT_UI_PORT
 export AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_PUBLIC_URL ALLOW_SIGNUP
-export REMDO_DEV_HOME_ORIGIN
-export REMDO_DEV_OAUTH_CLIENT_ID REMDO_DEV_OAUTH_CLIENT_SECRET
