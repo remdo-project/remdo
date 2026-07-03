@@ -28,6 +28,9 @@ describe('stored user data', () => {
   beforeEach(() => {
     vi.doUnmock('#config');
     vi.resetModules();
+    // The runtime only starts loading when a session is remembered (start()
+    // no-ops otherwise); these tests exercise the authenticated runtime.
+    globalThis.localStorage.setItem('remdo-authenticated-session', '1');
     let createdDocumentCount = 0;
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       if (String(input) === '/api/documents') {
@@ -56,6 +59,7 @@ describe('stored user data', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    globalThis.localStorage.clear();
   });
 
   const listDocuments = (userData: UserDataNote) =>
@@ -333,6 +337,22 @@ describe('stored user data', () => {
     expect(listDocuments(eagerUserData)).toEqual([
       { id: 'recovered-doc', title: 'Recovered Document' },
     ]);
+  });
+
+  it('does not start loading without a remembered session', async () => {
+    // The app shell now hosts /admin, reachable unauthenticated for enrollment;
+    // starting the runtime there must not fetch user data (it would 401).
+    globalThis.localStorage.clear();
+    const collab = mockCollabSessions();
+    const { startUserDataRuntime } = await import('#client/app/documents/stored-user-data');
+    const fetchMock = vi.mocked(fetch);
+
+    startUserDataRuntime();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(collab.sessions).toHaveLength(0);
+    expect(fetchMock.mock.calls.filter(([input]) => String(input) === '/api/current-user')).toHaveLength(0);
   });
 
   it('destroys the failed startup session before retrying', async () => {

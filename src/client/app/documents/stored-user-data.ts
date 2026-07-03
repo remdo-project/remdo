@@ -3,6 +3,7 @@ import * as Y from 'yjs';
 import { CollabSession } from '#collaboration/session';
 import { waitForSessionAttachment } from '#collaboration/wait-for-session-attachment';
 import { resolveApiServerOrigin, resolveAppOrigin } from '#platform/net/origins';
+import { hasRememberedSession } from '#client/app/auth/client';
 import { linkSourceServerAccount } from '#client/app/auth/source-server-linking-client';
 import { shareDocumentWithUser } from '#client/app/documents/sharing-client';
 import { createSourceDocumentSyncTokenApiPath } from '#document-routes';
@@ -110,6 +111,13 @@ class StoredUserDataStore {
   private generation = 0;
 
   start(): void {
+    // Without a remembered session there is nothing to load — fetching
+    // /api/current-user would just 401. This matters now that the app shell
+    // (which starts the runtime) also hosts /admin, reachable unauthenticated for
+    // first-admin enrollment. A later sign-in restarts the runtime via reset().
+    if (!hasRememberedSession()) {
+      return;
+    }
     const generation = this.generation;
     void this.ensureReady(generation).catch(() => {
       if (this.generation === generation) {

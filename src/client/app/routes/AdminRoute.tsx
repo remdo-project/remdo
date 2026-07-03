@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import { rememberAuthenticatedSession } from '#client/app/auth/client';
 import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
+import { resetUserData } from '#client/app/documents/user-data';
 import AdminSourceServersRoute from './AdminSourceServersRoute';
 import type { AdminRouteState } from './admin-route-loader';
 import { resolveAdminEnrollPostCreateDestination } from './admin-enroll-post-create-destination';
@@ -51,9 +52,13 @@ function EnrollForm() {
       }
 
       rememberAuthenticatedSession();
-      // Enrollment created + signed in a new admin, so the cached bootstrap is
-      // stale — clear it so the next /api/current-user read reflects the new user.
+      // Enrollment created + signed in a new admin, so the cached bootstrap and
+      // the user-data runtime are stale (they may reflect no session, or a prior
+      // user). Clear the cache and reset the runtime so it reloads as the new
+      // admin — important now that /admin lives inside the app shell, where the
+      // runtime may already be running.
       clearCurrentUserBootstrapCache();
+      resetUserData();
       const destination = resolveAdminEnrollPostCreateDestination(location.search, globalThis.location.origin);
       if (destination.kind === 'assign') {
         globalThis.location.assign(destination.href);

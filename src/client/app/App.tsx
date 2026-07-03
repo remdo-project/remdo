@@ -40,17 +40,21 @@ export default function App() {
             {isAdmin && (
               <Anchor
                 className="app-header-link"
-                href="/admin"
+                component={Link}
+                to="/admin"
               >
                 Admin
               </Anchor>
             )}
             <Anchor
               className="app-header-link"
-              href="/sharing"
+              component={Link}
+              to="/sharing"
             >
               Sharing
             </Anchor>
+            {/* Logout deliberately leaves the app shell (it tears down local
+                state and ends at /login), so a full navigation is correct here. */}
             <Anchor
               className="app-header-link"
               href="/logout"

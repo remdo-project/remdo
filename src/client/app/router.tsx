@@ -50,6 +50,13 @@ async function requireAuthenticatedRoute(request: Request) {
     return null;
   }
 
+  // /admin is inside the app shell but must stay reachable unauthenticated so a
+  // first-time operator can enroll (its own loader renders the enroll form when
+  // there is no admin session); the action itself is ADMIN_SECRET-gated server-side.
+  if (new URL(request.url).pathname === '/admin') {
+    return null;
+  }
+
   throw redirect(`/login${createPostAuthNextSearch(request)}`);
 }
 
@@ -145,12 +152,6 @@ const routes = [
     hydrateFallbackElement,
   },
   {
-    path: '/admin',
-    loader: adminRouteLoader,
-    element: <AdminRoute />,
-    hydrateFallbackElement,
-  },
-  {
     // Source-side consent screen: shown when a home's user authorizes the home to
     // act on their behalf. Reachable only with a source session.
     path: '/oauth/consent',
@@ -195,6 +196,14 @@ const routes = [
       {
         path: 'sharing',
         element: <SharingRoute />,
+      },
+      {
+        // Admin panel lives inside the app shell so the toolbar renders and the
+        // user-data runtime stays live (role + source list stay fresh without a
+        // reload). Its loader still gates on the admin role (else the enroll form).
+        path: 'admin',
+        loader: adminRouteLoader,
+        element: <AdminRoute />,
       },
     ],
   },
