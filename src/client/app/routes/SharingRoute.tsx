@@ -23,14 +23,8 @@ export default function SharingRoute() {
     if (!activeDocument) {
       return;
     }
-    const email = shareEmail.trim();
-    if (!email) {
-      setErrorMessage('Enter a user email.');
-      return;
-    }
-
     try {
-      await activeDocument.shareWith(email);
+      await activeDocument.shareWith(shareEmail.trim());
       setShareEmail('');
       setStatus('Document shared.');
       setErrorMessage(null);
@@ -57,21 +51,27 @@ export default function SharingRoute() {
         </Alert>
       )}
 
-      <Group align="end">
-        <Select
-          data={documentOptions}
-          label="Document"
-          value={selectedDocId}
-          onChange={setSelectedDocId}
-        />
-        <TextInput
-          label="User email"
-          type="email"
-          value={shareEmail}
-          onChange={(event) => setShareEmail(event.currentTarget.value)}
-        />
-        <Button onClick={() => void shareDocument()}>Share</Button>
-      </Group>
+      <form onSubmit={(event) => {
+        event.preventDefault();
+        void shareDocument();
+      }}>
+        <Group align="end">
+          <Select
+            data={documentOptions}
+            label="Document"
+            value={selectedDocId}
+            onChange={setSelectedDocId}
+          />
+          <TextInput
+            label="User email"
+            required
+            type="email"
+            value={shareEmail}
+            onChange={(event) => setShareEmail(event.currentTarget.value)}
+          />
+          <Button disabled={!activeDocument} type="submit">Share</Button>
+        </Group>
+      </form>
 
       <Stack gap="xs">
         {visibleAccess.map((access) => (

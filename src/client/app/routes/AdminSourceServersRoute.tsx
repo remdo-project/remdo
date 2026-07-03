@@ -188,18 +188,25 @@ export default function AdminSourceServersRoute() {
             </Button>
           )}
 
-          <Group align="end" gap="sm">
-            <TextInput
-              label="Source server URL"
-              onChange={(event) => setUrl(event.currentTarget.value)}
-              placeholder="https://remdo.com"
-              style={{ flex: 1 }}
-              value={url}
-            />
-            <Button disabled={!url.trim()} loading={pending} onClick={addAndRegister}>
-              Register
-            </Button>
-          </Group>
+          <form onSubmit={(event) => {
+            event.preventDefault();
+            addAndRegister();
+          }}>
+            <Group align="end" gap="sm">
+              <TextInput
+                label="Source server URL"
+                onChange={(event) => setUrl(event.currentTarget.value)}
+                placeholder="https://remdo.com"
+                required
+                style={{ flex: 1 }}
+                type="url"
+                value={url}
+              />
+              <Button disabled={!url.trim()} loading={pending} type="submit">
+                Register
+              </Button>
+            </Group>
+          </form>
 
           {servers?.length === 0 && <Text c="dimmed" size="sm">No source servers configured.</Text>}
           {servers?.map((server) => (
