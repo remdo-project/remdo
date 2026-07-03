@@ -43,7 +43,7 @@ Phase 3 branches from another.
 1. **Tree clean of unrelated changes first.** Apply the Phase-3 "no unrelated
    changes" check *now*, before the fast-forward below can touch the tree — a
    fast-forward would otherwise silently advance a checkout the run should have
-   stopped on. Pre-existing unrelated edits → stop (as in Phase 3).
+   stopped on. Pre-existing unrelated edits → stop.
 2. `git fetch`, then compare the current branch (usually `dev`) to `origin/main`:
    - **Ahead** (`git rev-list origin/main..HEAD` non-empty) — the branch holds
      committed work not yet in `origin/main`. The fork carries only the
@@ -54,7 +54,9 @@ Phase 3 branches from another.
    - **Behind** (`git rev-list HEAD..origin/main` non-empty, and *not* also
      ahead) — merely stale. **Fast-forward to `origin/main`** (`git merge
      --ff-only origin/main`); safe (no rewrite, no merge commit, nothing lost) and
-     makes the design base match the fork base.
+     makes the design base match the fork base. If the FF refuses because
+     flow-owned dirty files were also touched upstream, stop and surface it (as
+     for *ahead*).
    - **Diverged** (both ahead and behind) — FF is impossible; treat as *ahead* and
      stop.
    - **Even** — proceed.
@@ -171,12 +173,12 @@ above already ensured the tree holds only this flow's changes).
    than writing ad hoc.
 3. **The loop's exit is an independent spec-compliance read, not
    self-assessment.** When the loop believes the spec's described state is
-   reached, dispatch a **fresh subagent** given the spec (the branch's `docs/`
-   changes — Phase 3's sense) and the branch diff (`origin/main...HEAD` plus any
-   uncommitted work, untracked files included), free to read the rest of the
-   repo for cross-checking (except `.agent/`, where the plan lives) but
-   carrying neither the plan nor this session's memory, to report divergences
-   both ways: specified but not built, and built but not specified. Fix real
+   reached, dispatch a **fresh subagent** to report divergences both ways:
+   specified but not built, and built but not specified. Give it the spec (the
+   branch's `docs/` changes — Phase 3's sense) and the branch diff
+   (`origin/main...HEAD` plus any uncommitted work, untracked files included);
+   it may read the rest of the repo for cross-checking (except `.agent/`, where
+   the plan lives) but carries neither the plan nor this session's memory. Fix real
    gaps (the loop continues); document or remove what is built but unspecified
    (the docs are the target reality); a deliberate deferral goes to
    `docs/todo.md` (invariant #9). The loop exits when this read comes back clean
@@ -307,17 +309,14 @@ merge-base, it diffs against the wrong point.) **Default all mid-work and
 end-of-work diff/review checks to this merge-base.**
 
 **Creating the branch** (Phase 3) forks from the **base SHA pinned at
-preflight** (step 3 there) — the exact state the spec was designed against —
-*not* a freshly re-fetched `origin/main`, which may have advanced mid-flow and
-would split the fork base from the design base again. The preflight base check
-left the current branch even with that SHA, so only the **uncommitted spec
-edits** need to carry across:
-
-- Create the branch with `git switch --merge -c <name> <pinned-base-sha>`.
-  `--merge` carries the uncommitted spec edits onto the new base (a plain `git
-  switch -c` would **abort and strand the spec** if a spec-touched file differed);
-  since the current branch is already at the pinned base, a conflict is not
-  expected.
+preflight** (step 3 there — the pin is what keeps the fork base equal to the
+design base). The preflight base check left the current branch even with that
+SHA, so only the **uncommitted spec edits** need to carry across. Create the
+branch with `git switch --merge -c <name> <pinned-base-sha>`. `--merge` carries
+the spec edits onto the new base (with drift, a plain `git switch -c` would
+**abort and strand the spec**, and `--merge` itself refuses *staged* edits —
+clear the drift rather than un-staging); since the current branch is already at
+the pinned base, neither is expected.
 
 This flow forks task branches from `origin/main` only. Stacked/dependent branches
 (forking off another in-progress branch) are out of scope — they would make
@@ -340,10 +339,10 @@ Choose by the *activity*, not the phase number:
 - **Autonomous execution (phase 4) and Research spikes: subagent-eligible** —
   your call by the independence test: dispatch subagents only for genuinely
   parallel, independent chunks (no shared state, no sequential dependency); stay
-  inline otherwise. (The Phase-4 exit read is outside this call — its step
-  mandates the fresh-subagent dispatch for memory isolation.) Deferred to
-  runtime because the input (the actual dependency
-  graph) does not exist until then. Research spikes are subagent-eligible even
+  inline otherwise. Deferred to runtime because the input (the actual dependency
+  graph) does not exist until then. (A step that itself mandates a dispatch —
+  the Phase-4 exit read — is outside this call.) Research spikes are
+  subagent-eligible even
   when triggered from dialog, because the spike itself is autonomous work, not
   conversation.
 
