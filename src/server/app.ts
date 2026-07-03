@@ -4,7 +4,12 @@ import { HTTP_STATUS } from '#platform/http/status';
 import type { ServerAuth } from './auth/auth';
 import { createYSweetDocumentTokenManager } from './collab-token';
 import type { YSweetDocumentTokenManager } from './collab-token';
+import type { SqliteServerDatabaseClient } from './db/client';
 import type { DocumentRegistry } from './documents/document-registry';
+import { createRegistrationCodeStore } from './remdo-oauth/registration-codes';
+import { createRegistrationHandleStore } from './remdo-oauth/registration-handles';
+import type { RegistrationCodeStore } from './remdo-oauth/registration-codes';
+import type { RegistrationHandleStore } from './remdo-oauth/registration-handles';
 import { createApiRoutes } from './routes/api';
 import { createAuthRoutes } from './routes/auth';
 import { createWellKnownRoutes } from './routes/well-known';
@@ -12,6 +17,10 @@ import { createWellKnownRoutes } from './routes/well-known';
 interface ServerAppOptions {
   adminSecret?: string;
   auth: ServerAuth;
+  database: SqliteServerDatabaseClient;
+  rebuildAuth?: () => void;
+  registrationCodes?: RegistrationCodeStore;
+  registrationHandles?: RegistrationHandleStore;
   tokenManager?: YSweetDocumentTokenManager;
   registry: DocumentRegistry;
   logError?: (error: unknown, details: { docId?: string }) => void;
@@ -27,6 +36,10 @@ function defaultLogError(error: unknown, details: { docId?: string }) {
 export function createServerApp({
   adminSecret = config.env.ADMIN_SECRET,
   auth,
+  database,
+  rebuildAuth = () => {},
+  registrationCodes = createRegistrationCodeStore(),
+  registrationHandles = createRegistrationHandleStore(),
   tokenManager = createYSweetDocumentTokenManager(),
   registry,
   logError = defaultLogError,
@@ -35,7 +48,11 @@ export function createServerApp({
   const dependencies = {
     adminSecret,
     auth,
+    database,
     logError,
+    rebuildAuth,
+    registrationCodes,
+    registrationHandles,
     registry,
     tokenManager,
   };

@@ -83,7 +83,19 @@ remdo_docker_run() {
 
   mkdir -p "${data_dir}"
 
-  docker_args+=(-p "${PORT}:${PORT}")
+  # Host networking shares the host's network namespace (so the container reaches
+  # host services like a linked source at the same origin the browser uses) and
+  # is incompatible with `-p`; only publish the port when not on host networking.
+  local uses_host_network="false"
+  for arg in "${docker_args[@]}"; do
+    if [[ "${arg}" == "--network=host" || "${arg}" == "--net=host" ]]; then
+      uses_host_network="true"
+      break
+    fi
+  done
+  if [[ "${uses_host_network}" != "true" ]]; then
+    docker_args+=(-p "${PORT}:${PORT}")
+  fi
 
   docker run "${docker_args[@]}" \
     -v "${data_dir}:/app/data" \

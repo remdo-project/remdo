@@ -21,10 +21,6 @@ function resolveSourceErrorStatus(upstreamStatus: number): 401 | 403 | 404 | 500
     : HTTP_STATUS.INTERNAL_SERVER_ERROR;
 }
 
-function resolveSourceServerApiOrigin(server: { baseUrl: string; tokenBaseUrl?: string }): string {
-  return server.tokenBaseUrl ?? server.baseUrl;
-}
-
 export function createSourceServerRoutes({
   auth,
   logError,
@@ -32,7 +28,7 @@ export function createSourceServerRoutes({
   const routes = new Hono();
 
   async function resolveSourceAccess(request: Request, serverId: string) {
-    const server = auth.linkableRemdoServers.find((candidate) => candidate.id === serverId);
+    const server = auth.sourceServers.find((candidate) => candidate.id === serverId);
     if (!server) {
       return { kind: 'not-found' as const };
     }
@@ -77,7 +73,7 @@ export function createSourceServerRoutes({
         return access;
       }
 
-      const response = await fetch(`${resolveSourceServerApiOrigin(access.server)}/api/current-user`, {
+      const response = await fetch(`${access.server.baseUrl}/api/current-user`, {
         headers: {
           authorization: `Bearer ${access.accessToken}`,
         },
@@ -107,7 +103,7 @@ export function createSourceServerRoutes({
         return access;
       }
 
-      const response = await fetch(`${resolveSourceServerApiOrigin(access.server)}/api/documents/${
+      const response = await fetch(`${access.server.baseUrl}/api/documents/${
         encodeURIComponent(normalizedDocId)
       }/sync-tokens`, {
         method: 'POST',
@@ -132,7 +128,7 @@ export function createSourceServerRoutes({
 
   routes.post('/:serverId/account-links', async (c) => {
     const serverId = c.req.param('serverId');
-    const server = auth.linkableRemdoServers.find((candidate) => candidate.id === serverId);
+    const server = auth.sourceServers.find((candidate) => candidate.id === serverId);
     if (!server) {
       return c.json({ error: 'Source server not found.' }, HTTP_STATUS.NOT_FOUND);
     }

@@ -1,26 +1,26 @@
 import { Alert, Button, Container, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useState } from 'react';
 import { useLoaderData, useLocation, useNavigate } from 'react-router-dom';
+import AuthenticatedApp from '#client/app/AuthenticatedApp';
 import { rememberAuthenticatedSession } from '#client/app/auth/client';
 import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
+import { resetUserData } from '#client/app/documents/user-data';
+import AdminSourceServersRoute from './AdminSourceServersRoute';
 import type { AdminRouteState } from './admin-route-loader';
 import { resolveAdminEnrollPostCreateDestination } from './admin-enroll-post-create-destination';
 
+// /admin is public: an authenticated admin gets the panel inside the app shell
+// (chrome + live user-data runtime); anyone else gets the enroll form, rendered
+// bare — no shell, so no runtime/user-data fetch is attempted for a visitor who
+// has no session.
 export default function AdminRoute() {
   const state = useLoaderData<AdminRouteState>();
 
   if (state.kind === 'admin') {
     return (
-      <Container size="xs" py="xl">
-        <Paper withBorder p="xl" radius="md">
-          <Stack gap="xs">
-            <Title order={1}>Admin</Title>
-            <Text c="dimmed" size="sm">
-              You are an admin. The admin panel arrives with source-server linking.
-            </Text>
-          </Stack>
-        </Paper>
-      </Container>
+      <AuthenticatedApp>
+        <AdminSourceServersRoute />
+      </AuthenticatedApp>
     );
   }
 
@@ -60,10 +60,16 @@ function EnrollForm() {
       }
 
       rememberAuthenticatedSession();
-      // Enrollment created + signed in a new admin, so the cached bootstrap is
-      // stale — clear it so the next /api/current-user read reflects the new user.
+      // Enrollment always creates + signs in a NEW account, so the cached
+      // bootstrap and the live user-data runtime belong to the previous identity
+      // (no session, or a signed-in non-admin who enrolled). Clear the cache and
+      // reset the runtime; otherwise a runtime already `ready` from the prior user
+      // would keep serving their data — mounting the shell alone does not reload
+      // it, since start()/ensureReady() no-op when already ready. The next mount
+      // (or getUserData) then loads as the new admin.
       clearCurrentUserBootstrapCache();
-      const destination = await resolveAdminEnrollPostCreateDestination(location.search, globalThis.location.origin);
+      resetUserData();
+      const destination = resolveAdminEnrollPostCreateDestination(location.search, globalThis.location.origin);
       if (destination.kind === 'assign') {
         globalThis.location.assign(destination.href);
         return;

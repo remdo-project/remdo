@@ -6,6 +6,7 @@ import { config } from '#config';
 import {
   CREATE_DOCUMENT_ACCESS_TABLE_SQL,
   CREATE_DOCUMENTS_TABLE_SQL,
+  CREATE_SOURCE_SERVERS_TABLE_SQL,
   DOCUMENTS_TABLE_COLUMNS,
 } from './schema';
 import type { RemdoDatabase } from './schema';
@@ -36,37 +37,27 @@ function tableExists(sqlite: Database.Database, tableName: string): boolean {
   return Boolean(row);
 }
 
-function assertDocumentsTableShape(sqlite: Database.Database): void {
-  const rows = sqlite
-    .prepare('PRAGMA table_info(documents)')
-    .all() as Array<{ name: string }>;
-  const expectedColumns = new Set<string>(DOCUMENTS_TABLE_COLUMNS);
-  const columnNames = new Set(rows.map((row) => row.name));
-  const missingColumns = DOCUMENTS_TABLE_COLUMNS.filter((column) => !columnNames.has(column));
-  const unexpectedColumns = [...columnNames].filter((column) => !expectedColumns.has(column));
-  if (missingColumns.length === 0 && unexpectedColumns.length === 0) {
-    return;
-  }
-
-  throw new Error(
-    `Unsupported documents table schema. Reset local SQL data before starting RemDo. Missing columns: ${missingColumns.join(', ') || 'none'}. Unexpected columns: ${unexpectedColumns.join(', ') || 'none'}.`
+// Raise a clear "reset local SQL data" error when an on-disk table's columns
+// don't match the current schema — so a stale dev DB fails loudly at startup
+// rather than with cryptic constraint errors on the first write.
+function assertTableShape(
+  sqlite: Database.Database,
+  tableName: string,
+  expectedColumns: readonly string[],
+): void {
+  const columnNames = new Set(
+    (sqlite.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>)
+      .map((row) => row.name),
   );
-}
-
-function assertDocumentAccessTableShape(sqlite: Database.Database): void {
-  const rows = sqlite
-    .prepare('PRAGMA table_info(document_access)')
-    .all() as Array<{ name: string }>;
-  const expectedColumns = new Set(['document_id', 'grantee_user_id']);
-  const columnNames = new Set(rows.map((row) => row.name));
-  const missingColumns = [...expectedColumns].filter((column) => !columnNames.has(column));
-  const unexpectedColumns = [...columnNames].filter((column) => !expectedColumns.has(column));
+  const expected = new Set(expectedColumns);
+  const missingColumns = expectedColumns.filter((column) => !columnNames.has(column));
+  const unexpectedColumns = [...columnNames].filter((column) => !expected.has(column));
   if (missingColumns.length === 0 && unexpectedColumns.length === 0) {
     return;
   }
 
   throw new Error(
-    `Unsupported document_access table schema. Reset local SQL data before starting RemDo. Missing columns: ${missingColumns.join(', ') || 'none'}. Unexpected columns: ${unexpectedColumns.join(', ') || 'none'}.`
+    `Unsupported ${tableName} table schema. Reset local SQL data before starting RemDo. Missing columns: ${missingColumns.join(', ') || 'none'}. Unexpected columns: ${unexpectedColumns.join(', ') || 'none'}.`
   );
 }
 
@@ -77,16 +68,20 @@ function ensureDocumentsTable(sqlite: Database.Database): void {
     return;
   }
 
-  assertDocumentsTableShape(sqlite);
+  assertTableShape(sqlite, 'documents', DOCUMENTS_TABLE_COLUMNS);
   sqlite.exec(CREATE_DOCUMENTS_TABLE_SQL);
 }
 
 function ensureDocumentAccessTable(sqlite: Database.Database): void {
-  const hasDocumentAccessTable = tableExists(sqlite, 'document_access');
-  if (hasDocumentAccessTable) {
-    assertDocumentAccessTableShape(sqlite);
+  if (tableExists(sqlite, 'document_access')) {
+    assertTableShape(sqlite, 'document_access', ['document_id', 'grantee_user_id']);
   }
   sqlite.exec(CREATE_DOCUMENT_ACCESS_TABLE_SQL);
+
+  if (tableExists(sqlite, 'source_servers')) {
+    assertTableShape(sqlite, 'source_servers', ['base_url', 'client_id', 'client_secret', 'created_at']);
+  }
+  sqlite.exec(CREATE_SOURCE_SERVERS_TABLE_SQL);
 }
 
 export function createSqliteServerDatabaseClient({
