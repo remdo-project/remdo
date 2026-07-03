@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto';
 // home issued). Handles are short-lived in-process state — registration is an
 // immediate interactive action, so durability across restarts is unnecessary.
 
-const HANDLE_TTL_MS = 10 * 60 * 1000;
+export const HANDLE_TTL_MS = 10 * 60 * 1000;
 
 interface PendingRegistration {
   sourceId: string;

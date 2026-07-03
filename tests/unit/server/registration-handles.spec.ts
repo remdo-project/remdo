@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRegistrationHandleStore } from '#server/remdo-oauth/registration-handles';
+import { HANDLE_TTL_MS, createRegistrationHandleStore } from '#server/remdo-oauth/registration-handles';
 
 describe('registration handle store', () => {
   it('issues a handle that consumes once for its source', () => {
@@ -25,12 +25,18 @@ describe('registration handle store', () => {
     expect(store.consume('never-issued', 'https-source-example')).toBe(false);
   });
 
-  it('rejects an expired handle', () => {
+  it('rejects a handle at its TTL boundary (expiry is exclusive)', () => {
     let clock = 1000;
     const store = createRegistrationHandleStore(() => clock);
     const handle = store.issue('https-source-example');
 
-    clock += 11 * 60 * 1000;
+    // Just short of the TTL: still valid.
+    clock += HANDLE_TTL_MS - 1;
+    expect(store.verify(handle, 'https-source-example')).toBe(true);
+    // Exactly at the TTL: expired (consume checks expiresAt > now, so the
+    // boundary is exclusive). Derived from the store's own TTL, not a re-guessed
+    // number, so this tracks the constant automatically.
+    clock += 1;
     expect(store.consume(handle, 'https-source-example')).toBe(false);
   });
 
