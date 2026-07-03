@@ -35,12 +35,9 @@ async function registerSource(page: Page): Promise<void> {
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/admin'));
   await expect(page.getByRole('heading', { name: 'Source servers' })).toBeVisible();
 
+  // Register adds the source and launches registration in one step, redirecting
+  // to the source's confirmation page (top-level nav).
   await page.getByLabel('Source server URL').fill(sourceOrigin);
-  await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.getByText(sourceHost, { exact: true })).toBeVisible();
-  await expect(page.getByText('Not registered')).toBeVisible();
-
-  // Register redirects to the source's confirmation page (top-level nav).
   await page.getByRole('button', { name: 'Register', exact: true }).click();
 
   // Not yet signed in on the source → its login, then back to the confirmation.

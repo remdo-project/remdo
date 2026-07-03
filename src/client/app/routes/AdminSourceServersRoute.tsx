@@ -100,21 +100,42 @@ export default function AdminSourceServersRoute() {
     setServers(loaded);
   };
 
-  const refresh = () => run(reloadServers);
+  // Load the configured sources on mount; the list is always shown, not gated
+  // behind a button. Errors surface via state, mirroring the action handlers.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const { servers: loaded } = await adminGet<{ servers: AdminSourceServer[] }>('/api/admin/source-servers');
+        setServers(loaded);
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : 'Source server request failed.');
+      }
+    })();
+  }, []);
 
-  const add = () => run(async () => {
-    await adminPost('/api/admin/source-servers', { url: url.trim() });
-    setUrl('');
-    await reloadServers();
-  });
-
-  const register = (id: string) => run(async () => {
+  const launchRegistration = async (id: string) => {
     const { redirectUrl } = await adminPost<{ redirectUrl: string }>(
       `/api/link/source-servers/${encodeURIComponent(id)}/register`,
     );
     // Top-level navigation so the admin's source session cookie rides along.
     globalThis.location.assign(redirectUrl);
+  };
+
+  // Add the source, then launch registration straight away — the common path is
+  // "add and register" in one step. If registration fails (or the source rejects
+  // it), the row is already added as Not registered, so its per-row Register
+  // button is the retry.
+  const addAndRegister = () => run(async () => {
+    const { server } = await adminPost<{ server: AdminSourceServer }>(
+      '/api/admin/source-servers',
+      { url: url.trim() },
+    );
+    setUrl('');
+    await reloadServers();
+    await launchRegistration(server.id);
   });
+
+  const register = (id: string) => run(() => launchRegistration(id));
 
   const remove = (id: string) => run(async () => {
     await adminPost(`/api/admin/source-servers/${encodeURIComponent(id)}/remove`);
@@ -143,9 +164,10 @@ export default function AdminSourceServersRoute() {
           <div>
             <Title order={1}>Source servers</Title>
             <Text c="dimmed" size="sm">
-              Add a RemDo server this instance may link to, then register this home
-              on it. Registering opens the source so you can sign in there; once it
-              completes, the source is immediately available to link.
+              Register this home on a RemDo server it may link to. Registering opens
+              the source so you can sign in there; once it completes, the source is
+              immediately available to link. Use a row's Register to retry or
+              re-register.
             </Text>
           </div>
 
@@ -165,9 +187,6 @@ export default function AdminSourceServersRoute() {
               Finish registering this home
             </Button>
           )}
-          <Button loading={pending} onClick={refresh} variant="light">
-            Load source servers
-          </Button>
 
           <Group align="end" gap="sm">
             <TextInput
@@ -177,8 +196,8 @@ export default function AdminSourceServersRoute() {
               style={{ flex: 1 }}
               value={url}
             />
-            <Button disabled={!url.trim()} loading={pending} onClick={add}>
-              Add
+            <Button disabled={!url.trim()} loading={pending} onClick={addAndRegister}>
+              Register
             </Button>
           </Group>
 

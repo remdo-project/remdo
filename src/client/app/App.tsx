@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Link, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import headerStyles from './styles/AppHeader.module.css';
 import { config } from '#config';
-import { startUserData } from './documents/user-data';
+import { startUserData, useCurrentUserRole } from './documents/user-data';
 import { createDocumentPath, parseDocumentRef } from '#document-routes';
 import VanillaLexicalEditor from '#client/editor/dev/VanillaLexicalEditor';
 import { DevToolbarLinks } from './routes/DevToolbar';
@@ -17,6 +17,9 @@ export default function App() {
   const showVanillaLexical = config.isDevOrTest && searchParams.has('lexicalDemo');
   const parsedRef = parseDocumentRef(docRef);
   const currentDocumentPath = parsedRef ? createDocumentPath(parsedRef.docId) : '/home';
+  // Surface the admin panel link only to admins; route access stays enforced
+  // server-side. Reactive to the bootstrap load so it appears once the role is known.
+  const isAdmin = useCurrentUserRole() === 'admin';
 
   return (
     <Container size="xl" py="xl">
@@ -34,6 +37,14 @@ export default function App() {
         </Group>
         <nav>
           <Group gap="md" className="app-header-links">
+            {isAdmin && (
+              <Anchor
+                className="app-header-link"
+                href="/admin"
+              >
+                Admin
+              </Anchor>
+            )}
             <Anchor
               className="app-header-link"
               href="/sharing"
