@@ -202,6 +202,15 @@ deferring does not churn the gate's interface):
   data was removed. Until that UI exists, avoid silently claiming complete local
   cleanup in unsupported browser storage environments.
 
+## Admin enrollment follow-ups
+
+- Coverage gap: the enroll flow's `resetUserData()` (so a signed-in non-admin who
+  enrolls a NEW admin doesn't keep the prior user's live runtime) has no
+  regression test — the loader-only unit spec doesn't render the form, and a
+  component render hit shared-jsdom editor-mount friction. Add a dev e2e for
+  "signed-in non-admin enrolls → sees the new admin's data, not the prior user's"
+  (needs a non-admin session in the e2e setup, which today enrolls an admin).
+
 ## User-data follow-ups
 
 - User-data route follow-up: handle rejected `userData.documents().create()` calls
