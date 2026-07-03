@@ -52,7 +52,7 @@ describe('source server store', () => {
 
   it('rejects a non-origin URL', async () => {
     await expect(addSourceServer(database, 'https://source.example/path'))
-      .rejects.toThrow('exactly match a URL origin');
+      .rejects.toThrow('bare http(s) origin');
   });
 
   it('records registered credentials so the source becomes usable', async () => {

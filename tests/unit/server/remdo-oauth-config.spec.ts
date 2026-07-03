@@ -17,21 +17,15 @@ describe('deriveSourceServer', () => {
     expect(decodeId(entry.id)).toBe('https://source.example');
   });
 
-  it('rejects a URL that is more than a bare origin', () => {
-    expect(() => deriveSourceServer('https://source.example/path'))
-      .toThrow('exactly match a URL origin');
-  });
-
-  it('rejects an unparseable URL with an actionable error', () => {
-    expect(() => deriveSourceServer('not-a-url'))
-      .toThrow('valid URL origin');
-  });
-
-  it('rejects a non-http(s) origin', () => {
-    expect(() => deriveSourceServer('ftp://source.example'))
-      .toThrow('http(s) URL origin');
-    expect(() => deriveSourceServer('ws://source.example'))
-      .toThrow('http(s) URL origin');
+  it('rejects anything that is not a bare http(s) origin with one actionable error', () => {
+    for (const invalid of [
+      'https://source.example/path', // carries a path
+      'not-a-url', // unparseable
+      'ftp://source.example', // wrong scheme
+      'ws://source.example',
+    ]) {
+      expect(() => deriveSourceServer(invalid), invalid).toThrow('bare http(s) origin');
+    }
   });
 });
 
