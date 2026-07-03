@@ -1,5 +1,5 @@
 import type { LinkableRemdoServer } from '#server/remdo-oauth/config';
-import { deriveSourceServer } from '#server/remdo-oauth/config';
+import { deriveSourceLabel, deriveSourceServer } from '#server/remdo-oauth/config';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { SourceServersTable } from '#server/db/schema';
 
@@ -18,17 +18,18 @@ export interface StoredSourceServer extends LinkableRemdoServer {
 
 type SourceServerRow = Pick<
   SourceServersTable,
-  'id' | 'label' | 'base_url' | 'client_id' | 'client_secret'
+  'id' | 'base_url' | 'client_id' | 'client_secret'
 >;
 
 const SOURCE_SERVER_READ_COLUMNS = [
-  'id', 'label', 'base_url', 'client_id', 'client_secret',
+  'id', 'base_url', 'client_id', 'client_secret',
 ] as const;
 
 function rowToStored(row: SourceServerRow): StoredSourceServer {
   return {
     id: row.id,
-    label: row.label,
+    // Derived from the origin, not stored (see deriveSourceLabel).
+    label: deriveSourceLabel(row.base_url),
     baseUrl: row.base_url,
     credentials:
       row.client_id && row.client_secret
@@ -61,8 +62,8 @@ export function readSourceServersSync(
   return rows.map(rowToStored);
 }
 
-// Adds a source from its URL (deriving id/label/origin). Rejects a URL that is
-// not a bare origin or that duplicates an existing source.
+// Adds a source from its URL (deriving id/origin; label is derived on read).
+// Rejects a URL that is not a bare origin or that duplicates an existing source.
 export async function addSourceServer(
   database: SqliteServerDatabaseClient,
   url: string,
@@ -80,7 +81,6 @@ export async function addSourceServer(
     .insertInto('source_servers')
     .values({
       id: derived.id,
-      label: derived.label,
       base_url: derived.baseUrl,
       client_id: null,
       client_secret: null,

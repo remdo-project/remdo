@@ -15,7 +15,6 @@ export interface RemdoDatabase {
 // becomes a usable OAuth provider at the next auth-instance build.
 export interface SourceServersTable {
   id: string;
-  label: string;
   base_url: string;
   client_id: string | null;
   client_secret: string | null;
@@ -88,7 +87,6 @@ export const CREATE_DOCUMENT_ACCESS_TABLE_SQL = `
 export const CREATE_SOURCE_SERVERS_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS source_servers (
     id TEXT PRIMARY KEY,
-    label TEXT NOT NULL,
     base_url TEXT NOT NULL,
     client_id TEXT,
     client_secret TEXT,

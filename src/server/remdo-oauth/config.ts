@@ -18,6 +18,13 @@ export function deriveSourceId(origin: string): string {
   return Buffer.from(origin, 'utf8').toString('base64url');
 }
 
+// The source's display label is just its host — derived from the origin, never
+// stored or configured. Single source of that rule so the store and the add path
+// agree.
+export function deriveSourceLabel(origin: string): string {
+  return new URL(origin).host;
+}
+
 // Derives a source server entry from a bare-origin URL. Throws on a URL that is
 // not exactly an origin (it carries a path, query, etc.) or is unparseable.
 export function deriveSourceServer(value: string): LinkableRemdoServer {
@@ -35,7 +42,7 @@ export function deriveSourceServer(value: string): LinkableRemdoServer {
   }
   return {
     id: deriveSourceId(url.origin),
-    label: url.host,
+    label: deriveSourceLabel(url.origin),
     baseUrl: url.origin,
   };
 }
