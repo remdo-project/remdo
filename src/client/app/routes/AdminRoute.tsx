@@ -54,7 +54,7 @@ function EnrollForm() {
       // Enrollment created + signed in a new admin, so the cached bootstrap is
       // stale — clear it so the next /api/current-user read reflects the new user.
       clearCurrentUserBootstrapCache();
-      const destination = await resolveAdminEnrollPostCreateDestination(location.search, globalThis.location.origin);
+      const destination = resolveAdminEnrollPostCreateDestination(location.search, globalThis.location.origin);
       if (destination.kind === 'assign') {
         globalThis.location.assign(destination.href);
         return;

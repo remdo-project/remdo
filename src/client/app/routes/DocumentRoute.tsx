@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ActionIcon, Alert, Combobox, TextInput, useCombobox } from '@mantine/core';
-import { IconChevronDown, IconPlus, IconSearch, IconUpload } from '@tabler/icons-react';
-import { useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
+import { IconChevronDown, IconPlus, IconSearch, IconSettings, IconUpload } from '@tabler/icons-react';
+import { Link, useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
+import { getCachedCurrentUserBootstrap } from '#client/app/documents/current-user-bootstrap';
 import { useDocumentSourcesLoading, useUserData } from '#client/app/documents/user-data';
 import Editor from '#client/editor/Editor';
 import { ZoomBreadcrumbs } from '#client/editor/features/zoom/ZoomBreadcrumbs';
@@ -220,6 +221,9 @@ function DocumentRouteContent({
   const userData = useUserData();
   const documentSourcesLoading = useDocumentSourcesLoading();
   const online = useOnlineState();
+  // The admin panel is only discoverable to admins; the role comes from the
+  // bootstrap the app already loaded (route access is still enforced server-side).
+  const isAdmin = getCachedCurrentUserBootstrap()?.role === 'admin';
   const [createDocumentError, setCreateDocumentError] = useState<string | null>(null);
   const [uploadDocumentError, setUploadDocumentError] = useState<string | null>(null);
   const [createDocumentErrorDocId, setCreateDocumentErrorDocId] = useState(docId);
@@ -535,6 +539,18 @@ function DocumentRouteContent({
             value={searchQuery}
           />
           <div className="document-header-status" ref={setStatusHost} />
+          {isAdmin && (
+            <ActionIcon
+              aria-label="Admin"
+              className="document-header-admin remdo-interaction-surface"
+              component={Link}
+              size="sm"
+              to="/admin"
+              variant="subtle"
+            >
+              <IconSettings aria-hidden="true" size={16} />
+            </ActionIcon>
+          )}
         </div>
         <input
           accept="application/json,.json"
