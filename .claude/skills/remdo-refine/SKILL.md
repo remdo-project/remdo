@@ -8,16 +8,17 @@ description: Use to run the autonomous quality loop over a diff on the current b
 ## Overview
 
 Drive a diff to a clean quality bar through a fixed **ladder** of review passes,
-looping until a full pass finds nothing more worth fixing. Each approved fix
-restarts the ladder from the top, so later, more expensive passes always run
-against already-cleaned code.
+looping until a full pass finds nothing more worth fixing. Fixes settle the rung
+that found them, and a final confirmation cycle re-runs the whole ladder, so
+every pass ends having reviewed the finished code.
 
 It improves **code quality**, not feature scope — it converges the code, not the
 spec. When `remdo-feature-flow` calls it, reaching the spec's described state
 stays that skill's gap-closing loop; refine polishes what that loop produced.
 
 Per the **Skill authoring** rule in `AGENTS.md`, this skill encodes *intent* and
-fixes a step only where the path is clear (the ladder order, the restart rule);
+fixes a step only where the path is clear (the ladder order, the
+settle-then-confirm loop);
 where it does not, it states the intent and trusts the run — hence the loop guard
 below is a judgement, not a tuned number.
 
@@ -68,7 +69,7 @@ the tree is dirty, **warn and stop** until the work is committed (or stashed).
 This is why `remdo-feature-flow` commits its phase-4 work before invoking refine.
 
 So that each cycle reviews the previous one's result, **commit every applied
-fix** before re-running the ladder — the fix then lands inside the resolved range
+fix** before re-running any pass — the fix then lands inside the resolved range
 and the tree stays clean for the next pass.
 
 ### Working-tree scope (opt-in)
@@ -82,38 +83,31 @@ asks for it (e.g. "refine the uncommitted changes" / "refine before I commit");
 it is never the silent default.
 
 In this scope the clean-tree gate is inverted: an **empty** working-tree diff is
-the stop condition (nothing to refine), and a dirty tree is expected. The
-loop-restart property is preserved by re-reading the working tree each cycle
-rather than a committed range; the "commit every fix" rule does **not** apply —
+the stop condition (nothing to refine), and a dirty tree is expected. Each pass
+re-reads the working tree rather than a committed range, so re-runs still review
+the post-fix state; the "commit every fix" rule does **not** apply —
 the user commits once, after their own review. Everything else (ladder order,
 triage, done/stuck) is identical to the committed-range scope.
 
 ## The ladder
 
-Three passes, cheapest and most local first, most independent last. Each reviews
-the same diff under review (the resolved range, or the working-tree changes).
+Three passes, cheapest and most local first, most independent last. Each is a
+**read-only finder** over the same diff under review (the resolved range, or the
+working-tree changes): passes report, and the coordinating session triages,
+applies what is approved, and owns the loop. Keeping finding and applying apart
+is what makes triage a real gate — a pass that edited the tree would pre-empt it.
 
-**Run each in-session review pass (1 and 2) as a fresh, context-limited
-subagent** given only the scope — the coordinating session's memory of
-implementing and reviewing the diff would bias it toward parts it thinks it
-cleaned. Pass 3 (codex, a separate process) gets this fresh read for free. The
-coordinating session triages the returned findings and owns the loop.
+Every pass must review with **fresh eyes** — the coordinating session's memory
+of implementing and reviewing the diff would bias it toward parts it thinks it
+cleaned. Pass 1 isolates itself (`remdo-simplify` declares a context fork; on a
+runtime without fork support, wrap it like pass 2); run pass 2 as a fresh,
+context-limited subagent given only the scope; pass 3 (codex, a separate
+process) gets the fresh read for free.
 
-1. **Simplify** — `/simplify` (applies simplifications) together with
-   `remdo-simplify` (a read-only, RemDo-aware finder that *reports* opportunities
-   — ownership boundaries, reuse of existing RemDo/Lexical primitives, doc-invariant
-   violations — but never edits). Run both and apply what survives triage
-   (`remdo-simplify` only reports, so its findings feed the same apply step). Add a
-   **doc-minimalism lens** for prose (`docs/**`, skill files): read each touched
-   doc/skill *whole* in load order (entry doc → its dependencies → the file), and
-   for each paragraph ask whether it earns its place — is it **new** (not already
-   stated upstream), **necessary** (the reader's next action fails without it), and
-   **single-sourced** (this is its home)? Cut or relocate what fails; allow a
-   one-line cite of a shared rule where self-containment matters (not a full
-   restatement). Reading the whole touched file, not just the diff hunk, is what
-   catches redundancy against unchanged upstream text. Also check each touched doc
-   against the **documentation invariants** (`docs/contributing.md#documentation`)
-   and fix any violation.
+1. **Simplify** — the `remdo-simplify` skill: the read-only, RemDo-aware
+   simplification finder. Its code/test lenses, the doc-minimalism lens for
+   touched prose (`docs/**`, skill files), and the documentation-invariant
+   check are all defined there, not here.
 2. **Internal review** — `/code-review` at max effort against the diff under
    review (the resolved range's base, or the working-tree changes).
 3. **External review** — `codex review` for an independent outside read:
@@ -123,15 +117,19 @@ coordinating session triages the returned findings and owns the loop.
    `origin/main` would drift if it advances mid-loop, the same drift the
    SHA-anchoring rule prevents (`--base` accepts a commit SHA, not only a branch).
    Give it **scope only, no review angle** — leading prompt framing defeats the
-   point.
+   point. If the `codex` CLI is unavailable in the current environment, skip
+   this rung and say so in the final report — never silently narrow the ladder.
 
 Forward the `AGENTS.md` findings-suppression rule to every pass and subagent.
 
 ## The loop
 
 Each pass produces findings. Triage, apply what is approved (committing it in
-committed-range scope; in place in working-tree scope), then **restart from pass
-1** — a simplify or internal pass should always see the post-fix code first.
+committed-range scope; in place in working-tree scope), then **re-run that same
+pass** until it settles (returns nothing more to apply), and move down the
+ladder. Mid-loop fixes do not restart the ladder — the confirmation cycle below
+is where earlier rungs re-see the finished code, so a late nit no longer re-buys
+every earlier, more expensive pass on each iteration.
 
 - **Approved fix** — clearly correct and safe (or an intended change the diff owns).
   Apply it (committed-range: commit; working-tree: leave in the tree); the run is
@@ -142,7 +140,10 @@ committed-range scope; in place in working-tree scope), then **restart from pass
   only chat-remembered). Never blocks; the end report points at the entry.
 - **Reject** — not a real issue, or out of scope. Drop it.
 
-**Done** when a full cycle produces zero approved fixes. **Stuck** (stop and
+Once every rung has settled, run a **confirmation cycle**: the full ladder again
+from pass 1, against the finished diff. **Done** when a confirmation cycle
+produces zero approved fixes; if it produces any, settle the rung that raised
+them as above, then confirm again. **Stuck** (stop and
 report) when a finding recurs with no progress, or the diff will not converge
 after a few cycles. **Blocker** — only a finding with no clear recommendation;
 anything with a defensible best-effort resolution is a tradeoff, not a blocker.
@@ -198,7 +199,7 @@ the simplify rung, split the run and surfaced counts by tool (`/simplify` vs the
 
 ## References
 
-- Sequenced tools: `/simplify` + `remdo-simplify` skill, `/code-review`, `codex review`.
+- Sequenced tools: `remdo-simplify` skill, `/code-review`, `codex review`.
 - Loop/loop-guard prior art: `remdo-deps-refresh` skill.
 - Branch base and the calling flow: `remdo-feature-flow` skill.
 - Bringing `origin/main` into the branch: `remdo-sync` skill.
