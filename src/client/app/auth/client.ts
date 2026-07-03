@@ -37,6 +37,19 @@ export function hasRememberedSession() {
   return getSessionStorage()?.getItem(KNOWN_SESSION_STORAGE_KEY) === '1';
 }
 
+// True unless storage is available AND explicitly records no session. Used to
+// decide whether to skip an authenticated-only startup: a definite "no session"
+// skips, but when storage is unavailable we cannot know, so fail open and let the
+// request proceed (the server still enforces auth) rather than block a valid
+// cookie-authenticated user who could not write the marker.
+export function mayHaveAuthenticatedSession() {
+  const storage = getSessionStorage();
+  if (!storage) {
+    return true;
+  }
+  return storage.getItem(KNOWN_SESSION_STORAGE_KEY) === '1';
+}
+
 export function isLikelyFetchUnavailableError(error: unknown): boolean {
   // Browser fetch failures are exposed as TypeError, but message text varies
   // across engines, so callers must keep this predicate scoped to fetch paths.
