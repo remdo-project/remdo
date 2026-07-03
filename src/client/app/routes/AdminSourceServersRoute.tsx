@@ -80,7 +80,8 @@ export default function AdminSourceServersRoute() {
     }
   }, [initialClaim]);
 
-  // Fire-and-forget: handlers are wired to onClick (void), errors surface via state.
+  // Fire-and-forget: form submit and row buttons invoke this (void); the action
+  // runs, sets pending, and surfaces any error via state.
   const run = (action: () => Promise<void>): void => {
     setPending(true);
     setErrorMessage(null);
@@ -101,12 +102,13 @@ export default function AdminSourceServersRoute() {
   };
 
   // Load the configured sources on mount; the list is always shown, not gated
-  // behind a button. Errors surface via state, mirroring the action handlers.
+  // behind a button. Runs the same reloadServers + error-to-state path as the
+  // handlers, but inside the async body (not a synchronous setState at effect
+  // time), so it does not force an extra render on mount.
   useEffect(() => {
     void (async () => {
       try {
-        const { servers: loaded } = await adminGet<{ servers: AdminSourceServer[] }>('/api/admin/source-servers');
-        setServers(loaded);
+        await reloadServers();
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : 'Source server request failed.');
       }
