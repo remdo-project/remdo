@@ -29,6 +29,7 @@ export default function SharingRoute() {
       setStatus('Document shared.');
       setErrorMessage(null);
     } catch (error) {
+      setStatus('');
       setErrorMessage(error instanceof Error ? error.message : 'Failed to share document.');
     }
   };
@@ -39,6 +40,7 @@ export default function SharingRoute() {
       setStatus('Source server account linked.');
       setErrorMessage(null);
     } catch (error) {
+      setStatus('');
       setErrorMessage(error instanceof Error ? error.message : 'Failed to link source server account.');
     }
   };

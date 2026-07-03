@@ -210,6 +210,7 @@ export default function AdminSourceServersRoute() {
             </Group>
           </form>
 
+          {servers === null && <Text c="dimmed" size="sm">Loading source servers…</Text>}
           {servers?.length === 0 && <Text c="dimmed" size="sm">No source servers configured.</Text>}
           {servers?.map((server) => (
             <Group justify="space-between" key={server.id}>
