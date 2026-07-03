@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { describe, expect, it } from 'vitest';
-import { deriveSourceId, deriveSourceServer } from '#server/remdo-oauth/config';
+import { deriveSourceId, deriveSourceServer, sourceOriginFromId } from '#server/remdo-oauth/config';
 
 function decodeId(id: string): string {
   return Buffer.from(id, 'base64url').toString('utf8');
@@ -49,5 +49,20 @@ describe('deriveSourceId', () => {
   it('gives distinct ids to origins differing only in punctuation', () => {
     // A slug that collapsed punctuation would alias these; the encoding must not.
     expect(deriveSourceId('https://foo-bar.example')).not.toBe(deriveSourceId('https://foo.bar.example'));
+  });
+});
+
+describe('sourceOriginFromId', () => {
+  it('round-trips deriveSourceId back to the origin', () => {
+    for (const origin of ['https://source.example', 'http://127.0.0.1:7070', 'https://source.example:8443']) {
+      expect(sourceOriginFromId(deriveSourceId(origin))).toBe(origin);
+    }
+  });
+
+  it('returns null for an id that does not decode to a bare http(s) origin', () => {
+    expect(sourceOriginFromId(deriveSourceId('https://source.example/path'))).toBeNull();
+    expect(sourceOriginFromId(deriveSourceId('ftp://source.example'))).toBeNull();
+    expect(sourceOriginFromId('not-base64url-%%%')).toBeNull();
+    expect(sourceOriginFromId('')).toBeNull();
   });
 });

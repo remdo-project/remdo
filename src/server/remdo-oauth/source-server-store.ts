@@ -1,5 +1,5 @@
 import type { LinkableRemdoServer } from '#server/remdo-oauth/config';
-import { deriveSourceLabel, deriveSourceServer } from '#server/remdo-oauth/config';
+import { deriveSourceId, deriveSourceLabel, deriveSourceServer, sourceOriginFromId } from '#server/remdo-oauth/config';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { SourceServersTable } from '#server/db/schema';
 
@@ -18,17 +18,17 @@ export interface StoredSourceServer extends LinkableRemdoServer {
 
 type SourceServerRow = Pick<
   SourceServersTable,
-  'id' | 'base_url' | 'client_id' | 'client_secret'
+  'base_url' | 'client_id' | 'client_secret'
 >;
 
 const SOURCE_SERVER_READ_COLUMNS = [
-  'id', 'base_url', 'client_id', 'client_secret',
+  'base_url', 'client_id', 'client_secret',
 ] as const;
 
+// base_url is the stored identity; id and label are both derived from it.
 function rowToStored(row: SourceServerRow): StoredSourceServer {
   return {
-    id: row.id,
-    // Derived from the origin, not stored (see deriveSourceLabel).
+    id: deriveSourceId(row.base_url),
     label: deriveSourceLabel(row.base_url),
     baseUrl: row.base_url,
     credentials:
@@ -71,16 +71,15 @@ export async function addSourceServer(
   const derived = deriveSourceServer(url);
   const existing = await database.db
     .selectFrom('source_servers')
-    .select('id')
-    .where('id', '=', derived.id)
+    .select('base_url')
+    .where('base_url', '=', derived.baseUrl)
     .executeTakeFirst();
   if (existing) {
-    throw new Error(`Source server ${derived.id} is already configured.`);
+    throw new Error(`Source server ${derived.baseUrl} is already configured.`);
   }
   await database.db
     .insertInto('source_servers')
     .values({
-      id: derived.id,
       base_url: derived.baseUrl,
       client_id: null,
       client_secret: null,
@@ -90,11 +89,18 @@ export async function addSourceServer(
   return { ...derived, credentials: null };
 }
 
+// Callers key by the public id (base64url of the origin); the stored identity is
+// base_url, so recover the origin from the id. An id that does not decode to a
+// bare origin matches no row.
 export async function removeSourceServer(
   database: SqliteServerDatabaseClient,
   id: string,
 ): Promise<void> {
-  await database.db.deleteFrom('source_servers').where('id', '=', id).execute();
+  const baseUrl = sourceOriginFromId(id);
+  if (!baseUrl) {
+    return;
+  }
+  await database.db.deleteFrom('source_servers').where('base_url', '=', baseUrl).execute();
 }
 
 // Records the OAuth client the home registered on the source. The provider for
@@ -104,12 +110,15 @@ export async function setSourceServerCredentials(
   id: string,
   credentials: SourceClientCredentials,
 ): Promise<void> {
-  const result = await database.db
-    .updateTable('source_servers')
-    .set({ client_id: credentials.clientId, client_secret: credentials.clientSecret })
-    .where('id', '=', id)
-    .executeTakeFirst();
-  if (result.numUpdatedRows === 0n) {
+  const baseUrl = sourceOriginFromId(id);
+  const result = baseUrl
+    ? await database.db
+      .updateTable('source_servers')
+      .set({ client_id: credentials.clientId, client_secret: credentials.clientSecret })
+      .where('base_url', '=', baseUrl)
+      .executeTakeFirst()
+    : null;
+  if (!result || result.numUpdatedRows === 0n) {
     throw new Error(`Source server ${id} is not configured.`);
   }
 }

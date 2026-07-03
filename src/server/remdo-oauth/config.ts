@@ -18,6 +18,26 @@ export function deriveSourceId(origin: string): string {
   return Buffer.from(origin, 'utf8').toString('base64url');
 }
 
+// Inverse of deriveSourceId: recover the source origin from a public id. Used to
+// key DB operations (whose stored identity is base_url) from an id-carrying
+// request. Returns null for an id that does not decode to a bare http(s) origin.
+export function sourceOriginFromId(id: string): string | null {
+  let decoded: string;
+  try {
+    decoded = Buffer.from(id, 'base64url').toString('utf8');
+  } catch {
+    return null;
+  }
+  try {
+    const url = new URL(decoded);
+    return decoded === url.origin && (url.protocol === 'http:' || url.protocol === 'https:')
+      ? url.origin
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 // The source's display label is just its host — derived from the origin, never
 // stored or configured. Single source of that rule so the store and the add path
 // agree.
