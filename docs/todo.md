@@ -150,6 +150,18 @@ deferring does not churn the gate's interface):
   settings + a "public source" preset) once the source-linking work lands.
 - Source-side `clientPrivileges` to restrict raw OAuth client creation — a
   separate boundary from the home-side role gate.
+- Reject non-loopback http sources at add time instead of `normalizeSourceIssuer`.
+  That helper only exists to mirror Better Auth's hard-coded `validateIssuerUrl`
+  (upgrades non-loopback http issuers to https); if `deriveSourceServer` rejected
+  non-loopback http, every stored origin would be one `validateIssuerUrl` leaves
+  alone, so `issuer: server.baseUrl` is correct and the mirror (+ its loopback
+  classifier) can be deleted. Also turns a silent link-time `issuer_mismatch` into
+  a loud add-time error, and enforces https for prod sources. Blocker: the two-
+  server Docker E2E uses `http://<host-IP>` (non-loopback) because rootless Docker
+  can't reach a loopback source from the container — so this needs the E2E source
+  reworked to be loopback-reachable (source in a container on a shared net, or
+  `--network=host` for the source). The infra rework is the real work, not the
+  code deletion.
 - Rate-limit `POST /api/link/register-home`: it calls `auth.api.registerOAuthClient`
   server-side, which bypasses Better Auth's HTTP-layer `rateLimit.register`, so a
   signed-in source user can register unbounded OAuth clients. Enforce a limit in
