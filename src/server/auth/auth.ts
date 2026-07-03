@@ -97,6 +97,12 @@ function createBetterAuthInstance({
     secret,
     logger: config.isProd ? undefined : { level: 'error' },
     database,
+    // Better Auth's rate limiter defaults to production-only; enable it in every
+    // mode so a source's registration/token limits (oauthProvider.rateLimit)
+    // actually protect it regardless of NODE_ENV, and so the limits are testable.
+    rateLimit: {
+      enabled: true,
+    },
     emailAndPassword: {
       enabled: true,
       disableSignUp: !allowSignup,

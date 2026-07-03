@@ -192,4 +192,33 @@ describe('source-side registration', () => {
     const response = await postJson(harness.app, '/api/link/claim-registration', { code: 'never-issued' });
     expect(response.status).toBe(403);
   });
+
+  it('registers a home for an authenticated source user and rate-limits repeats', async () => {
+    const harness = createHarness({ allowSignup: true });
+    const headers = await harness.createSessionHeaders();
+    const register = () => postJson(harness.app, '/api/link/register-home', {
+      handle: 'h',
+      home: 'https://home.example',
+      state: SOURCE_ID,
+    }, headers);
+
+    // The register goes through Better Auth's pipeline, so its configured
+    // register rate limit (window 60s, max 5) applies. The first calls succeed
+    // (200 with a redirect back to the home carrying a one-time code); once the
+    // limit is hit the source rejects with a forwarded 4xx (429).
+    const first = await register();
+    expect(first.status).toBe(200);
+    expect(new URL((await first.json() as { redirectUrl: string }).redirectUrl).searchParams.get('code')).toBeTruthy();
+
+    let sawRateLimit = false;
+    for (let i = 0; i < 8 && !sawRateLimit; i += 1) {
+      const response = await register();
+      if (response.status === 429) {
+        sawRateLimit = true;
+      } else {
+        expect(response.status).toBe(200);
+      }
+    }
+    expect(sawRateLimit, 'register-home should be rate-limited after the configured max').toBe(true);
+  });
 });

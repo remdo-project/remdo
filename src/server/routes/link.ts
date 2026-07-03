@@ -88,33 +88,56 @@ export function createLinkRoutes({
       return c.json({ error: 'This server does not accept home registration.' }, HTTP_STATUS.FORBIDDEN);
     }
 
-    let code: string;
-    try {
-      const registration = await auth.auth.api.registerOAuthClient({
-        body: {
+    // Register the OAuth client by driving Better Auth's own endpoint through its
+    // request pipeline (auth.handler), not the in-process auth.api.* call. Going
+    // through the pipeline is what makes Better Auth's onRequest hooks fire — the
+    // configured register rate limit (oauthProvider.rateLimit.register) and the
+    // clientPrivileges policy — which auth.api.* would silently bypass. The
+    // source user's session rides along via the forwarded cookies.
+    const registerResponse = await auth.auth.handler(new Request(
+      new URL('/api/auth/oauth2/register', auth.baseURL),
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          cookie: c.req.header('cookie') ?? '',
+          // Same-origin server-side call: set Origin to the source's own base URL
+          // (a trusted origin) so Better Auth's origin/CSRF middleware — which runs
+          // on the pipeline path and expects a browser Origin — accepts it.
+          origin: new URL(auth.baseURL).origin,
+        },
+        body: JSON.stringify({
           client_name: `RemDo home ${homeOrigin}`,
           redirect_uris: [`${homeOrigin}/api/auth/oauth2/callback/${homeSourceId}`],
           grant_types: ['authorization_code', 'refresh_token'],
           response_types: ['code'],
           token_endpoint_auth_method: 'client_secret_basic',
           scope: REMDO_SERVER_OAUTH_SCOPES.join(' '),
-        },
-        headers: c.req.raw.headers,
-      });
-      code = registrationCodes.issue({
-        clientId: registration.client_id,
-        clientSecret: registration.client_secret ?? '',
-      });
-    } catch (error) {
-      logError(error, {});
-      // Forward an expected client-side rejection (e.g. the register rate limit)
-      // as its own 4xx; only an unexpected error is a 500.
-      const status = (error as { statusCode?: unknown }).statusCode;
-      if (typeof status === 'number' && status >= 400 && status < 500) {
+        }),
+      },
+    ));
+
+    if (!registerResponse.ok) {
+      // The pipeline enforces the register rate limit (429) and clientPrivileges
+      // (4xx) here. Forward an expected client-side rejection as its own 4xx;
+      // only an unexpected status is a 500.
+      const status = registerResponse.status;
+      if (status >= 400 && status < 500) {
         return c.json({ error: 'Source rejected the registration.' }, status as 400);
       }
+      logError(new Error(`register client failed: ${status}`), {});
       return c.json({ error: 'Failed to register the home client.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
+
+    const registration = await registerResponse.json() as { client_id?: string; client_secret?: string };
+    if (!registration.client_id) {
+      logError(new Error('register client returned no client_id'), {});
+      return c.json({ error: 'Failed to register the home client.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
+    const code = registrationCodes.issue({
+      clientId: registration.client_id,
+      clientSecret: registration.client_secret ?? '',
+    });
 
     const done = new URL(`${homeOrigin}/admin`);
     done.searchParams.set('sourceId', homeSourceId);
