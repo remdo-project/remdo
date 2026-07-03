@@ -1,5 +1,7 @@
 import { Alert, Badge, Button, Container, Group, Paper, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
+import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
+import { resetUserData, startUserData } from '#client/app/documents/user-data';
 
 interface AdminSourceServer {
   id: string;
@@ -139,9 +141,20 @@ export default function AdminSourceServersRoute() {
 
   const register = (id: string) => run(() => launchRegistration(id));
 
+  // A source's linkable set changed, so the tab's live user-data projection is
+  // stale. Reload the runtime (the app shell hosts /admin, so the runtime is
+  // live) and clear the bootstrap cache, so the source appears/disappears in
+  // Sharing without a manual reload.
+  const refreshUserData = () => {
+    clearCurrentUserBootstrapCache();
+    resetUserData();
+    startUserData();
+  };
+
   const remove = (id: string) => run(async () => {
     await adminPost(`/api/admin/source-servers/${encodeURIComponent(id)}/remove`);
     await reloadServers();
+    refreshUserData();
   });
 
   // After returning from the source, pull the registered credentials with the
@@ -157,6 +170,7 @@ export default function AdminSourceServersRoute() {
     setPendingClaim(null);
     setNotice('Registered. This source is now linkable.');
     await reloadServers();
+    refreshUserData();
   });
 
   return (
