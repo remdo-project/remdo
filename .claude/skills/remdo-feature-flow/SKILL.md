@@ -173,7 +173,8 @@ above already ensured the tree holds only this flow's changes).
    self-assessment.** When the loop believes the spec's described state is
    reached, dispatch a **fresh subagent** given the spec (the branch's `docs/`
    changes — Phase 3's sense) and the branch diff (`origin/main...HEAD` plus any
-   uncommitted work), free to read the rest of the repo for cross-checking but
+   uncommitted work, untracked files included), free to read the rest of the
+   repo for cross-checking (except `.agent/`, where the plan lives) but
    carrying neither the plan nor this session's memory, to report divergences
    both ways: specified but not built, and built but not specified. Fix real
    gaps (the loop continues); document or remove what is built but unspecified
@@ -294,7 +295,9 @@ The single base for every diff, for both user and agent, is the **merge-base of
   merge-base) — and `codex review --base origin/main` (safe as a one-shot; a
   looping `remdo-refine` pass anchors to a fixed base SHA instead, see that skill).
 - **Working tree included** (committed + uncommitted — the mid-work review loop):
-  `git diff "$(git merge-base origin/main HEAD)"`.
+  `git diff "$(git merge-base origin/main HEAD)"`, plus
+  `git ls-files --others --exclude-standard` for the untracked files that diff
+  omits.
 
 Always go through the merge-base: it is recomputed from the two refs every time,
 so no base tag is stored and it cannot go stale — it shows exactly this branch's
@@ -337,7 +340,9 @@ Choose by the *activity*, not the phase number:
 - **Autonomous execution (phase 4) and Research spikes: subagent-eligible** —
   your call by the independence test: dispatch subagents only for genuinely
   parallel, independent chunks (no shared state, no sequential dependency); stay
-  inline otherwise. Deferred to runtime because the input (the actual dependency
+  inline otherwise. (The Phase-4 exit read is outside this call — its step
+  mandates the fresh-subagent dispatch for memory isolation.) Deferred to
+  runtime because the input (the actual dependency
   graph) does not exist until then. Research spikes are subagent-eligible even
   when triggered from dialog, because the spike itself is autonomous work, not
   conversation.
