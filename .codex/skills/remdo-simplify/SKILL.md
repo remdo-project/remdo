@@ -1,6 +1,6 @@
 ---
 name: remdo-simplify
-description: Use only when explicitly requested — e.g. "run a simplify review", "find simplifications", "what could be simpler here", or a `remdo-refine`-style loop calling for its read-only simplify finder. Runs a read-only RemDo simplification review over a selected diff, reporting code, test, and documentation opportunities to make the end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Does not edit files, stage, commit, or run mutating checks.
+description: The read-only simplification finder that `remdo-refine` runs as its first rung; invoke directly only for an explicitly requested one-off simplify review (e.g. "run a simplify review", "what could be simpler here"). Reports code, test, and documentation opportunities to make a selected diff's end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Does not edit files, stage, commit, or run mutating checks.
 context: fork
 agent: Explore
 ---
