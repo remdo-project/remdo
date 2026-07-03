@@ -18,6 +18,9 @@ const TEST_USER = {
   password: 'server-password-1234',
 } as const;
 export const TEST_ADMIN_SECRET = 'test-admin-secret-0123456789';
+// The harness's own canonical origin — an explicit override, deliberately not the
+// env AUTH_URL, so tests exercise instance-scoped baseURL wiring.
+export const TEST_BASE_URL = 'http://127.0.0.1:4000';
 // Fixed preview port for the harness's trusted origins, so the derived list is
 // deterministic and independent of the env-derived PREVIEW_PORT.
 export const TEST_PREVIEW_PORT = 4005;
@@ -25,7 +28,7 @@ export const TEST_PREVIEW_PORT = 4005;
 export function createServerAppHarness({
   adminSecret = TEST_ADMIN_SECRET,
   allowSignup = false,
-  baseURL = 'http://127.0.0.1:4000',
+  baseURL = TEST_BASE_URL,
   sourceServers = [],
   onUpdateDoc,
 }: {

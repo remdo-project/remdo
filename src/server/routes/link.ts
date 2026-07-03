@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { config } from '#config';
 import { HTTP_STATUS } from '#platform/http/status';
 import { isHttpOrigin } from '#platform/net/http-origin';
 import { resolveActor } from '#server/auth/actor';
@@ -53,7 +52,7 @@ export function createLinkRoutes({
     const handle = registrationHandles.issue(server.id);
     const redirectUrl = new URL(`${server.baseUrl}/oauth/register-home`);
     redirectUrl.searchParams.set('handle', handle);
-    redirectUrl.searchParams.set('home', new URL(config.env.AUTH_URL).origin);
+    redirectUrl.searchParams.set('home', new URL(auth.baseURL).origin);
     // The home's own id for this source, echoed back unchanged so the home knows
     // which source row the returning admin is completing (the source must not
     // re-derive it — the home and source may know the source by different origins).

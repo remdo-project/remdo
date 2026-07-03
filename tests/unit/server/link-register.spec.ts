@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { config } from '#config';
 import { deriveSourceId } from '#server/remdo-oauth/config';
 import { extractSessionCookie } from '#server/auth/session-cookie';
 import { createTestResource } from '../_support/test-resource';
-import { createServerAppHarness } from './_support/server-app-harness';
+import { TEST_BASE_URL, createServerAppHarness } from './_support/server-app-harness';
 
 const createHarness = createTestResource(createServerAppHarness);
 const SOURCE_ID = deriveSourceId('https://source.example');
@@ -82,7 +81,10 @@ describe('home-side registration initiation', () => {
     // The browser is sent to the source's confirmation page, not a server route,
     // so registration is a deliberate POST the source user makes there.
     expect(url.pathname).toBe('/oauth/register-home');
-    expect(url.searchParams.get('home')).toBe(new URL(config.env.AUTH_URL).origin);
+    // The advertised home origin is THIS auth instance's baseURL (the harness
+    // override), not the env singleton — a home built with a per-instance origin
+    // must send that origin to the source.
+    expect(url.searchParams.get('home')).toBe(new URL(TEST_BASE_URL).origin);
     expect(url.searchParams.get('handle')).toBeTruthy();
     expect(url.searchParams.get('state')).toBe(id);
   });

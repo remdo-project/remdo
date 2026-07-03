@@ -179,6 +179,11 @@ export interface ServerAuthUser {
 export interface ServerAuth {
   allowSignup: boolean;
   auth: BetterAuthInstance;
+  // The canonical public origin this auth instance was built with (may be a
+  // per-instance override, not the config singleton). Routes that advertise this
+  // home's own URL (e.g. cross-server registration) must use this, not
+  // config.env.AUTH_URL, or an overridden instance sends the wrong origin.
+  baseURL: string;
   sourceServers: readonly StoredSourceServer[];
   createUser: (user: CreateAuthUserInput, headers: Headers) => Promise<Response>;
   ensureReady: () => Promise<void>;
@@ -249,6 +254,7 @@ export function createServerAuth({
   return {
     allowSignup,
     auth,
+    baseURL,
     sourceServers,
     createUser(user, headers) {
       return userProvisioningAuth.api.signUpEmail({
