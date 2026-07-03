@@ -6,7 +6,7 @@ import { randomBytes } from 'node:crypto';
 // configured) with this code, so the secret is never pushed to an attacker-
 // controllable URL and the source never fetches an arbitrary host.
 
-const CODE_TTL_MS = 5 * 60 * 1000;
+export const CODE_TTL_MS = 5 * 60 * 1000;
 
 interface RegistrationCodeCredentials {
   clientId: string;
