@@ -322,16 +322,10 @@ Remaining issues to fold in or fix directly:
 
 ## Test harness follow-ups
 
-- Console-issue policy is fail-closed (`assertions/console.ts`): any unexpected
-  `console.error`/`warn` fails the test unless allowlisted via
-  `setExpectedConsoleIssues`. Intentional (don't let issues slip through without a
-  judgement), but the hard failure can pressure code changes just to silence an
-  error that is actually expected (e.g. a benign 401 probe). Don't just downgrade
-  failure→hint (that removes the CI gate); instead improve the allowlist
-  ergonomics so "I expect this specific error, because <reason>" is a cheap,
-  self-documenting one-liner at the assertion site — making suppressing the error
-  in code the less-attractive option. Revisit the message wording too (frame a
-  genuinely-expected issue as "assert this is expected" rather than "failure").
+- Improve expected-console-issue ergonomics (`assertions/console.ts`): make
+  allowlisting a genuinely-expected error (e.g. a benign 401 probe) a cheap
+  one-liner-with-reason at the assertion site, so silencing it in code isn't the
+  easier path. Keep the fail-closed gate; reword "failure" for expected issues.
 - Redesign `toMatchOutline` note content expectations from flattened text into
   node-level content. Target shape:
   `{ noteId: 'note1', content: [{ text: 'before ' }, { date: '2026-06-10' }, { text: ' after' }] }`.
