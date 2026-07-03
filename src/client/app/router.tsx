@@ -1,5 +1,5 @@
 import { createBrowserRouter, redirect, redirectDocument } from 'react-router-dom';
-import App from './App';
+import AuthenticatedApp from './AuthenticatedApp';
 import { resolveSessionGateState } from './auth/client';
 import { getPublicClientConfig } from './config';
 import { getCachedCurrentUserBootstrap, getHomeDocumentId } from './documents/current-user-bootstrap';
@@ -47,13 +47,6 @@ async function requireAuthenticatedRoute(request: Request) {
     throw redirect(createOfflinePath(request));
   }
   if (sessionState.status !== 'unauthenticated') {
-    return null;
-  }
-
-  // /admin is inside the app shell but must stay reachable unauthenticated so a
-  // first-time operator can enroll (its own loader renders the enroll form when
-  // there is no admin session); the action itself is ADMIN_SECRET-gated server-side.
-  if (new URL(request.url).pathname === '/admin') {
     return null;
   }
 
@@ -152,6 +145,16 @@ const routes = [
     hydrateFallbackElement,
   },
   {
+    // Public: the enroll form for an unauthenticated / non-admin visitor (a
+    // first-time operator bootstraps here), and the panel wrapped in the app
+    // shell for an authenticated admin. The loader chooses; the action is
+    // ADMIN_SECRET-gated server-side either way.
+    path: '/admin',
+    loader: adminRouteLoader,
+    element: <AdminRoute />,
+    hydrateFallbackElement,
+  },
+  {
     // Source-side consent screen: shown when a home's user authorizes the home to
     // act on their behalf. Reachable only with a source session.
     path: '/oauth/consent',
@@ -170,7 +173,7 @@ const routes = [
   },
   {
     path: '/',
-    element: <App />,
+    element: <AuthenticatedApp />,
     loader: ({ request }: { request: Request }) => requireAuthenticatedRoute(request),
     hydrateFallbackElement,
     children: [
@@ -196,14 +199,6 @@ const routes = [
       {
         path: 'sharing',
         element: <SharingRoute />,
-      },
-      {
-        // Admin panel lives inside the app shell so the toolbar renders and the
-        // user-data runtime stays live (role + source list stay fresh without a
-        // reload). Its loader still gates on the admin role (else the enroll form).
-        path: 'admin',
-        loader: adminRouteLoader,
-        element: <AdminRoute />,
       },
     ],
   },

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Anchor, Container, Group, Title } from '@mantine/core';
 import { useEffect } from 'react';
 import { Link, Outlet, useParams, useSearchParams } from 'react-router-dom';
@@ -8,7 +9,13 @@ import { createDocumentPath, parseDocumentRef } from '#document-routes';
 import VanillaLexicalEditor from '#client/editor/dev/VanillaLexicalEditor';
 import { DevToolbarLinks } from './routes/DevToolbar';
 
-export default function App() {
+// The authenticated app shell: signed-in chrome (nav) plus the live user-data
+// runtime. It mounts only for an authenticated user, so it starts the runtime
+// unconditionally. Used both as a route layout (renders <Outlet/>) and directly
+// as a wrapper around a single authenticated view (renders `children`) — e.g. the
+// admin panel, whose route also serves the unauthenticated enroll form outside
+// this shell.
+export default function AuthenticatedApp({ children }: { children?: ReactNode }) {
   const { docRef } = useParams<{ docRef?: string }>();
   const [searchParams] = useSearchParams();
   useEffect(() => {
@@ -67,7 +74,7 @@ export default function App() {
       </header>
 
       {showVanillaLexical && <VanillaLexicalEditor />}
-      <Outlet />
+      {children ?? <Outlet />}
     </Container>
   );
 }

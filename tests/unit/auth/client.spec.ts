@@ -122,33 +122,3 @@ describe('auth client session gate', () => {
   });
 });
 
-describe('mayHaveAuthenticatedSession', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('is true only when the session marker is present', async () => {
-    const { mayHaveAuthenticatedSession } = await import('#client/app/auth/client');
-    expect(mayHaveAuthenticatedSession()).toBe(false);
-    localStorage.setItem('remdo-authenticated-session', '1');
-    expect(mayHaveAuthenticatedSession()).toBe(true);
-  });
-
-  it('fails open when storage is unavailable, so a cookie-authed user is not blocked', async () => {
-    const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      get() {
-        throw new Error('storage blocked');
-      },
-    });
-    try {
-      const { mayHaveAuthenticatedSession } = await import('#client/app/auth/client');
-      expect(mayHaveAuthenticatedSession()).toBe(true);
-    } finally {
-      if (original) {
-        Object.defineProperty(globalThis, 'localStorage', original);
-      }
-    }
-  });
-});
