@@ -13,7 +13,7 @@ export interface RegistrationRateLimit {
   tryConsume: (userId: string) => boolean;
 }
 
-interface Window {
+interface Bucket {
   count: number;
   resetAt: number;
 }
@@ -23,7 +23,7 @@ export function createRegistrationRateLimit(
   max: number = REGISTRATION_MAX,
   windowMs: number = REGISTRATION_WINDOW_MS,
 ): RegistrationRateLimit {
-  const windows = new Map<string, Window>();
+  const windows = new Map<string, Bucket>();
 
   return {
     tryConsume(userId) {

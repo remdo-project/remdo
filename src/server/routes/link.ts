@@ -88,11 +88,7 @@ export function createLinkRoutes({
     if (!auth.allowSignup) {
       return c.json({ error: 'This server does not accept home registration.' }, HTTP_STATUS.FORBIDDEN);
     }
-    // Bound per source ACCOUNT (the identity a client binds to) — the right
-    // principal for this abuse, versus Better Auth's own register limit which
-    // keys by client IP (one NAT'd user could block others, or one user rotate
-    // IPs to evade). Without a limit a source user could register unbounded
-    // clients.
+    // Bound per source account; see registration-rate-limit.ts for why not per-IP.
     if (!registrationRateLimit.tryConsume(actor.userId)) {
       return c.json({ error: 'Too many registration attempts. Try again shortly.' }, HTTP_STATUS.TOO_MANY_REQUESTS);
     }
