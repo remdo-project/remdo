@@ -75,7 +75,8 @@ sections to docs.
   3. A running skill declares an autonomous scope in its own SKILL.md. The
      skill's declaration is the authorization and carries its own branch scope;
      honour that scope rather than this default. (Self-authorizing skills today:
-     `remdo-feature-flow`, `remdo-refine`, `remdo-sync`, `remdo-deps-refresh` —
+     `remdo-feature-flow`, `remdo-refine`, `remdo-docs-align`, `remdo-sync`,
+     `remdo-deps-refresh` —
      each states its scope where it lives, so this list is illustrative, not the
      source of authority.)
   Plain requests to update/change/fix/do X are **not** an autonomous-scope

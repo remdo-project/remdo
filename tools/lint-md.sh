@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 # Lint every Markdown file git considers project content — tracked files plus
-# new untracked files that are not gitignored — that still exists on disk.
+# new untracked files that are not gitignored — that still exists on disk:
+# markdownlint for style, then tools/check-doc-links.ts (links, anchors, prose
+# rules) over the same list, so the selection is defined once.
 #
 # Selection is git-based, not a filesystem glob: `--exclude-standard` honours
 # every .gitignore (root and nested), so scratch dirs are excluded for free
@@ -26,8 +28,12 @@ list_md() {
 }
 
 # Keep only paths that still exist on disk; batched (one `sh` for the whole set),
-# re-emitting NUL-delimited so spaces/newlines in paths survive to markdownlint.
+# re-emitting NUL-delimited so spaces/newlines in paths survive to the linters.
 # shellcheck disable=SC2016 # $f must expand in the child sh -c, not here.
-list_md \
-  | xargs -0 -r sh -c 'for f do [ -e "$f" ] && printf "%s\0" "$f"; done' _ \
-  | xargs -0 -r markdownlint-cli2 --no-globs
+existing_md() {
+  list_md \
+    | xargs -0 -r sh -c 'for f do [ -e "$f" ] && printf "%s\0" "$f"; done' _
+}
+
+existing_md | xargs -0 -r markdownlint-cli2 --no-globs
+existing_md | xargs -0 -r tsx ./tools/check-doc-links.ts

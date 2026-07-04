@@ -1,11 +1,10 @@
-// Doc link checker: every relative link in a Markdown file the repo tracks
-// (plus new untracked, not-gitignored ones — same git-based selection as
-// tools/lint-md.sh) must resolve on disk, and a `#fragment` into a Markdown
-// target must match a heading slug of that target. External (scheme) links are
-// out of scope: checking them needs the network, and they are References-style
-// background, not corpus structure. Prose rules (temporal-status wording,
-// References shape) are covered by checkProse below.
-import { execFileSync } from 'node:child_process';
+// Doc link checker: every relative link in the Markdown files given as argv
+// (tools/lint-md.sh passes the repo's selection, keeping it defined once)
+// must resolve on disk, and a `#fragment` into a Markdown target must match a
+// heading slug of that target. External (scheme) links are out of scope:
+// checking them needs the network, and they are References-style background,
+// not corpus structure. Prose rules (temporal-status wording, References
+// shape) are covered by checkProse below.
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -128,10 +127,16 @@ const TEMPORAL_EXEMPT = new Set(['docs/todo.md', 'docs/documentation.md']);
 
 export const checkProse = (files: string[], repoRoot: string): LinkIssue[] => {
   const issues: LinkIssue[] = [];
+  // Both prose rules apply to docs/ only. Skill files are exempt: their
+  // References link sibling skills by design (see the invariants' preamble),
+  // and the temporal check conservatively stays off them too.
   for (const file of files) {
+    if (!file.startsWith('docs/')) {
+      continue;
+    }
     const text = fs.readFileSync(path.join(repoRoot, file), 'utf8');
     const lines = stripCodeSegments(text).split('\n');
-    if (file.startsWith('docs/') && !TEMPORAL_EXEMPT.has(file)) {
+    if (!TEMPORAL_EXEMPT.has(file)) {
       lines.forEach((line, index) => {
         if (TEMPORAL.test(line)) {
           issues.push({ file, line: index + 1, message: `temporal-status wording: ${line.trim().slice(0, 60)}` });
@@ -139,16 +144,13 @@ export const checkProse = (files: string[], repoRoot: string): LinkIssue[] => {
       });
     }
     // References shape (invariant 3): external sources only — no links into
-    // the corpus collected there. Skill files are exempt: their References
-    // link sibling skills by design (see the invariants' preamble).
-    if (!file.startsWith('docs/')) {
-      continue;
-    }
+    // the corpus collected there. "External" mirrors isExternal: any scheme
+    // or protocol-relative target.
     let inRefs = false;
     lines.forEach((line, index) => {
       if (/^##\s+References\b/.test(line)) { inRefs = true; return; }
       if (/^##\s/.test(line)) { inRefs = false; return; }
-      if (inRefs && /\]\((?!https?:|mailto:)[^)]+\)/.test(line)) {
+      if (inRefs && /\]\((?![a-z][a-z+.-]*:|\/\/)[^)]+\)/i.test(line)) {
         issues.push({ file, line: index + 1, message: 'internal link inside References (must be inline in the body)' });
       }
     });
@@ -156,21 +158,14 @@ export const checkProse = (files: string[], repoRoot: string): LinkIssue[] => {
   return issues;
 };
 
-const listMarkdownFiles = (repoRoot: string): string[] => {
-  const run = (args: string[]): string[] =>
-    execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8' })
-      .split('\0')
-      .filter(Boolean);
-  const files = new Set([
-    ...run(['ls-files', '-z', '*.md']),
-    ...run(['ls-files', '-z', '--others', '--exclude-standard', '*.md']),
-  ]);
-  return [...files].filter((file) => fs.existsSync(path.join(repoRoot, file))).sort();
-};
-
 const main = (): void => {
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  const files = listMarkdownFiles(repoRoot);
+  const repoRoot = process.cwd();
+  const files = process.argv.slice(2);
+  if (files.length === 0) {
+    process.stderr.write('usage: check-doc-links.ts <file.md ...> (tools/lint-md.sh passes the repo selection)\n');
+    process.exitCode = 1;
+    return;
+  }
   const issues = checkDocLinks(files, repoRoot);
   issues.push(...checkProse(files, repoRoot));
   for (const issue of issues) {

@@ -1,4 +1,4 @@
-# Outline Editing Invariants
+# Note Structure Rules
 
 Structural invariants for outline editing: the rules that indent, outdent, and
 reorder must satisfy to keep the note tree valid. The conceptual model —
