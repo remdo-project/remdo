@@ -28,7 +28,8 @@ Take the scope from the request; default to `diff` when none is given.
   the repo convention `BASE=$(git merge-base origin/main HEAD)`
   (`docs/contributing.md#git-workflow`). A branch cut from another in-progress
   branch needs its parent named — the convention base would sweep the parent's
-  work in.
+  work in, and sweep applies edits. When the branch may be stacked and no
+  parent was named, ask instead of defaulting.
 - `repo`: the whole repository; no `BASE`.
 
 ## Inspect The Surface
@@ -122,9 +123,9 @@ Report those as deferred follow-ups instead.
 ## Verification
 
 Use scoped checks while iterating when useful. Before finishing, run the
-current agent mode's check script (`pnpm run check` locally, `pnpm run
-check:full` in cloud — `AGENTS.md` "Checks") and report each final command with
-its result.
+current agent mode's check script (`AGENTS.md` "Checks" — sweep never commits,
+so the local changed-only `check` sees its edits) and report each final command
+with its result.
 
 ## Final Response
 
