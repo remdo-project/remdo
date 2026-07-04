@@ -44,9 +44,8 @@ prose invariant 5 omits.
    collected into `References`.
 4. **Spec, not status.** A doc's normative spec MUST describe the current
    target only, in timeless prose — no temporal status like "currently", "for
-   now", or feature-age "new" — and MUST NOT present behavior the project has
-   moved away from as the target (a rationale sentence per invariant 5 MAY
-   name a rejected alternative). Gaps, partial status, and sequencing MUST
+   now", or feature-age "new" (a rationale sentence per invariant 5 MAY name
+   a rejected alternative). Gaps, partial status, and sequencing MUST
    live in `docs/todo.md`: any divergence between a doc's claim and the code
    MUST be recorded there in an entry naming the doc it suspends — the
    recorded gap is the sanctioned interim state — and a recorded divergence
@@ -58,8 +57,11 @@ prose invariant 5 omits.
    let someone misuse the contract. That covers implementation detail that is
    not part of the contract, how-to steps, and rationale — though a
    one-sentence rationale MAY stay where dropping it would invite relitigating
-   a settled choice. Edge and failure semantics are part of the contract, not
-   verbosity to trim.
+   a settled choice. The misuse test is judged with the surrounding rules read
+   at face value: a clause that only restates what an adjacent rule already
+   implies MUST be omitted, and that a reader might rationalize around the
+   rule is never a reason to keep it. Edge and failure semantics are part of
+   the contract, not verbosity to trim.
 6. **Scope first.** Every doc MUST open by stating what it covers and, where
    confusable, what it does not.
 7. **Normative language.** Spec prose is normative by default, in declarative
