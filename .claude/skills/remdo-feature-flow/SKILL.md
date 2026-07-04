@@ -22,7 +22,9 @@ This skill follows the **Skill authoring** rule in `AGENTS.md`: assume every run
 is performed by a model at least as capable as the current one, so it encodes
 *intent* and keeps strictness to the reasonable minimum rather than baking in
 assumptions a better future run would have to undo. That shapes every phase
-below.
+below. The same trust covers tooling: when a referenced `superpowers:*` skill
+is not installed, apply its discipline unaided rather than stalling on the
+missing skill.
 
 ## Review surfaces
 
