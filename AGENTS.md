@@ -264,7 +264,7 @@ Determine agent mode in this order:
    changed-only unit and collab suites. The test halves select against
    **uncommitted** files only (bare vitest `--changed`), which fits the default
    leave-uncommitted workflow; work that is already committed needs
-   `check:full` instead (the committing skills say so themselves).
+   `check:full` instead.
 3. Run a `:full` suite beyond that only when the user explicitly asks or
    debugging requires full-suite confirmation.
 4. If a check fails because of your changes, either fix the regression or

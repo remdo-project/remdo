@@ -156,10 +156,10 @@ dead code, `jscpd` duplication), which the check scripts don't cover and only
 CI otherwise catches. Which check script: **committed-range scope always needs
 `pnpm run check:full`** — the loop's fixes are committed, so the changed-only
 `check` would select no tests. In **working-tree scope** the fixes are
-uncommitted, so the current agent mode's script applies (`AGENTS.md` "Checks");
-its changed-only selection keeps a docs- or skill-only diff fast, and such a
-diff may also skip `audit:cleanup`, which exercises nothing it touched. Cloud
-runs narrow nothing unless the user explicitly skips a suite.
+uncommitted, so the current agent mode's script applies (`AGENTS.md` "Checks"):
+its changed-only selection keeps a docs- or skill-only diff fast in local mode,
+and such a diff may also skip `audit:cleanup`, which exercises nothing it
+touched.
 
 A failure caused by an applied fix re-enters the loop; a pre-existing
 unrelated failure is reported, not fixed here.
