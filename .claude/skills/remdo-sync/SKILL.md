@@ -46,11 +46,11 @@ Sync runs on whatever branch is checked out (no branch-name gate).
    finish a half-resolved merge silently. Bias to callout when unsure. If
    conflicts can't be safely resolved, stop with the callout rather than
    committing a half-resolved merge.
-4. **Verify.** Unless the merge fast-forwarded, run the current agent mode's
-   check script (`pnpm run check` locally, `pnpm run check:full` in cloud —
-   `AGENTS.md` "Checks"): a textually clean merge can still be semantically
-   broken, and auto-resolved conflicts double the reason. A failure is part of
-   the callout — never finish a red sync silently.
+4. **Verify.** Unless the merge fast-forwarded, run `pnpm run check:full` (the
+   merge is already committed, so the changed-only `check` would select no
+   tests): a textually clean merge can still be semantically broken, and
+   auto-resolved conflicts double the reason. A failure is part of the callout
+   — never finish a red sync silently.
 
 ## Permissions
 

@@ -153,19 +153,19 @@ anything with a defensible best-effort resolution is a tradeoff, not a blocker.
 
 ## Verification
 
-When the loop settles, run the current agent mode's check script (`pnpm run
-check` locally, `pnpm run check:full` in cloud — `AGENTS.md` "Checks"), plus
-**`pnpm run audit:cleanup`** — the deterministic backstop for the simplify rung
-(ast-grep anti-patterns, `knip` dead code, `jscpd` duplication), which the
-check scripts don't cover and only CI otherwise catches. A failure caused by an
-applied fix re-enters the loop; a pre-existing unrelated failure is reported,
-not fixed here.
+When the loop settles, run the checks plus **`pnpm run audit:cleanup`** — the
+deterministic backstop for the simplify rung (ast-grep anti-patterns, `knip`
+dead code, `jscpd` duplication), which the check scripts don't cover and only
+CI otherwise catches. Which check script: **committed-range scope always needs
+`pnpm run check:full`** — the loop's fixes are committed, so the changed-only
+`check` would select no tests. In **working-tree scope** the fixes are
+uncommitted, so the current agent mode's script applies (`AGENTS.md` "Checks");
+its changed-only selection keeps a docs- or skill-only diff fast, and such a
+diff may also skip `audit:cleanup`, which exercises nothing it touched. Cloud
+runs narrow nothing unless the user explicitly skips a suite.
 
-The local `check` script self-scopes (its test halves run changed-only), so a
-docs- or skill-only diff (common in working-tree scope, e.g. a feature-flow
-spec) stays fast and may also skip `audit:cleanup`, which exercises nothing
-such a diff touched. Cloud runs narrow nothing unless the user explicitly
-skips a suite.
+A failure caused by an applied fix re-enters the loop; a pre-existing
+unrelated failure is reported, not fixed here.
 
 ## Permissions
 

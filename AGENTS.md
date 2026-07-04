@@ -260,13 +260,12 @@ Determine agent mode in this order:
    `test:unit` and `test:collab` scripts are also suitable as changed-only
    smoke checks during iteration.
 2. Before handing the current task back, run `pnpm run check` — lint plus the
-   changed-only unit and collab suites. The test halves self-scope via
-   `--changed`, so docs-only or narrow diffs pass through fast.
-3. Run a `:full` suite only when the user explicitly asks, debugging requires
-   full-suite confirmation, or collaboration risk makes `test:collab:full`
-   worth it (changes under `src/editor/plugins/collaboration/**`,
-   `tests/unit/collab/**`, or editor state/synchronization/persistence paths
-   that can affect shared behavior).
+   changed-only unit and collab suites. The test halves select against
+   **uncommitted** files only (bare vitest `--changed`), which fits the default
+   leave-uncommitted workflow; work that is already committed needs
+   `check:full` instead (the committing skills say so themselves).
+3. Run a `:full` suite beyond that only when the user explicitly asks or
+   debugging requires full-suite confirmation.
 4. If a check fails because of your changes, either fix the regression or
    clearly report the failure before handing the task back.
 

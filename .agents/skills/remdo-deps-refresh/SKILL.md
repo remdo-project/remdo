@@ -75,7 +75,9 @@ Iterate:
       change the bump requires. Re-run until green. When the failure doesn't
       name its culprit (the lockfile item moves many packages at once), bisect
       it: restore `pnpm-workspace.yaml` + `pnpm-lock.yaml`, re-apply the
-      catalog bumps in halves, and re-run the failing check.
+      catalog bumps in halves — running `CI=true pnpm install
+      --no-frozen-lockfile` after each half so `node_modules` matches it — and
+      re-run the failing check.
    3. For a notable jump, skim the release notes — to inform the fix and to flag
       a behavior-affecting change for the report. Opportunistically apply a
       simplification newly-provided functionality enables (upside, never a
@@ -134,4 +136,5 @@ self-contained. Sections (omit a section if empty):
    migration, an ambiguous behavior change the tests cannot adjudicate), with what
    was tried. Omit if none. This is the only category that genuinely needs the
    user; everything else was handled.
-7. **Checks** — each final verification command with its pass/fail result.
+7. **Checks** — each final verification command with its pass/fail result, and
+   the CI matrix leg marked pending until the user pushes.
