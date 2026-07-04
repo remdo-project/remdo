@@ -134,8 +134,6 @@ Deferred to follow-up PRs:
 
 - Runtime public-policy toggle UI (see above) — this PR builds swappable-auth but
   not the toggle.
-- Source-side `clientPrivileges` (restrict raw `/oauth2/register`) — see hardening
-  list below.
 - Promote-existing-user-to-admin + per-admin revocation in the panel — see the
   admin-panel item above.
 
@@ -148,16 +146,16 @@ deferring does not churn the gate's interface):
   admins or only future enrollment.
 - Split signup policy from source client-registration policy (separate runtime
   settings + a "public source" preset) once the source-linking work lands.
-- Source-side `clientPrivileges` to restrict raw OAuth client creation — a
-  separate boundary from the home-side role gate.
 - Reject non-loopback http sources in `deriveSourceServer` so `normalizeSourceIssuer`
   (a mirror of Better Auth's `validateIssuerUrl`) can be deleted. Blocked on the
   Docker E2E, whose source is `http://<host-IP>` (rootless Docker can't reach a
   loopback source) — the real work is making that source loopback-reachable.
-- `POST /source-servers/:id/claim` burns the source's one-time code (via
-  `claim-registration`) before `setSourceServerCredentials` persists locally; a
-  persist failure strands the flow (code gone) and needs a full re-register. Make
-  the claim recoverable (retry the local persist; the creds are already fetched).
+- Orphaned source client on a rare local-persist failure: `POST
+  /source-servers/:id/claim` burns the source's one-time code before the local
+  `setSourceServerCredentials`; if that write fails (in-process sqlite error) the
+  code is gone and the source keeps an unused OAuth client. Recoverable today (row
+  stays Not registered → Re-register re-runs the ceremony), so low severity;
+  revisit only if orphaned-client cleanup on the source becomes a concern.
 - Re-registering a source overwrites its stored client id/secret but leaves users'
   existing Better Auth account rows for that `providerId`, so `listLinkedRemdoServerIds`
   still shows them Linked while their refresh tokens (issued to the old client)
