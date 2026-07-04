@@ -38,10 +38,10 @@ async function addSource(harness: Harness, headers: Headers): Promise<string> {
   return SOURCE_ID;
 }
 
-async function startRegistration(harness: Harness, headers: Headers, id: string): Promise<string> {
-  const response = await postJson(harness.app, `/api/link/source-servers/${id}/register`, {}, headers);
-  const { redirectUrl } = await response.json() as { redirectUrl: string };
-  return new URL(redirectUrl).searchParams.get('handle')!;
+// Seeds the home's server-side handle state for a source (the claim later
+// recovers it via findBySource); callers don't need the handle value.
+async function startRegistration(harness: Harness, headers: Headers, id: string): Promise<void> {
+  await postJson(harness.app, `/api/link/source-servers/${id}/register`, {}, headers);
 }
 
 describe('home-side registration initiation', () => {
