@@ -156,6 +156,16 @@ deferring does not churn the gate's interface):
   code is gone and the source keeps an unused OAuth client. Recoverable today (row
   stays Not registered → Re-register re-runs the ceremony), so low severity;
   revisit only if orphaned-client cleanup on the source becomes a concern.
+- Phished `register-home` (SECURITY, open): the `handle`/`home` in the register-home
+  request body are attacker-controllable — a signed-in source user lured to
+  `/oauth/register-home?home=<evil>&handle=<attacker>&…` who clicks Authorize
+  registers a client with an attacker `redirect_uri` and gets a code bound to the
+  attacker's own handle, so the attacker claims the client secret. The code↔handle
+  binding only defends a leaked URL on a *legitimate* registration; it does not
+  cover an attacker-chosen handle. Needs a design decision (see
+  `.agent/plans/2026-07-03-register-home-hardening.md`): bind the release to
+  source-side state the attacker can't choose, and/or a closed-deployment home
+  allow-list, accepting a documented residual for the fully-public model.
 - Re-registering a source overwrites its stored client id/secret but leaves users'
   existing Better Auth account rows for that `providerId`, so `listLinkedRemdoServerIds`
   still shows them Linked while their refresh tokens (issued to the old client)
