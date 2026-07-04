@@ -91,9 +91,9 @@ export function createLinkRoutes({
     // Register the OAuth client by driving Better Auth's own endpoint through its
     // request pipeline (auth.handler), not the in-process auth.api.* call. Going
     // through the pipeline is what makes Better Auth's onRequest hooks fire — the
-    // configured register rate limit (oauthProvider.rateLimit.register) and the
-    // clientPrivileges policy — which auth.api.* would silently bypass. The
-    // source user's session rides along via the forwarded cookies.
+    // configured register rate limit (oauthProvider.rateLimit.register) — which
+    // auth.api.* would silently bypass. The source user's session rides along via
+    // the forwarded cookies.
     const registerResponse = await auth.auth.handler(new Request(
       new URL('/api/auth/oauth2/register', auth.baseURL),
       {

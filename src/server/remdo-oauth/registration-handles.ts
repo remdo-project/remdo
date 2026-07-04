@@ -16,7 +16,6 @@ interface PendingRegistration {
 
 export interface RegistrationHandleStore {
   issue: (sourceId: string) => string;
-  verify: (handle: string, sourceId: string) => boolean;
   consume: (handle: string, sourceId: string) => boolean;
   // The home recovers the handle for an in-flight registration from its own
   // server state (keyed by source), so the handle never has to ride in the
@@ -44,16 +43,6 @@ export function createRegistrationHandleStore(
       const handle = randomBytes(32).toString('base64url');
       pending.set(handle, { sourceId, expiresAt: now() + HANDLE_TTL_MS });
       return handle;
-    },
-    // Whether a handle is known, unexpired, and bound to the given source —
-    // without consuming it, so a recoverable failure can be retried.
-    verify(handle, sourceId) {
-      purgeExpired();
-      const entry = pending.get(handle);
-      if (!entry || entry.sourceId !== sourceId) {
-        return false;
-      }
-      return entry.expiresAt > now();
     },
     // Validates and single-use-consumes a handle. Returns true only when the
     // handle is known, unexpired, and bound to the same source it was issued for.

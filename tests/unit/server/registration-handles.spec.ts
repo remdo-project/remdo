@@ -30,9 +30,9 @@ describe('registration handle store', () => {
     const store = createRegistrationHandleStore(() => clock);
     const handle = store.issue('https-source-example');
 
-    // Just short of the TTL: still valid.
+    // Just short of the TTL: still recoverable (non-destructive check).
     clock += HANDLE_TTL_MS - 1;
-    expect(store.verify(handle, 'https-source-example')).toBe(true);
+    expect(store.findBySource('https-source-example')).toBe(handle);
     // Exactly at the TTL: expired (consume checks expiresAt > now, so the
     // boundary is exclusive). Derived from the store's own TTL, not a re-guessed
     // number, so this tracks the constant automatically.
@@ -40,24 +40,14 @@ describe('registration handle store', () => {
     expect(store.consume(handle, 'https-source-example')).toBe(false);
   });
 
-  it('verify validates without consuming, so a later consume still succeeds', () => {
+  it('consume rejects a mismatched source and an unknown handle', () => {
     const store = createRegistrationHandleStore();
     const handle = store.issue('https-source-example');
 
-    expect(store.verify(handle, 'https-source-example')).toBe(true);
-    // verify is non-destructive: it can be called repeatedly and the handle
-    // remains usable for the eventual consume.
-    expect(store.verify(handle, 'https-source-example')).toBe(true);
+    expect(store.consume(handle, 'https-other-example')).toBe(false);
+    expect(store.consume('never-issued', 'https-source-example')).toBe(false);
+    // Neither rejection consumed the handle, so it still works for its real source.
     expect(store.consume(handle, 'https-source-example')).toBe(true);
-    expect(store.verify(handle, 'https-source-example')).toBe(false);
-  });
-
-  it('verify rejects a mismatched source and an unknown handle', () => {
-    const store = createRegistrationHandleStore();
-    const handle = store.issue('https-source-example');
-
-    expect(store.verify(handle, 'https-other-example')).toBe(false);
-    expect(store.verify('never-issued', 'https-source-example')).toBe(false);
   });
 
   it('findBySource recovers the in-flight handle server-side, then not after consume', () => {
