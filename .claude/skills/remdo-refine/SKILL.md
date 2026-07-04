@@ -153,21 +153,19 @@ anything with a defensible best-effort resolution is a tradeoff, not a blocker.
 
 ## Verification
 
-When the loop settles, run the final checks for the **current agent mode**
-(`AGENTS.md` "Checks" — local-agent or cloud, e.g. cloud requires the `:full`
-suites), plus **`pnpm run audit:cleanup`** — the deterministic backstop for the
-simplify rung (ast-grep anti-patterns, `knip` dead code, `jscpd` duplication),
-which local-agent checks otherwise skip and only CI catches. A failure caused by
-an applied fix re-enters the loop; a pre-existing unrelated failure is reported,
+When the loop settles, run the current agent mode's check script (`pnpm run
+check` locally, `pnpm run check:full` in cloud — `AGENTS.md` "Checks"), plus
+**`pnpm run audit:cleanup`** — the deterministic backstop for the simplify rung
+(ast-grep anti-patterns, `knip` dead code, `jscpd` duplication), which the
+check scripts don't cover and only CI otherwise catches. A failure caused by an
+applied fix re-enters the loop; a pre-existing unrelated failure is reported,
 not fixed here.
 
-`pnpm run lint` is always mandatory (it is fast and `AGENTS.md` requires it
-before handing any task back). What may be narrowed is the heavier work: in
-**local-agent** runs a docs- or skill-only diff (common in working-tree scope,
-e.g. a feature-flow spec) can skip the code test suites and `audit:cleanup`,
-since they exercise nothing the diff touched. **Cloud-agent** runs narrow
-nothing — `AGENTS.md` requires `lint` + `test:unit:full` + `test:collab:full` in
-full regardless of diff content unless the user explicitly skips one.
+The local `check` script self-scopes (its test halves run changed-only), so a
+docs- or skill-only diff (common in working-tree scope, e.g. a feature-flow
+spec) stays fast and may also skip `audit:cleanup`, which exercises nothing
+such a diff touched. Cloud runs narrow nothing unless the user explicitly
+skips a suite.
 
 ## Permissions
 

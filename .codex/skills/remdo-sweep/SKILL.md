@@ -13,6 +13,10 @@ and report larger or ambiguous concerns as deferred follow-ups.
 
 Never stage or commit changes.
 
+Sweep is the one-pass conservative applier. For a quality loop that iterates to
+convergence use `remdo-refine`; for a read-only findings report use
+`remdo-simplify`.
+
 ## Select The Scope
 
 Take the scope from the request; default to `diff` when none is given.
@@ -20,21 +24,11 @@ Take the scope from the request; default to `diff` when none is given.
 - `diff`: uncommitted changes, `BASE=HEAD`.
 - `branch`: everything the current branch introduces plus uncommitted
   changes; `BASE` is the commit the branch forked from. If the request names
-  a parent branch, use `BASE=$(git merge-base <parent> HEAD)`. Otherwise
-  detect the fork commit:
-
-  ```sh
-  CUR=$(git branch --show-current); HEADC=$(git rev-parse HEAD); BASE=""
-  for ref in $(git for-each-ref --format='%(refname:short)' refs/heads | grep -vx "$CUR"); do
-    mb=$(git merge-base HEAD "$ref") || continue
-    [ "$mb" = "$HEADC" ] && continue
-    if [ -z "$BASE" ] || git merge-base --is-ancestor "$BASE" "$mb"; then BASE=$mb; fi
-  done
-  : "${BASE:=$(git merge-base main HEAD)}"
-  ```
-
-  This picks the deepest fork point across local branches, so a branch cut
-  from another feature branch sweeps only its own commits.
+  a parent branch, use `BASE=$(git merge-base <parent> HEAD)`; otherwise use
+  the repo convention `BASE=$(git merge-base origin/main HEAD)`
+  (`docs/contributing.md#git-workflow`). A branch cut from another in-progress
+  branch needs its parent named — the convention base would sweep the parent's
+  work in.
 - `repo`: the whole repository; no `BASE`.
 
 ## Inspect The Surface
@@ -125,9 +119,10 @@ Report those as deferred follow-ups instead.
 
 ## Verification
 
-Use scoped checks while iterating when useful. Before finishing, run the checks
-required for the current agent mode and report each final command with its
-result.
+Use scoped checks while iterating when useful. Before finishing, run the
+current agent mode's check script (`pnpm run check` locally, `pnpm run
+check:full` in cloud — `AGENTS.md` "Checks") and report each final command with
+its result.
 
 ## Final Response
 

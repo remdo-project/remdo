@@ -14,10 +14,14 @@ what's needed to fit a headless dev VM and the project's look.
 Read the official skill and its templates first; they hold the patterns,
 prompt-output style, state model, and per-type guidance:
 
-- `~/.claude/plugins/cache/claude-plugins-official/playground/unknown/skills/playground/SKILL.md`
-- `~/.claude/plugins/cache/claude-plugins-official/playground/unknown/skills/playground/templates/` —
+- `~/.claude/plugins/cache/claude-plugins-official/playground/*/skills/playground/SKILL.md`
+- `~/.claude/plugins/cache/claude-plugins-official/playground/*/skills/playground/templates/` —
   `design-playground.md`, `data-explorer.md`, `concept-map.md`,
   `document-critique.md`, `diff-review.md`, `code-map.md`
+
+(Glob the version segment — the cache directory name changes across plugin
+versions. If no path matches, the plugin isn't installed: stop and say so —
+this override extends the official skill, it does not replace it.)
 
 Follow that skill's "How to use" and "Core requirements" as written, then apply
 the RemDo deltas below (they win on conflict).

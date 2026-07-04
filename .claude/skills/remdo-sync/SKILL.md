@@ -38,9 +38,7 @@ Sync runs on whatever branch is checked out (no branch-name gate).
    remote-tracking refs).
 2. **Already up to date?** If `origin/main` is already reachable from `HEAD`
    (nothing to merge — e.g. a prior manual merge), finish here.
-3. **Probe for conflicts without touching the tree** — `git merge-tree
-   --write-tree --merge-base $(git merge-base HEAD origin/main) HEAD origin/main`.
-4. **Merge** (and resolve, if conflicts). `git merge origin/main`. Resolve only
+3. **Merge** (and resolve, if conflicts). `git merge origin/main`. Resolve only
    conflicts you can **determine are safe** — take the time to be sure: read both
    sides' intent, the surrounding code, `git log`/`git blame`, related changes.
    When a resolution is not clearly correct, **do not guess** — leave it
@@ -48,6 +46,11 @@ Sync runs on whatever branch is checked out (no branch-name gate).
    finish a half-resolved merge silently. Bias to callout when unsure. If
    conflicts can't be safely resolved, stop with the callout rather than
    committing a half-resolved merge.
+4. **Verify.** Unless the merge fast-forwarded, run the current agent mode's
+   check script (`pnpm run check` locally, `pnpm run check:full` in cloud —
+   `AGENTS.md` "Checks"): a textually clean merge can still be semantically
+   broken, and auto-resolved conflicts double the reason. A failure is part of
+   the callout — never finish a red sync silently.
 
 ## Permissions
 
@@ -62,14 +65,13 @@ outside this flow) stays the user's.
 Index the result: commits pulled in from `origin/main` (count, not a
 re-narration); whether the merge was clean or had conflicts; conflicts
 auto-resolved (with a one-line why-safe each) and conflicts left for the user
-(with file/region and what is unclear).
+(with file/region and what is unclear); the check script's result (or that it
+was skipped for a fast-forward).
 
 ## References
 
 - Rebase-vs-merge / force-push tradeoff:
   <https://www.atlassian.com/git/tutorials/merging-vs-rebasing>.
-- Conflict-probe primitive (`git merge-tree --write-tree`): the local
-  `syncbranch` helper uses the same check.
 - Branch base (`origin/main...HEAD`) and the calling flow: `remdo-feature-flow`
   skill.
 - Skill-authoring rule and fetch/push policy: `AGENTS.md`.

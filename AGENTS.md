@@ -259,29 +259,22 @@ Determine agent mode in this order:
    you touched instead of repeatedly running full suites. The default
    `test:unit` and `test:collab` scripts are also suitable as changed-only
    smoke checks during iteration.
-2. Before handing the current task back:
-   1. Always run `pnpm run lint`.
-   2. Run `pnpm run test:unit` for behavior/code changes (skip for docs-only or
-      purely cosmetic style changes).
-   3. Run `pnpm run test:collab` only when collaboration risk exists.
-      Collaboration risk includes changes under
-      `src/editor/plugins/collaboration/**`, `tests/unit/collab/**`, or editor
-      state/synchronization/persistence paths that can affect shared behavior.
-   4. Do not run `pnpm run test:unit:full` or `pnpm run test:collab:full`
-      unless the user explicitly asks, or debugging requires full-suite
-      confirmation.
-3. If a check fails because of your changes, either fix the regression or
+2. Before handing the current task back, run `pnpm run check` — lint plus the
+   changed-only unit and collab suites. The test halves self-scope via
+   `--changed`, so docs-only or narrow diffs pass through fast.
+3. Run a `:full` suite only when the user explicitly asks, debugging requires
+   full-suite confirmation, or collaboration risk makes `test:collab:full`
+   worth it (changes under `src/editor/plugins/collaboration/**`,
+   `tests/unit/collab/**`, or editor state/synchronization/persistence paths
+   that can affect shared behavior).
+4. If a check fails because of your changes, either fix the regression or
    clearly report the failure before handing the task back.
 
 ### Cloud agents
 
-1. Always run these checks before declaring a task done:
-   1. `pnpm run lint`
-   2. `pnpm run test:unit:full`
-   3. `pnpm run test:collab:full`
-
-   These suites must pass at the end of every cloud-task unless the user
-   explicitly asks to skip a specific suite.
+1. Run `pnpm run check:full` (lint + `test:unit:full` + `test:collab:full`)
+   before declaring a task done. It must pass at the end of every cloud-task
+   unless the user explicitly asks to skip a specific suite.
 
 2. When any of the required checks fail, fix the issue (or state why it cannot
    be fixed) before finishing the task. Do not return success while a mandated

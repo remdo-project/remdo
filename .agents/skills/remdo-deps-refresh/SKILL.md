@@ -23,7 +23,9 @@ Operating principle: **apply everything, then make it green.**
    step — pausing to ask just defers the same work and contradicts the
    run-and-walk-away intent.
 2. **The checks are the gate**, not human judgement: the full local suites here,
-   plus the CI matrix on the dev push (the skill never lands on `main` directly).
+   plus the CI matrix on the dev push (the skill never lands on `main` directly;
+   the push itself stays the user's — see Permissions — so report the CI leg as
+   pending, not covered).
    A regression that the suites catch is for the skill to diagnose and fix now,
    from the failure in hand — the same investigation a "stop" would have produced,
    just without the wait.
@@ -60,9 +62,8 @@ Iterate:
 1. Run `pnpm run deps:next`.
 2. **Exit 3** — the gate names the changed item (e.g. `lockfile deps`,
    `pnpm pin`, `node pins`, `github actions`). Handle just that item:
-   1. Verify it green: `pnpm run lint`, `pnpm run test:unit:full`,
-      `pnpm run test:collab:full`, `pnpm run test:e2e`, the audits
-      (`audit:unused:zero`, `audit:dup:zero`), and
+   1. Verify it green: `pnpm run check:full`, `pnpm run test:e2e`,
+      `pnpm run audit:cleanup`, and
       `CI=true pnpm install --no-frozen-lockfile` as the consistency gate. For a
       **Node** change also run `pnpm run test:e2e:docker` (the only local surface
       that exercises the alpine base); other items lean on the docker-tests CI job
@@ -71,7 +72,10 @@ Iterate:
       Diagnose from the failure in hand and fix forward: adjust a workaround in
       [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md),
       pin a known-bad transitive, correct config, or make the minimal code/test
-      change the bump requires. Re-run until green.
+      change the bump requires. Re-run until green. When the failure doesn't
+      name its culprit (the lockfile item moves many packages at once), bisect
+      it: restore `pnpm-workspace.yaml` + `pnpm-lock.yaml`, re-apply the
+      catalog bumps in halves, and re-run the failing check.
    3. For a notable jump, skim the release notes — to inform the fix and to flag
       a behavior-affecting change for the report. Opportunistically apply a
       simplification newly-provided functionality enables (upside, never a
