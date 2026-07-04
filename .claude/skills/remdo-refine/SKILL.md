@@ -193,9 +193,7 @@ diff each finding sat); tradeoffs taken with a pointer to their
 with pass/fail.
 
 Then one **per-rung counts** line each for simplify / internal / external: how
-many times it ran, findings it surfaced, and how many of those were applied. For
-the simplify rung, split the run and surfaced counts by tool (`/simplify` vs the
-`remdo-simplify` skill); the applied count is not attributed per tool.
+many times it ran, findings it surfaced, and how many of those were applied.
 
 ## References
 

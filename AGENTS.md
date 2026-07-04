@@ -187,6 +187,11 @@ would constrain a future run that may do it better. When unsure, state the inten
 and trust the running model to meet it (mirrors `docs/principles.md`: current
 code does not define the long-term shape).
 
+Voice: write procedure as second-person imperative addressed to the executing
+agent; state invariants, definitions, and permissions declaratively. The
+executing agent is the default "you" — the moment a second actor is in scope (a
+subagent, the user), name the actor of every instruction explicitly.
+
 ## Agent mode
 
 Determine agent mode in this order:
