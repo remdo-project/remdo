@@ -84,8 +84,7 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 
 - Persisted JSON document state must include `noteId` for addressable notes.
 - Persisted JSON document state must not persist the active/current document ID
-  as document-level identity (for example, not as `root.noteId` and not as a
-  same-document note-link `docId`).
+  as document-level identity (for example, not as `root.noteId`).
 - Persisted JSON must keep explicit `docId` values for note links that
   target other documents.
 - Note-link `docId` representation rules are defined in

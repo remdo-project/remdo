@@ -26,7 +26,6 @@ Reordering uses one directional model for both commands:
 4. If outdent is not possible, the command is a no-op.
 
 Each keypress performs exactly one successful step from this fallback cascade.
-Commands never skip multiple levels in a single move.
 
 ## Zoom boundary
 

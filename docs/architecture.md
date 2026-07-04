@@ -129,9 +129,6 @@ specific sync channel (for example network sync or local persistence).
 - **Persistence provider:** stores updates/state locally (IndexedDB, filesystem,
   and similar stores).
 
-Attaching multiple providers to the same `Y.Doc` is an advanced pattern and
-must be intentional.
-
 ### Local Persistence
 
 Client-side storage for collaboration state.

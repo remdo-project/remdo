@@ -26,8 +26,7 @@ loudly instead.
   existing lockfile entry (independent of `minimumReleaseAgeStrict`, which only
   governs *resolution*), so even `--frozen-lockfile` in CI hard-fails
   (`ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`) on a committed entry younger than the
-  window. The refresh holds such bumps to the next run, so a committed lockfile
-  never carries a too-fresh entry.
+  window.
 - Build-script approval uses the `allowBuilds` map in `pnpm-workspace.yaml`
   (`onlyBuiltDependencies` was removed in pnpm 11). With `strictDepBuilds: true`
   (enabled), an install fails (exit 1) when any in-tree dep has a build script

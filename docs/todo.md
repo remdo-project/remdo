@@ -109,44 +109,29 @@ Rules:
 
 ## Admin role follow-ups
 
-The persistent admin role + secret-gated enrollment foundation is built (Better
-Auth admin plugin, `/api/admin/enroll` which registers a new admin account, the
-role-conditional `/admin` route, and `role` on the `/api/current-user`
-bootstrap). Still to come:
+Admin role + secret-gated enrollment foundation is built; still to come:
 
 - Reconsider `/api/config` vs `/api/health` — maybe one `/api/status` covers both.
-- Admin *panel* content behind `/admin` (the admin branch is a placeholder for
-  now), including **promoting an existing user to admin** and per-admin
-  revocation — the only way today to gain admin is registering a new account via
-  the secret. The session+role authz helper for gating these admin APIs is not
-  built yet (an earlier `resolveAdminSessionUserId` was dropped as unused); the
-  panel PR builds its own gate. The source-linking PR adds the source-server
-  management UI, so the panel ships there.
-- Toolbar **Admin** link for signed-in admins (`App.tsx`). Deferred as
-  pure-additive UI — `App.tsx` is untouched by this PR, so it can land later
-  against the `role`-on-bootstrap that now exists, with no new infra.
-- Runtime public-policy toggle (replace `ALLOW_SIGNUP` env with admin-managed,
-  DB-backed state). Needs auth hot-swap (rebuild `betterAuth` to flip the
-  construction-time `disableSignUp`), so it ships with the source-linking PR that
-  builds that swappable-auth machinery. Until then `ALLOW_SIGNUP` is the signup
-  control.
+- Admin *panel* content behind `/admin` (placeholder branch now): promote an
+  existing user to admin, per-admin revocation. Needs a session+role authz
+  helper (not built); ships with the source-linking PR's management UI.
+- Toolbar **Admin** link for signed-in admins (`App.tsx`).
+- Runtime public-policy toggle: replace `ALLOW_SIGNUP` env with admin-managed
+  DB state; needs the source-linking PR's auth hot-swap machinery.
 
-Deferred hardening on top of that foundation (each is on top of the same gate, so
-deferring does not churn the gate's interface):
+Deferred hardening:
 
-- Audit logging + rate limiting on self-enrollment and public-policy changes
-  (one submission now grants a durable role, not a one-off action).
+- Audit logging + rate limiting on self-enrollment and public-policy changes.
 - `ADMIN_SECRET` rotation lifecycle: define whether rotating affects existing
   admins or only future enrollment.
-- Split signup policy from source client-registration policy (separate runtime
-  settings + a "public source" preset) once the source-linking work lands.
-- Source-side `clientPrivileges` to restrict raw OAuth client creation — a
-  separate boundary from the home-side role gate.
+- Split signup policy from source client-registration policy once
+  source-linking lands.
+- Source-side `clientPrivileges` to restrict raw OAuth client creation.
 - Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
   the Better Auth admin plugin.
-- Tradeoff (standing): the admin secret is a permanent gate — any user who learns
-  it can self-upgrade, with no per-admin revocation yet. Accepted for
-  single-operator self-host; revisit for public multi-tenant.
+- Tradeoff (standing): the admin secret is a permanent gate with no per-admin
+  revocation; accepted for single-operator self-host, revisit for public
+  multi-tenant.
 
 ## Offline and local persistence follow-ups
 
@@ -321,15 +306,11 @@ Remaining issues to fold in or fix directly:
   Prefer simple explicit test actions (for example dispatching the real zoom
   command, or at most a thin helper around it) over smart harness metadata that
   adds API surface, hides behavior setup, and cannot be changed mid-test.
-- Collab full-suite flakiness on high-core machines (~10%/run, different
-  unrelated test each time, isolation-clean, CI never sees it). Cause: vitest
-  worker count scales to cores (no `maxForks` cap) but the 5s per-test timeout
-  and single shared collab server don't, so ~10 workers starve under contention;
-  CI's 2-core runner accidentally stays under the budget. Proposed first fix: cap
+- Collab full-suite flakiness on high-core machines (CI unaffected): vitest
+  forks scale to cores but the 5s timeout and single collab server don't. Cap
   `poolOptions.forks.maxForks` (~4 / `'50%'`) and raise the timeout on the
-  subprocess-spawning files (`snapshot-backup`, `prod-docker-launcher`,
-  `config-env`, `docker-entrypoint-env`, `snapshot.collab`). Verify with
-  `test:collab:repeat`. (Distinct from the e2e readiness flake below.)
+  subprocess-spawning specs; verify with `test:collab:repeat`. (Distinct from
+  the e2e readiness flake below.)
 - e2e `TestBridgePlugin: collaboration readiness timed out` flake (CI, ~1/99,
   different test each time; seen on `editor/deletion.spec.ts` `editor.load(...)`).
   Preceded by a vite `/d` ws-proxy `ECONNRESET` — a dropped collab websocket

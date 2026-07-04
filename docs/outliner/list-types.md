@@ -16,15 +16,14 @@ Define list type behavior (bullet, number, check) and checked-state semantics.
 6. Checked notes remain checked across list type switches, reload, and
    collaboration.
 7. Checked state remains visible in every list type.
-8. Switching list type never changes a note's effective checked status.
-9. Setting checked state on a note is recursive: that note and all of its
+8. Setting checked state on a note is recursive: that note and all of its
    descendants are set to the same checked value.
-10. Multi-note toggle uses one target state for all selected roots:
+9. Multi-note toggle uses one target state for all selected roots:
    if all selected roots are checked, set all to unchecked; otherwise set all
    to checked.
-11. A selected root is any selected note whose parent is not also selected.
+10. A selected root is any selected note whose parent is not also selected.
     Descendants under another selected root are not treated as separate roots.
-12. Applying the target state updates every selected root recursively, so each
+11. Applying the target state updates every selected root recursively, so each
     affected subtree ends in a uniform checked state.
 
 ## Commands

@@ -58,7 +58,7 @@ Within a body, keys behave as follows:
    as a single step.
 
 `Backspace` at the start of a non-empty body is a no-op — it never merges the
-body into the note above — so a body is removed only by emptying it first.
+body into the note above.
 
 ## Note merge
 
@@ -69,4 +69,4 @@ When two notes merge into one (see [Deletion](./deletion.md) for when a
 2. **Exactly one has a body.** The merge proceeds and the surviving note keeps
    that body (the merged-away note's body moves to the result).
 3. **Both have a body.** The merge is a no-op: `Backspace`/`Delete` does nothing,
-   so no body is lost. Empty or remove one body first to join the notes.
+   so no body is lost.

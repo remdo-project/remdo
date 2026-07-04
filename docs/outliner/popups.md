@@ -31,10 +31,7 @@ specialization of this contract; the contract is independent of how each opens.
    both **cancel** — they close it and apply nothing. The popup never commits on
    blur, light-dismiss, or `Tab`, and never commits an unconfirmed highlight.
    Commit happens only through an explicit per-widget commit action (each widget
-   declares its commit keys); confirming applies the result and closes. This holds
-   for modifier combos too: an editor shortcut a widget does not declare — such as
-   `Cmd`/`Ctrl+Enter` — is owned like any other key, so it does not act on the
-   document underneath.
+   declares its commit keys); confirming applies the result and closes.
 5. **`Tab` never inserts a tab.** Each widget declares its `Tab` behavior as one
    of: **close and fall through** to the editor's normal `Tab` action (the popup
    closes, then deliberately routes the key onward — an explicit outcome, not a

@@ -7,10 +7,9 @@ Define the product assumptions that outrank current implementation details.
 ## Non-negotiables
 
 1. RemDo is privacy-first.
-2. Privacy is a design constraint.
-3. RemDo is fully open source.
-4. Transparency comes from code plus simple deployment.
-5. Security should rely on trusted building blocks.
+2. RemDo is fully open source.
+3. Transparency comes from code plus simple deployment.
+4. Security should rely on trusted building blocks.
 
 ## Data and trust
 

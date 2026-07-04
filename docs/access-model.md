@@ -12,8 +12,7 @@ routing, document identity — are owned by
 2. A document may also have zero or more user-specific access grants.
 3. New documents start with no user-specific access grants.
 4. Only the owner can grant access to another user.
-5. A normal document URL is only a document locator. Possessing it does not
-   allow access.
+5. A normal document URL is only a document locator.
 6. Public and bearer-link access are separate access cases outside the sharing
    flow this doc specifies (see [Future](#future)).
 
@@ -107,12 +106,8 @@ the user.
 - Scope: the granted document.
 - Access: full access.
 - Y-Sweet document client token: issued when the user has a direct grant.
-- Sharing lifecycle:
-  1. Alice owns `doc123`.
-  2. Bob has a user account on the same server.
-  3. Alice enters Bob's email address in the sharing UI for `doc123`.
-  4. If Bob's email matches a local user account, the server creates the grant.
-  5. Bob can see and open `doc123`.
+- Sharing UI: the owner enters the grantee's email address; the grant is
+  created only if that email matches a local user account.
 
 ## Special Documents
 

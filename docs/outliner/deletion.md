@@ -70,10 +70,7 @@ When zoom is active, caret-mode deletion keeps merges inside the zoom boundary:
 
 ## Non-goals / explicit no-ops
 
-1. `Backspace` at the start of a note never performs standalone hoists; the
-   only child reparenting it performs is the explicit merge behavior defined
-   above.
-2. Deletion does not create a "trash" bin or soft-delete layer; recovery is via
+1. Deletion does not create a "trash" bin or soft-delete layer; recovery is via
    undo/redo.
 
 ## Future

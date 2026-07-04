@@ -21,7 +21,7 @@ Define RemDo-owned inline date behavior in the outliner.
    `PageUp`/`PageDown` by a month, `Shift+PageUp`/`PageDown` by a year. The editor
    caret does not move under the open grid.
 5. `Enter` or `Space` commits the focused day; a primary-button click commits the
-   clicked day. So `!` then `Enter` inserts today (the fast path). `Escape` — and
+   clicked day. `Escape` — and
    `Tab`, which must not escape into browser focus traversal — cancel the calendar
    and restore the caret to the editor. Committing inserts a date node plus a
    trailing space over the pinned `!` span.

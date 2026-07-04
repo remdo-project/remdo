@@ -65,10 +65,8 @@ caret/selection state in the editor.
 
 ## Zoom stability
 
-1. Local edits do not change zoom automatically.
-2. Collaboration updates do not change zoom automatically.
-3. Zoom changes only through explicit zoom navigation or when the zoom target
-   can no longer be resolved.
+Zoom changes only through explicit zoom navigation or when the zoom target can
+no longer be resolved.
 
 ## Boundary-specific command rules
 

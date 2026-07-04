@@ -35,8 +35,7 @@ variables — is derived or bootstrapped, never set in the normal path.
 ## Derivation rules
 
 Each fact has one owning input; everything else derives from it in one
-direction. Two inputs can never disagree because there is never a second input to
-disagree.
+direction.
 
 **Ports.** In dev/test `PORT_BASE` is the only port input; `PORT` and every
 secondary service port derive from it by fixed offset. In server/prod the
@@ -69,8 +68,7 @@ Guardrails:
 
 ## Admin bootstrap and enrollment
 
-`ADMIN_SECRET` is the gate for acquiring the admin role: it is required in
-production and never auto-generated there. The self-enrollment flow it gates
+`ADMIN_SECRET` is the gate for acquiring the admin role. The self-enrollment flow it gates
 (including first-admin bootstrap) lives in
 [docs/access-model.md](./access-model.md#admin-role).
 

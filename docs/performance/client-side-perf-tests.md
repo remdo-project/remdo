@@ -8,8 +8,8 @@ its workloads and operations, and the runner surface.
 2. Runner: a fixture-driven Vitest Bench suite plus a workload generator, both
    in `tests/perf/**`.
 3. Metric: Vitest Bench default output; the median is the primary reading.
-4. Workloads: generated fixtures named `<branch>x<depth>` (for example `8x3`),
-   stored as `data/perf/<id>.json`.
+4. Workloads: generated fixtures named `<branch>x<depth>`, stored as
+   `data/perf/<id>.json`.
 5. Operations benched:
    - add note
    - reorder note (within parent)

@@ -12,13 +12,8 @@ here.
 
 When zoom is active, indent/outdent must keep the moved subtree inside the zoom
 boundary (the zoom root and descendants). Any indent/outdent that would move
-the selection outside that boundary is a no-op.
-
-Examples:
-
-- Indenting the zoom root is a no-op.
-- Outdenting the zoom root is a no-op.
-- Outdenting a direct child of the zoom root is a no-op.
+the selection outside that boundary is a no-op. The zoom root itself cannot be
+indented or outdented: both are no-ops.
 
 ## Subtree Atomic Move
 
