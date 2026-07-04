@@ -215,10 +215,9 @@ describe('source-side registration', () => {
       state: SOURCE_ID,
     }, headers);
 
-    // The register goes through Better Auth's pipeline, so its configured
-    // register rate limit (window 60s, max 5) applies. The first calls succeed
-    // (200 with a redirect back to the home carrying a one-time code); once the
-    // limit is hit the source rejects with a forwarded 4xx (429).
+    // register-home is rate-limited per source account (max 5 / 60s). The first
+    // calls succeed (200 with a redirect back to the home carrying a one-time
+    // code); once the per-user limit is hit the source returns 429.
     const first = await register();
     expect(first.status).toBe(200);
     expect(new URL((await first.json() as { redirectUrl: string }).redirectUrl).searchParams.get('code')).toBeTruthy();

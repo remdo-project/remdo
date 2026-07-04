@@ -11,6 +11,19 @@ describe('registration handle store', () => {
     expect(store.consume(handle, 'https-source-example')).toBe(false);
   });
 
+  it('re-issuing for a source supersedes the prior handle (one in-flight per source)', () => {
+    const store = createRegistrationHandleStore();
+    const first = store.issue('https-source-example');
+    const second = store.issue('https-source-example');
+
+    // findBySource must recover the LATEST handle — the one the source bound the
+    // new code to — so a retry does not wedge on a stale handle.
+    expect(store.findBySource('https-source-example')).toBe(second);
+    // The superseded handle is gone.
+    expect(store.consume(first, 'https-source-example')).toBe(false);
+    expect(store.consume(second, 'https-source-example')).toBe(true);
+  });
+
   it('rejects a handle presented for a different source', () => {
     const store = createRegistrationHandleStore();
     const handle = store.issue('https-source-example');

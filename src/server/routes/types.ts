@@ -4,6 +4,7 @@ import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { DocumentRegistry } from '#server/documents/document-registry';
 import type { RegistrationCodeStore } from '#server/remdo-oauth/registration-codes';
 import type { RegistrationHandleStore } from '#server/remdo-oauth/registration-handles';
+import type { RegistrationRateLimit } from '#server/remdo-oauth/registration-rate-limit';
 
 export interface ServerRouteDependencies {
   adminSecret?: string;
@@ -12,6 +13,7 @@ export interface ServerRouteDependencies {
   rebuildAuth: () => void;
   registrationCodes: RegistrationCodeStore;
   registrationHandles: RegistrationHandleStore;
+  registrationRateLimit: RegistrationRateLimit;
   tokenManager: YSweetDocumentTokenManager;
   registry: DocumentRegistry;
   logError: (error: unknown, details: { docId?: string }) => void;

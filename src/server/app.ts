@@ -8,8 +8,10 @@ import type { SqliteServerDatabaseClient } from './db/client';
 import type { DocumentRegistry } from './documents/document-registry';
 import { createRegistrationCodeStore } from './remdo-oauth/registration-codes';
 import { createRegistrationHandleStore } from './remdo-oauth/registration-handles';
+import { createRegistrationRateLimit } from './remdo-oauth/registration-rate-limit';
 import type { RegistrationCodeStore } from './remdo-oauth/registration-codes';
 import type { RegistrationHandleStore } from './remdo-oauth/registration-handles';
+import type { RegistrationRateLimit } from './remdo-oauth/registration-rate-limit';
 import { createApiRoutes } from './routes/api';
 import { createAuthRoutes } from './routes/auth';
 import { createWellKnownRoutes } from './routes/well-known';
@@ -21,6 +23,7 @@ interface ServerAppOptions {
   rebuildAuth?: () => void;
   registrationCodes?: RegistrationCodeStore;
   registrationHandles?: RegistrationHandleStore;
+  registrationRateLimit?: RegistrationRateLimit;
   tokenManager?: YSweetDocumentTokenManager;
   registry: DocumentRegistry;
   logError?: (error: unknown, details: { docId?: string }) => void;
@@ -40,6 +43,7 @@ export function createServerApp({
   rebuildAuth = () => {},
   registrationCodes = createRegistrationCodeStore(),
   registrationHandles = createRegistrationHandleStore(),
+  registrationRateLimit = createRegistrationRateLimit(),
   tokenManager = createYSweetDocumentTokenManager(),
   registry,
   logError = defaultLogError,
@@ -53,6 +57,7 @@ export function createServerApp({
     rebuildAuth,
     registrationCodes,
     registrationHandles,
+    registrationRateLimit,
     registry,
     tokenManager,
   };
