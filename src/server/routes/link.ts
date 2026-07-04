@@ -134,31 +134,37 @@ export function createLinkRoutes({
       logError(new Error('register client returned no client_id'), {});
       return c.json({ error: 'Failed to register the home client.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
+    // Bind the code to the home-issued handle: the claim must present the handle,
+    // which the home holds server-side and never puts in the browser. So the code
+    // that rides back in the admin's URL cannot, on its own, release the secret.
     const code = registrationCodes.issue({
       clientId: registration.client_id,
       clientSecret: registration.client_secret ?? '',
-    });
+    }, handle);
 
+    // Only a reference (sourceId + code) travels in the browser URL; the handle
+    // stays server-side on the home. The home recovers it by sourceId to claim.
     const done = new URL(`${homeOrigin}/admin`);
     done.searchParams.set('sourceId', homeSourceId);
-    done.searchParams.set('handle', handle);
     done.searchParams.set('code', code);
     return c.json({ redirectUrl: done.toString() });
   });
 
-  // SOURCE. The home pulls the credentials it was issued, with the one-time code.
-  // Server-to-server; the code is the authorization. Single-use.
+  // SOURCE. The home pulls the credentials it was issued, presenting the one-time
+  // code AND the handle the code is bound to. Server-to-server; single-use. The
+  // handle (held server-side on the home, never in a browser) is what authorizes
+  // the release, so a code leaked from the admin's URL cannot claim on its own.
   routes.post('/claim-registration', async (c) => {
     // Only a public source ever issues codes, so this endpoint has no purpose on
     // a non-public server; refuse outright rather than leaving it reachable.
     if (!auth.allowSignup) {
       return c.json({ error: 'This server does not accept home registration.' }, HTTP_STATUS.FORBIDDEN);
     }
-    const body: { code?: string } = await c.req.json().catch(() => ({}));
-    if (typeof body.code !== 'string' || !body.code) {
-      return c.json({ error: 'A registration code is required.' }, HTTP_STATUS.BAD_REQUEST);
+    const body: { code?: string; handle?: string } = await c.req.json().catch(() => ({}));
+    if (typeof body.code !== 'string' || !body.code || typeof body.handle !== 'string' || !body.handle) {
+      return c.json({ error: 'A registration code and handle are required.' }, HTTP_STATUS.BAD_REQUEST);
     }
-    const credentials = registrationCodes.claim(body.code);
+    const credentials = registrationCodes.claim(body.code, body.handle);
     if (!credentials) {
       return c.json({ error: 'Unknown or expired registration code.' }, HTTP_STATUS.FORBIDDEN);
     }
@@ -172,12 +178,13 @@ export function createLinkRoutes({
     if (!(await resolveAdminSessionUserId(auth, c.req.raw.headers))) {
       return c.json({ error: 'Admin role required.' }, HTTP_STATUS.FORBIDDEN);
     }
-    const body: { handle?: string; code?: string } = await c.req.json().catch(() => ({}));
+    const body: { code?: string } = await c.req.json().catch(() => ({}));
     const sourceId = c.req.param('id');
-    // Verify (but don't yet consume) the handle, so a recoverable failure below
-    // leaves it usable for a retry; it is consumed only once creds are persisted.
-    if (typeof body.handle !== 'string' || !registrationHandles.verify(body.handle, sourceId)) {
-      return c.json({ error: 'Unknown or expired registration handle.' }, HTTP_STATUS.FORBIDDEN);
+    // Recover the handle from THIS home's own server state (not the browser), so
+    // it authorizes the claim without ever having ridden in the admin's URL.
+    const handle = registrationHandles.findBySource(sourceId);
+    if (!handle) {
+      return c.json({ error: 'No in-flight registration for this source.' }, HTTP_STATUS.FORBIDDEN);
     }
     if (typeof body.code !== 'string' || !body.code) {
       return c.json({ error: 'A registration code is required.' }, HTTP_STATUS.BAD_REQUEST);
@@ -191,7 +198,7 @@ export function createLinkRoutes({
       const response = await fetch(`${server.baseUrl}/api/link/claim-registration`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ code: body.code }),
+        body: JSON.stringify({ code: body.code, handle }),
       });
       if (!response.ok) {
         return c.json({ error: 'Source rejected the registration claim.' }, HTTP_STATUS.BAD_REQUEST);
@@ -204,7 +211,7 @@ export function createLinkRoutes({
         clientId: credentials.clientId,
         clientSecret: credentials.clientSecret,
       });
-      registrationHandles.consume(body.handle, sourceId);
+      registrationHandles.consume(handle, sourceId);
       rebuildAuth();
       return c.json({ ok: true });
     } catch (error) {

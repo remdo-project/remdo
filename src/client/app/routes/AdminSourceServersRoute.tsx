@@ -12,26 +12,25 @@ interface AdminSourceServer {
 
 interface PendingClaim {
   sourceId: string;
-  handle: string;
   code: string;
 }
 
-// After the source redirects back, the URL carries the handle this home issued
-// and the one-time code to pull the registered credentials with. Pure read (no
-// side effects), so it is safe as a render-phase state initializer; the address
-// bar is cleared separately from an effect.
+// After the source redirects back, the URL carries a reference to complete the
+// registration: the source id and a one-time code. The authorizing handle is NOT
+// here — the home holds it server-side — so a leaked URL cannot claim the secret.
+// Pure read (no side effects), safe as a render-phase state initializer; the
+// address bar is cleared separately from an effect.
 function readPendingClaim(): PendingClaim | null {
   if (typeof globalThis.location === 'undefined') {
     return null;
   }
   const params = new URLSearchParams(globalThis.location.search);
   const sourceId = params.get('sourceId');
-  const handle = params.get('handle');
   const code = params.get('code');
-  if (!sourceId || !handle || !code) {
+  if (!sourceId || !code) {
     return null;
   }
-  return { sourceId, handle, code };
+  return { sourceId, code };
 }
 
 // Admin requests are authorized by the caller's admin-role session cookie; there
@@ -164,7 +163,6 @@ export default function AdminSourceServersRoute() {
       return;
     }
     await adminPost(`/api/link/source-servers/${encodeURIComponent(pendingClaim.sourceId)}/claim`, {
-      handle: pendingClaim.handle,
       code: pendingClaim.code,
     });
     setPendingClaim(null);

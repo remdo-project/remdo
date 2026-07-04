@@ -176,6 +176,12 @@ The flow:
   where the signed-in source user authorizes it; the source binds the new client
   to that user's source account and returns the credentials to the home, which
   persists them and activates the source as a live provider without a restart.
+- The credentials never ride in the browser. The source stashes them under a
+  one-time code bound to the home-issued handle; only a **reference** (source id +
+  code) returns in the operator's URL. The home then claims the credentials
+  server-to-server, presenting the code plus the handle it holds **server-side**
+  (recovered by source id, never sent to the browser). So a code leaked from the
+  operator's address bar cannot release the client secret on its own.
 - A source accepts registration only while it is acting as a public source
   (open-signup); a private source refuses it outright.
 - This **home OAuth client** (the credentialed identity the source issued for

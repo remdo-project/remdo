@@ -18,6 +18,10 @@ export interface RegistrationHandleStore {
   issue: (sourceId: string) => string;
   verify: (handle: string, sourceId: string) => boolean;
   consume: (handle: string, sourceId: string) => boolean;
+  // The home recovers the handle for an in-flight registration from its own
+  // server state (keyed by source), so the handle never has to ride in the
+  // browser — a URL leak then cannot carry the value that authorizes the claim.
+  findBySource: (sourceId: string) => string | null;
 }
 
 export function createRegistrationHandleStore(
@@ -61,6 +65,15 @@ export function createRegistrationHandleStore(
       }
       pending.delete(handle);
       return entry.expiresAt > now();
+    },
+    findBySource(sourceId) {
+      purgeExpired();
+      for (const [handle, entry] of pending) {
+        if (entry.sourceId === sourceId && entry.expiresAt > now()) {
+          return handle;
+        }
+      }
+      return null;
     },
   };
 }

@@ -91,40 +91,44 @@ describe('home-side registration initiation', () => {
 });
 
 describe('home-side registration claim', () => {
+  // The claim no longer takes the handle from the request; it recovers it from
+  // this home's own server state (findBySource), so the handle never rides in the
+  // browser. Registration must have been started for a claim to proceed.
   it('rejects a claim without the admin role', async () => {
     const harness = createHarness();
     const headers = await adminHeaders(harness);
     const id = await addSource(harness, headers);
-    const handle = await startRegistration(harness, headers, id);
-    const response = await postJson(harness.app, `/api/link/source-servers/${id}/claim`, { handle, code: 'x' });
+    await startRegistration(harness, headers, id);
+    const response = await postJson(harness.app, `/api/link/source-servers/${id}/claim`, { code: 'x' });
     expect(response.status).toBe(403);
   });
 
-  it('rejects a claim with an unknown or mismatched handle', async () => {
+  it('rejects a claim with no in-flight registration for the source', async () => {
     const harness = createHarness();
     const headers = await adminHeaders(harness);
     const id = await addSource(harness, headers);
-    const unknown = await postJson(
+    // No startRegistration → no server-side handle → cannot claim.
+    const response = await postJson(
       harness.app,
       `/api/link/source-servers/${id}/claim`,
-      { handle: 'never-issued', code: 'x' },
+      { code: 'x' },
       headers,
     );
-    expect(unknown.status).toBe(403);
+    expect(response.status).toBe(403);
   });
 
   it('does not burn the handle when the source pull fails, so it can be retried', async () => {
     const harness = createHarness();
     const headers = await adminHeaders(harness);
     const id = await addSource(harness, headers);
-    const handle = await startRegistration(harness, headers, id);
+    await startRegistration(harness, headers, id);
 
     // The source pull fails here (no real source), so this is a recoverable
     // error — not a handle/auth failure. The handle must survive for a retry.
     const first = await postJson(
       harness.app,
       `/api/link/source-servers/${id}/claim`,
-      { handle, code: 'some-code' },
+      { code: 'some-code' },
       headers,
     );
     expect(first.status).not.toBe(403);
@@ -132,7 +136,7 @@ describe('home-side registration claim', () => {
     const retry = await postJson(
       harness.app,
       `/api/link/source-servers/${id}/claim`,
-      { handle, code: 'some-code' },
+      { code: 'some-code' },
       headers,
     );
     expect(retry.status).not.toBe(403);
@@ -187,9 +191,18 @@ describe('source-side registration', () => {
     expect(response.status).toBe(403);
   });
 
-  it('rejects claiming an unknown code on a public source', async () => {
+  it('requires both a code and a handle to claim', async () => {
     const harness = createHarness({ allowSignup: true });
     const response = await postJson(harness.app, '/api/link/claim-registration', { code: 'never-issued' });
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects claiming an unknown code (with a handle) on a public source', async () => {
+    const harness = createHarness({ allowSignup: true });
+    const response = await postJson(harness.app, '/api/link/claim-registration', {
+      code: 'never-issued',
+      handle: 'some-handle',
+    });
     expect(response.status).toBe(403);
   });
 

@@ -15,11 +15,15 @@ interface RegistrationCodeCredentials {
 
 interface StoredCode extends RegistrationCodeCredentials {
   expiresAt: number;
+  // The home-issued handle for this registration. The claim must present it, so
+  // the browser-carried code alone (which may leak from the admin's URL) cannot
+  // release the client secret — only the home, which holds the handle server-side.
+  handle: string;
 }
 
 export interface RegistrationCodeStore {
-  issue: (credentials: RegistrationCodeCredentials) => string;
-  claim: (code: string) => RegistrationCodeCredentials | null;
+  issue: (credentials: RegistrationCodeCredentials, handle: string) => string;
+  claim: (code: string, handle: string) => RegistrationCodeCredentials | null;
 }
 
 export function createRegistrationCodeStore(
@@ -37,17 +41,18 @@ export function createRegistrationCodeStore(
   }
 
   return {
-    issue(credentials) {
+    issue(credentials, handle) {
       purgeExpired();
       const code = randomBytes(32).toString('base64url');
-      codes.set(code, { ...credentials, expiresAt: now() + CODE_TTL_MS });
+      codes.set(code, { ...credentials, handle, expiresAt: now() + CODE_TTL_MS });
       return code;
     },
-    // Single-use: returns the credentials once, then forgets the code.
-    claim(code) {
+    // Single-use: returns the credentials once, then forgets the code. Requires
+    // the handle the code was issued for, so a leaked bare code cannot claim.
+    claim(code, handle) {
       purgeExpired();
       const entry = codes.get(code);
-      if (!entry) {
+      if (!entry || entry.handle !== handle) {
         return null;
       }
       codes.delete(code);

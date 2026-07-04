@@ -59,4 +59,26 @@ describe('registration handle store', () => {
     expect(store.verify(handle, 'https-other-example')).toBe(false);
     expect(store.verify('never-issued', 'https-source-example')).toBe(false);
   });
+
+  it('findBySource recovers the in-flight handle server-side, then not after consume', () => {
+    const store = createRegistrationHandleStore();
+    const handle = store.issue('https-source-example');
+
+    // The home recovers its own handle by source id — the value never has to ride
+    // in the browser.
+    expect(store.findBySource('https-source-example')).toBe(handle);
+    expect(store.findBySource('https-other-example')).toBeNull();
+
+    store.consume(handle, 'https-source-example');
+    expect(store.findBySource('https-source-example')).toBeNull();
+  });
+
+  it('findBySource ignores an expired handle', () => {
+    let clock = 1000;
+    const store = createRegistrationHandleStore(() => clock);
+    store.issue('https-source-example');
+
+    clock += HANDLE_TTL_MS;
+    expect(store.findBySource('https-source-example')).toBeNull();
+  });
 });
