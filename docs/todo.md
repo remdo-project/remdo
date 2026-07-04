@@ -21,12 +21,11 @@ Rules:
 
 ## Docs corpus redesign
 
-- Documentation intent + invariants rewritten and split out to
-  `docs/documentation.md`; realignment of the rest of the corpus pending. Full
-  restructure license agreed (merge/split/rename docs).
+- ✅ Done: documentation intent + invariants rewritten into
+  `docs/documentation.md`; corpus realigned (align pass + deletion-advocate
+  adjudication).
 - ✅ Done: docs link/wording checker wired into `pnpm run lint` via `lint:md`.
-- Skill-file invariant digests (e.g. `remdo-simplify`'s docs checklist) predate
-  the rewrite; realign them with `docs/documentation.md`.
+- ✅ Done: skill-file invariant digests realigned with `docs/documentation.md`.
 - ✅ Done: dropped `docs/index.md`, `docs/outliner/index.md`, and
   `docs/hints.md`; folded `drag-and-drop.md` into `reordering.md`.
 

@@ -143,19 +143,12 @@ Look for opportunities to:
 
 ### Docs and skill files
 
-For touched docs and skills, read the whole file, not just the hunk. Then apply
-the RemDo documentation invariants:
-
-- Keep each behavior and precise term single-sourced.
-- Keep behavior self-contained, but link to a shared rule instead of restating it
-  when the detail already lives upstream.
-- Keep normative docs as target spec, not status. Put near-term gaps in
-  `docs/todo.md`.
-- Cut prose unless it is new, necessary for the reader's next action, and in the
-  right home.
-- Skill files are governed by the invariants.
-- Keep `References` sections for external sources; skill `References` may also
-  link sibling skills.
+For touched docs and skills, read the whole file, not just the hunk, and check
+it against the documentation intent and invariants in `docs/documentation.md`
+(skill files are governed by the same invariants, with the preamble's skill
+exceptions). Pay particular attention to the minimal-by-default face-value
+test: a clause that only restates what an adjacent rule already implies is a
+finding.
 
 ## Finding bar
 
