@@ -178,11 +178,12 @@ above already ensured the tree holds only this flow's changes).
    branch's `docs/` changes — Phase 3's sense) and the branch diff
    (`origin/main...HEAD` plus any uncommitted work, untracked files included);
    it may read the rest of the repo for cross-checking (except `.agent/`, where
-   the plan lives) but carries neither the plan nor this session's memory. Fix real
-   gaps (the loop continues); document or remove what is built but unspecified
-   (the docs are the target reality); a deliberate deferral goes to
-   `docs/todo.md` (invariant #9). The loop exits when this read comes back clean
-   or fully tracked. For user-facing behavior, also verify the built behavior
+   the plan lives) but carries neither the plan nor this session's memory. The
+   subagent only reports; acting on the report stays with you, inside the loop:
+   fix real gaps (the loop continues), document or remove what is built but
+   unspecified (the docs are the target reality), and record deliberate
+   deferrals in `docs/todo.md` (invariant #9). The loop exits when this read
+   comes back clean or fully tracked. For user-facing behavior, also verify the built behavior
    live per the AGENTS.md DevTools flow, with automated coverage per its e2e
    escalation rule — `superpowers:verification-before-completion` is the
    discipline for this exit step where available.
