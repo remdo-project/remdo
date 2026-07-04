@@ -69,7 +69,7 @@
     "lint:md": "timeout ${TEST_TIMEOUT:-120}s pnpm run lint:md:raw",
     "lint:md:file": "timeout ${TEST_TIMEOUT:-120}s pnpm run lint:md:file:raw --",
     "lint:md:file:raw": "markdownlint-cli2 --no-globs",
-    "lint:md:raw": "sh tools/lint-md.sh",
+    "lint:md:raw": "sh tools/lint-md.sh && tsx ./tools/check-doc-links.ts",
     "preview": "pnpm run build && concurrently \"pnpm run preview:web\" \"pnpm run dev:api\" \"pnpm run dev:collab\"",
     "preview:web": "./tools/env.sh vite preview",
     "test": "pnpm run test:unit",

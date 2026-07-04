@@ -12,7 +12,7 @@ live in [Links](./links.md).
 - Copy duplicates the selected notes (including their subtrees and each note's
   [body](./body.md)) and leaves the document unchanged. A note's body is content
   it owns, so it travels with the note across copy, cut, and paste.
-- Copy captures the notes as they are at the moment you copy; later edits to the
+- Copy captures the notes as they are at copy time; later edits to the
   originals do not change what gets pasted.
 - Cut prepares the selected notes to be moved; they stay in place until you
   paste them elsewhere.

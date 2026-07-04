@@ -27,8 +27,9 @@ tie-breaker, so preserve that structure when editing this skill.
 Each stage has file-shaped inputs and outputs and can run alone; together
 they run in this order.
 
-1. **Gates.** Run `pnpm exec tsx tools/check-doc-links.ts` and
-   `pnpm run lint:md` and fix to clean. On a scope narrower than the corpus,
+1. **Gates.** Run `pnpm run lint:md` — the markdown static checker (style
+   lint plus the doc link/wording checker) — and fix to clean. On a scope
+   narrower than the corpus,
    clean means no new findings versus the pre-run baseline; pre-existing
    out-of-scope findings go to the stage-5 report.
 2. **Align pass.** An editor fixes the remaining rule violations across the

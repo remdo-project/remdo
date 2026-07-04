@@ -9,7 +9,7 @@ have a runtime hint system.
 
 ## Scope
 
-All entries here are ideas and are not currently surfaced in the UI.
+All entries here are ideas, not target behavior.
 
 When a hint is implemented, move its behavioral details into the authoritative
 feature doc (for example in `docs/outliner/*`) and keep only a short pointer

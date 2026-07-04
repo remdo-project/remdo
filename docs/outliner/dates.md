@@ -61,7 +61,7 @@ Define RemDo-owned inline date behavior in the outliner.
    `!`.
 3. [Future] Give the calendar its own chrome (month/year navigation controls) and
    have `Tab` cycle those controls within the dialog instead of cancelling —
-   currently there are no controls to cycle to, so `Tab` cancels (see 5).
+   there are no controls to cycle to, so `Tab` cancels (see 5).
 
 ## References
 

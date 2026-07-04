@@ -24,8 +24,7 @@ Rules:
 - Documentation intent + invariants rewritten and split out to
   `docs/documentation.md`; realignment of the rest of the corpus pending. Full
   restructure license agreed (merge/split/rename docs).
-- Add the docs link checker to `pnpm run lint` (the agreed minimal doc-check
-  automation).
+- ✅ Done: docs link/wording checker wired into `pnpm run lint` via `lint:md`.
 - Skill-file invariant digests (e.g. `remdo-simplify`'s docs checklist) predate
   the rewrite; realign them with `docs/documentation.md`.
 - Reconsider the `index.md` files (`docs/index.md`, `docs/outliner/index.md`)

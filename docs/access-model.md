@@ -114,7 +114,7 @@ the user.
 - Allowed by: a direct `document_access` grant from the document owner to the
   grantee user's Better Auth user id.
 - Scope: the granted document.
-- Access: full access for now.
+- Access: full access.
 - Y-Sweet document client token: issued when the user has a direct grant.
 - Sharing lifecycle:
   1. Alice owns `doc123`.
@@ -140,7 +140,7 @@ document's server.
   accounts.
 - Source linking: the home server starts OAuth, the user signs in on the source
   server, and Better Auth stores the resulting linked account.
-- Delegation scope: a linked source OAuth token is currently treated as the
+- Delegation scope: a linked source OAuth token is treated as the
   linking user's full delegate on that source server. The home server may call
   authenticated RemDo APIs as that source user, subject to the same owner/grant
   checks the source server applies to the user's normal session. This is an

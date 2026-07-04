@@ -1,4 +1,4 @@
-# RemDo – Note Concept (early draft)
+# RemDo – Note Concept
 
 ## Purpose
 
@@ -88,9 +88,9 @@ structurally as part of its owning note).
 Adapters translate external representations to/from the conceptual model while
 enforcing invariants.
 
-### Lexical Adapter (current editor)
+### Lexical Adapter
 
-- Lexical-based editor is currently the only available adapter.
+- The Lexical-based editor is the only adapter.
 
 ### Examples
 

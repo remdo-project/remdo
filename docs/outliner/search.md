@@ -8,7 +8,7 @@ and zooming to a result.
 ## Terms
 
 - **Search Mode:** active while the search box has focus.
-- **Highlighted note:** the single note currently targeted by search navigation.
+- **Highlighted note:** the single note targeted by search navigation.
 - **Result row:** the rendering for a single search result (see Result row
   context).
 

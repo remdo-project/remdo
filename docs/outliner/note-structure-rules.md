@@ -125,7 +125,7 @@ selection up one level, making it a sibling of its current parent. If these
 conditions aren’t met, the outdent operation is invalid or does nothing.
 
 - **Allowed:** Outdent a note or a contiguous selection of sibling notes that
-  currently has a parent. The notes are removed from that parent and become its
+  has a parent. The notes are removed from that parent and become its
   siblings (effectively moving up one level in the hierarchy). When multiple
   notes under the same parent are selected, outdenting lifts the entire
   selection together while preserving their order.

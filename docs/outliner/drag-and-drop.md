@@ -1,8 +1,9 @@
 # Drag and Drop Reordering
 
-## Status
+## Scope
 
-Drag-and-drop reordering is currently not supported in RemDo.
+Pointer drag-and-drop reordering is not part of RemDo's target behavior;
+reordering is keyboard-driven (see [reordering](./reordering.md)).
 
 ## [Future] Planned placement semantics
 
