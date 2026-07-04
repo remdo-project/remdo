@@ -1,7 +1,9 @@
 # Deletion
 
 Defines how `Backspace` (Mac "Delete") and forward `Delete` behave. Selection
-semantics are defined in [Selection](./selection.md).
+semantics are defined in [Selection](./selection.md); when a merged note has a
+[body](./body.md), body resolution follows
+[Note merge](./body.md#note-merge).
 
 ## Caret mode (collapsed caret or inline range)
 
@@ -60,7 +62,8 @@ When zoom is active, caret-mode deletion keeps merges inside the zoom boundary:
 
 ## Spacing rule for merges
 
-1. When concatenating two note bodies, insert exactly one space **iff**:
+1. When concatenating two notes' [content text](./concepts.md#definitions),
+   insert exactly one space **iff**:
    1. the left text is non-empty and does not already end with whitespace; and
    2. the right text is non-empty and does not already start with whitespace.
 2. Otherwise concatenate as-is to preserve intentional spacing or punctuation.
@@ -73,7 +76,7 @@ When zoom is active, caret-mode deletion keeps merges inside the zoom boundary:
 2. Deletion does not create a "trash" bin or soft-delete layer; recovery is via
    undo/redo.
 
-## Future / parking lot
+## Future
 
-1. [Future] Should collapsed parents show a brief affordance when a no-op
-   occurs so users understand why nothing happened?
+1. [Future] A brief affordance on collapsed parents when a no-op occurs, so
+   users understand why nothing happened.

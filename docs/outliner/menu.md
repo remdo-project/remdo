@@ -1,33 +1,36 @@
 # Quick Action Menu
 
+Defines RemDo's single quick action menu: a per-note action popup opened from a
+note row or the keyboard. The menu is an [editor popup](./popups.md) and
+follows the shared editor-popup contract; this doc defines only the menu's own
+entry, actions, and behavior.
+
 ## Entry
 
-1. RemDo exposes a single quick action menu that can be opened from either a
-   note row or the keyboard.
-2. Clicking the menu icon beside a note row opens the quick action menu
+1. Clicking the menu icon beside a note row opens the quick action menu
    anchored to that row. The icon appears on hover or when the note is the
    caret/focus target.
-3. Double-Shift within 500ms opens the same quick action menu for the caret
+2. Double-Shift within 500ms opens the same quick action menu for the caret
    context when the editor is focused; any other key between the two Shift
    presses cancels the gesture.
 
 ## Actions
 
-1. The menu may include actions with three scopes:
+1. Menu actions have three scopes:
    - **Note:** acts on the current note.
    - **Children:** acts on the current note's child subtree.
    - **View:** acts on the current zoom boundary.
 2. Note actions:
-   - Toggle checked recursively per `./list-types.md`, shortcut
+   - Toggle checked recursively per [List Types](./list-types.md), shortcut
      `Cmd/Ctrl+Enter`.
-   - Fold/Unfold per `./folding.md` (`toggle` state), hidden for leaf notes and
-     for the current zoom root, shortcut `F` when the menu is open.
-   - Zoom per `./zoom.md`, shortcut `Z`.
+   - Fold/Unfold per [Folding](./folding.md) (`toggle` state), hidden for leaf
+     notes and for the current zoom root, shortcut `F` when the menu is open.
+   - Zoom per [Zoom](./zoom.md), shortcut `Z`.
 3. Children actions:
-   - Child list type actions per `./list-types.md`, showing only the two
-     non-current options; hidden for leaf notes.
+   - Child list type actions per [List Types](./list-types.md), showing only
+     the two non-current options; hidden for leaf notes.
 4. View actions:
-   - `Fold to level [0-9]` per `./folding.md`, with digit shortcuts scoped to
+   - `Fold to level [0-9]` per [Folding](./folding.md), with digit shortcuts scoped to
      the current zoom boundary. Clicking the action applies level `1`.
 5. Menu labels visually mark shortcut letters where applicable.
 

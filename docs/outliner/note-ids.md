@@ -3,8 +3,7 @@
 ## Purpose
 
 Define how RemDo assigns stable identities to notes and how those identities
-compose into global references. This doc is the single source of truth for note
-identity behavior and is intended to drive tests and application logic.
+compose into global references.
 
 ## Scope
 
@@ -90,8 +89,7 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 - Persisted JSON must keep explicit `docId` values for note links that
   target other documents.
 - Note-link `docId` representation rules are defined in
-  [Links](./links.md#identity-representation-boundaries) to keep this spec as
-  the single source for note identity and runtime document ownership.
+  [Links](./links.md#identity-representation-boundaries).
 - On load, any missing or duplicate `noteId` values must be normalized before
   the document is exposed to the app: keep existing unique IDs and assign fresh
   IDs to missing or colliding notes (preserving document order).

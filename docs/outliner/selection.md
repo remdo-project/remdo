@@ -47,8 +47,9 @@ The ladder is anchored and replayable:
 - **Rungs.** Each step is a semantic instruction, not a stored range, so the
   selection is the anchor plus the current rungs re-resolved against the live
   tree. The recurrence is:
-  1. the anchor note's inline body — a distinct first rung (skipped when the
-     body is empty, so the first press lands on rung 2);
+  1. the anchor note's own [content text](./concepts.md#definitions), selected
+     inline — a distinct first rung (skipped when that text is empty, so the
+     first press lands on rung 2);
   2. the anchor note plus its subtree — the first structural rung,
      direction-neutral;
   3. one more contiguous sibling (with its subtree) in the sweep direction;

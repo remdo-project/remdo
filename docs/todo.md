@@ -289,6 +289,20 @@ Remaining issues to fold in or fix directly:
      `docs/outliner/concepts.md`, `docs/architecture.md`,
      `docs/outliner/search.md`, and `docs/outliner/links.md`.
 
+## Run modes follow-ups
+
+- Backup workflow for hosted prod (managed cloud) is undefined —
+  `docs/run-modes.md` specifies only the backup/export mode surface; define the
+  hosted-prod workflow.
+
+## Client-side perf follow-ups
+
+- Typing-latency optimizations (moved from
+  `docs/performance/client-side-perf-tests.md`): gate `SchemaValidationPlugin`
+  validation and `RootSchemaPlugin` repair scans on dirty-set contents so
+  leaf-only typing updates skip them; skip redundant structural-overlay and
+  outline-selection store writes in `SelectionPlugin` when nothing changed.
+
 ## Test harness follow-ups
 
 - Redesign `toMatchOutline` note content expectations from flattened text into

@@ -95,48 +95,6 @@ enforcing invariants.
 
 - The Lexical-based editor is the only adapter.
 
-### Examples
-
-Each example points to a fixture in `tests/fixtures/<file>.json`. The fixture
-name appears in bold with a trailing arrow, followed by a fenced outline of the
-resulting note tree.
-
-- **basic.json →**
-
-  ```text
-  - note0
-    - note00
-  - note1
-  ```
-
-- **flat.json →**
-
-  ```text
-  - note0
-  - note1
-  - note2
-  ```
-
-- **tree.json →**
-
-  ```text
-  - note0
-  - note1
-    - note2
-  ```
-
-- **tree-complex.json →**
-
-  ```text
-  - note0
-    - note00
-      - note000
-    - note01
-  - note1
-  - note2
-    - note20
-  ```
-
 ### Lexical Representation
 
 The Lexical adapter serializes the conceptual note tree into a deterministic

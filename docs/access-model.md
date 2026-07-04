@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Define the access cases RemDo should support.
+Define the access cases RemDo supports. Shared platform terms — tokens,
+routing, document identity — are owned by
+[docs/architecture.md](./architecture.md).
 
 ## Document Access Model
 
@@ -12,8 +14,8 @@ Define the access cases RemDo should support.
 4. Only the owner can grant access to another user.
 5. A normal document URL is only a document locator. Possessing it does not
    allow access.
-6. Public and bearer-link access are separate future access cases, not part of
-   the current sharing flow.
+6. Public and bearer-link access are separate access cases outside the sharing
+   flow this doc specifies (see [Future](#future)).
 
 ## Local-Only App Access
 
@@ -88,25 +90,14 @@ the user.
   mutation bodies, or `SameSite=None` cookies requires re-auditing this
   boundary.
 
-## Token Vocabulary
-
-- Better Auth session token: browser session credential used by the RemDo API to
-  identify the signed-in user.
-- OAuth account tokens: Better Auth-managed access, refresh, and ID tokens
-  created when a home server links a user's account on a source server.
-- Y-Sweet server token: server credential used by the RemDo API to call
-  Y-Sweet document-control APIs.
-- Y-Sweet document client token: short-lived browser credential issued by the
-  RemDo API after document access checks; Y-Sweet enforces it on `/d/*` sync
-  paths.
-
 ## Owner Access
 
 - Who: document owner.
 - Allowed by: ownership via `documents.owner_user_id`.
 - Scope: the owned document.
 - Access: full access.
-- Y-Sweet document client token: issued to the owner.
+- [Y-Sweet document client token](./architecture.md#token-vocabulary): issued
+  to the owner.
 
 ## Named User Access
 
@@ -150,7 +141,7 @@ document's server.
   documents keep the source server's canonical globally unique document IDs;
   source context controls routing and authorization, not document identity.
 
-## Deferred Access Cases
+## Future
 
 - Anonymous access.
 - Public documents.

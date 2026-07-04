@@ -19,7 +19,7 @@ note/link identity boundaries; those remain in outliner docs.
 - **Desktop Shell:** Native wrapper (for example Electron/Tauri) hosting the
   same SPA with OS integration.
 
-Delivery surface choice must not alter outliner semantics.
+Delivery surface choice MUST NOT alter outliner semantics.
 
 ## Routing and Origin Boundary
 
@@ -72,7 +72,7 @@ boundaries is an extra guard for malformed, legacy, or imported data; it is not
 the base namespacing mechanism.
 
 Collaboration and local-persistence layers may key document state by canonical
-`docId`. Source-prefixed aliases should not be used as substitute document
+`docId`. Source-prefixed aliases MUST NOT be used as substitute document
 identity for ordinary source linking.
 
 ### Document registry
@@ -91,8 +91,9 @@ document client tokens.
   access-critical metadata, and the current per-user document list. Yjs
   documents hold collaborative document content plus persisted, read-only
   user-data projections for browser-facing app-resource note APIs.
-- User bootstrap: `/api/current-user` ensures the user's projection/home rows
-  and updates the Yjs user-data projection.
+- User bootstrap: `/api/current-user` provisions the signed-in user's personal
+  app state, per
+  [Authenticated App Access](access-model.md#authenticated-app-access).
 
 ### Token vocabulary
 

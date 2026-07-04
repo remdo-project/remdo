@@ -40,8 +40,8 @@ live in [Links](./links.md).
 - Single-line plain text replaces the selected text, as in a normal text editor.
 - Multi-line plain text always inserts notes, even when the selection is inline.
   The first line replaces the selected text; remaining lines become new child
-  notes inserted before existing children. This is a pragmatic choice (keeps
-  structure intact) and may change as paste UX is refined.
+  notes inserted before existing children — a pragmatic choice that keeps the
+  existing structure intact.
 
 ## Caret-position placement (collapsed selection)
 
@@ -52,10 +52,3 @@ live in [Links](./links.md).
 - Placement follows the caret-position rules from [Insertion](./insertion.md),
   mirroring `Enter`.
 - After a multi-note paste, focus lands at the end of the last inserted note.
-
-## Identity
-
-Identity implications:
-
-- Note `noteId` regen/preserve rules are defined in [Note IDs](./note-ids.md).
-- Note-link `docId` clipboard behavior is defined in [Links](./links.md).

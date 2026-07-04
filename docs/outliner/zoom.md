@@ -14,9 +14,7 @@ caret/selection state in the editor.
 - **Zoom root:** The note whose subtree is displayed for the current zoom
   target.
 - **Zoom boundary:** The zoom root plus all of its descendants — the subtree
-  edits are bounded to while zoomed. In code this bound is the zoom root
-  (`features/zoom/zoom-root.ts`); the generic membership check lives in
-  `outline/` (`isWithinBoundary`).
+  edits are bounded to while zoomed.
 - **View actions:** Commands that operate on the current zoom boundary rather
   than on a single note.
 - **Zoom path:** The ordered list of ancestors from the document to the zoom
@@ -34,7 +32,7 @@ caret/selection state in the editor.
 4. While zoomed, selection expansion (including Select All) is bounded to the
    zoom root. Within that boundary, selection behavior matches
    [Selection](./selection.md).
-5. While zoomed, edits are bounded to the zoom boundary. Commands must not
+5. While zoomed, edits are bounded to the zoom boundary. Commands MUST NOT
    create, merge, move, or target notes outside that boundary.
 6. The zoom root is presented distinctly from ordinary note rows. It remains
    editable, but it serves as the local title/heading for the zoomed view

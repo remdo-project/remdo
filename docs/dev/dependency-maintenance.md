@@ -39,20 +39,12 @@ loudly instead.
 ### Dependabot version updates: deliberately off
 
 There is **no `.github/dependabot.yml`**, and Dependabot version-update PRs are
-**not** used here — on purpose. Dependabot supports pnpm only through **v10**
-([supported ecosystems][dependabot-pnpm]), but this repo pins **pnpm 11**
-(`packageManager` in `package.json`). Against a pnpm-11 workspace its older
-resolver reads a stale version from the lockfile graph and opens *wrong* PRs —
-e.g. proposing a **downgrade** of a dependency you have already advanced past
-(catalogs themselves are supported since [2025-02-04][dependabot-catalogs]; the
-pnpm-version gap is the blocker, not catalog support). The PRs are never merged
-anyway (a per-package bump can't carry a coherently regenerated pnpm lockfile, and
-the refresh also moves pnpm/Node/Actions pins Dependabot never touches), so they
-are pure noise. Do **not** re-add a version-update config until Dependabot
-supports **pnpm 11**.
-
-[dependabot-pnpm]: https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories
-[dependabot-catalogs]: https://github.blog/changelog/2025-02-04-dependabot-now-supports-pnpm-workspace-catalogs-ga/
+**not** used here. Dependabot supports pnpm only through v10 while this repo
+pins pnpm 11 (`packageManager` in `package.json`), so against this workspace its
+resolver reads stale versions from the lockfile graph and opens wrong PRs (the
+blocker is pnpm-version support, not workspace-catalog support, which Dependabot
+has). Do **not** re-add a version-update config until Dependabot supports
+**pnpm 11**.
 
 Staleness is detected by the refresh itself, not by Dependabot: the
 `remdo-deps-refresh` skill runs `pnpm update --latest`, which resolves the catalog
@@ -91,3 +83,10 @@ Keep the unmet `workbox-build@^7.4.1` peer warning rather than adding
 `@trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1`, whose provenance trust
 downgrade fails the workspace pnpm trust policy. Revisit only if the peer can be
 satisfied without a trust downgrade (a mechanism change, not a version bump).
+
+## References
+
+- [Dependabot supported ecosystems](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
+  — the pnpm version ceiling behind the version-updates-off rule.
+- [Dependabot pnpm workspace-catalog support](https://github.blog/changelog/2025-02-04-dependabot-now-supports-pnpm-workspace-catalogs-ga/)
+  — catalog support is not the blocker.

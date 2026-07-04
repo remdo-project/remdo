@@ -34,11 +34,11 @@ These are product goals with vendor choice left open.
 
 ## Multi-origin direction
 
-1. One client may later use documents from more than one RemDo server.
+1. One client may use documents from more than one RemDo server.
 2. That may include local documents, personally hosted cloud documents, and
    documents hosted by hosted RemDo.
-3. The architecture should keep that direction open while the implementation
-   stays simpler today.
+3. The architecture should keep that direction open without requiring the
+   implementation to support it.
 
 ## Architecture test
 

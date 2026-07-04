@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Define the initial note-linking behavior for RemDo, including the boundary
-between RemDo-owned note links and generic external links.
+Define note-linking behavior for RemDo, including the boundary between
+RemDo-owned note links and generic external links.
 
 ## State boundary terms
 
@@ -35,8 +35,8 @@ between RemDo-owned note links and generic external links.
    [Query and ranking](#query-and-ranking)), so a multi-word query like
    `@parent child` narrows by both tokens rather than terminating at the space.
 6. On insertion, note-link display text is copied once from the target note
-   title and then
-   stored locally (no auto-sync on later target renames in this phase).
+   title and then stored locally; later target renames do not update it
+   (rename-aware display modes are a Future direction below).
 7. Runtime/internal editor state stores fully qualified link identity
    (`docId` + `noteId`) for every note-link node.
 8. Note-link clicks use native `href` navigation semantics and route handling.
@@ -81,14 +81,13 @@ between RemDo-owned note links and generic external links.
    substring of some entry in its path (ancestor titles + the note's own title)
    and at least one token matches the note's own title. So typing an ancestor's
    word alongside a word from the note surfaces that nested note.
-3. The current note is excluded from results (self-links are out of scope in
-   this phase).
+3. The current note is excluded from results (self-links are out of scope).
 4. Picker rows show the minimal ancestor context needed to disambiguate duplicate
    titles in the current result set.
 5. If results are still visually identical after full ancestor context, they
    remain untied and are shown in document order.
 6. No-match state is a single non-selectable `No results...` row.
-7. Creating new notes from the picker is out of scope in this phase.
+7. Creating new notes from the picker is out of scope.
 
 ## Picker interaction
 

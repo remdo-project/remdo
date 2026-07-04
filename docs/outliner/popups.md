@@ -5,9 +5,8 @@
 Define the shared contract for RemDo's transient editor popups — the inline
 trigger pickers (`@` for note [Links](./links.md), `!` for [Dates](./dates.md))
 and the [Quick Action Menu](./menu.md) — and the trigger-picker session built on
-it. This page is the single source for the shared contract; each per-popup spec
-defines only what differs: how it opens, the keys its popup owns, its focus model,
-and what confirming does.
+it. Each per-popup spec defines only what differs: how it opens, the keys its
+popup owns, its focus model, and what confirming does.
 
 ## Shared editor-popup contract
 
