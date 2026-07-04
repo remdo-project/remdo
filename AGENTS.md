@@ -11,14 +11,14 @@ on those baselines—no legacy browser shims.
 
 AGENTS.md is the only doc you must read at the start of every session. Do one
 full pass through the `docs/` folder when you onboard; after that, before coding,
-identify the feature area and read the matching sections from the `docs/index.md`
-map (the documentation navigation) — do not reread unrelated docs. For the
+identify the feature area and read the matching docs — filenames plus each
+doc's scope opener are the navigation — do not reread unrelated docs. For the
 documentation invariants, see `docs/documentation.md`.
 
 When working, deep-link to the authoritative doc (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
-source of truth. When a change supersedes a doc's contract, breaks an inbound
-link, or leaves the `docs/index.md` map out of date, fix it in the same change —
+source of truth. When a change supersedes a doc's contract or breaks an inbound
+link, fix it in the same change —
 not a follow-up. If nothing needs updating, say why. Do not add update-tracking
 sections to docs.
 
@@ -116,8 +116,6 @@ sections to docs.
   fixes should have a test that would fail if that behavior broke. This is a
   behavior check, not a line-coverage target — name any behavior left untested as
   a tradeoff.
-- The `docs/todo.md` summary in `docs/index.md` should remain as-is and should
-  not be automatically updated like other doc entries.
 - When writing tests against known fixtures, assume the fixture shape; avoid
   defensive assertions about expected structure unless the test is explicitly
   about validation.

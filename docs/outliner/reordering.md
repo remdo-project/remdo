@@ -1,7 +1,7 @@
-# Reordering (keyboard)
+# Reordering
 
-Scope: keyboard-driven reordering. Drag-and-drop is covered in
-`./drag-and-drop.md`.
+Scope: keyboard-driven reordering; pointer drag-and-drop is not part of the
+target behavior (a `Future` direction below).
 
 ## Shortcuts
 
@@ -44,3 +44,8 @@ placement stays inside the zoom boundary:
 2. Selection constraints still apply: reorder operates on contiguous sibling
    slabs.
 3. Reparent/outdent fallback changes depth by at most one level per command.
+
+## Future
+
+- Pointer drag-and-drop reordering: placement-driven indent and reparent
+  following the same structural rules as the keyboard cascade.

@@ -80,12 +80,11 @@ is large. Read untracked files that belong to the scope.
 Read these first:
 
 1. `AGENTS.md`
-2. `docs/index.md`
-3. `docs/contributing.md`
-4. `docs/todo.md`
+2. `docs/contributing.md`
+3. `docs/todo.md`
 
-Use `docs/index.md` to choose directly relevant product docs for the touched
-area. Do not reread unrelated docs.
+Choose directly relevant product docs for the touched area by filename and
+scope opener. Do not reread unrelated docs.
 
 Forward the `AGENTS.md` findings-suppression rule into this pass. The `Suppressed
 N` tail it requires is shown in the Output template below.
@@ -105,7 +104,7 @@ simpler end state exists:
   or duplicates.
 - Direct callers/callees where the diff's API shape forces complexity on either
   side.
-- Directly relevant docs from `docs/index.md`.
+- Directly relevant docs for the touched area.
 
 This is not a broad repo sweep. Follow references as far as needed for a credible
 simplification finding, but stop when the connection to the reviewed diff becomes
@@ -154,8 +153,7 @@ the RemDo documentation invariants:
   `docs/todo.md`.
 - Cut prose unless it is new, necessary for the reader's next action, and in the
   right home.
-- Update `docs/index.md` only for docs whose role, summary, bucket, or existence
-  changed. Skill files are governed by the invariants but are not in the docs map.
+- Skill files are governed by the invariants.
 - Keep `References` sections for external sources; skill `References` may also
   link sibling skills.
 

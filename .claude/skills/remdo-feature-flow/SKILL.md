@@ -76,7 +76,7 @@ creation — by Phase 3 the wrong context has already shaped the design.
 Conversation plus cheap checks — inline, interactive, no subagents (latency the
 user feels in real time).
 
-1. Read the relevant `docs/` (via `docs/index.md`) and code **first**, before
+1. Read the relevant `docs/` and code **first**, before
    asking anything.
 2. Ask only genuine residual questions, **batched** — not one at a time. The
    user reads slowly and dislikes redundancy.
@@ -348,9 +348,8 @@ Choose by the *activity*, not the phase number:
   `remdo-refine` skill.
 - Bringing `origin/main` into the branch: `remdo-sync` skill.
 - Integration after report (merge / PR): `superpowers:finishing-a-development-branch`.
-- Doc map (navigation): `docs/index.md`. Documentation intent + invariants
-  (spec-as-docs must comply): `docs/documentation.md`. Deferral/todo rules:
-  `docs/todo.md`.
+- Documentation intent + invariants (spec-as-docs must comply):
+  `docs/documentation.md`. Deferral/todo rules: `docs/todo.md`.
 - Git workflow / branch prefixes: `docs/contributing.md`.
 - Global commit/index defaults: `AGENTS.md` ("Safety & Process").
 - Checks and timings: `AGENTS.md` ("Checks").

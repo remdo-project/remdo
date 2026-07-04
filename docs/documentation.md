@@ -2,8 +2,7 @@
 
 How the RemDo documentation corpus is written and maintained: its intent, the
 invariants every doc must satisfy, and the external sources behind them.
-[docs/index.md](index.md) is the documentation map; the agent-facing doc
-workflow lives in [AGENTS.md](../AGENTS.md).
+The agent-facing doc workflow lives in [AGENTS.md](../AGENTS.md).
 
 ## Intent
 
@@ -25,8 +24,8 @@ its own reader and question — the invariants carry over, the persona does not.
 These invariants apply to every doc in the corpus, and to agent skill files
 (the `.claude/`, `.codex/`, and `.agents/` skill roots), which carry the same
 risks — except where an invariant is inherently about the corpus's shape rather
-than a doc's content: skills are not in the documentation map, their
-`References` sections link sibling skills rather than only external sources,
+than a doc's content: their `References` sections link sibling skills rather
+than only external sources,
 and — since a skill's procedure is its contract — its steps are not the how-to
 prose invariant 5 omits.
 
@@ -36,7 +35,7 @@ prose invariant 5 omits.
    claims about the intended system.
 2. **Link by subject affinity.** Where a doc relies on a term or contract
    another doc owns, it SHOULD link there inline at first use — every doc is an
-   entry point, so readers arrive mid-corpus, not only via the map.
+   entry point; readers arrive mid-corpus.
 3. **Self-contained behavior.** A doc's behavior MUST be clear without external
    sources. A final `References` section holds the external sources the doc
    relies on (specs, standards, third-party docs) — all of those, and nothing

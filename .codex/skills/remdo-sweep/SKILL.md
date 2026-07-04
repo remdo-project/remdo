@@ -67,24 +67,22 @@ accidental.
 
 For `repo` scope, do not attempt a manual line-by-line review. Use
 deterministic checks (`pnpm run lint`, `pnpm run audit:cleanup`, relevant
-tests) plus a docs-vs-code consistency pass driven by `docs/index.md` as the
-discovery mechanism, and manually inspect only the areas they flag.
+tests) plus a docs-vs-code consistency pass over `docs/` (filenames and scope
+openers as discovery), and manually inspect only the areas they flag.
 
 ## Read Guidance
 
 Read:
 
 - `AGENTS.md`
-- `docs/index.md`
 - `docs/contributing.md`
 
-Then use `docs/index.md` as the navigation source for any directly relevant
-docs. Do not reread unrelated docs.
+Then pick directly relevant docs by filename and scope opener. Do not reread
+unrelated docs.
 
 Apply these doc checks:
 
 - If behavior changed, check whether docs should change too.
-- If docs changed, check whether `docs/index.md` needs a map or summary update.
 - Do not implement anything based only on `[Future]` docs.
 
 ## Review Related Sources

@@ -4,7 +4,6 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   checkDocLinks,
-  checkMap,
   checkProse,
   extractLinks,
   headingSlugs,
@@ -77,19 +76,6 @@ describe('checkDocLinks', () => {
   it('skips external links', () => {
     const root = makeRepo({ 'docs/a.md': '[x](https://example.org/y)\n[m](mailto:a@b.c)\n' });
     expect(checkDocLinks(['docs/a.md'], root)).toEqual([]);
-  });
-});
-
-describe('checkMap', () => {
-  it('flags docs missing from the map and map entries without files', () => {
-    const root = makeRepo({
-      'docs/index.md': 'Map:\n- `docs/a.md` entry\n- `docs/phantom.md` entry\n',
-      'docs/a.md': 'x\n',
-      'docs/b.md': 'x\n',
-    });
-    const issues = checkMap('docs/index.md', ['docs/a.md', 'docs/b.md', 'docs/index.md'], root);
-    expect(issues).toContainEqual({ file: 'docs/index.md', line: 1, message: 'doc missing from the map: docs/b.md' });
-    expect(issues).toContainEqual({ file: 'docs/index.md', line: 3, message: 'map names a missing doc: docs/phantom.md' });
   });
 });
 

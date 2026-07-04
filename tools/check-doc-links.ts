@@ -3,9 +3,8 @@
 // tools/lint-md.sh) must resolve on disk, and a `#fragment` into a Markdown
 // target must match a heading slug of that target. External (scheme) links are
 // out of scope: checking them needs the network, and they are References-style
-// background, not corpus structure. The documentation map (docs/index.md) is
-// checked both ways: every doc under docs/ appears in it, and every doc path
-// it names exists.
+// background, not corpus structure. Prose rules (temporal-status wording,
+// References shape) are covered by checkProse below.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -119,24 +118,6 @@ export const checkDocLinks = (files: string[], repoRoot: string): LinkIssue[] =>
   return issues;
 };
 
-export const checkMap = (mapFile: string, docFiles: string[], repoRoot: string): LinkIssue[] => {
-  const issues: LinkIssue[] = [];
-  const map = fs.readFileSync(path.join(repoRoot, mapFile), 'utf8');
-  for (const doc of docFiles) {
-    if (!map.includes(doc)) {
-      issues.push({ file: mapFile, line: 1, message: `doc missing from the map: ${doc}` });
-    }
-  }
-  map.split('\n').forEach((line, index) => {
-    for (const match of line.matchAll(/docs\/[\w./-]+\.md/g)) {
-      if (!fs.existsSync(path.join(repoRoot, match[0]))) {
-        issues.push({ file: mapFile, line: index + 1, message: `map names a missing doc: ${match[0]}` });
-      }
-    }
-  });
-  return issues;
-};
-
 // Temporal-status wording (docs/documentation.md invariant 4): spec prose is
 // timeless. Conservative token list — only unambiguous status markers;
 // "new" is semantic (feature-age vs domain use) and stays with review.
@@ -192,10 +173,6 @@ const main = (): void => {
   const files = listMarkdownFiles(repoRoot);
   const issues = checkDocLinks(files, repoRoot);
   issues.push(...checkProse(files, repoRoot));
-  const mapFile = 'docs/index.md';
-  if (files.includes(mapFile)) {
-    issues.push(...checkMap(mapFile, files.filter((file) => file.startsWith('docs/')), repoRoot));
-  }
   for (const issue of issues) {
     process.stderr.write(`${issue.file}:${issue.line} ${issue.message}\n`);
   }

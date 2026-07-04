@@ -16,8 +16,9 @@ guarantees.
   descendants.
 - **Prevent illegal structures:** No cycles, no orphaned descendants; invalid
   operations become no-ops.
-- **Parity of interactions:** Target parity between keyboard and drag-and-drop
-  structural operations once drag-and-drop ships.
+- **Parity of interactions:** keyboard and pointer drag-and-drop structural
+  operations share these placement rules (drag-and-drop is a `Future`
+  direction; see `./reordering.md`).
 - **Predictability:** Outdent/indent placement is deterministic, so the same
   command always lands notes in the expected position.
 

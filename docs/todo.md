@@ -27,8 +27,8 @@ Rules:
 - ✅ Done: docs link/wording checker wired into `pnpm run lint` via `lint:md`.
 - Skill-file invariant digests (e.g. `remdo-simplify`'s docs checklist) predate
   the rewrite; realign them with `docs/documentation.md`.
-- Reconsider the `index.md` files (`docs/index.md`, `docs/outliner/index.md`)
-  during realignment: drop them or change their shape/role.
+- ✅ Done: dropped `docs/index.md`, `docs/outliner/index.md`, and
+  `docs/hints.md`; folded `drag-and-drop.md` into `reordering.md`.
 
 ## Scratchpad maintenance
 

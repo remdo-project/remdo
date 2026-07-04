@@ -25,7 +25,7 @@ skill's procedural steps and sibling-link References.
 
 Default to applying. If deciding a proposal requires choosing between two
 conflicting sanctioned rules, do not decide it: mark it ESCALATE and name the
-conflict. Keep the corpus coherent — fix links, the map, and anchors that
-deletions move — and leave the doc gates clean. Finish with a per-proposal
+conflict. Keep the corpus coherent — fix links and anchors that deletions
+move — and leave the doc gates clean. Finish with a per-proposal
 disposition list: applied / rejected plus the concrete surviving misuse or
 the granting carve-out / ESCALATE plus the conflict.

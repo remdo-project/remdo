@@ -179,7 +179,7 @@ policy already governs.
 
 In **working-tree** scope refine commits nothing — its boundary is *no commit*,
 not *no clean files*. Applying a finding may require editing a clean companion
-file (e.g. updating `docs/index.md` for a new uncommitted spec page, or adding a
+file (e.g. fixing an inbound link in a clean doc, or adding a
 test for an uncommitted code change); that is fine, since editing uncommitted-by-
 the-end files is the global default anyway. It carries no commit authorization
 and the `main` guard does not apply (it never writes history). The user owns the
