@@ -113,7 +113,9 @@ coordinating session triages the returned findings and owns the loop.
    restatement). Reading the whole touched file, not just the diff hunk, is what
    catches redundancy against unchanged upstream text. Also check each touched doc
    against the **documentation invariants** (`docs/documentation.md`)
-   and fix any violation.
+   and fix any violation. For a doc-heavy diff, run the `remdo-docs-align`
+   skill's advocate/adjudicate stages as this rung's deeper pass and triage
+   its disposition list like any findings.
 2. **Internal review** — `/code-review` at max effort against the diff under
    review (the resolved range's base, or the working-tree changes).
 3. **External review** — `codex review` for an independent outside read:
@@ -199,6 +201,7 @@ the simplify rung, split the run and surfaced counts by tool (`/simplify` vs the
 ## References
 
 - Sequenced tools: `/simplify` + `remdo-simplify` skill, `/code-review`, `codex review`.
+- Deeper pass for doc-heavy diffs: `remdo-docs-align` skill.
 - Loop/loop-guard prior art: `remdo-deps-refresh` skill.
 - Branch base and the calling flow: `remdo-feature-flow` skill.
 - Bringing `origin/main` into the branch: `remdo-sync` skill.
