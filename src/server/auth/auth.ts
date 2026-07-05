@@ -117,11 +117,17 @@ function createBetterAuthInstance({
         consentPage: '/oauth/consent',
         loginPage: '/login',
         scopes: [...REMDO_SERVER_OAUTH_SCOPES],
-        // A public server acts as a source: home servers self-register their OAuth
-        // client during registration. Registration is authenticated (Better Auth
-        // binds the client to the signed-in source account) and limited to the
-        // RemDo source scopes; the endpoint stays off on a non-public server.
+        // A public server acts as a source: a home self-registers its OAuth client
+        // by a server-to-server call (no source session), so the source must accept
+        // UNAUTHENTICATED dynamic registration. The registered client is public
+        // (token_endpoint_auth_method: "none", PKCE) and redirect-locked, so it
+        // grants no access on its own — only a source user consenting does. Both
+        // flags gate on allowSignup: a private (non-public) source refuses
+        // registration outright. (allowUnauthenticatedClientRegistration is the
+        // supported option for this today; its eventual replacement is CIMD, which
+        // does not fit RemDo's private-home topology — see docs/access-model.md.)
         allowDynamicClientRegistration: allowSignup,
+        allowUnauthenticatedClientRegistration: allowSignup,
         clientRegistrationDefaultScopes: [...REMDO_SERVER_OAUTH_SCOPES],
         rateLimit: {
           register: { window: 60, max: 5 },
