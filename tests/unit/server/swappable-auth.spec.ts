@@ -62,7 +62,7 @@ describe('createSwappableServerAuth', () => {
     expect(swappable.auth.sourceServers).toHaveLength(1);
     expect(swappable.auth.sourceServers[0]).toMatchObject({
       id: SOURCE_ID,
-      credentials: { clientId: 'cid', clientSecret: null },
+      credentials: { clientId: 'cid' },
     });
     // The rebuilt Better Auth instance actually carries the OAuth provider — this
     // is what makes the source linkable, not just the array entry.

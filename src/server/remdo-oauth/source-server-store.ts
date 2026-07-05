@@ -7,9 +7,10 @@ import type { SourceServersTable } from '#server/db/schema';
 // row is created on first link to a URL; its client_id is filled in once
 // self-registration completes (docs/access-model.md#linking-a-source).
 
+// Source clients are always public (PKCE, no secret), so a credential is just a
+// client_id.
 export interface SourceClientCredentials {
   clientId: string;
-  clientSecret: string | null;
 }
 
 export interface StoredSourceServer extends LinkableRemdoServer {
@@ -18,11 +19,11 @@ export interface StoredSourceServer extends LinkableRemdoServer {
 
 type SourceServerRow = Pick<
   SourceServersTable,
-  'base_url' | 'client_id' | 'client_secret'
+  'base_url' | 'client_id'
 >;
 
 const SOURCE_SERVER_READ_COLUMNS = [
-  'base_url', 'client_id', 'client_secret',
+  'base_url', 'client_id',
 ] as const;
 
 // base_url is the stored identity; id and label are both derived from it.
@@ -33,7 +34,7 @@ function rowToStored(row: SourceServerRow): StoredSourceServer {
     baseUrl: row.base_url,
     credentials:
       row.client_id
-        ? { clientId: row.client_id, clientSecret: row.client_secret ?? null }
+        ? { clientId: row.client_id }
         : null,
   };
 }
@@ -82,7 +83,6 @@ export async function addSourceServer(
     .values({
       base_url: derived.baseUrl,
       client_id: null,
-      client_secret: null,
       created_at: Date.now(),
     })
     .execute();
@@ -100,7 +100,7 @@ export async function setSourceServerPublicClient(
   const result = baseUrl
     ? await database.db
       .updateTable('source_servers')
-      .set({ client_id: clientId, client_secret: null })
+      .set({ client_id: clientId })
       .where('base_url', '=', baseUrl)
       .executeTakeFirst()
     : null;

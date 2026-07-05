@@ -79,7 +79,7 @@ function ensureDocumentAccessTable(sqlite: Database.Database): void {
   sqlite.exec(CREATE_DOCUMENT_ACCESS_TABLE_SQL);
 
   if (tableExists(sqlite, 'source_servers')) {
-    assertTableShape(sqlite, 'source_servers', ['base_url', 'client_id', 'client_secret', 'created_at']);
+    assertTableShape(sqlite, 'source_servers', ['base_url', 'client_id', 'created_at']);
   }
   sqlite.exec(CREATE_SOURCE_SERVERS_TABLE_SQL);
 }

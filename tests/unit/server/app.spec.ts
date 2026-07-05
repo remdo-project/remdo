@@ -17,7 +17,6 @@ const TEST_SOURCE_SERVER = {
   baseUrl: 'https://source.example',
   credentials: {
     clientId: 'source-client-id',
-    clientSecret: 'source-client-secret',
   },
 } as const;
 
@@ -462,7 +461,7 @@ describe('remdo api app', () => {
           id: 'source',
           label: 'Source Server',
           baseUrl: 'https://source.example',
-          credentials: { clientId: 'source-client-id', clientSecret: 'source-client-secret' },
+          credentials: { clientId: 'source-client-id' },
         },
       ],
     });
@@ -489,7 +488,7 @@ describe('remdo api app', () => {
           id: 'source',
           label: 'Source Server',
           baseUrl: 'https://source.example',
-          credentials: { clientId: 'source-client-id', clientSecret: 'source-client-secret' },
+          credentials: { clientId: 'source-client-id' },
         },
       ],
     });

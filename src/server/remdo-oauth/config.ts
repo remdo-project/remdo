@@ -2,8 +2,9 @@ import { Buffer } from 'node:buffer';
 import { isHttpOrigin } from '#platform/net/http-origin';
 
 // A source server's identity, as it appears to the home. Credentials live
-// separately (see StoredSourceServer) because a source exists in the home's
-// admin-managed list before it is registered and issued OAuth credentials.
+// separately (see StoredSourceServer) because a source row exists in the home's
+// origin-keyed cache from first link, before self-registration fills its
+// public client_id.
 export interface LinkableRemdoServer {
   id: string;
   label: string;

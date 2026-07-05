@@ -100,7 +100,7 @@ describe('genericOAuth provider for a public-client source', () => {
     const sourceId = deriveSourceId('https://source.example');
     const sourceServers: StoredSourceServer[] = [{
       baseUrl: 'https://source.example',
-      credentials: { clientId: 'public-client-id', clientSecret: null },
+      credentials: { clientId: 'public-client-id' },
       id: sourceId,
       label: 'source.example',
     }];

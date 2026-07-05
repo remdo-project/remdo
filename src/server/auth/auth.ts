@@ -160,9 +160,6 @@ function createBetterAuthInstance({
             requireIssuerValidation: true,
             clientId: server.credentials.clientId,
             // Public client: no secret; PKCE authenticates the token exchange.
-            ...(server.credentials.clientSecret
-              ? { clientSecret: server.credentials.clientSecret }
-              : {}),
             scopes: [...REMDO_SERVER_OAUTH_SCOPES],
             accessType: 'offline',
             pkce: true,

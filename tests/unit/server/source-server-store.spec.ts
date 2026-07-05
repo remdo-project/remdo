@@ -59,7 +59,7 @@ describe('source server store', () => {
     await setSourceServerPublicClient(database, SOURCE_ID, 'cid');
 
     const [stored] = await listSourceServers(database);
-    expect(stored!.credentials).toEqual({ clientId: 'cid', clientSecret: null });
+    expect(stored!.credentials).toEqual({ clientId: 'cid' });
   });
 
   it('fails to record credentials for an unknown source', async () => {
@@ -76,7 +76,7 @@ describe('source server store', () => {
         id: SOURCE_ID,
         label: 'source.example',
         baseUrl: 'https://source.example',
-        credentials: { clientId: 'cid', clientSecret: null },
+        credentials: { clientId: 'cid' },
       },
     ]);
   });
@@ -86,6 +86,6 @@ describe('source server store', () => {
     await setSourceServerPublicClient(database, SOURCE_ID, 'public-client-id');
 
     const [server] = await listSourceServers(database);
-    expect(server!.credentials).toEqual({ clientId: 'public-client-id', clientSecret: null });
+    expect(server!.credentials).toEqual({ clientId: 'public-client-id' });
   });
 });

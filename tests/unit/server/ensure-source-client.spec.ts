@@ -30,7 +30,7 @@ describe('ensureSourceClient', () => {
     expect(result.created).toBe(true);
     expect(registerClient).toHaveBeenCalledTimes(1);
     const [server] = await listSourceServers(database);
-    expect(server!.credentials).toEqual({ clientId: 'cid-1', clientSecret: null });
+    expect(server!.credentials).toEqual({ clientId: 'cid-1' });
   });
 
   it('reuses a credential-less row from a failed prior registration instead of throwing a duplicate error', async () => {
@@ -43,7 +43,7 @@ describe('ensureSourceClient', () => {
     expect(result.created).toBe(true);
     expect(registerClient).toHaveBeenCalledTimes(1);
     const [server] = await listSourceServers(database);
-    expect(server!.credentials).toEqual({ clientId: 'cid-1', clientSecret: null });
+    expect(server!.credentials).toEqual({ clientId: 'cid-1' });
   });
 
   it('reuses the cached client on a later link to the same URL (idempotent)', async () => {
