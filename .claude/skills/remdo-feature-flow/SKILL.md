@@ -45,7 +45,7 @@ Phase 3 branches from another.
 **Tree clean of unrelated changes first.** Apply the Phase-3 "no unrelated
 changes" judgment *before* running the script below — it fast-forwards a stale
 branch, and a fast-forward would silently advance a checkout the run should have
-stopped on. Pre-existing unrelated edits → stop. (The script itself refuses a
+stopped on. (The script itself refuses a
 dirty tree, but it cannot tell this flow's own spec edits from unrelated work;
 that judgment is yours.)
 
@@ -54,9 +54,8 @@ contract). It fetches, classifies the current branch against `origin/main`, and
 either leaves it proceedable or exits for a state the run must stop on. Read its
 outcome:
 
-- **`STATE=even`** or **`STATE=behind`** (the latter after it fast-forwarded a
-  merely-stale branch — safe: no rewrite, no merge commit, nothing lost) — the
-  branch now matches `origin/main`. Take **`BASE=<sha>`** as the pinned fork
+- **`STATE=even`** or **`STATE=behind`** — the branch now matches
+  `origin/main`. Take **`BASE=<sha>`** as the pinned fork
   point for this run and proceed. Phase 3 forks from *that pinned SHA*, not a
   re-fetched `origin/main`, so `origin/main` advancing mid-flow can't split the
   design base from the fork base.
@@ -148,9 +147,7 @@ already-converged prose, not a first draft:
   exists to land converged prose in the tree before the gate.
 
 This gates only the final handoff: dialog (Phase 2) stays fast and unrefined, and
-the pass runs once here at the gate, not per turn. The precondition above
-guarantees the tree holds only this flow's own changes, so refine sees nothing
-unrelated.
+the pass runs once here at the gate, not per turn.
 
 The user reviews the **`docs/` changes** (the chat message is a thin pointer:
 which docs changed, plus a ~5-bullet approach summary — not the design pasted
@@ -209,16 +206,12 @@ changes). See "Branch base" for why the fork uses the pinned SHA.
    **`remdo-refine`** skill:
    - **Objective:** converge the phase-4 work to a clean code-quality bar.
    - **Scope passed:** committed-range scope over this branch's own work
-     (`origin/main...HEAD`); the tree is clean because the work was just
-     committed, which is why refine's committed-range gate is satisfied.
+     (`origin/main...HEAD`).
    - **Report back:** refine's final index. It owns the quality loop (simplify →
      internal review → external Codex review, looping to a clean pass), the
      **tradeoff/blocker policy** for review findings, and the final checks for the
      current agent mode — all defined there, not restated here. Fold its tradeoffs
      (already in `docs/todo.md`) into the Phase-5 report.
-
-   Refine converges *code quality*; reaching the spec's described state stays the
-   gap-closing loop's job above.
 5. **Mid-work decisions:** small blast radius (a later reversal would not waste
    the work) → use judgment, **record it in `docs/todo.md`**, keep moving.
    Genuine large-blast-radius fork → stop, **recording the fork, the options, and

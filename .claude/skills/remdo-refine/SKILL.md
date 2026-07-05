@@ -37,8 +37,7 @@ a mixed scope (a committed range while the tree is dirty), and prints
 
 - **Refusal handling.** A non-zero exit means the requested scope is unresolvable
   — most often the mixed-scope refusal (committed range over a dirty tree). Warn
-  and stop until the work is committed or stashed; this is why `remdo-feature-flow`
-  commits its phase-4 work before invoking refine. Do not fold the uncommitted
+  and stop until the work is committed or stashed. Do not fold the uncommitted
   changes in to make it resolve.
 - **Integration-branch confirmation.** The script's committed-range default
   (`origin/main...HEAD`) is meaningless on an integration branch (`dev`) or any
@@ -47,9 +46,7 @@ a mixed scope (a committed range while the tree is dirty), and prints
   of it. There, **do not accept the default: confirm an explicit range first.**
   The conversation usually makes it obvious (the work just done, the last commit,
   the last few) — state the concrete range you'll pass to the script and proceed
-  once confirmed. Refine runs on `dev` per Permissions, but always against a pinned
-  range, never the branch-wide default. Refine never silently infers the range
-  from session context: it is given one, or it confirms one before proceeding.
+  once confirmed.
 
 The two scopes differ in what the loop does with the resolved diff:
 
@@ -171,10 +168,9 @@ dead code, `jscpd` duplication), which the check scripts don't cover and only
 CI otherwise catches. Which check script: **committed-range scope always needs
 `pnpm run check:full`** — the loop's fixes are committed, so the changed-only
 `check` would select no tests. In **working-tree scope** the fixes are
-uncommitted, so the current agent mode's script applies (`AGENTS.md` "Checks"):
-its changed-only selection keeps a docs- or skill-only diff fast in local mode,
-and such a diff may also skip `audit:cleanup`, which exercises nothing it
-touched.
+uncommitted, so the current agent mode's script applies (`AGENTS.md` "Checks");
+a docs- or skill-only diff may also skip `audit:cleanup`, which exercises
+nothing it touched.
 
 A failure caused by an applied fix re-enters the loop; a pre-existing
 unrelated failure is reported, not fixed here.
@@ -183,8 +179,7 @@ unrelated failure is reported, not fixed here.
 
 In **committed-range** scope refine commits each fix, so invoking it is an
 explicitly declared autonomous scope (per AGENTS.md): authorization to commit
-**on the current branch** — never push. The dropped task-branch restriction lets
-it run on `dev` as readily as a feature branch, but **`main` stays protected**:
+**on the current branch** — never push. **`main` stays protected**:
 if invoked on `main`, warn and stop (same guard as the dirty-tree check) rather
 than self-committing there. Inside a `remdo-feature-flow` run, that skill's commit
 policy already governs.

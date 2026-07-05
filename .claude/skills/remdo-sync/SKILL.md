@@ -31,8 +31,8 @@ Sync runs on whatever branch is checked out (no branch-name gate).
 ## The flow
 
 **Probe first: run `sh tools/skills/sync-probe.sh`** (its header states the full
-contract). It fetches (always allowed — remote-tracking refs only) and classifies
-whether `origin/main` still needs merging, printing one `STATE=` line. Act on it:
+contract). It fetches and classifies whether `origin/main` still needs merging,
+printing one `STATE=` line. Act on it:
 
 - **`STATE=dirty-tree`** — the merge's clean-tree precondition fails. **Warn and
   stop**; the user commits or stashes first (never do it for them).
@@ -47,9 +47,7 @@ Then:
    sides' intent, the surrounding code, `git log`/`git blame`, related changes.
    When a resolution is not clearly correct, **do not guess** — leave it
    conflicted and **call it out** with file/region and what is unclear. Do not
-   finish a half-resolved merge silently. Bias to callout when unsure. If
-   conflicts can't be safely resolved, stop with the callout rather than
-   committing a half-resolved merge.
+   finish a half-resolved merge silently.
 2. **Verify.** Unless the merge fast-forwarded, run `pnpm run check:full` (the
    merge is already committed, so the changed-only `check` would select no
    tests): a textually clean merge can still be semantically broken, and

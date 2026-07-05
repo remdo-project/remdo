@@ -38,11 +38,9 @@ they run in this order.
 2. **Align pass.** An editor fixes the remaining rule violations across the
    scope, re-running the gates after each batch.
 3. **Advocate.** Run `sh tools/skills/advocate-run.sh <rules-doc> <scope>
-   <output-file>` (its header states the full contract). It substitutes the
-   scope and rules doc into `references/advocate.md` and runs the read-only
-   deletion advocate via `codex exec` in a read-only sandbox — a different
-   model family than the editor — capturing the numbered proposal table to
-   the output file. On a non-zero exit (the retry also failed), surface it in
+   <output-file>` (its header states the full contract) to capture the
+   numbered proposal table; the advocate runs on a different model family
+   than the editor. On a non-zero exit (the retry also failed), surface it in
    the stage-5 report rather than proceeding to adjudicate an empty table.
 4. **Adjudicate.** The editor applies `references/adjudicate.md` over the
    proposal table. Gates re-run after the edits.
@@ -70,5 +68,4 @@ autonomous scope (per AGENTS.md): authorization to commit each stage's applied
 edits **on the current branch**, keeping the resolved range honest — never onto
 `main` (if invoked there, warn and stop rather than self-committing), and never
 push. In **working-tree scope** it commits nothing — the applied edits stay in
-the tree and the user owns the eventual commit. `git fetch` is always allowed;
-pull, force-push, and opening PRs stay the user's.
+the tree and the user owns the eventual commit.

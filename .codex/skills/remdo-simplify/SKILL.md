@@ -34,9 +34,6 @@ should be given the same isolation by the caller (a fresh subagent).
 - Do not run a general correctness, security, or performance review unless the
   issue is also a simplification opportunity.
 
-(For what a surviving finding must *not* report — style, compat, browser-verified
-UI, etc. — see the exclusion list under **Finding bar**.)
-
 ## Select the scope
 
 Use the exact scope supplied by the caller. A refine caller should pass only the
