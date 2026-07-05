@@ -440,6 +440,19 @@ The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
 - Add more external review tools/skills/programs worth considering in the refine
   ladder beyond `codex review` (e.g. other reviewers or static analyzers);
   evaluate each for fit and independence before adding a rung.
+- Widen the review lens for shared-state writes: refine reviews a diff, so a bug
+  where NEW code writes shared/global state and UNCHANGED code over-reads it sits
+  outside scope (the PR#356 cross-user source-leak: new `source-links.ts` wrote a
+  global `source_servers` row that the unchanged `listCurrentUserSourceServers`
+  projected to every user). The GitHub Codex app caught it because it reviews the
+  whole PR against the full repo, not the diff alone. Add a finder angle: when the
+  diff writes to a shared cache/table/projection source, trace who *reads* that
+  state (including unchanged files) and check the new state doesn't cross a
+  tenant/user boundary. (Note the GitHub app and local `codex review` are the same
+  model — the app's advantage was whole-repo scope, not a second sample; a second
+  *local* codex pass would share the diff-only blind spot. Evidence: OpenAI tunes
+  the reviewer for precision over recall, so misses are by design; keeping the
+  wider-scope GitHub app enabled as a backstop is cheaper than re-sampling locally.)
 
 ## Later follow-ups
 
