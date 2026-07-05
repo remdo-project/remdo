@@ -18,10 +18,9 @@ tie-breaker, so preserve that structure when editing this skill.
 - **Rules doc**: `docs/documentation.md` unless the caller names another
   with equivalent carve-outs (the templates assume its carve-out structure).
 - **Scope**, fixed at invocation: the working tree (uncommitted doc
-  changes), a committed range (resolved via `tools/skills/resolve-scope.sh` —
-  an immutable base SHA plus the touched-file list), or an explicit file set
-  (e.g. the whole corpus for a realignment). A diff scope selects its touched
-  files, read whole.
+  changes), a committed range (resolved via `tools/skills/resolve-scope.sh`, its
+  header states the contract), or an explicit file set (e.g. the whole corpus for
+  a realignment). A diff scope selects its touched files, read whole.
 
 ## Pipeline
 
@@ -63,7 +62,11 @@ Forward the `AGENTS.md` findings-suppression rule to every stage.
 
 ## Permissions
 
-Invoking this skill on a **committed-range scope** is an explicitly declared
+Self-committing here applies **only when invoked standalone**. As `remdo-refine`'s
+rung, this skill commits nothing — refine's loop owns every commit (see its
+ladder); the edits are left in the tree for that loop to triage and commit.
+
+Invoked standalone on a **committed-range scope** is an explicitly declared
 autonomous scope (per AGENTS.md): authorization to commit each stage's applied
 edits **on the current branch**, keeping the resolved range honest — never onto
 `main` (if invoked there, warn and stop rather than self-committing), and never

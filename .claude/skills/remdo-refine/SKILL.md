@@ -29,11 +29,10 @@ exactly one and keep it for every pass — never review a mix of committed and
 uncommitted changes in one run, which would make the diff under review ambiguous.
 
 **Resolve the scope by running `sh tools/skills/resolve-scope.sh [scope]`** (its
-header states the full contract). With no argument it infers the committed-range
-default (`origin/main...HEAD`); pass an explicit `A..B`/`A...B` range or
-`working-tree` to override. It anchors the range base to an immutable SHA, refuses
-a mixed scope (a committed range while the tree is dirty), and prints
-`SCOPE=`/`BASE=` plus the file list. The judgment around it stays here:
+header states the full contract). Pass no argument for the committed-range default
+(this branch's own work), or `working-tree` to review the uncommitted changes
+before they enter history. It prints `SCOPE=`/`BASE=` plus the file list. The
+judgment around it stays here:
 
 - **Refusal handling.** A non-zero exit means the requested scope is unresolvable
   — most often the mixed-scope refusal (committed range over a dirty tree). Warn
@@ -90,13 +89,13 @@ applies what is approved, and owns the loop. Keeping finding and applying apart
 is what makes triage a real gate — a rung that edited the tree would pre-empt it.
 
 **Exception — the docs-align rung edits.** Rung 2 (`remdo-docs-align`) is the one
-editing rung: by its own contract it applies edits and, on a committed-range
-scope, commits per stage on the current branch (see its **Permissions**). Its
-*applied dispositions* are therefore triaged **post-hoc** — the coordinating
-session reviews what it changed rather than gating each edit beforehand — and its
-**ESCALATE** rows are treated like any other rung's findings. Invoke it in line
-with its Permissions (committed-range = self-committing on the current branch;
-working-tree = edits left uncommitted for the user).
+editing rung: by its own contract it applies edits (it self-commits only when run
+standalone — as this rung it commits nothing, and refine's loop owns the commits,
+see its **Permissions**). Its *applied dispositions* are therefore triaged
+**post-hoc** — the coordinating session reviews what it changed rather than gating
+each edit beforehand, then commits them like any other approved fix in
+committed-range scope — and its **ESCALATE** rows are treated like any other
+rung's findings.
 
 Every rung must review with **fresh eyes** — the coordinating session's memory
 of implementing and reviewing the diff would bias it toward parts it thinks it

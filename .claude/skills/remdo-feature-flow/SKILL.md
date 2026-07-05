@@ -50,27 +50,20 @@ dirty tree, but it cannot tell this flow's own spec edits from unrelated work;
 that judgment is yours.)
 
 Then **run `sh tools/skills/preflight-base.sh`** (its header states the full
-contract). It fetches, classifies the current branch against `origin/main`, and
-either leaves it proceedable or exits for a state the run must stop on. Read its
-outcome:
+contract). It leaves the branch proceedable or exits for a state the run must
+stop on. What each outcome means for the flow:
 
-- **`STATE=even`** or **`STATE=behind`** — the branch now matches
-  `origin/main`. Take **`BASE=<sha>`** as the pinned fork
-  point for this run and proceed. Phase 3 forks from *that pinned SHA*, not a
-  re-fetched `origin/main`, so `origin/main` advancing mid-flow can't split the
-  design base from the fork base.
-- **Non-zero exit** — **stop**, and act on *why* (read the script's stderr for
-  the reason):
-  - **Dirty tree** — uncommitted local edits. Resolve them by your judgment
-    (commit the ones that belong to this flow, restore or discard the rest), then
-    re-run. This is a local-state cleanup, not an upstream one.
-  - **Ahead / diverged** — the branch holds committed work not yet in
-    `origin/main` (or has diverged), which the fork would not carry — a spec
-    designed against it would vanish from the task branch. Ask the user to land
-    it in `origin/main` first (merge the open `dev`→`main` PR) or to design from a
-    checkout already at `origin/main`.
-  - **Any other non-zero exit** — read the script's stderr and act on what it
-    reports rather than assuming one of the above.
+- **Proceedable** (`STATE=even`/`behind`) — take **`BASE=<sha>`** as the pinned
+  fork point and proceed. Phase 3 forks from *that pinned SHA*, not a re-fetched
+  `origin/main`, so `origin/main` advancing mid-flow can't split the design base
+  from the fork base.
+- **Non-zero exit** — **stop**, read the script's stderr, and act on *why*:
+  - **Dirty tree** — resolve it locally by your judgment (commit what belongs to
+    this flow, restore or discard the rest), then re-run.
+  - **Ahead / diverged** — the branch holds committed work the fork would not
+    carry, so a spec designed against it would vanish from the task branch. Ask
+    the user to land it in `origin/main` first (merge the open `dev`→`main` PR) or
+    to design from a checkout already at `origin/main`.
 
 ## Phase 1 — Draft (user)
 
@@ -316,8 +309,8 @@ The single base for every diff, for both user and agent, is the **merge-base of
 `origin/main` and `HEAD`**. Two forms, per what's being reviewed:
 
 - **Committed range:** `git diff origin/main...HEAD` (three-dot diffs from the
-  merge-base) — and `codex review --base origin/main` (safe as a one-shot; a
-  looping `remdo-refine` pass anchors to a fixed base SHA instead, see that skill).
+  merge-base). External review over this range is `remdo-refine`'s rung — it owns
+  the invocation and base anchoring, not this skill.
 - **Working tree included** (committed + uncommitted — the mid-work review loop):
   `git diff "$(git merge-base origin/main HEAD)"`, plus
   `git ls-files --others --exclude-standard` for the untracked files that diff
@@ -340,8 +333,8 @@ spec edits** carry across and the script's refusals are not expected to fire.
 This flow forks task branches from `origin/main` only. Stacked/dependent branches
 (forking off another in-progress branch) are out of scope — they would make
 `origin/main...HEAD` include the parent's un-merged work. If you ever need one,
-diff that branch by hand against its parent (`git diff <parent>...HEAD`,
-`codex review --base <parent>`); no skill tracks it.
+diff that branch by hand against its parent (`git diff <parent>...HEAD`); no skill
+tracks it.
 
 ### Branch naming
 

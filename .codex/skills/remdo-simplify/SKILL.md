@@ -40,17 +40,14 @@ Use the exact scope supplied by the caller. A refine caller should pass only the
 scope and this skill, not its suspected fixes or implementation context.
 
 Resolve it by running `sh tools/skills/resolve-scope.sh [scope]` (its header
-states the full contract): no argument infers the committed-range default
-(`origin/main...HEAD`, the three-dot merge-base range that is exactly a task
-branch's own work), an explicit `A..B`/`A...B` range selects a committed range,
-and `working-tree` selects the uncommitted changes (staged + unstaged +
-untracked). It anchors a committed range's base to an immutable SHA and refuses a
-mixed scope (a committed range while the tree is dirty) — this pass is read-only
-and never loops, so it needs no anchoring of its own, but reusing the resolver
-keeps one scope contract across the skills. It prints `SCOPE=`/`BASE=` plus the
-file list. On a non-zero exit, warn and stop rather than folding the other side's
-changes into the review; on an integration branch (`dev`) where the committed
-default is not one unit of work, report that an explicit scope is required.
+states the full contract): no argument for the committed-range default (this
+branch's own work), or `working-tree` for the uncommitted changes. It prints
+`SCOPE=`/`BASE=` plus the file list. This pass is read-only and never loops, so it
+needs no anchoring of its own — reusing the resolver just keeps one scope contract
+across the skills. On a non-zero exit, warn and stop rather than folding the other
+side's changes into the review; on an integration branch (`dev`) where the
+committed default is not one unit of work, report that an explicit scope is
+required.
 
 For the resolved scope, run this read-only inspection to read the diff surface:
 

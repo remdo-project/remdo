@@ -38,12 +38,15 @@ Operating principle: **apply everything, then make it green.**
 ## The loop
 
 The work is a loop the skill drives — that is where the autohealing lives. The
-deterministic part is one single-shot gate: `pnpm run deps:next` (this skill's
-`next-update.sh`, alongside its `bump-*.sh` helpers) runs an ordered list of
-update steps and **stops at the first one that changes the repo**, so the skill
-always handles exactly one change at a time. It never batches, never parses
-versions, never decides — it
-only reports "here is the next thing that changed."
+deterministic part is scripted: `pnpm run deps:next` (this skill's
+`next-update.sh`) runs an ordered list of update steps and **stops at the first
+one that changes the repo**, so the skill always handles exactly one change at a
+time. The gate itself only *detects* which step did work — it never batches, and
+never parses versions or decides. Version-selection policy lives in the
+deterministic `bump-*.sh` helpers each step runs (latest pnpm release with its
+exact corepack hash, newest LTS Node whose alpine base is published, latest
+release major for floating action tags); the skill's own job is to run the gate
+and heal whatever the resulting change breaks — not to pick versions itself.
 
 Gate exit codes:
 

@@ -451,6 +451,32 @@ The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
   semantics (no-op vs. move-as-flattened-text) in the cut/paste redesign;
   `NoteIdPlugin` `SELECTION_INSERT_CLIPBOARD_NODES_COMMAND` body branch.
 
+## remdo-docs-align follow-ups
+
+- Consolidate doc responsibility fully into docs-align: refine's doc rung
+  invokes the whole pipeline (diff scope) instead of stages 3–4, and
+  `remdo-simplify` drops its doc lens to become the code/test finder only —
+  removes the last double route to doc checking.
+- Consider borrowing from the Upkeep skill (wei18/Upkeep): its structured
+  finding schema and parallel specialist-reviewer layout could speed the align
+  pass on large scopes.
+- Consider borrowing superpowers `writing-skills` pressure-testing (adversarial
+  subagent trials) as an extra check for skill-file prose.
+- Consider publishing the skill to the open Agent Skills registry once it is
+  polished and battle-tested in this project (would need a bundled starter
+  rules-doc template).
+
+## Skill architecture follow-ups
+
+- Define shared cross-skill contracts once (AGENTS.md or contributing.md) and
+  have each skill state only its delta: one stop/escalation taxonomy (today
+  six names: ESCALATE/Blocker/Stuck/stop/dead-end/callout), one
+  mutation-permission vocabulary (today five variants), one report skeleton,
+  and a one-line verification-ownership map (feature-flow proves spec
+  behavior; refine owns quality backstops; sync the post-merge check;
+  deps-refresh its matrix). Reconcile with AGENTS.md's declare-scope-in-situ
+  rule via shared vocabulary + per-skill delta.
+
 ## remdo-refine follow-ups
 
 - Add more external review tools/skills/programs worth considering in the refine
