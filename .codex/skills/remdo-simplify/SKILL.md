@@ -143,12 +143,11 @@ Look for opportunities to:
 
 ### Docs and skill files
 
-For touched docs and skills, read the whole file, not just the hunk, and check
-it against the documentation intent and invariants in `docs/documentation.md`
-(skill files are governed by the same invariants, with the preamble's skill
-exceptions). Pay particular attention to the minimal-by-default face-value
-test: a clause that only restates what an adjacent rule already implies is a
-finding.
+Deep doc and skill-prose review is `remdo-docs-align`'s job (the refine
+ladder routes any doc-touching diff to its advocate/adjudicate stages). Here,
+read touched docs and skills whole for context and report only violations of
+`docs/documentation.md` you hit in passing — or recommend a docs-align run
+when the diff's prose warrants its own pass.
 
 ## Finding bar
 
