@@ -1,12 +1,15 @@
 import { Alert, Button, Group, Select, Stack, Text, TextInput } from '@mantine/core';
 import { useState } from 'react';
 import { linkSourceByUrl } from '#client/app/auth/source-server-linking-client';
-import { useUserData } from '#client/app/documents/user-data';
+import { useCurrentUserPublicServer, useUserData } from '#client/app/documents/user-data';
 import { createShareableDocumentOptions } from './sharing-documents';
 import type { SourceServerNote } from '#note-sdk';
 
 export default function SharingRoute() {
   const userData = useUserData();
+  // A public server is source-only and refuses to link out (the link route 403s),
+  // so hide the link form there rather than advertise an action it rejects.
+  const isPublicServer = useCurrentUserPublicServer();
   const documents = userData.documents().children();
   const sourceServers = userData.sourceServers().children();
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
@@ -99,21 +102,23 @@ export default function SharingRoute() {
         ))}
       </Stack>
 
-      <form onSubmit={(event) => {
-        event.preventDefault();
-        void linkByUrl();
-      }}>
-        <Group align="end">
-          <TextInput
-            label="Source URL"
-            required
-            type="url"
-            value={sourceUrl}
-            onChange={(event) => setSourceUrl(event.currentTarget.value)}
-          />
-          <Button type="submit">Link source</Button>
-        </Group>
-      </form>
+      {!isPublicServer && (
+        <form onSubmit={(event) => {
+          event.preventDefault();
+          void linkByUrl();
+        }}>
+          <Group align="end">
+            <TextInput
+              label="Source URL"
+              required
+              type="url"
+              value={sourceUrl}
+              onChange={(event) => setSourceUrl(event.currentTarget.value)}
+            />
+            <Button type="submit">Link source</Button>
+          </Group>
+        </form>
+      )}
 
       {sourceServers.length > 0 && (
         <Stack gap="xs">
