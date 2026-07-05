@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { HTTP_STATUS } from '#platform/http/status';
-import { isHttpOrigin } from '#platform/net/http-origin';
+import { normalizeToHttpOrigin } from '#platform/net/http-origin';
 import { requireActor } from '#server/auth/actor';
 import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
 import { ensureSourceClient } from '#server/remdo-oauth/ensure-source-client';
@@ -28,8 +28,12 @@ export function createSourceLinkRoutes({
       return c.json({ error: 'A public server does not link to sources.' }, HTTP_STATUS.FORBIDDEN);
     }
     const body: { url?: string } = await c.req.json<{ url?: string }>().catch(() => ({}));
-    const url = typeof body.url === 'string' ? body.url.trim() : '';
-    if (!isHttpOrigin(url)) {
+    const raw = typeof body.url === 'string' ? body.url.trim() : '';
+    // Normalize a user-pasted URL to its bare origin: a source is identified by
+    // origin, so accept the browser-normal forms (a trailing slash, or a deep
+    // link) by reducing to the origin rather than rejecting them.
+    const origin = normalizeToHttpOrigin(raw);
+    if (!origin) {
       return c.json({ error: 'A valid source server URL is required.' }, HTTP_STATUS.BAD_REQUEST);
     }
 
@@ -41,7 +45,7 @@ export function createSourceLinkRoutes({
     try {
       const { sourceId, created } = await ensureSourceClient({
         database,
-        url,
+        url: origin,
         homeOrigin: new URL(auth.baseURL).origin,
         scopes: REMDO_SERVER_OAUTH_SCOPES,
       });

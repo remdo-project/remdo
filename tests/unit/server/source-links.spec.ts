@@ -40,13 +40,31 @@ describe('post /api/current-user/source-links', () => {
     expect(response.status).toBe(401);
   });
 
-  it('rejects a missing or malformed url', async () => {
+  it('rejects a missing or non-http url', async () => {
     const harness = createHarness({ allowSignup: false });
     const headers = await harness.createSessionHeaders();
-    for (const url of [undefined, '', 'not-a-url', 'ws://source.example', 'https://source.example/path']) {
+    for (const url of [undefined, '', 'not-a-url', 'ws://source.example']) {
       const response = await postJson(harness.app, '/api/current-user/source-links', { url }, headers);
       expect(response.status, `url=${String(url)}`).toBe(400);
     }
+  });
+
+  it('accepts browser-normal URL forms by normalizing to the origin', async () => {
+    const harness = createHarness({ allowSignup: false });
+    const headers = await harness.createSessionHeaders();
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ client_id: 'source-client-id' }), { status: 201 }));
+    vi.stubGlobal('fetch', fetchMock);
+    // A trailing slash and a deep link both reduce to the same source origin;
+    // neither is a 400 (the strict bare-origin check would have rejected both).
+    for (const url of ['https://source.example/', 'https://source.example/some/path']) {
+      const response = await postJson(harness.app, '/api/current-user/source-links', { url }, headers);
+      expect(response.status, `url=${url}`).not.toBe(400);
+    }
+    // The home registered against the normalized origin, not the raw URL.
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://source.example/api/auth/oauth2/register',
+      expect.objectContaining({ method: 'POST' }),
+    );
   });
 
   it('ensures a source client and reaches oAuth2LinkAccount for a valid URL from any signed-in user', async () => {

@@ -146,6 +146,14 @@ deferring does not churn the gate's interface):
   (a mirror of Better Auth's `validateIssuerUrl`) can be deleted. Blocked on the
   Docker E2E, whose source is `http://<host-IP>` (rootless Docker can't reach a
   loopback source) — the real work is making that source loopback-reachable.
+- Public-source registration abuse: the home self-registers unauthenticatedly, so
+  the deleted per-account (userId-keyed) register limit can't be ported — there is
+  no session principal. The only bound left is Better Auth's IP-keyed
+  `oauthProvider.rateLimit.register` (5/60s), which mis-keys for this case
+  (NAT'd homes share a bucket; an attacker rotates IPs to evade). Needs a
+  registration-abuse control fit for unauthenticated registration (e.g. a global
+  cap, trusted-proxy IP config, or proof-of-work), designed with the public-source
+  policy split above.
 - No user-facing "unlink / remove a source" path exists after the URL-first
   redesign: URL-first linking added a link route but the old admin remove route
   was deleted, so `removeSourceServer` + the `rebuild()`-on-removal behavior lost

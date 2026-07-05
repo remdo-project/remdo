@@ -7,6 +7,7 @@ import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { deriveSourceId } from '#server/remdo-oauth/config';
 import {
   addSourceServer,
+  ensureSourceServerRow,
   listSourceServers,
   readSourceServersSync,
   setSourceServerPublicClient,
@@ -47,6 +48,15 @@ describe('source server store', () => {
     await addSourceServer(database, 'https://source.example');
     await expect(addSourceServer(database, 'https://source.example'))
       .rejects.toThrow('already configured');
+  });
+
+  it('ensureSourceServerRow is idempotent (no duplicate-row throw on a repeat call)', async () => {
+    // The race-safe get-or-create for the lazy link path: unlike addSourceServer,
+    // a second call for the same origin returns the row instead of throwing.
+    const first = await ensureSourceServerRow(database, 'https://source.example');
+    const second = await ensureSourceServerRow(database, 'https://source.example');
+    expect(second.id).toBe(first.id);
+    expect(await listSourceServers(database)).toHaveLength(1);
   });
 
   it('rejects a non-origin URL', async () => {

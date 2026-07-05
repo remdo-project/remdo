@@ -1,7 +1,7 @@
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { registerPublicSourceClient } from '#server/remdo-oauth/source-client-registration';
 import {
-  addSourceServer,
+  ensureSourceServerRow,
   listSourceServers,
   setSourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
@@ -22,6 +22,10 @@ export interface EnsureSourceClientResult {
 // first use and caching its client_id in source_servers. Idempotent: repeated
 // links to the same URL (by any user) reuse the cached client. The caller
 // rebuilds auth when `created` is true so a genericOAuth provider appears.
+// Two concurrent first-links to the same new URL are race-safe at the row level
+// (ensureSourceServerRow tolerates the duplicate insert); they may each register
+// a client, and the last write wins the cached client_id — a benign redundancy
+// (the orphaned public client is secretless and redirect-locked), not an error.
 export async function ensureSourceClient(
   params: EnsureSourceClientParams,
   deps: { registerClient?: typeof registerPublicSourceClient } = {},
@@ -34,7 +38,7 @@ export async function ensureSourceClient(
     return { sourceId: existing.id, created: false };
   }
 
-  const source = existing ?? (await addSourceServer(params.database, origin));
+  const source = existing ?? (await ensureSourceServerRow(params.database, origin));
   const { clientId } = await registerClient({
     sourceBaseUrl: source.baseUrl,
     homeOrigin: params.homeOrigin,

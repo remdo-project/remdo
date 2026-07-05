@@ -89,6 +89,33 @@ export async function addSourceServer(
   return { ...derived, credentials: null };
 }
 
+// Race-safe get-or-create for the lazy link path: inserts the row if absent and
+// re-reads it, so two concurrent first-links to the same new source URL both
+// succeed instead of one hitting the base_url primary-key collision. Unlike
+// addSourceServer (which throws on a duplicate for its direct callers), this
+// tolerates a concurrent insert.
+export async function ensureSourceServerRow(
+  database: SqliteServerDatabaseClient,
+  url: string,
+): Promise<StoredSourceServer> {
+  const derived = deriveSourceServer(url);
+  await database.db
+    .insertInto('source_servers')
+    .values({
+      base_url: derived.baseUrl,
+      client_id: null,
+      created_at: Date.now(),
+    })
+    .onConflict((oc) => oc.column('base_url').doNothing())
+    .execute();
+  const row = await database.db
+    .selectFrom('source_servers')
+    .select(SOURCE_SERVER_READ_COLUMNS)
+    .where('base_url', '=', derived.baseUrl)
+    .executeTakeFirstOrThrow();
+  return rowToStored(row);
+}
+
 // Persists a public client's id (no secret). Public clients authenticate via
 // PKCE, so there is no secret to store.
 export async function setSourceServerPublicClient(
