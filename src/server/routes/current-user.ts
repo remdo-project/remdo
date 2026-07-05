@@ -3,6 +3,7 @@ import { HTTP_STATUS } from '#platform/http/status';
 import { requireActorResolution } from '#server/auth/actor';
 import { ensureCurrentUserBootstrap } from '#server/documents/current-user';
 import { listCurrentUserSourceServers } from '#server/documents/source-servers';
+import { createSourceLinkRoutes } from './source-links';
 import { createSourceServerRoutes } from './source-servers';
 import type { ServerRouteDependencies } from './types';
 
@@ -36,6 +37,7 @@ export function createCurrentUserRoutes(dependencies: ServerRouteDependencies) {
     }
   });
   routes.route('/source-servers', createSourceServerRoutes(dependencies));
+  routes.route('/', createSourceLinkRoutes(dependencies));
 
   return routes;
 }

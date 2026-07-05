@@ -68,6 +68,7 @@ describe('remdo api app', () => {
       'GET /api/current-user/source-servers/:serverId/current-user',
       'POST /api/current-user/source-servers/:serverId/documents/:docId/sync-tokens',
       'POST /api/current-user/source-servers/:serverId/account-links',
+      'POST /api/current-user/source-links',
       'POST /api/documents',
       'POST /api/documents/:docId/access',
       'POST /api/documents/:docId/sync-tokens',
