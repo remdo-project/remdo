@@ -10,10 +10,12 @@
 // checker did by blanking fences is free and correct here. Link destinations are
 // skipped too so a URL is never mistaken for prose.
 
-import { basename, isDocsFile } from './docs-scope.mjs';
+import { docsPath, isDocsFile } from './docs-scope.mjs';
 
 const TEMPORAL = /\bfor now\b|\bcurrently\b|\bat the moment\b|\bnot yet\b|\bwill soon\b|\(early draft\)/i;
-const EXEMPT = new Set(['todo.md', 'documentation.md']);
+// Exact repo-relative paths, not basenames: only these two docs are the status
+// ledger / the doc that quotes the banned tokens as rules.
+const EXEMPT = new Set(['docs/todo.md', 'docs/documentation.md']);
 
 // Descendant token types whose text is a link/image destination, not prose.
 const DESTINATION = new Set(['resourceDestination', 'definitionDestination']);
@@ -46,7 +48,7 @@ export default {
   tags: ['remdo'],
   parser: 'micromark',
   function: (params, onError) => {
-    if (!isDocsFile(params.name) || EXEMPT.has(basename(params.name))) {
+    if (!isDocsFile(params.name) || EXEMPT.has(docsPath(params.name))) {
       return;
     }
     const prose = [];

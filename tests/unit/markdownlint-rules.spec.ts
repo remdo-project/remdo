@@ -1,16 +1,21 @@
-/* eslint-disable node/no-process-env */
 // The two RemDo custom markdownlint rules, exercised through markdownlint's own
 // lint API with fixture strings (happy / violation / exemption for each), plus
-// one integration case running the real `pnpm run lint:md` and expecting green.
-// The rules ride the micromark token stream, so code spans and fences are
-// excluded for free — the fixtures assert that rather than re-testing parsing.
+// two integration cases running the real cli2 over a *scratch fixture repo*
+// wired with the production config + rules (a green tree, and a red tree that
+// trips all three rules). The rules ride the micromark token stream, so code
+// spans and fences are excluded for free — the fixtures assert that rather than
+// re-testing parsing.
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import os from 'node:os';
+import path from 'node:path';
 import process from 'node:process';
 // Resolvable re-export of markdownlint's promise API (markdownlint itself is a
 // transitive dep under markdownlint-cli2, which is how production loads these
 // rules).
 import { lint } from 'markdownlint-cli2/markdownlint/promise';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import referencesShape from '../../tools/markdownlint-rules/references-shape.mjs';
 import temporalStatus from '../../tools/markdownlint-rules/temporal-status.mjs';
 
@@ -53,6 +58,15 @@ describe('remdo-temporal-status', () => {
   it('applies to docs/ only — skill files are exempt', async () => {
     expect(await temporal('.claude/skills/s/SKILL.md', 'currently supported\n')).toEqual([]);
   });
+
+  it('scopes by an anchored docs/ prefix — a nested /docs/ segment stays exempt', async () => {
+    // Only the repo's top-level docs/ tree is in scope; src/docs/x.md is not.
+    expect(await temporal('src/docs/x.md', 'currently supported\n')).toEqual([]);
+  });
+
+  it('exempts by exact repo-relative path, not basename — a nested todo.md is in scope', async () => {
+    expect(await temporal('docs/sub/todo.md', 'for now this lives here\n')).toEqual([1]);
+  });
 });
 
 describe('remdo-references-shape', () => {
@@ -70,6 +84,17 @@ describe('remdo-references-shape', () => {
     expect(await references('docs/a.md', '## References\n\n[def]: b.md\n')).toEqual([3]);
   });
 
+  it('passes a reference-style external citation (empty-destination link) while its definition is checked separately', async () => {
+    // `[MDN][mdn]` carries no inline destination; only the `[mdn]: url`
+    // definition is the external target — the link itself must not be flagged.
+    const external = '## References\n\n- [MDN][mdn]\n\n[mdn]: https://developer.mozilla.org\n';
+    expect(await references('docs/a.md', external)).toEqual([]);
+    // A reference-style link whose definition is internal: the link is skipped
+    // (empty destination), but the definition still fails on line 5.
+    const internal = '## References\n\n- [note][n]\n\n[n]: b.md\n';
+    expect(await references('docs/a.md', internal)).toEqual([5]);
+  });
+
   it('keeps a subsection inside the section (only the next level-2 heading closes it)', async () => {
     expect(await references('docs/a.md', '## References\n\n### Sub\n\n- [i](b.md)\n')).toEqual([5]);
     const closed = '## References\n\n- [e](https://x.y)\n\n## Other\n\n- [i](b.md)\n';
@@ -79,17 +104,74 @@ describe('remdo-references-shape', () => {
   it('applies to docs/ only — skill files are exempt', async () => {
     expect(await references('.claude/skills/s/SKILL.md', '## References\n\n- [i](b.md)\n')).toEqual([]);
   });
+
+  it('scopes by an anchored docs/ prefix — a nested /docs/ segment stays exempt', async () => {
+    expect(await references('src/docs/x.md', '## References\n\n- [i](b.md)\n')).toEqual([]);
+  });
 });
 
-describe('pnpm run lint:md', () => {
-  // Spawns the real linter over the whole corpus, so it is far slower than the
-  // in-process rule cases; give it room beyond vitest's 5s default.
-  it('is green on the current corpus', () => {
-    const result = spawnSync('pnpm', ['run', 'lint:md'], {
-      cwd: process.cwd(),
-      encoding: 'utf8',
-      env: { ...process.env, TEST_TIMEOUT: '120' },
+// Integration: run the *real* cli2 (production config + custom rules) over a
+// self-contained scratch repo, so the case is decoupled from the live working
+// tree — an untracked draft in the actual repo can no longer flip it red. cli2
+// resolves named rule deps (markdownlint-rule-relative-links) from its own
+// package location, and the two `.mjs` rules resolve relative to the copied
+// config, so a bare scratch dir with no node_modules is enough.
+const require = createRequire(import.meta.url);
+// The cli2 binary entry sits next to its resolved main module.
+const cli2Bin = path.join(path.dirname(require.resolve('markdownlint-cli2')), 'markdownlint-cli2-bin.mjs');
+const repoRoot = process.cwd();
+const rulesDir = path.join(repoRoot, 'tools/markdownlint-rules');
+const configFile = path.join(repoRoot, '.markdownlint-cli2.jsonc');
+
+const scratchRepos: string[] = [];
+afterEach(() => {
+  while (scratchRepos.length > 0) {
+    fs.rmSync(scratchRepos.pop()!, { recursive: true, force: true });
+  }
+});
+
+// Build a scratch git repo carrying the production cli2 config + custom rules
+// and the given docs fixtures, then return the cli2 run over it.
+function lintScratch(docs: Record<string, string>) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mdlint-scratch-'));
+  scratchRepos.push(dir);
+  fs.copyFileSync(configFile, path.join(dir, '.markdownlint-cli2.jsonc'));
+  const destRules = path.join(dir, 'tools/markdownlint-rules');
+  fs.mkdirSync(destRules, { recursive: true });
+  for (const file of fs.readdirSync(rulesDir)) {
+    if (file.endsWith('.mjs')) {
+      fs.copyFileSync(path.join(rulesDir, file), path.join(destRules, file));
+    }
+  }
+  for (const [rel, content] of Object.entries(docs)) {
+    const abs = path.join(dir, rel);
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, content);
+  }
+  // git init so cli2's `gitignore: true` selection behaves as in production.
+  spawnSync('git', ['init', '--quiet'], { cwd: dir });
+  return spawnSync('node', [cli2Bin], { cwd: dir, encoding: 'utf8' });
+}
+
+describe('cli2 integration over a scratch fixture repo', () => {
+  it('is green on a clean docs fixture', () => {
+    const result = lintScratch({
+      'docs/x.md': '# X\n\nA timeless sentence with an [inline](https://x.y) link.\n\n## References\n\n- [ext](https://x.y)\n',
     });
     expect(result.status, result.stdout + result.stderr).toBe(0);
-  }, 60_000);
+  }, 30_000);
+
+  it('is red and names all three rules on a fixture tripping each', () => {
+    // One file trips: a broken relative link (relative-links), a "currently"
+    // temporal word (remdo-temporal-status), and an internal link inside a
+    // References section (remdo-references-shape).
+    const result = lintScratch({
+      'docs/x.md': '# X\n\nThis is currently broken.\n\nSee [missing](./nope.md) for details.\n\n## References\n\n- [internal](./y.md)\n',
+    });
+    expect(result.status).not.toBe(0);
+    const output = result.stdout + result.stderr;
+    expect(output).toContain('relative-links');
+    expect(output).toContain('remdo-temporal-status');
+    expect(output).toContain('remdo-references-shape');
+  }, 30_000);
 });

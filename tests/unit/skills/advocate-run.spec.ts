@@ -84,6 +84,24 @@ describe('tools/skills/advocate-run.sh', () => {
     expect(result.stderr).toContain('after one retry');
   });
 
+  it('splices a scope containing & literally (no gsub replacement semantics)', () => {
+    const out = tempOut();
+    const stub = stubDir('cat');
+    // `&` is awk gsub's "matched text" metacharacter; a literal splice must keep
+    // it verbatim rather than expanding it to the placeholder text.
+    const result = run(['docs/documentation.md', 'files A & B', out], stub);
+    expect(result.status).toBe(0);
+    const captured = fs.readFileSync(out, 'utf8');
+    expect(captured).toContain('files A & B');
+    expect(captured).not.toContain('{SCOPE}');
+  });
+
+  it('refuses a fourth argument', () => {
+    const result = run(['docs/documentation.md', 'scope', tempOut(), 'extra'], stubDir('cat'));
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('expected exactly 3 arguments');
+  });
+
   it('refuses a missing rules doc', () => {
     const result = run([], stubDir('cat'));
     expect(result.status).not.toBe(0);

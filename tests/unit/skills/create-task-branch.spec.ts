@@ -6,6 +6,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   cleanupTempDirs,
+  commitAll,
   git,
   makeScratchWithOrigin,
   runScript,
@@ -78,6 +79,21 @@ describe('tools/skills/create-task-branch.sh', () => {
     expect(result.stderr).toContain('staged edits');
     // Refused before switching — still on main.
     expect(git(work, 'rev-parse', '--abbrev-ref', 'HEAD').stdout.trim()).toBe('main');
+  });
+
+  it('refuses when --merge leaves conflicts folding the spec onto the base', () => {
+    // `git switch --merge` exits 0 even when the three-way merge of the
+    // uncommitted edit onto the new base conflicts; the post-switch unmerged
+    // check must catch it. Build a base where a.md differs from HEAD, then an
+    // uncommitted edit to the same line so the fold conflicts.
+    const { work } = makeScratchWithOrigin({ 'a.md': 'line1\nline2\nline3\n' });
+    const base = pinnedHead(work);
+    writeFile(work, 'a.md', 'line1\nCHANGED-BY-HEAD\nline3\n');
+    commitAll(work, 'advance a.md');
+    writeFile(work, 'a.md', 'line1\nUNCOMMITTED-EDIT\nline3\n'); // conflicts on fold
+    const result = run(work, ['feat/x', base]);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('left conflicts');
   });
 
   it('fails loud outside a git repository', () => {

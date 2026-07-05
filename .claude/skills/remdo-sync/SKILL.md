@@ -40,6 +40,11 @@ printing one `STATE=` line. Act on it:
   to merge, e.g. a prior manual merge). Finish here.
 - **`STATE=merge-needed`** — proceed to the merge below.
 
+The probe does not pre-check for conflicts (the earlier read-only conflict
+pre-probe was deliberately dropped): conflicts surface at merge time and are
+handled by the resolve/callout rules in step 1 below, so a separate dry-run only
+duplicated that judgment.
+
 Then:
 
 1. **Merge** (and resolve, if conflicts). `git merge origin/main`. Resolve only

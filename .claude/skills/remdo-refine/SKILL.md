@@ -89,17 +89,29 @@ working-tree changes): a rung reports, and the coordinating session triages,
 applies what is approved, and owns the loop. Keeping finding and applying apart
 is what makes triage a real gate — a rung that edited the tree would pre-empt it.
 
+**Exception — the docs-align rung edits.** Rung 2 (`remdo-docs-align`) is the one
+editing rung: by its own contract it applies edits and, on a committed-range
+scope, commits per stage on the current branch (see its **Permissions**). Its
+*applied dispositions* are therefore triaged **post-hoc** — the coordinating
+session reviews what it changed rather than gating each edit beforehand — and its
+**ESCALATE** rows are treated like any other rung's findings. Invoke it in line
+with its Permissions (committed-range = self-committing on the current branch;
+working-tree = edits left uncommitted for the user).
+
 Every rung must review with **fresh eyes** — the coordinating session's memory
 of implementing and reviewing the diff would bias it toward parts it thinks it
 cleaned. The simplify rung isolates itself (`remdo-simplify` declares a context
 fork; on a runtime without fork support, wrap it in a fresh subagent); run the
-internal-review rung the same way when needed; the external rung (codex, a
-separate process) gets the fresh read for free.
+internal-review rung the same way — a fresh context is mandatory, not optional;
+the external rung (codex, a separate process) gets the fresh read for free.
 
 1. **Simplify** — invoke the **`remdo-simplify`** skill:
    - **Objective:** find where the diff's end state could be shorter or simpler.
-   - **Scope passed:** the resolved `SCOPE`/`BASE` — nothing else (no suspected
-     fixes, no implementation context, which would defeat the fresh read).
+   - **Scope passed:** a **literal resolver argument** the rung re-resolves for
+     itself — `<base-sha>..HEAD` for a committed range or `working-tree` for the
+     uncommitted scope, never a bare SHA (which the rung cannot tell from a ref
+     and would mis-resolve). Nothing else (no suspected fixes, no implementation
+     context, which would defeat the fresh read).
    - **Report back:** its finding list (code/test lenses and the pass-in-passing
      doc-invariant check are defined there, not here).
    - **Triage:** treat each finding under the loop's triage rules below.

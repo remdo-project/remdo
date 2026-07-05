@@ -86,6 +86,34 @@ describe('tools/skills/resolve-scope.sh', () => {
     expect(result.stderr).toContain('merge-base');
   });
 
+  it('refuses an explicit range whose tip is not HEAD', () => {
+    // The review loop walks base..HEAD, so a range ending at HEAD~1 would review
+    // a different tip than the loop; refuse it.
+    const result = run(taskBranch(), ['HEAD~1..HEAD~1']);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('not HEAD');
+  });
+
+  it('refuses an explicit range whose base does not resolve', () => {
+    const result = run(taskBranch(), ['deadbeef..HEAD']);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('does not resolve');
+  });
+
+  it('refuses an explicit range whose tip does not resolve', () => {
+    const result = run(taskBranch(), ['HEAD~1..deadbeef']);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('does not resolve');
+  });
+
+  it('refuses the no-arg default on a detached HEAD', () => {
+    const work = taskBranch();
+    git(work, 'checkout', '--quiet', '--detach', 'HEAD');
+    const result = run(work);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('detached HEAD');
+  });
+
   it('refuses an unrecognized scope argument', () => {
     const result = run(taskBranch(), ['nonsense']);
     expect(result.status).not.toBe(0);

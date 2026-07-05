@@ -2,8 +2,11 @@
 # Resolve explicit range / task-branch default / working-tree to an immutable
 # base SHA + file list; refuse mixed scopes.
 # Usage: resolve-scope.sh [<range> | working-tree]
-#   no arg        infer: task-branch default origin/main...HEAD (committed range)
-#   <range>       an explicit committed range: A..B or A...B (A defaults empty=HEAD)
+#   no arg        infer: task-branch default origin/main...HEAD (committed range);
+#                 refuses a detached HEAD (no branch identity for the default)
+#   <range>       an explicit committed range: A..B or A...B. Both endpoints must
+#                 resolve to a commit and the tip B must be HEAD (the review loop
+#                 walks base..HEAD); empty endpoints default to HEAD.
 #   working-tree  the uncommitted changes (staged + unstaged + untracked)
 #
 # Classification and refusal only — no resolution or review judgment. Prints, to
@@ -81,6 +84,11 @@ case "$scope_arg" in
     # branch where that default is meaningless (remdo-refine case 3): main/dev,
     # or no merge-base with origin/main at all.
     branch=$(git rev-parse --abbrev-ref HEAD)
+    # A detached HEAD has no branch identity, so the origin/main...HEAD default
+    # ("this branch's own work") is meaningless — refuse and demand a range.
+    if [ "$branch" = HEAD ]; then
+      fail "detached HEAD — no branch for the origin/main...HEAD default; pass an explicit range"
+    fi
     case "$branch" in
       main | dev)
         fail "on integration branch '$branch' — refusing the origin/main...HEAD default; pass an explicit range"
@@ -93,18 +101,39 @@ case "$scope_arg" in
     resolve_committed_range "$merge_base"
     ;;
   *..*)
-    # Explicit range A..B or A...B. Only the base (A) matters; HEAD is the tip
-    # the caller reviews. Extract A, treating three-dot as a merge-base request.
+    # Explicit range A..B or A...B. The caller's review loop always runs
+    # base..HEAD, so B must resolve to HEAD — a range ending anywhere else would
+    # silently review a different tip than the loop walks. Validate BOTH
+    # endpoints resolve, refuse B != HEAD, then extract A (three-dot as a
+    # merge-base request).
     case "$scope_arg" in
       *...*)
         left=${scope_arg%%...*}
         right=${scope_arg##*...}
-        base_ref=$(git merge-base "${left:-HEAD}" "${right:-HEAD}" 2>/dev/null) \
+        ;;
+      *)
+        left=${scope_arg%%..*}
+        right=${scope_arg##*..}
+        ;;
+    esac
+    left=${left:-HEAD}
+    right=${right:-HEAD}
+
+    left_sha=$(git rev-parse --verify --quiet "$left^{commit}") \
+      || fail "range base '$left' does not resolve to a commit"
+    right_sha=$(git rev-parse --verify --quiet "$right^{commit}") \
+      || fail "range tip '$right' does not resolve to a commit"
+    head_sha=$(git rev-parse --verify HEAD)
+    [ "$right_sha" = "$head_sha" ] \
+      || fail "range tip '$right' is not HEAD — the review loop walks base..HEAD, so the tip must be HEAD"
+
+    case "$scope_arg" in
+      *...*)
+        base_ref=$(git merge-base "$left" "$right" 2>/dev/null) \
           || fail "cannot compute merge-base for range '$scope_arg'"
         ;;
       *)
-        base_ref=${scope_arg%%..*}
-        base_ref=${base_ref:-HEAD}
+        base_ref=$left
         ;;
     esac
     resolve_committed_range "$base_ref"

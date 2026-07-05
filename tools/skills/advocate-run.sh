@@ -13,8 +13,8 @@
 # truncation) to <output-file>. Retries once when the first run fails or writes
 # nothing (codex startup timeouts / transient failures). The model's judgment
 # stays opaque; only the invocation is scripted.
-# Fails loud (non-zero + stderr) on missing args, a missing template, or a
-# second empty/failed run.
+# Fails loud (non-zero + stderr) on missing or extra args, a missing template,
+# or a second empty/failed run.
 set -eu
 
 fail() {
@@ -28,6 +28,10 @@ out=${3-}
 [ -n "$rules_doc" ] || fail "missing rules doc (usage: advocate-run.sh <rules-doc> <scope> <output-file>)"
 [ -n "$scope" ] || fail "missing scope (usage: advocate-run.sh <rules-doc> <scope> <output-file>)"
 [ -n "$out" ] || fail "missing output file (usage: advocate-run.sh <rules-doc> <scope> <output-file>)"
+# Refuse extra args: a fourth argument means the caller mis-shaped the call
+# (e.g. an unquoted multi-word scope split into words), and silently dropping it
+# would run the advocate over a truncated scope.
+[ "$#" -eq 3 ] || fail "expected exactly 3 arguments, got $# (usage: advocate-run.sh <rules-doc> <scope> <output-file>)"
 
 # Repo root: codex's trust check needs a git working dir, and the template path
 # is repo-relative. Derive it from this script's location, not $PWD.
@@ -37,13 +41,26 @@ template="$repo_root/.claude/skills/remdo-docs-align/references/advocate.md"
 
 # Build the prompt: take the template body after the '---' separator (the header
 # above it is authoring notes, not part of the prompt), then substitute the two
-# placeholders literally. The braces in the patterns are escaped so awk reads
-# them as literal text; the values are a skill-supplied rules-doc path and scope
-# descriptor, so no substitution metacharacters arise in practice.
+# placeholders literally. gsub's replacement string gives `&` a "matched text"
+# meaning, so a value containing `&` (e.g. a scope with "A & B") would corrupt —
+# splice with index()/substr() instead, treating both the search and the
+# replacement as plain text.
 prompt=$(
   awk 'seen { print } /^---[[:space:]]*$/ { seen = 1 }' "$template" \
     | awk -v r="$rules_doc" -v s="$scope" '
-        { gsub(/\{RULES_DOC\}/, r); gsub(/\{SCOPE\}/, s); print }
+        function splice(line, needle, value,   out, pos) {
+          out = ""
+          while ((pos = index(line, needle)) > 0) {
+            out = out substr(line, 1, pos - 1) value
+            line = substr(line, pos + length(needle))
+          }
+          return out line
+        }
+        {
+          $0 = splice($0, "{RULES_DOC}", r)
+          $0 = splice($0, "{SCOPE}", s)
+          print
+        }
       '
 )
 [ -n "$prompt" ] || fail "empty prompt after substitution — template may be malformed"

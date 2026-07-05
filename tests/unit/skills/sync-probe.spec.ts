@@ -1,5 +1,5 @@
 // tools/skills/sync-probe.sh: fetch and classify up-to-date / merge-needed /
-// dirty-tree (remdo-sync flow steps 1-2).
+// dirty-tree (the probe preceding remdo-sync's merge).
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';

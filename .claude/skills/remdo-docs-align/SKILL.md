@@ -67,5 +67,8 @@ Invoking this skill on a **committed-range scope** is an explicitly declared
 autonomous scope (per AGENTS.md): authorization to commit each stage's applied
 edits **on the current branch**, keeping the resolved range honest — never onto
 `main` (if invoked there, warn and stop rather than self-committing), and never
-push. In **working-tree scope** it commits nothing — the applied edits stay in
-the tree and the user owns the eventual commit.
+push. An **explicit file-set scope** (e.g. a whole-corpus realignment) is treated
+the same as a committed-range: commit each stage's edits on the current branch,
+under the same never-`main`/never-push carve-outs. In **working-tree scope** it
+commits nothing — the applied edits stay in the tree and the user owns the
+eventual commit.

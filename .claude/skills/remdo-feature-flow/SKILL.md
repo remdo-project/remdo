@@ -59,11 +59,18 @@ outcome:
   point for this run and proceed. Phase 3 forks from *that pinned SHA*, not a
   re-fetched `origin/main`, so `origin/main` advancing mid-flow can't split the
   design base from the fork base.
-- **Non-zero exit** (ahead, diverged, or dirty tree) — **stop.** The branch holds
-  committed work not yet in `origin/main` (or has diverged), which the fork would
-  not carry — a spec designed against it would vanish from the task branch. Ask
-  the user to land it in `origin/main` first (merge the open `dev`→`main` PR) or
-  to design from a checkout already at `origin/main`.
+- **Non-zero exit** — **stop**, and act on *why* (read the script's stderr for
+  the reason):
+  - **Dirty tree** — uncommitted local edits. Resolve them by your judgment
+    (commit the ones that belong to this flow, restore or discard the rest), then
+    re-run. This is a local-state cleanup, not an upstream one.
+  - **Ahead / diverged** — the branch holds committed work not yet in
+    `origin/main` (or has diverged), which the fork would not carry — a spec
+    designed against it would vanish from the task branch. Ask the user to land
+    it in `origin/main` first (merge the open `dev`→`main` PR) or to design from a
+    checkout already at `origin/main`.
+  - **Any other non-zero exit** — read the script's stderr and act on what it
+    reports rather than assuming one of the above.
 
 ## Phase 1 — Draft (user)
 

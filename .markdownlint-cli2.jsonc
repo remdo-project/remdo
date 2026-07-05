@@ -9,10 +9,21 @@
   "gitignore": true,
   // globby's `gitignore` honours .gitignore files but not `.git/` itself, and it
   // follows symlinked directories — neither of which the old `git ls-files`
-  // selection did. Exclude `.git/` (repo internals, e.g. ref-log files that end
-  // in `.md`) explicitly; cli2 de-duplicates the tracked skill-mirror
-  // symlinks by resolved path on its own.
-  "ignores": [".git"],
+  // selection did, and cli2 does NOT dedup the results by resolved path
+  // (empirically the mirrors were linted 2-3x, 42 file(s) vs git's 39). So
+  // exclude, to match git's no-symlink-traversal, the three skill-mirror symlink
+  // dirs (each re-exposes a SKILL.md already linted at its real path) and `.git/`
+  // (repo internals, e.g. ref-log files ending in `.md`). node_modules is
+  // excluded too (vendored `.md`, never ours). Note `gitignore: true` also drops
+  // tracked-but-gitignored files — a deliberate difference from `git ls-files`,
+  // acceptable because such files are not authored docs.
+  "ignores": [
+    ".git",
+    "node_modules",
+    ".claude/skills/remdo-simplify",
+    ".claude/skills/remdo-deps-refresh",
+    ".codex/skills/remdo-deps-refresh"
+  ],
   // Link/anchor validation and the two RemDo prose invariants ride
   // markdownlint's own parser (no hand-rolled fence/slug scanning):
   // - relative-links: relative-link existence + `#fragment` heading match

@@ -2,7 +2,7 @@
 # Fetch; report up-to-date / merge-needed / dirty-tree.
 # Usage: sync-probe.sh
 #   Run on the branch to be synced. Fetches, then classifies whether
-#   origin/main still needs merging (remdo-sync flow steps 1-2).
+#   origin/main still needs merging (the probe preceding remdo-sync's merge).
 #
 # Classification only — it never merges or resolves conflicts. Prints, to
 # stdout, one key=value line:

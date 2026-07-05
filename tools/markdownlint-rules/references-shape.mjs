@@ -95,7 +95,16 @@ export default {
       if (link.startLine <= start || link.startLine >= end) {
         continue;
       }
-      if (!isExternal(destinationText(link))) {
+      const destination = destinationText(link);
+      // Reference-style links/images (`[MDN][mdn]`, `![x][y]`) carry no inline
+      // destination — their `[mdn]: url` definition is a separate `definition`
+      // token checked on its own. Skip the empty-destination reference so it
+      // isn't mis-flagged as an internal (non-external) link; the definition
+      // still gets its own external check.
+      if (destination === '') {
+        continue;
+      }
+      if (!isExternal(destination)) {
         onError({
           lineNumber: link.startLine,
           detail: 'internal link inside References (must be inline in the body)',
