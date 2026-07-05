@@ -44,7 +44,8 @@ semantics are defined in [Selection](./selection.md); when a merged note has a
 
 ## Zoom boundary behavior (caret mode)
 
-When zoom is active, caret-mode deletion keeps merges inside the zoom boundary:
+When [zoom](./zoom.md) is active, caret-mode deletion keeps merges inside the
+zoom boundary:
 
 1. `Backspace` at the start of the zoom root is a no-op.
 2. Forward `Delete` at the end of the zoom root is a no-op when the next note

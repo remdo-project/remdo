@@ -19,7 +19,7 @@ entry, actions, and behavior.
 1. Menu actions have three scopes:
    - **Note:** acts on the current note.
    - **Children:** acts on the current note's child subtree.
-   - **View:** acts on the current zoom boundary.
+   - **View:** acts on the current [zoom](./zoom.md) boundary.
 2. Note actions:
    - Toggle checked recursively per [List Types](./list-types.md), shortcut
      `Cmd/Ctrl+Enter`.

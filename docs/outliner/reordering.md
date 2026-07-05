@@ -29,8 +29,8 @@ Each keypress performs exactly one successful step from this fallback cascade.
 
 ## Zoom boundary
 
-When zoom is active, each fallback step is valid only if the resulting
-placement stays inside the zoom boundary:
+When [zoom](./zoom.md) is active, each fallback step is valid only if the
+resulting placement stays inside the zoom boundary:
 
 1. Steps that would move the subtree outside the zoom boundary are skipped.
 2. The command continues through the fallback cascade using only in-boundary

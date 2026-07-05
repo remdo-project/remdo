@@ -79,10 +79,8 @@ capability a kind does or does not have, not a separate concept. The set of kind
 and each kind's capabilities are defined where the kinds live, not enumerated
 here.
 
-A note's [body](./body.md) is one such kind: it is a note owned by its editor
-note, but a restricted one — it has no id, has no children, and is never a
-structural-selection head on its own (it can be selected only inline, or
-structurally as part of its owning note).
+A note's [body](./body.md) is one such kind: a restricted note owned by its
+editor note.
 
 ---
 

@@ -26,9 +26,8 @@ environment, not persisted as a root `noteId`.
 - **noteRef:** a globally unique reference composed from a document ID and a
   noteId.
 - **Addressable note:** any non-root note that appears as a content list item in
-  the outline.
-- **Document root:** the structural root for a document. It is a conceptual note
-  that is not directly selectable in the editor.
+  the outline (the document root note, owned by
+  [Concepts](./concepts.md#definitions), is not addressable).
 
 ## Invariants
 

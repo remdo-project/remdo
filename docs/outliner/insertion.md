@@ -20,9 +20,9 @@ collapsed parent behavior is called out explicitly (see [Folding](./folding.md))
 
 ## Zoom boundary behavior (caret mode)
 
-When zoom is active, default insertion still applies except where it would place
-the new note outside the zoom boundary. In those cases, insertion stays inside
-the zoom root subtree:
+When [zoom](./zoom.md) is active, default insertion still applies except where it
+would place the new note outside the zoom boundary. In those cases, insertion
+stays inside the zoom root subtree:
 
 1. **Caret in zoom root at start** – insert a new first child.
 2. **Caret in zoom root in middle** – split the zoom root so text before the

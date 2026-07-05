@@ -96,8 +96,7 @@ truncated to 20 characters for display when needed.
 
 ## Routing
 
-1. For non-root zoom, the canonical URL is `/n/<docId>_<noteId>` (a single
-   zoom target noteId, not a full path).
-2. For document-root zoom, the canonical URL is `/n/<docId>`.
-3. Loading `/n/<docId>_<noteId>` activates zoom if the note exists; otherwise
-   the document opens at the document root.
+The canonical URL forms (`/n/<noteRef>` and the document root's `/n/<documentId>`)
+are owned by [Note IDs](./note-ids.md#global-references); a zoom target is the
+`noteId` half of that `noteRef`. Loading a non-root zoom URL activates zoom if
+the note exists; otherwise the document opens at the document root.
