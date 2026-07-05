@@ -5,7 +5,9 @@
   "playwright": true,
   "ignoreDependencies": [
     // Invoked as a CLI binary from package scripts and tooling (`pnpm exec playwright ...`).
-    "playwright"
+    "playwright",
+    // Invoked from tools/lint-md.sh and tools/lint-md-file.sh, which knip does not parse.
+    "markdownlint-cli2"
   ],
   "ignoreUnresolved": [
     // Shell scripts invoked at runtime via spawnSync/execFileSync from specs, not module imports.
