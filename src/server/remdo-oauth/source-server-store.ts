@@ -63,37 +63,11 @@ export function readSourceServersSync(
   return rows.map(rowToStored);
 }
 
-// Adds a source from its URL (deriving id/origin; label is derived on read).
-// Rejects a URL that is not a bare origin or that duplicates an existing source.
-export async function addSourceServer(
-  database: SqliteServerDatabaseClient,
-  url: string,
-): Promise<StoredSourceServer> {
-  const derived = deriveSourceServer(url);
-  const existing = await database.db
-    .selectFrom('source_servers')
-    .select('base_url')
-    .where('base_url', '=', derived.baseUrl)
-    .executeTakeFirst();
-  if (existing) {
-    throw new Error(`Source server ${derived.baseUrl} is already configured.`);
-  }
-  await database.db
-    .insertInto('source_servers')
-    .values({
-      base_url: derived.baseUrl,
-      client_id: null,
-      created_at: Date.now(),
-    })
-    .execute();
-  return { ...derived, credentials: null };
-}
-
-// Race-safe get-or-create for the lazy link path: inserts the row if absent and
+// Race-safe get-or-create for the lazy link path (the sole way a source row is
+// created): derives + validates the origin, inserts the row if absent, and
 // re-reads it, so two concurrent first-links to the same new source URL both
-// succeed instead of one hitting the base_url primary-key collision. Unlike
-// addSourceServer (which throws on a duplicate for its direct callers), this
-// tolerates a concurrent insert.
+// succeed instead of one hitting the base_url primary-key collision. Rejects a
+// URL that is not a bare origin (via deriveSourceServer).
 export async function ensureSourceServerRow(
   database: SqliteServerDatabaseClient,
   url: string,

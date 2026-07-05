@@ -6,11 +6,10 @@ import { createServerDatabaseClient } from '#server/db/client';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { deriveSourceId } from '#server/remdo-oauth/config';
 import {
-  addSourceServer,
+  claimSourceServerPublicClient,
   ensureSourceServerRow,
   listSourceServers,
   readSourceServersSync,
-  claimSourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
 
 const SOURCE_ID = deriveSourceId('https://source.example');
@@ -33,8 +32,8 @@ describe('source server store', () => {
     expect(await listSourceServers(database)).toEqual([]);
   });
 
-  it('adds a source derived from its URL, with no credentials yet', async () => {
-    const added = await addSourceServer(database, 'https://source.example');
+  it('creates a source row derived from its URL, with no credentials yet', async () => {
+    const added = await ensureSourceServerRow(database, 'https://source.example');
     expect(added).toEqual({
       id: SOURCE_ID,
       label: 'source.example',
@@ -44,15 +43,7 @@ describe('source server store', () => {
     expect(await listSourceServers(database)).toEqual([added]);
   });
 
-  it('rejects a duplicate source', async () => {
-    await addSourceServer(database, 'https://source.example');
-    await expect(addSourceServer(database, 'https://source.example'))
-      .rejects.toThrow('already configured');
-  });
-
-  it('ensureSourceServerRow is idempotent (no duplicate-row throw on a repeat call)', async () => {
-    // The race-safe get-or-create for the lazy link path: unlike addSourceServer,
-    // a second call for the same origin returns the row instead of throwing.
+  it('is idempotent (a repeat call returns the row, no duplicate-row throw)', async () => {
     const first = await ensureSourceServerRow(database, 'https://source.example');
     const second = await ensureSourceServerRow(database, 'https://source.example');
     expect(second.id).toBe(first.id);
@@ -60,12 +51,12 @@ describe('source server store', () => {
   });
 
   it('rejects a non-origin URL', async () => {
-    await expect(addSourceServer(database, 'https://source.example/path'))
+    await expect(ensureSourceServerRow(database, 'https://source.example/path'))
       .rejects.toThrow('bare http(s) origin');
   });
 
   it('records registered credentials so the source becomes usable', async () => {
-    await addSourceServer(database, 'https://source.example');
+    await ensureSourceServerRow(database, 'https://source.example');
     await claimSourceServerPublicClient(database, SOURCE_ID, 'cid');
 
     const [stored] = await listSourceServers(database);
@@ -77,7 +68,7 @@ describe('source server store', () => {
   });
 
   it('claims a public client first-writer-wins (a later claim keeps the first id)', async () => {
-    await addSourceServer(database, 'https://source.example');
+    await ensureSourceServerRow(database, 'https://source.example');
     // First claim wins and is echoed back.
     expect(await claimSourceServerPublicClient(database, SOURCE_ID, 'first')).toBe('first');
     // A concurrent racer's later claim does NOT overwrite; both converge on 'first'.
@@ -87,7 +78,7 @@ describe('source server store', () => {
   });
 
   it('reads sources synchronously for auth construction', async () => {
-    await addSourceServer(database, 'https://source.example');
+    await ensureSourceServerRow(database, 'https://source.example');
     await claimSourceServerPublicClient(database, SOURCE_ID, 'cid');
 
     expect(readSourceServersSync(database)).toEqual([
@@ -101,7 +92,7 @@ describe('source server store', () => {
   });
 
   it('treats a client_id with no secret as a public-client credential', async () => {
-    await addSourceServer(database, 'https://source.example');
+    await ensureSourceServerRow(database, 'https://source.example');
     await claimSourceServerPublicClient(database, SOURCE_ID, 'public-client-id');
 
     const [server] = await listSourceServers(database);

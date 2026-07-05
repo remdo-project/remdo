@@ -7,7 +7,7 @@ import { createServerDatabaseClient } from '#server/db/client';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { deriveSourceId } from '#server/remdo-oauth/config';
 import {
-  addSourceServer,
+  ensureSourceServerRow,
   claimSourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
 
@@ -52,7 +52,7 @@ describe('createSwappableServerAuth', () => {
     expect(swappable.auth.sourceServers).toEqual([]);
     expect(liveProviderIds(swappable)).toEqual([]);
 
-    await addSourceServer(database, 'https://source.example');
+    await ensureSourceServerRow(database, 'https://source.example');
     await claimSourceServerPublicClient(database, SOURCE_ID, 'cid');
     // Not visible until rebuild.
     expect(swappable.auth.sourceServers).toEqual([]);
@@ -72,7 +72,7 @@ describe('createSwappableServerAuth', () => {
   it('an added-but-unregistered source has no provider', async () => {
     // Adding a source inserts a credential-less row: no OAuth provider exists for
     // it (nothing to link against) until registration persists its credentials.
-    await addSourceServer(database, 'https://source.example');
+    await ensureSourceServerRow(database, 'https://source.example');
     const swappable = build();
     expect(swappable.auth.sourceServers).toHaveLength(1);
     expect(swappable.auth.sourceServers[0]?.credentials).toBeNull();
