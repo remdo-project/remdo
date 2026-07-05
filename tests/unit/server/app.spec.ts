@@ -223,9 +223,10 @@ describe('remdo api app', () => {
   });
 
   it('omits credential-less (unregistered) sources from the user source-server projection', async () => {
-    // An admin can add a source before completing register-home; that row has no
-    // credentials and no OAuth provider, so it must not appear in a user's
-    // linkable-source list — a Link on it would fail with no provider.
+    // A source row can exist before self-registration has cached a client_id
+    // (e.g. a prior attempt failed); that row has no credentials and no OAuth
+    // provider, so it must not appear in a user's linkable-source list — a Link
+    // on it would fail with no provider.
     const harness = createHarness({
       sourceServers: [
         TEST_SOURCE_SERVER,

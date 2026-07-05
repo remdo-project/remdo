@@ -3,9 +3,9 @@ import { deriveSourceId, deriveSourceLabel, deriveSourceServer, sourceOriginFrom
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { SourceServersTable } from '#server/db/schema';
 
-// A home's linkable source servers are admin-managed DB state. A row exists once
-// the admin adds a source; its client credentials are filled in once the home is
-// registered on that source (docs/access-model.md#home-to-source-client-registration).
+// A home's linkable source servers are a self-filling cache keyed by origin. A
+// row is created on first link to a URL; its client_id is filled in once
+// self-registration completes (docs/access-model.md#linking-a-source).
 
 export interface SourceClientCredentials {
   clientId: string;

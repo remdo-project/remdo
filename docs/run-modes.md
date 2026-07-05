@@ -122,9 +122,11 @@ per-mode facts.
   container), so start the source dev server advertising that origin —
   `HOST=0.0.0.0 AUTH_URL=http://<host-ip>:<PORT> pnpm run dev` (the `dev:docker`
   output prints the exact command). A plain `HOST=0.0.0.0 pnpm run dev` derives a
-  `localhost` `AUTH_URL` and Better Auth then rejects the host-IP requests. The
-  home is registered on the source through the home's `/admin` panel — not
-  preconfigured.
+  `localhost` `AUTH_URL` and Better Auth then rejects the host-IP requests. Link
+  the source from the Sharing page ("Link source", entering the source's URL) —
+  the home lazily self-registers a public OAuth client on first link (see
+  [docs/access-model.md](./access-model.md#linking-a-source)); nothing is
+  preconfigured or admin-managed.
   Current dev mode runs the web app with the RemDo API mounted in the Vite dev
   server, plus the Y-Sweet collaboration server. Server modes run the standalone
   API server with Better Auth plus a SQLite-backed document registry.
@@ -145,8 +147,8 @@ per-mode facts.
   document chooser.
   `pnpm run dev:users` provisions the stable users and prints their credentials
   on a target server (via `AUTH_URL`). It is SQL-only and used by the `dev:docker`
-  and Docker e2e flows to seed the source's users; the home's OAuth client is
-  registered at runtime through the `/admin` panel, not provisioned here.
+  and Docker e2e flows to seed the source's users; the source's public OAuth
+  client is self-registered lazily on first link, not provisioned here.
   Developers rarely run it directly.
   Browser clients use the RemDo API Y-Sweet document client token path plus
   `/d/*`; `/doc*` control routes are not routed through the gateway. Y-Sweet

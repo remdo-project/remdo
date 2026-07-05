@@ -123,12 +123,12 @@ bootstrap). Still to come:
 
 ## Source-linking follow-ups
 
-Admin-managed source linking is built: home admins add + register sources from
-the `/admin` panel (register-home ceremony → persisted credentials →
-swappable-auth activation); the admin-managed DB model replaced the
-`LINKABLE_REMDO_SERVERS_JSON` env config; home admin actions gate on the admin
-role; the source accepts registration only from an authenticated account while
-public (`ALLOW_SIGNUP`-backed). Two-server Docker E2E green.
+URL-first source linking is built: any signed-in user links a source by
+entering its URL (no admin gate, no curated source list); on first link the home
+lazily self-registers a public OAuth client (no secret, PKCE-authenticated) on
+the source and caches its `client_id`, triggering one swappable-auth rebuild so
+the source goes live without a restart. A source accepts self-registration only
+while public (`ALLOW_SIGNUP`-backed). Two-server Docker E2E green.
 
 Deferred to follow-up PRs:
 
@@ -173,22 +173,6 @@ deferring does not churn the gate's interface):
   user-scoped route that removes the account link, and — if a source ends up with
   no linked users — optionally drops the cached source client), restoring
   `removeSourceServer` + its coverage against a real caller at that point.
-- Orphaned source client on a rare local-persist failure: `POST
-  /source-servers/:id/claim` burns the source's one-time code before the local
-  `setSourceServerCredentials`; if that write fails (in-process sqlite error) the
-  code is gone and the source keeps an unused OAuth client. Recoverable today (row
-  stays Not registered → Re-register re-runs the ceremony), so low severity;
-  revisit only if orphaned-client cleanup on the source becomes a concern.
-- Phished `register-home` (SECURITY, open): the `handle`/`home` in the register-home
-  request body are attacker-controllable — a signed-in source user lured to
-  `/oauth/register-home?home=<evil>&handle=<attacker>&…` who clicks Authorize
-  registers a client with an attacker `redirect_uri` and gets a code bound to the
-  attacker's own handle, so the attacker claims the client secret. The code↔handle
-  binding only defends a leaked URL on a *legitimate* registration; it does not
-  cover an attacker-chosen handle. Needs a design decision (see
-  `.agent/plans/2026-07-03-register-home-hardening.md`): bind the release to
-  source-side state the attacker can't choose, and/or a closed-deployment home
-  allow-list, accepting a documented residual for the fully-public model.
 - Re-registering a source overwrites its stored client id/secret but leaves users'
   existing Better Auth account rows for that `providerId`, so `listLinkedRemdoServerIds`
   still shows them Linked while their refresh tokens (issued to the old client)

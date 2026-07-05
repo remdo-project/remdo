@@ -47,8 +47,9 @@ export function createServerRuntime({
   tokenManager = createYSweetDocumentTokenManager(),
 }: ServerRuntimeOptions = {}): ServerRuntime {
   const database = createServerDatabaseClient({ dbPath });
-  // Swappable so a source registered this session becomes a live OAuth provider
-  // without a restart (register-home calls rebuildAuth after persisting creds).
+  // Swappable so a source self-registered this session becomes a live OAuth
+  // provider without a restart (ensureSourceClient calls rebuildAuth after
+  // persisting the cached client_id).
   const swappableAuth = createSwappableServerAuth({
     allowSignup,
     baseURL,

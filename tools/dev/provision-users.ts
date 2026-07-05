@@ -8,9 +8,9 @@ import {
 } from '../lib/stable-auth-users';
 
 // Provisions the stable dev users (Alice/Bob) on a server. Source-server OAuth
-// clients are no longer created out-of-band: a home registers itself on a source
-// through the browser (docs/access-model.md#registering-a-home-on-a-source), so
-// this command only seeds the users the linking flows sign in as.
+// clients are no longer created out-of-band: a home lazily self-registers a
+// public client on first link (docs/access-model.md#linking-a-source), so this
+// command only seeds the users the linking flows sign in as.
 async function main(): Promise<void> {
   if (process.argv.length > 2) {
     throw new Error('Usage: pnpm run dev:users');

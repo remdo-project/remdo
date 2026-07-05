@@ -42,8 +42,8 @@ echo "OAuth source: ${SOURCE_ORIGIN}"
 # source needs AUTH_URL set explicitly.
 echo "Start the source dev server with:"
 echo "  HOST=0.0.0.0 AUTH_URL=${SOURCE_ORIGIN} pnpm run dev"
-echo "Then add + register the source from the home admin panel at ${HOME_ORIGIN}/admin,"
-echo "and link a user account against it."
+echo "Then link the source from the home's Sharing page at ${HOME_ORIGIN}/sharing"
+echo "(enter ${SOURCE_ORIGIN} as the source URL) and sign in to link a user account."
 echo "Tunnel from a remote browser host: tools/remote/open-remdo-tunnel.sh <user>@<host>:${PORT_BASE}"
 
 cleanup_home_container

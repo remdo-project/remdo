@@ -63,10 +63,9 @@ the user.
   self-enrollment form. The client learns the current user's role from the
   `/api/current-user` bootstrap; this drives rendering only — authorization stays
   server-side.
-- The admin panel manages the home's **source servers** — add a source by URL,
-  register the home on it, see registered state, and remove a source (see
-  [Cross-Server Source Linking](#cross-server-source-linking)). These admin APIs
-  authorize from the caller's session + role.
+- Source servers are not admin-managed: any signed-in user links a source by URL
+  (see [Cross-Server Source Linking](#cross-server-source-linking)); the admin
+  panel has no source-server controls.
 - Self-enrollment is gated by `ADMIN_SECRET` (see
   [docs/config.md](./config.md#admin-bootstrap-and-enrollment)) and always
   **registers a new admin account**: presenting the secret with account details
@@ -153,54 +152,44 @@ sharing level, sharing still targets a local account on the document's server.
   documents keep the source server's canonical globally unique document IDs;
   source context controls routing and authorization, not document identity.
 
-### Registering a home on a source
+### Linking a source
 
-A home registers itself on a source and the source issues its OAuth credentials.
-This action spans two servers and needs a different access level on each:
+Linking is **URL-first and user-driven**: any signed-in user links a source by
+entering its URL on the Sharing page ("Link source"). There is no admin gate, no
+separate "add source" step, and no curated source list — the home does not
+maintain admin-managed source configuration, only a self-filling cache keyed by
+URL (below).
 
-- On the **home**, the actor is an **admin** (the "add a source" and "register"
-  controls live in the admin panel behind `/admin`, gated by the home's admin
-  role — see [Admin Role](#admin-role)). A home's linkable sources are
-  admin-managed runtime state, not configuration. Adding one derives a stable
-  internal id from the source's origin; a URL that is not a bare origin, or
-  duplicates an existing source, is rejected.
-- On the **source**, the actor only needs to be a signed-in **user** — any
-  ordinary source account, not a source admin. The same person usually plays both
-  roles (a home admin who also holds a normal account on the source), but the
-  source never requires admin rights of them.
+- On the **first** link to a new source URL, the home lazily self-registers a
+  **public** OAuth client on that source via a server-to-server call — no
+  browser ceremony, no credential handback. "Public" means
+  `token_endpoint_auth_method: "none"`: the source issues no client secret: PKCE
+  authenticates the token exchange instead. The returned `client_id` is cached in
+  the `source_servers` table, a self-filling cache keyed by the source's origin;
+  later links to the same source (by any user) reuse the cached client. Newly
+  registering a source triggers one in-process auth rebuild so it becomes a live
+  provider immediately, with no restart.
+- Phishing resistance is **structural**, enforced by the source: its OAuth
+  authorize and token endpoints require the `redirect_uri` to exactly match the
+  client's registered `redirect_uris`. A public, redirect-locked client grants no
+  document access on its own — only a source user authenticating and consenting
+  does. Registration and document access stay separate: self-registering a
+  client widens no user's access; each linking user still authenticates and
+  consents on the source for their own documents (an account-delegation model,
+  per the trust model above).
+- A source accepts registration only while it is acting as a **public** source
+  (open-signup): it enables unauthenticated dynamic client registration
+  (`allowUnauthenticatedClientRegistration`), gated on the same public/signup
+  setting, because the home's self-registration call carries no source session.
+  A private source refuses registration outright.
+- **Homes may be private / not internet-reachable.** No server ever fetches the
+  home: every server-to-server call goes home→source, and the OAuth redirect
+  travels through the user's own browser, which is local to the home. (This
+  topology is why Client ID Metadata Documents — which need the source to fetch
+  the home's metadata URL — do not fit and were not adopted.)
 
-The flow:
-
-- Registration is an OAuth 2.0 Dynamic Client Registration ceremony carried by
-  the operator's browser: the home redirects to the source's confirmation page,
-  where the signed-in source user authorizes it; the source binds the new client
-  to that user's source account and returns the credentials to the home, which
-  persists them and activates the source as a live provider without a restart.
-- The credentials never ride in the browser. The source stashes them under a
-  one-time code bound to the home-issued handle; only a **reference** (source id +
-  code) returns in the operator's URL. The home then claims the credentials
-  server-to-server, presenting the code plus the handle it holds **server-side**
-  (recovered by source id, never sent to the browser). So a code leaked from the
-  operator's address bar cannot release the client secret on its own.
-- A source accepts registration only while it is acting as a public source
-  (open-signup); a private source refuses it outright.
-- This **home OAuth client** (the credentialed identity the source issued for
-  the home) only identifies a home to the source; it grants no document access on
-  its own. Access still flows through per-account linking: each linking user later
-  authenticates and consents on the source for their own documents. So one source
-  user registering a home widens no other home user's access — registration and
-  document access are separate.
-- Any home admin can drop a source from the home (removing it from the source
-  list and the stored credential), which unlinks it locally. Revoking the **home
-  OAuth client on the source** is separate: only the source account that
-  registered it can delete it there. If the source later rejects the stored
-  credential, a home admin re-registers the source to get a fresh client.
-
-Future: let any home admin fully retire a link — including revoking and rotating
-the client on the source — even when the original registrant is gone. That needs
-a source-side capability not bound to one account (a home-owned service identity,
-or a home-authenticated revoke), adding cross-server trust this design currently
-keeps minimal.
+There is no user-facing unlink yet; see the source-linking follow-ups in
+[docs/todo.md](./todo.md).
 
 ## Deferred Access Cases
 
