@@ -32,8 +32,10 @@ Notes carry three kinds of information: structure, content, and props.
 Adapters must preserve these guarantees whenever they create, import, or export
 notes:
 
-- Addressability is per-kind: addressable kinds (editor note, document) carry a
-  unique id within their tree (see `./note-ids.md`); other kinds (a body) are
+- Addressability is per-kind: an editor note is addressable, carrying a unique
+  `noteId` within its tree (see [Note IDs](./note-ids.md)); a document carries
+  its own distinct identity (`documentId`, environment-injected — see
+  [Note IDs](./note-ids.md#scope)), not a `noteId`; other kinds (a body) are
   identified by their position relative to their owning note, not by an id.
 - Every note has exactly one parent (except the root) and maintains an ordered
   list of children owned by that parent. **Children** are the notes parented in

@@ -89,22 +89,14 @@ Rules:
 Admin role + secret-gated enrollment foundation is built; still to come:
 
 - Reconsider `/api/config` vs `/api/health` — maybe one `/api/status` covers both.
-- Admin *panel* content behind `/admin` (the admin branch is a placeholder for
-  now), including **promoting an existing user to admin** and per-admin
-  revocation — the only way today to gain admin is registering a new account via
-  the secret. The session+role authz helper for gating these admin APIs is not
-  built yet (an earlier `resolveAdminSessionUserId` was dropped as unused); the
-  panel PR builds its own gate. The source-linking PR adds the source-server
-  management UI, so the panel ships there.
-- Toolbar **Admin** link for signed-in admins (`App.tsx`). Deferred as
-  pure-additive UI — `App.tsx` is untouched by this PR, so it can land later
-  against the `role`-on-bootstrap that now exists, with no new infra.
+- Admin panel: **promoting an existing user to admin** and per-admin revocation
+  — the only way today to gain admin is registering a new account via the
+  secret.
+- Toolbar **Admin** link for signed-in admins (`App.tsx`). Pure-additive UI
+  against the `role`-on-bootstrap that already exists, with no new infra.
 - Runtime public-policy toggle (replace `ALLOW_SIGNUP` env with admin-managed,
   DB-backed state). Needs auth hot-swap (rebuild `betterAuth` to flip the
-  construction-time `disableSignUp`). The source-linking PR builds the
-  swappable-auth machinery it rides, but the toggle UI is deferred past it — until
-  it lands, `ALLOW_SIGNUP` is the signup control and also the source-side
-  "accept registration" gate.
+  construction-time `disableSignUp`).
 
 ## Source-linking follow-ups
 

@@ -18,7 +18,7 @@ semantics are defined in [Selection](./selection.md); when a merged note has a
    1. If the note is the first note in document order: **no-op**; caret stays
       put.
    2. Otherwise: use the previous note in document order.
-      1. If either note is an empty leaf: delete the empty leaf; caret lands at
+      1. If either note is an [empty leaf](./concepts.md#definitions): delete it; caret lands at
          the boundary of the surviving note (end of the previous note when
          deleting the current note, start of the current note when deleting the
          previous note). No surrounding text is altered.
