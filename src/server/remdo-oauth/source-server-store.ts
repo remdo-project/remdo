@@ -9,7 +9,7 @@ import type { SourceServersTable } from '#server/db/schema';
 
 // Source clients are always public (PKCE, no secret), so a credential is just a
 // client_id.
-export interface SourceClientCredentials {
+interface SourceClientCredentials {
   clientId: string;
 }
 
