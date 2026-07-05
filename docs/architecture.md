@@ -101,7 +101,7 @@ document client tokens.
 - OAuth account tokens: access, refresh, and ID tokens for linked source-server
   accounts, stored by Better Auth.
 - Y-Sweet server token: RemDo API credential for Y-Sweet document-control calls.
-- Y-Sweet document client token: browser credential returned by
+- Y-Sweet document client token: short-lived browser credential returned by
   `POST /api/documents/:docId/sync-tokens` and enforced by Y-Sweet on sync paths.
 
 ### Browser-facing collaboration paths

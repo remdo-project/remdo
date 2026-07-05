@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import GithubSlugger from 'github-slugger';
 
 export interface LinkIssue {
   file: string;
@@ -16,29 +17,43 @@ export interface LinkIssue {
   message: string;
 }
 
-// Blank fenced code blocks and inline code spans (preserving line count and
-// per-line offsets) so links and headings inside examples are never checked —
-// skill files quote whole Markdown snippets in fences.
-export const stripCodeSegments = (md: string): string => {
-  const lines = md.split('\n');
+// Fenced code blocks, CommonMark-style: a fence opens with at most 3 spaces
+// of indentation and 3+ backticks or tildes; it closes only on a line with
+// the same fence character, at least the opener's run length, and no info
+// string — so a ```js line inside an open ``` block is content, not a closer.
+const FENCE_OPEN = /^ {0,3}(`{3,}|~{3,})/;
+const FENCE_CLOSE = /^ {0,3}(`{3,}|~{3,})\s*$/;
+
+// Blank every line inside fenced blocks (including the fence lines),
+// preserving line count. Headings keep their inline code intact — GitHub
+// slugs the code's text — so this is the only stripping slug extraction uses.
+const blankFencedBlocks = (md: string): string[] => {
   let fence: string | null = null;
-  const stripped = lines.map((line) => {
-    const open = /^\s*(`{3,}|~{3,})/.exec(line);
+  return md.split('\n').map((line) => {
     if (fence) {
-      if (open && open[1]!.startsWith(fence[0]!) && open[1]!.length >= fence.length) {
+      const close = FENCE_CLOSE.exec(line);
+      if (close && close[1]![0] === fence[0] && close[1]!.length >= fence.length) {
         fence = null;
       }
       return '';
     }
+    const open = FENCE_OPEN.exec(line);
     if (open) {
       fence = open[1]!;
       return '';
     }
-    // Inline code spans; longer backtick runs first so `` a`b `` stays whole.
-    return line.replace(/(`+)[^`]*\1/g, (span) => ' '.repeat(span.length));
+    return line;
   });
-  return stripped.join('\n');
 };
+
+// Blank fenced code blocks and inline code spans (preserving line count and
+// per-line offsets) so links and prose inside examples are never checked —
+// skill files quote whole Markdown snippets in fences.
+export const stripCodeSegments = (md: string): string =>
+  blankFencedBlocks(md)
+    // Inline code spans; longer backtick runs first so `` a`b `` stays whole.
+    .map((line) => line.replace(/(`+)[^`]*\1/g, (span) => ' '.repeat(span.length)))
+    .join('\n');
 
 // Inline links/images `[text](target)` (optionally `(target "title")` or
 // `(<target>)`) plus reference definitions `[label]: target`.
@@ -56,32 +71,28 @@ export const extractLinks = (md: string): { target: string; line: number }[] => 
   return links;
 };
 
-// GitHub-style heading slugs: lowercase, markdown/link syntax dropped,
-// non-word characters removed, spaces to hyphens, duplicates suffixed -1, -2…
+// GitHub-style heading slugs via github-slugger (underscores kept, each space
+// a hyphen, duplicates suffixed -1, -2…). Headings are extracted from the raw
+// text with only fenced blocks blanked; the remaining markdown is reduced to
+// its text first: links to their text, `*` emphasis markers and backtick
+// characters dropped (the code's content is part of the slug).
 export const headingSlugs = (md: string): Set<string> => {
+  const slugger = new GithubSlugger();
   const slugs = new Set<string>();
-  const seen = new Map<string, number>();
-  for (const line of md.split('\n')) {
+  for (const line of blankFencedBlocks(md)) {
     const heading = /^#{1,6} +(\S.*)$/.exec(line.trim());
     if (!heading) {
       continue;
     }
     const text = heading[1]!
       .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .replace(/[*_`]/g, '');
-    const base = text
-      .toLowerCase()
-      .trim()
-      .replace(/[^\p{L}\p{N}\s_-]/gu, '')
-      .replace(/\s+/g, '-');
-    const count = seen.get(base) ?? 0;
-    seen.set(base, count + 1);
-    slugs.add(count === 0 ? base : `${base}-${count}`);
+      .replace(/[*`]/g, '');
+    slugs.add(slugger.slug(text));
   }
   return slugs;
 };
 
-const isExternal = (target: string): boolean =>
+export const isExternal = (target: string): boolean =>
   /^[a-z][a-z+.-]*:/i.test(target) || target.startsWith('//');
 
 const slugCache = new Map<string, Set<string>>();
@@ -89,7 +100,7 @@ const slugCache = new Map<string, Set<string>>();
 const slugsOf = (file: string): Set<string> => {
   let slugs = slugCache.get(file);
   if (!slugs) {
-    slugs = headingSlugs(stripCodeSegments(fs.readFileSync(file, 'utf8')));
+    slugs = headingSlugs(fs.readFileSync(file, 'utf8'));
     slugCache.set(file, slugs);
   }
   return slugs;
@@ -103,13 +114,26 @@ export const checkDocLinks = (files: string[], repoRoot: string): LinkIssue[] =>
       if (isExternal(target) || target === '') {
         continue;
       }
-      const [targetPath, fragment] = target.split('#', 2) as [string, string?];
-      const resolved = targetPath === '' ? absolute : path.resolve(path.dirname(absolute), targetPath);
+      const hash = target.indexOf('#');
+      const targetPath = hash === -1 ? target : target.slice(0, hash);
+      const fragment = hash === -1 ? undefined : target.slice(hash + 1);
+      const resolved = targetPath === ''
+        ? absolute
+        : targetPath.startsWith('/')
+          // Root-relative targets are repo-relative, not filesystem-absolute.
+          ? path.join(repoRoot, targetPath)
+          : path.resolve(path.dirname(absolute), targetPath);
       if (!fs.existsSync(resolved)) {
         issues.push({ file, line, message: `broken link: ${target}` });
         continue;
       }
-      if (fragment !== undefined && resolved.endsWith('.md') && !slugsOf(resolved).has(fragment)) {
+      if (fragment === undefined) {
+        continue;
+      }
+      // A second "#" inside the fragment can never match a slug; flag it even
+      // on non-Markdown targets rather than silently truncating.
+      if (fragment.includes('#')
+        || (resolved.endsWith('.md') && !slugsOf(resolved).has(fragment))) {
         issues.push({ file, line, message: `broken anchor: ${target}` });
       }
     }
@@ -144,23 +168,32 @@ export const checkProse = (files: string[], repoRoot: string): LinkIssue[] => {
       });
     }
     // References shape (invariant 3): external sources only — no links into
-    // the corpus collected there. "External" mirrors isExternal: any scheme
-    // or protocol-relative target.
-    let inRefs = false;
-    lines.forEach((line, index) => {
-      if (/^##\s+References\b/.test(line)) { inRefs = true; return; }
-      if (/^##\s/.test(line)) { inRefs = false; return; }
-      if (inRefs && /\]\((?![a-z][a-z+.-]*:|\/\/)[^)]+\)/i.test(line)) {
-        issues.push({ file, line: index + 1, message: 'internal link inside References (must be inline in the body)' });
+    // the corpus collected there. Links (inline and reference-style) come
+    // from extractLinks; "external" is isExternal, the same test the link
+    // checker uses to skip a target.
+    const inRefs: boolean[] = [];
+    let refs = false;
+    for (const line of lines) {
+      if (/^##\s+References\b/.test(line)) {
+        refs = true;
+      } else if (/^##\s/.test(line)) {
+        refs = false;
       }
-    });
+      inRefs.push(refs);
+    }
+    for (const { target, line } of extractLinks(text)) {
+      if (inRefs[line - 1] && !isExternal(target)) {
+        issues.push({ file, line, message: 'internal link inside References (must be inline in the body)' });
+      }
+    }
   }
   return issues;
 };
 
 const main = (): void => {
   const repoRoot = process.cwd();
-  const files = process.argv.slice(2);
+  // Normalize to repo-relative so ./docs/x.md and absolute paths behave.
+  const files = process.argv.slice(2).map((f) => path.relative(repoRoot, path.resolve(f)));
   if (files.length === 0) {
     process.stderr.write('usage: check-doc-links.ts <file.md ...> (tools/lint-md.sh passes the repo selection)\n');
     process.exitCode = 1;
@@ -178,6 +211,18 @@ const main = (): void => {
   }
 };
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// realpath both sides so a symlinked invocation still runs main().
+const isDirectInvocation = (): boolean => {
+  if (!process.argv[1]) {
+    return false;
+  }
+  try {
+    return fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+};
+
+if (isDirectInvocation()) {
   main();
 }

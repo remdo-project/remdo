@@ -121,7 +121,7 @@ if everything already works as described (per the `docs/` invariant: stable docs
 describe *target* behavior). Edit the relevant docs under `docs/` — or add new
 docs that clearly match the existing structure — to describe the design as the
 new reality. Track any not-yet-built parts, gaps, or sequencing in `docs/todo.md`
-(the "Target behavior only" invariant), not as caveats in the prose.
+(invariant 4, "Spec, not status"), not as caveats in the prose.
 
 Comply with the documentation invariants
 (`docs/documentation.md`) so static checks pass without rework, and

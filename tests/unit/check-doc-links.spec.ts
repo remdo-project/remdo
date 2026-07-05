@@ -38,6 +38,13 @@ describe('stripCodeSegments', () => {
     expect(stripped).not.toContain('x.md');
     expect(stripped).toContain('use');
   });
+
+  it('treats a fence line with an info string as content, not a closer', () => {
+    const md = '```\n```js\n[hidden](gone.md)\n```\nlive [link](x.md)';
+    const stripped = stripCodeSegments(md);
+    expect(stripped).not.toContain('gone.md');
+    expect(stripped).toContain('x.md');
+  });
 });
 
 describe('extractLinks', () => {
@@ -56,6 +63,16 @@ describe('headingSlugs', () => {
   it('slugs GitHub-style with punctuation dropped and duplicates suffixed', () => {
     const slugs = headingSlugs('# Pre-1.0 Policy!\n## Setup\n## Setup\n## The `code` [link](x.md)');
     expect(slugs).toEqual(new Set(['pre-10-policy', 'setup', 'setup-1', 'the-code-link']));
+  });
+
+  it('keeps underscores and turns each space into a hyphen, like GitHub', () => {
+    const slugs = headingSlugs('## DATA_DIR\n## a  b');
+    expect(slugs).toEqual(new Set(['data_dir', 'a--b']));
+  });
+
+  it('extracts headings outside fences only, keeping inline-code text', () => {
+    const md = '### `vite-plugin-pwa` peer `workbox-build`\n```\n# not a heading\n```\n';
+    expect(headingSlugs(md)).toEqual(new Set(['vite-plugin-pwa-peer-workbox-build']));
   });
 });
 
@@ -77,6 +94,36 @@ describe('checkDocLinks', () => {
     const root = makeRepo({ 'docs/a.md': '[x](https://example.org/y)\n[m](mailto:a@b.c)\n' });
     expect(checkDocLinks(['docs/a.md'], root)).toEqual([]);
   });
+
+  it('matches anchors into headings containing inline code like GitHub', () => {
+    const root = makeRepo({
+      'docs/a.md': '[ok](b.md#vite-plugin-pwa-peer-workbox-build)\n[bad](b.md#peer)\n',
+      'docs/b.md': '### `vite-plugin-pwa` peer `workbox-build`\n',
+    });
+    expect(checkDocLinks(['docs/a.md'], root)).toEqual([
+      { file: 'docs/a.md', line: 2, message: 'broken anchor: b.md#peer' },
+    ]);
+  });
+
+  it('resolves root-relative targets against the repo root', () => {
+    const root = makeRepo({
+      'docs/a.md': '[ok](/docs/b.md#section-one)\n[gone](/nope.md)\n',
+      'docs/b.md': '# Section One\n',
+    });
+    expect(checkDocLinks(['docs/a.md'], root)).toEqual([
+      { file: 'docs/a.md', line: 2, message: 'broken link: /nope.md' },
+    ]);
+  });
+
+  it('flags a fragment containing "#" instead of truncating it', () => {
+    const root = makeRepo({
+      'docs/a.md': '[bad](b.md#a#b)\n',
+      'docs/b.md': '# A\n',
+    });
+    expect(checkDocLinks(['docs/a.md'], root)).toEqual([
+      { file: 'docs/a.md', line: 1, message: 'broken anchor: b.md#a#b' },
+    ]);
+  });
 });
 
 describe('checkProse', () => {
@@ -97,6 +144,14 @@ describe('checkProse', () => {
     const issues = checkProse(['docs/a.md', '.claude/skills/s/SKILL.md'], root);
     expect(issues).toEqual([
       { file: 'docs/a.md', line: 5, message: 'internal link inside References (must be inline in the body)' },
+    ]);
+  });
+
+  it('recognizes angle-bracket and space-leading external forms in References, and flags reference-style internal definitions', () => {
+    const doc = '## References\n\n- [a](<https://x.y/a b>)\n- [b]( https://x.y/c )\n\n[def]: b.md\n';
+    const root = makeRepo({ 'docs/a.md': doc, 'docs/b.md': 'x\n' });
+    expect(checkProse(['docs/a.md'], root)).toEqual([
+      { file: 'docs/a.md', line: 6, message: 'internal link inside References (must be inline in the body)' },
     ]);
   });
 });

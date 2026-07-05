@@ -19,16 +19,6 @@ Rules:
 - Move durable decisions/specs into the relevant doc under `docs/`, leaving a
   link behind.
 
-## Docs corpus redesign
-
-- ✅ Done: documentation intent + invariants rewritten into
-  `docs/documentation.md`; corpus realigned (align pass + deletion-advocate
-  adjudication).
-- ✅ Done: docs link/wording checker wired into `pnpm run lint` via `lint:md`.
-- ✅ Done: skill-file invariant digests realigned with `docs/documentation.md`.
-- ✅ Done: dropped `docs/index.md`, `docs/outliner/index.md`, and
-  `docs/hints.md`; folded `drag-and-drop.md` into `reordering.md`.
-
 ## Scratchpad maintenance
 
 - Clear out drifted long-horizon items: this file has accumulated entries that

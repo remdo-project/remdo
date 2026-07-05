@@ -107,8 +107,9 @@ bootstrapped key/server-token pair (see
   6. `pnpm run dev:docker` starts a Docker home server at
      `127.0.0.1:(PORT_BASE + 40)` for manual OAuth linking against the dev
      server, and redirects the matching `localhost` URL to that canonical
-     browser origin. The source dev server binds `HOST=0.0.0.0` so the Docker
-     home can exchange OAuth tokens with it.
+     browser origin. The source dev server must be started with `HOST=0.0.0.0`
+     (e.g. `HOST=0.0.0.0 pnpm run dev`) so the Docker home can reach it for the
+     OAuth token exchange.
   7. `pnpm run dev:oauth-client` provisions the stable users, prints their
      credentials, and (when `REMDO_DEV_HOME_ORIGIN` is set) creates or rotates
      the source OAuth client used for cross-server linking. It is SQL-only and
