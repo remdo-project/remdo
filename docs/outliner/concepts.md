@@ -73,11 +73,9 @@ notes:
 
 Every note has a `kind`. Kinds share the base note concept (structure, content,
 props) but differ in the capabilities they expose — for example whether they are
-addressable by id, can have children, or can be selected structurally.
-"Everything is a note" holds literally: a difference between kinds is a
-capability a kind does or does not have, not a separate concept. The set of kinds
-and each kind's capabilities are defined where the kinds live, not enumerated
-here.
+addressable by id, can have children, or can be selected structurally. The set of
+kinds and each kind's capabilities are defined where the kinds live, not
+enumerated here.
 
 A note's [body](./body.md) is one such kind: a restricted note owned by its
 editor note.

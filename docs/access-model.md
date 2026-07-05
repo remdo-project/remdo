@@ -62,12 +62,10 @@ the user.
 - `/admin` is the single admin entry route. It renders by the caller's role: an
   admin sees the admin panel; anyone else (signed in or not) sees the
   self-enrollment form. The client learns the current user's role from the
-  `/api/current-user` bootstrap; this drives rendering only — authorization stays
-  server-side.
+  `/api/current-user` bootstrap.
 - The admin panel manages the home's **source servers** — add a source by URL,
   register the home on it, see registered state, and remove a source (see
-  [Cross-Server Source Linking](#cross-server-source-linking)). These admin APIs
-  authorize from the caller's session + role.
+  [Cross-Server Source Linking](#cross-server-source-linking)).
 - Self-enrollment is gated by `ADMIN_SECRET` (see
   [docs/config.md](./config.md#admin-bootstrap-and-enrollment)) and always
   **registers a new admin account**: presenting the secret with account details
@@ -167,9 +165,7 @@ The flow:
 - This **home OAuth client** (the credentialed identity the source issued for
   the home) only identifies a home to the source; it grants no document access on
   its own. Access still flows through per-account linking: each linking user later
-  authenticates and consents on the source for their own documents. So one source
-  user registering a home widens no other home user's access — registration and
-  document access are separate.
+  authenticates and consents on the source for their own documents.
 - Any home admin can drop a source from the home (removing it from the source
   list and the stored credential), which unlinks it locally. Revoking the **home
   OAuth client on the source** is separate: only the source account that

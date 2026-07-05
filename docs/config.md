@@ -15,7 +15,7 @@ the Docker entrypoint, so the host needs nothing but Docker.
 
 ## Inputs
 
-These are the only settable variables. Cells read `required` (must be set),
+Cells read `required` (must be set),
 `optional` (has a default), `derived` (computed, not settable), or `—` (unused in
 that mode). Everything else — all secondary service ports, `AUTH_URL`,
 `AUTH_SECRET`, the Y-Sweet `auth_key` / `server_token` pair, and the Caddy gateway

@@ -5,9 +5,7 @@ durable rules and self-healing mechanisms that change when a *mechanism* changes
 not when a version moves.
 
 Individual workarounds are **not** listed here. They live as `TODO:`/`FIXME:`
-comments at the code site (see `docs/contributing.md#code-comments`), each
-stating the one-line probe that proves it obsolete (delete the shim / flip the
-flag / run the suite). The comment is the tracker; don't duplicate it here. The
+comments at the code site (see `docs/contributing.md#code-comments`). The
 dependency-refresh skill scans those markers, runs the probe, and removes the
 workaround when it passes — so a workaround with no runnable probe doesn't belong
 in a comment either; make it a test assertion or a code-site guard that fails

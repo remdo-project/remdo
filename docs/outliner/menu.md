@@ -49,9 +49,7 @@ entry, actions, and behavior.
    from double-Shift, the current note is the caret note.
 4. Structural selections never open multi-note menus; only the focus note is
    used as note context.
-5. View actions are not limited to the current note. They act on the current
-   zoom boundary even when the menu is opened from a specific row.
-6. While the menu is open, `1`-`9` apply the chosen level and `0` fully
+5. While the menu is open, `1`-`9` apply the chosen level and `0` fully
    unfolds the current zoom boundary.
 
 ## Non-goals

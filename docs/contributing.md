@@ -65,8 +65,7 @@ Default policy:
 ## Code Comments
 
 `TODO:` and `FIXME:` are the only tracked comment markers — use them for any
-comment worth tracking (a workaround, a deferred fix, a known gap), and don't
-invent other prefixes (`WORKAROUND:`, `HACK:`, `NOTE:` to-do, etc.). `FIXME:`
+comment worth tracking (a workaround, a deferred fix, a known gap). `FIXME:`
 marks something wrong that should be fixed; `TODO:` marks intentional,
 working-but-revisit code. State the rationale and, where one exists, the
 one-line probe that proves the comment obsolete (delete the shim / flip the flag
@@ -94,7 +93,7 @@ current zoom root (`features/zoom/zoom-root.ts`) and selection/editing code asks
 zoom for it, while the generic "is this within a bounding subtree" check stays in
 `outline/` (`isWithinBoundary`). Known exception to repay: several `outline/`
 modules still import note-body primitives from `features/note-body/` (see
-`docs/todo.md`); do not add new shared→feature imports.
+`docs/todo.md`).
 
 Keep durable product behavior in `docs/`; source feature folders should not
 replace the stable behavior specs.

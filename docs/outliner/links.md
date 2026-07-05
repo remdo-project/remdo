@@ -76,10 +76,7 @@ RemDo-owned note links and generic external links.
 1. Search scope is the whole current document, including while zoomed into a
    subtree.
 2. Filtering uses the same path-token matching as document search (defined in
-   [Search](./search.md#behavior)): a note matches when every query token is a
-   substring of some entry in its path (ancestor titles + the note's own title)
-   and at least one token matches the note's own title. So typing an ancestor's
-   word alongside a word from the note surfaces that nested note.
+   [Search](./search.md#behavior)).
 3. The current note is excluded from results (self-links are out of scope).
 4. Picker rows show the minimal ancestor context needed to disambiguate duplicate
    titles in the current result set.

@@ -68,5 +68,4 @@ When two notes merge into one (see [Deletion](./deletion.md) for when a
 1. **Neither has a body.** The notes merge as usual.
 2. **Exactly one has a body.** The merge proceeds and the surviving note keeps
    that body (the merged-away note's body moves to the result).
-3. **Both have a body.** The merge is a no-op: `Backspace`/`Delete` does nothing,
-   so no body is lost.
+3. **Both have a body.** The merge is a no-op.
