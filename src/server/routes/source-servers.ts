@@ -2,8 +2,8 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { normalizeDocumentId } from '#domain/documents/ids';
 import { HTTP_STATUS } from '#platform/http/status';
-import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
 import { requireActor, resolveActor } from '#server/auth/actor';
+import { refusePublicServerLink, startSourceAccountLink } from './source-link-account';
 import type { ServerRouteDependencies } from './types';
 
 // Upstream auth/access/not-found responses describe a recoverable user state
@@ -21,10 +21,8 @@ function resolveSourceErrorStatus(upstreamStatus: number): 401 | 403 | 404 | 500
     : HTTP_STATUS.INTERNAL_SERVER_ERROR;
 }
 
-export function createSourceServerRoutes({
-  auth,
-  logError,
-}: ServerRouteDependencies) {
+export function createSourceServerRoutes(dependencies: ServerRouteDependencies) {
+  const { auth, logError } = dependencies;
   const routes = new Hono();
 
   async function resolveSourceAccess(request: Request, serverId: string) {
@@ -127,38 +125,20 @@ export function createSourceServerRoutes({
   });
 
   routes.post('/:serverId/account-links', async (c) => {
-    // A public server acts only as a source and refuses to initiate linking (see
-    // source-links.ts). Guard this path too: a source provider can pre-exist here
-    // (e.g. a private home that linked, then flipped to public), so blocking only
-    // the URL-first route would leave this one usable.
-    if (auth.allowSignup) {
-      return c.json({ error: 'A public server does not link to sources.' }, HTTP_STATUS.FORBIDDEN);
+    const refusal = refusePublicServerLink(dependencies, c);
+    if (refusal) {
+      return refusal;
     }
     const serverId = c.req.param('serverId');
     const server = auth.sourceServers.find((candidate) => candidate.id === serverId);
     if (!server) {
       return c.json({ error: 'Source server not found.' }, HTTP_STATUS.NOT_FOUND);
     }
-
-    try {
-      const actor = await requireActor(c, auth);
-      if (actor instanceof Response) {
-        return actor;
-      }
-
-      return auth.auth.api.oAuth2LinkAccount({
-        body: {
-          providerId: server.id,
-          callbackURL: '/sharing',
-          scopes: [...REMDO_SERVER_OAUTH_SCOPES],
-        },
-        headers: c.req.raw.headers,
-        asResponse: true,
-      });
-    } catch (error) {
-      logError(error, {});
-      return c.json({ error: 'Failed to link source server account.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    const actor = await requireActor(c, auth);
+    if (actor instanceof Response) {
+      return actor;
     }
+    return startSourceAccountLink(dependencies, c, server.id);
   });
 
   return routes;
