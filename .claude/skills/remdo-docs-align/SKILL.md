@@ -54,7 +54,7 @@ Forward the `AGENTS.md` findings-suppression rule to every stage.
 - `remdo-simplify` is the general read-only finder; this skill's advocate is
   its adversarial, deletion-only counterpart for rules-governed prose.
 - `remdo-refine` owns the general quality ladder; its ladder defines when a
-  doc-heavy diff is handed to this skill.
+  diff is handed to this skill.
 - Authoring new content is out of scope: write-time rules do not prevent
   redundancy (tested — they made it worse), so fresh text is aligned by
   running stages 3–4 over it after writing.

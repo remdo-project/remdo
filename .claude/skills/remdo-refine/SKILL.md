@@ -113,9 +113,9 @@ coordinating session triages the returned findings and owns the loop.
    restatement). Reading the whole touched file, not just the diff hunk, is what
    catches redundancy against unchanged upstream text. Also check each touched doc
    against the **documentation invariants** (`docs/documentation.md`)
-   and fix any violation. For a doc-heavy diff, run the `remdo-docs-align`
-   skill's advocate/adjudicate stages as this rung's deeper pass and triage
-   its disposition list like any findings.
+   and fix any violation. For any diff touching docs or skill prose, run the
+   `remdo-docs-align` skill's advocate/adjudicate stages as this rung's deeper
+   pass and triage its disposition list like any findings.
 2. **Internal review** — `/code-review` at max effort against the diff under
    review (the resolved range's base, or the working-tree changes).
 3. **External review** — `codex review` for an independent outside read:
