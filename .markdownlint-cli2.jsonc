@@ -1,9 +1,33 @@
 {
-  // File selection lives in the `lint:md:raw` script (driven by `git ls-files
-  // '*.md'`), so every tracked Markdown file is linted and no glob/ignore list
-  // here can drift out of sync with the repo.
+  // Selection lives here now (was tools/lint-md.sh): `globs` walks the disk for
+  // Markdown and `gitignore: true` subtracts every .gitignore (root and nested),
+  // so the set = tracked + new-untracked-not-ignored .md — the git-based
+  // semantics the shell script had, minus the fail-loud-on-empty guard (cli2
+  // reports 0 files instead). Deleted-but-unstaged paths aren't on disk, so the
+  // old existence filter is unnecessary here.
+  "globs": ["**/*.md"],
+  "gitignore": true,
+  // globby's `gitignore` honours .gitignore files but not `.git/` itself, and it
+  // follows symlinked directories — neither of which the old `git ls-files`
+  // selection did. Exclude `.git/` (repo internals, e.g. ref-log files that end
+  // in `.md`) explicitly; the tracked skill-mirror symlinks are handled below.
+  "ignores": [".git"],
+  // Link/anchor validation and the two RemDo prose invariants ride
+  // markdownlint's own parser (no hand-rolled fence/slug scanning):
+  // - relative-links: relative-link existence + `#fragment` heading match
+  //   (MD051-style), external and absolute paths ignored.
+  // - remdo-temporal-status / remdo-references-shape: RemDo doc invariants,
+  //   self-scoped to docs/ (see each rule).
+  "customRules": [
+    "markdownlint-rule-relative-links",
+    "./tools/markdownlint-rules/temporal-status.mjs",
+    "./tools/markdownlint-rules/references-shape.mjs"
+  ],
   "config": {
     "default": true,
+    "relative-links": true,
+    "remdo-temporal-status": true,
+    "remdo-references-shape": true,
     "MD013": {
       "line_length": 120,
       "code_block_line_length": 0,
