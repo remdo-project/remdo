@@ -28,8 +28,11 @@ export interface EnsureSourceClientResult {
 // first-writer-wins (claimSourceServerPublicClient) so the row converges on one
 // client and no request overwrites a client another may already be authorizing
 // against. A loser's freshly-registered client is left orphaned on the source —
-// harmless (secretless, redirect-locked) — and `created` is false for it, so it
-// triggers no redundant rebuild.
+// harmless (secretless, redirect-locked). Both racers return `created: true`
+// (they observed no credentials and went through registration), so BOTH ask the
+// caller to rebuild before starting OAuth: a rebuild is synchronous, cheap, and
+// idempotent, and the loser must not skip it or it could reach oAuth2LinkAccount
+// before the winner's rebuild made the provider live in this process.
 export async function ensureSourceClient(
   params: EnsureSourceClientParams,
   deps: { registerClient?: typeof registerPublicSourceClient } = {},
@@ -49,7 +52,8 @@ export async function ensureSourceClient(
     sourceId: source.id,
     scopes: params.scopes,
   });
-  const effectiveClientId = await claimSourceServerPublicClient(params.database, source.id, clientId);
-  // `created` (→ caller rebuilds auth) only when THIS call's client won the claim.
-  return { sourceId: source.id, created: effectiveClientId === clientId };
+  await claimSourceServerPublicClient(params.database, source.id, clientId);
+  // This request went through registration (it saw no credentials), so the
+  // caller must rebuild to make the provider live in THIS process before OAuth.
+  return { sourceId: source.id, created: true };
 }
