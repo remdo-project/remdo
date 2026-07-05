@@ -1,5 +1,6 @@
 import { Alert, Button, Group, Select, Stack, Text, TextInput } from '@mantine/core';
 import { useState } from 'react';
+import { linkSourceByUrl } from '#client/app/auth/source-server-linking-client';
 import { useUserData } from '#client/app/documents/user-data';
 import { createShareableDocumentOptions } from './sharing-documents';
 import type { SourceServerNote } from '#note-sdk';
@@ -15,6 +16,7 @@ export default function SharingRoute() {
     ? documents.find((document) => document.id() === selectedDocId && shareableDocumentIds.has(document.id())) ?? null
     : null;
   const [shareEmail, setShareEmail] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
   const [status, setStatus] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const visibleAccess = activeDocument?.access().children() ?? [];
@@ -42,6 +44,17 @@ export default function SharingRoute() {
     } catch (error) {
       setStatus('');
       setErrorMessage(error instanceof Error ? error.message : 'Failed to link source server account.');
+    }
+  };
+
+  const linkByUrl = async () => {
+    try {
+      await linkSourceByUrl(sourceUrl.trim());
+      setStatus('Redirecting to authorize the source…');
+      setErrorMessage(null);
+    } catch (error) {
+      setStatus('');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to link source.');
     }
   };
 
@@ -86,9 +99,25 @@ export default function SharingRoute() {
         ))}
       </Stack>
 
+      <form onSubmit={(event) => {
+        event.preventDefault();
+        void linkByUrl();
+      }}>
+        <Group align="end">
+          <TextInput
+            label="Source URL"
+            required
+            type="url"
+            value={sourceUrl}
+            onChange={(event) => setSourceUrl(event.currentTarget.value)}
+          />
+          <Button type="submit">Link source</Button>
+        </Group>
+      </form>
+
       {sourceServers.length > 0 && (
         <Stack gap="xs">
-          <Text fw={600}>Remote RemDo servers</Text>
+          <Text fw={600}>Linked sources</Text>
           {sourceServers.map((server) => (
             <Group key={server.id()} justify="space-between">
               <Stack gap={0}>

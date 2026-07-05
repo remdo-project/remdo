@@ -25,3 +25,16 @@ export async function linkSourceServerAccount(serverId: string): Promise<void> {
     globalThis.location.assign(body.url);
   }
 }
+
+export async function linkSourceByUrl(url: string): Promise<void> {
+  const response = await fetch('/api/current-user/source-links', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  const body = await readJsonResponse<LinkSourceServerResponse>(response);
+  if (body.redirect) {
+    globalThis.location.assign(body.url);
+  }
+}

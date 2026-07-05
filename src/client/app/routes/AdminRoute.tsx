@@ -5,7 +5,6 @@ import AuthenticatedApp from '#client/app/AuthenticatedApp';
 import { rememberAuthenticatedSession } from '#client/app/auth/client';
 import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
 import { resetUserData } from '#client/app/documents/user-data';
-import AdminSourceServersRoute from './AdminSourceServersRoute';
 import type { AdminRouteState } from './admin-route-loader';
 import { resolveAdminEnrollPostCreateDestination } from './admin-enroll-post-create-destination';
 
@@ -19,7 +18,7 @@ export default function AdminRoute() {
   if (state.kind === 'admin') {
     return (
       <AuthenticatedApp>
-        <AdminSourceServersRoute />
+        <Title order={1}>Admin</Title>
       </AuthenticatedApp>
     );
   }

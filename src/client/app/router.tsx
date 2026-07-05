@@ -6,7 +6,6 @@ import { getCachedCurrentUserBootstrap, getHomeDocumentId } from './documents/cu
 import AdminRoute from './routes/AdminRoute';
 import { adminRouteLoader } from './routes/admin-route-loader';
 import OAuthConsentRoute from './routes/OAuthConsentRoute';
-import OAuthRegisterHomeRoute from './routes/OAuthRegisterHomeRoute';
 import DocumentRoute from './routes/DocumentRoute';
 import LoginRoute from './routes/LoginRoute';
 import LogoutRoute from './routes/LogoutRoute';
@@ -160,15 +159,6 @@ const routes = [
     path: '/oauth/consent',
     loader: ({ request }: { request: Request }) => requireAuthenticatedRoute(request),
     element: <OAuthConsentRoute />,
-    hydrateFallbackElement,
-  },
-  {
-    // Source-side confirmation page a home redirects an admin to, to register the
-    // home as an OAuth client. Requires a source session up front so the user
-    // signs in before authorizing.
-    path: '/oauth/register-home',
-    loader: ({ request }: { request: Request }) => requireAuthenticatedRoute(request),
-    element: <OAuthRegisterHomeRoute />,
     hydrateFallbackElement,
   },
   {
