@@ -7,8 +7,6 @@ import { createServerDatabaseClient } from './db/client';
 import type { SqliteServerDatabaseClient } from './db/client';
 import { createDocumentRegistry } from './documents/document-registry';
 import type { DocumentRegistry } from './documents/document-registry';
-import { createRegistrationCodeStore } from './remdo-oauth/registration-codes';
-import { createRegistrationHandleStore } from './remdo-oauth/registration-handles';
 import type { StoredSourceServer } from './remdo-oauth/source-server-store';
 
 interface OAuthClientCredentials {
@@ -67,8 +65,6 @@ export function createServerRuntime({
     database,
     logError,
     rebuildAuth: swappableAuth.rebuild,
-    registrationCodes: createRegistrationCodeStore(),
-    registrationHandles: createRegistrationHandleStore(),
     registry,
     tokenManager,
   });

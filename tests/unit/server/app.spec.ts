@@ -73,14 +73,6 @@ describe('remdo api app', () => {
       'POST /api/documents/:docId/access',
       'POST /api/documents/:docId/sync-tokens',
       'POST /api/admin/enroll',
-      'ALL /api/admin/source-servers/*',
-      'GET /api/admin/source-servers',
-      'POST /api/admin/source-servers',
-      'POST /api/admin/source-servers/:id/remove',
-      'POST /api/link/source-servers/:id/register',
-      'POST /api/link/register-home',
-      'POST /api/link/claim-registration',
-      'POST /api/link/source-servers/:id/claim',
     ]);
   });
 
