@@ -17,20 +17,31 @@ afterEach(() => {
 
 // This route is the only user-facing linking entry point: any signed-in user
 // links any source by URL, and the home lazily self-registers a public OAuth
-// client for it. A real end-to-end link needs a second Better Auth instance
-// acting as the source (a home cannot register a client on itself) and a
-// rebuilt auth instance that recognizes the new provider — that full round-trip
-// is covered by the Task 8 e2e. This spec proves the route's own logic: the
-// auth gate and the URL validation.
+// client for it. Only a PRIVATE server links (allowSignup: false — see the
+// public-server refusal test); a home cannot register a client on itself, so a
+// real end-to-end link needs a second Better Auth instance acting as the source
+// plus a rebuilt auth instance that recognizes the new provider — that full
+// round-trip is covered by the Task 8 e2e. This spec proves the route's own
+// logic: the public-server guard, the auth gate, and the URL validation.
 describe('post /api/current-user/source-links', () => {
-  it('rejects an unauthenticated request', async () => {
+  it('refuses to link from a public server (public acts only as a source)', async () => {
     const harness = createHarness({ allowSignup: true });
+    const headers = await harness.createSessionHeaders();
+    const response = await postJson(harness.app, '/api/current-user/source-links', { url: 'https://source.example' }, headers);
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining('public server'),
+    });
+  });
+
+  it('rejects an unauthenticated request', async () => {
+    const harness = createHarness({ allowSignup: false });
     const response = await postJson(harness.app, '/api/current-user/source-links', { url: 'https://source.example' });
     expect(response.status).toBe(401);
   });
 
   it('rejects a missing or malformed url', async () => {
-    const harness = createHarness({ allowSignup: true });
+    const harness = createHarness({ allowSignup: false });
     const headers = await harness.createSessionHeaders();
     for (const url of [undefined, '', 'not-a-url', 'ws://source.example', 'https://source.example/path']) {
       const response = await postJson(harness.app, '/api/current-user/source-links', { url }, headers);
@@ -39,7 +50,7 @@ describe('post /api/current-user/source-links', () => {
   });
 
   it('ensures a source client and reaches oAuth2LinkAccount for a valid URL from any signed-in user', async () => {
-    const harness = createHarness({ allowSignup: true });
+    const harness = createHarness({ allowSignup: false });
     const headers = await harness.createSessionHeaders();
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ client_id: 'source-client-id' }), { status: 201 }));
     vi.stubGlobal('fetch', fetchMock);

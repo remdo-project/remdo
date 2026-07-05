@@ -10,6 +10,11 @@ import type { ServerRouteDependencies } from './types';
 // links a source by URL; the home lazily ensures a public OAuth client for that
 // URL (self-registering on first use), rebuilds auth so a provider exists, then
 // drives the OAuth link. No admin gate, no curated source list, no ceremony.
+//
+// A public server acts only as a SOURCE, never as a linking home: it refuses to
+// initiate linking. This confines the outbound-fetch (SSRF) surface of linking to
+// private/self-hosted homes, whose users are the operator's own — see
+// docs/access-model.md.
 export function createSourceLinkRoutes({
   auth,
   database,
@@ -19,6 +24,9 @@ export function createSourceLinkRoutes({
   const routes = new Hono();
 
   routes.post('/source-links', async (c) => {
+    if (auth.allowSignup) {
+      return c.json({ error: 'A public server does not link to sources.' }, HTTP_STATUS.FORBIDDEN);
+    }
     const body: { url?: string } = await c.req.json<{ url?: string }>().catch(() => ({}));
     const url = typeof body.url === 'string' ? body.url.trim() : '';
     if (!isHttpOrigin(url)) {

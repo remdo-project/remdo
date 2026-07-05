@@ -182,6 +182,10 @@ URL (below).
   (`allowUnauthenticatedClientRegistration`), gated on the same public/signup
   setting, because the home's self-registration call carries no source session.
   A private source refuses registration outright.
+- **A public server acts only as a source, never as a linking home.** A public
+  (open-signup) server refuses to initiate linking; only a private server links
+  to sources. This confines linking's outbound-fetch surface to private homes,
+  whose users are the operator's own.
 - **Homes may be private / not internet-reachable.** No server ever fetches the
   home: every server-to-server call goes home→source, and the OAuth redirect
   travels through the user's own browser, which is local to the home. (This
