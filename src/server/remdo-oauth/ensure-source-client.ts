@@ -1,9 +1,9 @@
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { registerPublicSourceClient } from '#server/remdo-oauth/source-client-registration';
 import {
+  claimSourceServerPublicClient,
   ensureSourceServerRow,
   listSourceServers,
-  setSourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
 
 export interface EnsureSourceClientParams {
@@ -22,10 +22,14 @@ export interface EnsureSourceClientResult {
 // first use and caching its client_id in source_servers. Idempotent: repeated
 // links to the same URL (by any user) reuse the cached client. The caller
 // rebuilds auth when `created` is true so a genericOAuth provider appears.
-// Two concurrent first-links to the same new URL are race-safe at the row level
-// (ensureSourceServerRow tolerates the duplicate insert); they may each register
-// a client, and the last write wins the cached client_id — a benign redundancy
-// (the orphaned public client is secretless and redirect-locked), not an error.
+//
+// Concurrent first-links to the same new URL are safe: the row create tolerates
+// the duplicate (ensureSourceServerRow), and the client_id is claimed
+// first-writer-wins (claimSourceServerPublicClient) so the row converges on one
+// client and no request overwrites a client another may already be authorizing
+// against. A loser's freshly-registered client is left orphaned on the source —
+// harmless (secretless, redirect-locked) — and `created` is false for it, so it
+// triggers no redundant rebuild.
 export async function ensureSourceClient(
   params: EnsureSourceClientParams,
   deps: { registerClient?: typeof registerPublicSourceClient } = {},
@@ -45,6 +49,7 @@ export async function ensureSourceClient(
     sourceId: source.id,
     scopes: params.scopes,
   });
-  await setSourceServerPublicClient(params.database, source.id, clientId);
-  return { sourceId: source.id, created: true };
+  const effectiveClientId = await claimSourceServerPublicClient(params.database, source.id, clientId);
+  // `created` (→ caller rebuilds auth) only when THIS call's client won the claim.
+  return { sourceId: source.id, created: effectiveClientId === clientId };
 }

@@ -116,22 +116,32 @@ export async function ensureSourceServerRow(
   return rowToStored(row);
 }
 
-// Persists a public client's id (no secret). Public clients authenticate via
-// PKCE, so there is no secret to store.
-export async function setSourceServerPublicClient(
+// Claims a public client's id for a source on a FIRST-WRITER-WINS basis (public
+// clients are secretless/PKCE, so there is no secret to store). Writes client_id
+// only while it is still NULL, then returns the effective stored id. So when two
+// concurrent first-links each register their own client, the row converges on one
+// client_id and every caller (including an in-flight OAuth authorization) uses the
+// same one — never overwriting a client another request may already be
+// authorizing against. Returns null if the source row does not exist.
+export async function claimSourceServerPublicClient(
   database: SqliteServerDatabaseClient,
   id: string,
   clientId: string,
-): Promise<void> {
+): Promise<string | null> {
   const baseUrl = sourceOriginFromId(id);
-  const result = baseUrl
-    ? await database.db
-      .updateTable('source_servers')
-      .set({ client_id: clientId })
-      .where('base_url', '=', baseUrl)
-      .executeTakeFirst()
-    : null;
-  if (!result || result.numUpdatedRows === 0n) {
-    throw new Error(`Source server ${id} is not configured.`);
+  if (!baseUrl) {
+    return null;
   }
+  await database.db
+    .updateTable('source_servers')
+    .set({ client_id: clientId })
+    .where('base_url', '=', baseUrl)
+    .where('client_id', 'is', null)
+    .execute();
+  const row = await database.db
+    .selectFrom('source_servers')
+    .select('client_id')
+    .where('base_url', '=', baseUrl)
+    .executeTakeFirst();
+  return row?.client_id ?? null;
 }

@@ -8,7 +8,7 @@ import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { deriveSourceId } from '#server/remdo-oauth/config';
 import {
   addSourceServer,
-  setSourceServerPublicClient,
+  claimSourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
 
 const SOURCE_ID = deriveSourceId('https://source.example');
@@ -53,7 +53,7 @@ describe('createSwappableServerAuth', () => {
     expect(liveProviderIds(swappable)).toEqual([]);
 
     await addSourceServer(database, 'https://source.example');
-    await setSourceServerPublicClient(database, SOURCE_ID, 'cid');
+    await claimSourceServerPublicClient(database, SOURCE_ID, 'cid');
     // Not visible until rebuild.
     expect(swappable.auth.sourceServers).toEqual([]);
     expect(liveProviderIds(swappable)).toEqual([]);

@@ -10,7 +10,7 @@ import {
   ensureSourceServerRow,
   listSourceServers,
   readSourceServersSync,
-  setSourceServerPublicClient,
+  claimSourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
 
 const SOURCE_ID = deriveSourceId('https://source.example');
@@ -66,20 +66,29 @@ describe('source server store', () => {
 
   it('records registered credentials so the source becomes usable', async () => {
     await addSourceServer(database, 'https://source.example');
-    await setSourceServerPublicClient(database, SOURCE_ID, 'cid');
+    await claimSourceServerPublicClient(database, SOURCE_ID, 'cid');
 
     const [stored] = await listSourceServers(database);
     expect(stored!.credentials).toEqual({ clientId: 'cid' });
   });
 
-  it('fails to record credentials for an unknown source', async () => {
-    await expect(setSourceServerPublicClient(database, 'missing', 'cid'))
-      .rejects.toThrow('not configured');
+  it('returns null when claiming a client for an unknown source', async () => {
+    expect(await claimSourceServerPublicClient(database, 'missing', 'cid')).toBeNull();
+  });
+
+  it('claims a public client first-writer-wins (a later claim keeps the first id)', async () => {
+    await addSourceServer(database, 'https://source.example');
+    // First claim wins and is echoed back.
+    expect(await claimSourceServerPublicClient(database, SOURCE_ID, 'first')).toBe('first');
+    // A concurrent racer's later claim does NOT overwrite; both converge on 'first'.
+    expect(await claimSourceServerPublicClient(database, SOURCE_ID, 'second')).toBe('first');
+    const [stored] = await listSourceServers(database);
+    expect(stored!.credentials).toEqual({ clientId: 'first' });
   });
 
   it('reads sources synchronously for auth construction', async () => {
     await addSourceServer(database, 'https://source.example');
-    await setSourceServerPublicClient(database, SOURCE_ID, 'cid');
+    await claimSourceServerPublicClient(database, SOURCE_ID, 'cid');
 
     expect(readSourceServersSync(database)).toEqual([
       {
@@ -93,7 +102,7 @@ describe('source server store', () => {
 
   it('treats a client_id with no secret as a public-client credential', async () => {
     await addSourceServer(database, 'https://source.example');
-    await setSourceServerPublicClient(database, SOURCE_ID, 'public-client-id');
+    await claimSourceServerPublicClient(database, SOURCE_ID, 'public-client-id');
 
     const [server] = await listSourceServers(database);
     expect(server!.credentials).toEqual({ clientId: 'public-client-id' });
