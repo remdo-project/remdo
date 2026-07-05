@@ -16,20 +16,13 @@ The user reviews **intent**, not steps. The spec is the durable goal; the plan i
 disposable. Execution converges on the spec autonomously; review, simplify, and
 verify are part of "done," not user commands.
 
-## Capability assumption (durable)
+## Missing tooling
 
-This skill follows the **Skill authoring** rule in `AGENTS.md`: assume every run
-is performed by a model at least as capable as the current one, so it encodes
-*intent* and keeps strictness to the reasonable minimum rather than baking in
-assumptions a better future run would have to undo. That shapes every phase
-below. The same trust covers tooling: when a referenced `superpowers:*` skill
-is not installed, apply its discipline unaided rather than stalling on the
-missing skill.
+When a referenced `superpowers:*` skill is not installed, apply its discipline
+unaided rather than stalling on the missing skill.
 
 ## Review surfaces
 
-This skill runs on the WD-first review model from AGENTS.md ("Land artifacts for
-review; don't paste them") — land artifacts, point at them, never double-read.
 The two review surfaces are concrete versioned-repo content: the **`docs/`
 changes** (phase 3) and the **report's diff index** (phase 5). Deferrals land in
 `docs/todo.md`. `.agent/` is agent-only scratch, never a review surface.
@@ -97,10 +90,7 @@ the user launches it; you do not start it on your own.
 During dialog, ask whether the change is one concern or several — structural
 splits (separate phases, separate specs, separate tasks) are cheap to make now
 and expensive once code is written. Record the decisions dialog produces — the
-split choice, and why a design was chosen over alternatives — in `docs/todo.md`:
-the spec describes target behavior only (invariant #4), so the *why* lives there
-until it moves into a `docs/` rationale or is dropped, rather than being
-memory-carried.
+split choice, and why a design was chosen over alternatives — in `docs/todo.md`.
 
 ## Phase 3 — Spec approval (the one user gate)
 
@@ -130,9 +120,6 @@ Comply with the documentation invariants
 (`docs/documentation.md`) so static checks pass without rework, and
 aim for a minimal, coherent, non-redundant end state even at the cost of larger
 doc edits.
-
-`.agent/specs/...` is **not** a review surface — it is your own scratch/cache for
-talking to tools and subagents. Do not ask the user to review it.
 
 **Refine the spec before handing it over.** Once the doc changes are written and
 before presenting them, invoke the **`remdo-refine`** skill so the user reviews
@@ -210,8 +197,8 @@ changes). See "Branch base" for why the fork uses the pinned SHA.
    - **Report back:** refine's final index. It owns the quality loop (simplify →
      internal review → external Codex review, looping to a clean pass), the
      **tradeoff/blocker policy** for review findings, and the final checks for the
-     current agent mode — all defined there, not restated here. Fold its tradeoffs
-     (already in `docs/todo.md`) into the Phase-5 report.
+     current agent mode. Fold its tradeoffs (already in `docs/todo.md`) into the
+     Phase-5 report.
 5. **Mid-work decisions:** small blast radius (a later reversal would not waste
    the work) → use judgment, **record it in `docs/todo.md`**, keep moving.
    Genuine large-blast-radius fork → stop, **recording the fork, the options, and
@@ -266,8 +253,7 @@ phase").
 - **Bounded by a question, not by exhaustiveness.** Start only when there is a
   specific thing to validate (e.g. "does our access model match AIP-XXX?", "how
   do mature outliners handle Y?"). Stop when that question is answered and the
-  design has its backing — not when sources run out. Open-ended "gather
-  everything" is the failure mode to avoid.
+  design has its backing — not when sources run out.
 - **Spikes** (throwaway prototypes to gather data) may run in parallel via
   `superpowers:dispatching-parallel-agents`, isolated in worktrees via
   `superpowers:using-git-worktrees` (per AGENTS.md worktree/`PORT_BASE` rules).
@@ -285,8 +271,6 @@ a task branch. Within a run:
 
 - **Local commits on a confirmed task branch: allowed.** Never directly onto
   `dev` or `main`.
-- **`git fetch`: always allowed** — it only updates remote-tracking refs, never
-  your work or the remote.
 - **Fast-forwarding the current branch to `origin/main`** as part of the
   preflight base check (performed by `tools/skills/preflight-base.sh`): allowed.
   The FF-only merge advances a *behind* branch along existing history — no
@@ -299,9 +283,6 @@ a task branch. Within a run:
 - **Branch creation and cross-branch ops** (checkout-other, merge, rebase-onto,
   cherry-pick): require user confirmation.
 - **Web read/search: allowed by default.**
-
-The global index rules (staged-vs-unstaged invisible; no rearranging the index)
-are unchanged here — see AGENTS.md, not repeated.
 
 ### Branch base: `origin/main...HEAD`
 

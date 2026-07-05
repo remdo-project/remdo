@@ -29,7 +29,6 @@ should be given the same isolation by the caller (a fresh subagent).
 
 ## Non-goals
 
-- Do not apply fixes.
 - Do not broaden feature scope or design new product behavior.
 - Do not run a general correctness, security, or performance review unless the
   issue is also a simplification opportunity.
@@ -74,8 +73,7 @@ Read these first:
 Choose directly relevant product docs for the touched area by filename and
 scope opener. Do not reread unrelated docs.
 
-Forward the `AGENTS.md` findings-suppression rule into this pass. The `Suppressed
-N` tail it requires is shown in the Output template below.
+Forward the `AGENTS.md` findings-suppression rule into this pass.
 
 For editor-related decisions, prefer RemDo's current Lexical patterns and, when
 the dependency tree is available, inspect `node_modules/lexical/src/` before
@@ -131,8 +129,7 @@ Look for opportunities to:
 
 ### Docs and skill files
 
-Deep doc and skill-prose review is `remdo-docs-align`'s job, and routing a
-doc-touching diff to it is the refine ladder's job — not this pass's. Here, read
+Deep doc and skill-prose review is `remdo-docs-align`'s job. Here, read
 touched docs and skills whole for context and report only violations of
 `docs/documentation.md` you hit in passing.
 

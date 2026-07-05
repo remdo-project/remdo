@@ -27,8 +27,7 @@ tie-breaker, so preserve that structure when editing this skill.
 Each stage has file-shaped inputs and outputs and can run alone; together
 they run in this order.
 
-1. **Gates.** Run `pnpm run lint:md` — the markdown static checker (style
-   lint plus the link/anchor and wording rules) — and fix to clean. (The
+1. **Gates.** Run `pnpm run lint:md` and fix to clean. (The
    deterministic wording gate covers `docs/` prose only; skill-file prose is
    covered by the align/advocate stages, not the gate.) On a scope
    narrower than the corpus,

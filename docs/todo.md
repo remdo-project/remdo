@@ -63,20 +63,8 @@ Rules:
   `docs/contributing.md#editor-feature-modules`. Move the cross-cutting body
   primitives (the note-kind predicates and selection resolvers many shared
   modules consume) to `outline/`, leaving feature-specific logic behind.
-- Editor-popup UX redesign (spec: `popups.md`/`dates.md`/`links.md`/`menu.md`).
-  Landed:
-  span-pinned session (retarget bug fixed; `triggers/session.ts` split into
-  `$openTriggerSession`/`$resolvePinnedSession`); `@` Tab closes+indents (no
-  commit) and modifier-Enter swallowed; `!` is a modal calendar dialog with
-  focus-into-grid keyboard nav via Mantine (arrows/Page/Home-End), `!`+Enter =
-  today, Esc/outside-click cancel + restore caret; one-open-at-a-time registry
-  (`triggers/active-popup.ts`) with the note menu folded in; `NoteBodyPlugin`
-  arrow-deferral keyed off the shared signal; `@` combobox ARIA on the editor
-  host (role/aria-controls/aria-activedescendant hosted on the focused editor
-  root, since the role must sit on the focused element — a picker-owned sub-host
-  would be ARIA-invalid); edit-mode date calendar (clicking a committed token) now
-  shares the same focus-trapping keyboard nav as insert.
-- Remaining follow-ups on the redesign (spec ahead of code on these details):
+- Editor-popup UX redesign (spec: `popups.md`/`dates.md`/`links.md`/`menu.md`) —
+  remaining follow-ups (spec ahead of code on these details):
   - Dedup the duplicated portal/anchor/dismissal plumbing between `NoteMenuPlugin`
     and the popup engine (they still each implement it).
   - Confirm/adjust the menu's per-widget key details against `menu.md` (Tab
@@ -126,15 +114,6 @@ swappable-auth activation); the admin-managed DB model replaced the
 `LINKABLE_REMDO_SERVERS_JSON` env config; home admin actions gate on the admin
 role; the source accepts registration only from an authenticated account while
 public (`ALLOW_SIGNUP`-backed). Two-server Docker E2E green.
-
-Deferred to follow-up PRs:
-
-- Runtime public-policy toggle UI (see above) — this PR builds swappable-auth but
-  not the toggle.
-- Source-side `clientPrivileges` (restrict raw `/oauth2/register`) — see hardening
-  list below.
-- Promote-existing-user-to-admin + per-admin revocation in the panel — see the
-  admin-panel item above.
 
 Deferred hardening:
 

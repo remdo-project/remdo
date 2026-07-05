@@ -41,10 +41,10 @@ The work is a loop the skill drives — that is where the autohealing lives. The
 deterministic part is scripted: `pnpm run deps:next` (this skill's
 `next-update.sh`) runs an ordered list of update steps and **stops at the first
 one that changes the repo**, so the skill always handles exactly one change at a
-time. The gate itself only *detects* which step did work — it never batches, and
-never parses versions or decides. Version-selection policy lives in the
-deterministic `bump-*.sh` helpers each step runs (latest pnpm release with its
-exact corepack hash, newest LTS Node whose alpine base is published, latest
+time. The gate itself only *detects* which step did work. Version-selection
+policy lives in the deterministic `bump-*.sh` helpers each step runs (latest
+pnpm release with its exact corepack hash, newest LTS Node whose alpine base is
+published, latest
 release major for floating action tags); the skill's own job is to run the gate
 and heal whatever the resulting change breaks — not to pick versions itself.
 
@@ -110,10 +110,8 @@ Once the gate is green (exit 0):
 2. Review [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md)
    as a whole: drop workarounds whose reason is now gone; re-check held-backs.
 3. Reconcile open Dependabot PRs and alerts via `gh` — bookkeeping, not a second
-   decision loop. The loop applied everything, so most npm PRs should already be
-   `covered here` (this branch carries the same or newer); confirm against the
-   branch rather than re-deciding. Apply only genuine `unresolved` follow-ups.
-   Classify each: `covered here`, `already on default branch`, `unresolved`, or
+   decision loop. Apply only genuine `unresolved` follow-ups. Classify each:
+   `covered here`, `already on default branch`, `unresolved`, or
    `blocked intentionally`.
 
 ## Final Response

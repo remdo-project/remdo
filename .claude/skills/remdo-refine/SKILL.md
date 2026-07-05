@@ -25,8 +25,7 @@ below is a judgement, not a tuned number.
 ## Scope
 
 Refine works on a single diff, fixed at invocation. There are two scopes; pick
-exactly one and keep it for every pass — never review a mix of committed and
-uncommitted changes in one run, which would make the diff under review ambiguous.
+exactly one and keep it for every pass.
 
 **Resolve the scope by running `sh tools/skills/resolve-scope.sh [scope]`** (its
 header states the full contract). Pass no argument for the committed-range default
@@ -101,8 +100,8 @@ Every rung must review with **fresh eyes** — the coordinating session's memory
 of implementing and reviewing the diff would bias it toward parts it thinks it
 cleaned. The simplify rung isolates itself (`remdo-simplify` declares a context
 fork; on a runtime without fork support, wrap it in a fresh subagent); run the
-internal-review rung the same way — a fresh context is mandatory, not optional;
-the external rung (codex, a separate process) gets the fresh read for free.
+internal-review rung the same way; the external rung (codex, a separate
+process) gets the fresh read for free.
 
 1. **Simplify** — invoke the **`remdo-simplify`** skill:
    - **Objective:** find where the diff's end state could be shorter or simpler.
