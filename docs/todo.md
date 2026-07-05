@@ -173,11 +173,6 @@ deferring does not churn the gate's interface):
   user-scoped route that removes the account link, and — if a source ends up with
   no linked users — optionally drops the cached source client), restoring
   `removeSourceServer` + its coverage against a real caller at that point.
-- Re-registering a source overwrites its stored client id/secret but leaves users'
-  existing Better Auth account rows for that `providerId`, so `listLinkedRemdoServerIds`
-  still shows them Linked while their refresh tokens (issued to the old client)
-  fail. Invalidate local account links for a source when its credentials change,
-  or otherwise force affected users through relinking.
 - Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
   the Better Auth admin plugin.
 - Tradeoff (standing): the admin secret is a permanent gate — any user who learns

@@ -8,7 +8,7 @@ import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { deriveSourceId } from '#server/remdo-oauth/config';
 import {
   addSourceServer,
-  setSourceServerCredentials,
+  setSourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
 
 const SOURCE_ID = deriveSourceId('https://source.example');
@@ -53,7 +53,7 @@ describe('createSwappableServerAuth', () => {
     expect(liveProviderIds(swappable)).toEqual([]);
 
     await addSourceServer(database, 'https://source.example');
-    await setSourceServerCredentials(database, SOURCE_ID, { clientId: 'cid', clientSecret: 'sec' });
+    await setSourceServerPublicClient(database, SOURCE_ID, 'cid');
     // Not visible until rebuild.
     expect(swappable.auth.sourceServers).toEqual([]);
     expect(liveProviderIds(swappable)).toEqual([]);
@@ -62,7 +62,7 @@ describe('createSwappableServerAuth', () => {
     expect(swappable.auth.sourceServers).toHaveLength(1);
     expect(swappable.auth.sourceServers[0]).toMatchObject({
       id: SOURCE_ID,
-      credentials: { clientId: 'cid', clientSecret: 'sec' },
+      credentials: { clientId: 'cid', clientSecret: null },
     });
     // The rebuilt Better Auth instance actually carries the OAuth provider — this
     // is what makes the source linkable, not just the array entry.

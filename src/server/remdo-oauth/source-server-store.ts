@@ -89,26 +89,6 @@ export async function addSourceServer(
   return { ...derived, credentials: null };
 }
 
-// Records the OAuth client the home registered on the source. The provider for
-// this source becomes usable at the next auth-instance build.
-export async function setSourceServerCredentials(
-  database: SqliteServerDatabaseClient,
-  id: string,
-  credentials: SourceClientCredentials,
-): Promise<void> {
-  const baseUrl = sourceOriginFromId(id);
-  const result = baseUrl
-    ? await database.db
-      .updateTable('source_servers')
-      .set({ client_id: credentials.clientId, client_secret: credentials.clientSecret })
-      .where('base_url', '=', baseUrl)
-      .executeTakeFirst()
-    : null;
-  if (!result || result.numUpdatedRows === 0n) {
-    throw new Error(`Source server ${id} is not configured.`);
-  }
-}
-
 // Persists a public client's id (no secret). Public clients authenticate via
 // PKCE, so there is no secret to store.
 export async function setSourceServerPublicClient(

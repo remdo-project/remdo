@@ -9,7 +9,6 @@ import {
   addSourceServer,
   listSourceServers,
   readSourceServersSync,
-  setSourceServerCredentials,
   setSourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
 
@@ -57,33 +56,27 @@ describe('source server store', () => {
 
   it('records registered credentials so the source becomes usable', async () => {
     await addSourceServer(database, 'https://source.example');
-    await setSourceServerCredentials(database, SOURCE_ID, {
-      clientId: 'cid',
-      clientSecret: 'sec',
-    });
+    await setSourceServerPublicClient(database, SOURCE_ID, 'cid');
 
     const [stored] = await listSourceServers(database);
-    expect(stored!.credentials).toEqual({ clientId: 'cid', clientSecret: 'sec' });
+    expect(stored!.credentials).toEqual({ clientId: 'cid', clientSecret: null });
   });
 
   it('fails to record credentials for an unknown source', async () => {
-    await expect(setSourceServerCredentials(database, 'missing', { clientId: 'c', clientSecret: 's' }))
+    await expect(setSourceServerPublicClient(database, 'missing', 'cid'))
       .rejects.toThrow('not configured');
   });
 
   it('reads sources synchronously for auth construction', async () => {
     await addSourceServer(database, 'https://source.example');
-    await setSourceServerCredentials(database, SOURCE_ID, {
-      clientId: 'cid',
-      clientSecret: 'sec',
-    });
+    await setSourceServerPublicClient(database, SOURCE_ID, 'cid');
 
     expect(readSourceServersSync(database)).toEqual([
       {
         id: SOURCE_ID,
         label: 'source.example',
         baseUrl: 'https://source.example',
-        credentials: { clientId: 'cid', clientSecret: 'sec' },
+        credentials: { clientId: 'cid', clientSecret: null },
       },
     ]);
   });
