@@ -196,7 +196,7 @@ changes). See "Branch base" for why the fork uses the pinned SHA.
    subagent only reports; acting on the report stays with you, inside the loop:
    fix real gaps (the loop continues), document or remove what is built but
    unspecified (the docs are the target reality), and record deliberate
-   deferrals in `docs/todo.md` (invariant #9). The loop exits when this read
+   deferrals in `docs/todo.md` (invariant 4). The loop exits when this read
    comes back clean or fully tracked. For user-facing behavior, also verify the built behavior
    live per the AGENTS.md DevTools flow, with automated coverage per its e2e
    escalation rule — `superpowers:verification-before-completion` is the

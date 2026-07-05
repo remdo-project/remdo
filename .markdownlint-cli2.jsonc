@@ -10,7 +10,8 @@
   // globby's `gitignore` honours .gitignore files but not `.git/` itself, and it
   // follows symlinked directories — neither of which the old `git ls-files`
   // selection did. Exclude `.git/` (repo internals, e.g. ref-log files that end
-  // in `.md`) explicitly; the tracked skill-mirror symlinks are handled below.
+  // in `.md`) explicitly; cli2 de-duplicates the tracked skill-mirror
+  // symlinks by resolved path on its own.
   "ignores": [".git"],
   // Link/anchor validation and the two RemDo prose invariants ride
   // markdownlint's own parser (no hand-rolled fence/slug scanning):
