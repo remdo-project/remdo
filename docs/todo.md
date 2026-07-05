@@ -154,6 +154,14 @@ deferring does not churn the gate's interface):
   registration-abuse control fit for unauthenticated registration (e.g. a global
   cap, trusted-proxy IP config, or proof-of-work), designed with the public-source
   policy split above.
+- Public-server "source-only" policy is enforced only at link *initiation* (the
+  URL-first and account-links routes 403 when `ALLOW_SIGNUP`). A server flipped
+  private→public that already holds linked sources still serves them: the
+  `current-user`/`sync-tokens` source proxies and the `/api/current-user`
+  projection keep working for existing links. Decide whether a public server
+  should fully shed its home role (guard the shared source-access + projection
+  path, hide existing source docs) or that's acceptable — a policy call to make
+  with the `ALLOW_SIGNUP` runtime-toggle work, not a per-route patch.
 - No user-facing "unlink / remove a source" path exists after the URL-first
   redesign: URL-first linking added a link route but the old admin remove route
   was deleted, so `removeSourceServer` + the `rebuild()`-on-removal behavior lost
