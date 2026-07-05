@@ -448,6 +448,13 @@ The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
 
 ## Later follow-ups
 
+- Dead `oauthClientCredentials` wiring: the `OAuthClientCredentials` interface +
+  the `oauthClientCredentials?` option thread `runtime.ts → createServerAuth →
+  createBetterAuthInstance` to feed `generateClientId`/`generateClientSecret` on
+  the `oauthProvider`, but nothing ever sets it (no producer, pre-existing). Now
+  that sources issue only public secretless clients it is provably dead — drop the
+  interface, the option field across the layers, and the generate-* spread so the
+  provider uses Better Auth's own id generation.
 - Auth provisioning concepts: revisit user creation, dev fixture users, OAuth
   client creation restrictions, and server registration as separate flows with
   clearer boundaries.
