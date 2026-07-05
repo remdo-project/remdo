@@ -150,6 +150,22 @@ deferring does not churn the gate's interface):
   (a mirror of Better Auth's `validateIssuerUrl`) can be deleted. Blocked on the
   Docker E2E, whose source is `http://<host-IP>` (rootless Docker can't reach a
   loopback source) — the real work is making that source loopback-reachable.
+- SSRF surface in URL-first linking (`src/server/routes/source-links.ts`): a
+  signed-in user supplies an arbitrary `url` and the home issues a server-to-server
+  POST to `<url>/api/auth/oauth2/register` (via `ensureSourceClient` →
+  `registerPublicSourceClient`). `isHttpOrigin` accepts any http(s) origin,
+  including `http://169.254.169.254`, `http://localhost:*`, and RFC-1918 hosts, so
+  a user can drive the home to probe internal services. It is authenticated and
+  *blind* (only a parsed `client_id` is stored; no response body is returned to the
+  user), so the residual is internal reachability/timing probing, not direct
+  exfil. The pre-URL-first ceremony had the same server→source fetch but gated it
+  to admins; URL-first widened the trigger to any signed-in user. Intended
+  mitigation: gate outbound registration behind an operator source policy
+  (default: https public sources only; explicit opt-in list for private/loopback
+  dev sources), or a resolve-then-check of the destination IP that permits
+  loopback only in dev. Deferred together with the non-loopback item above: a
+  strict IP filter must not break RemDo's supported private-IP/loopback source
+  topology or the Docker E2E (source `http://<host-IP>`).
 - Orphaned source client on a rare local-persist failure: `POST
   /source-servers/:id/claim` burns the source's one-time code before the local
   `setSourceServerCredentials`; if that write fails (in-process sqlite error) the
