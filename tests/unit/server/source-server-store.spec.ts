@@ -11,6 +11,7 @@ import {
   readSourceServersSync,
   removeSourceServer,
   setSourceServerCredentials,
+  setSourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
 
 const SOURCE_ID = deriveSourceId('https://source.example');
@@ -92,5 +93,13 @@ describe('source server store', () => {
         credentials: { clientId: 'cid', clientSecret: 'sec' },
       },
     ]);
+  });
+
+  it('treats a client_id with no secret as a public-client credential', async () => {
+    await addSourceServer(database, 'https://source.example');
+    await setSourceServerPublicClient(database, SOURCE_ID, 'public-client-id');
+
+    const [server] = await listSourceServers(database);
+    expect(server!.credentials).toEqual({ clientId: 'public-client-id', clientSecret: null });
   });
 });

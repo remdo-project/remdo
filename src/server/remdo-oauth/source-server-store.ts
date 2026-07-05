@@ -9,7 +9,7 @@ import type { SourceServersTable } from '#server/db/schema';
 
 export interface SourceClientCredentials {
   clientId: string;
-  clientSecret: string;
+  clientSecret: string | null;
 }
 
 export interface StoredSourceServer extends LinkableRemdoServer {
@@ -32,8 +32,8 @@ function rowToStored(row: SourceServerRow): StoredSourceServer {
     label: deriveSourceLabel(row.base_url),
     baseUrl: row.base_url,
     credentials:
-      row.client_id && row.client_secret
-        ? { clientId: row.client_id, clientSecret: row.client_secret }
+      row.client_id
+        ? { clientId: row.client_id, clientSecret: row.client_secret ?? null }
         : null,
   };
 }
@@ -115,6 +115,26 @@ export async function setSourceServerCredentials(
     ? await database.db
       .updateTable('source_servers')
       .set({ client_id: credentials.clientId, client_secret: credentials.clientSecret })
+      .where('base_url', '=', baseUrl)
+      .executeTakeFirst()
+    : null;
+  if (!result || result.numUpdatedRows === 0n) {
+    throw new Error(`Source server ${id} is not configured.`);
+  }
+}
+
+// Persists a public client's id (no secret). Public clients authenticate via
+// PKCE, so there is no secret to store.
+export async function setSourceServerPublicClient(
+  database: SqliteServerDatabaseClient,
+  id: string,
+  clientId: string,
+): Promise<void> {
+  const baseUrl = sourceOriginFromId(id);
+  const result = baseUrl
+    ? await database.db
+      .updateTable('source_servers')
+      .set({ client_id: clientId, client_secret: null })
       .where('base_url', '=', baseUrl)
       .executeTakeFirst()
     : null;
