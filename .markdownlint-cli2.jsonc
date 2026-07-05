@@ -37,7 +37,7 @@
   ],
   "config": {
     "default": true,
-    "relative-links": true,
+    "relative-links": { "root_path": "." }, // root-relative `/docs/...` links validate against the repo root
     "remdo-temporal-status": true,
     "remdo-references-shape": true,
     "MD013": {

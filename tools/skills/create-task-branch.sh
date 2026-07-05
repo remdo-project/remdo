@@ -33,6 +33,14 @@ if git show-ref --verify --quiet "refs/heads/$name"; then
   fail "branch '$name' already exists"
 fi
 
+# With HEAD at the pinned base (the feature-flow precondition), --merge cannot
+# conflict; carrying edits across a *moved* base can, and a conflicted switch
+# would strand the tree with the branch already created. Refuse upfront.
+if [ "$(git rev-parse HEAD)" != "$(git rev-parse "$base^{commit}")" ] \
+  && ! git diff --quiet 2>/dev/null; then
+  fail "HEAD is not at the pinned base and the tree has edits — carrying them across a moved base risks a conflicted switch; reconcile HEAD with the base first"
+fi
+
 # --merge refuses to carry *staged* edits across the base change; feature-flow's
 # contract is to clear that drift rather than un-stage, so refuse loudly here
 # instead of letting the switch produce a confusing error.

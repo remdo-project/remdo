@@ -81,7 +81,7 @@ describe('tools/skills/create-task-branch.sh', () => {
     expect(git(work, 'rev-parse', '--abbrev-ref', 'HEAD').stdout.trim()).toBe('main');
   });
 
-  it('refuses when --merge leaves conflicts folding the spec onto the base', () => {
+  it('refuses upfront to carry edits across a moved base (the conflict-producing state)', () => {
     // `git switch --merge` exits 0 even when the three-way merge of the
     // uncommitted edit onto the new base conflicts; the post-switch unmerged
     // check must catch it. Build a base where a.md differs from HEAD, then an
@@ -93,7 +93,7 @@ describe('tools/skills/create-task-branch.sh', () => {
     writeFile(work, 'a.md', 'line1\nUNCOMMITTED-EDIT\nline3\n'); // conflicts on fold
     const result = run(work, ['feat/x', base]);
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('left conflicts');
+    expect(result.stderr).toContain('carrying them across a moved base');
   });
 
   it('fails loud outside a git repository', () => {
