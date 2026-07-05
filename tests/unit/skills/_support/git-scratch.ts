@@ -11,8 +11,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { expect } from 'vitest';
 
-export const repoRoot = process.cwd();
-export const skillsDir = path.join(repoRoot, 'tools/skills');
+export const skillsDir = path.join(process.cwd(), 'tools/skills');
 
 // Deterministic identity + no signing, independent of the dev's global config.
 const gitEnv = {
