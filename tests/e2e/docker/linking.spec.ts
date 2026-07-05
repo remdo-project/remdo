@@ -28,47 +28,21 @@ async function signInWithVisibleForm(page: Page, user: StableUser): Promise<void
   await page.getByRole('button', { name: 'Sign in' }).click();
 }
 
-// The Docker session is the home admin (setup.spec enrolled it); register the
-// source through the /admin panel, authorizing on the source as the same person.
-async function registerSource(page: Page): Promise<void> {
-  await page.goto('/admin');
-  await expect(page).toHaveURL(buildUrl(homeOrigin, '/admin'));
-  await expect(page.getByRole('heading', { name: 'Source servers' })).toBeVisible();
-
-  // Register adds the source and launches registration in one step, redirecting
-  // to the source's confirmation page (top-level nav).
-  await page.getByLabel('Source server URL').fill(sourceOrigin);
-  await page.getByRole('button', { name: 'Register', exact: true }).click();
-
-  // Not yet signed in on the source → its login, then back to the confirmation.
-  await expect.poll(() => new URL(page.url()).origin).toBe(sourceOrigin);
-  await signInWithVisibleForm(page, STABLE_AUTH_USERS.bob);
-  await expect(page.getByRole('heading', { name: 'Register a home server' })).toBeVisible();
-  await page.getByRole('button', { name: 'Authorize' }).click();
-
-  // Back on the home /admin with the pending claim; finish registration.
-  await expect.poll(() => new URL(page.url()).origin).toBe(new URL(homeOrigin).origin);
-  await page.getByRole('button', { name: 'Finish registering this home' }).click();
-  await expect(page.getByText('Registered', { exact: true })).toBeVisible();
-}
-
-test('registers a source, links an account, and opens its Home document', async ({ page }) => {
+test('links a source by URL and opens its Home document', async ({ page }) => {
   setExpectedConsoleIssues(page, ['Failed to get client token'], { mode: 'allowContains' });
 
-  await registerSource(page);
-
-  // Link the source account from Sharing.
+  // Link the source from Sharing. There is no admin registration step and no
+  // pre-listed source: entering the URL and clicking "Link source" both
+  // self-registers the public client on the source and starts OAuth.
   await page.goto('/sharing');
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/sharing'));
-  await expect(page.getByText('Remote RemDo servers')).toBeVisible();
-  await expect(page.getByText(sourceHost, { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Link' }).click();
+  await page.getByLabel('Source URL').fill(sourceOrigin);
+  await page.getByRole('button', { name: 'Link source' }).click();
 
-  // The link starts OAuth on the source. Bob is already signed in there from
-  // registration, so the source skips its login and shows the consent screen;
-  // approve it to return to the home. (If a login ever does appear, handle it
-  // first.) Each step is a real wait, not a one-shot visibility check that could
-  // race the page load.
+  // The link starts OAuth on the source. Bob is not pre-signed-in there (no
+  // registration step did that for us), so the source most likely shows its
+  // login first, then the consent screen; handle both. Each step is a real
+  // wait, not a one-shot visibility check that could race the page load.
   await expect.poll(() => new URL(page.url()).origin).toBe(sourceOrigin);
   const loginHeading = page.getByRole('heading', { name: 'Sign in' });
   const consentButton = page.getByRole('button', { name: /allow|authorize|approve|consent/iu });
