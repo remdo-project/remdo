@@ -80,6 +80,9 @@ the user.
   page. A public server omits the login-page link — `/admin` is still reachable
   directly.
 
+Future: define the `ADMIN_SECRET` rotation lifecycle — whether rotating the
+secret affects existing admin accounts or only future enrollment.
+
 ## CSRF Protection
 
 - Session cookies are SameSite=Lax; app routes use Hono's CSRF middleware to

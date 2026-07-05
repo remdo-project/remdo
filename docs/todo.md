@@ -134,16 +134,12 @@ Deferred to follow-up PRs:
 
 - Runtime public-policy toggle UI (see above) — this PR builds swappable-auth but
   not the toggle.
-- Promote-existing-user-to-admin + per-admin revocation in the panel — see the
-  admin-panel item above.
 
 Deferred hardening on top of that foundation (each is on top of the same gate, so
 deferring does not churn the gate's interface):
 
 - Audit logging + rate limiting on self-enrollment and public-policy changes
   (one submission now grants a durable role, not a one-off action).
-- `ADMIN_SECRET` rotation lifecycle: define whether rotating affects existing
-  admins or only future enrollment.
 - Split signup policy from source client-registration policy (separate runtime
   settings + a "public source" preset) once the source-linking work lands.
 - Reject non-loopback http sources in `deriveSourceServer` so `normalizeSourceIssuer`
@@ -159,9 +155,6 @@ deferring does not churn the gate's interface):
   `removeSourceServer` + its coverage against a real caller at that point.
 - Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
   the Better Auth admin plugin.
-- Tradeoff (standing): the admin secret is a permanent gate — any user who learns
-  it can self-upgrade, with no per-admin revocation yet. Accepted for
-  single-operator self-host; revisit for public multi-tenant.
 
 ## Offline and local persistence follow-ups
 
