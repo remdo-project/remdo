@@ -18,9 +18,10 @@ tie-breaker, so preserve that structure when editing this skill.
 - **Rules doc**: `docs/documentation.md` unless the caller names another
   with equivalent carve-outs (the templates assume its carve-out structure).
 - **Scope**, fixed at invocation: the working tree (uncommitted doc
-  changes), a committed range (resolved per `remdo-refine`'s base rules), or
-  an explicit file set (e.g. the whole corpus for a realignment). A diff
-  scope selects its touched files, read whole.
+  changes), a committed range (resolved via `tools/skills/resolve-scope.sh` —
+  an immutable base SHA plus the touched-file list), or an explicit file set
+  (e.g. the whole corpus for a realignment). A diff scope selects its touched
+  files, read whole.
 
 ## Pipeline
 
@@ -36,10 +37,13 @@ they run in this order.
    out-of-scope findings go to the stage-5 report.
 2. **Align pass.** An editor fixes the remaining rule violations across the
    scope, re-running the gates after each batch.
-3. **Advocate.** A read-only deletion advocate sweeps the scope with
-   `references/advocate.md` and writes a numbered proposal table. It SHOULD
-   run on a different model family than the editor, using `codex exec` in a
-   read-only sandbox.
+3. **Advocate.** Run `sh tools/skills/advocate-run.sh <rules-doc> <scope>
+   <output-file>` (its header states the full contract). It substitutes the
+   scope and rules doc into `references/advocate.md` and runs the read-only
+   deletion advocate via `codex exec` in a read-only sandbox — a different
+   model family than the editor — capturing the numbered proposal table to
+   the output file. On a non-zero exit (the retry also failed), surface it in
+   the stage-5 report rather than proceeding to adjudicate an empty table.
 4. **Adjudicate.** The editor applies `references/adjudicate.md` over the
    proposal table. Gates re-run after the edits.
 5. **Report.** What changed; the per-proposal disposition list;
@@ -61,8 +65,10 @@ Forward the `AGENTS.md` findings-suppression rule to every stage.
 
 ## Permissions
 
-Same contract as `remdo-refine`: invoking this skill on a committed-range
-scope is a declared autonomous commit scope on the current branch — each
-stage's applied edits are committed, keeping the range honest — never
-`main`, never push. Working-tree scope commits nothing; the user owns the
-commit.
+Invoking this skill on a **committed-range scope** is an explicitly declared
+autonomous scope (per AGENTS.md): authorization to commit each stage's applied
+edits **on the current branch**, keeping the resolved range honest — never onto
+`main` (if invoked there, warn and stop rather than self-committing), and never
+push. In **working-tree scope** it commits nothing — the applied edits stay in
+the tree and the user owns the eventual commit. `git fetch` is always allowed;
+pull, force-push, and opening PRs stay the user's.

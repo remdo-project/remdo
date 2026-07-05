@@ -42,43 +42,32 @@ UI, etc. — see the exclusion list under **Finding bar**.)
 Use the exact scope supplied by the caller. A refine caller should pass only the
 scope and this skill, not its suspected fixes or implementation context.
 
-Accepted scopes:
+Resolve it by running `sh tools/skills/resolve-scope.sh [scope]` (its header
+states the full contract): no argument infers the committed-range default
+(`origin/main...HEAD`, the three-dot merge-base range that is exactly a task
+branch's own work), an explicit `A..B`/`A...B` range selects a committed range,
+and `working-tree` selects the uncommitted changes (staged + unstaged +
+untracked). It anchors a committed range's base to an immutable SHA and refuses a
+mixed scope (a committed range while the tree is dirty) — this pass is read-only
+and never loops, so it needs no anchoring of its own, but reusing the resolver
+keeps one scope contract across the skills. It prints `SCOPE=`/`BASE=` plus the
+file list. On a non-zero exit, warn and stop rather than folding the other side's
+changes into the review; on an integration branch (`dev`) where the committed
+default is not one unit of work, report that an explicit scope is required.
 
-- **Committed range**: a base/range such as `origin/main...HEAD` (the three-dot
-  merge-base range that is exactly a task branch's own work — see
-  `remdo-feature-flow` "Branch base"), `<base-sha>..HEAD`, or "base is `<sha>`".
-  Use it directly as `<range>` below; this pass is read-only and never loops, so
-  it needs no base-SHA anchoring (that is `remdo-refine`'s concern, where a commit
-  loop moves `HEAD`).
-- **Working tree**: uncommitted changes, staged + unstaged + untracked.
-
-Do not mix committed and uncommitted scopes. If a committed range was requested
-and the working tree is dirty, stop with a scope warning instead of folding those
-changes into the review. If no scope was supplied, infer only when unambiguous:
-use the working tree when it has changes; otherwise, on a task branch forked from
-`origin/main`, use `origin/main...HEAD`; otherwise (an integration branch like
-`dev`, where that range is not one unit of work) report that a scope is required.
-
-For the chosen scope, start with read-only inspection:
+For the resolved scope, run this read-only inspection to read the diff surface:
 
 ```sh
-git status --short --branch
 git diff --stat <range>
 git diff --name-status <range>
 git diff --check <range>
-git ls-files --others --exclude-standard
 ```
 
-`<range>` is the committed range in committed-range scope and `HEAD` (the
-working-tree diff) in working-tree scope, so every `<range>` command targets
-exactly the scope's diff and never folds in the other side.
-
-The unqualified `git status` and `git ls-files --others` are the dirty-tree gate:
-in committed-range scope neither should report any changed or untracked file
-(judge `git status` by its file entries — the `## <branch>` header `--branch`
-always prints is not one). Any such entry is the dirty tree the scope forbids —
-warn and stop per "Select the scope". Read the diff per file when the total diff
-is large. Read untracked files that belong to the scope.
+`<range>` is the committed range's base (`<base-sha>..HEAD`) in committed-range
+scope and `HEAD` (the working-tree diff) in working-tree scope, so every command
+targets exactly the scope's diff and never folds in the other side. Read the diff
+per file when the total diff is large. Read untracked files that belong to the
+scope (from the resolver's file list).
 
 ## Read RemDo guidance
 
@@ -148,11 +137,10 @@ Look for opportunities to:
 
 ### Docs and skill files
 
-Deep doc and skill-prose review is `remdo-docs-align`'s job (the refine
-ladder routes any doc-touching diff to its advocate/adjudicate stages). Here,
-read touched docs and skills whole for context and report only violations of
-`docs/documentation.md` you hit in passing — or recommend a docs-align run
-when the diff's prose warrants its own pass.
+Deep doc and skill-prose review is `remdo-docs-align`'s job, and routing a
+doc-touching diff to it is the refine ladder's job — not this pass's. Here, read
+touched docs and skills whole for context and report only violations of
+`docs/documentation.md` you hit in passing.
 
 ## Finding bar
 
@@ -227,10 +215,10 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 
 ## References
 
-- [RemDo refine](../../../.claude/skills/remdo-refine/SKILL.md)
-- [RemDo sweep](../remdo-sweep/SKILL.md)
+- [Scope resolution](../../../tools/skills/resolve-scope.sh)
 - [Agent guidelines](../../../AGENTS.md)
 - [Documentation invariants](../../../docs/documentation.md#invariants)
+- [Git workflow / branch base](../../../docs/contributing.md#git-workflow)
 - [Runtime baseline](../../../docs/contributing.md#runtime-baseline)
 - [Compatibility policy](../../../docs/contributing.md#compatibility-policy-pre-10)
 - [Editor feature modules](../../../docs/contributing.md#editor-feature-modules)

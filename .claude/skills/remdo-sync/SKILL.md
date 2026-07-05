@@ -8,7 +8,7 @@ description: Use to bring the latest `origin/main` into the current branch. Merg
 ## Overview
 
 Bring the current branch up to date with `origin/main`. Review diffs use the
-`origin/main` merge-base (see `remdo-feature-flow` "Branch base"), which needs no
+`origin/main` merge-base (see `docs/contributing.md#git-workflow`), which needs no
 base tag to stay correct across a merge — so this skill owns no bookkeeping: it
 does one thing, integrate `origin/main` cleanly.
 
@@ -26,19 +26,23 @@ the right default for an autonomous skill. A user who wants a linear history can
 rebase by hand; this skill does not, and **never pushes**. (See `References` for
 the rebase-vs-merge tradeoff.)
 
-## Preconditions (warn and stop)
-
-- **Clean working tree** — merge needs it; commit or stash first.
-
 Sync runs on whatever branch is checked out (no branch-name gate).
 
 ## The flow
 
-1. **Fetch.** `git fetch --prune` (always allowed — it only updates
-   remote-tracking refs).
-2. **Already up to date?** If `origin/main` is already reachable from `HEAD`
-   (nothing to merge — e.g. a prior manual merge), finish here.
-3. **Merge** (and resolve, if conflicts). `git merge origin/main`. Resolve only
+**Probe first: run `sh tools/skills/sync-probe.sh`** (its header states the full
+contract). It fetches (always allowed — remote-tracking refs only) and classifies
+whether `origin/main` still needs merging, printing one `STATE=` line. Act on it:
+
+- **`STATE=dirty-tree`** — the merge's clean-tree precondition fails. **Warn and
+  stop**; the user commits or stashes first (never do it for them).
+- **`STATE=up-to-date`** — `origin/main` is already reachable from `HEAD` (nothing
+  to merge, e.g. a prior manual merge). Finish here.
+- **`STATE=merge-needed`** — proceed to the merge below.
+
+Then:
+
+1. **Merge** (and resolve, if conflicts). `git merge origin/main`. Resolve only
    conflicts you can **determine are safe** — take the time to be sure: read both
    sides' intent, the surrounding code, `git log`/`git blame`, related changes.
    When a resolution is not clearly correct, **do not guess** — leave it
@@ -46,7 +50,7 @@ Sync runs on whatever branch is checked out (no branch-name gate).
    finish a half-resolved merge silently. Bias to callout when unsure. If
    conflicts can't be safely resolved, stop with the callout rather than
    committing a half-resolved merge.
-4. **Verify.** Unless the merge fast-forwarded, run `pnpm run check:full` (the
+2. **Verify.** Unless the merge fast-forwarded, run `pnpm run check:full` (the
    merge is already committed, so the changed-only `check` would select no
    tests): a textually clean merge can still be semantically broken, and
    auto-resolved conflicts double the reason. A failure is part of the callout
@@ -72,6 +76,7 @@ was skipped for a fast-forward).
 
 - Rebase-vs-merge / force-push tradeoff:
   <https://www.atlassian.com/git/tutorials/merging-vs-rebasing>.
-- Branch base (`origin/main...HEAD`) and the calling flow: `remdo-feature-flow`
-  skill.
+- Status-probe mechanics: `tools/skills/sync-probe.sh`.
+- Branch base (`origin/main...HEAD`) and the diff contract:
+  `docs/contributing.md#git-workflow`.
 - Skill-authoring rule and fetch/push policy: `AGENTS.md`.

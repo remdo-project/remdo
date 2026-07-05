@@ -28,49 +28,43 @@ Refine works on a single diff, fixed at invocation. There are two scopes; pick
 exactly one and keep it for every pass — never review a mix of committed and
 uncommitted changes in one run, which would make the diff under review ambiguous.
 
+**Resolve the scope by running `sh tools/skills/resolve-scope.sh [scope]`** (its
+header states the full contract). With no argument it infers the committed-range
+default (`origin/main...HEAD`); pass an explicit `A..B`/`A...B` range or
+`working-tree` to override. It anchors the range base to an immutable SHA, refuses
+a mixed scope (a committed range while the tree is dirty), and prints
+`SCOPE=`/`BASE=` plus the file list. The judgment around it stays here:
+
+- **Refusal handling.** A non-zero exit means the requested scope is unresolvable
+  — most often the mixed-scope refusal (committed range over a dirty tree). Warn
+  and stop until the work is committed or stashed; this is why `remdo-feature-flow`
+  commits its phase-4 work before invoking refine. Do not fold the uncommitted
+  changes in to make it resolve.
+- **Integration-branch confirmation.** The script's committed-range default
+  (`origin/main...HEAD`) is meaningless on an integration branch (`dev`) or any
+  branch where that range is not one unit of work — it would sweep in every commit
+  `dev` gathered since it forked from `main`, and refine *commits* fixes across all
+  of it. There, **do not accept the default: confirm an explicit range first.**
+  The conversation usually makes it obvious (the work just done, the last commit,
+  the last few) — state the concrete range you'll pass to the script and proceed
+  once confirmed. Refine runs on `dev` per Permissions, but always against a pinned
+  range, never the branch-wide default. Refine never silently infers the range
+  from session context: it is given one, or it confirms one before proceeding.
+
+The two scopes differ in what the loop does with the resolved diff:
+
 ### Committed-range scope (default)
 
-The diff is `<base-sha>..HEAD`. Resolved once, deterministically, in this order:
+The diff is `<base-sha>..HEAD` with the base anchored to the immutable SHA the
+script pinned. The loop commits fixes, so `HEAD` advances every cycle; reviewing
+against the pinned SHA (not a re-evaluated relative ref) keeps each fix inside the
+range for the next pass and never shifts the base forward under the loop.
 
-1. An **explicit range/base passed at invocation** wins (e.g. the caller says
-   "refine `HEAD~3..HEAD`" or "refine the commit we just made"). Honour it; do
-   not second-guess the intent.
-2. Otherwise, **on a task branch forked from `origin/main`**, default to
-   **`origin/main...HEAD`** (see `remdo-feature-flow` "Branch base") — the
-   three-dot merge-base range that is exactly that branch's own work, needing no
-   stored base.
-3. **On an integration branch** (`dev`) or any branch where `origin/main...HEAD`
-   is not one unit of work — many accumulated merges, or no merge-base at all —
-   this default is meaningless (it would sweep in every commit `dev` gathered
-   since it forked from `main`, and refine *commits* fixes across all of it). So
-   **do not default; ask for an explicit range**. The conversation usually makes
-   the intended range obvious (the work just done, the last commit, the last few)
-   — state the concrete range you'll use and proceed once it's confirmed. Refine
-   runs on `dev` per Permissions, but always against a range the caller pins here,
-   never the branch-wide default.
-
-Refine never silently infers the range from session context: it is given one, or
-(case 3) it confirms one before proceeding.
-
-**Anchor the base to a fixed commit SHA, not a relative ref.** The loop commits
-fixes, so `HEAD` advances every cycle. Resolve the range's base **once** to an
-immutable SHA and review `<base-sha>..HEAD` on every pass — never re-evaluate a
-range whose base can move per cycle, which would shift the base forward and
-silently drop already-reviewed work. This applies to the `origin/main...HEAD`
-default too: resolve it once with `git merge-base origin/main HEAD` at invocation
-and reuse that SHA, so an `origin/main` that advances mid-loop (or a HEAD-relative
-base like `HEAD~3`) can't move the base under the loop. Anchoring the base and
-letting only `HEAD` move keeps each fix inside the range for the next pass, as the
-loop requires.
-
-**The working tree must be clean** in this scope. Staged, unstaged, or untracked
-changes sit outside the resolved range and would be silently unreviewed, so if
-the tree is dirty, **warn and stop** until the work is committed (or stashed).
-This is why `remdo-feature-flow` commits its phase-4 work before invoking refine.
-
-So that each cycle reviews the previous one's result, **commit every applied
-fix** before re-running any pass — the fix then lands inside the resolved range
-and the tree stays clean for the next pass.
+**The working tree must be clean** in this scope — the script's mixed-scope
+refusal enforces it, since staged/unstaged/untracked changes would sit outside the
+range and go silently unreviewed. So that each cycle reviews the previous one's
+result, **commit every applied fix** before re-running any pass — the fix then
+lands inside the resolved range and the tree stays clean for the next pass.
 
 ### Working-tree scope (opt-in)
 
@@ -82,57 +76,75 @@ is to vet the uncommitted docs before approval. Enter it only when the caller
 asks for it (e.g. "refine the uncommitted changes" / "refine before I commit");
 it is never the silent default.
 
-In this scope the clean-tree gate is inverted: an **empty** working-tree diff is
-the stop condition (nothing to refine), and a dirty tree is expected. Each pass
-re-reads the working tree rather than a committed range, so re-runs still review
-the post-fix state; the "commit every fix" rule does **not** apply —
-the user commits once, after their own review. Everything else (ladder order,
-triage, done/stuck) is identical to the committed-range scope.
+Here the script's gate is the mirror image: an **empty** tree is the refusal
+(nothing to refine). Each pass re-reads the working tree rather than a committed
+range, so re-runs still review the post-fix state; the "commit every fix" rule
+does **not** apply — the user commits once, after their own review. Everything
+else (ladder order, triage, done/stuck) is identical to the committed-range
+scope.
 
 ## The ladder
 
-Three passes, cheapest and most local first, most independent last. Each is a
+Refine is the **sole caller** of these rungs; nothing else invokes them as a
+loop. They run cheapest and most local first, most independent last. Each is a
 **read-only finder** over the same diff under review (the resolved range, or the
-working-tree changes): passes report, and the coordinating session triages,
+working-tree changes): a rung reports, and the coordinating session triages,
 applies what is approved, and owns the loop. Keeping finding and applying apart
-is what makes triage a real gate — a pass that edited the tree would pre-empt it.
+is what makes triage a real gate — a rung that edited the tree would pre-empt it.
 
-Every pass must review with **fresh eyes** — the coordinating session's memory
+Every rung must review with **fresh eyes** — the coordinating session's memory
 of implementing and reviewing the diff would bias it toward parts it thinks it
-cleaned. Pass 1 isolates itself (`remdo-simplify` declares a context fork; on a
-runtime without fork support, wrap it like pass 2); run pass 2 as a fresh,
-context-limited subagent given only the scope; pass 3 (codex, a separate
-process) gets the fresh read for free.
+cleaned. The simplify rung isolates itself (`remdo-simplify` declares a context
+fork; on a runtime without fork support, wrap it in a fresh subagent); run the
+internal-review rung the same way when needed; the external rung (codex, a
+separate process) gets the fresh read for free.
 
-1. **Simplify** — the `remdo-simplify` skill: the read-only, RemDo-aware
-   simplification finder. Its code/test lenses, the doc-minimalism lens for
-   touched prose (`docs/**`, skill files), and the documentation-invariant
-   check are all defined there, not here. For any
-   diff touching docs or skill prose, also run the `remdo-docs-align` skill's
-   advocate/adjudicate stages as this rung's deeper pass and triage its
-   disposition list like any findings.
-2. **Internal review** — `/code-review` at max effort against the diff under
-   review (the resolved range's base, or the working-tree changes).
-3. **External review** — `codex review` for an independent outside read:
-   `--base <anchored-base-sha>` in committed-range scope, `--uncommitted` in
-   working-tree scope. Pass the base SHA resolved above, **not** `--base
-   origin/main` — codex recomputes its own merge-base from the ref, so a bare
-   `origin/main` would drift if it advances mid-loop, the same drift the
-   SHA-anchoring rule prevents (`--base` accepts a commit SHA, not only a branch).
-   Give it **scope only, no review angle** — leading prompt framing defeats the
-   point. If the `codex` CLI is unavailable in the current environment, skip
-   this rung and say so in the final report — never silently narrow the ladder.
+1. **Simplify** — invoke the **`remdo-simplify`** skill:
+   - **Objective:** find where the diff's end state could be shorter or simpler.
+   - **Scope passed:** the resolved `SCOPE`/`BASE` — nothing else (no suspected
+     fixes, no implementation context, which would defeat the fresh read).
+   - **Report back:** its finding list (code/test lenses and the pass-in-passing
+     doc-invariant check are defined there, not here).
+   - **Triage:** treat each finding under the loop's triage rules below.
 
-Forward the `AGENTS.md` findings-suppression rule to every pass and subagent.
+2. **Docs align** — for any diff touching `docs/**` or skill prose, invoke the
+   **`remdo-docs-align`** skill (a sibling rung to simplify, not nested inside
+   it); skip it for a diff with no such files.
+   - **Objective:** converge the touched doc/skill prose to its rules doc.
+   - **Scope passed:** the doc/skill files within the resolved scope; docs-align
+     decides which of its own stages that scope needs.
+   - **Report back:** its per-proposal disposition list plus any ESCALATE table.
+   - **Triage:** consume the dispositions like any findings; surface an ESCALATE
+     row as a tradeoff or blocker per the loop rules.
+
+3. **Internal review** — invoke `/code-review` at max effort:
+   - **Objective:** an internal correctness/quality read of the diff.
+   - **Scope passed:** the diff under review (the resolved range's base, or the
+     working-tree changes).
+   - **Report back / triage:** its findings, triaged under the loop rules.
+
+4. **External review** — invoke `codex review` for an independent outside read:
+   - **Objective:** a fresh external read from a separate process.
+   - **Scope passed:** `--base <anchored-base-sha>` in committed-range scope,
+     `--uncommitted` in working-tree scope. Pass the base SHA the resolver pinned,
+     **not** `--base origin/main` — codex recomputes its own merge-base from the
+     ref, so a bare `origin/main` would drift if it advances mid-loop (`--base`
+     accepts a commit SHA, not only a branch). Give it **scope only, no review
+     angle** — leading prompt framing defeats the point.
+   - **Report back / triage:** its findings, triaged under the loop rules. If the
+     `codex` CLI is unavailable, skip this rung and say so in the final report —
+     never silently narrow the ladder.
+
+Forward the `AGENTS.md` findings-suppression rule to every rung and subagent.
 
 ## The loop
 
-Each pass produces findings. Triage, apply what is approved (committing it in
+Each rung produces findings. Triage, apply what is approved (committing it in
 committed-range scope; in place in working-tree scope), then **re-run that same
-pass** until it settles (returns nothing more to apply), and move down the
+rung** until it settles (returns nothing more to apply), and move down the
 ladder. Mid-loop fixes do not restart the ladder — the confirmation cycle below
 is where earlier rungs re-see the finished code, so a late nit no longer re-buys
-every earlier, more expensive pass on each iteration.
+every earlier, more expensive rung on each iteration.
 
 - **Approved fix** — clearly correct and safe (or an intended change the diff owns).
   Apply it (committed-range: commit; working-tree: leave in the tree); the run is
@@ -144,7 +156,7 @@ every earlier, more expensive pass on each iteration.
 - **Reject** — not a real issue, or out of scope. Drop it.
 
 Once every rung has settled, run a **confirmation cycle**: the full ladder again
-from pass 1, against the finished diff. **Done** when a confirmation cycle
+from rung 1, against the finished diff. **Done** when a confirmation cycle
 produces zero approved fixes; if it produces any, settle the rung that raised
 them as above, then confirm again. **Stuck** (stop and
 report) when a finding recurs with no progress, or the diff will not converge
@@ -193,14 +205,16 @@ diff each finding sat); tradeoffs taken with a pointer to their
 `docs/todo.md` entries; any blocker with its gathered data; and the final checks
 with pass/fail.
 
-Then one **per-rung counts** line each for simplify / internal / external: how
-many times it ran, findings it surfaced, and how many of those were applied.
+Then one **per-rung counts** line each for simplify / docs-align / internal /
+external: how many times it ran, findings it surfaced, and how many of those were
+applied (docs-align only when the diff touched doc/skill prose).
 
 ## References
 
-- Sequenced tools: `remdo-simplify` skill, `/code-review`, `codex review`.
-- Deeper pass for doc-touching diffs: `remdo-docs-align` skill.
-- Loop/loop-guard prior art: `remdo-deps-refresh` skill.
-- Branch base and the calling flow: `remdo-feature-flow` skill.
+- Ladder rungs invoked in order: `remdo-simplify` skill, `remdo-docs-align` skill
+  (doc-touching diffs), `/code-review`, `codex review`.
+- Scope resolution mechanics: `tools/skills/resolve-scope.sh`.
+- Branch base and the `origin/main...HEAD` diff contract:
+  `docs/contributing.md#git-workflow`.
 - Bringing `origin/main` into the branch: `remdo-sync` skill.
 - Skill-authoring rule, findings-suppression, and checks: `AGENTS.md`.
