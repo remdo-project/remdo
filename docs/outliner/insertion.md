@@ -12,8 +12,7 @@ collapsed parent behavior is called out explicitly (see [Folding](./folding.md))
    the original note stay attached to it.
 2. **Middle of note** – split into two siblings at the caret. Text **before**
    the caret becomes a new sibling inserted immediately above the original; the
-   original note keeps the text after the caret and all of its children (the
-   note after the caret remains the parent of its subtree).
+   original note keeps the text after the caret and all of its children.
 3. **End of note** – when the note already has children **and** the parent is
    expanded, create a new first child. Otherwise (no children or collapsed
    parent), insert a next sibling immediately below.

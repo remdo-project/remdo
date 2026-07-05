@@ -58,7 +58,7 @@ the user.
   the projection.
 - Every admin API authorizes from the caller's session + role — except the
   self-enrollment endpoint, which registers a *new* admin account (no existing
-  session or role to check) and is instead gated by `ADMIN_SECRET` (below).
+  session or role to check).
 - `/admin` is the single admin entry route. It renders by the caller's role: an
   admin sees the admin panel; anyone else (signed in or not) sees the
   self-enrollment form. The client learns the current user's role from the
@@ -68,8 +68,7 @@ the user.
   [Cross-Server Source Linking](#cross-server-source-linking)).
 - Self-enrollment is gated by `ADMIN_SECRET` (see
   [docs/config.md](./config.md#admin-bootstrap-and-enrollment)) and always
-  **registers a new admin account**: presenting the secret with account details
-  creates the account and grants it the admin role. The secret is a shared gate,
+  **registers a new admin account**. The secret is a shared gate,
   not tied to one user — any secret-holder can register an admin account, and it
   works independently of the public-signup policy (so a private server can still
   bootstrap and add admins). Promoting an *existing* user is a separate,
@@ -149,9 +148,8 @@ This action spans two servers and needs a different access level on each:
   internal id from the source's origin; a URL that is not a bare origin, or
   duplicates an existing source, is rejected.
 - On the **source**, the actor only needs to be a signed-in **user** — any
-  ordinary source account, not a source admin. The same person usually plays both
-  roles (a home admin who also holds a normal account on the source), but the
-  source never requires admin rights of them.
+  ordinary source account, not a source admin. The source never requires admin
+  rights of them.
 
 The flow:
 
@@ -161,7 +159,7 @@ The flow:
   to that user's source account and returns the credentials to the home, which
   persists them and activates the source as a live provider without a restart.
 - A source accepts registration only while it is acting as a public source
-  (open-signup); a private source refuses it outright.
+  (open-signup).
 - This **home OAuth client** (the credentialed identity the source issued for
   the home) only identifies a home to the source; it grants no document access on
   its own. Access still flows through per-account linking: each linking user later

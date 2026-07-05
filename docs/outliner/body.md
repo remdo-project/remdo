@@ -18,7 +18,7 @@ owned by its editor note (see [Concepts](./concepts.md#note-kinds)).
 3. **Visually distinct.** A body renders set apart from the note's content.
 4. **Inline content.** Body text supports the same key-driven inline content as
    note content — inline formatting (no separate formatting UI) and `@` note
-   links (see [Links](./links.md)), including the picker's `Enter`-to-confirm.
+   links (see [Links](./links.md)).
 
 ## Selection and navigation
 
@@ -57,8 +57,7 @@ Within a body, keys behave as follows:
 4. **Undo restores it.** Undoing a body deletion restores the body and its text
    as a single step.
 
-`Backspace` at the start of a non-empty body is a no-op — it never merges the
-body into the note above.
+`Backspace` at the start of a non-empty body is a no-op.
 
 ## Note merge
 

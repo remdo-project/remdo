@@ -15,8 +15,6 @@ A selection is always exactly one of:
 2. **Note range** — a contiguous slice of the outline covering one or more whole
    notes, each with its entire subtree, in document order.
 
-There is no non-contiguous selection.
-
 **Mode switch.** Typing inserts characters only in state 1. As soon as the
 selection covers any whole note (state 2), the editor is in structural mode:
 keystrokes that would type become no-ops and structural commands take over.

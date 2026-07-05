@@ -79,9 +79,6 @@ addressable by id, can have children, or can be selected structurally. The set o
 kinds and each kind's capabilities are defined where the kinds live, not
 enumerated here.
 
-A note's [body](./body.md) is one such kind: a restricted note owned by its
-editor note.
-
 ---
 
 ## Adapters (source↔note)

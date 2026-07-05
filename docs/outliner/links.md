@@ -105,8 +105,7 @@ specifics:
 ## Non-goals / future
 
 1. [Future] Backlinks are expected as part of the note-link model.
-2. [Future] Cross-document discovery/insertion in the `@` picker (search scope
-   and ranking apply only to the active document).
+2. [Future] Cross-document discovery/insertion in the `@` picker.
 3. [Future] Fuzzy matching in picker search.
 4. [Future] Frecency-aware ranking. When this ships, zoom context should
    influence ordering but must not reduce search scope.

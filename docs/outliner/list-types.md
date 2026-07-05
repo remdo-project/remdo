@@ -22,7 +22,6 @@ Define list type behavior (bullet, number, check) and checked-state semantics.
    if all selected roots are checked, set all to unchecked; otherwise set all
    to checked.
 10. A selected root is any selected note whose parent is not also selected.
-    Descendants under another selected root are not treated as separate roots.
 11. Applying the target state updates every selected root recursively, so each
     affected subtree ends in a uniform checked state.
 

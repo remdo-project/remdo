@@ -168,6 +168,4 @@ The terms below describe the target vocabulary for multi-hub document access.
 
 ## Multi-Hub Guardrails
 
-- Keep identity and location separable so host moves do not redefine document
-  identity.
 - Keep an explicit active hub context when opening a document in runtime.

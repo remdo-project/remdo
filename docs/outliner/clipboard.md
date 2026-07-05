@@ -16,8 +16,7 @@ live in [Links](./links.md).
 - Cut prepares the selected notes to be moved; they stay in place until you
   paste them elsewhere.
 - If you edit anything inside the pending cut boundary before pasting, the cut
-  is canceled so edits stay where they were made. This keeps cut/move behavior
-  predictable instead of moving a boundary slice that changed after the cut.
+  is canceled so edits stay where they were made.
 - After a structural cut, the selection collapses to the visual start so you
   can keep editing with a clear caret position.
 - Pasting while a note range is selected replaces that selection with the

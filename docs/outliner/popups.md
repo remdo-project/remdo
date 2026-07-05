@@ -15,7 +15,7 @@ An editor popup is a transient surface anchored in the editor that, while open,
 specialization of this contract; the contract is independent of how each opens.
 
 1. **One at a time.** At most one editor popup is open; opening one closes any
-   other, never stacks.
+   other.
 2. **The popup owns the keyboard.** While open it has first decision over every
    key: it consumes its navigation, commit, and dismissal keys, and no keystroke
    reaches ordinary text editing — **except** keys that edit the popup's own
@@ -26,7 +26,6 @@ specialization of this contract; the contract is independent of how each opens.
 3. **Editable-span exception.** A type-to-filter popup pins a span of editor text
    as its query; while the selection is inside that span, ordinary text-editing
    keys (printable characters, `Backspace`) stay the editor's and edit the query.
-   A menu or calendar grid has no query span, so the exception never applies.
 4. **Light-dismiss.** `Escape` and a pointer press outside the editor and popup
    both **cancel** — they close it and apply nothing. The popup never commits on
    blur, light-dismiss, or `Tab`, and never commits an unconfirmed highlight.
