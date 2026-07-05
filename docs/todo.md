@@ -444,6 +444,11 @@ The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
 - Consider publishing the skill to the open Agent Skills registry once it is
   polished and battle-tested in this project (would need a bundled starter
   rules-doc template).
+- Unresolved: negation clauses that restate an adjacent rule (the deps-refresh
+  "not human judgement" / "never lands on `main`" specimens) — the advocate
+  declined them in every experiment run and a negation-priority prompt line
+  failed validation; re-test at narrow scope, re-judge the specimens, or accept
+  the advocate's implicit keep.
 
 ## Skill architecture follow-ups
 
