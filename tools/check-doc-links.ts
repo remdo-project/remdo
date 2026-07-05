@@ -46,14 +46,50 @@ const blankFencedBlocks = (md: string): string[] => {
   });
 };
 
+// Inline code spans, CommonMark-exact: a span opened by a run of N backticks
+// closes at the next run of exactly N; shorter runs are span content (so
+// `` a`b `` stays whole). Scanned manually — a regex can't express "exactly
+// the opener's run" cleanly.
+const blankInlineCode = (line: string): string => {
+  const chars = [...line];
+  for (let i = 0; i < chars.length; i += 1) {
+    if (chars[i] !== '`') {
+      continue;
+    }
+    let open = i;
+    while (chars[open] === '`') {
+      open += 1;
+    }
+    const runLength = open - i;
+    for (let j = open; j < chars.length; j += 1) {
+      if (chars[j] !== '`') {
+        continue;
+      }
+      let close = j;
+      while (chars[close] === '`') {
+        close += 1;
+      }
+      if (close - j === runLength) {
+        for (let k = i; k < close; k += 1) {
+          chars[k] = ' ';
+        }
+        i = close - 1;
+        break;
+      }
+      j = close - 1;
+    }
+    while (chars[i + 1] === '`') {
+      i += 1; // unmatched opener: skip its whole run
+    }
+  }
+  return chars.join('');
+};
+
 // Blank fenced code blocks and inline code spans (preserving line count and
 // per-line offsets) so links and prose inside examples are never checked —
 // skill files quote whole Markdown snippets in fences.
 export const stripCodeSegments = (md: string): string =>
-  blankFencedBlocks(md)
-    // Inline code spans; longer backtick runs first so `` a`b `` stays whole.
-    .map((line) => line.replace(/(`+)[^`]*\1/g, (span) => ' '.repeat(span.length)))
-    .join('\n');
+  blankFencedBlocks(md).map(blankInlineCode).join('\n');
 
 // Inline links/images `[text](target)` (optionally `(target "title")` or
 // `(<target>)`) plus reference definitions `[label]: target`.

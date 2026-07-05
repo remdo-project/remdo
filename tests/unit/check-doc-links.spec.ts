@@ -30,6 +30,16 @@ afterEach(() => {
 });
 
 describe('stripCodeSegments', () => {
+  it('blanks multi-backtick spans containing backticks (CommonMark exact-run close)', () => {
+    const md = 'a `` [notalink](missing.md) ` literal `` b `x`';
+    const stripped = stripCodeSegments(md);
+    expect(stripped).not.toContain('missing.md');
+    expect(stripped).not.toContain('literal');
+    expect(stripped).toContain('a ');
+    expect(stripped).toContain(' b ');
+    expect(stripped).toHaveLength(md.length);
+  });
+
   it('blanks fenced blocks and inline code, preserving line count', () => {
     const md = 'a\n```\n[hidden](gone.md)\n```\nuse `[not a link](x.md)` here';
     const stripped = stripCodeSegments(md);
