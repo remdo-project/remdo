@@ -1,10 +1,12 @@
 import { createBrowserRouter, redirect, redirectDocument } from 'react-router-dom';
-import App from './App';
+import AuthenticatedApp from './AuthenticatedApp';
 import { resolveSessionGateState } from './auth/client';
 import { getPublicClientConfig } from './config';
 import { getCachedCurrentUserBootstrap, getHomeDocumentId } from './documents/current-user-bootstrap';
 import AdminRoute from './routes/AdminRoute';
 import { adminRouteLoader } from './routes/admin-route-loader';
+import OAuthConsentRoute from './routes/OAuthConsentRoute';
+import OAuthRegisterHomeRoute from './routes/OAuthRegisterHomeRoute';
 import DocumentRoute from './routes/DocumentRoute';
 import LoginRoute from './routes/LoginRoute';
 import LogoutRoute from './routes/LogoutRoute';
@@ -143,14 +145,35 @@ const routes = [
     hydrateFallbackElement,
   },
   {
+    // Public: the enroll form for an unauthenticated / non-admin visitor (a
+    // first-time operator bootstraps here), and the panel wrapped in the app
+    // shell for an authenticated admin. The loader chooses; the action is
+    // ADMIN_SECRET-gated server-side either way.
     path: '/admin',
     loader: adminRouteLoader,
     element: <AdminRoute />,
     hydrateFallbackElement,
   },
   {
+    // Source-side consent screen: shown when a home's user authorizes the home to
+    // act on their behalf. Reachable only with a source session.
+    path: '/oauth/consent',
+    loader: ({ request }: { request: Request }) => requireAuthenticatedRoute(request),
+    element: <OAuthConsentRoute />,
+    hydrateFallbackElement,
+  },
+  {
+    // Source-side confirmation page a home redirects an admin to, to register the
+    // home as an OAuth client. Requires a source session up front so the user
+    // signs in before authorizing.
+    path: '/oauth/register-home',
+    loader: ({ request }: { request: Request }) => requireAuthenticatedRoute(request),
+    element: <OAuthRegisterHomeRoute />,
+    hydrateFallbackElement,
+  },
+  {
     path: '/',
-    element: <App />,
+    element: <AuthenticatedApp />,
     loader: ({ request }: { request: Request }) => requireAuthenticatedRoute(request),
     hydrateFallbackElement,
     children: [

@@ -101,21 +101,77 @@ Rules:
 Admin role + secret-gated enrollment foundation is built; still to come:
 
 - Reconsider `/api/config` vs `/api/health` — maybe one `/api/status` covers both.
-- Admin *panel* content behind `/admin` (placeholder branch now): promote an
-  existing user to admin, per-admin revocation. Needs a session+role authz
-  helper (not built); ships with the source-linking PR's management UI.
-- Toolbar **Admin** link for signed-in admins (`App.tsx`).
-- Runtime public-policy toggle: replace `ALLOW_SIGNUP` env with admin-managed
-  DB state; needs the source-linking PR's auth hot-swap machinery.
+- Admin *panel* content behind `/admin` (the admin branch is a placeholder for
+  now), including **promoting an existing user to admin** and per-admin
+  revocation — the only way today to gain admin is registering a new account via
+  the secret. The session+role authz helper for gating these admin APIs is not
+  built yet (an earlier `resolveAdminSessionUserId` was dropped as unused); the
+  panel PR builds its own gate. The source-linking PR adds the source-server
+  management UI, so the panel ships there.
+- Toolbar **Admin** link for signed-in admins (`App.tsx`). Deferred as
+  pure-additive UI — `App.tsx` is untouched by this PR, so it can land later
+  against the `role`-on-bootstrap that now exists, with no new infra.
+- Runtime public-policy toggle (replace `ALLOW_SIGNUP` env with admin-managed,
+  DB-backed state). Needs auth hot-swap (rebuild `betterAuth` to flip the
+  construction-time `disableSignUp`). The source-linking PR builds the
+  swappable-auth machinery it rides, but the toggle UI is deferred past it — until
+  it lands, `ALLOW_SIGNUP` is the signup control and also the source-side
+  "accept registration" gate.
+
+## Source-linking follow-ups
+
+Admin-managed source linking is built: home admins add + register sources from
+the `/admin` panel (register-home ceremony → persisted credentials →
+swappable-auth activation); the admin-managed DB model replaced the
+`LINKABLE_REMDO_SERVERS_JSON` env config; home admin actions gate on the admin
+role; the source accepts registration only from an authenticated account while
+public (`ALLOW_SIGNUP`-backed). Two-server Docker E2E green.
+
+Deferred to follow-up PRs:
+
+- Runtime public-policy toggle UI (see above) — this PR builds swappable-auth but
+  not the toggle.
+- Source-side `clientPrivileges` (restrict raw `/oauth2/register`) — see hardening
+  list below.
+- Promote-existing-user-to-admin + per-admin revocation in the panel — see the
+  admin-panel item above.
 
 Deferred hardening:
 
 - Audit logging + rate limiting on self-enrollment and public-policy changes.
 - `ADMIN_SECRET` rotation lifecycle: define whether rotating affects existing
   admins or only future enrollment.
-- Split signup policy from source client-registration policy once
-  source-linking lands.
-- Source-side `clientPrivileges` to restrict raw OAuth client creation.
+- Split signup policy from source client-registration policy (separate runtime
+  settings + a "public source" preset) once the source-linking work lands.
+- Source-side `clientPrivileges` to restrict raw OAuth client creation — a
+  separate boundary from the home-side role gate.
+- Reject non-loopback http sources in `deriveSourceServer` so `normalizeSourceIssuer`
+  (a mirror of Better Auth's `validateIssuerUrl`) can be deleted. Blocked on the
+  Docker E2E, whose source is `http://<host-IP>` (rootless Docker can't reach a
+  loopback source) — the real work is making that source loopback-reachable.
+- Rate-limit `POST /api/link/register-home`: it calls `auth.api.registerOAuthClient`
+  server-side, which bypasses Better Auth's HTTP-layer `rateLimit.register`, so a
+  signed-in source user can register unbounded OAuth clients. Enforce a limit in
+  the RemDo route (the `oauthProvider` `rateLimit.register` config only guards the
+  raw HTTP endpoint).
+- `register-home` accepts any bare-origin `home`, so a signed-in source user who
+  clicks Authorize on a phished `/oauth/register-home?home=<evil>` registers a
+  client with an attacker `redirect_uri` and is handed the one-time code. Bind
+  registration to known/expected homes (or require an explicit source-side
+  confirmation of the home origin) rather than trusting the query param.
+- `claim-registration` authorizes on the one-time code alone and returns the
+  client secret; the code rides in the home admin's address bar (`/admin?code=…`)
+  until an effect strips it. Consider binding the claim to the issuing handle/home
+  origin and moving the code out of the URL so a leaked URL can't claim the secret.
+- `POST /source-servers/:id/claim` burns the source's one-time code (via
+  `claim-registration`) before `setSourceServerCredentials` persists locally; a
+  persist failure strands the flow (code gone, handle kept) and needs a full
+  re-register. Make the claim idempotent or persist-before-consume.
+- Re-registering a source overwrites its stored client id/secret but leaves users'
+  existing Better Auth account rows for that `providerId`, so `listLinkedRemdoServerIds`
+  still shows them Linked while their refresh tokens (issued to the old client)
+  fail. Invalidate local account links for a source when its credentials change,
+  or otherwise force affected users through relinking.
 - Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
   the Better Auth admin plugin.
 - Tradeoff (standing): the admin secret is a permanent gate with no per-admin
@@ -144,6 +200,15 @@ Deferred hardening:
   where IndexedDB enumeration or deletion cannot confirm that Y-Sweet offline
   data was removed. Until that UI exists, avoid silently claiming complete local
   cleanup in unsupported browser storage environments.
+
+## Admin enrollment follow-ups
+
+- Coverage gap: the enroll flow's `resetUserData()` (so a signed-in non-admin who
+  enrolls a NEW admin doesn't keep the prior user's live runtime) has no
+  regression test — the loader-only unit spec doesn't render the form, and a
+  component render hit shared-jsdom editor-mount friction. Add a dev e2e for
+  "signed-in non-admin enrolls → sees the new admin's data, not the prior user's"
+  (needs a non-admin session in the e2e setup, which today enrolls an admin).
 
 ## User-data follow-ups
 
@@ -279,6 +344,10 @@ Remaining issues to fold in or fix directly:
 
 ## Test harness follow-ups
 
+- Improve expected-console-issue ergonomics (`assertions/console.ts`): make
+  allowlisting a genuinely-expected error (e.g. a benign 401 probe) a cheap
+  one-liner-with-reason at the assertion site, so silencing it in code isn't the
+  easier path. Keep the fail-closed gate; reword "failure" for expected issues.
 - Redesign `toMatchOutline` note content expectations from flattened text into
   node-level content. Target shape:
   `{ noteId: 'note1', content: [{ text: 'before ' }, { date: '2026-06-10' }, { text: ' after' }] }`.
@@ -390,10 +459,6 @@ The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
 
 ## Later follow-ups
 
-- Cross-server OAuth setup: add an operator-facing way to register or import
-  RemDo OAuth clients between servers, add the source-server consent UI needed
-  outside trusted dev clients, and extend two-server coverage once the
-  operator client-registration flow is settled.
 - Auth provisioning concepts: revisit user creation, dev fixture users, OAuth
   client creation restrictions, and server registration as separate flows with
   clearer boundaries.

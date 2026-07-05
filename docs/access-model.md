@@ -64,6 +64,10 @@ the user.
   self-enrollment form. The client learns the current user's role from the
   `/api/current-user` bootstrap; this drives rendering only — authorization stays
   server-side.
+- The admin panel manages the home's **source servers** — add a source by URL,
+  register the home on it, see registered state, and remove a source (see
+  [Cross-Server Source Linking](#cross-server-source-linking)). These admin APIs
+  authorize from the caller's session + role.
 - Self-enrollment is gated by `ADMIN_SECRET` (see
   [docs/config.md](./config.md#admin-bootstrap-and-enrollment)) and always
   **registers a new admin account**: presenting the secret with account details
@@ -116,9 +120,8 @@ the user.
 
 ## Cross-Server Source Linking
 
-Source linking lets one user account work across configured RemDo servers. At
-the document sharing level, sharing still targets a local account on the
-document's server.
+Source linking lets one user account work across RemDo servers. At the document
+sharing level, sharing still targets a local account on the document's server.
 
 - Source server: owns documents, authenticates its users, stores local document
   grants, and issues Y-Sweet document client tokens.
@@ -136,7 +139,47 @@ document's server.
   documents keep the source server's canonical globally unique document IDs;
   source context controls routing and authorization, not document identity.
 
+### Registering a home on a source
+
+A home registers itself on a source and the source issues its OAuth credentials.
+This action spans two servers and needs a different access level on each:
+
+- On the **home**, the actor is an **admin** (the "add a source" and "register"
+  controls live in the admin panel behind `/admin`, gated by the home's admin
+  role — see [Admin Role](#admin-role)). A home's linkable sources are
+  admin-managed runtime state, not configuration. Adding one derives a stable
+  internal id from the source's origin; a URL that is not a bare origin, or
+  duplicates an existing source, is rejected.
+- On the **source**, the actor only needs to be a signed-in **user** — any
+  ordinary source account, not a source admin. The same person usually plays both
+  roles (a home admin who also holds a normal account on the source), but the
+  source never requires admin rights of them.
+
+The flow:
+
+- Registration is an OAuth 2.0 Dynamic Client Registration ceremony carried by
+  the operator's browser: the home redirects to the source's confirmation page,
+  where the signed-in source user authorizes it; the source binds the new client
+  to that user's source account and returns the credentials to the home, which
+  persists them and activates the source as a live provider without a restart.
+- A source accepts registration only while it is acting as a public source
+  (open-signup); a private source refuses it outright.
+- This **home OAuth client** (the credentialed identity the source issued for
+  the home) only identifies a home to the source; it grants no document access on
+  its own. Access still flows through per-account linking: each linking user later
+  authenticates and consents on the source for their own documents. So one source
+  user registering a home widens no other home user's access — registration and
+  document access are separate.
+- Any home admin can drop a source from the home (removing it from the source
+  list and the stored credential), which unlinks it locally. Revoking the **home
+  OAuth client on the source** is separate: only the source account that
+  registered it can delete it there. If the source later rejects the stored
+  credential, a home admin re-registers the source to get a fresh client.
+
 ## Future
+
+- Home-admin link retirement that also revokes and rotates the client on the
+  source (needs a source-side capability not bound to one account).
 
 - Anonymous access.
 - Public documents.

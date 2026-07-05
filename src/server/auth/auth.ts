@@ -12,14 +12,14 @@ import { config } from '#config';
 import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { RemdoDatabase } from '#server/db/schema';
-import type { LinkableRemdoServer } from '#server/remdo-oauth/config';
-import { getLinkableRemdoServers } from '#server/remdo-oauth/config';
+import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
+import { readSourceServersSync } from '#server/remdo-oauth/source-server-store';
 
 interface CreateServerAuthOptions {
   allowSignup?: boolean;
   baseURL?: string;
   database: SqliteServerDatabaseClient;
-  linkableRemdoServers?: readonly LinkableRemdoServer[];
+  sourceServers?: readonly StoredSourceServer[];
   oauthClientCredentials?: OAuthClientCredentials;
   secret?: string;
   trustedOrigins?: readonly string[];
@@ -32,6 +32,42 @@ export const REMDO_SERVER_OAUTH_SCOPES = [
   'offline_access',
 ] as const;
 
+// Deliberate mirror of Better Auth's `validateIssuerUrl` (in
+// @better-auth/oauth-provider): it hard-codes `if (protocol !== 'https:' &&
+// !isLoopbackHost(host)) protocol = 'https:'` when a source advertises its
+// issuer, and that upgrade is not configurable. The home's requireIssuerValidation
+// compares against this value, so we must classify loopback the same way or a
+// token is rejected as an issuer mismatch. Keep this in sync with upstream's
+// `isLoopbackHost`. Preferred long-term fix (see docs/todo.md): reject
+// non-loopback http sources at add time so every stored origin is one upstream
+// leaves alone, making `issuer: server.baseUrl` correct and this mirror deletable.
+// Matches the 127.0.0.0/8 loopback block by shape (four numeric octets, first
+// 127), not by textual prefix — `127.example.com` is a public DNS name, not
+// loopback, and must not skip the https upgrade.
+const IPV4_LOOPBACK_PATTERN = /^127(?:\.\d{1,3}){3}$/u;
+
+function isLoopbackForDevScheme(hostname: string): boolean {
+  return hostname === 'localhost'
+    || hostname.endsWith('.localhost')
+    || hostname === '::1'
+    || IPV4_LOOPBACK_PATTERN.test(hostname);
+}
+
+export function normalizeSourceIssuer(baseUrl: string): string {
+  try {
+    const url = new URL(baseUrl);
+    // url.hostname keeps the brackets for IPv6 (e.g. `[::1]`); strip them so the
+    // `::1` loopback check matches, mirroring Better Auth's host normalization.
+    const hostname = url.hostname.replace(/^\[|\]$/gu, '');
+    if (url.protocol !== 'https:' && !isLoopbackForDevScheme(hostname)) {
+      url.protocol = 'https:';
+    }
+    return url.origin;
+  } catch {
+    return baseUrl;
+  }
+}
+
 interface OAuthClientCredentials {
   clientId: string;
   clientSecret: string;
@@ -41,7 +77,7 @@ function createBetterAuthInstance({
   allowSignup,
   baseURL,
   database,
-  linkableRemdoServers,
+  sourceServers,
   oauthClientCredentials,
   secret,
   trustedOrigins,
@@ -49,7 +85,7 @@ function createBetterAuthInstance({
   allowSignup: boolean;
   baseURL: string;
   database: Database.Database;
-  linkableRemdoServers: readonly LinkableRemdoServer[];
+  sourceServers: readonly StoredSourceServer[];
   oauthClientCredentials?: OAuthClientCredentials;
   secret: string;
   trustedOrigins: readonly string[];
@@ -80,6 +116,16 @@ function createBetterAuthInstance({
       oauthProvider({
         consentPage: '/oauth/consent',
         loginPage: '/login',
+        scopes: [...REMDO_SERVER_OAUTH_SCOPES],
+        // A public server acts as a source: home servers self-register their OAuth
+        // client during registration. Registration is authenticated (Better Auth
+        // binds the client to the signed-in source account) and limited to the
+        // RemDo source scopes; the endpoint stays off on a non-public server.
+        allowDynamicClientRegistration: allowSignup,
+        clientRegistrationDefaultScopes: [...REMDO_SERVER_OAUTH_SCOPES],
+        rateLimit: {
+          register: { window: 60, max: 5 },
+        },
         ...(oauthClientCredentials
           ? {
               generateClientId: () => oauthClientCredentials.clientId,
@@ -92,23 +138,29 @@ function createBetterAuthInstance({
         },
       }),
       genericOAuth({
-        config: linkableRemdoServers.map((server) => {
-          const tokenBaseUrl = server.tokenBaseUrl ?? server.baseUrl;
-          return {
+        // Build a provider only for sources whose OAuth client has been issued
+        // (the home registered on that source). A source added but not yet
+        // registered has no credentials and no provider; it becomes usable at the
+        // next auth-instance build after registration persists its credentials.
+        config: sourceServers.flatMap((server) => {
+          if (!server.credentials) {
+            return [];
+          }
+          return [{
             providerId: server.id,
             authorizationUrl: `${server.baseUrl}/api/auth/oauth2/authorize`,
-            tokenUrl: `${tokenBaseUrl}/api/auth/oauth2/token`,
-            issuer: server.baseUrl,
+            tokenUrl: `${server.baseUrl}/api/auth/oauth2/token`,
+            issuer: normalizeSourceIssuer(server.baseUrl),
             requireIssuerValidation: true,
-            clientId: server.clientId,
-            clientSecret: server.clientSecret,
+            clientId: server.credentials.clientId,
+            clientSecret: server.credentials.clientSecret,
             scopes: [...REMDO_SERVER_OAUTH_SCOPES],
             accessType: 'offline',
             pkce: true,
             authorizationUrlParams: {
               resource: server.baseUrl,
             },
-          };
+          }];
         }),
       }),
     ],
@@ -132,7 +184,12 @@ export interface ServerAuthUser {
 export interface ServerAuth {
   allowSignup: boolean;
   auth: BetterAuthInstance;
-  linkableRemdoServers: readonly LinkableRemdoServer[];
+  // The canonical public origin this auth instance was built with (may be a
+  // per-instance override, not the config singleton). Routes that advertise this
+  // home's own URL (e.g. cross-server registration) must use this, not
+  // config.env.AUTH_URL, or an overridden instance sends the wrong origin.
+  baseURL: string;
+  sourceServers: readonly StoredSourceServer[];
   createUser: (user: CreateAuthUserInput, headers: Headers) => Promise<Response>;
   ensureReady: () => Promise<void>;
   findUserByEmail: (email: string) => Promise<ServerAuthUser | null>;
@@ -152,7 +209,7 @@ export function createServerAuth({
   allowSignup = config.env.ALLOW_SIGNUP,
   baseURL = config.env.AUTH_URL,
   database,
-  linkableRemdoServers = getLinkableRemdoServers(),
+  sourceServers = readSourceServersSync(database),
   oauthClientCredentials,
   secret = config.env.AUTH_SECRET,
   trustedOrigins,
@@ -178,7 +235,7 @@ export function createServerAuth({
     allowSignup,
     baseURL,
     database: database.sqlite,
-    linkableRemdoServers,
+    sourceServers,
     oauthClientCredentials,
     secret,
     trustedOrigins: resolvedTrustedOrigins,
@@ -189,7 +246,7 @@ export function createServerAuth({
         allowSignup: true,
         baseURL,
         database: database.sqlite,
-        linkableRemdoServers,
+        sourceServers,
         oauthClientCredentials,
         secret,
         trustedOrigins: resolvedTrustedOrigins,
@@ -202,7 +259,8 @@ export function createServerAuth({
   return {
     allowSignup,
     auth,
-    linkableRemdoServers,
+    baseURL,
+    sourceServers,
     createUser(user, headers) {
       return userProvisioningAuth.api.signUpEmail({
         body: user,
@@ -259,7 +317,7 @@ export function createServerAuth({
       return auth.api.getSession({ headers });
     },
     async getLinkedRemdoServerAccessToken(userId, serverId) {
-      if (!linkableRemdoServers.some((server) => server.id === serverId)) {
+      if (!sourceServers.some((server) => server.id === serverId)) {
         return null;
       }
       try {
@@ -299,7 +357,7 @@ export function createServerAuth({
       return new Set(
         accounts
           .map((account) => account.providerId)
-          .filter((providerId) => linkableRemdoServers.some((server) => server.id === providerId)),
+          .filter((providerId) => sourceServers.some((server) => server.id === providerId)),
       );
     },
     async resolveBearerUser(authorization) {
@@ -329,6 +387,38 @@ export function createServerAuth({
       } catch {
         return null;
       }
+    },
+  };
+}
+
+export interface SwappableServerAuth {
+  // A ServerAuth-shaped proxy that always delegates to the current instance, so
+  // route handlers holding this reference transparently see a rebuilt auth.
+  auth: ServerAuth;
+  // Rebuilds the underlying auth from the current DB source list, so a source
+  // registered this session becomes a usable OAuth provider without a restart.
+  rebuild: () => void;
+}
+
+export function createSwappableServerAuth(
+  options: CreateServerAuthOptions,
+): SwappableServerAuth {
+  let current = createServerAuth(options);
+  // The Proxy target is only a structural placeholder; every access reads the
+  // live `current` instance (updated by rebuild()), not the target.
+  const proxy = new Proxy(current, {
+    get(_target, property) {
+      const value = current[property as keyof ServerAuth];
+      return typeof value === 'function' ? value.bind(current) : value;
+    },
+  });
+  return {
+    auth: proxy,
+    rebuild() {
+      current = createServerAuth({
+        ...options,
+        sourceServers: readSourceServersSync(options.database),
+      });
     },
   };
 }

@@ -56,6 +56,7 @@ describe('stored user data', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    globalThis.localStorage.clear();
   });
 
   const listDocuments = (userData: UserDataNote) =>

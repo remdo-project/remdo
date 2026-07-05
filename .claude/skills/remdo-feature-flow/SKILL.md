@@ -33,27 +33,17 @@ changes** (phase 3) and the **report's diff index** (phase 5). Deferrals land in
 `docs/todo.md`. `.agent/` is agent-only scratch, never a review surface.
 Everything else is a thin chat pointer.
 
-## Phase 1 — Draft (user)
+## Preflight — pin the design base
 
-The user states the vague idea: what they know, what they are unsure about. No
-structure required. **Verify every fact the user asserts before building on it** —
-never rely on an unchecked user claim. Record what you verified and the outcome
-in the working artifact at `.agent/plans/<YYYY-MM-DD>-<feature>.md` (see Phase 4),
-so the basis for the design survives beyond this session's memory rather than
-being silently carried.
-
-## Phase 2 — Dialog
-
-**Precondition — design against the same base the fork will use.** Run this
-**before reading any code or docs below**: the spec must be shaped against exactly
-the state the task branch will fork from, or Phase 2 designs against one codebase
-while Phase 3 branches from another. It must gate the dialog, not just branch
-creation — by Phase 3 the wrong context has already shaped the design.
+Run this first, **before the flow reads any code or docs**: fact verification,
+dialog, and the spec must all be shaped against exactly the state the task
+branch will fork from, or the design is built against one codebase while
+Phase 3 branches from another.
 
 1. **Tree clean of unrelated changes first.** Apply the Phase-3 "no unrelated
    changes" check *now*, before the fast-forward below can touch the tree — a
    fast-forward would otherwise silently advance a checkout the run should have
-   stopped on. Pre-existing unrelated edits → stop (as in Phase 3).
+   stopped on. Pre-existing unrelated edits → stop.
 2. `git fetch`, then compare the current branch (usually `dev`) to `origin/main`:
    - **Ahead** (`git rev-list origin/main..HEAD` non-empty) — the branch holds
      committed work not yet in `origin/main`. The fork carries only the
@@ -64,7 +54,9 @@ creation — by Phase 3 the wrong context has already shaped the design.
    - **Behind** (`git rev-list HEAD..origin/main` non-empty, and *not* also
      ahead) — merely stale. **Fast-forward to `origin/main`** (`git merge
      --ff-only origin/main`); safe (no rewrite, no merge commit, nothing lost) and
-     makes the design base match the fork base.
+     makes the design base match the fork base. If the FF refuses because
+     flow-owned dirty files were also touched upstream, stop and surface it (as
+     for *ahead*).
    - **Diverged** (both ahead and behind) — FF is impossible; treat as *ahead* and
      stop.
    - **Even** — proceed.
@@ -72,6 +64,17 @@ creation — by Phase 3 the wrong context has already shaped the design.
    the fork point for this run. Phase 3 creates the branch from *this pinned SHA*,
    not a re-fetched `origin/main` — otherwise `origin/main` advancing mid-flow
    would again split the design base from the fork base.
+
+## Phase 1 — Draft (user)
+
+The user states the vague idea: what they know, what they are unsure about. No
+structure required. **Verify every fact the user asserts before building on it** —
+never rely on an unchecked user claim. Record what you verified and the outcome
+in the working artifact at `.agent/plans/<YYYY-MM-DD>-<feature>.md` (see Phase 4),
+so the basis for the design survives beyond this session's memory rather than
+being silently carried.
+
+## Phase 2 — Dialog
 
 Conversation plus cheap checks — inline, interactive, no subagents (latency the
 user feels in real time).
@@ -111,7 +114,7 @@ them — see AGENTS.md). Everything this flow itself produced is fine and expect
 Phase 2 — so a normal clean-start run (where the only changes are this flow's)
 passes this gate; it is not a requirement that "only spec edits" exist.
 
-This gate assumes the **Phase-2 base check ran** (see Phase 2): it left the
+This gate assumes the **preflight base check ran** (see Preflight): it left the
 current branch even with the pinned base SHA and recorded that SHA, which is what
 lets the branch created below fork with no committed work lost and no stale design
 base.
@@ -168,7 +171,23 @@ above already ensured the tree holds only this flow's changes).
    `superpowers:test-driven-development` for new behavior,
    `superpowers:systematic-debugging` for a bug or unexpected failure — rather
    than writing ad hoc.
-3. **Refine is part of done** — once the gap-closing loop reaches the spec's
+3. **The loop's exit is an independent spec-compliance read, not
+   self-assessment.** When the loop believes the spec's described state is
+   reached, dispatch a **fresh subagent** to report divergences both ways:
+   specified but not built, and built but not specified. Give it the spec (the
+   branch's `docs/` changes — Phase 3's sense) and the branch diff
+   (`origin/main...HEAD` plus any uncommitted work, untracked files included);
+   it may read the rest of the repo for cross-checking (except `.agent/`, where
+   the plan lives) but carries neither the plan nor this session's memory. The
+   subagent only reports; acting on the report stays with you, inside the loop:
+   fix real gaps (the loop continues), document or remove what is built but
+   unspecified (the docs are the target reality), and record deliberate
+   deferrals in `docs/todo.md` (invariant #9). The loop exits when this read
+   comes back clean or fully tracked. For user-facing behavior, also verify the built behavior
+   live per the AGENTS.md DevTools flow, with automated coverage per its e2e
+   escalation rule — `superpowers:verification-before-completion` is the
+   discipline for this exit step where available.
+4. **Refine is part of done** — once the gap-closing loop reaches the spec's
    described state, **commit the phase-4 work** (refine and sync both need a clean
    tree; refine reviews the committed `origin/main...HEAD` range). If `origin/main`
    has advanced since branch creation (cheap `git fetch` check), **suggest
@@ -179,7 +198,7 @@ above already ensured the tree holds only this flow's changes).
    findings (defined there, not restated here), and the final checks for the
    current agent mode at the end. Refine converges *code quality*; reaching the
    spec's described state stays the gap-closing loop's job above.
-4. **Mid-work decisions:** small blast radius (a later reversal would not waste
+5. **Mid-work decisions:** small blast radius (a later reversal would not waste
    the work) → use judgment, **record it in `docs/todo.md`**, keep moving.
    Genuine large-blast-radius fork → stop, **recording the fork, the options, and
    what it blocks on in `docs/todo.md`** (not just chat) so the retro and any
@@ -254,8 +273,8 @@ a task branch. Within a run:
   `dev` or `main`.
 - **`git fetch`: always allowed** — it only updates remote-tracking refs, never
   your work or the remote.
-- **Fast-forwarding the current branch to `origin/main`** as part of the Phase-2
-  base check: allowed. `git merge --ff-only origin/main` only advances a *behind*
+- **Fast-forwarding the current branch to `origin/main`** as part of the
+  preflight base check: allowed. `git merge --ff-only origin/main` only advances a *behind*
   branch along existing history — no rewrite, no merge commit, nothing lost — so
   it is safe autonomously; it fails (and thus never mutates) on a diverged branch,
   which the base check handles as the *ahead* stop. This is the one exception to
@@ -279,30 +298,26 @@ The single base for every diff, for both user and agent, is the **merge-base of
   merge-base) — and `codex review --base origin/main` (safe as a one-shot; a
   looping `remdo-refine` pass anchors to a fixed base SHA instead, see that skill).
 - **Working tree included** (committed + uncommitted — the mid-work review loop):
-  `git diff "$(git merge-base origin/main HEAD)"`.
+  `git diff "$(git merge-base origin/main HEAD)"`, plus
+  `git ls-files --others --exclude-standard` for the untracked files that diff
+  omits.
 
 Always go through the merge-base: it is recomputed from the two refs every time,
 so no base tag is stored and it cannot go stale — it shows exactly this branch's
-own work even after a `remdo-sync` merge moves it forward. (Plain two-dot `git
-diff origin/main` is *not* equivalent — after a merge it diffs against the wrong
-point.) **Default all mid-work and end-of-work diff/review checks to this
-merge-base.**
+own work even after a `remdo-sync` merge moves it forward. (A plain `git diff
+origin/main` is *not* equivalent — once `origin/main` advances past the branch's
+merge-base, it diffs against the wrong point.) **Default all mid-work and
+end-of-work diff/review checks to this merge-base.**
 
-**Creating the branch** (Phase 3) forks from the **base SHA pinned at Phase 2**
-(step 3 there) — the exact state the spec was designed against — *not* a freshly
-re-fetched `origin/main`, which may have advanced mid-flow and would split the
-fork base from the design base again. The Phase-2 base check left the current
-branch even with that SHA, so only the **uncommitted spec edits** need to carry
-across:
-
-- Create the branch with `git switch --merge -c <name> --no-track <pinned-base-sha>`.
-  `--merge` carries the uncommitted spec edits onto the new base (a plain `git
-  switch -c` would **abort and strand the spec** if a spec-touched file differed);
-  since the current branch is already at the pinned base, a conflict is not
-  expected. `--no-track` keeps the start point from setting the upstream (a
-  mismatched name that breaks the user's first push under `push.default=simple`);
-  the user's first push then sets the upstream to `origin/<same-name>` (`git push
-  -u origin HEAD`, or automatically with `push.autoSetupRemote`).
+**Creating the branch** (Phase 3) forks from the **base SHA pinned at
+preflight** (step 3 there — the pin is what keeps the fork base equal to the
+design base). The preflight base check left the current branch even with that
+SHA, so only the **uncommitted spec edits** need to carry across. Create the
+branch with `git switch --merge -c <name> <pinned-base-sha>`. `--merge` carries
+the spec edits onto the new base (with drift, a plain `git switch -c` would
+**abort and strand the spec**, and `--merge` itself refuses *staged* edits —
+clear the drift rather than un-staging); since the current branch is already at
+the pinned base, neither is expected.
 
 This flow forks task branches from `origin/main` only. Stacked/dependent branches
 (forking off another in-progress branch) are out of scope — they would make
@@ -326,7 +341,9 @@ Choose by the *activity*, not the phase number:
   your call by the independence test: dispatch subagents only for genuinely
   parallel, independent chunks (no shared state, no sequential dependency); stay
   inline otherwise. Deferred to runtime because the input (the actual dependency
-  graph) does not exist until then. Research spikes are subagent-eligible even
+  graph) does not exist until then. (A step that itself mandates a dispatch —
+  the Phase-4 exit read — is outside this call.) Research spikes are
+  subagent-eligible even
   when triggered from dialog, because the spike itself is autonomous work, not
   conversation.
 
@@ -339,9 +356,8 @@ Choose by the *activity*, not the phase number:
 
 ## References
 
-- Sequenced skills: `superpowers:brainstorming`,
-  `superpowers:dispatching-parallel-agents`, `superpowers:using-git-worktrees`,
-  `superpowers:verification-before-completion`.
+- Sequenced skills: `superpowers:dispatching-parallel-agents`,
+  `superpowers:using-git-worktrees`, `superpowers:verification-before-completion`.
 - Phase-4 implementation discipline: `superpowers:test-driven-development`,
   `superpowers:systematic-debugging`.
 - Phase-4 quality loop (simplify / internal review / external Codex review):

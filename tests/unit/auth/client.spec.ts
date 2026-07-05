@@ -121,3 +121,4 @@ describe('auth client session gate', () => {
     expect(localStorage.getItem('remdo-current-user-bootstrap')).toBeNull();
   });
 });
+

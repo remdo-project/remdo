@@ -105,11 +105,15 @@ bootstrapped key/server-token pair (see
   5. `pnpm run dev:pwa` uses `PORT_BASE + 20` for its range and serves the PWA
      preview on that shifted `PORT`, so it can run beside `pnpm run dev`.
   6. `pnpm run dev:docker` starts a Docker home server at
-     `127.0.0.1:(PORT_BASE + 40)` for manual OAuth linking against the dev
+     `127.0.0.1:(PORT_BASE + 40)` for manual source linking against the dev
      server, and redirects the matching `localhost` URL to that canonical
-     browser origin. The source dev server must be started with `HOST=0.0.0.0`
-     (e.g. `HOST=0.0.0.0 pnpm run dev`) so the Docker home can reach it for the
-     OAuth token exchange.
+     browser origin. The source is linked by its host-IP origin (shared by the
+     browser and the container), so the source dev server must advertise that
+     origin: `HOST=0.0.0.0 AUTH_URL=http://<host-ip>:<PORT> pnpm run dev` (the
+     `dev:docker` output prints the exact command; a plain `HOST=0.0.0.0` run
+     derives a `localhost` `AUTH_URL`, which Better Auth rejects for host-IP
+     requests). The home is registered on the source through the home's
+     `/admin` panel, not preconfigured.
   7. `pnpm run dev:oauth-client` provisions the stable users, prints their
      credentials, and (when `REMDO_DEV_HOME_ORIGIN` is set) creates or rotates
      the source OAuth client used for cross-server linking. It is SQL-only and

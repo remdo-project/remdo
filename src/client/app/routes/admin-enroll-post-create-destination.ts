@@ -1,14 +1,18 @@
 import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
-import { resolvePostAuthPath } from './post-auth-path';
+import { resolveNextPathOrDefault } from './post-auth-path';
 
 type AdminEnrollPostCreateDestination =
   | { kind: 'assign'; href: string }
   | { kind: 'navigate'; path: string };
 
-export async function resolveAdminEnrollPostCreateDestination(
+// After enrolling, the new admin's next step is the admin panel, so land there by
+// default rather than on the home document. An explicit `?next=` still wins (and
+// an OAuth-authorize search resumes that flow), so an enrollment reached mid-flow
+// returns to where it was headed.
+export function resolveAdminEnrollPostCreateDestination(
   search: string,
   currentOrigin: string,
-): Promise<AdminEnrollPostCreateDestination> {
+): AdminEnrollPostCreateDestination {
   if (isOAuthAuthorizeSearch(search)) {
     return {
       kind: 'assign',
@@ -18,6 +22,6 @@ export async function resolveAdminEnrollPostCreateDestination(
 
   return {
     kind: 'navigate',
-    path: await resolvePostAuthPath(search, currentOrigin),
+    path: resolveNextPathOrDefault(search, currentOrigin, '/admin'),
   };
 }

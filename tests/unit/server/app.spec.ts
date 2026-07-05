@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { config } from '#config';
 import { HTTP_STATUS } from '#platform/http/status';
 import { extractSessionCookie } from '#server/auth/session-cookie';
+import { listCurrentUserSourceServers } from '#server/documents/source-servers';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 import { createTestResource } from '../_support/test-resource';
 import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';
@@ -14,9 +15,10 @@ const TEST_SOURCE_SERVER = {
   id: 'source',
   label: 'Source Server',
   baseUrl: 'https://source.example',
-  tokenBaseUrl: 'https://source-token.example',
-  clientId: 'source-client-id',
-  clientSecret: 'source-client-secret',
+  credentials: {
+    clientId: 'source-client-id',
+    clientSecret: 'source-client-secret',
+  },
 } as const;
 
 afterEach(() => {
@@ -26,7 +28,7 @@ afterEach(() => {
 
 function createHarnessWithSourceServer() {
   return createHarness({
-    linkableRemdoServers: [TEST_SOURCE_SERVER],
+    sourceServers: [TEST_SOURCE_SERVER],
   });
 }
 
@@ -70,6 +72,14 @@ describe('remdo api app', () => {
       'POST /api/documents/:docId/access',
       'POST /api/documents/:docId/sync-tokens',
       'POST /api/admin/enroll',
+      'ALL /api/admin/source-servers/*',
+      'GET /api/admin/source-servers',
+      'POST /api/admin/source-servers',
+      'POST /api/admin/source-servers/:id/remove',
+      'POST /api/link/source-servers/:id/register',
+      'POST /api/link/register-home',
+      'POST /api/link/claim-registration',
+      'POST /api/link/source-servers/:id/claim',
     ]);
   });
 
@@ -219,6 +229,23 @@ describe('remdo api app', () => {
     await expect(response.json()).resolves.toEqual({ error: 'Source server not found.' });
   });
 
+  it('omits credential-less (unregistered) sources from the user source-server projection', async () => {
+    // An admin can add a source before completing register-home; that row has no
+    // credentials and no OAuth provider, so it must not appear in a user's
+    // linkable-source list — a Link on it would fail with no provider.
+    const harness = createHarness({
+      sourceServers: [
+        TEST_SOURCE_SERVER,
+        { id: 'pending', label: 'Pending Source', baseUrl: 'https://pending.example', credentials: null },
+      ],
+    });
+    const headers = await harness.createSessionHeaders();
+
+    const projected = await listCurrentUserSourceServers(harness.auth, headers);
+
+    expect(projected.map((server) => server.id)).toEqual([TEST_SOURCE_SERVER.id]);
+  });
+
   it('proxies linked source current-user bootstrap with the stored source token', async () => {
     const harness = createHarnessWithSourceServer();
     harness.auth.getLinkedRemdoServerAccessToken = vi.fn(async () => 'source-token');
@@ -241,7 +268,7 @@ describe('remdo api app', () => {
       homeDocumentId: 'sourceHome',
       userDataDocumentId: 'sourceUserData',
     });
-    expect(fetchMock).toHaveBeenCalledWith('https://source-token.example/api/current-user', {
+    expect(fetchMock).toHaveBeenCalledWith('https://source.example/api/current-user', {
       headers: {
         authorization: 'Bearer source-token',
       },
@@ -278,7 +305,7 @@ describe('remdo api app', () => {
       docId: 'sourceDoc',
       url: 'wss://source.example/d/sourceDoc',
     });
-    expect(fetchMock).toHaveBeenCalledWith('https://source-token.example/api/documents/sourceDoc/sync-tokens', {
+    expect(fetchMock).toHaveBeenCalledWith('https://source.example/api/documents/sourceDoc/sync-tokens', {
       method: 'POST',
       headers: {
         authorization: 'Bearer source-token',
@@ -436,13 +463,12 @@ describe('remdo api app', () => {
 
   it('projects configured source servers during current-user bootstrap', async () => {
     const harness = createHarness({
-      linkableRemdoServers: [
+      sourceServers: [
         {
           id: 'source',
           label: 'Source Server',
           baseUrl: 'https://source.example',
-          clientId: 'source-client-id',
-          clientSecret: 'source-client-secret',
+          credentials: { clientId: 'source-client-id', clientSecret: 'source-client-secret' },
         },
       ],
     });
@@ -464,13 +490,12 @@ describe('remdo api app', () => {
 
   it('does not recurse into source server discovery or clear projected source servers for bearer current-user bootstrap', async () => {
     const harness = createHarness({
-      linkableRemdoServers: [
+      sourceServers: [
         {
           id: 'source',
           label: 'Source Server',
           baseUrl: 'https://source.example',
-          clientId: 'source-client-id',
-          clientSecret: 'source-client-secret',
+          credentials: { clientId: 'source-client-id', clientSecret: 'source-client-secret' },
         },
       ],
     });

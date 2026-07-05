@@ -120,6 +120,35 @@ describe('sqlite server database client', () => {
     }
   });
 
+  it('rejects a legacy source servers table (pre id/label drop)', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-db-schema-'));
+    const dbPath = path.join(tempDir, 'remdo.sqlite');
+    const client = createSqliteServerDatabaseClient({ dbPath });
+    try {
+      // The old schema stored id + label columns that were dropped; a dev DB from
+      // that build must get a clear reset error, not a cryptic insert failure.
+      client.sqlite.exec(`
+        DROP TABLE source_servers;
+        CREATE TABLE source_servers (
+          id TEXT PRIMARY KEY,
+          label TEXT NOT NULL,
+          base_url TEXT NOT NULL,
+          client_id TEXT,
+          client_secret TEXT,
+          created_at INTEGER NOT NULL
+        );
+      `);
+    } finally {
+      await client.close();
+    }
+
+    try {
+      expect(() => createSqliteServerDatabaseClient({ dbPath })).toThrow('Unsupported source_servers table schema');
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it('creates the special-document index for an existing compatible table', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-db-schema-'));
     const dbPath = path.join(tempDir, 'remdo.sqlite');

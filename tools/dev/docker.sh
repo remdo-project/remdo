@@ -8,42 +8,42 @@ ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 remdo_load_dotenv "${ROOT_DIR}"
 remdo_load_env_defaults "${ROOT_DIR}"
 
-SOURCE_ORIGIN="${AUTH_URL:-http://localhost:${PORT}}"
-SOURCE_TOKEN_HOST="$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9.]*\).*/\1/p')"
-if [[ -z "${SOURCE_TOKEN_HOST}" ]]; then
-  echo "Failed to detect a source token host address." >&2
+# The source is the local dev server. Its origin uses the host's real network IP
+# so it is identical AND reachable from both the browser (on the host) and the
+# containerized home — matching the same-origin runtime model. (rootless Docker
+# containers reach host services only via the interface IP, not localhost / the
+# docker bridge gateway.)
+SOURCE_HOST_IP="$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9.]*\).*/\1/p')"
+if [[ -z "${SOURCE_HOST_IP}" ]]; then
+  echo "Failed to detect a host IP for the source origin." >&2
   exit 1
 fi
-SOURCE_TOKEN_ORIGIN="http://${SOURCE_TOKEN_HOST}:${PORT}"
+SOURCE_ORIGIN="http://${SOURCE_HOST_IP}:${PORT}"
 HOME_PORT="$((PORT_BASE + 40))"
 HOME_ORIGIN="http://127.0.0.1:${HOME_PORT}"
 HOME_LOCALHOST_ORIGIN="http://localhost:${HOME_PORT}"
 HOME_DATA_DIR="${DATA_DIR%/}/docker-home"
 HOME_CONTAINER_NAME="remdo-dev-docker-${HOME_PORT}"
-LINKABLE_REMDO_SERVERS_JSON='[{"id":"source","label":"Local dev server","baseUrl":"'"${SOURCE_ORIGIN}"'","tokenBaseUrl":"'"${SOURCE_TOKEN_ORIGIN}"'","clientId":"'"${REMDO_DEV_OAUTH_CLIENT_ID}"'","clientSecret":"'"${REMDO_DEV_OAUTH_CLIENT_SECRET}"'"}]'
 
 cleanup_home_container() {
   docker rm -f "${HOME_CONTAINER_NAME}" >/dev/null 2>&1 || true
 }
 trap cleanup_home_container EXIT INT TERM
 
-echo "Provisioning source OAuth client for ${HOME_ORIGIN}..."
-env \
-  AUTH_URL="${SOURCE_ORIGIN}" \
-  REMDO_DEV_HOME_ORIGIN="${HOME_ORIGIN}" \
-  pnpm run dev:oauth-client
-
-echo "Provisioning OAuth home users in ${HOME_DATA_DIR}..."
-env \
-  AUTH_URL="${HOME_ORIGIN}" \
-  DATA_DIR="${HOME_DATA_DIR}" \
-  PORT="${HOME_PORT}" \
-  REMDO_DEV_HOME_ORIGIN="${HOME_ORIGIN}" \
-  pnpm run dev:oauth-client
+echo "Provisioning source dev users for ${SOURCE_ORIGIN}..."
+env AUTH_URL="${SOURCE_ORIGIN}" pnpm run dev:users
 
 echo "Starting OAuth home: ${HOME_ORIGIN}"
 echo "OAuth home alias: ${HOME_LOCALHOST_ORIGIN}"
 echo "OAuth source: ${SOURCE_ORIGIN}"
+# The source must advertise the SAME host-IP origin the home links it by, or
+# Better Auth rejects host-IP requests as an invalid origin. A plain
+# `HOST=0.0.0.0 pnpm run dev` derives AUTH_URL=http://localhost:PORT, so the
+# source needs AUTH_URL set explicitly.
+echo "Start the source dev server with:"
+echo "  HOST=0.0.0.0 AUTH_URL=${SOURCE_ORIGIN} pnpm run dev"
+echo "Then add + register the source from the home admin panel at ${HOME_ORIGIN}/admin,"
+echo "and link a user account against it."
 echo "Tunnel from a remote browser host: tools/remote/open-remdo-tunnel.sh <user>@<host>:${PORT_BASE}"
 
 cleanup_home_container
@@ -53,7 +53,6 @@ env \
   ADMIN_SECRET="${ADMIN_SECRET}" \
   DATA_DIR="${HOME_DATA_DIR}" \
   CADDY_SITE_ADDRESSES="${HOME_ORIGIN} ${HOME_LOCALHOST_ORIGIN}" \
-  LINKABLE_REMDO_SERVERS_JSON="${LINKABLE_REMDO_SERVERS_JSON}" \
   YSWEET_AUTH_KEY="${YSWEET_AUTH_KEY}" \
   YSWEET_SERVER_TOKEN="${YSWEET_SERVER_TOKEN}" \
   ALLOW_SIGNUP="${ALLOW_SIGNUP}" \

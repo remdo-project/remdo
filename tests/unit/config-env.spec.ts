@@ -14,8 +14,6 @@ function resolveTestConfig(values: EnvValues, options?: Parameters<typeof resolv
 function readEnvShValue(name: string, overrides: NodeJS.ProcessEnv): string {
   const env = { ...process.env, ...overrides };
   delete env.AUTH_URL;
-  delete env.LINKABLE_REMDO_SERVERS_JSON;
-  delete env.REMDO_DEV_HOME_ORIGIN;
   // The dev shell exports already-derived ports; drop them so env.sh re-derives
   // from the overridden PORT_BASE instead of echoing the inherited value.
   delete env.COLLAB_SERVER_PORT;
@@ -295,16 +293,6 @@ describe('config env resolve', () => {
     });
 
     expect(collabPort).toBe('4004');
-  });
-
-  it('does not configure linkable RemDo servers for normal dev by default', () => {
-    const linkable = readEnvShValue('LINKABLE_REMDO_SERVERS_JSON', {
-      NODE_ENV: 'development',
-      PORT_BASE: '4000',
-      PORT: '4000',
-    });
-
-    expect(linkable).toBe('');
   });
 
   it('uses the un-prefixed ALLOW_SIGNUP key (no auth-prefixed variant)', () => {

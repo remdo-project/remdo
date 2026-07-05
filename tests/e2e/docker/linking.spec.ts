@@ -1,12 +1,19 @@
 import { expect, setExpectedConsoleIssues, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
+import { Buffer } from 'node:buffer';
+import process from 'node:process';
 import { config } from '#config';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 import { waitForEditableEditor } from './_support/helpers';
 
-const sourceOrigin = `http://localhost:${config.env.PORT}`;
+// The source's single origin, shared by the container home and the browser (see
+// playwright.docker.config.ts). The home derives the source id from it.
+// eslint-disable-next-line node/no-process-env -- the Docker runner sets the source origin.
+const sourceOrigin = process.env.REMDO_E2E_SOURCE_ORIGIN ?? `http://localhost:${config.env.PORT}`;
 const homeOrigin = config.env.APP_PUBLIC_URL;
-const SOURCE_SERVER_ID = 'source';
+// The home derives a source's id from its origin (base64url), same as the server.
+const sourceServerId = Buffer.from(sourceOrigin, 'utf8').toString('base64url');
+const sourceHost = new URL(sourceOrigin).host;
 
 type StableUser = (typeof STABLE_AUTH_USERS)[keyof typeof STABLE_AUTH_USERS];
 
@@ -21,34 +28,61 @@ async function signInWithVisibleForm(page: Page, user: StableUser): Promise<void
   await page.getByRole('button', { name: 'Sign in' }).click();
 }
 
-async function expectPageUrl(page: Page, expected: { origin: string; pathname: string }): Promise<void> {
-  await expect.poll(() => {
-    const url = new URL(page.url());
-    return {
-      origin: url.origin,
-      pathname: url.pathname,
-    };
-  }).toEqual(expected);
+// The Docker session is the home admin (setup.spec enrolled it); register the
+// source through the /admin panel, authorizing on the source as the same person.
+async function registerSource(page: Page): Promise<void> {
+  await page.goto('/admin');
+  await expect(page).toHaveURL(buildUrl(homeOrigin, '/admin'));
+  await expect(page.getByRole('heading', { name: 'Source servers' })).toBeVisible();
+
+  // Register adds the source and launches registration in one step, redirecting
+  // to the source's confirmation page (top-level nav).
+  await page.getByLabel('Source server URL').fill(sourceOrigin);
+  await page.getByRole('button', { name: 'Register', exact: true }).click();
+
+  // Not yet signed in on the source → its login, then back to the confirmation.
+  await expect.poll(() => new URL(page.url()).origin).toBe(sourceOrigin);
+  await signInWithVisibleForm(page, STABLE_AUTH_USERS.bob);
+  await expect(page.getByRole('heading', { name: 'Register a home server' })).toBeVisible();
+  await page.getByRole('button', { name: 'Authorize' }).click();
+
+  // Back on the home /admin with the pending claim; finish registration.
+  await expect.poll(() => new URL(page.url()).origin).toBe(new URL(homeOrigin).origin);
+  await page.getByRole('button', { name: 'Finish registering this home' }).click();
+  await expect(page.getByText('Registered', { exact: true })).toBeVisible();
 }
 
-test('links a source account and opens its Home document from the Docker home switcher', async ({ page }) => {
+test('registers a source, links an account, and opens its Home document', async ({ page }) => {
   setExpectedConsoleIssues(page, ['Failed to get client token'], { mode: 'allowContains' });
 
-  await page.goto('/sharing');
+  await registerSource(page);
 
+  // Link the source account from Sharing.
+  await page.goto('/sharing');
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/sharing'));
   await expect(page.getByText('Remote RemDo servers')).toBeVisible();
-  await expect(page.getByText('Local dev server')).toBeVisible();
-  await expect(page.getByText(sourceOrigin)).toBeVisible();
-  await expect(page.getByText(/tokenBaseUrl/u)).toBeHidden();
+  await expect(page.getByText(sourceHost, { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Link' }).click();
 
-  await expectPageUrl(page, { origin: sourceOrigin, pathname: '/login' });
-  await signInWithVisibleForm(page, STABLE_AUTH_USERS.bob);
+  // The link starts OAuth on the source. Bob is already signed in there from
+  // registration, so the source skips its login and shows the consent screen;
+  // approve it to return to the home. (If a login ever does appear, handle it
+  // first.) Each step is a real wait, not a one-shot visibility check that could
+  // race the page load.
+  await expect.poll(() => new URL(page.url()).origin).toBe(sourceOrigin);
+  const loginHeading = page.getByRole('heading', { name: 'Sign in' });
+  const consentButton = page.getByRole('button', { name: /allow|authorize|approve|consent/iu });
+  await loginHeading.or(consentButton).first().waitFor({ state: 'visible' });
+  if (await loginHeading.isVisible()) {
+    await signInWithVisibleForm(page, STABLE_AUTH_USERS.bob);
+  }
+  await consentButton.waitFor({ state: 'visible' });
+  await consentButton.click();
 
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/sharing'));
   await expect(page.getByRole('button', { name: 'Linked' })).toBeVisible();
 
+  // Open the source's Home document from the switcher.
   await page.goto('/home');
   await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/n\/[\dA-Za-z]+$/u);
   const homePathname = new URL(page.url()).pathname;
@@ -59,8 +93,8 @@ test('links a source account and opens its Home document from the Docker home sw
 
   const dropdown = page.locator('.document-header-doc-dropdown');
   await expect(dropdown.locator('[data-document-source-id="local"]')).toContainText('Current Server');
-  const sourceGroup = dropdown.locator(`[data-document-source-id="${SOURCE_SERVER_ID}"]`);
-  await expect(sourceGroup).toContainText('Local dev server');
+  const sourceGroup = dropdown.locator(`[data-document-source-id="${sourceServerId}"]`);
+  await expect(sourceGroup).toContainText(sourceHost);
   await sourceGroup.getByRole('option', { name: 'Home', exact: true }).click();
 
   await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/n\/[\dA-Za-z]+$/u);

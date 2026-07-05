@@ -1,5 +1,5 @@
 import { createServerApp } from './app';
-import { createServerAuth } from './auth/auth';
+import { createSwappableServerAuth } from './auth/auth';
 import type { ServerAuth } from './auth/auth';
 import { createYSweetDocumentTokenManager } from './collab-token';
 import type { YSweetDocumentTokenManager } from './collab-token';
@@ -7,7 +7,9 @@ import { createServerDatabaseClient } from './db/client';
 import type { SqliteServerDatabaseClient } from './db/client';
 import { createDocumentRegistry } from './documents/document-registry';
 import type { DocumentRegistry } from './documents/document-registry';
-import type { LinkableRemdoServer } from './remdo-oauth/config';
+import { createRegistrationCodeStore } from './remdo-oauth/registration-codes';
+import { createRegistrationHandleStore } from './remdo-oauth/registration-handles';
+import type { StoredSourceServer } from './remdo-oauth/source-server-store';
 
 interface OAuthClientCredentials {
   clientId: string;
@@ -19,7 +21,7 @@ interface ServerRuntimeOptions {
   allowSignup?: boolean;
   baseURL?: string;
   dbPath?: string;
-  linkableRemdoServers?: readonly LinkableRemdoServer[];
+  sourceServers?: readonly StoredSourceServer[];
   logError?: (error: unknown, details: { docId?: string }) => void;
   oauthClientCredentials?: OAuthClientCredentials;
   secret?: string;
@@ -40,26 +42,33 @@ export function createServerRuntime({
   allowSignup,
   baseURL,
   dbPath,
-  linkableRemdoServers,
+  sourceServers,
   logError,
   oauthClientCredentials,
   secret,
   tokenManager = createYSweetDocumentTokenManager(),
 }: ServerRuntimeOptions = {}): ServerRuntime {
   const database = createServerDatabaseClient({ dbPath });
-  const auth = createServerAuth({
+  // Swappable so a source registered this session becomes a live OAuth provider
+  // without a restart (register-home calls rebuildAuth after persisting creds).
+  const swappableAuth = createSwappableServerAuth({
     allowSignup,
     baseURL,
     database,
-    linkableRemdoServers,
+    sourceServers,
     oauthClientCredentials,
     secret,
   });
+  const auth = swappableAuth.auth;
   const registry = createDocumentRegistry({ client: database });
   const app = createServerApp({
     adminSecret,
     auth,
+    database,
     logError,
+    rebuildAuth: swappableAuth.rebuild,
+    registrationCodes: createRegistrationCodeStore(),
+    registrationHandles: createRegistrationHandleStore(),
     registry,
     tokenManager,
   });
