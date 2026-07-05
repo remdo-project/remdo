@@ -137,6 +137,23 @@ describe('remdo api app', () => {
     }
   });
 
+  it('refuses account-links on a public server (source-only, does not link out)', async () => {
+    // A source provider can pre-exist on a public server (e.g. a private home that
+    // linked, then flipped to public); the public-server policy must still refuse
+    // to initiate linking on that cached provider, not just the URL-first route.
+    const harness = createHarness({ allowSignup: true, sourceServers: [TEST_SOURCE_SERVER] });
+    const headers = await harness.createSessionHeaders();
+    headers.set('content-type', 'application/json');
+    const response = await harness.app.request(
+      `/api/current-user/source-servers/${TEST_SOURCE_SERVER.id}/account-links`,
+      { method: 'POST', headers, body: '{}' },
+    );
+    expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining('public server'),
+    });
+  });
+
   it('returns 400 for malformed document ids before token issuance', async () => {
     const harness = createHarness();
 

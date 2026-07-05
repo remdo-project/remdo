@@ -127,6 +127,13 @@ export function createSourceServerRoutes({
   });
 
   routes.post('/:serverId/account-links', async (c) => {
+    // A public server acts only as a source and refuses to initiate linking (see
+    // source-links.ts). Guard this path too: a source provider can pre-exist here
+    // (e.g. a private home that linked, then flipped to public), so blocking only
+    // the URL-first route would leave this one usable.
+    if (auth.allowSignup) {
+      return c.json({ error: 'A public server does not link to sources.' }, HTTP_STATUS.FORBIDDEN);
+    }
     const serverId = c.req.param('serverId');
     const server = auth.sourceServers.find((candidate) => candidate.id === serverId);
     if (!server) {

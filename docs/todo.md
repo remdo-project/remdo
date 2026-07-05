@@ -161,9 +161,10 @@ deferring does not churn the gate's interface):
   user-scoped route that removes the account link, and — if a source ends up with
   no linked users — optionally drops the cached source client), restoring
   `removeSourceServer` + its coverage against a real caller at that point.
-- The `oAuth2LinkAccount` call (+ its try/catch 500) is near-duplicated between
-  `source-links.ts` (URL-first) and `source-servers.ts` `account-links` (link a
-  known source by id). Fold into one shared helper — but likely alongside the
+- The two link-initiation routes — `source-links.ts` (URL-first) and
+  `source-servers.ts` `account-links` (link a known source by id) — now share the
+  same `oAuth2LinkAccount` call (+ try/catch 500) AND the same public-server 403
+  guard. Fold the shared shape into one helper — likely alongside the
   unlink/route-consolidation work above, since those two routes may converge.
 - Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
   the Better Auth admin plugin.
