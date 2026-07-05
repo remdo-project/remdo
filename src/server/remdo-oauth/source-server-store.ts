@@ -89,20 +89,6 @@ export async function addSourceServer(
   return { ...derived, credentials: null };
 }
 
-// Callers key by the public id (base64url of the origin); the stored identity is
-// base_url, so recover the origin from the id. An id that does not decode to a
-// bare origin matches no row.
-export async function removeSourceServer(
-  database: SqliteServerDatabaseClient,
-  id: string,
-): Promise<void> {
-  const baseUrl = sourceOriginFromId(id);
-  if (!baseUrl) {
-    return;
-  }
-  await database.db.deleteFrom('source_servers').where('base_url', '=', baseUrl).execute();
-}
-
 // Records the OAuth client the home registered on the source. The provider for
 // this source becomes usable at the next auth-instance build.
 export async function setSourceServerCredentials(

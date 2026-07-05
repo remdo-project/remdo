@@ -9,7 +9,6 @@ import {
   addSourceServer,
   listSourceServers,
   readSourceServersSync,
-  removeSourceServer,
   setSourceServerCredentials,
   setSourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
@@ -70,12 +69,6 @@ describe('source server store', () => {
   it('fails to record credentials for an unknown source', async () => {
     await expect(setSourceServerCredentials(database, 'missing', { clientId: 'c', clientSecret: 's' }))
       .rejects.toThrow('not configured');
-  });
-
-  it('removes a source', async () => {
-    await addSourceServer(database, 'https://source.example');
-    await removeSourceServer(database, SOURCE_ID);
-    expect(await listSourceServers(database)).toEqual([]);
   });
 
   it('reads sources synchronously for auth construction', async () => {

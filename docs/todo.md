@@ -166,6 +166,13 @@ deferring does not churn the gate's interface):
   loopback only in dev. Deferred together with the non-loopback item above: a
   strict IP filter must not break RemDo's supported private-IP/loopback source
   topology or the Docker E2E (source `http://<host-IP>`).
+- No user-facing "unlink / remove a source" path exists after the URL-first
+  redesign: URL-first linking added a link route but the old admin remove route
+  was deleted, so `removeSourceServer` + the `rebuild()`-on-removal behavior lost
+  their only caller (removed as dead code). Re-add an unlink capability (a
+  user-scoped route that removes the account link, and — if a source ends up with
+  no linked users — optionally drops the cached source client), restoring
+  `removeSourceServer` + its coverage against a real caller at that point.
 - Orphaned source client on a rare local-persist failure: `POST
   /source-servers/:id/claim` burns the source's one-time code before the local
   `setSourceServerCredentials`; if that write fails (in-process sqlite error) the

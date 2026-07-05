@@ -8,7 +8,6 @@ import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { deriveSourceId } from '#server/remdo-oauth/config';
 import {
   addSourceServer,
-  removeSourceServer,
   setSourceServerCredentials,
 } from '#server/remdo-oauth/source-server-store';
 
@@ -68,19 +67,6 @@ describe('createSwappableServerAuth', () => {
     // The rebuilt Better Auth instance actually carries the OAuth provider — this
     // is what makes the source linkable, not just the array entry.
     expect(liveProviderIds(swappable)).toEqual([SOURCE_ID]);
-  });
-
-  it('rebuild() drops a source removed after construction', async () => {
-    await addSourceServer(database, 'https://source.example');
-    await setSourceServerCredentials(database, SOURCE_ID, { clientId: 'cid', clientSecret: 'sec' });
-    const swappable = build();
-    expect(swappable.auth.sourceServers).toHaveLength(1);
-    expect(liveProviderIds(swappable)).toEqual([SOURCE_ID]);
-
-    await removeSourceServer(database, SOURCE_ID);
-    swappable.rebuild();
-    expect(swappable.auth.sourceServers).toEqual([]);
-    expect(liveProviderIds(swappable)).toEqual([]);
   });
 
   it('an added-but-unregistered source has no provider', async () => {
