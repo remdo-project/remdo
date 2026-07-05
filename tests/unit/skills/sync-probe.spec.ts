@@ -1,0 +1,62 @@
+// tools/skills/sync-probe.sh: fetch and classify up-to-date / merge-needed /
+// dirty-tree (remdo-sync flow steps 1-2).
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  advanceOrigin,
+  cleanupTempDirs,
+  makeBareMain,
+  makeScratchWithOrigin,
+  runScript,
+  writeFile,
+} from './_support/git-scratch';
+
+const run = (cwd: string) => runScript('sync-probe.sh', cwd);
+
+afterEach(cleanupTempDirs);
+
+describe('tools/skills/sync-probe.sh', () => {
+  it('reports up-to-date on a fresh clone at origin/main', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const result = run(work);
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('STATE=up-to-date');
+  });
+
+  it('reports merge-needed when origin/main has advanced', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    advanceOrigin(origin);
+    const result = run(work);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('STATE=merge-needed');
+  });
+
+  it('reports dirty-tree (exit 0) when the working tree is dirty', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    advanceOrigin(origin); // even a real merge-needed state is masked by dirt
+    writeFile(work, 'a.md', '# A dirty\n');
+    const result = run(work);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('STATE=dirty-tree');
+    expect(result.stdout).not.toContain('merge-needed');
+  });
+
+  it('fails loud when there is no origin remote', () => {
+    const result = run(makeBareMain({ 'a.md': '# A\n' }));
+    expect(result.status).not.toBe(0);
+  });
+
+  it('fails loud outside a git repository', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sync-probe-nogit-'));
+    try {
+      const result = run(dir);
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain('not a git repository');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
