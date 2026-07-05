@@ -138,7 +138,12 @@ export function createSourceServerRoutes(dependencies: ServerRouteDependencies) 
     if (actor instanceof Response) {
       return actor;
     }
-    return startSourceAccountLink(dependencies, c, server.id);
+    try {
+      return await startSourceAccountLink(dependencies, c, server.id);
+    } catch (error) {
+      logError(error, {});
+      return c.json({ error: 'Failed to link source server account.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
   });
 
   return routes;

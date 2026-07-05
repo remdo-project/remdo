@@ -37,23 +37,21 @@ export function createSourceLinkRoutes(dependencies: ServerRouteDependencies) {
       return actor;
     }
 
-    let sourceId: string;
     try {
-      const ensured = await ensureSourceClient({
+      const { sourceId, created } = await ensureSourceClient({
         database,
         url: origin,
         homeOrigin: new URL(auth.baseURL).origin,
         scopes: REMDO_SERVER_OAUTH_SCOPES,
       });
-      sourceId = ensured.sourceId;
-      if (ensured.created) {
+      if (created) {
         rebuildAuth();
       }
+      return await startSourceAccountLink(dependencies, c, sourceId);
     } catch (error) {
       logError(error, {});
       return c.json({ error: 'Failed to link the source server.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
-    return startSourceAccountLink(dependencies, c, sourceId);
   });
 
   return routes;

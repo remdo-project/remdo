@@ -3,30 +3,26 @@ import { HTTP_STATUS } from '#platform/http/status';
 import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
 import type { ServerRouteDependencies } from './types';
 
-// Shared tail of both link-initiation routes (URL-first source-links and by-id
-// account-links): start the OAuth link for the resolved provider, returning the
-// authorize redirect. Each route resolves its own providerId (lazily-registered
-// vs. already-known) and requires a signed-in actor first — the URL-first route
-// checks auth before self-registering, so authorization is caller-owned here.
-export async function startSourceAccountLink(
-  { auth, logError }: Pick<ServerRouteDependencies, 'auth' | 'logError'>,
+// Shared by both link-initiation routes (URL-first source-links and by-id
+// account-links): builds the OAuth link request for the resolved provider,
+// returning the authorize redirect. Each route resolves its own providerId
+// (lazily-registered vs. already-known), authorizes the actor first (the
+// URL-first route before self-registering), and owns the surrounding try/catch —
+// so a rejection here is caught by the caller's single link-error boundary.
+export function startSourceAccountLink(
+  { auth }: Pick<ServerRouteDependencies, 'auth'>,
   c: Context,
   providerId: string,
 ): Promise<Response> {
-  try {
-    return await auth.auth.api.oAuth2LinkAccount({
-      body: {
-        providerId,
-        callbackURL: '/sharing',
-        scopes: [...REMDO_SERVER_OAUTH_SCOPES],
-      },
-      headers: c.req.raw.headers,
-      asResponse: true,
-    });
-  } catch (error) {
-    logError(error, {});
-    return c.json({ error: 'Failed to link the source server.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
+  return auth.auth.api.oAuth2LinkAccount({
+    body: {
+      providerId,
+      callbackURL: '/sharing',
+      scopes: [...REMDO_SERVER_OAUTH_SCOPES],
+    },
+    headers: c.req.raw.headers,
+    asResponse: true,
+  });
 }
 
 // A public server acts only as a source and refuses to initiate linking (see
