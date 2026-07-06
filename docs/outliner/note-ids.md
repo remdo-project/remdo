@@ -64,8 +64,6 @@ environment, not persisted as a root `noteId`.
 
 ### Clipboard
 
-Identity rules for clipboard operations:
-
 - Non-cut pastes insert copies with new `noteId` values.
 - Cut/paste moves preserve existing `noteId` values for the moved notes.
 

@@ -67,11 +67,10 @@ the user.
   register the home on it, see registered state, and remove a source (see
   [Cross-Server Source Linking](#cross-server-source-linking)).
 - Self-enrollment is gated by `ADMIN_SECRET` (see
-  [docs/config.md](./config.md#admin-bootstrap-and-enrollment)) and always
-  **registers a new admin account**. The secret is a shared gate,
-  not tied to one user — any secret-holder can register an admin account, and it
-  works independently of the public-signup policy (so a private server can still
-  bootstrap and add admins). Promoting an *existing* user is a separate,
+  [docs/config.md](./config.md#admin-bootstrap-and-enrollment)). The secret is
+  a shared gate, not tied to one user — any secret-holder can register an admin
+  account, and it works independently of the public-signup policy (so a private
+  server can still bootstrap and add admins). Promoting an *existing* user is a separate,
   panel-gated capability (see [docs/todo.md](./todo.md), admin role follow-ups).
 - Admin entry is discoverable by context: a signed-in admin sees an **Admin**
   link in the app toolbar, and a non-public server (closed signup, where
@@ -84,7 +83,6 @@ the user.
 - Session cookies are SameSite=Lax; app routes use Hono's CSRF middleware to
   reject cross-site form-style browser mutations before route handlers run, and
   the app-owned `/api` mutation routes centrally require `application/json`.
-  Browser app mutations use JSON fetch requests to same-origin `/api` routes.
   Better Auth owns CSRF/origin handling for `/api/auth/*`. Introducing
   cross-origin credentialed app APIs, cross-subdomain mutation flows, non-JSON
   mutation bodies, or `SameSite=None` cookies requires re-auditing this
@@ -148,8 +146,7 @@ This action spans two servers and needs a different access level on each:
   internal id from the source's origin; a URL that is not a bare origin, or
   duplicates an existing source, is rejected.
 - On the **source**, the actor only needs to be a signed-in **user** — any
-  ordinary source account, not a source admin. The source never requires admin
-  rights of them.
+  ordinary source account, not a source admin.
 
 The flow:
 

@@ -10,10 +10,6 @@ supported access cases live in [docs/access-model.md](./access-model.md).
 
 ## Shared rules
 
-Runtime configuration has one boundary: application code consumes resolved
-`config.env` values. `.env` files, shell defaults, Docker launchers, managed
-platform settings, and tests are inputs or projections around that boundary, not
-separate product contracts.
 [docs/config.md](./config.md) owns the configuration contract: settable inputs,
 derived values, port regimes, and secret bootstrap. This doc records only the
 per-mode facts.

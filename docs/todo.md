@@ -86,8 +86,6 @@ Rules:
 
 ## Admin role follow-ups
 
-Admin role + secret-gated enrollment foundation is built; still to come:
-
 - Reconsider `/api/config` vs `/api/health` — maybe one `/api/status` covers both.
 - Admin panel: **promoting an existing user to admin** and per-admin revocation
   — the only way today to gain admin is registering a new account via the
@@ -99,15 +97,6 @@ Admin role + secret-gated enrollment foundation is built; still to come:
   construction-time `disableSignUp`).
 
 ## Source-linking follow-ups
-
-Admin-managed source linking is built: home admins add + register sources from
-the `/admin` panel (register-home ceremony → persisted credentials →
-swappable-auth activation); the admin-managed DB model replaced the
-`LINKABLE_REMDO_SERVERS_JSON` env config; home admin actions gate on the admin
-role; the source accepts registration only from an authenticated account while
-public (`ALLOW_SIGNUP`-backed). Two-server Docker E2E green.
-
-Deferred hardening:
 
 - Audit logging + rate limiting on self-enrollment and public-policy changes.
 - `ADMIN_SECRET` rotation lifecycle: define whether rotating affects existing
@@ -212,9 +201,6 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   sequence, a borrowed test-only tag, and duplicate route error state. May need
   an architecture pass (shared hardened load primitive, intent via router/React
   state, import-then-commit so a failed import leaves no empty doc).
-
-Remaining issues to fold in or fix directly:
-
 - `await normalizeUpdate` / `await awaitSynced()` can hang forever: no
   timeout/noop guard, so a no-op normalize (clean backup) or a never-syncing
   provider leaves the import pending with no error.

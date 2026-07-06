@@ -38,10 +38,8 @@ loudly instead.
 There is **no `.github/dependabot.yml`**, and Dependabot version-update PRs are
 **not** used here. Dependabot supports pnpm only through v10 while this repo
 pins pnpm 11 (`packageManager` in `package.json`), so against this workspace its
-resolver reads stale versions from the lockfile graph and opens wrong PRs (the
-blocker is pnpm-version support, not workspace-catalog support, which Dependabot
-has). Do **not** re-add a version-update config until Dependabot supports
-**pnpm 11**.
+resolver reads stale versions from the lockfile graph and opens wrong PRs. Do
+**not** re-add a version-update config until Dependabot supports **pnpm 11**.
 
 Staleness is detected by the refresh itself, not by Dependabot: the
 `remdo-deps-refresh` skill runs `pnpm update --latest`, which resolves the catalog

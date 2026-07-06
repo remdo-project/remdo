@@ -21,15 +21,13 @@ Define the product assumptions that outrank current implementation details.
 
 ## Deployment targets
 
-RemDo should support all of the following:
+RemDo should support:
 
 1. Easy local development and testing.
 2. Easy self-hosting on the user's own hardware or infrastructure.
 3. Easy self-hosting on a recommended third-party platform under the user's own
    account.
 4. A cloud-hosted offering that feels normal to non-technical users.
-
-These are product goals with vendor choice left open.
 
 ## Multi-origin direction
 
