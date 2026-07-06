@@ -254,6 +254,18 @@ describe('remdo api app', () => {
     });
   });
 
+  it('does not leak source-row existence to an unauthenticated caller (401, not 404)', async () => {
+    // source ids derive from origins; an unauthenticated probe of a KNOWN id must
+    // not be distinguishable (401 vs 404) from an unknown one.
+    const harness = createHarnessWithSourceServer();
+
+    const known = await harness.app.request('/api/current-user/source-servers/source/current-user');
+    const unknown = await harness.app.request('/api/current-user/source-servers/unknownsource/current-user');
+
+    expect(known.status).toBe(HTTP_STATUS.UNAUTHORIZED);
+    expect(unknown.status).toBe(HTTP_STATUS.UNAUTHORIZED);
+  });
+
   it('proxies linked source sync token requests with the stored source token', async () => {
     const harness = createHarnessWithSourceServer();
     harness.auth.getLinkedRemdoServerAccessToken = vi.fn(async () => 'source-token');

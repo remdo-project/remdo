@@ -146,6 +146,21 @@ deferring does not churn the gate's interface):
   (a mirror of Better Auth's `validateIssuerUrl`) can be deleted. Blocked on the
   Docker E2E, whose source is `http://<host-IP>` (rootless Docker can't reach a
   loopback source) — the real work is making that source loopback-reachable.
+- Blind SSRF: URL-first linking makes the home POST to a user-supplied origin
+  (`registerPublicSourceClient` → `<url>/api/auth/oauth2/register`), so a
+  signed-in user of a private home can drive it to loopback/RFC1918/metadata
+  targets. The public-server guard confines this to private homes (whose users are
+  the operator's own) and `redirect: 'error'` blocks redirect-bounce, but the
+  destination itself is unvalidated. Needs a resolve-then-check destination-IP
+  allowlist that permits loopback only in dev (must not break the private-IP/
+  loopback source topology or the Docker E2E's `http://<host-IP>` source).
+- Source-existence side-channel (residual): `resolveSourceAccess` now requires an
+  actor before revealing a row, so unauthenticated callers can't probe it. But a
+  *signed-in* user can still distinguish a known-but-not-mine source (403) from an
+  unknown one (404) on `/source-servers/:id/*`, and ids derive from origins — so
+  they can detect that some user linked an origin they already know. Bounded
+  (needs the origin up front, reveals no other user/doc data); close by returning
+  404 for known-but-unlinked if this ever matters.
 - Public-source registration abuse: the home self-registers unauthenticatedly, so
   the deleted per-account (userId-keyed) register limit can't be ported — there is
   no session principal. The only bound left is Better Auth's IP-keyed
