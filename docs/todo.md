@@ -190,6 +190,18 @@ deferring does not churn the gate's interface):
   `resolveSourceErrorStatus` → try/catch 500. Extract a `proxyToSource` helper
   (pre-existing duplication, not from this work; fold in when next touching these
   routes, e.g. with the unlink route).
+- Unreachable linked source floods the console + is silent to the user. When a
+  linked source is down or its OAuth token can't refresh,
+  `/source-servers/:id/current-user` fails and the client's `DelayedRetry`
+  (`stored-user-data.ts`) re-fetches forever at a fixed interval with no backoff,
+  cap, or give-up — each attempt logs. Add backoff + a bounded retry, and expose a
+  user-visible per-source status ("source offline / re-link needed") instead of
+  only console errors. Related to the offline-collab retry item below.
+  - Also: the route returns 403 for "linked but no usable token" (source
+    unreachable / token unrefreshable), conflating it with "not linked / no
+    access". A source-unreachable/upstream failure is really a gateway error
+    (502/504), which would also let the client distinguish "offline, keep the
+    link" from a real "forbidden". Worth splitting when the status UI lands.
 - Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
   the Better Auth admin plugin.
 
