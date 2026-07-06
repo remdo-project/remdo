@@ -92,6 +92,17 @@ describe('post /api/current-user/source-links', () => {
     expect(response.status).toBe(429);
   });
 
+  it('maps a source 5xx (upstream fault) to a 500, not a client error', async () => {
+    const harness = createHarness({ allowSignup: false });
+    const headers = await harness.createSessionHeaders();
+    // A source-side outage is a genuine fault, not invalid user input.
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 503 })));
+
+    const response = await postJson(harness.app, '/api/current-user/source-links', { url: 'https://source.example' }, headers);
+
+    expect(response.status).toBe(500);
+  });
+
   it('ensures a source client and reaches oAuth2LinkAccount for a valid URL from any signed-in user', async () => {
     const harness = createHarness({ allowSignup: false });
     const headers = await harness.createSessionHeaders();
