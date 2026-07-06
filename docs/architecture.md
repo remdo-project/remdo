@@ -47,8 +47,8 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
   RemDo-issued Y-Sweet document client tokens to browsers.
 - Browser-visible collaboration URLs are derived from the server's configured
   canonical public origin, not from request forwarding headers.
-- OAuth source linking: Better Auth stores OAuth account tokens for configured
-  source servers after the user links a source account.
+- OAuth source linking: Better Auth stores OAuth account tokens for the source
+  servers a user has linked (URL-first; not admin-configured).
 
 ### Session User
 
