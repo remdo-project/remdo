@@ -40,6 +40,17 @@ describe('post /api/current-user/source-links', () => {
     expect(response.status).toBe(401);
   });
 
+  it('rejects a bearer-authenticated request (linking needs an interactive session)', async () => {
+    const harness = createHarness({ allowSignup: false });
+    harness.auth.resolveBearerUser = vi.fn(async () => ({ email: 'x@example.com', id: 'u1', name: 'X' }));
+    const headers = new Headers({ authorization: 'Bearer delegated-token' });
+    const response = await postJson(harness.app, '/api/current-user/source-links', { url: 'https://source.example' }, headers);
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining('session'),
+    });
+  });
+
   it('rejects a missing or non-http url', async () => {
     const harness = createHarness({ allowSignup: false });
     const headers = await harness.createSessionHeaders();

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { HTTP_STATUS } from '#platform/http/status';
 import { normalizeToHttpOrigin } from '#platform/net/http-origin';
-import { requireActor } from '#server/auth/actor';
+import { requireActorResolution } from '#server/auth/actor';
 import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
 import { ensureSourceClient } from '#server/remdo-oauth/ensure-source-client';
 import { SourceRegistrationError } from '#server/remdo-oauth/source-client-registration';
@@ -33,10 +33,15 @@ export function createSourceLinkRoutes(dependencies: ServerRouteDependencies) {
     }
 
     // Authorize before self-registering: an unauthenticated request must not
-    // trigger client registration on the source.
-    const actor = await requireActor(c, auth);
+    // trigger client registration on the source. Require an interactive SESSION,
+    // not a delegated bearer token — linking is a home user's own action, so a
+    // cross-server bearer holder must not drive the outbound registration.
+    const actor = await requireActorResolution(c, auth);
     if (actor instanceof Response) {
       return actor;
+    }
+    if (actor.credential !== 'session') {
+      return c.json({ error: 'Linking a source requires a signed-in session.' }, HTTP_STATUS.FORBIDDEN);
     }
 
     try {
