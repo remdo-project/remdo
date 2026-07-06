@@ -21,11 +21,19 @@ even when the adjacent rule is read at face value, or if the text falls under
 a carve-out the rules doc grants — its minimal-by-default rule and its
 invariants preamble, e.g. edge and failure semantics, the one-sentence
 rationale where dropping it would invite relitigating a settled choice, a
-skill's procedural steps and sibling-link References.
+skill's procedural steps and sibling-link References. One decided precedent:
+a proposal targeting a navigation-only section whose links are load-bearing
+resolves as relocate-then-delete — move each link inline to its subject's
+first substantive mention, then delete the section; neither wholesale keep
+nor wholesale delete is correct there.
 
 Default to applying. If deciding a proposal requires choosing between two
 conflicting sanctioned rules, do not decide it: mark it ESCALATE and name the
 conflict. Keep the corpus coherent — fix links and anchors that deletions
 move — and leave the doc gates clean. Finish with a per-proposal
 disposition list: applied / rejected plus the concrete surviving misuse or
-the granting carve-out / ESCALATE plus the conflict.
+the granting carve-out / ESCALATE plus the conflict. When producing
+verdict-only output (a dual-adjudication session), end with exactly one line
+per proposal — `N: APPLY` or `N: REJECT` with nothing else on the line — so
+the two lists diff mechanically; grounds go above the verdict block, never
+appended to its lines.

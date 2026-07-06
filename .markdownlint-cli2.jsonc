@@ -47,8 +47,9 @@
     },
     // MD012: existing docs intentionally keep double-blank separators.
     "MD012": false,
-    // MD029: selection doc uses custom list numbering for readability.
-    "MD029": false,
+    // MD029 "ordered": sequential list numbering; a mechanical renumbering
+    // slip (e.g. a duplicated item number) is a real observed defect class.
+    "MD029": { "style": "ordered" },
     // MD033: allow inline HTML fragments already present.
     "MD033": false,
     // MD040: allow unlabeled code fences in legacy sections.
