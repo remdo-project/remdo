@@ -3,7 +3,6 @@ import { registerPublicSourceClient } from '#server/remdo-oauth/source-client-re
 import {
   claimSourceServerPublicClient,
   ensureSourceServerRow,
-  listSourceServers,
 } from '#server/remdo-oauth/source-server-store';
 
 export interface EnsureSourceClientParams {
@@ -37,13 +36,13 @@ export async function ensureSourceClient(
 ): Promise<EnsureSourceClientResult> {
   const registerClient = deps.registerClient ?? registerPublicSourceClient;
   const origin = new URL(params.url).origin;
-  const servers = await listSourceServers(params.database);
-  const existing = servers.find((server) => server.baseUrl === origin);
-  if (existing?.credentials) {
-    return { sourceId: existing.id };
+  // Get-or-create the row (idempotent, race-safe). If it already has a cached
+  // client, this is a re-link — reuse it, no registration.
+  const source = await ensureSourceServerRow(params.database, origin);
+  if (source.credentials) {
+    return { sourceId: source.id };
   }
 
-  const source = existing ?? (await ensureSourceServerRow(params.database, origin));
   const { clientId } = await registerClient({
     sourceBaseUrl: source.baseUrl,
     homeOrigin: params.homeOrigin,
