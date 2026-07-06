@@ -72,10 +72,11 @@ export function createSourceLinkRoutes(dependencies: ServerRouteDependencies) {
       // fault: report it as a client error, unlogged. A source 5xx is a genuine
       // upstream fault and falls through to the logged 500 below.
       if (error instanceof SourceRegistrationError && error.status < 500) {
-        return c.json(
-          { error: 'The source server did not accept the link.' },
-          error.status === HTTP_STATUS.TOO_MANY_REQUESTS ? HTTP_STATUS.TOO_MANY_REQUESTS : HTTP_STATUS.BAD_REQUEST,
-        );
+        // Preserve a 429 (rate limited); report any other source 4xx as a 400.
+        const status = error.status === HTTP_STATUS.TOO_MANY_REQUESTS
+          ? HTTP_STATUS.TOO_MANY_REQUESTS
+          : HTTP_STATUS.BAD_REQUEST;
+        return c.json({ error: 'The source server did not accept the link.' }, status);
       }
       logError(error, {});
       return c.json({ error: 'Failed to link the source server.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);

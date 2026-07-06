@@ -184,6 +184,12 @@ deferring does not churn the gate's interface):
   user-scoped route that removes the account link, and — if a source ends up with
   no linked users — optionally drops the cached source client), restoring
   `removeSourceServer` + its coverage against a real caller at that point.
+- The two source-proxy routes in `source-servers.ts` (`:id/current-user`,
+  `:id/documents/:docId/sync-tokens`) duplicate the same shape:
+  `requireSourceAccess` → authenticated `fetch` → `!ok` forward via
+  `resolveSourceErrorStatus` → try/catch 500. Extract a `proxyToSource` helper
+  (pre-existing duplication, not from this work; fold in when next touching these
+  routes, e.g. with the unlink route).
 - Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
   the Better Auth admin plugin.
 
