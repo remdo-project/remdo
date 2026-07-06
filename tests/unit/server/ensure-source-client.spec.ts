@@ -23,11 +23,10 @@ describe('ensureSourceClient', () => {
 
   it('registers and caches a public client on first link to a URL', async () => {
     const registerClient = vi.fn(async () => ({ clientId: 'cid-1' }));
-    const result = await ensureSourceClient(
+    await ensureSourceClient(
       { database, url: 'https://source.example', homeOrigin: 'https://home.private', scopes: ['remdo'] },
       { registerClient },
     );
-    expect(result.created).toBe(true);
     expect(registerClient).toHaveBeenCalledTimes(1);
     const [server] = await listSourceServers(database);
     expect(server!.credentials).toEqual({ clientId: 'cid-1' });
@@ -36,11 +35,10 @@ describe('ensureSourceClient', () => {
   it('reuses a credential-less row from a failed prior registration instead of throwing a duplicate error', async () => {
     await ensureSourceServerRow(database, 'https://source.example');
     const registerClient = vi.fn(async () => ({ clientId: 'cid-1' }));
-    const result = await ensureSourceClient(
+    await ensureSourceClient(
       { database, url: 'https://source.example', homeOrigin: 'https://home.private', scopes: ['remdo'] },
       { registerClient },
     );
-    expect(result.created).toBe(true);
     expect(registerClient).toHaveBeenCalledTimes(1);
     const [server] = await listSourceServers(database);
     expect(server!.credentials).toEqual({ clientId: 'cid-1' });
@@ -56,7 +54,9 @@ describe('ensureSourceClient', () => {
       { database, url: 'https://source.example', homeOrigin: 'https://home.private', scopes: [] },
       { registerClient },
     );
-    expect(second.created).toBe(false);
+    // The second link reuses the cached client: no re-registration, same source.
     expect(registerClient).toHaveBeenCalledTimes(1);
+    const [server] = await listSourceServers(database);
+    expect(second.sourceId).toBe(server!.id);
   });
 });

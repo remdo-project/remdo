@@ -15,24 +15,22 @@ export interface EnsureSourceClientParams {
 
 export interface EnsureSourceClientResult {
   sourceId: string;
-  created: boolean;
 }
 
 // Ensures a public OAuth client exists for a source URL, self-registering one on
 // first use and caching its client_id in source_servers. Idempotent: repeated
-// links to the same URL (by any user) reuse the cached client. The caller
-// rebuilds auth when `created` is true so a genericOAuth provider appears.
+// links to the same URL (by any user) reuse the cached client. The caller must
+// rebuild auth before using the returned source (see source-links.ts) so the
+// genericOAuth provider is live in this process.
 //
 // Concurrent first-links to the same new URL are safe: the row create tolerates
 // the duplicate (ensureSourceServerRow), and the client_id is claimed
 // first-writer-wins (claimSourceServerPublicClient) so the row converges on one
 // client and no request overwrites a client another may already be authorizing
 // against. A loser's freshly-registered client is left orphaned on the source —
-// harmless (secretless, redirect-locked). Both racers return `created: true`
-// (they observed no credentials and went through registration), so BOTH ask the
-// caller to rebuild before starting OAuth: a rebuild is synchronous, cheap, and
-// idempotent, and the loser must not skip it or it could reach oAuth2LinkAccount
-// before the winner's rebuild made the provider live in this process.
+// harmless (secretless, redirect-locked). The caller rebuilds unconditionally, so
+// a request that observed another racer's just-written credentials still makes the
+// provider live before OAuth rather than racing that racer's own rebuild.
 export async function ensureSourceClient(
   params: EnsureSourceClientParams,
   deps: { registerClient?: typeof registerPublicSourceClient } = {},
@@ -42,7 +40,7 @@ export async function ensureSourceClient(
   const servers = await listSourceServers(params.database);
   const existing = servers.find((server) => server.baseUrl === origin);
   if (existing?.credentials) {
-    return { sourceId: existing.id, created: false };
+    return { sourceId: existing.id };
   }
 
   const source = existing ?? (await ensureSourceServerRow(params.database, origin));
@@ -53,7 +51,5 @@ export async function ensureSourceClient(
     scopes: params.scopes,
   });
   await claimSourceServerPublicClient(params.database, source.id, clientId);
-  // This request went through registration (it saw no credentials), so the
-  // caller must rebuild to make the provider live in THIS process before OAuth.
-  return { sourceId: source.id, created: true };
+  return { sourceId: source.id };
 }
