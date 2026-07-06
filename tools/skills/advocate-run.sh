@@ -10,11 +10,24 @@
 # .claude/skills/remdo-docs-align/references/advocate.md, then runs
 # `codex exec --sandbox read-only` from the repo root (a git cwd — codex's trust
 # check needs one) with the prompt on stdin. Captures the complete output (no
-# truncation) to <output-file>. Retries once when the first run fails or writes
-# nothing (codex startup timeouts / transient failures). The model's judgment
-# stays opaque; only the invocation is scripted.
+# truncation) to <output-file>. Retries once when the first run fails, writes
+# nothing, or produces an artifact with no numbered proposal (codex startup
+# timeouts / transient failures / a session that dies mid-read leaving a
+# proposal-less trace). The model's judgment stays opaque; only the invocation
+# is scripted.
+#
+# Artifact validation and repair (both applied after capture, before success):
+#   - De-dup: codex streams its final numbered answer, then reprints it verbatim
+#     after a "tokens used\n<count>" marker. When the numbered-list block after
+#     the marker byte-matches the equal-length block before it, the trailing copy
+#     (marker line, count line, and repeat) is dropped so the artifact carries the
+#     proposal list exactly once. A non-matching tail is left untouched.
+#   - Non-empty proposals: the artifact must contain at least one numbered
+#     proposal, detected by a "Replacement:" line. An artifact with none is a
+#     failed run (e.g. codex died mid-read), so it triggers the retry and, if the
+#     retry is also proposal-less, a non-zero exit.
 # Fails loud (non-zero + stderr) on missing or extra args, a missing template,
-# or a second empty/failed run.
+# or a second empty/failed/proposal-less run.
 set -eu
 
 fail() {
@@ -71,18 +84,57 @@ run_codex() {
     >"$out" 2>&1
 }
 
-# First attempt; retry once on non-zero exit or an empty artifact.
-if run_codex && [ -s "$out" ]; then
+# De-dup the doubled final answer in place. codex reprints its numbered proposal
+# list verbatim after a "tokens used\n<count>" marker; when the block after the
+# marker byte-matches the equal-length block ending just before it, the trailing
+# copy is redundant and dropped. A tail that does not match (e.g. genuinely
+# different trailing text) is left as-is.
+dedup_artifact() {
+  awk '
+    { lines[NR] = $0 }
+    /^tokens used$/ { marker = NR }
+    END {
+      total = NR
+      # No marker, or nothing after the count line: emit unchanged.
+      if (marker == 0 || marker + 2 > total) { for (i = 1; i <= total; i++) print lines[i]; exit }
+      tail_start = marker + 2          # skip "tokens used" and its count line
+      tail_len = total - tail_start + 1
+      pre_start = marker - tail_len    # equal-length slice ending at marker-1
+      dup = (pre_start >= 1)
+      for (i = 0; dup && i < tail_len; i++)
+        if (lines[pre_start + i] != lines[tail_start + i]) dup = 0
+      if (dup) for (i = 1; i <= marker - 1; i++) print lines[i]
+      else     for (i = 1; i <= total; i++) print lines[i]
+    }
+  ' "$out" >"$out.dedup" && mv -- "$out.dedup" "$out"
+}
+
+# A valid artifact carries at least one numbered proposal, each of which has a
+# "Replacement:" line — a proposal-less trace is a failed run (codex died
+# mid-read), not an empty-but-fine result.
+has_proposal() {
+  [ -s "$out" ] && grep -q 'Replacement:' "$out"
+}
+
+# One attempt: capture, de-dup, then require a non-empty proposal list.
+attempt() {
+  run_codex || return 1
+  dedup_artifact
+  has_proposal
+}
+
+# First attempt; retry once on failure, an empty artifact, or no proposals.
+if attempt; then
   echo "ADVOCATE=ok"
   echo "OUTPUT=$out"
   exit 0
 fi
 
-if run_codex && [ -s "$out" ]; then
+if attempt; then
   echo "ADVOCATE=ok"
   echo "OUTPUT=$out"
   echo "RETRIED=1"
   exit 0
 fi
 
-fail "codex advocate run failed or produced no output after one retry — see $out"
+fail "codex advocate run failed or produced no numbered proposals after one retry — see $out"

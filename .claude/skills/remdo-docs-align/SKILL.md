@@ -36,7 +36,10 @@ they run in this order.
 2. **Align pass.** An editor fixes the remaining rule violations across the
    scope, re-running the gates after each batch.
 3. **Advocate.** Run `sh tools/skills/advocate-run.sh <rules-doc> <scope>
-   <output-file>` (its header states the full contract) to capture the
+   <output-file>` synchronously in the foreground (a backgrounded run is
+   orphaned when a headless session ends its turn) with a repo-local
+   `<output-file>` such as `.agent/tmp/advocate.txt` (headless editors cannot
+   read `/tmp`); its header states the full contract. It captures the
    numbered proposal table; the advocate runs on a different model family
    than the editor. On a non-zero exit (the retry also failed), surface it in
    the stage-5 report rather than proceeding to adjudicate an empty table.

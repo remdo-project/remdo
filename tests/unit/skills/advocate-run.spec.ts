@@ -30,6 +30,16 @@ function stubDir(body: string): string {
   return dir;
 }
 
+// A minimal valid proposal block appended after the echoed prompt so the
+// artifact passes the script's "at least one numbered proposal" check while the
+// substitution/capture assertions still see the full prompt.
+const PROPOSAL = '\n1. `docs/config.md:18`\nReplacement: DELETE\n';
+
+// Stub body: echo the prompt read on stdin, then a minimal valid proposal. Used
+// by the cases that assert substitution/capture (they inspect the echoed prompt)
+// and must also clear the proposal check.
+const echoPromptThenProposal = `cat; printf '%s' '${PROPOSAL}'`;
+
 // Run advocate-run.sh from the real repo root with `codex` stubbed on PATH.
 function run(args: string[], stub: string) {
   return runScript('advocate-run.sh', repoRoot, args, stub);
@@ -45,8 +55,8 @@ afterEach(() => {
 describe('tools/skills/advocate-run.sh', () => {
   it('substitutes {RULES_DOC}/{SCOPE} and captures the full codex output', () => {
     const out = tempOut();
-    // Stub echoes back the prompt it read on stdin.
-    const stub = stubDir('cat');
+    // Stub echoes back the prompt it read on stdin, plus a minimal proposal.
+    const stub = stubDir(echoPromptThenProposal);
     const result = run(['docs/documentation.md', 'docs/note-structure-rules.md', out], stub);
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
@@ -68,7 +78,7 @@ describe('tools/skills/advocate-run.sh', () => {
     // First call: exit 1 with empty stdout. Second call: succeed with content.
     const stub = stubDir(
       `cnt="${counter}"\n`
-      + 'if [ -f "$cnt" ]; then cat; exit 0; else : > "$cnt"; exit 1; fi',
+      + `if [ -f "$cnt" ]; then ${echoPromptThenProposal}; exit 0; else : > "$cnt"; exit 1; fi`,
     );
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.status).toBe(0);
@@ -84,9 +94,58 @@ describe('tools/skills/advocate-run.sh', () => {
     expect(result.stderr).toContain('after one retry');
   });
 
+  // codex streams its final numbered answer, then reprints it verbatim after a
+  // "tokens used\n<count>" marker (observed 2/2 in baseline runs). The script
+  // must collapse the byte-identical repeat to a single copy.
+  it('de-duplicates the doubled final answer, keeping the proposal list once', () => {
+    const out = tempOut();
+    const answer = [
+      'I read every doc. Proposals:',
+      '',
+      '1. `docs/config.md:18`',
+      'Quote: "These are the only settable variables."',
+      'Replacement: DELETE',
+      'Rule: adjacent exhaustive table already establishes the set.',
+      'Risk test: an unlisted var is treated as settable; the table still forbids it.',
+      '',
+      '2. `docs/config.md:58`',
+      'Quote: "is normal, not a misconfiguration."',
+      'Replacement: DELETE',
+      'Rule: rationale beyond the rule.',
+      'Risk test: maintainers reintroduce the removed setting.',
+    ].join('\n');
+    // A fixture holding the answer, the "tokens used\n<count>" marker, then the
+    // answer again — the exact doubling the script collapses. The stub cats it.
+    const fixture = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'advocate-dup-')), 'doubled.txt');
+    tempFiles.push(path.dirname(fixture));
+    fs.writeFileSync(fixture, `${answer}\ntokens used\n42\n${answer}\n`);
+    const stub = stubDir(`cat "${fixture}"`);
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('ADVOCATE=ok');
+    const captured = fs.readFileSync(out, 'utf8');
+    // Each proposal (and its Replacement line) appears exactly once.
+    expect(captured.match(/Replacement:/g)).toHaveLength(2);
+    expect(captured.match(/1\. `docs\/config\.md:18`/g)).toHaveLength(1);
+    // The redundant "tokens used" marker (and the reprint after it) is gone.
+    expect(captured).not.toContain('tokens used');
+  });
+
+  // A codex session that dies mid-read leaves a reading trace with no numbered
+  // proposal. Both attempts produce such output → the run must fail non-zero.
+  it('fails loud when both attempts produce no numbered proposal', () => {
+    const out = tempOut();
+    // Non-empty output, but no "Replacement:" line — a proposal-less trace.
+    const stub = stubDir('printf "I am reading docs/config.md...\\nstill reading...\\n"');
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('no numbered proposals');
+  });
+
   it('splices a scope containing & literally (no gsub replacement semantics)', () => {
     const out = tempOut();
-    const stub = stubDir('cat');
+    const stub = stubDir(echoPromptThenProposal);
     // `&` is awk gsub's "matched text" metacharacter; a literal splice must keep
     // it verbatim rather than expanding it to the placeholder text.
     const result = run(['docs/documentation.md', 'files A & B', out], stub);
