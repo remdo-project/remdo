@@ -36,29 +36,27 @@ RemDo-owned note links and generic external links.
 6. On insertion, note-link display text is copied once from the target note
    title and then stored locally; later target renames do not update it
    (rename-aware display modes are a Future direction below).
-7. Runtime/internal editor state stores fully qualified link identity
-   (`docId` + `noteId`) for every note-link node.
-8. Note-link clicks use native `href` navigation semantics and route handling.
-9. Pasting a RemDo-owned plain-text note URL inserts a
+7. Note-link clicks use native `href` navigation semantics and route handling.
+8. Pasting a RemDo-owned plain-text note URL inserts a
    note-link node. When the target is in the current document, inserted
    link text copies the current target note title; otherwise it uses the pasted
    URL string.
-10. Typed URLs use Lexical generic link behavior, including same-origin
+9. Typed URLs use Lexical generic link behavior, including same-origin
     RemDo note URLs typed as raw URLs.
-11. Pasted generic URLs that are not upgraded to note links use Lexical generic
+10. Pasted generic URLs that are not upgraded to note links use Lexical generic
     link behavior.
-12. Generic URL links open in a new tab.
-13. URLs that merely resemble RemDo note routes but are not classified by
+11. Generic URL links open in a new tab.
+12. URLs that merely resemble RemDo note routes but are not classified by
     RemDo as owned note refs remain generic external links.
-14. Clipboard payloads (copy/cut) must include explicit `docId` for every
+13. Clipboard payloads (copy/cut) must include explicit `docId` for every
    note link so cross-context paste has complete target identity.
-15. Cross-document pastes preserve source-target link identity; note links
+14. Cross-document pastes preserve source-target link identity; note links
    are not retargeted to the destination document.
 
 ## Identity Representation Boundaries
 
 1. Runtime/editor state keeps note links fully qualified (`docId` +
-`noteId`).
+   `noteId`).
 2. Persisted JSON state must omit `docId` when a link targets the active
    document. This keeps document identity host-owned rather than embedded as
    canonical content state.
