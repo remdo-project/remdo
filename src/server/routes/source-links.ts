@@ -4,6 +4,7 @@ import { normalizeToHttpOrigin } from '#platform/net/http-origin';
 import { requireActor } from '#server/auth/actor';
 import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
 import { ensureSourceClient } from '#server/remdo-oauth/ensure-source-client';
+import { SourceRegistrationError } from '#server/remdo-oauth/source-client-registration';
 import type { ServerRouteDependencies } from './types';
 
 // URL-first source linking: the only linking entry point. Any signed-in user
@@ -58,6 +59,16 @@ export function createSourceLinkRoutes(dependencies: ServerRouteDependencies) {
         asResponse: true,
       });
     } catch (error) {
+      // The source refusing registration (private source, not a RemDo server,
+      // rate limited) is an expected outcome of the user's URL, not a home fault:
+      // report it as a client error, not a 500, and don't log it as an internal
+      // error.
+      if (error instanceof SourceRegistrationError) {
+        return c.json(
+          { error: 'The source server did not accept the link.' },
+          error.status === HTTP_STATUS.TOO_MANY_REQUESTS ? HTTP_STATUS.TOO_MANY_REQUESTS : HTTP_STATUS.BAD_REQUEST,
+        );
+      }
       logError(error, {});
       return c.json({ error: 'Failed to link the source server.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }

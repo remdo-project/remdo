@@ -67,6 +67,31 @@ describe('post /api/current-user/source-links', () => {
     );
   });
 
+  it('maps a source that refuses registration to a client error, not a 500', async () => {
+    const harness = createHarness({ allowSignup: false });
+    const headers = await harness.createSessionHeaders();
+    // The source refuses dynamic registration (private source / not a RemDo
+    // server): an expected outcome of the user's URL, not a home fault.
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('forbidden', { status: 403 })));
+
+    const response = await postJson(harness.app, '/api/current-user/source-links', { url: 'https://source.example' }, headers);
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining('did not accept'),
+    });
+  });
+
+  it('maps a rate-limited source (429) to 429', async () => {
+    const harness = createHarness({ allowSignup: false });
+    const headers = await harness.createSessionHeaders();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('too many', { status: 429 })));
+
+    const response = await postJson(harness.app, '/api/current-user/source-links', { url: 'https://source.example' }, headers);
+
+    expect(response.status).toBe(429);
+  });
+
   it('ensures a source client and reaches oAuth2LinkAccount for a valid URL from any signed-in user', async () => {
     const harness = createHarness({ allowSignup: false });
     const headers = await harness.createSessionHeaders();

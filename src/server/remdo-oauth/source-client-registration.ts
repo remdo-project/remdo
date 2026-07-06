@@ -5,6 +5,17 @@ export interface RegisterPublicClientParams {
   scopes: readonly string[];
 }
 
+// Thrown when the source refuses registration with a 4xx/429 — an expected
+// user/upstream outcome (private source, not a RemDo server, rate limited), not a
+// home fault. Carries the source's status so the route can answer with a client
+// error rather than a 500.
+export class SourceRegistrationError extends Error {
+  constructor(readonly status: number) {
+    super(`Source client registration failed: ${status}`);
+    this.name = 'SourceRegistrationError';
+  }
+}
+
 // Registers a PUBLIC OAuth client (token_endpoint_auth_method: "none", no
 // secret) on a source via its dynamic-registration endpoint. The redirect_uri is
 // locked to the home's own callback; the source enforces exact-match on it at
@@ -32,7 +43,7 @@ export async function registerPublicSourceClient(
     }),
   });
   if (!response.ok) {
-    throw new Error(`Source client registration failed: ${response.status}`);
+    throw new SourceRegistrationError(response.status);
   }
   const data = (await response.json()) as { client_id?: string };
   if (!data.client_id) {
