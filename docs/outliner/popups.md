@@ -19,10 +19,8 @@ specialization of this contract; the contract is independent of how each opens.
 2. **The popup owns the keyboard.** While open it has first decision over every
    key: it consumes its navigation, commit, and dismissal keys, and no keystroke
    reaches ordinary text editing — **except** keys that edit the popup's own
-   *pinned span* (see below). A popup with no pinned span owns every key. A key
-   the popup owns but does not act on (for example a letter with no shortcut in a
-   menu or calendar) is a no-op: it is swallowed and changes nothing — it neither
-   reaches the editor nor does anything in the popup.
+   *pinned span* (see below). A popup with no pinned span owns every key; an
+   owned key with no binding is a no-op.
 3. **Editable-span exception.** A type-to-filter popup pins a span of editor text
    as its query; while the selection is inside that span, ordinary text-editing
    keys (printable characters, `Backspace`) stay the editor's and edit the query.
@@ -31,11 +29,10 @@ specialization of this contract; the contract is independent of how each opens.
    blur, light-dismiss, or `Tab`, and never commits an unconfirmed highlight.
    Commit happens only through an explicit per-widget commit action (each widget
    declares its commit keys); confirming applies the result and closes.
-5. **`Tab` never inserts a tab.** Each widget declares its `Tab` behavior as one
-   of: **close and fall through** to the editor's normal `Tab` action (the popup
-   closes, then deliberately routes the key onward — an explicit outcome, not a
-   leak), or **cycle within** the popup's own controls. It never reaches the
-   editor as a literal tab.
+5. **`Tab` behavior is declared per widget**, as one of: **close and fall
+   through** to the editor's normal `Tab` action (the popup closes, then
+   deliberately routes the key onward — an explicit outcome, not a leak), or
+   **cycle within** the popup's own controls.
 6. **Validated commit, safe restore.** Because the editor selection stays live
    while a popup is open (and may move under collaboration), a commit re-resolves
    its pinned target and verifies it still holds before applying. On any close the

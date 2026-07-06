@@ -32,8 +32,6 @@ contiguous sibling selection nests as one unit, preserving its order and
 internal structure. Without such a sibling (for example the first note at its
 level), indent is a no-op.
 
-_Rationale:_ an indent is always "become a child of the note directly above",
-which rules out cycles and cross-level jumps.
 
 ## Valid Outdentation
 
@@ -45,8 +43,7 @@ a top-level note is a no-op.
 ### Outdent Placement
 
 The outdent command (shortcut `Shift+Tab`) inserts the promoted notes
-immediately after their former parent, so the subtree keeps its context instead
-of leaping ahead of unrelated siblings.
+immediately after their former parent.
 
 ## Reordering Behavior
 

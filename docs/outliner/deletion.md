@@ -9,11 +9,10 @@ semantics are defined in [Selection](./selection.md); when a merged note has a
 
 1. Inline text range: `Backspace`/`Delete` remove only the highlighted
    characters.
-2. Boundary merge equivalence:
-   `Delete` at the end of a note matches `Backspace` at the start of the next
+
+2. `Delete` at the end of a note matches `Backspace` at the start of the next
    note (in document order), except when both boundary notes have children
    (then forward `Delete` is a no-op).
-
 3. Backspace at start of note (caret at column 0):
    1. If the note is the first note in document order: **no-op**; caret stays
       put.

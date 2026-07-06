@@ -383,7 +383,7 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
 
 `data/collab/` grows unbounded (one dir per ephemeral dev/test doc), and editors
 watch it, exhausting `fs.inotify.max_user_watches` across worktrees so the Vite
-e2e dev server can't start (`ENOSPC`). Did a one-off prune of stale entries.
+e2e dev server can't start (`ENOSPC`).
 Durable fixes:
 
 - Add `files.watcherExclude` for `**/data/**` and `**/node_modules/**` (editor
@@ -397,7 +397,7 @@ Durable fixes:
 
 ## Note body follow-ups
 
-The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
+Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 - Undo does not restore selection under collaboration (Lexical's `@lexical/yjs`
   V2 history only persists structure, not the caret). This is global, not

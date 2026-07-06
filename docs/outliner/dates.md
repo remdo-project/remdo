@@ -27,9 +27,8 @@ Define RemDo-owned inline date behavior in the outliner.
 6. Clicking, or `Enter`/`Space` on a selected date token, opens the same calendar
    in *edit* mode over that node. It is opened from a committed token rather than a
    trigger session, so the trigger lifecycle does not apply, but the in-calendar
-   keyboard contract is identical (focus moves into the grid; the keys in 4–5
-   navigate and commit; commit updates the node and places the caret after it,
-   cancel leaves it unchanged).
+   keyboard contract is identical — except commit updates the existing token
+   rather than inserting a new one.
 
 ## Atomic token keyboard behavior
 

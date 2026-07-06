@@ -75,7 +75,8 @@ notes:
 
 Every note has a `kind`. Kinds share the base note concept (structure, content,
 props) but differ in the capabilities they expose — for example whether they are
-addressable by id, can have children, or can be selected structurally. The set of
+addressable by id, can have children, or can be
+[selected structurally](./selection.md). The set of
 kinds and each kind's capabilities are defined where the kinds live, not
 enumerated here.
 
@@ -115,18 +116,10 @@ Lexical node shape:
 
 - Conceptually, RemDo models a tree: every note has exactly one parent, so a
   child is always exactly one level deeper than its parent (no multi-level
-  jumps).
+  jumps); the editing invariants for restructuring (indent/outdent,
+  reordering) live in [Note Structure Rules](./note-structure-rules.md).
 - In the Lexical adapter, nesting is represented by a wrapper list item plus a
   nested list. The `indent` field is treated as metadata and must agree with the
   structural wrapper shape; wrapper adjacency is authoritative when resolving
   parent/child relationships.
 
-### Operations
-
-Notes can be restructured via indent/outdent or reordering actions; see
-[Note Structure Rules](./note-structure-rules.md) for the editing invariants.
-
-### Selection Overview
-
-Selection behavior is defined in [Selection](./selection.md), which describes
-whole-note snapping, the selection ladder, and shortcut coverage.

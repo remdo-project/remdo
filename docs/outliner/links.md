@@ -58,7 +58,7 @@ RemDo-owned note links and generic external links.
 ## Identity Representation Boundaries
 
 1. Runtime/editor state keeps note links fully qualified (`docId` +
-   `noteId`) to avoid context-dependent link resolution.
+`noteId`).
 2. Persisted JSON state must omit `docId` when a link targets the active
    document. This keeps document identity host-owned rather than embedded as
    canonical content state.
