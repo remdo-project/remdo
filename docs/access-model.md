@@ -211,6 +211,17 @@ worked on (near-term source-linking work stays in [docs/todo.md](./todo.md)):
   the `normalizeSourceIssuer` mirror can be deleted. Blocked on the Docker E2E,
   whose source is `http://<host-IP>` (rootless Docker can't reach a loopback
   source) — the real work is making that source loopback-reachable.
+- **Destination-IP validation on the outbound registration fetch (defense in
+  depth).** URL-first linking makes the home POST to a user-supplied origin
+  (`registerPublicSourceClient` → `<url>/api/auth/oauth2/register`). The dangerous
+  case is already closed by construction: the public-server guard means only a
+  *private* home reaches this path (403 on public servers), a session (not bearer)
+  is required, and `redirect: 'error'` blocks a bounce. The residual is a private
+  home's own signed-in user driving it at their own network — the operator's own
+  infrastructure, a non-threat. For defense in depth, add a resolve-then-check
+  destination-IP allowlist that permits loopback/RFC1918 only in dev (must not
+  break the private-IP/loopback source topology or the Docker E2E's
+  `http://<host-IP>` source).
 - **Source-existence side-channel (accepted residual).** A signed-in user can
   distinguish a known-but-not-linked source (403) from an unknown one (404) on
   `/source-servers/:id/*`, and ids derive from origins — so they can detect that

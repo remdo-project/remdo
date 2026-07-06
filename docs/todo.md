@@ -137,17 +137,10 @@ Deferred to follow-up PRs:
 
 Deferred hardening on top of that foundation (each is on top of the same gate, so
 deferring does not churn the gate's interface). Long-horizon items (enrollment
-hardening, non-loopback-source rejection, the existence-side-channel residual, and
-the public-server-shed-home policy) are parked under `docs/access-model.md#future`.
+hardening, non-loopback-source rejection, outbound-fetch destination-IP validation,
+the existence-side-channel residual, and the public-server-shed-home policy) are
+parked under `docs/access-model.md#future`.
 
-- Blind SSRF: URL-first linking makes the home POST to a user-supplied origin
-  (`registerPublicSourceClient` → `<url>/api/auth/oauth2/register`), so a
-  signed-in user of a private home can drive it to loopback/RFC1918/metadata
-  targets. The public-server guard confines this to private homes (whose users are
-  the operator's own) and `redirect: 'error'` blocks redirect-bounce, but the
-  destination itself is unvalidated. Needs a resolve-then-check destination-IP
-  allowlist that permits loopback only in dev (must not break the private-IP/
-  loopback source topology or the Docker E2E's `http://<host-IP>` source).
 - Public-source registration abuse: the home self-registers unauthenticatedly, so
   the deleted per-account (userId-keyed) register limit can't be ported — there is
   no session principal. The only bound left is Better Auth's IP-keyed
