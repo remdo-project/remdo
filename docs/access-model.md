@@ -198,6 +198,33 @@ URL (below).
 There is no user-facing unlink yet; see the source-linking follow-ups in
 [docs/todo.md](./todo.md).
 
+## Future (source-linking & admin, deferred indefinitely)
+
+Long-horizon directions, parked here so they resurface when this area is next
+worked on (near-term source-linking work stays in [docs/todo.md](./todo.md)):
+
+- **Enrollment/policy hardening.** Audit-log + rate-limit self-enrollment and any
+  public-policy change — one submission now grants a durable admin role, so it is
+  not a one-off action.
+- **Reject non-loopback http sources** at add time (in `deriveSourceServer`), so
+  every stored origin is one Better Auth's issuer normalization leaves alone and
+  the `normalizeSourceIssuer` mirror can be deleted. Blocked on the Docker E2E,
+  whose source is `http://<host-IP>` (rootless Docker can't reach a loopback
+  source) — the real work is making that source loopback-reachable.
+- **Source-existence side-channel (accepted residual).** A signed-in user can
+  distinguish a known-but-not-linked source (403) from an unknown one (404) on
+  `/source-servers/:id/*`, and ids derive from origins — so they can detect that
+  *some* user linked an origin they already know. Bounded (needs the origin up
+  front; reveals no other user/doc data). Close by returning 404 for
+  known-but-unlinked if it ever matters.
+- **Public server shedding its home role.** The source-only policy is enforced
+  only at link *initiation*. A server flipped private→public that already holds
+  linked sources still serves them (the source proxies + `/api/current-user`
+  projection keep working). Decide whether a public server should fully shed its
+  home role (guard the shared source-access + projection path, hide existing
+  source docs) or accept it — a policy call to take with the `ALLOW_SIGNUP`
+  runtime-toggle work, not a per-route patch.
+
 ## Deferred Access Cases
 
 - Anonymous access.

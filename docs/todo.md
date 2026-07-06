@@ -136,16 +136,10 @@ Deferred to follow-up PRs:
   not the toggle.
 
 Deferred hardening on top of that foundation (each is on top of the same gate, so
-deferring does not churn the gate's interface):
+deferring does not churn the gate's interface). Long-horizon items (enrollment
+hardening, non-loopback-source rejection, the existence-side-channel residual, and
+the public-server-shed-home policy) are parked under `docs/access-model.md#future`.
 
-- Audit logging + rate limiting on self-enrollment and public-policy changes
-  (one submission now grants a durable role, not a one-off action).
-- Split signup policy from source client-registration policy (separate runtime
-  settings + a "public source" preset) once the source-linking work lands.
-- Reject non-loopback http sources in `deriveSourceServer` so `normalizeSourceIssuer`
-  (a mirror of Better Auth's `validateIssuerUrl`) can be deleted. Blocked on the
-  Docker E2E, whose source is `http://<host-IP>` (rootless Docker can't reach a
-  loopback source) — the real work is making that source loopback-reachable.
 - Blind SSRF: URL-first linking makes the home POST to a user-supplied origin
   (`registerPublicSourceClient` → `<url>/api/auth/oauth2/register`), so a
   signed-in user of a private home can drive it to loopback/RFC1918/metadata
@@ -154,13 +148,6 @@ deferring does not churn the gate's interface):
   destination itself is unvalidated. Needs a resolve-then-check destination-IP
   allowlist that permits loopback only in dev (must not break the private-IP/
   loopback source topology or the Docker E2E's `http://<host-IP>` source).
-- Source-existence side-channel (residual): `resolveSourceAccess` now requires an
-  actor before revealing a row, so unauthenticated callers can't probe it. But a
-  *signed-in* user can still distinguish a known-but-not-mine source (403) from an
-  unknown one (404) on `/source-servers/:id/*`, and ids derive from origins — so
-  they can detect that some user linked an origin they already know. Bounded
-  (needs the origin up front, reveals no other user/doc data); close by returning
-  404 for known-but-unlinked if this ever matters.
 - Public-source registration abuse: the home self-registers unauthenticatedly, so
   the deleted per-account (userId-keyed) register limit can't be ported — there is
   no session principal. The only bound left is Better Auth's IP-keyed
@@ -169,14 +156,6 @@ deferring does not churn the gate's interface):
   registration-abuse control fit for unauthenticated registration (e.g. a global
   cap, trusted-proxy IP config, or proof-of-work), designed with the public-source
   policy split above.
-- Public-server "source-only" policy is enforced only at link *initiation* (the
-  URL-first and account-links routes 403 when `ALLOW_SIGNUP`). A server flipped
-  private→public that already holds linked sources still serves them: the
-  `current-user`/`sync-tokens` source proxies and the `/api/current-user`
-  projection keep working for existing links. Decide whether a public server
-  should fully shed its home role (guard the shared source-access + projection
-  path, hide existing source docs) or that's acceptable — a policy call to make
-  with the `ALLOW_SIGNUP` runtime-toggle work, not a per-route patch.
 - No user-facing "unlink / remove a source" path exists after the URL-first
   redesign: URL-first linking added a link route but the old admin remove route
   was deleted, so `removeSourceServer` + the `rebuild()`-on-removal behavior lost

@@ -38,9 +38,10 @@ export const REMDO_SERVER_OAUTH_SCOPES = [
 // issuer, and that upgrade is not configurable. The home's requireIssuerValidation
 // compares against this value, so we must classify loopback the same way or a
 // token is rejected as an issuer mismatch. Keep this in sync with upstream's
-// `isLoopbackHost`. Preferred long-term fix (see docs/todo.md): reject
-// non-loopback http sources at add time so every stored origin is one upstream
-// leaves alone, making `issuer: server.baseUrl` correct and this mirror deletable.
+// `isLoopbackHost`. Preferred long-term fix (see docs/access-model.md#future):
+// reject non-loopback http sources at add time so every stored origin is one
+// upstream leaves alone, making `issuer: server.baseUrl` correct and this mirror
+// deletable.
 // Matches the 127.0.0.0/8 loopback block by shape (four numeric octets, first
 // 127), not by textual prefix — `127.example.com` is a public DNS name, not
 // loopback, and must not skip the https upgrade.
