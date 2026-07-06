@@ -22,8 +22,9 @@ function liveProviderIds(swappable: ReturnType<typeof createSwappableServerAuth>
   return (genericOAuth?.options?.config ?? []).map((entry) => entry.providerId);
 }
 
-// The swappable auth is what makes a registered source linkable, and a removed
-// source unusable, without a restart: rebuild() must re-read the DB source list.
+// The swappable auth is what makes a self-registered source linkable without a
+// restart: rebuild() must re-read the DB source list so a newly cached client_id
+// becomes a live OAuth provider.
 describe('createSwappableServerAuth', () => {
   let dir: string;
   let database: SqliteServerDatabaseClient;
@@ -69,9 +70,9 @@ describe('createSwappableServerAuth', () => {
     expect(liveProviderIds(swappable)).toEqual([SOURCE_ID]);
   });
 
-  it('an added-but-unregistered source has no provider', async () => {
-    // Adding a source inserts a credential-less row: no OAuth provider exists for
-    // it (nothing to link against) until registration persists its credentials.
+  it('a source row without a cached client has no provider', async () => {
+    // The first link creates a credential-less row; no OAuth provider exists for
+    // it (nothing to link against) until self-registration persists a client_id.
     await ensureSourceServerRow(database, 'https://source.example');
     const swappable = build();
     expect(swappable.auth.sourceServers).toHaveLength(1);
