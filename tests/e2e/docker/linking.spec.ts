@@ -54,7 +54,10 @@ test('links a source by URL and opens its Home document', async ({ page }) => {
   await consentButton.click();
 
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/sharing'));
-  await expect(page.getByRole('button', { name: 'Linked' })).toBeVisible();
+  // The linked source now appears under "Linked sources" (a read-only list; the
+  // per-source Link button was removed — URL-first is the only link entry).
+  await expect(page.getByText('Linked sources')).toBeVisible();
+  await expect(page.getByText(sourceOrigin, { exact: true })).toBeVisible();
 
   // Open the source's Home document from the switcher.
   await page.goto('/home');

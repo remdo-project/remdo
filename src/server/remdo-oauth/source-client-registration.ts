@@ -17,6 +17,10 @@ export async function registerPublicSourceClient(
   const doFetch = deps.fetch ?? fetch;
   const response = await doFetch(`${params.sourceBaseUrl}/api/auth/oauth2/register`, {
     method: 'POST',
+    // Do not follow redirects: this is an outbound request to a user-supplied
+    // origin, so a 30x from the source must not bounce it to an arbitrary
+    // internal/metadata URL. A real source answers the POST directly.
+    redirect: 'error',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       client_name: `RemDo home ${params.homeOrigin}`,
