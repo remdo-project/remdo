@@ -47,7 +47,6 @@ function createMockAdapterFixture(
       id: 'source',
       label: 'Source Server',
       baseUrl: 'https://source.example',
-      linked: false,
     },
   ];
 
@@ -277,12 +276,10 @@ describe('editor notes core', () => {
     expect(access.text()).toBe('Carol');
   });
 
-  it('lists source servers through user-data source-server traversal', async () => {
+  it('lists source servers through user-data source-server traversal', () => {
     const fixture = createMockAdapterFixture();
-    const linkSourceServer = vi.fn<() => Promise<void>>().mockResolvedValue();
-    const sourceServers = createUserDataRootNote(fixture.userData, fixture.sourceServers, {
-      linkSourceServer,
-    }).sourceServers();
+    const sourceServers = createUserDataRootNote(fixture.userData, fixture.sourceServers, {})
+      .sourceServers();
 
     const sourceServer = sourceServers.byId('source')!;
 
@@ -292,19 +289,13 @@ describe('editor notes core', () => {
       kind: server.kind(),
       text: server.text(),
       baseUrl: server.baseUrl(),
-      linked: server.linked(),
     }))).toEqual([{
       id: 'source',
       kind: 'source-server',
       text: 'Source Server',
       baseUrl: 'https://source.example',
-      linked: false,
     }]);
     expect(sourceServer.as('source-server')).toBe(sourceServer);
-
-    await sourceServer.link();
-
-    expect(linkSourceServer).toHaveBeenCalledWith('source');
   });
 
   it('reads note data from adapter', () => {

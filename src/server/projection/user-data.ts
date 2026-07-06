@@ -66,7 +66,6 @@ export function syncSourceServersMapArray(
       id: sourceServer.id,
       label: sourceServer.label,
       baseUrl: sourceServer.baseUrl,
-      linked: sourceServer.linked,
     }),
   });
 }

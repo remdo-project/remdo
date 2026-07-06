@@ -8,7 +8,6 @@ const USER_SOURCE_SERVER = {
   id: 'source',
   label: 'Source Server',
   baseUrl: 'https://source.example',
-  linked: false,
 } as const;
 const USER_DATA_DOC_ID = 'userDataDoc';
 
@@ -70,7 +69,6 @@ describe('stored user data', () => {
       id: sourceServer.id(),
       label: sourceServer.text(),
       baseUrl: sourceServer.baseUrl(),
-      linked: sourceServer.linked(),
     }));
 
   const listDocumentSources = (userData: UserDataNote) =>
@@ -99,7 +97,7 @@ describe('stored user data', () => {
       id: string;
       title: string;
     }>,
-    sourceServers: Array<{ id: string; label: string; baseUrl: string; linked: boolean }> = [],
+    sourceServers: Array<{ id: string; label: string; baseUrl: string }> = [],
   ) => {
     const root = doc.getMap<Y.Array<Y.Map<unknown>>>('user-data');
     const entries = new Y.Array<Y.Map<unknown>>();
@@ -130,7 +128,6 @@ describe('stored user data', () => {
       entry.set('id', sourceServer.id);
       entry.set('label', sourceServer.label);
       entry.set('baseUrl', sourceServer.baseUrl);
-      entry.set('linked', sourceServer.linked);
       sourceServerEntries.push([entry]);
     }
     root.set('source-servers', sourceServerEntries);
@@ -142,7 +139,7 @@ describe('stored user data', () => {
       id: string;
       title: string;
     }>,
-    sourceServers: Array<{ id: string; label: string; baseUrl: string; linked: boolean }> = [],
+    sourceServers: Array<{ id: string; label: string; baseUrl: string }> = [],
   ) => {
     const doc = new Y.Doc();
     writeUserDataProjection(doc, documents, sourceServers);
@@ -237,10 +234,7 @@ describe('stored user data', () => {
     remoteDoc: Y.Doc;
     sourceAwaitSynced?: (attempt: number) => Promise<void>;
   }): MockCollabSessions => {
-    const localDoc = createUserDataDoc([USER_RUNTIME_DOCUMENT], [{
-      ...USER_SOURCE_SERVER,
-      linked: true,
-    }]);
+    const localDoc = createUserDataDoc([USER_RUNTIME_DOCUMENT], [USER_SOURCE_SERVER]);
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       if (String(input) === '/api/current-user/source-servers/source/current-user') {
         return {
@@ -482,27 +476,6 @@ describe('stored user data', () => {
     }]);
   });
 
-  it('links source servers through the projected handle without optimistic local changes', async () => {
-    const doc = createUserDataDoc([USER_RUNTIME_DOCUMENT], [USER_SOURCE_SERVER]);
-    const linkSourceServerAccount = vi.fn(async () => {});
-    vi.doMock('#client/app/auth/source-server-linking-client', () => ({
-      linkSourceServerAccount,
-    }));
-    mockCollabSessions({
-      docsById: { [USER_DATA_DOC_ID]: doc },
-    });
-
-    const { getUserData } = await import('#client/app/documents/stored-user-data');
-
-    const userData = await getUserData();
-    const sourceServer = userData.sourceServers().byId('source')!;
-
-    await sourceServer.link();
-
-    expect(linkSourceServerAccount).toHaveBeenCalledWith('source');
-    expect(listSourceServers(userData)).toEqual([USER_SOURCE_SERVER]);
-  });
-
   it('lists linked source documents through document source groups', async () => {
     const remoteDoc = createUserDataDoc([{ id: 'sourceDoc', title: 'Source Document' }]);
     mockLinkedSourceProjection({ remoteDoc });
@@ -696,10 +669,7 @@ describe('stored user data', () => {
 
   it('destroys a pending linked source session when the source is unlinked', async () => {
     const sourceSync = createDeferred();
-    const localDoc = createUserDataDoc([USER_RUNTIME_DOCUMENT], [{
-      ...USER_SOURCE_SERVER,
-      linked: true,
-    }]);
+    const localDoc = createUserDataDoc([USER_RUNTIME_DOCUMENT], [USER_SOURCE_SERVER]);
     const remoteDoc = createUserDataDoc([{ id: 'sourceDoc', title: 'Source Document' }]);
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       if (String(input) === '/api/current-user/source-servers/source/current-user') {
@@ -742,10 +712,9 @@ describe('stored user data', () => {
     expect(sourceSession.connect).toHaveBeenCalledTimes(1);
     expect(sourceSession.awaitSynced).toHaveBeenCalledTimes(1);
 
-    writeUserDataProjection(localDoc, [USER_RUNTIME_DOCUMENT], [{
-      ...USER_SOURCE_SERVER,
-      linked: false,
-    }]);
+    // Unlinking removes the source from the user's projection entirely (the
+    // projection only lists sources the user has linked).
+    writeUserDataProjection(localDoc, [USER_RUNTIME_DOCUMENT], []);
 
     expect(sourceSession.destroy).toHaveBeenCalledTimes(1);
     expect(listDocumentSources(userData)).toEqual([{

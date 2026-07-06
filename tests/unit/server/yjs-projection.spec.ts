@@ -21,7 +21,6 @@ function readSourceServers(array: Y.Array<Y.Map<unknown>>): SourceServer[] {
     id: String(entry.get('id')),
     label: String(entry.get('label')),
     baseUrl: String(entry.get('baseUrl')),
-    linked: entry.get('linked') === true,
   }));
 }
 
@@ -93,23 +92,20 @@ describe('yjs projection helpers', () => {
       id: 'source',
       label: 'Source Server',
       baseUrl: 'https://source.example',
-      linked: false,
     }]);
     const existingEntry = array.get(0);
 
     syncSourceServersMapArray(array, [{
       id: 'source',
-      label: 'Source Server',
+      label: 'Renamed Source',
       baseUrl: 'https://source.example',
-      linked: true,
     }]);
 
     expect(array.get(0)).toBe(existingEntry);
     expect(readSourceServers(array)).toEqual([{
       id: 'source',
-      label: 'Source Server',
+      label: 'Renamed Source',
       baseUrl: 'https://source.example',
-      linked: true,
     }]);
   });
 

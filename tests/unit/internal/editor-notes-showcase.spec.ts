@@ -155,18 +155,13 @@ describe('editor notes showcase', () => {
   });
 
   it('reads source servers through the same projected collection shape', async () => {
-    const linkSourceServer = vi.fn(async () => {});
     const userData = createUserDataRootNote([], [{
       id: 'source',
       label: 'Source Server',
       baseUrl: 'https://source.example',
-      linked: false,
-    }], {
-      linkSourceServer,
-    });
+    }], {});
 
     const sourceServers = userData.sourceServers();
-    const source = sourceServers.byId('source')!;
 
     expect(sourceServers.id()).toBe('source-servers');
     expect(sourceServers.kind()).toBe('collection');
@@ -174,17 +169,11 @@ describe('editor notes showcase', () => {
       id: server.id(),
       text: server.text(),
       baseUrl: server.baseUrl(),
-      linked: server.linked(),
     }))).toEqual([{
       id: 'source',
       text: 'Source Server',
       baseUrl: 'https://source.example',
-      linked: false,
     }]);
-
-    await source.link();
-
-    expect(linkSourceServer).toHaveBeenCalledWith('source');
   });
 
   it('reads grouped document sources as collection notes', () => {

@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { linkSourceByUrl } from '#client/app/auth/source-server-linking-client';
 import { useCurrentUserPublicServer, useUserData } from '#client/app/documents/user-data';
 import { createShareableDocumentOptions } from './sharing-documents';
-import type { SourceServerNote } from '#note-sdk';
 
 export default function SharingRoute() {
   const userData = useUserData();
@@ -36,17 +35,6 @@ export default function SharingRoute() {
     } catch (error) {
       setStatus('');
       setErrorMessage(error instanceof Error ? error.message : 'Failed to share document.');
-    }
-  };
-
-  const linkServer = async (sourceServer: SourceServerNote) => {
-    try {
-      await sourceServer.link();
-      setStatus('Source server account linked.');
-      setErrorMessage(null);
-    } catch (error) {
-      setStatus('');
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to link source server account.');
     }
   };
 
@@ -124,20 +112,10 @@ export default function SharingRoute() {
         <Stack gap="xs">
           <Text fw={600}>Linked sources</Text>
           {sourceServers.map((server) => (
-            <Group key={server.id()} justify="space-between">
-              <Stack gap={0}>
-                <Text>{server.text()}</Text>
-                <Text c="dimmed" size="sm">{server.baseUrl()}</Text>
-              </Stack>
-              <Button
-                disabled={server.linked()}
-                size="xs"
-                variant={server.linked() ? 'light' : 'filled'}
-                onClick={() => void linkServer(server)}
-              >
-                {server.linked() ? 'Linked' : 'Link'}
-              </Button>
-            </Group>
+            <Stack key={server.id()} gap={0}>
+              <Text>{server.text()}</Text>
+              <Text c="dimmed" size="sm">{server.baseUrl()}</Text>
+            </Stack>
           ))}
         </Stack>
       )}

@@ -66,7 +66,6 @@ describe('remdo api app', () => {
       'GET /api/current-user',
       'GET /api/current-user/source-servers/:serverId/current-user',
       'POST /api/current-user/source-servers/:serverId/documents/:docId/sync-tokens',
-      'POST /api/current-user/source-servers/:serverId/account-links',
       'POST /api/current-user/source-links',
       'POST /api/documents',
       'POST /api/documents/:docId/access',
@@ -135,23 +134,6 @@ describe('remdo api app', () => {
         .toBe(HTTP_STATUS.UNSUPPORTED_MEDIA_TYPE);
       await expect(response.json()).resolves.toEqual({ error: 'JSON content type required.' });
     }
-  });
-
-  it('refuses account-links on a public server (source-only, does not link out)', async () => {
-    // A source provider can pre-exist on a public server (e.g. a private home that
-    // linked, then flipped to public); the public-server policy must still refuse
-    // to initiate linking on that cached provider, not just the URL-first route.
-    const harness = createHarness({ allowSignup: true, sourceServers: [TEST_SOURCE_SERVER] });
-    const headers = await harness.createSessionHeaders();
-    headers.set('content-type', 'application/json');
-    const response = await harness.app.request(
-      `/api/current-user/source-servers/${TEST_SOURCE_SERVER.id}/account-links`,
-      { method: 'POST', headers, body: '{}' },
-    );
-    expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
-    await expect(response.json()).resolves.toMatchObject({
-      error: expect.stringContaining('public server'),
-    });
   });
 
   it('returns 400 for malformed document ids before token issuance', async () => {
@@ -224,31 +206,18 @@ describe('remdo api app', () => {
     expect(harness.auth.resolveBearerUser).toHaveBeenCalledWith('Bearer source-token');
   });
 
-  it('rejects unknown source server link requests', async () => {
-    const harness = createHarness();
-    const headers = await harness.createSessionHeaders();
-
-    const response = await harness.app.request('/api/current-user/source-servers/source/account-links', {
-      method: 'POST',
-      headers: createJsonHeaders(headers),
-      body: '{}',
-    });
-
-    expect(response.status).toBe(HTTP_STATUS.NOT_FOUND);
-    await expect(response.json()).resolves.toEqual({ error: 'Source server not found.' });
-  });
-
-  it('omits credential-less (unregistered) sources from the user source-server projection', async () => {
-    // A source row can exist before self-registration has cached a client_id
-    // (e.g. a prior attempt failed); that row has no credentials and no OAuth
-    // provider, so it must not appear in a user's linkable-source list — a Link
-    // on it would fail with no provider.
+  it('projects only the sources the current user has linked, not the global cache', async () => {
+    // source_servers is a global client-id cache (any user's link adds a row), so
+    // the projection must show a user only the sources THEY linked — never other
+    // users' sources, which would leak origins and let one user seed another's
+    // Sharing page with a source to link.
     const harness = createHarness({
       sourceServers: [
         TEST_SOURCE_SERVER,
-        { id: 'pending', label: 'Pending Source', baseUrl: 'https://pending.example', credentials: null },
+        { id: 'other', label: 'Other Source', baseUrl: 'https://other.example', credentials: { clientId: 'other-client-id' } },
       ],
     });
+    harness.auth.listLinkedRemdoServerIds = vi.fn(async () => new Set([TEST_SOURCE_SERVER.id]));
     const headers = await harness.createSessionHeaders();
 
     const projected = await listCurrentUserSourceServers(harness.auth, headers);
@@ -471,7 +440,7 @@ describe('remdo api app', () => {
     expect(bootstrap).toMatchObject({ role: 'user', publicServer: true });
   });
 
-  it('projects configured source servers during current-user bootstrap', async () => {
+  it('projects the user linked source servers during current-user bootstrap', async () => {
     const harness = createHarness({
       sourceServers: [
         {
@@ -482,6 +451,7 @@ describe('remdo api app', () => {
         },
       ],
     });
+    harness.auth.listLinkedRemdoServerIds = vi.fn(async () => new Set(['source']));
     const headers = await harness.createSessionHeaders();
 
     const response = await harness.app.request('/api/current-user', { headers });
@@ -493,7 +463,6 @@ describe('remdo api app', () => {
         id: 'source',
         label: 'Source Server',
         baseUrl: 'https://source.example',
-        linked: false,
       },
     ]);
   });
@@ -509,6 +478,7 @@ describe('remdo api app', () => {
         },
       ],
     });
+    harness.auth.listLinkedRemdoServerIds = vi.fn(async () => new Set(['source']));
     const headers = await harness.createSessionHeaders();
     const sessionUserId = await harness.getSessionUserId(headers);
     const initialResponse = await harness.app.request('/api/current-user', { headers });
@@ -517,7 +487,6 @@ describe('remdo api app', () => {
       id: 'source',
       label: 'Source Server',
       baseUrl: 'https://source.example',
-      linked: false,
     }];
     expect(initialResponse.status).toBe(HTTP_STATUS.OK);
     expect(harness.readProjectedSourceServers(initialBootstrap.userDataDocumentId)).toEqual(projectedSourceServers);

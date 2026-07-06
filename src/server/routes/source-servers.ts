@@ -2,8 +2,7 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { normalizeDocumentId } from '#domain/documents/ids';
 import { HTTP_STATUS } from '#platform/http/status';
-import { requireActor, resolveActor } from '#server/auth/actor';
-import { refusePublicServerLink, startSourceAccountLink } from './source-link-account';
+import { resolveActor } from '#server/auth/actor';
 import type { ServerRouteDependencies } from './types';
 
 // Upstream auth/access/not-found responses describe a recoverable user state
@@ -121,28 +120,6 @@ export function createSourceServerRoutes(dependencies: ServerRouteDependencies) 
     } catch (error) {
       logError(error, { docId: normalizedDocId });
       return c.json({ error: 'Failed to issue source server Y-Sweet document client token.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-    }
-  });
-
-  routes.post('/:serverId/account-links', async (c) => {
-    const refusal = refusePublicServerLink(dependencies, c);
-    if (refusal) {
-      return refusal;
-    }
-    const serverId = c.req.param('serverId');
-    const server = auth.sourceServers.find((candidate) => candidate.id === serverId);
-    if (!server) {
-      return c.json({ error: 'Source server not found.' }, HTTP_STATUS.NOT_FOUND);
-    }
-    const actor = await requireActor(c, auth);
-    if (actor instanceof Response) {
-      return actor;
-    }
-    try {
-      return await startSourceAccountLink(dependencies, c, server.id);
-    } catch (error) {
-      logError(error, {});
-      return c.json({ error: 'Failed to link source server account.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });
 

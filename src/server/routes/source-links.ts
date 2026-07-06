@@ -4,7 +4,6 @@ import { normalizeToHttpOrigin } from '#platform/net/http-origin';
 import { requireActor } from '#server/auth/actor';
 import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
 import { ensureSourceClient } from '#server/remdo-oauth/ensure-source-client';
-import { refusePublicServerLink, startSourceAccountLink } from './source-link-account';
 import type { ServerRouteDependencies } from './types';
 
 // URL-first source linking: the only linking entry point. Any signed-in user
@@ -16,9 +15,11 @@ export function createSourceLinkRoutes(dependencies: ServerRouteDependencies) {
   const routes = new Hono();
 
   routes.post('/source-links', async (c) => {
-    const refusal = refusePublicServerLink(dependencies, c);
-    if (refusal) {
-      return refusal;
+    // A public server acts only as a source and refuses to initiate linking (see
+    // docs/access-model.md): this confines linking's outbound-fetch (SSRF) surface
+    // to private homes, whose users are the operator's own.
+    if (auth.allowSignup) {
+      return c.json({ error: 'A public server does not link to sources.' }, HTTP_STATUS.FORBIDDEN);
     }
     const body: { url?: string } = await c.req.json<{ url?: string }>().catch(() => ({}));
     const raw = typeof body.url === 'string' ? body.url.trim() : '';
@@ -47,7 +48,15 @@ export function createSourceLinkRoutes(dependencies: ServerRouteDependencies) {
       if (created) {
         rebuildAuth();
       }
-      return await startSourceAccountLink(dependencies, c, sourceId);
+      return await auth.auth.api.oAuth2LinkAccount({
+        body: {
+          providerId: sourceId,
+          callbackURL: '/sharing',
+          scopes: [...REMDO_SERVER_OAUTH_SCOPES],
+        },
+        headers: c.req.raw.headers,
+        asResponse: true,
+      });
     } catch (error) {
       logError(error, {});
       return c.json({ error: 'Failed to link the source server.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);

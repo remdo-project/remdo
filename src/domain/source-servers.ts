@@ -5,7 +5,6 @@ export interface SourceServer {
   id: string;
   label: string;
   baseUrl: string;
-  linked: boolean;
 }
 
 export function normalizeSourceServerId(value: unknown): string | null {

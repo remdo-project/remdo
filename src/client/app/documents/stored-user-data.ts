@@ -3,7 +3,6 @@ import * as Y from 'yjs';
 import { CollabSession } from '#collaboration/session';
 import { waitForSessionAttachment } from '#collaboration/wait-for-session-attachment';
 import { resolveApiServerOrigin, resolveAppOrigin } from '#platform/net/origins';
-import { linkSourceServerAccount } from '#client/app/auth/source-server-linking-client';
 import { shareDocumentWithUser } from '#client/app/documents/sharing-client';
 import { createSourceDocumentSyncTokenApiPath } from '#document-routes';
 import type { DocumentAccessView } from '#domain/documents/access';
@@ -97,7 +96,6 @@ class StoredUserDataStore {
     createDocument: async (title) => this.createDocument(title),
     documentSources: this.documentSources,
     homeDocumentId: () => this.homeDocumentId,
-    linkSourceServer: async (sourceServerId) => linkSourceServerAccount(sourceServerId),
     shareDocument: async (documentId, email) => shareDocumentWithUser(documentId, email),
   });
   private context: UserDataStoreContext | null = null;
@@ -284,7 +282,6 @@ class StoredUserDataStore {
         local: true,
       },
       ...this.sourceServers.children()
-        .filter((server) => server.linked)
         .map((server) => {
           const runtime = this.remoteSources.get(server.id);
           return {
@@ -301,7 +298,6 @@ class StoredUserDataStore {
   private reconcileRemoteSources(generation: number): void {
     const linkedServers = new Map(
       this.sourceServers.children()
-        .filter((server) => server.linked)
         .map((server) => [server.id, server] as const),
     );
 
@@ -644,16 +640,14 @@ function readUserSourceServerProjectionEntry(value: Y.Map<unknown>): SourceServe
   const id = value.get('id');
   const label = value.get('label');
   const baseUrl = value.get('baseUrl');
-  const linked = value.get('linked');
   if (
     typeof id !== 'string'
     || typeof label !== 'string'
     || typeof baseUrl !== 'string'
-    || typeof linked !== 'boolean'
   ) {
-    throw new TypeError('Source server entry is missing id, label, baseUrl, or linked.');
+    throw new TypeError('Source server entry is missing id, label, or baseUrl.');
   }
-  return { id, label, baseUrl, linked };
+  return { id, label, baseUrl };
 }
 
 function destroyUserDataStoreContext(context: UserDataStoreContext): void {

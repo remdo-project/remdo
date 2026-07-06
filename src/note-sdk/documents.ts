@@ -58,8 +58,4 @@ export type SourceServersNote = CollectionNote<SourceServerNote>;
 export interface SourceServerNote extends AddressableNote<'source-server'> {
   /** Returns the source server origin. */
   baseUrl: () => string;
-  /** Returns whether the current user has linked this source server. */
-  linked: () => boolean;
-  /** Starts account linking for this source server. */
-  link: () => Promise<void>;
 }

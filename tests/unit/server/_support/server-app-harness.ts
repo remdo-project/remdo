@@ -191,7 +191,6 @@ export function createServerAppHarness({
             id: String(entry.get('id')),
             label: String(entry.get('label')),
             baseUrl: String(entry.get('baseUrl')),
-            linked: entry.get('linked') === true,
           }))
           : [];
       } finally {
