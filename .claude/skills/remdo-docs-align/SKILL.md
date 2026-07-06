@@ -45,8 +45,15 @@ they run in this order.
    numbered proposal table; the advocate runs on a different model family
    than the editor. On a non-zero exit (the retry also failed), surface it in
    the stage-5 report rather than proceeding to adjudicate an empty table.
-4. **Adjudicate.** The editor applies `references/adjudicate.md` over the
-   proposal table. Gates re-run after the edits.
+4. **Adjudicate (dual).** Two independent, fresh, contextless adjudicators
+   — never the session that ran stages 1-3 — each produce verdict-only
+   dispositions over the proposal table per `references/adjudicate.md`,
+   without editing anything or seeing each other. Mechanically diff the two
+   verdict lists: agreed APPLYs are applied by the editor, agreed REJECTs
+   are recorded, and every disagreement becomes an ESCALATE row — decided by
+   the user, never in-run. Gates re-run after the edits. (Measured basis:
+   single-session verdicts flip on ~15% of proposals between identical runs;
+   the dual diff converts that variance into explicit escalations.)
 5. **Report.** What changed; the per-proposal disposition list;
    and an ESCALATE table (rule conflicts, borderline keeps) addressed to the
    user or a stronger-model pass — escalation is an output of this skill,
