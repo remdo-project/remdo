@@ -25,7 +25,7 @@ owned by its editor note (see [Concepts](./concepts.md#note-kinds)).
 For selection, a note's content and its body are two distinct **regions**:
 
 - An inline selection lives within exactly one region — one note's content, or
-  one body — and never spans the two.
+  one body — .
 - A selection spanning a note's content and its own body is structural, limited
   to that single note (a note is never selected structurally without its body).
 - Any selection crossing two notes — including one with an endpoint inside a

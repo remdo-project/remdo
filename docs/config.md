@@ -67,7 +67,7 @@ Guardrails:
 ## Admin bootstrap and enrollment
 
 `ADMIN_SECRET` is the gate for acquiring the admin role. The self-enrollment flow it gates
-(including first-admin bootstrap) lives in
+ lives in
 [docs/access-model.md](./access-model.md#admin-role).
 
 ## Validation policy

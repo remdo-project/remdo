@@ -63,8 +63,7 @@ and zooming to a result.
 
 Result rows carry enough structural context to tell apart matches that share the
 same text, . Every row uses the
-same layout regardless of highlight, so moving the highlight only restyles the
-selected row and never re-lays-out the list.
+same layout regardless of highlight.
 
 1. Every result row shows the matched note as a primary label line, a dim
    ancestor-path subline beneath it, then a preview of the match's first two

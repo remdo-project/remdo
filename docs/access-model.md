@@ -68,7 +68,7 @@ the user.
   [Cross-Server Source Linking](#cross-server-source-linking)).
 - Self-enrollment is gated by `ADMIN_SECRET` (see
   [docs/config.md](./config.md#admin-bootstrap-and-enrollment)). The secret is
-  a shared gate, not tied to one user — any secret-holder can register an admin
+  a shared gate,  any secret-holder can register an admin
   account, and it works independently of the public-signup policy. Promoting an
   *existing* user is a separate, panel-gated capability (see
   [docs/todo.md](./todo.md), admin role follow-ups).

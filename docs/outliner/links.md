@@ -32,7 +32,7 @@ RemDo-owned note links and generic external links.
    results may appear immediately. Whitespace is allowed in the query.
 6. On insertion, note-link display text is copied once from the target note
    title and then stored locally; later target renames do not update it
-   (rename-aware display modes are a Future direction below).
+   .
 7. Note-link clicks use native `href` navigation semantics and route handling.
 8. Pasting a RemDo-owned plain-text note URL inserts a
    note-link node. When the target is in the current document, inserted

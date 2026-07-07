@@ -48,8 +48,7 @@ An editor popup is a transient surface anchored in the editor that, while open,
 The `@` and `!` pickers are opened by typing a trigger character. Each is a
 **session anchored to the span of that keypress** — the trigger character and the
 text after it, fixed at open time. The session is never re-derived from where the
-caret later sits, so a picker never retargets onto a different trigger or onto
-text the user did not freshly invoke.
+caret later sits.
 
 1. **Open.** A picker opens only on a fresh keypress of its trigger character at a
    boundary — the start of note text, after whitespace, after opening punctuation
@@ -59,7 +58,7 @@ text the user did not freshly invoke.
 2. **Editable query (`@` only).** The `@` picker treats its span as a live query:
    per the editable-span exception, ordinary typing and `Backspace` edit the text
    after `@` and refilter. The `!` picker has no query — it opens its calendar
-   immediately (see [Dates](./dates.md)), so typing after `!` is not query text.
+   immediately (see [Dates](./dates.md)).
 3. **Dismiss.** Besides the shared light-dismiss, the `@` picker also closes when
    the caret leaves its span — an `ArrowLeft`/`ArrowRight` out of it or into its
    middle — leaving the typed trigger and query as ordinary text; deleting back
