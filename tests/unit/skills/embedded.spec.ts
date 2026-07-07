@@ -17,7 +17,7 @@ import '../../../.agents/skills/remdo-sync/tests/sync-probe.spec';
 
 describe('skill-local spec bridge', () => {
   it('imports every spec under canonical hidden skill roots', () => {
-    const roots = ['.agents/skills', '.claude/skills'];
+    const roots = ['.agents/skills', '.claude/skills', '.codex/skills'];
     const found = roots.flatMap(root => fs
       .globSync(`${root}/*/tests/*.spec.ts`, { cwd: process.cwd() })
       .map(p => p.split(path.sep).join('/')));
