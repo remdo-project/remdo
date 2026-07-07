@@ -122,4 +122,3 @@ Lexical node shape:
   nested list. The `indent` field is treated as metadata and must agree with the
   structural wrapper shape; wrapper adjacency is authoritative when resolving
   parent/child relationships.
-
