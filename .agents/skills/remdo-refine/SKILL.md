@@ -80,8 +80,8 @@ scope.
 
 ## The ladder
 
-Refine is the **sole caller** of these rungs; nothing else invokes them as a
-loop. They run cheapest and most local first, most independent last. Each is a
+Refine is the **sole caller** of these rungs. They run cheapest and most local
+first, most independent last. Each is a
 **read-only finder** over the same diff under review (the resolved range, or the
 working-tree changes): a rung reports, and the coordinating session triages,
 applies what is approved, and owns the loop. Keeping finding and applying apart
@@ -176,8 +176,7 @@ from rung 1, against the finished diff. **Done** when a confirmation cycle
 produces zero approved fixes; if it produces any, settle the rung that raised
 them as above, then confirm again. **Stuck** (stop and
 report) when a finding recurs with no progress, or the diff will not converge
-after a few cycles. **Blocker** — only a finding with no clear recommendation;
-anything with a defensible best-effort resolution is a tradeoff, not a blocker.
+after a few cycles. **Blocker** — only a finding with no clear recommendation.
 
 ## Verification
 

@@ -99,7 +99,6 @@ If the user rejects the spec at the gate, revert the flow-owned `docs/` and
 ## Phase 4 — Autonomous execution
 
 1. Grow `.agent/plans/<YYYY-MM-DD>-<feature>.md` into the detailed working plan.
-   It is working memory and audit trail, not a user gate.
 2. Run the gap-closing loop: repeatedly ask what remains between the branch and
    the spec's described state, then take the next step that closes it. For new
    behavior, prefer test-first implementation. For bugs or unexpected failures,

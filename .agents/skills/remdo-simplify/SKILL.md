@@ -55,7 +55,7 @@ git diff --check <range>
 
 `<range>` is the committed range's base (`<base-sha>..HEAD`) in committed-range
 scope and `HEAD` (the working-tree diff) in working-tree scope, so every command
-targets exactly the scope's diff and never folds in the other side. Read the diff
+targets exactly the scope's diff. Read the diff
 per file when the total diff is large. Read untracked files that belong to the
 scope (from the resolver's file list).
 

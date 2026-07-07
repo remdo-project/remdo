@@ -15,7 +15,7 @@ rediscovered when that area is worked on again.
 Rules:
 
 - Mark completed items as `✅ Done` while a section is still active.
-- Delete sections once fully done (no archive here).
+- Delete sections once fully done.
 - Move durable decisions/specs into the relevant doc under `docs/`, leaving a
   link behind.
 

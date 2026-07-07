@@ -23,7 +23,7 @@ Integrate `origin/main` with a plain **`git merge origin/main`**, never rebase
 (it fast-forwards or makes a merge commit as needed). Merge never rewrites
 history, so it never needs a force-push and never scrambles an open PR's review —
 the right default for an autonomous skill. A user who wants a linear history can
-rebase by hand; this skill does not, and **never pushes**. (See `References` for
+rebase by hand; this skill **never pushes**. (See `References` for
 the rebase-vs-merge tradeoff.)
 
 Sync runs on whatever branch is checked out (no branch-name gate).

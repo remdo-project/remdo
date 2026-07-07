@@ -52,7 +52,7 @@ they run in this order.
    report rather than proceeding to adjudicate an empty table. On
    `PROPOSALS=none` (the advocate emitted its `NO PROPOSALS` sentinel — a clean
    no-op on an already-minimal scope), skip stage 4 and note the no-op in the
-   report; there is nothing to adjudicate.
+   report.
 4. **Adjudicate (dual).** Two independent, fresh, contextless adjudicators
    — never the session that ran stages 1-3 — each produce verdict-only
    dispositions over the proposal table per `references/adjudicate.md`,
@@ -84,7 +84,7 @@ autonomous scope (per AGENTS.md): authorization to commit each stage's applied
 edits **on the current branch**, keeping the resolved range honest — never onto
 `main` (if invoked there, warn and stop rather than self-committing), and never
 push. An **explicit file-set scope** (e.g. a whole-corpus realignment) is treated
-the same as a committed-range: commit each stage's edits on the current branch,
-under the same never-`main`/never-push carve-outs. In **working-tree scope** it
+the same as a committed-range: commit each stage's edits on the current branch.
+In **working-tree scope** it
 commits nothing — the applied edits stay in the tree and the user owns the
 eventual commit.
