@@ -123,11 +123,18 @@ dedup_artifact() {
   ' "$out" >"$out.dedup" && mv -- "$out.dedup" "$out"
 }
 
-# A valid artifact carries a numbered proposal (a "Replacement:" line) OR the
-# explicit "NO PROPOSALS" sentinel. A trace with neither is a failed run (codex
-# died mid-read), not an empty-but-fine result.
+# A valid artifact carries a real numbered proposal OR the explicit
+# "NO PROPOSALS" sentinel. A trace with neither is a failed run (codex died
+# mid-read), not an empty-but-fine result.
+#
+# A proposal is a numbered item (a line starting `N.`) *and* a "Replacement:"
+# label line. Requiring the numbered item as well as the label rejects a trace
+# that merely echoes the prompt — which quotes the `Replacement:` label in its
+# format spec but carries no numbered item — instead of mis-accepting it.
 has_proposal() {
-  [ -s "$out" ] && grep -q 'Replacement:' "$out"
+  [ -s "$out" ] \
+    && grep -qE '^[[:space:]]*[0-9][0-9]*\.' "$out" \
+    && grep -q 'Replacement:' "$out"
 }
 is_no_proposals() {
   [ -s "$out" ] && grep -qx 'NO PROPOSALS' "$out"

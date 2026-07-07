@@ -132,6 +132,16 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(result.stderr).toContain('neither proposals nor a NO PROPOSALS sentinel');
   });
 
+  it('rejects a trace with the Replacement: label but no numbered proposal', () => {
+    const out = tempOut();
+    // An echoed prompt (or noncompliant partial) quotes the `Replacement:` label
+    // from the format spec but carries no numbered item — not a real proposal.
+    const stub = stubDir('printf "Use the label Replacement: verbatim.\\nStill reading...\\n"');
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('neither proposals nor a NO PROPOSALS sentinel');
+  });
+
   it('accepts a NO PROPOSALS sentinel as a clean no-op (PROPOSALS=none)', () => {
     const out = tempOut();
     // A minimal scope: the advocate legitimately finds nothing and emits the sentinel.
