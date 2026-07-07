@@ -122,6 +122,9 @@ sections to docs.
   about validation.
 - In fixture-based tests, do not add runtime guards (for example
   `if (!node) throw`) for known fixture nodes; use non-null assertions instead.
+- A missing dependency of the current task — a referenced skill that is not
+  installed, an absent tool or binary — is a stop-and-report, not something to
+  emulate, substitute, or silently skip.
 - If you spot any tradeoffs or pros and cons of alternative solutions always ask
   first before implementing one.
 - Don't assume that the request is always clear, if in doubt ask before

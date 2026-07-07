@@ -16,11 +16,6 @@ The user reviews **intent**, not steps. The spec is the durable goal; the plan i
 disposable. Execution converges on the spec autonomously; review, simplify, and
 verify are part of "done," not user commands.
 
-## Missing tooling
-
-When a referenced `superpowers:*` skill is not installed, apply its discipline
-unaided rather than stalling on the missing skill.
-
 ## Review surfaces
 
 The two review surfaces are concrete versioned-repo content: the **`docs/`
