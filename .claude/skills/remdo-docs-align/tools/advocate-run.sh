@@ -49,6 +49,10 @@ fail() {
 rules_doc=${1-}
 scope=${2-}
 out=${3-}
+# Resolve the output path against the caller's cwd once, up front: codex runs
+# after a cd to the repo root, so a relative <output-file> would otherwise
+# split across two directories (.raw in the caller cwd, .msg under the root).
+case "$out" in ''|/*) ;; *) out="$PWD/$out" ;; esac
 [ -n "$rules_doc" ] || fail "missing rules doc (usage: advocate-run.sh <rules-doc> <scope> <output-file>)"
 [ -n "$scope" ] || fail "missing scope (usage: advocate-run.sh <rules-doc> <scope> <output-file>)"
 [ -n "$out" ] || fail "missing output file (usage: advocate-run.sh <rules-doc> <scope> <output-file>)"

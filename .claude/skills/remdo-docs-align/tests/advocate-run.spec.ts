@@ -389,4 +389,13 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(captured.match(/^\d+\. file: /gm)).toHaveLength(1);
     expect(captured.match(/Text: /g)).toHaveLength(1);
   });
+
+  it('resolves a relative output path against the caller cwd', () => {
+    const dir = makeDir('advocate-relcwd-');
+    const stub = stubDir(echoPromptWriteProposal);
+    const result = runScript(path.join(__dirname, '../tools/advocate-run.sh'), dir, ['docs/documentation.md', 'scope', 'rel-out.md'], stub);
+    expect(result.status, result.stdout + result.stderr).toBe(0);
+    expect(fs.existsSync(path.join(dir, 'rel-out.md'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'rel-out.md.raw'))).toBe(true);
+  });
 });

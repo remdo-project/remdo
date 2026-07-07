@@ -497,6 +497,12 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 ## Skill test-infra follow-up
 
+- advocate-run.sh normalizer altitude: four consecutive external-review P2s
+  landed in its ~60-line awk (sentinel precedence, stale-msg reuse, bogus
+  location minting, blank-line duplication, cwd split); consider replacing
+  prose-label parsing with codex `--output-schema` JSON and a thin renderer.
+
+
 - Consider replacing the skill-spec bridge (`tests/unit/skills/embedded.spec.ts`)
   with a vitest `test.projects` entry rooted at `.claude/skills` (hidden dirs
   are pruned by the file crawler, so include globs can't reach them); requires
