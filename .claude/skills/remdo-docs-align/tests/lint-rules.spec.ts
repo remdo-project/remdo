@@ -8,7 +8,6 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
-import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 // Resolvable re-export of markdownlint's promise API (markdownlint itself is a
@@ -16,6 +15,7 @@ import process from 'node:process';
 // rules).
 import { lint } from 'markdownlint-cli2/markdownlint/promise';
 import { afterEach, describe, expect, it } from 'vitest';
+import { cleanupTempDirs, git, makeDir } from '../../_shared/test-support/git-scratch';
 import referencesShape from '../tools/lint-rules/references-shape.mjs';
 import temporalStatus from '../tools/lint-rules/temporal-status.mjs';
 
@@ -123,26 +123,21 @@ const repoRoot = process.cwd();
 const skillToolsDir = path.join(repoRoot, '.claude/skills/remdo-docs-align/tools');
 const configFile = path.join(repoRoot, '.markdownlint-cli2.jsonc');
 
-const scratchRepos: string[] = [];
-afterEach(() => {
-  while (scratchRepos.length > 0) {
-    fs.rmSync(scratchRepos.pop()!, { recursive: true, force: true });
-  }
-});
+afterEach(cleanupTempDirs);
 
 // Build a scratch git repo carrying the production cli2 config + custom rules
 // and the given docs fixtures, then return the cli2 run over it.
 function scratchDocs(docs: Record<string, string>) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mdlint-scratch-'));
-  scratchRepos.push(dir);
+  const dir = makeDir('mdlint-scratch-');
   fs.copyFileSync(configFile, path.join(dir, '.markdownlint-cli2.jsonc'));
   for (const [rel, content] of Object.entries(docs)) {
     const abs = path.join(dir, rel);
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, content);
   }
-  // git init so cli2's `gitignore: true` selection behaves as in production.
-  spawnSync('git', ['init', '--quiet'], { cwd: dir });
+  // git init so cli2's `gitignore: true` selection behaves as in production;
+  // via the harness git() so it runs with isolated config + temp-root ceiling.
+  git(dir, 'init', '--quiet');
   return dir;
 }
 // Product gate: real cli2 binary over the copied production config.

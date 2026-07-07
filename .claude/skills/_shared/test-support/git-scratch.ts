@@ -34,7 +34,9 @@ export function cleanupTempDirs(): void {
   }
 }
 
-function makeDir(prefix: string): string {
+// A tracked scratch dir under the temp root — cleaned by cleanupTempDirs() in
+// each spec's afterEach, so specs never hand-roll their own dir bookkeeping.
+export function makeDir(prefix: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   tempDirs.push(dir);
   return dir;
