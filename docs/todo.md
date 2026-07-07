@@ -430,6 +430,23 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 ## Skill architecture follow-ups
 
+- Decide ESLint coverage for `.claude/skills/**/*.ts` (refine rung 4): the skill
+  TS is now typechecked (tsconfig dot-include) and unit-run (embedded bridge),
+  but ESLint still ignores dot-directories, so `lint:code` reports "File ignored"
+  on those files and `pnpm run lint` silently skips them — the skill tools/specs
+  miss the code-lint gate. Extend the ESLint config to the dot tree (deciding
+  which rules apply to skill specs, e.g. the `node/no-process-env` disables), or
+  accept typecheck+tests as their gate. A config decision, not a mechanical fix.
+- Accepted limitation (refine rung 4): `references-shape.mjs` resolves a
+  reference link's `[label]` to its definition by exact (lowercased) match, so
+  CommonMark-equivalent labels differing only by internal whitespace
+  (`[foo bar]` vs `[foo   bar]:`) don't resolve — an internal link with such a
+  label could bypass the References-shape gate. Contrived on this corpus (no
+  multi-word reference labels); normalize label whitespace CommonMark-style if it
+  ever matters. The `has_proposal` block-adjacency validator is likewise a sanity
+  guard against truncated codex output, not an adversarial validator (see its
+  comment) — both are the terminal state of a fix-finding chain deliberately
+  stopped at the reasonable bound.
 - Define shared cross-skill contracts once (AGENTS.md or contributing.md) and
   have each skill state only its delta: one stop/escalation taxonomy (today
   six names: ESCALATE/Blocker/Stuck/stop/dead-end/callout), one
