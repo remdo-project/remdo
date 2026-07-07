@@ -123,6 +123,11 @@ process) gets the fresh read for free.
    - **Report back:** its per-proposal disposition list plus any ESCALATE table.
    - **Triage:** consume the dispositions like any findings; surface an ESCALATE
      row as a tradeoff or blocker per the loop rules.
+   - **Runs at most once per refine invocation** (including the confirmation
+     cycle): its advocate never returns empty on a real corpus — measured, it
+     re-proposes indefinitely — so "settles" is unreachable and a second pass
+     buys erosion, not convergence. Residue is reported as tradeoffs, not
+     re-run.
 
 3. **Internal review** — invoke `/code-review` at max effort:
    - **Objective:** an internal correctness/quality read of the diff.
