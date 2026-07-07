@@ -10,7 +10,7 @@
 // checker did by blanking fences is free and correct here. Link destinations are
 // skipped too so a URL is never mistaken for prose.
 
-import { docsPath, isDocsFile } from './docs-scope.mjs';
+import { docsPath } from './docs-scope.mjs';
 
 const TEMPORAL = /\bfor now\b|\bcurrently\b|\bat the moment\b|\bnot yet\b|\bwill soon\b|\(early draft\)/i;
 // Exact repo-relative paths, not basenames: only these two docs are the status
@@ -48,7 +48,8 @@ export default {
   tags: ['remdo'],
   parser: 'micromark',
   function: (params, onError) => {
-    if (!isDocsFile(params.name) || EXEMPT.has(docsPath(params.name))) {
+    const rel = docsPath(params.name);
+    if (!rel.startsWith('docs/') || EXEMPT.has(rel)) {
       return;
     }
     const prose = [];
