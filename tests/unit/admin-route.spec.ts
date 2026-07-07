@@ -43,19 +43,26 @@ describe('adminRouteLoader', () => {
 });
 
 describe('admin enroll route', () => {
-  it('resumes OAuth authorization after enrolling the first admin', () => {
+  it('lands on the admin panel after OAuth-shaped enrollment', () => {
     const search = '?response_type=code&client_id=source&redirect_uri=https%3A%2F%2Fsource.test%2Fcallback';
 
     expect(resolveAdminEnrollPostCreateDestination(search, CURRENT_ORIGIN)).toEqual({
-      kind: 'assign',
-      href: `/api/auth/oauth2/authorize${search}`,
+      kind: 'navigate',
+      path: '/admin',
     });
   });
 
-  it('honours an explicit next path over the admin default', () => {
+  it('lands on the admin panel after non-document next targets', () => {
     expect(resolveAdminEnrollPostCreateDestination('?next=/sharing', CURRENT_ORIGIN)).toEqual({
       kind: 'navigate',
-      path: '/sharing',
+      path: '/admin',
+    });
+  });
+
+  it('lands on the admin panel after document next targets', () => {
+    expect(resolveAdminEnrollPostCreateDestination('?next=/n/staleDoc', CURRENT_ORIGIN)).toEqual({
+      kind: 'navigate',
+      path: '/admin',
     });
   });
 

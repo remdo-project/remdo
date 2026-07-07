@@ -70,10 +70,6 @@ function EnrollForm() {
       clearCurrentUserBootstrapCache();
       resetUserData();
       const destination = resolveAdminEnrollPostCreateDestination(location.search, globalThis.location.origin);
-      if (destination.kind === 'assign') {
-        globalThis.location.assign(destination.href);
-        return;
-      }
       void navigate(destination.path, { replace: true });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to enroll as admin.');
