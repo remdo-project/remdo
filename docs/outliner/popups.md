@@ -30,7 +30,7 @@ specialization of this contract; the contract is independent of how each opens.
    confirming applies the result and closes.
 5. **`Tab` behavior is declared per widget**, as one of: **close and fall
    through** to the editor's normal `Tab` action (the popup closes, then
-   deliberately routes the key onward — an explicit outcome, not a leak), or
+   deliberately routes the key onward), or
    **cycle within** the popup's own controls.
 6. **Validated commit, safe restore.** Because the editor selection stays live
    while a popup is open (and may move under collaboration), a commit re-resolves

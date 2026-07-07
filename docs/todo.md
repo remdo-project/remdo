@@ -480,15 +480,6 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   would be linted twice. Options: add a test asserting the ignore list equals
   `find .claude .codex -type l`, or accept the manual list as documented. Decide
   when the next skill mirror is added.
-- ESCALATE (docs-align, refine rung 2): `docs/outliner/menu.md:40` — advocate
-  proposed deleting "it has no query span, so it owns every key;" as a
-  restatement of the shared editor-popup contract. Dual adjudicators split:
-  one APPLY (the contract's "a popup with no pinned span owns every key" already
-  forecloses it), one REJECT (the premise "the menu has no query span" is a
-  menu-specific fact the shared contract does not assert of the menu, so a
-  wholesale delete loses information the reader needs). Left as-is pending your
-  call: keep, delete the "so it owns every key" restatement only (keeping the
-  no-query-span fact), or delete the whole clause.
 - Tradeoff: `docs-align`'s `docs-scope.mjs` (`isDocsFile`/`docsPath` +
   skill-file exemption) is exercised only by `lint-rules.spec.ts`; the sole
   production caller `run-doc-rules.mjs` globs `docs/**/*.md` and the rules are

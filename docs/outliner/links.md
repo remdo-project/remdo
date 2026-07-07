@@ -27,8 +27,7 @@ RemDo-owned note links and generic external links.
    plain URL links.
 4. Links are created inline through `@`, an inline trigger character; its
    open/close/confirm lifecycle is the shared one in
-   [Editor popups](./popups.md) (so an email-like `a@b` stays plain
-   text). The note-link spec defines only what differs.
+   [Editor popups](./popups.md). The note-link spec defines only what differs.
 5. The query is the text after `@` in the pinned span, length minimum 0, so
    results may appear immediately. Whitespace is allowed in the query: it is the
    same whitespace-tokenized path match document search uses (see

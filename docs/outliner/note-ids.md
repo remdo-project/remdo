@@ -113,8 +113,7 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 
 ## Global references
 
-- `noteRef` is composed as `documentId_noteId`; it is globally unique because
-  `documentId` is globally unique and `noteId` is unique within that document.
+- `noteRef` is composed as `documentId_noteId`.
 - Direct-link URLs use the form `/n/<noteRef>` for non-root notes.
 - The document root uses `/n/<documentId>` as its canonical URL.
 - A `noteRef` is valid only while the referenced note exists in the referenced

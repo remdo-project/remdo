@@ -32,7 +32,7 @@ Define RemDo-owned inline date behavior in the outliner.
 ## Atomic token keyboard behavior
 
 1. A date node behaves as one atomic inline token. The caret must not appear
-   inside the rendered date label (date-as-text editing is a Future direction).
+   inside the rendered date label.
 2. Arrow navigation across a date enters a whole-token selected/focused state
    instead of placing the caret inside the label.
 3. `ArrowLeft` from immediately after a date selects the whole date token; the
