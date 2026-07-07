@@ -5,9 +5,7 @@ durable rules and self-healing mechanisms that change when a *mechanism* changes
 not when a version moves.
 
 Individual workarounds are **not** listed here. They live as `TODO:`/`FIXME:`
-comments at the code site (see `docs/contributing.md#code-comments`), each
-stating the one-line probe that proves it obsolete (delete the shim / flip the
-flag / run the suite). The comment is the tracker; don't duplicate it here. The
+comments at the code site (see `docs/contributing.md#code-comments`). The
 dependency-refresh skill scans those markers, runs the probe, and removes the
 workaround when it passes — so a workaround with no runnable probe doesn't belong
 in a comment either; make it a test assertion or a code-site guard that fails
@@ -26,8 +24,7 @@ loudly instead.
   existing lockfile entry (independent of `minimumReleaseAgeStrict`, which only
   governs *resolution*), so even `--frozen-lockfile` in CI hard-fails
   (`ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`) on a committed entry younger than the
-  window. The refresh holds such bumps to the next run, so a committed lockfile
-  never carries a too-fresh entry.
+  window.
 - Build-script approval uses the `allowBuilds` map in `pnpm-workspace.yaml`
   (`onlyBuiltDependencies` was removed in pnpm 11). With `strictDepBuilds: true`
   (enabled), an install fails (exit 1) when any in-tree dep has a build script
@@ -39,20 +36,10 @@ loudly instead.
 ### Dependabot version updates: deliberately off
 
 There is **no `.github/dependabot.yml`**, and Dependabot version-update PRs are
-**not** used here — on purpose. Dependabot supports pnpm only through **v10**
-([supported ecosystems][dependabot-pnpm]), but this repo pins **pnpm 11**
-(`packageManager` in `package.json`). Against a pnpm-11 workspace its older
-resolver reads a stale version from the lockfile graph and opens *wrong* PRs —
-e.g. proposing a **downgrade** of a dependency you have already advanced past
-(catalogs themselves are supported since [2025-02-04][dependabot-catalogs]; the
-pnpm-version gap is the blocker, not catalog support). The PRs are never merged
-anyway (a per-package bump can't carry a coherently regenerated pnpm lockfile, and
-the refresh also moves pnpm/Node/Actions pins Dependabot never touches), so they
-are pure noise. Do **not** re-add a version-update config until Dependabot
-supports **pnpm 11**.
-
-[dependabot-pnpm]: https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories
-[dependabot-catalogs]: https://github.blog/changelog/2025-02-04-dependabot-now-supports-pnpm-workspace-catalogs-ga/
+**not** used here. Dependabot supports pnpm only through v10 while this repo
+pins pnpm 11 (`packageManager` in `package.json`), so against this workspace its
+resolver reads stale versions from the lockfile graph and opens wrong PRs. Do
+**not** re-add a version-update config until Dependabot supports **pnpm 11**.
 
 Staleness is detected by the refresh itself, not by Dependabot: the
 `remdo-deps-refresh` skill runs `pnpm update --latest`, which resolves the catalog
@@ -91,3 +78,10 @@ Keep the unmet `workbox-build@^7.4.1` peer warning rather than adding
 `@trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1`, whose provenance trust
 downgrade fails the workspace pnpm trust policy. Revisit only if the peer can be
 satisfied without a trust downgrade (a mechanism change, not a version bump).
+
+## References
+
+- [Dependabot supported ecosystems](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
+  — the pnpm version ceiling behind the version-updates-off rule.
+- [Dependabot pnpm workspace-catalog support](https://github.blog/changelog/2025-02-04-dependabot-now-supports-pnpm-workspace-catalogs-ga/)
+  — catalog support is not the blocker.

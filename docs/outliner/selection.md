@@ -15,8 +15,6 @@ A selection is always exactly one of:
 2. **Note range** — a contiguous slice of the outline covering one or more whole
    notes, each with its entire subtree, in document order.
 
-There is no non-contiguous selection.
-
 **Mode switch.** Typing inserts characters only in state 1. As soon as the
 selection covers any whole note (state 2), the editor is in structural mode:
 keystrokes that would type become no-ops and structural commands take over.
@@ -26,8 +24,7 @@ keystrokes that would type become no-ops and structural commands take over.
 
 A selection can never partially cross a note boundary. The moment a text
 selection extends beyond one note's content, it snaps to a **contiguous run of
-sibling notes, each including its entire subtree** — nothing in that slice is
-skipped or partially selected.
+sibling notes, each including its entire subtree**.
 
 ## The selection ladder
 
@@ -47,8 +44,9 @@ The ladder is anchored and replayable:
 - **Rungs.** Each step is a semantic instruction, not a stored range, so the
   selection is the anchor plus the current rungs re-resolved against the live
   tree. The recurrence is:
-  1. the anchor note's inline body — a distinct first rung (skipped when the
-     body is empty, so the first press lands on rung 2);
+  1. the anchor note's own [content text](./concepts.md#definitions), selected
+     inline — a distinct first rung (skipped when that text is empty, so the
+     first press lands on rung 2);
   2. the anchor note plus its subtree — the first structural rung,
      direction-neutral;
   3. one more contiguous sibling (with its subtree) in the sweep direction;
@@ -69,9 +67,7 @@ Direction and reversal:
 - Contraction bottoms out at the anchor and then collapses to the caret, which
   fully resets the ladder. From that bare caret, the next `Shift+Arrow` starts a
   fresh ladder in the pressed direction — `Up` grows up, `Down` grows down — just
-  like beginning a new selection. (The ladder never auto-reverses *while a
-  structural selection still exists*; reversal there only pops toward the
-  anchor.)
+  like beginning a new selection.
 - A press that would extend past the document or zoom boundary is a no-op.
 - `Cmd/Ctrl+A` is direction-neutral: it only ever grows the ladder outward (its
   slab rung covers the whole sibling group either way), so it never inherits a

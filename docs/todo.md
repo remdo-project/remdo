@@ -8,9 +8,9 @@ decisions or write-ups. Keep each to a line or two; being vague is fine if it
 keeps it short. Don't add findings, measurements, or rationale here — that
 belongs in the work itself when it happens.
 
-A long-horizon future direction (deferred indefinitely, not near-term) may live
-here or as a short trigger in the relevant `docs/` spec — whichever fits; neither
-is forced. A spec trigger is rediscovered when that area is worked on again.
+A long-horizon future direction (deferred indefinitely, not near-term) does not
+belong here — it lives as a short trigger in the owning doc's `Future` section,
+rediscovered when that area is worked on again.
 
 Rules:
 
@@ -63,20 +63,8 @@ Rules:
   `docs/contributing.md#editor-feature-modules`. Move the cross-cutting body
   primitives (the note-kind predicates and selection resolvers many shared
   modules consume) to `outline/`, leaving feature-specific logic behind.
-- Editor-popup UX redesign (spec: `popups.md`/`dates.md`/`links.md`/`menu.md`).
-  Landed:
-  span-pinned session (retarget bug fixed; `triggers/session.ts` split into
-  `$openTriggerSession`/`$resolvePinnedSession`); `@` Tab closes+indents (no
-  commit) and modifier-Enter swallowed; `!` is a modal calendar dialog with
-  focus-into-grid keyboard nav via Mantine (arrows/Page/Home-End), `!`+Enter =
-  today, Esc/outside-click cancel + restore caret; one-open-at-a-time registry
-  (`triggers/active-popup.ts`) with the note menu folded in; `NoteBodyPlugin`
-  arrow-deferral keyed off the shared signal; `@` combobox ARIA on the editor
-  host (role/aria-controls/aria-activedescendant hosted on the focused editor
-  root, since the role must sit on the focused element — a picker-owned sub-host
-  would be ARIA-invalid); edit-mode date calendar (clicking a committed token) now
-  shares the same focus-trapping keyboard nav as insert.
-- Remaining follow-ups on the redesign (spec ahead of code on these details):
+- Editor-popup UX redesign (spec: `popups.md`/`dates.md`/`links.md`/`menu.md`) —
+  remaining follow-ups (spec ahead of code on these details):
   - Dedup the duplicated portal/anchor/dismissal plumbing between `NoteMenuPlugin`
     and the popup engine (they still each implement it).
   - Confirm/adjust the menu's per-widget key details against `menu.md` (Tab
@@ -98,52 +86,19 @@ Rules:
 
 ## Admin role follow-ups
 
-The persistent admin role + secret-gated enrollment foundation is built (Better
-Auth admin plugin, `/api/admin/enroll` which registers a new admin account, the
-role-conditional `/admin` route, and `role` on the `/api/current-user`
-bootstrap). Still to come:
-
 - Reconsider `/api/config` vs `/api/health` — maybe one `/api/status` covers both.
-- Admin *panel* content behind `/admin` (the admin branch is a placeholder for
-  now), including **promoting an existing user to admin** and per-admin
-  revocation — the only way today to gain admin is registering a new account via
-  the secret. The session+role authz helper for gating these admin APIs is not
-  built yet (an earlier `resolveAdminSessionUserId` was dropped as unused); the
-  panel PR builds its own gate. The source-linking PR adds the source-server
-  management UI, so the panel ships there.
-- Toolbar **Admin** link for signed-in admins (`App.tsx`). Deferred as
-  pure-additive UI — `App.tsx` is untouched by this PR, so it can land later
-  against the `role`-on-bootstrap that now exists, with no new infra.
+- Admin panel: **promoting an existing user to admin** and per-admin revocation
+  — the only way today to gain admin is registering a new account via the
+  secret.
+- Toolbar **Admin** link for signed-in admins (`App.tsx`). Pure-additive UI
+  against the `role`-on-bootstrap that already exists, with no new infra.
 - Runtime public-policy toggle (replace `ALLOW_SIGNUP` env with admin-managed,
   DB-backed state). Needs auth hot-swap (rebuild `betterAuth` to flip the
-  construction-time `disableSignUp`). The source-linking PR builds the
-  swappable-auth machinery it rides, but the toggle UI is deferred past it — until
-  it lands, `ALLOW_SIGNUP` is the signup control and also the source-side
-  "accept registration" gate.
+  construction-time `disableSignUp`).
 
 ## Source-linking follow-ups
 
-Admin-managed source linking is built: home admins add + register sources from
-the `/admin` panel (register-home ceremony → persisted credentials →
-swappable-auth activation); the admin-managed DB model replaced the
-`LINKABLE_REMDO_SERVERS_JSON` env config; home admin actions gate on the admin
-role; the source accepts registration only from an authenticated account while
-public (`ALLOW_SIGNUP`-backed). Two-server Docker E2E green.
-
-Deferred to follow-up PRs:
-
-- Runtime public-policy toggle UI (see above) — this PR builds swappable-auth but
-  not the toggle.
-- Source-side `clientPrivileges` (restrict raw `/oauth2/register`) — see hardening
-  list below.
-- Promote-existing-user-to-admin + per-admin revocation in the panel — see the
-  admin-panel item above.
-
-Deferred hardening on top of that foundation (each is on top of the same gate, so
-deferring does not churn the gate's interface):
-
-- Audit logging + rate limiting on self-enrollment and public-policy changes
-  (one submission now grants a durable role, not a one-off action).
+- Audit logging + rate limiting on self-enrollment and public-policy changes.
 - `ADMIN_SECRET` rotation lifecycle: define whether rotating affects existing
   admins or only future enrollment.
 - Split signup policy from source client-registration policy (separate runtime
@@ -179,9 +134,9 @@ deferring does not churn the gate's interface):
   or otherwise force affected users through relinking.
 - Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
   the Better Auth admin plugin.
-- Tradeoff (standing): the admin secret is a permanent gate — any user who learns
-  it can self-upgrade, with no per-admin revocation yet. Accepted for
-  single-operator self-host; revisit for public multi-tenant.
+- Tradeoff (standing): the admin secret is a permanent gate with no per-admin
+  revocation; accepted for single-operator self-host, revisit for public
+  multi-tenant.
 
 ## Offline and local persistence follow-ups
 
@@ -246,9 +201,6 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   sequence, a borrowed test-only tag, and duplicate route error state. May need
   an architecture pass (shared hardened load primitive, intent via router/React
   state, import-then-commit so a failed import leaves no empty doc).
-
-Remaining issues to fold in or fix directly:
-
 - `await normalizeUpdate` / `await awaitSynced()` can hang forever: no
   timeout/noop guard, so a no-op normalize (clean backup) or a never-syncing
   provider leaves the import pending with no error.
@@ -333,6 +285,20 @@ Remaining issues to fold in or fix directly:
      `docs/outliner/concepts.md`, `docs/architecture.md`,
      `docs/outliner/search.md`, and `docs/outliner/links.md`.
 
+## Run modes follow-ups
+
+- Backup workflow for hosted prod (managed cloud) is undefined —
+  `docs/run-modes.md` specifies only the backup/export mode surface; define the
+  hosted-prod workflow.
+
+## Client-side perf follow-ups
+
+- Typing-latency optimizations (moved from
+  `docs/performance/client-side-perf-tests.md`): gate `SchemaValidationPlugin`
+  validation and `RootSchemaPlugin` repair scans on dirty-set contents so
+  leaf-only typing updates skip them; skip redundant structural-overlay and
+  outline-selection store writes in `SelectionPlugin` when nothing changed.
+
 ## Test harness follow-ups
 
 - Improve expected-console-issue ergonomics (`assertions/console.ts`): make
@@ -355,15 +321,11 @@ Remaining issues to fold in or fix directly:
   Prefer simple explicit test actions (for example dispatching the real zoom
   command, or at most a thin helper around it) over smart harness metadata that
   adds API surface, hides behavior setup, and cannot be changed mid-test.
-- Collab full-suite flakiness on high-core machines (~10%/run, different
-  unrelated test each time, isolation-clean, CI never sees it). Cause: vitest
-  worker count scales to cores (no `maxForks` cap) but the 5s per-test timeout
-  and single shared collab server don't, so ~10 workers starve under contention;
-  CI's 2-core runner accidentally stays under the budget. Proposed first fix: cap
+- Collab full-suite flakiness on high-core machines (CI unaffected): vitest
+  forks scale to cores but the 5s timeout and single collab server don't. Cap
   `poolOptions.forks.maxForks` (~4 / `'50%'`) and raise the timeout on the
-  subprocess-spawning files (`snapshot-backup`, `prod-docker-launcher`,
-  `config-env`, `docker-entrypoint-env`, `snapshot.collab`). Verify with
-  `test:collab:repeat`. (Distinct from the e2e readiness flake below.)
+  subprocess-spawning specs; verify with `test:collab:repeat`. (Distinct from
+  the e2e readiness flake below.)
 - e2e `TestBridgePlugin: collaboration readiness timed out` flake (CI, ~1/99,
   different test each time; seen on `editor/deletion.spec.ts` `editor.load(...)`).
   Preceded by a vite `/d` ws-proxy `ECONNRESET` — a dropped collab websocket
@@ -421,7 +383,7 @@ Remaining issues to fold in or fix directly:
 
 `data/collab/` grows unbounded (one dir per ephemeral dev/test doc), and editors
 watch it, exhausting `fs.inotify.max_user_watches` across worktrees so the Vite
-e2e dev server can't start (`ENOSPC`). Did a one-off prune of stale entries.
+e2e dev server can't start (`ENOSPC`).
 Durable fixes:
 
 - Add `files.watcherExclude` for `**/data/**` and `**/node_modules/**` (editor
@@ -435,7 +397,7 @@ Durable fixes:
 
 ## Note body follow-ups
 
-The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
+Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 - Undo does not restore selection under collaboration (Lexical's `@lexical/yjs`
   V2 history only persists structure, not the caret). This is global, not
@@ -445,6 +407,94 @@ The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
   no-op (cut stays pending) since a body can't hold notes. Pin the final
   semantics (no-op vs. move-as-flattened-text) in the cut/paste redesign;
   `NoteIdPlugin` `SELECTION_INSERT_CLIPBOARD_NODES_COMMAND` body branch.
+
+## remdo-docs-align follow-ups
+
+- Consolidate doc responsibility fully into docs-align: refine's doc rung
+  invokes the whole pipeline (diff scope) instead of stages 3–4, and
+  `remdo-simplify` drops its doc lens to become the code/test finder only —
+  removes the last double route to doc checking.
+- Consider borrowing from the Upkeep skill (wei18/Upkeep): its structured
+  finding schema and parallel specialist-reviewer layout could speed the align
+  pass on large scopes.
+- Consider borrowing superpowers `writing-skills` pressure-testing (adversarial
+  subagent trials) as an extra check for skill-file prose.
+- Consider publishing the skill to the open Agent Skills registry once it is
+  polished and battle-tested in this project (would need a bundled starter
+  rules-doc template).
+- Unresolved: negation clauses that restate an adjacent rule (the deps-refresh
+  "not human judgement" / "never lands on `main`" specimens) — the advocate
+  declined them in every experiment run and a negation-priority prompt line
+  failed validation; re-test at narrow scope, re-judge the specimens, or accept
+  the advocate's implicit keep.
+
+## Skill architecture follow-ups
+
+- Decide ESLint coverage for `.claude/skills/**/*.ts` (refine rung 4): the skill
+  TS is now typechecked (tsconfig dot-include) and unit-run (embedded bridge),
+  but ESLint still ignores dot-directories, so `lint:code` reports "File ignored"
+  on those files and `pnpm run lint` silently skips them — the skill tools/specs
+  miss the code-lint gate. Extend the ESLint config to the dot tree (deciding
+  which rules apply to skill specs, e.g. the `node/no-process-env` disables), or
+  accept typecheck+tests as their gate. A config decision, not a mechanical fix.
+- Accepted limitation (refine rung 4): `references-shape.mjs` resolves a
+  reference link's `[label]` to its definition by exact (lowercased) match, so
+  CommonMark-equivalent labels differing only by internal whitespace
+  (`[foo bar]` vs `[foo   bar]:`) don't resolve — an internal link with such a
+  label could bypass the References-shape gate. Contrived on this corpus (no
+  multi-word reference labels); normalize label whitespace CommonMark-style if it
+  ever matters. The `has_proposal` block-adjacency validator is likewise a sanity
+  guard against truncated codex output, not an adversarial validator (see its
+  comment) — both are the terminal state of a fix-finding chain deliberately
+  stopped at the reasonable bound.
+- Define shared cross-skill contracts once (AGENTS.md or contributing.md) and
+  have each skill state only its delta: one stop/escalation taxonomy (today
+  six names: ESCALATE/Blocker/Stuck/stop/dead-end/callout), one
+  mutation-permission vocabulary (today five variants), one report skeleton,
+  and a one-line verification-ownership map (feature-flow proves spec
+  behavior; refine owns quality backstops; sync the post-merge check;
+  deps-refresh its matrix). Reconcile with AGENTS.md's declare-scope-in-situ
+  rule via shared vocabulary + per-skill delta.
+- Tradeoff (refine confirmation): `temporal-status.mjs`'s scope guard tests
+  `docsPath(name).startsWith('docs/')` inline rather than reusing the sibling
+  `isDocsFile` from `docs-scope.mjs`. The two pull opposite ways on the same two
+  lines: single-source-the-predicate (`!isDocsFile(name) || EXEMPT.has(docsPath(
+  name))`) reuses the owned test but calls `repoRelative` twice; the current
+  form calls it once. A `docsScope(name) -> {rel, inDocs}` helper on
+  docs-scope.mjs would satisfy both but adds a third export for one caller.
+  Left as-is to avoid oscillating the same lines; fold into the docs-scope
+  keep/drop decision above.
+- Tradeoff (refine rung 3): `.markdownlint-cli2.jsonc` `ignores` hardcodes the
+  three skill-mirror symlink dirs by name to stop globby double-linting them
+  (cli2 doesn't dedup by resolved path). The list matches the live symlink set
+  today, but nothing guards it — a future symlinked skill mirror not added here
+  would be linted twice. Options: add a test asserting the ignore list equals
+  `find .claude .codex -type l`, or accept the manual list as documented. Decide
+  when the next skill mirror is added.
+- ESCALATE (docs-align, refine rung 2): `docs/outliner/menu.md:40` — advocate
+  proposed deleting "it has no query span, so it owns every key;" as a
+  restatement of the shared editor-popup contract. Dual adjudicators split:
+  one APPLY (the contract's "a popup with no pinned span owns every key" already
+  forecloses it), one REJECT (the premise "the menu has no query span" is a
+  menu-specific fact the shared contract does not assert of the menu, so a
+  wholesale delete loses information the reader needs). Left as-is pending your
+  call: keep, delete the "so it owns every key" restatement only (keeping the
+  no-query-span fact), or delete the whole clause.
+- Tradeoff: `docs-align`'s `docs-scope.mjs` (`isDocsFile`/`docsPath` +
+  skill-file exemption) is exercised only by `lint-rules.spec.ts`; the sole
+  production caller `run-doc-rules.mjs` globs `docs/**/*.md` and the rules are
+  not wired into the product cli2 `customRules`, so the scoping/exemption branch
+  is unreachable in prod today. Keep it if the rules are meant to be wired into
+  the product markdown gate (invariant 3 documents the skill-file `References`
+  exemption as intended); otherwise inline the `docs/` assumption and drop the
+  module + its exemption tests. Decide when the product-gate wiring is settled.
+
+## Skill test-infra follow-up
+
+- Consider replacing the skill-spec bridge (`tests/unit/skills/embedded.spec.ts`)
+  with a vitest `test.projects` entry rooted at `.claude/skills` (hidden dirs
+  are pruned by the file crawler, so include globs can't reach them); requires
+  re-verifying `--changed` and forceRerunTriggers semantics across projects.
 
 ## remdo-refine follow-ups
 

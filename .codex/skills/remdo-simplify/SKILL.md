@@ -29,71 +29,51 @@ should be given the same isolation by the caller (a fresh subagent).
 
 ## Non-goals
 
-- Do not apply fixes.
 - Do not broaden feature scope or design new product behavior.
 - Do not run a general correctness, security, or performance review unless the
   issue is also a simplification opportunity.
-
-(For what a surviving finding must *not* report — style, compat, browser-verified
-UI, etc. — see the exclusion list under **Finding bar**.)
 
 ## Select the scope
 
 Use the exact scope supplied by the caller. A refine caller should pass only the
 scope and this skill, not its suspected fixes or implementation context.
 
-Accepted scopes:
+Resolve it by running `sh .claude/skills/remdo-refine/tools/resolve-scope.sh [scope]` (its header
+states the full contract): no argument for the committed-range default (this
+branch's own work), or `working-tree` for the uncommitted changes. It prints
+`SCOPE=`/`BASE=` plus the file list. This pass is read-only and never loops, so it
+needs no anchoring of its own — reusing the resolver just keeps one scope contract
+across the skills. On a non-zero exit, warn and stop rather than folding the other
+side's changes into the review; on an integration branch (`dev`) where the
+committed default is not one unit of work, report that an explicit scope is
+required.
 
-- **Committed range**: a base/range such as `origin/main...HEAD` (the three-dot
-  merge-base range that is exactly a task branch's own work — see
-  `remdo-feature-flow` "Branch base"), `<base-sha>..HEAD`, or "base is `<sha>`".
-  Use it directly as `<range>` below; this pass is read-only and never loops, so
-  it needs no base-SHA anchoring (that is `remdo-refine`'s concern, where a commit
-  loop moves `HEAD`).
-- **Working tree**: uncommitted changes, staged + unstaged + untracked.
-
-Do not mix committed and uncommitted scopes. If a committed range was requested
-and the working tree is dirty, stop with a scope warning instead of folding those
-changes into the review. If no scope was supplied, infer only when unambiguous:
-use the working tree when it has changes; otherwise, on a task branch forked from
-`origin/main`, use `origin/main...HEAD`; otherwise (an integration branch like
-`dev`, where that range is not one unit of work) report that a scope is required.
-
-For the chosen scope, start with read-only inspection:
+For the resolved scope, run this read-only inspection to read the diff surface:
 
 ```sh
-git status --short --branch
 git diff --stat <range>
 git diff --name-status <range>
 git diff --check <range>
-git ls-files --others --exclude-standard
 ```
 
-`<range>` is the committed range in committed-range scope and `HEAD` (the
-working-tree diff) in working-tree scope, so every `<range>` command targets
-exactly the scope's diff and never folds in the other side.
-
-The unqualified `git status` and `git ls-files --others` are the dirty-tree gate:
-in committed-range scope neither should report any changed or untracked file
-(judge `git status` by its file entries — the `## <branch>` header `--branch`
-always prints is not one). Any such entry is the dirty tree the scope forbids —
-warn and stop per "Select the scope". Read the diff per file when the total diff
-is large. Read untracked files that belong to the scope.
+`<range>` is the committed range's base (`<base-sha>..HEAD`) in committed-range
+scope and `HEAD` (the working-tree diff) in working-tree scope, so every command
+targets exactly the scope's diff and never folds in the other side. Read the diff
+per file when the total diff is large. Read untracked files that belong to the
+scope (from the resolver's file list).
 
 ## Read RemDo guidance
 
 Read these first:
 
 1. `AGENTS.md`
-2. `docs/index.md`
-3. `docs/contributing.md`
-4. `docs/todo.md`
+2. `docs/contributing.md`
+3. `docs/todo.md`
 
-Use `docs/index.md` to choose directly relevant product docs for the touched
-area. Do not reread unrelated docs.
+Choose directly relevant product docs for the touched area by filename and
+scope opener. Do not reread unrelated docs.
 
-Forward the `AGENTS.md` findings-suppression rule into this pass. The `Suppressed
-N` tail it requires is shown in the Output template below.
+Forward the `AGENTS.md` findings-suppression rule into this pass.
 
 For editor-related decisions, prefer RemDo's current Lexical patterns and, when
 the dependency tree is available, inspect `node_modules/lexical/src/` before
@@ -110,7 +90,7 @@ simpler end state exists:
   or duplicates.
 - Direct callers/callees where the diff's API shape forces complexity on either
   side.
-- Directly relevant docs from `docs/index.md`.
+- Directly relevant docs for the touched area.
 
 This is not a broad repo sweep. Follow references as far as needed for a credible
 simplification finding, but stop when the connection to the reviewed diff becomes
@@ -149,22 +129,9 @@ Look for opportunities to:
 
 ### Docs and skill files
 
-For touched docs and skills, read each file whole — in load order (entry doc →
-its dependencies → the file), not just the hunk; whole-file reading is what
-catches redundancy against unchanged upstream text. Then apply the RemDo
-documentation invariants:
-
-- Keep each behavior and precise term single-sourced.
-- Keep behavior self-contained, but link to a shared rule instead of restating it
-  when the detail already lives upstream.
-- Keep normative docs as target spec, not status. Put near-term gaps in
-  `docs/todo.md`.
-- Cut prose unless it is new, necessary for the reader's next action, and in the
-  right home.
-- Update `docs/index.md` only for docs whose role, summary, bucket, or existence
-  changed. Skill files are governed by the invariants but are not in the docs map.
-- Keep `References` sections for external sources; skill `References` may also
-  link sibling skills.
+Deep doc and skill-prose review is `remdo-docs-align`'s job. Here, read
+touched docs and skills whole for context and report only violations of
+`docs/documentation.md` you hit in passing.
 
 ## Finding bar
 
@@ -239,10 +206,10 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 
 ## References
 
-- [RemDo refine](../../../.claude/skills/remdo-refine/SKILL.md)
-- [RemDo sweep](../remdo-sweep/SKILL.md)
+- [Scope resolution](../../../.claude/skills/remdo-refine/tools/resolve-scope.sh)
 - [Agent guidelines](../../../AGENTS.md)
-- [Documentation invariants](../../../docs/contributing.md#documentation)
+- [Documentation invariants](../../../docs/documentation.md#invariants)
+- [Git workflow / branch base](../../../docs/contributing.md#git-workflow)
 - [Runtime baseline](../../../docs/contributing.md#runtime-baseline)
 - [Compatibility policy](../../../docs/contributing.md#compatibility-policy-pre-10)
 - [Editor feature modules](../../../docs/contributing.md#editor-feature-modules)

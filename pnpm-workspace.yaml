@@ -87,6 +87,7 @@ catalog:
   lexical: ^0.45.0
   linkify-it: ^5.0.1
   markdownlint-cli2: ^0.22.1
+  markdownlint-rule-relative-links: ^5.1.1
   nanoid: ^5.1.15
   playwright: ^1.61.1
   react: ^19.2.7

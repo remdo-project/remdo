@@ -23,7 +23,9 @@ Operating principle: **apply everything, then make it green.**
    step — pausing to ask just defers the same work and contradicts the
    run-and-walk-away intent.
 2. **The checks are the gate**, not human judgement: the full local suites here,
-   plus the CI matrix on the dev push (the skill never lands on `main` directly).
+   plus the CI matrix on the dev push (the skill never lands on `main` directly;
+   the push itself stays the user's — see Permissions — so report the CI leg as
+   pending, not covered).
    A regression that the suites catch is for the skill to diagnose and fix now,
    from the failure in hand — the same investigation a "stop" would have produced,
    just without the wait.
@@ -36,12 +38,15 @@ Operating principle: **apply everything, then make it green.**
 ## The loop
 
 The work is a loop the skill drives — that is where the autohealing lives. The
-deterministic part is one single-shot gate: `pnpm run deps:next` (this skill's
-`next-update.sh`, alongside its `bump-*.sh` helpers) runs an ordered list of
-update steps and **stops at the first one that changes the repo**, so the skill
-always handles exactly one change at a time. It never batches, never parses
-versions, never decides — it
-only reports "here is the next thing that changed."
+deterministic part is scripted: `pnpm run deps:next` (this skill's
+`next-update.sh`) runs an ordered list of update steps and **stops at the first
+one that changes the repo**, so the skill always handles exactly one change at a
+time. The gate itself only *detects* which step did work. Version-selection
+policy lives in the deterministic `bump-*.sh` helpers each step runs (latest
+pnpm release with its exact corepack hash, newest LTS Node whose alpine base is
+published, latest
+release major for floating action tags); the skill's own job is to run the gate
+and heal whatever the resulting change breaks — not to pick versions itself.
 
 Gate exit codes:
 
@@ -60,9 +65,8 @@ Iterate:
 1. Run `pnpm run deps:next`.
 2. **Exit 3** — the gate names the changed item (e.g. `lockfile deps`,
    `pnpm pin`, `node pins`, `github actions`). Handle just that item:
-   1. Verify it green: `pnpm run lint`, `pnpm run test:unit:full`,
-      `pnpm run test:collab:full`, `pnpm run test:e2e`, the audits
-      (`audit:unused:zero`, `audit:dup:zero`), and
+   1. Verify it green: `pnpm run check:full`, `pnpm run test:e2e`,
+      `pnpm run audit:cleanup`, and
       `CI=true pnpm install --no-frozen-lockfile` as the consistency gate. For a
       **Node** change also run `pnpm run test:e2e:docker` (the only local surface
       that exercises the alpine base); other items lean on the docker-tests CI job
@@ -71,7 +75,12 @@ Iterate:
       Diagnose from the failure in hand and fix forward: adjust a workaround in
       [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md),
       pin a known-bad transitive, correct config, or make the minimal code/test
-      change the bump requires. Re-run until green.
+      change the bump requires. Re-run until green. When the failure doesn't
+      name its culprit (the lockfile item moves many packages at once), bisect
+      it: restore `pnpm-workspace.yaml` + `pnpm-lock.yaml`, re-apply the
+      catalog bumps in halves — running `CI=true pnpm install
+      --no-frozen-lockfile` after each half so `node_modules` matches it — and
+      re-run the failing check.
    3. For a notable jump, skim the release notes — to inform the fix and to flag
       a behavior-affecting change for the report. Opportunistically apply a
       simplification newly-provided functionality enables (upside, never a
@@ -101,10 +110,8 @@ Once the gate is green (exit 0):
 2. Review [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md)
    as a whole: drop workarounds whose reason is now gone; re-check held-backs.
 3. Reconcile open Dependabot PRs and alerts via `gh` — bookkeeping, not a second
-   decision loop. The loop applied everything, so most npm PRs should already be
-   `covered here` (this branch carries the same or newer); confirm against the
-   branch rather than re-deciding. Apply only genuine `unresolved` follow-ups.
-   Classify each: `covered here`, `already on default branch`, `unresolved`, or
+   decision loop. Apply only genuine `unresolved` follow-ups. Classify each:
+   `covered here`, `already on default branch`, `unresolved`, or
    `blocked intentionally`.
 
 ## Final Response
@@ -130,4 +137,5 @@ self-contained. Sections (omit a section if empty):
    migration, an ambiguous behavior change the tests cannot adjudicate), with what
    was tried. Omit if none. This is the only category that genuinely needs the
    user; everything else was handled.
-7. **Checks** — each final verification command with its pass/fail result.
+7. **Checks** — each final verification command with its pass/fail result, and
+   the CI matrix leg marked pending until the user pushes.

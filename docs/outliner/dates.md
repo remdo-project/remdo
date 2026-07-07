@@ -14,28 +14,25 @@ Define RemDo-owned inline date behavior in the outliner.
 3. The `!` picker is a **modal calendar dialog**: opening it moves focus into a
    month-grid calendar (the shared contract's per-widget trapping focus model),
    with today (the user's local browser date) preselected. Typed query text is
-   not interpreted in this phase (see Non-goals), so the calendar is the only way
-   to choose.
+   not interpreted (see Non-goals / future).
 4. The calendar owns its keyboard while open: `ArrowLeft`/`Right` move by a day,
    `ArrowUp`/`Down` by a week, `Home`/`End` to the start/end of the week,
    `PageUp`/`PageDown` by a month, `Shift+PageUp`/`PageDown` by a year. The editor
    caret does not move under the open grid.
 5. `Enter` or `Space` commits the focused day; a primary-button click commits the
-   clicked day. So `!` then `Enter` inserts today (the fast path). `Escape` — and
-   `Tab`, which must not escape into browser focus traversal — cancel the calendar
-   and restore the caret to the editor. Committing inserts a date node plus a
-   trailing space over the pinned `!` span.
+   clicked day. `Escape` — and `Tab` — cancel the calendar and restore the caret
+   to the editor. Committing inserts a date node plus a trailing space over the
+   pinned `!` span.
 6. Clicking, or `Enter`/`Space` on a selected date token, opens the same calendar
    in *edit* mode over that node. It is opened from a committed token rather than a
    trigger session, so the trigger lifecycle does not apply, but the in-calendar
-   keyboard contract is identical (focus moves into the grid; the keys in 4–5
-   navigate and commit; commit updates the node and places the caret after it,
-   cancel leaves it unchanged).
+   keyboard contract is identical — except commit updates the existing token
+   rather than inserting a new one.
 
 ## Atomic token keyboard behavior
 
 1. A date node behaves as one atomic inline token. The caret must not appear
-   inside the rendered date label while date-as-text editing is unsupported.
+   inside the rendered date label (date-as-text editing is a Future direction).
 2. Arrow navigation across a date enters a whole-token selected/focused state
    instead of placing the caret inside the label.
 3. `ArrowLeft` from immediately after a date selects the whole date token; the
@@ -60,13 +57,10 @@ Define RemDo-owned inline date behavior in the outliner.
 2. [Future] Support typed date queries or natural-language date parsing after
    `!`.
 3. [Future] Give the calendar its own chrome (month/year navigation controls) and
-   have `Tab` cycle those controls within the dialog instead of cancelling —
-   currently there are no controls to cycle to, so `Tab` cancels (see 5).
+   have `Tab` cycle those controls within the dialog.
 
 ## References
 
-1. Lexical custom nodes:
-   <https://lexical.dev/docs/concepts/nodes>
-2. WAI-ARIA Authoring Practices Guide, date picker dialog example (the calendar's
+1. WAI-ARIA Authoring Practices Guide, date picker dialog example (the calendar's
    grid focus and keys):
    <https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/>

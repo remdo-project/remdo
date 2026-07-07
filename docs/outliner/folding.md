@@ -18,9 +18,9 @@ note identities.
    the editor width, or when the note is the caret/focus target. It is rendered
    to the left of the note content. `+` means folded; `-` means expanded.
 3. Toggling fold state hides or reveals descendants. This can be done via the
-   row toggle or via the note menu keyboard path (`Shift`, `Shift`, then `F`).
-   Folding is view-only and never changes structure or order. Descendants keep
-   their own fold status when an ancestor is toggled.
+   row toggle or via the [quick action menu](./menu.md) keyboard path (`Shift`,
+   `Shift`, then `F`).
+   Descendants keep their own fold status when an ancestor is toggled.
 4. Folding is saved per note and synced in collaboration; undo/redo restores it
    like any other edit.
 5. If folding would hide the active selection, it collapses to the folded note

@@ -82,7 +82,10 @@
     "skipLibCheck": true
   },
   "include": [
-    "./**/*"
+    "./**/*",
+    // TS globs skip dot-directories; skill-local tools/tests need an explicit
+    // dot-prefixed pattern to be typechecked.
+    "./.claude/skills/**/*"
   ],
   "exclude": [
     "**/node_modules/**",

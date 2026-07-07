@@ -14,9 +14,7 @@ caret/selection state in the editor.
 - **Zoom root:** The note whose subtree is displayed for the current zoom
   target.
 - **Zoom boundary:** The zoom root plus all of its descendants — the subtree
-  edits are bounded to while zoomed. In code this bound is the zoom root
-  (`features/zoom/zoom-root.ts`); the generic membership check lives in
-  `outline/` (`isWithinBoundary`).
+  edits are bounded to while zoomed.
 - **View actions:** Commands that operate on the current zoom boundary rather
   than on a single note.
 - **Zoom path:** The ordered list of ancestors from the document to the zoom
@@ -34,7 +32,7 @@ caret/selection state in the editor.
 4. While zoomed, selection expansion (including Select All) is bounded to the
    zoom root. Within that boundary, selection behavior matches
    [Selection](./selection.md).
-5. While zoomed, edits are bounded to the zoom boundary. Commands must not
+5. While zoomed, edits are bounded to the zoom boundary. Commands MUST NOT
    create, merge, move, or target notes outside that boundary.
 6. The zoom root is presented distinctly from ordinary note rows. It remains
    editable, but it serves as the local title/heading for the zoomed view
@@ -67,10 +65,8 @@ caret/selection state in the editor.
 
 ## Zoom stability
 
-1. Local edits do not change zoom automatically.
-2. Collaboration updates do not change zoom automatically.
-3. Zoom changes only through explicit zoom navigation or when the zoom target
-   can no longer be resolved.
+Zoom changes only through explicit zoom navigation or when the zoom target can
+no longer be resolved.
 
 ## Boundary-specific command rules
 
@@ -100,8 +96,7 @@ truncated to 20 characters for display when needed.
 
 ## Routing
 
-1. For non-root zoom, the canonical URL is `/n/<docId>_<noteId>` (a single
-   zoom target noteId, not a full path).
-2. For document-root zoom, the canonical URL is `/n/<docId>`.
-3. Loading `/n/<docId>_<noteId>` activates zoom if the note exists; otherwise
-   the document opens at the document root.
+The canonical URL forms (`/n/<noteRef>` and the document root's `/n/<documentId>`)
+are owned by [Note IDs](./note-ids.md#global-references); a zoom target is the
+`noteId` half of that `noteRef`. Loading a non-root zoom URL activates zoom if
+the note exists; otherwise the document opens at the document root.

@@ -1,6 +1,0 @@
-interface:
-  display_name: RemDo Sweep
-  short_description: Conservative cleanup for a RemDo diff, branch, or repo
-  default_prompt: Use $remdo-sweep to review and clean up the selected RemDo scope (default uncommitted changes).
-policy:
-  allow_implicit_invocation: false

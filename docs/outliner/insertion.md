@@ -1,31 +1,27 @@
 # Insertion (Enter) Semantics
 
-Defines how RemDo inserts new notes when `Enter` is pressed in **caret mode**.
+Defines how RemDo inserts new notes when `Enter` is pressed in **caret mode**
+(mode definitions in [Selection](./selection.md)).
 This spec assumes the caret is inside a single note and actions apply to the
 active note text. Unless stated otherwise, parent notes are expanded; folded and
 collapsed parent behavior is called out explicitly (see [Folding](./folding.md)).
-Structural mode still treats `Enter` as a no-op; see [Selection](./selection.md)
-for mode definitions.
 
 ## Default behavior (caret mode)
 
-1. **Start of note** – create a previous sibling immediately above. Focus moves
-   to the new sibling so typing continues there. Children of the original note
-   stay attached to it.
+1. **Start of note** – create a previous sibling immediately above. Children of
+   the original note stay attached to it.
 2. **Middle of note** – split into two siblings at the caret. Text **before**
    the caret becomes a new sibling inserted immediately above the original; the
-   original note keeps the text after the caret and all of its children (the
-   note after the caret remains the parent of its subtree).
+   original note keeps the text after the caret and all of its children.
 3. **End of note** – when the note already has children **and** the parent is
    expanded, create a new first child. Otherwise (no children or collapsed
-   parent), insert a next sibling immediately below. Focus always moves to the
-   newly created note.
+   parent), insert a next sibling immediately below.
 
 ## Zoom boundary behavior (caret mode)
 
-When zoom is active, default insertion still applies except where it would place
-the new note outside the zoom boundary. In those cases, insertion stays inside
-the zoom root subtree:
+When [zoom](./zoom.md) is active, default insertion still applies except where it
+would place the new note outside the zoom boundary. In those cases, insertion
+stays inside the zoom root subtree:
 
 1. **Caret in zoom root at start** – insert a new first child.
 2. **Caret in zoom root in middle** – split the zoom root so text before the
