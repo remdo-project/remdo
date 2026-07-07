@@ -3,14 +3,10 @@
 // bypasses markdownlint-cli2 config discovery (the repo config is the product
 // gate and would shadow this one); style/link linting stays `pnpm run lint:md`.
 import fs from 'node:fs';
-import path from 'node:path';
 import process from 'node:process';
-import { fileURLToPath } from 'node:url';
 import { lint } from 'markdownlint-cli2/markdownlint/promise';
-
-const here = path.dirname(fileURLToPath(import.meta.url));
-const referencesShape = (await import(path.join(here, 'lint-rules/references-shape.mjs'))).default;
-const temporalStatus = (await import(path.join(here, 'lint-rules/temporal-status.mjs'))).default;
+import referencesShape from './lint-rules/references-shape.mjs';
+import temporalStatus from './lint-rules/temporal-status.mjs';
 
 const files = fs.globSync('docs/**/*.md', { cwd: process.cwd() });
 if (files.length === 0) {
