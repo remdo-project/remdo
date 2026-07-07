@@ -98,6 +98,6 @@ remdo_docker_run() {
   fi
 
   docker run "${docker_args[@]}" \
-    -v "${data_dir}:/app/data" \
+    -v "${data_dir}:/data" \
     "${image_name}"
 }

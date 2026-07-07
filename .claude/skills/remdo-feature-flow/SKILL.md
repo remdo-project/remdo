@@ -16,22 +16,35 @@ The user reviews **intent**, not steps. The spec is the durable goal; the plan i
 disposable. Execution converges on the spec autonomously; review, simplify, and
 verify are part of "done," not user commands.
 
-## Capability assumption (durable)
-
-This skill follows the **Skill authoring** rule in `AGENTS.md`: assume every run
-is performed by a model at least as capable as the current one, so it encodes
-*intent* and keeps strictness to the reasonable minimum rather than baking in
-assumptions a better future run would have to undo. That shapes every phase
-below.
-
 ## Review surfaces
 
-This skill runs on the WD-first review model from AGENTS.md ("Land artifacts for
-review; don't paste them") — land artifacts, point at them, never double-read.
 The two review surfaces are concrete versioned-repo content: the **`docs/`
 changes** (phase 3) and the **report's diff index** (phase 5). Deferrals land in
 `docs/todo.md`. `.agent/` is agent-only scratch, never a review surface.
 Everything else is a thin chat pointer.
+
+## Preflight — pin the design base
+
+Run this first, **before the flow reads any code or docs**: fact verification,
+dialog, and the spec must all be shaped against exactly the state the task
+branch will fork from, or the design is built against one codebase while
+Phase 3 branches from another.
+
+**Run `sh .claude/skills/remdo-feature-flow/tools/preflight-base.sh`** (its header states the full
+contract). It leaves the branch proceedable or exits for a state the run must
+stop on. What each outcome means for the flow:
+
+- **Proceedable** (`STATE=even`/`behind`) — take **`BASE=<sha>`** as the pinned
+  fork point and proceed. Phase 3 forks from *that pinned SHA*, not a re-fetched
+  `origin/main`, so `origin/main` advancing mid-flow can't split the design base
+  from the fork base.
+- **Non-zero exit** — **stop**, read the script's stderr, and act on *why*:
+  - **Dirty tree** — resolve it locally by your judgment (commit what belongs to
+    this flow, restore or discard the rest), then re-run.
+  - **Ahead / diverged** — the branch holds committed work the fork would not
+    carry, so a spec designed against it would vanish from the task branch. Ask
+    the user to land it in `origin/main` first (merge the open `dev`→`main` PR) or
+    to design from a checkout already at `origin/main`.
 
 ## Phase 1 — Draft (user)
 
@@ -44,39 +57,10 @@ being silently carried.
 
 ## Phase 2 — Dialog
 
-**Precondition — design against the same base the fork will use.** Run this
-**before reading any code or docs below**: the spec must be shaped against exactly
-the state the task branch will fork from, or Phase 2 designs against one codebase
-while Phase 3 branches from another. It must gate the dialog, not just branch
-creation — by Phase 3 the wrong context has already shaped the design.
-
-1. **Tree clean of unrelated changes first.** Apply the Phase-3 "no unrelated
-   changes" check *now*, before the fast-forward below can touch the tree — a
-   fast-forward would otherwise silently advance a checkout the run should have
-   stopped on. Pre-existing unrelated edits → stop (as in Phase 3).
-2. `git fetch`, then compare the current branch (usually `dev`) to `origin/main`:
-   - **Ahead** (`git rev-list origin/main..HEAD` non-empty) — the branch holds
-     committed work not yet in `origin/main`. The fork carries only the
-     uncommitted spec (see "Branch base"), so that work would *not* follow, and a
-     spec designed against it would vanish from the task branch. **Stop**: ask the
-     user to land it in `origin/main` first (merge the open `dev`→`main` PR), or to
-     design from a checkout already at `origin/main`.
-   - **Behind** (`git rev-list HEAD..origin/main` non-empty, and *not* also
-     ahead) — merely stale. **Fast-forward to `origin/main`** (`git merge
-     --ff-only origin/main`); safe (no rewrite, no merge commit, nothing lost) and
-     makes the design base match the fork base.
-   - **Diverged** (both ahead and behind) — FF is impossible; treat as *ahead* and
-     stop.
-   - **Even** — proceed.
-3. **Pin the base.** Record the resolved base SHA (`git rev-parse origin/main`) as
-   the fork point for this run. Phase 3 creates the branch from *this pinned SHA*,
-   not a re-fetched `origin/main` — otherwise `origin/main` advancing mid-flow
-   would again split the design base from the fork base.
-
 Conversation plus cheap checks — inline, interactive, no subagents (latency the
 user feels in real time).
 
-1. Read the relevant `docs/` (via `docs/index.md`) and code **first**, before
+1. Read the relevant `docs/` and code **first**, before
    asking anything.
 2. Ask only genuine residual questions, **batched** — not one at a time. The
    user reads slowly and dislikes redundancy.
@@ -94,10 +78,7 @@ the user launches it; you do not start it on your own.
 During dialog, ask whether the change is one concern or several — structural
 splits (separate phases, separate specs, separate tasks) are cheap to make now
 and expensive once code is written. Record the decisions dialog produces — the
-split choice, and why a design was chosen over alternatives — in `docs/todo.md`:
-the spec describes target behavior only (invariant #5), so the *why* lives there
-until it moves into a `docs/` rationale or is dropped, rather than being
-memory-carried.
+split choice, and why a design was chosen over alternatives — in `docs/todo.md`.
 
 ## Phase 3 — Spec approval (the one user gate)
 
@@ -111,7 +92,7 @@ them — see AGENTS.md). Everything this flow itself produced is fine and expect
 Phase 2 — so a normal clean-start run (where the only changes are this flow's)
 passes this gate; it is not a requirement that "only spec edits" exist.
 
-This gate assumes the **Phase-2 base check ran** (see Phase 2): it left the
+This gate assumes the **preflight base check ran** (see Preflight): it left the
 current branch even with the pinned base SHA and recorded that SHA, which is what
 lets the branch created below fork with no committed work lost and no stale design
 base.
@@ -121,25 +102,27 @@ if everything already works as described (per the `docs/` invariant: stable docs
 describe *target* behavior). Edit the relevant docs under `docs/` — or add new
 docs that clearly match the existing structure — to describe the design as the
 new reality. Track any not-yet-built parts, gaps, or sequencing in `docs/todo.md`
-(the "Target behavior only" invariant), not as caveats in the prose.
+(invariant 4, "Spec, not status"), not as caveats in the prose.
 
 Comply with the documentation invariants
-(`docs/contributing.md#documentation`) so static checks pass without rework, and
+(`docs/documentation.md`) so static checks pass without rework, and
 aim for a minimal, coherent, non-redundant end state even at the cost of larger
 doc edits.
 
-`.agent/specs/...` is **not** a review surface — it is your own scratch/cache for
-talking to tools and subagents. Do not ask the user to review it.
-
 **Refine the spec before handing it over.** Once the doc changes are written and
-before presenting them, run `remdo-refine` in **working-tree scope** over the
-uncommitted `docs/` edits — so the user reviews already-converged prose, not a
-first draft. This gates only the final handoff: dialog (Phase 2) stays fast and
-unrefined, and the pass runs once here at the gate, not per turn. It is
-working-tree scope because no branch exists yet (created on approval below); it
-commits nothing, and a later rejection still reverts the edits cleanly. The
-precondition above guarantees the tree holds only this flow's own changes, so the
-pass sees nothing unrelated.
+before presenting them, invoke the **`remdo-refine`** skill so the user reviews
+already-converged prose, not a first draft:
+
+- **Objective:** converge the uncommitted spec docs to a clean quality bar.
+- **Scope passed:** working-tree scope (no branch exists yet — it is created on
+  approval below); refine applies its fixes in place and commits nothing, so a
+  later rejection still reverts the edits cleanly.
+- **Report back:** refine's final index (fixes applied, tradeoffs pointed at
+  `docs/todo.md`, checks). This flow does nothing further with it — the pass
+  exists to land converged prose in the tree before the gate.
+
+This gates only the final handoff: dialog (Phase 2) stays fast and unrefined, and
+the pass runs once here at the gate, not per turn.
 
 The user reviews the **`docs/` changes** (the chat message is a thin pointer:
 which docs changed, plus a ~5-bullet approach summary — not the design pasted
@@ -150,10 +133,16 @@ On approval, **create the task branch** (the commit-to-build point — dialog ru
 on the current branch and no branch exists until here, so a dropped idea never
 leaves a stray branch). The Phase-3 spec edits do live in the working tree on the
 current branch, though: if the user rejects at the gate, **revert them** before
-exiting — don't leave unapproved `docs/`/`docs/todo.md` changes behind. Confirm
-branch name/prefix (see "Branch naming") and create it per "Branch base" below;
-the approved spec docs are the branch's first commit (the Phase-3 precondition
-above already ensured the tree holds only this flow's changes).
+exiting — don't leave unapproved `docs/`/`docs/todo.md` changes behind.
+
+Confirm the branch name/prefix (see "Branch naming") first, then **run `sh
+.claude/skills/remdo-feature-flow/tools/create-task-branch.sh <name> <pinned-base-sha>`** with the SHA
+pinned at preflight (its header states the full contract). It forks from the
+pinned base carrying the uncommitted spec edits, and refuses any state that would
+strand them; on a non-zero exit, resolve the drift it names and retry rather than
+forcing the switch. The approved spec docs are then the branch's first commit
+(the Phase-3 precondition above already ensured the tree holds only this flow's
+changes). See "Branch base" for why the fork uses the pinned SHA.
 
 ## Phase 4 — Autonomous execution
 
@@ -168,18 +157,37 @@ above already ensured the tree holds only this flow's changes).
    `superpowers:test-driven-development` for new behavior,
    `superpowers:systematic-debugging` for a bug or unexpected failure — rather
    than writing ad hoc.
-3. **Refine is part of done** — once the gap-closing loop reaches the spec's
+3. **The loop's exit is an independent spec-compliance read, not
+   self-assessment.** When the loop believes the spec's described state is
+   reached, dispatch a **fresh subagent** to report divergences both ways:
+   specified but not built, and built but not specified. Give it the spec (the
+   branch's `docs/` changes — Phase 3's sense) and the branch diff
+   (`origin/main...HEAD` plus any uncommitted work, untracked files included);
+   it may read the rest of the repo for cross-checking (except `.agent/`, where
+   the plan lives) but carries neither the plan nor this session's memory. The
+   subagent only reports; acting on the report stays with you, inside the loop:
+   fix real gaps (the loop continues), document or remove what is built but
+   unspecified (the docs are the target reality), and record deliberate
+   deferrals in `docs/todo.md` (invariant 4). The loop exits when this read
+   comes back clean or fully tracked. For user-facing behavior, also verify the built behavior
+   live per the AGENTS.md DevTools flow, with automated coverage per its e2e
+   escalation rule — `superpowers:verification-before-completion` is the
+   discipline for this exit step where available.
+4. **Refine is part of done** — once the gap-closing loop reaches the spec's
    described state, **commit the phase-4 work** (refine and sync both need a clean
-   tree; refine reviews the committed `origin/main...HEAD` range). If `origin/main`
-   has advanced since branch creation (cheap `git fetch` check), **suggest
-   `remdo-sync`** next — now that the tree is clean it can run — so the eventual PR
-   stays clean (non-blocking). Then run the **`remdo-refine`** skill. It owns the
-   quality loop (simplify → internal review → external Codex
-   review, looping to a clean pass), the **tradeoff/blocker policy** for review
-   findings (defined there, not restated here), and the final checks for the
-   current agent mode at the end. Refine converges *code quality*; reaching the
-   spec's described state stays the gap-closing loop's job above.
-4. **Mid-work decisions:** small blast radius (a later reversal would not waste
+   tree). If `origin/main` has advanced since branch creation (cheap `git fetch`
+   check), **suggest `remdo-sync`** next — now that the tree is clean it can run —
+   so the eventual PR stays clean (non-blocking). Then invoke the
+   **`remdo-refine`** skill:
+   - **Objective:** converge the phase-4 work to a clean code-quality bar.
+   - **Scope passed:** committed-range scope over this branch's own work
+     (`origin/main...HEAD`).
+   - **Report back:** refine's final index. It owns the quality loop (simplify →
+     internal review → external Codex review, looping to a clean pass), the
+     **tradeoff/blocker policy** for review findings, and the final checks for the
+     current agent mode. Fold its tradeoffs (already in `docs/todo.md`) into the
+     Phase-5 report.
+5. **Mid-work decisions:** small blast radius (a later reversal would not waste
    the work) → use judgment, **record it in `docs/todo.md`**, keep moving.
    Genuine large-blast-radius fork → stop, **recording the fork, the options, and
    what it blocks on in `docs/todo.md`** (not just chat) so the retro and any
@@ -233,8 +241,7 @@ phase").
 - **Bounded by a question, not by exhaustiveness.** Start only when there is a
   specific thing to validate (e.g. "does our access model match AIP-XXX?", "how
   do mature outliners handle Y?"). Stop when that question is answered and the
-  design has its backing — not when sources run out. Open-ended "gather
-  everything" is the failure mode to avoid.
+  design has its backing — not when sources run out.
 - **Spikes** (throwaway prototypes to gather data) may run in parallel via
   `superpowers:dispatching-parallel-agents`, isolated in worktrees via
   `superpowers:using-git-worktrees` (per AGENTS.md worktree/`PORT_BASE` rules).
@@ -252,14 +259,12 @@ a task branch. Within a run:
 
 - **Local commits on a confirmed task branch: allowed.** Never directly onto
   `dev` or `main`.
-- **`git fetch`: always allowed** — it only updates remote-tracking refs, never
-  your work or the remote.
-- **Fast-forwarding the current branch to `origin/main`** as part of the Phase-2
-  base check: allowed. `git merge --ff-only origin/main` only advances a *behind*
-  branch along existing history — no rewrite, no merge commit, nothing lost — so
-  it is safe autonomously; it fails (and thus never mutates) on a diverged branch,
-  which the base check handles as the *ahead* stop. This is the one exception to
-  the pull/merge line below.
+- **Fast-forwarding the current branch to `origin/main`** as part of the
+  preflight base check (performed by `.claude/skills/remdo-feature-flow/tools/preflight-base.sh`): allowed.
+  The FF-only merge advances a *behind* branch along existing history — no
+  rewrite, no merge commit, nothing lost — so it is safe autonomously; it fails
+  (and thus never mutates) on a diverged branch, which the script handles as a
+  stop. This is the one exception to the pull/merge line below.
 - **Push / pull / opening PRs: never without the user's explicit ask.** The user
   owns the remote (and a general pull/merge, which can mutate or diverge the
   branch — unlike the scoped FF-only above).
@@ -267,48 +272,38 @@ a task branch. Within a run:
   cherry-pick): require user confirmation.
 - **Web read/search: allowed by default.**
 
-The global index rules (staged-vs-unstaged invisible; no rearranging the index)
-are unchanged here — see AGENTS.md, not repeated.
-
 ### Branch base: `origin/main...HEAD`
 
 The single base for every diff, for both user and agent, is the **merge-base of
 `origin/main` and `HEAD`**. Two forms, per what's being reviewed:
 
 - **Committed range:** `git diff origin/main...HEAD` (three-dot diffs from the
-  merge-base) — and `codex review --base origin/main` (safe as a one-shot; a
-  looping `remdo-refine` pass anchors to a fixed base SHA instead, see that skill).
+  merge-base). External review over this range is `remdo-refine`'s rung — it owns
+  the invocation and base anchoring, not this skill.
 - **Working tree included** (committed + uncommitted — the mid-work review loop):
-  `git diff "$(git merge-base origin/main HEAD)"`.
+  `git diff "$(git merge-base origin/main HEAD)"`, plus
+  `git ls-files --others --exclude-standard` for the untracked files that diff
+  omits.
 
 Always go through the merge-base: it is recomputed from the two refs every time,
 so no base tag is stored and it cannot go stale — it shows exactly this branch's
-own work even after a `remdo-sync` merge moves it forward. (Plain two-dot `git
-diff origin/main` is *not* equivalent — after a merge it diffs against the wrong
-point.) **Default all mid-work and end-of-work diff/review checks to this
-merge-base.**
+own work even after a `remdo-sync` merge moves it forward. (A plain `git diff
+origin/main` is *not* equivalent — once `origin/main` advances past the branch's
+merge-base, it diffs against the wrong point.) **Default all mid-work and
+end-of-work diff/review checks to this merge-base.**
 
-**Creating the branch** (Phase 3) forks from the **base SHA pinned at Phase 2**
-(step 3 there) — the exact state the spec was designed against — *not* a freshly
-re-fetched `origin/main`, which may have advanced mid-flow and would split the
-fork base from the design base again. The Phase-2 base check left the current
-branch even with that SHA, so only the **uncommitted spec edits** need to carry
-across:
-
-- Create the branch with `git switch --merge -c <name> --no-track <pinned-base-sha>`.
-  `--merge` carries the uncommitted spec edits onto the new base (a plain `git
-  switch -c` would **abort and strand the spec** if a spec-touched file differed);
-  since the current branch is already at the pinned base, a conflict is not
-  expected. `--no-track` keeps the start point from setting the upstream (a
-  mismatched name that breaks the user's first push under `push.default=simple`);
-  the user's first push then sets the upstream to `origin/<same-name>` (`git push
-  -u origin HEAD`, or automatically with `push.autoSetupRemote`).
+**Creating the branch** (Phase 3) forks from the **base SHA pinned at
+preflight** — the pin is what keeps the fork base equal to the design base. The
+mechanics (the exact `git switch --merge` invocation and its staged-edit/drift
+refusals) live in `.claude/skills/remdo-feature-flow/tools/create-task-branch.sh`; Phase 3 runs that script.
+Preflight left the current branch at the pinned SHA, so only the **uncommitted
+spec edits** carry across and the script's refusals are not expected to fire.
 
 This flow forks task branches from `origin/main` only. Stacked/dependent branches
 (forking off another in-progress branch) are out of scope — they would make
 `origin/main...HEAD` include the parent's un-merged work. If you ever need one,
-diff that branch by hand against its parent (`git diff <parent>...HEAD`,
-`codex review --base <parent>`); no skill tracks it.
+diff that branch by hand against its parent (`git diff <parent>...HEAD`); no skill
+tracks it.
 
 ### Branch naming
 
@@ -326,7 +321,9 @@ Choose by the *activity*, not the phase number:
   your call by the independence test: dispatch subagents only for genuinely
   parallel, independent chunks (no shared state, no sequential dependency); stay
   inline otherwise. Deferred to runtime because the input (the actual dependency
-  graph) does not exist until then. Research spikes are subagent-eligible even
+  graph) does not exist until then. (A step that itself mandates a dispatch —
+  the Phase-4 exit read — is outside this call.) Research spikes are
+  subagent-eligible even
   when triggered from dialog, because the spike itself is autonomous work, not
   conversation.
 
@@ -339,18 +336,19 @@ Choose by the *activity*, not the phase number:
 
 ## References
 
-- Sequenced skills: `superpowers:brainstorming`,
-  `superpowers:dispatching-parallel-agents`, `superpowers:using-git-worktrees`,
-  `superpowers:verification-before-completion`.
+- Sequenced skills: `superpowers:dispatching-parallel-agents`,
+  `superpowers:using-git-worktrees`, `superpowers:verification-before-completion`.
 - Phase-4 implementation discipline: `superpowers:test-driven-development`,
   `superpowers:systematic-debugging`.
 - Phase-4 quality loop (simplify / internal review / external Codex review):
   `remdo-refine` skill.
 - Bringing `origin/main` into the branch: `remdo-sync` skill.
 - Integration after report (merge / PR): `superpowers:finishing-a-development-branch`.
-- Doc map (navigation): `docs/index.md`. Doc workflow + invariants (spec-as-docs
-  must comply): `docs/contributing.md#documentation`. Deferral/todo rules:
-  `docs/todo.md`.
-- Git workflow / branch prefixes: `docs/contributing.md`.
+- Preflight and branch-creation mechanics: `.claude/skills/remdo-feature-flow/tools/preflight-base.sh`,
+  `.claude/skills/remdo-feature-flow/tools/create-task-branch.sh`.
+- Documentation intent + invariants (spec-as-docs must comply):
+  `docs/documentation.md`. Deferral/todo rules: `docs/todo.md`.
+- Git workflow, the `origin/main...HEAD` diff contract, and branch prefixes:
+  `docs/contributing.md#git-workflow`.
 - Global commit/index defaults: `AGENTS.md` ("Safety & Process").
 - Checks and timings: `AGENTS.md` ("Checks").

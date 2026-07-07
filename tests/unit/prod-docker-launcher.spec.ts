@@ -33,6 +33,7 @@ esac
 }
 
 interface LauncherRun {
+  dataDir: string;
   result: SpawnSyncReturns<string>;
   dockerCalls: string;
 }
@@ -83,13 +84,13 @@ describe('prod Docker launcher', () => {
     });
 
     const dockerCalls = result.status === 0 ? fs.readFileSync(dockerLog, 'utf8') : '';
-    return { result, dockerCalls };
+    return { dataDir, result, dockerCalls };
   }
 
   it('defaults the listen PORT to 8080 and derives the target from it', () => {
     // No PORT and no APP_PUBLIC_URL: PORT is an independent prod input that
     // defaults to 8080, and the launcher derives APP_PUBLIC_URL = https://<host>:<PORT>.
-    const { result, dockerCalls } = runLauncher({
+    const { dataDir, result, dockerCalls } = runLauncher({
       PORT_BASE: '4000',
     });
 
@@ -103,6 +104,7 @@ describe('prod Docker launcher', () => {
     expect(dockerCalls).toContain('-e PORT_BASE=4000');
     expect(dockerCalls).toContain('-e PORT=8080');
     expect(dockerCalls).toContain('-p 8080:8080');
+    expect(dockerCalls).toContain(`-v ${dataDir}:/data`);
   });
 
   it('honors an explicit PORT and derives the target from it', () => {

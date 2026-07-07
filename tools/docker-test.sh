@@ -82,13 +82,13 @@ wipe_container_data() {
   local container_name="$1"
   local host_data_dir="$2"
 
-  if docker exec "${container_name}" sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' \
+  if docker exec "${container_name}" sh -c 'rm -rf /data/* /data/.[!.]* /data/..?*' \
     >/dev/null 2>&1; then
     return
   fi
   if docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
-    docker run --rm "${DOCKER_RUN_ARGS[@]}" -v "${host_data_dir}:/app/data" "${IMAGE_NAME}" \
-      sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' >/dev/null 2>&1 || true
+    docker run --rm "${DOCKER_RUN_ARGS[@]}" -v "${host_data_dir}:/data" "${IMAGE_NAME}" \
+      sh -c 'rm -rf /data/* /data/.[!.]* /data/..?*' >/dev/null 2>&1 || true
   fi
 }
 
@@ -341,7 +341,7 @@ bootstrap_wait_healthy() {
 # Override PORT so remdo_docker_run publishes the distinct bootstrap port. Pass
 # ONLY ADMIN_SECRET (+ APP_PUBLIC_URL, HOST, PORT_BASE, PORT). AUTH_SECRET and the
 # Y-Sweet pair are intentionally absent so the entrypoint bootstrap generates and
-# persists them under the mounted /app/data/secrets.
+# persists them under the mounted /data/secrets.
 PORT="${BOOTSTRAP_PORT}" remdo_docker_run "${IMAGE_NAME}" "${BOOTSTRAP_DATA_DIR}" \
   -d --name "${BOOTSTRAP_CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
   -e ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
@@ -361,9 +361,9 @@ echo "Bootstrap scenario healthy: ${BOOTSTRAP_HEALTH_URL}"
 # yields "<path> <mode>" lines we assert against the expected map.
 bootstrap_modes="$(docker exec "${BOOTSTRAP_CONTAINER_NAME}" \
   stat -c '%n %a' \
-  /app/data/secrets \
-  /app/data/secrets/auth-secret \
-  /app/data/secrets/ysweet.json 2>/dev/null || true)"
+  /data/secrets \
+  /data/secrets/auth-secret \
+  /data/secrets/ysweet.json 2>/dev/null || true)"
 
 assert_bootstrap_mode() {
   local target="$1"
@@ -376,9 +376,9 @@ assert_bootstrap_mode() {
   fi
 }
 
-assert_bootstrap_mode "/app/data/secrets" "700" "secrets dir"
-assert_bootstrap_mode "/app/data/secrets/auth-secret" "600" "auth-secret file"
-assert_bootstrap_mode "/app/data/secrets/ysweet.json" "600" "ysweet.json file"
+assert_bootstrap_mode "/data/secrets" "700" "secrets dir"
+assert_bootstrap_mode "/data/secrets/auth-secret" "600" "auth-secret file"
+assert_bootstrap_mode "/data/secrets/ysweet.json" "600" "ysweet.json file"
 echo "Bootstrap scenario generated secrets with 0700 dir / 0600 files."
 
 # (c) Restart reuses the persisted secrets without rotation. Capture the file
@@ -389,7 +389,7 @@ echo "Bootstrap scenario generated secrets with 0700 dir / 0600 files."
 # instead of becoming healthy).
 bootstrap_digests() {
   docker exec "${BOOTSTRAP_CONTAINER_NAME}" sh -c \
-    'sha256sum /app/data/secrets/auth-secret /app/data/secrets/ysweet.json' 2>/dev/null \
+    'sha256sum /data/secrets/auth-secret /data/secrets/ysweet.json' 2>/dev/null \
     | awk '{ print $1 }'
 }
 

@@ -1,9 +1,41 @@
 {
-  // File selection lives in the `lint:md:raw` script (driven by `git ls-files
-  // '*.md'`), so every tracked Markdown file is linted and no glob/ignore list
-  // here can drift out of sync with the repo.
+  // Selection lives here now (was tools/lint-md.sh): `globs` walks the disk for
+  // Markdown and `gitignore: true` subtracts every .gitignore (root and nested),
+  // so the set = tracked + new-untracked-not-ignored .md — the git-based
+  // semantics the shell script had, minus the fail-loud-on-empty guard (cli2
+  // reports 0 files instead). Deleted-but-unstaged paths aren't on disk, so the
+  // old existence filter is unnecessary here.
+  "globs": ["**/*.md"],
+  "gitignore": true,
+  // globby's `gitignore` honours .gitignore files but not `.git/` itself, and it
+  // follows symlinked directories — neither of which the old `git ls-files`
+  // selection did, and cli2 does NOT dedup the results by resolved path
+  // (empirically the mirrors were linted 2-3x, 42 file(s) vs git's 39). So
+  // exclude, to match git's no-symlink-traversal, the three skill-mirror symlink
+  // dirs (each re-exposes a SKILL.md already linted at its real path) and `.git/`
+  // (repo internals, e.g. ref-log files ending in `.md`). node_modules is
+  // excluded too (vendored `.md`, never ours). Note `gitignore: true` also drops
+  // tracked-but-gitignored files — a deliberate difference from `git ls-files`,
+  // acceptable because such files are not authored docs.
+  "ignores": [
+    ".git",
+    "node_modules",
+    ".claude/skills/remdo-simplify",
+    ".claude/skills/remdo-deps-refresh",
+    ".codex/skills/remdo-deps-refresh"
+  ],
+  // Link/anchor validation rides markdownlint's own parser:
+  // relative-link existence + `#fragment` heading match (MD051-style),
+  // external and absolute paths ignored. The RemDo doc-invariant rules
+  // (temporal-status, references-shape) are NOT part of this product gate —
+  // they are the remdo-docs-align skill's private tools
+  // (.claude/skills/remdo-docs-align/tools/check-doc-rules.sh).
+  "customRules": [
+    "markdownlint-rule-relative-links"
+  ],
   "config": {
     "default": true,
+    "relative-links": { "root_path": "." }, // root-relative `/docs/...` links validate against the repo root
     "MD013": {
       "line_length": 120,
       "code_block_line_length": 0,
@@ -11,8 +43,9 @@
     },
     // MD012: existing docs intentionally keep double-blank separators.
     "MD012": false,
-    // MD029: selection doc uses custom list numbering for readability.
-    "MD029": false,
+    // MD029 "ordered": sequential list numbering; a mechanical renumbering
+    // slip (e.g. a duplicated item number) is a real observed defect class.
+    "MD029": { "style": "ordered" },
     // MD033: allow inline HTML fragments already present.
     "MD033": false,
     // MD040: allow unlabeled code fences in legacy sections.

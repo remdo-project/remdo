@@ -7,10 +7,9 @@ Define the product assumptions that outrank current implementation details.
 ## Non-negotiables
 
 1. RemDo is privacy-first.
-2. Privacy is a design constraint.
-3. RemDo is fully open source.
-4. Transparency comes from code plus simple deployment.
-5. Security should rely on trusted building blocks.
+2. RemDo is fully open source.
+3. Transparency comes from code plus simple deployment.
+4. Security should rely on trusted building blocks.
 
 ## Data and trust
 
@@ -22,7 +21,7 @@ Define the product assumptions that outrank current implementation details.
 
 ## Deployment targets
 
-RemDo should support all of the following:
+RemDo should support:
 
 1. Easy local development and testing.
 2. Easy self-hosting on the user's own hardware or infrastructure.
@@ -30,15 +29,13 @@ RemDo should support all of the following:
    account.
 4. A cloud-hosted offering that feels normal to non-technical users.
 
-These are product goals with vendor choice left open.
-
 ## Multi-origin direction
 
-1. One client may later use documents from more than one RemDo server.
+1. One client may use documents from more than one RemDo server.
 2. That may include local documents, personally hosted cloud documents, and
    documents hosted by hosted RemDo.
-3. The architecture should keep that direction open while the implementation
-   stays simpler today.
+3. The architecture should keep that direction open without requiring the
+   implementation to support it.
 
 ## Architecture test
 

@@ -1,22 +1,23 @@
 # Deletion
 
 Defines how `Backspace` (Mac "Delete") and forward `Delete` behave. Selection
-semantics are defined in [Selection](./selection.md).
+semantics are defined in [Selection](./selection.md); when a merged note has a
+[body](./body.md), body resolution follows
+[Note merge](./body.md#note-merge).
 
 ## Caret mode (collapsed caret or inline range)
 
 1. Inline text range: `Backspace`/`Delete` remove only the highlighted
    characters.
-2. Boundary merge equivalence:
-   `Delete` at the end of a note matches `Backspace` at the start of the next
+
+2. `Delete` at the end of a note matches `Backspace` at the start of the next
    note (in document order), except when both boundary notes have children
    (then forward `Delete` is a no-op).
-
 3. Backspace at start of note (caret at column 0):
    1. If the note is the first note in document order: **no-op**; caret stays
       put.
    2. Otherwise: use the previous note in document order.
-      1. If either note is an empty leaf: delete the empty leaf; caret lands at
+      1. If either note is an [empty leaf](./concepts.md#definitions): delete it; caret lands at
          the boundary of the surviving note (end of the previous note when
          deleting the current note, start of the current note when deleting the
          previous note). No surrounding text is altered.
@@ -42,7 +43,8 @@ semantics are defined in [Selection](./selection.md).
 
 ## Zoom boundary behavior (caret mode)
 
-When zoom is active, caret-mode deletion keeps merges inside the zoom boundary:
+When [zoom](./zoom.md) is active, caret-mode deletion keeps merges inside the
+zoom boundary:
 
 1. `Backspace` at the start of the zoom root is a no-op.
 2. Forward `Delete` at the end of the zoom root is a no-op when the next note
@@ -60,20 +62,18 @@ When zoom is active, caret-mode deletion keeps merges inside the zoom boundary:
 
 ## Spacing rule for merges
 
-1. When concatenating two note bodies, insert exactly one space **iff**:
+1. When concatenating two notes' [content text](./concepts.md#definitions),
+   insert exactly one space **iff**:
    1. the left text is non-empty and does not already end with whitespace; and
    2. the right text is non-empty and does not already start with whitespace.
 2. Otherwise concatenate as-is to preserve intentional spacing or punctuation.
 
 ## Non-goals / explicit no-ops
 
-1. `Backspace` at the start of a note never performs standalone hoists; the
-   only child reparenting it performs is the explicit merge behavior defined
-   above.
-2. Deletion does not create a "trash" bin or soft-delete layer; recovery is via
+1. Deletion does not create a "trash" bin or soft-delete layer; recovery is via
    undo/redo.
 
-## Future / parking lot
+## Future
 
-1. [Future] Should collapsed parents show a brief affordance when a no-op
-   occurs so users understand why nothing happened?
+1. [Future] A brief affordance on collapsed parents when a no-op occurs, so
+   users understand why nothing happened.

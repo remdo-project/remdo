@@ -11,14 +11,14 @@ on those baselines—no legacy browser shims.
 
 AGENTS.md is the only doc you must read at the start of every session. Do one
 full pass through the `docs/` folder when you onboard; after that, before coding,
-identify the feature area and read the matching sections from the `docs/index.md`
-map (the documentation navigation) — do not reread unrelated docs. For the
-documentation invariants, see `docs/contributing.md#documentation`.
+identify the feature area and read the matching docs — filenames plus each
+doc's scope opener are the navigation — do not reread unrelated docs. For the
+documentation invariants, see `docs/documentation.md`.
 
 When working, deep-link to the authoritative doc (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
-source of truth. When a change supersedes a doc's contract, breaks an inbound
-link, or leaves the `docs/index.md` map out of date, fix it in the same change —
+source of truth. When a change supersedes a doc's contract or breaks an inbound
+link, fix it in the same change —
 not a follow-up. If nothing needs updating, say why. Do not add update-tracking
 sections to docs.
 
@@ -75,7 +75,8 @@ sections to docs.
   3. A running skill declares an autonomous scope in its own SKILL.md. The
      skill's declaration is the authorization and carries its own branch scope;
      honour that scope rather than this default. (Self-authorizing skills today:
-     `remdo-feature-flow`, `remdo-refine`, `remdo-sync`, `remdo-deps-refresh` —
+     `remdo-feature-flow`, `remdo-refine`, `remdo-docs-align`, `remdo-sync`,
+     `remdo-deps-refresh` —
      each states its scope where it lives, so this list is illustrative, not the
      source of authority.)
   Plain requests to update/change/fix/do X are **not** an autonomous-scope
@@ -88,7 +89,7 @@ sections to docs.
   is scratch that is allowed to be mid-transformation (e.g. docs ahead of code) —
   don't raise such incoherencies while they stay uncommitted. At commit time,
   either the committed state is coherent or an ultra-short `docs/todo.md` trigger
-  covers the gap (per `docs/contributing.md#documentation` invariant 9); add that
+  covers the gap (per `docs/documentation.md` invariant 4); add that
   trigger yourself and note it in the commit rather than asking.
 - The Git index may be used by the developer as private review bookkeeping.
   Treat staged vs unstaged state as semantically invisible: it does not mark
@@ -116,13 +117,14 @@ sections to docs.
   fixes should have a test that would fail if that behavior broke. This is a
   behavior check, not a line-coverage target — name any behavior left untested as
   a tradeoff.
-- The `docs/todo.md` summary in `docs/index.md` should remain as-is and should
-  not be automatically updated like other doc entries.
 - When writing tests against known fixtures, assume the fixture shape; avoid
   defensive assertions about expected structure unless the test is explicitly
   about validation.
 - In fixture-based tests, do not add runtime guards (for example
   `if (!node) throw`) for known fixture nodes; use non-null assertions instead.
+- A missing dependency of the current task — a referenced skill that is not
+  installed, an absent tool or binary — is a stop-and-report, not something to
+  emulate, substitute, or silently skip.
 - If you spot any tradeoffs or pros and cons of alternative solutions always ask
   first before implementing one.
 - Don't assume that the request is always clear, if in doubt ask before
@@ -187,6 +189,11 @@ would constrain a future run that may do it better. When unsure, state the inten
 and trust the running model to meet it (mirrors `docs/principles.md`: current
 code does not define the long-term shape).
 
+Voice: write procedure as second-person imperative addressed to the executing
+agent; state invariants, definitions, and permissions declaratively. The
+executing agent is the default "you" — the moment a second actor is in scope (a
+subagent, the user), name the actor of every instruction explicitly.
+
 ## Agent mode
 
 Determine agent mode in this order:
@@ -237,7 +244,8 @@ Determine agent mode in this order:
 5. CSS syntax validation for changed files:
    `git diff --name-only --diff-filter=ACMRTUXB HEAD | rg '\.css$' | xargs -r -n1 pnpm exec csstree-validator`
    (`csstree-validator` accepts one file per invocation).
-6. Markdown lint per file: `pnpm run lint:md:file -- <file ...>`.
+6. Markdown lint: `pnpm run lint:md` (whole corpus, ~3s — small enough that no
+   per-file variant exists).
 7. Full unit test filter via script:
    `pnpm run test:unit:full <file> -t "<full test name>"` (don’t add an extra
    `--`, or Vitest will ignore the filter). Example:
@@ -255,29 +263,21 @@ Determine agent mode in this order:
    you touched instead of repeatedly running full suites. The default
    `test:unit` and `test:collab` scripts are also suitable as changed-only
    smoke checks during iteration.
-2. Before handing the current task back:
-   1. Always run `pnpm run lint`.
-   2. Run `pnpm run test:unit` for behavior/code changes (skip for docs-only or
-      purely cosmetic style changes).
-   3. Run `pnpm run test:collab` only when collaboration risk exists.
-      Collaboration risk includes changes under
-      `src/editor/plugins/collaboration/**`, `tests/unit/collab/**`, or editor
-      state/synchronization/persistence paths that can affect shared behavior.
-   4. Do not run `pnpm run test:unit:full` or `pnpm run test:collab:full`
-      unless the user explicitly asks, or debugging requires full-suite
-      confirmation.
-3. If a check fails because of your changes, either fix the regression or
+2. Before handing the current task back, run `pnpm run check` — lint plus the
+   changed-only unit and collab suites. The test halves select against
+   **uncommitted** files only (bare vitest `--changed`), which fits the default
+   leave-uncommitted workflow; work that is already committed needs
+   `check:full` instead.
+3. Run a `:full` suite beyond that only when the user explicitly asks or
+   debugging requires full-suite confirmation.
+4. If a check fails because of your changes, either fix the regression or
    clearly report the failure before handing the task back.
 
 ### Cloud agents
 
-1. Always run these checks before declaring a task done:
-   1. `pnpm run lint`
-   2. `pnpm run test:unit:full`
-   3. `pnpm run test:collab:full`
-
-   These suites must pass at the end of every cloud-task unless the user
-   explicitly asks to skip a specific suite.
+1. Run `pnpm run check:full` (lint + `test:unit:full` + `test:collab:full`)
+   before declaring a task done. It must pass at the end of every cloud-task
+   unless the user explicitly asks to skip a specific suite.
 
 2. When any of the required checks fail, fix the issue (or state why it cannot
    be fixed) before finishing the task. Do not return success while a mandated

@@ -10,15 +10,13 @@ live in [Links](./links.md).
 ## Structural selections (note range)
 
 - Copy duplicates the selected notes (including their subtrees and each note's
-  [body](./body.md)) and leaves the document unchanged. A note's body is content
-  it owns, so it travels with the note across copy, cut, and paste.
-- Copy captures the notes as they are at the moment you copy; later edits to the
+  [body](./body.md)) and leaves the document unchanged.
+- Copy captures the notes as they are at copy time; later edits to the
   originals do not change what gets pasted.
 - Cut prepares the selected notes to be moved; they stay in place until you
   paste them elsewhere.
 - If you edit anything inside the pending cut boundary before pasting, the cut
-  is canceled so edits stay where they were made. This keeps cut/move behavior
-  predictable instead of moving a boundary slice that changed after the cut.
+  is canceled so edits stay where they were made.
 - After a structural cut, the selection collapses to the visual start so you
   can keep editing with a clear caret position.
 - Pasting while a note range is selected replaces that selection with the
@@ -40,8 +38,8 @@ live in [Links](./links.md).
 - Single-line plain text replaces the selected text, as in a normal text editor.
 - Multi-line plain text always inserts notes, even when the selection is inline.
   The first line replaces the selected text; remaining lines become new child
-  notes inserted before existing children. This is a pragmatic choice (keeps
-  structure intact) and may change as paste UX is refined.
+  notes inserted before existing children — a pragmatic choice that keeps the
+  existing structure intact.
 
 ## Caret-position placement (collapsed selection)
 
@@ -52,10 +50,3 @@ live in [Links](./links.md).
 - Placement follows the caret-position rules from [Insertion](./insertion.md),
   mirroring `Enter`.
 - After a multi-note paste, focus lands at the end of the last inserted note.
-
-## Identity
-
-Identity implications:
-
-- Note `noteId` regen/preserve rules are defined in [Note IDs](./note-ids.md).
-- Note-link `docId` clipboard behavior is defined in [Links](./links.md).
