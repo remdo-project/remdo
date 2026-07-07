@@ -110,10 +110,10 @@ bootstrapped key/server-token pair (see
      derives a `localhost` `AUTH_URL`, which Better Auth rejects for host-IP
      requests). The home is registered on the source through the home's
      `/admin` panel, not preconfigured.
-  7. `pnpm run dev:oauth-client` provisions the stable users, prints their
-     credentials, and (when `REMDO_DEV_HOME_ORIGIN` is set) creates or rotates
-     the source OAuth client used for cross-server linking. It is SQL-only and
-     used by the `dev:docker` and Docker e2e flows.
+  7. `pnpm run dev:users` provisions the stable users (Alice/Bob) and prints
+     their credentials; it only seeds those users. Source-server OAuth clients
+     are not created out-of-band — a home registers itself on a source through
+     the `/admin` panel (step 6), not via this command.
   8. Collaboration access follows the shared
      [browser-facing collaboration paths](./architecture.md#browser-facing-collaboration-paths);
      Y-Sweet auth uses a matched development default key/server-token pair.
