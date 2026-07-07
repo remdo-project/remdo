@@ -137,7 +137,7 @@ const require = createRequire(import.meta.url);
 // The cli2 binary entry sits next to its resolved main module.
 const cli2Bin = path.join(path.dirname(require.resolve('markdownlint-cli2')), 'markdownlint-cli2-bin.mjs');
 const repoRoot = process.cwd();
-const skillToolsDir = path.join(repoRoot, '.claude/skills/remdo-docs-align/tools');
+const skillToolsDir = path.join(repoRoot, '.agents/skills/remdo-docs-align/tools');
 const configFile = path.join(repoRoot, '.markdownlint-cli2.jsonc');
 
 afterEach(cleanupTempDirs);

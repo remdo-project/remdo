@@ -1,0 +1,6 @@
+interface:
+  display_name: "RemDo Docs Align"
+  short_description: "Align RemDo docs and skills to invariants"
+  default_prompt: "Use $remdo-docs-align to converge the selected RemDo docs or skill prose to docs/documentation.md and report proposals or escalations."
+policy:
+  allow_implicit_invocation: false

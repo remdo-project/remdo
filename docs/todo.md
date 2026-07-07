@@ -434,13 +434,14 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 ## Skill architecture follow-ups
 
-- Decide ESLint coverage for `.claude/skills/**/*.ts` (refine rung 4): the skill
-  TS is now typechecked (tsconfig dot-include) and unit-run (embedded bridge),
-  but ESLint still ignores dot-directories, so `lint:code` reports "File ignored"
-  on those files and `pnpm run lint` silently skips them — the skill tools/specs
-  miss the code-lint gate. Extend the ESLint config to the dot tree (deciding
-  which rules apply to skill specs, e.g. the `node/no-process-env` disables), or
-  accept typecheck+tests as their gate. A config decision, not a mechanical fix.
+- Decide ESLint coverage for hidden skill roots (`.agents/skills/**/*.ts` and
+  the remaining Claude-only `.claude/skills/**/*.ts`): the skill TS is now
+  typechecked (tsconfig dot-include) and unit-run (embedded bridge), but ESLint
+  still ignores dot-directories, so `lint:code` reports "File ignored" on those
+  files and `pnpm run lint` silently skips them — the skill tools/specs miss the
+  code-lint gate. Extend the ESLint config to the dot tree (deciding which rules
+  apply to skill specs, e.g. the `node/no-process-env` disables), or accept
+  typecheck+tests as their gate. A config decision, not a mechanical fix.
 - Accepted limitation (refine rung 4): `references-shape.mjs` resolves a
   reference link's `[label]` to its definition by exact (lowercased) match, so
   CommonMark-equivalent labels differing only by internal whitespace
@@ -459,6 +460,11 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   behavior; refine owns quality backstops; sync the post-merge check;
   deps-refresh its matrix). Reconcile with AGENTS.md's declare-scope-in-situ
   rule via shared vocabulary + per-skill delta.
+- Split the remaining Claude-only skill adapters: `remdo-feature-flow` still
+  names `superpowers:*`, Claude memory, and Claude-owned branch-flow helpers, and
+  `playground` still extends the Claude official plugin cache. Promote only the
+  agent-neutral intent into `.agents/skills` once each has a Codex adapter that
+  mirrors the Claude-specific capability in Codex's own format.
 - Tradeoff (refine confirmation): `temporal-status.mjs`'s scope guard tests
   `docsPath(name).startsWith('docs/')` inline rather than reusing the sibling
   `isDocsFile` from `docs-scope.mjs`. The two pull opposite ways on the same two
@@ -468,13 +474,6 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   docs-scope.mjs would satisfy both but adds a third export for one caller.
   Left as-is to avoid oscillating the same lines; fold into the docs-scope
   keep/drop decision above.
-- Tradeoff (refine rung 3): `.markdownlint-cli2.jsonc` `ignores` hardcodes the
-  three skill-mirror symlink dirs by name to stop globby double-linting them
-  (cli2 doesn't dedup by resolved path). The list matches the live symlink set
-  today, but nothing guards it — a future symlinked skill mirror not added here
-  would be linted twice. Options: add a test asserting the ignore list equals
-  `find .claude .codex -type l`, or accept the manual list as documented. Decide
-  when the next skill mirror is added.
 - ESCALATE (docs-align, refine rung 2): `docs/outliner/menu.md:40` — advocate
   proposed deleting "it has no query span, so it owns every key;" as a
   restatement of the shared editor-popup contract. Dual adjudicators split:
@@ -496,9 +495,10 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 ## Skill test-infra follow-up
 
 - Consider replacing the skill-spec bridge (`tests/unit/skills/embedded.spec.ts`)
-  with a vitest `test.projects` entry rooted at `.claude/skills` (hidden dirs
-  are pruned by the file crawler, so include globs can't reach them); requires
-  re-verifying `--changed` and forceRerunTriggers semantics across projects.
+  with a vitest `test.projects` entry rooted at the hidden skill roots (currently
+  `.agents/skills` plus Claude-only `.claude/skills`; hidden dirs are pruned by
+  the file crawler, so include globs can't reach them); requires re-verifying
+  `--changed` and forceRerunTriggers semantics across projects.
 
 ## remdo-refine follow-ups
 

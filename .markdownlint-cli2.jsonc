@@ -11,8 +11,8 @@
   // follows symlinked directories — neither of which the old `git ls-files`
   // selection did, and cli2 does NOT dedup the results by resolved path
   // (empirically the mirrors were linted 2-3x, 42 file(s) vs git's 39). So
-  // exclude, to match git's no-symlink-traversal, the three skill-mirror symlink
-  // dirs (each re-exposes a SKILL.md already linted at its real path) and `.git/`
+  // exclude, to match git's no-symlink-traversal, the skill-mirror symlink dirs
+  // (each re-exposes a SKILL.md already linted at its real path) and `.git/`
   // (repo internals, e.g. ref-log files ending in `.md`). node_modules is
   // excluded too (vendored `.md`, never ours). Note `gitignore: true` also drops
   // tracked-but-gitignored files — a deliberate difference from `git ls-files`,
@@ -20,16 +20,22 @@
   "ignores": [
     ".git",
     "node_modules",
-    ".claude/skills/remdo-simplify",
     ".claude/skills/remdo-deps-refresh",
-    ".codex/skills/remdo-deps-refresh"
+    ".claude/skills/remdo-docs-align",
+    ".claude/skills/remdo-refine",
+    ".claude/skills/remdo-sync",
+    ".codex/skills/remdo-deps-refresh",
+    ".codex/skills/remdo-docs-align",
+    ".codex/skills/remdo-refine",
+    ".codex/skills/remdo-simplify",
+    ".codex/skills/remdo-sync"
   ],
   // Link/anchor validation rides markdownlint's own parser:
   // relative-link existence + `#fragment` heading match (MD051-style),
   // external and absolute paths ignored. The RemDo doc-invariant rules
   // (temporal-status, references-shape) are NOT part of this product gate —
   // they are the remdo-docs-align skill's private tools
-  // (.claude/skills/remdo-docs-align/tools/check-doc-rules.sh).
+  // (.agents/skills/remdo-docs-align/tools/check-doc-rules.sh).
   "customRules": [
     "markdownlint-rule-relative-links"
   ],

@@ -1,0 +1,6 @@
+interface:
+  display_name: "RemDo Sync"
+  short_description: "Merge origin/main into the current branch"
+  default_prompt: "Use $remdo-sync to bring the current RemDo branch up to date with origin/main by merging, resolving safe conflicts, and verifying the result."
+policy:
+  allow_implicit_invocation: false

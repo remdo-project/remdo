@@ -85,7 +85,8 @@
     "./**/*",
     // TS globs skip dot-directories; skill-local tools/tests need an explicit
     // dot-prefixed pattern to be typechecked.
-    "./.claude/skills/**/*"
+    "./.agents/skills/**/*",
+    "./.claude/skills/remdo-feature-flow/**/*"
   ],
   "exclude": [
     "**/node_modules/**",
