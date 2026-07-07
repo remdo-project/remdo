@@ -127,14 +127,21 @@ dedup_artifact() {
 # "NO PROPOSALS" sentinel. A trace with neither is a failed run (codex died
 # mid-read), not an empty-but-fine result.
 #
-# A proposal is a numbered item (a line starting `N.`) *and* a "Replacement:"
-# label line. Requiring the numbered item as well as the label rejects a trace
-# that merely echoes the prompt — which quotes the `Replacement:` label in its
-# format spec but carries no numbered item — instead of mis-accepting it.
+# A proposal is a *block*: a numbered item (a line starting `N.`) with a
+# "Replacement:" line within the next few lines (a real proposal states its
+# replacement right under the numbered head). Checking that adjacency — not the
+# two substrings independently anywhere in the file — rejects a died-mid-read
+# trace that merely echoes the prompt, whose numbered scope lines and distant
+# format-spec `Replacement:` mention never sit in one block. This is a sanity
+# guard against a truncated run, not an adversarial validator; the WINDOW is the
+# few-line span a genuine proposal head-to-Replacement occupies.
 has_proposal() {
-  [ -s "$out" ] \
-    && grep -qE '^[[:space:]]*[0-9][0-9]*\.' "$out" \
-    && grep -q 'Replacement:' "$out"
+  [ -s "$out" ] && awk '
+    /^[[:space:]]*[0-9]+\./ { since = 0; seen = 1; next }
+    seen { since++ }
+    seen && since <= 6 && /Replacement:/ { found = 1; exit }
+    END { exit(found ? 0 : 1) }
+  ' "$out"
 }
 is_no_proposals() {
   [ -s "$out" ] && grep -qx 'NO PROPOSALS' "$out"
