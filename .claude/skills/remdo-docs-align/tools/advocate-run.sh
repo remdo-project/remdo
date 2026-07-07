@@ -149,6 +149,7 @@ normalize_artifact() {
     # following Text: line, which starts a fresh block for the real quote.
     /^[[:space:]]*[0-9]+[.)][[:space:]]/ {
       flushlabel()
+      if (pending_loc != "") { startblock(pending_loc) }
       pending_loc = $0
       prev = $0
       next
@@ -158,10 +159,10 @@ normalize_artifact() {
       # with a slash / dot-extension). Arbitrary prose above the label must not
       # become a bogus "file:" row; with no valid location the block is not
       # minted, the labels fold nowhere, and validation fails the run loudly.
-      if (prev ~ /^[[:space:]]*[0-9]+[.)][[:space:]]/ || prev ~ /`?(file:[[:space:]]*)?[^ ]*[/.][^ ]*:?[0-9]*`?[[:space:]]*$/ && prev ~ /[/.]/ && prev !~ /[[:space:]].*[[:space:]].*[[:space:]]/) {
-        startblock(prev)
-      } else if (pending_loc != "") {
+      if (pending_loc != "") {
         startblock(pending_loc)
+      } else if (prev ~ /^[[:space:]]*[0-9]+[.)][[:space:]]/ || prev ~ /`?(file:[[:space:]]*)?[^ ]*[/.][^ ]*:?[0-9]*`?[[:space:]]*$/ && prev ~ /[/.]/ && prev !~ /[[:space:]].*[[:space:]].*[[:space:]]/) {
+        startblock(prev)
       }
       pending_loc = ""
       if (n > 0) { label = "Text"; val = $0; sub(/^(Text|Quote):[[:space:]]*/, "", val) }
@@ -176,12 +177,13 @@ normalize_artifact() {
       }
       prev = $0; next
     }
-    # Blank line: close the open label, and mint any still-pending location block
-    # (a proposal whose only content was its location line). Do NOT reset prev —
-    # the last non-empty line stays the location candidate for a later Text:.
+    # Blank line: close the open label. A pending location stays pending — a
+    # blank between a numbered location and its Text: is legitimate formatting;
+    # minting here would emit an empty duplicate block. (A truncated label-less
+    # proposal is minted when the NEXT location supersedes it, or at END.)
+    # Do NOT reset prev.
     /^[[:space:]]*$/ {
       flushlabel()
-      if (pending_loc != "") { startblock(pending_loc); pending_loc = "" }
       next
     }
     {

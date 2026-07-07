@@ -378,4 +378,15 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(result.status).not.toBe(0);
     expect(fs.readFileSync(out, 'utf8')).not.toContain('I found one proposal');
   });
+
+  it('a blank line between the location and Text: yields exactly one block', () => {
+    const out = tempOut();
+    const msg = '1. `docs/config.md:18`\n\nText: "settable variables"\nReplacement: DELETE\n';
+    const stub = stubDir(`${PARSE_ARGS}\nprintf '%s' "${msg}" > "$MSG"`);
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.status).toBe(0);
+    const captured = fs.readFileSync(out, 'utf8');
+    expect(captured.match(/^\d+\. file: /gm)).toHaveLength(1);
+    expect(captured.match(/Text: /g)).toHaveLength(1);
+  });
 });
