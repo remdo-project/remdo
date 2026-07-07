@@ -43,8 +43,13 @@ export default defineConfig({
       // A newly added/renamed skill spec under hidden skill roots is not
       // imported by the embedded.spec.ts bridge until wired in; trigger the
       // bridge so its self-guard (which fails on a missing import) runs under
-      // --changed rather than passing until the next full suite.
+      // --changed rather than passing until the next full suite. The guard
+      // scans every hidden root it treats as canonical (`.agents` plus the real
+      // `.claude`/`.codex` skill dirs), so the trigger must span the same roots
+      // or a spec added under `.claude`/`.codex` would false-pass changed-only.
       '**/.agents/skills/**/tests/**',
+      '**/.claude/skills/**/tests/**',
+      '**/.codex/skills/**/tests/**',
       '**/.markdownlint-cli2.jsonc',
     ],
     exclude: [
