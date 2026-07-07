@@ -104,6 +104,14 @@ describe('remdo-references-shape', () => {
     expect(await references('docs/a.md', md)).toEqual([7]);
   });
 
+  it('resolves a duplicate-label reference to its first definition (internal), not a later external', async () => {
+    // CommonMark resolves `[n]` to the FIRST `[n]:` definition. The first is
+    // internal, so the link must be flagged even though a later duplicate is
+    // external — the map must not let the last definition win.
+    const md = '[n]: ./body.md\n\n## References\n\n- [note][n]\n\n[n]: https://x.y\n';
+    expect(await references('docs/a.md', md)).toContain(5);
+  });
+
   it('keeps a subsection inside the section (only the next level-2 heading closes it)', async () => {
     expect(await references('docs/a.md', '## References\n\n### Sub\n\n- [i](b.md)\n')).toEqual([5]);
     const closed = '## References\n\n- [e](https://x.y)\n\n## Other\n\n- [i](b.md)\n';

@@ -105,9 +105,16 @@ export default {
     // it falls inside References).
     const definitions = [];
     collect(tokens, (t) => t.type === 'definition', definitions);
-    const defDestination = new Map(
-      definitions.map((d) => [identifierText(d, 'definitionLabelString'), destinationText(d)]),
-    );
+    // CommonMark resolves a duplicate label to its FIRST definition, so keep the
+    // first destination seen per label rather than letting a later duplicate
+    // (possibly external) mask an earlier internal one.
+    const defDestination = new Map();
+    for (const d of definitions) {
+      const label = identifierText(d, 'definitionLabelString');
+      if (!defDestination.has(label)) {
+        defDestination.set(label, destinationText(d));
+      }
+    }
 
     const flag = (line) => onError({
       lineNumber: line,
