@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Define the access cases RemDo should support.
+Define the access cases RemDo supports. Shared platform terms — tokens,
+routing, document identity — are owned by
+[docs/architecture.md](./architecture.md).
 
 ## Document Access Model
 
@@ -10,10 +12,9 @@ Define the access cases RemDo should support.
 2. A document may also have zero or more user-specific access grants.
 3. New documents start with no user-specific access grants.
 4. Only the owner can grant access to another user.
-5. A normal document URL is only a document locator. Possessing it does not
-   allow access.
-6. Public and bearer-link access are separate future access cases, not part of
-   the current sharing flow.
+5. A normal document URL is only a document locator.
+6. Public and bearer-link access are separate access cases outside the sharing
+   flow this doc specifies (see [Future](#future)).
 
 ## Local-Only App Access
 
@@ -57,24 +58,20 @@ the user.
   the projection.
 - Every admin API authorizes from the caller's session + role — except the
   self-enrollment endpoint, which registers a *new* admin account (no existing
-  session or role to check) and is instead gated by `ADMIN_SECRET` (below).
+  session or role to check).
 - `/admin` is the single admin entry route. It renders by the caller's role: an
   admin sees the admin panel; anyone else (signed in or not) sees the
   self-enrollment form. The client learns the current user's role from the
-  `/api/current-user` bootstrap; this drives rendering only — authorization stays
-  server-side.
+  `/api/current-user` bootstrap.
 - The admin panel manages the home's **source servers** — add a source by URL,
   register the home on it, see registered state, and remove a source (see
-  [Cross-Server Source Linking](#cross-server-source-linking)). These admin APIs
-  authorize from the caller's session + role.
+  [Cross-Server Source Linking](#cross-server-source-linking)).
 - Self-enrollment is gated by `ADMIN_SECRET` (see
-  [docs/config.md](./config.md#admin-bootstrap-and-enrollment)) and always
-  **registers a new admin account**: presenting the secret with account details
-  creates the account and grants it the admin role. The secret is a shared gate,
-  not tied to one user — any secret-holder can register an admin account, and it
-  works independently of the public-signup policy (so a private server can still
-  bootstrap and add admins). Promoting an *existing* user is a separate,
-  panel-gated capability (see [docs/todo.md](./todo.md), admin role follow-ups).
+  [docs/config.md](./config.md#admin-bootstrap-and-enrollment)). The secret is
+  a shared gate, not tied to one user — any secret-holder can register an admin
+  account, and it works independently of the public-signup policy. Promoting an
+  *existing* user is a separate, panel-gated capability (see
+  [docs/todo.md](./todo.md), admin role follow-ups).
 - Admin entry is discoverable by context: a signed-in admin sees an **Admin**
   link in the app toolbar, and a non-public server (closed signup, where
   bootstrapping an admin is expected) surfaces a link to `/admin` from the login
@@ -86,23 +83,10 @@ the user.
 - Session cookies are SameSite=Lax; app routes use Hono's CSRF middleware to
   reject cross-site form-style browser mutations before route handlers run, and
   the app-owned `/api` mutation routes centrally require `application/json`.
-  Browser app mutations use JSON fetch requests to same-origin `/api` routes.
   Better Auth owns CSRF/origin handling for `/api/auth/*`. Introducing
   cross-origin credentialed app APIs, cross-subdomain mutation flows, non-JSON
   mutation bodies, or `SameSite=None` cookies requires re-auditing this
   boundary.
-
-## Token Vocabulary
-
-- Better Auth session token: browser session credential used by the RemDo API to
-  identify the signed-in user.
-- OAuth account tokens: Better Auth-managed access, refresh, and ID tokens
-  created when a home server links a user's account on a source server.
-- Y-Sweet server token: server credential used by the RemDo API to call
-  Y-Sweet document-control APIs.
-- Y-Sweet document client token: short-lived browser credential issued by the
-  RemDo API after document access checks; Y-Sweet enforces it on `/d/*` sync
-  paths.
 
 ## Owner Access
 
@@ -110,7 +94,8 @@ the user.
 - Allowed by: ownership via `documents.owner_user_id`.
 - Scope: the owned document.
 - Access: full access.
-- Y-Sweet document client token: issued to the owner.
+- [Y-Sweet document client token](./architecture.md#token-vocabulary): issued
+  to the owner.
 
 ## Named User Access
 
@@ -118,14 +103,10 @@ the user.
 - Allowed by: a direct `document_access` grant from the document owner to the
   grantee user's Better Auth user id.
 - Scope: the granted document.
-- Access: full access for now.
+- Access: full access.
 - Y-Sweet document client token: issued when the user has a direct grant.
-- Sharing lifecycle:
-  1. Alice owns `doc123`.
-  2. Bob has a user account on the same server.
-  3. Alice enters Bob's email address in the sharing UI for `doc123`.
-  4. If Bob's email matches a local user account, the server creates the grant.
-  5. Bob can see and open `doc123`.
+- Sharing UI: the owner enters the grantee's email address; the grant is
+  created only if that email matches a local user account.
 
 ## Special Documents
 
@@ -143,7 +124,7 @@ sharing level, sharing still targets a local account on the document's server.
   accounts.
 - Source linking: the home server starts OAuth, the user signs in on the source
   server, and Better Auth stores the resulting linked account.
-- Delegation scope: a linked source OAuth token is currently treated as the
+- Delegation scope: a linked source OAuth token is treated as the
   linking user's full delegate on that source server. The home server may call
   authenticated RemDo APIs as that source user, subject to the same owner/grant
   checks the source server applies to the user's normal session. This is an
@@ -165,9 +146,7 @@ This action spans two servers and needs a different access level on each:
   internal id from the source's origin; a URL that is not a bare origin, or
   duplicates an existing source, is rejected.
 - On the **source**, the actor only needs to be a signed-in **user** — any
-  ordinary source account, not a source admin. The same person usually plays both
-  roles (a home admin who also holds a normal account on the source), but the
-  source never requires admin rights of them.
+  ordinary source account, not a source admin.
 
 The flow:
 
@@ -177,26 +156,21 @@ The flow:
   to that user's source account and returns the credentials to the home, which
   persists them and activates the source as a live provider without a restart.
 - A source accepts registration only while it is acting as a public source
-  (open-signup); a private source refuses it outright.
+  (open-signup).
 - This **home OAuth client** (the credentialed identity the source issued for
   the home) only identifies a home to the source; it grants no document access on
   its own. Access still flows through per-account linking: each linking user later
-  authenticates and consents on the source for their own documents. So one source
-  user registering a home widens no other home user's access — registration and
-  document access are separate.
+  authenticates and consents on the source for their own documents.
 - Any home admin can drop a source from the home (removing it from the source
   list and the stored credential), which unlinks it locally. Revoking the **home
   OAuth client on the source** is separate: only the source account that
   registered it can delete it there. If the source later rejects the stored
   credential, a home admin re-registers the source to get a fresh client.
 
-Future: let any home admin fully retire a link — including revoking and rotating
-the client on the source — even when the original registrant is gone. That needs
-a source-side capability not bound to one account (a home-owned service identity,
-or a home-authenticated revoke), adding cross-server trust this design currently
-keeps minimal.
+## Future
 
-## Deferred Access Cases
+- Home-admin link retirement that also revokes and rotates the client on the
+  source (needs a source-side capability not bound to one account).
 
 - Anonymous access.
 - Public documents.

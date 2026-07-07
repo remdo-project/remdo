@@ -5,9 +5,8 @@
 Define the shared contract for RemDo's transient editor popups — the inline
 trigger pickers (`@` for note [Links](./links.md), `!` for [Dates](./dates.md))
 and the [Quick Action Menu](./menu.md) — and the trigger-picker session built on
-it. This page is the single source for the shared contract; each per-popup spec
-defines only what differs: how it opens, the keys its popup owns, its focus model,
-and what confirming does.
+it. Each per-popup spec defines only what differs: how it opens, the keys its
+popup owns, its focus model, and what confirming does.
 
 ## Shared editor-popup contract
 
@@ -16,31 +15,23 @@ An editor popup is a transient surface anchored in the editor that, while open,
 specialization of this contract; the contract is independent of how each opens.
 
 1. **One at a time.** At most one editor popup is open; opening one closes any
-   other, never stacks.
+   other.
 2. **The popup owns the keyboard.** While open it has first decision over every
    key: it consumes its navigation, commit, and dismissal keys, and no keystroke
    reaches ordinary text editing — **except** keys that edit the popup's own
-   *pinned span* (see below). A popup with no pinned span owns every key. A key
-   the popup owns but does not act on (for example a letter with no shortcut in a
-   menu or calendar) is a no-op: it is swallowed and changes nothing — it neither
-   reaches the editor nor does anything in the popup.
+   *pinned span* (see below). A popup with no pinned span owns every key; an
+   owned key with no binding is a no-op.
 3. **Editable-span exception.** A type-to-filter popup pins a span of editor text
    as its query; while the selection is inside that span, ordinary text-editing
    keys (printable characters, `Backspace`) stay the editor's and edit the query.
-   A menu or calendar grid has no query span, so the exception never applies.
 4. **Light-dismiss.** `Escape` and a pointer press outside the editor and popup
-   both **cancel** — they close it and apply nothing. The popup never commits on
-   blur, light-dismiss, or `Tab`, and never commits an unconfirmed highlight.
-   Commit happens only through an explicit per-widget commit action (each widget
-   declares its commit keys); confirming applies the result and closes. This holds
-   for modifier combos too: an editor shortcut a widget does not declare — such as
-   `Cmd`/`Ctrl+Enter` — is owned like any other key, so it does not act on the
-   document underneath.
-5. **`Tab` never inserts a tab.** Each widget declares its `Tab` behavior as one
-   of: **close and fall through** to the editor's normal `Tab` action (the popup
-   closes, then deliberately routes the key onward — an explicit outcome, not a
-   leak), or **cycle within** the popup's own controls. It never reaches the
-   editor as a literal tab.
+   both **cancel** — they close it and apply nothing. Commit happens only through
+   an explicit per-widget commit action (each widget declares its commit keys);
+   confirming applies the result and closes.
+5. **`Tab` behavior is declared per widget**, as one of: **close and fall
+   through** to the editor's normal `Tab` action (the popup closes, then
+   deliberately routes the key onward — an explicit outcome, not a leak), or
+   **cycle within** the popup's own controls.
 6. **Validated commit, safe restore.** Because the editor selection stays live
    while a popup is open (and may move under collaboration), a commit re-resolves
    its pinned target and verifies it still holds before applying. On any close the
@@ -65,9 +56,7 @@ text the user did not freshly invoke.
    boundary — the start of note text, after whitespace, after opening punctuation
    (`(`, `[`, `{`), or after an atomic inline token (a decorator node such as a
    date). So `done!` and `a@b` stay plain text, and moving the caret back beside an
-   already-typed trigger never reopens the picker. Because an open popup owns the
-   keyboard, a trigger character typed while any popup is open is just a key the
-   open popup owns — it never stacks a second picker.
+   already-typed trigger never reopens the picker.
 2. **Editable query (`@` only).** The `@` picker treats its span as a live query:
    per the editable-span exception, ordinary typing and `Backspace` edit the text
    after `@` and refilter. The `!` picker has no query — it opens its calendar

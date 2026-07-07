@@ -19,7 +19,7 @@ note/link identity boundaries; those remain in outliner docs.
 - **Desktop Shell:** Native wrapper (for example Electron/Tauri) hosting the
   same SPA with OS integration.
 
-Delivery surface choice must not alter outliner semantics.
+Delivery surface choice MUST NOT alter outliner semantics.
 
 ## Routing and Origin Boundary
 
@@ -72,7 +72,7 @@ boundaries is an extra guard for malformed, legacy, or imported data; it is not
 the base namespacing mechanism.
 
 Collaboration and local-persistence layers may key document state by canonical
-`docId`. Source-prefixed aliases should not be used as substitute document
+`docId`. Source-prefixed aliases MUST NOT be used as substitute document
 identity for ordinary source linking.
 
 ### Document registry
@@ -91,8 +91,9 @@ document client tokens.
   access-critical metadata, and the current per-user document list. Yjs
   documents hold collaborative document content plus persisted, read-only
   user-data projections for browser-facing app-resource note APIs.
-- User bootstrap: `/api/current-user` ensures the user's projection/home rows
-  and updates the Yjs user-data projection.
+- User bootstrap: `/api/current-user` provisions the signed-in user's personal
+  app state, per
+  [Authenticated App Access](access-model.md#authenticated-app-access).
 
 ### Token vocabulary
 
@@ -100,7 +101,7 @@ document client tokens.
 - OAuth account tokens: access, refresh, and ID tokens for linked source-server
   accounts, stored by Better Auth.
 - Y-Sweet server token: RemDo API credential for Y-Sweet document-control calls.
-- Y-Sweet document client token: browser credential returned by
+- Y-Sweet document client token: short-lived browser credential returned by
   `POST /api/documents/:docId/sync-tokens` and enforced by Y-Sweet on sync paths.
 
 ### Browser-facing collaboration paths
@@ -127,9 +128,6 @@ specific sync channel (for example network sync or local persistence).
 - **Network provider:** syncs with hub via WebSocket/HTTP.
 - **Persistence provider:** stores updates/state locally (IndexedDB, filesystem,
   and similar stores).
-
-Attaching multiple providers to the same `Y.Doc` is an advanced pattern and
-must be intentional.
 
 ### Local Persistence
 
@@ -170,6 +168,4 @@ The terms below describe the target vocabulary for multi-hub document access.
 
 ## Multi-Hub Guardrails
 
-- Keep identity and location separable so host moves do not redefine document
-  identity.
 - Keep an explicit active hub context when opening a document in runtime.

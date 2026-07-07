@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Define the initial note-linking behavior for RemDo, including the boundary
-between RemDo-owned note links and generic external links.
+Define note-linking behavior for RemDo, including the boundary between
+RemDo-owned note links and generic external links.
 
 ## State boundary terms
 
@@ -32,34 +32,31 @@ between RemDo-owned note links and generic external links.
 5. The query is the text after `@` in the pinned span, length minimum 0, so
    results may appear immediately. Whitespace is allowed in the query: it is the
    same whitespace-tokenized path match document search uses (see
-   [Query and ranking](#query-and-ranking)), so a multi-word query like
-   `@parent child` narrows by both tokens rather than terminating at the space.
+   [Query and ranking](#query-and-ranking)).
 6. On insertion, note-link display text is copied once from the target note
-   title and then
-   stored locally (no auto-sync on later target renames in this phase).
-7. Runtime/internal editor state stores fully qualified link identity
-   (`docId` + `noteId`) for every note-link node.
-8. Note-link clicks use native `href` navigation semantics and route handling.
-9. Pasting a RemDo-owned plain-text note URL inserts a
+   title and then stored locally; later target renames do not update it
+   (rename-aware display modes are a Future direction below).
+7. Note-link clicks use native `href` navigation semantics and route handling.
+8. Pasting a RemDo-owned plain-text note URL inserts a
    note-link node. When the target is in the current document, inserted
    link text copies the current target note title; otherwise it uses the pasted
    URL string.
-10. Typed URLs use Lexical generic link behavior, including same-origin
+9. Typed URLs use Lexical generic link behavior, including same-origin
     RemDo note URLs typed as raw URLs.
-11. Pasted generic URLs that are not upgraded to note links use Lexical generic
+10. Pasted generic URLs that are not upgraded to note links use Lexical generic
     link behavior.
-12. Generic URL links open in a new tab.
-13. URLs that merely resemble RemDo note routes but are not classified by
+11. Generic URL links open in a new tab.
+12. URLs that merely resemble RemDo note routes but are not classified by
     RemDo as owned note refs remain generic external links.
-14. Clipboard payloads (copy/cut) must include explicit `docId` for every
+13. Clipboard payloads (copy/cut) must include explicit `docId` for every
    note link so cross-context paste has complete target identity.
-15. Cross-document pastes preserve source-target link identity; note links
+14. Cross-document pastes preserve source-target link identity; note links
    are not retargeted to the destination document.
 
 ## Identity Representation Boundaries
 
 1. Runtime/editor state keeps note links fully qualified (`docId` +
-   `noteId`) to avoid context-dependent link resolution.
+   `noteId`).
 2. Persisted JSON state must omit `docId` when a link targets the active
    document. This keeps document identity host-owned rather than embedded as
    canonical content state.
@@ -77,18 +74,14 @@ between RemDo-owned note links and generic external links.
 1. Search scope is the whole current document, including while zoomed into a
    subtree.
 2. Filtering uses the same path-token matching as document search (defined in
-   [Search](./search.md#behavior)): a note matches when every query token is a
-   substring of some entry in its path (ancestor titles + the note's own title)
-   and at least one token matches the note's own title. So typing an ancestor's
-   word alongside a word from the note surfaces that nested note.
-3. The current note is excluded from results (self-links are out of scope in
-   this phase).
+   [Search](./search.md#behavior)).
+3. The current note is excluded from results (self-links are out of scope).
 4. Picker rows show the minimal ancestor context needed to disambiguate duplicate
    titles in the current result set.
 5. If results are still visually identical after full ancestor context, they
    remain untied and are shown in document order.
 6. No-match state is a single non-selectable `No results...` row.
-7. Creating new notes from the picker is out of scope in this phase.
+7. Creating new notes from the picker is out of scope.
 
 ## Picker interaction
 
@@ -110,8 +103,7 @@ specifics:
 ## Non-goals / future
 
 1. [Future] Backlinks are expected as part of the note-link model.
-2. [Future] Cross-document discovery/insertion in the `@` picker (search scope
-   and ranking currently apply only to the active document).
+2. [Future] Cross-document discovery/insertion in the `@` picker.
 3. [Future] Fuzzy matching in picker search.
 4. [Future] Frecency-aware ranking. When this ships, zoom context should
    influence ordering but must not reduce search scope.

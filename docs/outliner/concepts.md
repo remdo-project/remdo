@@ -1,4 +1,4 @@
-# RemDo – Note Concept (early draft)
+# RemDo – Note Concept
 
 ## Purpose
 
@@ -32,8 +32,10 @@ Notes carry three kinds of information: structure, content, and props.
 Adapters must preserve these guarantees whenever they create, import, or export
 notes:
 
-- Addressability is per-kind: addressable kinds (editor note, document) carry a
-  unique id within their tree (see `./note-ids.md`); other kinds (a body) are
+- Addressability is per-kind: an editor note is addressable, carrying a unique
+  `noteId` within its tree (see [Note IDs](./note-ids.md)); a document carries
+  its own distinct identity (`documentId`, environment-injected — see
+  [Note IDs](./note-ids.md#scope)), not a `noteId`; other kinds (a body) are
   identified by their position relative to their owning note, not by an id.
 - Every note has exactly one parent (except the root) and maintains an ordered
   list of children owned by that parent. **Children** are the notes parented in
@@ -62,6 +64,9 @@ notes:
 - **Document root note:** the special root note that represents the document
   itself. It has no parent and is not directly selectable; all top-level notes
   are its children.
+- **Subtree:** a note and all of its descendants; structural moves are always
+  subtree-atomic (see `./note-structure-rules.md`).
+- **Sibling slab:** a contiguous run of sibling notes under the same parent.
 - **Note path:** the ordered chain of notes from a top-level note down to and
   including the note itself — its ancestors followed by the note. The document
   root note is not part of any note path.
@@ -70,16 +75,10 @@ notes:
 
 Every note has a `kind`. Kinds share the base note concept (structure, content,
 props) but differ in the capabilities they expose — for example whether they are
-addressable by id, can have children, or can be selected structurally.
-"Everything is a note" holds literally: a difference between kinds is a
-capability a kind does or does not have, not a separate concept. The set of kinds
-and each kind's capabilities are defined where the kinds live, not enumerated
-here.
-
-A note's [body](./body.md) is one such kind: it is a note owned by its editor
-note, but a restricted one — it has no id, has no children, and is never a
-structural-selection head on its own (it can be selected only inline, or
-structurally as part of its owning note).
+addressable by id, can have children, or can be
+[selected structurally](./selection.md). The set of
+kinds and each kind's capabilities are defined where the kinds live, not
+enumerated here.
 
 ---
 
@@ -87,52 +86,6 @@ structurally as part of its owning note).
 
 Adapters translate external representations to/from the conceptual model while
 enforcing invariants.
-
-### Lexical Adapter (current editor)
-
-- Lexical-based editor is currently the only available adapter.
-
-### Examples
-
-Each example points to a fixture in `tests/fixtures/<file>.json`. The fixture
-name appears in bold with a trailing arrow, followed by a fenced outline of the
-resulting note tree.
-
-- **basic.json →**
-
-  ```text
-  - note0
-    - note00
-  - note1
-  ```
-
-- **flat.json →**
-
-  ```text
-  - note0
-  - note1
-  - note2
-  ```
-
-- **tree.json →**
-
-  ```text
-  - note0
-  - note1
-    - note2
-  ```
-
-- **tree-complex.json →**
-
-  ```text
-  - note0
-    - note00
-      - note000
-    - note01
-  - note1
-  - note2
-    - note20
-  ```
 
 ### Lexical Representation
 
@@ -163,18 +116,9 @@ Lexical node shape:
 
 - Conceptually, RemDo models a tree: every note has exactly one parent, so a
   child is always exactly one level deeper than its parent (no multi-level
-  jumps).
+  jumps); the editing invariants for restructuring (indent/outdent,
+  reordering) live in [Note Structure Rules](./note-structure-rules.md).
 - In the Lexical adapter, nesting is represented by a wrapper list item plus a
   nested list. The `indent` field is treated as metadata and must agree with the
   structural wrapper shape; wrapper adjacency is authoritative when resolving
   parent/child relationships.
-
-### Operations
-
-Notes can be restructured via indent/outdent or reordering actions; see
-[Note Structure Rules](./note-structure-rules.md) for the editing invariants.
-
-### Selection Overview
-
-Selection behavior is defined in [Selection](./selection.md), which describes
-whole-note snapping, the selection ladder, and shortcut coverage.

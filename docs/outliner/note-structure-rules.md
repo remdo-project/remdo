@@ -1,176 +1,50 @@
-# Outline Editing Invariants
+# Note Structure Rules
 
-This document defines the core invariants that govern structural outline editing
-operations in RemDo. These rules ensure that indenting, outdenting, and
-reordering notes preserve a valid tree structure and maintain clarity in the
-outline hierarchy. Review the conceptual model in
-[Concepts](./concepts.md) and its
-[Examples section](./concepts.md#examples) before diving into the behavioral
-details below. Selection behavior (whole-note snapping, shortcut ladder, etc.)
-is defined in [Selection](./selection.md); this document assumes those
-guarantees.
-
-## Design Goals
-
-- **Preserve subtrees:** Every move acts on whole notes, including all
-  descendants.
-- **Prevent illegal structures:** No cycles, no orphaned descendants; invalid
-  operations become no-ops.
-- **Parity of interactions:** Target parity between keyboard and drag-and-drop
-  structural operations once drag-and-drop ships.
-- **Predictability:** Outdent/indent placement is deterministic, so the same
-  command always lands notes in the expected position.
+Structural invariants for outline editing: the rules that indent, outdent, and
+reorder must satisfy to keep the note tree valid. The conceptual model —
+including
+[indentation semantics (concept vs. adapter)](./concepts.md#indentation-concept-vs-adapter)
+— is owned by [Concepts](./concepts.md); selection behavior (whole-note
+snapping, shortcut ladder) is owned by [Selection](./selection.md) and assumed
+here.
 
 ## Zoom Boundary Constraint
 
-When zoom is active, indent/outdent must keep the moved subtree inside the zoom
-boundary (the zoom root and descendants). Any indent/outdent that would move
-the selection outside that boundary is a no-op.
-
-Examples:
-
-- Indenting the zoom root is a no-op.
-- Outdenting the zoom root is a no-op.
-- Outdenting a direct child of the zoom root is a no-op.
-
-## Indentation Semantics (concept vs. adapter)
-
-- Conceptual model: every note has exactly one parent (except the document
-  root), so a child is always exactly one level deeper than its parent. There
-  is no notion of “skipping” multiple levels at once.
-- Lexical adapter: structural depth is represented by the wrapper + nested list
-  shape. The `indent` field is metadata that must align with the wrapper-based
-  structure. When deciding parent/child relationships, wrapper adjacency is the
-  source of truth; `indent` is validated against it.
+When [zoom](./zoom.md) is active, indent/outdent must keep the moved subtree
+inside the zoom boundary (the zoom root and descendants). Any indent/outdent
+that would move the selection outside that boundary is a no-op. The zoom root
+itself cannot be indented or outdented: both are no-ops.
 
 ## Subtree Atomic Move
 
-Any structural move operation (indent, outdent, reorder) applied to a note
-selection applies to the **entire subtree** anchored at each selected note. In
-other words, a note **always moves together with all of its children** (and
-further descendants).
+Any structural move (indent, outdent, reorder) applies to the entire subtree
+anchored at each selected note.
 
-- **Allowed:** Moving a note relocates that note and all of its descendant notes
-  as one unit. For example, reordering "note1" (which has children) under
-  "note2" makes "note1" a child of "note2", while all of "note1's" children stay
-  attached to "note1" and therefore become deeper descendants of "note2". No
-  child is left behind or orphaned by the move.
-- **Disallowed:** No operation can ever separate a note from its children. It is
-  **not possible** to move or indent only part of a subtree. For example, you
-  cannot indent "note1" under another note while leaving its child "note1.1"
-  behind at the original level – such a partial move is invalid (the system will
-  always move "note1.1" along with "note1").
-
-_Rationale:_ This invariant guarantees that the outline’s hierarchy is
-preserved. Any change in structure to a parent note automatically includes its
-entire subtree, preventing orphaned children or broken hierarchies.
-
-_Note:_ Deletion merges are an explicit exception: when two notes are merged,
-the removed note's children may be reparented to the survivor. See
-[Deletion](./deletion.md) for the full rule set.
+Deletion merges are an explicit exception: merging two notes may reparent the
+removed note's children to the survivor — see [Deletion](./deletion.md).
 
 ## Valid Indentation
 
-Indenting a note selection is only allowed when there is a valid preceding
-sibling to serve as the new parent. In practical terms, **you can only indent a
-note under its immediate previous sibling**. If that condition isn’t met, the
-indent operation is a no-op.
+Indenting a note selection is allowed only when the selection has an immediate
+preceding sibling; the indented notes become that sibling's children. A
+contiguous sibling selection nests as one unit, preserving its order and
+internal structure. Without such a sibling (for example the first note at its
+level), indent is a no-op.
 
-- **Allowed:** Indent a single note or a contiguous selection of sibling notes
-  if there is an earlier sibling at the same level. The indented notes become
-  children of that previous sibling. If multiple notes are selected together,
-  indenting nests the entire selection under the previous sibling while
-  preserving their order and internal structure.
-- **Disallowed:** You cannot indent a note that has no preceding sibling at its
-  level. For example, indenting the first note in a list (which has no sibling
-  above it) has no effect – there is no valid parent to indent under. Similarly,
-  indenting is disallowed if it would violate the tree structure (you cannot
-  indent a note under a distant non-sibling or under itself, etc. – such actions
-  are prevented by the structure rules).
-
-**Example (Valid Indent):** Starting with a flat list of notes:
-
-```text
-- note1
-- note2
-- note3
-
-```
-
-If we indent "note2", and "note1" is directly above it, the result is:
-
-```text
-- note1
-  - note2
-- note3
-
-```
-
-"note2" becomes a child of "note1". (If "note2" had its own sub-notes, they
-would move with it under "note1" due to **Subtree Atomic Move**.)
-
-**Example (Invalid Indent):** If we try to indent "note1" (the first note in the
-list), nothing happens because there is no previous sibling to indent under. The
-operation is ignored since "note1" cannot be made a child of anything above it.
-
-_Rationale:_ Requiring a valid preceding sibling ensures indentation never
-creates cycles or cross-level jumps; every indent is an explicit “make this a
-child of the note right above me” command.
 
 ## Valid Outdentation
 
-Outdenting a note selection is only allowed if the notes have a parent to move
-out of—i.e. the notes are not already at the root level. Outdenting moves the
-selection up one level, making it a sibling of its current parent. If these
-conditions aren’t met, the outdent operation is invalid or does nothing.
-
-- **Allowed:** Outdent a note or a contiguous selection of sibling notes that
-  currently has a parent. The notes are removed from that parent and become its
-  siblings (effectively moving up one level in the hierarchy). When multiple
-  notes under the same parent are selected, outdenting lifts the entire
-  selection together while preserving their order.
-- **Disallowed:** You cannot outdent a top-level note (a note with no parent)
-  because there is no higher level to move it to. Any outdent action that would
-  break the tree structure or ordering—such as skipping levels—is prevented.
-
-**Example (Valid Outdent):** Given a structured outline:
-
-```text
-- note1
-  - note2
-- note3
-```
-
-"note2" is a child of "note1". If we outdent "note2", it moves up one level to
-become a sibling of "note1" (and of "note3"):
-
-```text
-- note1
-- note2
-- note3
-```
-
-Now "note2" is at the root level. (If "note2" had its own children, they would
-come along and remain under "note2", due to **Subtree Atomic Move**.)
-
-**Example (Invalid Outdent):** Attempting to outdent "note1" (which is already a
-top-level note) will do nothing, because "note1" has no parent to move out of.
-The outline structure remains unchanged, as you cannot outdent above the root.
-
-_Rationale:_ Outdentation only works when there is a real parent to exit; this
-keeps the tree rooted, predictable, and free of phantom levels.
+Outdenting a note selection is allowed only when the notes have a parent: the
+selection moves up one level to become siblings of that parent. A contiguous
+selection under one parent lifts as one unit, preserving its order. Outdenting
+a top-level note is a no-op.
 
 ### Outdent Placement
 
-The default outdent command (shortcut `Shift+Tab`) moves the selected notes up
-one level and inserts them immediately after their former parent. The subtree
-now lives right below that parent, so it retains the same chronological context
-without leaping ahead of unrelated siblings. If the parent was already the last
-note at that depth, the promoted notes naturally become the final entries as
-well. This mirrors the behavior of whole-note outliners and keeps quick
-restructures predictable.
+The outdent command (shortcut `Shift+Tab`) inserts the promoted notes
+immediately after their former parent.
 
 ## Reordering Behavior
 
-Reordering semantics are defined in [Reordering (keyboard)](./reordering.md).
-This document supplies the structural invariants those commands rely on.
+Reordering semantics are defined in [Reordering (keyboard)](./reordering.md);
+this document supplies the structural invariants those commands rely on.

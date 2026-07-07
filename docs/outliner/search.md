@@ -8,7 +8,7 @@ and zooming to a result.
 ## Terms
 
 - **Search Mode:** active while the search box has focus.
-- **Highlighted note:** the single note currently targeted by search navigation.
+- **Highlighted note:** the single note targeted by search navigation.
 - **Result row:** the rendering for a single search result (see Result row
   context).
 
@@ -36,8 +36,7 @@ and zooming to a result.
    substring of some entry in the note's [note path](./concepts.md#definitions),
    and at least one token matches the note's own text. Results stay in document
    order. Matched tokens are highlighted wherever they occur — in the note label
-   or an ancestor crumb. The note-link picker (see [Links](./links.md)) uses this
-   same query matching.
+   or an ancestor crumb.
 7. Flat results are capped at the first ten matches in document order. When at
    least one match exists beyond the shown results, a non-interactive trailing
    row reports that more matches exist (the shown count, with no exact total) and
@@ -98,8 +97,6 @@ selected row and never re-lays-out the list.
    list type, checked children struck through), matching how they look in the
    editor. A match with no children shows no preview; a match with more than two
    children indicates the remaining count.
-7. Result row context is sourced from the active document's search candidates and
-   appears only once those candidates are available.
 
 ## Future
 

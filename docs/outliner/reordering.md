@@ -1,7 +1,7 @@
-# Reordering (keyboard)
+# Reordering
 
-Scope: keyboard-driven reordering. Drag-and-drop is covered in
-`./drag-and-drop.md`.
+Scope: keyboard-driven reordering; pointer drag-and-drop is not part of the
+target behavior (a `Future` direction below).
 
 ## Shortcuts
 
@@ -26,12 +26,11 @@ Reordering uses one directional model for both commands:
 4. If outdent is not possible, the command is a no-op.
 
 Each keypress performs exactly one successful step from this fallback cascade.
-Commands never skip multiple levels in a single move.
 
 ## Zoom boundary
 
-When zoom is active, each fallback step is valid only if the resulting
-placement stays inside the zoom boundary:
+When [zoom](./zoom.md) is active, each fallback step is valid only if the
+resulting placement stays inside the zoom boundary:
 
 1. Steps that would move the subtree outside the zoom boundary are skipped.
 2. The command continues through the fallback cascade using only in-boundary
@@ -40,7 +39,13 @@ placement stays inside the zoom boundary:
 
 ## Structural guarantees
 
-1. Subtree-atomic moves still apply: a note always moves with all descendants.
-2. Selection constraints still apply: reorder operates on contiguous sibling
-   slabs.
+1. [Subtree-atomic moves](./note-structure-rules.md#subtree-atomic-move) still
+   apply: a note always moves with all descendants.
+2. [Selection](./selection.md) constraints still apply: reorder operates on
+   contiguous [sibling slabs](./concepts.md#definitions).
 3. Reparent/outdent fallback changes depth by at most one level per command.
+
+## Future
+
+- Pointer drag-and-drop reordering: placement-driven indent and reparent
+  following the same structural rules as the keyboard cascade.

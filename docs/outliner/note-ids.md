@@ -3,8 +3,7 @@
 ## Purpose
 
 Define how RemDo assigns stable identities to notes and how those identities
-compose into global references. This doc is the single source of truth for note
-identity behavior and is intended to drive tests and application logic.
+compose into global references.
 
 ## Scope
 
@@ -27,9 +26,8 @@ environment, not persisted as a root `noteId`.
 - **noteRef:** a globally unique reference composed from a document ID and a
   noteId.
 - **Addressable note:** any non-root note that appears as a content list item in
-  the outline.
-- **Document root:** the structural root for a document. It is a conceptual note
-  that is not directly selectable in the editor.
+  the outline (the document root note, owned by
+  [Concepts](./concepts.md#definitions), is not addressable).
 
 ## Invariants
 
@@ -66,8 +64,6 @@ environment, not persisted as a root `noteId`.
 
 ### Clipboard
 
-Identity rules for clipboard operations:
-
 - Non-cut pastes insert copies with new `noteId` values.
 - Cut/paste moves preserve existing `noteId` values for the moved notes.
 
@@ -85,13 +81,11 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 
 - Persisted JSON document state must include `noteId` for addressable notes.
 - Persisted JSON document state must not persist the active/current document ID
-  as document-level identity (for example, not as `root.noteId` and not as a
-  same-document note-link `docId`).
+  as document-level identity (for example, not as `root.noteId`).
 - Persisted JSON must keep explicit `docId` values for note links that
   target other documents.
 - Note-link `docId` representation rules are defined in
-  [Links](./links.md#identity-representation-boundaries) to keep this spec as
-  the single source for note identity and runtime document ownership.
+  [Links](./links.md#identity-representation-boundaries).
 - On load, any missing or duplicate `noteId` values must be normalized before
   the document is exposed to the app: keep existing unique IDs and assign fresh
   IDs to missing or colliding notes (preserving document order).
