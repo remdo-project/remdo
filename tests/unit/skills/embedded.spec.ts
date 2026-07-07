@@ -20,10 +20,6 @@ describe('skill-local spec bridge', () => {
     const roots = ['.agents/skills', '.claude/skills'];
     const found = roots.flatMap(root => fs
       .globSync(`${root}/*/tests/*.spec.ts`, { cwd: process.cwd() })
-      .filter(p => {
-        const skillDir = p.split(path.sep).slice(0, 3).join(path.sep);
-        return !fs.lstatSync(path.join(process.cwd(), skillDir)).isSymbolicLink();
-      })
       .map(p => p.split(path.sep).join('/')));
     const self = fs.readFileSync(new URL(import.meta.url).pathname, 'utf8');
     const missing = found.filter(p => !self.includes(`../../../${p.replace(/\.ts$/, '')}`));
