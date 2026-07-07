@@ -62,6 +62,7 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('ADVOCATE=ok');
+    expect(result.stdout).toContain('PROPOSALS=some');
     const captured = fs.readFileSync(out, 'utf8');
     // Placeholders replaced with the passed values, none left literal.
     expect(captured).toContain('docs/documentation.md');
@@ -135,13 +136,23 @@ describe('advocate-run.sh (skill-local tools/)', () => {
 
   // A codex session that dies mid-read leaves a reading trace with no numbered
   // proposal. Both attempts produce such output → the run must fail non-zero.
-  it('fails loud when both attempts produce no numbered proposal', () => {
+  it('fails loud when both attempts produce neither proposals nor the sentinel', () => {
     const out = tempOut();
-    // Non-empty output, but no "Replacement:" line — a proposal-less trace.
+    // Non-empty output, but no "Replacement:" line and no sentinel — a truncated trace.
     const stub = stubDir('printf "I am reading docs/config.md...\\nstill reading...\\n"');
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('no numbered proposals');
+    expect(result.stderr).toContain('neither proposals nor a NO PROPOSALS sentinel');
+  });
+
+  it('accepts a NO PROPOSALS sentinel as a clean no-op (PROPOSALS=none)', () => {
+    const out = tempOut();
+    // A minimal scope: the advocate legitimately finds nothing and emits the sentinel.
+    const stub = stubDir('printf "NO PROPOSALS\\n"');
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('ADVOCATE=ok');
+    expect(result.stdout).toContain('PROPOSALS=none');
   });
 
   it('splices a scope containing & literally (no gsub replacement semantics)', () => {

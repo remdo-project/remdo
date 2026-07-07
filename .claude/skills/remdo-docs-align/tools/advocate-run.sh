@@ -22,12 +22,14 @@
 #     the marker byte-matches the equal-length block before it, the trailing copy
 #     (marker line, count line, and repeat) is dropped so the artifact carries the
 #     proposal list exactly once. A non-matching tail is left untouched.
-#   - Non-empty proposals: the artifact must contain at least one numbered
-#     proposal, detected by a "Replacement:" line. An artifact with none is a
+#   - Valid result: the artifact must carry either at least one numbered
+#     proposal (a "Replacement:" line) or the explicit "NO PROPOSALS" sentinel
+#     the prompt asks for on a minimal scope. An artifact with neither is a
 #     failed run (e.g. codex died mid-read), so it triggers the retry and, if the
-#     retry is also proposal-less, a non-zero exit.
+#     retry also has neither, a non-zero exit. A NO-PROPOSALS result emits
+#     ADVOCATE=ok with PROPOSALS=none so the caller skips adjudication cleanly.
 # Fails loud (non-zero + stderr) on missing or extra args, a missing template,
-# or a second empty/failed/proposal-less run.
+# or a second run with neither proposals nor the sentinel.
 set -eu
 
 fail() {
@@ -113,28 +115,33 @@ dedup_artifact() {
   ' "$out" >"$out.dedup" && mv -- "$out.dedup" "$out"
 }
 
-# A valid artifact carries at least one numbered proposal, each of which has a
-# "Replacement:" line — a proposal-less trace is a failed run (codex died
-# mid-read), not an empty-but-fine result.
+# A valid artifact carries a numbered proposal (a "Replacement:" line) OR the
+# explicit "NO PROPOSALS" sentinel. A trace with neither is a failed run (codex
+# died mid-read), not an empty-but-fine result.
 has_proposal() {
   [ -s "$out" ] && grep -q 'Replacement:' "$out"
 }
+is_no_proposals() {
+  [ -s "$out" ] && grep -qx 'NO PROPOSALS' "$out"
+}
 
-# One attempt: capture, de-dup, then require a non-empty proposal list.
+# One attempt: capture, de-dup, then require either proposals or the sentinel.
 attempt() {
   run_codex || return 1
   dedup_artifact
-  has_proposal
+  has_proposal || is_no_proposals
 }
 
-# First attempt; retry once on failure, an empty artifact, or no proposals.
+# First attempt; retry once on failure, an empty artifact, or a trace carrying
+# neither proposals nor the sentinel.
 for n in 1 2; do
   if attempt; then
     echo "ADVOCATE=ok"
     echo "OUTPUT=$out"
+    has_proposal && echo "PROPOSALS=some" || echo "PROPOSALS=none"
     [ "$n" -eq 2 ] && echo "RETRIED=1"
     exit 0
   fi
 done
 
-fail "codex advocate run failed or produced no numbered proposals after one retry — see $out"
+fail "codex advocate run failed or produced neither proposals nor a NO PROPOSALS sentinel after one retry — see $out"

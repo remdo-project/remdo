@@ -47,3 +47,7 @@ verbatim (write `Replacement: DELETE` for a whole-clause removal):
 
 Number the proposals; mark genuinely uncertain ones "borderline". Do not edit
 anything; do not propose additions.
+
+If the scope is already minimal and you find nothing whose removal is
+defensible, output exactly one line — `NO PROPOSALS` — and nothing else. This
+is a valid result (a clean no-op), distinct from a partial or interrupted run.

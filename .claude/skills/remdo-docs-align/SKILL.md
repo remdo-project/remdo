@@ -49,7 +49,10 @@ they run in this order.
    script header states the full contract. It captures the
    numbered proposal table; the advocate runs on a different model family
    than the editor. On a non-zero exit (the retry also failed), surface it in
-   the stage-5 report rather than proceeding to adjudicate an empty table.
+   the stage-5 report rather than proceeding to adjudicate an empty table. On
+   `PROPOSALS=none` (the advocate emitted its `NO PROPOSALS` sentinel — a clean
+   no-op on an already-minimal scope), skip stage 4 and note the no-op in the
+   report; there is nothing to adjudicate.
 4. **Adjudicate (dual).** Two independent, fresh, contextless adjudicators
    — never the session that ran stages 1-3 — each produce verdict-only
    dispositions over the proposal table per `references/adjudicate.md`,
