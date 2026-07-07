@@ -1,7 +1,10 @@
 /* eslint-disable node/no-process-env */
 // advocate-run.sh (skill-local tools/): argument/substitution/refusal logic only —
-// codex is external, so it is stubbed via PATH. The stub echoes the prompt it
-// received on stdin, letting us assert placeholder substitution and capture.
+// codex is external, so it is stubbed via PATH. The script invokes codex with
+// `--output-last-message <file>` (codex's clean channel) plus `-`; the stub
+// parses that flag, writes the FINAL message to the file, and echoes noise to
+// stdout (the full mixed stream the script captures to <out>.raw). The
+// normalizer reads only the final-message file.
 import process from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -25,15 +28,30 @@ function stubDir(body: string): string {
   return dir;
 }
 
-// A minimal valid proposal block appended after the echoed prompt so the
-// artifact passes the script's "at least one numbered proposal" check while the
-// substitution/capture assertions still see the full prompt.
-const PROPOSAL = '\n1. `docs/config.md:18`\nText: "settable variables"\nReplacement: DELETE\n';
+// A stub prelude that parses `-o <file>` (codex's --output-last-message) out of
+// the args and exposes it as $MSG, and drains stdin into $PROMPT. The bodies
+// below then write the final message to $MSG and echo whatever noise to stdout.
+const PARSE_ARGS = [
+  'MSG=""',
+  'while [ "$#" -gt 0 ]; do',
+  '  case "$1" in',
+  '    -o|--output-last-message) MSG="$2"; shift 2 ;;',
+  '    *) shift ;;',
+  '  esac',
+  'done',
+  'PROMPT="$(cat)"',
+].join('\n');
 
-// Stub body: echo the prompt read on stdin, then a minimal valid proposal. Used
-// by the cases that assert substitution/capture (they inspect the echoed prompt)
-// and must also clear the proposal check.
-const echoPromptThenProposal = `cat; printf '%s' '${PROPOSAL}'`;
+// The advocate's final-message payload for a normal run: a minimal valid
+// proposal block (Text: + Replacement:), which the normalizer renders as one
+// canonical numbered block.
+const PROPOSAL = '1. `docs/config.md:18`\nText: "settable variables"\nReplacement: DELETE';
+
+// Stub body: echo the prompt (so raw-stream assertions can inspect substitution)
+// plus a reading-trace noise line to stdout, and write a minimal valid proposal
+// to the final-message file. Used by cases that assert substitution/capture and
+// must also clear the proposal check.
+const echoPromptWriteProposal = `${PARSE_ARGS}\nprintf '%s\\n' "$PROMPT"; printf 'reading docs...\\n'; printf '%s\\n' '${PROPOSAL}' > "$MSG"`;
 
 // Run advocate-run.sh from the real repo root with `codex` stubbed on PATH.
 function run(args: string[], stub: string) {
@@ -43,17 +61,16 @@ function run(args: string[], stub: string) {
 afterEach(cleanupTempDirs);
 
 describe('advocate-run.sh (skill-local tools/)', () => {
-  it('substitutes {RULES_DOC}/{SCOPE} and captures the full codex output', () => {
+  it('substitutes {RULES_DOC}/{SCOPE} and captures the full codex stream', () => {
     const out = tempOut();
-    // Stub echoes back the prompt it read on stdin, plus a minimal proposal.
-    const stub = stubDir(echoPromptThenProposal);
+    const stub = stubDir(echoPromptWriteProposal);
     const result = run(['docs/documentation.md', 'docs/note-structure-rules.md', out], stub);
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('ADVOCATE=ok');
     expect(result.stdout).toContain('PROPOSALS=some');
-    // Substitution/capture is verified on the raw artifact; the main output
-    // is the normalized table (trace dropped).
+    // Substitution reached the prompt; verified on the full raw stream (the stub
+    // echoed the prompt there). The canonical table is the normalized final message.
     const raw = fs.readFileSync(`${out}.raw`, 'utf8');
     expect(raw).toContain('docs/documentation.md');
     expect(raw).toContain('docs/note-structure-rules.md');
@@ -61,39 +78,66 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(raw).not.toContain('{SCOPE}');
     // Prompt body (not just the placeholders) reached codex — full, untruncated.
     expect(raw).toContain('DELETION ADVOCATE');
+    // The raw stream also carries the reading-trace noise (it is the full stream).
+    expect(raw).toContain('reading docs...');
+    // The final-message capture holds only the agent's final message (no trace).
+    const msg = fs.readFileSync(`${out}.msg`, 'utf8');
+    expect(msg).not.toContain('reading docs...');
+    expect(msg).not.toContain('DELETION ADVOCATE');
     // The canonical table holds only the renumbered proposal block.
     const captured = fs.readFileSync(out, 'utf8');
     expect(captured).toMatch(/^1\. file: docs\/config\.md:18/);
     expect(captured).not.toContain('DELETION ADVOCATE');
+    expect(captured).toContain('Replacement: DELETE');
   });
 
-  it('retries once when the first codex run produces no output', () => {
+  it('retries once when the first codex run produces no final message', () => {
     const out = tempOut();
     const counter = path.join(makeDir('advocate-cnt-'), 'n');
-    // First call: exit 1 with empty stdout. Second call: succeed with content.
+    // First call: exit 1 with no message file. Second call: succeed with content.
     const stub = stubDir(
-      `cnt="${counter}"\n`
-      + `if [ -f "$cnt" ]; then ${echoPromptThenProposal}; exit 0; else : > "$cnt"; exit 1; fi`,
+      `${PARSE_ARGS}\n`
+      + `cnt="${counter}"\n`
+      + `if [ -f "$cnt" ]; then printf '%s\\n' '${PROPOSAL}' > "$MSG"; exit 0; else : > "$cnt"; exit 1; fi`,
     );
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('RETRIED=1');
-    expect(fs.readFileSync(`${out}.raw`, 'utf8')).toContain('DELETION ADVOCATE');
+    expect(fs.readFileSync(out, 'utf8')).toContain('Replacement: DELETE');
+  });
+
+  it('retries when a clean codex exit leaves the final-message file empty', () => {
+    const out = tempOut();
+    const counter = path.join(makeDir('advocate-cnt-'), 'n');
+    // First call: exit 0 but write nothing to $MSG (codex died before its final
+    // turn). Second call: a real proposal. The empty-message guard must retry.
+    const stub = stubDir(
+      `${PARSE_ARGS}\n`
+      + `cnt="${counter}"\n`
+      + `if [ -f "$cnt" ]; then printf '%s\\n' '${PROPOSAL}' > "$MSG"; else : > "$cnt"; : > "$MSG"; fi\n`
+      + 'exit 0',
+    );
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('RETRIED=1');
+    expect(fs.readFileSync(out, 'utf8')).toContain('Replacement: DELETE');
   });
 
   it('fails loud when codex fails on both attempts', () => {
     const out = tempOut();
-    const stub = stubDir('exit 3'); // always fails, empty output
+    const stub = stubDir(`${PARSE_ARGS}\nexit 3`); // always fails, no message
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('after one retry');
+    // The failure points at the full stream for diagnosis.
+    expect(result.stderr).toContain('.raw');
   });
 
-  // codex streams its final numbered answer, then reprints it verbatim after a
-  // "tokens used\n<count>" marker (observed 2/2 in baseline runs). The script
-  // must collapse the byte-identical repeat to a single copy.
-  it('de-duplicates the doubled final answer, keeping the proposal list once', () => {
+  it('normalizes a multi-proposal final message into the canonical renumbered table', () => {
     const out = tempOut();
+    // The advocate's final message: two proposals, one using the legacy Quote:
+    // label. The normalizer renumbers, canonicalizes Quote:→Text:, and keeps
+    // each block's Replacement: line.
     const answer = [
       'I read every doc. Proposals:',
       '',
@@ -109,11 +153,9 @@ describe('advocate-run.sh (skill-local tools/)', () => {
       'Rule: rationale beyond the rule.',
       'Risk test: maintainers reintroduce the removed setting.',
     ].join('\n');
-    // A fixture holding the answer, the "tokens used\n<count>" marker, then the
-    // answer again — the exact doubling the script collapses. The stub cats it.
-    const fixture = path.join(makeDir('advocate-dup-'), 'doubled.txt');
-    fs.writeFileSync(fixture, `${answer}\ntokens used\n42\n${answer}\n`);
-    const stub = stubDir(`cat "${fixture}"`);
+    const fixture = path.join(makeDir('advocate-multi-'), 'answer.txt');
+    fs.writeFileSync(fixture, `${answer}\n`);
+    const stub = stubDir(`${PARSE_ARGS}\nprintf 'noise\\n'; cat "${fixture}" > "$MSG"`);
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
@@ -125,26 +167,42 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(captured.match(/1\. file: docs\/config\.md:18/g)).toHaveLength(1);
     expect(captured.match(/2\. file: docs\/config\.md:58/g)).toHaveLength(1);
     expect(captured.match(/Text: /g)).toHaveLength(2);
-    // The redundant "tokens used" marker (and the reprint after it) is gone.
-    expect(captured).not.toContain('tokens used');
+  });
+
+  it('keeps a Borderline: label through normalization', () => {
+    const out = tempOut();
+    const answer = [
+      '1. `docs/config.md:18`',
+      'Text: "settable variables"',
+      'Replacement: DELETE',
+      'Borderline: the adjacent table may not be exhaustive.',
+    ].join('\n');
+    const fixture = path.join(makeDir('advocate-bl-'), 'answer.txt');
+    fs.writeFileSync(fixture, `${answer}\n`);
+    const stub = stubDir(`${PARSE_ARGS}\ncat "${fixture}" > "$MSG"`);
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.status).toBe(0);
+    const captured = fs.readFileSync(out, 'utf8');
+    expect(captured).toContain('Borderline: the adjacent table may not be exhaustive.');
   });
 
   // A codex session that dies mid-read leaves a reading trace with no numbered
-  // proposal. Both attempts produce such output → the run must fail non-zero.
+  // proposal in its final message. Both attempts produce such output → fail non-zero.
   it('fails loud when both attempts produce neither proposals nor the sentinel', () => {
     const out = tempOut();
-    // Non-empty output, but no "Replacement:" line and no sentinel — a truncated trace.
-    const stub = stubDir('printf "I am reading docs/config.md...\\nstill reading...\\n"');
+    // Non-empty final message, but no proposal block and no sentinel — a truncated trace.
+    const stub = stubDir(`${PARSE_ARGS}\nprintf 'I am reading docs/config.md...\\nstill reading...\\n' > "$MSG"`);
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('neither proposals nor a NO PROPOSALS sentinel');
   });
 
-  it('rejects a trace with the Replacement: label but no numbered proposal', () => {
+  it('rejects a final message with a Replacement: label but no proposal block', () => {
     const out = tempOut();
-    // An echoed prompt (or noncompliant partial) quotes the `Replacement:` label
-    // from the format spec but carries no numbered item — not a real proposal.
-    const stub = stubDir('printf "Use the label Replacement: verbatim.\\nStill reading...\\n"');
+    // A noncompliant message quotes the `Replacement:` label from the format
+    // spec but carries no location-anchored/Text: block — not a real proposal.
+    // (No head line is minted because there is no location line to anchor it.)
+    const stub = stubDir(`${PARSE_ARGS}\nprintf 'Use the label Replacement: verbatim.\\nStill reading...\\n' > "$MSG"`);
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('neither proposals nor a NO PROPOSALS sentinel');
@@ -153,11 +211,92 @@ describe('advocate-run.sh (skill-local tools/)', () => {
   it('accepts a NO PROPOSALS sentinel as a clean no-op (PROPOSALS=none)', () => {
     const out = tempOut();
     // A minimal scope: the advocate legitimately finds nothing and emits the sentinel.
-    const stub = stubDir('printf "NO PROPOSALS\\n"');
+    const stub = stubDir(`${PARSE_ARGS}\nprintf 'NO PROPOSALS\\n' > "$MSG"`);
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('ADVOCATE=ok');
     expect(result.stdout).toContain('PROPOSALS=none');
+    expect(fs.readFileSync(out, 'utf8').trim()).toBe('NO PROPOSALS');
+  });
+
+  // Mixed trace: the final message carries BOTH the NO PROPOSALS sentinel line
+  // and real proposal blocks. Blocks win; PROPOSALS=some, plus a stderr warning.
+  it('prefers proposal blocks over a co-occurring NO PROPOSALS sentinel, warning on stderr', () => {
+    const out = tempOut();
+    const answer = [
+      'NO PROPOSALS',
+      '',
+      '1. `docs/config.md:18`',
+      'Text: "settable variables"',
+      'Replacement: DELETE',
+    ].join('\n');
+    const fixture = path.join(makeDir('advocate-mix-'), 'answer.txt');
+    fs.writeFileSync(fixture, `${answer}\n`);
+    const stub = stubDir(`${PARSE_ARGS}\ncat "${fixture}" > "$MSG"`);
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('PROPOSALS=some');
+    expect(result.stderr).toContain('NO PROPOSALS sentinel appeared alongside');
+    const captured = fs.readFileSync(out, 'utf8');
+    expect(captured).toMatch(/^1\. file: docs\/config\.md:18/m);
+    expect(captured).not.toMatch(/^NO PROPOSALS$/m);
+  });
+
+  // Truncated block: a head + Text: but no Replacement:. It is not a valid
+  // proposal (needs both), so with no other block both attempts must fail non-zero.
+  it('fails loud on a truncated block with Text: but no Replacement:', () => {
+    const out = tempOut();
+    const answer = ['1. `docs/config.md:18`', 'Text: "settable variables"'].join('\n');
+    const stub = stubDir(`${PARSE_ARGS}\nprintf '%s\\n' '${answer}' > "$MSG"`);
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('neither proposals nor a NO PROPOSALS sentinel');
+  });
+
+  // No blank line separating two proposal blocks: both must still be extracted,
+  // renumbered, with their values uncorrupted (the location-line flush splits them).
+  it('splits back-to-back proposal blocks with no blank separator', () => {
+    const out = tempOut();
+    const answer = [
+      '1. `docs/config.md:18`',
+      'Text: "settable variables"',
+      'Replacement: DELETE',
+      '2. `docs/config.md:58`',
+      'Text: "is normal, not a misconfiguration."',
+      'Replacement: DELETE',
+    ].join('\n');
+    const stub = stubDir(`${PARSE_ARGS}\nprintf '%s\\n' '${answer}' > "$MSG"`);
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.status).toBe(0);
+    const captured = fs.readFileSync(out, 'utf8');
+    expect(captured.match(/^1\. file: docs\/config\.md:18/m)).toHaveLength(1);
+    expect(captured.match(/^2\. file: docs\/config\.md:58/m)).toHaveLength(1);
+    expect(captured).toContain('Text: "settable variables"');
+    expect(captured).toContain('Text: "is normal, not a misconfiguration."');
+    expect(captured.match(/Replacement:/g)).toHaveLength(2);
+  });
+
+  // A missing-Text: block mid-table (only a location line + Replacement:) must
+  // NOT silently vanish: the location line head-mints a block, so both proposals
+  // survive in the canonical table.
+  it('head-mints a missing-Text: block from its location line rather than dropping it', () => {
+    const out = tempOut();
+    const answer = [
+      '1. `docs/config.md:18`',
+      'Replacement: DELETE',
+      '',
+      '2. `docs/config.md:58`',
+      'Text: "is normal, not a misconfiguration."',
+      'Replacement: DELETE',
+    ].join('\n');
+    const stub = stubDir(`${PARSE_ARGS}\nprintf '%s\\n' '${answer}' > "$MSG"`);
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.status).toBe(0);
+    const captured = fs.readFileSync(out, 'utf8');
+    // Both blocks present (the missing-Text one head-minted from its location).
+    expect(captured.match(/^1\. file: docs\/config\.md:18/m)).toHaveLength(1);
+    expect(captured.match(/^2\. file: docs\/config\.md:58/m)).toHaveLength(1);
+    expect(captured.match(/Replacement:/g)).toHaveLength(2);
   });
 
   it('creates the output parent directory when it does not exist', () => {
@@ -165,7 +304,7 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     // worktree case, e.g. a not-yet-created .agent/tmp/); the script must make
     // it rather than fail the capture redirect and misreport an advocate error.
     const out = path.join(makeDir('advocate-mkdir-'), 'nested', 'dir', 'proposal.md');
-    const stub = stubDir(echoPromptThenProposal);
+    const stub = stubDir(echoPromptWriteProposal);
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('ADVOCATE=ok');
@@ -174,7 +313,7 @@ describe('advocate-run.sh (skill-local tools/)', () => {
 
   it('splices a scope containing & literally (no gsub replacement semantics)', () => {
     const out = tempOut();
-    const stub = stubDir(echoPromptThenProposal);
+    const stub = stubDir(echoPromptWriteProposal);
     // `&` is awk gsub's "matched text" metacharacter; a literal splice must keep
     // it verbatim rather than expanding it to the placeholder text.
     const result = run(['docs/documentation.md', 'files A & B', out], stub);

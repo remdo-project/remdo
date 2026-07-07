@@ -28,9 +28,9 @@ sibling notes, each including its entire subtree**.
 
 ## The selection ladder
 
-A structural selection cannot grow by single rows; it
-grows and shrinks along a single ordered ladder whose every rung is itself a
-legal whole-subtree selection. Its defining property is **symmetric
+A structural selection cannot grow by single rows; it grows and shrinks along a
+single ordered ladder whose every rung is itself a legal whole-subtree
+selection. Its defining property is **symmetric
 grow/shrink**: pressing the opposite direction *exactly inverts* the previous
 step.
 

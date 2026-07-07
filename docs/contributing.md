@@ -40,8 +40,7 @@ RemDo only targets the runtimes declared in `package.json`:
    browsers. Use the API directly or document a real compatibility issue
    before adding guards.
 2. **Modern syntax is fine.** Stage-4 ECMAScript features supported by the
-   browserslist need no
-   back-compat branches.
+   browserslist need no back-compat branches.
 3. **Tests should reflect the baseline.** When reproducing bugs, rely on jsdom +
    the supported engines. Don’t introduce polyfills that mask incompatibilities
    outside the supported set.

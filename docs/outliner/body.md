@@ -64,6 +64,6 @@ When two notes merge into one (see [Deletion](./deletion.md) for when a
 `Backspace`/`Delete` joins notes), their bodies resolve by count:
 
 1. **Neither has a body.** The notes merge as usual.
-2. **Exactly one has a body.** The merge proceeds and the surviving note keeps
-   that body.
+2. **Exactly one has a body.** The merge proceeds and the surviving note ends up
+   with that body.
 3. **Both have a body.** The merge is a no-op.

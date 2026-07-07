@@ -21,7 +21,7 @@ that mode). Everything else is derived or bootstrapped, never set in the normal
 path.
 
 | Variable | dev / test | server / prod | Role |
-| ----------------- | ---------- | ------------------ | ------------------------------------------------------------- |
+| --- | --- | --- | --- |
 | `NODE_ENV` | optional | required | `development` / `test` / `production`. |
 | `DATA_DIR` | optional | optional | Persistence root for data and bootstrapped secrets (see Secret bootstrap guardrails). |
 | `PORT_BASE` | optional | — | Dev port base; `PORT` and all secondary ports derive from it. |

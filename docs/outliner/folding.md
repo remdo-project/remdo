@@ -25,10 +25,9 @@ note identities.
    like any other edit.
 5. If folding would hide the active selection, it collapses to the folded note
    (caret at end of its text). Hidden descendants are not selectable.
-6. Insertion rules in
-   [Insertion](./insertion.md) are unchanged. If a child is inserted or moved under a
-   folded parent, the parent auto-expands. If a note loses its last child, it is
-   no longer folded.
+6. Insertion rules in [Insertion](./insertion.md) are unchanged. If a child is
+   inserted or moved under a folded parent, the parent auto-expands. If a note
+   loses its last child, it is no longer folded.
 7. Zoom defines the outer visible subtree; folding applies inside that view and
    zooming does not reset folding.
 8. Exception: when a folded note is the current zoom root, its own fold state

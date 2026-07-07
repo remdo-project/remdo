@@ -416,6 +416,11 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 - Coverage pass: product areas with no owning doc (candidates: collaboration
   internals, app bootstrap/routes; note-sdk docs are already deferred under
   "Note-first SDK follow-ups") — decide new doc vs a `Future` trigger each.
+- Parked escalations awaiting Piotr (six): concepts.md:76 kinds-sentence
+  (carries the selection.md link; reject / apply-with-link-relocation);
+  documentation.md:33 split; search.md:66 split; selection.md:35 split;
+  dependency-maintenance stage split (#5 of conv3); search.md:59 disambiguation
+  parenthetical split.
 
 ## remdo-docs-align follow-ups
 
@@ -452,10 +457,11 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   (`[foo bar]` vs `[foo   bar]:`) don't resolve — an internal link with such a
   label could bypass the References-shape gate. Contrived on this corpus (no
   multi-word reference labels); normalize label whitespace CommonMark-style if it
-  ever matters. The `has_proposal` block-adjacency validator is likewise a sanity
-  guard against truncated codex output, not an adversarial validator (see its
-  comment) — both are the terminal state of a fix-finding chain deliberately
-  stopped at the reasonable bound.
+  ever matters. The `has_proposal` validator is likewise a sanity guard against
+  truncated codex output, not an adversarial one: it requires at least one
+  canonical head line plus at least one `Replacement:` line, without checking
+  they belong to the same block — both are the terminal state of a fix-finding
+  chain deliberately stopped at the reasonable bound.
 - Define shared cross-skill contracts once (AGENTS.md or contributing.md) and
   have each skill state only its delta: one stop/escalation taxonomy (today
   six names: ESCALATE/Blocker/Stuck/stop/dead-end/callout), one
@@ -498,12 +504,9 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 ## remdo-refine follow-ups
 
-- Loop structure: per-rung settle-loops nest inside full-ladder confirmation
-  cycles, and both terminate on judgment ("returns nothing more to apply" /
-  "nothing worth fixing") — against stochastic reviewers that resample findings
-  per run, termination is dispositional, not structural, and worst-case cost
-  multiplies; rung re-runs also re-review the whole diff rather than the delta
-  since that rung's last pass.
+- Loop structure: nested settle/confirmation loops terminate on judgment, not
+  structure, against stochastic reviewers that resample findings per run; rung
+  re-runs re-review the whole diff rather than the delta since their last pass.
 - Add more external review tools/skills/programs worth considering in the refine
   ladder beyond `codex review` (e.g. other reviewers or static analyzers);
   evaluate each for fit and independence before adding a rung.

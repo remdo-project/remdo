@@ -22,8 +22,7 @@ live in [Links](./links.md).
 - Pasting while a note range is selected replaces that selection with the
   pasted notes.
 - Pasting after a cut moves the cut notes to the new location. If the cut is no
-  longer valid, paste
-  does nothing.
+  longer valid, paste does nothing.
 - A cut can be pasted once; after a successful paste the cut is cleared.
 - If you try to paste into the cut notes or their descendants, nothing happens
   and the cut remains pending.

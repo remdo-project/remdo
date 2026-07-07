@@ -78,8 +78,8 @@ bootstrapped key/server-token pair (see
 - Platform: local machine.
 - Data boundary: local repo-owned development data.
 - Notes:
-  1. `.env` (copied from `.env.example`)
-     holds overrides, and process environment values override `.env`, so
+  1. `.env` (copied from `.env.example`) holds overrides, and process
+     environment values override `.env`, so
      one-off runs can use inline values such as `PORT_BASE=4800 ...` without
      editing local defaults. `PORT_BASE` is the one dev port knob and anchors
      the local dev port range (see [docs/config.md](./config.md)).
