@@ -9,9 +9,12 @@
 # uncommitted spec edits onto the new base; --no-track forks from a raw SHA
 # without setting an upstream. Refusal only — the caller resolves any drift.
 # Refuses (non-zero + stderr): missing args, a name already taken, an
-# unresolvable base, staged edits (--merge strands them), the underlying switch
-# failing (e.g. drift that would abort and strand the spec), and a switch that
-# exits 0 but left conflict markers merging the spec onto the new base.
+# unresolvable base, a moved base carrying edits (risks a conflicted switch),
+# the underlying switch failing (e.g. drift that would abort and strand the
+# spec), and a switch that exits 0 but left conflict markers merging the spec
+# onto the new base. Staged vs unstaged is not distinguished — the index is the
+# user's private bookkeeping (AGENTS.md); `--merge` carries both cleanly at an
+# unchanged base, and any real conflict is caught by the post-switch check.
 set -eu
 
 fail() {
@@ -33,19 +36,15 @@ if git show-ref --verify --quiet "refs/heads/$name"; then
   fail "branch '$name' already exists"
 fi
 
-# With HEAD at the pinned base (the feature-flow precondition), --merge cannot
-# conflict; carrying edits across a *moved* base can, and a conflicted switch
-# would strand the tree with the branch already created. Refuse upfront.
+# With HEAD at the pinned base (the feature-flow precondition), --merge carries
+# the spec edits (staged or unstaged) cleanly. Carrying edits across a *moved*
+# base can conflict, and a conflicted switch would strand the tree with the
+# branch already created — so refuse upfront when HEAD has drifted from the base
+# and the tree has any edits (index or worktree). The index is not treated
+# specially (AGENTS.md): staged and unstaged both count as tree edits here.
 if [ "$(git rev-parse HEAD)" != "$(git rev-parse "$base^{commit}")" ] \
-  && ! git diff --quiet 2>/dev/null; then
+  && ! { git diff --quiet 2>/dev/null && git diff --cached --quiet 2>/dev/null; }; then
   fail "HEAD is not at the pinned base and the tree has edits — carrying them across a moved base risks a conflicted switch; reconcile HEAD with the base first"
-fi
-
-# --merge refuses to carry *staged* edits across the base change; feature-flow's
-# contract is to clear that drift rather than un-stage, so refuse loudly here
-# instead of letting the switch produce a confusing error.
-if ! git diff --cached --quiet 2>/dev/null; then
-  fail "staged edits present — 'git switch --merge' cannot carry them; clear the staged drift (restore or discard) — do not unstage or commit it"
 fi
 
 # The switch itself is a guard: with base drift a plain -c would abort and strand

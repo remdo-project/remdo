@@ -70,15 +70,17 @@ describe('create-task-branch.sh (skill-local tools/)', () => {
     expect(result.stderr).toContain('already exists');
   });
 
-  it('refuses staged edits that --merge cannot carry', () => {
+  it('carries staged spec edits at the unchanged base (index is invisible)', () => {
+    // The index is the user's private bookkeeping (AGENTS.md), and at an
+    // unchanged base `git switch --merge` carries a staged edit cleanly — so the
+    // branch is created and the edit follows, rather than refused for being staged.
     const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'spec.md', '# spec\n');
     git(work, 'add', 'spec.md'); // staged drift
     const result = run(work, ['feat/x', pinnedHead(work)]);
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('staged edits');
-    // Refused before switching — still on main.
-    expect(git(work, 'rev-parse', '--abbrev-ref', 'HEAD').stdout.trim()).toBe('main');
+    expect(result.status).toBe(0);
+    expect(git(work, 'rev-parse', '--abbrev-ref', 'HEAD').stdout.trim()).toBe('feat/x');
+    expect(git(work, 'status', '--porcelain').stdout).toContain('spec.md');
   });
 
   it('refuses upfront to carry edits across a moved base (the conflict-producing state)', () => {
