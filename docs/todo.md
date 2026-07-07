@@ -438,6 +438,14 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   behavior; refine owns quality backstops; sync the post-merge check;
   deps-refresh its matrix). Reconcile with AGENTS.md's declare-scope-in-situ
   rule via shared vocabulary + per-skill delta.
+- Tradeoff: `docs-align`'s `docs-scope.mjs` (`isDocsFile`/`docsPath` +
+  skill-file exemption) is exercised only by `lint-rules.spec.ts`; the sole
+  production caller `run-doc-rules.mjs` globs `docs/**/*.md` and the rules are
+  not wired into the product cli2 `customRules`, so the scoping/exemption branch
+  is unreachable in prod today. Keep it if the rules are meant to be wired into
+  the product markdown gate (invariant 3 documents the skill-file `References`
+  exemption as intended); otherwise inline the `docs/` assumption and drop the
+  module + its exemption tests. Decide when the product-gate wiring is settled.
 
 ## Skill test-infra follow-up
 

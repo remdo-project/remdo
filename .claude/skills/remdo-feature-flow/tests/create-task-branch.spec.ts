@@ -1,13 +1,13 @@
 // create-task-branch.sh (skill-local tools/): create the branch from a pinned base
 // carrying uncommitted spec edits, and refuse the unsafe states.
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   cleanupTempDirs,
   commitAll,
   git,
+  makeNonRepoDir,
   makeScratchWithOrigin,
   runScript,
   writeFile,
@@ -97,13 +97,8 @@ describe('create-task-branch.sh (skill-local tools/)', () => {
   });
 
   it('fails loud outside a git repository', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'create-branch-nogit-'));
-    try {
-      const result = run(dir, ['feat/x', 'HEAD']);
-      expect(result.status).not.toBe(0);
-      expect(result.stderr).toContain('not a git repository');
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
+    const result = run(makeNonRepoDir(), ['feat/x', 'HEAD']);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('not a git repository');
   });
 });

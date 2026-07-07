@@ -1,7 +1,6 @@
 // preflight-base.sh (skill-local tools/): classify even/ahead/behind/diverged vs
 // origin/main, FF a behind branch, refuse the states a run must stop on.
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -9,6 +8,7 @@ import {
   cleanupTempDirs,
   commitAll,
   makeBareMain,
+  makeNonRepoDir,
   makeScratchWithOrigin,
   runScript,
   writeFile,
@@ -78,13 +78,8 @@ describe('preflight-base.sh (skill-local tools/)', () => {
   });
 
   it('fails loud outside a git repository', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-nogit-'));
-    try {
-      const result = run(dir);
-      expect(result.status).not.toBe(0);
-      expect(result.stderr).toContain('not a git repository');
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
+    const result = run(makeNonRepoDir());
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('not a git repository');
   });
 });

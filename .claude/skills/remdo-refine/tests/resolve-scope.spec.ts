@@ -1,13 +1,12 @@
 // resolve-scope.sh (skill-local tools/): happy paths (inferred default, explicit range,
 // working-tree) and every refusal, exercised in scratch git repos.
-import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   cleanupTempDirs,
   commitAll,
   git,
+  makeNonRepoDir,
   makeScratchWithOrigin,
   runScript,
   writeFile,
@@ -121,13 +120,8 @@ describe('resolve-scope.sh (skill-local tools/)', () => {
   });
 
   it('fails loud outside a git repository', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'resolve-nogit-'));
-    try {
-      const result = run(dir);
-      expect(result.status).not.toBe(0);
-      expect(result.stderr).toContain('not a git repository');
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
+    const result = run(makeNonRepoDir());
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('not a git repository');
   });
 });

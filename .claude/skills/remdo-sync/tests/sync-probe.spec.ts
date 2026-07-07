@@ -1,13 +1,12 @@
 // sync-probe.sh (skill-local tools/): fetch and classify up-to-date / merge-needed /
 // dirty-tree (the probe preceding remdo-sync's merge).
-import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   advanceOrigin,
   cleanupTempDirs,
   makeBareMain,
+  makeNonRepoDir,
   makeScratchWithOrigin,
   runScript,
   writeFile,
@@ -50,13 +49,8 @@ describe('sync-probe.sh (skill-local tools/)', () => {
   });
 
   it('fails loud outside a git repository', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sync-probe-nogit-'));
-    try {
-      const result = run(dir);
-      expect(result.status).not.toBe(0);
-      expect(result.stderr).toContain('not a git repository');
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
+    const result = run(makeNonRepoDir());
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('not a git repository');
   });
 });

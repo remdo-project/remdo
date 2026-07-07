@@ -98,6 +98,14 @@ export function advanceOrigin(origin: string): void {
   fs.rmSync(pusher, { recursive: true, force: true });
 }
 
+// A throwaway directory that is not a git repository — for the scripts'
+// "not a git repository" refusal. Rides the tracked-temp-dir cleanup like
+// every other scratch dir (GIT_CEILING_DIRECTORIES stops git walking up into
+// the real repo).
+export function makeNonRepoDir(): string {
+  return makeDir('skills-nogit-');
+}
+
 // A minimal repo with one commit on `main` and no `origin` remote — for the
 // scripts' "not a task branch / origin/main missing" refusals.
 export function makeBareMain(files: Record<string, string>): string {
