@@ -16,8 +16,8 @@ import process from 'node:process';
 // rules).
 import { lint } from 'markdownlint-cli2/markdownlint/promise';
 import { afterEach, describe, expect, it } from 'vitest';
-import referencesShape from '../../tools/markdownlint-rules/references-shape.mjs';
-import temporalStatus from '../../tools/markdownlint-rules/temporal-status.mjs';
+import referencesShape from '../tools/lint-rules/references-shape.mjs';
+import temporalStatus from '../tools/lint-rules/temporal-status.mjs';
 
 // Lint one fixture string under `name` with the given custom rule and return the
 // violation lines (empty when clean). `default: false` isolates the rule.
@@ -120,7 +120,7 @@ const require = createRequire(import.meta.url);
 // The cli2 binary entry sits next to its resolved main module.
 const cli2Bin = path.join(path.dirname(require.resolve('markdownlint-cli2')), 'markdownlint-cli2-bin.mjs');
 const repoRoot = process.cwd();
-const rulesDir = path.join(repoRoot, 'tools/markdownlint-rules');
+const skillToolsDir = path.join(repoRoot, '.claude/skills/remdo-docs-align/tools');
 const configFile = path.join(repoRoot, '.markdownlint-cli2.jsonc');
 
 const scratchRepos: string[] = [];
@@ -132,17 +132,10 @@ afterEach(() => {
 
 // Build a scratch git repo carrying the production cli2 config + custom rules
 // and the given docs fixtures, then return the cli2 run over it.
-function lintScratch(docs: Record<string, string>) {
+function scratchDocs(docs: Record<string, string>) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mdlint-scratch-'));
   scratchRepos.push(dir);
   fs.copyFileSync(configFile, path.join(dir, '.markdownlint-cli2.jsonc'));
-  const destRules = path.join(dir, 'tools/markdownlint-rules');
-  fs.mkdirSync(destRules, { recursive: true });
-  for (const file of fs.readdirSync(rulesDir)) {
-    if (file.endsWith('.mjs')) {
-      fs.copyFileSync(path.join(rulesDir, file), path.join(destRules, file));
-    }
-  }
   for (const [rel, content] of Object.entries(docs)) {
     const abs = path.join(dir, rel);
     fs.mkdirSync(path.dirname(abs), { recursive: true });
@@ -150,28 +143,48 @@ function lintScratch(docs: Record<string, string>) {
   }
   // git init so cli2's `gitignore: true` selection behaves as in production.
   spawnSync('git', ['init', '--quiet'], { cwd: dir });
+  return dir;
+}
+// Product gate: real cli2 binary over the copied production config.
+function lintProduct(dir: string) {
   return spawnSync('node', [cli2Bin], { cwd: dir, encoding: 'utf8' });
 }
+// Skill gate: the private node runner, spawned from the scratch repo but
+// resolving its rules from the real skill tree (absolute path).
+function lintSkill(dir: string) {
+  return spawnSync('node', [path.join(skillToolsDir, 'run-doc-rules.mjs')], { cwd: dir, encoding: 'utf8' });
+}
 
-describe('cli2 integration over a scratch fixture repo', () => {
-  it('is green on a clean docs fixture', () => {
-    const result = lintScratch({
+describe('gate integration over a scratch fixture repo', () => {
+  it('both gates are green on a clean docs fixture', () => {
+    const dir = scratchDocs({
       'docs/x.md': '# X\n\nA timeless sentence with an [inline](https://x.y) link.\n\n## References\n\n- [ext](https://x.y)\n',
     });
-    expect(result.status, result.stdout + result.stderr).toBe(0);
+    const product = lintProduct(dir);
+    expect(product.status, product.stdout + product.stderr).toBe(0);
+    const skill = lintSkill(dir);
+    expect(skill.status, skill.stdout + skill.stderr).toBe(0);
   }, 30_000);
 
-  it('is red and names all three rules on a fixture tripping each', () => {
-    // One file trips: a broken relative link (relative-links), a "currently"
-    // temporal word (remdo-temporal-status), and an internal link inside a
-    // References section (remdo-references-shape).
-    const result = lintScratch({
+  it('each gate is red on its own violation class', () => {
+    // One file trips all three classes: a broken relative link (product
+    // gate: relative-links), a "currently" temporal word and an internal
+    // link inside a References section (skill gate: remdo-temporal-status,
+    // remdo-references-shape). Each gate must catch its own classes — and
+    // only its own.
+    const dir = scratchDocs({
       'docs/x.md': '# X\n\nThis is currently broken.\n\nSee [missing](./nope.md) for details.\n\n## References\n\n- [internal](./y.md)\n',
     });
-    expect(result.status).not.toBe(0);
-    const output = result.stdout + result.stderr;
-    expect(output).toContain('relative-links');
-    expect(output).toContain('remdo-temporal-status');
-    expect(output).toContain('remdo-references-shape');
+    const product = lintProduct(dir);
+    expect(product.status).not.toBe(0);
+    const productOut = product.stdout + product.stderr;
+    expect(productOut).toContain('relative-links');
+    expect(productOut).not.toContain('remdo-temporal-status');
+    const skill = lintSkill(dir);
+    expect(skill.status).not.toBe(0);
+    const skillOut = skill.stdout + skill.stderr;
+    expect(skillOut).toContain('remdo-temporal-status');
+    expect(skillOut).toContain('remdo-references-shape');
+    expect(skillOut).not.toContain('relative-links');
   }, 30_000);
 });

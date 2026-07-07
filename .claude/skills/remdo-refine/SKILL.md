@@ -27,7 +27,7 @@ below is a judgement, not a tuned number.
 Refine works on a single diff, fixed at invocation. There are two scopes; pick
 exactly one and keep it for every pass.
 
-**Resolve the scope by running `sh tools/skills/resolve-scope.sh [scope]`** (its
+**Resolve the scope by running `sh .claude/skills/remdo-refine/tools/resolve-scope.sh [scope]`** (its
 header states the full contract). Pass no argument for the committed-range default
 (this branch's own work), or `working-tree` to review the uncommitted changes
 before they enter history. It prints `SCOPE=`/`BASE=` plus the file list. The
@@ -218,7 +218,7 @@ applied (docs-align only when the diff touched doc/skill prose).
 
 - Ladder rungs invoked in order: `remdo-simplify` skill, `remdo-docs-align` skill
   (doc-touching diffs), `/code-review`, `codex review`.
-- Scope resolution mechanics: `tools/skills/resolve-scope.sh`.
+- Scope resolution mechanics: `.claude/skills/remdo-refine/tools/resolve-scope.sh`.
 - Branch base and the `origin/main...HEAD` diff contract:
   `docs/contributing.md#git-workflow`.
 - Bringing `origin/main` into the branch: `remdo-sync` skill.

@@ -1,5 +1,5 @@
 /* eslint-disable node/no-process-env */
-// tools/skills/advocate-run.sh: argument/substitution/refusal logic only —
+// advocate-run.sh (skill-local tools/): argument/substitution/refusal logic only —
 // codex is external, so it is stubbed via PATH. The stub echoes the prompt it
 // received on stdin, letting us assert placeholder substitution and capture.
 import process from 'node:process';
@@ -8,10 +8,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanupTempDirs, runScript } from '../../../.claude/skills/_shared/test-support/git-scratch';
+import { cleanupTempDirs, runScript } from '../../_shared/test-support/git-scratch';
 
 const repoRoot = process.cwd();
-const advocateScript = path.join(process.cwd(), 'tools/skills/advocate-run.sh');
+const advocateScript = path.join(__dirname, '../tools/advocate-run.sh');
 
 const tempFiles: string[] = [];
 function tempOut(): string {
@@ -43,7 +43,7 @@ const echoPromptThenProposal = `cat; printf '%s' '${PROPOSAL}'`;
 
 // Run advocate-run.sh from the real repo root with `codex` stubbed on PATH.
 function run(args: string[], stub: string) {
-  return runScript(path.join(process.cwd(), 'tools/skills/advocate-run.sh'), repoRoot, args, stub);
+  return runScript(path.join(__dirname, '../tools/advocate-run.sh'), repoRoot, args, stub);
 }
 
 afterEach(() => {
@@ -53,7 +53,7 @@ afterEach(() => {
   }
 });
 
-describe('tools/skills/advocate-run.sh', () => {
+describe('advocate-run.sh (skill-local tools/)', () => {
   it('substitutes {RULES_DOC}/{SCOPE} and captures the full codex output', () => {
     const out = tempOut();
     // Stub echoes back the prompt it read on stdin, plus a minimal proposal.

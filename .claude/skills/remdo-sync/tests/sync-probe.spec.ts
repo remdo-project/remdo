@@ -1,6 +1,5 @@
-// tools/skills/sync-probe.sh: fetch and classify up-to-date / merge-needed /
+// sync-probe.sh (skill-local tools/): fetch and classify up-to-date / merge-needed /
 // dirty-tree (the probe preceding remdo-sync's merge).
-import process from 'node:process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -12,13 +11,13 @@ import {
   makeScratchWithOrigin,
   runScript,
   writeFile,
-} from '../../../.claude/skills/_shared/test-support/git-scratch';
+} from '../../_shared/test-support/git-scratch';
 
-const run = (cwd: string) => runScript(path.join(process.cwd(), 'tools/skills/sync-probe.sh'), cwd);
+const run = (cwd: string) => runScript(path.join(__dirname, '../tools/sync-probe.sh'), cwd);
 
 afterEach(cleanupTempDirs);
 
-describe('tools/skills/sync-probe.sh', () => {
+describe('sync-probe.sh (skill-local tools/)', () => {
   it('reports up-to-date on a fresh clone at origin/main', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     const result = run(work);

@@ -38,7 +38,7 @@ should be given the same isolation by the caller (a fresh subagent).
 Use the exact scope supplied by the caller. A refine caller should pass only the
 scope and this skill, not its suspected fixes or implementation context.
 
-Resolve it by running `sh tools/skills/resolve-scope.sh [scope]` (its header
+Resolve it by running `sh .claude/skills/remdo-refine/tools/resolve-scope.sh [scope]` (its header
 states the full contract): no argument for the committed-range default (this
 branch's own work), or `working-tree` for the uncommitted changes. It prints
 `SCOPE=`/`BASE=` plus the file list. This pass is read-only and never loops, so it
@@ -206,7 +206,7 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 
 ## References
 
-- [Scope resolution](../../../tools/skills/resolve-scope.sh)
+- [Scope resolution](../../../.claude/skills/remdo-refine/tools/resolve-scope.sh)
 - [Agent guidelines](../../../AGENTS.md)
 - [Documentation invariants](../../../docs/documentation.md#invariants)
 - [Git workflow / branch base](../../../docs/contributing.md#git-workflow)

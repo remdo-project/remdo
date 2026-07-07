@@ -13,19 +13,20 @@ declare module 'markdownlint-cli2/markdownlint/promise' {
     errorDetail?: string;
   }
   interface LintOptions {
-    strings: Record<string, string>;
+    strings?: Record<string, string>;
+    files?: string[];
     customRules: unknown[];
     config: Record<string, unknown>;
   }
   export function lint(options: LintOptions): Promise<Record<string, LintError[]>>;
 }
 
-declare module '*/markdownlint-rules/temporal-status.mjs' {
+declare module '*/lint-rules/temporal-status.mjs' {
   const rule: unknown;
   export default rule;
 }
 
-declare module '*/markdownlint-rules/references-shape.mjs' {
+declare module '*/lint-rules/references-shape.mjs' {
   const rule: unknown;
   export default rule;
 }

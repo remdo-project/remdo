@@ -7,7 +7,7 @@
 #   <output-file> where the FULL codex output is captured (caller-named)
 #
 # Substitutes the two placeholders in
-# .claude/skills/remdo-docs-align/references/advocate.md, then runs
+# ../references/advocate.md (sibling of this script inside the skill), then runs
 # `codex exec --sandbox read-only` from the repo root (a git cwd — codex's trust
 # check needs one) with the prompt on stdin. Captures the complete output (no
 # truncation) to <output-file>. Retries once when the first run fails, writes
@@ -46,10 +46,14 @@ out=${3-}
 # would run the advocate over a truncated scope.
 [ "$#" -eq 3 ] || fail "expected exactly 3 arguments, got $# (usage: advocate-run.sh <rules-doc> <scope> <output-file>)"
 
-# Repo root: codex's trust check needs a git working dir, and the template path
-# is repo-relative. Derive it from this script's location, not $PWD.
-repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
-template="$repo_root/.claude/skills/remdo-docs-align/references/advocate.md"
+# The template is a sibling of this script inside the skill (references/);
+# resolve from the script's location, not $PWD.
+skill_dir=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+template="$skill_dir/references/advocate.md"
+# Repo root (three levels above the skill dir): codex's trust check needs a
+# git working dir; derive from the script location so worktree checkouts run
+# codex in their own tree regardless of caller $PWD.
+repo_root=$(CDPATH='' cd -- "$skill_dir/../../.." && pwd)
 [ -f "$template" ] || fail "advocate template not found at $template"
 
 # Build the prompt: take the template body after the '---' separator (the header

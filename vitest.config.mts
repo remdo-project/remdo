@@ -17,26 +17,25 @@ export default defineConfig({
     include: [
       ...configDefaults.include,
       'tests/unit/**/*.spec.{ts,tsx}',
-      '.claude/skills/**/tests/**/*.spec.{ts,tsx}',
+      // Skill-local specs under .claude/ are hidden from the crawler; they
+      // register via tests/unit/skills/embedded.spec.ts (self-guarded).
     ],
     // Root config/manifest edits affect every test but aren't imported by any
     // test file, so `--changed` would otherwise find nothing and false-pass.
     // `--changed` matches these against absolute paths, so single-file patterns
     // need a `**/` prefix and no trailing `/**` (the vitest defaults assume
     // config is a dir); directory triggers use a trailing `/**` to match any
-    // file within. The tools/skills and tools/markdownlint-rules trees (plus the
-    // cli2 config) are spawned or read at runtime by their specs, never imported,
-    // so `--changed` can't reach them either — trigger their specs to rerun when
-    // any file under them changes.
+    // file within. Skill-local tools (plus the cli2 config) are spawned or read
+    // at runtime by their specs, never imported, so `--changed` can't reach
+    // them either — trigger their specs to rerun when any file under them
+    // changes.
     forceRerunTriggers: [
       ...configDefaults.forceRerunTriggers,
       '**/vitest.config.*',
       '**/package.json',
       '**/pnpm-lock.yaml',
       '**/tsconfig*.json',
-      '**/tools/skills/**',
       '**/.claude/skills/**/tools/**',
-      '**/tools/markdownlint-rules/**',
       '**/.markdownlint-cli2.jsonc',
     ],
     exclude: [

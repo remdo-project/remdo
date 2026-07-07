@@ -24,22 +24,18 @@
     ".claude/skills/remdo-deps-refresh",
     ".codex/skills/remdo-deps-refresh"
   ],
-  // Link/anchor validation and the two RemDo prose invariants ride
-  // markdownlint's own parser (no hand-rolled fence/slug scanning):
-  // - relative-links: relative-link existence + `#fragment` heading match
-  //   (MD051-style), external and absolute paths ignored.
-  // - remdo-temporal-status / remdo-references-shape: RemDo doc invariants,
-  //   self-scoped to docs/ (see each rule).
+  // Link/anchor validation rides markdownlint's own parser:
+  // relative-link existence + `#fragment` heading match (MD051-style),
+  // external and absolute paths ignored. The RemDo doc-invariant rules
+  // (temporal-status, references-shape) are NOT part of this product gate —
+  // they are the remdo-docs-align skill's private tools
+  // (.claude/skills/remdo-docs-align/tools/check-doc-rules.sh).
   "customRules": [
-    "markdownlint-rule-relative-links",
-    "./tools/markdownlint-rules/temporal-status.mjs",
-    "./tools/markdownlint-rules/references-shape.mjs"
+    "markdownlint-rule-relative-links"
   ],
   "config": {
     "default": true,
     "relative-links": { "root_path": "." }, // root-relative `/docs/...` links validate against the repo root
-    "remdo-temporal-status": true,
-    "remdo-references-shape": true,
     "MD013": {
       "line_length": 120,
       "code_block_line_length": 0,

@@ -30,7 +30,7 @@ Sync runs on whatever branch is checked out (no branch-name gate).
 
 ## The flow
 
-**Probe first: run `sh tools/skills/sync-probe.sh`** (its header states the full
+**Probe first: run `sh .claude/skills/remdo-sync/tools/sync-probe.sh`** (its header states the full
 contract). It fetches and classifies whether `origin/main` still needs merging,
 printing one `STATE=` line. Act on it:
 
@@ -79,7 +79,7 @@ was skipped for a fast-forward).
 
 - Rebase-vs-merge / force-push tradeoff:
   <https://www.atlassian.com/git/tutorials/merging-vs-rebasing>.
-- Status-probe mechanics: `tools/skills/sync-probe.sh`.
+- Status-probe mechanics: `.claude/skills/remdo-sync/tools/sync-probe.sh`.
 - Branch base (`origin/main...HEAD`) and the diff contract:
   `docs/contributing.md#git-workflow`.
 - Skill-authoring rule and fetch/push policy: `AGENTS.md`.

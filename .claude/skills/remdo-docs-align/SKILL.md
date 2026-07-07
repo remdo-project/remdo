@@ -18,7 +18,7 @@ tie-breaker, so preserve that structure when editing this skill.
 - **Rules doc**: `docs/documentation.md` unless the caller names another
   with equivalent carve-outs (the templates assume its carve-out structure).
 - **Scope**, fixed at invocation: the working tree (uncommitted doc
-  changes), a committed range (resolved via `tools/skills/resolve-scope.sh`, its
+  changes), a committed range (resolved via `.claude/skills/remdo-refine/tools/resolve-scope.sh`, its
   header states the contract), or an explicit file set (e.g. the whole corpus for
   a realignment). A diff scope selects its touched files, read whole.
 - Authoring new content is out of scope: write-time rules do not prevent
@@ -30,15 +30,17 @@ tie-breaker, so preserve that structure when editing this skill.
 Each stage has file-shaped inputs and outputs and can run alone; together
 they run in this order.
 
-1. **Gates.** Run `pnpm run lint:md` and fix to clean. (The
-   deterministic wording gate covers `docs/` prose only; skill-file prose is
-   covered by the align/advocate stages, not the gate.) On a scope
+1. **Gates.** Run `pnpm run lint:md` (the product's style/link gate) and
+   `sh .claude/skills/remdo-docs-align/tools/check-doc-rules.sh` (this
+   skill's private doc-invariant rules — temporal wording, References shape —
+   over `docs/` prose; skill-file prose is covered by the align/advocate
+   stages, not the gates) and fix to clean. On a scope
    narrower than the corpus,
    clean means no new findings versus the pre-run baseline; pre-existing
    out-of-scope findings go to the stage-5 report.
 2. **Align pass.** An editor fixes the remaining rule violations across the
    scope, re-running the gates after each batch.
-3. **Advocate.** Run `sh tools/skills/advocate-run.sh <rules-doc> <scope>
+3. **Advocate.** Run `sh .claude/skills/remdo-docs-align/tools/advocate-run.sh <rules-doc> <scope>
    <output-file>` — invoke the script directly in exactly that form, in the
    foreground; MUST NOT wrap it in a helper script, background it, or
    re-implement its steps (a backgrounded run is orphaned when a headless
