@@ -26,7 +26,6 @@
     ".claude/skills/remdo-sync",
     ".codex/skills/remdo-deps-refresh",
     ".codex/skills/remdo-docs-align",
-    ".codex/skills/remdo-refine",
     ".codex/skills/remdo-simplify",
     ".codex/skills/remdo-sync"
   ],
