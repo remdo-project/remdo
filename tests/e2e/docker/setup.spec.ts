@@ -10,8 +10,10 @@ import {
   waitForServiceWorkerControl,
 } from './_support/helpers';
 
-test('admin self-enrollment creates the first admin and opens the editor', async ({ page }) => {
-  await page.goto('/home');
+test('admin self-enrollment creates the first admin and can open the editor', async ({ page }) => {
+  const staleDocumentPath = '/n/staleDocBeforeEnroll';
+
+  await page.goto(staleDocumentPath);
 
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   await page.getByRole('link', { name: 'Become admin' }).click();
@@ -22,9 +24,8 @@ test('admin self-enrollment creates the first admin and opens the editor', async
   await page.fill('input[autocomplete="new-password"]', DOCKER_TEST_AUTH.password);
   await page.click('button[type="submit"]');
 
-  await page.waitForURL(/\/n\//);
-  await expect(page.locator('.document-editor-shell')).toBeVisible();
-  await waitForEditableEditor(page);
+  await expect(page).toHaveURL(/\/admin$/u);
+  await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible();
 
   await page.goto('/home');
   await page.waitForURL(/\/n\//u);
