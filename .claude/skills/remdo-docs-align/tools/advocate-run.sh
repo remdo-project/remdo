@@ -128,17 +128,13 @@ attempt() {
 }
 
 # First attempt; retry once on failure, an empty artifact, or no proposals.
-if attempt; then
-  echo "ADVOCATE=ok"
-  echo "OUTPUT=$out"
-  exit 0
-fi
-
-if attempt; then
-  echo "ADVOCATE=ok"
-  echo "OUTPUT=$out"
-  echo "RETRIED=1"
-  exit 0
-fi
+for n in 1 2; do
+  if attempt; then
+    echo "ADVOCATE=ok"
+    echo "OUTPUT=$out"
+    [ "$n" -eq 2 ] && echo "RETRIED=1"
+    exit 0
+  fi
+done
 
 fail "codex advocate run failed or produced no numbered proposals after one retry — see $out"
