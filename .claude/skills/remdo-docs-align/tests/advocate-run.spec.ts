@@ -155,6 +155,20 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(result.stdout).toContain('PROPOSALS=none');
   });
 
+  it('creates the output parent directory when it does not exist', () => {
+    // A repo-local output path whose parent has not been created (the fresh
+    // worktree case, e.g. a not-yet-created .agent/tmp/); the script must make
+    // it rather than fail the capture redirect and misreport an advocate error.
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), 'advocate-mkdir-'));
+    tempFiles.push(base);
+    const out = path.join(base, 'nested', 'dir', 'proposal.md');
+    const stub = stubDir(echoPromptThenProposal);
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('ADVOCATE=ok');
+    expect(fs.existsSync(out)).toBe(true);
+  });
+
   it('splices a scope containing & literally (no gsub replacement semantics)', () => {
     const out = tempOut();
     const stub = stubDir(echoPromptThenProposal);

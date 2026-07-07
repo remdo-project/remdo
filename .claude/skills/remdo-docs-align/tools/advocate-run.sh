@@ -29,7 +29,8 @@
 #     retry also has neither, a non-zero exit. A NO-PROPOSALS result emits
 #     ADVOCATE=ok with PROPOSALS=none so the caller skips adjudication cleanly.
 # Fails loud (non-zero + stderr) on missing or extra args, a missing template,
-# or a second run with neither proposals nor the sentinel.
+# an uncreatable output directory, or a second run with neither proposals nor
+# the sentinel.
 set -eu
 
 fail() {
@@ -83,6 +84,13 @@ prompt=$(
       '
 )
 [ -n "$prompt" ] || fail "empty prompt after substitution — template may be malformed"
+
+# Ensure the output file's parent exists, so the capture redirect below can't
+# fail on a fresh checkout/worktree (e.g. a not-yet-created .agent/tmp/) and be
+# misreported as an advocate failure. The redirect uses $out as given (relative
+# to the caller's cwd), so resolve the parent the same way.
+out_dir=$(dirname -- "$out")
+mkdir -p -- "$out_dir" || fail "cannot create output directory '$out_dir'"
 
 run_codex() {
   # Full output (stdout+stderr) to the file, no truncation. Runs from repo root.

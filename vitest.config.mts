@@ -36,6 +36,10 @@ export default defineConfig({
       '**/pnpm-lock.yaml',
       '**/tsconfig*.json',
       '**/.claude/skills/**/tools/**',
+      // Prompt/reference templates a skill tool reads at runtime (e.g.
+      // advocate-run.sh substitutes references/advocate.md; its spec asserts
+      // that coupling) are also never imported, so trigger their specs on edit.
+      '**/.claude/skills/**/references/**',
       '**/.markdownlint-cli2.jsonc',
     ],
     exclude: [
