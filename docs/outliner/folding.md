@@ -25,7 +25,7 @@ note identities.
    like any other edit.
 5. If folding would hide the active selection, it collapses to the folded note
    (caret at end of its text). Hidden descendants are not selectable.
-6. Structural operations remain subtree-atomic; insertion rules in
+6. Insertion rules in
    [Insertion](./insertion.md) are unchanged. If a child is inserted or moved under a
    folded parent, the parent auto-expands. If a note loses its last child, it is
    no longer folded.

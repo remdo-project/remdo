@@ -28,9 +28,7 @@ removed note's children to the survivor — see [Deletion](./deletion.md).
 Indenting a note selection is allowed only when the selection has an immediate
 preceding sibling; the indented notes become that sibling's children. A
 contiguous sibling selection nests as one unit, preserving its order and
-internal structure. Without such a sibling (for example the first note at its
-level), indent is a no-op.
-
+internal structure. Without such a sibling , indent is a no-op.
 
 ## Valid Outdentation
 

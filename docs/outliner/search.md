@@ -62,7 +62,7 @@ and zooming to a result.
 ## Result row context
 
 Result rows carry enough structural context to tell apart matches that share the
-same text, without zooming into one (which ends Search Mode). Every row uses the
+same text, . Every row uses the
 same layout regardless of highlight, so moving the highlight only restyles the
 selected row and never re-lays-out the list.
 

@@ -42,8 +42,7 @@ live in [Links](./links.md).
 
 ## Caret-position placement (collapsed selection)
 
-- Single-line plain text pastes into the note's text at the caret, replacing
-  any inline selection as normal.
+- Single-line plain text pastes into the note's text at the caret,
 - Pasting notes or multi-line plain text inserts multiple notes (one line per
   note for plain text).
 - Placement follows the caret-position rules from [Insertion](./insertion.md),

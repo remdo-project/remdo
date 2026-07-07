@@ -39,8 +39,7 @@ resulting placement stays inside the zoom boundary:
 
 ## Structural guarantees
 
-1. [Subtree-atomic moves](./note-structure-rules.md#subtree-atomic-move) still
-   apply: a note always moves with all descendants.
+1.
 2. [Selection](./selection.md) constraints still apply: reorder operates on
    contiguous [sibling slabs](./concepts.md#definitions).
 3. Reparent/outdent fallback changes depth by at most one level per command.

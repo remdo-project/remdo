@@ -9,8 +9,7 @@ Define RemDo-owned inline date behavior in the outliner.
 1. Dates are non-text inline RemDo nodes with a stored ISO date (`YYYY-MM-DD`)
    and a readable local label such as `Jun 10, 2026`.
 2. `!` is an inline trigger character; its open/dismiss/confirm lifecycle is the
-   shared one in [Editor popups](./popups.md). The rest of this spec
-   is date-specific.
+   shared one in [Editor popups](./popups.md).
 3. The `!` picker is a **modal calendar dialog**: opening it moves focus into a
    month-grid calendar (the shared contract's per-widget trapping focus model),
    with today (the user's local browser date) preselected.

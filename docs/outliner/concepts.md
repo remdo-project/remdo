@@ -114,9 +114,7 @@ Lexical node shape:
 
 ### Indentation (concept vs. adapter)
 
-- Conceptually, RemDo models a tree: every note has exactly one parent, so a
-  child is always exactly one level deeper than its parent (no multi-level
-  jumps); the editing invariants for restructuring (indent/outdent,
+- Conceptually, RemDo models a tree: every note has exactly one parent,  the editing invariants for restructuring (indent/outdent,
   reordering) live in [Note Structure Rules](./note-structure-rules.md).
 - In the Lexical adapter, nesting is represented by a wrapper list item plus a
   nested list. The `indent` field is treated as metadata and must agree with the
