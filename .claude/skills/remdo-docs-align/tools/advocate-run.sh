@@ -28,6 +28,9 @@
 #     failed run (e.g. codex died mid-read), so it triggers the retry and, if the
 #     retry also has neither, a non-zero exit. A NO-PROPOSALS result emits
 #     ADVOCATE=ok with PROPOSALS=none so the caller skips adjudication cleanly.
+# Output: <output-file> holds the canonical numbered proposal table (or the
+# NO PROPOSALS sentinel) ready for stage-4 adjudication; <output-file>.raw
+# keeps the full codex capture for provenance.
 # Fails loud (non-zero + stderr) on missing or extra args, a missing template,
 # an uncreatable output directory, or a second run with neither proposals nor
 # the sentinel.
@@ -127,30 +130,67 @@ dedup_artifact() {
 # "NO PROPOSALS" sentinel. A trace with neither is a failed run (codex died
 # mid-read), not an empty-but-fine result.
 #
-# A proposal is a *block*: a numbered item (a line starting `N.`) with a
-# "Replacement:" line within the next few lines (a real proposal states its
-# replacement right under the numbered head). Checking that adjacency — not the
-# two substrings independently anywhere in the file — rejects a died-mid-read
-# trace that merely echoes the prompt, whose numbered scope lines and distant
-# format-spec `Replacement:` mention never sit in one block. This is a sanity
-# guard against a truncated run, not an adversarial validator; the WINDOW is the
-# few-line span a genuine proposal head-to-Replacement occupies.
+# Normalize the raw capture into the canonical stage-4 table: one block per
+# proposal, renumbered sequentially, single-line label values. A block is
+# anchored on a `Text:` (or legacy `Quote:`) line; the nearest preceding
+# non-empty line is its location (leading numbering, backticks, and a `file:`
+# prefix are stripped). Only the known labels survive; the reading trace and
+# prompt echo are dropped — the raw capture stays in "$out.raw" for
+# provenance. Observed drifts this absorbs: unnumbered label blocks,
+# Quote:/Text: label swap, wrapped label values.
+normalize_artifact() {
+  cp -- "$out" "$out.raw"
+  if grep -qx 'NO PROPOSALS' "$out"; then
+    printf 'NO PROPOSALS\n' >"$out.norm"
+  else
+    awk '
+      function flushlabel() { if (label != "") { print label ": " val; label = ""; val = "" } }
+      function startblock(loc) {
+        flushlabel()
+        n++
+        sub(/^[[:space:]]*[0-9]+[.)][[:space:]]*/, "", loc)
+        gsub(/`/, "", loc)
+        sub(/^file:[[:space:]]*/, "", loc)
+        if (n > 1) print ""
+        print n ". file: " loc
+      }
+      /^(Text|Quote):/ {
+        startblock(prev)
+        label = "Text"; val = $0; sub(/^(Text|Quote):[[:space:]]*/, "", val)
+        prev = $0; next
+      }
+      /^(Replacement|Rule|Risk test):/ {
+        if (n > 0) {
+          flushlabel()
+          label = $0; sub(/:.*$/, "", label)
+          val = $0; sub(/^[^:]*:[[:space:]]*/, "", val)
+        }
+        prev = $0; next
+      }
+      /^[[:space:]]*$/ { flushlabel(); prev = ""; next }
+      {
+        if (label != "") val = val " " $0
+        prev = $0
+      }
+      END { flushlabel() }
+    ' "$out" >"$out.norm"
+  fi
+  mv -- "$out.norm" "$out"
+}
+
 has_proposal() {
-  [ -s "$out" ] && awk '
-    /^[[:space:]]*[0-9]+\./ { since = 0; seen = 1; next }
-    seen { since++ }
-    seen && since <= 6 && /Replacement:/ { found = 1; exit }
-    END { exit(found ? 0 : 1) }
-  ' "$out"
+  [ -s "$out" ] && grep -qE '^[0-9]+\. file: ' "$out"
 }
 is_no_proposals() {
   [ -s "$out" ] && grep -qx 'NO PROPOSALS' "$out"
 }
 
-# One attempt: capture, de-dup, then require either proposals or the sentinel.
+# One attempt: capture, de-dup, normalize, then require either proposals or
+# the sentinel (structural check on the canonical table, not a heuristic).
 attempt() {
   run_codex || return 1
   dedup_artifact
+  normalize_artifact
   has_proposal || is_no_proposals
 }
 

@@ -28,7 +28,7 @@ function stubDir(body: string): string {
 // A minimal valid proposal block appended after the echoed prompt so the
 // artifact passes the script's "at least one numbered proposal" check while the
 // substitution/capture assertions still see the full prompt.
-const PROPOSAL = '\n1. `docs/config.md:18`\nReplacement: DELETE\n';
+const PROPOSAL = '\n1. `docs/config.md:18`\nText: "settable variables"\nReplacement: DELETE\n';
 
 // Stub body: echo the prompt read on stdin, then a minimal valid proposal. Used
 // by the cases that assert substitution/capture (they inspect the echoed prompt)
@@ -52,14 +52,19 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('ADVOCATE=ok');
     expect(result.stdout).toContain('PROPOSALS=some');
-    const captured = fs.readFileSync(out, 'utf8');
-    // Placeholders replaced with the passed values, none left literal.
-    expect(captured).toContain('docs/documentation.md');
-    expect(captured).toContain('docs/note-structure-rules.md');
-    expect(captured).not.toContain('{RULES_DOC}');
-    expect(captured).not.toContain('{SCOPE}');
+    // Substitution/capture is verified on the raw artifact; the main output
+    // is the normalized table (trace dropped).
+    const raw = fs.readFileSync(`${out}.raw`, 'utf8');
+    expect(raw).toContain('docs/documentation.md');
+    expect(raw).toContain('docs/note-structure-rules.md');
+    expect(raw).not.toContain('{RULES_DOC}');
+    expect(raw).not.toContain('{SCOPE}');
     // Prompt body (not just the placeholders) reached codex — full, untruncated.
-    expect(captured).toContain('DELETION ADVOCATE');
+    expect(raw).toContain('DELETION ADVOCATE');
+    // The canonical table holds only the renumbered proposal block.
+    const captured = fs.readFileSync(out, 'utf8');
+    expect(captured).toMatch(/^1\. file: docs\/config\.md:18/);
+    expect(captured).not.toContain('DELETION ADVOCATE');
   });
 
   it('retries once when the first codex run produces no output', () => {
@@ -73,7 +78,7 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('RETRIED=1');
-    expect(fs.readFileSync(out, 'utf8')).toContain('DELETION ADVOCATE');
+    expect(fs.readFileSync(`${out}.raw`, 'utf8')).toContain('DELETION ADVOCATE');
   });
 
   it('fails loud when codex fails on both attempts', () => {
@@ -114,9 +119,12 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('ADVOCATE=ok');
     const captured = fs.readFileSync(out, 'utf8');
-    // Each proposal (and its Replacement line) appears exactly once.
+    // Each proposal (and its Replacement line) appears exactly once, in
+    // canonical renumbered form (Quote: label canonicalized to Text:).
     expect(captured.match(/Replacement:/g)).toHaveLength(2);
-    expect(captured.match(/1\. `docs\/config\.md:18`/g)).toHaveLength(1);
+    expect(captured.match(/1\. file: docs\/config\.md:18/g)).toHaveLength(1);
+    expect(captured.match(/2\. file: docs\/config\.md:58/g)).toHaveLength(1);
+    expect(captured.match(/Text: /g)).toHaveLength(2);
     // The redundant "tokens used" marker (and the reprint after it) is gone.
     expect(captured).not.toContain('tokens used');
   });
@@ -171,9 +179,9 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     // it verbatim rather than expanding it to the placeholder text.
     const result = run(['docs/documentation.md', 'files A & B', out], stub);
     expect(result.status).toBe(0);
-    const captured = fs.readFileSync(out, 'utf8');
-    expect(captured).toContain('files A & B');
-    expect(captured).not.toContain('{SCOPE}');
+    const raw = fs.readFileSync(`${out}.raw`, 'utf8');
+    expect(raw).toContain('files A & B');
+    expect(raw).not.toContain('{SCOPE}');
   });
 
   it('refuses a fourth argument', () => {

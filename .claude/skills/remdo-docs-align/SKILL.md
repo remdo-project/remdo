@@ -53,9 +53,12 @@ they run in this order.
    `PROPOSALS=none` (the advocate emitted its `NO PROPOSALS` sentinel — a clean
    no-op on an already-minimal scope), skip stage 4 and note the no-op in the
    report; there is nothing to adjudicate.
-4. **Adjudicate (dual).** Two independent, fresh, contextless adjudicators
+4. **Adjudicate (dual).** First suppress: drop table entries whose quoted
+   text matches `references/standing-keeps.md` (user-settled keeps; report
+   the count — removing a ledger entry is how a keep is reopened). Then two
+   independent, fresh, contextless adjudicators
    — never the session that ran stages 1-3 — each produce verdict-only
-   dispositions over the proposal table per `references/adjudicate.md`,
+   dispositions over the remaining table per `references/adjudicate.md`,
    without editing anything or seeing each other. Mechanically diff the two
    verdict lists: agreed APPLYs are applied by the editor, agreed REJECTs
    are recorded, and every disagreement becomes an ESCALATE row — decided by

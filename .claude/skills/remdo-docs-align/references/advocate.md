@@ -35,10 +35,11 @@ rationale stays where dropping it would invite relitigating a settled choice;
 a skill's procedural steps and sibling-link References are its contract.
 
 For each proposal output these labelled lines, in order and with these exact
-labels — a downstream check keys on the literal `Replacement:` label, so use it
-verbatim (write `Replacement: DELETE` for a whole-clause removal):
+labels — a downstream normalizer keys on them, so use them verbatim (write
+`Replacement: DELETE` for a whole-clause removal). Number proposals
+sequentially from 1:
 
-- `file:line`
+- `N. file:line`
 - `Text:` the exact quoted text
 - `Replacement:` the replacement text, or `DELETE`
 - `Rule:` the rule licensing removal
