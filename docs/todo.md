@@ -498,6 +498,12 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 ## remdo-refine follow-ups
 
+- Loop structure: per-rung settle-loops nest inside full-ladder confirmation
+  cycles, and both terminate on judgment ("returns nothing more to apply" /
+  "nothing worth fixing") — against stochastic reviewers that resample findings
+  per run, termination is dispositional, not structural, and worst-case cost
+  multiplies; rung re-runs also re-review the whole diff rather than the delta
+  since that rung's last pass.
 - Add more external review tools/skills/programs worth considering in the refine
   ladder beyond `codex review` (e.g. other reviewers or static analyzers);
   evaluate each for fit and independence before adding a rung.
