@@ -40,7 +40,7 @@ they run in this order.
    out-of-scope findings go to the stage-5 report.
 2. **Align pass.** An editor fixes the remaining rule violations across the
    scope, re-running the gates after each batch.
-3. **Advocate.** Run the configured advocate surface. The repo default is
+3. **Advocate.** Run the Codex advocate:
    `sh .agents/skills/remdo-docs-align/tools/advocate-run.sh <rules-doc> <scope>
    <output-file>` — invoke the script directly in exactly that form, in the
    foreground; MUST NOT wrap it in a helper script, background it, or
@@ -48,11 +48,8 @@ they run in this order.
    session ends its turn). Use a repo-local `<output-file>` such as
    `.agent/tmp/advocate.txt` (headless editors cannot read `/tmp`); the
    script header states the full contract. It captures the numbered proposal
-   table. When the editor and advocate run on different model families, preserve
-   that split; when the current runtime has no different-family advocate
-   configured, use the default script and report the same-family limitation in
-   stage 5. On a non-zero exit (the retry also failed), surface it in
-   the stage-5 report rather than proceeding to adjudicate an empty table. On
+   table. On a non-zero exit (the retry also failed), surface it in the stage-5
+   report rather than proceeding to adjudicate an empty table. On
    `PROPOSALS=none` (the advocate emitted its `NO PROPOSALS` sentinel — a clean
    no-op on an already-minimal scope), skip stage 4 and note the no-op in the
    report; there is nothing to adjudicate.

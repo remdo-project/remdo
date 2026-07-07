@@ -24,9 +24,17 @@ Codex session out of the review context:
 2. **Internal-review rung** — use a fresh Codex review subagent or the closest
    Codex review-mode equivalent, again with scope only and no leading review
    angle.
-3. **External-review rung** — use a configured non-coordinating reviewer outside
-   the current Codex session. If no such reviewer is available, stop and report
-   the missing dependency rather than silently dropping the rung.
+3. **External-review rung** — use the first available non-coordinating reviewer
+   from this ordered list:
+   1. `coderabbit:code-review` / `coderabbit review --agent` when the CodeRabbit
+      plugin is installed and authenticated. Committed-range scope uses
+      `--base-commit <anchored-base-sha>`; working-tree scope uses
+      `-t uncommitted`.
+   2. `codex review` as a separate noninteractive process when CodeRabbit is not
+      available. Committed-range scope uses `--base <anchored-base-sha>`;
+      working-tree scope uses `--uncommitted`.
+   If neither reviewer is available, stop and report the missing dependency
+   rather than silently dropping the rung.
 
 If the user invoked `$remdo-refine` without explicitly authorizing subagents or
 parallel delegation, ask for that authorization before the first subagent-backed

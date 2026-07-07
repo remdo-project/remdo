@@ -426,6 +426,10 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 - Consider publishing the skill to the open Agent Skills registry once it is
   polished and battle-tested in this project (would need a bundled starter
   rules-doc template).
+- Restore a cross-family advocate for Codex-run `remdo-docs-align`: the shared
+  pipeline uses the existing Codex advocate script for now, so when Codex is the
+  editor the advocate is same-family. Add a Codex adapter that routes the
+  advocate stage to a non-Codex reviewer once a reliable one is available.
 - Unresolved: negation clauses that restate an adjacent rule (the deps-refresh
   "not human judgement" / "never lands on `main`" specimens) — the advocate
   declined them in every experiment run and a negation-priority prompt line
