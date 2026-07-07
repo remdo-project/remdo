@@ -64,7 +64,7 @@ bootstrapped key/server-token pair (see
   account.
 - Notes:
   1. required in the Render Dashboard: `ADMIN_SECRET` and `APP_PUBLIC_URL`; the
-     rest bootstrap onto the mounted disk, which must be persistent
+     rest bootstrap onto the persistent disk mounted at `/data`
   2. `ALLOW_SIGNUP` should stay `false`
   3. the service binds the Render-injected `PORT` and Render terminates public
      HTTPS

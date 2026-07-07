@@ -60,9 +60,9 @@ Guardrails:
 
 - Generated secret files are written `0600` and stay outside the image build
   context.
-- In production `DATA_DIR` must be a persistent mount; startup fails loudly
-  rather than regenerate secrets against an existing dataset. A persisted
-  `DATA_DIR` is single-instance.
+- In production `DATA_DIR` must be a persistent mount (`/data` in the production
+  Docker image); startup fails loudly rather than regenerate secrets against an
+  existing dataset. A persisted `DATA_DIR` is single-instance.
 
 ## Admin bootstrap and enrollment
 

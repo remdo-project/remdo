@@ -1,7 +1,9 @@
 #!/usr/bin/env sh
 set -euo pipefail
 
-# Default to the writable runtime root inside the container.
+# Default to the writable runtime root inside the container. DATA_DIR needs no
+# handling here: the image's `ENV DATA_DIR=/data` already exports it into this
+# process (and thus into the sourced env.defaults.sh and every child).
 : "${REMDO_ROOT:=/app}"
 export REMDO_ROOT
 

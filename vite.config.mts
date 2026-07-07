@@ -7,7 +7,7 @@ export default defineConfig({
   ...sharedConfig,
   build: {
     ...sharedConfig.build,
-    outDir: "data/dist",
+    outDir: "dist",
     assetsDir: "app-assets",
     emptyOutDir: true,
   },
