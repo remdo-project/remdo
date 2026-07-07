@@ -358,4 +358,24 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('template not found');
   });
+
+  it('does not reuse a stale final-message file from a previous run', () => {
+    const out = tempOut();
+    // Seed a stale .msg from a "previous run"; the stub exits 0 without
+    // writing a new one — the script must fail/retry, not normalize the relic.
+    fs.writeFileSync(`${out}.msg`, '1. `docs/old.md:1`\nText: "stale"\nReplacement: DELETE\n');
+    const stub = stubDir(`${PARSE_ARGS}\nexit 0`); // parses args, writes no message
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.status).not.toBe(0);
+  });
+
+  it('rejects a final message whose labels have no location-shaped line', () => {
+    const out = tempOut();
+    const msg = 'I found one proposal:\nText: "some quote"\nReplacement: DELETE\n';
+    const stub = stubDir(`${PARSE_ARGS}\nprintf '%s' "${msg}" > "$MSG"`);
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    // No location-shaped line anywhere: no block minted, validation fails loud.
+    expect(result.status).not.toBe(0);
+    expect(fs.readFileSync(out, 'utf8')).not.toContain('I found one proposal');
+  });
 });

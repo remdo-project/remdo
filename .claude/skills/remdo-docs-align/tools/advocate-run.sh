@@ -105,6 +105,10 @@ run_codex() {
   # message to "$out.msg" (no reading trace, no reprint), which the normalizer
   # reads. The full mixed stream (stdout+stderr) goes to "$out.raw" for
   # provenance — this is the genuinely full capture. Runs from repo root.
+  # Clear any previous run's final message first: a stale "$out.msg" would
+  # otherwise pass the size check below when codex exits 0 without writing one,
+  # silently normalizing the old table.
+  rm -f -- "$out.msg"
   ( cd -- "$repo_root" \
       && printf '%s\n' "$prompt" \
       | codex exec --sandbox read-only -o "$out.msg" - ) \
@@ -150,9 +154,17 @@ normalize_artifact() {
       next
     }
     /^(Text|Quote):/ {
-      startblock(prev)
+      # Mint only from a location-shaped line (numbered, or a path-like token
+      # with a slash / dot-extension). Arbitrary prose above the label must not
+      # become a bogus "file:" row; with no valid location the block is not
+      # minted, the labels fold nowhere, and validation fails the run loudly.
+      if (prev ~ /^[[:space:]]*[0-9]+[.)][[:space:]]/ || prev ~ /`?(file:[[:space:]]*)?[^ ]*[/.][^ ]*:?[0-9]*`?[[:space:]]*$/ && prev ~ /[/.]/ && prev !~ /[[:space:]].*[[:space:]].*[[:space:]]/) {
+        startblock(prev)
+      } else if (pending_loc != "") {
+        startblock(pending_loc)
+      }
       pending_loc = ""
-      label = "Text"; val = $0; sub(/^(Text|Quote):[[:space:]]*/, "", val)
+      if (n > 0) { label = "Text"; val = $0; sub(/^(Text|Quote):[[:space:]]*/, "", val) }
       prev = $0; next
     }
     /^(Replacement|Rule|Risk test|Borderline):/ {
