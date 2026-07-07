@@ -25,10 +25,9 @@ specialization of this contract; the contract is independent of how each opens.
    as its query; while the selection is inside that span, ordinary text-editing
    keys (printable characters, `Backspace`) stay the editor's and edit the query.
 4. **Light-dismiss.** `Escape` and a pointer press outside the editor and popup
-   both **cancel** — they close it and apply nothing. The popup never commits on
-   blur, light-dismiss, or `Tab`, and never commits an unconfirmed highlight.
-   Commit happens only through an explicit per-widget commit action (each widget
-   declares its commit keys); confirming applies the result and closes.
+   both **cancel** — they close it and apply nothing. Commit happens only through
+   an explicit per-widget commit action (each widget declares its commit keys);
+   confirming applies the result and closes.
 5. **`Tab` behavior is declared per widget**, as one of: **close and fall
    through** to the editor's normal `Tab` action (the popup closes, then
    deliberately routes the key onward — an explicit outcome, not a leak), or
@@ -57,9 +56,7 @@ text the user did not freshly invoke.
    boundary — the start of note text, after whitespace, after opening punctuation
    (`(`, `[`, `{`), or after an atomic inline token (a decorator node such as a
    date). So `done!` and `a@b` stay plain text, and moving the caret back beside an
-   already-typed trigger never reopens the picker. Because an open popup owns the
-   keyboard, a trigger character typed while any popup is open is just a key the
-   open popup owns — it never stacks a second picker.
+   already-typed trigger never reopens the picker.
 2. **Editable query (`@` only).** The `@` picker treats its span as a live query:
    per the editable-span exception, ordinary typing and `Backspace` edit the text
    after `@` and refilter. The `!` picker has no query — it opens its calendar

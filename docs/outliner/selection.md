@@ -24,8 +24,7 @@ keystrokes that would type become no-ops and structural commands take over.
 
 A selection can never partially cross a note boundary. The moment a text
 selection extends beyond one note's content, it snaps to a **contiguous run of
-sibling notes, each including its entire subtree** — nothing in that slice is
-skipped or partially selected.
+sibling notes, each including its entire subtree**.
 
 ## The selection ladder
 
@@ -68,9 +67,7 @@ Direction and reversal:
 - Contraction bottoms out at the anchor and then collapses to the caret, which
   fully resets the ladder. From that bare caret, the next `Shift+Arrow` starts a
   fresh ladder in the pressed direction — `Up` grows up, `Down` grows down — just
-  like beginning a new selection. (The ladder never auto-reverses *while a
-  structural selection still exists*; reversal there only pops toward the
-  anchor.)
+  like beginning a new selection.
 - A press that would extend past the document or zoom boundary is a no-op.
 - `Cmd/Ctrl+A` is direction-neutral: it only ever grows the ladder outward (its
   slab rung covers the whole sibling group either way), so it never inherits a

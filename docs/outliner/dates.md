@@ -14,8 +14,7 @@ Define RemDo-owned inline date behavior in the outliner.
 3. The `!` picker is a **modal calendar dialog**: opening it moves focus into a
    month-grid calendar (the shared contract's per-widget trapping focus model),
    with today (the user's local browser date) preselected. Typed query text is
-   not interpreted (see Non-goals / future), so the calendar is the only way to
-   choose.
+   not interpreted (see Non-goals / future).
 4. The calendar owns its keyboard while open: `ArrowLeft`/`Right` move by a day,
    `ArrowUp`/`Down` by a week, `Home`/`End` to the start/end of the week,
    `PageUp`/`PageDown` by a month, `Shift+PageUp`/`PageDown` by a year. The editor
@@ -58,8 +57,7 @@ Define RemDo-owned inline date behavior in the outliner.
 2. [Future] Support typed date queries or natural-language date parsing after
    `!`.
 3. [Future] Give the calendar its own chrome (month/year navigation controls) and
-   have `Tab` cycle those controls within the dialog instead of cancelling —
-   there are no controls to cycle to, so `Tab` cancels (see 5).
+   have `Tab` cycle those controls within the dialog.
 
 ## References
 

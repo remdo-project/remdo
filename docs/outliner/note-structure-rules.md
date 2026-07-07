@@ -18,8 +18,7 @@ itself cannot be indented or outdented: both are no-ops.
 ## Subtree Atomic Move
 
 Any structural move (indent, outdent, reorder) applies to the entire subtree
-anchored at each selected note: a note always moves together with all of its
-descendants, and no operation can separate a note from its children.
+anchored at each selected note.
 
 Deletion merges are an explicit exception: merging two notes may reparent the
 removed note's children to the survivor — see [Deletion](./deletion.md).

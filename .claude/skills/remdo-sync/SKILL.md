@@ -51,8 +51,7 @@ Then:
    conflicts you can **determine are safe** — take the time to be sure: read both
    sides' intent, the surrounding code, `git log`/`git blame`, related changes.
    When a resolution is not clearly correct, **do not guess** — leave it
-   conflicted and **call it out** with file/region and what is unclear. Do not
-   finish a half-resolved merge silently.
+   conflicted and **call it out** with file/region and what is unclear.
 2. **Verify.** Unless the merge fast-forwarded, run `pnpm run check:full` (the
    merge is already committed, so the changed-only `check` would select no
    tests): a textually clean merge can still be semantically broken, and

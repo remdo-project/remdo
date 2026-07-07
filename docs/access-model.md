@@ -69,9 +69,9 @@ the user.
 - Self-enrollment is gated by `ADMIN_SECRET` (see
   [docs/config.md](./config.md#admin-bootstrap-and-enrollment)). The secret is
   a shared gate, not tied to one user — any secret-holder can register an admin
-  account, and it works independently of the public-signup policy (so a private
-  server can still bootstrap and add admins). Promoting an *existing* user is a separate,
-  panel-gated capability (see [docs/todo.md](./todo.md), admin role follow-ups).
+  account, and it works independently of the public-signup policy. Promoting an
+  *existing* user is a separate, panel-gated capability (see
+  [docs/todo.md](./todo.md), admin role follow-ups).
 - Admin entry is discoverable by context: a signed-in admin sees an **Admin**
   link in the app toolbar, and a non-public server (closed signup, where
   bootstrapping an admin is expected) surfaces a link to `/admin` from the login

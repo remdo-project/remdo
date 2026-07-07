@@ -17,9 +17,8 @@ the Docker entrypoint, so the host needs nothing but Docker.
 
 Cells read `required` (must be set),
 `optional` (has a default), `derived` (computed, not settable), or `—` (unused in
-that mode). Everything else — all secondary service ports, `AUTH_URL`,
-`AUTH_SECRET`, the Y-Sweet `auth_key` / `server_token` pair, and the Caddy gateway
-variables — is derived or bootstrapped, never set in the normal path.
+that mode). Everything else is derived or bootstrapped, never set in the normal
+path.
 
 | Variable          | dev / test | server / prod      | Role                                                          |
 | ----------------- | ---------- | ------------------ | ------------------------------------------------------------- |
@@ -44,8 +43,7 @@ independent input: a platform-injected value, else `8080`.
 
 **Public identity vs. bind port.** `APP_PUBLIC_URL` is the canonical public origin
 and the single source for link generation, `AUTH_URL`, cookies, and CORS. Its
-port is public-facing only and never drives binding, so a public `:443` fronting
-a container that binds `:8080` is normal, not a misconfiguration.
+port is public-facing only and never drives binding.
 
 **Auth URL.** Always derived: from `APP_PUBLIC_URL` in server/prod, else
 `http://<host>:<PORT>`.
