@@ -9,8 +9,8 @@
   "gitignore": true,
   // globby's `gitignore` honours .gitignore files but not `.git/` itself, and it
   // follows symlinked directories — neither of which the old `git ls-files`
-  // selection did, and cli2 does NOT dedup the results by resolved path
-  // (empirically the mirrors were linted 2-3x, 42 file(s) vs git's 39). So
+  // selection did, and cli2 does NOT dedup the results by resolved path, so each
+  // symlinked mirror re-lints its target. So
   // exclude, to match git's no-symlink-traversal, the skill-mirror symlink dirs
   // (each re-exposes a SKILL.md already linted at its real path) and `.git/`
   // (repo internals, e.g. ref-log files ending in `.md`). node_modules is
