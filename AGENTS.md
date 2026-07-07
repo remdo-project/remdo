@@ -244,8 +244,8 @@ Determine agent mode in this order:
 5. CSS syntax validation for changed files:
    `git diff --name-only --diff-filter=ACMRTUXB HEAD | rg '\.css$' | xargs -r -n1 pnpm exec csstree-validator`
    (`csstree-validator` accepts one file per invocation).
-6. Markdown lint per file: `pnpm run lint:md:file -- <file ...>` (fails loud on a
-   missing path or when every path is ignored, rather than silently linting zero).
+6. Markdown lint: `pnpm run lint:md` (whole corpus, ~3s — small enough that no
+   per-file variant exists).
 7. Full unit test filter via script:
    `pnpm run test:unit:full <file> -t "<full test name>"` (don’t add an extra
    `--`, or Vitest will ignore the filter). Example:

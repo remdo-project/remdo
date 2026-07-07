@@ -69,7 +69,6 @@
     "lint:css:syntax": "csstree-validator src",
     "lint:fix": "eslint --max-warnings=0 --fix",
     "lint:md": "timeout ${TEST_TIMEOUT:-120}s pnpm run lint:md:raw",
-    "lint:md:file": "timeout ${TEST_TIMEOUT:-120}s ./tools/lint-md-file.sh",
     "lint:md:raw": "markdownlint-cli2",
     "preview": "pnpm run build && concurrently \"pnpm run preview:web\" \"pnpm run dev:api\" \"pnpm run dev:collab\"",
     "preview:web": "./tools/env.sh vite preview",
