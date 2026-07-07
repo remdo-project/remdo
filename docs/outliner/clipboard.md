@@ -38,8 +38,7 @@ live in [Links](./links.md).
 - Single-line plain text replaces the selected text, as in a normal text editor.
 - Multi-line plain text always inserts notes, even when the selection is inline.
   The first line replaces the selected text; remaining lines become new child
-  notes inserted before existing children — a pragmatic choice that keeps the
-  existing structure intact.
+  notes inserted before existing children.
 
 ## Caret-position placement (collapsed selection)
 

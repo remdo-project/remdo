@@ -35,10 +35,7 @@ note identities.
    does not hide its direct children in the zoomed view. Those children remain
    visible there, and deeper visibility is determined by each descendant's own
    fold state.
-9. The zoom-root exception is presentation-only. The folded state remains saved
-   on the note and takes effect again when the note is shown in a non-zoomed
-   parent context.
-10. Fold command API is state-based: `folded`, `unfolded`, or `toggle`.
+9. Fold command API is state-based: `folded`, `unfolded`, or `toggle`.
 
 ## Fold To Level
 
