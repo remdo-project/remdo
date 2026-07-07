@@ -499,7 +499,8 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 - advocate-run.sh normalizer altitude: four consecutive external-review P2s
   landed in its ~60-line awk (sentinel precedence, stale-msg reuse, bogus
-  location minting, blank-line duplication, cwd split); consider replacing
+  location minting, blank-line duplication, cwd split, numbered-prose heads —
+  five and counting); replace
   prose-label parsing with codex `--output-schema` JSON and a thin renderer.
 
 

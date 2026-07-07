@@ -371,8 +371,9 @@ describe('advocate-run.sh (skill-local tools/)', () => {
 
   it('rejects a final message whose labels have no location-shaped line', () => {
     const out = tempOut();
-    const msg = 'I found one proposal:\nText: "some quote"\nReplacement: DELETE\n';
-    const stub = stubDir(`${PARSE_ARGS}\nprintf '%s' "${msg}" > "$MSG"`);
+    const fixture = path.join(makeDir('advocate-noloc-'), 'msg.txt');
+    fs.writeFileSync(fixture, 'I found one proposal:\nText: "some quote"\nReplacement: DELETE\n');
+    const stub = stubDir(`${PARSE_ARGS}\ncat "${fixture}" > "$MSG"`);
     const result = run(['docs/documentation.md', 'scope', out], stub);
     // No location-shaped line anywhere: no block minted, validation fails loud.
     expect(result.status).not.toBe(0);
@@ -381,10 +382,11 @@ describe('advocate-run.sh (skill-local tools/)', () => {
 
   it('a blank line between the location and Text: yields exactly one block', () => {
     const out = tempOut();
-    const msg = '1. `docs/config.md:18`\n\nText: "settable variables"\nReplacement: DELETE\n';
-    const stub = stubDir(`${PARSE_ARGS}\nprintf '%s' "${msg}" > "$MSG"`);
+    const fixture = path.join(makeDir('advocate-blank-'), 'msg.txt');
+    fs.writeFileSync(fixture, '1. `docs/config.md:18`\n\nText: "settable variables"\nReplacement: DELETE\n');
+    const stub = stubDir(`${PARSE_ARGS}\ncat "${fixture}" > "$MSG"`);
     const result = run(['docs/documentation.md', 'scope', out], stub);
-    expect(result.status).toBe(0);
+    expect(result.status, result.stdout + result.stderr).toBe(0);
     const captured = fs.readFileSync(out, 'utf8');
     expect(captured.match(/^\d+\. file: /gm)).toHaveLength(1);
     expect(captured.match(/Text: /g)).toHaveLength(1);
@@ -397,5 +399,15 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(result.status, result.stdout + result.stderr).toBe(0);
     expect(fs.existsSync(path.join(dir, 'rel-out.md'))).toBe(true);
     expect(fs.existsSync(path.join(dir, 'rel-out.md.raw'))).toBe(true);
+  });
+
+  it('numbered prose does not mint a location row', () => {
+    const out = tempOut();
+    const fixture = path.join(makeDir('advocate-prose-'), 'msg.txt');
+    fs.writeFileSync(fixture, '1. I found one issue:\nText: "some quote"\nReplacement: DELETE\n');
+    const stub = stubDir(`${PARSE_ARGS}\ncat "${fixture}" > "$MSG"`);
+    const result = run(['docs/documentation.md', 'scope', out], stub);
+    expect(result.status).not.toBe(0);
+    expect(fs.readFileSync(out, 'utf8')).not.toContain('I found one issue');
   });
 });

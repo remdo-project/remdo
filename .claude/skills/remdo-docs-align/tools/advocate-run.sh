@@ -151,7 +151,9 @@ normalize_artifact() {
     # no Text: has minted a block for it yet, mints one from the location so a
     # truncated (missing-Text) proposal is not dropped. prev still holds it for a
     # following Text: line, which starts a fresh block for the real quote.
-    /^[[:space:]]*[0-9]+[.)][[:space:]]/ {
+    # Only a path-shaped numbered head is a location ("N. `docs/x.md:12`" and
+    # friends); numbered prose ("1. I found one issue:") must not mint a row.
+    /^[[:space:]]*[0-9]+[.)][[:space:]]/ && $0 ~ /[[:alnum:]_-]+\/[[:alnum:]_.]|[[:alnum:]_-]+\.[a-z][a-z]/ {
       flushlabel()
       if (pending_loc != "") { startblock(pending_loc) }
       pending_loc = $0
@@ -165,7 +167,7 @@ normalize_artifact() {
       # minted, the labels fold nowhere, and validation fails the run loudly.
       if (pending_loc != "") {
         startblock(pending_loc)
-      } else if (prev ~ /^[[:space:]]*[0-9]+[.)][[:space:]]/ || prev ~ /`?(file:[[:space:]]*)?[^ ]*[/.][^ ]*:?[0-9]*`?[[:space:]]*$/ && prev ~ /[/.]/ && prev !~ /[[:space:]].*[[:space:]].*[[:space:]]/) {
+      } else if (prev ~ /[[:alnum:]_-]+\/[[:alnum:]_.]|[[:alnum:]_-]+\.[a-z][a-z]/ && (prev ~ /^[[:space:]]*[0-9]+[.)][[:space:]]/ || prev !~ /[[:space:]].*[[:space:]].*[[:space:]]/)) {
         startblock(prev)
       }
       pending_loc = ""
