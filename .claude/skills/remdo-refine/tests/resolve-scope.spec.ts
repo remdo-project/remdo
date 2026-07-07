@@ -52,6 +52,20 @@ describe('resolve-scope.sh (skill-local tools/)', () => {
     expect(result.stdout).toContain('c.md');
   });
 
+  it('lists a staged-then-reverted file in working-tree scope', () => {
+    // a.md is committed; stage an edit, then restore the worktree copy to HEAD.
+    // The index differs from HEAD but the worktree matches it, so `diff HEAD`
+    // alone misses the file — the scope must still list it (staged counts).
+    const work = taskBranch();
+    writeFile(work, 'a.md', '# A staged\n');
+    git(work, 'add', 'a.md');
+    writeFile(work, 'a.md', '# A\n');
+    const result = run(work, ['working-tree']);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('SCOPE=working-tree');
+    expect(result.stdout).toContain('a.md');
+  });
+
   it('refuses a committed range when the tree is dirty (mixed scope)', () => {
     const work = taskBranch();
     writeFile(work, 'a.md', '# A changed\n');

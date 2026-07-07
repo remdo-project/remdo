@@ -45,9 +45,13 @@ emit_files_committed() {
 
 emit_files_working_tree() {
   echo "FILES"
-  # Tracked changes (staged + unstaged) plus untracked-not-ignored, deduped.
+  # Tracked changes plus untracked-not-ignored, deduped. `diff HEAD` shows the
+  # net worktree-vs-HEAD change; add `diff --cached` so a file whose index
+  # differs but whose worktree is back at HEAD (staged then reverted) is still
+  # listed — the scope is staged + unstaged + untracked, matching tree_is_dirty.
   {
     git diff --name-only HEAD
+    git diff --cached --name-only
     git ls-files --others --exclude-standard
   } | sort -u
 }
