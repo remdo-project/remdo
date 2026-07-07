@@ -439,6 +439,13 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   deps-refresh its matrix). Reconcile with AGENTS.md's declare-scope-in-situ
   rule via shared vocabulary + per-skill delta.
 
+## Skill test-infra follow-up
+
+- Consider replacing the skill-spec bridge (`tests/unit/skills/embedded.spec.ts`)
+  with a vitest `test.projects` entry rooted at `.claude/skills` (hidden dirs
+  are pruned by the file crawler, so include globs can't reach them); requires
+  re-verifying `--changed` and forceRerunTriggers semantics across projects.
+
 ## remdo-refine follow-ups
 
 - Add more external review tools/skills/programs worth considering in the refine
