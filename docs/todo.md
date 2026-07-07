@@ -464,11 +464,10 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   behavior; refine owns quality backstops; sync the post-merge check;
   deps-refresh its matrix). Reconcile with AGENTS.md's declare-scope-in-situ
   rule via shared vocabulary + per-skill delta.
-- Split the remaining Claude-only skill adapters: `remdo-feature-flow` still
-  names `superpowers:*`, Claude memory, and Claude-owned branch-flow helpers, and
-  `playground` still extends the Claude official plugin cache. Promote only the
-  agent-neutral intent into `.agents/skills` once each has a Codex adapter that
-  mirrors the Claude-specific capability in Codex's own format.
+- Split the remaining Claude-only `playground` skill: it still extends the
+  Claude official plugin cache. Promote the agent-neutral intent into
+  `.agents/skills` once it has a Codex adapter or vendored template guidance
+  that mirrors the Claude-specific capability in Codex's own format.
 - Tradeoff (refine confirmation): `temporal-status.mjs`'s scope guard tests
   `docsPath(name).startsWith('docs/')` inline rather than reusing the sibling
   `isDocsFile` from `docs-scope.mjs`. The two pull opposite ways on the same two

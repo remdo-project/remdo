@@ -36,18 +36,15 @@ export default defineConfig({
       '**/pnpm-lock.yaml',
       '**/tsconfig*.json',
       '**/.agents/skills/**/tools/**',
-      '**/.claude/skills/remdo-feature-flow/**/tools/**',
       // Prompt/reference templates a skill tool reads at runtime (e.g.
       // advocate-run.sh substitutes references/advocate.md; its spec asserts
       // that coupling) are also never imported, so trigger their specs on edit.
       '**/.agents/skills/**/references/**',
-      '**/.claude/skills/remdo-feature-flow/**/references/**',
       // A newly added/renamed skill spec under hidden skill roots is not
       // imported by the embedded.spec.ts bridge until wired in; trigger the
       // bridge so its self-guard (which fails on a missing import) runs under
       // --changed rather than passing until the next full suite.
       '**/.agents/skills/**/tests/**',
-      '**/.claude/skills/remdo-feature-flow/**/tests/**',
       '**/.markdownlint-cli2.jsonc',
     ],
     exclude: [

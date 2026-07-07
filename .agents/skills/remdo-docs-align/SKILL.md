@@ -62,6 +62,9 @@ they run in this order.
    the user, never in-run. Gates re-run after the edits. (Measured basis:
    single-session verdicts flip on ~15% of proposals between identical runs;
    the dual diff converts that variance into explicit escalations.)
+   This stage authorizes subagents when they are the runtime's fresh-context
+   mechanism; the independence requirement is enough reason to use them without
+   asking again.
 5. **Report.** What changed; the per-proposal disposition list;
    and an ESCALATE table (rule conflicts, borderline keeps) addressed to the
    user or a stronger-model pass — escalation is an output of this skill,

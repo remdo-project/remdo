@@ -11,7 +11,7 @@ import {
   makeScratchWithOrigin,
   runScript,
   writeFile,
-} from '../../../../.agents/skills/_shared/test-support/git-scratch';
+} from '../../_shared/test-support/git-scratch';
 
 const run = (cwd: string, args: string[]) => runScript(path.join(__dirname, '../tools/create-task-branch.sh'), cwd, args);
 

@@ -16,11 +16,10 @@ requirements onto Codex surfaces.
 For every shared-skill rung that requires fresh eyes, keep the coordinating
 Codex session out of the review context:
 
-1. **Simplify rung** — run `$remdo-simplify` in a fresh explorer/review subagent
-   when subagent use is explicitly authorized for this refine run. Pass only the
-   resolved scope argument (`<base-sha>..HEAD` or `working-tree`) and the
-   `AGENTS.md` finding-suppression rule; do not pass implementation notes,
-   suspected fixes, or prior conclusions.
+1. **Simplify rung** — run `$remdo-simplify` in a fresh explorer/review subagent.
+   Pass only the resolved scope argument (`<base-sha>..HEAD` or `working-tree`)
+   and the `AGENTS.md` finding-suppression rule; do not pass implementation
+   notes, suspected fixes, or prior conclusions.
 2. **Internal-review rung** — use a fresh Codex review subagent or the closest
    Codex review-mode equivalent, again with scope only and no leading review
    angle.
@@ -36,9 +35,11 @@ Codex session out of the review context:
    If neither reviewer is available, stop and report the missing dependency
    rather than silently dropping the rung.
 
-If the user invoked `$remdo-refine` without explicitly authorizing subagents or
-parallel delegation, ask for that authorization before the first subagent-backed
-rung. Do not replace a required fresh-context rung with an inline review by the
+Running `$remdo-refine` authorizes Codex subagents for fresh-context rungs where
+they are required or likely to materially help, including the simplify and
+internal-review rungs above; do not ask again before dispatching them. If the
+user explicitly forbids subagents, stop or use a narrower non-refine process
+rather than replacing a required fresh-context rung with an inline review by the
 coordinating session.
 
 ## Subagent prompt shape

@@ -47,6 +47,17 @@ sections to docs.
   dir. Setup is ~3s and a full unit run there matches the main dir, so isolation
   is nearly free; keeping it the only mode means no shared-`data/` collisions to
   guard against.
+- Codex subagents: do not spawn subagents for ordinary tasks unless the user
+  explicitly asks for subagents/parallel work, or a running skill authorizes
+  subagents for its own workflow. Prefer machine-readable authorization in the
+  skill's `agents/openai.yaml` as `policy.subagents.authorized: true`; prose in
+  `SKILL.md` may also declare it and should mirror the config. A skill's
+  authorization is enough when it says subagents are required or likely to
+  materially help a particular use case; do not ask again for that use case.
+  When authorized, use subagents only where they materially help: independent
+  exploration, fresh review, verification, Research spikes, or required
+  fresh-context reads. Keep mutating subagents isolated in worktrees per the
+  rules above.
 - Assign a unique `PORT_BASE` per worktree (for example `5100`, `5200`) to
   avoid collisions across dev servers, tests, and collab services.
 - Treat each repo/worktree as owning a 100-port block starting at its assigned

@@ -10,10 +10,10 @@ import { describe, expect, it } from 'vitest';
 
 import '../../../.agents/skills/remdo-docs-align/tests/advocate-run.spec';
 import '../../../.agents/skills/remdo-docs-align/tests/lint-rules.spec';
+import '../../../.agents/skills/remdo-feature-flow/tests/preflight-base.spec';
+import '../../../.agents/skills/remdo-feature-flow/tests/create-task-branch.spec';
 import '../../../.agents/skills/remdo-refine/tests/resolve-scope.spec';
 import '../../../.agents/skills/remdo-sync/tests/sync-probe.spec';
-import '../../../.claude/skills/remdo-feature-flow/tests/preflight-base.spec';
-import '../../../.claude/skills/remdo-feature-flow/tests/create-task-branch.spec';
 
 describe('skill-local spec bridge', () => {
   it('imports every spec under canonical hidden skill roots', () => {
@@ -40,5 +40,21 @@ describe('skill-local spec bridge', () => {
 
     const missing = mirrorDirs.filter(p => !config.includes(`"${p}"`));
     expect(missing).toEqual([]);
+  });
+
+  it('keeps subagent authorization machine-readable for multiagent skills', () => {
+    const configs = [
+      '.agents/skills/remdo-docs-align/agents/openai.yaml',
+      '.agents/skills/remdo-feature-flow/agents/openai.yaml',
+      '.agents/skills/remdo-refine/agents/openai.yaml',
+      '.codex/skills/remdo-feature-flow/agents/openai.yaml',
+      '.codex/skills/remdo-refine/agents/openai.yaml',
+    ];
+
+    for (const configPath of configs) {
+      const config = fs.readFileSync(configPath, 'utf8');
+      expect(config).toContain('  subagents:\n    authorized: true\n');
+      expect(config).toMatch(/use_cases:\n(?: {6}- ".+"\n)+/);
+    }
   });
 });
