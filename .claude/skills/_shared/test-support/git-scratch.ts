@@ -1,8 +1,8 @@
 /* eslint-disable node/no-process-env */
 // Scratch git-repo harness for the skill-script specs. Each script is
-// spawned (`sh <script>`) against a throwaway repo built here, mirroring
-// tests/unit/lint-md.spec.ts but adding commits, branches, and a real bare
-// `origin` remote so `origin/main` and `git fetch` behave as in production.
+// spawned (`sh <script>`) against a throwaway repo built here: real commits,
+// branches, and a bare `origin` remote so `origin/main` and `git fetch` behave
+// as in production.
 import { spawnSync } from 'node:child_process';
 import type { SpawnSyncReturns } from 'node:child_process';
 import fs from 'node:fs';

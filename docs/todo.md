@@ -438,6 +438,13 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   behavior; refine owns quality backstops; sync the post-merge check;
   deps-refresh its matrix). Reconcile with AGENTS.md's declare-scope-in-situ
   rule via shared vocabulary + per-skill delta.
+- Tradeoff (refine rung 3): `.markdownlint-cli2.jsonc` `ignores` hardcodes the
+  three skill-mirror symlink dirs by name to stop globby double-linting them
+  (cli2 doesn't dedup by resolved path). The list matches the live symlink set
+  today, but nothing guards it — a future symlinked skill mirror not added here
+  would be linted twice. Options: add a test asserting the ignore list equals
+  `find .claude .codex -type l`, or accept the manual list as documented. Decide
+  when the next skill mirror is added.
 - ESCALATE (docs-align, refine rung 2): `docs/outliner/menu.md:40` — advocate
   proposed deleting "it has no query span, so it owns every key;" as a
   restatement of the shared editor-popup contract. Dual adjudicators split:

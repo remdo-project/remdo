@@ -34,8 +34,16 @@ invariants preamble: edge and failure semantics are contract; a one-sentence
 rationale stays where dropping it would invite relitigating a settled choice;
 a skill's procedural steps and sibling-link References are its contract.
 
-For each proposal output: file:line, the exact quoted text, the replacement
-(or DELETE), the rule licensing removal, and the risk test — the concrete
-misuse that would remain possible if the removal were wrong, judged under
-face-value reading. Number the proposals; mark genuinely uncertain ones
-"borderline". Do not edit anything; do not propose additions.
+For each proposal output these labelled lines, in order and with these exact
+labels — a downstream check keys on the literal `Replacement:` label, so use it
+verbatim (write `Replacement: DELETE` for a whole-clause removal):
+
+- `file:line`
+- `Text:` the exact quoted text
+- `Replacement:` the replacement text, or `DELETE`
+- `Rule:` the rule licensing removal
+- `Risk test:` the concrete misuse that would remain possible if the removal
+  were wrong, judged under face-value reading
+
+Number the proposals; mark genuinely uncertain ones "borderline". Do not edit
+anything; do not propose additions.
