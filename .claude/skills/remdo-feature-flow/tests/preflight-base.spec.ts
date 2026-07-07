@@ -1,4 +1,4 @@
-// tools/skills/preflight-base.sh: classify even/ahead/behind/diverged vs
+// preflight-base.sh (skill-local tools/): classify even/ahead/behind/diverged vs
 // origin/main, FF a behind branch, refuse the states a run must stop on.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -12,13 +12,13 @@ import {
   makeScratchWithOrigin,
   runScript,
   writeFile,
-} from './_support/git-scratch';
+} from '../../_shared/test-support/git-scratch';
 
-const run = (cwd: string) => runScript('preflight-base.sh', cwd);
+const run = (cwd: string) => runScript(path.join(__dirname, '../tools/preflight-base.sh'), cwd);
 
 afterEach(cleanupTempDirs);
 
-describe('tools/skills/preflight-base.sh', () => {
+describe('preflight-base.sh (skill-local tools/)', () => {
   it('reports even on a fresh clone at origin/main', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     const result = run(work);

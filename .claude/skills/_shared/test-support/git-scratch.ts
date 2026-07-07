@@ -1,5 +1,5 @@
 /* eslint-disable node/no-process-env */
-// Scratch git-repo harness for the tools/skills/* script specs. Each script is
+// Scratch git-repo harness for the skill-script specs. Each script is
 // spawned (`sh <script>`) against a throwaway repo built here, mirroring
 // tests/unit/lint-md.spec.ts but adding commits, branches, and a real bare
 // `origin` remote so `origin/main` and `git fetch` behave as in production.
@@ -10,8 +10,6 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { expect } from 'vitest';
-
-export const skillsDir = path.join(process.cwd(), 'tools/skills');
 
 // Deterministic identity + no signing, independent of the dev's global config.
 const gitEnv = {
@@ -121,7 +119,7 @@ export function runScript(
   const env = extraPath
     ? { ...gitEnv, PATH: `${extraPath}:${process.env.PATH}` }
     : gitEnv;
-  return spawnSync('sh', [path.join(skillsDir, script), ...args], {
+  return spawnSync('sh', [script, ...args], {
     cwd,
     encoding: 'utf8',
     env,

@@ -30,7 +30,7 @@ dialog, and the spec must all be shaped against exactly the state the task
 branch will fork from, or the design is built against one codebase while
 Phase 3 branches from another.
 
-**Run `sh tools/skills/preflight-base.sh`** (its header states the full
+**Run `sh .claude/skills/remdo-feature-flow/tools/preflight-base.sh`** (its header states the full
 contract). It leaves the branch proceedable or exits for a state the run must
 stop on. What each outcome means for the flow:
 
@@ -136,7 +136,7 @@ current branch, though: if the user rejects at the gate, **revert them** before
 exiting — don't leave unapproved `docs/`/`docs/todo.md` changes behind.
 
 Confirm the branch name/prefix (see "Branch naming") first, then **run `sh
-tools/skills/create-task-branch.sh <name> <pinned-base-sha>`** with the SHA
+.claude/skills/remdo-feature-flow/tools/create-task-branch.sh <name> <pinned-base-sha>`** with the SHA
 pinned at preflight (its header states the full contract). It forks from the
 pinned base carrying the uncommitted spec edits, and refuses any state that would
 strand them; on a non-zero exit, resolve the drift it names and retry rather than
@@ -260,7 +260,7 @@ a task branch. Within a run:
 - **Local commits on a confirmed task branch: allowed.** Never directly onto
   `dev` or `main`.
 - **Fast-forwarding the current branch to `origin/main`** as part of the
-  preflight base check (performed by `tools/skills/preflight-base.sh`): allowed.
+  preflight base check (performed by `.claude/skills/remdo-feature-flow/tools/preflight-base.sh`): allowed.
   The FF-only merge advances a *behind* branch along existing history — no
   rewrite, no merge commit, nothing lost — so it is safe autonomously; it fails
   (and thus never mutates) on a diverged branch, which the script handles as a
@@ -295,7 +295,7 @@ end-of-work diff/review checks to this merge-base.**
 **Creating the branch** (Phase 3) forks from the **base SHA pinned at
 preflight** — the pin is what keeps the fork base equal to the design base. The
 mechanics (the exact `git switch --merge` invocation and its staged-edit/drift
-refusals) live in `tools/skills/create-task-branch.sh`; Phase 3 runs that script.
+refusals) live in `.claude/skills/remdo-feature-flow/tools/create-task-branch.sh`; Phase 3 runs that script.
 Preflight left the current branch at the pinned SHA, so only the **uncommitted
 spec edits** carry across and the script's refusals are not expected to fire.
 
@@ -344,8 +344,8 @@ Choose by the *activity*, not the phase number:
   `remdo-refine` skill.
 - Bringing `origin/main` into the branch: `remdo-sync` skill.
 - Integration after report (merge / PR): `superpowers:finishing-a-development-branch`.
-- Preflight and branch-creation mechanics: `tools/skills/preflight-base.sh`,
-  `tools/skills/create-task-branch.sh`.
+- Preflight and branch-creation mechanics: `.claude/skills/remdo-feature-flow/tools/preflight-base.sh`,
+  `.claude/skills/remdo-feature-flow/tools/create-task-branch.sh`.
 - Documentation intent + invariants (spec-as-docs must comply):
   `docs/documentation.md`. Deferral/todo rules: `docs/todo.md`.
 - Git workflow, the `origin/main...HEAD` diff contract, and branch prefixes:

@@ -24,6 +24,7 @@
   ],
   "project": [
     "{src,tests,tools,config}/**/*.{ts,tsx,mts}",
+    ".claude/skills/**/*.{ts,tsx,mts}",
     "*.{ts,mts}"
   ]
 }

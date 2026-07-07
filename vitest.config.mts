@@ -17,6 +17,7 @@ export default defineConfig({
     include: [
       ...configDefaults.include,
       'tests/unit/**/*.spec.{ts,tsx}',
+      '.claude/skills/**/tests/**/*.spec.{ts,tsx}',
     ],
     // Root config/manifest edits affect every test but aren't imported by any
     // test file, so `--changed` would otherwise find nothing and false-pass.
@@ -34,6 +35,7 @@ export default defineConfig({
       '**/pnpm-lock.yaml',
       '**/tsconfig*.json',
       '**/tools/skills/**',
+      '**/.claude/skills/**/tools/**',
       '**/tools/markdownlint-rules/**',
       '**/.markdownlint-cli2.jsonc',
     ],

@@ -1,4 +1,4 @@
-// tools/skills/create-task-branch.sh: create the branch from a pinned base
+// create-task-branch.sh (skill-local tools/): create the branch from a pinned base
 // carrying uncommitted spec edits, and refuse the unsafe states.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -11,15 +11,15 @@ import {
   makeScratchWithOrigin,
   runScript,
   writeFile,
-} from './_support/git-scratch';
+} from '../../_shared/test-support/git-scratch';
 
-const run = (cwd: string, args: string[]) => runScript('create-task-branch.sh', cwd, args);
+const run = (cwd: string, args: string[]) => runScript(path.join(__dirname, '../tools/create-task-branch.sh'), cwd, args);
 
 const pinnedHead = (cwd: string) => git(cwd, 'rev-parse', 'HEAD').stdout.trim();
 
 afterEach(cleanupTempDirs);
 
-describe('tools/skills/create-task-branch.sh', () => {
+describe('create-task-branch.sh (skill-local tools/)', () => {
   it('creates the branch from the pinned base carrying an uncommitted spec edit', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'spec.md', '# spec\n'); // uncommitted spec edit

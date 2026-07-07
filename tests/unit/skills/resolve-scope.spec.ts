@@ -1,5 +1,6 @@
 // tools/skills/resolve-scope.sh: happy paths (inferred default, explicit range,
 // working-tree) and every refusal, exercised in scratch git repos.
+import process from 'node:process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -11,9 +12,9 @@ import {
   makeScratchWithOrigin,
   runScript,
   writeFile,
-} from './_support/git-scratch';
+} from '../../../.claude/skills/_shared/test-support/git-scratch';
 
-const run = (cwd: string, args: string[] = []) => runScript('resolve-scope.sh', cwd, args);
+const run = (cwd: string, args: string[] = []) => runScript(path.join(process.cwd(), 'tools/skills/resolve-scope.sh'), cwd, args);
 
 // A task branch: cloned from origin (main), branched, with one commit ahead.
 function taskBranch(): string {
