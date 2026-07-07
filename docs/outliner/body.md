@@ -30,8 +30,7 @@ For selection, a note's content and its body are two distinct **regions**:
   to that single note (a note is never selected structurally without its body).
 - Any selection crossing two notes — including one with an endpoint inside a
   body — is structural and snaps to whole notes (see [Selection](./selection.md)).
-- The ladder never selects a body's text by itself (a body is never a structural
-  head on its own — see [Concepts](./concepts.md#note-kinds)).
+- The ladder never selects a body's text by itself.
 
 Within a body, keys behave as follows:
 

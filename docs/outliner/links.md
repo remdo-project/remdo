@@ -97,8 +97,7 @@ specifics:
 1. [Future] Backlinks are expected as part of the note-link model.
 2. [Future] Cross-document discovery/insertion in the `@` picker.
 3. [Future] Fuzzy matching in picker search.
-4. [Future] Frecency-aware ranking. When this ships, zoom context should
-   influence ordering but must not reduce search scope.
+4. [Future] Frecency-aware ranking. When this ships, zoom context should influence ordering.
 5. [Future] Rename-aware display text modes (for example title-mirroring unless
    user-customized).
 6. [Future] Ensure floating controls/overlays never block pointer hit-testing
