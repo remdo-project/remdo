@@ -408,6 +408,15 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   semantics (no-op vs. move-as-flattened-text) in the cut/paste redesign;
   `NoteIdPlugin` `SELECTION_INSERT_CLIPBOARD_NODES_COMMAND` body branch.
 
+## Docs spec accuracy (branch docs/spec-accuracy)
+
+- Doc↔code accuracy audit, area by area (outliner docs ↔ editor code/tests
+  first): per claim — confirmed / fix the doc / record the divergence here per
+  documentation.md invariant 4 / escalate unclear intent.
+- Coverage pass: product areas with no owning doc (candidates: collaboration
+  internals, app bootstrap/routes; note-sdk docs are already deferred under
+  "Note-first SDK follow-ups") — decide new doc vs a `Future` trigger each.
+
 ## remdo-docs-align follow-ups
 
 - Consolidate doc responsibility fully into docs-align: refine's doc rung
