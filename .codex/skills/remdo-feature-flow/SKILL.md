@@ -6,9 +6,8 @@ description: Codex adapter for the RemDo feature-flow workflow. Use when startin
 # RemDo Feature Flow (Codex Adapter)
 
 Read and follow the shared RemDo feature-flow skill at
-`../../../.agents/skills/remdo-feature-flow/SKILL.md`. The shared skill owns the
-phase structure, branch/spec/commit policy, verification contract, and final
-reporting. This adapter maps shared process intent to Codex-specific surfaces.
+`../../../.agents/skills/remdo-feature-flow/SKILL.md`. This adapter maps shared
+process intent to Codex-specific surfaces.
 
 ## Codex mappings
 

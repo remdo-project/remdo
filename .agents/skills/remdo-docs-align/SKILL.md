@@ -54,7 +54,7 @@ they run in this order.
    no-op on an already-minimal scope), skip stage 4 and note the no-op in the
    report.
 4. **Adjudicate (dual).** Two independent, fresh, contextless adjudicators
-   — never the session that ran stages 1-3 — each produce verdict-only
+   each produce verdict-only
    dispositions over the proposal table per `references/adjudicate.md`,
    without editing anything or seeing each other. Mechanically diff the two
    verdict lists: agreed APPLYs are applied by the editor, agreed REJECTs

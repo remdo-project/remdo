@@ -108,8 +108,7 @@ reviewer or process so it does not inherit the coordinating session's context.
    - **Scope passed:** a **literal resolver argument** the rung re-resolves for
      itself — `<base-sha>..HEAD` for a committed range or `working-tree` for the
      uncommitted scope, never a bare SHA (which the rung cannot tell from a ref
-     and would mis-resolve). Nothing else (no suspected fixes, no implementation
-     context, which would defeat the fresh read).
+     and would mis-resolve).
    - **Report back:** its finding list (code/test lenses and the pass-in-passing
      doc-invariant check are defined there, not here).
    - **Triage:** treat each finding under the loop's triage rules below.
@@ -167,8 +166,8 @@ every earlier, more expensive rung on each iteration.
   not done.
 - **Tradeoff** — a real choice with no single correct answer. Solve it best-effort
   and **record it in `docs/todo.md`** — a tradeoff is a deferral until a final
-  decision is deliberately taken, so the entry persists until then (don't leave it
-  only chat-remembered). Never blocks; the end report points at the entry.
+  decision is deliberately taken, so the entry persists until then. Never blocks;
+  the end report points at the entry.
 - **Reject** — not a real issue, or out of scope. Drop it.
 
 Once every rung has settled, run a **confirmation cycle**: the full ladder again

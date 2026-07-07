@@ -6,10 +6,8 @@ description: Codex adapter for the RemDo autonomous quality loop over a diff on 
 # RemDo Refine (Codex Adapter)
 
 Read and follow the shared RemDo refine skill at
-`../../../.agents/skills/remdo-refine/SKILL.md`. The shared skill owns scope
-resolution, ladder order, triage, permissions, verification, and final reporting.
-This adapter only defines how Codex maps the shared "fresh eyes" review
-requirements onto Codex surfaces.
+`../../../.agents/skills/remdo-refine/SKILL.md`. This adapter only defines how
+Codex maps the shared "fresh eyes" review requirements onto Codex surfaces.
 
 ## Fresh-context convention
 

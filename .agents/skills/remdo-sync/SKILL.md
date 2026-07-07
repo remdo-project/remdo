@@ -35,7 +35,7 @@ contract). It fetches and classifies whether `origin/main` still needs merging,
 printing one `STATE=` line. Act on it:
 
 - **`STATE=dirty-tree`** — the merge's clean-tree precondition fails. **Warn and
-  stop**; the user commits or stashes first (never do it for them).
+  stop**; the user commits or stashes first.
 - **`STATE=up-to-date`** — `origin/main` is already reachable from `HEAD` (nothing
   to merge, e.g. a prior manual merge). Finish here.
 - **`STATE=merge-needed`** — proceed to the merge below.

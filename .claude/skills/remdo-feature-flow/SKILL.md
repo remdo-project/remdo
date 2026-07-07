@@ -6,9 +6,8 @@ description: Claude adapter for the RemDo feature-flow workflow. Use when starti
 # RemDo Feature Flow (Claude Adapter)
 
 Read and follow the shared RemDo feature-flow skill at
-`../../../.agents/skills/remdo-feature-flow/SKILL.md`. The shared skill owns the
-phase structure, branch/spec/commit policy, verification contract, and final
-reporting. This adapter maps shared process intent to Claude-specific surfaces.
+`../../../.agents/skills/remdo-feature-flow/SKILL.md`. This adapter maps shared
+process intent to Claude-specific surfaces.
 
 ## Claude mappings
 
