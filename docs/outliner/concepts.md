@@ -18,8 +18,6 @@ are all **kinds** of note, distinguished by a `kind` discriminator. Capabilities
 differ by kind — for example, only some kinds are addressable by id (see
 [Note kinds](#note-kinds)).
 
-Notes carry three kinds of information: structure, content, and props.
-
 - **Structure** is the position of a note in the tree: its parent and the order
   of its children.
 - **Content** is the payload a note exposes to adapters; the core model treats

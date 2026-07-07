@@ -52,8 +52,7 @@ note identities.
    `View` section and applies from the current zoom root (document root or
    subtree root), regardless of which visible note opened the quick action
    menu. Clicking it applies level `1`.
-6.
-7. If applying a fold level would hide the active caret or structural
+6. If applying a fold level would hide the active caret or structural
    selection, focus collapses to the nearest still-visible ancestor note.
-8. Existing manual folds inside the scoped subtree may be overwritten by the
+7. Existing manual folds inside the scoped subtree may be overwritten by the
    command. The command does not preserve or later restore a prior fold layout.

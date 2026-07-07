@@ -52,7 +52,7 @@ Known-vulnerability response is **independent of the version-update story above*
 and runs on GitHub's native, default mechanism — no custom config, no CI gate.
 Repo settings keep **Dependabot alerts** and **Dependabot security updates**
 enabled (Settings → Security & analysis); these work independently of any
-`dependabot.yml` (so its absence does not disable them), and advisories reach us
+`dependabot.yml` , and advisories reach us
 as soon as GitHub knows.
 
 The `audit:security` script remains a local/manual cross-check; it is
