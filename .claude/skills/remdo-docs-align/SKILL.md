@@ -21,6 +21,9 @@ tie-breaker, so preserve that structure when editing this skill.
   changes), a committed range (resolved via `tools/skills/resolve-scope.sh`, its
   header states the contract), or an explicit file set (e.g. the whole corpus for
   a realignment). A diff scope selects its touched files, read whole.
+- Authoring new content is out of scope: write-time rules do not prevent
+  redundancy (tested — they made it worse), so fresh text is aligned by
+  running stages 3–4 over it after writing.
 
 ## Pipeline
 
@@ -61,15 +64,6 @@ they run in this order.
 
 Forward the `AGENTS.md` findings-suppression rule to every stage.
 
-## Boundaries
-
-- `remdo-simplify` is the general read-only finder; this skill's advocate is
-  its adversarial, deletion-only counterpart for rules-governed prose.
-- `remdo-refine` owns the general quality ladder; its ladder defines when a
-  diff is handed to this skill.
-- Authoring new content is out of scope: write-time rules do not prevent
-  redundancy (tested — they made it worse), so fresh text is aligned by
-  running stages 3–4 over it after writing.
 
 ## Permissions
 
