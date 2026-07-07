@@ -18,7 +18,7 @@ loudly instead.
 - `minimumReleaseAge` defaults to `1440` (24h): newly published packages are not
   resolved until they are a day old (supply-chain buffer). We keep the default.
   The refresh `pnpm update --latest` naturally holds too-fresh bumps and applies
-  each one automatically on the next run once it ages in  On
+  each one automatically on the next run once it ages in. On
   every install pnpm's lockfile verification pass also re-applies the gate to each
   existing lockfile entry (independent of `minimumReleaseAgeStrict`, which only
   governs *resolution*), so even `--frozen-lockfile` in CI hard-fails
@@ -52,7 +52,7 @@ Known-vulnerability response is **independent of the version-update story above*
 and runs on GitHub's native, default mechanism — no custom config, no CI gate.
 Repo settings keep **Dependabot alerts** and **Dependabot security updates**
 enabled (Settings → Security & analysis); these work independently of any
-`dependabot.yml` , and advisories reach us
+`dependabot.yml`, and advisories reach us
 as soon as GitHub knows.
 
 The `audit:security` script remains a local/manual cross-check; it is

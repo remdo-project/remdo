@@ -36,11 +36,11 @@ RemDo only targets the runtimes declared in `package.json`:
 ### Implications
 
 1. **No legacy shims.** Assume the DOM/JS APIs shipped in those engines are
-   available. Don’t add defensive checks that only make sense for older browsers
-   . Use the API directly
-   or document a real compatibility issue before adding guards.
+   available. Don’t add defensive checks that only make sense for older
+   browsers. Use the API directly or document a real compatibility issue
+   before adding guards.
 2. **Modern syntax is fine.** Stage-4 ECMAScript features supported by the
-   browserslist  need no
+   browserslist need no
    back-compat branches.
 3. **Tests should reflect the baseline.** When reproducing bugs, rely on jsdom +
    the supported engines. Don’t introduce polyfills that mask incompatibilities
@@ -71,7 +71,7 @@ working-but-revisit code. State the rationale and, where one exists, the
 one-line probe that proves the comment obsolete (delete the shim / flip the flag
 / run the suite) right there in the comment.
 
-Because these markers are scanned and tracked , trust them as the record:
+Because these markers are scanned and tracked, trust them as the record:
 once a workaround is a tracked marker at its code site, do **not** add a second
 tracker for it elsewhere (a `docs/` list, a `docs/todo.md` line). The comment
 travels with the code and is seen on deletion; a duplicate note only drifts.

@@ -65,7 +65,7 @@ caret later sits.
    past the `@` ends the session because the span no longer holds it. (The `!`
    calendar traps focus, so the caret cannot move while it is open.)
 
- Behavior over an
+Behavior over an
 *already-committed* inline token (navigating or editing it) is not part of this
 session and stays in the owning feature (see [Dates](./dates.md) for date-token
 keyboard behavior).

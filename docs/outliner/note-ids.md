@@ -34,7 +34,7 @@ environment, not persisted as a root `noteId`.
 1. Every addressable note has a `noteId`.
 2. Document identity (`documentId`) is runtime state and must be injected by the
    host environment for each editor/session instance.
-3. `noteId` values are unique within a document at any moment in time;
+3. `noteId` values are unique within a document at any moment in time.
 4. `noteId` values are stable for the lifetime of a note and do not change on
    edits, reorders, indent/outdent, or moves.
 5. `noteId` values round-trip through adapters and persisted JSON boundaries
@@ -45,7 +45,7 @@ environment, not persisted as a root `noteId`.
 ### Creation
 
 - Any operation that creates a new note must assign a fresh `noteId` at the
-  moment of creation .
+  moment of creation.
 - `noteId` generation is a local operation using randomness; we assume it is
   effectively unique and do not require a document-wide scan at creation time.
 - When a note is split into two notes, the note that remains at the original
@@ -79,7 +79,7 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 
 - Persisted JSON document state must include `noteId` for addressable notes.
 - Persisted JSON document state must not persist the active/current document ID
-  as document-level identity .
+  as document-level identity.
 - On load, any missing or duplicate `noteId` values must be normalized before
   the document is exposed to the app: keep existing unique IDs and assign fresh
   IDs to missing or colliding notes (preserving document order).
