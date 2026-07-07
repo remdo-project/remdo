@@ -84,15 +84,24 @@ describe('remdo-references-shape', () => {
     expect(await references('docs/a.md', '## References\n\n[def]: b.md\n')).toEqual([3]);
   });
 
-  it('passes a reference-style external citation (empty-destination link) while its definition is checked separately', async () => {
-    // `[MDN][mdn]` carries no inline destination; only the `[mdn]: url`
-    // definition is the external target — the link itself must not be flagged.
+  it('passes a reference-style external citation, resolving its definition target', async () => {
+    // `[MDN][mdn]` carries no inline destination; its `[mdn]: url` definition is
+    // the external target — neither the link nor the definition is flagged.
     const external = '## References\n\n- [MDN][mdn]\n\n[mdn]: https://developer.mozilla.org\n';
     expect(await references('docs/a.md', external)).toEqual([]);
-    // A reference-style link whose definition is internal: the link is skipped
-    // (empty destination), but the definition still fails on line 5.
+    // A reference-style link whose in-section definition is internal: both the
+    // link (resolved through the definition map, line 3) and the definition
+    // (line 5) fail.
     const internal = '## References\n\n- [note][n]\n\n[n]: b.md\n';
-    expect(await references('docs/a.md', internal)).toEqual([5]);
+    expect(await references('docs/a.md', internal)).toEqual([3, 5]);
+  });
+
+  it('flags a reference-style link whose internal definition sits outside References', async () => {
+    // The `[n]: ./body.md` definition is above the section, so it is out of the
+    // checked range — but the link inside References still resolves through it
+    // and must be flagged (invariant 3: References may cite only external).
+    const md = '[n]: ./body.md\n\nbody text\n\n## References\n\n- [note][n]\n';
+    expect(await references('docs/a.md', md)).toEqual([7]);
   });
 
   it('keeps a subsection inside the section (only the next level-2 heading closes it)', async () => {

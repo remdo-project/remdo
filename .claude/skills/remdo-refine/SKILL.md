@@ -138,9 +138,9 @@ process) gets the fresh read for free.
      ref, so a bare `origin/main` would drift if it advances mid-loop (`--base`
      accepts a commit SHA, not only a branch). Give it **scope only, no review
      angle** — leading prompt framing defeats the point.
-   - **Report back / triage:** its findings, triaged under the loop rules. If the
-     `codex` CLI is unavailable, skip this rung and say so in the final report —
-     never silently narrow the ladder.
+   - **Report back / triage:** its findings, triaged under the loop rules. (An
+     absent `codex` CLI is a missing dependency — `AGENTS.md` governs; this rung
+     states no special-case of its own.)
 
 Forward the `AGENTS.md` findings-suppression rule to every rung and subagent.
 

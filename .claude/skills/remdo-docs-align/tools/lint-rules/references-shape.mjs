@@ -42,6 +42,15 @@ const destinationText = (token) => {
   return dest.map((t) => t.text).join('');
 };
 
+// The concatenated text of the first descendant of `type` (a label / reference
+// identifier), lowercased so link references and definitions match regardless
+// of case (CommonMark reference matching is case-insensitive). '' if absent.
+const identifierText = (token, type) => {
+  const found = [];
+  collect([token], (t) => t.type === type, found);
+  return found.map((t) => t.text).join('').trim().toLowerCase();
+};
+
 // ATX heading level = the length of its `#` run; the corpus is ATX-only.
 const headingLevel = (heading) => {
   const sequence = heading.children.find((c) => c.type === 'atxHeadingSequence');
@@ -89,6 +98,23 @@ export default {
       return;
     }
 
+    // Map every reference definition's label -> its destination, across the
+    // whole file. A reference-style link inside References resolves through this
+    // so its target is checked even when the `[label]: url` definition sits
+    // outside the section (the definition's own line is only range-checked when
+    // it falls inside References).
+    const definitions = [];
+    collect(tokens, (t) => t.type === 'definition', definitions);
+    const defDestination = new Map(
+      definitions.map((d) => [identifierText(d, 'definitionLabelString'), destinationText(d)]),
+    );
+
+    const flag = (line) => onError({
+      lineNumber: line,
+      detail: 'internal link inside References (must be inline in the body)',
+      context: params.lines[line - 1],
+    });
+
     const links = [];
     collect(tokens, (t) => t.type === 'link' || t.type === 'image' || t.type === 'definition', links);
     for (const link of links) {
@@ -96,20 +122,23 @@ export default {
         continue;
       }
       const destination = destinationText(link);
-      // Reference-style links/images (`[MDN][mdn]`, `![x][y]`) carry no inline
-      // destination — their `[mdn]: url` definition is a separate `definition`
-      // token checked on its own. Skip the empty-destination reference so it
-      // isn't mis-flagged as an internal (non-external) link; the definition
-      // still gets its own external check.
       if (destination === '') {
+        // A reference-style link/image (`[MDN][mdn]`, `![x][y]`) carries no
+        // inline destination; resolve its `[label]` through the definition map
+        // and check that target, so an internal definition anywhere in the file
+        // is caught (not only when it happens to sit inside References).
+        const label = identifierText(link, 'referenceString')
+          || identifierText(link, 'labelText'); // shortcut form `[label]`
+        const resolved = defDestination.get(label);
+        // An undefined label isn't a resolvable corpus link; leave it (a
+        // dangling reference is the relative-links rule's concern, not shape).
+        if (resolved !== undefined && !isExternal(resolved)) {
+          flag(link.startLine);
+        }
         continue;
       }
       if (!isExternal(destination)) {
-        onError({
-          lineNumber: link.startLine,
-          detail: 'internal link inside References (must be inline in the body)',
-          context: params.lines[link.startLine - 1],
-        });
+        flag(link.startLine);
       }
     }
   },
