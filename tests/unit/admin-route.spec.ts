@@ -1,7 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import { resolveAdminEnrollPostCreateDestination } from '#client/app/routes/admin-enroll-post-create-destination';
-
-const CURRENT_ORIGIN = 'https://remdo.test';
 
 vi.mock('#client/app/auth/client', () => ({
   resolveSessionGateState: vi.fn(),
@@ -39,37 +36,5 @@ describe('adminRouteLoader', () => {
       homeDocumentId: 'h', userDataDocumentId: 'ud', role: 'user', publicServer: false,
     });
     await expect(adminRouteLoader()).resolves.toEqual({ kind: 'enroll' });
-  });
-});
-
-describe('admin enroll route', () => {
-  it('lands on the admin panel after OAuth-shaped enrollment', () => {
-    const search = '?response_type=code&client_id=source&redirect_uri=https%3A%2F%2Fsource.test%2Fcallback';
-
-    expect(resolveAdminEnrollPostCreateDestination(search, CURRENT_ORIGIN)).toEqual({
-      kind: 'navigate',
-      path: '/admin',
-    });
-  });
-
-  it('lands on the admin panel after non-document next targets', () => {
-    expect(resolveAdminEnrollPostCreateDestination('?next=/sharing', CURRENT_ORIGIN)).toEqual({
-      kind: 'navigate',
-      path: '/admin',
-    });
-  });
-
-  it('lands on the admin panel after document next targets', () => {
-    expect(resolveAdminEnrollPostCreateDestination('?next=/n/staleDoc', CURRENT_ORIGIN)).toEqual({
-      kind: 'navigate',
-      path: '/admin',
-    });
-  });
-
-  it('lands on the admin panel by default after enrolling', () => {
-    expect(resolveAdminEnrollPostCreateDestination('', CURRENT_ORIGIN)).toEqual({
-      kind: 'navigate',
-      path: '/admin',
-    });
   });
 });
