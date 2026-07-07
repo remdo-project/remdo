@@ -38,16 +38,12 @@ RemDo-owned note links and generic external links.
    note-link node. When the target is in the current document, inserted
    link text copies the current target note title; otherwise it uses the pasted
    URL string.
-9. Typed URLs use Lexical generic link behavior, including same-origin
-    RemDo note URLs typed as raw URLs.
-10. Pasted generic URLs that are not upgraded to note links use Lexical generic
-    link behavior.
-11. Generic URL links open in a new tab.
-12. URLs that merely resemble RemDo note routes but are not classified by
+9. Generic URL links open in a new tab.
+10. URLs that merely resemble RemDo note routes but are not classified by
     RemDo as owned note refs remain generic external links.
-13. Clipboard payloads (copy/cut) must include explicit `docId` for every
+11. Clipboard payloads (copy/cut) must include explicit `docId` for every
    note link so cross-context paste has complete target identity.
-14. Cross-document pastes preserve source-target link identity; note links
+12. Cross-document pastes preserve source-target link identity; note links
    are not retargeted to the destination document.
 
 ## Identity Representation Boundaries
