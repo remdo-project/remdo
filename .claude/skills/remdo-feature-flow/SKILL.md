@@ -30,14 +30,7 @@ dialog, and the spec must all be shaped against exactly the state the task
 branch will fork from, or the design is built against one codebase while
 Phase 3 branches from another.
 
-**Tree clean of unrelated changes first.** Apply the Phase-3 "no unrelated
-changes" judgment *before* running the script below — it fast-forwards a stale
-branch, and a fast-forward would silently advance a checkout the run should have
-stopped on. (The script itself refuses a
-dirty tree, but it cannot tell this flow's own spec edits from unrelated work;
-that judgment is yours.)
-
-Then **run `sh tools/skills/preflight-base.sh`** (its header states the full
+**Run `sh tools/skills/preflight-base.sh`** (its header states the full
 contract). It leaves the branch proceedable or exits for a state the run must
 stop on. What each outcome means for the flow:
 
