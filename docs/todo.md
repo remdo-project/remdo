@@ -438,6 +438,15 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   behavior; refine owns quality backstops; sync the post-merge check;
   deps-refresh its matrix). Reconcile with AGENTS.md's declare-scope-in-situ
   rule via shared vocabulary + per-skill delta.
+- Tradeoff (refine confirmation): `temporal-status.mjs`'s scope guard tests
+  `docsPath(name).startsWith('docs/')` inline rather than reusing the sibling
+  `isDocsFile` from `docs-scope.mjs`. The two pull opposite ways on the same two
+  lines: single-source-the-predicate (`!isDocsFile(name) || EXEMPT.has(docsPath(
+  name))`) reuses the owned test but calls `repoRelative` twice; the current
+  form calls it once. A `docsScope(name) -> {rel, inDocs}` helper on
+  docs-scope.mjs would satisfy both but adds a third export for one caller.
+  Left as-is to avoid oscillating the same lines; fold into the docs-scope
+  keep/drop decision above.
 - Tradeoff (refine rung 3): `.markdownlint-cli2.jsonc` `ignores` hardcodes the
   three skill-mirror symlink dirs by name to stop globby double-linting them
   (cli2 doesn't dedup by resolved path). The list matches the live symlink set
