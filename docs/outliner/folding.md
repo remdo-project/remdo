@@ -47,7 +47,7 @@ note identities.
      visible.
 3. Pressing `0` fully unfolds the current zoom boundary.
 4. The command changes existing stored fold state for notes inside the current
-   zoom boundary. It is not a separate transient zoom/view mode.
+   zoom boundary.
 5. The command appears as `Fold to level [0-9]` in the quick action menu's
    `View` section and applies from the current zoom root (document root or
    subtree root), regardless of which visible note opened the quick action

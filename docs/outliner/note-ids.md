@@ -82,10 +82,6 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 - Persisted JSON document state must include `noteId` for addressable notes.
 - Persisted JSON document state must not persist the active/current document ID
   as document-level identity (for example, not as `root.noteId`).
-- Persisted JSON must keep explicit `docId` values for note links that
-  target other documents.
-- Note-link `docId` representation rules are defined in
-  [Links](./links.md#identity-representation-boundaries).
 - On load, any missing or duplicate `noteId` values must be normalized before
   the document is exposed to the app: keep existing unique IDs and assign fresh
   IDs to missing or colliding notes (preserving document order).
@@ -99,8 +95,6 @@ Behavioral clipboard rules (placement, move validation, focus) live in
   session/editor it initializes.
 - Runtime `documentId` must remain per-editor state and must not be derived from
   global location reads inside core editor logic.
-- Runtime `documentId` also drives same-document note-link rehydration at
-  load/import boundaries (see [Links](./links.md)).
 
 ## Collaboration
 

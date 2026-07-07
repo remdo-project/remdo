@@ -11,8 +11,7 @@ popup owns, its focus model, and what confirming does.
 ## Shared editor-popup contract
 
 An editor popup is a transient surface anchored in the editor that, while open,
-**owns the keyboard** and is **light-dismissable**. Each of RemDo's popups is a
-specialization of this contract; the contract is independent of how each opens.
+**owns the keyboard** and is **light-dismissable**.
 
 1. **One at a time.** At most one editor popup is open; opening one closes any
    other.
@@ -67,8 +66,7 @@ text the user did not freshly invoke.
    past the `@` ends the session because the span no longer holds it. (The `!`
    calendar traps focus, so the caret cannot move while it is open.)
 
-The per-picker specs define the rest: the option source and popup body, the keys
-the popup additionally owns, the focus model, and the commit. Behavior over an
+ Behavior over an
 *already-committed* inline token (navigating or editing it) is not part of this
 session and stays in the owning feature (see [Dates](./dates.md) for date-token
 keyboard behavior).

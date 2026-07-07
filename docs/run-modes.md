@@ -111,9 +111,7 @@ bootstrapped key/server-token pair (see
      requests). The home is registered on the source through the home's
      `/admin` panel, not preconfigured.
   7. `pnpm run dev:users` provisions the stable users (Alice/Bob) and prints
-     their credentials; it only seeds those users. Source-server OAuth clients
-     are not created out-of-band — a home registers itself on a source through
-     the `/admin` panel (step 6), not via this command.
+     their credentials; it only seeds those users.
   8. Collaboration access follows the shared
      [browser-facing collaboration paths](./architecture.md#browser-facing-collaboration-paths);
      Y-Sweet auth uses a matched development default key/server-token pair.
