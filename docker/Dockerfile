@@ -71,6 +71,7 @@ FROM node:24.18-alpine AS runner
 
 ENV YSWEET_VERSION=^0.9.1
 ENV NODE_ENV=production
+ENV DATA_DIR=/data
 
 WORKDIR /app
 
@@ -86,7 +87,7 @@ RUN apk add --no-cache caddy \
     sleep "$delay"; \
     attempt=$((attempt + 1)); \
   done \
-  && mkdir -p /app/data /etc/caddy /srv/remdo /var/log /usr/local/share/remdo
+  && mkdir -p /data /etc/caddy /srv/remdo /var/log /usr/local/share/remdo
 
 # Install backup script and cron schedule (runs every minute).
 COPY docker/backup.sh /usr/local/bin/backup.sh
@@ -95,7 +96,7 @@ RUN chmod +x /usr/local/bin/backup.sh \
   && chmod 600 /etc/crontabs/root \
   && touch /var/log/backup.log
 
-COPY --from=builder /app/data/dist /srv/remdo
+COPY --from=builder /app/dist /srv/remdo
 COPY --from=builder /app/node_modules /app/node_modules
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh

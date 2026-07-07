@@ -24,7 +24,7 @@ variables — is derived or bootstrapped, never set in the normal path.
 | Variable          | dev / test | server / prod      | Role                                                          |
 | ----------------- | ---------- | ------------------ | ------------------------------------------------------------- |
 | `NODE_ENV`        | optional   | required           | `development` / `test` / `production`.                        |
-| `DATA_DIR`        | optional   | optional           | Persistence root for data and bootstrapped secrets; prod should point it at a persistent mount. |
+| `DATA_DIR`        | optional   | optional           | Persistence root for data and bootstrapped secrets; prod should point it at a persistent mount (`/data` in the production Docker image). |
 | `PORT_BASE`       | optional   | —                  | Dev port base; `PORT` and all secondary ports derive from it. |
 | `PORT`            | derived    | optional           | Listen/bind port only; the one prod knob, defaults to `8080`. |
 | `HOST`            | optional   | fixed in-container | Bind host. The container entrypoint pins it to `127.0.0.1` so the API listens on the IPv4 loopback Caddy proxies to (`localhost` can resolve to `::1`, leaving the API IPv6-only and unreachable). |
