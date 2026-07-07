@@ -494,6 +494,22 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   the product markdown gate (invariant 3 documents the skill-file `References`
   exemption as intended); otherwise inline the `docs/` assumption and drop the
   module + its exemption tests. Decide when the product-gate wiring is settled.
+- ESCALATE (docs-align, refine rung 2 round 2, skill-migration range): four
+  advocate deletions split the dual adjudicators; left as-is (kept) pending your
+  call. (1) `remdo-docs-align/SKILL.md` stage-3 `MUST NOT wrap/background/re-
+  implement` — one side reads "invoke in exactly that form, in the foreground"
+  as foreclosing it, other says deleting the prohibition and keeping only its
+  rationale drops enforceable contract and "in the foreground" doesn't clearly
+  bar re-implementing. (2) `remdo-feature-flow/SKILL.md` Branch base "stacked/
+  dependent branches ... handled by hand" — restatement of "origin/main only"
+  vs. a disposition for the excluded case that "only" doesn't supply. (3)
+  `remdo-refine/SKILL.md` refusal "Do not fold the uncommitted changes in to
+  make it resolve" — restatement of warn-and-stop vs. a guard against the
+  sanctioned commit-escape being used to force resolution. (4)
+  `.claude/skills/remdo-simplify/SKILL.md` "Keep all behavior/scope/output in
+  the shared skill; this file exists only for ... metadata" — restatement of
+  "read and follow" vs. a forward-looking no-behavior-here rule for future
+  adapter edits. Decide keep vs. delete per clause.
 
 ## Skill test-infra follow-up
 
