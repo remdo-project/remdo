@@ -518,6 +518,16 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   `.agents/skills` plus Claude-only `.claude/skills`; hidden dirs are pruned by
   the file crawler, so include globs can't reach them); requires re-verifying
   `--changed` and forceRerunTriggers semantics across projects.
+- Tradeoff (refine confirmation, skill-migration range): the spec-bridge guard
+  and its `forceRerunTriggers` span all three hidden roots
+  (`.agents`/`.claude`/`.codex`), but only `.agents/skills` holds real specs
+  today — `globSync`'s `*` doesn't traverse the mirror symlinks and the real
+  adapter dirs are spec-free, so the `.claude`/`.codex` roots+triggers match
+  nothing now. Keep them as a forward guard (a spec added under a real adapter
+  dir then can't false-pass changed-only; verified it catches one), or narrow to
+  `.agents` only per the dev-phase "no defensive guards unless required" rule and
+  re-widen when the first adapter spec appears. Left symmetric to avoid
+  oscillating the same lines; decide when an adapter first grows a spec.
 
 ## remdo-refine follow-ups
 
