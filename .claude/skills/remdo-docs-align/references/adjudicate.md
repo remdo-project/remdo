@@ -10,13 +10,10 @@ numbered proposals are in {PROPOSALS}. Adjudicate every proposal against the
 rules doc.
 
 Two modes, set by the caller. **Verdict-only (dual adjudication, stage 4's
-default):** decide each proposal and emit verdicts only — do **not** edit any
-file, do **not** fix links, do **not** apply anything; two independent
-adjudicators run this way and their verdict lists are diffed before any edit
-happens. **Applying (a single standalone adjudicator):** decide and apply what
-survives, keeping the corpus coherent. The paragraphs below on applying and on
-fixing moved links govern the applying mode only; in verdict-only mode they are
-deferred to whoever executes the agreed applies.
+default):** two independent adjudicators each emit verdicts only and edit
+nothing; their lists are diffed before any edit happens. **Applying (a single
+standalone adjudicator):** decide and apply what survives. The per-mode
+instructions are in the closing paragraph.
 
 The face-value tie-breaker, applied strictly: the corpus intent promises that
 a reader takes every rule at face value. An exhaustive rule ("only X",
