@@ -54,10 +54,11 @@ they run in this order.
    no-op on an already-minimal scope), skip stage 4 and note the no-op in the
    report; there is nothing to adjudicate.
 4. **Adjudicate (dual).** First the coordinating session suppresses: it drops
-   table entries whose quoted text matches the standing-keeps ledger (a
-   whitespace-normalized substring match of the entry's quoted text against a
-   ledger line; user-settled keeps; report the count — removing a ledger entry
-   is how a keep is reopened). The ledger lives in a machine-local checkout of
+   table entries matching the standing-keeps ledger on BOTH keys — the
+   proposal's file equals the entry's file, and the quoted text matches
+   (whitespace-normalized substring); the same words in a different doc are a
+   different proposal and MUST NOT be suppressed. (User-settled keeps; report
+   the count — removing a ledger entry is how a keep is reopened.) The ledger lives in a machine-local checkout of
    the `remdo-docs-qa` bench repo — a sibling of the RemDo checkout (same parent
    directory); if absent, suppression is unavailable (degraded mode) and the run
    proceeds without it. If suppression empties the table, skip the adjudicators
