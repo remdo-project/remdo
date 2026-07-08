@@ -2,14 +2,12 @@
 // section collects external sources only — no links into the corpus. Inside that
 // section, any link or reference definition whose target is not external (a URL
 // scheme or a protocol-relative `//host`) is a violation; corpus links belong
-// inline in the body. Applies to docs/ only; skill files are exempt (their
-// References link sibling skills by design).
+// inline in the body. The private runner passes docs/**/*.md only; product
+// markdown lint does not load this rule.
 //
 // The section runs from the `## References` heading to the next level-2 heading
 // (matching the old checker: `###`/`####` subheadings stay inside it). Links come
 // from the micromark token stream, so code-span/fenced examples never count.
-
-import { isDocsFile } from './docs-scope.mjs';
 
 // External = a URL scheme (`https:`, `mailto:`) or protocol-relative (`//host`).
 // Same test the relative-links rule uses to skip a target, so the two rules
@@ -72,9 +70,6 @@ export default {
   tags: ['remdo'],
   parser: 'micromark',
   function: (params, onError) => {
-    if (!isDocsFile(params.name)) {
-      return;
-    }
     const { tokens } = params.parsers.micromark;
     const headings = [];
     collect(tokens, (t) => t.type === 'atxHeading', headings);

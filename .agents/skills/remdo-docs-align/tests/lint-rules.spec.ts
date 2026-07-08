@@ -55,15 +55,6 @@ describe('remdo-temporal-status', () => {
     expect(await temporal('docs/documentation.md', 'the banned token "currently"\n')).toEqual([]);
   });
 
-  it('applies to docs/ only — skill files are exempt', async () => {
-    expect(await temporal('.claude/skills/s/SKILL.md', 'currently supported\n')).toEqual([]);
-  });
-
-  it('scopes by an anchored docs/ prefix — a nested /docs/ segment stays exempt', async () => {
-    // Only the repo's top-level docs/ tree is in scope; src/docs/x.md is not.
-    expect(await temporal('src/docs/x.md', 'currently supported\n')).toEqual([]);
-  });
-
   it('exempts by exact repo-relative path, not basename — a nested todo.md is in scope', async () => {
     expect(await temporal('docs/sub/todo.md', 'for now this lives here\n')).toEqual([1]);
   });
@@ -118,13 +109,6 @@ describe('remdo-references-shape', () => {
     expect(await references('docs/a.md', closed)).toEqual([]);
   });
 
-  it('applies to docs/ only — skill files are exempt', async () => {
-    expect(await references('.claude/skills/s/SKILL.md', '## References\n\n- [i](b.md)\n')).toEqual([]);
-  });
-
-  it('scopes by an anchored docs/ prefix — a nested /docs/ segment stays exempt', async () => {
-    expect(await references('src/docs/x.md', '## References\n\n- [i](b.md)\n')).toEqual([]);
-  });
 });
 
 // Integration: run the *real* cli2 (production config + custom rules) over a

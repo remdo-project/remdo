@@ -464,19 +464,7 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   behavior; refine owns quality backstops; sync the post-merge check;
   deps-refresh its matrix). Reconcile with AGENTS.md's declare-scope-in-situ
   rule via shared vocabulary + per-skill delta.
-- Split the remaining Claude-only `playground` skill: it still extends the
-  Claude official plugin cache. Promote the agent-neutral intent into
-  `.agents/skills` once it has a Codex adapter or vendored template guidance
   that mirrors the Claude-specific capability in Codex's own format.
-- Tradeoff (refine confirmation): `temporal-status.mjs`'s scope guard tests
-  `docsPath(name).startsWith('docs/')` inline rather than reusing the sibling
-  `isDocsFile` from `docs-scope.mjs`. The two pull opposite ways on the same two
-  lines: single-source-the-predicate (`!isDocsFile(name) || EXEMPT.has(docsPath(
-  name))`) reuses the owned test but calls `repoRelative` twice; the current
-  form calls it once. A `docsScope(name) -> {rel, inDocs}` helper on
-  docs-scope.mjs would satisfy both but adds a third export for one caller.
-  Left as-is to avoid oscillating the same lines; fold into the docs-scope
-  keep/drop decision above.
 - ESCALATE (docs-align, refine rung 2): `docs/outliner/menu.md:40` — advocate
   proposed deleting "it has no query span, so it owns every key;" as a
   restatement of the shared editor-popup contract. Dual adjudicators split:
@@ -486,30 +474,6 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   wholesale delete loses information the reader needs). Left as-is pending your
   call: keep, delete the "so it owns every key" restatement only (keeping the
   no-query-span fact), or delete the whole clause.
-- Tradeoff: `docs-align`'s `docs-scope.mjs` (`isDocsFile`/`docsPath` +
-  skill-file exemption) is exercised only by `lint-rules.spec.ts`; the sole
-  production caller `run-doc-rules.mjs` globs `docs/**/*.md` and the rules are
-  not wired into the product cli2 `customRules`, so the scoping/exemption branch
-  is unreachable in prod today. Keep it if the rules are meant to be wired into
-  the product markdown gate (invariant 3 documents the skill-file `References`
-  exemption as intended); otherwise inline the `docs/` assumption and drop the
-  module + its exemption tests. Decide when the product-gate wiring is settled.
-- ESCALATE (docs-align, refine rung 2 round 2, skill-migration range): four
-  advocate deletions split the dual adjudicators; left as-is (kept) pending your
-  call. (1) `remdo-docs-align/SKILL.md` stage-3 `MUST NOT wrap/background/re-
-  implement` — one side reads "invoke in exactly that form, in the foreground"
-  as foreclosing it, other says deleting the prohibition and keeping only its
-  rationale drops enforceable contract and "in the foreground" doesn't clearly
-  bar re-implementing. (2) `remdo-feature-flow/SKILL.md` Branch base "stacked/
-  dependent branches ... handled by hand" — restatement of "origin/main only"
-  vs. a disposition for the excluded case that "only" doesn't supply. (3)
-  `remdo-refine/SKILL.md` refusal "Do not fold the uncommitted changes in to
-  make it resolve" — restatement of warn-and-stop vs. a guard against the
-  sanctioned commit-escape being used to force resolution. (4)
-  `.claude/skills/remdo-simplify/SKILL.md` "Keep all behavior/scope/output in
-  the shared skill; this file exists only for ... metadata" — restatement of
-  "read and follow" vs. a forward-looking no-behavior-here rule for future
-  adapter edits. Decide keep vs. delete per clause.
 
 ## Skill test-infra follow-up
 

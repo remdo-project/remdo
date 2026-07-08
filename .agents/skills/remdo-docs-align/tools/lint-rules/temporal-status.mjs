@@ -2,15 +2,14 @@
 // timeless. Conservative token list — only unambiguous status markers; "new" is
 // semantic (feature-age vs domain use) and stays with review. docs/todo.md is
 // the status ledger and docs/documentation.md quotes the banned tokens as rules,
-// so both are exempt. Applies to docs/ only; skill files are exempt.
+// so both are exempt. The private runner passes docs/**/*.md only; product
+// markdown lint does not load this rule.
 //
 // Riding the micromark token stream, code spans and fenced blocks are distinct
 // token types (codeText / codeFlowValue …), so their content never reaches the
 // prose `data` tokens this rule scans — the exclusion the old hand-rolled
 // checker did by blanking fences is free and correct here. Link destinations are
 // skipped too so a URL is never mistaken for prose.
-
-import { docsPath } from './docs-scope.mjs';
 
 const TEMPORAL = /\bfor now\b|\bcurrently\b|\bat the moment\b|\bnot yet\b|\bwill soon\b|\(early draft\)/i;
 // Exact repo-relative paths, not basenames: only these two docs are the status
@@ -48,8 +47,8 @@ export default {
   tags: ['remdo'],
   parser: 'micromark',
   function: (params, onError) => {
-    const rel = docsPath(params.name);
-    if (!rel.startsWith('docs/') || EXEMPT.has(rel)) {
+    const rel = params.name.replace(/\\/g, '/');
+    if (EXEMPT.has(rel)) {
       return;
     }
     const prose = [];
