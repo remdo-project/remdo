@@ -20,16 +20,16 @@ Cells read `required` (must be set),
 that mode). Everything else is derived or bootstrapped, never set in the normal
 path.
 
-| Variable          | dev / test | server / prod      | Role                                                          |
-| ----------------- | ---------- | ------------------ | ------------------------------------------------------------- |
-| `NODE_ENV`        | optional   | required           | `development` / `test` / `production`.                        |
-| `DATA_DIR`        | optional   | optional           | Persistence root for data and bootstrapped secrets (see Secret bootstrap guardrails). |
-| `PORT_BASE`       | optional   | —                  | Dev port base; `PORT` and all secondary ports derive from it. |
-| `PORT`            | derived    | optional           | Listen/bind port only; the one prod knob, defaults to `8080`. |
-| `HOST`            | optional   | fixed in-container | Bind host. The container entrypoint pins it to `127.0.0.1` so the API listens on the IPv4 loopback Caddy proxies to (`localhost` can resolve to `::1`, leaving the API IPv6-only and unreachable). |
-| `APP_PUBLIC_URL`  | —          | required           | Canonical public origin (see below).                          |
-| `ADMIN_SECRET`    | optional   | required           | Admin enrollment gate (see below).                            |
-| `ALLOW_SIGNUP`    | optional   | optional           | Signup policy. Defaults true outside production, false in it.  |
+| Variable | dev / test | server / prod | Role |
+| --- | --- | --- | --- |
+| `NODE_ENV` | optional | required | `development` / `test` / `production`. |
+| `DATA_DIR` | optional | optional | Persistence root for data and bootstrapped secrets (see Secret bootstrap guardrails). |
+| `PORT_BASE` | optional | — | Dev port base; `PORT` and all secondary ports derive from it. |
+| `PORT` | derived | optional | Listen/bind port only; the one prod knob, defaults to `8080`. |
+| `HOST` | optional | fixed in-container | Bind host. The container entrypoint pins it to `127.0.0.1` so the API listens on the IPv4 loopback Caddy proxies to (`localhost` can resolve to `::1`, leaving the API IPv6-only and unreachable). |
+| `APP_PUBLIC_URL` | — | required | Canonical public origin (see below). |
+| `ADMIN_SECRET` | optional | required | Admin enrollment gate (see below). |
+| `ALLOW_SIGNUP` | optional | optional | Signup policy. Defaults true outside production, false in it. |
 
 ## Derivation rules
 
@@ -66,9 +66,8 @@ Guardrails:
 
 ## Admin bootstrap and enrollment
 
-`ADMIN_SECRET` is the gate for acquiring the admin role. The self-enrollment flow it gates
-(including first-admin bootstrap) lives in
-[docs/access-model.md](./access-model.md#admin-role).
+`ADMIN_SECRET` is the gate for acquiring the admin role; the self-enrollment
+flow it gates lives in [docs/access-model.md](./access-model.md#admin-role).
 
 ## Validation policy
 

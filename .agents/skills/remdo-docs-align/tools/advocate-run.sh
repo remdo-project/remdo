@@ -4,34 +4,42 @@
 # Usage: advocate-run.sh <rules-doc> <scope> <output-file>
 #   <rules-doc>   value substituted for {RULES_DOC} (e.g. docs/documentation.md)
 #   <scope>       value substituted for {SCOPE} (the files or diff under review)
-#   <output-file> where the FULL codex output is captured (caller-named)
+#   <output-file> where the canonical proposal table is written (caller-named)
 #
 # Substitutes the two placeholders in
 # ../references/advocate.md (sibling of this script inside the skill), then runs
 # `codex exec --sandbox read-only` from the repo root (a git cwd — codex's trust
-# check needs one) with the prompt on stdin. Captures the complete output (no
-# truncation) to <output-file>. Retries once when the first run fails, writes
-# nothing, or produces an artifact with no numbered proposal (codex startup
-# timeouts / transient failures / a session that dies mid-read leaving a
+# check needs one) with the prompt on stdin. Retries once when the first run
+# fails, writes nothing, or produces an artifact with no valid proposal (codex
+# startup timeouts / transient failures / a session that dies mid-read leaving a
 # proposal-less trace). The model's judgment stays opaque; only the invocation
 # is scripted.
 #
-# Artifact validation and repair (both applied after capture, before success):
-#   - De-dup: codex streams its final numbered answer, then reprints it verbatim
-#     after a "tokens used\n<count>" marker. When the numbered-list block after
-#     the marker byte-matches the equal-length block before it, the trailing copy
-#     (marker line, count line, and repeat) is dropped so the artifact carries the
-#     proposal list exactly once. A non-matching tail is left untouched.
-#   - Valid result: the artifact must carry either at least one numbered
-#     proposal (a "Replacement:" line) or the explicit "NO PROPOSALS" sentinel
-#     the prompt asks for on a minimal scope. An artifact with neither is a
-#     failed run (e.g. codex died mid-read), so it triggers the retry and, if the
-#     retry also has neither, a non-zero exit. A NO-PROPOSALS result emits
-#     ADVOCATE=ok with PROPOSALS=none so the caller skips adjudication cleanly.
+# Output contract (three files, all caller-relative):
+#   - <output-file>       the canonical numbered proposal table (or the
+#                         NO PROPOSALS sentinel), ready for stage-4 adjudication.
+#   - <output-file>.msg   codex's final agent message only (its clean channel,
+#                         captured via `--output-last-message`); the source the
+#                         table is normalized from.
+#   - <output-file>.raw   the full mixed codex stream (stdout+stderr), untruncated,
+#                         for provenance.
+# Validity: the normalized table carries either at least one proposal block with
+# BOTH a `Text:` and a `Replacement:` line, or the explicit `NO PROPOSALS`
+# sentinel the prompt asks for on a minimal scope. Sentinel precedence: the
+# sentinel counts only when extraction yields zero Text-anchored blocks; if both
+# appear, the blocks win and a warning is printed to stderr. An artifact with
+# neither is a failed run (e.g. codex died mid-read), so it triggers the retry
+# and, if the retry also has neither, a non-zero exit. A NO-PROPOSALS result
+# emits ADVOCATE=ok with PROPOSALS=none so the caller skips adjudication cleanly.
+#
 # Fails loud (non-zero + stderr) on missing or extra args, a missing template,
-# an uncreatable output directory, or a second run with neither proposals nor
-# the sentinel.
+# an uncreatable output directory, a codex exit that leaves the final-message
+# file missing/empty, or a second run with neither proposals nor the sentinel.
 set -eu
+
+# Single source for the canonical block-head prefix: the normalizer writes it
+# and has_proposal greps for it, so they can never drift.
+HEAD_PREFIX='file: '
 
 fail() {
   echo "advocate-run: $1" >&2
@@ -41,6 +49,10 @@ fail() {
 rules_doc=${1-}
 scope=${2-}
 out=${3-}
+# Resolve the output path against the caller's cwd once, up front: codex runs
+# after a cd to the repo root, so a relative <output-file> would otherwise
+# split across two directories (.raw in the caller cwd, .msg under the root).
+case "$out" in ''|/*) ;; *) out="$PWD/$out" ;; esac
 [ -n "$rules_doc" ] || fail "missing rules doc (usage: advocate-run.sh <rules-doc> <scope> <output-file>)"
 [ -n "$scope" ] || fail "missing scope (usage: advocate-run.sh <rules-doc> <scope> <output-file>)"
 [ -n "$out" ] || fail "missing output file (usage: advocate-run.sh <rules-doc> <scope> <output-file>)"
@@ -93,77 +105,158 @@ out_dir=$(dirname -- "$out")
 mkdir -p -- "$out_dir" || fail "cannot create output directory '$out_dir'"
 
 run_codex() {
-  # Full output (stdout+stderr) to the file, no truncation. Runs from repo root.
-  ( cd -- "$repo_root" && printf '%s\n' "$prompt" | codex exec --sandbox read-only - ) \
-    >"$out" 2>&1
+  # codex's clean channel: --output-last-message writes ONLY the final agent
+  # message to "$out.msg" (no reading trace, no reprint), which the normalizer
+  # reads. The full mixed stream (stdout+stderr) goes to "$out.raw" for
+  # provenance — this is the genuinely full capture. Runs from repo root.
+  # Clear any previous run's final message first: a stale "$out.msg" would
+  # otherwise pass the size check below when codex exits 0 without writing one,
+  # silently normalizing the old table.
+  rm -f -- "$out.msg"
+  ( cd -- "$repo_root" \
+      && printf '%s\n' "$prompt" \
+      | codex exec --sandbox read-only -o "$out.msg" - ) \
+    >"$out.raw" 2>&1 || return 1
+  # A clean exit that left no final message means codex produced nothing usable
+  # (died before its final turn); treat it as a failed attempt, not an empty-ok.
+  [ -s "$out.msg" ] || return 1
 }
 
-# De-dup the doubled final answer in place. codex reprints its numbered proposal
-# list verbatim after a "tokens used\n<count>" marker; when the block after the
-# marker byte-matches the equal-length block ending just before it, the trailing
-# copy is redundant and dropped. A tail that does not match (e.g. genuinely
-# different trailing text) is left as-is.
-dedup_artifact() {
-  awk '
-    { lines[NR] = $0 }
-    /^tokens used$/ { marker = NR }
-    END {
-      total = NR
-      # No marker, or nothing after the count line: emit unchanged.
-      if (marker == 0 || marker + 2 > total) { for (i = 1; i <= total; i++) print lines[i]; exit }
-      tail_start = marker + 2          # skip "tokens used" and its count line
-      tail_len = total - tail_start + 1
-      pre_start = marker - tail_len    # equal-length slice ending at marker-1
-      dup = (pre_start >= 1)
-      for (i = 0; dup && i < tail_len; i++)
-        if (lines[pre_start + i] != lines[tail_start + i]) dup = 0
-      if (dup) for (i = 1; i <= marker - 1; i++) print lines[i]
-      else     for (i = 1; i <= total; i++) print lines[i]
-    }
-  ' "$out" >"$out.dedup" && mv -- "$out.dedup" "$out"
-}
-
-# A valid artifact carries a real numbered proposal OR the explicit
-# "NO PROPOSALS" sentinel. A trace with neither is a failed run (codex died
-# mid-read), not an empty-but-fine result.
+# Normalize codex's final message into the canonical stage-4 table: one block
+# per proposal, renumbered sequentially, single-line label values. A block is
+# anchored on a `Text:` (or legacy `Quote:`) line; the nearest preceding
+# non-empty line is its location (leading numbering, backticks, and a `file:`
+# prefix are stripped). A stray location line (a `N. …`/`N) …` line with no
+# following label) also opens a block, so a missing-`Text:` proposal is
+# head-minted rather than silently vanishing. Only the known labels survive; the
+# reading trace and prompt echo are dropped. Observed drifts this absorbs:
+# unnumbered label blocks, Quote:/Text: label swap, wrapped label values.
 #
-# A proposal is a *block*: a numbered item (a line starting `N.`) with a
-# "Replacement:" line within the next few lines (a real proposal states its
-# replacement right under the numbered head). Checking that adjacency — not the
-# two substrings independently anywhere in the file — rejects a died-mid-read
-# trace that merely echoes the prompt, whose numbered scope lines and distant
-# format-spec `Replacement:` mention never sit in one block. This is a sanity
-# guard against a truncated run, not an adversarial validator; the WINDOW is the
-# few-line span a genuine proposal head-to-Replacement occupies.
+# Sentinel precedence: the awk emits BLOCKS=<n> on the last line so the caller
+# can tell a genuine sentinel (zero blocks) from a sentinel line that appeared
+# alongside real proposals (blocks win; warn).
+normalize_artifact() {
+  awk -v head="$HEAD_PREFIX" '
+    function flushlabel() { if (label != "") { print label ": " val; label = ""; val = "" } }
+    function startblock(loc) {
+      flushlabel()
+      n++
+      sub(/^[[:space:]]*[0-9]+[.)][[:space:]]*/, "", loc)
+      gsub(/`/, "", loc)
+      sub(/^file:[[:space:]]*/, "", loc)
+      if (n > 1) print ""
+      print n ". " head loc
+    }
+    # A location-shaped line ("N. …" / "N) …") flushes any open label and, when
+    # no Text: has minted a block for it yet, mints one from the location so a
+    # truncated (missing-Text) proposal is not dropped. prev still holds it for a
+    # following Text: line, which starts a fresh block for the real quote.
+    # Only a path-shaped numbered head is a location ("N. `docs/x.md:12`" and
+    # friends); numbered prose ("1. I found one issue:") must not mint a row.
+    /^[[:space:]]*[0-9]+[.)][[:space:]]/ && $0 ~ /[[:alnum:]_-]+\/[[:alnum:]_.]|[[:alnum:]_-]+\.[a-z][a-z]/ {
+      flushlabel()
+      if (pending_loc != "") { startblock(pending_loc) }
+      pending_loc = $0
+      prev = $0
+      next
+    }
+    /^(Text|Quote):/ {
+      # Mint only from a location-shaped line (numbered, or a path-like token
+      # with a slash / dot-extension). Arbitrary prose above the label must not
+      # become a bogus "file:" row; with no valid location the block is not
+      # minted, the labels fold nowhere, and validation fails the run loudly.
+      if (pending_loc != "") {
+        startblock(pending_loc)
+      } else if (prev ~ /[[:alnum:]_-]+\/[[:alnum:]_.]|[[:alnum:]_-]+\.[a-z][a-z]/ && (prev ~ /^[[:space:]]*[0-9]+[.)][[:space:]]/ || prev !~ /[[:space:]].*[[:space:]].*[[:space:]]/)) {
+        startblock(prev)
+      }
+      pending_loc = ""
+      if (n > 0) { label = "Text"; val = $0; sub(/^(Text|Quote):[[:space:]]*/, "", val) }
+      prev = $0; next
+    }
+    /^(Replacement|Rule|Risk test|Borderline):/ {
+      if (pending_loc != "") { startblock(pending_loc); pending_loc = "" }
+      if (n > 0) {
+        flushlabel()
+        label = $0; sub(/:.*$/, "", label)
+        val = $0; sub(/^[^:]*:[[:space:]]*/, "", val)
+      }
+      prev = $0; next
+    }
+    # Blank line: close the open label. A pending location stays pending — a
+    # blank between a numbered location and its Text: is legitimate formatting;
+    # minting here would emit an empty duplicate block. (A truncated label-less
+    # proposal is minted when the NEXT location supersedes it, or at END.)
+    # Do NOT reset prev.
+    /^[[:space:]]*$/ {
+      flushlabel()
+      next
+    }
+    {
+      if (label != "") val = val " " $0
+      prev = $0
+    }
+    END {
+      flushlabel()
+      if (pending_loc != "") { startblock(pending_loc); flushlabel() }
+      print "BLOCKS=" n > "/dev/stderr"
+    }
+  ' "$out.msg" 2>"$out.blocks" >"$out.norm" \
+    && mv -- "$out.norm" "$out"
+}
+
+# Count the Text-anchored blocks the last normalize produced (its BLOCKS= line).
+block_count() {
+  sed -n 's/^BLOCKS=//p' "$out.blocks" 2>/dev/null | tail -1
+}
+
+# A valid proposal block carries BOTH a Text: and a Replacement: line. The table
+# lists one head line ("N. file: …") per block; require at least one head whose
+# block also holds Replacement:. Cheap structural check: at least one head line
+# AND at least one Replacement: line (the normalizer only emits Replacement:
+# inside a block).
 has_proposal() {
-  [ -s "$out" ] && awk '
-    /^[[:space:]]*[0-9]+\./ { since = 0; seen = 1; next }
-    seen { since++ }
-    seen && since <= 6 && /Replacement:/ { found = 1; exit }
-    END { exit(found ? 0 : 1) }
-  ' "$out"
+  [ -s "$out" ] \
+    && grep -qE "^[0-9]+\. $HEAD_PREFIX" "$out" \
+    && grep -q '^Replacement:' "$out"
 }
 is_no_proposals() {
-  [ -s "$out" ] && grep -qx 'NO PROPOSALS' "$out"
+  [ -s "$out.msg" ] && grep -qx 'NO PROPOSALS' "$out.msg"
 }
 
-# One attempt: capture, de-dup, then require either proposals or the sentinel.
+# One attempt: capture codex's clean channel, normalize, then require either a
+# valid proposal block or the sentinel. Sentinel precedence: honor NO PROPOSALS
+# only when zero blocks were extracted; if the sentinel appears alongside real
+# blocks, prefer the blocks and warn.
 attempt() {
   run_codex || return 1
-  dedup_artifact
-  has_proposal || is_no_proposals
+  normalize_artifact
+  blocks=$(block_count)
+  if is_no_proposals; then
+    if [ "${blocks:-0}" -gt 0 ]; then
+      echo "advocate-run: NO PROPOSALS sentinel appeared alongside $blocks proposal block(s); preferring the blocks" >&2
+      has_proposal
+    else
+      printf 'NO PROPOSALS\n' >"$out"
+      return 0
+    fi
+  else
+    has_proposal
+  fi
 }
 
 # First attempt; retry once on failure, an empty artifact, or a trace carrying
 # neither proposals nor the sentinel.
 for n in 1 2; do
   if attempt; then
+    rm -f -- "$out.blocks"
     echo "ADVOCATE=ok"
     echo "OUTPUT=$out"
-    has_proposal && echo "PROPOSALS=some" || echo "PROPOSALS=none"
+    if grep -qx 'NO PROPOSALS' "$out"; then echo "PROPOSALS=none"; else echo "PROPOSALS=some"; fi
     [ "$n" -eq 2 ] && echo "RETRIED=1"
     exit 0
   fi
 done
 
-fail "codex advocate run failed or produced neither proposals nor a NO PROPOSALS sentinel after one retry — see $out"
+rm -f -- "$out.blocks"
+fail "codex advocate run failed or produced neither proposals nor a NO PROPOSALS sentinel after one retry — see $out.raw"

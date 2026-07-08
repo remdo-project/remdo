@@ -25,13 +25,12 @@ owned by its editor note (see [Concepts](./concepts.md#note-kinds)).
 For selection, a note's content and its body are two distinct **regions**:
 
 - An inline selection lives within exactly one region — one note's content, or
-  one body — and never spans the two.
+  one body.
 - A selection spanning a note's content and its own body is structural, limited
   to that single note (a note is never selected structurally without its body).
 - Any selection crossing two notes — including one with an endpoint inside a
   body — is structural and snaps to whole notes (see [Selection](./selection.md)).
-- The ladder never selects a body's text by itself (a body is never a structural
-  head on its own — see [Concepts](./concepts.md#note-kinds)).
+- The ladder never selects a body's text by itself.
 
 Within a body, keys behave as follows:
 
@@ -65,6 +64,6 @@ When two notes merge into one (see [Deletion](./deletion.md) for when a
 `Backspace`/`Delete` joins notes), their bodies resolve by count:
 
 1. **Neither has a body.** The notes merge as usual.
-2. **Exactly one has a body.** The merge proceeds and the surviving note keeps
-   that body (the merged-away note's body moves to the result).
+2. **Exactly one has a body.** The merge proceeds and the surviving note ends up
+   with that body.
 3. **Both have a body.** The merge is a no-op.

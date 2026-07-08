@@ -25,20 +25,16 @@ note identities.
    like any other edit.
 5. If folding would hide the active selection, it collapses to the folded note
    (caret at end of its text). Hidden descendants are not selectable.
-6. Structural operations remain subtree-atomic; insertion rules in
-   [Insertion](./insertion.md) are unchanged. If a child is inserted or moved under a
-   folded parent, the parent auto-expands. If a note loses its last child, it is
-   no longer folded.
+6. Insertion rules in [Insertion](./insertion.md) are unchanged. If a child is
+   inserted or moved under a folded parent, the parent auto-expands. If a note
+   loses its last child, it is no longer folded.
 7. Zoom defines the outer visible subtree; folding applies inside that view and
    zooming does not reset folding.
 8. Exception: when a folded note is the current zoom root, its own fold state
    does not hide its direct children in the zoomed view. Those children remain
    visible there, and deeper visibility is determined by each descendant's own
    fold state.
-9. The zoom-root exception is presentation-only. The folded state remains saved
-   on the note and takes effect again when the note is shown in a non-zoomed
-   parent context.
-10. Fold command API is state-based: `folded`, `unfolded`, or `toggle`.
+9. Fold command API is state-based: `folded`, `unfolded`, or `toggle`.
 
 ## Fold To Level
 
@@ -50,13 +46,12 @@ note identities.
      visible.
 3. Pressing `0` fully unfolds the current zoom boundary.
 4. The command changes existing stored fold state for notes inside the current
-   zoom boundary. It is not a separate transient zoom/view mode.
+   zoom boundary.
 5. The command appears as `Fold to level [0-9]` in the quick action menu's
    `View` section and applies from the current zoom root (document root or
    subtree root), regardless of which visible note opened the quick action
    menu. Clicking it applies level `1`.
-6. Notes outside the current zoom boundary are unaffected.
-7. If applying a fold level would hide the active caret or structural
+6. If applying a fold level would hide the active caret or structural
    selection, focus collapses to the nearest still-visible ancestor note.
-8. Existing manual folds inside the scoped subtree may be overwritten by the
+7. Existing manual folds inside the scoped subtree may be overwritten by the
    command. The command does not preserve or later restore a prior fold layout.

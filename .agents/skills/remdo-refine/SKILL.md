@@ -9,7 +9,8 @@ description: Use to run the autonomous quality loop over a diff on the current b
 
 Drive a diff to a clean quality bar through a fixed **ladder** of review passes,
 looping until a full pass finds nothing more worth fixing. Fixes settle the rung
-that found them, and a final confirmation cycle re-runs the whole ladder, so
+that found them, and a final confirmation cycle re-runs the whole ladder
+(docs-align excepted — it runs at most once per invocation, see rung 2), so
 every pass ends having reviewed the finished code.
 
 It improves **code quality**, not feature scope — it converges the code, not the
@@ -122,6 +123,10 @@ reviewer or process so it does not inherit the coordinating session's context.
    - **Report back:** its per-proposal disposition list plus any ESCALATE table.
    - **Triage:** consume the dispositions like any findings; surface an ESCALATE
      row as a tradeoff or blocker per the loop rules.
+   - **Runs at most once per refine invocation** (including the confirmation
+     cycle): measured, its advocate re-proposes indefinitely on a real corpus,
+     so "settles" is unreachable and a second pass buys erosion, not
+     convergence. Residue is reported as tradeoffs, not re-run.
 
 3. **Internal review** — invoke the current agent's strongest internal review
    surface at max effort:
@@ -171,7 +176,8 @@ every earlier, more expensive rung on each iteration.
 - **Reject** — not a real issue, or out of scope. Drop it.
 
 Once every rung has settled, run a **confirmation cycle**: the full ladder again
-from rung 1, against the finished diff. **Done** when a confirmation cycle
+from rung 1, against the finished diff (docs-align excepted — it runs at most
+once per invocation, see rung 2). **Done** when a confirmation cycle
 produces zero approved fixes; if it produces any, settle the rung that raised
 them as above, then confirm again. **Stuck** (stop and
 report) when a finding recurs with no progress, or the diff will not converge

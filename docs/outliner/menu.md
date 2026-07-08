@@ -37,8 +37,8 @@ entry, actions, and behavior.
 ## Behavior
 
 1. The menu anchors to the triggering note row near the icon.
-2. The menu uses the WAI-ARIA menu pattern: it has no query span, so it owns
-   every key; focus moves into the menu (roving over the items). `ArrowUp`/`Down`
+2. The menu uses the WAI-ARIA menu pattern: it has no query span; focus moves
+   into the menu (roving over the items). `ArrowUp`/`Down`
    move the active item, `Enter`/`Space` activate it, `Tab` closes the menu and
    returns focus to the editor. Beyond the contract: executing an action also
    closes it, and the shortcut letters and digits below activate their action
