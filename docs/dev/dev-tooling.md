@@ -9,7 +9,7 @@ boundary it lives behind; runtime setup belongs in
 ## Boundary
 
 Dev tooling MUST NOT ship in the production bundle and MUST NOT shape production
-code around itself. The boundary is enforced at build time:
+code around itself:
 
 - **Build-time gate.** Dev tooling is reachable only through
   `import.meta.env.DEV`-guarded branches — `true` under the dev server and test
@@ -20,13 +20,9 @@ code around itself. The boundary is enforced at build time:
   direct import or call is acceptable where it keeps the boundary clear and the
   implementation materially simpler.
 
-A production build fails if a dev-tooling marker survives into the bundle, so a
-leaked dev surface is caught rather than shipped.
+A production build fails if a dev-tooling marker survives into the bundle.
 
 ## Page tools
-
-Dev page tools keep their toolbar entry, route, and rendered component inside the
-dev boundary.
 
 ### Lexical Demo
 
@@ -36,6 +32,6 @@ the vanilla Lexical editor and its tree view as the page's primary content.
 ## Editor tooling
 
 Schema *validation* is a dev/test assertion; the outline *repair* (root
-normalization) it guards is production behavior and stays outside the boundary.
+normalization) it guards is production behavior.
 Validation coordinates with production normalization through a
 skip-once signal so a normalization pass is not re-validated.
