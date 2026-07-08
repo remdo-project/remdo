@@ -19,7 +19,7 @@ note/link identity boundaries; those remain in outliner docs.
 - **Desktop Shell:** Native wrapper (for example Electron/Tauri) hosting the
   same SPA with OS integration.
 
-Delivery surface choice MUST NOT alter outliner semantics.
+Delivery surface choice does not alter outliner semantics.
 
 ## Routing and Origin Boundary
 
@@ -98,8 +98,8 @@ document client tokens.
 - OAuth account tokens: access, refresh, and ID tokens for linked source-server
   accounts, stored by Better Auth.
 - Y-Sweet server token: RemDo API credential for Y-Sweet document-control calls.
-- Y-Sweet document client token: short-lived browser credential returned by
-  `POST /api/documents/:docId/sync-tokens` and enforced by Y-Sweet on sync paths.
+- Y-Sweet document client token: short-lived browser credential enforced by
+  Y-Sweet on sync paths.
 
 ### Browser-facing collaboration paths
 

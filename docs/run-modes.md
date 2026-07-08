@@ -23,22 +23,16 @@ per-mode facts.
 - Platform: user-controlled local machine.
 - Data boundary: local documents stay on the user's own machine.
 - Notes:
-  1. Local document use in this mode does not require cloud access or server-side auth.
-  2. The client may still access linked document sources hosted by self-hosted
+  1. The client may still access linked document sources hosted by self-hosted
      app server or managed cloud app server modes.
-  3. Packaging and installation shape are implementation details for this mode.
+  2. Packaging and installation shape are implementation details for this mode.
 
 ### Shared app-server runtime
 
 Both app server modes run the RemDo API process and the Y-Sweet collaboration
 server behind one [gateway](./architecture.md#gateway). Better Auth runs inside
 the RemDo API process and stores users/sessions in the same SQLite database
-file as the [document registry](./architecture.md#document-registry). Browsers
-reach collaboration only through the
-[browser-facing collaboration paths](./architecture.md#browser-facing-collaboration-paths),
-and the collaboration server runs with Y-Sweet auth enabled using the
-bootstrapped key/server-token pair (see
-[secret bootstrap](./config.md#secret-bootstrap)).
+file as the [document registry](./architecture.md#document-registry).
 
 ### Self-hosted app server
 
@@ -81,8 +75,7 @@ bootstrapped key/server-token pair (see
   1. `.env` (copied from `.env.example`) holds overrides, and process
      environment values override `.env`, so
      one-off runs can use inline values such as `PORT_BASE=4800 ...` without
-     editing local defaults. `PORT_BASE` is the one dev port knob and anchors
-     the local dev port range (see [docs/config.md](./config.md)).
+     editing local defaults.
   2. Dev mode runs the web app with the RemDo API mounted in the Vite dev
      server, plus the Y-Sweet collaboration server. Authentication is enforced,
      and private document access is limited to the registered document owner.
@@ -114,9 +107,7 @@ bootstrapped key/server-token pair (see
      [docs/access-model.md](./access-model.md#linking-a-source)).
   7. `pnpm run dev:users` provisions the stable users (Alice/Bob) and prints
      their credentials; it only seeds those users.
-  8. Collaboration access follows the shared
-     [browser-facing collaboration paths](./architecture.md#browser-facing-collaboration-paths);
-     Y-Sweet auth uses a matched development default key/server-token pair.
+  8. Y-Sweet auth uses a matched development default key/server-token pair.
 
 ### Unit and collab tests
 

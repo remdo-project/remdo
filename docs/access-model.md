@@ -13,8 +13,6 @@ routing, document identity — are owned by
 3. New documents start with no user-specific access grants.
 4. Only the owner can grant access to another user.
 5. A normal document URL is only a document locator.
-6. Public and bearer-link access are separate access cases outside the sharing
-   flow this doc specifies (see [Deferred Access Cases](#deferred-access-cases)).
 
 ## Local-Only App Access
 
@@ -57,8 +55,7 @@ the user.
   authorization is always enforced server-side from the SQL record, never from
   the projection.
 - Every admin API authorizes from the caller's session + role — except the
-  self-enrollment endpoint, which registers a *new* admin account (no existing
-  session or role to check).
+  self-enrollment endpoint, which registers a *new* admin account.
 - `/admin` is the single admin entry route. It renders by the caller's role: an
   admin sees the admin panel; anyone else (signed in or not) sees the
   self-enrollment form. The client learns the current user's role from the
@@ -133,14 +130,10 @@ sharing level, sharing still targets a local account on the document's server.
 ### Linking a source
 
 Linking is **URL-first and user-driven**: any signed-in user links a source by
-entering its URL on the Sharing page ("Link source"). There is no admin gate, no
-separate "add source" step, and no curated source list — the home does not
-maintain admin-managed source configuration, only a self-filling cache keyed by
-URL (below).
+entering its URL on the Sharing page ("Link source").
 
 - On the **first** link to a new source URL, the home lazily self-registers a
-  **public** OAuth client on that source via a server-to-server call — no
-  browser ceremony, no credential handback. "Public" means
+  **public** OAuth client on that source via a server-to-server call. "Public" means
   `token_endpoint_auth_method: "none"`: the source issues no client secret: PKCE
   authenticates the token exchange instead. The returned `client_id` is cached in
   the `source_servers` table, a self-filling cache keyed by the source's origin;
@@ -160,16 +153,15 @@ URL (below).
   server's users are outside the operator's trust boundary, so this confines
   linking's outbound-fetch surface to private homes, whose users are the
   operator's own.
-- **Homes may be private / not internet-reachable.** No server ever fetches the
-  home: every server-to-server call goes home→source, and the OAuth redirect
-  travels through the user's own browser, which is local to the home. (This
+- **Homes may be private / not internet-reachable.** Every server-to-server call
+  goes home→source, and the OAuth redirect travels through the user's own
+  browser, which is local to the home. (This
   topology is why Client ID Metadata Documents — which need the source to fetch
   the home's metadata URL — do not fit and were not adopted.)
 
 ## Future (source-linking & admin, deferred indefinitely)
 
-Long-horizon directions, parked here so they resurface when this area is next
-worked on (near-term source-linking work stays in [docs/todo.md](./todo.md)):
+Long-horizon directions:
 
 - **Enrollment/policy hardening.** Audit-log + rate-limit self-enrollment and any
   public-policy change — one submission now grants a durable admin role, so it is

@@ -96,16 +96,10 @@ Rules:
 
 ## Source-linking follow-ups
 
-Deferred to follow-up PRs:
-
 - Runtime public-policy toggle UI (see above) — this PR builds swappable-auth but
   not the toggle.
 
-Deferred hardening on top of that foundation (each is on top of the same gate, so
-deferring does not churn the gate's interface). Long-horizon items (enrollment
-hardening, non-loopback-source rejection, outbound-fetch destination-IP validation,
-the existence-side-channel residual, and the public-server-shed-home policy) are
-parked under `docs/access-model.md#future`.
+Deferred hardening; long-horizon items live in `docs/access-model.md#future`.
 
 - Public-source registration abuse: the home self-registers unauthenticatedly, so
   the deleted per-account (userId-keyed) register limit can't be ported — there is
@@ -142,9 +136,6 @@ parked under `docs/access-model.md#future`.
     link" from a real "forbidden". Worth splitting when the status UI lands.
 - Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
   the Better Auth admin plugin.
-- Tradeoff (standing): the admin secret is a permanent gate with no per-admin
-  revocation; accepted for single-operator self-host, revisit for public
-  multi-tenant.
 
 ## Offline and local persistence follow-ups
 
@@ -402,10 +393,6 @@ Durable fixes:
   config; `.gitignore` is not honored by watchers).
 - Cap/rotate the `data/collab/` store, or have the test harness clean its collab
   docs after runs, so it can't grow unbounded again.
-
-## remdo-feature-flow follow-ups
-
-- Clean up stale prunable worktree `remdo-7000-wt` if abandoned (not mine).
 
 ## Note body follow-ups
 
