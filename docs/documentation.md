@@ -22,7 +22,7 @@ its own reader and question — the invariants carry over, the persona does not.
 ## Invariants
 
 These invariants apply to every doc in the corpus, and to agent skill files
-(the `.claude/`, `.codex/`, and `.agents/` skill roots), which carry the same
+(the `.claude/` and `.agents/` skill roots), which carry the same
 risks — except where an invariant is inherently about the corpus's shape rather
 than a doc's content: their `References` sections link sibling skills rather
 than only external sources,

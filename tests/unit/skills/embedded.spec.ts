@@ -17,7 +17,7 @@ import '../../../.agents/skills/remdo-sync/tests/sync-probe.spec';
 
 describe('skill-local spec bridge', () => {
   it('imports every spec under canonical hidden skill roots', () => {
-    const roots = ['.agents/skills', '.claude/skills', '.codex/skills'];
+    const roots = ['.agents/skills', '.claude/skills'];
     const found = roots.flatMap(root => fs
       .globSync(`${root}/*/tests/*.spec.ts`, { cwd: process.cwd() })
       .map(p => p.split(path.sep).join('/')));
@@ -27,7 +27,7 @@ describe('skill-local spec bridge', () => {
   });
 
   it('keeps markdownlint from following skill mirror symlinks', () => {
-    const roots = ['.claude/skills', '.codex/skills'];
+    const roots = ['.claude/skills'];
     const mirrorDirs = roots.flatMap(root => fs
       .globSync(`${root}/*`, { cwd: process.cwd() })
       .filter(p => fs.lstatSync(path.join(process.cwd(), p)).isSymbolicLink())
@@ -43,8 +43,6 @@ describe('skill-local spec bridge', () => {
       '.agents/skills/remdo-docs-align/agents/openai.yaml',
       '.agents/skills/remdo-feature-flow/agents/openai.yaml',
       '.agents/skills/remdo-refine/agents/openai.yaml',
-      '.codex/skills/remdo-feature-flow/agents/openai.yaml',
-      '.codex/skills/remdo-refine/agents/openai.yaml',
     ];
 
     for (const configPath of configs) {

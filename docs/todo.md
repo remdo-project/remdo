@@ -442,8 +442,8 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   rules-doc template).
 - Restore a cross-family advocate for Codex-run `remdo-docs-align`: the shared
   pipeline uses the existing Codex advocate script for now, so when Codex is the
-  editor the advocate is same-family. Add a Codex adapter that routes the
-  advocate stage to a non-Codex reviewer once a reliable one is available.
+  editor the advocate is same-family. Route the advocate stage to a non-Codex
+  reviewer once a reliable one is available.
 - Unresolved: negation clauses that restate an adjacent rule (the deps-refresh
   "not human judgement" / "never lands on `main`" specimens) — the advocate
   declined them in every experiment run and a negation-priority prompt line
@@ -488,13 +488,6 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   wholesale delete loses information the reader needs). Left as-is pending your
   call: keep, delete the "so it owns every key" restatement only (keeping the
   no-query-span fact), or delete the whole clause.
-- Tradeoff (refine rung 3): `.markdownlint-cli2.jsonc` `ignores` hardcodes the
-  three skill-mirror symlink dirs by name to stop globby double-linting them
-  (cli2 doesn't dedup by resolved path). The list matches the live symlink set
-  today, but nothing guards it — a future symlinked skill mirror not added here
-  would be linted twice. Options: add a test asserting the ignore list equals
-  `find .claude .codex -type l`, or accept the manual list as documented. Decide
-  when the next skill mirror is added.
 
 ## Skill test-infra follow-up
 

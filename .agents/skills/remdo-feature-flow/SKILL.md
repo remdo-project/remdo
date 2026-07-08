@@ -108,6 +108,8 @@ If the user rejects the spec at the gate, revert the flow-owned `docs/` and
    compare the branch's `docs/` changes and branch diff both ways, specified but
    not built and built but not specified. The reviewer reads the repo as needed
    but not `.agent/`, and receives neither the plan nor implementation memory.
+   In Codex, dispatch this as a fresh explorer/review subagent and pass only the
+   spec docs, branch diff scope, and the `AGENTS.md` findings-suppression rule.
    The reviewer reports only; the coordinating agent fixes real gaps, documents
    or removes unspecified behavior, and records deliberate deferrals in
    `docs/todo.md`.
@@ -189,7 +191,11 @@ Choose by activity:
 - **Autonomous execution and Research spikes:** subagent-eligible when work is
   genuinely parallel and independent; otherwise stay inline.
 - **Spec-compliance exit read:** must be fresh-context, through the current
-  agent's adapter.
+  agent's adapter. If the user forbids subagents and the runtime has no
+  equivalent isolated review surface, stop or use a narrower non-feature-flow
+  process rather than weakening the fresh-context read.
+- **Memory:** do not write agent memory unless the user explicitly asks. Stable
+  workflow improvements go into the shared skill or repo docs.
 
 ## References
 
