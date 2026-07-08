@@ -547,3 +547,9 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   eventually be keyed to the active Better Auth session, or invalidated by a
   clear shared auth-state boundary, so same-tab identity changes cannot reuse
   stale home/user-data document ids.
+
+- Test-bridge registry (`testBridgeRegistry.ts`) pairs `waitForNext()` to
+  publishes FIFO, assuming registration order matches mount order. True today
+  because all `renderRemdoEditor` callers await sequentially; a future
+  parallel-render test could mispair. If that arrives, key waiters by docId or
+  have `waitForNext` drain an already-live bridge.
