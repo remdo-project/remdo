@@ -6,6 +6,7 @@ import { createUserDocument } from '../_support/documents';
 import {
   DOCKER_TEST_ADMIN_SECRET,
   DOCKER_TEST_AUTH,
+  allowTransientTokenFetchConsoleIssue,
   waitForEditableEditor,
   waitForServiceWorkerControl,
 } from './_support/helpers';
@@ -27,6 +28,7 @@ test('admin self-enrollment creates the first admin and can open the editor', as
   await expect(page).toHaveURL(/\/admin$/u);
   await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible();
 
+  allowTransientTokenFetchConsoleIssue(page);
   await page.goto('/home');
   await page.waitForURL(/\/n\//u);
   await waitForEditableEditor(page);
