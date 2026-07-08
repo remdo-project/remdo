@@ -7,12 +7,16 @@ import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 export const DOCKER_TEST_AUTH = STABLE_AUTH_USERS.bob;
 export const DOCKER_TEST_ADMIN_SECRET = config.env.ADMIN_SECRET;
 
+export function allowTransientTokenFetchConsoleIssue(page: Page): void {
+  setExpectedConsoleIssues(page, ['Failed to get client token'], { mode: 'allowContains' });
+}
+
 export async function waitForServiceWorkerControl(page: Page): Promise<void> {
   await page.waitForFunction(() => 'serviceWorker' in navigator);
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
-  setExpectedConsoleIssues(page, ['Failed to get client token'], { mode: 'allowContains' });
+  allowTransientTokenFetchConsoleIssue(page);
   await page.reload();
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
 }
