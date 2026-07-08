@@ -1,6 +1,6 @@
 // Direct `/dev/*` requests do not reach Vite's normal SPA fallback in this
 // dev-server stack, so the Lexical Demo route needs an exact HTML bridge.
-// Spec: docs/dev/page-dev-tools.md.
+// Spec: docs/dev/dev-tooling.md.
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Plugin } from 'vite';
