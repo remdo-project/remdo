@@ -14,16 +14,15 @@
     "./tools/env.sh",
     "./tools/prod/docker.sh"
   ],
-  // Skill bodies live once under `.agents/skills`; the `.claude`/`.codex` skill
-  // dirs are symlink mirrors of them. knip follows those symlinks and would
+  // Skill bodies live once under `.agents/skills`; the `.claude` skill dirs are
+  // symlink mirrors of them. knip follows those symlinks and would
   // re-discover the same specs under a mirror path, where their
-  // `../../_shared/test-support/...` imports resolve against `.claude/skills` or
-  // `.codex/skills` (which have no `_shared`) and report as unresolved. Ignore the
+  // `../../_shared/test-support/...` imports resolve against `.claude/skills`
+  // (which has no `_shared`) and report as unresolved. Ignore the
   // mirrors so only the canonical `.agents` copy is scanned — the same
   // no-symlink-traversal `.markdownlint-cli2.jsonc` enforces for the doc gate.
   "ignore": [
-    ".claude/skills/**",
-    ".codex/skills/**"
+    ".claude/skills/**"
   ],
   "entry": [
     "playwright.docker.config.ts",
