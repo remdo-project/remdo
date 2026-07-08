@@ -9,12 +9,10 @@ Define RemDo-owned inline date behavior in the outliner.
 1. Dates are non-text inline RemDo nodes with a stored ISO date (`YYYY-MM-DD`)
    and a readable local label such as `Jun 10, 2026`.
 2. `!` is an inline trigger character; its open/dismiss/confirm lifecycle is the
-   shared one in [Editor popups](./popups.md). The rest of this spec
-   is date-specific.
+   shared one in [Editor popups](./popups.md).
 3. The `!` picker is a **modal calendar dialog**: opening it moves focus into a
    month-grid calendar (the shared contract's per-widget trapping focus model),
-   with today (the user's local browser date) preselected. Typed query text is
-   not interpreted (see Non-goals / future).
+   with today (the user's local browser date) preselected.
 4. The calendar owns its keyboard while open: `ArrowLeft`/`Right` move by a day,
    `ArrowUp`/`Down` by a week, `Home`/`End` to the start/end of the week,
    `PageUp`/`PageDown` by a month, `Shift+PageUp`/`PageDown` by a year. The editor
@@ -32,7 +30,7 @@ Define RemDo-owned inline date behavior in the outliner.
 ## Atomic token keyboard behavior
 
 1. A date node behaves as one atomic inline token. The caret must not appear
-   inside the rendered date label (date-as-text editing is a Future direction).
+   inside the rendered date label.
 2. Arrow navigation across a date enters a whole-token selected/focused state
    instead of placing the caret inside the label.
 3. `ArrowLeft` from immediately after a date selects the whole date token; the

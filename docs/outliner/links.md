@@ -27,30 +27,24 @@ RemDo-owned note links and generic external links.
    plain URL links.
 4. Links are created inline through `@`, an inline trigger character; its
    open/close/confirm lifecycle is the shared one in
-   [Editor popups](./popups.md) (so an email-like `a@b` stays plain
-   text). The note-link spec defines only what differs.
+   [Editor popups](./popups.md). The note-link spec defines only what differs.
 5. The query is the text after `@` in the pinned span, length minimum 0, so
-   results may appear immediately. Whitespace is allowed in the query: it is the
-   same whitespace-tokenized path match document search uses (see
-   [Query and ranking](#query-and-ranking)).
+   results may appear immediately. Whitespace is allowed in the query.
 6. On insertion, note-link display text is copied once from the target note
-   title and then stored locally; later target renames do not update it
-   (rename-aware display modes are a Future direction below).
+   title and then stored locally; later target renames do not update it.
 7. Note-link clicks use native `href` navigation semantics and route handling.
 8. Pasting a RemDo-owned plain-text note URL inserts a
    note-link node. When the target is in the current document, inserted
    link text copies the current target note title; otherwise it uses the pasted
    URL string.
-9. Typed URLs use Lexical generic link behavior, including same-origin
-    RemDo note URLs typed as raw URLs.
-10. Pasted generic URLs that are not upgraded to note links use Lexical generic
-    link behavior.
-11. Generic URL links open in a new tab.
-12. URLs that merely resemble RemDo note routes but are not classified by
+9. Typing a URL — including a same-origin RemDo note URL — uses Lexical generic
+   link behavior; the note-link upgrade applies only to paste.
+10. Generic URL links open in a new tab.
+11. URLs that merely resemble RemDo note routes but are not classified by
     RemDo as owned note refs remain generic external links.
-13. Clipboard payloads (copy/cut) must include explicit `docId` for every
+12. Clipboard payloads (copy/cut) must include explicit `docId` for every
    note link so cross-context paste has complete target identity.
-14. Cross-document pastes preserve source-target link identity; note links
+13. Cross-document pastes preserve source-target link identity; note links
    are not retargeted to the destination document.
 
 ## Identity Representation Boundaries
@@ -106,7 +100,7 @@ specifics:
 2. [Future] Cross-document discovery/insertion in the `@` picker.
 3. [Future] Fuzzy matching in picker search.
 4. [Future] Frecency-aware ranking. When this ships, zoom context should
-   influence ordering but must not reduce search scope.
+   influence ordering.
 5. [Future] Rename-aware display text modes (for example title-mirroring unless
    user-customized).
 6. [Future] Ensure floating controls/overlays never block pointer hit-testing

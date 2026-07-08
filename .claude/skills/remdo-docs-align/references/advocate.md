@@ -35,18 +35,20 @@ rationale stays where dropping it would invite relitigating a settled choice;
 a skill's procedural steps and sibling-link References are its contract.
 
 For each proposal output these labelled lines, in order and with these exact
-labels — a downstream check keys on the literal `Replacement:` label, so use it
-verbatim (write `Replacement: DELETE` for a whole-clause removal):
+labels — a downstream normalizer keys on them, so use them verbatim (write
+`Replacement: DELETE` for a whole-clause removal). Number the proposals
+sequentially from 1:
 
-- `file:line`
+- `N. file:line`
 - `Text:` the exact quoted text
 - `Replacement:` the replacement text, or `DELETE`
 - `Rule:` the rule licensing removal
 - `Risk test:` the concrete misuse that would remain possible if the removal
   were wrong, judged under face-value reading
+- `Borderline:` (optional) why the proposal is genuinely uncertain — include
+  this line only when it is
 
-Number the proposals; mark genuinely uncertain ones "borderline". Do not edit
-anything; do not propose additions.
+Do not edit anything; do not propose additions.
 
 If the scope is already minimal and you find nothing whose removal is
 defensible, output exactly one line — `NO PROPOSALS` — and nothing else. This

@@ -53,9 +53,19 @@ they run in this order.
    `PROPOSALS=none` (the advocate emitted its `NO PROPOSALS` sentinel — a clean
    no-op on an already-minimal scope), skip stage 4 and note the no-op in the
    report; there is nothing to adjudicate.
-4. **Adjudicate (dual).** Two independent, fresh, contextless adjudicators
+4. **Adjudicate (dual).** First the coordinating session suppresses: it drops
+   table entries matching the standing-keeps ledger on BOTH keys — the
+   proposal's file equals the entry's file, and the quoted text matches
+   (whitespace-normalized substring); the same words in a different doc are a
+   different proposal and MUST NOT be suppressed. (User-settled keeps; report
+   the count — removing a ledger entry is how a keep is reopened.) The ledger lives in a machine-local checkout of
+   the `remdo-docs-qa` bench repo — a sibling of the RemDo checkout (same parent
+   directory); if absent, suppression is unavailable (degraded mode) and the run
+   proceeds without it. If suppression empties the table, skip the adjudicators
+   and report it like `PROPOSALS=none` — there is nothing left to adjudicate.
+   Otherwise two independent, fresh, contextless adjudicators
    — never the session that ran stages 1-3 — each produce verdict-only
-   dispositions over the proposal table per `references/adjudicate.md`,
+   dispositions over the remaining table per `references/adjudicate.md`,
    without editing anything or seeing each other. Mechanically diff the two
    verdict lists: agreed APPLYs are applied by the editor, agreed REJECTs
    are recorded, and every disagreement becomes an ESCALATE row — decided by

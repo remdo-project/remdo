@@ -28,12 +28,11 @@ sibling notes, each including its entire subtree**.
 
 ## The selection ladder
 
-Because a structural selection is always whole notes with their subtrees (see
-[Whole-note snapping](#whole-note-snapping)), it cannot grow by single rows; it
-grows and shrinks along a single ordered ladder whose every rung is itself a
-legal whole-subtree selection. Its defining property is **symmetric
+A structural selection cannot grow by single rows; it grows and shrinks along a
+single ordered ladder whose every rung is itself a legal whole-subtree
+selection. Its defining property is **symmetric
 grow/shrink**: pressing the opposite direction *exactly inverts* the previous
-step — it undoes, it never re-derives.
+step.
 
 The ladder is anchored and replayable:
 
@@ -66,8 +65,7 @@ Direction and reversal:
   retracts that whole slab.
 - Contraction bottoms out at the anchor and then collapses to the caret, which
   fully resets the ladder. From that bare caret, the next `Shift+Arrow` starts a
-  fresh ladder in the pressed direction — `Up` grows up, `Down` grows down — just
-  like beginning a new selection.
+  fresh ladder in the pressed direction — `Up` grows up, `Down` grows down.
 - A press that would extend past the document or zoom boundary is a no-op.
 - `Cmd/Ctrl+A` is direction-neutral: it only ever grows the ladder outward (its
   slab rung covers the whole sibling group either way), so it never inherits a

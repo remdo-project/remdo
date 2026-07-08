@@ -78,8 +78,8 @@ bootstrapped key/server-token pair (see
 - Platform: local machine.
 - Data boundary: local repo-owned development data.
 - Notes:
-  1. Most local runs stay on defaults; `.env` (copied from `.env.example`)
-     holds overrides, and process environment values override `.env`, so
+  1. `.env` (copied from `.env.example`) holds overrides, and process
+     environment values override `.env`, so
      one-off runs can use inline values such as `PORT_BASE=4800 ...` without
      editing local defaults. `PORT_BASE` is the one dev port knob and anchors
      the local dev port range (see [docs/config.md](./config.md)).
@@ -111,9 +111,7 @@ bootstrapped key/server-token pair (see
      requests). The home is registered on the source through the home's
      `/admin` panel, not preconfigured.
   7. `pnpm run dev:users` provisions the stable users (Alice/Bob) and prints
-     their credentials; it only seeds those users. Source-server OAuth clients
-     are not created out-of-band — a home registers itself on a source through
-     the `/admin` panel (step 6), not via this command.
+     their credentials; it only seeds those users.
   8. Collaboration access follows the shared
      [browser-facing collaboration paths](./architecture.md#browser-facing-collaboration-paths);
      Y-Sweet auth uses a matched development default key/server-token pair.
