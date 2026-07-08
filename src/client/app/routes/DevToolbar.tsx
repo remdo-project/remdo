@@ -1,4 +1,4 @@
-import { Anchor, Group } from '@mantine/core';
+import { Anchor } from '@mantine/core';
 import { IconBrandVite } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { Icon } from '#client/ui/Icon';
@@ -53,13 +53,5 @@ export function DevToolbarLinks() {
         Lexical Demo
       </Link>
     </>
-  );
-}
-
-export function DevToolbar() {
-  return (
-    <Group gap="md" className="app-header-links">
-      <DevToolbarLinks />
-    </Group>
   );
 }

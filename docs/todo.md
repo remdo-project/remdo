@@ -547,4 +547,3 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   eventually be keyed to the active Better Auth session, or invalidated by a
   clear shared auth-state boundary, so same-tab identity changes cannot reuse
   stale home/user-data document ids.
-
