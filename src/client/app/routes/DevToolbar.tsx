@@ -10,10 +10,6 @@ interface HostContext {
   basePort: number;
 }
 
-interface DevToolbarProps {
-  currentDocumentPath: string;
-}
-
 function resolveHost(): HostContext | null {
   const { protocol, hostname, port } = globalThis.location;
   const basePort =
@@ -30,16 +26,7 @@ function buildUrl(host: HostContext, portOffset: number, path = ''): string {
   return `${host.protocol}//${host.hostname}:${host.basePort + portOffset}${path}`;
 }
 
-function buildSearch(params: { lexicalDemo?: boolean }): string {
-  const searchParams = new URLSearchParams();
-  if (params.lexicalDemo) {
-    searchParams.set('lexicalDemo', 'true');
-  }
-  const search = searchParams.toString();
-  return search ? `?${search}` : '';
-}
-
-export function DevToolbarLinks({ currentDocumentPath }: DevToolbarProps) {
+export function DevToolbarLinks() {
   if (!config.isDev) {
     return null;
   }
@@ -64,7 +51,7 @@ export function DevToolbarLinks({ currentDocumentPath }: DevToolbarProps) {
         Lexical
       </Anchor>
       <Link
-        to={`${currentDocumentPath}${buildSearch({ lexicalDemo: true })}`}
+        to="/dev/lexical-demo"
         className="app-header-link"
       >
         Lexical Demo
@@ -73,14 +60,14 @@ export function DevToolbarLinks({ currentDocumentPath }: DevToolbarProps) {
   );
 }
 
-export function DevToolbar(props: DevToolbarProps) {
+export function DevToolbar() {
   if (!config.isDev) {
     return null;
   }
 
   return (
     <Group gap="md" className="app-header-links">
-      <DevToolbarLinks {...props} />
+      <DevToolbarLinks />
     </Group>
   );
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { isDevSpaRoutePath } from '../../config/vite/remdo-dev-spa-routes-plugin';
 import { isApiRequestPath } from '../../config/vite/remdo-api-dev-plugin';
 import { createViteSharedConfig, pwaNavigationFallbackDenylist } from '../../config/vite/shared';
 
@@ -10,6 +11,7 @@ describe('vite shared config', () => {
 
     expect(config.plugins).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: 'remdo-api-dev' }),
+      expect.objectContaining({ name: 'remdo-dev-spa-routes' }),
     ]));
     expect(serverProxy).not.toHaveProperty('/api');
     expect(serverProxy['/d']).toMatchObject({
@@ -52,5 +54,14 @@ describe('vite shared config', () => {
     expect(isApiRequestPath('/app/api/current-user')).toBe(false);
     expect(isApiRequestPath('/apiary')).toBe(false);
     expect(isApiRequestPath()).toBe(false);
+  });
+
+  it('recognizes dedicated dev SPA routes for direct navigation', () => {
+    expect(isDevSpaRoutePath('/dev/lexical-demo')).toBe(true);
+    expect(isDevSpaRoutePath('/dev/lexical-demo?x=1')).toBe(true);
+    expect(isDevSpaRoutePath('/dev')).toBe(false);
+    expect(isDevSpaRoutePath('/dev/other')).toBe(false);
+    expect(isDevSpaRoutePath('/dev/lexical-demo/extra')).toBe(false);
+    expect(isDevSpaRoutePath()).toBe(false);
   });
 });

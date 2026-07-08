@@ -85,10 +85,8 @@ async function setVanillaCaretToTextStart(page: Page, label: string): Promise<vo
 
 test('compares RemDo vs vanilla state after user-level indentation', async ({ page }) => {
   const userDocument = await createUserDocument(page, `Vanilla Compare ${Date.now()}`);
-  const docId = userDocument.id;
-  await page.goto(`/n/${docId}?lexicalDemo=true`);
+  await page.goto(`/n/${userDocument.id}`);
 
-  await page.waitForSelector(VANILLA_TREE_SELECTOR);
   await editorLocator(page).locator('.editor-input').first().waitFor();
   await page.waitForFunction(
     (selector) => {
@@ -104,13 +102,13 @@ test('compares RemDo vs vanilla state after user-level indentation', async ({ pa
   await typeBaseNotes(page, '.editor-input');
   await setCaretAtText(page, 'note2', 0);
   await page.keyboard.press('Tab');
+  const remdoState = await getEditorStateFromSelector(page, REMDO_TREE_SELECTOR, 'RemDo');
 
+  await page.goto('/dev/lexical-demo');
   await page.waitForSelector(VANILLA_INPUT_SELECTOR);
   await typeBaseNotes(page, VANILLA_INPUT_SELECTOR);
   await setVanillaCaretToTextStart(page, 'note2');
   await page.keyboard.press('Tab');
-
-  const remdoState = await getEditorStateFromSelector(page, REMDO_TREE_SELECTOR, 'RemDo');
   const vanillaState = await getEditorStateFromSelector(page, VANILLA_TREE_SELECTOR, 'Vanilla Lexical');
 
   expect(stringifyWithoutNoteIds(remdoState)).toMatchSnapshot('remdo-nested-list.json');

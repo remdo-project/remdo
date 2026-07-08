@@ -63,9 +63,7 @@ export default function LoginRoute() {
     <Container size="xs" py="xl">
       <Paper withBorder p="xl" radius="md">
         <Stack gap="md">
-          <DevToolbar
-            currentDocumentPath="/home"
-          />
+          <DevToolbar />
 
           <div>
             <Title order={1}>Sign in</Title>
