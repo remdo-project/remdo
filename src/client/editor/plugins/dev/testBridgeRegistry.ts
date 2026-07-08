@@ -7,7 +7,7 @@ import type { RemdoTestApi } from './TestBridgePlugin';
 // slot. A test registers `waitForNext()` before rendering to capture exactly the
 // bridge that editor mounts.
 
-interface TestBridgeRegistry {
+export interface TestBridgeRegistry {
   publish: (api: RemdoTestApi) => void;
   retract: (api: RemdoTestApi) => void;
   waitForNext: () => Promise<RemdoTestApi>;
