@@ -115,7 +115,7 @@ describe('post /api/current-user/source-links', () => {
   });
 
   it('ensures a source client and reaches oAuth2LinkAccount for a valid URL from any signed-in user', async () => {
-    const harness = createHarness({ allowSignup: false });
+    const harness = createHarness({ allowSignup: false, swappableAuth: true });
     const headers = await harness.createSessionHeaders();
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ client_id: 'source-client-id' }), { status: 201 }));
     vi.stubGlobal('fetch', fetchMock);
@@ -135,9 +135,9 @@ describe('post /api/current-user/source-links', () => {
       'https://source.example/api/auth/oauth2/register',
       expect.objectContaining({ method: 'POST' }),
     );
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
-      message: expect.stringContaining('Provider not found'),
+      url: expect.stringContaining('https://source.example/api/auth/oauth2/authorize'),
     });
   });
 });

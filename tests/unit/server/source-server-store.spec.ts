@@ -63,16 +63,10 @@ describe('source server store', () => {
     expect(stored!.credentials).toEqual({ clientId: 'cid' });
   });
 
-  it('returns null when claiming a client for an unknown source', async () => {
-    expect(await claimSourceServerPublicClient(database, 'missing', 'cid')).toBeNull();
-  });
-
   it('claims a public client first-writer-wins (a later claim keeps the first id)', async () => {
     await ensureSourceServerRow(database, 'https://source.example');
-    // First claim wins and is echoed back.
-    expect(await claimSourceServerPublicClient(database, SOURCE_ID, 'first')).toBe('first');
-    // A concurrent racer's later claim does NOT overwrite; both converge on 'first'.
-    expect(await claimSourceServerPublicClient(database, SOURCE_ID, 'second')).toBe('first');
+    await claimSourceServerPublicClient(database, SOURCE_ID, 'first');
+    await claimSourceServerPublicClient(database, SOURCE_ID, 'second');
     const [stored] = await listSourceServers(database);
     expect(stored!.credentials).toEqual({ clientId: 'first' });
   });

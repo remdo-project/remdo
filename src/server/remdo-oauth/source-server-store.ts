@@ -92,19 +92,17 @@ export async function ensureSourceServerRow(
 
 // Claims a public client's id for a source on a FIRST-WRITER-WINS basis (public
 // clients are secretless/PKCE, so there is no secret to store). Writes client_id
-// only while it is still NULL, then returns the effective stored id. So when two
-// concurrent first-links each register their own client, the row converges on one
-// client_id and every caller (including an in-flight OAuth authorization) uses the
-// same one — never overwriting a client another request may already be
-// authorizing against. Returns null if the source row does not exist.
+// only while it is still NULL, so concurrent first-links converge on one client
+// id without overwriting a client another request may already be authorizing
+// against.
 export async function claimSourceServerPublicClient(
   database: SqliteServerDatabaseClient,
   id: string,
   clientId: string,
-): Promise<string | null> {
+): Promise<void> {
   const baseUrl = sourceOriginFromId(id);
   if (!baseUrl) {
-    return null;
+    return;
   }
   await database.db
     .updateTable('source_servers')
@@ -112,10 +110,4 @@ export async function claimSourceServerPublicClient(
     .where('base_url', '=', baseUrl)
     .where('client_id', 'is', null)
     .execute();
-  const row = await database.db
-    .selectFrom('source_servers')
-    .select('client_id')
-    .where('base_url', '=', baseUrl)
-    .executeTakeFirst();
-  return row?.client_id ?? null;
 }
