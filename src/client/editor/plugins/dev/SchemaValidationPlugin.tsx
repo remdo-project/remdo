@@ -8,7 +8,6 @@ import { SCHEMA_VALIDATE_SYNC_TAG } from '#client/editor/update-tags';
 export function SchemaValidationPlugin(): null {
   const [editor] = useLexicalComposerContext();
   const { hydrated, docEpoch, synced } = useCollaborationStatus();
-  const wasSyncedRef = useRef(synced);
 
   const validateSchema = useCallback((): boolean => {
     if (consumeSchemaValidationSkipOnce(editor)) {
@@ -32,18 +31,22 @@ export function SchemaValidationPlugin(): null {
     });
   }, [editor, hydrated, docEpoch, synced, validateSchema]);
 
+  const validatedEpochRef = useRef<number | null>(null);
+
   useEffect(() => {
-    if (!hydrated) {
-      wasSyncedRef.current = synced;
+    if (!hydrated || !synced || validatedEpochRef.current === docEpoch) {
       return;
     }
 
-    if (synced && !wasSyncedRef.current) {
-      // Trigger a no-op update so the update listener validates within Lexical's cycle.
-      editor.update(() => {}, { tag: SCHEMA_VALIDATE_SYNC_TAG });
-    }
-
-    wasSyncedRef.current = synced;
+    // Validate once per document once it is hydrated and synced — covering both
+    // the sync transition and a mount where the document is already synced (the
+    // common case now that the dev plugins mount lazily). This is the dev/test
+    // load-time assertion, catching malformed persisted/collab state at load
+    // rather than only on a later edit; the prod RootSchemaPlugin repairs but
+    // does not validate.
+    validatedEpochRef.current = docEpoch;
+    // Trigger a no-op update so the update listener validates within Lexical's cycle.
+    editor.update(() => {}, { tag: SCHEMA_VALIDATE_SYNC_TAG });
   }, [editor, hydrated, docEpoch, synced, validateSchema]);
 
   return null;
