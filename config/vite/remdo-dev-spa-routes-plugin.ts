@@ -1,12 +1,16 @@
+// Direct `/dev/*` requests do not reach Vite's normal SPA fallback in this
+// dev-server stack, so the Lexical Demo route needs an exact HTML bridge.
+// Spec: docs/dev/page-dev-tools.md.
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Plugin } from 'vite';
+import { send } from 'vite';
 
-const DEV_SPA_ROUTE_PATHS = new Set(['/dev/lexical-demo']);
+const DEV_SPA_ROUTE_PATH = '/dev/lexical-demo';
 
 export function isDevSpaRoutePath(url?: string): boolean {
   const pathname = url?.split('?', 1)[0] ?? '';
-  return DEV_SPA_ROUTE_PATHS.has(pathname);
+  return pathname === DEV_SPA_ROUTE_PATH;
 }
 
 export function remdoDevSpaRoutesPlugin(): Plugin {
@@ -24,10 +28,8 @@ export function remdoDevSpaRoutesPlugin(): Plugin {
           try {
             const indexPath = path.resolve(server.config.root, 'index.html');
             const html = await fs.readFile(indexPath, 'utf8');
-            const transformed = await server.transformIndexHtml(req.url ?? '/', html);
-            res.statusCode = 200;
-            res.setHeader('Content-Type', 'text/html');
-            res.end(transformed);
+            const transformed = await server.transformIndexHtml(req.url ?? DEV_SPA_ROUTE_PATH, html);
+            send(req, res, transformed, 'html', { headers: server.config.server.headers });
           } catch (error) {
             next(error);
           }
