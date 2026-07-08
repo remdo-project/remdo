@@ -145,10 +145,9 @@ function createBetterAuthInstance({
         },
       }),
       genericOAuth({
-        // Build a provider only for sources whose OAuth client has been issued
-        // (the home registered on that source). A source added but not yet
-        // registered has no credentials and no provider; it becomes usable at the
-        // next auth-instance build after registration persists its credentials.
+        // Build a provider only for sources whose public client id has been
+        // cached. A source row created by the first link attempt has no provider
+        // until self-registration claims its client id and auth is rebuilt.
         config: sourceServers.flatMap((server) => {
           if (!server.credentials) {
             return [];
