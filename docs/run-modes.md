@@ -111,8 +111,7 @@ bootstrapped key/server-token pair (see
      requests). Link the source from the Sharing page ("Link source", entering
      the source's URL); the home lazily self-registers a public OAuth client on
      first link (see
-     [docs/access-model.md](./access-model.md#linking-a-source)) — nothing is
-     preconfigured or admin-managed.
+     [docs/access-model.md](./access-model.md#linking-a-source)).
   7. `pnpm run dev:users` provisions the stable users (Alice/Bob) and prints
      their credentials; it only seeds those users.
   8. Collaboration access follows the shared

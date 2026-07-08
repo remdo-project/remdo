@@ -48,7 +48,7 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
 - Browser-visible collaboration URLs are derived from the server's configured
   canonical public origin, not from request forwarding headers.
 - OAuth source linking: Better Auth stores OAuth account tokens for the source
-  servers a user has linked (URL-first; not admin-configured).
+  servers a user has linked.
 
 ### Session User
 
@@ -79,8 +79,6 @@ Collaboration and local-persistence layers may key document state by canonical
 Server-owned document metadata store used by RemDo API before issuing Y-Sweet
 document client tokens.
 
-- Role: provide authoritative document metadata before Y-Sweet document client
-  token issuance.
 - Metadata: owner user id, document kind, title, and user-specific access
   grants.
 - Storage: RemDo metadata queries use Kysely inside the server persistence

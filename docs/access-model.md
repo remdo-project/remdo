@@ -62,17 +62,11 @@ the user.
 - `/admin` is the single admin entry route. It renders by the caller's role: an
   admin sees the admin panel; anyone else (signed in or not) sees the
   self-enrollment form. The client learns the current user's role from the
-  `/api/current-user` bootstrap; this drives rendering only — authorization stays
-  server-side.
-- Source servers are not admin-managed: any signed-in user links a source by URL
-  (see [Cross-Server Source Linking](#cross-server-source-linking)); the admin
-  panel has no source-server controls.
+  `/api/current-user` bootstrap; this drives rendering.
 - Self-enrollment is gated by `ADMIN_SECRET` (see
   [docs/config.md](./config.md#admin-bootstrap-and-enrollment)). The secret is
   a shared gate, any secret-holder can register an admin
-  account, and it works independently of the public-signup policy. Promoting an
-  *existing* user is a separate, panel-gated capability (see
-  [docs/todo.md](./todo.md), admin role follow-ups).
+  account, and it works independently of the public-signup policy.
 - Admin entry is discoverable by context: a signed-in admin sees an **Admin**
   link in the app toolbar, and a non-public server (closed signup, where
   bootstrapping an admin is expected) surfaces a link to `/admin` from the login
@@ -134,9 +128,7 @@ sharing level, sharing still targets a local account on the document's server.
   checks the source server applies to the user's normal session. This is an
   account-delegation model, not a cross-user grant.
 - Source documents: once linked, the browser can subscribe to source-owned user
-  data projections and merge those documents into the same document list. Source
-  documents keep the source server's canonical globally unique document IDs;
-  source context controls routing and authorization, not document identity.
+  data projections and merge those documents into the same document list.
 
 ### Linking a source
 
@@ -159,27 +151,20 @@ URL (below).
   authorize and token endpoints require the `redirect_uri` to exactly match the
   client's registered `redirect_uris`. A public, redirect-locked client grants no
   document access on its own — only a source user authenticating and consenting
-  does. Registration and document access stay separate: self-registering a
-  client widens no user's access; each linking user still authenticates and
-  consents on the source for their own documents (an account-delegation model,
-  per the trust model above).
+  does.
 - A source accepts registration only while it is acting as a **public** source
   (open-signup): it enables unauthenticated dynamic client registration
   (`allowUnauthenticatedClientRegistration`), gated on the same public/signup
   setting, because the home's self-registration call carries no source session.
-  A private source refuses registration outright.
 - **A public server acts only as a source, never as a linking home.** A public
-  (open-signup) server refuses to initiate linking; only a private server links
-  to sources. This confines linking's outbound-fetch surface to private homes,
-  whose users are the operator's own.
+  server's users are outside the operator's trust boundary, so this confines
+  linking's outbound-fetch surface to private homes, whose users are the
+  operator's own.
 - **Homes may be private / not internet-reachable.** No server ever fetches the
   home: every server-to-server call goes home→source, and the OAuth redirect
   travels through the user's own browser, which is local to the home. (This
   topology is why Client ID Metadata Documents — which need the source to fetch
   the home's metadata URL — do not fit and were not adopted.)
-
-There is no user-facing unlink yet; see the source-linking follow-ups in
-[docs/todo.md](./todo.md).
 
 ## Future (source-linking & admin, deferred indefinitely)
 

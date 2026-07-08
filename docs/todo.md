@@ -80,9 +80,7 @@ Rules:
 - Cross-server document-id collision guard follow-up: source-link bootstrap,
   projection merge, and import flows should detect a source document whose
   `docId` collides with an already-known local or linked-source document and
-  reject or quarantine it before opening. This is a defensive guard around the
-  documented base mechanism: every server must generate random document IDs with
-  enough entropy for cross-server uniqueness.
+  reject or quarantine it before opening.
 
 ## Admin role follow-ups
 
@@ -97,13 +95,6 @@ Rules:
   construction-time `disableSignUp`).
 
 ## Source-linking follow-ups
-
-URL-first source linking is built: any signed-in user links a source by
-entering its URL (no admin gate, no curated source list); on first link the home
-lazily self-registers a public OAuth client (no secret, PKCE-authenticated) on
-the source and caches its `client_id`, triggering one swappable-auth rebuild so
-the source goes live without a restart. A source accepts self-registration only
-while public (`ALLOW_SIGNUP`-backed). Two-server Docker E2E green.
 
 Deferred to follow-up PRs:
 
@@ -149,8 +140,6 @@ parked under `docs/access-model.md#future`.
     access". A source-unreachable/upstream failure is really a gateway error
     (502/504), which would also let the client distinguish "offline, keep the
     link" from a real "forbidden". Worth splitting when the status UI lands.
-- `ADMIN_SECRET` rotation lifecycle: define whether rotating affects existing
-  admins or only future enrollment.
 - Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
   the Better Auth admin plugin.
 - Tradeoff (standing): the admin secret is a permanent gate with no per-admin
