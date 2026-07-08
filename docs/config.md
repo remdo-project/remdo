@@ -29,7 +29,7 @@ path.
 | `HOST` | optional | fixed in-container | Bind host. The container entrypoint pins it to `127.0.0.1` so the API listens on the IPv4 loopback Caddy proxies to (`localhost` can resolve to `::1`, leaving the API IPv6-only and unreachable). |
 | `APP_PUBLIC_URL` | — | required | Canonical public origin (see below). |
 | `ADMIN_SECRET` | optional | required | Admin enrollment gate (see below). |
-| `ALLOW_SIGNUP` | optional | optional | Signup policy. Defaults true outside production, false in it. |
+| `ALLOW_SIGNUP` | optional | optional | Signup and [source-linking](./access-model.md#linking-a-source) public-role policy: public sources allow signup and unauthenticated client registration; private homes refuse signup and can link sources. Defaults true outside production, false in it. |
 
 ## Derivation rules
 
