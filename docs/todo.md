@@ -25,6 +25,12 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
+## Dev page tools
+
+- Implement `docs/dev/page-dev-tools.md`: move Lexical Demo from the
+  `?lexicalDemo=true` document-route switch to a dedicated `/dev/lexical-demo`
+  route owned by the dev page-tools boundary.
+
 ## Search architecture
 
 - Add a document-level SDK visitor/walker API and use it as the shared
