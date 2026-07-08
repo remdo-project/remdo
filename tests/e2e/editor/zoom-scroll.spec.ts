@@ -123,7 +123,8 @@ test('editing outside the zoom boundary does not change zoom or scroll state', a
   expect(startScrollTop).toBe(0);
 
   await page.evaluate(async () => {
-    const api = await (__remdoBridgePromise ?? Promise.reject(new Error('remdo bridge is not available')));
+    const api = globalThis.__remdoTestBridges?.list()[0];
+    if (!api) throw new Error('remdo bridge is not available');
     await api.updateNoteText('note7', 'note7!');
   });
 
@@ -148,7 +149,8 @@ test('zoom-root split keeps zoom and keeps the caret visible', async ({ page, ed
   ).join(' ');
 
   await page.evaluate(async (text) => {
-    const api = await (__remdoBridgePromise ?? Promise.reject(new Error('remdo bridge is not available')));
+    const api = globalThis.__remdoTestBridges?.list()[0];
+    if (!api) throw new Error('remdo bridge is not available');
     await api.updateNoteText('note7', text);
   }, longText);
 

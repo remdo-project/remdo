@@ -8,7 +8,7 @@ import { createEditorInitialConfig } from '#client/editor/runtime/config';
 import { CollaborationPlugin, useOfflineDocumentUnavailable } from './plugins/collaboration';
 import { CheckListPlugin } from './plugins/CheckListPlugin';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
-import { DevPlugin } from './plugins/dev';
+import { DevEditorSeam } from './plugins/dev/DevEditorSeam';
 import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin';
 import { SelectionCollapsePlugin } from './plugins/SelectionCollapsePlugin';
 import { InsertionPlugin } from './plugins/InsertionPlugin';
@@ -31,10 +31,7 @@ import { PendingDocumentImportPlugin } from './plugins/PendingDocumentImportPlug
 import './Editor.css';
 
 interface EditorProps {
-  children?: React.ReactNode;
   docId: string;
-  onTestBridgeReady?: (api: unknown) => void;
-  onTestBridgeDispose?: () => void;
   statusPortalRoot: HTMLElement | null;
   sourceOrigin?: string | null;
   sourceId?: string | null;
@@ -43,10 +40,7 @@ interface EditorProps {
 }
 
 export default function Editor({
-  children,
   docId,
-  onTestBridgeReady,
-  onTestBridgeDispose,
   statusPortalRoot,
   sourceOrigin = null,
   sourceId = null,
@@ -61,14 +55,10 @@ export default function Editor({
         <CollaborationPlugin docId={docId} sourceOrigin={sourceOrigin} sourceId={sourceId}>
           <EditorRuntime
             docId={docId}
-            onTestBridgeReady={onTestBridgeReady}
-            onTestBridgeDispose={onTestBridgeDispose}
             searchModeRequested={searchModeRequested}
             statusPortalRoot={statusPortalRoot}
             onPendingDocumentImportError={onPendingDocumentImportError}
-          >
-            {children}
-          </EditorRuntime>
+          />
         </CollaborationPlugin>
       </LexicalComposer>
     </div>
@@ -76,10 +66,7 @@ export default function Editor({
 }
 
 function EditorRuntime({
-  children,
   docId,
-  onTestBridgeReady,
-  onTestBridgeDispose,
   statusPortalRoot,
   searchModeRequested,
   onPendingDocumentImportError,
@@ -133,9 +120,7 @@ function EditorRuntime({
               {onPendingDocumentImportError ? (
                 <PendingDocumentImportPlugin onError={onPendingDocumentImportError} />
               ) : null}
-              <DevPlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose}>
-                {children}
-              </DevPlugin>
+              <DevEditorSeam />
             </>
           ) : null}
         </>

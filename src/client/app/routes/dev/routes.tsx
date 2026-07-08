@@ -1,10 +1,13 @@
-import { config } from '#config';
 import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev/dev-route-registry';
-import DevLexicalDemoRoute from './DevLexicalDemoRoute';
 
-export const devRoutes = config.isDevOrTest
+// Dev-only routes. Gated on `import.meta.env.DEV` (statically false in the prod
+// build) and loaded via dynamic import so the route and its editor leave the
+// production bundle. See docs/dev/dev-tooling.md.
+export const devRoutes = import.meta.env.DEV
   ? [{
     path: DEV_LEXICAL_DEMO_ROUTE.routerPath,
-    element: <DevLexicalDemoRoute />,
+    lazy: async () => ({
+      Component: (await import('./DevLexicalDemoRoute')).default,
+    }),
   }]
   : [];

@@ -548,23 +548,3 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   clear shared auth-state boundary, so same-tab identity changes cannot reuse
   stale home/user-data document ids.
 
-## Dev/prod boundary (docs/dev/dev-tooling.md ahead of code)
-
-`docs/dev/dev-tooling.md` specifies the build-time boundary; the code still
-gates dev-tooling presence on the runtime `config.isDevOrTest`. Remaining to
-build:
-
-- Replace the runtime `config.isDevOrTest` gates on dev-tooling presence with
-  `import.meta.env.DEV` guards so Rollup eliminates dev code in the prod build
-  (editor dev plugins, devRoutes, DevToolbar, dev-route registry, dev SPA vite
-  plugin registration). Leaves the flag's non-tooling uses alone — prod-behavior
-  switches like the editor `onError` throw-vs-log and dev-only `trace` logging
-  are not a boundary concern.
-- Remove `onTestBridgeReady`/`onTestBridgeDispose` from the prod `Editor` props;
-  wire the test bridge through the dev seam.
-- Keep the `assertEditorSchema` validator dev-only, but the skip-once signal it
-  reads is neutral coordination: `RootSchemaPlugin` and `PendingDocumentImportPlugin`
-  (prod) emit it and `SchemaValidationPlugin` (dev/test) reads it. Either move the
-  skip-once mark to a neutral module both sides import, or leave the prod plugins
-  importing just that thin standalone file directly — whichever is simpler, as
-  long as it never pulls the rest of `dev/schema/*` into the prod bundle.

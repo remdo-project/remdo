@@ -1,28 +1,17 @@
-import type { ReactElement, ReactNode } from 'react';
-
-import { config } from '#config';
+import type { ReactElement } from 'react';
 
 import { SchemaValidationPlugin } from './SchemaValidationPlugin';
 import { TreeViewPlugin } from './TreeViewPlugin';
 import { TestBridgePlugin } from './TestBridgePlugin';
 import { ProhibitNestedLexicalUpdatesPlugin } from './ProhibitNestedLexicalUpdatesPlugin';
 
-interface DevPluginProps {
-  children?: ReactNode;
-  onTestBridgeReady?: (api: unknown) => void;
-  onTestBridgeDispose?: () => void;
-}
-
-export function DevPlugin({ children, onTestBridgeReady, onTestBridgeDispose }: DevPluginProps): ReactElement {
-  const enableDevTools = config.isDevOrTest;
-
-  return enableDevTools
-    ? <>
+export function DevPlugin(): ReactElement {
+  return (
+    <>
       <ProhibitNestedLexicalUpdatesPlugin />
       <SchemaValidationPlugin />
       <TreeViewPlugin />
-      <TestBridgePlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose} />
-      {children}
+      <TestBridgePlugin />
     </>
-    : <>{children}</>;
+  );
 }

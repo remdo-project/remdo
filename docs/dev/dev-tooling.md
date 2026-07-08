@@ -20,6 +20,9 @@ code around itself. The boundary is enforced at build time:
   direct import or call is acceptable where it keeps the boundary clear and the
   implementation materially simpler.
 
+A production build fails if a dev-tooling marker survives into the bundle, so a
+leaked dev surface is caught rather than shipped.
+
 ## Page tools
 
 Dev page tools keep their toolbar entry, route, and rendered component inside the

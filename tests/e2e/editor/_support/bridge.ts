@@ -32,8 +32,11 @@ async function runWithRemdoTest(page: Page, action: RemdoTestAction): Promise<un
     });
 
     while (Date.now() < deadline) {
-      const api = await (globalThis.__remdoBridgePromise?.catch(() => null) ?? null);
-      if (!api || (expectedDocId && api.getCollabDocId() !== expectedDocId)) {
+      const bridges = globalThis.__remdoTestBridges?.list() ?? [];
+      const api = expectedDocId
+        ? bridges.find((b) => b.getCollabDocId() === expectedDocId) ?? null
+        : bridges[0] ?? null;
+      if (!api) {
         await wait();
         continue;
       }

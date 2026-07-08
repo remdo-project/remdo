@@ -1,7 +1,6 @@
 import { Anchor, Group } from '@mantine/core';
 import { IconBrandVite } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
-import { config } from '#config';
 import { Icon } from '#client/ui/Icon';
 import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev/dev-route-registry';
 
@@ -28,10 +27,6 @@ function buildUrl(host: HostContext, portOffset: number, path = ''): string {
 }
 
 export function DevToolbarLinks() {
-  if (!config.isDev) {
-    return null;
-  }
-
   const host = resolveHost();
   const vitestUrl = host ? buildUrl(host, 2, '/__vitest__/') : '#vitest';
   const playwrightUrl = host ? buildUrl({ protocol: 'http:', hostname: 'localhost', basePort: host.basePort }, 6) : '#playwright';
@@ -62,10 +57,6 @@ export function DevToolbarLinks() {
 }
 
 export function DevToolbar() {
-  if (!config.isDev) {
-    return null;
-  }
-
   return (
     <Group gap="md" className="app-header-links">
       <DevToolbarLinks />

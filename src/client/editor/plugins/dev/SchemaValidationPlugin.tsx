@@ -2,7 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useCallback, useEffect, useRef } from 'react';
 import { useCollaborationStatus } from '../collaboration';
 import { assertEditorSchema } from './schema/assertEditorSchema';
-import { consumeSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
+import { consumeSchemaValidationSkipOnce } from '../../schema-validation-skip-once';
 import { SCHEMA_VALIDATE_SYNC_TAG } from '#client/editor/update-tags';
 
 export function SchemaValidationPlugin(): null {

@@ -3,7 +3,7 @@ import type { RemdoTestApi } from '#client/editor/plugins/dev';
 
 declare global {
   // eslint-disable-next-line vars-on-top
-  var __remdoBridgePromise: Promise<RemdoTestApi> | undefined;
+  var __remdoTestBridges: { list: () => RemdoTestApi[] } | undefined;
 
   namespace PlaywrightTest {
     interface Matchers<R> {

@@ -5,8 +5,12 @@ import { commandsInCommandsFileRule } from './config/eslint/commandsInCommandsFi
 import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
 
 const importMetaEnvRestriction = {
-  selector: "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']",
-  message: 'Use #config instead of accessing import.meta.env directly.',
+  // `import.meta.env.DEV` is exempt: it is a Vite build-time static that must
+  // stay raw so the production build dead-code-eliminates dev-only branches (the
+  // dev/prod boundary — docs/dev/dev-tooling.md). All other `import.meta.env`
+  // access is a runtime value and belongs behind #config.
+  selector: "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']:not([parent.property.name='DEV'])",
+  message: 'Use #config instead of accessing import.meta.env directly (import.meta.env.DEV is the one build-time exception).',
 } as const;
 const checklistStateRestrictions = [
   {
