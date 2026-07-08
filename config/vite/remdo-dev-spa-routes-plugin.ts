@@ -5,12 +5,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Plugin } from 'vite';
 import { send } from 'vite';
-
-const DEV_SPA_ROUTE_PATH = '/dev/lexical-demo';
+import { DEV_LEXICAL_DEMO_ROUTE, isDevSpaFallbackPath } from '../../src/client/app/dev/dev-route-registry';
 
 export function isDevSpaRoutePath(url?: string): boolean {
-  const pathname = url?.split('?', 1)[0] ?? '';
-  return pathname === DEV_SPA_ROUTE_PATH;
+  return isDevSpaFallbackPath(url);
 }
 
 export function remdoDevSpaRoutesPlugin(): Plugin {
@@ -28,7 +26,7 @@ export function remdoDevSpaRoutesPlugin(): Plugin {
           try {
             const indexPath = path.resolve(server.config.root, 'index.html');
             const html = await fs.readFile(indexPath, 'utf8');
-            const transformed = await server.transformIndexHtml(req.url ?? DEV_SPA_ROUTE_PATH, html);
+            const transformed = await server.transformIndexHtml(req.url ?? DEV_LEXICAL_DEMO_ROUTE.path, html);
             send(req, res, transformed, 'html', { headers: server.config.server.headers });
           } catch (error) {
             next(error);

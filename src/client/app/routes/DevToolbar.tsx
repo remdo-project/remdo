@@ -3,6 +3,7 @@ import { IconBrandVite } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { config } from '#config';
 import { Icon } from '#client/ui/Icon';
+import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev/dev-route-registry';
 
 interface HostContext {
   protocol: string;
@@ -51,7 +52,7 @@ export function DevToolbarLinks() {
         Lexical
       </Anchor>
       <Link
-        to="/dev/lexical-demo"
+        to={DEV_LEXICAL_DEMO_ROUTE.path}
         className="app-header-link"
       >
         Lexical Demo

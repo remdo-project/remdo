@@ -8,6 +8,10 @@ Dev page tools keep their toolbar entry, route, and rendered component inside a
 dev-owned boundary so a tool can be deleted without changing document behavior.
 Inline inspectors stay behind the same development/test boundary.
 
+Production components expose only neutral extension points when dev UI needs to
+attach to them. They do not import dev modules or shape product behavior around
+dev-only tools.
+
 ## Lexical Demo
 
 The Lexical Demo toolbar item links to `/dev/lexical-demo`. That route renders

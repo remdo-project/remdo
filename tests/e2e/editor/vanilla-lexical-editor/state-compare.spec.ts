@@ -1,5 +1,6 @@
 import { expect, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
+import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev/dev-route-registry';
 import { editorLocator, setCaretAtText } from '#editor/locators';
 import { createUserDocument } from '../../_support/documents';
 
@@ -104,7 +105,7 @@ test('compares RemDo vs vanilla state after user-level indentation', async ({ pa
   await page.keyboard.press('Tab');
   const remdoState = await getEditorStateFromSelector(page, REMDO_TREE_SELECTOR, 'RemDo');
 
-  await page.goto('/dev/lexical-demo');
+  await page.goto(DEV_LEXICAL_DEMO_ROUTE.path);
   await page.waitForSelector(VANILLA_INPUT_SELECTOR);
   await typeBaseNotes(page, VANILLA_INPUT_SELECTOR);
   await setVanillaCaretToTextStart(page, 'note2');
