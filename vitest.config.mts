@@ -35,16 +35,26 @@ export default defineConfig({
       '**/package.json',
       '**/pnpm-lock.yaml',
       '**/tsconfig*.json',
-      '**/.claude/skills/**/tools/**',
+      '**/.agents/skills/**/tools/**',
       // Prompt/reference templates a skill tool reads at runtime (e.g.
       // advocate-run.sh substitutes references/advocate.md; its spec asserts
       // that coupling) are also never imported, so trigger their specs on edit.
-      '**/.claude/skills/**/references/**',
-      // A newly added/renamed skill spec under .claude/skills/**/tests/ is not
+      '**/.agents/skills/**/references/**',
+      // Skill agent metadata is read at runtime by the embedded skill guard, so
+      // changed-only runs need explicit triggers just like tools/references.
+      '**/.agents/skills/**/agents/**',
+      '**/.claude/skills/**/agents/**',
+      '**/.codex/skills/**/agents/**',
+      // A newly added/renamed skill spec under hidden skill roots is not
       // imported by the embedded.spec.ts bridge until wired in; trigger the
       // bridge so its self-guard (which fails on a missing import) runs under
-      // --changed rather than passing until the next full suite.
+      // --changed rather than passing until the next full suite. The guard
+      // scans every hidden root it treats as canonical (`.agents` plus the real
+      // `.claude`/`.codex` skill dirs), so the trigger must span the same roots
+      // or a spec added under `.claude`/`.codex` would false-pass changed-only.
+      '**/.agents/skills/**/tests/**',
       '**/.claude/skills/**/tests/**',
+      '**/.codex/skills/**/tests/**',
       '**/.markdownlint-cli2.jsonc',
     ],
     exclude: [

@@ -23,19 +23,19 @@ Integrate `origin/main` with a plain **`git merge origin/main`**, never rebase
 (it fast-forwards or makes a merge commit as needed). Merge never rewrites
 history, so it never needs a force-push and never scrambles an open PR's review —
 the right default for an autonomous skill. A user who wants a linear history can
-rebase by hand; this skill does not, and **never pushes**. (See `References` for
+rebase by hand; this skill **never pushes**. (See `References` for
 the rebase-vs-merge tradeoff.)
 
 Sync runs on whatever branch is checked out (no branch-name gate).
 
 ## The flow
 
-**Probe first: run `sh .claude/skills/remdo-sync/tools/sync-probe.sh`** (its header states the full
+**Probe first: run `sh .agents/skills/remdo-sync/tools/sync-probe.sh`** (its header states the full
 contract). It fetches and classifies whether `origin/main` still needs merging,
 printing one `STATE=` line. Act on it:
 
 - **`STATE=dirty-tree`** — the merge's clean-tree precondition fails. **Warn and
-  stop**; the user commits or stashes first (never do it for them).
+  stop**; the user commits or stashes first.
 - **`STATE=up-to-date`** — `origin/main` is already reachable from `HEAD` (nothing
   to merge, e.g. a prior manual merge). Finish here.
 - **`STATE=merge-needed`** — proceed to the merge below.
@@ -78,7 +78,7 @@ was skipped for a fast-forward).
 
 - Rebase-vs-merge / force-push tradeoff:
   <https://www.atlassian.com/git/tutorials/merging-vs-rebasing>.
-- Status-probe mechanics: `.claude/skills/remdo-sync/tools/sync-probe.sh`.
+- Status-probe mechanics: `.agents/skills/remdo-sync/tools/sync-probe.sh`.
 - Branch base (`origin/main...HEAD`) and the diff contract:
   `docs/contributing.md#git-workflow`.
 - Skill-authoring rule and fetch/push policy: `AGENTS.md`.

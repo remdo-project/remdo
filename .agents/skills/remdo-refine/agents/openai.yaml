@@ -1,0 +1,11 @@
+interface:
+  display_name: "RemDo Refine"
+  short_description: "Autonomous RemDo quality-review loop"
+  default_prompt: "Use $remdo-refine to run the RemDo quality ladder over the selected committed range or working-tree scope until it settles."
+policy:
+  allow_implicit_invocation: false
+  subagents:
+    authorized: true
+    use_cases:
+      - "fresh-context simplify rung"
+      - "fresh-context internal-review rung"

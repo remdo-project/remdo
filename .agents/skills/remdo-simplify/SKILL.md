@@ -1,8 +1,6 @@
 ---
 name: remdo-simplify
 description: The read-only simplification finder that `remdo-refine` runs as its first rung; invoke directly only for an explicitly requested one-off simplify review (e.g. "run a simplify review", "what could be simpler here"). Reports code, test, and documentation opportunities to make a selected diff's end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Does not edit files, stage, commit, or run mutating checks.
-context: fork
-agent: Explore
 ---
 
 # RemDo Simplify
@@ -22,10 +20,9 @@ Avoid speculative architecture and personal style preferences.
 
 The pass is intentionally read-only so it can serve as an independent
 simplification finder — for a `remdo-refine`-style quality loop, or run standalone
-before an editing pass. The frontmatter's `context: fork` + `agent: Explore`
-(Claude Code) runs it in a fresh, edit-tool-free context, so the review never
-inherits the caller's implementation memory; a runtime that ignores those keys
-should be given the same isolation by the caller (a fresh subagent).
+before an editing pass. Run it with fresh context where the caller can provide
+that isolation (for example, a Claude Code fork/explore context or a Codex
+fresh subagent) so the review never inherits the caller's implementation memory.
 
 ## Non-goals
 
@@ -38,7 +35,7 @@ should be given the same isolation by the caller (a fresh subagent).
 Use the exact scope supplied by the caller. A refine caller should pass only the
 scope and this skill, not its suspected fixes or implementation context.
 
-Resolve it by running `sh .claude/skills/remdo-refine/tools/resolve-scope.sh [scope]` (its header
+Resolve it by running `sh .agents/skills/remdo-refine/tools/resolve-scope.sh [scope]` (its header
 states the full contract): no argument for the committed-range default (this
 branch's own work), or `working-tree` for the uncommitted changes. It prints
 `SCOPE=`/`BASE=` plus the file list. This pass is read-only and never loops, so it
@@ -58,7 +55,7 @@ git diff --check <range>
 
 `<range>` is the committed range's base (`<base-sha>..HEAD`) in committed-range
 scope and `HEAD` (the working-tree diff) in working-tree scope, so every command
-targets exactly the scope's diff and never folds in the other side. Read the diff
+targets exactly the scope's diff. Read the diff
 per file when the total diff is large. Read untracked files that belong to the
 scope (from the resolver's file list).
 
@@ -206,7 +203,7 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 
 ## References
 
-- [Scope resolution](../../../.claude/skills/remdo-refine/tools/resolve-scope.sh)
+- [Scope resolution](../remdo-refine/tools/resolve-scope.sh)
 - [Agent guidelines](../../../AGENTS.md)
 - [Documentation invariants](../../../docs/documentation.md#invariants)
 - [Git workflow / branch base](../../../docs/contributing.md#git-workflow)

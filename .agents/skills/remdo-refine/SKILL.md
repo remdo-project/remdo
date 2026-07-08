@@ -28,7 +28,7 @@ below is a judgement, not a tuned number.
 Refine works on a single diff, fixed at invocation. There are two scopes; pick
 exactly one and keep it for every pass.
 
-**Resolve the scope by running `sh .claude/skills/remdo-refine/tools/resolve-scope.sh [scope]`** (its
+**Resolve the scope by running `sh .agents/skills/remdo-refine/tools/resolve-scope.sh [scope]`** (its
 header states the full contract). Pass no argument for the committed-range default
 (this branch's own work), or `working-tree` to review the uncommitted changes
 before they enter history. It prints `SCOPE=`/`BASE=` plus the file list. The
@@ -81,8 +81,8 @@ scope.
 
 ## The ladder
 
-Refine is the **sole caller** of these rungs; nothing else invokes them as a
-loop. They run cheapest and most local first, most independent last. Each is a
+Refine is the **sole caller** of these rungs. They run cheapest and most local
+first, most independent last. Each is a
 **read-only finder** over the same diff under review (the resolved range, or the
 working-tree changes): a rung reports, and the coordinating session triages,
 applies what is approved, and owns the loop. Keeping finding and applying apart
@@ -99,18 +99,17 @@ rung's findings.
 
 Every rung must review with **fresh eyes** — the coordinating session's memory
 of implementing and reviewing the diff would bias it toward parts it thinks it
-cleaned. The simplify rung isolates itself (`remdo-simplify` declares a context
-fork; on a runtime without fork support, wrap it in a fresh subagent); run the
-internal-review rung the same way; the external rung (codex, a separate
-process) gets the fresh read for free.
+cleaned. Run the simplify and internal-review rungs in the current agent's
+fresh-context mechanism (for example, a Claude Code fork/explore context or a
+Codex fresh subagent). Run the external rung through a separate configured
+reviewer or process so it does not inherit the coordinating session's context.
 
 1. **Simplify** — invoke the **`remdo-simplify`** skill:
    - **Objective:** find where the diff's end state could be shorter or simpler.
    - **Scope passed:** a **literal resolver argument** the rung re-resolves for
      itself — `<base-sha>..HEAD` for a committed range or `working-tree` for the
      uncommitted scope, never a bare SHA (which the rung cannot tell from a ref
-     and would mis-resolve). Nothing else (no suspected fixes, no implementation
-     context, which would defeat the fresh read).
+     and would mis-resolve).
    - **Report back:** its finding list (code/test lenses and the pass-in-passing
      doc-invariant check are defined there, not here).
    - **Triage:** treat each finding under the loop's triage rules below.
@@ -129,23 +128,32 @@ process) gets the fresh read for free.
      so "settles" is unreachable and a second pass buys erosion, not
      convergence. Residue is reported as tradeoffs, not re-run.
 
-3. **Internal review** — invoke `/code-review` at max effort:
+3. **Internal review** — invoke the current agent's strongest internal review
+   surface at max effort:
    - **Objective:** an internal correctness/quality read of the diff.
    - **Scope passed:** the diff under review (the resolved range's base, or the
      working-tree changes).
+   - **Agent adapter:** Claude Code uses `/code-review`; Codex uses a fresh
+     review subagent or its closest review-mode equivalent. If the runtime lacks
+     an isolated review surface, stop and report the missing dependency rather
+     than reviewing in the coordinating context.
    - **Report back / triage:** its findings, triaged under the loop rules.
 
-4. **External review** — invoke `codex review` for an independent outside read:
+4. **External review** — invoke the configured external reviewer for an
+   independent outside read:
    - **Objective:** a fresh external read from a separate process.
-   - **Scope passed:** `--base <anchored-base-sha>` in committed-range scope,
-     `--uncommitted` in working-tree scope. Pass the base SHA the resolver pinned,
-     **not** `--base origin/main` — codex recomputes its own merge-base from the
-     ref, so a bare `origin/main` would drift if it advances mid-loop (`--base`
-     accepts a commit SHA, not only a branch). Give it **scope only, no review
-     angle** — leading prompt framing defeats the point.
-   - **Report back / triage:** its findings, triaged under the loop rules. (An
-     absent `codex` CLI is a missing dependency — `AGENTS.md` governs; this rung
-     states no special-case of its own.)
+   - **Scope passed:** committed-range scope uses the anchored base SHA; working
+     tree scope uses the reviewer's uncommitted/working-tree mode. Give it
+     **scope only, no review angle** — leading prompt framing defeats the point.
+   - **Agent adapter:** Claude Code's default external reviewer is `codex review`
+     with `--base <anchored-base-sha>` or `--uncommitted` as appropriate. Pass
+     the base SHA the resolver pinned, **not** `--base origin/main` — codex
+     recomputes its own merge-base from the ref, so a bare `origin/main` would
+     drift if it advances mid-loop (`--base` accepts a commit SHA, not only a
+     branch). Codex should use the configured non-coordinating review surface for
+     the run; if none is available, stop and report the missing dependency rather
+     than silently dropping the rung.
+   - **Report back / triage:** its findings, triaged under the loop rules.
 
 Forward the `AGENTS.md` findings-suppression rule to every rung and subagent.
 
@@ -163,8 +171,8 @@ every earlier, more expensive rung on each iteration.
   not done.
 - **Tradeoff** — a real choice with no single correct answer. Solve it best-effort
   and **record it in `docs/todo.md`** — a tradeoff is a deferral until a final
-  decision is deliberately taken, so the entry persists until then (don't leave it
-  only chat-remembered). Never blocks; the end report points at the entry.
+  decision is deliberately taken, so the entry persists until then. Never blocks;
+  the end report points at the entry.
 - **Reject** — not a real issue, or out of scope. Drop it.
 
 Once every rung has settled, run a **confirmation cycle**: the full ladder again
@@ -173,8 +181,7 @@ once per invocation, see rung 2). **Done** when a confirmation cycle
 produces zero approved fixes; if it produces any, settle the rung that raised
 them as above, then confirm again. **Stuck** (stop and
 report) when a finding recurs with no progress, or the diff will not converge
-after a few cycles. **Blocker** — only a finding with no clear recommendation;
-anything with a defensible best-effort resolution is a tradeoff, not a blocker.
+after a few cycles. **Blocker** — only a finding with no clear recommendation.
 
 ## Verification
 
@@ -223,8 +230,8 @@ applied (docs-align only when the diff touched doc/skill prose).
 ## References
 
 - Ladder rungs invoked in order: `remdo-simplify` skill, `remdo-docs-align` skill
-  (doc-touching diffs), `/code-review`, `codex review`.
-- Scope resolution mechanics: `.claude/skills/remdo-refine/tools/resolve-scope.sh`.
+  (doc-touching diffs), current-agent internal review, external review.
+- Scope resolution mechanics: `.agents/skills/remdo-refine/tools/resolve-scope.sh`.
 - Branch base and the `origin/main...HEAD` diff contract:
   `docs/contributing.md#git-workflow`.
 - Bringing `origin/main` into the branch: `remdo-sync` skill.
