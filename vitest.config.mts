@@ -40,6 +40,11 @@ export default defineConfig({
       // advocate-run.sh substitutes references/advocate.md; its spec asserts
       // that coupling) are also never imported, so trigger their specs on edit.
       '**/.agents/skills/**/references/**',
+      // Skill agent metadata is read at runtime by the embedded skill guard, so
+      // changed-only runs need explicit triggers just like tools/references.
+      '**/.agents/skills/**/agents/**',
+      '**/.claude/skills/**/agents/**',
+      '**/.codex/skills/**/agents/**',
       // A newly added/renamed skill spec under hidden skill roots is not
       // imported by the embedded.spec.ts bridge until wired in; trigger the
       // bridge so its self-guard (which fails on a missing import) runs under
