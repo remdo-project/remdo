@@ -58,6 +58,19 @@ sections to docs.
   exploration, fresh review, verification, Research spikes, or required
   fresh-context reads. Keep mutating subagents isolated in worktrees per the
   rules above.
+- When a user prompt causes a repo-local skill under `.agents/skills/` to run,
+  the coordinating interactive agent tracks one local-skills report for that
+  prompt across nested skill calls and subagents. Notice only skill bugs or
+  improvement opportunities hit while doing the requested work: ambiguous or
+  stale instructions, missing dependencies, repeated friction or loops,
+  misleading output, or avoidable runtime cost. Do not run a separate skill
+  audit, spawn monitoring-only subagents, or add timing probes. Ask any skill
+  subagents to include incidental skill-monitor notes in their final answer to
+  the coordinator; the coordinator dedupes them and owns the user-facing report.
+  At the very end of the final response, print at most one `Local skills:` line,
+  and only when a repo-local skill was actually used. Include skill names/counts,
+  timing only when it was already known cheaply from the run, and either `clean`
+  or concise issue/opportunity notes.
 - Assign a unique `PORT_BASE` per worktree (for example `5100`, `5200`) to
   avoid collisions across dev servers, tests, and collab services.
 - Treat each repo/worktree as owning a 100-port block starting at its assigned
