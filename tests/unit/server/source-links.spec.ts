@@ -122,15 +122,6 @@ describe('post /api/current-user/source-links', () => {
 
     const response = await postJson(harness.app, '/api/current-user/source-links', { url: 'https://source.example' }, headers);
 
-    // The harness's `auth` is a plain (non-swappable) instance, so rebuildAuth()
-    // is a no-op here and the freshly-registered source has no live genericOAuth
-    // provider in THIS process — oAuth2LinkAccount therefore reports "Provider
-    // not found" (404), not the 200/302 authorize redirect a rebuilt production
-    // auth would produce. What this proves: the route validated the URL,
-    // required auth, called through to ensureSourceClient (client registration
-    // actually happened against the stubbed fetch) and then to
-    // oAuth2LinkAccount — i.e. the route's own wiring, not the OAuth round-trip.
-    // The full round-trip (real rebuild + real provider) is covered by Task 8 e2e.
     expect(fetchMock).toHaveBeenCalledWith(
       'https://source.example/api/auth/oauth2/register',
       expect.objectContaining({ method: 'POST' }),

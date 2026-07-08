@@ -49,6 +49,6 @@ export async function ensureSourceClient(
     sourceId: source.id,
     scopes: params.scopes,
   });
-  await claimSourceServerPublicClient(params.database, source.id, clientId);
+  await claimSourceServerPublicClient(params.database, source.baseUrl, clientId);
   return { sourceId: source.id };
 }

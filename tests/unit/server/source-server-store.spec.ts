@@ -57,23 +57,28 @@ describe('source server store', () => {
 
   it('records registered credentials so the source becomes usable', async () => {
     await ensureSourceServerRow(database, 'https://source.example');
-    await claimSourceServerPublicClient(database, SOURCE_ID, 'cid');
+    await claimSourceServerPublicClient(database, 'https://source.example', 'cid');
 
     const [stored] = await listSourceServers(database);
     expect(stored!.credentials).toEqual({ clientId: 'cid' });
   });
 
+  it('ignores a client claim for an unknown source origin', async () => {
+    await claimSourceServerPublicClient(database, 'https://missing.example', 'cid');
+    expect(await listSourceServers(database)).toEqual([]);
+  });
+
   it('claims a public client first-writer-wins (a later claim keeps the first id)', async () => {
     await ensureSourceServerRow(database, 'https://source.example');
-    await claimSourceServerPublicClient(database, SOURCE_ID, 'first');
-    await claimSourceServerPublicClient(database, SOURCE_ID, 'second');
+    await claimSourceServerPublicClient(database, 'https://source.example', 'first');
+    await claimSourceServerPublicClient(database, 'https://source.example', 'second');
     const [stored] = await listSourceServers(database);
     expect(stored!.credentials).toEqual({ clientId: 'first' });
   });
 
   it('reads sources synchronously for auth construction', async () => {
     await ensureSourceServerRow(database, 'https://source.example');
-    await claimSourceServerPublicClient(database, SOURCE_ID, 'cid');
+    await claimSourceServerPublicClient(database, 'https://source.example', 'cid');
 
     expect(readSourceServersSync(database)).toEqual([
       {
@@ -87,7 +92,7 @@ describe('source server store', () => {
 
   it('treats a client_id with no secret as a public-client credential', async () => {
     await ensureSourceServerRow(database, 'https://source.example');
-    await claimSourceServerPublicClient(database, SOURCE_ID, 'public-client-id');
+    await claimSourceServerPublicClient(database, 'https://source.example', 'public-client-id');
 
     const [server] = await listSourceServers(database);
     expect(server!.credentials).toEqual({ clientId: 'public-client-id' });

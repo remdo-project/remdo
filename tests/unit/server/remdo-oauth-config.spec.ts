@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createServerAuth } from '#server/auth/auth';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { createServerDatabaseClient } from '#server/db/client';
-import { deriveSourceId, deriveSourceServer, sourceOriginFromId } from '#server/remdo-oauth/config';
+import { deriveSourceId, deriveSourceServer } from '#server/remdo-oauth/config';
 import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
 
 function decodeId(id: string): string {
@@ -61,21 +61,6 @@ describe('deriveSourceId', () => {
   it('gives distinct ids to origins differing only in punctuation', () => {
     // A slug that collapsed punctuation would alias these; the encoding must not.
     expect(deriveSourceId('https://foo-bar.example')).not.toBe(deriveSourceId('https://foo.bar.example'));
-  });
-});
-
-describe('sourceOriginFromId', () => {
-  it('round-trips deriveSourceId back to the origin', () => {
-    for (const origin of ['https://source.example', 'http://127.0.0.1:7070', 'https://source.example:8443']) {
-      expect(sourceOriginFromId(deriveSourceId(origin))).toBe(origin);
-    }
-  });
-
-  it('returns null for an id that does not decode to a bare http(s) origin', () => {
-    expect(sourceOriginFromId(deriveSourceId('https://source.example/path'))).toBeNull();
-    expect(sourceOriginFromId(deriveSourceId('ftp://source.example'))).toBeNull();
-    expect(sourceOriginFromId('not-base64url-%%%')).toBeNull();
-    expect(sourceOriginFromId('')).toBeNull();
   });
 });
 

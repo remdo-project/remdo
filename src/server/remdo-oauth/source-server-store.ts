@@ -1,5 +1,5 @@
 import type { LinkableRemdoServer } from '#server/remdo-oauth/config';
-import { deriveSourceId, deriveSourceLabel, deriveSourceServer, sourceOriginFromId } from '#server/remdo-oauth/config';
+import { deriveSourceId, deriveSourceLabel, deriveSourceServer } from '#server/remdo-oauth/config';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { SourceServersTable } from '#server/db/schema';
 
@@ -97,13 +97,9 @@ export async function ensureSourceServerRow(
 // against.
 export async function claimSourceServerPublicClient(
   database: SqliteServerDatabaseClient,
-  id: string,
+  baseUrl: string,
   clientId: string,
 ): Promise<void> {
-  const baseUrl = sourceOriginFromId(id);
-  if (!baseUrl) {
-    return;
-  }
   await database.db
     .updateTable('source_servers')
     .set({ client_id: clientId })

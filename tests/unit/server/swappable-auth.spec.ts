@@ -54,7 +54,7 @@ describe('createSwappableServerAuth', () => {
     expect(liveProviderIds(swappable)).toEqual([]);
 
     await ensureSourceServerRow(database, 'https://source.example');
-    await claimSourceServerPublicClient(database, SOURCE_ID, 'cid');
+    await claimSourceServerPublicClient(database, 'https://source.example', 'cid');
     // Not visible until rebuild.
     expect(swappable.auth.sourceServers).toEqual([]);
     expect(liveProviderIds(swappable)).toEqual([]);
