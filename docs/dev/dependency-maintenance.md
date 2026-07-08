@@ -18,8 +18,7 @@ loudly instead.
 - `minimumReleaseAge` defaults to `1440` (24h): newly published packages are not
   resolved until they are a day old (supply-chain buffer). We keep the default.
   The refresh `pnpm update --latest` naturally holds too-fresh bumps and applies
-  each one automatically on the next run once it ages in — so packages held back
-  *only* by this gate are never listed below; the gate tracks them, not us. On
+  each one automatically on the next run once it ages in. On
   every install pnpm's lockfile verification pass also re-applies the gate to each
   existing lockfile entry (independent of `minimumReleaseAgeStrict`, which only
   governs *resolution*), so even `--frozen-lockfile` in CI hard-fails
@@ -53,8 +52,7 @@ Known-vulnerability response is **independent of the version-update story above*
 and runs on GitHub's native, default mechanism — no custom config, no CI gate.
 Repo settings keep **Dependabot alerts** and **Dependabot security updates**
 enabled (Settings → Security & analysis); these work independently of any
-`dependabot.yml` (so its absence does not disable them), and advisories reach us
-as soon as GitHub knows.
+`dependabot.yml`, and advisories reach us as soon as GitHub knows.
 
 The `audit:security` script remains a local/manual cross-check; it is
 intentionally **not** wired into CI — GitHub's alerts are the source of truth, and
@@ -68,8 +66,7 @@ Docker base lags the nodejs.org release by a few days, and `docker/Dockerfile`
 builds `FROM node:<minor>-alpine`, so pinning the newest LTS before its image
 publishes breaks the docker e2e build. `bump-node-pins.sh` resolves the newest
 LTS minor whose alpine image actually exists and auto-advances once the newer
-image publishes — so do **not** hand-bump the Node pins to a newer LTS; that just
-reintroduces the broken `FROM`.
+image publishes — so do **not** hand-bump the Node pins to a newer LTS.
 
 ### `vite-plugin-pwa` peer `workbox-build`
 

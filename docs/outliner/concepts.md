@@ -18,8 +18,6 @@ are all **kinds** of note, distinguished by a `kind` discriminator. Capabilities
 differ by kind — for example, only some kinds are addressable by id (see
 [Note kinds](#note-kinds)).
 
-Notes carry three kinds of information: structure, content, and props.
-
 - **Structure** is the position of a note in the tree: its parent and the order
   of its children.
 - **Content** is the payload a note exposes to adapters; the core model treats
@@ -114,10 +112,9 @@ Lexical node shape:
 
 ### Indentation (concept vs. adapter)
 
-- Conceptually, RemDo models a tree: every note has exactly one parent, so a
-  child is always exactly one level deeper than its parent (no multi-level
-  jumps); the editing invariants for restructuring (indent/outdent,
-  reordering) live in [Note Structure Rules](./note-structure-rules.md).
+- Conceptually, RemDo models a tree: every note has exactly one parent; the
+  editing invariants for restructuring (indent/outdent, reordering) live in
+  [Note Structure Rules](./note-structure-rules.md).
 - In the Lexical adapter, nesting is represented by a wrapper list item plus a
   nested list. The `indent` field is treated as metadata and must agree with the
   structural wrapper shape; wrapper adjacency is authoritative when resolving

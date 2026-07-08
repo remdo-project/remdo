@@ -34,8 +34,7 @@ environment, not persisted as a root `noteId`.
 1. Every addressable note has a `noteId`.
 2. Document identity (`documentId`) is runtime state and must be injected by the
    host environment for each editor/session instance.
-3. `noteId` values are unique within a document at any moment in time; different
-   documents may reuse the same `noteId` values.
+3. `noteId` values are unique within a document at any moment in time.
 4. `noteId` values are stable for the lifetime of a note and do not change on
    edits, reorders, indent/outdent, or moves.
 5. `noteId` values round-trip through adapters and persisted JSON boundaries
@@ -46,8 +45,7 @@ environment, not persisted as a root `noteId`.
 ### Creation
 
 - Any operation that creates a new note must assign a fresh `noteId` at the
-  moment of creation (keyboard insertion, paste, import, collaboration insert,
-  etc.).
+  moment of creation.
 - `noteId` generation is a local operation using randomness; we assume it is
   effectively unique and do not require a document-wide scan at creation time.
 - When a note is split into two notes, the note that remains at the original
@@ -81,11 +79,7 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 
 - Persisted JSON document state must include `noteId` for addressable notes.
 - Persisted JSON document state must not persist the active/current document ID
-  as document-level identity (for example, not as `root.noteId`).
-- Persisted JSON must keep explicit `docId` values for note links that
-  target other documents.
-- Note-link `docId` representation rules are defined in
-  [Links](./links.md#identity-representation-boundaries).
+  as document-level identity.
 - On load, any missing or duplicate `noteId` values must be normalized before
   the document is exposed to the app: keep existing unique IDs and assign fresh
   IDs to missing or colliding notes (preserving document order).
@@ -99,8 +93,6 @@ Behavioral clipboard rules (placement, move validation, focus) live in
   session/editor it initializes.
 - Runtime `documentId` must remain per-editor state and must not be derived from
   global location reads inside core editor logic.
-- Runtime `documentId` also drives same-document note-link rehydration at
-  load/import boundaries (see [Links](./links.md)).
 
 ## Collaboration
 
@@ -113,8 +105,7 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 
 ## Global references
 
-- `noteRef` is composed as `documentId_noteId`; it is globally unique because
-  `documentId` is globally unique and `noteId` is unique within that document.
+- `noteRef` is composed as `documentId_noteId`.
 - Direct-link URLs use the form `/n/<noteRef>` for non-root notes.
 - The document root uses `/n/<documentId>` as its canonical URL.
 - A `noteRef` is valid only while the referenced note exists in the referenced

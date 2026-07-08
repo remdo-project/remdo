@@ -1,12 +1,11 @@
 import { Alert, Button, Container, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useState } from 'react';
-import { useLoaderData, useLocation, useNavigate } from 'react-router-dom';
+import { useLoaderData, useNavigate } from 'react-router-dom';
 import AuthenticatedApp from '#client/app/AuthenticatedApp';
 import { rememberAuthenticatedSession } from '#client/app/auth/client';
 import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
 import { resetUserData } from '#client/app/documents/user-data';
 import type { AdminRouteState } from './admin-route-loader';
-import { resolveAdminEnrollPostCreateDestination } from './admin-enroll-post-create-destination';
 
 // /admin is public: an authenticated admin gets the panel inside the app shell
 // (chrome + live user-data runtime); anyone else gets the enroll form, rendered
@@ -30,7 +29,6 @@ export default function AdminRoute() {
 // even with signup disabled). Promoting an existing user is a later, panel-gated
 // capability, so this form has a single mode.
 function EnrollForm() {
-  const location = useLocation();
   const navigate = useNavigate();
   const [adminSecret, setAdminSecret] = useState('');
   const [name, setName] = useState('');
@@ -68,12 +66,10 @@ function EnrollForm() {
       // (or getUserData) then loads as the new admin.
       clearCurrentUserBootstrapCache();
       resetUserData();
-      const destination = resolveAdminEnrollPostCreateDestination(location.search, globalThis.location.origin);
-      if (destination.kind === 'assign') {
-        globalThis.location.assign(destination.href);
-        return;
-      }
-      void navigate(destination.path, { replace: true });
+      // Always land the new admin in the panel. Enrollment creates a new
+      // account, so resuming a pre-enrollment target (an OAuth-authorize flow or
+      // a `?next=`) could point at stale data or a previous identity's document.
+      void navigate('/admin', { replace: true });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to enroll as admin.');
     } finally {

@@ -15,7 +15,7 @@ rediscovered when that area is worked on again.
 Rules:
 
 - Mark completed items as `✅ Done` while a section is still active.
-- Delete sections once fully done (no archive here).
+- Delete sections once fully done.
 - Move durable decisions/specs into the relevant doc under `docs/`, leaving a
   link behind.
 
@@ -383,17 +383,21 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
 - Warning policy / classify-or-suppress:
   1. Decide how to handle the Vite large-chunk warning: real size budget,
      accepted warning, or follow-up chunking work.
-  2. Decide how to handle the `snapshot.mjs` esbuild size warning in Docker:
+  2. Decide whether to fix or explicitly accept the Docker esbuild
+     `import.meta`/CJS warning from bundling Node tools that import
+     `config/index.ts`; the warning text includes `empty-import-meta` and
+     `import.meta.env.MODE`.
+  3. Decide how to handle the `snapshot.mjs` esbuild size warning in Docker:
      explicit budget, suppression, or accepted noise.
-  3. Decide whether to suppress or just classify the `NO_COLOR` / `FORCE_COLOR`
+  4. Decide whether to suppress or just classify the `NO_COLOR` / `FORCE_COLOR`
      warnings seen during Docker Playwright runs.
-  4. Decide whether to suppress, classify, or otherwise avoid Node's
+  5. Decide whether to suppress, classify, or otherwise avoid Node's
      `ExperimentalWarning` noise from Better Auth's SQLite path in dev/test
      commands.
-  5. Classify or suppress the source-server Vite websocket proxy `EPIPE` noise
+  6. Classify or suppress the source-server Vite websocket proxy `EPIPE` noise
      seen during Docker linked-source E2E teardown; if it keeps recurring,
      consider avoiding Vite's `/d` websocket proxy in that source test server.
-  6. Review current install-time warnings and classify each as `fix`, `track`,
+  7. Review current install-time warnings and classify each as `fix`, `track`,
      or `ignore`, especially:
      `glob@11.1.0`, `source-map@0.8.0-beta.0`, `sourcemap-codec@1.4.8`, and the
      `@typescript-eslint/*` peer mismatch against `typescript 6`.
@@ -427,6 +431,20 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   semantics (no-op vs. move-as-flattened-text) in the cut/paste redesign;
   `NoteIdPlugin` `SELECTION_INSERT_CLIPBOARD_NODES_COMMAND` body branch.
 
+## Docs spec accuracy (branch docs/spec-accuracy)
+
+- Doc↔code accuracy audit, area by area (outliner docs ↔ editor code/tests
+  first): per claim — confirmed / fix the doc / record the divergence here per
+  documentation.md invariant 4 / escalate unclear intent.
+- Coverage pass: product areas with no owning doc (candidates: collaboration
+  internals, app bootstrap/routes; note-sdk docs are already deferred under
+  "Note-first SDK follow-ups") — decide new doc vs a `Future` trigger each.
+- Parked escalations awaiting Piotr (six): concepts.md:76 kinds-sentence
+  (carries the selection.md link; reject / apply-with-link-relocation);
+  documentation.md:33 split; search.md:66 split; selection.md:35 split;
+  dependency-maintenance stage split (#5 of conv3); search.md:59 disambiguation
+  parenthetical split.
+
 ## remdo-docs-align follow-ups
 
 - Consolidate doc responsibility fully into docs-align: refine's doc rung
@@ -441,6 +459,10 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 - Consider publishing the skill to the open Agent Skills registry once it is
   polished and battle-tested in this project (would need a bundled starter
   rules-doc template).
+- Restore a cross-family advocate for Codex-run `remdo-docs-align`: the shared
+  pipeline uses the existing Codex advocate script for now, so when Codex is the
+  editor the advocate is same-family. Add a Codex adapter that routes the
+  advocate stage to a non-Codex reviewer once a reliable one is available.
 - Unresolved: negation clauses that restate an adjacent rule (the deps-refresh
   "not human judgement" / "never lands on `main`" specimens) — the advocate
   declined them in every experiment run and a negation-priority prompt line
@@ -449,23 +471,25 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 ## Skill architecture follow-ups
 
-- Decide ESLint coverage for `.claude/skills/**/*.ts` (refine rung 4): the skill
-  TS is now typechecked (tsconfig dot-include) and unit-run (embedded bridge),
-  but ESLint still ignores dot-directories, so `lint:code` reports "File ignored"
-  on those files and `pnpm run lint` silently skips them — the skill tools/specs
-  miss the code-lint gate. Extend the ESLint config to the dot tree (deciding
-  which rules apply to skill specs, e.g. the `node/no-process-env` disables), or
-  accept typecheck+tests as their gate. A config decision, not a mechanical fix.
+- Decide ESLint coverage for hidden skill roots (`.agents/skills/**/*.ts` and
+  the remaining Claude-only `.claude/skills/**/*.ts`): the skill TS is now
+  typechecked (tsconfig dot-include) and unit-run (embedded bridge), but ESLint
+  still ignores dot-directories, so `lint:code` reports "File ignored" on those
+  files and `pnpm run lint` silently skips them — the skill tools/specs miss the
+  code-lint gate. Extend the ESLint config to the dot tree (deciding which rules
+  apply to skill specs, e.g. the `node/no-process-env` disables), or accept
+  typecheck+tests as their gate. A config decision, not a mechanical fix.
 - Accepted limitation (refine rung 4): `references-shape.mjs` resolves a
   reference link's `[label]` to its definition by exact (lowercased) match, so
   CommonMark-equivalent labels differing only by internal whitespace
   (`[foo bar]` vs `[foo   bar]:`) don't resolve — an internal link with such a
   label could bypass the References-shape gate. Contrived on this corpus (no
   multi-word reference labels); normalize label whitespace CommonMark-style if it
-  ever matters. The `has_proposal` block-adjacency validator is likewise a sanity
-  guard against truncated codex output, not an adversarial validator (see its
-  comment) — both are the terminal state of a fix-finding chain deliberately
-  stopped at the reasonable bound.
+  ever matters. The `has_proposal` validator is likewise a sanity guard against
+  truncated codex output, not an adversarial one: it requires at least one
+  canonical head line plus at least one `Replacement:` line, without checking
+  they belong to the same block — both are the terminal state of a fix-finding
+  chain deliberately stopped at the reasonable bound.
 - Define shared cross-skill contracts once (AGENTS.md or contributing.md) and
   have each skill state only its delta: one stop/escalation taxonomy (today
   six names: ESCALATE/Blocker/Stuck/stop/dead-end/callout), one
@@ -474,22 +498,6 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   behavior; refine owns quality backstops; sync the post-merge check;
   deps-refresh its matrix). Reconcile with AGENTS.md's declare-scope-in-situ
   rule via shared vocabulary + per-skill delta.
-- Tradeoff (refine confirmation): `temporal-status.mjs`'s scope guard tests
-  `docsPath(name).startsWith('docs/')` inline rather than reusing the sibling
-  `isDocsFile` from `docs-scope.mjs`. The two pull opposite ways on the same two
-  lines: single-source-the-predicate (`!isDocsFile(name) || EXEMPT.has(docsPath(
-  name))`) reuses the owned test but calls `repoRelative` twice; the current
-  form calls it once. A `docsScope(name) -> {rel, inDocs}` helper on
-  docs-scope.mjs would satisfy both but adds a third export for one caller.
-  Left as-is to avoid oscillating the same lines; fold into the docs-scope
-  keep/drop decision above.
-- Tradeoff (refine rung 3): `.markdownlint-cli2.jsonc` `ignores` hardcodes the
-  three skill-mirror symlink dirs by name to stop globby double-linting them
-  (cli2 doesn't dedup by resolved path). The list matches the live symlink set
-  today, but nothing guards it — a future symlinked skill mirror not added here
-  would be linted twice. Options: add a test asserting the ignore list equals
-  `find .claude .codex -type l`, or accept the manual list as documented. Decide
-  when the next skill mirror is added.
 - ESCALATE (docs-align, refine rung 2): `docs/outliner/menu.md:40` — advocate
   proposed deleting "it has no query span, so it owns every key;" as a
   restatement of the shared editor-popup contract. Dual adjudicators split:
@@ -499,24 +507,33 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   wholesale delete loses information the reader needs). Left as-is pending your
   call: keep, delete the "so it owns every key" restatement only (keeping the
   no-query-span fact), or delete the whole clause.
-- Tradeoff: `docs-align`'s `docs-scope.mjs` (`isDocsFile`/`docsPath` +
-  skill-file exemption) is exercised only by `lint-rules.spec.ts`; the sole
-  production caller `run-doc-rules.mjs` globs `docs/**/*.md` and the rules are
-  not wired into the product cli2 `customRules`, so the scoping/exemption branch
-  is unreachable in prod today. Keep it if the rules are meant to be wired into
-  the product markdown gate (invariant 3 documents the skill-file `References`
-  exemption as intended); otherwise inline the `docs/` assumption and drop the
-  module + its exemption tests. Decide when the product-gate wiring is settled.
+- Tradeoff (refine rung 3): `.markdownlint-cli2.jsonc` `ignores` hardcodes the
+  three skill-mirror symlink dirs by name to stop globby double-linting them
+  (cli2 doesn't dedup by resolved path). The list matches the live symlink set
+  today, but nothing guards it — a future symlinked skill mirror not added here
+  would be linted twice. Options: add a test asserting the ignore list equals
+  `find .claude .codex -type l`, or accept the manual list as documented. Decide
+  when the next skill mirror is added.
 
 ## Skill test-infra follow-up
 
+- advocate-run.sh normalizer altitude: four consecutive external-review P2s
+  landed in its ~60-line awk (sentinel precedence, stale-msg reuse, bogus
+  location minting, blank-line duplication, cwd split, numbered-prose heads —
+  five and counting); replace
+  prose-label parsing with codex `--output-schema` JSON and a thin renderer.
+
 - Consider replacing the skill-spec bridge (`tests/unit/skills/embedded.spec.ts`)
-  with a vitest `test.projects` entry rooted at `.claude/skills` (hidden dirs
-  are pruned by the file crawler, so include globs can't reach them); requires
-  re-verifying `--changed` and forceRerunTriggers semantics across projects.
+  with a vitest `test.projects` entry rooted at the hidden skill roots (currently
+  `.agents/skills` plus Claude-only `.claude/skills`; hidden dirs are pruned by
+  the file crawler, so include globs can't reach them); requires re-verifying
+  `--changed` and forceRerunTriggers semantics across projects.
 
 ## remdo-refine follow-ups
 
+- Loop structure: nested settle/confirmation loops terminate on judgment, not
+  structure, against stochastic reviewers that resample findings per run; rung
+  re-runs re-review the whole diff rather than the delta since their last pass.
 - Add more external review tools/skills/programs worth considering in the refine
   ladder beyond `codex review` (e.g. other reviewers or static analyzers);
   evaluate each for fit and independence before adding a rung.

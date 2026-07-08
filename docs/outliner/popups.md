@@ -11,8 +11,7 @@ popup owns, its focus model, and what confirming does.
 ## Shared editor-popup contract
 
 An editor popup is a transient surface anchored in the editor that, while open,
-**owns the keyboard** and is **light-dismissable**. Each of RemDo's popups is a
-specialization of this contract; the contract is independent of how each opens.
+**owns the keyboard** and is **light-dismissable**.
 
 1. **One at a time.** At most one editor popup is open; opening one closes any
    other.
@@ -30,7 +29,7 @@ specialization of this contract; the contract is independent of how each opens.
    confirming applies the result and closes.
 5. **`Tab` behavior is declared per widget**, as one of: **close and fall
    through** to the editor's normal `Tab` action (the popup closes, then
-   deliberately routes the key onward — an explicit outcome, not a leak), or
+   deliberately routes the key onward), or
    **cycle within** the popup's own controls.
 6. **Validated commit, safe restore.** Because the editor selection stays live
    while a popup is open (and may move under collaboration), a commit re-resolves
@@ -49,8 +48,7 @@ specialization of this contract; the contract is independent of how each opens.
 The `@` and `!` pickers are opened by typing a trigger character. Each is a
 **session anchored to the span of that keypress** — the trigger character and the
 text after it, fixed at open time. The session is never re-derived from where the
-caret later sits, so a picker never retargets onto a different trigger or onto
-text the user did not freshly invoke.
+caret later sits.
 
 1. **Open.** A picker opens only on a fresh keypress of its trigger character at a
    boundary — the start of note text, after whitespace, after opening punctuation
@@ -60,18 +58,16 @@ text the user did not freshly invoke.
 2. **Editable query (`@` only).** The `@` picker treats its span as a live query:
    per the editable-span exception, ordinary typing and `Backspace` edit the text
    after `@` and refilter. The `!` picker has no query — it opens its calendar
-   immediately (see [Dates](./dates.md)), so typing after `!` is not query text.
+   immediately (see [Dates](./dates.md)).
 3. **Dismiss.** Besides the shared light-dismiss, the `@` picker also closes when
    the caret leaves its span — an `ArrowLeft`/`ArrowRight` out of it or into its
    middle — leaving the typed trigger and query as ordinary text; deleting back
    past the `@` ends the session because the span no longer holds it. (The `!`
    calendar traps focus, so the caret cannot move while it is open.)
 
-The per-picker specs define the rest: the option source and popup body, the keys
-the popup additionally owns, the focus model, and the commit. Behavior over an
-*already-committed* inline token (navigating or editing it) is not part of this
-session and stays in the owning feature (see [Dates](./dates.md) for date-token
-keyboard behavior).
+Behavior over an *already-committed* inline token (navigating or editing it) is
+not part of this session and stays in the owning feature (see
+[Dates](./dates.md) for date-token keyboard behavior).
 
 ## References
 

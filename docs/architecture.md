@@ -72,8 +72,7 @@ boundaries is an extra guard for malformed, legacy, or imported data; it is not
 the base namespacing mechanism.
 
 Collaboration and local-persistence layers may key document state by canonical
-`docId`. Source-prefixed aliases MUST NOT be used as substitute document
-identity for ordinary source linking.
+`docId`.
 
 ### Document registry
 

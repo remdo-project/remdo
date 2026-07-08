@@ -22,8 +22,7 @@ live in [Links](./links.md).
 - Pasting while a note range is selected replaces that selection with the
   pasted notes.
 - Pasting after a cut moves the cut notes to the new location. If the cut is no
-  longer valid (for example, anything inside the cut boundary was edited), paste
-  does nothing.
+  longer valid, paste does nothing.
 - A cut can be pasted once; after a successful paste the cut is cleared.
 - If you try to paste into the cut notes or their descendants, nothing happens
   and the cut remains pending.
@@ -38,15 +37,12 @@ live in [Links](./links.md).
 - Single-line plain text replaces the selected text, as in a normal text editor.
 - Multi-line plain text always inserts notes, even when the selection is inline.
   The first line replaces the selected text; remaining lines become new child
-  notes inserted before existing children — a pragmatic choice that keeps the
-  existing structure intact.
+  notes inserted before existing children.
 
 ## Caret-position placement (collapsed selection)
 
-- Single-line plain text pastes into the note's text at the caret, replacing
-  any inline selection as normal.
+- Single-line plain text pastes into the note's text at the caret.
 - Pasting notes or multi-line plain text inserts multiple notes (one line per
   note for plain text).
-- Placement follows the caret-position rules from [Insertion](./insertion.md),
-  mirroring `Enter`.
+- Placement follows the caret-position rules from [Insertion](./insertion.md).
 - After a multi-note paste, focus lands at the end of the last inserted note.

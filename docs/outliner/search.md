@@ -41,8 +41,7 @@ and zooming to a result.
    least one match exists beyond the shown results, a non-interactive trailing
    row reports that more matches exist (the shown count, with no exact total) and
    prompts refining the query; it is not a result (no highlight, no arrow/hover
-   target, excluded from listbox options). Remaining matches are reached by typing
-   a more specific query, not by scrolling.
+   target, excluded from listbox options).
 8. `ArrowDown` highlights the next flat result.
 9. `ArrowUp` highlights the previous flat result.
 10. Arrow navigation stops at the first/last available note (no wraparound).
@@ -63,9 +62,7 @@ and zooming to a result.
 ## Result row context
 
 Result rows carry enough structural context to tell apart matches that share the
-same text, without zooming into one (which ends Search Mode). Every row uses the
-same layout regardless of highlight, so moving the highlight only restyles the
-selected row and never re-lays-out the list.
+same text. Every row uses the same layout regardless of highlight.
 
 1. Every result row shows the matched note as a primary label line, a dim
    ancestor-path subline beneath it, then a preview of the match's first two
