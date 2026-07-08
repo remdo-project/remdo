@@ -7,7 +7,7 @@ import {
 
 export interface EnsureSourceClientParams {
   database: SqliteServerDatabaseClient;
-  url: string;
+  sourceOrigin: string;
   homeOrigin: string;
   scopes: readonly string[];
 }
@@ -16,11 +16,11 @@ export interface EnsureSourceClientResult {
   sourceId: string;
 }
 
-// Ensures a public OAuth client exists for a source URL, self-registering one on
-// first use and caching its client_id in source_servers. Idempotent: repeated
-// links to the same URL (by any user) reuse the cached client. The caller must
-// rebuild auth before using the returned source (see source-links.ts) so the
-// genericOAuth provider is live in this process.
+// Ensures a public OAuth client exists for a source origin, self-registering one
+// on first use and caching its client_id in source_servers. Idempotent: repeated
+// links to the same source (by any user) reuse the cached client. The caller
+// must rebuild auth before using the returned source (see source-links.ts) so
+// the genericOAuth provider is live in this process.
 //
 // Concurrent first-links to the same new URL are safe: the row create tolerates
 // the duplicate (ensureSourceServerRow), and the client_id is claimed
@@ -35,10 +35,9 @@ export async function ensureSourceClient(
   deps: { registerClient?: typeof registerPublicSourceClient } = {},
 ): Promise<EnsureSourceClientResult> {
   const registerClient = deps.registerClient ?? registerPublicSourceClient;
-  const origin = new URL(params.url).origin;
   // Get-or-create the row (idempotent, race-safe). If it already has a cached
   // client, this is a re-link — reuse it, no registration.
-  const source = await ensureSourceServerRow(params.database, origin);
+  const source = await ensureSourceServerRow(params.database, params.sourceOrigin);
   if (source.credentials) {
     return { sourceId: source.id };
   }

@@ -47,7 +47,7 @@ export function createSourceLinkRoutes(dependencies: ServerRouteDependencies) {
     try {
       const { sourceId } = await ensureSourceClient({
         database,
-        url: origin,
+        sourceOrigin: origin,
         homeOrigin: new URL(auth.baseURL).origin,
         scopes: REMDO_SERVER_OAUTH_SCOPES,
       });

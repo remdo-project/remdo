@@ -21,10 +21,10 @@ describe('ensureSourceClient', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it('registers and caches a public client on first link to a URL', async () => {
+  it('registers and caches a public client on first link to a source origin', async () => {
     const registerClient = vi.fn(async () => ({ clientId: 'cid-1' }));
     await ensureSourceClient(
-      { database, url: 'https://source.example', homeOrigin: 'https://home.private', scopes: ['remdo'] },
+      { database, sourceOrigin: 'https://source.example', homeOrigin: 'https://home.private', scopes: ['remdo'] },
       { registerClient },
     );
     expect(registerClient).toHaveBeenCalledTimes(1);
@@ -36,7 +36,7 @@ describe('ensureSourceClient', () => {
     await ensureSourceServerRow(database, 'https://source.example');
     const registerClient = vi.fn(async () => ({ clientId: 'cid-1' }));
     await ensureSourceClient(
-      { database, url: 'https://source.example', homeOrigin: 'https://home.private', scopes: ['remdo'] },
+      { database, sourceOrigin: 'https://source.example', homeOrigin: 'https://home.private', scopes: ['remdo'] },
       { registerClient },
     );
     expect(registerClient).toHaveBeenCalledTimes(1);
@@ -44,14 +44,14 @@ describe('ensureSourceClient', () => {
     expect(server!.credentials).toEqual({ clientId: 'cid-1' });
   });
 
-  it('reuses the cached client on a later link to the same URL (idempotent)', async () => {
+  it('reuses the cached client on a later link to the same origin (idempotent)', async () => {
     const registerClient = vi.fn(async () => ({ clientId: 'cid-1' }));
     await ensureSourceClient(
-      { database, url: 'https://source.example', homeOrigin: 'https://home.private', scopes: [] },
+      { database, sourceOrigin: 'https://source.example', homeOrigin: 'https://home.private', scopes: [] },
       { registerClient },
     );
     const second = await ensureSourceClient(
-      { database, url: 'https://source.example', homeOrigin: 'https://home.private', scopes: [] },
+      { database, sourceOrigin: 'https://source.example', homeOrigin: 'https://home.private', scopes: [] },
       { registerClient },
     );
     // The second link reuses the cached client: no re-registration, same source.
