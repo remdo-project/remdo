@@ -30,13 +30,12 @@ APP_PUBLIC_URL="http://${DOCKER_TEST_BROWSER_HOST}:${PORT}"
 SOURCE_PORT="$((PORT_BASE + SOURCE_PORT_SHIFT))"
 SOURCE_COLLAB_SERVER_PORT="$((PORT_BASE + SOURCE_PORT_SHIFT + 4))"
 SOURCE_YSWEET_CONNECTION_STRING="ys://127.0.0.1:${SOURCE_COLLAB_SERVER_PORT}"
-# Source servers are admin-managed at runtime (registered through the browser),
-# not env-configured. The source's single origin uses the host's real network IP
-# so it is identical AND reachable from both the browser (on the host) and the
-# containerized home — one origin, matching the same-origin runtime model. The
-# host IP (not localhost / host.docker.internal) is required because rootless
-# Docker containers reach host services only via the host's network interface,
-# not the docker bridge gateway.
+# Source linking is URL-first at runtime, not env-configured. The source's single
+# origin uses the host's real network IP so it is identical AND reachable from
+# both the browser (on the host) and the containerized home — one origin, matching
+# the same-origin runtime model. The host IP (not localhost / host.docker.internal)
+# is required because rootless Docker containers reach host services only via the
+# host's network interface, not the docker bridge gateway.
 source_host_ip="$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9.]*\).*/\1/p')"
 if [[ -z "${source_host_ip}" ]]; then
   echo "Failed to detect a host IP for the source origin." >&2

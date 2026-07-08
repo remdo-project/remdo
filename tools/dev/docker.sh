@@ -42,11 +42,14 @@ echo "OAuth source: ${SOURCE_ORIGIN}"
 # source needs AUTH_URL set explicitly.
 echo "Start the source dev server with:"
 echo "  HOST=0.0.0.0 AUTH_URL=${SOURCE_ORIGIN} pnpm run dev"
-echo "Then add + register the source from the home admin panel at ${HOME_ORIGIN}/admin,"
-echo "and link a user account against it."
+echo "Then link the source from the home's Sharing page at ${HOME_ORIGIN}/sharing"
+echo "(enter ${SOURCE_ORIGIN} as the source URL) and sign in to link a user account."
 echo "Tunnel from a remote browser host: tools/remote/open-remdo-tunnel.sh <user>@<host>:${PORT_BASE}"
 
 cleanup_home_container
+# The home is PRIVATE (ALLOW_SIGNUP=false) so it may initiate linking — a public
+# server refuses (source-only). The source is the local `pnpm run dev` server,
+# which defaults to public and so accepts the home's self-registration.
 env \
   APP_PUBLIC_URL="${HOME_ORIGIN}" \
   AUTH_SECRET="${AUTH_SECRET}" \
@@ -55,7 +58,7 @@ env \
   CADDY_SITE_ADDRESSES="${HOME_ORIGIN} ${HOME_LOCALHOST_ORIGIN}" \
   YSWEET_AUTH_KEY="${YSWEET_AUTH_KEY}" \
   YSWEET_SERVER_TOKEN="${YSWEET_SERVER_TOKEN}" \
-  ALLOW_SIGNUP="${ALLOW_SIGNUP}" \
+  ALLOW_SIGNUP=false \
   REMDO_DOCKER_CONTAINER_NAME="${HOME_CONTAINER_NAME}" \
   PORT="${HOME_PORT}" \
   "${ROOT_DIR}/tools/prod/docker.sh"

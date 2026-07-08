@@ -3,7 +3,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
 import { createServerApp } from '#server/app';
-import { createServerAuth } from '#server/auth/auth';
+import {
+  createServerAuth,
+  createSwappableServerAuth,
+} from '#server/auth/auth';
 import type { CreateAuthUserInput } from '#server/auth/auth';
 import { extractSessionCookie } from '#server/auth/session-cookie';
 import type { YSweetDocumentTokenManager } from '#server/collab-token';
@@ -20,7 +23,7 @@ const TEST_USER = {
 export const TEST_ADMIN_SECRET = 'test-admin-secret-0123456789';
 // The harness's own canonical origin — an explicit override, deliberately not the
 // env AUTH_URL, so tests exercise instance-scoped baseURL wiring.
-export const TEST_BASE_URL = 'http://127.0.0.1:4000';
+const TEST_BASE_URL = 'http://127.0.0.1:4000';
 // Fixed preview port for the harness's trusted origins, so the derived list is
 // deterministic and independent of the env-derived PREVIEW_PORT.
 export const TEST_PREVIEW_PORT = 4005;
@@ -30,12 +33,14 @@ export function createServerAppHarness({
   allowSignup = false,
   baseURL = TEST_BASE_URL,
   sourceServers = [],
+  swappableAuth = false,
   onUpdateDoc,
 }: {
   adminSecret?: string;
   allowSignup?: boolean;
   baseURL?: string;
   sourceServers?: readonly StoredSourceServer[];
+  swappableAuth?: boolean;
   onUpdateDoc?: (docId: string, update: Uint8Array) => void | Promise<void>;
 } = {}) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-server-auth-'));
@@ -49,14 +54,18 @@ export function createServerAppHarness({
     hostname: 'test-host',
     previewPort: TEST_PREVIEW_PORT,
   });
-  const auth = createServerAuth({
+  const authOptions = {
     allowSignup,
     baseURL,
     database: client,
     sourceServers,
     secret: 'test-better-auth-secret-0123456789',
     trustedOrigins,
-  });
+  };
+  const swappable = swappableAuth
+    ? createSwappableServerAuth(authOptions)
+    : null;
+  const auth = swappable?.auth ?? createServerAuth(authOptions);
   const registry = createDocumentRegistry({ client });
   const collabDocuments = new Map<string, Uint8Array>();
   const tokenManager: YSweetDocumentTokenManager = {
@@ -90,6 +99,7 @@ export function createServerAppHarness({
     adminSecret,
     auth,
     database: client,
+    rebuildAuth: swappable?.rebuild,
     tokenManager,
     registry,
     logError: () => {},
@@ -191,7 +201,6 @@ export function createServerAppHarness({
             id: String(entry.get('id')),
             label: String(entry.get('label')),
             baseUrl: String(entry.get('baseUrl')),
-            linked: entry.get('linked') === true,
           }))
           : [];
       } finally {

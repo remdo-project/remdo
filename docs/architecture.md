@@ -19,7 +19,7 @@ note/link identity boundaries; those remain in outliner docs.
 - **Desktop Shell:** Native wrapper (for example Electron/Tauri) hosting the
   same SPA with OS integration.
 
-Delivery surface choice MUST NOT alter outliner semantics.
+Delivery surface choice does not alter outliner semantics.
 
 ## Routing and Origin Boundary
 
@@ -47,8 +47,8 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
   RemDo-issued Y-Sweet document client tokens to browsers.
 - Browser-visible collaboration URLs are derived from the server's configured
   canonical public origin, not from request forwarding headers.
-- OAuth source linking: Better Auth stores OAuth account tokens for configured
-  source servers after the user links a source account.
+- OAuth source linking: Better Auth stores OAuth account tokens for the source
+  servers a user has linked.
 
 ### Session User
 
@@ -79,8 +79,6 @@ Collaboration and local-persistence layers may key document state by canonical
 Server-owned document metadata store used by RemDo API before issuing Y-Sweet
 document client tokens.
 
-- Role: provide authoritative document metadata before Y-Sweet document client
-  token issuance.
 - Metadata: owner user id, document kind, title, and user-specific access
   grants.
 - Storage: RemDo metadata queries use Kysely inside the server persistence
@@ -100,8 +98,8 @@ document client tokens.
 - OAuth account tokens: access, refresh, and ID tokens for linked source-server
   accounts, stored by Better Auth.
 - Y-Sweet server token: RemDo API credential for Y-Sweet document-control calls.
-- Y-Sweet document client token: short-lived browser credential returned by
-  `POST /api/documents/:docId/sync-tokens` and enforced by Y-Sweet on sync paths.
+- Y-Sweet document client token: short-lived browser credential enforced by
+  Y-Sweet on sync paths.
 
 ### Browser-facing collaboration paths
 

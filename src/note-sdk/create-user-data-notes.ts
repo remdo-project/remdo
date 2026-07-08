@@ -26,7 +26,6 @@ interface UserDataNoteActions {
   createDocument?: (title: string) => Promise<UserDocument>;
   documentSources?: CollectionSource<DocumentSource>;
   homeDocumentId?: () => NoteId | null;
-  linkSourceServer?: (sourceServerId: NoteId) => Promise<void>;
   shareDocument?: (documentId: NoteId, email: string) => Promise<DocumentAccessView>;
 }
 
@@ -246,7 +245,6 @@ function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends No
 
 function createSourceServerHandle(
   sourceServer: SourceServer,
-  actions: UserDataNoteActions,
 ): SourceServerNote {
   const noteId = sourceServer.id;
   const kind = () => 'source-server' as const;
@@ -256,13 +254,6 @@ function createSourceServerHandle(
     text: () => sourceServer.label,
     children: () => [],
     baseUrl: () => sourceServer.baseUrl,
-    linked: () => sourceServer.linked,
-    link: async () => {
-      if (!actions.linkSourceServer) {
-        throw new Error('Source server linking is not available for this user data.');
-      }
-      await actions.linkSourceServer(noteId);
-    },
     as: createNoteAs(noteId, kind, () => handle),
   };
 
@@ -271,10 +262,9 @@ function createSourceServerHandle(
 
 function createSourceServersHandle(
   sourceServers: CollectionSource<SourceServer>,
-  actions: UserDataNoteActions,
 ): SourceServersNote {
   return createCollectionHandle({
-    createItemNote: (sourceServer) => createSourceServerHandle(sourceServer, actions),
+    createItemNote: (sourceServer) => createSourceServerHandle(sourceServer),
     items: sourceServers,
     noteId: 'source-servers',
     text: 'Source Servers',
@@ -307,7 +297,7 @@ export function createUserDataRootNote(
     }]),
     resolvedActions,
   );
-  const userSourceServers = createSourceServersHandle(sourceServers, resolvedActions);
+  const userSourceServers = createSourceServersHandle(sourceServers);
 
   function homeDocument(): DocumentNote {
     const homeDocumentId = resolvedActions.homeDocumentId?.() ?? null;

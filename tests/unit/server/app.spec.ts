@@ -17,7 +17,6 @@ const TEST_SOURCE_SERVER = {
   baseUrl: 'https://source.example',
   credentials: {
     clientId: 'source-client-id',
-    clientSecret: 'source-client-secret',
   },
 } as const;
 
@@ -67,19 +66,11 @@ describe('remdo api app', () => {
       'GET /api/current-user',
       'GET /api/current-user/source-servers/:serverId/current-user',
       'POST /api/current-user/source-servers/:serverId/documents/:docId/sync-tokens',
-      'POST /api/current-user/source-servers/:serverId/account-links',
+      'POST /api/current-user/source-links',
       'POST /api/documents',
       'POST /api/documents/:docId/access',
       'POST /api/documents/:docId/sync-tokens',
       'POST /api/admin/enroll',
-      'ALL /api/admin/source-servers/*',
-      'GET /api/admin/source-servers',
-      'POST /api/admin/source-servers',
-      'POST /api/admin/source-servers/:id/remove',
-      'POST /api/link/source-servers/:id/register',
-      'POST /api/link/register-home',
-      'POST /api/link/claim-registration',
-      'POST /api/link/source-servers/:id/claim',
     ]);
   });
 
@@ -215,30 +206,18 @@ describe('remdo api app', () => {
     expect(harness.auth.resolveBearerUser).toHaveBeenCalledWith('Bearer source-token');
   });
 
-  it('rejects unknown source server link requests', async () => {
-    const harness = createHarness();
-    const headers = await harness.createSessionHeaders();
-
-    const response = await harness.app.request('/api/current-user/source-servers/source/account-links', {
-      method: 'POST',
-      headers: createJsonHeaders(headers),
-      body: '{}',
-    });
-
-    expect(response.status).toBe(HTTP_STATUS.NOT_FOUND);
-    await expect(response.json()).resolves.toEqual({ error: 'Source server not found.' });
-  });
-
-  it('omits credential-less (unregistered) sources from the user source-server projection', async () => {
-    // An admin can add a source before completing register-home; that row has no
-    // credentials and no OAuth provider, so it must not appear in a user's
-    // linkable-source list — a Link on it would fail with no provider.
+  it('projects only the sources the current user has linked, not the global cache', async () => {
+    // source_servers is a global client-id cache (any user's link adds a row), so
+    // the projection must show a user only the sources THEY linked — never other
+    // users' sources, which would leak origins and let one user seed another's
+    // Sharing page with a source to link.
     const harness = createHarness({
       sourceServers: [
         TEST_SOURCE_SERVER,
-        { id: 'pending', label: 'Pending Source', baseUrl: 'https://pending.example', credentials: null },
+        { id: 'other', label: 'Other Source', baseUrl: 'https://other.example', credentials: { clientId: 'other-client-id' } },
       ],
     });
+    harness.auth.listLinkedRemdoServerIds = vi.fn(async () => new Set([TEST_SOURCE_SERVER.id]));
     const headers = await harness.createSessionHeaders();
 
     const projected = await listCurrentUserSourceServers(harness.auth, headers);
@@ -273,6 +252,18 @@ describe('remdo api app', () => {
         authorization: 'Bearer source-token',
       },
     });
+  });
+
+  it('does not leak source-row existence to an unauthenticated caller (401, not 404)', async () => {
+    // source ids derive from origins; an unauthenticated probe of a KNOWN id must
+    // not be distinguishable (401 vs 404) from an unknown one.
+    const harness = createHarnessWithSourceServer();
+
+    const known = await harness.app.request('/api/current-user/source-servers/source/current-user');
+    const unknown = await harness.app.request('/api/current-user/source-servers/unknownsource/current-user');
+
+    expect(known.status).toBe(HTTP_STATUS.UNAUTHORIZED);
+    expect(unknown.status).toBe(HTTP_STATUS.UNAUTHORIZED);
   });
 
   it('proxies linked source sync token requests with the stored source token', async () => {
@@ -461,17 +452,18 @@ describe('remdo api app', () => {
     expect(bootstrap).toMatchObject({ role: 'user', publicServer: true });
   });
 
-  it('projects configured source servers during current-user bootstrap', async () => {
+  it('projects the user linked source servers during current-user bootstrap', async () => {
     const harness = createHarness({
       sourceServers: [
         {
           id: 'source',
           label: 'Source Server',
           baseUrl: 'https://source.example',
-          credentials: { clientId: 'source-client-id', clientSecret: 'source-client-secret' },
+          credentials: { clientId: 'source-client-id' },
         },
       ],
     });
+    harness.auth.listLinkedRemdoServerIds = vi.fn(async () => new Set(['source']));
     const headers = await harness.createSessionHeaders();
 
     const response = await harness.app.request('/api/current-user', { headers });
@@ -483,7 +475,6 @@ describe('remdo api app', () => {
         id: 'source',
         label: 'Source Server',
         baseUrl: 'https://source.example',
-        linked: false,
       },
     ]);
   });
@@ -495,10 +486,11 @@ describe('remdo api app', () => {
           id: 'source',
           label: 'Source Server',
           baseUrl: 'https://source.example',
-          credentials: { clientId: 'source-client-id', clientSecret: 'source-client-secret' },
+          credentials: { clientId: 'source-client-id' },
         },
       ],
     });
+    harness.auth.listLinkedRemdoServerIds = vi.fn(async () => new Set(['source']));
     const headers = await harness.createSessionHeaders();
     const sessionUserId = await harness.getSessionUserId(headers);
     const initialResponse = await harness.app.request('/api/current-user', { headers });
@@ -507,7 +499,6 @@ describe('remdo api app', () => {
       id: 'source',
       label: 'Source Server',
       baseUrl: 'https://source.example',
-      linked: false,
     }];
     expect(initialResponse.status).toBe(HTTP_STATUS.OK);
     expect(harness.readProjectedSourceServers(initialBootstrap.userDataDocumentId)).toEqual(projectedSourceServers);

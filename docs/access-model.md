@@ -13,8 +13,6 @@ routing, document identity — are owned by
 3. New documents start with no user-specific access grants.
 4. Only the owner can grant access to another user.
 5. A normal document URL is only a document locator.
-6. Public and bearer-link access are separate access cases outside the sharing
-   flow this doc specifies (see [Future](#future)).
 
 ## Local-Only App Access
 
@@ -57,26 +55,23 @@ the user.
   authorization is always enforced server-side from the SQL record, never from
   the projection.
 - Every admin API authorizes from the caller's session + role — except the
-  self-enrollment endpoint, which registers a *new* admin account (no existing
-  session or role to check).
+  self-enrollment endpoint, which registers a *new* admin account.
 - `/admin` is the single admin entry route. It renders by the caller's role: an
   admin sees the admin panel; anyone else (signed in or not) sees the
   self-enrollment form. The client learns the current user's role from the
-  `/api/current-user` bootstrap.
-- The admin panel manages the home's **source servers** — add a source by URL,
-  register the home on it, see registered state, and remove a source (see
-  [Cross-Server Source Linking](#cross-server-source-linking)).
+  `/api/current-user` bootstrap; this drives rendering.
 - Self-enrollment is gated by `ADMIN_SECRET` (see
   [docs/config.md](./config.md#admin-bootstrap-and-enrollment)). The secret is
   a shared gate, any secret-holder can register an admin
-  account, and it works independently of the public-signup policy. Promoting an
-  *existing* user is a separate, panel-gated capability (see
-  [docs/todo.md](./todo.md), admin role follow-ups).
+  account, and it works independently of the public-signup policy.
 - Admin entry is discoverable by context: a signed-in admin sees an **Admin**
   link in the app toolbar, and a non-public server (closed signup, where
   bootstrapping an admin is expected) surfaces a link to `/admin` from the login
   page. A public server omits the login-page link — `/admin` is still reachable
   directly.
+
+Future: define the `ADMIN_SECRET` rotation lifecycle — whether rotating the
+secret affects existing admin accounts or only future enrollment.
 
 ## CSRF Protection
 
@@ -130,47 +125,78 @@ sharing level, sharing still targets a local account on the document's server.
   checks the source server applies to the user's normal session. This is an
   account-delegation model, not a cross-user grant.
 - Source documents: once linked, the browser can subscribe to source-owned user
-  data projections and merge those documents into the same document list. Source
-  documents keep the source server's canonical globally unique document IDs;
-  source context controls routing and authorization, not document identity.
+  data projections and merge those documents into the same document list.
 
-### Registering a home on a source
+### Linking a source
 
-A home registers itself on a source and the source issues its OAuth credentials.
-This action spans two servers and needs a different access level on each:
+Linking is **URL-first and user-driven**: any signed-in user links a source by
+entering its URL on the Sharing page ("Link source").
 
-- On the **home**, the actor is an **admin** (the "add a source" and "register"
-  controls live in the admin panel behind `/admin`, gated by the home's admin
-  role — see [Admin Role](#admin-role)). A home's linkable sources are
-  admin-managed runtime state, not configuration. Adding one derives a stable
-  internal id from the source's origin; a URL that is not a bare origin, or
-  duplicates an existing source, is rejected.
-- On the **source**, the actor only needs to be a signed-in **user** — any
-  ordinary source account, not a source admin.
+- On the **first** link to a new source URL, the home lazily self-registers a
+  **public** OAuth client on that source via a server-to-server call. "Public" means
+  `token_endpoint_auth_method: "none"`: the source issues no client secret: PKCE
+  authenticates the token exchange instead. The returned `client_id` is cached in
+  the `source_servers` table, a self-filling cache keyed by the source's origin;
+  later links to the same source (by any user) reuse the cached client. Newly
+  registering a source triggers one in-process auth rebuild so it becomes a live
+  provider immediately, with no restart.
+- Phishing resistance is **structural**, enforced by the source: its OAuth
+  authorize and token endpoints require the `redirect_uri` to exactly match the
+  client's registered `redirect_uris`. A public, redirect-locked client grants no
+  document access on its own — only a source user authenticating and consenting
+  does.
+- A source accepts registration only while it is acting as a **public** source
+  (open-signup): it enables unauthenticated dynamic client registration
+  (`allowUnauthenticatedClientRegistration`), gated on the same public/signup
+  setting, because the home's self-registration call carries no source session.
+- **A public server acts only as a source, never as a linking home.** A public
+  server's users are outside the operator's trust boundary, so this confines
+  linking's outbound-fetch surface to private homes, whose users are the
+  operator's own.
+- **Homes may be private / not internet-reachable.** Every server-to-server call
+  goes home→source, and the OAuth redirect travels through the user's own
+  browser, which is local to the home. (This
+  topology is why Client ID Metadata Documents — which need the source to fetch
+  the home's metadata URL — do not fit and were not adopted.)
 
-The flow:
+## Future (source-linking & admin, deferred indefinitely)
 
-- Registration is an OAuth 2.0 Dynamic Client Registration ceremony carried by
-  the operator's browser: the home redirects to the source's confirmation page,
-  where the signed-in source user authorizes it; the source binds the new client
-  to that user's source account and returns the credentials to the home, which
-  persists them and activates the source as a live provider without a restart.
-- A source accepts registration only while it is acting as a public source
-  (open-signup).
-- This **home OAuth client** (the credentialed identity the source issued for
-  the home) only identifies a home to the source; it grants no document access on
-  its own. Access still flows through per-account linking: each linking user later
-  authenticates and consents on the source for their own documents.
-- Any home admin can drop a source from the home (removing it from the source
-  list and the stored credential), which unlinks it locally. Revoking the **home
-  OAuth client on the source** is separate: only the source account that
-  registered it can delete it there. If the source later rejects the stored
-  credential, a home admin re-registers the source to get a fresh client.
+Long-horizon directions:
 
-## Future
+- **Enrollment/policy hardening.** Audit-log + rate-limit self-enrollment and any
+  public-policy change — one submission now grants a durable admin role, so it is
+  not a one-off action.
+- **Reject non-loopback http sources** at add time (in `deriveSourceServer`), so
+  every stored origin is one Better Auth's issuer normalization leaves alone and
+  the `normalizeSourceIssuer` mirror can be deleted. Blocked on the Docker E2E,
+  whose source is `http://<host-IP>` (rootless Docker can't reach a loopback
+  source) — the real work is making that source loopback-reachable.
+- **Destination-IP validation on the outbound registration fetch (defense in
+  depth).** URL-first linking makes the home POST to a user-supplied origin
+  (`registerPublicSourceClient` → `<url>/api/auth/oauth2/register`). The dangerous
+  case is already closed by construction: the public-server guard means only a
+  *private* home reaches this path (403 on public servers), a session (not bearer)
+  is required, and `redirect: 'error'` blocks a bounce. The residual is a private
+  home's own signed-in user driving it at their own network — the operator's own
+  infrastructure, a non-threat. For defense in depth, add a resolve-then-check
+  destination-IP allowlist that permits loopback/RFC1918 only in dev (must not
+  break the private-IP/loopback source topology or the Docker E2E's
+  `http://<host-IP>` source).
+- **Source-existence side-channel (accepted residual).** A signed-in user can
+  distinguish a known-but-not-linked source (403) from an unknown one (404) on
+  `/source-servers/:id/*`, and ids derive from origins — so they can detect that
+  *some* user linked an origin they already know. Bounded (needs the origin up
+  front; reveals no other user/doc data). Close by returning 404 for
+  known-but-unlinked if it ever matters.
+- **Public server shedding its home role.** The source-only policy is enforced
+  only at link *initiation*. A server flipped private→public that already holds
+  linked sources still serves them (the source proxies + `/api/current-user`
+  projection keep working). Decide whether a public server should fully shed its
+  home role (guard the shared source-access + projection path, hide existing
+  source docs) or accept it — a policy call to take with the `ALLOW_SIGNUP`
+  runtime-toggle work, not a per-route patch.
 
-- Home-admin link retirement that also revokes and rotates the client on the
-  source (needs a source-side capability not bound to one account).
+## Deferred Access Cases
 
 - Anonymous access.
 - Public documents.

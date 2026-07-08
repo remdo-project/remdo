@@ -35,6 +35,19 @@ export function useCurrentUserRole(): string | null {
   return getCachedCurrentUserBootstrap()?.role ?? null;
 }
 
+// Whether this server is public (open-signup). Reactive to the bootstrap load,
+// like useCurrentUserRole. A public server is source-only and refuses to link
+// out, so the UI hides the link action when this is true.
+export function useCurrentUserPublicServer(): boolean {
+  useSyncExternalStore(
+    subscribeUserDataRuntime,
+    getUserDataVersion,
+    getUserDataVersion,
+  );
+
+  return getCachedCurrentUserBootstrap()?.publicServer ?? false;
+}
+
 export function useDocumentSourcesLoading(): boolean {
   return useSyncExternalStore(
     subscribeUserDataRuntime,

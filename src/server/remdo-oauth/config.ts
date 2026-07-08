@@ -2,8 +2,9 @@ import { Buffer } from 'node:buffer';
 import { isHttpOrigin } from '#platform/net/http-origin';
 
 // A source server's identity, as it appears to the home. Credentials live
-// separately (see StoredSourceServer) because a source exists in the home's
-// admin-managed list before it is registered and issued OAuth credentials.
+// separately (see StoredSourceServer) because a source row exists in the home's
+// origin-keyed cache from first link, before self-registration fills its
+// public client_id.
 export interface LinkableRemdoServer {
   id: string;
   label: string;
@@ -17,14 +18,6 @@ export interface LinkableRemdoServer {
 // `foo.bar.example`).
 export function deriveSourceId(origin: string): string {
   return Buffer.from(origin, 'utf8').toString('base64url');
-}
-
-// Inverse of deriveSourceId: recover the source origin from a public id. Used to
-// key DB operations (whose stored identity is base_url) from an id-carrying
-// request. Returns null for an id that does not decode to a bare http(s) origin.
-export function sourceOriginFromId(id: string): string | null {
-  const decoded = Buffer.from(id, 'base64url').toString('utf8');
-  return isHttpOrigin(decoded) ? decoded : null;
 }
 
 // The source's display label is just its host — derived from the origin, never

@@ -7,8 +7,6 @@ import { createServerDatabaseClient } from './db/client';
 import type { SqliteServerDatabaseClient } from './db/client';
 import { createDocumentRegistry } from './documents/document-registry';
 import type { DocumentRegistry } from './documents/document-registry';
-import { createRegistrationCodeStore } from './remdo-oauth/registration-codes';
-import { createRegistrationHandleStore } from './remdo-oauth/registration-handles';
 import type { StoredSourceServer } from './remdo-oauth/source-server-store';
 
 interface OAuthClientCredentials {
@@ -49,8 +47,9 @@ export function createServerRuntime({
   tokenManager = createYSweetDocumentTokenManager(),
 }: ServerRuntimeOptions = {}): ServerRuntime {
   const database = createServerDatabaseClient({ dbPath });
-  // Swappable so a source registered this session becomes a live OAuth provider
-  // without a restart (register-home calls rebuildAuth after persisting creds).
+  // Swappable so a source self-registered this session becomes a live OAuth
+  // provider without a restart (ensureSourceClient calls rebuildAuth after
+  // persisting the cached client_id).
   const swappableAuth = createSwappableServerAuth({
     allowSignup,
     baseURL,
@@ -67,8 +66,6 @@ export function createServerRuntime({
     database,
     logError,
     rebuildAuth: swappableAuth.rebuild,
-    registrationCodes: createRegistrationCodeStore(),
-    registrationHandles: createRegistrationHandleStore(),
     registry,
     tokenManager,
   });

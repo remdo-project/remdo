@@ -38,9 +38,10 @@ export const REMDO_SERVER_OAUTH_SCOPES = [
 // issuer, and that upgrade is not configurable. The home's requireIssuerValidation
 // compares against this value, so we must classify loopback the same way or a
 // token is rejected as an issuer mismatch. Keep this in sync with upstream's
-// `isLoopbackHost`. Preferred long-term fix (see docs/todo.md): reject
-// non-loopback http sources at add time so every stored origin is one upstream
-// leaves alone, making `issuer: server.baseUrl` correct and this mirror deletable.
+// `isLoopbackHost`. Preferred long-term fix (see docs/access-model.md#future):
+// reject non-loopback http sources at add time so every stored origin is one
+// upstream leaves alone, making `issuer: server.baseUrl` correct and this mirror
+// deletable.
 // Matches the 127.0.0.0/8 loopback block by shape (four numeric octets, first
 // 127), not by textual prefix — `127.example.com` is a public DNS name, not
 // loopback, and must not skip the https upgrade.
@@ -117,11 +118,17 @@ function createBetterAuthInstance({
         consentPage: '/oauth/consent',
         loginPage: '/login',
         scopes: [...REMDO_SERVER_OAUTH_SCOPES],
-        // A public server acts as a source: home servers self-register their OAuth
-        // client during registration. Registration is authenticated (Better Auth
-        // binds the client to the signed-in source account) and limited to the
-        // RemDo source scopes; the endpoint stays off on a non-public server.
+        // A public server acts as a source: a home self-registers its OAuth client
+        // by a server-to-server call (no source session), so the source must accept
+        // UNAUTHENTICATED dynamic registration. The registered client is public
+        // (token_endpoint_auth_method: "none", PKCE) and redirect-locked, so it
+        // grants no access on its own — only a source user consenting does. Both
+        // flags gate on allowSignup: a private (non-public) source refuses
+        // registration outright. (allowUnauthenticatedClientRegistration is the
+        // supported option for this today; its eventual replacement is CIMD, which
+        // does not fit RemDo's private-home topology — see docs/access-model.md.)
         allowDynamicClientRegistration: allowSignup,
+        allowUnauthenticatedClientRegistration: allowSignup,
         clientRegistrationDefaultScopes: [...REMDO_SERVER_OAUTH_SCOPES],
         rateLimit: {
           register: { window: 60, max: 5 },
@@ -138,10 +145,9 @@ function createBetterAuthInstance({
         },
       }),
       genericOAuth({
-        // Build a provider only for sources whose OAuth client has been issued
-        // (the home registered on that source). A source added but not yet
-        // registered has no credentials and no provider; it becomes usable at the
-        // next auth-instance build after registration persists its credentials.
+        // Build a provider only for sources whose public client id has been
+        // cached. A source row created by the first link attempt has no provider
+        // until self-registration claims its client id and auth is rebuilt.
         config: sourceServers.flatMap((server) => {
           if (!server.credentials) {
             return [];
@@ -153,7 +159,7 @@ function createBetterAuthInstance({
             issuer: normalizeSourceIssuer(server.baseUrl),
             requireIssuerValidation: true,
             clientId: server.credentials.clientId,
-            clientSecret: server.credentials.clientSecret,
+            // Public client: no secret; PKCE authenticates the token exchange.
             scopes: [...REMDO_SERVER_OAUTH_SCOPES],
             accessType: 'offline',
             pkce: true,

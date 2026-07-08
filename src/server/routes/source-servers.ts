@@ -2,8 +2,7 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { normalizeDocumentId } from '#domain/documents/ids';
 import { HTTP_STATUS } from '#platform/http/status';
-import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
-import { requireActor, resolveActor } from '#server/auth/actor';
+import { resolveActor } from '#server/auth/actor';
 import type { ServerRouteDependencies } from './types';
 
 // Upstream auth/access/not-found responses describe a recoverable user state
@@ -21,21 +20,23 @@ function resolveSourceErrorStatus(upstreamStatus: number): 401 | 403 | 404 | 500
     : HTTP_STATUS.INTERNAL_SERVER_ERROR;
 }
 
-export function createSourceServerRoutes({
-  auth,
-  logError,
-}: ServerRouteDependencies) {
+export function createSourceServerRoutes(dependencies: ServerRouteDependencies) {
+  const { auth, logError } = dependencies;
   const routes = new Hono();
 
   async function resolveSourceAccess(request: Request, serverId: string) {
-    const server = auth.sourceServers.find((candidate) => candidate.id === serverId);
-    if (!server) {
-      return { kind: 'not-found' as const };
-    }
+    // Resolve the actor BEFORE touching the source list: source ids derive from
+    // origins, and source_servers is a global cache (any user's link adds a row),
+    // so an unauthenticated caller must not be able to distinguish a known id
+    // (someone linked that origin) from an unknown one via 404-vs-401.
     await auth.ensureReady();
     const actor = await resolveActor(request, auth);
     if (!actor) {
       return { kind: 'unauthorized' as const };
+    }
+    const server = auth.sourceServers.find((candidate) => candidate.id === serverId);
+    if (!server) {
+      return { kind: 'not-found' as const };
     }
     const accessToken = await auth.getLinkedRemdoServerAccessToken(actor.userId, server.id);
     if (!accessToken) {
@@ -123,34 +124,6 @@ export function createSourceServerRoutes({
     } catch (error) {
       logError(error, { docId: normalizedDocId });
       return c.json({ error: 'Failed to issue source server Y-Sweet document client token.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-    }
-  });
-
-  routes.post('/:serverId/account-links', async (c) => {
-    const serverId = c.req.param('serverId');
-    const server = auth.sourceServers.find((candidate) => candidate.id === serverId);
-    if (!server) {
-      return c.json({ error: 'Source server not found.' }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    try {
-      const actor = await requireActor(c, auth);
-      if (actor instanceof Response) {
-        return actor;
-      }
-
-      return auth.auth.api.oAuth2LinkAccount({
-        body: {
-          providerId: server.id,
-          callbackURL: '/sharing',
-          scopes: [...REMDO_SERVER_OAUTH_SCOPES],
-        },
-        headers: c.req.raw.headers,
-        asResponse: true,
-      });
-    } catch (error) {
-      logError(error, {});
-      return c.json({ error: 'Failed to link source server account.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });
 

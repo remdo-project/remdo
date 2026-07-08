@@ -7,9 +7,8 @@ import { createServerDatabaseClient } from '#server/db/client';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { deriveSourceId } from '#server/remdo-oauth/config';
 import {
-  addSourceServer,
-  removeSourceServer,
-  setSourceServerCredentials,
+  ensureSourceServerRow,
+  claimSourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
 
 const SOURCE_ID = deriveSourceId('https://source.example');
@@ -23,8 +22,9 @@ function liveProviderIds(swappable: ReturnType<typeof createSwappableServerAuth>
   return (genericOAuth?.options?.config ?? []).map((entry) => entry.providerId);
 }
 
-// The swappable auth is what makes a registered source linkable, and a removed
-// source unusable, without a restart: rebuild() must re-read the DB source list.
+// The swappable auth is what makes a self-registered source linkable without a
+// restart: rebuild() must re-read the DB source list so a newly cached client_id
+// becomes a live OAuth provider.
 describe('createSwappableServerAuth', () => {
   let dir: string;
   let database: SqliteServerDatabaseClient;
@@ -53,8 +53,8 @@ describe('createSwappableServerAuth', () => {
     expect(swappable.auth.sourceServers).toEqual([]);
     expect(liveProviderIds(swappable)).toEqual([]);
 
-    await addSourceServer(database, 'https://source.example');
-    await setSourceServerCredentials(database, SOURCE_ID, { clientId: 'cid', clientSecret: 'sec' });
+    await ensureSourceServerRow(database, 'https://source.example');
+    await claimSourceServerPublicClient(database, 'https://source.example', 'cid');
     // Not visible until rebuild.
     expect(swappable.auth.sourceServers).toEqual([]);
     expect(liveProviderIds(swappable)).toEqual([]);
@@ -63,30 +63,17 @@ describe('createSwappableServerAuth', () => {
     expect(swappable.auth.sourceServers).toHaveLength(1);
     expect(swappable.auth.sourceServers[0]).toMatchObject({
       id: SOURCE_ID,
-      credentials: { clientId: 'cid', clientSecret: 'sec' },
+      credentials: { clientId: 'cid' },
     });
     // The rebuilt Better Auth instance actually carries the OAuth provider — this
     // is what makes the source linkable, not just the array entry.
     expect(liveProviderIds(swappable)).toEqual([SOURCE_ID]);
   });
 
-  it('rebuild() drops a source removed after construction', async () => {
-    await addSourceServer(database, 'https://source.example');
-    await setSourceServerCredentials(database, SOURCE_ID, { clientId: 'cid', clientSecret: 'sec' });
-    const swappable = build();
-    expect(swappable.auth.sourceServers).toHaveLength(1);
-    expect(liveProviderIds(swappable)).toEqual([SOURCE_ID]);
-
-    await removeSourceServer(database, SOURCE_ID);
-    swappable.rebuild();
-    expect(swappable.auth.sourceServers).toEqual([]);
-    expect(liveProviderIds(swappable)).toEqual([]);
-  });
-
-  it('an added-but-unregistered source has no provider', async () => {
-    // Adding a source inserts a credential-less row: no OAuth provider exists for
-    // it (nothing to link against) until registration persists its credentials.
-    await addSourceServer(database, 'https://source.example');
+  it('a source row without a cached client has no provider', async () => {
+    // The first link creates a credential-less row; no OAuth provider exists for
+    // it (nothing to link against) until self-registration persists a client_id.
+    await ensureSourceServerRow(database, 'https://source.example');
     const swappable = build();
     expect(swappable.auth.sourceServers).toHaveLength(1);
     expect(swappable.auth.sourceServers[0]?.credentials).toBeNull();

@@ -4,8 +4,6 @@ import { HTTP_STATUS } from '#platform/http/status';
 import { createAdminRoutes } from './admin';
 import { createCurrentUserRoutes } from './current-user';
 import { createDocumentRoutes } from './documents';
-import { createLinkRoutes } from './link';
-import { createSourceServerAdminRoutes } from './source-server-admin';
 import type { ServerRouteDependencies } from './types';
 
 const SAFE_HTTP_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -44,8 +42,6 @@ export function createApiRoutes(dependencies: ServerRouteDependencies) {
   routes.route('/current-user', createCurrentUserRoutes(dependencies));
   routes.route('/documents', createDocumentRoutes(dependencies));
   routes.route('/admin', createAdminRoutes(dependencies));
-  routes.route('/admin/source-servers', createSourceServerAdminRoutes(dependencies));
-  routes.route('/link', createLinkRoutes(dependencies));
 
   routes.notFound((c) => c.json({ error: 'API route not found.' }, HTTP_STATUS.NOT_FOUND));
 

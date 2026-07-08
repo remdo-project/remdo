@@ -80,9 +80,7 @@ Rules:
 - Cross-server document-id collision guard follow-up: source-link bootstrap,
   projection merge, and import flows should detect a source document whose
   `docId` collides with an already-known local or linked-source document and
-  reject or quarantine it before opening. This is a defensive guard around the
-  documented base mechanism: every server must generate random document IDs with
-  enough entropy for cross-server uniqueness.
+  reject or quarantine it before opening.
 
 ## Admin role follow-ups
 
@@ -98,45 +96,46 @@ Rules:
 
 ## Source-linking follow-ups
 
-- Audit logging + rate limiting on self-enrollment and public-policy changes.
-- `ADMIN_SECRET` rotation lifecycle: define whether rotating affects existing
-  admins or only future enrollment.
-- Split signup policy from source client-registration policy (separate runtime
-  settings + a "public source" preset) once the source-linking work lands.
-- Source-side `clientPrivileges` to restrict raw OAuth client creation — a
-  separate boundary from the home-side role gate.
-- Reject non-loopback http sources in `deriveSourceServer` so `normalizeSourceIssuer`
-  (a mirror of Better Auth's `validateIssuerUrl`) can be deleted. Blocked on the
-  Docker E2E, whose source is `http://<host-IP>` (rootless Docker can't reach a
-  loopback source) — the real work is making that source loopback-reachable.
-- Rate-limit `POST /api/link/register-home`: it calls `auth.api.registerOAuthClient`
-  server-side, which bypasses Better Auth's HTTP-layer `rateLimit.register`, so a
-  signed-in source user can register unbounded OAuth clients. Enforce a limit in
-  the RemDo route (the `oauthProvider` `rateLimit.register` config only guards the
-  raw HTTP endpoint).
-- `register-home` accepts any bare-origin `home`, so a signed-in source user who
-  clicks Authorize on a phished `/oauth/register-home?home=<evil>` registers a
-  client with an attacker `redirect_uri` and is handed the one-time code. Bind
-  registration to known/expected homes (or require an explicit source-side
-  confirmation of the home origin) rather than trusting the query param.
-- `claim-registration` authorizes on the one-time code alone and returns the
-  client secret; the code rides in the home admin's address bar (`/admin?code=…`)
-  until an effect strips it. Consider binding the claim to the issuing handle/home
-  origin and moving the code out of the URL so a leaked URL can't claim the secret.
-- `POST /source-servers/:id/claim` burns the source's one-time code (via
-  `claim-registration`) before `setSourceServerCredentials` persists locally; a
-  persist failure strands the flow (code gone, handle kept) and needs a full
-  re-register. Make the claim idempotent or persist-before-consume.
-- Re-registering a source overwrites its stored client id/secret but leaves users'
-  existing Better Auth account rows for that `providerId`, so `listLinkedRemdoServerIds`
-  still shows them Linked while their refresh tokens (issued to the old client)
-  fail. Invalidate local account links for a source when its credentials change,
-  or otherwise force affected users through relinking.
+- Runtime public-policy toggle UI (see above) — this PR builds swappable-auth but
+  not the toggle.
+
+Deferred hardening; long-horizon items live in `docs/access-model.md#future`.
+
+- Public-source registration abuse: the home self-registers unauthenticatedly, so
+  the deleted per-account (userId-keyed) register limit can't be ported — there is
+  no session principal. The only bound left is Better Auth's IP-keyed
+  `oauthProvider.rateLimit.register` (5/60s), which mis-keys for this case
+  (NAT'd homes share a bucket; an attacker rotates IPs to evade). Needs a
+  registration-abuse control fit for unauthenticated registration (e.g. a global
+  cap, trusted-proxy IP config, or proof-of-work), designed with the public-source
+  policy split above.
+- No user-facing "unlink / remove a source" path exists after the URL-first
+  redesign: URL-first linking added a link route but the old admin remove route
+  was deleted, so `removeSourceServer` + the `rebuild()`-on-removal behavior lost
+  their only caller (removed as dead code). Re-add an unlink capability (a
+  user-scoped route that removes the account link, and — if a source ends up with
+  no linked users — optionally drops the cached source client), restoring
+  `removeSourceServer` + its coverage against a real caller at that point.
+- The two source-proxy routes in `source-servers.ts` (`:id/current-user`,
+  `:id/documents/:docId/sync-tokens`) duplicate the same shape:
+  `requireSourceAccess` → authenticated `fetch` → `!ok` forward via
+  `resolveSourceErrorStatus` → try/catch 500. Extract a `proxyToSource` helper
+  (pre-existing duplication, not from this work; fold in when next touching these
+  routes, e.g. with the unlink route).
+- Unreachable linked source floods the console + is silent to the user. When a
+  linked source is down or its OAuth token can't refresh,
+  `/source-servers/:id/current-user` fails and the client's `DelayedRetry`
+  (`stored-user-data.ts`) re-fetches forever at a fixed interval with no backoff,
+  cap, or give-up — each attempt logs. Add backoff + a bounded retry, and expose a
+  user-visible per-source status ("source offline / re-link needed") instead of
+  only console errors. Related to the offline-collab retry item below.
+  - Also: the route returns 403 for "linked but no usable token" (source
+    unreachable / token unrefreshable), conflating it with "not linked / no
+    access". A source-unreachable/upstream failure is really a gateway error
+    (502/504), which would also let the client distinguish "offline, keep the
+    link" from a real "forbidden". Worth splitting when the status UI lands.
 - Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
   the Better Auth admin plugin.
-- Tradeoff (standing): the admin secret is a permanent gate with no per-admin
-  revocation; accepted for single-operator self-host, revisit for public
-  multi-tenant.
 
 ## Offline and local persistence follow-ups
 
@@ -395,10 +394,6 @@ Durable fixes:
 - Cap/rotate the `data/collab/` store, or have the test harness clean its collab
   docs after runs, so it can't grow unbounded again.
 
-## remdo-feature-flow follow-ups
-
-- Clean up stale prunable worktree `remdo-7000-wt` if abandoned (not mine).
-
 ## Note body follow-ups
 
 Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
@@ -518,9 +513,29 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 - Add more external review tools/skills/programs worth considering in the refine
   ladder beyond `codex review` (e.g. other reviewers or static analyzers);
   evaluate each for fit and independence before adding a rung.
+- Widen the review lens for shared-state writes: refine reviews a diff, so a bug
+  where NEW code writes shared/global state and UNCHANGED code over-reads it sits
+  outside scope (the PR#356 cross-user source-leak: new `source-links.ts` wrote a
+  global `source_servers` row that the unchanged `listCurrentUserSourceServers`
+  projected to every user). The GitHub Codex app caught it because it reviews the
+  whole PR against the full repo, not the diff alone. Add a finder angle: when the
+  diff writes to a shared cache/table/projection source, trace who *reads* that
+  state (including unchanged files) and check the new state doesn't cross a
+  tenant/user boundary. (Note the GitHub app and local `codex review` are the same
+  model — the app's advantage was whole-repo scope, not a second sample; a second
+  *local* codex pass would share the diff-only blind spot. Evidence: OpenAI tunes
+  the reviewer for precision over recall, so misses are by design; keeping the
+  wider-scope GitHub app enabled as a backstop is cheaper than re-sampling locally.)
 
 ## Later follow-ups
 
+- Dead `oauthClientCredentials` wiring: the `OAuthClientCredentials` interface +
+  the `oauthClientCredentials?` option thread `runtime.ts → createServerAuth →
+  createBetterAuthInstance` to feed `generateClientId`/`generateClientSecret` on
+  the `oauthProvider`, but nothing ever sets it (no producer, pre-existing). Now
+  that sources issue only public secretless clients it is provably dead — drop the
+  interface, the option field across the layers, and the generate-* spread so the
+  provider uses Better Auth's own id generation.
 - Auth provisioning concepts: revisit user creation, dev fixture users, OAuth
   client creation restrictions, and server registration as separate flows with
   clearer boundaries.
