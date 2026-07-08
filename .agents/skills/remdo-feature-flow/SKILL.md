@@ -134,8 +134,7 @@ The report indexes the diff, not re-narrates it:
 2. `docs/todo.md` entries added or resolved.
 3. Any blocker, with gathered data.
 4. Workflow retro: stable improvements go into this shared skill or relevant
-   docs; agent-personal memory may be updated only through that agent's allowed
-   memory policy.
+   docs (see the Execution model's Memory rule for the agent-memory gate).
 
 The work is already committed through the flow/refine by this point. Integration
 after the report, including merge to `dev`, push, or PR creation, is a separate
@@ -194,8 +193,8 @@ Choose by activity:
   agent's adapter. If the user forbids subagents and the runtime has no
   equivalent isolated review surface, stop or use a narrower non-feature-flow
   process rather than weakening the fresh-context read.
-- **Memory:** do not write agent memory unless the user explicitly asks. Stable
-  workflow improvements go into the shared skill or repo docs.
+- **Memory:** do not write agent memory unless the user explicitly asks (the
+  Phase 5 retro owns where stable improvements land instead).
 
 ## References
 
