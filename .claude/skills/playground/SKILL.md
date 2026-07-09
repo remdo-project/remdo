@@ -33,11 +33,13 @@ the RemDo deltas below (they win on conflict).
 The VM is headless (SSH + HTTP only), so the file must be reachable in a
 browser, not just on disk.
 
-- Write the file to `public/playground/<YYYY-MM-DD>-<topic>.html`. Create the
-  folder if missing; it is gitignored (`/public/playground/`), so these are
-  unversioned scratch artifacts, like `.agent/`.
+- Write the file to `public/playground/index.html`. Create the folder if
+  missing; it is gitignored (`/public/playground/`), so these are unversioned
+  scratch artifacts, like `.agent/`.
 - Vite serves `public/` at the web root, so the file is live at
-  `http://<HOST>:<PORT>/playground/<file>.html`. `PORT` derives from
+  `http://<HOST>:<PORT>/playground/index.html` (Vite dev serves public files by
+  exact path — the bare `/playground/` directory URL falls through to the SPA).
+  `PORT` derives from
   `PORT_BASE` in `.env` (default `4000`). Assume the dev server (`pnpm run dev`)
   is already running — it is owned by the developer; do not start or stop it.
 - **Do not run `open`** (the plugin skill's step 4) — there is no display. After

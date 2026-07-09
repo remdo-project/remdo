@@ -27,6 +27,11 @@ A production build fails if a dev-tooling marker survives into the bundle.
 The Lexical Demo toolbar item links to `/dev/lexical-demo`. That route renders
 the vanilla Lexical editor and its tree view as the page's primary content.
 
+### Playground
+
+The Playground toolbar item links to `/playground/index.html`. The link 404s
+until a playground has been generated in this working dir.
+
 ## Editor tooling
 
 Schema *validation* is a dev/test assertion; the outline *repair* (root

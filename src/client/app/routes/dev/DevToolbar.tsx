@@ -50,6 +50,14 @@ export function DevToolbarLinks() {
       >
         Lexical Demo
       </Link>
+      {/* Stable, same-origin URL of the most recently generated playground (the
+          `playground` skill overwrites public/playground/index.html). The exact
+          file path is required: Vite dev serves public/ files by exact path and
+          would fall the bare /playground/ through to the SPA. See
+          docs/dev/dev-tooling.md. */}
+      <Anchor className="app-header-link" href="/playground/index.html">
+        Playground
+      </Anchor>
     </>
   );
 }
