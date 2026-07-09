@@ -10,7 +10,7 @@ interface HostContext {
   basePort: number;
 }
 
-function resolveHost(): HostContext | null {
+function resolveHost(): HostContext {
   const { protocol, hostname, port } = globalThis.location;
   const basePort =
     port && Number(port) > 0
@@ -28,11 +28,9 @@ function buildUrl(host: HostContext, portOffset: number, path = ''): string {
 
 export function DevToolbarLinks() {
   const host = resolveHost();
-  const vitestUrl = host ? buildUrl(host, 2, '/__vitest__/') : '#vitest';
-  const playwrightUrl = host ? buildUrl({ protocol: 'http:', hostname: 'localhost', basePort: host.basePort }, 6) : '#playwright';
-  const lexicalUrl = host
-    ? `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`
-    : '#lexical';
+  const vitestUrl = buildUrl(host, 2, '/__vitest__/');
+  const playwrightUrl = buildUrl({ protocol: 'http:', hostname: 'localhost', basePort: host.basePort }, 6);
+  const lexicalUrl = `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`;
 
   return (
     <>

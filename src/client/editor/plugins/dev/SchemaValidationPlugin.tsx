@@ -47,7 +47,7 @@ export function SchemaValidationPlugin(): null {
     validatedEpochRef.current = docEpoch;
     // Trigger a no-op update so the update listener validates within Lexical's cycle.
     editor.update(() => {}, { tag: SCHEMA_VALIDATE_SYNC_TAG });
-  }, [editor, hydrated, docEpoch, synced, validateSchema]);
+  }, [editor, hydrated, docEpoch, synced]);
 
   return null;
 }
