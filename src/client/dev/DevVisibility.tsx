@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { ActionIcon, Tooltip } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
-import { IconEye, IconEyeOff } from '@tabler/icons-react';
+import { IconSettings, IconSettingsFilled } from '@tabler/icons-react';
 import { Icon } from '#client/ui/Icon';
 import './DevVisibility.css';
 
@@ -35,7 +35,7 @@ export function DevVisibilityControl() {
         size="lg"
         variant={visible ? 'filled' : 'light'}
       >
-        <Icon icon={visible ? IconEye : IconEyeOff} />
+        <Icon icon={visible ? IconSettingsFilled : IconSettings} />
       </ActionIcon>
     </Tooltip>
   );
