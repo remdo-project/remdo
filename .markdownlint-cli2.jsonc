@@ -20,6 +20,11 @@
   "ignores": [
     ".git",
     "node_modules",
+    // Symlink mirrors only — one entry per `.claude/skills/*` that is a symlink
+    // to `.agents/skills/*`. List EXACTLY the symlinks: real adapter dirs
+    // (remdo-simplify, playground) hold their own SKILL.md and must stay linted.
+    // Kept in sync by tests/unit/skills/embedded.spec.ts (fails if a symlink is
+    // missing here).
     ".claude/skills/remdo-deps-refresh",
     ".claude/skills/remdo-docs-align",
     ".claude/skills/remdo-feature-flow",
