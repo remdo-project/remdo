@@ -25,12 +25,6 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
-## Development tooling
-
-- Implement `docs/dev/dev-tooling.md#visibility-mode`: add the floating dev
-  visibility toggle, dev-owned persisted state, and visibility gating for the
-  existing dev links/panels/components.
-
 ## Search architecture
 
 - Add a document-level SDK visitor/walker API and use it as the shared

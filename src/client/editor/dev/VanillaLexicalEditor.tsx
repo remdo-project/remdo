@@ -9,6 +9,7 @@ import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin
 import { TreeView } from '@lexical/react/LexicalTreeView';
 import { $createListItemNode, $createListNode, ListItemNode, ListNode } from '@lexical/list';
 import { $createTextNode, $getRoot } from 'lexical';
+import { DevVisibilityGate } from '#client/dev/DevVisibility';
 import './VanillaLexicalEditor.css';
 
 const initialConfig: InitialConfigType = {
@@ -33,20 +34,22 @@ const initialConfig: InitialConfigType = {
 
 export default function VanillaLexicalEditor() {
   return (
-    <section className="vanilla-lexical">
-      <div className="vanilla-lexical-shell">
-        <LexicalComposer initialConfig={initialConfig}>
-          <RichTextPlugin
-            contentEditable={<ContentEditable className="vanilla-lexical-input" />}
-            placeholder={<div className="vanilla-lexical-placeholder">Type some rich text...</div>}
-            ErrorBoundary={LexicalErrorBoundary}
-          />
-          <ListPlugin />
-          <TabIndentationPlugin />
-          <VanillaTreeView />
-        </LexicalComposer>
-      </div>
-    </section>
+    <DevVisibilityGate>
+      <section className="vanilla-lexical">
+        <div className="vanilla-lexical-shell">
+          <LexicalComposer initialConfig={initialConfig}>
+            <RichTextPlugin
+              contentEditable={<ContentEditable className="vanilla-lexical-input" />}
+              placeholder={<div className="vanilla-lexical-placeholder">Type some rich text...</div>}
+              ErrorBoundary={LexicalErrorBoundary}
+            />
+            <ListPlugin />
+            <TabIndentationPlugin />
+            <VanillaTreeView />
+          </LexicalComposer>
+        </div>
+      </section>
+    </DevVisibilityGate>
   );
 }
 
