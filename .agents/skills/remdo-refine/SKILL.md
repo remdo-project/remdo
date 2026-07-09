@@ -103,6 +103,12 @@ cleaned. Run the simplify and internal-review rungs in the current agent's
 fresh-context mechanism (for example, a Claude Code fork/explore context or a
 Codex fresh subagent). Run the external rung through a separate configured
 reviewer or process so it does not inherit the coordinating session's context.
+When a runtime uses subagents for fresh-context rungs, prompt them with only the
+resolved scope and the `AGENTS.md` findings-suppression rule; do not pass
+implementation notes, suspected fixes, prior conclusions, or `.agent/` scratch.
+If the user explicitly forbids subagents and no equivalent isolated review
+surface exists, stop or use a narrower non-refine process rather than replacing
+a required fresh-context rung with an inline review by the coordinating session.
 
 1. **Simplify** — invoke the **`remdo-simplify`** skill:
    - **Objective:** find where the diff's end state could be shorter or simpler.
@@ -110,6 +116,10 @@ reviewer or process so it does not inherit the coordinating session's context.
      itself — `<base-sha>..HEAD` for a committed range or `working-tree` for the
      uncommitted scope, never a bare SHA (which the rung cannot tell from a ref
      and would mis-resolve).
+   - **Agent adapter:** Codex runs `$remdo-simplify` in a fresh
+     explorer/review subagent (prompted per the scope-only rule above), asked to
+     report without editing files, staging, committing, or running mutating
+     checks.
    - **Report back:** its finding list (code/test lenses and the pass-in-passing
      doc-invariant check are defined there, not here).
    - **Triage:** treat each finding under the loop's triage rules below.
@@ -134,25 +144,30 @@ reviewer or process so it does not inherit the coordinating session's context.
    - **Scope passed:** the diff under review (the resolved range's base, or the
      working-tree changes).
    - **Agent adapter:** Claude Code uses `/code-review`; Codex uses a fresh
-     review subagent or its closest review-mode equivalent. If the runtime lacks
-     an isolated review surface, stop and report the missing dependency rather
-     than reviewing in the coordinating context.
+     review subagent or its closest review-mode equivalent, with no leading
+     review angle. If the runtime lacks an isolated review
+     surface, stop and report the missing dependency rather than reviewing in
+     the coordinating context.
    - **Report back / triage:** its findings, triaged under the loop rules.
 
 4. **External review** — invoke the configured external reviewer for an
    independent outside read:
    - **Objective:** a fresh external read from a separate process.
-   - **Scope passed:** committed-range scope uses the anchored base SHA; working
-     tree scope uses the reviewer's uncommitted/working-tree mode. Give it
-     **scope only, no review angle** — leading prompt framing defeats the point.
-   - **Agent adapter:** Claude Code's default external reviewer is `codex review`
-     with `--base <anchored-base-sha>` or `--uncommitted` as appropriate. Pass
-     the base SHA the resolver pinned, **not** `--base origin/main` — codex
-     recomputes its own merge-base from the ref, so a bare `origin/main` would
-     drift if it advances mid-loop (`--base` accepts a commit SHA, not only a
-     branch). Codex should use the configured non-coordinating review surface for
-     the run; if none is available, stop and report the missing dependency rather
-     than silently dropping the rung.
+   - **Scope passed:** the diff under review, **scope only, no review angle** —
+     leading prompt framing defeats the point.
+   - **Anchoring (any reviewer):** a committed range passes the base SHA the
+     resolver pinned, **not** `--base origin/main` — codex recomputes its own
+     merge-base from the ref, so a bare `origin/main` would drift if it advances
+     mid-loop (`--base` accepts a commit SHA, not only a branch); working-tree
+     scope uses the reviewer's uncommitted mode.
+   - **Agent adapter:** Claude Code uses `codex review` (`--base
+     <anchored-base-sha>` or `--uncommitted`). Codex uses the first available
+     non-coordinating reviewer from this ordered list: `coderabbit:code-review` /
+     `coderabbit review --agent` (`--base-commit <anchored-base-sha>` for
+     committed ranges, `-t uncommitted` for working-tree scope), then `codex
+     review` as a separate noninteractive process. If no configured external
+     reviewer is available, stop and report the missing dependency rather than
+     silently dropping the rung.
    - **Report back / triage:** its findings, triaged under the loop rules.
 
 Forward the `AGENTS.md` findings-suppression rule to every rung and subagent.

@@ -26,7 +26,7 @@ set -eu
 # Resolve paths from this script's own location (immune to a polluted
 # GIT_WORK_TREE/GIT_DIR, and needs no git). This skill dir sits three levels
 # below the repo root — at <root>/.agents/skills/remdo-deps-refresh, and likewise
-# via the .codex/.claude symlinks — so the root is three parents up.
+# via the .claude symlink — so the root is three parents up.
 SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 ROOT_DIR="$(CDPATH='' cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 [ -f "${ROOT_DIR}/package.json" ] || { echo "next-update: repo root not found at ${ROOT_DIR}." >&2; exit 1; }
