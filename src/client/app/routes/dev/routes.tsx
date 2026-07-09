@@ -5,8 +5,7 @@ import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev/dev-route';
 // production bundle. See docs/dev/dev-tooling.md.
 export const devRoutes = import.meta.env.DEV
   ? [{
-    // Child of the `/` route, so the path is relative (no leading slash).
-    path: DEV_LEXICAL_DEMO_ROUTE.slice(1),
+    path: DEV_LEXICAL_DEMO_ROUTE,
     lazy: async () => ({
       Component: (await import('./DevLexicalDemoRoute')).default,
     }),
