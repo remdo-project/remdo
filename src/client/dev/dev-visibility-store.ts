@@ -6,7 +6,6 @@ const DEFAULT_VISIBLE = true;
 
 const listeners = new Set<() => void>();
 let storageListenerAttached = false;
-let visibleSnapshot = readStoredVisibility();
 
 function getStorage(): Storage | null {
   try {
@@ -42,7 +41,6 @@ function handleStorageChange(event: StorageEvent): void {
   if (event.key !== STORAGE_KEY) {
     return;
   }
-  visibleSnapshot = readStoredVisibility();
   emitVisibilityChange();
 }
 
@@ -63,12 +61,11 @@ function subscribe(listener: () => void): () => void {
 }
 
 export function getDevToolingVisible(): boolean {
-  return visibleSnapshot;
+  return readStoredVisibility();
 }
 
 export function setDevToolingVisible(visible: boolean): void {
   writeStoredVisibility(visible);
-  visibleSnapshot = readStoredVisibility();
   emitVisibilityChange();
 }
 
