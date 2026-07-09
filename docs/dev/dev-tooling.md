@@ -1,8 +1,7 @@
 # Development Tooling
 
 Development-only tooling supports inspecting and driving the editor and routes
-during local development and tests. It spans page tools, editor inspectors,
-schema validation, and the test bridge. This doc owns what dev tooling is and the
+during local development and tests. This doc owns what dev tooling is and the
 boundary it lives behind; runtime setup belongs in
 [docs/run-modes.md](../run-modes.md).
 
@@ -13,8 +12,7 @@ code around itself:
 
 - **Build-time gate.** Dev tooling is reachable only through
   `import.meta.env.DEV`-guarded branches — `true` under the dev server and test
-  runner, statically `false` in the production build, so the guarded code is
-  dead-code eliminated there.
+  runner, statically `false` in the production build.
 - **Prefer neutral seams.** A production component SHOULD expose a neutral
   extension point for dev tooling rather than reference it directly, but a simple
   direct import or call is acceptable where it keeps the boundary clear and the
