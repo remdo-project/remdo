@@ -553,3 +553,9 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   because all `renderRemdoEditor` callers await sequentially; a future
   parallel-render test could mispair. If that arrives, key waiters by docId or
   have `waitForNext` drain an already-live bridge.
+
+- `SchemaValidationPlugin` load-time validation (dev/test) has no test. No
+  malformed fixture survives load unrepaired to demonstrate it: `assertEditorSchema`
+  only checks `indent-jump`, which load normalization flattens. The validation is
+  therefore practically inert today; add coverage if a schema rule that survives
+  load is introduced.
