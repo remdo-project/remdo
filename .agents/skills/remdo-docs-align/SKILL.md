@@ -1,6 +1,6 @@
 ---
 name: remdo-docs-align
-description: Use to converge documentation and skill files to the documentation intent and invariants (docs/documentation.md) over a chosen scope — deterministic gates, an align pass, then a cross-family deletion advocate whose proposals are adjudicated under the face-value tie-breaker. Triggers include "align the docs", "run docs-align", a corpus realignment, or remdo-refine handing over a doc-heavy diff.
+description: Use to converge documentation and skill files to the documentation intent and invariants (docs/documentation.md) over a chosen scope — deterministic gates, an align pass, then a cross-family deletion advocate whose proposals are adjudicated under the face-value tie-breaker. Triggers include "align the docs", "run docs-align", a corpus realignment, or remdo-feature-flow aligning a spec at its Phase-3 gate.
 ---
 
 # Docs align
@@ -86,16 +86,14 @@ Forward the `AGENTS.md` findings-suppression rule to every stage.
 
 ## Permissions
 
-Self-committing here applies **only when invoked standalone**. As `remdo-refine`'s
-rung, this skill commits nothing — refine's loop owns every commit (see its
-ladder); the edits are left in the tree for that loop to triage and commit.
+Commit authority follows the resolved scope, not the caller.
 
-Invoked standalone on a **committed-range scope** is an explicitly declared
-autonomous scope (per AGENTS.md): authorization to commit each stage's applied
-edits **on the current branch**, keeping the resolved range honest — never onto
-`main` (if invoked there, warn and stop rather than self-committing), and never
-push. An **explicit file-set scope** (e.g. a whole-corpus realignment) is treated
-the same as a committed-range: commit each stage's edits on the current branch.
-In **working-tree scope** it
-commits nothing — the applied edits stay in the tree and the user owns the
-eventual commit.
+A **committed-range scope** is an explicitly declared autonomous scope (per
+AGENTS.md): authorization to commit each stage's applied edits **on the current
+branch**, keeping the resolved range honest — never onto `main` (if invoked
+there, warn and stop rather than self-committing), and never push. An **explicit
+file-set scope** (e.g. a whole-corpus realignment) is treated the same as a
+committed-range: commit each stage's edits on the current branch. In
+**working-tree scope** it commits nothing — the applied edits stay in the tree
+and the caller (a standalone user, or `remdo-feature-flow` at its Phase-3 spec
+gate) owns the eventual commit.

@@ -1,6 +1,6 @@
 ---
 name: remdo-simplify
-description: The read-only simplification finder that `remdo-refine` runs as its first rung; invoke directly only for an explicitly requested one-off simplify review (e.g. "run a simplify review", "what could be simpler here"). Reports code, test, and documentation opportunities to make a selected diff's end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Does not edit files, stage, commit, or run mutating checks.
+description: The read-only code/test simplification finder that `remdo-refine` runs as its first rung; invoke directly only for an explicitly requested one-off simplify review (e.g. "run a simplify review", "what could be simpler here"). Reports code and test opportunities to make a selected diff's end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Doc and skill-prose convergence is `remdo-docs-align`'s job, not this pass. Does not edit files, stage, commit, or run mutating checks.
 ---
 
 # RemDo Simplify
@@ -10,13 +10,17 @@ description: The read-only simplification finder that `remdo-refine` runs as its
 Report simplification opportunities for a RemDo change. This is a review-style
 pass: do not edit files, stage, commit, or run checks that intentionally write
 repo state. Ask whether the changed end state could be shorter, simpler, or
-cleaner if the touched code, tests, docs, or directly related supporting code
-were shaped differently.
+cleaner if the touched code, tests, or directly related supporting code were
+shaped differently.
 
 Prefer findings that let the author delete code, reuse an existing RemDo,
-Lexical, or platform primitive, move behavior to its owning layer, reduce special
-cases, or cut/rehome prose that violates the RemDo documentation invariants.
-Avoid speculative architecture and personal style preferences.
+Lexical, or platform primitive, move behavior to its owning layer, or reduce
+special cases. Avoid speculative architecture and personal style preferences.
+
+This pass reports on **code and tests only**. Doc and skill-prose convergence to
+the RemDo documentation invariants is `remdo-docs-align`'s job — do not report
+doc/prose findings here, even in passing. Docs are read only as *context* for
+judging whether a simpler code shape exists.
 
 The pass is intentionally read-only so it can serve as an independent
 simplification finder — for a `remdo-refine`-style quality loop, or run standalone
@@ -104,8 +108,6 @@ Potential redesign of untouched code is in scope only when all are true:
 
 ## Simplification lenses
 
-### Code and tests
-
 Look for opportunities to:
 
 - Delete compatibility shims or defensive guards made unnecessary by RemDo's
@@ -123,12 +125,6 @@ Look for opportunities to:
   known fixtures, avoid runtime guards that only defend the fixture itself.
 - Remove obsolete comments or tracked workaround text when the code no longer
   needs it. Use only `TODO:`/`FIXME:` for newly tracked code-site follow-ups.
-
-### Docs and skill files
-
-Deep doc and skill-prose review is `remdo-docs-align`'s job. Here, read
-touched docs and skills whole for context and report only violations of
-`docs/documentation.md` you hit in passing.
 
 ## Finding bar
 
@@ -157,6 +153,9 @@ Do not report:
   supported runtime baseline.
 - Deterministic cleanup already covered by a command the caller will run, unless
   the specific result changes the simplification recommendation.
+- Doc or skill-prose findings of any kind — invariant violations, restatement,
+  rehoming, wording. Those are `remdo-docs-align`'s domain, even when spotted in
+  passing.
 
 ## Output
 
@@ -196,7 +195,7 @@ Priority labels:
 
 - **S1**: A design/ownership simplification likely to prevent substantial churn
   in the reviewed change.
-- **S2**: A local code, test, or docs simplification that is clearly worth doing.
+- **S2**: A local code or test simplification that is clearly worth doing.
 - **S3**: A small cleanup hint that is concrete and low-risk.
 
 Omit empty sections. Include the suppression tail only when `N` is non-zero.
@@ -205,7 +204,7 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 
 - [Scope resolution](../remdo-refine/tools/resolve-scope.sh)
 - [Agent guidelines](../../../AGENTS.md)
-- [Documentation invariants](../../../docs/documentation.md#invariants)
+- [Doc/skill-prose convergence (not this pass)](../remdo-docs-align/SKILL.md)
 - [Git workflow / branch base](../../../docs/contributing.md#git-workflow)
 - [Runtime baseline](../../../docs/contributing.md#runtime-baseline)
 - [Compatibility policy](../../../docs/contributing.md#compatibility-policy-pre-10)
