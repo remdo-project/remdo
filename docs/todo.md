@@ -568,3 +568,12 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   only checks `indent-jump`, which load normalization flattens. The validation is
   therefore practically inert today; add coverage if a schema rule that survives
   load is introduced.
+
+- Docs-align ESCALATE (dual adjudicators split) on the `playground` skill's
+  output-location bullet (`.claude/skills/playground/SKILL.md`, the "one fixed
+  name that each build overwrites, so the URL is stable and can be linked from
+  the dev toolbar" clause). One adjudicator reads it as pure restatement of the
+  exact `index.html` path (delete); the other keeps the "fixed overwriting name"
+  half as a one-sentence rationale that forecloses the timestamped-filename
+  alternative nothing else rules out (invariant 5 carve-out). Decide whether to
+  trim to just that rationale or delete the clause outright.
