@@ -31,6 +31,10 @@ export function DevToolbarLinks() {
   const vitestUrl = buildUrl(host, 2, '/__vitest__/');
   const playwrightUrl = buildUrl({ protocol: 'http:', hostname: 'localhost', basePort: host.basePort }, 6);
   const lexicalUrl = `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`;
+  // Stable URL of the most recently generated playground (the `playground` skill
+  // overwrites public/playground/index.html); served by the dev server at the
+  // app port. See docs/dev/dev-tooling.md.
+  const playgroundUrl = buildUrl(host, 0, '/playground/');
 
   return (
     <>
@@ -50,6 +54,9 @@ export function DevToolbarLinks() {
       >
         Lexical Demo
       </Link>
+      <Anchor className="app-header-link" href={playgroundUrl}>
+        Playground
+      </Anchor>
     </>
   );
 }
