@@ -568,3 +568,8 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   only checks `indent-jump`, which load normalization flattens. The validation is
   therefore practically inert today; add coverage if a schema rule that survives
   load is introduced.
+
+- Playground dev-toolbar item: `docs/dev/dev-tooling.md` ("Page tools" →
+  Playground) and the `playground` skill describe a "Playground" link in the dev
+  toolbar pointing at `/playground/`, but `DevToolbar.tsx` does not yet render
+  it. Build the link (mirroring the `Lexical Demo` item) to close the gap.
