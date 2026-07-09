@@ -548,11 +548,12 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   clear shared auth-state boundary, so same-tab identity changes cannot reuse
   stale home/user-data document ids.
 
-- Test-bridge registry (`testBridgeRegistry.ts`) pairs `waitForNext()` to
-  publishes FIFO, assuming registration order matches mount order. True today
-  because all `renderRemdoEditor` callers await sequentially; a future
-  parallel-render test could mispair. If that arrives, key waiters by docId or
-  have `waitForNext` drain an already-live bridge.
+- Test-bridge registry (`testBridgeRegistry.ts`) hands the next mount to a
+  pending `waitForNext()` FIFO. Entries are keyed by editor, so an editor
+  re-publishing (its api rebuilds on collab-status changes) no longer steals
+  another editor's waiter. Residual: two genuinely concurrent renders (not the
+  sequential-await callers today) could still mispair on which mounts first; key
+  waiters by docId if that ever arrives.
 
 - `SchemaValidationPlugin` load-time validation (dev/test) has no test. No
   malformed fixture survives load unrepaired to demonstrate it: `assertEditorSchema`

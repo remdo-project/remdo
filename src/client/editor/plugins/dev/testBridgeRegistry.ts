@@ -1,3 +1,4 @@
+import type { LexicalEditor } from 'lexical';
 import type { RemdoTestApi } from './TestBridgePlugin';
 
 // Test-bridge registry (docs/dev/dev-tooling.md). The neutral seam tests use to
@@ -6,27 +7,35 @@ import type { RemdoTestApi } from './TestBridgePlugin';
 // runtime (collab peers in a unit test, or an e2e page) never clobber a shared
 // slot. A test registers `waitForNext()` before rendering to capture exactly the
 // bridge that editor mounts.
+//
+// Entries are keyed by the editor (stable per mount), so an editor re-publishing
+// a fresh bridge — its api is rebuilt whenever collaboration status changes —
+// updates its own entry without consuming a waiter meant for another editor.
 
 export interface TestBridgeRegistry {
-  publish: (api: RemdoTestApi) => void;
-  retract: (api: RemdoTestApi) => void;
+  publish: (editor: LexicalEditor, api: RemdoTestApi) => void;
+  retract: (editor: LexicalEditor) => void;
   waitForNext: () => Promise<RemdoTestApi>;
   /** Live bridges, in mount order — for callers (e2e) that pick by doc id. */
   list: () => RemdoTestApi[];
 }
 
 function createTestBridgeRegistry(): TestBridgeRegistry {
-  const live = new Set<RemdoTestApi>();
+  const live = new Map<LexicalEditor, RemdoTestApi>();
   const waiters: Array<(api: RemdoTestApi) => void> = [];
 
   return {
-    publish(api) {
-      live.add(api);
-      const waiter = waiters.shift();
-      waiter?.(api);
+    publish(editor, api) {
+      const isNewMount = !live.has(editor);
+      live.set(editor, api);
+      // Only a newly mounted editor hands off to a pending `waitForNext()`; a
+      // re-publish just refreshes this editor's stored bridge.
+      if (isNewMount) {
+        waiters.shift()?.(api);
+      }
     },
-    retract(api) {
-      live.delete(api);
+    retract(editor) {
+      live.delete(editor);
     },
     waitForNext() {
       return new Promise<RemdoTestApi>((resolve) => {
@@ -34,7 +43,7 @@ function createTestBridgeRegistry(): TestBridgeRegistry {
       });
     },
     list() {
-      return [...live];
+      return [...live.values()];
     },
   };
 }
