@@ -86,6 +86,7 @@
   /* Horizontal space a note's text sits past its bullet (bullet width + gap).
      Shared so other surfaces can anchor text to the same column. */
   --remdo-bullet-allowance: calc(0.4em + 0.6em);
+  --remdo-checklist-allowance: calc(0.4em + 0.35em + 0.85em + 0.6em);
 }
 
 .editor-root {
@@ -349,7 +350,7 @@
   --checkbox-mask-size: var(--checkbox-width) var(--checkbox-width);
   --checkbox-mask-position: center;
   --checkbox-mask-repeat: no-repeat;
-  padding-left: calc(var(--bullet-width) + var(--checkbox-gap) + var(--checkbox-width) + var(--bullet-gap));
+  padding-left: var(--remdo-checklist-allowance);
 }
 
 .editor-offline-empty-state {

@@ -5,6 +5,12 @@
    target `li.list-item`, naturally skips it; no marker suppression is needed. */
 .note-body-wrapper {
   list-style: none;
+  padding-left: var(--remdo-bullet-allowance);
+}
+
+.remdo-outline li.list-item.list-item-checked + li.note-body-wrapper,
+.remdo-outline li.list-item.list-item-unchecked + li.note-body-wrapper {
+  padding-left: var(--remdo-checklist-allowance);
 }
 
 .note-body {
