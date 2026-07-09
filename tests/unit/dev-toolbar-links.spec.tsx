@@ -16,14 +16,13 @@ function renderDevToolbarLinks() {
 }
 
 describe('dev toolbar links', () => {
-  it('links Playground to the stable /playground/ URL on the app host', () => {
+  it('links Playground to the stable, same-origin /playground/ URL', () => {
     renderDevToolbarLinks();
 
     const playground = screen.getByRole('link', { name: 'Playground' });
-    const href = new URL(playground.getAttribute('href')!);
 
-    // Same host/port as the running app (PORT_BASE + 0), stable path.
-    expect(href.host).toBe(globalThis.location.host);
-    expect(href.pathname).toBe('/playground/');
+    // Same-origin relative path — no host/port math (the playground is served
+    // by the app itself), so the URL is stable across hosts.
+    expect(playground.getAttribute('href')).toBe('/playground/');
   });
 });
