@@ -1,6 +1,6 @@
 ---
 name: remdo-simplify
-description: The read-only code/test simplification finder that `remdo-refine` runs as its first rung; invoke directly only for an explicitly requested one-off simplify review (e.g. "run a simplify review", "what could be simpler here"). Reports code and test opportunities to make a selected diff's end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Doc and skill-prose convergence is `remdo-docs-align`'s job, not this pass. Does not edit files, stage, commit, or run mutating checks.
+description: The read-only code/test simplification finder that `remdo-refine` runs as its first rung; invoke directly only for an explicitly requested one-off simplify review (e.g. "run a simplify review", "what could be simpler here"). Reports code and test opportunities to make a selected diff's end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Doc and skill-prose convergence belongs to `remdo-docs-align`. Does not edit files, stage, commit, or run mutating checks.
 context: fork
 agent: Explore
 ---

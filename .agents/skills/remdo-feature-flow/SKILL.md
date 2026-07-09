@@ -84,11 +84,11 @@ docs:
 - **Result handling:** docs-align applies its dispositions in place and commits
   nothing at this stage; surface any ESCALATE row with the spec handoff.
 
-Aligning the spec here is the flow's only doc-alignment pass: the approved spec
-prose is frozen at the Phase-3 gate and not re-aligned once implementation
-begins, so a later automated pass never rewrites docs the user already signed off
-on. If Phase 4 adds substantial *new* prose, invoke `remdo-docs-align` directly
-on just that new prose (see Phase 4).
+Aligning the spec here is the flow's doc-alignment pass — it happens *before* the
+user gate, so the docs the user approves are already converged. Treat that
+approved prose as settled: later phases should not re-improve it, and Phase 4
+aligns only genuinely new prose (see Phase 4). This ordering is the point; it
+keeps a later pass from reworking docs the user already signed off on.
 
 The user reviews the `docs/` changes, with chat as a thin pointer: changed docs
 plus a short approach summary. This is the only mandatory user gate.
@@ -127,13 +127,15 @@ If the user rejects the spec at the gate, revert the flow-owned `docs/` and
 4. For user-facing behavior, verify live per AGENTS.md DevTools guidance and add
    automated coverage per its e2e escalation rule.
 5. Once the spec is reached, commit the Phase-4 work. If implementation added
-   substantial *new* doc prose beyond the frozen spec (not edits to it), invoke
-   `remdo-docs-align` on just that new prose first — refine no longer aligns docs,
-   and the approved spec stays frozen. If `origin/main` advanced since branch
-   creation, suggest `remdo-sync` after the tree is clean. Then run
-   `remdo-refine` in committed-range scope over this branch's own work
-   (`origin/main...HEAD`). Refine owns the code-quality loop, final checks, and
-   review-finding tradeoff policy.
+   substantial *new* doc prose beyond the approved spec, invoke `remdo-docs-align`
+   on just that new prose first. Prefer to leave the user-approved spec docs as
+   they were approved: doc alignment happened before the Phase-3 gate, so avoid
+   re-improving that prose now — record any real spec/implementation divergence in
+   `docs/todo.md` rather than silently rewriting the approved docs. If
+   `origin/main` advanced since branch creation, suggest `remdo-sync` after the
+   tree is clean. Then run `remdo-refine` in committed-range scope over this
+   branch's own work (`origin/main...HEAD`). Refine owns the code-quality loop,
+   final checks, and review-finding tradeoff policy.
 6. For mid-work decisions, use judgment for small blast-radius choices and record
    them in `docs/todo.md`. Stop only for genuine large-blast-radius forks, also
    recording the fork, options, and blocker in `docs/todo.md`.
