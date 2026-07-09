@@ -1,8 +1,7 @@
 import { MantineProvider } from '@mantine/core';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { setDevToolingVisible } from '#client/dev/dev-visibility-store';
 import { DevToolbarLinks } from './DevToolbar';
 
 function renderDevToolbarLinks() {
@@ -18,10 +17,9 @@ function renderDevToolbarLinks() {
 describe('dev toolbar visibility', () => {
   beforeEach(() => {
     localStorage.clear();
-    setDevToolingVisible(true);
   });
 
-  it('keeps the floating control available while hiding dev toolbar links', () => {
+  it('keeps the floating control available while hiding dev toolbar links', async () => {
     renderDevToolbarLinks();
 
     expect(screen.getByRole('link', { name: /vitest/i })).toBeInTheDocument();
@@ -30,7 +28,7 @@ describe('dev toolbar visibility', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Hide dev tools' }));
 
-    expect(screen.queryByRole('link', { name: /vitest/i })).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('link', { name: /vitest/i })).toBeNull());
     expect(screen.queryByRole('link', { name: /playwright/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /lexical demo/i })).toBeNull();
     expect(screen.getByRole('button', { name: 'Show dev tools' })).toBeInTheDocument();

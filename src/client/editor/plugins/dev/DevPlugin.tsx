@@ -6,20 +6,14 @@ import { TreeViewPlugin } from './TreeViewPlugin';
 import { TestBridgePlugin } from './TestBridgePlugin';
 import { ProhibitNestedLexicalUpdatesPlugin } from './ProhibitNestedLexicalUpdatesPlugin';
 
-export function VisibleTreeViewPlugin(): ReactElement {
-  return (
-    <DevVisibilityGate>
-      <TreeViewPlugin />
-    </DevVisibilityGate>
-  );
-}
-
 export function DevPlugin(): ReactElement {
   return (
     <>
       <ProhibitNestedLexicalUpdatesPlugin />
       <SchemaValidationPlugin />
-      <VisibleTreeViewPlugin />
+      <DevVisibilityGate>
+        <TreeViewPlugin />
+      </DevVisibilityGate>
       <TestBridgePlugin />
     </>
   );

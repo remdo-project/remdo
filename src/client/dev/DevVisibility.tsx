@@ -1,16 +1,27 @@
 import type { ReactNode } from 'react';
 import { ActionIcon, Tooltip } from '@mantine/core';
+import { useLocalStorage } from '@mantine/hooks';
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
 import { Icon } from '#client/ui/Icon';
-import { setDevToolingVisible, useDevToolingVisible } from './dev-visibility-store';
 import './DevVisibility.css';
 
+const STORAGE_KEY = 'remdo-dev-tooling-visible';
+
+function useDevToolingVisible() {
+  return useLocalStorage({
+    key: STORAGE_KEY,
+    defaultValue: true,
+    getInitialValueInEffect: false,
+  });
+}
+
 export function DevVisibilityGate({ children }: { children: ReactNode }) {
-  return useDevToolingVisible() ? <>{children}</> : null;
+  const [visible] = useDevToolingVisible();
+  return visible ? <>{children}</> : null;
 }
 
 export function DevVisibilityControl() {
-  const visible = useDevToolingVisible();
+  const [visible, setVisible] = useDevToolingVisible();
   const label = visible ? 'Hide dev tools' : 'Show dev tools';
 
   return (
@@ -19,7 +30,7 @@ export function DevVisibilityControl() {
         aria-label={label}
         className="dev-visibility-toggle remdo-interaction-surface"
         color={visible ? 'blue' : 'gray'}
-        onClick={() => setDevToolingVisible(!visible)}
+        onClick={() => setVisible((current) => !current)}
         radius="xl"
         size="lg"
         variant={visible ? 'filled' : 'light'}
