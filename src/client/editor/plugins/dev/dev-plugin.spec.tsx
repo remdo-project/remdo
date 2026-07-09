@@ -2,7 +2,6 @@ import { render, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(() => {
-  vi.doUnmock('#client/dev/DevVisibility');
   vi.doUnmock('./ProhibitNestedLexicalUpdatesPlugin');
   vi.doUnmock('./SchemaValidationPlugin');
   vi.doUnmock('./TreeViewPlugin');
@@ -11,13 +10,9 @@ afterEach(() => {
 });
 
 describe('dev plugin visibility', () => {
-  it('wraps the visible editor tree view without wrapping dev test infrastructure', async () => {
+  it('hides visible editor tooling without hiding dev test infrastructure', async () => {
+    localStorage.setItem('remdo-dev-tooling-visible', 'false');
     vi.resetModules();
-    vi.doMock('#client/dev/DevVisibility', () => ({
-      DevVisibilityGate: ({ children }: { children: React.ReactNode }) => (
-        <section data-testid="dev-visibility-gate">{children}</section>
-      ),
-    }));
     vi.doMock('./ProhibitNestedLexicalUpdatesPlugin', () => ({
       ProhibitNestedLexicalUpdatesPlugin: () => <section>Nested-update guard</section>,
     }));
@@ -33,11 +28,10 @@ describe('dev plugin visibility', () => {
     const { DevPlugin } = await import('./DevPlugin');
     const { container } = render(<DevPlugin />);
     const view = within(container);
-    const gate = view.getByTestId('dev-visibility-gate');
 
     expect(view.getByText('Nested-update guard')).toBeInTheDocument();
     expect(view.getByText('Schema validation')).toBeInTheDocument();
     expect(view.getByText('Test bridge')).toBeInTheDocument();
-    expect(within(gate).getByText('Editor tree view')).toBeInTheDocument();
+    expect(view.queryByText('Editor tree view')).toBeNull();
   });
 });
