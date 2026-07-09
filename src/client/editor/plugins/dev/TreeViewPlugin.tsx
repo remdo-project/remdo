@@ -2,6 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { TreeView } from '@lexical/react/LexicalTreeView';
 import type { LexicalNode } from 'lexical';
 
+import { DevVisibilityGate } from '#client/dev/DevVisibility';
 import './TreeViewPlugin.css';
 
 interface NodeConfigWithStateConfigs {
@@ -77,7 +78,7 @@ const $printNodeState = (node: LexicalNode): string | undefined => {
   return printedStates.length > 0 ? printedStates.join(' ') : undefined;
 };
 
-export function TreeViewPlugin() {
+function TreeViewPluginContent() {
   const [editor] = useLexicalComposerContext();
   const hiddenClassName = 'editor-tree-view-hidden';
 
@@ -94,5 +95,13 @@ export function TreeViewPlugin() {
         customPrintNode={$printNodeState}
       />
     </section>
+  );
+}
+
+export function TreeViewPlugin() {
+  return (
+    <DevVisibilityGate>
+      <TreeViewPluginContent />
+    </DevVisibilityGate>
   );
 }
