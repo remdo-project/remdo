@@ -16,13 +16,14 @@ function renderDevToolbarLinks() {
 }
 
 describe('dev toolbar links', () => {
-  it('links Playground to the stable, same-origin /playground/ URL', () => {
+  it('links Playground to the stable, same-origin playground file', () => {
     renderDevToolbarLinks();
 
     const playground = screen.getByRole('link', { name: 'Playground' });
 
     // Same-origin relative path — no host/port math (the playground is served
-    // by the app itself), so the URL is stable across hosts.
-    expect(playground.getAttribute('href')).toBe('/playground/');
+    // by the app itself). The exact index.html path is required so Vite dev
+    // serves the file rather than the SPA fallback.
+    expect(playground.getAttribute('href')).toBe('/playground/index.html');
   });
 });

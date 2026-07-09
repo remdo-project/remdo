@@ -29,8 +29,8 @@ the vanilla Lexical editor and its tree view as the page's primary content.
 
 ### Playground
 
-The Playground toolbar item links to `/playground/`. The link 404s until a
-playground has been generated in this working dir.
+The Playground toolbar item links to `/playground/index.html`. The link 404s
+until a playground has been generated in this working dir.
 
 ## Editor tooling
 

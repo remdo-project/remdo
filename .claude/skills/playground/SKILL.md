@@ -39,7 +39,9 @@ browser, not just on disk.
   (`/public/playground/`), so these are unversioned scratch artifacts, like
   `.agent/`.
 - Vite serves `public/` at the web root, so the file is live at
-  `http://<HOST>:<PORT>/playground/`. `PORT` derives from
+  `http://<HOST>:<PORT>/playground/index.html` (Vite dev serves public files by
+  exact path — the bare `/playground/` directory URL falls through to the SPA).
+  `PORT` derives from
   `PORT_BASE` in `.env` (default `4000`). Assume the dev server (`pnpm run dev`)
   is already running — it is owned by the developer; do not start or stop it.
 - **Do not run `open`** (the plugin skill's step 4) — there is no display. After
