@@ -1,8 +1,8 @@
-import { Alert, Anchor, Button, Container, Group, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Anchor, Button, Container, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useState } from 'react';
 import { Link, useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import { authClient, rememberAuthenticatedSession } from '#client/app/auth/client';
-import { DevToolbarLinksSlot } from './dev/DevToolbarSlot';
+import { DevToolbarSlot } from './dev/DevToolbarSlot';
 import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
 import { resolvePostAuthPath } from './post-auth-path';
 
@@ -63,11 +63,7 @@ export default function LoginRoute() {
     <Container size="xs" py="xl">
       <Paper withBorder p="xl" radius="md">
         <Stack gap="md">
-          {import.meta.env.DEV && (
-            <Group gap="md" className="app-header-links">
-              <DevToolbarLinksSlot />
-            </Group>
-          )}
+          <DevToolbarSlot />
 
           <div>
             <Title order={1}>Sign in</Title>
