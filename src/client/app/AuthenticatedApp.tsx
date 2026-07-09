@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import headerStyles from './styles/AppHeader.module.css';
 import { startUserData, useCurrentUserRole } from './documents/user-data';
-import { DevToolbarLinksSlot } from './routes/dev/DevToolbarSlot';
+import { DevToolbarLinksSeam } from './routes/dev/DevToolbarSeam';
 
 // The authenticated app shell: signed-in chrome (nav) plus the live user-data
 // runtime. It mounts only for an authenticated user, so it starts the runtime
@@ -60,7 +60,7 @@ export default function AuthenticatedApp({ children }: { children?: ReactNode })
             >
               Logout
             </Anchor>
-            <DevToolbarLinksSlot />
+            <DevToolbarLinksSeam />
           </Group>
         </nav>
       </header>

@@ -2,7 +2,7 @@ import { Alert, Anchor, Button, Container, Paper, PasswordInput, Stack, Text, Te
 import { useState } from 'react';
 import { Link, useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import { authClient, rememberAuthenticatedSession } from '#client/app/auth/client';
-import { DevToolbarSlot } from './dev/DevToolbarSlot';
+import { DevToolbarSeam } from './dev/DevToolbarSeam';
 import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
 import { resolvePostAuthPath } from './post-auth-path';
 
@@ -63,7 +63,7 @@ export default function LoginRoute() {
     <Container size="xs" py="xl">
       <Paper withBorder p="xl" radius="md">
         <Stack gap="md">
-          <DevToolbarSlot />
+          <DevToolbarSeam />
 
           <div>
             <Title order={1}>Sign in</Title>

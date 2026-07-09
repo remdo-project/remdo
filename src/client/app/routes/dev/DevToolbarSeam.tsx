@@ -12,7 +12,7 @@ const LazyDevToolbarLinks = import.meta.env.DEV
   : null;
 
 // Bare links — for a caller that already provides the surrounding header group.
-export function DevToolbarLinksSlot() {
+export function DevToolbarLinksSeam() {
   if (!LazyDevToolbarLinks) {
     return null;
   }
@@ -25,13 +25,13 @@ export function DevToolbarLinksSlot() {
 
 // Links in their own header group — for a caller with no other links, so the
 // whole group (not just its contents) is absent in production.
-export function DevToolbarSlot() {
+export function DevToolbarSeam() {
   if (!LazyDevToolbarLinks) {
     return null;
   }
   return (
     <Group gap="md" className="app-header-links">
-      <DevToolbarLinksSlot />
+      <DevToolbarLinksSeam />
     </Group>
   );
 }
