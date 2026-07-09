@@ -22,6 +22,7 @@
     "node_modules",
     ".claude/skills/remdo-deps-refresh",
     ".claude/skills/remdo-docs-align",
+    ".claude/skills/remdo-feature-flow",
     ".claude/skills/remdo-refine",
     ".claude/skills/remdo-sync"
   ],

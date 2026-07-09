@@ -108,8 +108,9 @@ If the user rejects the spec at the gate, revert the flow-owned `docs/` and
    compare the branch's `docs/` changes and branch diff both ways, specified but
    not built and built but not specified. The reviewer reads the repo as needed
    but not `.agent/`, and receives neither the plan nor implementation memory.
-   In Codex, dispatch this as a fresh explorer/review subagent and pass only the
-   spec docs, branch diff scope, and the `AGENTS.md` findings-suppression rule.
+   Run it through the current agent's fresh-context surface (see Agent adapters),
+   passing only the spec docs, branch diff scope, and the `AGENTS.md`
+   findings-suppression rule.
    The reviewer reports only; the coordinating agent fixes real gaps, documents
    or removes unspecified behavior, and records deliberate deferrals in
    `docs/todo.md`.
@@ -195,6 +196,35 @@ Choose by activity:
   process rather than weakening the fresh-context read.
 - **Memory:** do not write agent memory unless the user explicitly asks (the
   Phase 5 retro owns where stable improvements land instead).
+
+## Agent adapters
+
+This shared skill is the single source; each runtime maps its process intent to
+that runtime's surfaces. Keep both columns adjacent so divergence stays visible.
+
+**Claude Code:**
+
+- **Test-first implementation** (Phase 4 new behavior): use
+  `superpowers:test-driven-development` for a red/green loop.
+- **Unexpected failures:** use `superpowers:systematic-debugging` for bugs,
+  failing checks, or confusing runtime behavior.
+- **Verification exit discipline:** use
+  `superpowers:verification-before-completion` plus the AGENTS.md DevTools/e2e
+  requirements.
+- **Parallel and spike work:** use `superpowers:dispatching-parallel-agents` and
+  `superpowers:using-git-worktrees` where independent work or Research spikes
+  should run outside the coordinating session.
+- **Spec-compliance exit read:** run through a Claude Code fork/explore context.
+- **Post-report integration:** `superpowers:finishing-a-development-branch` is
+  the separate user-launched step for merge to `dev`, push, PR, or keep.
+
+**Codex:**
+
+- **Spec-compliance exit read** and other required fresh-context reads: dispatch
+  a fresh explorer/review subagent (authorized in `agents/openai.yaml`), prompted
+  with scope only per the Phase-4 rule.
+- **Parallel Phase-4 / Research work:** use isolated subagents per the AGENTS.md
+  worktree and `PORT_BASE` rules.
 
 ## References
 
