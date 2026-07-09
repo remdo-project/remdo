@@ -84,11 +84,11 @@ docs:
 - **Result handling:** docs-align applies its dispositions in place and commits
   nothing at this stage; surface any ESCALATE row with the spec handoff.
 
-Aligning the spec here is the flow's doc-alignment pass — it happens *before* the
-user gate, so the docs the user approves are already converged. Treat that
-approved prose as settled: later phases should not re-improve it, and Phase 4
-aligns only genuinely new prose (see Phase 4). This ordering is the point; it
-keeps a later pass from reworking docs the user already signed off on.
+Aligning the spec here is the flow's only doc-alignment pass — it happens
+*before* the user gate, so the docs the user approves are already converged.
+Treat that approved prose as settled: later phases should not re-improve it. This
+ordering is the point; it keeps a later pass from reworking docs the user already
+signed off on.
 
 The user reviews the `docs/` changes, with chat as a thin pointer: changed docs
 plus a short approach summary. This is the only mandatory user gate.
@@ -126,16 +126,13 @@ If the user rejects the spec at the gate, revert the flow-owned `docs/` and
    `docs/todo.md`.
 4. For user-facing behavior, verify live per AGENTS.md DevTools guidance and add
    automated coverage per its e2e escalation rule.
-5. Once the spec is reached, but **before committing**, if implementation added
-   substantial *new* doc prose beyond the approved spec, invoke `remdo-docs-align`
-   in **working-tree scope** over that new prose — a no-commit scope, so its
-   alignment edits stay in the uncommitted tree. Prefer to leave the user-approved
-   spec docs as they were approved: doc alignment happened before the Phase-3
-   gate, so avoid re-improving that prose now — record any real
-   spec/implementation divergence in `docs/todo.md` rather than silently rewriting
-   the approved docs. Then commit the Phase-4 work as one commit — the aligned new
-   prose folds into it, not a separate docs-only commit; feature-flow keeps commit
-   ownership. If
+5. Once the spec is reached, commit the Phase-4 work. Leave the user-approved
+   spec docs as they were approved — doc alignment happened before the Phase-3
+   gate, so avoid re-improving that prose now; record any real spec/implementation
+   divergence in `docs/todo.md` rather than silently rewriting the approved docs.
+   Any genuinely new prose implementation added is committed as-is here; a
+   separate `remdo-docs-align` pass on it later is the user's call, not part of
+   this flow. If
    `origin/main` advanced since branch creation, suggest `remdo-sync` after the
    tree is clean. Then run `remdo-refine` in committed-range scope over this
    branch's own work (`origin/main...HEAD`). Refine owns the code-quality loop,
