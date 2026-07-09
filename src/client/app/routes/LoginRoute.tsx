@@ -2,7 +2,7 @@ import { Alert, Anchor, Button, Container, Paper, PasswordInput, Stack, Text, Te
 import { useState } from 'react';
 import { Link, useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import { authClient, rememberAuthenticatedSession } from '#client/app/auth/client';
-import { DevToolbarSeam } from './dev/DevToolbarSeam';
+import { DevToolbarSeam } from './DevToolbarSeam';
 import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
 import { resolvePostAuthPath } from './post-auth-path';
 

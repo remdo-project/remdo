@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import headerStyles from './styles/AppHeader.module.css';
 import { startUserData, useCurrentUserRole } from './documents/user-data';
-import { DevToolbarLinksSeam } from './routes/dev/DevToolbarSeam';
+import { DevToolbarLinksSeam } from './routes/DevToolbarSeam';
 
 // The authenticated app shell: signed-in chrome (nav) plus the live user-data
 // runtime. It mounts only for an authenticated user, so it starts the runtime

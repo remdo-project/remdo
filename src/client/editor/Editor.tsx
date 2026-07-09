@@ -8,7 +8,7 @@ import { createEditorInitialConfig } from '#client/editor/runtime/config';
 import { CollaborationPlugin, useOfflineDocumentUnavailable } from './plugins/collaboration';
 import { CheckListPlugin } from './plugins/CheckListPlugin';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
-import { DevEditorSeam } from './plugins/dev/DevEditorSeam';
+import { DevEditorSeam } from './DevEditorSeam';
 import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin';
 import { SelectionCollapsePlugin } from './plugins/SelectionCollapsePlugin';
 import { InsertionPlugin } from './plugins/InsertionPlugin';
