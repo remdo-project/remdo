@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEV_LEXICAL_DEMO_ROUTE, isDevSpaFallbackPath } from '#client/app/dev/dev-route';
+import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev/dev-route';
+import { isDevSpaFallbackPath } from '../../config/vite/remdo-dev-spa-routes-plugin';
 import { isApiRequestPath } from '../../config/vite/remdo-api-dev-plugin';
 import { createViteSharedConfig, pwaNavigationFallbackDenylist } from '../../config/vite/shared';
 

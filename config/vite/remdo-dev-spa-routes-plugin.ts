@@ -5,7 +5,14 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Plugin } from 'vite';
 import { send } from 'vite';
-import { DEV_LEXICAL_DEMO_ROUTE, isDevSpaFallbackPath } from '../../src/client/app/dev/dev-route';
+import { DEV_LEXICAL_DEMO_ROUTE } from '../../src/client/app/dev/dev-route';
+
+// The dev SPA bridge below serves an exact route; match its path ignoring any
+// query string, so `/dev/lexical-demo?x=1` still resolves and `/dev/other` does not.
+export function isDevSpaFallbackPath(url?: string): boolean {
+  const pathname = url?.split('?', 1)[0] ?? '';
+  return pathname === DEV_LEXICAL_DEMO_ROUTE;
+}
 
 export function remdoDevSpaRoutesPlugin(): Plugin {
   return {
