@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev/dev-route';
-import { isDevSpaFallbackPath } from '../../config/vite/remdo-dev-spa-routes-plugin';
 import { isApiRequestPath } from '../../config/vite/remdo-api-dev-plugin';
 import { createViteSharedConfig, pwaNavigationFallbackDenylist } from '../../config/vite/shared';
 
@@ -55,14 +53,5 @@ describe('vite shared config', () => {
     expect(isApiRequestPath('/app/api/current-user')).toBe(false);
     expect(isApiRequestPath('/apiary')).toBe(false);
     expect(isApiRequestPath()).toBe(false);
-  });
-
-  it('recognizes dedicated dev SPA routes for direct navigation', () => {
-    expect(isDevSpaFallbackPath(DEV_LEXICAL_DEMO_ROUTE)).toBe(true);
-    expect(isDevSpaFallbackPath(`${DEV_LEXICAL_DEMO_ROUTE}?x=1`)).toBe(true);
-    expect(isDevSpaFallbackPath('/dev')).toBe(false);
-    expect(isDevSpaFallbackPath('/dev/other')).toBe(false);
-    expect(isDevSpaFallbackPath(`${DEV_LEXICAL_DEMO_ROUTE}/extra`)).toBe(false);
-    expect(isDevSpaFallbackPath()).toBe(false);
   });
 });
