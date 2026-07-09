@@ -2,7 +2,7 @@ import { Anchor } from '@mantine/core';
 import { IconBrandVite } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { Icon } from '#client/ui/Icon';
-import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev/dev-route';
+import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev-route';
 
 interface HostContext {
   protocol: string;

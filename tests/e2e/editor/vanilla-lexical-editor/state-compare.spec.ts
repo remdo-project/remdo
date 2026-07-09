@@ -1,6 +1,6 @@
 import { expect, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
-import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev/dev-route';
+import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev-route';
 import { editorLocator, setCaretAtText } from '#editor/locators';
 import { createUserDocument } from '../../_support/documents';
 

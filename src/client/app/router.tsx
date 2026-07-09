@@ -5,7 +5,7 @@ import { getPublicClientConfig } from './config';
 import { getCachedCurrentUserBootstrap, getHomeDocumentId } from './documents/current-user-bootstrap';
 import AdminRoute from './routes/AdminRoute';
 import { adminRouteLoader } from './routes/admin-route-loader';
-import { devRoutes } from './routes/dev/routes';
+import { devRoutes } from './routes/devRoutes';
 import OAuthConsentRoute from './routes/OAuthConsentRoute';
 import OAuthRegisterHomeRoute from './routes/OAuthRegisterHomeRoute';
 import DocumentRoute from './routes/DocumentRoute';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev/dev-route';
+import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev-route';
 import {
   createPostAuthNextSearch,
   resolveNextPathOrDefault,

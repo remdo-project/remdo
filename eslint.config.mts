@@ -1,3 +1,4 @@
+import type { Linter } from 'eslint';
 import antfu from '@antfu/eslint-config';
 import compatPlugin from 'eslint-plugin-compat';
 import lexicalPlugin from '@lexical/eslint-plugin';
@@ -33,6 +34,42 @@ const noteSdkImportPattern = String.raw`\#note-sdk`;
 const noteSdkDeepImportPattern = String.raw`\#note-sdk/*`;
 const collaborationImportPattern = String.raw`\#collaboration/*`;
 const colocatedSpecGlob = 'src/**/*.spec.{ts,tsx}';
+
+// ESLint flat config does not merge `no-restricted-imports` across blocks — the
+// last matching block replaces the rule entirely. These universal restrictions
+// must therefore be spread into every layer block's `patterns` (via
+// `restrictedImports(...)`), or a layer block would silently drop them.
+const universalImportRestrictions = [
+  {
+    group: [String.raw`\#editor/*`],
+    message: 'Editor e2e helpers are editor-internal; import them only from within tests/e2e/editor/.',
+  },
+  {
+    group: ['**/_support/setup/**'],
+    message: 'Test setup helpers are internal; reference them via Vitest configuration instead of importing directly.',
+  },
+];
+
+// Dev-only tooling lives in `dev/` directories and must be reached only through
+// its production-side seam (which does the `import.meta.env.DEV`-gated dynamic
+// import). A production module importing a `dev/` module directly defeats that
+// gate and risks shipping dev code (docs/dev/dev-tooling.md). Matched by regex
+// against the specifier so both the `#client/**/dev/**` alias and the `./dev/**`
+// relative forms are caught.
+const devImportRestriction = {
+  regex: String.raw`(^|/)dev/`,
+  message: 'Production code must not import a dev/ module directly — reach dev tooling through its seam (docs/dev/dev-tooling.md).',
+};
+
+// Build a complete `no-restricted-imports` config: the universal restrictions
+// plus this layer's own, so a layer block stays self-contained under
+// last-match-wins.
+function restrictedImports(...layerPatterns: object[]): Linter.RuleEntry {
+  return [
+    'error',
+    { patterns: [...universalImportRestrictions, ...layerPatterns] },
+  ];
+}
 
 export default antfu(
   {
@@ -122,73 +159,57 @@ export default antfu(
     },
   },
   {
+    // Base `no-restricted-imports` for every file: the universal restrictions
+    // only. Must precede the layer blocks below — each of those restates these
+    // universals (via `restrictedImports`) and adds its own, so under flat
+    // config's last-match-wins a layer file gets the complete set while a
+    // non-layer file (config, tools) still gets the universals.
+    files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
+    ignores: ['tests/unit/_support/setup/**', 'tests/e2e/editor/**'],
+    rules: {
+      'no-restricted-imports': restrictedImports(),
+    },
+  },
+  {
     files: ['src/collaboration/**/*.{ts,tsx,mts,cts}'],
     rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: [clientImportPattern, serverImportPattern, noteSdkImportPattern, noteSdkDeepImportPattern],
-              message: 'Collaboration runtime code must stay independent of client, server, and Note SDK modules.',
-            },
-          ],
-        },
-      ],
+      'no-restricted-imports': restrictedImports({
+        group: [clientImportPattern, serverImportPattern, noteSdkImportPattern, noteSdkDeepImportPattern],
+        message: 'Collaboration runtime code must stay independent of client, server, and Note SDK modules.',
+      }),
     },
   },
   {
     files: ['src/platform/**/*.{ts,tsx,mts,cts}'],
     rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: [
-                clientImportPattern,
-                serverImportPattern,
-                noteSdkImportPattern,
-                noteSdkDeepImportPattern,
-                collaborationImportPattern,
-              ],
-              message: 'Platform utilities must stay independent of client, server, Note SDK, and collaboration runtime modules.',
-            },
-          ],
-        },
-      ],
+      'no-restricted-imports': restrictedImports({
+        group: [
+          clientImportPattern,
+          serverImportPattern,
+          noteSdkImportPattern,
+          noteSdkDeepImportPattern,
+          collaborationImportPattern,
+        ],
+        message: 'Platform utilities must stay independent of client, server, Note SDK, and collaboration runtime modules.',
+      }),
     },
   },
   {
     files: ['src/server/**/*.{ts,tsx,mts,cts}'],
     rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: [clientImportPattern, noteSdkImportPattern, noteSdkDeepImportPattern],
-              message: 'Server runtime code must not import client or Note SDK modules.',
-            },
-          ],
-        },
-      ],
+      'no-restricted-imports': restrictedImports({
+        group: [clientImportPattern, noteSdkImportPattern, noteSdkDeepImportPattern],
+        message: 'Server runtime code must not import client or Note SDK modules.',
+      }),
     },
   },
   {
     files: ['src/note-sdk/**/*.{ts,tsx,mts,cts}'],
     rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: [clientImportPattern, serverImportPattern],
-              message: 'Note SDK code must stay independent of client and server runtime modules.',
-            },
-          ],
-        },
-      ],
+      'no-restricted-imports': restrictedImports({
+        group: [clientImportPattern, serverImportPattern],
+        message: 'Note SDK code must stay independent of client and server runtime modules.',
+      }),
     },
   },
   {
@@ -197,49 +218,70 @@ export default antfu(
       'src/projection/**/*.{ts,tsx,mts,cts}',
     ],
     rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: [clientImportPattern, serverImportPattern],
-              message: 'Domain and projection helpers must stay independent of client and server runtime modules.',
-            },
-          ],
-        },
-      ],
+      'no-restricted-imports': restrictedImports({
+        group: [clientImportPattern, serverImportPattern],
+        message: 'Domain and projection helpers must stay independent of client and server runtime modules.',
+      }),
     },
   },
   {
     files: ['src/client/**/*.{ts,tsx,mts,cts}'],
+    // Dev directories are the dev side of the boundary and may import dev
+    // modules; co-located specs drive dev/test tooling. Both are exempt from the
+    // dev-import restriction (they keep every other rule via the block below).
+    ignores: ['src/client/**/dev/**', colocatedSpecGlob],
     rules: {
-      'no-restricted-imports': [
-        'error',
+      'no-restricted-imports': restrictedImports(
         {
-          patterns: [
-            {
-              group: [serverImportPattern],
-              message: 'Client code must not import server runtime modules.',
-            },
-          ],
+          group: [serverImportPattern],
+          message: 'Client code must not import server runtime modules.',
         },
-      ],
+        devImportRestriction,
+      ),
+    },
+  },
+  {
+    // Client dev directories and co-located specs: excluded above, kept under
+    // the client server-import restriction (they may import dev modules).
+    files: ['src/client/**/dev/**/*.{ts,tsx,mts,cts}', colocatedSpecGlob],
+    rules: {
+      'no-restricted-imports': restrictedImports({
+        group: [serverImportPattern],
+        message: 'Client code must not import server runtime modules.',
+      }),
     },
   },
   {
     files: ['src/client/editor/**/*.{ts,tsx,mts,cts}'],
+    ignores: ['src/client/editor/**/dev/**', colocatedSpecGlob],
     rules: {
-      'no-restricted-imports': [
-        'error',
+      'no-restricted-imports': restrictedImports(
         {
-          patterns: [
-            {
-              group: [clientAppImportPattern],
-              message: 'Editor code must not import app internals; move shared client code under #client/ui or another shared client component.',
-            },
-          ],
+          group: [serverImportPattern],
+          message: 'Client code must not import server runtime modules.',
         },
-      ],
+        {
+          group: [clientAppImportPattern],
+          message: 'Editor code must not import app internals; move shared client code under #client/ui or another shared client component.',
+        },
+        devImportRestriction,
+      ),
+    },
+  },
+  {
+    files: ['src/client/editor/**/dev/**/*.{ts,tsx,mts,cts}'],
+    ignores: [colocatedSpecGlob],
+    rules: {
+      'no-restricted-imports': restrictedImports(
+        {
+          group: [serverImportPattern],
+          message: 'Client code must not import server runtime modules.',
+        },
+        {
+          group: [clientAppImportPattern],
+          message: 'Editor code must not import app internals; move shared client code under #client/ui or another shared client component.',
+        },
+      ),
     },
   },
   {
@@ -259,27 +301,6 @@ export default antfu(
     rules: {
       'compat/compat': 'error',
       'remdo/commands-in-commands-file': 'error',
-    },
-  },
-  {
-    files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
-    ignores: ['tests/unit/_support/setup/**', 'tests/e2e/editor/**'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: [String.raw`\#editor/*`],
-              message: 'Editor e2e helpers are editor-internal; import them only from within tests/e2e/editor/.',
-            },
-            {
-              group: ['**/_support/setup/**'],
-              message: 'Test setup helpers are internal; reference them via Vitest configuration instead of importing directly.',
-            },
-          ],
-        },
-      ],
     },
   },
   {
