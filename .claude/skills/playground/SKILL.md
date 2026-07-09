@@ -33,11 +33,9 @@ the RemDo deltas below (they win on conflict).
 The VM is headless (SSH + HTTP only), so the file must be reachable in a
 browser, not just on disk.
 
-- Write the file to `public/playground/index.html` — one fixed name that each
-  build overwrites, so the URL is stable and can be linked from the dev toolbar
-  (the "Playground" item). Create the folder if missing; it is gitignored
-  (`/public/playground/`), so these are unversioned scratch artifacts, like
-  `.agent/`.
+- Write the file to `public/playground/index.html`. Create the folder if
+  missing; it is gitignored (`/public/playground/`), so these are unversioned
+  scratch artifacts, like `.agent/`.
 - Vite serves `public/` at the web root, so the file is live at
   `http://<HOST>:<PORT>/playground/index.html` (Vite dev serves public files by
   exact path — the bare `/playground/` directory URL falls through to the SPA).
