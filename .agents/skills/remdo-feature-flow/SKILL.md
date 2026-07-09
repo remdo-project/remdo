@@ -128,7 +128,10 @@ If the user rejects the spec at the gate, revert the flow-owned `docs/` and
    automated coverage per its e2e escalation rule.
 5. Once the spec is reached, commit the Phase-4 work. If implementation added
    substantial *new* doc prose beyond the approved spec, invoke `remdo-docs-align`
-   on just that new prose first. Prefer to leave the user-approved spec docs as
+   in **working-tree scope** over that new prose first — a no-commit scope, so its
+   alignment edits stay in the tree and fold into this flow's single Phase-4
+   commit rather than landing as a separate docs-only commit; feature-flow keeps
+   commit ownership. Prefer to leave the user-approved spec docs as
    they were approved: doc alignment happened before the Phase-3 gate, so avoid
    re-improving that prose now — record any real spec/implementation divergence in
    `docs/todo.md` rather than silently rewriting the approved docs. If
