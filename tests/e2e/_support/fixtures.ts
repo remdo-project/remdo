@@ -135,14 +135,9 @@ export function attachPageGuards(page: Page): () => void {
     }
   };
 
-  const onRequestFailed = (request: import('@playwright/test').Request) => {
-    console.info(`[diag-requestfailed] ${request.method()} ${request.url()} :: ${request.failure()?.errorText ?? 'unknown'}`);
-  };
-
   page.on('console', onConsole);
   page.on('pageerror', onPageError);
   page.on('response', onResponse);
-  page.on('requestfailed', onRequestFailed);
 
   return () => {
     const expected = issueExpectationsByPage.get(page);
