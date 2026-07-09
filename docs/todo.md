@@ -496,6 +496,14 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 ## remdo-refine follow-ups
 
+- Accepted tradeoff (by design): `remdo-refine` is a code-quality tool and does
+  not align docs. A standalone refine run over a `docs/**`- or skill-prose-only
+  diff gets no `remdo-docs-align` pass — doc/skill convergence is `remdo-docs-align`'s
+  job, invoked directly (`"align the docs"`) or by `remdo-feature-flow` before its
+  Phase-3 gate. This is deliberate: refine stays decoupled from docs so the
+  approved spec is not re-aligned post-implementation. Not a gap to close in
+  refine; review findings that re-flag "refine skips docs-align for doc diffs"
+  are covered here.
 - Loop structure: nested settle/confirmation loops terminate on judgment, not
   structure, against stochastic reviewers that resample findings per run; rung
   re-runs re-review the whole diff rather than the delta since their last pass.
