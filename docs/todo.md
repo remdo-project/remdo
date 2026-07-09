@@ -423,10 +423,6 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 ## remdo-docs-align follow-ups
 
-- Consolidate doc responsibility fully into docs-align: refine's doc rung
-  invokes the whole pipeline (diff scope) instead of stages 3–4, and
-  `remdo-simplify` drops its doc lens to become the code/test finder only —
-  removes the last double route to doc checking.
 - Consider borrowing from the Upkeep skill (wei18/Upkeep): its structured
   finding schema and parallel specialist-reviewer layout could speed the align
   pass on large scopes.
@@ -455,7 +451,7 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   code-lint gate. Extend the ESLint config to the dot tree (deciding which rules
   apply to skill specs, e.g. the `node/no-process-env` disables), or accept
   typecheck+tests as their gate. A config decision, not a mechanical fix.
-- Accepted limitation (refine rung 4): `references-shape.mjs` resolves a
+- Accepted limitation (docs-align references-shape rule): `references-shape.mjs` resolves a
   reference link's `[label]` to its definition by exact (lowercased) match, so
   CommonMark-equivalent labels differing only by internal whitespace
   (`[foo bar]` vs `[foo   bar]:`) don't resolve — an internal link with such a
@@ -474,7 +470,7 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   behavior; refine owns quality backstops; sync the post-merge check;
   deps-refresh its matrix). Reconcile with AGENTS.md's declare-scope-in-situ
   rule via shared vocabulary + per-skill delta.
-- ESCALATE (docs-align, refine rung 2): `docs/outliner/menu.md:40` — advocate
+- ESCALATE (docs-align): `docs/outliner/menu.md:40` — advocate
   proposed deleting "it has no query span, so it owns every key;" as a
   restatement of the shared editor-popup contract. Dual adjudicators split:
   one APPLY (the contract's "a popup with no pinned span owns every key" already

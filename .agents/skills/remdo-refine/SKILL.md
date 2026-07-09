@@ -1,6 +1,6 @@
 ---
 name: remdo-refine
-description: Use to run the autonomous quality loop over a diff on the current branch — simplify, review at max effort, then external Codex review, looping until a clean pass. Works on either a committed range (default `origin/main...HEAD`, or an explicit range, clean tree) or the uncommitted working tree (opt-in, for reviewing changes before committing, such as a feature-flow spec). Triggers include "refine this", "run the refine ladder", "review/simplify/fix loop", "refine the uncommitted changes", or `remdo-feature-flow` calling it.
+description: Use to run the autonomous quality loop over a diff on the current branch — simplify, review at max effort, then external Codex review, looping until a clean pass. Works on either a committed range (default `origin/main...HEAD`, or an explicit range, clean tree) or the uncommitted working tree (opt-in, for reviewing changes before committing). Triggers include "refine this", "run the refine ladder", "review/simplify/fix loop", "refine the uncommitted changes", or `remdo-feature-flow` calling it in Phase 4.
 ---
 
 # Refine
@@ -9,8 +9,7 @@ description: Use to run the autonomous quality loop over a diff on the current b
 
 Drive a diff to a clean quality bar through a fixed **ladder** of review passes,
 looping until a full pass finds nothing more worth fixing. Fixes settle the rung
-that found them, and a final confirmation cycle re-runs the whole ladder
-(docs-align excepted — it runs at most once per invocation, see rung 2), so
+that found them, and a final confirmation cycle re-runs the whole ladder, so
 every pass ends having reviewed the finished code.
 
 It improves **code quality**, not feature scope — it converges the code, not the
@@ -66,11 +65,9 @@ lands inside the resolved range and the tree stays clean for the next pass.
 
 The diff is the **uncommitted changes** (staged + unstaged + untracked), and the
 working tree *is* the artifact — fixes are applied **in place, not committed**.
-Use it to refine changes the user wants to review *before* they enter history —
-most naturally a `remdo-feature-flow` spec at its Phase-3 gate, where the point
-is to vet the uncommitted docs before approval. Enter it only when the caller
-asks for it (e.g. "refine the uncommitted changes" / "refine before I commit");
-it is never the silent default.
+Use it to refine changes the user wants to review *before* they enter history.
+Enter it only when the caller asks for it (e.g. "refine the uncommitted changes"
+/ "refine before I commit"); it is never the silent default.
 
 Here the script's gate is the mirror image: an **empty** tree is the refusal
 (nothing to refine). Each pass re-reads the working tree rather than a committed
@@ -87,15 +84,6 @@ first, most independent last. Each is a
 working-tree changes): a rung reports, and the coordinating session triages,
 applies what is approved, and owns the loop. Keeping finding and applying apart
 is what makes triage a real gate — a rung that edited the tree would pre-empt it.
-
-**Exception — the docs-align rung edits.** Rung 2 (`remdo-docs-align`) is the one
-editing rung: by its own contract it applies edits (it self-commits only when run
-standalone — as this rung it commits nothing, and refine's loop owns the commits,
-see its **Permissions**). Its *applied dispositions* are therefore triaged
-**post-hoc** — the coordinating session reviews what it changed rather than gating
-each edit beforehand, then commits them like any other approved fix in
-committed-range scope — and its **ESCALATE** rows are treated like any other
-rung's findings.
 
 Every rung must review with **fresh eyes** — the coordinating session's memory
 of implementing and reviewing the diff would bias it toward parts it thinks it
@@ -120,25 +108,11 @@ a required fresh-context rung with an inline review by the coordinating session.
      explorer/review subagent (prompted per the scope-only rule above), asked to
      report without editing files, staging, committing, or running mutating
      checks.
-   - **Report back:** its finding list (code/test lenses and the pass-in-passing
-     doc-invariant check are defined there, not here).
+   - **Report back:** its finding list (the code/test lenses are defined there,
+     not here).
    - **Triage:** treat each finding under the loop's triage rules below.
 
-2. **Docs align** — for any diff touching `docs/**` or skill prose, invoke the
-   **`remdo-docs-align`** skill (a sibling rung to simplify, not nested inside
-   it); skip it for a diff with no such files.
-   - **Objective:** converge the touched doc/skill prose to its rules doc.
-   - **Scope passed:** the doc/skill files within the resolved scope; docs-align
-     decides which of its own stages that scope needs.
-   - **Report back:** its per-proposal disposition list plus any ESCALATE table.
-   - **Triage:** consume the dispositions like any findings; surface an ESCALATE
-     row as a tradeoff or blocker per the loop rules.
-   - **Runs at most once per refine invocation** (including the confirmation
-     cycle): measured, its advocate re-proposes indefinitely on a real corpus,
-     so "settles" is unreachable and a second pass buys erosion, not
-     convergence. Residue is reported as tradeoffs, not re-run.
-
-3. **Internal review** — invoke the current agent's strongest internal review
+2. **Internal review** — invoke the current agent's strongest internal review
    surface at max effort:
    - **Objective:** an internal correctness/quality read of the diff.
    - **Scope passed:** the diff under review (the resolved range's base, or the
@@ -150,7 +124,7 @@ a required fresh-context rung with an inline review by the coordinating session.
      the coordinating context.
    - **Report back / triage:** its findings, triaged under the loop rules.
 
-4. **External review** — invoke the configured external reviewer for an
+3. **External review** — invoke the configured external reviewer for an
    independent outside read:
    - **Objective:** a fresh external read from a separate process.
    - **Scope passed:** the diff under review, **scope only, no review angle** —
@@ -191,8 +165,7 @@ every earlier, more expensive rung on each iteration.
 - **Reject** — not a real issue, or out of scope. Drop it.
 
 Once every rung has settled, run a **confirmation cycle**: the full ladder again
-from rung 1, against the finished diff (docs-align excepted — it runs at most
-once per invocation, see rung 2). **Done** when a confirmation cycle
+from rung 1, against the finished diff. **Done** when a confirmation cycle
 produces zero approved fixes; if it produces any, settle the rung that raised
 them as above, then confirm again. **Stuck** (stop and
 report) when a finding recurs with no progress, or the diff will not converge
@@ -206,9 +179,7 @@ dead code, `jscpd` duplication), which the check scripts don't cover and only
 CI otherwise catches. Which check script: **committed-range scope always needs
 `pnpm run check:full`** — the loop's fixes are committed, so the changed-only
 `check` would select no tests. In **working-tree scope** the fixes are
-uncommitted, so the current agent mode's script applies (`AGENTS.md` "Checks");
-a docs- or skill-only diff may also skip `audit:cleanup`, which exercises
-nothing it touched.
+uncommitted, so the current agent mode's script applies (`AGENTS.md` "Checks").
 
 A failure caused by an applied fix re-enters the loop; a pre-existing
 unrelated failure is reported, not fixed here.
@@ -238,14 +209,13 @@ diff each finding sat); tradeoffs taken with a pointer to their
 `docs/todo.md` entries; any blocker with its gathered data; and the final checks
 with pass/fail.
 
-Then one **per-rung counts** line each for simplify / docs-align / internal /
-external: how many times it ran, findings it surfaced, and how many of those were
-applied (docs-align only when the diff touched doc/skill prose).
+Then one **per-rung counts** line each for simplify / internal / external: how
+many times it ran, findings it surfaced, and how many of those were applied.
 
 ## References
 
-- Ladder rungs invoked in order: `remdo-simplify` skill, `remdo-docs-align` skill
-  (doc-touching diffs), current-agent internal review, external review.
+- Ladder rungs invoked in order: `remdo-simplify` skill, current-agent internal
+  review, external review.
 - Scope resolution mechanics: `.agents/skills/remdo-refine/tools/resolve-scope.sh`.
 - Branch base and the `origin/main...HEAD` diff contract:
   `docs/contributing.md#git-workflow`.

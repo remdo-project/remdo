@@ -73,12 +73,22 @@ new docs that match the existing structure. Track not-yet-built parts, gaps, and
 sequencing in `docs/todo.md`, not as caveats in stable prose. Follow
 `docs/documentation.md`.
 
-Before presenting the docs, invoke `remdo-refine` in working-tree scope:
+Before presenting the docs, invoke `remdo-docs-align` on the uncommitted spec
+docs:
 
-- **Objective:** converge the uncommitted spec docs to a clean quality bar.
-- **Scope passed:** `working-tree`.
-- **Result handling:** refine applies fixes in place and commits nothing; report
-  its final index with the spec handoff.
+- **Objective:** converge the spec docs to `docs/documentation.md` before the
+  user reviews them — the spec is pure prose here, so doc alignment is the fitting
+  pass, not the code-quality ladder.
+- **Scope passed:** the flow-owned `docs/` and `docs/todo.md` changes
+  (working-tree).
+- **Result handling:** docs-align applies its dispositions in place and commits
+  nothing at this stage; surface any ESCALATE row with the spec handoff.
+
+Aligning the spec here is the flow's only doc-alignment pass — it happens
+*before* the user gate, so the docs the user approves are already converged.
+Treat that approved prose as settled: later phases should not re-improve it. This
+ordering is the point; it keeps a later pass from reworking docs the user already
+signed off on.
 
 The user reviews the `docs/` changes, with chat as a thin pointer: changed docs
 plus a short approach summary. This is the only mandatory user gate.
@@ -108,18 +118,25 @@ If the user rejects the spec at the gate, revert the flow-owned `docs/` and
    compare the branch's `docs/` changes and branch diff both ways, specified but
    not built and built but not specified. The reviewer reads the repo as needed
    but not `.agent/`, and receives neither the plan nor implementation memory.
-   In Codex, dispatch this as a fresh explorer/review subagent and pass only the
-   spec docs, branch diff scope, and the `AGENTS.md` findings-suppression rule.
+   Run it through the current agent's fresh-context surface (see Agent adapters),
+   passing only the spec docs, branch diff scope, and the `AGENTS.md`
+   findings-suppression rule.
    The reviewer reports only; the coordinating agent fixes real gaps, documents
    or removes unspecified behavior, and records deliberate deferrals in
    `docs/todo.md`.
 4. For user-facing behavior, verify live per AGENTS.md DevTools guidance and add
    automated coverage per its e2e escalation rule.
-5. Once the spec is reached, commit the Phase-4 work. If `origin/main` advanced
-   since branch creation, suggest `remdo-sync` after the tree is clean. Then run
-   `remdo-refine` in committed-range scope over this branch's own work
-   (`origin/main...HEAD`). Refine owns the quality loop, final checks, and
-   review-finding tradeoff policy.
+5. Once the spec is reached, commit the Phase-4 work. Leave the user-approved
+   spec docs as they were approved — doc alignment happened before the Phase-3
+   gate, so avoid re-improving that prose now; record any real spec/implementation
+   divergence in `docs/todo.md` rather than silently rewriting the approved docs.
+   Any genuinely new prose implementation added is committed as-is here; a
+   separate `remdo-docs-align` pass on it later is the user's call, not part of
+   this flow. If
+   `origin/main` advanced since branch creation, suggest `remdo-sync` after the
+   tree is clean. Then run `remdo-refine` in committed-range scope over this
+   branch's own work (`origin/main...HEAD`). Refine owns the code-quality loop,
+   final checks, and review-finding tradeoff policy.
 6. For mid-work decisions, use judgment for small blast-radius choices and record
    them in `docs/todo.md`. Stop only for genuine large-blast-radius forks, also
    recording the fork, options, and blocker in `docs/todo.md`.
@@ -195,6 +212,35 @@ Choose by activity:
   process rather than weakening the fresh-context read.
 - **Memory:** do not write agent memory unless the user explicitly asks (the
   Phase 5 retro owns where stable improvements land instead).
+
+## Agent adapters
+
+This shared skill is the single source; each runtime maps its process intent to
+that runtime's surfaces. Keep both columns adjacent so divergence stays visible.
+
+**Claude Code:**
+
+- **Test-first implementation** (Phase 4 new behavior): use
+  `superpowers:test-driven-development` for a red/green loop.
+- **Unexpected failures:** use `superpowers:systematic-debugging` for bugs,
+  failing checks, or confusing runtime behavior.
+- **Verification exit discipline:** use
+  `superpowers:verification-before-completion` plus the AGENTS.md DevTools/e2e
+  requirements.
+- **Parallel and spike work:** use `superpowers:dispatching-parallel-agents` and
+  `superpowers:using-git-worktrees` where independent work or Research spikes
+  should run outside the coordinating session.
+- **Spec-compliance exit read:** run through a Claude Code fork/explore context.
+- **Post-report integration:** `superpowers:finishing-a-development-branch` is
+  the separate user-launched step for merge to `dev`, push, PR, or keep.
+
+**Codex:**
+
+- **Spec-compliance exit read** and other required fresh-context reads: dispatch
+  a fresh explorer/review subagent (authorized in `agents/openai.yaml`), prompted
+  with scope only per the Phase-4 rule.
+- **Parallel Phase-4 / Research work:** use isolated subagents per the AGENTS.md
+  worktree and `PORT_BASE` rules.
 
 ## References
 
