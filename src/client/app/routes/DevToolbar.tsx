@@ -2,7 +2,7 @@ import { Anchor } from '@mantine/core';
 import { IconBrandVite } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { Icon } from '#client/ui/Icon';
-import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev/dev-route-registry';
+import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev/dev-route';
 
 interface HostContext {
   protocol: string;
@@ -47,7 +47,7 @@ export function DevToolbarLinks() {
         Lexical
       </Anchor>
       <Link
-        to={DEV_LEXICAL_DEMO_ROUTE.path}
+        to={DEV_LEXICAL_DEMO_ROUTE}
         className="app-header-link"
       >
         Lexical Demo

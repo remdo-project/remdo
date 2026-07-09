@@ -5,11 +5,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Plugin } from 'vite';
 import { send } from 'vite';
-import { DEV_LEXICAL_DEMO_ROUTE, isDevSpaFallbackPath } from '../../src/client/app/dev/dev-route-registry';
-
-export function isDevSpaRoutePath(url?: string): boolean {
-  return isDevSpaFallbackPath(url);
-}
+import { DEV_LEXICAL_DEMO_ROUTE, isDevSpaFallbackPath } from '../../src/client/app/dev/dev-route';
 
 export function remdoDevSpaRoutesPlugin(): Plugin {
   return {
@@ -17,7 +13,7 @@ export function remdoDevSpaRoutesPlugin(): Plugin {
     apply: 'serve',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        if (!isDevSpaRoutePath(req.url)) {
+        if (!isDevSpaFallbackPath(req.url)) {
           next();
           return;
         }
@@ -26,7 +22,7 @@ export function remdoDevSpaRoutesPlugin(): Plugin {
           try {
             const indexPath = path.resolve(server.config.root, 'index.html');
             const html = await fs.readFile(indexPath, 'utf8');
-            const transformed = await server.transformIndexHtml(req.url ?? DEV_LEXICAL_DEMO_ROUTE.path, html);
+            const transformed = await server.transformIndexHtml(req.url ?? DEV_LEXICAL_DEMO_ROUTE, html);
             send(req, res, transformed, 'html', { headers: server.config.server.headers });
           } catch (error) {
             next(error);
