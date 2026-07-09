@@ -18,7 +18,7 @@ NODE_ENV=production ./tools/env.sh pnpm run build >/dev/null
 # emitted by a dev module (schema assertion, tree view, test bridge, dev toolbar,
 # vanilla demo editor, dev route). If any survives in the prod bundle, a dev
 # surface leaked past its import.meta.env.DEV gate.
-markers="indent-jump LexicalTreeView __remdoTestBridges remdo-vanilla-lexical DevLexicalDemoRoute __vitest__"
+markers="indent-jump LexicalTreeView __remdoTestBridges remdo-vanilla-lexical /dev/lexical-demo __vitest__"
 
 leaked=""
 for marker in $markers; do

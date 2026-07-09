@@ -7,7 +7,7 @@ export const devRoutes = import.meta.env.DEV
   ? [{
     path: DEV_LEXICAL_DEMO_ROUTE,
     lazy: async () => ({
-      Component: (await import('./DevLexicalDemoRoute')).default,
+      Component: (await import('#client/editor/dev/VanillaLexicalEditor')).default,
     }),
   }]
   : [];
