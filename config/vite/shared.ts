@@ -5,6 +5,7 @@ import { config } from '../index';
 import { onRollupWarning } from '../_internal/vite/onRollupWarning';
 import { resolveApiServerOrigin, resolveCollabServerOrigin } from '../../src/platform/net/origins';
 import { remdoApiDevPlugin } from './remdo-api-dev-plugin';
+import { remdoDevSpaRoutesPlugin } from './remdo-dev-spa-routes-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
@@ -47,6 +48,7 @@ export function createViteSharedConfig() {
     },
     plugins: [
       remdoApiDevPlugin(),
+      remdoDevSpaRoutesPlugin(),
       VitePWA({
         includeAssets: ['icons/*.svg'],
         registerType: 'autoUpdate',

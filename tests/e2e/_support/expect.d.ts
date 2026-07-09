@@ -1,9 +1,8 @@
 import type { Outline } from '#tests-common/outline';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
 
 declare global {
   // eslint-disable-next-line vars-on-top
-  var __remdoBridgePromise: Promise<RemdoTestApi> | undefined;
+  var __remdoTestBridges: import('#client/editor/plugins/dev/testBridgeRegistry').TestBridgeRegistry | undefined;
 
   namespace PlaywrightTest {
     interface Matchers<R> {

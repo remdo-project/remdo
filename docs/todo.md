@@ -555,3 +555,16 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   eventually be keyed to the active Better Auth session, or invalidated by a
   clear shared auth-state boundary, so same-tab identity changes cannot reuse
   stale home/user-data document ids.
+
+- Test-bridge registry (`testBridgeRegistry.ts`) hands the next mount to a
+  pending `waitForNext()` FIFO. Entries are keyed by editor, so an editor
+  re-publishing (its api rebuilds on collab-status changes) no longer steals
+  another editor's waiter. Residual: two genuinely concurrent renders (not the
+  sequential-await callers today) could still mispair on which mounts first; key
+  waiters by docId if that ever arrives.
+
+- `SchemaValidationPlugin` load-time validation (dev/test) has no test. No
+  malformed fixture survives load unrepaired to demonstrate it: `assertEditorSchema`
+  only checks `indent-jump`, which load normalization flattens. The validation is
+  therefore practically inert today; add coverage if a schema rule that survives
+  load is introduced.

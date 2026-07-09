@@ -5,10 +5,11 @@ import { $createTextNode, $getRoot, $isTextNode } from 'lexical';
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
 import { assertEditorSchema } from './schema/assertEditorSchema';
 import { useCollaborationStatus } from '../collaboration';
-import { markSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
+import { markSchemaValidationSkipOnce } from '../../schema-validation-skip-once';
 import { $normalizeNoteIdsOnLoad } from '../note-id-normalization';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { TEST_BRIDGE_LOAD_TAG, TEST_BRIDGE_MUTATE_TAG } from '#client/editor/update-tags';
+import { getTestBridgeRegistry } from './testBridgeRegistry';
 
 async function withTimeout<T>(fnOrPromise: (() => Promise<T>) | Promise<T>, ms: number, message: string): Promise<T> {
   const promise = typeof fnOrPromise === 'function' ? fnOrPromise() : fnOrPromise;
@@ -251,30 +252,25 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
 
 export type RemdoTestApi = ReturnType<typeof createTestBridgeApi>;
 
-export function TestBridgePlugin({
-  onTestBridgeReady,
-  onTestBridgeDispose,
-}: {
-  onTestBridgeReady?: (api: RemdoTestApi) => void;
-  onTestBridgeDispose?: () => void;
-}) {
+export function TestBridgePlugin() {
   const [editor] = useLexicalComposerContext();
   const collab = useCollaborationStatus();
 
   const api = useMemo(() => createTestBridgeApi(editor, collab), [collab, editor]);
 
   useEffect(() => {
-    const bridgePromise = Promise.resolve(api);
-    onTestBridgeReady?.(api);
-    (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<RemdoTestApi> }).__remdoBridgePromise = bridgePromise;
+    // Publish through the test-bridge registry (docs/dev/dev-tooling.md), keyed
+    // by this editor. `api` rebuilds whenever collaboration status changes, so
+    // this refreshes the editor's entry on every rebuild; keying by editor means
+    // only the first publish hands off to a pending `waitForNext()`, and retract
+    // runs on unmount (`editor` is stable per mount) rather than on each rebuild.
+    getTestBridgeRegistry().publish(editor, api);
+  }, [editor, api]);
 
-    return () => {
-      onTestBridgeDispose?.();
-      if ((globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<RemdoTestApi> }).__remdoBridgePromise === bridgePromise) {
-        (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<RemdoTestApi> }).__remdoBridgePromise = undefined;
-      }
-    };
-  }, [api, onTestBridgeReady, onTestBridgeDispose]);
+  useEffect(() => {
+    const registry = getTestBridgeRegistry();
+    return () => registry.retract(editor);
+  }, [editor]);
 
   return null;
 }

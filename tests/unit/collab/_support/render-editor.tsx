@@ -1,14 +1,16 @@
 import { MantineProvider } from '@mantine/core';
-import { render, waitFor } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import Editor from '#client/editor/Editor';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import { getTestBridgeRegistry } from '#client/editor/plugins/dev/testBridgeRegistry';
 import { EditorViewProvider } from '#client/editor/view/EditorViewProvider';
 import type { EditorViewBindings } from '#client/editor/view/EditorViewProvider';
 import { ensureCollabTestDocument } from './documents';
 
 /**
- * Renders the RemDo editor for tests and resolves the window remdoTest API.
- * Centralizes collab origin resolution and waiting for bridge readiness.
+ * Renders the RemDo editor for tests and resolves its remdoTest bridge.
+ * Registers for the next bridge before rendering so concurrent editors (collab
+ * peers) each resolve to their own bridge, then waits for collaboration ready.
  */
 export async function renderRemdoEditor(
   docId: string,
@@ -19,29 +21,19 @@ export async function renderRemdoEditor(
 }> {
   await ensureCollabTestDocument(docId);
 
-  let api: RemdoTestApi | null = null;
+  // Register before rendering so this render captures the bridge its own editor
+  // mounts, not one from a previously or concurrently rendered editor.
+  const bridgeReady = getTestBridgeRegistry().waitForNext();
 
   const { unmount } = render(
     <MantineProvider>
       <EditorViewProvider docId={docId} {...viewProps}>
-        <Editor
-          docId={docId}
-          statusPortalRoot={null}
-          onTestBridgeReady={(value) => {
-            api = value as RemdoTestApi;
-          }}
-        />
+        <Editor docId={docId} statusPortalRoot={null} />
       </EditorViewProvider>
     </MantineProvider>
   );
 
-  const resolved = await waitFor(() => {
-    if (!api) {
-      throw new Error('remdoTest API not ready');
-    }
-    return api;
-  });
-
-  await resolved._bridge.waitForCollaborationReady();
-  return { api: resolved, unmount };
+  const api = await bridgeReady;
+  await api._bridge.waitForCollaborationReady();
+  return { api, unmount };
 }

@@ -10,6 +10,7 @@ describe('vite shared config', () => {
 
     expect(config.plugins).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: 'remdo-api-dev' }),
+      expect.objectContaining({ name: 'remdo-dev-spa-routes' }),
     ]));
     expect(serverProxy).not.toHaveProperty('/api');
     expect(serverProxy['/d']).toMatchObject({
