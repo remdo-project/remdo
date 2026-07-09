@@ -20,6 +20,18 @@ code around itself:
 
 A production build fails if a dev-tooling marker survives into the bundle.
 
+## Visibility mode
+
+The dev app renders a floating visibility control that toggles dev tooling
+between visible and hidden. Dev tooling is visible by default. When visibility is
+hidden, dev-only links, panels, and components are absent from the page so the
+same dev server can be used to inspect the product-like UI. The floating control
+itself remains visible so dev tooling can be restored without a reload.
+
+The visibility state is stored in dev-owned browser storage. It persists across
+refreshes, stays local to the current origin, and is not sent with application
+requests.
+
 ## Page tools
 
 ### Lexical Demo
