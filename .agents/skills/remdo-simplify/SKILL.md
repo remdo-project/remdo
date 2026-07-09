@@ -204,7 +204,7 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 
 - [Scope resolution](../remdo-refine/tools/resolve-scope.sh)
 - [Agent guidelines](../../../AGENTS.md)
-- [Doc/skill-prose convergence (not this pass)](../remdo-docs-align/SKILL.md)
+- [Doc/skill-prose convergence](../remdo-docs-align/SKILL.md)
 - [Git workflow / branch base](../../../docs/contributing.md#git-workflow)
 - [Runtime baseline](../../../docs/contributing.md#runtime-baseline)
 - [Compatibility policy](../../../docs/contributing.md#compatibility-policy-pre-10)
