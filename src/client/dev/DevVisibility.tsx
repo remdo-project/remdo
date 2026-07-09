@@ -33,7 +33,7 @@ export function DevVisibilityControl() {
         onClick={() => setVisible((current) => !current)}
         radius="xl"
         size="lg"
-        variant={visible ? 'filled' : 'light'}
+        variant="outline"
       >
         <Icon icon={visible ? IconSettingsFilled : IconSettings} />
       </ActionIcon>

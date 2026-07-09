@@ -3,7 +3,13 @@
   right: var(--mantine-spacing-lg);
   bottom: var(--mantine-spacing-lg);
   z-index: 200;
+  background: inherit;
   box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1), 0 12px 28px rgb(0 0 0 / 0.34);
+}
+
+.dev-visibility-toggle:hover,
+.dev-visibility-toggle:focus-visible {
+  background: inherit;
 }
 
 @media (max-width: 48em) {
