@@ -5,6 +5,7 @@ import { getPublicClientConfig } from './config';
 import { getCachedCurrentUserBootstrap, getHomeDocumentId } from './documents/current-user-bootstrap';
 import AdminRoute from './routes/AdminRoute';
 import { adminRouteLoader } from './routes/admin-route-loader';
+import { devRoutes } from './routes/devRoutes';
 import OAuthConsentRoute from './routes/OAuthConsentRoute';
 import DocumentRoute from './routes/DocumentRoute';
 import LoginRoute from './routes/LoginRoute';
@@ -21,15 +22,6 @@ import {
   parseDocumentRef,
 } from '#document-routes';
 import { normalizeDocumentId } from '#domain/documents/ids';
-
-const buildSearch = (lexicalDemo: boolean): string => {
-  const searchParams = new URLSearchParams();
-  if (lexicalDemo) {
-    searchParams.set('lexicalDemo', 'true');
-  }
-  const search = searchParams.toString();
-  return search ? `?${search}` : '';
-};
 
 function createOfflinePath(request: Request): string {
   return `/offline${createPostAuthNextSearch(request)}`;
@@ -83,8 +75,7 @@ const redirectToDoc = async (request: Request): Promise<string> => {
   const params = url.searchParams;
   const explicitDocId = normalizeDocumentId(params.get('doc'));
   const docId = explicitDocId ?? await resolveRouteHomeDocumentId(request);
-  const lexicalDemo = params.has('lexicalDemo');
-  return `${createDocumentPath(docId)}${buildSearch(lexicalDemo)}`;
+  return createDocumentPath(docId);
 };
 
 async function resolveRouteHomeDocumentId(request: Request): Promise<string> {
@@ -190,6 +181,7 @@ const routes = [
         path: 'sharing',
         element: <SharingRoute />,
       },
+      ...devRoutes,
     ],
   },
 ];

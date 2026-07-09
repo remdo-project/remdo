@@ -4,7 +4,7 @@ import type { SerializedEditorState } from 'lexical';
 import { useEffect } from 'react';
 
 import { useCollaborationStatus } from './collaboration';
-import { markSchemaValidationSkipOnce } from './dev/schema/schemaValidationSkipOnce';
+import { markSchemaValidationSkipOnce } from '../schema-validation-skip-once';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
 import { claimPendingDocumentImport } from '#client/editor/runtime/pending-document-import';

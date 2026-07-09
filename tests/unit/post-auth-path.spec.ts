@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev-route';
 import {
   createPostAuthNextSearch,
   resolveNextPathOrDefault,
@@ -9,25 +10,24 @@ const CURRENT_ORIGIN = 'https://remdo.test';
 
 describe('post-auth paths', () => {
   it('builds a next search param from the current route', () => {
-    const search = createPostAuthNextSearch(new Request('https://remdo.test/n/main?lexicalDemo=true'));
+    const search = createPostAuthNextSearch(new Request(`https://remdo.test${DEV_LEXICAL_DEMO_ROUTE}`));
 
-    expect(new URLSearchParams(search).get('next')).toBe('/n/main?lexicalDemo=true');
+    expect(new URLSearchParams(search).get('next')).toBe(DEV_LEXICAL_DEMO_ROUTE);
   });
 
   it('allows relative post-auth targets', () => {
     expect(resolvePostAuthTargetPath('/', CURRENT_ORIGIN)).toBe('/');
     expect(resolvePostAuthTargetPath('/home', CURRENT_ORIGIN)).toBe('/home');
     expect(resolvePostAuthTargetPath('/n/main', CURRENT_ORIGIN)).toBe('/n/main');
-    expect(resolvePostAuthTargetPath('/n/main_note2?lexicalDemo=true', CURRENT_ORIGIN))
-      .toBe('/n/main_note2?lexicalDemo=true');
+    expect(resolvePostAuthTargetPath(DEV_LEXICAL_DEMO_ROUTE, CURRENT_ORIGIN)).toBe(DEV_LEXICAL_DEMO_ROUTE);
     expect(resolvePostAuthTargetPath('/api/current-user', CURRENT_ORIGIN)).toBe('/api/current-user');
     expect(resolvePostAuthTargetPath('n/main', CURRENT_ORIGIN)).toBe('/n/main');
     expect(resolvePostAuthTargetPath('https://remdo.test/n/main', CURRENT_ORIGIN)).toBe('/n/main');
   });
 
   it('normalizes post-auth targets as route paths', () => {
-    expect(resolvePostAuthTargetPath('/n/../home?lexicalDemo=true#main', CURRENT_ORIGIN))
-      .toBe('/home?lexicalDemo=true#main');
+    expect(resolvePostAuthTargetPath('/n/../dev/lexical-demo#main', CURRENT_ORIGIN))
+      .toBe(`${DEV_LEXICAL_DEMO_ROUTE}#main`);
     expect(resolvePostAuthTargetPath('/..//example.test/n/main', CURRENT_ORIGIN)).toBe('/example.test/n/main');
   });
 

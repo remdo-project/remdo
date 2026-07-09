@@ -1,13 +1,10 @@
 import type { ReactNode } from 'react';
 import { Anchor, Container, Group, Title } from '@mantine/core';
 import { useEffect } from 'react';
-import { Link, Outlet, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import headerStyles from './styles/AppHeader.module.css';
-import { config } from '#config';
 import { startUserData, useCurrentUserRole } from './documents/user-data';
-import { createDocumentPath, parseDocumentRef } from '#document-routes';
-import VanillaLexicalEditor from '#client/editor/dev/VanillaLexicalEditor';
-import { DevToolbarLinks } from './routes/DevToolbar';
+import { DevToolbarLinksSeam } from './routes/DevToolbarSeam';
 
 // The authenticated app shell: signed-in chrome (nav) plus the live user-data
 // runtime. It mounts only for an authenticated user, so it starts the runtime
@@ -16,14 +13,9 @@ import { DevToolbarLinks } from './routes/DevToolbar';
 // admin panel, whose route also serves the unauthenticated enroll form outside
 // this shell.
 export default function AuthenticatedApp({ children }: { children?: ReactNode }) {
-  const { docRef } = useParams<{ docRef?: string }>();
-  const [searchParams] = useSearchParams();
   useEffect(() => {
     startUserData();
   }, []);
-  const showVanillaLexical = config.isDevOrTest && searchParams.has('lexicalDemo');
-  const parsedRef = parseDocumentRef(docRef);
-  const currentDocumentPath = parsedRef ? createDocumentPath(parsedRef.docId) : '/home';
   // Surface the admin panel link only to admins; route access stays enforced
   // server-side. Reactive to the bootstrap load so it appears once the role is known.
   const isAdmin = useCurrentUserRole() === 'admin';
@@ -68,12 +60,11 @@ export default function AuthenticatedApp({ children }: { children?: ReactNode })
             >
               Logout
             </Anchor>
-            <DevToolbarLinks currentDocumentPath={currentDocumentPath} />
+            <DevToolbarLinksSeam />
           </Group>
         </nav>
       </header>
 
-      {showVanillaLexical && <VanillaLexicalEditor />}
       {children ?? <Outlet />}
     </Container>
   );

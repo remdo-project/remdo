@@ -5,8 +5,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { useCollaborationStatus } from './collaboration';
 import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '#client/editor/outline/normalization';
-import { markSchemaValidationSkipOnce } from './dev/schema/schemaValidationSkipOnce';
-import { assertEditorSchema } from './dev/schema/assertEditorSchema';
+import { markSchemaValidationSkipOnce } from '../schema-validation-skip-once';
 import { ROOT_SCHEMA_NORMALIZE_TAG } from '#client/editor/update-tags';
 
 interface RootSchemaPluginProps {
@@ -41,13 +40,6 @@ export function RootSchemaPlugin({ onSchemaReadyChange }: RootSchemaPluginProps)
       return;
     }
 
-    const runLoadSchemaScan = () => {
-      const editorState = editor.getEditorState();
-      editorState.read(() => {
-        assertEditorSchema(editorState.toJSON());
-      });
-    };
-
     const scheduleRepair = () => {
       if (repairScheduledRef.current) return;
       repairScheduledRef.current = true;
@@ -61,8 +53,6 @@ export function RootSchemaPlugin({ onSchemaReadyChange }: RootSchemaPluginProps)
         repairScheduledRef.current = false;
       });
     };
-
-    runLoadSchemaScan();
 
     const unregisterNormalization = editor.registerNodeTransform(RootNode, (node) => {
       $normalizeOutlineRoot(node, { skipOrphanWrappers: true });

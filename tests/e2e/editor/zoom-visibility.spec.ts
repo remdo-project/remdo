@@ -353,7 +353,8 @@ test.describe('Zoom visibility', () => {
     await page.keyboard.press('Control+A');
 
     const selectedNotes = await page.evaluate(async () => {
-      const api = await (__remdoBridgePromise ?? Promise.reject(new Error('remdo bridge is not available')));
+      const api = globalThis.__remdoTestBridges?.list()[0];
+      if (!api) throw new Error('remdo bridge is not available');
       const outlineSelection = api.editor.selection.get();
       const range = outlineSelection?.kind === 'structural' ? outlineSelection.range : null;
       if (!range) {
@@ -431,7 +432,8 @@ async function pastePlainText(page: Parameters<typeof editorLocator>[0], text: s
 
 async function updateNoteText(page: Parameters<typeof editorLocator>[0], noteId: string, text: string) {
   await page.evaluate(async ({ noteId, text }) => {
-    const api = await (__remdoBridgePromise ?? Promise.reject(new Error('remdo bridge is not available')));
+    const api = globalThis.__remdoTestBridges?.list()[0];
+    if (!api) throw new Error('remdo bridge is not available');
     await api.updateNoteText(noteId, text);
   }, { noteId, text });
 }
