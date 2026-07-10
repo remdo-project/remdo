@@ -77,8 +77,11 @@ export function createServerRuntime({
     registry,
     tokenManager,
     async close() {
-      await swappableAuth.waitForIdle();
-      await database.close();
+      try {
+        await swappableAuth.waitForIdle();
+      } finally {
+        await database.close();
+      }
     },
   };
 }

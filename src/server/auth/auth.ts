@@ -271,12 +271,25 @@ export function createServerAuth({
     async ensureReady() {
       if (!readyPromise) {
         readyPromise = (async () => {
-          const { runMigrations } = await getMigrations(auth.options);
-          await runMigrations();
           // Better Auth starts plugin initialization at construction time. Keep
           // every instance that shares this database inside RemDo's readiness
           // boundary so resource seeding cannot outlive the database owner.
-          await Promise.all([auth.$context, userProvisioningAuth.$context]);
+          const contexts = Promise.allSettled([
+            auth.$context,
+            userProvisioningAuth.$context,
+          ]);
+          try {
+            const { runMigrations } = await getMigrations(auth.options);
+            await runMigrations();
+          } catch (error) {
+            await contexts;
+            throw error;
+          }
+          const results = await contexts;
+          const failure = results.find((result) => result.status === 'rejected');
+          if (failure) {
+            throw failure.reason;
+          }
         })().catch((error) => {
           readyPromise = null;
           throw error;
@@ -438,14 +451,8 @@ export function createSwappableServerAuth(
       return pending;
     },
     async waitForIdle() {
-      while (true) {
-        const tail = rebuildTail;
-        await tail;
-        await current.ensureReady();
-        if (tail === rebuildTail) {
-          return;
-        }
-      }
+      await rebuildTail;
+      await current.ensureReady();
     },
   };
 }

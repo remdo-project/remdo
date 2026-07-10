@@ -63,4 +63,29 @@ describe('server runtime', () => {
     await close;
     expect(closeDatabase).toHaveBeenCalledOnce();
   });
+
+  it('closes the database after failed auth initialization', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-runtime-'));
+    tempDirs.push(dir);
+    const runtime = createServerRuntime({
+      allowSignup: false,
+      baseURL: 'http://127.0.0.1:4000',
+      dbPath: path.join(dir, 'remdo.sqlite'),
+      secret: 'test-better-auth-secret-0123456789',
+    });
+    const actualGetMigrations = vi.mocked(getMigrations).getMockImplementation()!;
+    vi.mocked(getMigrations).mockImplementationOnce(async (...args) => {
+      const migrations = await actualGetMigrations(...args);
+      return {
+        ...migrations,
+        async runMigrations() {
+          throw new Error('auth initialization failed');
+        },
+      };
+    });
+    const closeDatabase = vi.spyOn(runtime.database, 'close');
+
+    await expect(runtime.close()).rejects.toThrow('auth initialization failed');
+    expect(closeDatabase).toHaveBeenCalledOnce();
+  });
 });
