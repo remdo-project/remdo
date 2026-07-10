@@ -15,7 +15,8 @@ owned by its editor note (see [Concepts](./concepts.md#note-kinds)).
    note. The body is content the note owns, so it travels with the note —
    through indent/outdent, reorder, structural delete, and
    [clipboard](./clipboard.md) copy/cut/paste.
-3. **Visually distinct.** A body renders set apart from the note's content.
+3. **Visually distinct.** A body renders set apart from the note's content. If
+   its owning note is a checked task, the body text is crossed out with the note.
 4. **Inline content.** Body text supports the same key-driven inline content as
    note content — inline formatting (no separate formatting UI) and `@` note
    links (see [Links](./links.md)).

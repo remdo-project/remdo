@@ -20,6 +20,23 @@ import { installOutlineSelectionHelpers } from '#client/editor/outline/selection
 const isChecklistItem = (element: HTMLElement): boolean =>
   element.classList.contains('list-item-checked') || element.classList.contains('list-item-unchecked');
 
+const $syncNoteCheckedDataset = (editor: LexicalEditor, key: string): void => {
+  const node = $getNodeByKey(key);
+  if (!$isListItemNode(node)) {
+    return;
+  }
+  const element = editor.getElementByKey(key);
+  if (!(element instanceof HTMLElement)) {
+    return;
+  }
+  const checked = $getNoteChecked(node);
+  if (checked) {
+    element.dataset.noteChecked = 'true';
+  } else {
+    delete element.dataset.noteChecked;
+  }
+};
+
 const $resolveContentItemByKey = (key: string): ListItemNode | null => {
   const node = $getNodeByKey<ListItemNode>(key);
   return node ? requireContentItemFromNode(node) : null;
@@ -245,26 +262,18 @@ export function CheckListPlugin() {
           $setNoteCheckedRaw(node, current);
         }
       }),
-      editor.registerUpdateListener(({ editorState, dirtyElements }) => {
-        editorState.read(() => {
-          for (const key of dirtyElements.keys()) {
-            const node = $getNodeByKey(key);
-            if (!$isListItemNode(node)) {
-              continue;
+      editor.registerMutationListener(
+        ListItemNode,
+        (mutations) => {
+          editor.getEditorState().read(() => {
+            for (const [key, mutation] of mutations) {
+              if (mutation !== 'destroyed') {
+                $syncNoteCheckedDataset(editor, key);
+              }
             }
-            const element = editor.getElementByKey(key);
-            if (!(element instanceof HTMLElement)) {
-              continue;
-            }
-            const checked = $getNoteChecked(node);
-            if (checked) {
-              element.dataset.noteChecked = 'true';
-            } else {
-              delete element.dataset.noteChecked;
-            }
-          }
-        });
-      })
+          });
+        }
+      )
     );
   }, [editor]);
 

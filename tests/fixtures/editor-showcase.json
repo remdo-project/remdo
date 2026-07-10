@@ -1,0 +1,339 @@
+{
+  "root": {
+    "type": "root",
+    "children": [
+      {
+        "textFormat": 1,
+        "type": "list",
+        "children": [
+          {
+            "noteId": "showcaseTitle",
+            "type": "listitem",
+            "value": 1,
+            "children": [
+              {
+                "format": 1,
+                "text": "Editor showcase",
+                "type": "text"
+              }
+            ]
+          },
+          {
+            "noteId": "inlineFormatting",
+            "type": "listitem",
+            "value": 2,
+            "children": [
+              {
+                "text": "Plain ",
+                "type": "text"
+              },
+              {
+                "format": 1,
+                "text": "bold ",
+                "type": "text"
+              },
+              {
+                "format": 2,
+                "text": "italic ",
+                "type": "text"
+              },
+              {
+                "format": 8,
+                "text": "underline ",
+                "type": "text"
+              },
+              {
+                "format": 4,
+                "text": "strike ",
+                "type": "text"
+              },
+              {
+                "format": 16,
+                "text": "code ",
+                "type": "text"
+              },
+              {
+                "format": 3,
+                "text": "bold italic",
+                "type": "text"
+              }
+            ]
+          },
+          {
+            "noteId": "dateAndLinks",
+            "type": "listitem",
+            "value": 3,
+            "children": [
+              {
+                "text": "Due ",
+                "type": "text"
+              },
+              {
+                "isoDate": "2026-07-09",
+                "type": "date"
+              },
+              {
+                "text": " see ",
+                "type": "text"
+              },
+              {
+                "noteId": "checkDone",
+                "type": "note-link",
+                "children": [
+                  {
+                    "text": "done task",
+                    "type": "text"
+                  }
+                ]
+              },
+              {
+                "text": " and ",
+                "type": "text"
+              },
+              {
+                "docId": "otherDoc",
+                "noteId": "remoteNote",
+                "type": "note-link",
+                "children": [
+                  {
+                    "text": "remote note",
+                    "type": "text"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "checkState": true,
+            "noteId": "bodyNote",
+            "type": "listitem",
+            "value": 4,
+            "children": [
+              {
+                "text": "Note with body",
+                "type": "text"
+              }
+            ]
+          },
+          {
+            "format": "",
+            "indent": 0,
+            "type": "note-body-wrapper",
+            "children": [
+              {
+                "format": "",
+                "type": "note-body",
+                "children": [
+                  {
+                    "text": "Body has ",
+                    "type": "text"
+                  },
+                  {
+                    "format": 1,
+                    "text": "rich text",
+                    "type": "text"
+                  },
+                  {
+                    "text": " and a ",
+                    "type": "text"
+                  },
+                  {
+                    "noteId": "checkDone",
+                    "type": "note-link",
+                    "children": [
+                      {
+                        "text": "note link",
+                        "type": "text"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "linebreak"
+                  },
+                  {
+                    "text": "Second body line",
+                    "type": "text"
+                  },
+                  {
+                    "type": "linebreak"
+                  },
+                  {
+                    "text": "Third body line",
+                    "type": "text"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "folded": true,
+            "noteId": "foldedParent",
+            "type": "listitem",
+            "value": 6,
+            "children": [
+              {
+                "text": "Folded parent",
+                "type": "text"
+              }
+            ]
+          },
+          {
+            "type": "listitem",
+            "value": 7,
+            "children": [
+              {
+                "type": "list",
+                "children": [
+                  {
+                    "indent": 1,
+                    "noteId": "foldedChild",
+                    "type": "listitem",
+                    "value": 1,
+                    "children": [
+                      {
+                        "text": "Hidden child",
+                        "type": "text"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "noteId": "numberedParent",
+            "type": "listitem",
+            "value": 7,
+            "children": [
+              {
+                "text": "Numbered steps",
+                "type": "text"
+              }
+            ]
+          },
+          {
+            "type": "listitem",
+            "value": 8,
+            "children": [
+              {
+                "listType": "number",
+                "tag": "ol",
+                "type": "list",
+                "children": [
+                  {
+                    "indent": 1,
+                    "noteId": "stepOne",
+                    "type": "listitem",
+                    "value": 1,
+                    "children": [
+                      {
+                        "text": "First step",
+                        "type": "text"
+                      }
+                    ]
+                  },
+                  {
+                    "indent": 1,
+                    "noteId": "stepTwo",
+                    "type": "listitem",
+                    "value": 2,
+                    "children": [
+                      {
+                        "text": "Second step",
+                        "type": "text"
+                      }
+                    ]
+                  },
+                  {
+                    "format": "",
+                    "indent": 1,
+                    "type": "note-body-wrapper",
+                    "children": [
+                      {
+                        "format": "",
+                        "type": "note-body",
+                        "children": [
+                          {
+                            "text": "Second step body",
+                            "type": "text"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "noteId": "checklistParent",
+            "type": "listitem",
+            "value": 8,
+            "children": [
+              {
+                "text": "Checklist",
+                "type": "text"
+              }
+            ]
+          },
+          {
+            "type": "listitem",
+            "value": 9,
+            "children": [
+              {
+                "listType": "check",
+                "type": "list",
+                "children": [
+                  {
+                    "checked": true,
+                    "checkState": true,
+                    "indent": 1,
+                    "noteId": "checkDone",
+                    "type": "listitem",
+                    "value": 1,
+                    "children": [
+                      {
+                        "text": "Done task",
+                        "type": "text"
+                      }
+                    ]
+                  },
+                  {
+                    "format": "",
+                    "indent": 1,
+                    "type": "note-body-wrapper",
+                    "children": [
+                      {
+                        "format": "",
+                        "type": "note-body",
+                        "children": [
+                          {
+                            "text": "Done task body",
+                            "type": "text"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "checked": false,
+                    "indent": 1,
+                    "noteId": "checkOpen",
+                    "type": "listitem",
+                    "value": 3,
+                    "children": [
+                      {
+                        "text": "Open task",
+                        "type": "text"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

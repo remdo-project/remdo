@@ -83,9 +83,16 @@
    notes identically. `.editor-root` carries this class plus editor-only chrome. */
 .remdo-outline {
   --remdo-indent: var(--mantine-spacing-sm);
+  --bullet-width: 0.4em;
+  --bullet-gap: 0.6em;
+  --checkbox-width: 0.85em;
+  --checkbox-gap: 0.35em;
   /* Horizontal space a note's text sits past its bullet (bullet width + gap).
      Shared so other surfaces can anchor text to the same column. */
-  --remdo-bullet-allowance: calc(0.4em + 0.6em);
+  --remdo-bullet-allowance: calc(var(--bullet-width) + var(--bullet-gap));
+  --remdo-checklist-allowance: calc(
+    var(--bullet-width) + var(--checkbox-gap) + var(--checkbox-width) + var(--bullet-gap)
+  );
 }
 
 .editor-root {
@@ -221,8 +228,6 @@
   --indicator-color: var(--mantine-color-dark-2);
   --checkbox-color: var(--mantine-color-dark-2);
   --bullet-left: 0rem;
-  --bullet-width: 0.4em;
-  --bullet-gap: 0.6em;
   --bullet-mask-image: url('/icons/bullet-circle.svg');
   --bullet-mask-size: var(--bullet-width) var(--bullet-width);
   --bullet-mask-position: center;
@@ -310,13 +315,12 @@
   outline: none;
 }
 
-.remdo-outline ol.list-ol {
-  counter-reset: remdo-ordered;
+.remdo-outline li.list-item:is(.list-item-checked, [data-note-checked='true']) {
+  text-decoration: line-through;
 }
 
-.remdo-outline ol.list-ol > li.list-item {
-  --bullet-width: 0.4em;
-  --bullet-gap: 0.6em;
+.remdo-outline ol.list-ol {
+  counter-reset: remdo-ordered;
 }
 
 .remdo-outline ol.list-ol > li.list-item:not(.list-nested-item) {
@@ -343,13 +347,11 @@
 .remdo-outline li.list-item.list-item-checked,
 .remdo-outline li.list-item.list-item-unchecked {
   --checkbox-left: calc(var(--bullet-left) + var(--bullet-width) + var(--checkbox-gap));
-  --checkbox-width: 0.85em;
-  --checkbox-gap: 0.35em;
   --checkbox-mask-image: url('/icons/checkbox-unchecked.svg');
   --checkbox-mask-size: var(--checkbox-width) var(--checkbox-width);
   --checkbox-mask-position: center;
   --checkbox-mask-repeat: no-repeat;
-  padding-left: calc(var(--bullet-width) + var(--checkbox-gap) + var(--checkbox-width) + var(--bullet-gap));
+  padding-left: var(--remdo-checklist-allowance);
 }
 
 .editor-offline-empty-state {
@@ -373,11 +375,6 @@
 
 .remdo-outline li.list-item.list-item-checked {
   --checkbox-mask-image: url('/icons/checkbox-checked.svg');
-  text-decoration: line-through;
-}
-
-.remdo-outline li.list-item[data-note-checked='true'] {
-  text-decoration: line-through;
 }
 
 .note-controls-layer {
