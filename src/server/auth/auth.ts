@@ -424,6 +424,7 @@ export function createSwappableServerAuth(
   options: CreateServerAuthOptions,
 ): SwappableServerAuth {
   let current = createServerAuth(options);
+  let closing = false;
   let rebuildTail = Promise.resolve();
   // The Proxy target is only a structural placeholder; every access reads the
   // live `current` instance (updated by rebuild()), not the target.
@@ -436,6 +437,9 @@ export function createSwappableServerAuth(
   return {
     auth: proxy,
     rebuild() {
+      if (closing) {
+        return Promise.reject(new Error('Auth is shutting down.'));
+      }
       const pending = rebuildTail.then(async () => {
         await current.ensureReady();
         const replacement = createServerAuth({
@@ -451,6 +455,7 @@ export function createSwappableServerAuth(
       return pending;
     },
     async waitForIdle() {
+      closing = true;
       await rebuildTail;
       await current.ensureReady();
     },

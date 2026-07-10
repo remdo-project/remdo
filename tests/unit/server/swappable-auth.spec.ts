@@ -123,6 +123,7 @@ describe('createSwappableServerAuth', () => {
     const waitForIdle = swappable.waitForIdle().then(() => {
       idle = true;
     });
+    await expect(swappable.rebuild()).rejects.toThrow('Auth is shutting down.');
     await new Promise<void>((resolve) => {
       setImmediate(resolve);
     });
