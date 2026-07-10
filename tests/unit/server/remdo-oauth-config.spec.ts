@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createServerAuth } from '#server/auth/auth';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { createServerDatabaseClient } from '#server/db/client';
@@ -77,6 +77,8 @@ describe('genericOAuth provider for a public-client source', () => {
   afterEach(async () => {
     await serverAuth?.ensureReady();
     await database.close();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('builds a provider that omits clientSecret and keeps pkce true', () => {
@@ -100,5 +102,76 @@ describe('genericOAuth provider for a public-client source', () => {
     expect(configs[0]?.providerId).toBe(sourceId);
     expect(configs[0]?.pkce).toBe(true);
     expect(configs[0]?.clientSecret).toBeUndefined();
+  });
+
+  it('does not implicitly link a same-email source account during normal sign-in', async () => {
+    const sourceId = deriveSourceId('https://source.example');
+    serverAuth = createServerAuth({
+      allowSignup: false,
+      baseURL: 'http://127.0.0.1:4000',
+      database,
+      secret: 'test-better-auth-secret-0123456789',
+      sourceServers: [{
+        baseUrl: 'https://source.example',
+        credentials: { clientId: 'public-client-id' },
+        id: sourceId,
+        label: 'source.example',
+      }],
+    });
+    await serverAuth.ensureReady();
+    const authContext = await serverAuth.auth.$context;
+    vi.spyOn(authContext.logger, 'error').mockImplementation(() => {});
+    const email = 'same-email@example.com';
+    const createUser = await serverAuth.createUser({
+      email,
+      name: 'Local User',
+      password: 'local-password-1234',
+    }, new Headers());
+    expect(createUser.ok).toBe(true);
+    database.sqlite.prepare('UPDATE user SET emailVerified = 1 WHERE email = ?').run(email);
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith('/api/auth/oauth2/token')) {
+        return Response.json({
+          access_token: 'source-access-token',
+          token_type: 'Bearer',
+        });
+      }
+      if (url.endsWith('/api/auth/oauth2/userinfo')) {
+        return Response.json({
+          sub: 'source-user-id',
+          email,
+          email_verified: true,
+          name: 'Source User',
+        });
+      }
+      throw new Error(`Unexpected OAuth request: ${url}`);
+    }));
+    const signIn = await serverAuth.auth.api.signInSocial({
+      body: {
+        callbackURL: '/done',
+        provider: sourceId,
+      },
+      asResponse: true,
+    });
+    const authorizationUrl = new URL((await signIn.json() as { url: string }).url);
+    const callbackUrl = new URL(`/api/auth/callback/${sourceId}`, serverAuth.baseURL);
+    callbackUrl.searchParams.set('code', 'source-code');
+    callbackUrl.searchParams.set('state', authorizationUrl.searchParams.get('state')!);
+    callbackUrl.searchParams.set('iss', 'https://source.example');
+    const cookies = signIn.headers.getSetCookie()
+      .map((cookie) => cookie.split(';', 1)[0])
+      .join('; ');
+
+    const callback = await serverAuth.auth.handler(new Request(callbackUrl, {
+      headers: { cookie: cookies },
+    }));
+
+    expect(callback.status).toBe(302);
+    expect(callback.headers.get('location')).toContain('error=account_not_linked');
+    const linkedAccounts = database.sqlite
+      .prepare('SELECT providerId FROM account WHERE providerId = ?')
+      .all(sourceId);
+    expect(linkedAccounts).toEqual([]);
   });
 });

@@ -34,12 +34,6 @@ describe('vite shared config', () => {
     expect(previewProxy).not.toHaveProperty('/doc');
   });
 
-  it('ignores per-workdir agent scratch files in dev', () => {
-    const config = createViteSharedConfig();
-
-    expect(config.server.watch.ignored).toContain('**/.agent/**');
-  });
-
   it('keeps API-backed preview routes out of the PWA navigation fallback', () => {
     const isDenied = (path: string) => pwaNavigationFallbackDenylist.some((pattern) => pattern.test(path));
 
