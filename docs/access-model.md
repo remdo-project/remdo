@@ -118,7 +118,8 @@ sharing level, sharing still targets a local account on the document's server.
 - Home server: stores the user's OAuth account tokens for linked source
   accounts.
 - Source linking: the home server starts OAuth, the user signs in on the source
-  server, and Better Auth stores the resulting linked account.
+  server, and Better Auth stores the resulting linked account. Home and source
+  accounts are independent identities; their email addresses need not match.
 - Delegation scope: a linked source OAuth token is treated as the
   linking user's full delegate on that source server. The home server may call
   authenticated RemDo APIs as that source user, subject to the same owner/grant

@@ -81,9 +81,11 @@ function createBetterAuthInstance({
     database,
     account: {
       accountLinking: {
-        // Source linking is always an explicit, authenticated action. Trust the
-        // configured sources for that flow without allowing same-email OAuth
-        // sign-ins to attach a source account implicitly.
+        // Source linking is an explicit, authenticated delegation between two
+        // independently identified accounts, so their emails need not match.
+        // Trust configured sources for that flow without allowing same-email
+        // OAuth sign-ins to attach a source account implicitly.
+        allowDifferentEmails: true,
         disableImplicitLinking: true,
         trustedProviders: sourceServers.map((server) => server.id),
       },
