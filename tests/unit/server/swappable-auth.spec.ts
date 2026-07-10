@@ -28,6 +28,7 @@ function liveProviderIds(swappable: ReturnType<typeof createSwappableServerAuth>
 describe('createSwappableServerAuth', () => {
   let dir: string;
   let database: SqliteServerDatabaseClient;
+  let swappable: ReturnType<typeof createSwappableServerAuth> | undefined;
 
   beforeEach(() => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-swappable-auth-'));
@@ -35,17 +36,19 @@ describe('createSwappableServerAuth', () => {
   });
 
   afterEach(async () => {
+    await swappable?.auth.ensureReady();
     await database.close();
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
   function build() {
-    return createSwappableServerAuth({
+    swappable = createSwappableServerAuth({
       allowSignup: false,
       baseURL: 'http://127.0.0.1:4000',
       database,
       secret: 'test-better-auth-secret-0123456789',
     });
+    return swappable;
   }
 
   it('rebuild() makes a source registered after construction a live provider', async () => {
@@ -59,7 +62,7 @@ describe('createSwappableServerAuth', () => {
     expect(swappable.auth.sourceServers).toEqual([]);
     expect(liveProviderIds(swappable)).toEqual([]);
 
-    swappable.rebuild();
+    await swappable.rebuild();
     expect(swappable.auth.sourceServers).toHaveLength(1);
     expect(swappable.auth.sourceServers[0]).toMatchObject({
       id: SOURCE_ID,

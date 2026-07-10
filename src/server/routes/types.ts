@@ -7,7 +7,7 @@ export interface ServerRouteDependencies {
   adminSecret?: string;
   auth: ServerAuth;
   database: SqliteServerDatabaseClient;
-  rebuildAuth: () => void;
+  rebuildAuth: () => Promise<void>;
   tokenManager: YSweetDocumentTokenManager;
   registry: DocumentRegistry;
   logError: (error: unknown, details: { docId?: string }) => void;

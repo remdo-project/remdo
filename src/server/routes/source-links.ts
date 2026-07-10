@@ -56,7 +56,7 @@ export function createSourceLinkRoutes(dependencies: ServerRouteDependencies) {
       // idempotent; doing it always (not only when this request registered the
       // client) closes the concurrent-first-link window where one racer cached the
       // client but another reaches OAuth before that racer's own rebuild.
-      rebuildAuth();
+      await rebuildAuth();
       return await auth.auth.api.linkSocialAccount({
         body: {
           provider: sourceId,

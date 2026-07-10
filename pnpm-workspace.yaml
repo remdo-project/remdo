@@ -22,6 +22,9 @@ updateConfig:
     # Probe: npm view @better-auth/oauth-provider version
     - '@better-auth/oauth-provider'
     - better-auth
+    # TODO(deps): retry Kysely 0.29 after Better Auth publishes its adapter fix.
+    # Probe: npm view @better-auth/kysely-adapter version
+    - kysely
     # TODO(deps): retry after Lexical 0.47 clears minimumReleaseAge; 0.46 fails editor invariants.
     # Probe: npm view lexical 'time[0.47.0]'
     - '@lexical/*'
@@ -44,6 +47,7 @@ overrides:
   fast-uri: '>=3.1.2'
   glob>minimatch: 10.2.4
   js-yaml: 4.2.0
+  kysely: 0.28.17
   markdown-it: '>=14.2.0'
   qs: 6.15.2
   serialize-javascript: 7.0.5
@@ -97,7 +101,7 @@ catalog:
   jscpd: ^5.0.12
   jsdom: ^29.1.1
   knip: ^6.25.0
-  kysely: ^0.29.3
+  kysely: 0.28.17
   lexical: ^0.45.0
   linkify-it: ^5.0.2
   markdownlint-cli2: ^0.23.0

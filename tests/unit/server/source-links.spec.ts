@@ -117,7 +117,14 @@ describe('post /api/current-user/source-links', () => {
   it('ensures a source client and reaches linkSocialAccount for a valid URL from any signed-in user', async () => {
     const harness = createHarness({ allowSignup: false, swappableAuth: true });
     const headers = await harness.createSessionHeaders();
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ client_id: 'source-client-id' }), { status: 201 }));
+    let registeredRedirectUri: string | undefined;
+    let registeredResource: string | undefined;
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const registration = JSON.parse(String(init?.body)) as { redirect_uris: string[]; resources: string[] };
+      [registeredRedirectUri] = registration.redirect_uris;
+      [registeredResource] = registration.resources;
+      return new Response(JSON.stringify({ client_id: 'source-client-id' }), { status: 201 });
+    });
     vi.stubGlobal('fetch', fetchMock);
 
     const response = await postJson(harness.app, '/api/current-user/source-links', { url: 'https://source.example' }, headers);
@@ -127,8 +134,10 @@ describe('post /api/current-user/source-links', () => {
       expect.objectContaining({ method: 'POST' }),
     );
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      url: expect.stringContaining('https://source.example/api/auth/oauth2/authorize'),
-    });
+    const result = await response.json() as { url: string };
+    expect(result.url).toContain('https://source.example/api/auth/oauth2/authorize');
+    const authorizationUrl = new URL(result.url);
+    expect(authorizationUrl.searchParams.get('redirect_uri')).toBe(registeredRedirectUri);
+    expect(authorizationUrl.searchParams.get('resource')).toBe(registeredResource);
   });
 });

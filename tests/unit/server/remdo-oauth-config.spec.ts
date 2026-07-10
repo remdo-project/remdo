@@ -70,6 +70,7 @@ describe('deriveSourceId', () => {
 describe('genericOAuth provider for a public-client source', () => {
   let dir: string;
   let database: SqliteServerDatabaseClient;
+  let serverAuth: ReturnType<typeof createServerAuth> | undefined;
 
   beforeEach(() => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-oauth-config-'));
@@ -77,6 +78,7 @@ describe('genericOAuth provider for a public-client source', () => {
   });
 
   afterEach(async () => {
+    await serverAuth?.ensureReady();
     await database.close();
     fs.rmSync(dir, { recursive: true, force: true });
   });
@@ -89,7 +91,7 @@ describe('genericOAuth provider for a public-client source', () => {
       id: sourceId,
       label: 'source.example',
     }];
-    const { auth } = createServerAuth({
+    serverAuth = createServerAuth({
       allowSignup: false,
       baseURL: 'http://127.0.0.1:4000',
       database,
@@ -97,7 +99,7 @@ describe('genericOAuth provider for a public-client source', () => {
       sourceServers,
     });
 
-    const configs = genericOAuthProviderConfigs(auth);
+    const configs = genericOAuthProviderConfigs(serverAuth.auth);
     expect(configs).toHaveLength(1);
     expect(configs[0]?.providerId).toBe(sourceId);
     expect(configs[0]?.pkce).toBe(true);

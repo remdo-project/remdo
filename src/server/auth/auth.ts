@@ -91,6 +91,7 @@ function createBetterAuthInstance({
   secret: string;
   trustedOrigins: readonly string[];
 }) {
+  const serverOrigin = new URL(baseURL).origin;
   return betterAuth({
     basePath: '/api/auth',
     baseURL,
@@ -98,6 +99,15 @@ function createBetterAuthInstance({
     secret,
     logger: config.isProd ? undefined : { level: 'error' },
     database,
+    account: {
+      accountLinking: {
+        // Source linking is always an explicit, authenticated action. Trust the
+        // configured sources for that flow without allowing same-email OAuth
+        // sign-ins to attach a source account implicitly.
+        disableImplicitLinking: true,
+        trustedProviders: sourceServers.map((server) => server.id),
+      },
+    },
     emailAndPassword: {
       enabled: true,
       disableSignUp: !allowSignup,
@@ -118,6 +128,11 @@ function createBetterAuthInstance({
         consentPage: '/oauth/consent',
         loginPage: '/login',
         scopes: [...REMDO_SERVER_OAUTH_SCOPES],
+        // Better Auth's resource model binds access-token audiences to explicit
+        // protected resources. A RemDo source exposes exactly its own canonical
+        // origin, and dynamic registration links each home client to that origin;
+        // keep the provider's default per-client resource enforcement enabled.
+        resources: [serverOrigin],
         // A public server acts as a source: a home self-registers its OAuth client
         // by a server-to-server call (no source session), so the source must accept
         // UNAUTHENTICATED dynamic registration. The registered client is public
@@ -156,6 +171,7 @@ function createBetterAuthInstance({
             providerId: server.id,
             authorizationUrl: `${server.baseUrl}/api/auth/oauth2/authorize`,
             tokenUrl: `${server.baseUrl}/api/auth/oauth2/token`,
+            userInfoUrl: `${server.baseUrl}/api/auth/oauth2/userinfo`,
             issuer: normalizeSourceIssuer(server.baseUrl),
             requireIssuerValidation: true,
             clientId: server.credentials.clientId,
@@ -279,6 +295,10 @@ export function createServerAuth({
         readyPromise = (async () => {
           const { runMigrations } = await getMigrations(auth.options);
           await runMigrations();
+          // Better Auth starts plugin initialization at construction time. Keep
+          // every instance that shares this database inside RemDo's readiness
+          // boundary so resource seeding cannot outlive the database owner.
+          await Promise.all([auth.$context, userProvisioningAuth.$context]);
         })().catch((error) => {
           readyPromise = null;
           throw error;
@@ -403,7 +423,7 @@ export interface SwappableServerAuth {
   auth: ServerAuth;
   // Rebuilds the underlying auth from the current DB source list, so a source
   // registered this session becomes a usable OAuth provider without a restart.
-  rebuild: () => void;
+  rebuild: () => Promise<void>;
 }
 
 export function createSwappableServerAuth(
@@ -420,11 +440,14 @@ export function createSwappableServerAuth(
   });
   return {
     auth: proxy,
-    rebuild() {
-      current = createServerAuth({
+    async rebuild() {
+      await current.ensureReady();
+      const replacement = createServerAuth({
         ...options,
         sourceServers: readSourceServersSync(options.database),
       });
+      await replacement.ensureReady();
+      current = replacement;
     },
   };
 }
