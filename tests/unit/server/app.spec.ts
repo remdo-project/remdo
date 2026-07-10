@@ -74,6 +74,28 @@ describe('remdo api app', () => {
     ]);
   });
 
+  it('rejects source OAuth callbacks whose issuer is missing or mismatched', async () => {
+    const harness = createHarnessWithSourceServer();
+
+    for (const [query, error] of [
+      ['code=test&state=test', 'issuer_missing'],
+      ['code=test&state=test&iss=https%3A%2F%2Fother.example', 'issuer_mismatch'],
+    ] as const) {
+      const response = await harness.app.request(`/api/auth/callback/source?${query}`);
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get('location')).toBe(
+        `http://127.0.0.1:4000/api/auth/error?error=${error}`,
+      );
+    }
+
+    const matchingIssuer = await harness.app.request(
+      '/api/auth/callback/source?code=test&state=test&iss=https%3A%2F%2Fsource.example',
+    );
+    expect(matchingIssuer.status).toBe(302);
+    expect(matchingIssuer.headers.get('location')).toContain('error=state_mismatch');
+  });
+
   it('rejects cross-site form-style browser mutations with Hono CSRF protection', async () => {
     const harness = createHarnessWithSourceServer();
     const headers = await harness.createSessionHeaders();

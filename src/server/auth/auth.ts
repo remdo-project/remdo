@@ -6,7 +6,7 @@ import {
 import { betterAuth } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import type Database from 'better-sqlite3';
-import { admin, genericOAuth, jwt } from 'better-auth/plugins';
+import { admin, genericOAuth, jwt, type GenericOAuthConfig } from 'better-auth/plugins';
 import type { ExpressionBuilder } from 'kysely';
 import { config } from '#config';
 import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
@@ -35,10 +35,11 @@ export const REMDO_SERVER_OAUTH_SCOPES = [
 // Deliberate mirror of Better Auth's `validateIssuerUrl` (in
 // @better-auth/oauth-provider): it hard-codes `if (protocol !== 'https:' &&
 // !isLoopbackHost(host)) protocol = 'https:'` when a source advertises its
-// issuer, and that upgrade is not configurable. The home's requireIssuerValidation
-// compares against this value, so we must classify loopback the same way or a
-// token is rejected as an issuer mismatch. Keep this in sync with upstream's
-// `isLoopbackHost`. Preferred long-term fix (see docs/access-model.md#future):
+// issuer, and that upgrade is not configurable. The home's callback issuer
+// guard compares against this value, so we must classify loopback the same way
+// or a valid callback is rejected as an issuer mismatch. Keep this in sync with
+// upstream's `isLoopbackHost`. Preferred long-term fix (see
+// docs/access-model.md#future):
 // reject non-loopback http sources at add time so every stored origin is one
 // upstream leaves alone, making `issuer: server.baseUrl` correct and this mirror
 // deletable.
@@ -172,8 +173,6 @@ function createBetterAuthInstance({
             authorizationUrl: `${server.baseUrl}/api/auth/oauth2/authorize`,
             tokenUrl: `${server.baseUrl}/api/auth/oauth2/token`,
             userInfoUrl: `${server.baseUrl}/api/auth/oauth2/userinfo`,
-            issuer: normalizeSourceIssuer(server.baseUrl),
-            requireIssuerValidation: true,
             clientId: server.credentials.clientId,
             // Public client: no secret; PKCE authenticates the token exchange.
             scopes: [...REMDO_SERVER_OAUTH_SCOPES],
@@ -182,7 +181,7 @@ function createBetterAuthInstance({
             authorizationUrlParams: {
               resource: server.baseUrl,
             },
-          }];
+          } satisfies GenericOAuthConfig];
         }),
       }),
     ],
