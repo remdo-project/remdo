@@ -125,7 +125,7 @@ a required fresh-context rung with an inline review by the coordinating session.
    - **Report back / triage:** its findings, triaged under the loop rules.
 
 3. **External reviews** — invoke every reviewer in the current runtime's
-   configured group, in order, for independent outside reads:
+   configured group concurrently as one review wave:
    - **Objective:** a fresh external read from a separate process.
    - **Scope passed:** the diff under review, **scope only, no review angle** —
      leading prompt framing defeats the point.
@@ -134,9 +134,14 @@ a required fresh-context rung with an inline review by the coordinating session.
      floating `origin/main` ref; working-tree scope uses the reviewer's
      uncommitted mode. This keeps the scope fixed if `origin/main` advances
      mid-loop.
+   - **Wave barrier:** launch every configured reviewer through the runtime's
+     managed parallel-call/process surface, never by shell-backgrounding a
+     command. Do not edit, stage, commit, or otherwise change the scope until
+     every reviewer finishes, so they all read the same snapshot.
    - **Claude Code adapter:** use `codex review` (`--base
-     <anchored-base-sha>` or `--uncommitted`).
-   - **Codex adapter:** run both of these reviewers in order:
+     <anchored-base-sha>` or `--uncommitted`); its one-reviewer group is a
+     one-member wave.
+   - **Codex adapter:** run both of these reviewers concurrently:
      1. `coderabbit:code-review` / `coderabbit review --agent`
         (`--base-commit <anchored-base-sha>` for committed ranges, `-t
         uncommitted` for working-tree scope).
@@ -148,12 +153,22 @@ a required fresh-context rung with an inline review by the coordinating session.
         findings only and not edit, stage, commit, or run mutating checks. Do
         not use `claude ultrareview`: refine already owns the review ladder and
         scope contract.
-   - **Settle unit:** treat each named reviewer as its own sub-rung: triage its
-     findings and rerun that reviewer until it settles before invoking the next.
-     The confirmation cycle re-runs every named reviewer in the same order.
-   - **Missing dependency:** if a required reviewer is unavailable, stop and
-     report it rather than silently skipping or replacing that reviewer.
-   - **Report back / triage:** its findings, triaged under the loop rules.
+   - **Settle unit:** await a complete successful wave, then combine its finding
+     reports. Deduplicate the same underlying issue while preserving every
+     reviewer's provenance; keep conflicting recommendations separate for
+     triage. Apply each approved fix once, after the barrier. Any approved fix
+     reruns the whole group concurrently; the rung settles only when one wave
+     produces no approved fixes.
+   - **Missing or failed reviewer:** confirm every required reviewer is available
+     before launching the wave. If any invocation fails, await and record the
+     remaining outcomes, then stop before triaging or applying findings from the
+     incomplete wave; never silently skip or replace a reviewer. Treat partial
+     output from the failed invocation as failure diagnostics, not a finding
+     report, with zero disposition counts. A later refine invocation resolves
+     its scope and starts a new ledger as usual; when it reaches this rung, it
+     starts the whole external wave again rather than reusing a prior result.
+   - **Report back / triage:** the combined findings, triaged under the loop
+     rules.
 
 Forward the `AGENTS.md` findings-suppression rule to every rung and subagent.
 
@@ -163,13 +178,20 @@ Keep one in-memory ledger from scope resolution through final checks. For every
 finder invocation, record its named step and ordinal, elapsed wall time,
 findings surfaced, approved findings applied, tradeoffs recorded in
 `docs/todo.md`, and outcome (`findings`, `clean`, `blocked`, or `failed`). Update
-the disposition counts after triage. Record each final verification command's
-elapsed time and the refine run's total wall time.
+the disposition counts after triage. Add an invocation to the ledger when it
+reaches a terminal outcome; no interim outcome is needed while a parallel call
+is running. Record each final verification command's elapsed time and the refine
+run's total wall time.
 
 One invocation is one top-level call from refine to a subagent or CLI reviewer.
 Do not count or normalize hidden vendor/model requests, tokens, or cost. Use
 timestamps or duration metadata available to the coordinating runtime; do not
 instrument reviewers or ask finder subagents to time themselves.
+
+When several reviewers surface the same issue, count it as surfaced by each.
+After the shared triage, give each reviewer's copy the accepted disposition in
+its `Applied` or `Tradeoffs` count, while applying the fix or recording the
+tradeoff only once.
 
 ## The loop
 
