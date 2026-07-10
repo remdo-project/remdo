@@ -18,8 +18,12 @@ updateNotifier: false
 
 updateConfig:
   ignoreDependencies:
+    # TODO(deps): return to stable Better Auth after 1.7.0 ships with GHSA-p2fr-6hmx-4528 fixed.
+    # Probe: npm view @better-auth/oauth-provider version
+    - '@better-auth/oauth-provider'
+    - better-auth
     # TODO(deps): retry after Lexical 0.47 clears minimumReleaseAge; 0.46 fails editor invariants.
-    # Probe: pnpm view lexical time.0.47.0 --json
+    # Probe: npm view lexical 'time[0.47.0]'
     - '@lexical/*'
     - lexical
     # TODO(deps): remove this hold when @typescript-eslint supports TypeScript 7.
@@ -48,7 +52,7 @@ overrides:
 catalog:
   '@antfu/eslint-config': 9.1.0
   '@ast-grep/cli': ^0.44.1
-  '@better-auth/oauth-provider': 1.6.23
+  '@better-auth/oauth-provider': 1.7.0-rc.1
   '@eslint-react/eslint-plugin': ^5.13.1
   '@hono/node-server': ^2.0.8
   '@lexical/clipboard': ^0.45.0
@@ -78,7 +82,7 @@ catalog:
   '@vitest/ui': 4.1.10
   '@y-sweet/client': ^0.9.1
   '@y-sweet/sdk': ^0.9.1
-  better-auth: ^1.6.23
+  better-auth: 1.7.0-rc.1
   better-sqlite3: ^12.11.1
   chokidar-cli: ^3.0.0
   concurrently: ^10.0.3

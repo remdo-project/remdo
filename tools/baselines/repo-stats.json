@@ -1,52 +1,56 @@
 {
-  "generatedAt": "2026-06-25T18:28:24.548Z",
+  "generatedAt": "2026-07-10T10:31:41.372Z",
   "files": {
-    "totalFiles": 524,
-    "textFiles": 521,
+    "totalFiles": 600,
+    "textFiles": 595,
     "byType": {
       "ts": {
-        "files": 318,
-        "lines": 31507
+        "files": 355,
+        "lines": 35944
       },
       "tsx": {
-        "files": 70,
-        "lines": 11105
+        "files": 85,
+        "lines": 13177
       },
       "md": {
-        "files": 37,
-        "lines": 3333
+        "files": 41,
+        "lines": 3772
       },
       "json": {
-        "files": 30,
-        "lines": 2219
+        "files": 32,
+        "lines": 16827
       },
       "sh": {
-        "files": 19,
-        "lines": 1199
+        "files": 26,
+        "lines": 1802
       },
       "yml": {
-        "files": 13,
-        "lines": 230
+        "files": 12,
+        "lines": 210
       },
       "css": {
-        "files": 8,
-        "lines": 880
+        "files": 10,
+        "lines": 944
       },
       "svg": {
         "files": 8,
         "lines": 21
       },
+      "yaml": {
+        "files": 8,
+        "lines": 198
+      },
+      "mjs": {
+        "files": 4,
+        "lines": 230
+      },
       "mts": {
         "files": 4,
-        "lines": 495
-      },
-      "yaml": {
-        "files": 3,
-        "lines": 144
+        "lines": 543
       },
       "jsonc": {
         "files": 2,
-        "lines": 58
+        "lines": 105
       },
       "caddyfile": {
         "files": 1,
@@ -58,7 +62,7 @@
       },
       "dockerfile": {
         "files": 1,
-        "lines": 101
+        "lines": 102
       },
       "example": {
         "files": 1,
@@ -66,7 +70,7 @@
       },
       "gitignore": {
         "files": 1,
-        "lines": 21
+        "lines": 23
       },
       "html": {
         "files": 1,
@@ -75,26 +79,22 @@
       "license": {
         "files": 1,
         "lines": 17
-      },
-      "mjs": {
-        "files": 1,
-        "lines": 3
       }
     }
   },
   "tests": {
-    "unit": 777,
-    "collab": 820,
-    "e2e": 99,
-    "totalUnique": 919
+    "unit": 978,
+    "collab": 1023,
+    "e2e": 141,
+    "totalUnique": 1164
   },
   "totals": {
     "files": {
-      "files": 520,
-      "lines": 51436
+      "files": 594,
+      "lines": 74018
     },
     "tests": {
-      "totalUnique": 919
+      "totalUnique": 1164
     }
   }
 }

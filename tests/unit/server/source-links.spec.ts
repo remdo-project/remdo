@@ -114,7 +114,7 @@ describe('post /api/current-user/source-links', () => {
     expect(response.status).toBe(500);
   });
 
-  it('ensures a source client and reaches oAuth2LinkAccount for a valid URL from any signed-in user', async () => {
+  it('ensures a source client and reaches linkSocialAccount for a valid URL from any signed-in user', async () => {
     const harness = createHarness({ allowSignup: false, swappableAuth: true });
     const headers = await harness.createSessionHeaders();
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ client_id: 'source-client-id' }), { status: 201 }));

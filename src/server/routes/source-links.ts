@@ -57,9 +57,9 @@ export function createSourceLinkRoutes(dependencies: ServerRouteDependencies) {
       // client) closes the concurrent-first-link window where one racer cached the
       // client but another reaches OAuth before that racer's own rebuild.
       rebuildAuth();
-      return await auth.auth.api.oAuth2LinkAccount({
+      return await auth.auth.api.linkSocialAccount({
         body: {
-          providerId: sourceId,
+          provider: sourceId,
           callbackURL: '/sharing',
           scopes: [...REMDO_SERVER_OAUTH_SCOPES],
         },
