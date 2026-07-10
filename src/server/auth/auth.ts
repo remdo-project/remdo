@@ -56,19 +56,15 @@ function isLoopbackForDevScheme(hostname: string): boolean {
     || IPV4_LOOPBACK_PATTERN.test(hostname);
 }
 
-export function normalizeSourceIssuer(baseUrl: string): string {
-  try {
-    const url = new URL(baseUrl);
-    // url.hostname keeps the brackets for IPv6 (e.g. `[::1]`); strip them so the
-    // `::1` loopback check matches, mirroring Better Auth's host normalization.
-    const hostname = url.hostname.replace(/^\[|\]$/gu, '');
-    if (url.protocol !== 'https:' && !isLoopbackForDevScheme(hostname)) {
-      url.protocol = 'https:';
-    }
-    return url.origin;
-  } catch {
-    return baseUrl;
+export function normalizeSourceIssuer(sourceOrigin: string): string {
+  const url = new URL(sourceOrigin);
+  // url.hostname keeps the brackets for IPv6 (e.g. `[::1]`); strip them so the
+  // `::1` loopback check matches, mirroring Better Auth's host normalization.
+  const hostname = url.hostname.replace(/^\[|\]$/gu, '');
+  if (url.protocol !== 'https:' && !isLoopbackForDevScheme(hostname)) {
+    url.protocol = 'https:';
   }
+  return url.origin;
 }
 
 interface OAuthClientCredentials {

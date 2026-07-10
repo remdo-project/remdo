@@ -96,11 +96,13 @@ describe('remdo api app', () => {
       );
     }
 
+    const authHandler = vi.spyOn(harness.auth.auth, 'handler')
+      .mockResolvedValue(new Response(null, { status: 204 }));
     const matchingIssuer = await harness.app.request(
       `/api/auth/callback/${sourceId}?code=test&state=test&iss=https%3A%2F%2Fsource.example`,
     );
-    expect(matchingIssuer.status).toBe(302);
-    expect(matchingIssuer.headers.get('location')).toContain('error=state_mismatch');
+    expect(matchingIssuer.status).toBe(204);
+    expect(authHandler).toHaveBeenCalledOnce();
   });
 
   it('rejects cross-site form-style browser mutations with Hono CSRF protection', async () => {
