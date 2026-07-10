@@ -1,6 +1,3 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createServerAuth } from '#server/auth/auth';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
@@ -70,19 +67,16 @@ describe('deriveSourceId', () => {
 // the built genericOAuth provider must still exist and authenticate via PKCE
 // alone, per docs/access-model.md#linking-a-source.
 describe('genericOAuth provider for a public-client source', () => {
-  let dir: string;
   let database: SqliteServerDatabaseClient;
   let serverAuth: ReturnType<typeof createServerAuth> | undefined;
 
   beforeEach(() => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-oauth-config-'));
-    database = createServerDatabaseClient({ dbPath: path.join(dir, 'remdo.sqlite') });
+    database = createServerDatabaseClient({ dbPath: ':memory:' });
   });
 
   afterEach(async () => {
     await serverAuth?.ensureReady();
     await database.close();
-    fs.rmSync(dir, { recursive: true, force: true });
   });
 
   it('builds a provider that omits clientSecret and keeps pkce true', () => {

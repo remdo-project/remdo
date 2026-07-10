@@ -1,6 +1,3 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { getMigrations } from 'better-auth/db/migration';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSwappableServerAuth } from '#server/auth/auth';
@@ -44,19 +41,16 @@ function createDeferred() {
 // restart: rebuild() must re-read the DB source list so a newly cached client_id
 // becomes a live OAuth provider.
 describe('createSwappableServerAuth', () => {
-  let dir: string;
   let database: SqliteServerDatabaseClient;
   let swappable: ReturnType<typeof createSwappableServerAuth> | undefined;
 
   beforeEach(() => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-swappable-auth-'));
-    database = createServerDatabaseClient({ dbPath: path.join(dir, 'remdo.sqlite') });
+    database = createServerDatabaseClient({ dbPath: ':memory:' });
   });
 
   afterEach(async () => {
     await swappable?.auth.ensureReady();
     await database.close();
-    fs.rmSync(dir, { recursive: true, force: true });
   });
 
   function build() {

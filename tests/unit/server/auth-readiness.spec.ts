@@ -1,7 +1,4 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createServerAuth } from '#server/auth/auth';
 import { createServerDatabaseClient } from '#server/db/client';
 
@@ -49,28 +46,18 @@ function trackSettlement(promise: Promise<unknown>): () => boolean {
 }
 
 describe('server auth readiness', () => {
-  const tempDirs: string[] = [];
-
   beforeEach(() => {
     betterAuthMock.mockReset();
     getMigrationsMock.mockReset();
     getMigrationsMock.mockResolvedValue({ runMigrations: async () => {} });
   });
 
-  afterEach(() => {
-    for (const dir of tempDirs) {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
   it('waits for every started auth context before reporting initialization failure', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-auth-readiness-'));
-    tempDirs.push(dir);
     const pendingContext = createDeferred();
     betterAuthMock
       .mockReturnValueOnce(fakeBetterAuth(Promise.reject(new Error('context failed'))))
       .mockReturnValueOnce(fakeBetterAuth(pendingContext.promise));
-    const database = createServerDatabaseClient({ dbPath: path.join(dir, 'remdo.sqlite') });
+    const database = createServerDatabaseClient({ dbPath: ':memory:' });
     const auth = createServerAuth({
       allowSignup: false,
       baseURL: 'http://127.0.0.1:4000',
@@ -91,8 +78,6 @@ describe('server auth readiness', () => {
   });
 
   it('waits for every started auth context before reporting migration failure', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-auth-readiness-'));
-    tempDirs.push(dir);
     const pendingContext = createDeferred();
     betterAuthMock
       .mockReturnValueOnce(fakeBetterAuth(Promise.resolve()))
@@ -102,7 +87,7 @@ describe('server auth readiness', () => {
         throw new Error('migration failed');
       },
     });
-    const database = createServerDatabaseClient({ dbPath: path.join(dir, 'remdo.sqlite') });
+    const database = createServerDatabaseClient({ dbPath: ':memory:' });
     const auth = createServerAuth({
       allowSignup: false,
       baseURL: 'http://127.0.0.1:4000',

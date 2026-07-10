@@ -1,8 +1,5 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { getMigrations } from 'better-auth/db/migration';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createServerRuntime } from '#server/runtime';
 
 vi.mock('better-auth/db/migration', async (importOriginal) => {
@@ -22,21 +19,11 @@ function createDeferred() {
 }
 
 describe('server runtime', () => {
-  const tempDirs: string[] = [];
-
-  afterEach(() => {
-    for (const dir of tempDirs) {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
   it('waits for auth initialization before closing the database', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-runtime-'));
-    tempDirs.push(dir);
     const runtime = createServerRuntime({
       allowSignup: false,
       baseURL: 'http://127.0.0.1:4000',
-      dbPath: path.join(dir, 'remdo.sqlite'),
+      dbPath: ':memory:',
       secret: 'test-better-auth-secret-0123456789',
     });
     const actualGetMigrations = vi.mocked(getMigrations).getMockImplementation()!;
@@ -65,12 +52,10 @@ describe('server runtime', () => {
   });
 
   it('closes the database after failed auth initialization', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-runtime-'));
-    tempDirs.push(dir);
     const runtime = createServerRuntime({
       allowSignup: false,
       baseURL: 'http://127.0.0.1:4000',
-      dbPath: path.join(dir, 'remdo.sqlite'),
+      dbPath: ':memory:',
       secret: 'test-better-auth-secret-0123456789',
     });
     const actualGetMigrations = vi.mocked(getMigrations).getMockImplementation()!;
