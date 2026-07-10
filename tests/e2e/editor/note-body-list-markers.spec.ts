@@ -1,7 +1,6 @@
 import { expect, test } from '#editor/fixtures';
+import type { Page } from '#editor/fixtures';
 import { editorLocator } from '#editor/locators';
-
-type EditorPage = Parameters<typeof editorLocator>[0];
 
 // A body-wrapper is a dedicated `.note-body-wrapper` <li> (the BodyWrapperNode),
 // not a `.list-item`, so list markers (bullet, ordered counter, checkbox) — which
@@ -9,7 +8,7 @@ type EditorPage = Parameters<typeof editorLocator>[0];
 // the accessibility tree (see docs/outliner/body.md). These assert that computed
 // state in a real browser, where the marker rules actually apply.
 
-function bodyWrapperForText(page: EditorPage, bodyText: string) {
+function bodyWrapperForText(page: Page, bodyText: string) {
   return editorLocator(page)
     .locator('li.note-body-wrapper')
     .filter({ hasText: bodyText })
@@ -18,7 +17,7 @@ function bodyWrapperForText(page: EditorPage, bodyText: string) {
 
 /** The computed pseudo-element `content` for the li that holds the body. */
 function bodyWrapperPseudoContent(
-  page: EditorPage,
+  page: Page,
   bodyText: string,
   pseudo: '::before' | '::after'
 ) {
@@ -28,7 +27,7 @@ function bodyWrapperPseudoContent(
   );
 }
 
-async function textLeft(page: EditorPage, label: string): Promise<number> {
+async function textLeft(page: Page, label: string): Promise<number> {
   return editorLocator(page)
     .locator('[data-lexical-text="true"]')
     .evaluateAll((elements, text) => {
@@ -44,7 +43,7 @@ async function textLeft(page: EditorPage, label: string): Promise<number> {
 }
 
 async function expectAlignedTextLeft(
-  page: EditorPage,
+  page: Page,
   noteLabel: string,
   bodyText: string
 ) {
@@ -57,7 +56,7 @@ async function expectAlignedTextLeft(
 }
 
 async function bodyTextDecorationLine(
-  page: EditorPage,
+  page: Page,
   bodyText: string
 ): Promise<string> {
   return editorLocator(page)
