@@ -59,4 +59,29 @@ describe('ensureSourceClient', () => {
     const [server] = await listSourceServers(database);
     expect(second.sourceId).toBe(server!.id);
   });
+
+  it('re-registers a cached client from the predecessor callback/resource contract', async () => {
+    await database.db
+      .insertInto('source_servers')
+      .values({
+        base_url: 'https://source.example',
+        client_id: 'legacy-client-id',
+        created_at: Date.now(),
+      })
+      .execute();
+    const registerClient = vi.fn(async () => ({ clientId: 'current-client-id' }));
+
+    await ensureSourceClient(
+      { database, sourceOrigin: 'https://source.example', homeOrigin: 'https://home.private', scopes: ['remdo'] },
+      { registerClient },
+    );
+    await ensureSourceClient(
+      { database, sourceOrigin: 'https://source.example', homeOrigin: 'https://home.private', scopes: ['remdo'] },
+      { registerClient },
+    );
+
+    expect(registerClient).toHaveBeenCalledTimes(1);
+    const [server] = await listSourceServers(database);
+    expect(server!.credentials).toEqual({ clientId: 'current-client-id' });
+  });
 });

@@ -3,6 +3,8 @@ import { registerPublicSourceClient } from '#server/remdo-oauth/source-client-re
 import {
   claimSourceServerPublicClient,
   ensureSourceServerRow,
+  hasCurrentSourceServerPublicClient,
+  replaceLegacySourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
 
 export interface EnsureSourceClientParams {
@@ -35,10 +37,11 @@ export async function ensureSourceClient(
   deps: { registerClient?: typeof registerPublicSourceClient } = {},
 ): Promise<EnsureSourceClientResult> {
   const registerClient = deps.registerClient ?? registerPublicSourceClient;
-  // Get-or-create the row (idempotent, race-safe). If it already has a cached
-  // client, this is a re-link — reuse it, no registration.
+  // Get-or-create the row (idempotent, race-safe). Reuse only clients carrying
+  // the current cache version; predecessor registrations used a different
+  // callback/resource contract and must be replaced before OAuth starts.
   const source = await ensureSourceServerRow(params.database, params.sourceOrigin);
-  if (source.credentials) {
+  if (source.credentials && hasCurrentSourceServerPublicClient(params.database, source.baseUrl)) {
     return { sourceId: source.id };
   }
 
@@ -48,6 +51,15 @@ export async function ensureSourceClient(
     sourceId: source.id,
     scopes: params.scopes,
   });
-  await claimSourceServerPublicClient(params.database, source.baseUrl, clientId);
+  if (source.credentials) {
+    await replaceLegacySourceServerPublicClient(
+      params.database,
+      source.baseUrl,
+      source.credentials.clientId,
+      clientId,
+    );
+  } else {
+    await claimSourceServerPublicClient(params.database, source.baseUrl, clientId);
+  }
   return { sourceId: source.id };
 }
