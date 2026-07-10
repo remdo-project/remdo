@@ -141,7 +141,9 @@ entering its URL on the Sharing page ("Link source").
   later links to the same source (by any user) reuse the cached client. Newly
   registering a source triggers one in-process auth rebuild so it becomes a live
   provider immediately, with no restart. The cached value carries a registration
-  contract version, so a predecessor client is re-registered on its next link.
+  contract version, so a predecessor client is re-registered on its next link;
+  predecessor account links are invalidated because their refresh tokens are
+  client-bound, and each affected user relinks explicitly.
 - Phishing resistance is **structural**, enforced by the source: its OAuth
   authorize and token endpoints require the `redirect_uri` to exactly match the
   client's registered `redirect_uris`. A public, redirect-locked client grants no

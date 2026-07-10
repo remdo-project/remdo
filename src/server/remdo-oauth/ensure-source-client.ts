@@ -52,7 +52,7 @@ export async function ensureSourceClient(
     scopes: params.scopes,
   });
   if (source.credentials) {
-    await replaceLegacySourceServerPublicClient(
+    replaceLegacySourceServerPublicClient(
       params.database,
       source.baseUrl,
       source.credentials.clientId,

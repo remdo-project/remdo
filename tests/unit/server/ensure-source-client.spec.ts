@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createServerDatabaseClient } from '#server/db/client';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { ensureSourceClient } from '#server/remdo-oauth/ensure-source-client';
+import { deriveSourceId } from '#server/remdo-oauth/config';
 import { ensureSourceServerRow, listSourceServers } from '#server/remdo-oauth/source-server-store';
 
 describe('ensureSourceClient', () => {
@@ -61,6 +62,11 @@ describe('ensureSourceClient', () => {
   });
 
   it('re-registers a cached client from the predecessor callback/resource contract', async () => {
+    const sourceId = deriveSourceId('https://source.example');
+    database.sqlite.exec('CREATE TABLE account (providerId TEXT NOT NULL)');
+    database.sqlite
+      .prepare('INSERT INTO account (providerId) VALUES (?), (?), (?)')
+      .run(sourceId, sourceId, 'other-provider');
     await database.db
       .insertInto('source_servers')
       .values({
@@ -83,5 +89,7 @@ describe('ensureSourceClient', () => {
     expect(registerClient).toHaveBeenCalledTimes(1);
     const [server] = await listSourceServers(database);
     expect(server!.credentials).toEqual({ clientId: 'current-client-id' });
+    expect(database.sqlite.prepare('SELECT providerId FROM account ORDER BY providerId').all())
+      .toEqual([{ providerId: 'other-provider' }]);
   });
 });

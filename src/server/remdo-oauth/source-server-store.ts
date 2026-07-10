@@ -134,16 +134,24 @@ export function hasCurrentSourceServerPublicClient(
   return row?.client_id?.startsWith(CURRENT_CLIENT_ID_PREFIX) ?? false;
 }
 
-export async function replaceLegacySourceServerPublicClient(
+export function replaceLegacySourceServerPublicClient(
   database: SqliteServerDatabaseClient,
   baseUrl: string,
   legacyClientId: string,
   clientId: string,
-): Promise<void> {
-  await database.db
-    .updateTable('source_servers')
-    .set({ client_id: encodeClientId(clientId) })
-    .where('base_url', '=', baseUrl)
-    .where('client_id', '=', legacyClientId)
-    .execute();
+): void {
+  database.sqlite.transaction(() => {
+    const replaced = database.sqlite
+      .prepare('UPDATE source_servers SET client_id = ? WHERE base_url = ? AND client_id = ?')
+      .run(encodeClientId(clientId), baseUrl, legacyClientId);
+    if (replaced.changes > 0) {
+      // Refresh tokens are client-bound. Once the server-wide client changes,
+      // every predecessor account must relink instead of failing later with an
+      // opaque refresh error. The user driving this upgrade immediately creates
+      // a fresh account through the explicit link callback.
+      database.sqlite
+        .prepare('DELETE FROM account WHERE providerId = ?')
+        .run(deriveSourceId(baseUrl));
+    }
+  })();
 }
