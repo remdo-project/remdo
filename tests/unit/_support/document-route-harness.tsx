@@ -120,7 +120,7 @@ function MockEditor({
     };
   }, [docId, registerSearchNotesReader, searchModeRequested]);
 
-  const instanceId = React.useRef(`instance-${++mockEditorInstanceCounter}`).current;
+  const [instanceId] = React.useState(() => `instance-${++mockEditorInstanceCounter}`);
   return (
     <>
       <div
