@@ -272,8 +272,7 @@ export function CheckListPlugin() {
               }
             }
           });
-        },
-        { skipInitialization: false }
+        }
       )
     );
   }, [editor]);
