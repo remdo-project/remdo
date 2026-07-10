@@ -136,7 +136,8 @@ If the user rejects the spec at the gate, revert the flow-owned `docs/` and
    `origin/main` advanced since branch creation, suggest `remdo-sync` after the
    tree is clean. Then run `remdo-refine` in committed-range scope over this
    branch's own work (`origin/main...HEAD`). Refine owns the code-quality loop,
-   final checks, and review-finding tradeoff policy.
+   final checks, review-finding tradeoff policy, and quality activity report;
+   retain that report for Phase 5.
 6. For mid-work decisions, use judgment for small blast-radius choices and record
    them in `docs/todo.md`. Stop only for genuine large-blast-radius forks, also
    recording the fork, options, and blocker in `docs/todo.md`.
@@ -150,7 +151,10 @@ The report indexes the diff, not re-narrates it:
 1. What changed, pointing at files/areas.
 2. `docs/todo.md` entries added or resolved.
 3. Any blocker, with gathered data.
-4. Workflow retro: stable improvements go into this shared skill or relevant
+4. Quality: preserve refine's scope, end reason, total elapsed time, per-reviewer
+   activity table, and final-check status. Do not repeat refine's file-by-file
+   fix list when item 1 already indexes those changes.
+5. Workflow retro: stable improvements go into this shared skill or relevant
    docs (see the Execution model's Memory rule for the agent-memory gate).
 
 The work is already committed through the flow/refine by this point. Integration
