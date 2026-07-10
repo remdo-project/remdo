@@ -6,7 +6,7 @@ import { $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
 
 import { prepareEditorStateForPersistence } from '#client/editor/runtime/editor-state-persistence';
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
-import { withHeadlessCollabSession } from '../lib/headless-collab-session';
+import { withHeadlessCollabSession } from '../../src/headless/collab-session';
 
 const PATH_SEPARATOR_PATTERN = /[\\/]+/g;
 const LEADING_DOTS_PATTERN = /^\.+/;

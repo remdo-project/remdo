@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { CollaborationConnectionStatus } from '#collaboration/runtime';
-import { resolveCollaborationIndicatorStatus } from '#client/editor/plugins/collaboration/useCollaborationIndicator';
+import { buildCollaborationIndicatorViewModel } from '#client/editor/plugins/collaboration/useCollaborationIndicator';
 
 function resolveStatus({
   enabled = true,
@@ -12,11 +12,11 @@ function resolveStatus({
   localPersistenceSupported?: boolean;
   connectionStatus?: CollaborationConnectionStatus;
 }) {
-  return resolveCollaborationIndicatorStatus({
+  return buildCollaborationIndicatorViewModel({
     enabled,
     localPersistenceSupported,
     connectionStatus,
-  });
+  }).status;
 }
 
 describe('collaboration indicator status mapping', () => {

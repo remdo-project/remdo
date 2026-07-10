@@ -46,11 +46,7 @@ function resolveLocalPersistenceState({
   return enabled && localPersistenceSupported ? 'enabled' : 'disabled';
 }
 
-export function resolveCollaborationIndicatorStatus(snapshot: CollaborationStatusSnapshot): StatusKey {
-  return buildIndicatorViewModel(snapshot).status;
-}
-
-function buildIndicatorViewModel(snapshot: CollaborationStatusSnapshot): IndicatorViewModel {
+export function buildCollaborationIndicatorViewModel(snapshot: CollaborationStatusSnapshot): IndicatorViewModel {
   const localPersistence = resolveLocalPersistenceState(snapshot);
   const server = resolveServerState(snapshot);
   return {
@@ -90,7 +86,7 @@ export function useCollaborationIndicator(): StatusDescriptor {
     localPersistenceSupported,
     connectionStatus,
   } satisfies CollaborationStatusSnapshot;
-  const view = buildIndicatorViewModel(snapshot);
+  const view = buildCollaborationIndicatorViewModel(snapshot);
   const { icon } = STATUS_CONFIG[view.status];
 
   return {

@@ -25,6 +25,12 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
+## Runtime and tooling source boundaries
+
+- Move runtime config under production source, split `tools/` into explicit
+  prod/dev/e2e ownership, and enforce production import direction; keep
+  `knip.jsonc` aligned as the interim boundary inventory.
+
 ## Search architecture
 
 - Add a document-level SDK visitor/walker API and use it as the shared
