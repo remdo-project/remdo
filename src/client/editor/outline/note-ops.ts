@@ -1,6 +1,5 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
-import type { RangeSelection } from 'lexical';
 import { $indentNote, $outdentNote } from '#client/editor/lexical-helpers';
 import type { OutlineSelectionRange } from './selection/model';
 import { $resolveStructuralHeadsFromRange } from './selection/range';
@@ -14,24 +13,8 @@ import {
   insertBefore,
   maybeRemoveEmptyWrapper,
 } from './list-structure';
-import { resolveContentItemFromNode } from './schema';
-import { $getContiguousSelectionHeads } from './selection/heads';
 import { resolveContiguousSiblingRangeFromHeads } from './selection/sibling-run';
 import { getNextContentSibling, getParentContentItem, isContentDescendantOf, isWithinBoundary } from './selection/tree';
-
-export function $resolveRangeSelectionHeads(selection: RangeSelection): ListItemNode[] {
-  const heads = $getContiguousSelectionHeads(selection);
-  if (heads.length > 0) {
-    return heads;
-  }
-
-  if (!selection.isCollapsed()) {
-    return [];
-  }
-
-  const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
-  return contentItem ? [contentItem] : [];
-}
 
 function canIndentNote(noteItem: ListItemNode, boundaryRoot: ListItemNode | null): boolean {
   if (!isWithinBoundary(noteItem, boundaryRoot)) {

@@ -24,16 +24,33 @@
   "ignore": [
     ".claude/skills/**"
   ],
+  // Test-visible exports that are also used inside their production module are
+  // live implementation details, not dead production code.
+  "ignoreExportsUsedInFile": true,
   "entry": [
+    // Docker bundles these files as production executables; knip does not parse
+    // docker/Dockerfile to discover them.
+    "tools/remdo-api-server.ts!",
+    "tools/snapshot/{cli,backup}.ts!",
+    "tools/bootstrap-secrets.ts!",
     "playwright.docker.config.ts",
     "tests/e2e/setup/*.setup.ts",
-    "tools/**/*.ts",
+    "tools/{check-pnpm-policy,collab-server,repo-stats}.ts",
+    "tools/{dev,e2e}/**/*.ts",
     "tests/perf/**/*.bench.ts",
     "tests/perf/generate-workload.ts",
     "vitest.bench.perf.config.mts"
   ],
   "project": [
-    "{src,tests,tools,config}/**/*.{ts,tsx,mts}",
+    // `!` marks the production graph used by `knip --production`.
+    "src/**/*.{ts,tsx,mts}!",
+    "!src/**/*.spec.{ts,tsx,mts}!",
+    // Shared by dev provisioning and tests, never by a production entry point.
+    "!src/server/auth/session-cookie.ts!",
+    "config/{index.ts,env/**/*.ts}!",
+    "tests/**/*.{ts,tsx,mts}",
+    "config/{_internal,eslint,playwright,vite}/**/*.{ts,tsx,mts}",
+    "tools/lib/**/*.{ts,tsx,mts}",
     ".agents/skills/**/*.{ts,tsx,mts}",
     "*.{ts,mts}"
   ]

@@ -744,6 +744,10 @@ export function getCurrentUserData(): UserDataNote {
   return store.getCurrentUserData();
 }
 
+/**
+ * Test seam for awaiting the asynchronous runtime startup.
+ * @internal
+ */
 export function getUserData(): Promise<UserDataNote> {
   return store.getUserData();
 }

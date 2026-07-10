@@ -16,7 +16,7 @@ import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-stat
 import { readFixtureState } from '#tools/fixtures';
 import { STABLE_AUTH_USERS, provisionDevUsers } from '../lib/stable-auth-users';
 import type { StableAuthUser } from '../lib/stable-auth-users';
-import { waitForEditorUpdate, withHeadlessCollabSession } from '../lib/headless-collab-session';
+import { waitForEditorUpdate, withHeadlessCollabSession } from '../../src/headless/collab-session';
 
 const FIXTURE_DIR = path.resolve('tests/fixtures');
 const FIXTURE_TITLE_PREFIX = 'fixture: ';

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createServerDatabaseClient } from '#server/db/client';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { ensureSourceClient } from '#server/remdo-oauth/ensure-source-client';
-import { ensureSourceServerRow, listSourceServers } from '#server/remdo-oauth/source-server-store';
+import { ensureSourceServerRow, readSourceServersSync } from '#server/remdo-oauth/source-server-store';
 
 describe('ensureSourceClient', () => {
   let dir: string;
@@ -28,7 +28,7 @@ describe('ensureSourceClient', () => {
       { registerClient },
     );
     expect(registerClient).toHaveBeenCalledTimes(1);
-    const [server] = await listSourceServers(database);
+    const [server] = readSourceServersSync(database);
     expect(server!.credentials).toEqual({ clientId: 'cid-1' });
   });
 
@@ -40,7 +40,7 @@ describe('ensureSourceClient', () => {
       { registerClient },
     );
     expect(registerClient).toHaveBeenCalledTimes(1);
-    const [server] = await listSourceServers(database);
+    const [server] = readSourceServersSync(database);
     expect(server!.credentials).toEqual({ clientId: 'cid-1' });
   });
 
@@ -56,7 +56,7 @@ describe('ensureSourceClient', () => {
     );
     // The second link reuses the cached client: no re-registration, same source.
     expect(registerClient).toHaveBeenCalledTimes(1);
-    const [server] = await listSourceServers(database);
+    const [server] = readSourceServersSync(database);
     expect(second.sourceId).toBe(server!.id);
   });
 });

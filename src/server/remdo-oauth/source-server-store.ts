@@ -39,17 +39,6 @@ function rowToStored(row: SourceServerRow): StoredSourceServer {
   };
 }
 
-export async function listSourceServers(
-  database: SqliteServerDatabaseClient,
-): Promise<StoredSourceServer[]> {
-  const rows = await database.db
-    .selectFrom('source_servers')
-    .select(SOURCE_SERVER_READ_COLUMNS)
-    .orderBy('created_at', 'asc')
-    .execute();
-  return rows.map(rowToStored);
-}
-
 // Synchronous read for auth-instance construction, which builds the genericOAuth
 // providers from the source list at startup (better-sqlite3 is synchronous).
 export function readSourceServersSync(
