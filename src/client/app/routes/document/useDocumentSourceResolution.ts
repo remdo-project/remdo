@@ -51,7 +51,7 @@ export function useDocumentSourceResolution(
   const currentDocument = currentSource?.documents().byId(docId) ?? null;
 
   return {
-    currentSource,
+    currentSourceId: currentSource?.id() ?? null,
     documentLabel: currentDocument?.text() ?? docId,
     pending: ambiguous && !localAccessAuthorized,
     sourceId: currentSource?.local() === false ? currentSource.id() : null,

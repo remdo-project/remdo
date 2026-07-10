@@ -75,7 +75,7 @@ export default function DocumentWorkspace({
   return (
     <div className="document-editor-shell" ref={shellRef}>
       <DocumentToolbar
-        currentSourceId={source.currentSource?.id() ?? null}
+        currentSourceId={source.currentSourceId}
         docId={docId}
         documentLabel={source.documentLabel}
         documentSources={documentSources}

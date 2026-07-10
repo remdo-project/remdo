@@ -1,7 +1,7 @@
 import { ActionIcon, Combobox, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconUpload } from '@tabler/icons-react';
 import type { ChangeEvent, ReactNode } from 'react';
-import { useMemo, useRef } from 'react';
+import { useRef } from 'react';
 import { ZoomBreadcrumbs } from '#client/editor/features/zoom/ZoomBreadcrumbs';
 import type { DocumentSourceNote } from '#note-sdk';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
@@ -39,7 +39,7 @@ export default function DocumentToolbar({
   const documentPicker = useCombobox({
     onDropdownClose: () => documentPicker.resetSelectedOption(),
   });
-  const documentGroups = useMemo(() => documentSources.map((source) => ({
+  const documentGroups = documentSources.map((source) => ({
     id: source.id(),
     label: source.text(),
     options: source.documents().children().map((document) => ({
@@ -47,7 +47,7 @@ export default function DocumentToolbar({
       label: formatNavigationLabel(document.text()),
       value: document.id(),
     })),
-  })).filter((source) => source.options.length > 0), [currentSourceId, docId, documentSources]);
+  })).filter((source) => source.options.length > 0);
   const documentOptionsCount = documentGroups.reduce((count, group) => count + group.options.length, 0);
 
   const handleUploadInputChange = (event: ChangeEvent<HTMLInputElement>) => {

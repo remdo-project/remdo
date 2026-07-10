@@ -1,4 +1,4 @@
-import type { EditorNote, EditorNotes, NoteListType } from '#note-sdk';
+import type { NoteListType } from '#note-sdk';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import { matchesPathQuery } from '#client/search/query-match';
 
@@ -40,7 +40,19 @@ export interface DocumentSearchOptions {
   childPreviewLimit: number;
 }
 
-function toChildCandidate(note: EditorNote): ChildCandidate {
+interface SearchableNote {
+  id: () => string;
+  text: () => string;
+  listType: () => NoteListType;
+  checked: () => boolean;
+  children: () => readonly SearchableNote[];
+}
+
+interface SearchableDocument {
+  children: () => readonly SearchableNote[];
+}
+
+function toChildCandidate(note: SearchableNote): ChildCandidate {
   return {
     noteId: note.id(),
     text: note.text(),
@@ -50,7 +62,7 @@ function toChildCandidate(note: EditorNote): ChildCandidate {
 }
 
 interface CandidateWalkEntry {
-  note: EditorNote;
+  note: SearchableNote;
   ancestorPath: NotePathItem[];
 }
 
@@ -65,7 +77,7 @@ interface CandidateWalkEntry {
  * for collected results, never for skipped or merely-peeked notes.
  */
 export function collectDocumentSearchResults(
-  editorNotes: Pick<EditorNotes, 'currentDocument'>,
+  editorNotes: { currentDocument: () => SearchableDocument },
   { query, limit, childPreviewLimit }: DocumentSearchOptions,
 ): DocumentSearchResults {
   const flatResults: SearchCandidate[] = [];

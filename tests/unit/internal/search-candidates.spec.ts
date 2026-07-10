@@ -1,102 +1,39 @@
 import { describe, expect, it, vi } from 'vitest';
 import { meta } from '#tests';
 import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
-import type {
-  BodyNote,
-  CollectionNote,
-  DocumentNote,
-  DocumentAccessNote,
-  DocumentSourceNote,
-  EditorNote,
-  Note,
-  NoteKind,
-  NoteListType,
-  SourceServerNote,
-  UserDataNote,
-} from '#note-sdk';
+import type { NoteListType } from '#note-sdk';
 import { collectDocumentSearchResults } from '#client/editor/search/search-candidates';
 
 const ALL = { query: '', limit: Number.MAX_SAFE_INTEGER, childPreviewLimit: 2 };
 
-function createMockNoteAs(noteId: string, kind: () => NoteKind, self: () => Note): Note['as'] {
-  function asNote(kindToMatch: 'editor-note'): EditorNote;
-  function asNote(kindToMatch: 'body'): BodyNote;
-  function asNote(kindToMatch: 'user-data'): UserDataNote;
-  function asNote(kindToMatch: 'document'): DocumentNote;
-  function asNote(kindToMatch: 'document-access'): DocumentAccessNote;
-  function asNote(kindToMatch: 'document-source'): DocumentSourceNote;
-  function asNote(kindToMatch: 'collection'): CollectionNote;
-  function asNote(kindToMatch: 'source-server'): SourceServerNote;
-  function asNote(kindToMatch: NoteKind): Note;
-  function asNote(kindToMatch: NoteKind): Note {
-    const actualKind = kind();
-    if (actualKind !== kindToMatch) {
-      throw new Error(`Note "${noteId}" is "${actualKind}", expected "${kindToMatch}".`);
-    }
-    return self();
-  }
-  return asNote;
+interface MockEditorNote {
+  id: () => string;
+  text: () => string;
+  listType: () => NoteListType;
+  checked: () => boolean;
+  children: () => MockEditorNote[];
 }
 
 function createMockEditorNote(
   id: string,
   text: string,
-  children: EditorNote[] = [],
+  children: MockEditorNote[] = [],
   options: { listType?: NoteListType; checked?: boolean } = {}
-): EditorNote {
-  const kind = () => 'editor-note' as const;
-  const parent: EditorNote | null = null;
-  const note: EditorNote = {
+): MockEditorNote {
+  return {
     id: () => id,
-    kind,
-    attached: () => true,
     text: () => text,
     listType: () => options.listType ?? 'bullet',
     checked: () => options.checked ?? false,
-    parent: () => parent,
     children: () => children,
-    create: () => {
-      throw new Error('Editor note creation is not used in search candidate tests.');
-    },
-    body: () => null,
-    as: createMockNoteAs(id, kind, () => note),
   };
-  for (const child of children) {
-    (child as { parent: () => EditorNote | null }).parent = () => note;
-  }
-  return note;
 }
 
-function createMockDocumentNote(children: EditorNote[]): DocumentNote {
-  const kind = () => 'document' as const;
-  const accessKind = () => 'collection' as const;
-  const access: CollectionNote<DocumentAccessNote> = {
-    id: () => 'main/access',
-    kind: accessKind,
-    text: () => 'Access',
-    children: () => [],
-    byId: () => null,
-    as: createMockNoteAs('main/access', accessKind, () => access),
-  };
-  const note: DocumentNote = {
-    id: () => 'main',
-    kind,
-    text: () => 'Main',
-    access: () => access,
-    children: () => children,
-    create: () => {
-      throw new Error('Document note creation is not used in search candidate tests.');
-    },
-    shareable: () => false,
-    shareWith: async () => {
-      throw new Error('Document sharing is not used in search candidate tests.');
-    },
-    as: createMockNoteAs('main', kind, () => note),
-  };
-  return note;
+function createMockDocumentNote(children: MockEditorNote[]) {
+  return { children: () => children };
 }
 
-function createDeepChain(depth: number): EditorNote {
+function createDeepChain(depth: number): MockEditorNote {
   let current = createMockEditorNote(`deep-${depth - 1}`, `Deep ${depth - 1}`);
 
   for (let index = depth - 2; index >= 0; index -= 1) {
