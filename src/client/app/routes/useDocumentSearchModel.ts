@@ -7,16 +7,12 @@ import type {
 } from 'react';
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
 import { collectDocumentSearchResults } from '#client/editor/search/search-candidates';
-import type {
-  ChildPreview,
-  SearchCandidate,
-} from '#client/editor/search/search-candidates';
+import type { SearchCandidate } from '#client/editor/search/search-candidates';
 import { useSearchNotes } from '#client/editor/view/EditorViewProvider';
 
 interface SearchResultsState {
   ready: boolean;
   flatResults: SearchCandidate[];
-  childPreviewByNoteId: Record<string, ChildPreview>;
   hasMore: boolean;
 }
 
@@ -39,7 +35,6 @@ const SEARCH_RESULT_LIMIT = 10;
 
 export interface DocumentSearchModel {
   activeResultOptionId?: string;
-  childPreviewByNoteId: Record<string, ChildPreview>;
   flatResults: SearchCandidate[];
   hasMoreResults: boolean;
   handleSearchBlur: () => void;
@@ -63,7 +58,6 @@ const EMPTY_SEARCH_CANDIDATES: SearchCandidate[] = [];
 const EMPTY_SEARCH_RESULTS_STATE: SearchResultsState = {
   ready: false,
   flatResults: EMPTY_SEARCH_CANDIDATES,
-  childPreviewByNoteId: {},
   hasMore: false,
 };
 
@@ -321,7 +315,6 @@ export function useDocumentSearchModel({
     : undefined;
   return {
     activeResultOptionId,
-    childPreviewByNoteId: searchResults.childPreviewByNoteId,
     flatResults,
     hasMoreResults: searchModeActive && searchResults.hasMore,
     handleSearchBlur,

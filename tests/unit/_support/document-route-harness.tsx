@@ -6,7 +6,10 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { vi } from 'vitest';
 import { resetTestUserData } from '#tests';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
-import type { EditorNote, EditorNotes } from '#note-sdk';
+import type {
+  SearchableNote,
+  SearchableNotes,
+} from '#client/editor/search/search-candidates';
 import {
   useEditorViewActions,
   useRegisterSearchNotesReader,
@@ -34,48 +37,20 @@ export interface TestSearchSnapshot {
   childCandidateMap: Record<string, TestSearchCandidate[]>;
 }
 
-function createTestEditorNotes(snapshot: TestSearchSnapshot): EditorNotes {
+function createTestEditorNotes(snapshot: TestSearchSnapshot): SearchableNotes {
   const childMap = snapshot.childCandidateMap;
-  const byId = new Map<string, TestSearchCandidate>();
-  const parentOf = new Map<string, string | null>();
-  for (const [scopeId, children] of Object.entries(childMap)) {
-    for (const child of children) {
-      byId.set(child.noteId, child);
-      parentOf.set(child.noteId, scopeId === ROOT_SEARCH_SCOPE_ID ? null : scopeId);
-    }
-  }
+  const makeNote = (candidate: TestSearchCandidate): SearchableNote => ({
+    id: () => candidate.noteId,
+    text: () => candidate.text,
+    listType: () => candidate.listType ?? 'bullet',
+    checked: () => candidate.checked ?? false,
+    children: () => (childMap[candidate.noteId] ?? []).map(makeNote),
+  });
 
-  const makeNote = (noteId: string): EditorNote => {
-    const candidate = byId.get(noteId);
-    const note: EditorNote = {
-      id: () => noteId,
-      kind: () => 'editor-note',
-      attached: () => byId.has(noteId),
-      text: () => candidate?.text ?? '',
-      listType: () => candidate?.listType ?? 'bullet',
-      checked: () => candidate?.checked ?? false,
-      parent: () => {
-        const parentId = parentOf.get(noteId) ?? null;
-        return parentId === null ? null : makeNote(parentId);
-      },
-      children: () => (childMap[noteId] ?? []).map((child) => makeNote(child.noteId)),
-      create: () => { throw new Error('create() is not used in document route tests.'); },
-      body: () => null,
-      as: ((kind: string) => {
-        if (kind !== 'editor-note') {
-          throw new Error(`mock note is editor-note, not ${kind}`);
-        }
-        return note;
-      }) as EditorNote['as'],
-    };
-    return note;
-  };
-
-  const roots = (childMap[ROOT_SEARCH_SCOPE_ID] ?? []).map((child) => makeNote(child.noteId));
+  const roots = (childMap[ROOT_SEARCH_SCOPE_ID] ?? []).map(makeNote);
   return {
     currentDocument: () => ({ children: () => roots }),
-    note: (noteId: string) => makeNote(noteId),
-  } as unknown as EditorNotes;
+  };
 }
 
 const defaultSnapshot = {

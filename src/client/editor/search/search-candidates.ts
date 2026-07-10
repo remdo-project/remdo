@@ -13,6 +13,7 @@ interface ChildCandidate {
 /** A flat search candidate: a child candidate plus its path (ancestors + self,
  *  self last) for matching and result context. */
 export interface SearchCandidate extends ChildCandidate {
+  childPreview: ChildPreview;
   path: NotePathItem[];
 }
 
@@ -26,8 +27,6 @@ export interface ChildPreview {
 export interface DocumentSearchResults {
   /** Matching notes in document order, capped at the requested limit. */
   flatResults: SearchCandidate[];
-  /** Child preview keyed by result note id, built only for the shown results. */
-  childPreviewByNoteId: Record<string, ChildPreview>;
   /** True when at least one match exists beyond the returned results. */
   hasMore: boolean;
 }
@@ -40,7 +39,7 @@ export interface DocumentSearchOptions {
   childPreviewLimit: number;
 }
 
-interface SearchableNote {
+export interface SearchableNote {
   id: () => string;
   text: () => string;
   listType: () => NoteListType;
@@ -48,8 +47,12 @@ interface SearchableNote {
   children: () => readonly SearchableNote[];
 }
 
-interface SearchableDocument {
+export interface SearchableDocument {
   children: () => readonly SearchableNote[];
+}
+
+export interface SearchableNotes {
+  currentDocument: () => SearchableDocument;
 }
 
 function toChildCandidate(note: SearchableNote): ChildCandidate {
@@ -77,11 +80,10 @@ interface CandidateWalkEntry {
  * for collected results, never for skipped or merely-peeked notes.
  */
 export function collectDocumentSearchResults(
-  editorNotes: { currentDocument: () => SearchableDocument },
+  editorNotes: SearchableNotes,
   { query, limit, childPreviewLimit }: DocumentSearchOptions,
 ): DocumentSearchResults {
   const flatResults: SearchCandidate[] = [];
-  const childPreviewByNoteId: Record<string, ChildPreview> = {};
   let hasMore = false;
 
   const stack: CandidateWalkEntry[] = editorNotes.currentDocument().children()
@@ -106,11 +108,14 @@ export function collectDocumentSearchResults(
     // traversal, so read them once here — but only past the peek-break above.
     const children = note.children();
     if (matches) {
-      flatResults.push({ ...toChildCandidate(note), path });
-      childPreviewByNoteId[note.id()] = {
-        items: children.slice(0, childPreviewLimit).map(toChildCandidate),
-        totalCount: children.length,
-      };
+      flatResults.push({
+        ...toChildCandidate(note),
+        childPreview: {
+          items: children.slice(0, childPreviewLimit).map(toChildCandidate),
+          totalCount: children.length,
+        },
+        path,
+      });
     }
 
     for (let index = children.length - 1; index >= 0; index -= 1) {
@@ -118,5 +123,5 @@ export function collectDocumentSearchResults(
     }
   }
 
-  return { flatResults, childPreviewByNoteId, hasMore };
+  return { flatResults, hasMore };
 }

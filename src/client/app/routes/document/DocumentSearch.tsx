@@ -1,7 +1,6 @@
 import { TextInput } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
-import type { ChildPreview } from '#client/editor/search/search-candidates';
 import {
   UNTITLED_LABEL,
   normalizeNavigationLabel,
@@ -9,7 +8,6 @@ import {
 import { SearchResultRow } from '../SearchResultRow';
 import type { DocumentSearchModel } from '../useDocumentSearchModel';
 
-const EMPTY_CHILD_PREVIEW: ChildPreview = { items: [], totalCount: 0 };
 function buildSearchResultAccessibleName(text: string, path: NotePathItem[]): string {
   const name = normalizeNavigationLabel(text) || UNTITLED_LABEL;
   const ancestors = path.slice(0, -1);
@@ -66,8 +64,7 @@ export function DocumentSearchResults({ model }: { model: DocumentSearchModel })
         role="listbox"
       >
         {model.flatResults.length > 0 ? model.flatResults.map((result, index) => {
-          const childPreview = model.childPreviewByNoteId[result.noteId] ?? EMPTY_CHILD_PREVIEW;
-          const hasChildren = childPreview.totalCount > 0;
+          const hasChildren = result.childPreview.totalCount > 0;
           const isActive = result.noteId === model.highlightedResultNoteId;
           return (
             <li
@@ -90,8 +87,8 @@ export function DocumentSearchResults({ model }: { model: DocumentSearchModel })
               <SearchResultRow
                 ancestorPath={result.path}
                 checked={result.checked}
-                childCount={childPreview.totalCount}
-                childPreview={childPreview.items}
+                childCount={result.childPreview.totalCount}
+                childPreview={result.childPreview.items}
                 onSelectAncestor={model.handleSearchResultClick}
                 query={model.searchQuery}
                 text={result.text}
