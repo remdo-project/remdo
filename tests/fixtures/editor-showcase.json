@@ -144,6 +144,20 @@
                         "type": "text"
                       }
                     ]
+                  },
+                  {
+                    "type": "linebreak"
+                  },
+                  {
+                    "text": "Second body line",
+                    "type": "text"
+                  },
+                  {
+                    "type": "linebreak"
+                  },
+                  {
+                    "text": "Third body line",
+                    "type": "text"
                   }
                 ]
               }
@@ -227,6 +241,23 @@
                         "type": "text"
                       }
                     ]
+                  },
+                  {
+                    "format": "",
+                    "indent": 1,
+                    "type": "note-body-wrapper",
+                    "children": [
+                      {
+                        "format": "",
+                        "type": "note-body",
+                        "children": [
+                          {
+                            "text": "Second step body",
+                            "type": "text"
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
               }
@@ -262,6 +293,23 @@
                       {
                         "text": "Done task",
                         "type": "text"
+                      }
+                    ]
+                  },
+                  {
+                    "format": "",
+                    "indent": 1,
+                    "type": "note-body-wrapper",
+                    "children": [
+                      {
+                        "format": "",
+                        "type": "note-body",
+                        "children": [
+                          {
+                            "text": "Done task body",
+                            "type": "text"
+                          }
+                        ]
                       }
                     ]
                   },
