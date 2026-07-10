@@ -133,6 +133,28 @@ describe('createSwappableServerAuth', () => {
     expect(liveProviderIds(swappable)).toHaveLength(2);
   });
 
+  it('allows a later rebuild to recover after replacement initialization fails', async () => {
+    const swappable = build();
+    await swappable.auth.ensureReady();
+    await ensureSourceServerRow(database, 'https://source.example');
+    await claimSourceServerPublicClient(database, 'https://source.example', 'cid');
+
+    const actualGetMigrations = vi.mocked(getMigrations).getMockImplementation()!;
+    vi.mocked(getMigrations).mockImplementationOnce(async (...args) => {
+      const migrations = await actualGetMigrations(...args);
+      return {
+        ...migrations,
+        async runMigrations() {
+          throw new Error('replacement initialization failed');
+        },
+      };
+    });
+
+    await expect(swappable.rebuild()).rejects.toThrow('replacement initialization failed');
+    await expect(swappable.rebuild()).resolves.toBeUndefined();
+    expect(liveProviderIds(swappable)).toEqual([SOURCE_ID]);
+  });
+
   it('a source row without a cached client has no provider', async () => {
     // The first link creates a credential-less row; no OAuth provider exists for
     // it (nothing to link against) until self-registration persists a client_id.
