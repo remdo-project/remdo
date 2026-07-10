@@ -27,7 +27,7 @@ function buildUrl(host: HostContext, portOffset: number, path = ''): string {
   return `${host.protocol}//${host.hostname}:${host.basePort + portOffset}${path}`;
 }
 
-export function DevToolbarLinks() {
+export function DevToolbarLinks({ linkClassName }: { linkClassName?: string }) {
   const host = resolveHost();
   const vitestUrl = buildUrl(host, 2, '/__vitest__/');
   const playwrightUrl = buildUrl({ protocol: 'http:', hostname: 'localhost', basePort: host.basePort }, 6);
@@ -37,19 +37,19 @@ export function DevToolbarLinks() {
     <>
       <DevVisibilityControl />
       <DevVisibilityGate>
-        <Anchor className="app-header-link" href={vitestUrl}>
+        <Anchor className={linkClassName} href={vitestUrl}>
           <Icon icon={IconBrandVite} />
           Vitest
         </Anchor>
-        <Anchor className="app-header-link" href={playwrightUrl}>
+        <Anchor className={linkClassName} href={playwrightUrl}>
           Playwright
         </Anchor>
-        <Anchor className="app-header-link" href={lexicalUrl}>
+        <Anchor className={linkClassName} href={lexicalUrl}>
           Lexical
         </Anchor>
         <Link
           to={DEV_LEXICAL_DEMO_ROUTE}
-          className="app-header-link"
+          className={linkClassName}
         >
           Lexical Demo
         </Link>
@@ -58,7 +58,7 @@ export function DevToolbarLinks() {
             file path is required: Vite dev serves public/ files by exact path and
             would fall the bare /playground/ through to the SPA. See
             docs/dev/dev-tooling.md. */}
-        <Anchor className="app-header-link" href="/playground/index.html">
+        <Anchor className={linkClassName} href="/playground/index.html">
           Playground
         </Anchor>
       </DevVisibilityGate>

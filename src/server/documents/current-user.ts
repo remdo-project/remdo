@@ -223,7 +223,6 @@ export async function ensureCurrentUserBootstrap(
   return {
     userDataDocumentId: userDataDocument.id,
     homeDocumentId: homeDocument.id,
-    role: auth ? await auth.getUserRole(userId) : null,
     publicServer: auth?.allowSignup ?? false,
   };
 }

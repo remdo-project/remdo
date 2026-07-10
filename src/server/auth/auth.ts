@@ -199,7 +199,6 @@ export interface ServerAuth {
   createUser: (user: CreateAuthUserInput, headers: Headers) => Promise<Response>;
   ensureReady: () => Promise<void>;
   findUserByEmail: (email: string) => Promise<ServerAuthUser | null>;
-  getUserRole: (userId: string) => Promise<string | null>;
   grantAdminRole: (userId: string) => Promise<void>;
   handleAuthServerMetadata: (request: Request) => Promise<Response>;
   handleOpenIdConfigMetadata: (request: Request) => Promise<Response>;
@@ -299,15 +298,6 @@ export function createServerAuth({
         .limit(1)
         .executeTakeFirst();
       return row ?? null;
-    },
-    async getUserRole(userId) {
-      const row = await database.db
-        .selectFrom('user')
-        .select('role')
-        .where('id', '=', userId)
-        .limit(1)
-        .executeTakeFirst();
-      return row?.role ?? null;
     },
     async grantAdminRole(userId) {
       // Direct write rather than the admin plugin's setRole: granting the FIRST
