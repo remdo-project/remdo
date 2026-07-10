@@ -3,6 +3,7 @@ import {
   oauthProviderAuthServerMetadata,
   oauthProviderOpenIdConfigMetadata,
 } from '@better-auth/oauth-provider';
+import { isLoopbackHost } from '@better-auth/core/utils/host';
 import { betterAuth } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import type Database from 'better-sqlite3';
@@ -33,35 +34,16 @@ export const REMDO_SERVER_OAUTH_SCOPES = [
   'offline_access',
 ] as const;
 
-// Deliberate mirror of Better Auth's `validateIssuerUrl` (in
-// @better-auth/oauth-provider): it hard-codes `if (protocol !== 'https:' &&
-// !isLoopbackHost(host)) protocol = 'https:'` when a source advertises its
-// issuer, and that upgrade is not configurable. The home's callback issuer
-// guard compares against this value, so we must classify loopback the same way
-// or a valid callback is rejected as an issuer mismatch. Keep this in sync with
-// upstream's `isLoopbackHost`. Preferred long-term fix (see
+// Better Auth upgrades non-loopback HTTP issuers to HTTPS. The home's callback
+// issuer guard must normalize with the same exported host classifier or it can
+// reject a valid callback. Preferred long-term fix (see
 // docs/access-model.md#future):
 // reject non-loopback http sources at add time so every stored origin is one
-// upstream leaves alone, making `issuer: server.baseUrl` correct and this mirror
-// deletable.
-// Matches the 127.0.0.0/8 loopback block by shape (four numeric octets, first
-// 127), not by textual prefix — `127.example.com` is a public DNS name, not
-// loopback, and must not skip the https upgrade.
-const IPV4_LOOPBACK_PATTERN = /^127(?:\.\d{1,3}){3}$/u;
-
-function isLoopbackForDevScheme(hostname: string): boolean {
-  return hostname === 'localhost'
-    || hostname.endsWith('.localhost')
-    || hostname === '::1'
-    || IPV4_LOOPBACK_PATTERN.test(hostname);
-}
+// upstream leaves alone, making this normalization deletable.
 
 export function normalizeSourceIssuer(sourceOrigin: string): string {
   const url = new URL(sourceOrigin);
-  // url.hostname keeps the brackets for IPv6 (e.g. `[::1]`); strip them so the
-  // `::1` loopback check matches, mirroring Better Auth's host normalization.
-  const hostname = url.hostname.replace(/^\[|\]$/gu, '');
-  if (url.protocol !== 'https:' && !isLoopbackForDevScheme(hostname)) {
+  if (url.protocol !== 'https:' && !isLoopbackHost(url.host)) {
     url.protocol = 'https:';
   }
   return url.origin;

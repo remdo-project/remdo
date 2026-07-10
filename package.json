@@ -101,6 +101,7 @@
     "typecheck:watch": "tsc --watch"
   },
   "dependencies": {
+    "@better-auth/core": "catalog:",
     "@better-auth/oauth-provider": "catalog:",
     "@hono/node-server": "catalog:",
     "@lexical/clipboard": "catalog:",

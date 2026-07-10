@@ -20,6 +20,7 @@ updateConfig:
   ignoreDependencies:
     # TODO(deps): return to stable Better Auth after 1.7.0 ships with GHSA-p2fr-6hmx-4528 fixed.
     # Probe: npm view @better-auth/oauth-provider version
+    - '@better-auth/core'
     - '@better-auth/oauth-provider'
     - better-auth
     # TODO(deps): retry Kysely 0.29 after Better Auth publishes its adapter fix.
@@ -56,6 +57,7 @@ overrides:
 catalog:
   '@antfu/eslint-config': 9.1.0
   '@ast-grep/cli': ^0.44.1
+  '@better-auth/core': 1.7.0-rc.1
   '@better-auth/oauth-provider': 1.7.0-rc.1
   '@eslint-react/eslint-plugin': ^5.13.1
   '@hono/node-server': ^2.0.8
