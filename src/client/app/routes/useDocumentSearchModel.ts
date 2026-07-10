@@ -5,7 +5,7 @@ import type {
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
 } from 'react';
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
 import { collectDocumentSearchResults } from '#client/editor/search/search-candidates';
 import type {
   ChildPreview,
@@ -37,7 +37,8 @@ interface UseDocumentSearchModelOptions {
 // query.
 const SEARCH_RESULT_LIMIT = 10;
 
-interface UseDocumentSearchModelResult {
+export interface DocumentSearchModel {
+  activeResultOptionId?: string;
   childPreviewByNoteId: Record<string, ChildPreview>;
   flatResults: SearchCandidate[];
   hasMoreResults: boolean;
@@ -51,9 +52,12 @@ interface UseDocumentSearchModelResult {
   handleSearchResultClick: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
   handleSearchResultPointerEnter: (noteId: string) => void;
   highlightedResultNoteId: string | null;
+  searchInputRef: React.RefObject<HTMLInputElement | null>;
   searchModeActive: boolean;
   searchModeRequested: boolean;
   searchQuery: string;
+  searchResultsListboxId: string;
+  searchResultsRef: React.RefObject<HTMLElement | null>;
 }
 
 const EMPTY_SEARCH_CANDIDATES: SearchCandidate[] = [];
@@ -106,7 +110,10 @@ function resolveHighlightedNoteId(
 export function useDocumentSearchModel({
   focusEditorInput,
   setZoomNoteId,
-}: UseDocumentSearchModelOptions): UseDocumentSearchModelResult {
+}: UseDocumentSearchModelOptions): DocumentSearchModel {
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchResultsRef = useRef<HTMLElement | null>(null);
+  const searchResultsListboxId = useId();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchModeRequested, setSearchModeRequested] = useState(false);
   const [highlightedNoteId, setHighlightedNoteId] = useReducer(
@@ -177,6 +184,59 @@ export function useDocumentSearchModel({
     setSearchModeRequested(false);
     setSearchInputComposing(false);
   }, []);
+
+  useEffect(() => {
+    const handleFindShortcut = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.altKey || event.shiftKey) {
+        return;
+      }
+      const isFindShortcut = event.code === 'KeyF' || (!!event.key && event.key.toLowerCase() === 'f');
+      if (!isFindShortcut || (!event.metaKey && !event.ctrlKey)) {
+        return;
+      }
+
+      const searchInput = searchInputRef.current;
+      if (!searchInput || document.activeElement === searchInput) {
+        return;
+      }
+
+      event.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+    };
+
+    document.addEventListener('keydown', handleFindShortcut);
+    return () => {
+      document.removeEventListener('keydown', handleFindShortcut);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!searchModeActive) {
+      return;
+    }
+
+    const handlePointerDownOutsideSearch = (event: PointerEvent) => {
+      if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (searchInputRef.current?.contains(target) || searchResultsRef.current?.contains(target)) {
+        return;
+      }
+
+      dismissSearch();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDownOutsideSearch, true);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDownOutsideSearch, true);
+    };
+  }, [dismissSearch, searchModeActive]);
 
   const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     if (event.nativeEvent.isComposing || searchInputComposing) {
@@ -254,7 +314,14 @@ export function useDocumentSearchModel({
   };
 
   const highlightedResultNoteId = searchModeActive ? resolvedHighlightedNoteId : null;
+  const highlightedResultIndex = highlightedResultNoteId
+    ? flatResults.findIndex((result) => result.noteId === highlightedResultNoteId)
+    : -1;
+  const activeResultOptionId = highlightedResultIndex >= 0
+    ? `${searchResultsListboxId}-option-${highlightedResultIndex}`
+    : undefined;
   return {
+    activeResultOptionId,
     childPreviewByNoteId: searchResults.childPreviewByNoteId,
     flatResults,
     hasMoreResults: searchModeActive && searchResults.hasMore,
@@ -268,8 +335,11 @@ export function useDocumentSearchModel({
     handleSearchResultClick,
     handleSearchResultPointerEnter,
     highlightedResultNoteId,
+    searchInputRef,
     searchModeActive,
     searchModeRequested,
     searchQuery,
+    searchResultsListboxId,
+    searchResultsRef,
   };
 }
