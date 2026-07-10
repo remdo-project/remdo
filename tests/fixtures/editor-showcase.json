@@ -3,6 +3,7 @@
     "type": "root",
     "children": [
       {
+        "textFormat": 1,
         "type": "list",
         "children": [
           {
@@ -167,7 +168,7 @@
             "folded": true,
             "noteId": "foldedParent",
             "type": "listitem",
-            "value": 5,
+            "value": 6,
             "children": [
               {
                 "text": "Folded parent",
@@ -177,7 +178,7 @@
           },
           {
             "type": "listitem",
-            "value": 5,
+            "value": 7,
             "children": [
               {
                 "type": "list",
@@ -201,7 +202,7 @@
           {
             "noteId": "numberedParent",
             "type": "listitem",
-            "value": 6,
+            "value": 7,
             "children": [
               {
                 "text": "Numbered steps",
@@ -211,7 +212,7 @@
           },
           {
             "type": "listitem",
-            "value": 6,
+            "value": 8,
             "children": [
               {
                 "listType": "number",
@@ -266,7 +267,7 @@
           {
             "noteId": "checklistParent",
             "type": "listitem",
-            "value": 7,
+            "value": 8,
             "children": [
               {
                 "text": "Checklist",
@@ -276,7 +277,7 @@
           },
           {
             "type": "listitem",
-            "value": 7,
+            "value": 9,
             "children": [
               {
                 "listType": "check",
@@ -318,7 +319,7 @@
                     "indent": 1,
                     "noteId": "checkOpen",
                     "type": "listitem",
-                    "value": 2,
+                    "value": 3,
                     "children": [
                       {
                         "text": "Open task",
