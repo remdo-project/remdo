@@ -33,12 +33,10 @@ export interface TestSearchCandidate {
   checked?: boolean;
 }
 
-export interface TestSearchSnapshot {
-  childCandidateMap: Record<string, TestSearchCandidate[]>;
-}
+export type TestSearchSnapshot = Record<string, TestSearchCandidate[]>;
 
 function createTestEditorNotes(snapshot: TestSearchSnapshot): SearchableNotes {
-  const childMap = snapshot.childCandidateMap;
+  const childMap = snapshot;
   const makeNote = (candidate: TestSearchCandidate): SearchableNote => ({
     id: () => candidate.noteId,
     text: () => candidate.text,
@@ -54,18 +52,13 @@ function createTestEditorNotes(snapshot: TestSearchSnapshot): SearchableNotes {
 }
 
 const defaultSnapshot = {
-  childCandidateMap: {
-    [ROOT_SEARCH_SCOPE_ID]: [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: 'note5', text: 'note5' },
-    ],
-    note1: [{ noteId: 'note2', text: 'note2' }],
-    note2: [],
-    note3: [{ noteId: 'note4', text: 'note4' }],
-    note4: [],
-    note5: [],
-  },
+  [ROOT_SEARCH_SCOPE_ID]: [
+    { noteId: 'note1', text: 'note1' },
+    { noteId: 'note3', text: 'note3' },
+    { noteId: 'note5', text: 'note5' },
+  ],
+  note1: [{ noteId: 'note2', text: 'note2' }],
+  note3: [{ noteId: 'note4', text: 'note4' }],
 } satisfies TestSearchSnapshot;
 
 interface MockEditorProps {

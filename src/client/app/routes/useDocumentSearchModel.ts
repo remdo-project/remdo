@@ -10,12 +10,6 @@ import { collectDocumentSearchResults } from '#client/editor/search/search-candi
 import type { SearchCandidate } from '#client/editor/search/search-candidates';
 import { useSearchNotes } from '#client/editor/view/EditorViewProvider';
 
-interface SearchResultsState {
-  ready: boolean;
-  flatResults: SearchCandidate[];
-  hasMore: boolean;
-}
-
 // Direct children shown in each result row's preview (the row reports "+N more"
 // for the remainder); kept beside the result limit since both bound the work the
 // capped collection walk does per result.
@@ -55,12 +49,6 @@ export interface DocumentSearchModel {
 }
 
 const EMPTY_SEARCH_CANDIDATES: SearchCandidate[] = [];
-const EMPTY_SEARCH_RESULTS_STATE: SearchResultsState = {
-  ready: false,
-  flatResults: EMPTY_SEARCH_CANDIDATES,
-  hasMore: false,
-};
-
 function getNextHighlightedNoteId(
   candidates: SearchCandidate[],
   highlightedNoteId: string | null,
@@ -122,21 +110,18 @@ export function useDocumentSearchModel({
   // up to the limit instead of building the whole document's candidate set.
   // Recomputed per edit (accessor identity) and per query.
   const searchNotes = useSearchNotes();
-  const searchResults = useMemo<SearchResultsState>(
-    () => searchNotes((notes) => ({
-      ready: true,
-      ...collectDocumentSearchResults(notes, {
+  const searchResults = useMemo(
+    () => searchNotes((notes) => collectDocumentSearchResults(notes, {
         query: searchQuery,
         limit: SEARCH_RESULT_LIMIT,
         childPreviewLimit: CHILD_PREVIEW_LIMIT,
-      }),
-    })) ?? EMPTY_SEARCH_RESULTS_STATE,
+      })),
     // searchNotes identity changes per editor edit; searchQuery per keystroke.
     [searchNotes, searchQuery],
   );
-  const searchModeActive = searchModeRequested && searchResults.ready;
+  const searchModeActive = searchModeRequested && searchResults !== null;
 
-  const flatResults = searchResults.flatResults;
+  const flatResults = searchResults?.flatResults ?? EMPTY_SEARCH_CANDIDATES;
   const navigationCandidates = searchModeActive ? flatResults : EMPTY_SEARCH_CANDIDATES;
   const resolvedHighlightedNoteId = useMemo(
     () => resolveHighlightedNoteId(navigationCandidates, highlightedNoteId, searchModeActive),

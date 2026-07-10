@@ -158,11 +158,8 @@ describe('document search', () => {
 
   it('uses ancestor tokens only when another token matches the note itself', async () => {
     setSearchSnapshot({
-      childCandidateMap: {
-        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'work', text: 'Work' }],
-        work: [{ noteId: 'match', text: 'TODO refine estimates' }],
-        match: [],
-      },
+      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'work', text: 'Work' }],
+      work: [{ noteId: 'match', text: 'TODO refine estimates' }],
     });
     renderDocumentRoute();
 
@@ -181,16 +178,12 @@ describe('document search', () => {
 
   it('distinguishes same-text results by ancestor context in the accessible name', async () => {
     setSearchSnapshot({
-      childCandidateMap: {
-        [ROOT_SEARCH_SCOPE_ID]: [
-          { noteId: 'work', text: 'Work' },
-          { noteId: 'home', text: 'Home' },
-        ],
-        work: [{ noteId: 'work-plan', text: 'Plan' }],
-        'work-plan': [],
-        home: [{ noteId: 'home-plan', text: 'Plan' }],
-        'home-plan': [],
-      },
+      [ROOT_SEARCH_SCOPE_ID]: [
+        { noteId: 'work', text: 'Work' },
+        { noteId: 'home', text: 'Home' },
+      ],
+      work: [{ noteId: 'work-plan', text: 'Plan' }],
+      home: [{ noteId: 'home-plan', text: 'Plan' }],
     });
     renderDocumentRoute();
 
@@ -314,10 +307,7 @@ describe('document search', () => {
     const manyNotesSnapshot = (): TestSearchSnapshot => {
       const ids = Array.from({ length: 12 }, (_unused, i) => `note${String(i + 1).padStart(2, '0')}`);
       return {
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: ids.map((id) => ({ noteId: id, text: id })),
-          ...Object.fromEntries(ids.map((id) => [id, []])),
-        },
+        [ROOT_SEARCH_SCOPE_ID]: ids.map((id) => ({ noteId: id, text: id })),
       };
     };
 
@@ -509,10 +499,7 @@ describe('document search', () => {
 
   it('uses sdk-provided candidates for flat results', async () => {
     setMockSearchSnapshot('routeDoc', {
-      childCandidateMap: {
-        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'sdk1', text: 'sdk result' }],
-        sdk1: [],
-      },
+      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'sdk1', text: 'sdk result' }],
     });
 
     renderDocumentRoute();
@@ -544,10 +531,7 @@ describe('document search', () => {
 
   it('clears stale sdk candidates when switching documents', async () => {
     setMockSearchSnapshot('routeDoc', {
-      childCandidateMap: {
-        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'mainonly', text: 'main only' }],
-        mainonly: [],
-      },
+      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'mainonly', text: 'main only' }],
     });
     setMockSearchSnapshot('other', null);
 
@@ -585,10 +569,7 @@ describe('document search', () => {
     fireEvent.change(searchInput, { target: { value: 'fresh' } });
 
     setMockSearchSnapshot('routeDoc', {
-      childCandidateMap: {
-        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
-        fresh: [],
-      },
+      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
     });
 
     await waitFor(() => {
@@ -605,10 +586,7 @@ describe('document search', () => {
 
   it('waits for a fresh snapshot after invalidating current document candidates', async () => {
     setMockSearchSnapshot('routeDoc', {
-      childCandidateMap: {
-        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'stale', text: 'shared result' }],
-        stale: [],
-      },
+      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'stale', text: 'shared result' }],
     });
 
     renderDocumentRoute();
@@ -633,10 +611,7 @@ describe('document search', () => {
     });
 
     setMockSearchSnapshot('routeDoc', {
-      childCandidateMap: {
-        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
-        fresh: [],
-      },
+      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
     });
     refreshMockSearchNotes('routeDoc');
 
