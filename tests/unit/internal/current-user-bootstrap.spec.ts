@@ -10,7 +10,6 @@ vi.mock('#client/app/auth/client', () => ({
 const BOOTSTRAP = {
   userDataDocumentId: 'cachedUserData1',
   homeDocumentId: 'cachedHome1',
-  role: null,
   publicServer: false,
 } as const;
 

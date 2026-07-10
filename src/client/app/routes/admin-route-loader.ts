@@ -1,10 +1,10 @@
 import { resolveSessionGateState } from '#client/app/auth/client';
-import { getCurrentUserBootstrap } from '#client/app/documents/current-user-bootstrap';
+import type { SessionGateState } from '#client/app/auth/client';
 
 // What `/admin` should render, resolved from the caller's session + role.
 export type AdminRouteState =
-  | { kind: 'admin' }
-  | { kind: 'enroll' };
+  | { kind: 'admin'; sessionState: SessionGateState }
+  | { kind: 'enroll'; sessionState: SessionGateState };
 
 // `/admin` is the single admin entry route (see docs/access-model.md#admin-role):
 //   - admin → the admin panel (placeholder until panel content exists);
@@ -15,14 +15,9 @@ export type AdminRouteState =
 export async function adminRouteLoader(): Promise<AdminRouteState> {
   const session = await resolveSessionGateState();
   if (session.status !== 'authenticated') {
-    return { kind: 'enroll' };
+    return { kind: 'enroll', sessionState: session };
   }
-  try {
-    const bootstrap = await getCurrentUserBootstrap();
-    return bootstrap.role === 'admin' ? { kind: 'admin' } : { kind: 'enroll' };
-  } catch {
-    // If the bootstrap cannot be read, show the enroll form — the server still
-    // gates the action on the secret.
-    return { kind: 'enroll' };
-  }
+  return session.session.user.role === 'admin'
+    ? { kind: 'admin', sessionState: session }
+    : { kind: 'enroll', sessionState: session };
 }

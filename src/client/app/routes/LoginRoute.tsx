@@ -1,8 +1,8 @@
-import { Alert, Anchor, Button, Container, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Anchor, Button, PasswordInput, Stack, Text, TextInput } from '@mantine/core';
 import { useState } from 'react';
 import { Link, useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import { authClient, rememberAuthenticatedSession } from '#client/app/auth/client';
-import { DevToolbarSeam } from './DevToolbarSeam';
+import CenteredCardPage from '#client/ui/CenteredCardPage';
 import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
 import { resolvePostAuthPath } from './post-auth-path';
 
@@ -60,60 +60,47 @@ export default function LoginRoute() {
   };
 
   return (
-    <Container size="xs" py="xl">
-      <Paper withBorder p="xl" radius="md">
+    <CenteredCardPage description="Sign in to access your documents." title="Sign in">
+      {errorMessage && (
+        <Alert color="red" title="Authentication failed">
+          {errorMessage}
+        </Alert>
+      )}
+
+      <form onSubmit={(event) => {
+        void handleLoginSubmit(event);
+      }}>
         <Stack gap="md">
-          <DevToolbarSeam />
-
-          <div>
-            <Title order={1}>Sign in</Title>
-            <Text c="dimmed" size="sm">
-              Sign in to access your documents.
-            </Text>
-          </div>
-
-          {errorMessage && (
-            <Alert color="red" title="Authentication failed">
-              {errorMessage}
-            </Alert>
-          )}
-
-          <form onSubmit={(event) => {
-            void handleLoginSubmit(event);
-          }}>
-            <Stack gap="md">
-              <TextInput
-                autoComplete="email"
-                label="Email"
-                onChange={(event) => setEmail(event.currentTarget.value)}
-                required
-                type="email"
-                value={email}
-              />
-              <PasswordInput
-                autoComplete="current-password"
-                label="Password"
-                onChange={(event) => setPassword(event.currentTarget.value)}
-                required
-                value={password}
-              />
-              <Button loading={pending} type="submit">
-                Sign in
-              </Button>
-            </Stack>
-          </form>
-
-          {!publicServer && (
-            <Text c="dimmed" size="sm">
-              Setting up this server?{' '}
-              <Anchor component={Link} to={`/admin${location.search}`}>
-                Become admin
-              </Anchor>
-              .
-            </Text>
-          )}
+          <TextInput
+            autoComplete="email"
+            label="Email"
+            onChange={(event) => setEmail(event.currentTarget.value)}
+            required
+            type="email"
+            value={email}
+          />
+          <PasswordInput
+            autoComplete="current-password"
+            label="Password"
+            onChange={(event) => setPassword(event.currentTarget.value)}
+            required
+            value={password}
+          />
+          <Button loading={pending} type="submit">
+            Sign in
+          </Button>
         </Stack>
-      </Paper>
-    </Container>
+      </form>
+
+      {!publicServer && (
+        <Text c="dimmed" size="sm">
+          Setting up this server?{' '}
+          <Anchor component={Link} to={`/admin${location.search}`}>
+            Become admin
+          </Anchor>
+          .
+        </Text>
+      )}
+    </CenteredCardPage>
   );
 }

@@ -88,8 +88,6 @@ Rules:
 - Admin panel: **promoting an existing user to admin** and per-admin revocation
   — the only way today to gain admin is registering a new account via the
   secret.
-- Toolbar **Admin** link for signed-in admins (`App.tsx`). Pure-additive UI
-  against the `role`-on-bootstrap that already exists, with no new infra.
 - Runtime public-policy toggle (replace `ALLOW_SIGNUP` env with admin-managed,
   DB-backed state). Needs auth hot-swap (rebuild `betterAuth` to flip the
   construction-time `disableSignUp`).
@@ -564,3 +562,10 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   only checks `indent-jump`, which load normalization flattens. The validation is
   therefore practically inert today; add coverage if a schema rule that survives
   load is introduced.
+
+## App shell and route layout
+
+- Decompose `DocumentRoute` into route glue, document toolbar/actions, document
+  search, editor pane, and import flow.
+- Redesign Sharing and the admin page with consistent page structure. Keep admin
+  capabilities tracked under **Admin role follow-ups** above.

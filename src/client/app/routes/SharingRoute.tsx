@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Button, Container, Group, Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useState } from 'react';
 import { linkSourceByUrl } from '#client/app/auth/source-server-linking-client';
 import { useCurrentUserPublicServer, useUserData } from '#client/app/documents/user-data';
@@ -50,77 +50,80 @@ export default function SharingRoute() {
   };
 
   return (
-    <Stack gap="lg">
-      {errorMessage && (
-        <Alert color="red" title="Sharing failed">
-          {errorMessage}
-        </Alert>
-      )}
+    <Container component="main" size="md" py="xl">
+      <Stack gap="lg">
+        <Title order={1}>Sharing</Title>
+        {errorMessage && (
+          <Alert color="red" title="Sharing failed">
+            {errorMessage}
+          </Alert>
+        )}
 
-      <form onSubmit={(event) => {
-        event.preventDefault();
-        void shareDocument();
-      }}>
-        <Group align="end">
-          <Select
-            data={documentOptions}
-            label="Document"
-            value={selectedDocId}
-            onChange={setSelectedDocId}
-          />
-          <TextInput
-            label="User email"
-            required
-            type="email"
-            value={shareEmail}
-            onChange={(event) => setShareEmail(event.currentTarget.value)}
-          />
-          <Button disabled={!activeDocument} type="submit">Share</Button>
-        </Group>
-      </form>
-
-      <Stack gap="xs">
-        {visibleAccess.map((access) => (
-          <Group key={access.granteeUserId()} justify="space-between">
-            <Stack gap={0}>
-              <Text>{access.name() || access.email()}</Text>
-              {access.name() && <Text c="dimmed" size="sm">{access.email()}</Text>}
-            </Stack>
-          </Group>
-        ))}
-      </Stack>
-
-      {!isPublicServer && (
         <form onSubmit={(event) => {
           event.preventDefault();
-          void linkByUrl();
+          void shareDocument();
         }}>
           <Group align="end">
-            <TextInput
-              label="Source URL"
-              required
-              type="url"
-              value={sourceUrl}
-              onChange={(event) => setSourceUrl(event.currentTarget.value)}
+            <Select
+              data={documentOptions}
+              label="Document"
+              value={selectedDocId}
+              onChange={setSelectedDocId}
             />
-            <Button type="submit">Link source</Button>
+            <TextInput
+              label="User email"
+              required
+              type="email"
+              value={shareEmail}
+              onChange={(event) => setShareEmail(event.currentTarget.value)}
+            />
+            <Button disabled={!activeDocument} type="submit">Share</Button>
           </Group>
         </form>
-      )}
 
-      {sourceServers.length > 0 && (
         <Stack gap="xs">
-          <Text fw={600}>Linked sources</Text>
-          {sourceServers.map((server) => (
-            <Stack key={server.id()} gap={0}>
-              <Text>{server.text()}</Text>
-              <Text c="dimmed" size="sm">{server.baseUrl()}</Text>
-            </Stack>
+          {visibleAccess.map((access) => (
+            <Group key={access.granteeUserId()} justify="space-between">
+              <Stack gap={0}>
+                <Text>{access.name() || access.email()}</Text>
+                {access.name() && <Text c="dimmed" size="sm">{access.email()}</Text>}
+              </Stack>
+            </Group>
           ))}
         </Stack>
-      )}
 
-      {status && <Text aria-live="polite">{status}</Text>}
-    </Stack>
+        {!isPublicServer && (
+          <form onSubmit={(event) => {
+            event.preventDefault();
+            void linkByUrl();
+          }}>
+            <Group align="end">
+              <TextInput
+                label="Source URL"
+                required
+                type="url"
+                value={sourceUrl}
+                onChange={(event) => setSourceUrl(event.currentTarget.value)}
+              />
+              <Button type="submit">Link source</Button>
+            </Group>
+          </form>
+        )}
+
+        {sourceServers.length > 0 && (
+          <Stack gap="xs">
+            <Text fw={600}>Linked sources</Text>
+            {sourceServers.map((server) => (
+              <Stack key={server.id()} gap={0}>
+                <Text>{server.text()}</Text>
+                <Text c="dimmed" size="sm">{server.baseUrl()}</Text>
+              </Stack>
+            ))}
+          </Stack>
+        )}
+
+        {status && <Text aria-live="polite">{status}</Text>}
+      </Stack>
+    </Container>
   );
 }

@@ -1,5 +1,6 @@
-import { Alert, Button, Container, Group, Paper, Stack, Text, Title } from '@mantine/core';
+import { Alert, Button, Group } from '@mantine/core';
 import { useState } from 'react';
+import CenteredCardPage from '#client/ui/CenteredCardPage';
 
 // Better Auth redirects the authorize flow here (its configured consentPage) with
 // the signed OAuth query in this page's URL. We echo that query back to
@@ -40,6 +41,9 @@ export default function OAuthConsentRoute() {
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const clientId = readClientId();
+  const description = clientId
+    ? `A RemDo home server (${clientId}) is requesting access to your documents on this server.`
+    : 'A RemDo home server is requesting access to your documents on this server.';
 
   const decide = (accept: boolean) => {
     setPending(true);
@@ -51,34 +55,21 @@ export default function OAuthConsentRoute() {
   };
 
   return (
-    <Container size="xs" py="xl">
-      <Paper withBorder p="xl" radius="md">
-        <Stack gap="md">
-          <div>
-            <Title order={1}>Authorize access</Title>
-            <Text c="dimmed" size="sm">
-              {clientId
-                ? `A RemDo home server (${clientId}) is requesting access to your documents on this server.`
-                : 'A RemDo home server is requesting access to your documents on this server.'}
-            </Text>
-          </div>
+    <CenteredCardPage description={description} title="Authorize access">
+      {errorMessage && (
+        <Alert color="red" title="Consent request failed">
+          {errorMessage}
+        </Alert>
+      )}
 
-          {errorMessage && (
-            <Alert color="red" title="Consent request failed">
-              {errorMessage}
-            </Alert>
-          )}
-
-          <Group justify="flex-end">
-            <Button disabled={pending} onClick={() => decide(false)} variant="subtle">
-              Deny
-            </Button>
-            <Button loading={pending} onClick={() => decide(true)}>
-              Allow
-            </Button>
-          </Group>
-        </Stack>
-      </Paper>
-    </Container>
+      <Group justify="flex-end">
+        <Button disabled={pending} onClick={() => decide(false)} variant="subtle">
+          Deny
+        </Button>
+        <Button loading={pending} onClick={() => decide(true)}>
+          Allow
+        </Button>
+      </Group>
+    </CenteredCardPage>
   );
 }

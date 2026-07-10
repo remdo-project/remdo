@@ -1,6 +1,8 @@
 import { createBrowserRouter, redirect, redirectDocument } from 'react-router-dom';
+import AppFrame from './AppFrame';
 import AuthenticatedApp from './AuthenticatedApp';
 import { resolveSessionGateState } from './auth/client';
+import type { SessionGateState } from './auth/client';
 import { getPublicClientConfig } from './config';
 import { getCachedCurrentUserBootstrap, getHomeDocumentId } from './documents/current-user-bootstrap';
 import AdminRoute from './routes/AdminRoute';
@@ -32,23 +34,30 @@ function resolveCachedHomeDocumentPath(): string | null {
   return bootstrap ? createDocumentPath(bootstrap.homeDocumentId) : null;
 }
 
-async function requireAuthenticatedRoute(request: Request) {
+async function requireAuthenticatedRoute(request: Request): Promise<SessionGateState> {
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'offline-unavailable') {
     throw redirect(createOfflinePath(request));
   }
   if (sessionState.status !== 'unauthenticated') {
-    return null;
+    return sessionState;
   }
 
   throw redirect(`/login${createPostAuthNextSearch(request)}`);
+}
+
+async function authenticatedSessionLoader({ request }: { request: Request }) {
+  return { sessionState: await requireAuthenticatedRoute(request) };
 }
 
 async function requirePublicAuthRoute(request: Request) {
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
     // Carry the public-server flag so the login page can gate its admin link.
-    return { publicServer: (await getPublicClientConfig()).publicServer };
+    return {
+      publicServer: (await getPublicClientConfig()).publicServer,
+      sessionState,
+    };
   }
 
   const url = new URL(request.url);
@@ -117,7 +126,7 @@ const createDocumentLoader = (buildPath: DocumentPathBuilder) => {
 
 const hydrateFallbackElement = <div aria-hidden="true" />;
 
-const routes = [
+const appRoutes = [
   {
     path: '/offline',
     element: <OfflineRoute />,
@@ -148,14 +157,14 @@ const routes = [
     // Source-side consent screen: shown when a home's user authorizes the home to
     // act on their behalf. Reachable only with a source session.
     path: '/oauth/consent',
-    loader: ({ request }: { request: Request }) => requireAuthenticatedRoute(request),
+    loader: authenticatedSessionLoader,
     element: <OAuthConsentRoute />,
     hydrateFallbackElement,
   },
   {
     path: '/',
     element: <AuthenticatedApp />,
-    loader: ({ request }: { request: Request }) => requireAuthenticatedRoute(request),
+    loader: authenticatedSessionLoader,
     hydrateFallbackElement,
     children: [
       {
@@ -185,5 +194,10 @@ const routes = [
     ],
   },
 ];
+
+const routes = [{
+  element: <AppFrame />,
+  children: appRoutes,
+}];
 
 export const router = createBrowserRouter(routes);

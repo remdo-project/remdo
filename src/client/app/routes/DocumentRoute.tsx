@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { ActionIcon, Alert, Combobox, TextInput, useCombobox } from '@mantine/core';
+import { ActionIcon, Alert, Combobox, Container, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconSearch, IconUpload } from '@tabler/icons-react';
 import { useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocumentSourcesLoading, useUserData } from '#client/app/documents/user-data';
@@ -184,18 +184,20 @@ export default function DocumentRoute() {
   const { navigateToDocument, navigateToZoomNote } = useDocumentRouteNavigation(docId);
 
   return (
-    <EditorViewProvider
-      docId={docId}
-      onZoomNoteIdChange={navigateToZoomNote}
-      zoomNoteId={zoomNoteId}
-    >
-      <DocumentRouteContent
+    <Container component="main" size="xl" py="xl">
+      <EditorViewProvider
         docId={docId}
-        onSelectDocument={navigateToDocument}
-        setStatusHost={setStatusHost}
-        statusHost={statusHost}
-      />
-    </EditorViewProvider>
+        onZoomNoteIdChange={navigateToZoomNote}
+        zoomNoteId={zoomNoteId}
+      >
+        <DocumentRouteContent
+          docId={docId}
+          onSelectDocument={navigateToDocument}
+          setStatusHost={setStatusHost}
+          statusHost={statusHost}
+        />
+      </EditorViewProvider>
+    </Container>
   );
 }
 

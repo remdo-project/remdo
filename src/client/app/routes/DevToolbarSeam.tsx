@@ -1,4 +1,3 @@
-import { Group } from '@mantine/core';
 import { Suspense, lazy } from 'react';
 
 // Dev-toolbar seam: the production-side entry that reaches the dev toolbar. In
@@ -13,26 +12,13 @@ const LazyDevToolbarLinks = import.meta.env.DEV
   : null;
 
 // Bare links — for a caller that already provides the surrounding header group.
-export function DevToolbarLinksSeam() {
+export function DevToolbarLinksSeam({ linkClassName }: { linkClassName?: string }) {
   if (!LazyDevToolbarLinks) {
     return null;
   }
   return (
     <Suspense fallback={null}>
-      <LazyDevToolbarLinks />
+      <LazyDevToolbarLinks linkClassName={linkClassName} />
     </Suspense>
-  );
-}
-
-// Links in their own header group — for a caller with no other links, so the
-// whole group (not just its contents) is absent in production.
-export function DevToolbarSeam() {
-  if (!LazyDevToolbarLinks) {
-    return null;
-  }
-  return (
-    <Group gap="md" className="app-header-links">
-      <DevToolbarLinksSeam />
-    </Group>
   );
 }

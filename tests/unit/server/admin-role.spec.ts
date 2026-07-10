@@ -44,9 +44,10 @@ describe('admin self-enrollment', () => {
     const response = await enroll(harness.app, { ...ENROLLEE, adminSecret: TEST_ADMIN_SECRET });
     expect(response.ok).toBe(true);
 
-    const user = await harness.auth.findUserByEmail(ENROLLEE.email);
-    expect(user).not.toBeNull();
-    await expect(harness.auth.getUserRole(user!.id)).resolves.toBe('admin');
+    const session = await harness.auth.getSession(new Headers({
+      cookie: extractSessionCookie(response),
+    }));
+    expect(session?.user.role).toBe('admin');
   });
 
   it('signs the new admin in (the response carries a session)', async () => {
@@ -55,6 +56,7 @@ describe('admin self-enrollment', () => {
     const headers = new Headers({ cookie: extractSessionCookie(response) });
     const session = await harness.auth.getSession(headers);
     expect(session?.user.id).toBeTypeOf('string');
+    expect(session?.user.role).toBe('admin');
   });
 
   it('registers a new admin account rather than promoting the caller in place', async () => {
@@ -68,7 +70,8 @@ describe('admin self-enrollment', () => {
       body: JSON.stringify(ENROLLEE),
     });
     const headers = { cookie: extractSessionCookie(signUp) };
-    const existingUserId = await harness.getSessionUserId(new Headers(headers));
+    const existingSession = await harness.auth.getSession(new Headers(headers));
+    expect(existingSession?.user.role).toBe('user');
 
     const response = await enroll(harness.app, {
       ...OTHER_ENROLLEE,
@@ -77,9 +80,17 @@ describe('admin self-enrollment', () => {
     expect(response.ok).toBe(true);
 
     // The pre-existing account stays a non-admin; a new admin account was created.
-    await expect(harness.auth.getUserRole(existingUserId)).resolves.not.toBe('admin');
-    const created = await harness.auth.findUserByEmail(OTHER_ENROLLEE.email);
-    await expect(harness.auth.getUserRole(created!.id)).resolves.toBe('admin');
+    const persistedExistingUser = await harness.database.db
+      .selectFrom('user')
+      .select('role')
+      .where('id', '=', existingSession!.user.id)
+      .executeTakeFirstOrThrow();
+    expect(persistedExistingUser.role).toBe('user');
+    const createdSession = await harness.auth.getSession(new Headers({
+      cookie: extractSessionCookie(response),
+    }));
+    expect(createdSession?.user.role).toBe('admin');
+    expect(createdSession?.user.id).not.toBe(existingSession?.user.id);
     await expect(harness.auth.getUserCount()).resolves.toBe(2);
   });
 
@@ -93,7 +104,7 @@ describe('admin self-enrollment', () => {
       body: JSON.stringify(ENROLLEE),
     });
     expect(signUp.ok).toBe(true);
-    const userId = await harness.getSessionUserId(new Headers({ cookie: extractSessionCookie(signUp) }));
-    await expect(harness.auth.getUserRole(userId)).resolves.not.toBe('admin');
+    const session = await harness.auth.getSession(new Headers({ cookie: extractSessionCookie(signUp) }));
+    expect(session?.user.role).toBe('user');
   });
 });

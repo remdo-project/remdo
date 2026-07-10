@@ -7,12 +7,13 @@ test.describe('Editor visibility', () => {
 
     const editorContainer = editorLocator(page);
     await expect(editorContainer).toBeVisible();
+    await expect(page.getByRole('main')).toBeVisible();
 
     const input = editorLocator(page).locator('.editor-input');
     await expect(input).toBeVisible();
     await expect(editorLocator(page).locator('li.list-item')).toHaveCount(3);
 
-    await expect(page.getByRole('heading', { name: 'RemDo' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
   });
 
   test('loads flat fixture and shows expected notes', async ({ editor, page }) => {
