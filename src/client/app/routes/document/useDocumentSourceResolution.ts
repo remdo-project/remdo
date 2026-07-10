@@ -1,28 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useDocumentSourcesLoading } from '#client/app/documents/user-data';
+import { useOnlineState } from '#client/runtime/useOnlineState';
 import { createDocumentSyncTokenApiPath } from '#document-routes';
 import type { DocumentSourceNote } from '#note-sdk';
 
 type LocalDocumentAccessProbe = 'idle' | 'checking' | 'authorized' | 'rejected';
-
-function useOnlineState(): boolean {
-  const [online, setOnline] = useState(() => globalThis.navigator.onLine);
-
-  useEffect(() => {
-    const handleOnlineStateChange = () => {
-      setOnline(globalThis.navigator.onLine);
-    };
-
-    globalThis.addEventListener('online', handleOnlineStateChange);
-    globalThis.addEventListener('offline', handleOnlineStateChange);
-    return () => {
-      globalThis.removeEventListener('online', handleOnlineStateChange);
-      globalThis.removeEventListener('offline', handleOnlineStateChange);
-    };
-  }, []);
-
-  return online;
-}
 
 function useLocalDocumentAccessProbe(docId: string, enabled: boolean): LocalDocumentAccessProbe {
   const [result, setResult] = useState<{ docId: string; status: LocalDocumentAccessProbe }>({

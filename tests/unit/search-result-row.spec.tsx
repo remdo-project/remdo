@@ -32,18 +32,6 @@ describe('search result row', () => {
     };
 
     const contextSnapshot: TestSearchSnapshot = {
-      allCandidates: [
-        { noteId: 'root', text: 'Work' },
-        { noteId: 'mid', text: 'Q3 planning' },
-        { noteId: 'mid2', text: 'Roadmap' },
-        { noteId: 'mid3', text: 'Grooming' },
-        { noteId: 'mid4', text: 'Estimates' },
-        { noteId: 'parent', text: 'Sprint backlog' },
-        { noteId: 'match', text: 'TODO refine estimates' },
-        { noteId: 'c1', text: 'sub one', listType: 'number' },
-        { noteId: 'c2', text: 'sub two', listType: 'check', checked: true },
-        { noteId: 'c3', text: 'sub three' },
-      ],
       childCandidateMap: {
         [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'root', text: 'Work' }],
         root: [{ noteId: 'mid', text: 'Q3 planning' }],
@@ -260,7 +248,6 @@ describe('search result row', () => {
     it('highlights a match past the navigation label length cap on the expanded row', async () => {
       const longText = `${'x'.repeat(60)} needle tail`;
       setSnapshot({
-        allCandidates: [{ noteId: 'long', text: longText }],
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'long', text: longText }],
           long: [],
@@ -280,10 +267,6 @@ describe('search result row', () => {
     it('keeps the full ancestor label on the crumb and its tooltip for CSS clipping', async () => {
       const longAncestor = 'Engineering '.repeat(8).trim(); // > 48 chars, no hard cap
       setSnapshot({
-        allCandidates: [
-          { noteId: 'parent', text: longAncestor },
-          { noteId: 'child', text: 'sprint task' },
-        ],
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'parent', text: longAncestor }],
           parent: [{ noteId: 'child', text: 'sprint task' }],
@@ -308,12 +291,6 @@ describe('search result row', () => {
 
     it('distinguishes same-text results by ancestor context in the accessible name', async () => {
       setSnapshot({
-        allCandidates: [
-          { noteId: 'work', text: 'Work' },
-          { noteId: 'work-plan', text: 'Plan' },
-          { noteId: 'home', text: 'Home' },
-          { noteId: 'home-plan', text: 'Plan' },
-        ],
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: [
             { noteId: 'work', text: 'Work' },

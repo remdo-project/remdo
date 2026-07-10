@@ -31,7 +31,6 @@ export interface TestSearchCandidate {
 }
 
 export interface TestSearchSnapshot {
-  allCandidates: TestSearchCandidate[];
   childCandidateMap: Record<string, TestSearchCandidate[]>;
 }
 
@@ -39,9 +38,6 @@ function createTestEditorNotes(snapshot: TestSearchSnapshot): EditorNotes {
   const childMap = snapshot.childCandidateMap;
   const byId = new Map<string, TestSearchCandidate>();
   const parentOf = new Map<string, string | null>();
-  for (const candidate of snapshot.allCandidates) {
-    byId.set(candidate.noteId, candidate);
-  }
   for (const [scopeId, children] of Object.entries(childMap)) {
     for (const child of children) {
       byId.set(child.noteId, child);
@@ -89,13 +85,6 @@ export interface MockSearchGlobals {
 }
 
 const defaultSnapshot = {
-  allCandidates: [
-    { noteId: 'note1', text: 'note1' },
-    { noteId: 'note2', text: 'note2' },
-    { noteId: 'note3', text: 'note3' },
-    { noteId: 'note4', text: 'note4' },
-    { noteId: 'note5', text: 'note5' },
-  ],
   childCandidateMap: {
     [ROOT_SEARCH_SCOPE_ID]: [
       { noteId: 'note1', text: 'note1' },

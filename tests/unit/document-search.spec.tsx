@@ -266,7 +266,6 @@ describe('document search', () => {
     const manyNotesSnapshot = (): TestSearchSnapshot => {
       const ids = Array.from({ length: 12 }, (_unused, i) => `note${String(i + 1).padStart(2, '0')}`);
       return {
-        allCandidates: ids.map((id) => ({ noteId: id, text: id })),
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: ids.map((id) => ({ noteId: id, text: id })),
           ...Object.fromEntries(ids.map((id) => [id, []])),
@@ -469,7 +468,6 @@ describe('document search', () => {
       }
     ).__remdoMockSearchCandidatesByDoc = {
       routeDoc: {
-        allCandidates: [{ noteId: 'sdk1', text: 'sdk result' }],
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'sdk1', text: 'sdk result' }],
           sdk1: [],
@@ -511,7 +509,6 @@ describe('document search', () => {
       }
     ).__remdoMockSearchCandidatesByDoc = {
       routeDoc: {
-        allCandidates: [{ noteId: 'mainonly', text: 'main only' }],
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'mainonly', text: 'main only' }],
           mainonly: [],
@@ -558,7 +555,6 @@ describe('document search', () => {
 
     globals.__remdoMockSearchCandidatesByDoc = {
       routeDoc: {
-        allCandidates: [{ noteId: 'fresh', text: 'fresh result' }],
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
           fresh: [],
@@ -582,7 +578,6 @@ describe('document search', () => {
     const globals = getMockSearchGlobals();
     globals.__remdoMockSearchCandidatesByDoc = {
       routeDoc: {
-        allCandidates: [{ noteId: 'stale', text: 'shared result' }],
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'stale', text: 'shared result' }],
           stale: [],
@@ -613,7 +608,6 @@ describe('document search', () => {
 
     globals.__remdoMockSearchCandidatesByDoc = {
       routeDoc: {
-        allCandidates: [{ noteId: 'fresh', text: 'fresh result' }],
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
           fresh: [],
