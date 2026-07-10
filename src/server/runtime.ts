@@ -77,7 +77,12 @@ export function createServerRuntime({
     registry,
     tokenManager,
     close() {
-      return swappableAuth.waitForIdle().finally(() => database.close());
+      return swappableAuth.waitForIdle().then(
+        () => database.close(),
+        (error) => database.close().finally(() => {
+          throw error;
+        }),
+      );
     },
   };
 }

@@ -66,4 +66,29 @@ describe('server runtime', () => {
     await expect(runtime.close()).rejects.toThrow('auth initialization failed');
     expect(closeDatabase).toHaveBeenCalledOnce();
   });
+
+  it('preserves the auth failure when database close also fails', async () => {
+    const runtime = createServerRuntime({
+      allowSignup: false,
+      baseURL: 'http://127.0.0.1:4000',
+      dbPath: ':memory:',
+      secret: 'test-better-auth-secret-0123456789',
+    });
+    const actualGetMigrations = vi.mocked(getMigrations).getMockImplementation()!;
+    vi.mocked(getMigrations).mockImplementationOnce(async (...args) => {
+      const migrations = await actualGetMigrations(...args);
+      return {
+        ...migrations,
+        async runMigrations() {
+          throw new Error('auth initialization failed');
+        },
+      };
+    });
+    const closeDatabase = vi.spyOn(runtime.database, 'close')
+      .mockRejectedValueOnce(new Error('database close failed'));
+
+    await expect(runtime.close()).rejects.toThrow('auth initialization failed');
+    expect(closeDatabase).toHaveBeenCalledOnce();
+    await runtime.database.close();
+  });
 });
