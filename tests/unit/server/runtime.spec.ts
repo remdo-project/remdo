@@ -1,6 +1,7 @@
 import { getMigrations } from 'better-auth/db/migration';
 import { describe, expect, it, vi } from 'vitest';
 import { createServerRuntime } from '#server/runtime';
+import { createDeferred } from '../_support/deferred';
 
 vi.mock('better-auth/db/migration', async (importOriginal) => {
   const actual = await importOriginal<typeof import('better-auth/db/migration')>();
@@ -9,14 +10,6 @@ vi.mock('better-auth/db/migration', async (importOriginal) => {
     getMigrations: vi.fn(actual.getMigrations),
   };
 });
-
-function createDeferred() {
-  let resolve!: () => void;
-  const promise = new Promise<void>((promiseResolve) => {
-    resolve = promiseResolve;
-  });
-  return { promise, resolve };
-}
 
 describe('server runtime', () => {
   it('waits for auth initialization before closing the database', async () => {

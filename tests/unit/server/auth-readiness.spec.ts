@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createServerAuth } from '#server/auth/auth';
 import { createServerDatabaseClient } from '#server/db/client';
+import { createDeferred } from '../_support/deferred';
 
 const betterAuthMock = vi.hoisted(() => vi.fn());
 const getMigrationsMock = vi.hoisted(() => vi.fn());
@@ -14,14 +15,6 @@ vi.mock('@better-auth/oauth-provider', () => ({
   oauthProviderAuthServerMetadata: () => async () => new Response(),
   oauthProviderOpenIdConfigMetadata: () => async () => new Response(),
 }));
-
-function createDeferred() {
-  let resolve!: () => void;
-  const promise = new Promise<void>((promiseResolve) => {
-    resolve = promiseResolve;
-  });
-  return { promise, resolve };
-}
 
 function fakeBetterAuth(context: Promise<unknown>) {
   return {

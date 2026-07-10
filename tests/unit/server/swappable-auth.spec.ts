@@ -8,6 +8,7 @@ import {
   ensureSourceServerRow,
   claimSourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
+import { createDeferred } from '../_support/deferred';
 
 const SOURCE_ID = deriveSourceId('https://source.example');
 const OTHER_SOURCE_ID = deriveSourceId('https://other.example');
@@ -27,14 +28,6 @@ function liveProviderIds(swappable: ReturnType<typeof createSwappableServerAuth>
   const options = swappable.auth.auth.options as { plugins?: { id?: string; options?: { config?: { providerId: string }[] } }[] };
   const genericOAuth = options.plugins?.find((plugin) => plugin.id === 'generic-oauth');
   return (genericOAuth?.options?.config ?? []).map((entry) => entry.providerId);
-}
-
-function createDeferred() {
-  let resolve!: () => void;
-  const promise = new Promise<void>((promiseResolve) => {
-    resolve = promiseResolve;
-  });
-  return { promise, resolve };
 }
 
 // The swappable auth is what makes a self-registered source linkable without a
