@@ -95,6 +95,7 @@ test.describe('Routing', () => {
     await page.goto('/oauth/consent?client_id=test-client');
 
     await expect(page.getByRole('heading', { name: 'Authorize access' })).toBeVisible();
+    await expect(page.getByRole('main')).toBeVisible();
     await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Sharing' })).toBeVisible();
@@ -108,6 +109,7 @@ test.describe('Routing', () => {
     await page.goto('/offline');
 
     await expect(page.getByRole('heading', { name: 'Offline' })).toBeVisible();
+    await expect(page.getByRole('main')).toBeVisible();
     await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
     const navigation = page.getByRole('navigation', { name: 'Primary' });
     await expect(navigation.getByRole('link', {
@@ -115,6 +117,53 @@ test.describe('Routing', () => {
     })).toHaveCount(0);
     await page.waitForLoadState('networkidle');
     expect(userDataRequests).toEqual([]);
+  });
+
+  test('renders Sharing as a standard authenticated page', async ({ page }) => {
+    const userDataRequests = collectUserDataRuntimeRequests(page);
+    await page.goto('/sharing');
+
+    await expect(page.getByRole('main')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Sharing' })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    expect(userDataRequests).toContain('/api/current-user');
+  });
+
+  test('starts user data for a direct authenticated admin page', async ({ page }) => {
+    const userDataRequests = collectUserDataRuntimeRequests(page);
+    await page.goto('/admin');
+
+    await expect(page.getByRole('main')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Admin' })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    expect(userDataRequests).toContain('/api/current-user');
+  });
+
+  test('keeps unauthenticated admin enrollment outside user data', async ({
+    browser,
+    contextOptions,
+  }) => {
+    const context = await browser.newContext({
+      ...contextOptions,
+      storageState: {
+        cookies: [],
+        origins: [],
+      },
+    });
+    const page = await context.newPage();
+    const detachPageGuards = attachPageGuards(page);
+    const userDataRequests = collectUserDataRuntimeRequests(page);
+    try {
+      await page.goto('/admin');
+
+      await expect(page.getByRole('main')).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Become admin' })).toBeVisible();
+      await page.waitForLoadState('networkidle');
+      expect(userDataRequests).toEqual([]);
+    } finally {
+      detachPageGuards();
+      await context.close();
+    }
   });
 
   test('logs out the active session from the app header', async ({ browser, contextOptions }) => {

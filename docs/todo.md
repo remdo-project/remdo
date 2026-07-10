@@ -563,30 +563,13 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   therefore practically inert today; add coverage if a schema rule that survives
   load is introduced.
 
-## App-shell / layout redesign
+## App shell and route layout
 
-The route-persistent, session-aware app header is established. The remaining
-layout and component work follows the decisions below.
-
-Initial assumptions (the problem):
-
-- The non-editor chrome (home, login, admin, sharing, offline, consent) grew
-  ad-hoc over the editor and was never properly designed — layout and component
-  architecture, not graphic design, are the target. Prefer simplify / redesign /
-  fix over adding features. Base choices on established patterns / prior art
-  rather than invented ones.
-- Remaining smells: `AuthenticatedApp` doubles as route layout AND a manual
-  runtime wrapper (`AdminRoute` re-wraps it); no consistent page scaffold across
-  routes (each reinvents Container/Paper/Stack/heading, Sharing has no heading);
-  `DocumentRoute` is a ~670-line megacomponent; document switching is a combobox
-  buried in the document header (no persistent doc list).
-
-Confirmed decisions:
-
-- **DocumentRoute:** full deliberate decomposition (route glue + document
-  toolbar/switcher + document search (+hook) + editor pane + upload flow).
-- **Delivery:** gradual, multiple units. Remaining provisional phasing: AppShell
-  with a shared page scaffold under `src/client/ui/`, re-home routes, standalone
-  surfaces onto a centered-card scaffold, and navbar with a doc-list placeholder;
-  then live sidebar document list; DocumentRoute decomposition; sharing/admin
-  page redesign + admin panel; and Spotlight ⌘K palette.
+- Decompose `DocumentRoute` into route glue, document toolbar/actions, document
+  search, editor pane, and import flow before moving document navigation.
+- Replace the document-header switcher with a responsive, live document sidebar;
+  do not ship an inert sidebar placeholder.
+- Redesign Sharing and the admin page on the shared scaffold. Keep admin
+  capabilities tracked under **Admin role follow-ups** above.
+- Add a Spotlight-style command palette after navigation and document actions
+  have stable component boundaries.

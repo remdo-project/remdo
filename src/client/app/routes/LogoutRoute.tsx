@@ -1,6 +1,7 @@
-import { Alert, Button, Container, Paper, Stack, Text, Title } from '@mantine/core';
+import { Alert, Button } from '@mantine/core';
 import { useCallback, useEffect, useState } from 'react';
 import { logoutCurrentUser } from '#client/app/auth/logout';
+import CenteredCardPage from '#client/ui/CenteredCardPage';
 import { clearLocalLogoutData } from './logout-local-data';
 
 type LogoutStatus = 'clearing-local' | 'local-failed' | 'server-failed' | 'signing-out';
@@ -41,27 +42,17 @@ export default function LogoutRoute() {
         : 'Signing out.';
 
   return (
-    <Container size="xs" py="xl">
-      <Paper withBorder p="xl" radius="md">
-        <Stack gap="md">
-          <div>
-            <Title order={1}>Logging out</Title>
-            <Text c="dimmed" size="sm">
-              {message}
-            </Text>
-          </div>
-          {isFailed && (
-            <>
-              <Alert color="yellow" title="Logout paused">
-                {message}
-              </Alert>
-              <Button onClick={() => void runLogout()}>
-                Retry logout
-              </Button>
-            </>
-          )}
-        </Stack>
-      </Paper>
-    </Container>
+    <CenteredCardPage description={message} title="Logging out">
+      {isFailed && (
+        <>
+          <Alert color="yellow" title="Logout paused">
+            {message}
+          </Alert>
+          <Button onClick={() => void runLogout()}>
+            Retry logout
+          </Button>
+        </>
+      )}
+    </CenteredCardPage>
   );
 }
