@@ -52,6 +52,14 @@ async function expectAlignedTextLeft(page: EditorPage, noteLabel: string, bodyTe
   expect(Math.abs(noteLeft - bodyLeft)).toBeLessThan(1);
 }
 
+async function bodyTextDecorationLine(page: EditorPage, bodyText: string): Promise<string> {
+  return editorLocator(page)
+    .locator('.note-body')
+    .filter({ hasText: bodyText })
+    .first()
+    .evaluate((el) => globalThis.getComputedStyle(el).textDecorationLine);
+}
+
 test.describe('note body list markers (docs/outliner/body.md)', () => {
   test('a body in a numbered list shows no number and does not offset the count', async ({ page, editor }) => {
     // tree-list-types: note2 lives in a number list.
@@ -93,6 +101,12 @@ test.describe('note body list markers (docs/outliner/body.md)', () => {
     await addBody(page, 'note4', 'checkbody');
 
     await expectAlignedTextLeft(page, 'note4', 'checkbody');
+  });
+
+  test('a body owned by a checked task is crossed out', async ({ page, editor }) => {
+    await editor.load('editor-showcase');
+
+    expect(await bodyTextDecorationLine(page, 'Done task body')).toContain('line-through');
   });
 
   test('a body in a check list carries no checkbox classes or hit area', async ({ page, editor }) => {
