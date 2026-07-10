@@ -274,14 +274,7 @@ export function CheckListPlugin() {
           });
         },
         { skipInitialization: false }
-      ),
-      editor.registerUpdateListener(({ editorState, dirtyElements }) => {
-        editorState.read(() => {
-          for (const key of dirtyElements.keys()) {
-            $syncNoteCheckedDataset(editor, key);
-          }
-        });
-      })
+      )
     );
   }, [editor]);
 
