@@ -6,19 +6,17 @@ import {
   findResultByLabel,
   getActiveResultLabel,
   getActiveSearchResult,
-  getMockSearchGlobals,
   getResultByLabel,
   getResultLabels,
+  refreshMockSearchNotes,
   renderDocumentRoute,
   resetDocumentRouteHarness,
+  setMockSearchSnapshot,
 } from './_support/document-route-harness';
-import type {
-  MockSearchGlobals,
-  TestSearchSnapshot,
-} from './_support/document-route-harness';
+import type { TestSearchSnapshot } from './_support/document-route-harness';
 
 function setSearchSnapshot(snapshot: TestSearchSnapshot) {
-  getMockSearchGlobals().__remdoMockSearchCandidatesByDoc = { routeDoc: snapshot };
+  setMockSearchSnapshot('routeDoc', snapshot);
 }
 
 describe('document search', () => {
@@ -324,9 +322,7 @@ describe('document search', () => {
     };
 
     const setManyNotes = () => {
-      (globalThis as typeof globalThis & MockSearchGlobals).__remdoMockSearchCandidatesByDoc = {
-        routeDoc: manyNotesSnapshot(),
-      };
+      setMockSearchSnapshot('routeDoc', manyNotesSnapshot());
     };
 
     it('caps flat results at ten and flags that more matches exist', async () => {
@@ -512,18 +508,12 @@ describe('document search', () => {
   });
 
   it('uses sdk-provided candidates for flat results', async () => {
-    (
-      globalThis as typeof globalThis & {
-        __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
-      }
-    ).__remdoMockSearchCandidatesByDoc = {
-      routeDoc: {
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'sdk1', text: 'sdk result' }],
-          sdk1: [],
-        },
+    setMockSearchSnapshot('routeDoc', {
+      childCandidateMap: {
+        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'sdk1', text: 'sdk result' }],
+        sdk1: [],
       },
-    };
+    });
 
     renderDocumentRoute();
 
@@ -553,19 +543,13 @@ describe('document search', () => {
   });
 
   it('clears stale sdk candidates when switching documents', async () => {
-    (
-      globalThis as typeof globalThis & {
-        __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
-      }
-    ).__remdoMockSearchCandidatesByDoc = {
-      routeDoc: {
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'mainonly', text: 'main only' }],
-          mainonly: [],
-        },
+    setMockSearchSnapshot('routeDoc', {
+      childCandidateMap: {
+        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'mainonly', text: 'main only' }],
+        mainonly: [],
       },
-      other: null,
-    };
+    });
+    setMockSearchSnapshot('other', null);
 
     const router = renderDocumentRoute();
     const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
@@ -592,10 +576,7 @@ describe('document search', () => {
   });
 
   it('waits for the first candidate snapshot before showing search results', async () => {
-    const globals = getMockSearchGlobals();
-    globals.__remdoMockSearchCandidatesByDoc = {
-      routeDoc: null,
-    };
+    setMockSearchSnapshot('routeDoc', null);
 
     renderDocumentRoute();
 
@@ -603,21 +584,19 @@ describe('document search', () => {
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: 'fresh' } });
 
-    globals.__remdoMockSearchCandidatesByDoc = {
-      routeDoc: {
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
-          fresh: [],
-        },
+    setMockSearchSnapshot('routeDoc', {
+      childCandidateMap: {
+        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
+        fresh: [],
       },
-    };
+    });
 
     await waitFor(() => {
       expect(screen.queryByTestId('document-search-results')).toBeNull();
       expect(screen.queryByText('No notes')).toBeNull();
     });
 
-    globals.__remdoMockSearchNotesRefresh?.routeDoc?.();
+    refreshMockSearchNotes('routeDoc');
 
     await waitFor(() => {
       expect(getActiveResultLabel()).toBe('fresh result');
@@ -625,15 +604,12 @@ describe('document search', () => {
   });
 
   it('waits for a fresh snapshot after invalidating current document candidates', async () => {
-    const globals = getMockSearchGlobals();
-    globals.__remdoMockSearchCandidatesByDoc = {
-      routeDoc: {
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'stale', text: 'shared result' }],
-          stale: [],
-        },
+    setMockSearchSnapshot('routeDoc', {
+      childCandidateMap: {
+        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'stale', text: 'shared result' }],
+        stale: [],
       },
-    };
+    });
 
     renderDocumentRoute();
 
@@ -647,8 +623,8 @@ describe('document search', () => {
     });
 
     // Invalidate: candidates become unavailable, then refresh clears the reader.
-    globals.__remdoMockSearchCandidatesByDoc = { routeDoc: null };
-    globals.__remdoMockSearchNotesRefresh?.routeDoc?.();
+    setMockSearchSnapshot('routeDoc', null);
+    refreshMockSearchNotes('routeDoc');
 
     await waitFor(() => {
       expect(screen.queryByTestId('document-search-results')).toBeNull();
@@ -656,15 +632,13 @@ describe('document search', () => {
       expect(screen.queryByText('No notes')).toBeNull();
     });
 
-    globals.__remdoMockSearchCandidatesByDoc = {
-      routeDoc: {
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
-          fresh: [],
-        },
+    setMockSearchSnapshot('routeDoc', {
+      childCandidateMap: {
+        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
+        fresh: [],
       },
-    };
-    globals.__remdoMockSearchNotesRefresh?.routeDoc?.();
+    });
+    refreshMockSearchNotes('routeDoc');
 
     await waitFor(() => {
       expect(getActiveResultLabel()).toBe('fresh result');

@@ -78,12 +78,6 @@ function createTestEditorNotes(snapshot: TestSearchSnapshot): EditorNotes {
   } as unknown as EditorNotes;
 }
 
-export interface MockSearchGlobals {
-  __remdoMockSearchNotesRefresh?: Record<string, () => void>;
-  __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
-  __remdoMockZoomPathByDoc?: Record<string, Record<string, NotePathItem[]>>;
-}
-
 const defaultSnapshot = {
   childCandidateMap: {
     [ROOT_SEARCH_SCOPE_ID]: [
@@ -107,6 +101,9 @@ interface MockEditorProps {
 }
 
 let mockEditorInstanceCounter = 0;
+let searchSnapshots: Record<string, TestSearchSnapshot | null> = {};
+let searchRefreshCallbacks: Record<string, () => void> = {};
+let zoomPaths: Record<string, Record<string, NotePathItem[]>> = {};
 
 function MockEditor({
   docId,
@@ -119,17 +116,15 @@ function MockEditor({
   const registerSearchNotesReader = useRegisterSearchNotesReader();
 
   React.useEffect(() => {
-    const globals = getMockSearchGlobals();
-    setZoomPath(zoomNoteId ? globals.__remdoMockZoomPathByDoc?.[docId]?.[zoomNoteId] ?? [] : []);
+    setZoomPath(zoomNoteId ? zoomPaths[docId]?.[zoomNoteId] ?? [] : []);
   }, [docId, setZoomPath, zoomNoteId]);
 
   React.useEffect(() => {
     if (!searchModeRequested) {
       return;
     }
-    const globals = getMockSearchGlobals();
     const applyCurrent = () => {
-      const candidateSelection = globals.__remdoMockSearchCandidatesByDoc?.[docId];
+      const candidateSelection = searchSnapshots[docId];
       if (candidateSelection === null) {
         registerSearchNotesReader(null);
         return;
@@ -141,10 +136,10 @@ function MockEditor({
     };
 
     applyCurrent();
-    (globals.__remdoMockSearchNotesRefresh ??= {})[docId] = applyCurrent;
+    searchRefreshCallbacks[docId] = applyCurrent;
     return () => {
-      if (globals.__remdoMockSearchNotesRefresh?.[docId] === applyCurrent) {
-        delete globals.__remdoMockSearchNotesRefresh[docId];
+      if (searchRefreshCallbacks[docId] === applyCurrent) {
+        delete searchRefreshCallbacks[docId];
       }
       registerSearchNotesReader(null);
     };
@@ -184,17 +179,24 @@ vi.mock('#client/editor/features/zoom/ZoomBreadcrumbs', () => ({
   ZoomBreadcrumbs: MockZoomBreadcrumbs,
 }));
 
-export function getMockSearchGlobals(): typeof globalThis & MockSearchGlobals {
-  return globalThis;
+export function setMockSearchSnapshot(docId: string, snapshot: TestSearchSnapshot | null) {
+  searchSnapshots[docId] = snapshot;
+}
+
+export function refreshMockSearchNotes(docId: string) {
+  searchRefreshCallbacks[docId]?.();
+}
+
+export function setMockZoomPath(docId: string, noteId: string, path: NotePathItem[]) {
+  (zoomPaths[docId] ??= {})[noteId] = path;
 }
 
 export function resetDocumentRouteHarness() {
   resetTestUserData();
   mockEditorInstanceCounter = 0;
-  const globals = getMockSearchGlobals();
-  globals.__remdoMockSearchCandidatesByDoc = undefined;
-  globals.__remdoMockSearchNotesRefresh = undefined;
-  globals.__remdoMockZoomPathByDoc = undefined;
+  searchSnapshots = {};
+  searchRefreshCallbacks = {};
+  zoomPaths = {};
   document.title = 'RemDo';
 }
 

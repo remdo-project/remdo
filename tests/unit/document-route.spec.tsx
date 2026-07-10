@@ -11,8 +11,8 @@ import {
   renderDocumentRoute,
   renderDocumentRouteWithResult,
   resetDocumentRouteHarness,
+  setMockZoomPath,
 } from './_support/document-route-harness';
-import type { MockSearchGlobals } from './_support/document-route-harness';
 
 describe('document route', () => {
 
@@ -129,14 +129,10 @@ describe('document route', () => {
   });
 
   it('sets the page title from the current zoom note when zoomed', async () => {
-    (globalThis as typeof globalThis & MockSearchGlobals).__remdoMockZoomPathByDoc = {
-      routeDoc: {
-        note3: [
-          { noteId: 'note1', label: 'Parent' },
-          { noteId: 'note3', label: '  Current\nNote  ' },
-        ],
-      },
-    };
+    setMockZoomPath('routeDoc', 'note3', [
+      { noteId: 'note1', label: 'Parent' },
+      { noteId: 'note3', label: '  Current\nNote  ' },
+    ]);
 
     renderDocumentRoute(createDocumentPath('routeDoc', 'note3'));
 

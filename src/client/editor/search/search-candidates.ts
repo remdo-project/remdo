@@ -1,4 +1,5 @@
 import type { EditorNote, EditorNotes, NoteListType } from '#note-sdk';
+import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import { matchesPathQuery } from '#client/search/query-match';
 
 /** A note's render-relevant fields, used for the child preview. */
@@ -9,10 +10,10 @@ interface ChildCandidate {
   checked: boolean;
 }
 
-/** A flat search candidate: a child candidate plus its path labels (ancestor
- *  chain + own text, own text last) for path-scoped query matching. */
+/** A flat search candidate: a child candidate plus its path (ancestors + self,
+ *  self last) for matching and result context. */
 export interface SearchCandidate extends ChildCandidate {
-  pathText: string[];
+  path: NotePathItem[];
 }
 
 /** The first few direct children of a result (for the row preview) plus the
@@ -50,7 +51,7 @@ function toChildCandidate(note: EditorNote): ChildCandidate {
 
 interface CandidateWalkEntry {
   note: EditorNote;
-  ancestorLabels: string[];
+  ancestorPath: NotePathItem[];
 }
 
 /**
@@ -73,13 +74,13 @@ export function collectDocumentSearchResults(
 
   const stack: CandidateWalkEntry[] = editorNotes.currentDocument().children()
     .toReversed()
-    .map((note) => ({ note, ancestorLabels: [] }));
+    .map((note) => ({ note, ancestorPath: [] }));
 
   while (stack.length > 0) {
-    const { note, ancestorLabels } = stack.pop()!;
-    const pathText = [...ancestorLabels, note.text()];
+    const { note, ancestorPath } = stack.pop()!;
+    const path = [...ancestorPath, { noteId: note.id(), label: note.text() }];
 
-    const matches = matchesPathQuery(pathText, query);
+    const matches = matchesPathQuery(path.map((item) => item.label), query);
     if (matches && flatResults.length === limit) {
       // One match past the limit: enough to report there are more, and the
       // signal to stop. Bail before reading this note's children — for a large
@@ -93,7 +94,7 @@ export function collectDocumentSearchResults(
     // traversal, so read them once here — but only past the peek-break above.
     const children = note.children();
     if (matches) {
-      flatResults.push({ ...toChildCandidate(note), pathText });
+      flatResults.push({ ...toChildCandidate(note), path });
       childPreviewByNoteId[note.id()] = {
         items: children.slice(0, childPreviewLimit).map(toChildCandidate),
         totalCount: children.length,
@@ -101,7 +102,7 @@ export function collectDocumentSearchResults(
     }
 
     for (let index = children.length - 1; index >= 0; index -= 1) {
-      stack.push({ note: children[index]!, ancestorLabels: pathText });
+      stack.push({ note: children[index]!, ancestorPath: path });
     }
   }
 

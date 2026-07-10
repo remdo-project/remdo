@@ -120,11 +120,24 @@ describe('search candidates', () => {
 
     expect(hasMore).toBe(false);
     expect(flatResults).toEqual([
-      { noteId: 'top', text: 'Top', listType: 'bullet', checked: false, pathText: ['Top'] },
-      { noteId: 'child-a', text: 'Child A', listType: 'bullet', checked: false, pathText: ['Top', 'Child A'] },
-      { noteId: 'child-b', text: 'Child B', listType: 'bullet', checked: false, pathText: ['Top', 'Child B'] },
-      { noteId: 'leaf', text: 'Leaf', listType: 'bullet', checked: false, pathText: ['Top', 'Child B', 'Leaf'] },
-      { noteId: 'sibling', text: 'Sibling', listType: 'bullet', checked: false, pathText: ['Sibling'] },
+      { noteId: 'top', text: 'Top', listType: 'bullet', checked: false, path: [{ noteId: 'top', label: 'Top' }] },
+      {
+        noteId: 'child-a', text: 'Child A', listType: 'bullet', checked: false,
+        path: [{ noteId: 'top', label: 'Top' }, { noteId: 'child-a', label: 'Child A' }],
+      },
+      {
+        noteId: 'child-b', text: 'Child B', listType: 'bullet', checked: false,
+        path: [{ noteId: 'top', label: 'Top' }, { noteId: 'child-b', label: 'Child B' }],
+      },
+      {
+        noteId: 'leaf', text: 'Leaf', listType: 'bullet', checked: false,
+        path: [
+          { noteId: 'top', label: 'Top' },
+          { noteId: 'child-b', label: 'Child B' },
+          { noteId: 'leaf', label: 'Leaf' },
+        ],
+      },
+      { noteId: 'sibling', text: 'Sibling', listType: 'bullet', checked: false, path: [{ noteId: 'sibling', label: 'Sibling' }] },
     ]);
   });
 
@@ -244,9 +257,12 @@ describe('search candidates', () => {
     });
 
     expect(result.flatResults).toEqual([
-      { noteId: 'note1', text: 'note1', listType: 'bullet', checked: false, pathText: ['note1'] },
-      { noteId: 'note2', text: 'note2', listType: 'bullet', checked: false, pathText: ['note1', 'note2'] },
-      { noteId: 'note3', text: 'note3', listType: 'bullet', checked: false, pathText: ['note3'] },
+      { noteId: 'note1', text: 'note1', listType: 'bullet', checked: false, path: [{ noteId: 'note1', label: 'note1' }] },
+      {
+        noteId: 'note2', text: 'note2', listType: 'bullet', checked: false,
+        path: [{ noteId: 'note1', label: 'note1' }, { noteId: 'note2', label: 'note2' }],
+      },
+      { noteId: 'note3', text: 'note3', listType: 'bullet', checked: false, path: [{ noteId: 'note3', label: 'note3' }] },
     ]);
     expect(result.childPreviewByNoteId).toEqual({
       note1: { items: [{ noteId: 'note2', text: 'note2', listType: 'bullet', checked: false }], totalCount: 1 },
@@ -265,13 +281,19 @@ describe('search candidates', () => {
     const { flatResults, childPreviewByNoteId } = collectDocumentSearchResults(sdk, ALL);
 
     expect(flatResults).toHaveLength(depth);
-    expect(flatResults[0]).toEqual({ noteId: 'deep-0', text: 'Deep 0', listType: 'bullet', checked: false, pathText: ['Deep 0'] });
+    expect(flatResults[0]).toEqual({
+      noteId: 'deep-0', text: 'Deep 0', listType: 'bullet', checked: false,
+      path: [{ noteId: 'deep-0', label: 'Deep 0' }],
+    });
     expect(flatResults.at(-1)).toEqual({
       noteId: `deep-${depth - 1}`,
       text: `Deep ${depth - 1}`,
       listType: 'bullet',
       checked: false,
-      pathText: Array.from({ length: depth }, (_unused, index) => `Deep ${index}`),
+      path: Array.from({ length: depth }, (_unused, index) => ({
+        noteId: `deep-${index}`,
+        label: `Deep ${index}`,
+      })),
     });
     expect(childPreviewByNoteId['deep-0']).toEqual({
       items: [{ noteId: 'deep-1', text: 'Deep 1', listType: 'bullet', checked: false }],

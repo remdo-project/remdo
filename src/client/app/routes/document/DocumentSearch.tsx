@@ -1,8 +1,5 @@
 import { TextInput } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
-import { useMemo } from 'react';
-import { useSearchNotes } from '#client/editor/view/EditorViewProvider';
-import type { EditorNote } from '#note-sdk';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import type { ChildPreview } from '#client/editor/search/search-candidates';
 import {
@@ -13,8 +10,6 @@ import { SearchResultRow } from '../SearchResultRow';
 import type { DocumentSearchModel } from '../useDocumentSearchModel';
 
 const EMPTY_CHILD_PREVIEW: ChildPreview = { items: [], totalCount: 0 };
-const EMPTY_ANCESTOR_PATH: NotePathItem[] = [];
-
 function buildSearchResultAccessibleName(text: string, path: NotePathItem[]): string {
   const name = normalizeNavigationLabel(text) || UNTITLED_LABEL;
   const ancestors = path.slice(0, -1);
@@ -54,23 +49,6 @@ export function DocumentSearchInput({ model }: { model: DocumentSearchModel }) {
 }
 
 export function DocumentSearchResults({ model }: { model: DocumentSearchModel }) {
-  const searchNotes = useSearchNotes();
-  const ancestorPathByNoteId = useMemo(() => {
-    const paths: Record<string, NotePathItem[]> = {};
-    searchNotes((notes) => {
-      for (const result of model.flatResults) {
-        const path: NotePathItem[] = [];
-        let note: EditorNote | null = notes.note(result.noteId);
-        while (note) {
-          path.push({ noteId: note.id(), label: note.text() });
-          note = note.parent();
-        }
-        paths[result.noteId] = path.reverse();
-      }
-    });
-    return paths;
-  }, [model.flatResults, searchNotes]);
-
   if (!model.searchModeActive) {
     return null;
   }
@@ -91,10 +69,9 @@ export function DocumentSearchResults({ model }: { model: DocumentSearchModel })
           const childPreview = model.childPreviewByNoteId[result.noteId] ?? EMPTY_CHILD_PREVIEW;
           const hasChildren = childPreview.totalCount > 0;
           const isActive = result.noteId === model.highlightedResultNoteId;
-          const resultPath = ancestorPathByNoteId[result.noteId] ?? EMPTY_ANCESTOR_PATH;
           return (
             <li
-              aria-label={buildSearchResultAccessibleName(result.text, resultPath)}
+              aria-label={buildSearchResultAccessibleName(result.text, result.path)}
               aria-selected={isActive}
               className="document-search-results-item"
               data-search-result-active={isActive ? 'true' : undefined}
@@ -111,7 +88,7 @@ export function DocumentSearchResults({ model }: { model: DocumentSearchModel })
               role="option"
             >
               <SearchResultRow
-                ancestorPath={resultPath}
+                ancestorPath={result.path}
                 checked={result.checked}
                 childCount={childPreview.totalCount}
                 childPreview={childPreview.items}
