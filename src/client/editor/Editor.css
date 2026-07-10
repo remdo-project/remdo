@@ -315,6 +315,10 @@
   outline: none;
 }
 
+.remdo-outline li.list-item:is(.list-item-checked, [data-note-checked='true']) {
+  text-decoration: line-through;
+}
+
 .remdo-outline ol.list-ol {
   counter-reset: remdo-ordered;
 }
@@ -371,11 +375,6 @@
 
 .remdo-outline li.list-item.list-item-checked {
   --checkbox-mask-image: url('/icons/checkbox-checked.svg');
-  text-decoration: line-through;
-}
-
-.remdo-outline li.list-item[data-note-checked='true'] {
-  text-decoration: line-through;
 }
 
 .note-controls-layer {
