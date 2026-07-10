@@ -8,11 +8,10 @@ import {
   useEditorViewActions,
   useZoomPath,
 } from '#client/editor/view/EditorViewProvider';
+import Editor from '#client/editor/Editor';
 import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
-import DocumentEditorPane from './DocumentEditorPane';
 import { DocumentSearchInput, DocumentSearchResults } from './DocumentSearch';
 import DocumentToolbar from './DocumentToolbar';
-import type { DocumentLocator } from './types';
 import { useDocumentActions } from './useDocumentActions';
 import { useDocumentSourceResolution } from './useDocumentSourceResolution';
 import '../DocumentRoute.css';
@@ -37,7 +36,7 @@ export default function DocumentWorkspace({
   onSelectDocument,
 }: {
   docId: string;
-  onSelectDocument: (document: DocumentLocator) => void;
+  onSelectDocument: (docId: string) => void;
 }) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
@@ -115,16 +114,25 @@ export default function DocumentWorkspace({
         </Alert>
       )}
       <DocumentSearchResults model={search} />
-      <DocumentEditorPane
-        docId={docId}
-        onImportError={actions.handleImportError}
-        pending={source.pending}
-        searchModeActive={search.searchModeActive}
-        searchModeRequested={search.searchModeRequested}
-        sourceId={source.sourceId}
-        sourceOrigin={source.sourceOrigin}
-        statusHost={statusHost}
-      />
+      <div className={search.searchModeActive
+        ? 'document-editor-pane document-editor-pane--hidden'
+        : 'document-editor-pane'}>
+        {source.pending ? (
+          <section className="document-editor-loading" role="status">
+            Loading document
+          </section>
+        ) : (
+          <Editor
+            key={`${source.sourceId ?? 'local'}:${docId}`}
+            docId={docId}
+            sourceOrigin={source.sourceOrigin}
+            sourceId={source.sourceId}
+            searchModeRequested={search.searchModeRequested}
+            statusPortalRoot={statusHost}
+            onPendingDocumentImportError={actions.handleImportError}
+          />
+        )}
+      </div>
     </div>
   );
 }

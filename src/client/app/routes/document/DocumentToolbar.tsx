@@ -3,11 +3,9 @@ import { IconChevronDown, IconPlus, IconUpload } from '@tabler/icons-react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { useMemo, useRef } from 'react';
 import { ZoomBreadcrumbs } from '#client/editor/features/zoom/ZoomBreadcrumbs';
-import { parseDocumentRef } from '#document-routes';
 import type { DocumentSourceNote } from '#note-sdk';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
-import type { DocumentLocator } from './types';
 
 const NEW_DOCUMENT_VALUE = '$new-document';
 const UPLOAD_DOCUMENT_VALUE = '$upload-document';
@@ -30,7 +28,7 @@ export default function DocumentToolbar({
   documentLabel: string;
   documentSources: readonly DocumentSourceNote[];
   onCreateDocument: () => void;
-  onSelectDocument: (document: DocumentLocator) => void;
+  onSelectDocument: (docId: string) => void;
   onSelectNoteId: (noteId: string | null) => void;
   onStatusHostChange: (host: HTMLDivElement | null) => void;
   onUploadDocument: (file: File) => void;
@@ -78,10 +76,7 @@ export default function DocumentToolbar({
                   uploadInputRef.current?.click();
                   return;
                 }
-                const selected = parseDocumentRef(value);
-                if (selected) {
-                  onSelectDocument({ docId: selected.docId });
-                }
+                onSelectDocument(value);
               }}
               position="bottom-start"
               shadow="md"

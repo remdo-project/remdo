@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import { registerPendingDocumentImport } from '#client/editor/runtime/pending-document-import';
 import type { UserDataNote } from '#note-sdk';
-import type { DocumentLocator } from './types';
 
 const UPLOADED_JSON_EXTENSION = '.json';
 const WHITESPACE_PATTERN = /\s+/gu;
@@ -20,7 +19,7 @@ export function useDocumentActions({
   userData,
 }: {
   docId: string;
-  onSelectDocument: (document: DocumentLocator) => void;
+  onSelectDocument: (docId: string) => void;
   userData: UserDataNote;
 }) {
   const [errors, setErrors] = useState<{
@@ -40,7 +39,7 @@ export function useDocumentActions({
     try {
       const nextDocument = await userData.documents().create('New Document');
       setErrors({ create: null, docId, upload: null });
-      onSelectDocument({ docId: nextDocument.id() });
+      onSelectDocument(nextDocument.id());
     } catch (error) {
       setErrors({
         ...currentErrors,
@@ -54,7 +53,7 @@ export function useDocumentActions({
       const nextDocument = await userData.documents().create(resolveUploadedDocumentTitle(file.name));
       registerPendingDocumentImport(nextDocument.id(), file);
       setErrors({ create: null, docId, upload: null });
-      onSelectDocument({ docId: nextDocument.id() });
+      onSelectDocument(nextDocument.id());
     } catch (error) {
       setErrors({
         ...currentErrors,

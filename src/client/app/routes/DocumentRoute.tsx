@@ -5,19 +5,18 @@ import { EditorViewProvider } from '#client/editor/view/EditorViewProvider';
 import { createDocumentPath } from '#document-routes';
 import type { ParsedDocumentRef } from '#document-routes';
 import DocumentWorkspace from './document/DocumentWorkspace';
-import type { DocumentLocator } from './document/types';
 
 function useDocumentRouteNavigation(docId: string) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const navigateToDocument = useCallback((nextDocument: DocumentLocator) => {
-    if (nextDocument.docId === docId) {
+  const navigateToDocument = useCallback((nextDocId: string) => {
+    if (nextDocId === docId) {
       return;
     }
     const nextSearch = searchParams.toString();
     void navigate({
-      pathname: createDocumentPath(nextDocument.docId),
+      pathname: createDocumentPath(nextDocId),
       search: nextSearch ? `?${nextSearch}` : '',
     });
   }, [docId, navigate, searchParams]);

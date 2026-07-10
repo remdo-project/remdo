@@ -46,7 +46,6 @@ export interface DocumentSearchModel {
   handleSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleSearchCompositionEnd: (event: CompositionEvent<HTMLInputElement>) => void;
   handleSearchCompositionStart: (_event: CompositionEvent<HTMLInputElement>) => void;
-  handleSearchDismiss: () => void;
   handleSearchFocus: (event: FocusEvent<HTMLInputElement>) => void;
   handleSearchKeyDown: (event: ReactKeyboardEvent<HTMLInputElement>) => void;
   handleSearchResultClick: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
@@ -329,7 +328,6 @@ export function useDocumentSearchModel({
     handleSearchChange,
     handleSearchCompositionEnd,
     handleSearchCompositionStart,
-    handleSearchDismiss: dismissSearch,
     handleSearchFocus,
     handleSearchKeyDown,
     handleSearchResultClick,
