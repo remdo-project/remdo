@@ -333,6 +333,14 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   `collab.awaitSynced`, or raise/derive the readiness budget. Don't mask it by
   blanket-bumping the timeout without confirming the ws drop is the cause.
 
+## Testing guidance follow-ups
+
+- Review existing tests against AGENTS.md's behavior-and-regression rule and
+  remove tests that merely mirror implementation without protecting behavior or
+  a stable contract.
+- Research further high-signal testing recommendations for coding agents, then
+  fold only durable, repo-relevant rules into AGENTS.md.
+
 ## Warning and drift detection follow-ups
 
 - Pin / drift decisions:
@@ -443,6 +451,9 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 ## Skill architecture follow-ups
 
+- `remdo-deps-refresh`: fetch origin and create a fresh dependency-refresh
+  branch from `origin/main` whenever a run starts; align its autonomous commit
+  scope and final CI/push reporting with that branch workflow.
 - Decide ESLint coverage for hidden skill roots (`.agents/skills/**/*.ts` and
   the remaining Claude-only `.claude/skills/**/*.ts`): the skill TS is now
   typechecked (tsconfig dot-include) and unit-run (embedded bridge), but ESLint
