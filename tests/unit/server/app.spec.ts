@@ -56,6 +56,7 @@ describe('remdo api app', () => {
     const harness = createHarness();
 
     expect(inspectRoutes(harness.app).map(({ method, path }) => `${method} ${path}`)).toEqual([
+      'ALL /api/auth/callback/:providerId',
       'ALL /api/auth/*',
       'GET /.well-known/openid-configuration',
       'GET /.well-known/oauth-authorization-server',
