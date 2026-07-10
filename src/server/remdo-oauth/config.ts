@@ -20,6 +20,11 @@ export function deriveSourceId(origin: string): string {
   return Buffer.from(origin, 'utf8').toString('base64url');
 }
 
+export function decodeSourceId(id: string): string | null {
+  const origin = Buffer.from(id, 'base64url').toString('utf8');
+  return isHttpOrigin(origin) && deriveSourceId(origin) === id ? origin : null;
+}
+
 // The source's display label is just its host — derived from the origin, never
 // stored or configured. Single source of that rule so the store and the add path
 // agree.

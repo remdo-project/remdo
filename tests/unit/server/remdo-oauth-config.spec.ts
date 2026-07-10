@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,12 +5,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createServerAuth } from '#server/auth/auth';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { createServerDatabaseClient } from '#server/db/client';
-import { deriveSourceId, deriveSourceServer } from '#server/remdo-oauth/config';
+import { decodeSourceId, deriveSourceId, deriveSourceServer } from '#server/remdo-oauth/config';
 import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
-
-function decodeId(id: string): string {
-  return Buffer.from(id, 'base64url').toString('utf8');
-}
 
 // Mirrors the plugin-inspection pattern in swappable-auth.spec.ts: the built
 // genericOAuth provider config is the only place that proves what actually gets
@@ -32,7 +27,7 @@ describe('deriveSourceServer', () => {
       baseUrl: 'https://source.example',
     });
     // The id reversibly encodes the full origin.
-    expect(decodeId(entry.id)).toBe('https://source.example');
+    expect(decodeSourceId(entry.id)).toBe('https://source.example');
   });
 
   it('rejects anything that is not a bare http(s) origin with one actionable error', () => {
@@ -61,6 +56,13 @@ describe('deriveSourceId', () => {
   it('gives distinct ids to origins differing only in punctuation', () => {
     // A slug that collapsed punctuation would alias these; the encoding must not.
     expect(deriveSourceId('https://foo-bar.example')).not.toBe(deriveSourceId('https://foo.bar.example'));
+  });
+
+  it('decodes only canonical ids containing bare http(s) origins', () => {
+    expect(decodeSourceId(deriveSourceId('https://source.example:8443')))
+      .toBe('https://source.example:8443');
+    expect(decodeSourceId(deriveSourceId('https://source.example/path'))).toBeNull();
+    expect(decodeSourceId('not-a-source-id')).toBeNull();
   });
 });
 

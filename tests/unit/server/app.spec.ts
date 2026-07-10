@@ -4,6 +4,7 @@ import { config } from '#config';
 import { HTTP_STATUS } from '#platform/http/status';
 import { extractSessionCookie } from '#server/auth/session-cookie';
 import { listCurrentUserSourceServers } from '#server/documents/source-servers';
+import { deriveSourceId } from '#server/remdo-oauth/config';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 import { createTestResource } from '../_support/test-resource';
 import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';
@@ -74,14 +75,19 @@ describe('remdo api app', () => {
     ]);
   });
 
-  it('rejects source OAuth callbacks whose issuer is missing or mismatched', async () => {
-    const harness = createHarnessWithSourceServer();
+  it('rejects source OAuth callbacks without revealing which sources are cached', async () => {
+    const sourceId = deriveSourceId(TEST_SOURCE_SERVER.baseUrl);
+    const unknownSourceId = deriveSourceId('https://unknown.example');
+    const harness = createHarness({
+      sourceServers: [{ ...TEST_SOURCE_SERVER, id: sourceId }],
+    });
 
-    for (const [query, error] of [
-      ['code=test&state=test', 'issuer_missing'],
-      ['code=test&state=test&iss=https%3A%2F%2Fother.example', 'issuer_mismatch'],
+    for (const [providerId, query, error] of [
+      [sourceId, 'code=test&state=test', 'issuer_missing'],
+      [unknownSourceId, 'code=test&state=test', 'issuer_missing'],
+      [sourceId, 'code=test&state=test&iss=https%3A%2F%2Fother.example', 'issuer_mismatch'],
     ] as const) {
-      const response = await harness.app.request(`/api/auth/callback/source?${query}`);
+      const response = await harness.app.request(`/api/auth/callback/${providerId}?${query}`);
 
       expect(response.status).toBe(302);
       expect(response.headers.get('location')).toBe(
@@ -90,7 +96,7 @@ describe('remdo api app', () => {
     }
 
     const matchingIssuer = await harness.app.request(
-      '/api/auth/callback/source?code=test&state=test&iss=https%3A%2F%2Fsource.example',
+      `/api/auth/callback/${sourceId}?code=test&state=test&iss=https%3A%2F%2Fsource.example`,
     );
     expect(matchingIssuer.status).toBe(302);
     expect(matchingIssuer.headers.get('location')).toContain('error=state_mismatch');
