@@ -17,6 +17,10 @@ import type {
   TestSearchSnapshot,
 } from './_support/document-route-harness';
 
+function setSearchSnapshot(snapshot: TestSearchSnapshot) {
+  getMockSearchGlobals().__remdoMockSearchCandidatesByDoc = { routeDoc: snapshot };
+}
+
 describe('document search', () => {
 
   beforeEach(() => {
@@ -152,6 +156,52 @@ describe('document search', () => {
 
     const resultItems = getResultLabels();
     expect(resultItems).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
+  });
+
+  it('uses ancestor tokens only when another token matches the note itself', async () => {
+    setSearchSnapshot({
+      childCandidateMap: {
+        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'work', text: 'Work' }],
+        work: [{ noteId: 'match', text: 'TODO refine estimates' }],
+        match: [],
+      },
+    });
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: 'work todo' } });
+    await waitFor(() => {
+      expect(getResultLabels()).toEqual(['TODO refine estimates']);
+    });
+
+    fireEvent.change(searchInput, { target: { value: 'work' } });
+    await waitFor(() => {
+      expect(getResultLabels()).toEqual(['Work']);
+    });
+  });
+
+  it('distinguishes same-text results by ancestor context in the accessible name', async () => {
+    setSearchSnapshot({
+      childCandidateMap: {
+        [ROOT_SEARCH_SCOPE_ID]: [
+          { noteId: 'work', text: 'Work' },
+          { noteId: 'home', text: 'Home' },
+        ],
+        work: [{ noteId: 'work-plan', text: 'Plan' }],
+        'work-plan': [],
+        home: [{ noteId: 'home-plan', text: 'Plan' }],
+        'home-plan': [],
+      },
+    });
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: 'Plan' } });
+
+    await screen.findByRole('option', { name: 'Plan, in Work' });
+    await screen.findByRole('option', { name: 'Plan, in Home' });
   });
 
   it('marks non-leaf flat results with a children hint flag', async () => {

@@ -4,13 +4,8 @@ import { useOnlineState } from '#client/runtime/useOnlineState';
 import { createDocumentSyncTokenApiPath } from '#document-routes';
 import type { DocumentSourceNote } from '#note-sdk';
 
-type LocalDocumentAccessProbe = 'idle' | 'checking' | 'authorized' | 'rejected';
-
-function useLocalDocumentAccessProbe(docId: string, enabled: boolean): LocalDocumentAccessProbe {
-  const [result, setResult] = useState<{ docId: string; status: LocalDocumentAccessProbe }>({
-    docId: '',
-    status: 'checking',
-  });
+function useLocalDocumentAccess(docId: string, enabled: boolean): boolean {
+  const [authorizedDocId, setAuthorizedDocId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!enabled) {
@@ -26,11 +21,11 @@ function useLocalDocumentAccessProbe(docId: string, enabled: boolean): LocalDocu
       signal: abortController.signal,
     })
       .then((response) => {
-        setResult({ docId, status: response.ok ? 'authorized' : 'rejected' });
+        setAuthorizedDocId(response.ok ? docId : null);
       })
       .catch(() => {
         if (!abortController.signal.aborted) {
-          setResult({ docId, status: 'rejected' });
+          setAuthorizedDocId(null);
         }
       });
 
@@ -39,10 +34,7 @@ function useLocalDocumentAccessProbe(docId: string, enabled: boolean): LocalDocu
     };
   }, [docId, enabled]);
 
-  if (!enabled) {
-    return 'idle';
-  }
-  return result.docId === docId ? result.status : 'checking';
+  return enabled && authorizedDocId === docId;
 }
 
 export function useDocumentSourceResolution(
@@ -55,13 +47,13 @@ export function useDocumentSourceResolution(
   const localSource = documentSources.find((source) => source.local()) ?? null;
   const localDocumentExists = Boolean(localSource?.documents().byId(docId));
   const ambiguous = online && documentSourcesLoading && !localDocumentExists && !currentSource;
-  const localAccess = useLocalDocumentAccessProbe(docId, ambiguous);
+  const localAccessAuthorized = useLocalDocumentAccess(docId, ambiguous);
   const currentDocument = currentSource?.documents().byId(docId) ?? null;
 
   return {
     currentSource,
     documentLabel: currentDocument?.text() ?? docId,
-    pending: ambiguous && localAccess !== 'authorized',
+    pending: ambiguous && !localAccessAuthorized,
     sourceId: currentSource?.local() === false ? currentSource.id() : null,
     sourceOrigin: currentSource?.baseUrl() ?? null,
   };
