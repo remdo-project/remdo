@@ -274,18 +274,14 @@ export function createServerAuth({
           // Better Auth starts plugin initialization at construction time. Keep
           // every instance that shares this database inside RemDo's readiness
           // boundary so resource seeding cannot outlive the database owner.
-          const contexts = Promise.allSettled([
+          const results = await Promise.allSettled([
+            (async () => {
+              const { runMigrations } = await getMigrations(auth.options);
+              await runMigrations();
+            })(),
             auth.$context,
             userProvisioningAuth.$context,
           ]);
-          try {
-            const { runMigrations } = await getMigrations(auth.options);
-            await runMigrations();
-          } catch (error) {
-            await contexts;
-            throw error;
-          }
-          const results = await contexts;
           const failure = results.find((result) => result.status === 'rejected');
           if (failure) {
             throw failure.reason;
