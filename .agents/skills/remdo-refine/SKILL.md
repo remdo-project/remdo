@@ -1,6 +1,6 @@
 ---
 name: remdo-refine
-description: Use to run the autonomous quality loop over a diff on the current branch — simplify, review at max effort, then external Codex review, looping until a clean pass. Works on either a committed range (default `origin/main...HEAD`, or an explicit range, clean tree) or the uncommitted working tree (opt-in, for reviewing changes before committing). Triggers include "refine this", "run the refine ladder", "review/simplify/fix loop", "refine the uncommitted changes", or `remdo-feature-flow` calling it in Phase 4.
+description: Use to run the autonomous quality loop over a diff on the current branch — simplify, review at max effort, then independent external reviews, looping until a clean pass. Works on either a committed range (default `origin/main...HEAD`, or an explicit range, clean tree) or the uncommitted working tree (opt-in, for reviewing changes before committing). Triggers include "refine this", "run the refine ladder", "review/simplify/fix loop", "refine the uncommitted changes", or `remdo-feature-flow` calling it in Phase 4.
 ---
 
 # Refine
@@ -89,8 +89,8 @@ Every rung must review with **fresh eyes** — the coordinating session's memory
 of implementing and reviewing the diff would bias it toward parts it thinks it
 cleaned. Run the simplify and internal-review rungs in the current agent's
 fresh-context mechanism (for example, a Claude Code fork/explore context or a
-Codex fresh subagent). Run the external rung through a separate configured
-reviewer or process so it does not inherit the coordinating session's context.
+Codex fresh subagent). Run the external rung through separate configured
+reviewers or processes so they do not inherit the coordinating session's context.
 When a runtime uses subagents for fresh-context rungs, prompt them with only the
 resolved scope and the `AGENTS.md` findings-suppression rule; do not pass
 implementation notes, suspected fixes, prior conclusions, or `.agent/` scratch.
@@ -124,27 +124,52 @@ a required fresh-context rung with an inline review by the coordinating session.
      the coordinating context.
    - **Report back / triage:** its findings, triaged under the loop rules.
 
-3. **External review** — invoke the configured external reviewer for an
-   independent outside read:
+3. **External reviews** — invoke every reviewer in the current runtime's
+   configured group, in order, for independent outside reads:
    - **Objective:** a fresh external read from a separate process.
    - **Scope passed:** the diff under review, **scope only, no review angle** —
      leading prompt framing defeats the point.
-   - **Anchoring (any reviewer):** a committed range passes the base SHA the
-     resolver pinned, **not** `--base origin/main` — codex recomputes its own
-     merge-base from the ref, so a bare `origin/main` would drift if it advances
-     mid-loop (`--base` accepts a commit SHA, not only a branch); working-tree
-     scope uses the reviewer's uncommitted mode.
-   - **Agent adapter:** Claude Code uses `codex review` (`--base
-     <anchored-base-sha>` or `--uncommitted`). Codex uses the first available
-     non-coordinating reviewer from this ordered list: `coderabbit:code-review` /
-     `coderabbit review --agent` (`--base-commit <anchored-base-sha>` for
-     committed ranges, `-t uncommitted` for working-tree scope), then `codex
-     review` as a separate noninteractive process. If no configured external
-     reviewer is available, stop and report the missing dependency rather than
-     silently dropping the rung.
+   - **Anchoring (every reviewer):** a committed range uses the base SHA the
+     resolver pinned in the reviewer's immutable scope form below, never the
+     floating `origin/main` ref; working-tree scope uses the reviewer's
+     uncommitted mode. This keeps the scope fixed if `origin/main` advances
+     mid-loop.
+   - **Claude Code adapter:** use `codex review` (`--base
+     <anchored-base-sha>` or `--uncommitted`).
+   - **Codex adapter:** run both of these reviewers in order:
+     1. `coderabbit:code-review` / `coderabbit review --agent`
+        (`--base-commit <anchored-base-sha>` for committed ranges, `-t
+        uncommitted` for working-tree scope).
+     2. A fresh Claude CLI process through `claude -p --effort max
+        --permission-mode plan --no-session-persistence --output-format json`.
+        Ask it to review `<anchored-base-sha>..HEAD` for committed scope or all
+        staged, unstaged, and untracked changes for working-tree scope. Use the
+        configured default model; do not pin a model name. Instruct it to report
+        findings only and not edit, stage, commit, or run mutating checks. Do
+        not use `claude ultrareview`: refine already owns the review ladder and
+        scope contract.
+   - **Settle unit:** treat each named reviewer as its own sub-rung: triage its
+     findings and rerun that reviewer until it settles before invoking the next.
+     The confirmation cycle re-runs every named reviewer in the same order.
+   - **Missing dependency:** if a required reviewer is unavailable, stop and
+     report it rather than silently skipping or replacing that reviewer.
    - **Report back / triage:** its findings, triaged under the loop rules.
 
 Forward the `AGENTS.md` findings-suppression rule to every rung and subagent.
+
+## Run ledger
+
+Keep one in-memory ledger from scope resolution through final checks. For every
+finder invocation, record its named step and ordinal, elapsed wall time,
+findings surfaced, approved findings applied, tradeoffs recorded in
+`docs/todo.md`, and outcome (`findings`, `clean`, `blocked`, or `failed`). Update
+the disposition counts after triage. Record each final verification command's
+elapsed time and the refine run's total wall time.
+
+One invocation is one top-level call from refine to a subagent or CLI reviewer.
+Do not count or normalize hidden vendor/model requests, tokens, or cost. Use
+timestamps or duration metadata available to the coordinating runtime; do not
+instrument reviewers or ask finder subagents to time themselves.
 
 ## The loop
 
@@ -203,14 +228,18 @@ eventual commit.
 
 ## Final report
 
-Index the result, do not re-narrate it: scope and base; cycle count and why the
-loop ended; fixes applied (pointing at files, not prose, noting where in the
-diff each finding sat); tradeoffs taken with a pointer to their
-`docs/todo.md` entries; any blocker with its gathered data; and the final checks
-with pass/fail.
+Index the result, do not re-narrate it: scope and base; fixes applied (pointing
+at files, not prose, noting where in the diff each finding sat); tradeoffs taken
+with a pointer to their `docs/todo.md` entries; and any blocker with its gathered
+data.
 
-Then one **per-rung counts** line each for simplify / internal / external: how
-many times it ran, findings it surfaced, and how many of those were applied.
+Close with `Refine: <total elapsed> — <cycle count and end reason>`, followed by
+a compact activity table with columns `Step`, `Calls`, `Wall time`, `Surfaced`,
+`Applied`, and `Tradeoffs`. Give simplify, internal review, and every named
+external reviewer separate rows. The applied/tradeoff columns distinguish real
+accepted findings from rejected noise. Then list each final check with its
+pass/fail result and elapsed time. The total need not equal the row sum because
+it also includes scope resolution, triage, fixes, tests, and commits.
 
 ## References
 
