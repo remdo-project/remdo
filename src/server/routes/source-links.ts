@@ -51,11 +51,8 @@ export function createSourceLinkRoutes(dependencies: ServerRouteDependencies) {
         homeOrigin: new URL(auth.baseURL).origin,
         scopes: REMDO_SERVER_OAUTH_SCOPES,
       });
-      // Rebuild unconditionally so the source's genericOAuth provider is live in
-      // this process before the link. A rebuild is synchronous, cheap, and
-      // idempotent; doing it always (not only when this request registered the
-      // client) closes the concurrent-first-link window where one racer cached the
-      // client but another reaches OAuth before that racer's own rebuild.
+      // Rebuild unconditionally so a concurrent first-link request sees the
+      // cached source provider even when another request registered it.
       await rebuildAuth();
       return await auth.auth.api.linkSocialAccount({
         body: {
