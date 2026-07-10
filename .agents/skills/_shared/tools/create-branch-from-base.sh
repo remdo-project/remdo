@@ -27,9 +27,7 @@ fi
 # Creating at the current base leaves edits in place. Across a moved base, those
 # edits could be carried or conflict, so refuse that state before switching.
 if [ "$(git rev-parse HEAD)" != "$base" ] \
-  && ! { git diff --quiet 2>/dev/null \
-    && git diff --cached --quiet 2>/dev/null \
-    && [ -z "$(git ls-files --others --exclude-standard)" ]; }; then
+  && [ -n "$(git status --porcelain)" ]; then
   fail "HEAD is not at the pinned base and the tree has edits — carrying them across a moved base risks a conflicted switch; reconcile HEAD with the base first"
 fi
 

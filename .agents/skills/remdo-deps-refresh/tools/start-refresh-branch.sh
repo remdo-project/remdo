@@ -11,9 +11,7 @@ fail() {
 git rev-parse --git-dir >/dev/null 2>&1 || fail "not a git repository"
 skill_dir="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
 
-if ! git diff --quiet 2>/dev/null \
-  || ! git diff --cached --quiet 2>/dev/null \
-  || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+if [ -n "$(git status --porcelain)" ]; then
   fail "working tree is dirty — resolve it before starting a dependency refresh"
 fi
 
