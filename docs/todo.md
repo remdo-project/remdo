@@ -302,6 +302,11 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   leaf-only typing updates skip them; skip redundant structural-overlay and
   outline-selection store writes in `SelectionPlugin` when nothing changed.
 
+## Client request follow-ups
+
+- Audit timeoutless browser requests and define operation-specific deadlines,
+  cancellation, and retry/idempotency semantics before extracting shared fetch plumbing.
+
 ## Test harness follow-ups
 
 - Improve expected-console-issue ergonomics (`assertions/console.ts`): make
@@ -500,6 +505,12 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 ## remdo-refine follow-ups
 
+- Working-tree scope currently unions `git diff HEAD` with cached paths, so a
+  staged edit undone in the checked-out file remains review noise despite having
+  no net artifact. Define the scope as the checked-out tree versus `HEAD` plus
+  untracked files; update `resolve-scope.sh`, its intentional regression test,
+  and the refine/simplify scope wording. Keep the any-layer dirty check only for
+  refusing committed-range mode with unrelated local changes.
 - Loop structure: nested settle/confirmation loops terminate on judgment, not
   structure, against stochastic reviewers that resample findings per run; rung
   re-runs re-review the whole diff rather than the delta since their last pass.
@@ -573,5 +584,3 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 - Decompose `DocumentRoute` into route glue, document toolbar/actions, document
   search, editor pane, and import flow.
-- Redesign Sharing and the admin page with consistent page structure. Keep admin
-  capabilities tracked under **Admin role follow-ups** above.

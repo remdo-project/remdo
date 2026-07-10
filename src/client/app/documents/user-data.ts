@@ -25,14 +25,14 @@ export function useUserData(): UserDataNote {
 // Whether this server is public (open-signup). Reactive to the bootstrap load.
 // A public server is source-only and refuses to link out, so the UI hides the
 // link action when this is true.
-export function useCurrentUserPublicServer(): boolean {
+export function useCurrentUserPublicServer(): boolean | null {
   useSyncExternalStore(
     subscribeUserDataRuntime,
     getUserDataVersion,
     getUserDataVersion,
   );
 
-  return getCachedCurrentUserBootstrap()?.publicServer ?? false;
+  return getCachedCurrentUserBootstrap()?.publicServer ?? null;
 }
 
 export function useDocumentSourcesLoading(): boolean {

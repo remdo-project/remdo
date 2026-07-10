@@ -315,7 +315,7 @@ describe('stored user data', () => {
     expect(collab.sessions[0]!.connect).toHaveBeenCalledTimes(1);
     expect(collab.sessions[0]!.awaitSynced).toHaveBeenCalledTimes(1);
     expect(collab.sessions[0]!.destroy).toHaveBeenCalledTimes(1);
-    expect(getUserDataVersion()).toBe(0);
+    expect(getUserDataVersion()).toBe(1);
     expect(listDocuments(eagerUserData)).toEqual([]);
 
     await vi.advanceTimersByTimeAsync(1000);
@@ -324,7 +324,7 @@ describe('stored user data', () => {
     expect(collab.sessions[1]!.connect).toHaveBeenCalledTimes(1);
     expect(collab.sessions[1]!.awaitSynced).toHaveBeenCalledTimes(1);
     expect(collab.sessions[1]!.destroy).not.toHaveBeenCalled();
-    expect(getUserDataVersion()).toBe(1);
+    expect(getUserDataVersion()).toBe(2);
     expect(listDocuments(eagerUserData)).toEqual([
       { id: 'recovered-doc', title: 'Recovered Document' },
     ]);
