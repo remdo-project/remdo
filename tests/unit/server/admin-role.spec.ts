@@ -71,6 +71,7 @@ describe('admin self-enrollment', () => {
     });
     const headers = { cookie: extractSessionCookie(signUp) };
     const existingSession = await harness.auth.getSession(new Headers(headers));
+    expect(existingSession?.user.role).toBe('user');
 
     const response = await enroll(harness.app, {
       ...OTHER_ENROLLEE,
@@ -79,7 +80,12 @@ describe('admin self-enrollment', () => {
     expect(response.ok).toBe(true);
 
     // The pre-existing account stays a non-admin; a new admin account was created.
-    expect(existingSession?.user.role).toBe('user');
+    const persistedExistingUser = await harness.database.db
+      .selectFrom('user')
+      .select('role')
+      .where('id', '=', existingSession!.user.id)
+      .executeTakeFirstOrThrow();
+    expect(persistedExistingUser.role).toBe('user');
     const createdSession = await harness.auth.getSession(new Headers({
       cookie: extractSessionCookie(response),
     }));

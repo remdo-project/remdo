@@ -566,10 +566,6 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 ## App shell and route layout
 
 - Decompose `DocumentRoute` into route glue, document toolbar/actions, document
-  search, editor pane, and import flow before moving document navigation.
-- Replace the document-header switcher with a responsive, live document sidebar;
-  do not ship an inert sidebar placeholder.
-- Redesign Sharing and the admin page on the shared scaffold. Keep admin
+  search, editor pane, and import flow.
+- Redesign Sharing and the admin page with consistent page structure. Keep admin
   capabilities tracked under **Admin role follow-ups** above.
-- Add a Spotlight-style command palette after navigation and document actions
-  have stable component boundaries.
