@@ -45,6 +45,7 @@ const CASES: OutlineCase[] = [
       {
         noteId: 'bodyNote',
         text: 'Note with body',
+        checked: true,
         body: 'Body has rich text and a note link\nSecond body line\nThird body line',
       },
       {

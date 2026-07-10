@@ -104,6 +104,7 @@
             ]
           },
           {
+            "checkState": true,
             "noteId": "bodyNote",
             "type": "listitem",
             "value": 4,

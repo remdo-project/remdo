@@ -110,7 +110,12 @@ test.describe('note body list markers (docs/outliner/body.md)', () => {
   test('a body owned by a checked task is crossed out', async ({ page, editor }) => {
     await editor.load('editor-showcase');
 
-    expect(await bodyTextDecorationLine(page, 'Done task body')).toContain('line-through');
+    expect(await bodyTextDecorationLine(page, 'Second body line')).toContain(
+      'line-through'
+    );
+    expect(await bodyTextDecorationLine(page, 'Done task body')).toContain(
+      'line-through'
+    );
   });
 
   test('a body in a check list carries no checkbox classes or hit area', async ({ page, editor }) => {

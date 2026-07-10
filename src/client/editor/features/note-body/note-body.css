@@ -20,6 +20,9 @@
   line-height: 1.45;
 }
 
-.remdo-outline li.list-item.list-item-checked + li.note-body-wrapper .note-body {
+.remdo-outline
+  li.list-item:is(.list-item-checked, [data-note-checked='true'])
+  + li.note-body-wrapper
+  .note-body {
   text-decoration: line-through;
 }
