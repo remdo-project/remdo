@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { getMigrations } from 'better-auth/db/migration';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSwappableServerAuth } from '#server/auth/auth';
 import { createServerDatabaseClient } from '#server/db/client';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
@@ -12,6 +13,15 @@ import {
 } from '#server/remdo-oauth/source-server-store';
 
 const SOURCE_ID = deriveSourceId('https://source.example');
+const OTHER_SOURCE_ID = deriveSourceId('https://other.example');
+
+vi.mock('better-auth/db/migration', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('better-auth/db/migration')>();
+  return {
+    ...actual,
+    getMigrations: vi.fn(actual.getMigrations),
+  };
+});
 
 // The genericOAuth provider ids currently live on the auth instance. A source is
 // linkable only once its provider is registered here — the sourceServers array
@@ -20,6 +30,14 @@ function liveProviderIds(swappable: ReturnType<typeof createSwappableServerAuth>
   const options = swappable.auth.auth.options as { plugins?: { id?: string; options?: { config?: { providerId: string }[] } }[] };
   const genericOAuth = options.plugins?.find((plugin) => plugin.id === 'generic-oauth');
   return (genericOAuth?.options?.config ?? []).map((entry) => entry.providerId);
+}
+
+function createDeferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+  return { promise, resolve };
 }
 
 // The swappable auth is what makes a self-registered source linkable without a
@@ -71,6 +89,48 @@ describe('createSwappableServerAuth', () => {
     // The rebuilt Better Auth instance actually carries the OAuth provider — this
     // is what makes the source linkable, not just the array entry.
     expect(liveProviderIds(swappable)).toEqual([SOURCE_ID]);
+  });
+
+  it('serializes overlapping rebuilds so an older snapshot cannot publish last', async () => {
+    const swappable = build();
+    await swappable.auth.ensureReady();
+    await ensureSourceServerRow(database, 'https://source.example');
+    await claimSourceServerPublicClient(database, 'https://source.example', 'cid');
+
+    const actualGetMigrations = vi.mocked(getMigrations).getMockImplementation()!;
+    const firstReplacementStarted = createDeferred();
+    const releaseFirstReplacement = createDeferred();
+    vi.mocked(getMigrations).mockImplementationOnce(async (...args) => {
+      const migrations = await actualGetMigrations(...args);
+      return {
+        ...migrations,
+        async runMigrations() {
+          firstReplacementStarted.resolve();
+          await releaseFirstReplacement.promise;
+          await migrations.runMigrations();
+        },
+      };
+    });
+
+    const firstRebuild = swappable.rebuild();
+    await firstReplacementStarted.promise;
+    await ensureSourceServerRow(database, 'https://other.example');
+    await claimSourceServerPublicClient(database, 'https://other.example', 'other-cid');
+
+    const migrationCallsBeforeSecond = vi.mocked(getMigrations).mock.calls.length;
+    const secondRebuild = swappable.rebuild();
+    await new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
+    expect(vi.mocked(getMigrations)).toHaveBeenCalledTimes(migrationCallsBeforeSecond);
+
+    releaseFirstReplacement.resolve();
+    await Promise.all([firstRebuild, secondRebuild]);
+    expect(liveProviderIds(swappable)).toEqual(expect.arrayContaining([
+      SOURCE_ID,
+      OTHER_SOURCE_ID,
+    ]));
+    expect(liveProviderIds(swappable)).toHaveLength(2);
   });
 
   it('a source row without a cached client has no provider', async () => {

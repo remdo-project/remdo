@@ -6,7 +6,8 @@ import {
 import { betterAuth } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import type Database from 'better-sqlite3';
-import { admin, genericOAuth, jwt, type GenericOAuthConfig } from 'better-auth/plugins';
+import { admin, genericOAuth, jwt } from 'better-auth/plugins';
+import type { GenericOAuthConfig } from 'better-auth/plugins';
 import type { ExpressionBuilder } from 'kysely';
 import { config } from '#config';
 import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
@@ -429,6 +430,7 @@ export function createSwappableServerAuth(
   options: CreateServerAuthOptions,
 ): SwappableServerAuth {
   let current = createServerAuth(options);
+  let rebuildTail = Promise.resolve();
   // The Proxy target is only a structural placeholder; every access reads the
   // live `current` instance (updated by rebuild()), not the target.
   const proxy = new Proxy(current, {
@@ -439,14 +441,20 @@ export function createSwappableServerAuth(
   });
   return {
     auth: proxy,
-    async rebuild() {
-      await current.ensureReady();
-      const replacement = createServerAuth({
-        ...options,
-        sourceServers: readSourceServersSync(options.database),
+    rebuild() {
+      const pending = rebuildTail.then(async () => {
+        await current.ensureReady();
+        const replacement = createServerAuth({
+          ...options,
+          sourceServers: readSourceServersSync(options.database),
+        });
+        await replacement.ensureReady();
+        current = replacement;
       });
-      await replacement.ensureReady();
-      current = replacement;
+      // A failed rebuild must reject its caller without poisoning later queued
+      // rebuilds, which can retry from the latest database state.
+      rebuildTail = pending.catch(() => {});
+      return pending;
     },
   };
 }
