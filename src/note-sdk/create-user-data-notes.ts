@@ -86,7 +86,7 @@ function createDocumentAccessNoteHandle(access: DocumentAccessItem): DocumentAcc
   const handle: DocumentAccessNote = {
     id: () => noteId,
     kind,
-    text: () => access.name ?? access.email,
+    text: () => access.name || access.email,
     children: () => [],
     email: () => access.email,
     granteeUserId: () => access.granteeUserId,
