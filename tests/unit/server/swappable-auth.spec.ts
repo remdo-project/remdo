@@ -119,13 +119,19 @@ describe('createSwappableServerAuth', () => {
 
     const migrationCallsBeforeSecond = vi.mocked(getMigrations).mock.calls.length;
     const secondRebuild = swappable.rebuild();
+    let idle = false;
+    const waitForIdle = swappable.waitForIdle().then(() => {
+      idle = true;
+    });
     await new Promise<void>((resolve) => {
       setImmediate(resolve);
     });
     expect(vi.mocked(getMigrations)).toHaveBeenCalledTimes(migrationCallsBeforeSecond);
+    expect(idle).toBe(false);
 
     releaseFirstReplacement.resolve();
-    await Promise.all([firstRebuild, secondRebuild]);
+    await Promise.all([firstRebuild, secondRebuild, waitForIdle]);
+    expect(idle).toBe(true);
     expect(liveProviderIds(swappable)).toEqual(expect.arrayContaining([
       SOURCE_ID,
       OTHER_SOURCE_ID,

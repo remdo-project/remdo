@@ -402,6 +402,9 @@ export interface SwappableServerAuth {
   // Rebuilds the underlying auth from the current DB source list, so a source
   // registered this session becomes a usable OAuth provider without a restart.
   rebuild: () => Promise<void>;
+  // Waits until initialization and every queued rebuild have settled, so the
+  // shared database can be closed without auth work still using it.
+  waitForIdle: () => Promise<void>;
 }
 
 export function createSwappableServerAuth(
@@ -433,6 +436,16 @@ export function createSwappableServerAuth(
       // rebuilds, which can retry from the latest database state.
       rebuildTail = pending.catch(() => {});
       return pending;
+    },
+    async waitForIdle() {
+      while (true) {
+        const tail = rebuildTail;
+        await tail;
+        await current.ensureReady();
+        if (tail === rebuildTail) {
+          return;
+        }
+      }
     },
   };
 }
