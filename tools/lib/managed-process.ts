@@ -1,5 +1,4 @@
 import type { ChildProcess } from 'node:child_process';
-import { once } from 'node:events';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -59,18 +58,33 @@ export function attachManagedProcess(
   for (const event of TEARDOWN_SIGNALS) {
     process.on(event, onSignal);
   }
-  const exitPromise = once(child, 'exit');
-  const closePromise = once(child, 'close');
+  let childError: Error | null = null;
+  const exitPromise = new Promise<void>((resolve) => {
+    child.once('exit', () => resolve());
+    child.once('error', (error) => {
+      childError = error;
+      resolve();
+    });
+  });
+  const closePromise = new Promise<void>((resolve) => {
+    child.once('close', () => resolve());
+  });
 
   return async (afterChildExit?: () => void | Promise<void>) => {
-    terminateProcessGroup(child, 'SIGTERM');
-    await exitPromise;
-    await afterChildExit?.();
-    await closePromise;
-    for (const event of TEARDOWN_SIGNALS) {
-      process.off(event, onSignal);
+    try {
+      terminateProcessGroup(child, 'SIGTERM');
+      await exitPromise;
+      await afterChildExit?.();
+      await closePromise;
+    } finally {
+      for (const event of TEARDOWN_SIGNALS) {
+        process.off(event, onSignal);
+      }
+      logStream.end();
+      await finished(logStream);
     }
-    logStream.end();
-    await finished(logStream);
+    if (childError) {
+      throw childError;
+    }
   };
 }
