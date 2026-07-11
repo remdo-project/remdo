@@ -4,6 +4,17 @@ import type { CurrentUserBootstrap } from '#domain/documents/user-data';
 import { HTTP_STATUS } from '#platform/http/status';
 import { createAuthenticatedContext } from '../_support/auth-context';
 
+const freshAuthenticatedTest = test.extend({
+  context: async ({ browser, contextOptions }, applyFixture) => {
+    const context = await createAuthenticatedContext(browser, contextOptions);
+    try {
+      await applyFixture(context);
+    } finally {
+      await context.close();
+    }
+  },
+});
+
 async function expectPath(page: Page, pathname: string): Promise<void> {
   await expect.poll(() => new URL(page.url()).pathname).toBe(pathname);
 }
@@ -40,23 +51,15 @@ async function hasIndexedDb(page: Page, dbName: string): Promise<boolean> {
 }
 
 test.describe('Routing', () => {
-  test('redirects the home alias to the authenticated bootstrap home document', async ({ browser, contextOptions }) => {
-    const context = await createAuthenticatedContext(browser, contextOptions);
-    const page = await context.newPage();
-    const detachPageGuards = attachPageGuards(page);
-    try {
-      const bootstrapResponse = await page.request.get('/api/current-user');
-      expect(bootstrapResponse.ok()).toBe(true);
-      const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
+  freshAuthenticatedTest('redirects the home alias to the authenticated bootstrap home document', async ({ page }) => {
+    const bootstrapResponse = await page.request.get('/api/current-user');
+    expect(bootstrapResponse.ok()).toBe(true);
+    const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
 
-      await page.goto('/home');
+    await page.goto('/home');
 
-      await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
-      await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
-    } finally {
-      detachPageGuards();
-      await context.close();
-    }
+    await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
+    await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
   });
 
   test('uses the root login entry and preserves a protected next target when unauthenticated', async ({
@@ -97,24 +100,16 @@ test.describe('Routing', () => {
     }
   });
 
-  test('resolves default landing next targets after login', async ({ browser, contextOptions }) => {
-    const context = await createAuthenticatedContext(browser, contextOptions);
-    const page = await context.newPage();
-    const detachPageGuards = attachPageGuards(page);
-    try {
-      const bootstrapResponse = await page.request.get('/api/current-user');
-      expect(bootstrapResponse.ok()).toBe(true);
-      const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
+  freshAuthenticatedTest('resolves default landing next targets after login', async ({ page }) => {
+    const bootstrapResponse = await page.request.get('/api/current-user');
+    expect(bootstrapResponse.ok()).toBe(true);
+    const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
 
-      for (const target of ['/', '/home']) {
-        await page.goto(`/?next=${encodeURIComponent(target)}`);
+    for (const target of ['/', '/home']) {
+      await page.goto(`/?next=${encodeURIComponent(target)}`);
 
-        await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
-        await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
-      }
-    } finally {
-      detachPageGuards();
-      await context.close();
+      await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
+      await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
     }
   });
 
@@ -194,24 +189,16 @@ test.describe('Routing', () => {
     }
   });
 
-  test('logs out the active session from the app header', async ({ browser, contextOptions }) => {
-    const context = await createAuthenticatedContext(browser, contextOptions);
-    const page = await context.newPage();
-    const detachPageGuards = attachPageGuards(page);
-    try {
-      await page.goto('/home');
-      await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
-      await createIndexedDb(page, 'y-sweet-logout-test');
+  freshAuthenticatedTest('logs out the active session from the app header', async ({ page }) => {
+    await page.goto('/home');
+    await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+    await createIndexedDb(page, 'y-sweet-logout-test');
 
-      await page.getByRole('link', { name: 'Logout' }).click();
+    await page.getByRole('link', { name: 'Logout' }).click();
 
-      await expectPath(page, '/');
-      await expect.poll(async () => hasIndexedDb(page, 'y-sweet-logout-test')).toBe(false);
-      const bootstrapResponse = await page.request.get('/api/current-user');
-      expect(bootstrapResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
-    } finally {
-      detachPageGuards();
-      await context.close();
-    }
+    await expectPath(page, '/');
+    await expect.poll(async () => hasIndexedDb(page, 'y-sweet-logout-test')).toBe(false);
+    const bootstrapResponse = await page.request.get('/api/current-user');
+    expect(bootstrapResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
   });
 });
