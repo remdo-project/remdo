@@ -88,14 +88,16 @@ test.describe('Routing', () => {
     }
   });
 
-  test('resolves a home next target after login', async ({ page }) => {
+  test('resolves default landing next targets after login', async ({ page }) => {
     const bootstrapResponse = await page.request.get('/api/current-user');
     expect(bootstrapResponse.ok()).toBe(true);
     const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
 
-    await page.goto('/?next=/home');
+    for (const target of ['/', '/home']) {
+      await page.goto(`/?next=${encodeURIComponent(target)}`);
 
-    await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
+      await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
+    }
   });
 
   test('keeps full authenticated navigation on the standalone consent route', async ({ page }) => {

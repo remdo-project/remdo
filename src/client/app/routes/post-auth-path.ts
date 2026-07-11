@@ -32,6 +32,9 @@ export function resolvePostAuthTargetPath(value: string | null, currentOrigin: s
 function resolveExplicitEntryPath(search: string, currentOrigin: string): string | null {
   const params = new URLSearchParams(search);
   const returnTo = resolvePostAuthTargetPath(params.get('next'), currentOrigin);
+  if (returnTo === '/') {
+    return null;
+  }
   if (returnTo) {
     return returnTo;
   }
