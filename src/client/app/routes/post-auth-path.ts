@@ -25,11 +25,7 @@ export function resolvePostAuthTargetPath(value: string | null, currentOrigin: s
     return null;
   }
 
-  const resolvedPath = createPath(resolvePath(`${url.pathname}${url.search}${url.hash}`, '/'));
-  if (new URL(resolvedPath, currentOrigin).origin !== currentOrigin) {
-    return null;
-  }
-  return resolvedPath;
+  return createPath(resolvePath(`${url.pathname}${url.search}${url.hash}`, '/'));
 }
 
 function resolveExplicitEntryPath(search: string, currentOrigin: string): string | null {

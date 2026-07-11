@@ -16,9 +16,16 @@ export default function OfflineRoute() {
       </Text>
       <Button
         onClick={() => {
-          globalThis.location.assign(
-            resolvePostAuthPath(location.search, globalThis.location.origin),
+          const currentOrigin = globalThis.location.origin;
+          const targetUrl = new URL(
+            resolvePostAuthPath(location.search, currentOrigin),
+            currentOrigin,
           );
+          if (targetUrl.origin !== currentOrigin) {
+            globalThis.location.assign('/');
+            return;
+          }
+          globalThis.location.assign(targetUrl);
         }}
         type="button"
       >
