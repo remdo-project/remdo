@@ -53,12 +53,11 @@ export function attachManagedProcess(child: ChildProcess, logPath: string): () =
   for (const event of TEARDOWN_SIGNALS) {
     process.on(event, onSignal);
   }
+  const closePromise = once(child, 'close');
 
   return async () => {
-    const exited = child.exitCode !== null || child.signalCode !== null;
-    const exitPromise = exited ? Promise.resolve() : once(child, 'exit');
     terminateProcessGroup(child, 'SIGTERM');
-    await exitPromise;
+    await closePromise;
     for (const event of TEARDOWN_SIGNALS) {
       process.off(event, onSignal);
     }
