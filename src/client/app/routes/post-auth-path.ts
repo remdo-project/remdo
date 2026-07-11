@@ -45,11 +45,3 @@ function resolveExplicitEntryPath(search: string, currentOrigin: string): string
 export function resolvePostAuthPath(search: string, currentOrigin: string): string {
   return resolveExplicitEntryPath(search, currentOrigin) ?? '/';
 }
-
-export function resolveNextPathOrDefault(
-  search: string,
-  currentOrigin: string,
-  defaultPath: string,
-): string {
-  return resolveExplicitEntryPath(search, currentOrigin) ?? defaultPath;
-}

@@ -1,7 +1,7 @@
 import { Button, Text } from '@mantine/core';
 import { useLocation } from 'react-router-dom';
 import CenteredCardPage from '#client/ui/CenteredCardPage';
-import { resolveNextPathOrDefault } from './post-auth-path';
+import { resolvePostAuthPath } from './post-auth-path';
 
 export default function OfflineRoute() {
   const location = useLocation();
@@ -17,7 +17,7 @@ export default function OfflineRoute() {
       <Button
         onClick={() => {
           globalThis.location.assign(
-            resolveNextPathOrDefault(location.search, globalThis.location.origin, '/'),
+            resolvePostAuthPath(location.search, globalThis.location.origin),
           );
         }}
         type="button"

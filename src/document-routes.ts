@@ -28,6 +28,16 @@ export function createDocumentPath(docId: string, noteId: string | null = null):
   return createDocumentPathWithPrefix(APP_DOCUMENT_PATH_PREFIX, docId, noteId);
 }
 
+export function createCanonicalDocumentPath(
+  docId: string,
+  noteId: string | null,
+  homeDocumentId: string,
+): string {
+  return noteId === null && docId === homeDocumentId
+    ? '/'
+    : createDocumentPath(docId, noteId);
+}
+
 export function createDocumentSyncTokenApiPath(docId: string): string {
   const normalizedDocId = normalizeNoteIdOrThrow(
     docId,

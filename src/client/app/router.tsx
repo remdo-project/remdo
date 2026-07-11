@@ -17,10 +17,11 @@ import type { RootRouteLoaderData } from './routes/RootRoute';
 import SharingRoute from './routes/SharingRoute';
 import {
   createPostAuthNextSearch,
-  resolveNextPathOrDefault,
+  resolvePostAuthPath,
 } from './routes/post-auth-path';
 import { resolveAuthenticatedLoginRedirect } from './routes/login-redirect';
 import {
+  createCanonicalDocumentPath,
   createDocumentPath,
   parseDocumentRef,
 } from '#document-routes';
@@ -68,7 +69,7 @@ async function rootRouteLoader(request: Request): Promise<RootRouteLoaderData> {
       throw redirect(createOfflinePath(request));
     }
     homeDocumentId = bootstrap.homeDocumentId;
-    target = resolveNextPathOrDefault(search, url.origin, '/');
+    target = resolvePostAuthPath(search, url.origin);
   } else {
     const redirectTarget = resolveAuthenticatedLoginRedirect(search, url.origin);
     if (redirectTarget.kind === 'document-redirect') {
@@ -110,10 +111,11 @@ async function documentLoader({ request, params }: {
     throw redirect(createOfflinePath(request));
   }
   const homeDocumentId = bootstrap?.homeDocumentId ?? await getHomeDocumentId();
-  if (parsed.docId === homeDocumentId && parsed.noteId === null) {
-    throw redirect(`/${url.search}`);
-  }
-  const canonicalPath = createDocumentPath(parsed.docId, parsed.noteId);
+  const canonicalPath = createCanonicalDocumentPath(
+    parsed.docId,
+    parsed.noteId,
+    homeDocumentId,
+  );
   if (url.pathname !== canonicalPath) {
     throw redirect(`${canonicalPath}${url.search}`);
   }

@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { Container } from '@mantine/core';
 import { useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
 import { EditorViewProvider } from '#client/editor/view/EditorViewProvider';
-import { createDocumentPath } from '#document-routes';
+import { createCanonicalDocumentPath } from '#document-routes';
 import type { ParsedDocumentRef } from '#document-routes';
 import DocumentWorkspace from './document/DocumentWorkspace';
 
@@ -15,7 +15,7 @@ function useDocumentRouteNavigation(docId: string, homeDocumentId: string) {
       return;
     }
     const nextSearch = searchParams.toString();
-    const pathname = nextDocId === homeDocumentId ? '/' : createDocumentPath(nextDocId);
+    const pathname = createCanonicalDocumentPath(nextDocId, null, homeDocumentId);
     void navigate({
       pathname,
       search: pathname === '/' ? '' : nextSearch ? `?${nextSearch}` : '',
@@ -24,9 +24,7 @@ function useDocumentRouteNavigation(docId: string, homeDocumentId: string) {
 
   const navigateToZoomNote = useCallback((noteId: string | null) => {
     const nextSearch = searchParams.toString();
-    const pathname = noteId === null && docId === homeDocumentId
-      ? '/'
-      : createDocumentPath(docId, noteId);
+    const pathname = createCanonicalDocumentPath(docId, noteId, homeDocumentId);
     void navigate(
       {
         pathname,

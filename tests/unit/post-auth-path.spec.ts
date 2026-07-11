@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev-route';
 import {
   createPostAuthNextSearch,
-  resolveNextPathOrDefault,
   resolvePostAuthPath,
   resolvePostAuthTargetPath,
 } from '#client/app/routes/post-auth-path';
@@ -40,16 +39,6 @@ describe('post-auth paths', () => {
     ]) {
       expect(resolvePostAuthTargetPath(target, CURRENT_ORIGIN)).toBeNull();
     }
-  });
-
-  it('uses the caller-provided default path when there is no accepted next target', () => {
-    expect(resolveNextPathOrDefault('', CURRENT_ORIGIN, '/default')).toBe('/default');
-    expect(resolveNextPathOrDefault('?next=%2F', CURRENT_ORIGIN, '/default')).toBe('/default');
-    expect(resolveNextPathOrDefault('?doc=main', CURRENT_ORIGIN, '/default')).toBe('/n/main');
-    expect(resolveNextPathOrDefault('?next=%2F%2Fexample.test%2Fn%2Fmain', CURRENT_ORIGIN, '/default'))
-      .toBe('/default');
-    expect(resolveNextPathOrDefault('?next=%2F%5Cexample.test%2Fn%2Fmain', CURRENT_ORIGIN, '/default'))
-      .toBe('/default');
   });
 
   it('preserves the root document query after authentication', () => {
