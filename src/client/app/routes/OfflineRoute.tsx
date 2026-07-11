@@ -17,7 +17,7 @@ export default function OfflineRoute() {
       <Button
         onClick={() => {
           globalThis.location.assign(
-            resolveNextPathOrDefault(location.search, globalThis.location.origin, '/home'),
+            resolveNextPathOrDefault(location.search, globalThis.location.origin, '/'),
           );
         }}
         type="button"

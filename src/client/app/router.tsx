@@ -10,9 +10,10 @@ import { adminRouteLoader } from './routes/admin-route-loader';
 import { devRoutes } from './routes/devRoutes';
 import OAuthConsentRoute from './routes/OAuthConsentRoute';
 import DocumentRoute from './routes/DocumentRoute';
-import LoginRoute from './routes/LoginRoute';
 import LogoutRoute from './routes/LogoutRoute';
 import OfflineRoute from './routes/OfflineRoute';
+import RootRoute from './routes/RootRoute';
+import type { RootRouteLoaderData } from './routes/RootRoute';
 import SharingRoute from './routes/SharingRoute';
 import {
   createPostAuthNextSearch,
@@ -26,11 +27,6 @@ import {
 
 function createOfflinePath(request: Request): string {
   return `/offline${createPostAuthNextSearch(request)}`;
-}
-
-function resolveCachedHomeDocumentPath(): string | null {
-  const bootstrap = getCachedCurrentUserBootstrap();
-  return bootstrap ? createDocumentPath(bootstrap.homeDocumentId) : null;
 }
 
 async function requireAuthenticatedRoute(request: Request): Promise<SessionGateState> {
@@ -49,7 +45,7 @@ async function authenticatedSessionLoader({ request }: { request: Request }) {
   return { sessionState: await requireAuthenticatedRoute(request) };
 }
 
-async function requirePublicAuthRoute(request: Request) {
+async function rootRouteLoader(request: Request): Promise<RootRouteLoaderData> {
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
     // Carry the public-server flag so the login page can gate its admin link.
@@ -65,17 +61,46 @@ async function requirePublicAuthRoute(request: Request) {
     throw redirect(createOfflinePath(request));
   }
   if (sessionState.status === 'offline-remembered') {
-    throw redirect(resolveNextPathOrDefault(
+    const bootstrap = getCachedCurrentUserBootstrap();
+    if (!bootstrap) {
+      throw redirect(createOfflinePath(request));
+    }
+    const target = resolveNextPathOrDefault(
       search,
       url.origin,
-      resolveCachedHomeDocumentPath() ?? createOfflinePath(request),
-    ));
+      '/',
+    );
+    if (target !== '/' && target !== createDocumentPath(bootstrap.homeDocumentId)) {
+      throw redirect(target);
+    }
+    if (search) {
+      throw redirect('/');
+    }
+    return {
+      docId: bootstrap.homeDocumentId,
+      homeDocumentId: bootstrap.homeDocumentId,
+      noteId: null,
+      sessionState,
+    };
   }
 
-  const redirectTarget = await resolveAuthenticatedLoginRedirect(search, url.origin);
-  throw redirectTarget.kind === 'document-redirect'
-    ? redirectDocument(redirectTarget.href)
-    : redirect(redirectTarget.path);
+  const redirectTarget = resolveAuthenticatedLoginRedirect(search, url.origin);
+  if (redirectTarget.kind === 'document-redirect') {
+    throw redirectDocument(redirectTarget.href);
+  }
+  const homeDocumentId = await getHomeDocumentId();
+  if (redirectTarget.path !== '/' && redirectTarget.path !== createDocumentPath(homeDocumentId)) {
+    throw redirect(redirectTarget.path);
+  }
+  if (search) {
+    throw redirect('/');
+  }
+  return {
+    docId: homeDocumentId,
+    homeDocumentId,
+    noteId: null,
+    sessionState,
+  };
 }
 
 async function resolveRouteHomeDocumentId(request: Request): Promise<string> {
@@ -103,15 +128,19 @@ const createDocumentLoader = (buildPath: DocumentPathBuilder) => {
     const url = new URL(request.url);
     const parsed = parseDocumentRef(params.docRef);
     if (!parsed) {
-      throw redirect(`${buildPath(await resolveRouteHomeDocumentId(request))}${url.search}`);
+      throw redirect(`/${url.search}`);
     }
 
+    const homeDocumentId = await resolveRouteHomeDocumentId(request);
+    if (parsed.docId === homeDocumentId && parsed.noteId === null) {
+      throw redirect(`/${url.search}`);
+    }
     const canonicalPath = buildPath(parsed.docId, parsed.noteId);
     if (url.pathname !== canonicalPath) {
       throw redirect(`${canonicalPath}${url.search}`);
     }
 
-    return parsed;
+    return { ...parsed, homeDocumentId };
   };
 };
 
@@ -125,8 +154,8 @@ const appRoutes = [
   },
   {
     path: '/',
-    loader: ({ request }: { request: Request }) => requirePublicAuthRoute(request),
-    element: <LoginRoute />,
+    loader: ({ request }: { request: Request }) => rootRouteLoader(request),
+    element: <RootRoute />,
     hydrateFallbackElement,
   },
   {
@@ -157,14 +186,6 @@ const appRoutes = [
     loader: authenticatedSessionLoader,
     hydrateFallbackElement,
     children: [
-      {
-        path: 'home',
-        loader: async ({ request }: { request: Request }) => {
-          const url = new URL(request.url);
-          throw redirect(`${createDocumentPath(await resolveRouteHomeDocumentId(request))}${url.search}`);
-        },
-        element: hydrateFallbackElement,
-      },
       {
         path: 'n/:docRef',
         loader: createDocumentLoader(createDocumentPath),

@@ -33,7 +33,7 @@ export default function LoginRoute() {
       globalThis.location.assign(`/api/auth/oauth2/authorize${location.search}`);
       return;
     }
-    const returnTo = await resolvePostAuthPath(location.search, globalThis.location.origin);
+    const returnTo = resolvePostAuthPath(location.search, globalThis.location.origin);
     void navigate(returnTo, { replace: true });
   };
 

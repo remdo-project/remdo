@@ -12,8 +12,7 @@ import {
 
 test.describe('Offline app shell', () => {
   test('opens the cached bootstrap home route while offline', async ({ page, context }) => {
-    await page.goto('/home');
-    await page.waitForURL(/\/n\//u);
+    await page.goto('/');
     const homePath = new URL(page.url()).pathname;
     await waitForServiceWorkerControl(page);
     allowOfflineDisconnectedConsoleIssue(page);
@@ -26,7 +25,7 @@ test.describe('Offline app shell', () => {
       offlinePage = await context.newPage();
       detachOfflineGuards = attachPageGuards(offlinePage);
       allowOfflineDisconnectedConsoleIssue(offlinePage);
-      await offlinePage.goto('/home');
+      await offlinePage.goto('/');
       await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe(homePath);
       await expect(offlinePage.locator('.document-editor-shell')).toBeVisible();
     } finally {
@@ -35,8 +34,7 @@ test.describe('Offline app shell', () => {
   });
 
   test('opens the cached bootstrap home route when the API server is unavailable', async ({ page, context }) => {
-    await page.goto('/home');
-    await page.waitForURL(/\/n\//u);
+    await page.goto('/');
     const homePath = new URL(page.url()).pathname;
     await waitForServiceWorkerControl(page);
     allowServerUnavailableConsoleIssue(page);
@@ -51,7 +49,7 @@ test.describe('Offline app shell', () => {
       unavailablePage = await context.newPage();
       detachUnavailableGuards = attachPageGuards(unavailablePage);
       allowServerUnavailableConsoleIssue(unavailablePage);
-      await unavailablePage.goto('/home');
+      await unavailablePage.goto('/');
       await expect.poll(() => new URL(unavailablePage!.url()).pathname).toBe(homePath);
       await expect(unavailablePage.locator('.document-editor-shell')).toBeVisible();
     } finally {
@@ -85,7 +83,7 @@ test.describe('Offline app shell', () => {
       offlinePage = await context.newPage();
       detachOfflineGuards = attachPageGuards(offlinePage);
       allowOfflineDisconnectedConsoleIssue(offlinePage);
-      await offlinePage.goto('/home');
+      await offlinePage.goto('/');
       await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/offline');
       await expect(offlinePage.getByRole('heading', { name: 'Offline' })).toBeVisible();
 
