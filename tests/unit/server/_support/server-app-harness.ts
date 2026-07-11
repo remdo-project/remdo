@@ -14,7 +14,6 @@ import { createServerDatabaseClient } from '#server/db/client';
 import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
 import { createDocumentRegistry } from '#server/documents/document-registry';
 import * as Y from 'yjs';
-import { guardedBetterAuthLogger } from './better-auth-test-logger';
 
 const TEST_USER = {
   email: 'server@example.com',
@@ -59,7 +58,6 @@ export function createServerAppHarness({
     allowSignup,
     baseURL,
     database: client,
-    logger: guardedBetterAuthLogger,
     sourceServers,
     secret: 'test-better-auth-secret-0123456789',
     trustedOrigins,

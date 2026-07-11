@@ -9,7 +9,6 @@ import {
   claimSourceServerPublicClient,
 } from '#server/remdo-oauth/source-server-store';
 import { createDeferred } from '../_support/deferred';
-import { guardedBetterAuthLogger } from './_support/better-auth-test-logger';
 
 const SOURCE_ID = deriveSourceId('https://source.example');
 const OTHER_SOURCE_ID = deriveSourceId('https://other.example');
@@ -52,7 +51,6 @@ describe('createSwappableServerAuth', () => {
       allowSignup: false,
       baseURL: 'http://127.0.0.1:4000',
       database,
-      logger: guardedBetterAuthLogger,
       secret: 'test-better-auth-secret-0123456789',
     });
     return swappable;

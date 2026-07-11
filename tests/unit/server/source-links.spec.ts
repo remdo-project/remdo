@@ -11,7 +11,6 @@ function postJson(app: ReturnType<typeof createServerAppHarness>['app'], path: s
 }
 
 afterEach(() => {
-  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 

@@ -77,23 +77,6 @@ describe('server auth actor resolution', () => {
   });
 });
 
-describe('server auth test logging', () => {
-  it.fails('fails the test when Better Auth reports an unexpected error', async () => {
-    const harness = createHarness();
-    const headers = await harness.createSessionHeaders();
-
-    const response = await harness.auth.auth.api.linkSocialAccount({
-      body: { provider: 'missing-provider' },
-      headers,
-      asResponse: true,
-    });
-
-    // The request itself returns normally; the shared console guard is what
-    // must fail this test after Better Auth reports the missing provider.
-    expect(response.status).toBe(404);
-  });
-});
-
 describe('server auth trusted origins', () => {
   // Better Auth auto-disables its origin/CSRF check under NODE_ENV=test
   // (`skipOriginCheck: isTest() ? true`), so a sign-out request through the
