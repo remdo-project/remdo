@@ -15,4 +15,5 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - run: pnpm run audit:policy
+      - run: pnpm run audit:unused:prod
       - run: pnpm run lint

@@ -195,10 +195,13 @@ class StoredUserDataStore {
     if (this.generation !== generation) {
       return;
     }
+    if (this.homeDocumentId !== bootstrap.homeDocumentId) {
+      this.homeDocumentId = bootstrap.homeDocumentId;
+      this.bumpVersion();
+    }
     const homeDocument = createHomeUserDocument(bootstrap);
     const context = await this.getContext(bootstrap.userDataDocumentId, generation);
     if (this.generation === generation) {
-      this.homeDocumentId = bootstrap.homeDocumentId;
       context.unobserveProjection?.();
       context.unobserveProjection = this.observeUserDataProjection(context.doc, generation);
       this.syncUserDataFromProjection(context.doc, homeDocument);
@@ -744,6 +747,10 @@ export function getCurrentUserData(): UserDataNote {
   return store.getCurrentUserData();
 }
 
+/**
+ * Test seam for awaiting the asynchronous runtime startup.
+ * @internal
+ */
 export function getUserData(): Promise<UserDataNote> {
   return store.getUserData();
 }

@@ -6,8 +6,6 @@ import {
   createSourceDocumentSyncTokenApiPath,
   createNoteRef,
   parseDocumentRef,
-  parseNoteRef,
-  resolveDevDocumentId,
 } from '#document-routes';
 import { normalizeDocumentId } from '#domain/documents/ids';
 
@@ -32,8 +30,6 @@ describe('document route refs', () => {
 
   it('rejects refs with additional separators or invalid characters', () => {
     expect(createNoteRef('main', 'note2')).toBe('main_note2');
-    expect(parseNoteRef('main')).toBeNull();
-    expect(parseNoteRef('main_note2_extra')).toBeNull();
     expect(parseDocumentRef('main_note2_extra')).toBeNull();
     expect(parseDocumentRef('source~main')).toBeNull();
     expect(parseDocumentRef('bad doc')).toBeNull();
@@ -57,11 +53,4 @@ describe('document route refs', () => {
     expect(() => createDocumentPath('main', '')).toThrow();
   });
 
-  it('resolves dev document id from env input', () => {
-    expect(resolveDevDocumentId('')).toBe('devDoc');
-    expect(resolveDevDocumentId('   ')).toBe('devDoc');
-    expect(resolveDevDocumentId(' main ')).toBe('main');
-    expect(resolveDevDocumentId('otherDoc')).toBe('otherDoc');
-    expect(() => resolveDevDocumentId('other-doc')).toThrow();
-  });
 });

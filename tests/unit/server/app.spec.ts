@@ -461,15 +461,15 @@ describe('remdo api app', () => {
     expect(harness.readProjectedDocumentIds(firstBootstrap.userDataDocumentId)).toEqual([firstBootstrap.homeDocumentId]);
   });
 
-  it('reports the admin role and public-server flag in the bootstrap', async () => {
-    // Harness users enroll (admin) and the harness defaults to allowSignup:false.
+  it('reports the private-server flag without session identity in the bootstrap', async () => {
     const harness = createHarness();
     const headers = await harness.createSessionHeaders();
     const bootstrap = await (await harness.app.request('/api/current-user', { headers })).json();
-    expect(bootstrap).toMatchObject({ role: 'admin', publicServer: false });
+    expect(bootstrap).toMatchObject({ publicServer: false });
+    expect(bootstrap).not.toHaveProperty('role');
   });
 
-  it('reports a non-admin role and public flag on a public server', async () => {
+  it('reports the public-server flag without session identity in the bootstrap', async () => {
     const harness = createHarness({ allowSignup: true });
     const signUp = await harness.app.request('/api/auth/sign-up/email', {
       method: 'POST',
@@ -478,9 +478,8 @@ describe('remdo api app', () => {
     });
     const headers = new Headers({ cookie: extractSessionCookie(signUp) });
     const bootstrap = await (await harness.app.request('/api/current-user', { headers })).json();
-    // The admin plugin assigns defaultRole 'user' on creation; only 'admin' is
-    // privileged, so a normal user reads back role 'user' (not admin).
-    expect(bootstrap).toMatchObject({ role: 'user', publicServer: true });
+    expect(bootstrap).toMatchObject({ publicServer: true });
+    expect(bootstrap).not.toHaveProperty('role');
   });
 
   it('projects the user linked source servers during current-user bootstrap', async () => {

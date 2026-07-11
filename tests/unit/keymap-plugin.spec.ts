@@ -1,6 +1,7 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
-import { __testCreateKeyHandler, setKeymapOverrides, clearKeymapOverrides } from '#client/editor/plugins/KeymapPlugin';
+import type { LexicalEditor } from 'lexical';
+import { describe, expect, it, vi } from 'vitest';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND, SET_NOTE_CHECKED_COMMAND } from '#client/editor/commands';
+import { createKeyHandler } from '#client/editor/plugins/KeymapPlugin';
 
 const altChordDown = { key: 'ArrowDown', alt: true, shift: true } as const;
 const altChordUp = { key: 'ArrowUp', alt: true, shift: true } as const;
@@ -25,20 +26,10 @@ const makeEvent = (chord: { key: string; alt?: boolean; ctrl?: boolean; shift?: 
   return event;
 };
 
-afterEach(() => {
-  clearKeymapOverrides();
-});
-
 describe('keymapPlugin key handler', () => {
-  it('uses alt+shift overrides', () => {
-    setKeymapOverrides(
-      new Map([
-        [REORDER_NOTES_DOWN_COMMAND, [altChordDown]],
-        [REORDER_NOTES_UP_COMMAND, [altChordUp]],
-      ])
-    );
+  it('uses alt+shift to reorder on non-Apple platforms', () => {
     const dispatchCommand = vi.fn().mockReturnValue(true);
-    const handler = __testCreateKeyHandler({ dispatchCommand } as any);
+    const handler = createKeyHandler({ dispatchCommand } as unknown as LexicalEditor, false);
 
     const downEvent = makeEvent(altChordDown);
     const upEvent = makeEvent(altChordUp);
@@ -52,15 +43,9 @@ describe('keymapPlugin key handler', () => {
     expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_UP_COMMAND, null);
   });
 
-  it('uses ctrl+shift overrides', () => {
-    setKeymapOverrides(
-      new Map([
-        [REORDER_NOTES_DOWN_COMMAND, [ctrlChordDown]],
-        [REORDER_NOTES_UP_COMMAND, [ctrlChordUp]],
-      ])
-    );
+  it('uses ctrl+shift to reorder on Apple platforms', () => {
     const dispatchCommand = vi.fn().mockReturnValue(true);
-    const handler = __testCreateKeyHandler({ dispatchCommand } as any);
+    const handler = createKeyHandler({ dispatchCommand } as unknown as LexicalEditor, true);
 
     const downEvent = makeEvent(ctrlChordDown);
     const upEvent = makeEvent(ctrlChordUp);
@@ -74,14 +59,9 @@ describe('keymapPlugin key handler', () => {
     expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_UP_COMMAND, null);
   });
 
-  it('uses enter chord override for checked toggle', () => {
-    setKeymapOverrides(
-      new Map([
-        [SET_NOTE_CHECKED_COMMAND, [ctrlEnterChord]],
-      ])
-    );
+  it('uses ctrl+enter to toggle checked state on non-Apple platforms', () => {
     const dispatchCommand = vi.fn().mockReturnValue(true);
-    const handler = __testCreateKeyHandler({ dispatchCommand } as any);
+    const handler = createKeyHandler({ dispatchCommand } as unknown as LexicalEditor, false);
     const event = makeEvent(ctrlEnterChord);
 
     expect(handler(event)).toBe(true);

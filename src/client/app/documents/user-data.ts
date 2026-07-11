@@ -22,30 +22,17 @@ export function useUserData(): UserDataNote {
   return getCurrentUserData();
 }
 
-// The current user's role, reactive to the bootstrap load: the cached bootstrap
-// is populated after the user-data runtime starts, so subscribe to that runtime
-// and re-read the cache when it changes rather than reading once at first paint.
-export function useCurrentUserRole(): string | null {
+// Whether this server is public (open-signup). Reactive to the bootstrap load.
+// A public server is source-only and refuses to link out, so the UI hides the
+// link action when this is true.
+export function useCurrentUserPublicServer(): boolean | null {
   useSyncExternalStore(
     subscribeUserDataRuntime,
     getUserDataVersion,
     getUserDataVersion,
   );
 
-  return getCachedCurrentUserBootstrap()?.role ?? null;
-}
-
-// Whether this server is public (open-signup). Reactive to the bootstrap load,
-// like useCurrentUserRole. A public server is source-only and refuses to link
-// out, so the UI hides the link action when this is true.
-export function useCurrentUserPublicServer(): boolean {
-  useSyncExternalStore(
-    subscribeUserDataRuntime,
-    getUserDataVersion,
-    getUserDataVersion,
-  );
-
-  return getCachedCurrentUserBootstrap()?.publicServer ?? false;
+  return getCachedCurrentUserBootstrap()?.publicServer ?? null;
 }
 
 export function useDocumentSourcesLoading(): boolean {

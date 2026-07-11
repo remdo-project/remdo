@@ -20,9 +20,7 @@ interface KeymapEntry {
   payload?: unknown;
 }
 
-type KeymapTable = KeymapEntry[];
-
-function defaultsForPlatform(isApple: boolean): KeymapTable {
+function keymapForPlatform(isApple: boolean): KeymapEntry[] {
   return [
     {
       command: SET_NOTE_CHECKED_COMMAND,
@@ -54,46 +52,21 @@ function defaultsForPlatform(isApple: boolean): KeymapTable {
   ];
 }
 
-type KeymapPatch = Map<LexicalCommand<unknown>, KeyChord[]>;
-
-let overrides: KeymapPatch = new Map();
-
-// eslint-disable-next-line react-refresh/only-export-components
-export function clearKeymapOverrides() {
-  overrides = new Map();
-}
-
-// eslint-disable-next-line react-refresh/only-export-components
-export function setKeymapOverrides(patch: KeymapPatch) {
-  overrides = new Map(patch);
-}
-
-function getKeymap(): KeymapTable {
-  const base = defaultsForPlatform(IS_APPLE_PLATFORM);
-  return base.flatMap((entry) => {
-    const override = overrides.get(entry.command);
-    if (!override || override.length === 0) {
-      return entry;
-    }
-    return override.map((chord) => ({ command: entry.command, payload: entry.payload, chord }));
-  });
-}
-
 function matchesChord(event: KeyboardEvent, chord: KeyChord): boolean {
   const { key, shift = false, alt = false, ctrl = false, meta = false } = chord;
   return (
-    event.key === key &&
-    event.shiftKey === shift &&
-    event.altKey === alt &&
-    event.ctrlKey === ctrl &&
-    event.metaKey === meta
+    event.key === key
+    && event.shiftKey === shift
+    && event.altKey === alt
+    && event.ctrlKey === ctrl
+    && event.metaKey === meta
   );
 }
 
-function createKeyHandler(editor: LexicalEditor) {
+// eslint-disable-next-line react-refresh/only-export-components
+export function createKeyHandler(editor: LexicalEditor, isApple: boolean) {
   return (event: KeyboardEvent): boolean => {
-    const table = getKeymap();
-    for (const { chord, command, payload } of table) {
+    for (const { chord, command, payload } of keymapForPlatform(isApple)) {
       if (matchesChord(event, chord)) {
         event.preventDefault();
         return editor.dispatchCommand(command, payload ?? null);
@@ -103,14 +76,11 @@ function createKeyHandler(editor: LexicalEditor) {
   };
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const __testCreateKeyHandler = createKeyHandler;
-
 export function KeymapPlugin() {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    const handler = createKeyHandler(editor);
+    const handler = createKeyHandler(editor, IS_APPLE_PLATFORM);
     return mergeRegister(
       editor.registerCommand(KEY_DOWN_COMMAND, handler, COMMAND_PRIORITY_LOW)
     );

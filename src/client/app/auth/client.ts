@@ -1,3 +1,4 @@
+import { adminClient } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 import { clearStoredCurrentUserBootstrap } from '#client/app/documents/current-user-bootstrap-storage';
 
@@ -5,12 +6,13 @@ const KNOWN_SESSION_STORAGE_KEY = 'remdo-authenticated-session';
 
 export const authClient = createAuthClient({
   basePath: '/api/auth',
+  plugins: [adminClient()],
 });
 
 type SessionResponse = Awaited<ReturnType<typeof authClient.getSession>>;
 type CurrentSession = Exclude<SessionResponse['data'], null | undefined>;
 
-type SessionGateState =
+export type SessionGateState =
   | { status: 'authenticated'; session: CurrentSession }
   | { status: 'offline-remembered' }
   | { status: 'offline-unavailable' }

@@ -1,24 +1,26 @@
-import { Alert, Button, Container, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Button, Container, PasswordInput, Stack, TextInput, Title } from '@mantine/core';
 import { useState } from 'react';
 import { useLoaderData, useNavigate } from 'react-router-dom';
-import AuthenticatedApp from '#client/app/AuthenticatedApp';
+import UserDataRuntimeBoundary from '#client/app/UserDataRuntimeBoundary';
 import { rememberAuthenticatedSession } from '#client/app/auth/client';
 import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
 import { resetUserData } from '#client/app/documents/user-data';
+import CenteredCardPage from '#client/ui/CenteredCardPage';
 import type { AdminRouteState } from './admin-route-loader';
 
 // /admin is public: an authenticated admin gets the panel inside the app shell
-// (chrome + live user-data runtime); anyone else gets the enroll form, rendered
-// bare — no shell, so no runtime/user-data fetch is attempted for a visitor who
-// has no session.
+// with the live user-data runtime; anyone else gets the standalone enroll form,
+// so no runtime/user-data fetch is attempted for a visitor who has no session.
 export default function AdminRoute() {
   const state = useLoaderData<AdminRouteState>();
 
   if (state.kind === 'admin') {
     return (
-      <AuthenticatedApp>
-        <Title order={1}>Admin</Title>
-      </AuthenticatedApp>
+      <UserDataRuntimeBoundary>
+        <Container component="main" size="md" py="xl">
+          <Title order={1}>Admin</Title>
+        </Container>
+      </UserDataRuntimeBoundary>
     );
   }
 
@@ -78,63 +80,54 @@ function EnrollForm() {
   };
 
   return (
-    <Container size="xs" py="xl">
-      <Paper withBorder p="xl" radius="md">
+    <CenteredCardPage
+      description="Enter the admin secret, plus a name, email, and password to register an admin account."
+      title="Become admin"
+    >
+      {errorMessage && (
+        <Alert color="red" title="Enrollment failed">
+          {errorMessage}
+        </Alert>
+      )}
+
+      <form onSubmit={(event) => {
+        void handleSubmit(event);
+      }}>
         <Stack gap="md">
-          <div>
-            <Title order={1}>Become admin</Title>
-            <Text c="dimmed" size="sm">
-              Enter the admin secret, plus a name, email, and password to register
-              an admin account.
-            </Text>
-          </div>
-
-          {errorMessage && (
-            <Alert color="red" title="Enrollment failed">
-              {errorMessage}
-            </Alert>
-          )}
-
-          <form onSubmit={(event) => {
-            void handleSubmit(event);
-          }}>
-            <Stack gap="md">
-              <PasswordInput
-                autoComplete="current-password"
-                label="Admin secret"
-                onChange={(event) => setAdminSecret(event.currentTarget.value)}
-                required
-                value={adminSecret}
-              />
-              <TextInput
-                autoComplete="name"
-                label="Name"
-                onChange={(event) => setName(event.currentTarget.value)}
-                required
-                value={name}
-              />
-              <TextInput
-                autoComplete="email"
-                label="Email"
-                onChange={(event) => setEmail(event.currentTarget.value)}
-                required
-                type="email"
-                value={email}
-              />
-              <PasswordInput
-                autoComplete="new-password"
-                label="Password"
-                onChange={(event) => setPassword(event.currentTarget.value)}
-                required
-                value={password}
-              />
-              <Button loading={pending} type="submit">
-                Become admin
-              </Button>
-            </Stack>
-          </form>
+          <PasswordInput
+            autoComplete="current-password"
+            label="Admin secret"
+            onChange={(event) => setAdminSecret(event.currentTarget.value)}
+            required
+            value={adminSecret}
+          />
+          <TextInput
+            autoComplete="name"
+            label="Name"
+            onChange={(event) => setName(event.currentTarget.value)}
+            required
+            value={name}
+          />
+          <TextInput
+            autoComplete="email"
+            label="Email"
+            onChange={(event) => setEmail(event.currentTarget.value)}
+            required
+            type="email"
+            value={email}
+          />
+          <PasswordInput
+            autoComplete="new-password"
+            label="Password"
+            onChange={(event) => setPassword(event.currentTarget.value)}
+            required
+            value={password}
+          />
+          <Button loading={pending} type="submit">
+            Become admin
+          </Button>
         </Stack>
-      </Paper>
-    </Container>
+      </form>
+    </CenteredCardPage>
   );
 }

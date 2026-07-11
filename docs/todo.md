@@ -25,6 +25,12 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
+## Runtime and tooling source boundaries
+
+- Move runtime config under production source, split `tools/` into explicit
+  prod/dev/e2e ownership, and enforce production import direction; keep
+  `knip.jsonc` aligned as the interim boundary inventory.
+
 ## Search architecture
 
 - Add a document-level SDK visitor/walker API and use it as the shared
@@ -88,8 +94,6 @@ Rules:
 - Admin panel: **promoting an existing user to admin** and per-admin revocation
   — the only way today to gain admin is registering a new account via the
   secret.
-- Toolbar **Admin** link for signed-in admins (`App.tsx`). Pure-additive UI
-  against the `role`-on-bootstrap that already exists, with no new infra.
 - Runtime public-policy toggle (replace `ALLOW_SIGNUP` env with admin-managed,
   DB-backed state). Needs auth hot-swap (rebuild `betterAuth` to flip the
   construction-time `disableSignUp`).
@@ -297,6 +301,11 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   validation and `RootSchemaPlugin` repair scans on dirty-set contents so
   leaf-only typing updates skip them; skip redundant structural-overlay and
   outline-selection store writes in `SelectionPlugin` when nothing changed.
+
+## Client request follow-ups
+
+- Audit timeoutless browser requests and define operation-specific deadlines,
+  cancellation, and retry/idempotency semantics before extracting shared fetch plumbing.
 
 ## Test harness follow-ups
 
@@ -507,6 +516,12 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 ## remdo-refine follow-ups
 
+- Working-tree scope currently unions `git diff HEAD` with cached paths, so a
+  staged edit undone in the checked-out file remains review noise despite having
+  no net artifact. Define the scope as the checked-out tree versus `HEAD` plus
+  untracked files; update `resolve-scope.sh`, its intentional regression test,
+  and the refine/simplify scope wording. Keep the any-layer dirty check only for
+  refusing committed-range mode with unrelated local changes.
 - Loop structure: nested settle/confirmation loops terminate on judgment, not
   structure, against stochastic reviewers that resample findings per run; rung
   re-runs re-review the whole diff rather than the delta since their last pass.
@@ -581,3 +596,8 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   only checks `indent-jump`, which load normalization flattens. The validation is
   therefore practically inert today; add coverage if a schema rule that survives
   load is introduced.
+
+## App shell and route layout
+
+- Decompose `DocumentRoute` into route glue, document toolbar/actions, document
+  search, editor pane, and import flow.

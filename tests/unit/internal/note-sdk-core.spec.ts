@@ -276,6 +276,21 @@ describe('editor notes core', () => {
     expect(access.text()).toBe('Carol');
   });
 
+  it('uses the email as access text when the display name is empty', () => {
+    const access = createUserDataRootNote([{
+      access: [{
+        documentId: 'main',
+        email: 'reader@example.test',
+        granteeUserId: 'reader',
+        name: '',
+      }],
+      id: 'main',
+      title: 'Main',
+    }]).documents().byId('main')!.access().children()[0]!;
+
+    expect(access.text()).toBe('reader@example.test');
+  });
+
   it('lists source servers through user-data source-server traversal', () => {
     const fixture = createMockAdapterFixture();
     const sourceServers = createUserDataRootNote(fixture.userData, fixture.sourceServers, {})

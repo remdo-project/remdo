@@ -37,12 +37,18 @@ routing, document identity — are owned by
 - Authentication methods: username/password, OAuth, or other login methods the
   target app server supports.
 - Identity: the Better Auth session identifies the current user.
+- Session UI: the Better Auth session exposes the user's SQL-backed role for
+  client navigation and route rendering. Authorization remains server-side.
 - Personal app state: the Yjs-backed user-data note exposes the signed-in
   user's document list and app state. SQL document-registry rows are the
   document-list source; `/api/current-user` ensures the projection and home
   rows, then updates the read-only Yjs projection. Browser clients may cache the
   last validated bootstrap only for offline reopen; logout clears it with local
   Yjs offline data.
+- Runtime boundary: the client user-data runtime starts only inside the
+  authenticated app boundary. Standalone login, enrollment, offline, logout,
+  and OAuth consent surfaces render outside it and do not start the runtime,
+  even when the surface itself requires an authenticated session.
 
 ## Admin Role
 
@@ -56,10 +62,9 @@ the user.
   the projection.
 - Every admin API authorizes from the caller's session + role — except the
   self-enrollment endpoint, which registers a *new* admin account.
-- `/admin` is the single admin entry route. It renders by the caller's role: an
-  admin sees the admin panel; anyone else (signed in or not) sees the
-  self-enrollment form. The client learns the current user's role from the
-  `/api/current-user` bootstrap; this drives rendering.
+- `/admin` is the single admin entry route. It renders by the caller's session
+  role: an admin sees the admin panel; anyone else (signed in or not) sees the
+  self-enrollment form.
 - Self-enrollment is gated by `ADMIN_SECRET` (see
   [docs/config.md](./config.md#admin-bootstrap-and-enrollment)). The secret is
   a shared gate, any secret-holder can register an admin

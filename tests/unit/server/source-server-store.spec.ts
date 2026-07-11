@@ -8,7 +8,6 @@ import { deriveSourceId } from '#server/remdo-oauth/config';
 import {
   claimSourceServerPublicClient,
   ensureSourceServerRow,
-  listSourceServers,
   readSourceServersSync,
 } from '#server/remdo-oauth/source-server-store';
 
@@ -29,7 +28,7 @@ describe('source server store', () => {
   });
 
   it('starts empty', async () => {
-    expect(await listSourceServers(database)).toEqual([]);
+    expect(readSourceServersSync(database)).toEqual([]);
   });
 
   it('creates a source row derived from its URL, with no credentials yet', async () => {
@@ -40,14 +39,14 @@ describe('source server store', () => {
       baseUrl: 'https://source.example',
       credentials: null,
     });
-    expect(await listSourceServers(database)).toEqual([added]);
+    expect(readSourceServersSync(database)).toEqual([added]);
   });
 
   it('is idempotent (a repeat call returns the row, no duplicate-row throw)', async () => {
     const first = await ensureSourceServerRow(database, 'https://source.example');
     const second = await ensureSourceServerRow(database, 'https://source.example');
     expect(second.id).toBe(first.id);
-    expect(await listSourceServers(database)).toHaveLength(1);
+    expect(readSourceServersSync(database)).toHaveLength(1);
   });
 
   it('rejects a non-origin URL', async () => {
@@ -59,20 +58,20 @@ describe('source server store', () => {
     await ensureSourceServerRow(database, 'https://source.example');
     await claimSourceServerPublicClient(database, 'https://source.example', 'cid');
 
-    const [stored] = await listSourceServers(database);
+    const [stored] = readSourceServersSync(database);
     expect(stored!.credentials).toEqual({ clientId: 'cid' });
   });
 
   it('ignores a client claim for an unknown source origin', async () => {
     await claimSourceServerPublicClient(database, 'https://missing.example', 'cid');
-    expect(await listSourceServers(database)).toEqual([]);
+    expect(readSourceServersSync(database)).toEqual([]);
   });
 
   it('claims a public client first-writer-wins (a later claim keeps the first id)', async () => {
     await ensureSourceServerRow(database, 'https://source.example');
     await claimSourceServerPublicClient(database, 'https://source.example', 'first');
     await claimSourceServerPublicClient(database, 'https://source.example', 'second');
-    const [stored] = await listSourceServers(database);
+    const [stored] = readSourceServersSync(database);
     expect(stored!.credentials).toEqual({ clientId: 'first' });
   });
 
@@ -94,7 +93,7 @@ describe('source server store', () => {
     await ensureSourceServerRow(database, 'https://source.example');
     await claimSourceServerPublicClient(database, 'https://source.example', 'public-client-id');
 
-    const [server] = await listSourceServers(database);
+    const [server] = readSourceServersSync(database);
     expect(server!.credentials).toEqual({ clientId: 'public-client-id' });
   });
 });
