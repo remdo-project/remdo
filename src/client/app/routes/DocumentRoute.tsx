@@ -2,11 +2,11 @@ import { useCallback } from 'react';
 import { Container } from '@mantine/core';
 import { useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
 import { EditorViewProvider } from '#client/editor/view/EditorViewProvider';
-import { createDocumentPath } from '#document-routes';
+import { createCanonicalDocumentPath } from '#document-routes';
 import type { ParsedDocumentRef } from '#document-routes';
 import DocumentWorkspace from './document/DocumentWorkspace';
 
-function useDocumentRouteNavigation(docId: string) {
+function useDocumentRouteNavigation(docId: string, homeDocumentId: string) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -15,31 +15,36 @@ function useDocumentRouteNavigation(docId: string) {
       return;
     }
     const nextSearch = searchParams.toString();
+    const pathname = createCanonicalDocumentPath(nextDocId, null, homeDocumentId);
     void navigate({
-      pathname: createDocumentPath(nextDocId),
-      search: nextSearch ? `?${nextSearch}` : '',
+      pathname,
+      search: pathname === '/' ? '' : nextSearch ? `?${nextSearch}` : '',
     });
-  }, [docId, navigate, searchParams]);
+  }, [docId, homeDocumentId, navigate, searchParams]);
 
   const navigateToZoomNote = useCallback((noteId: string | null) => {
     const nextSearch = searchParams.toString();
+    const pathname = createCanonicalDocumentPath(docId, noteId, homeDocumentId);
     void navigate(
       {
-        pathname: createDocumentPath(docId, noteId),
-        search: nextSearch ? `?${nextSearch}` : '',
+        pathname,
+        search: pathname === '/' ? '' : nextSearch ? `?${nextSearch}` : '',
       },
       { replace: true }
     );
-  }, [docId, navigate, searchParams]);
+  }, [docId, homeDocumentId, navigate, searchParams]);
 
   return { navigateToDocument, navigateToZoomNote };
 }
 
 export default function DocumentRoute() {
-  const parsedRef = useLoaderData<ParsedDocumentRef>();
+  const parsedRef = useLoaderData<ParsedDocumentRef & { homeDocumentId: string }>();
   const docId = parsedRef.docId;
   const zoomNoteId = parsedRef.noteId;
-  const { navigateToDocument, navigateToZoomNote } = useDocumentRouteNavigation(docId);
+  const { navigateToDocument, navigateToZoomNote } = useDocumentRouteNavigation(
+    docId,
+    parsedRef.homeDocumentId,
+  );
 
   return (
     <Container component="main" size="xl" py="xl">

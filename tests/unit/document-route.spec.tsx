@@ -63,6 +63,18 @@ describe('document route', () => {
     });
   });
 
+  it('navigates from another document to the local Home root', async () => {
+    const router = renderDocumentRoute();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
+    fireEvent.click(await screen.findByRole('option', { hidden: true, name: 'Test Document' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'testDoc');
+    });
+  });
+
   it('waits for source resolution before opening a source-only plain document route', async () => {
     setTestDocumentSourcesLoading(true);
 
@@ -138,6 +150,20 @@ describe('document route', () => {
 
     await waitFor(() => {
       expect(document.title).toBe('Current Note · routeDoc · RemDo');
+    });
+  });
+
+  it('returns to the canonical Home root when zoom is cleared', async () => {
+    const router = renderDocumentRoute('/');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Zoom note' }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(createDocumentPath('testDoc', 'note3'));
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear zoom' }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
     });
   });
 

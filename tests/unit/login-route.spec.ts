@@ -12,20 +12,20 @@ describe('root login OAuth resume detection', () => {
   });
 
   it('does not treat ordinary login next targets as OAuth authorize resumes', () => {
-    expect(isOAuthAuthorizeSearch('?next=/home')).toBe(false);
+    expect(isOAuthAuthorizeSearch('?next=/sharing')).toBe(false);
   });
 
-  it('resumes OAuth authorization for already-authenticated login visits', async () => {
+  it('resumes OAuth authorization for already-authenticated login visits', () => {
     const search = '?response_type=code&client_id=source&redirect_uri=https%3A%2F%2Fsource.test%2Fcallback';
 
-    await expect(resolveAuthenticatedLoginRedirect(search, CURRENT_ORIGIN)).resolves.toEqual({
+    expect(resolveAuthenticatedLoginRedirect(search, CURRENT_ORIGIN)).toEqual({
       href: `/api/auth/oauth2/authorize${search}`,
       kind: 'document-redirect',
     });
   });
 
-  it('uses normal post-auth navigation for already-authenticated non-OAuth login visits', async () => {
-    await expect(resolveAuthenticatedLoginRedirect('?next=/sharing', CURRENT_ORIGIN)).resolves.toEqual({
+  it('uses normal post-auth navigation for already-authenticated non-OAuth login visits', () => {
+    expect(resolveAuthenticatedLoginRedirect('?next=/sharing', CURRENT_ORIGIN)).toEqual({
       kind: 'route-redirect',
       path: '/sharing',
     });

@@ -10,27 +10,24 @@ import { adminRouteLoader } from './routes/admin-route-loader';
 import { devRoutes } from './routes/devRoutes';
 import OAuthConsentRoute from './routes/OAuthConsentRoute';
 import DocumentRoute from './routes/DocumentRoute';
-import LoginRoute from './routes/LoginRoute';
 import LogoutRoute from './routes/LogoutRoute';
 import OfflineRoute from './routes/OfflineRoute';
+import RootRoute from './routes/RootRoute';
+import type { RootRouteLoaderData } from './routes/RootRoute';
 import SharingRoute from './routes/SharingRoute';
 import {
   createPostAuthNextSearch,
-  resolveNextPathOrDefault,
+  resolvePostAuthPath,
 } from './routes/post-auth-path';
 import { resolveAuthenticatedLoginRedirect } from './routes/login-redirect';
 import {
+  createCanonicalDocumentPath,
   createDocumentPath,
   parseDocumentRef,
 } from '#document-routes';
 
 function createOfflinePath(request: Request): string {
   return `/offline${createPostAuthNextSearch(request)}`;
-}
-
-function resolveCachedHomeDocumentPath(): string | null {
-  const bootstrap = getCachedCurrentUserBootstrap();
-  return bootstrap ? createDocumentPath(bootstrap.homeDocumentId) : null;
 }
 
 async function requireAuthenticatedRoute(request: Request): Promise<SessionGateState> {
@@ -49,7 +46,7 @@ async function authenticatedSessionLoader({ request }: { request: Request }) {
   return { sessionState: await requireAuthenticatedRoute(request) };
 }
 
-async function requirePublicAuthRoute(request: Request) {
+async function rootRouteLoader(request: Request): Promise<RootRouteLoaderData> {
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
     // Carry the public-server flag so the login page can gate its admin link.
@@ -64,56 +61,67 @@ async function requirePublicAuthRoute(request: Request) {
   if (sessionState.status === 'offline-unavailable') {
     throw redirect(createOfflinePath(request));
   }
-  if (sessionState.status === 'offline-remembered') {
-    throw redirect(resolveNextPathOrDefault(
-      search,
-      url.origin,
-      resolveCachedHomeDocumentPath() ?? createOfflinePath(request),
-    ));
-  }
-
-  const redirectTarget = await resolveAuthenticatedLoginRedirect(search, url.origin);
-  throw redirectTarget.kind === 'document-redirect'
-    ? redirectDocument(redirectTarget.href)
-    : redirect(redirectTarget.path);
-}
-
-async function resolveRouteHomeDocumentId(request: Request): Promise<string> {
-  const sessionState = await resolveSessionGateState();
-  if (sessionState.status === 'unauthenticated') {
-    throw redirect(`/${createPostAuthNextSearch(request)}`);
-  }
-  if (sessionState.status === 'offline-unavailable') {
-    throw redirect(createOfflinePath(request));
-  }
+  let homeDocumentId: string;
+  let target: string;
   if (sessionState.status === 'offline-remembered') {
     const bootstrap = getCachedCurrentUserBootstrap();
     if (!bootstrap) {
       throw redirect(createOfflinePath(request));
     }
-    return bootstrap.homeDocumentId;
+    homeDocumentId = bootstrap.homeDocumentId;
+    target = resolvePostAuthPath(search, url.origin);
+  } else {
+    const redirectTarget = resolveAuthenticatedLoginRedirect(search, url.origin);
+    if (redirectTarget.kind === 'document-redirect') {
+      throw redirectDocument(redirectTarget.href);
+    }
+    homeDocumentId = await getHomeDocumentId();
+    target = redirectTarget.path;
   }
-  return getHomeDocumentId();
+
+  if (target !== '/' && target !== createDocumentPath(homeDocumentId)) {
+    throw redirect(target);
+  }
+  if (search) {
+    throw redirect('/');
+  }
+  return {
+    docId: homeDocumentId,
+    homeDocumentId,
+    noteId: null,
+    sessionState,
+  };
 }
 
-type DocumentPathBuilder = (docId: string, noteId?: string | null) => string;
+async function documentLoader({ request, params }: {
+  request: Request;
+  params: { docRef?: string };
+}) {
+  const url = new URL(request.url);
+  const parsed = parseDocumentRef(params.docRef);
+  if (!parsed) {
+    throw redirect(`/${url.search}`);
+  }
 
-const createDocumentLoader = (buildPath: DocumentPathBuilder) => {
-  return async ({ request, params }: { request: Request; params: { docRef?: string } }) => {
-    const url = new URL(request.url);
-    const parsed = parseDocumentRef(params.docRef);
-    if (!parsed) {
-      throw redirect(`${buildPath(await resolveRouteHomeDocumentId(request))}${url.search}`);
-    }
+  const sessionState = await requireAuthenticatedRoute(request);
+  const bootstrap = sessionState.status === 'offline-remembered'
+    ? getCachedCurrentUserBootstrap()
+    : null;
+  if (sessionState.status === 'offline-remembered' && !bootstrap) {
+    throw redirect(createOfflinePath(request));
+  }
+  const homeDocumentId = bootstrap?.homeDocumentId ?? await getHomeDocumentId();
+  const canonicalPath = createCanonicalDocumentPath(
+    parsed.docId,
+    parsed.noteId,
+    homeDocumentId,
+  );
+  if (url.pathname !== canonicalPath) {
+    throw redirect(`${canonicalPath}${url.search}`);
+  }
 
-    const canonicalPath = buildPath(parsed.docId, parsed.noteId);
-    if (url.pathname !== canonicalPath) {
-      throw redirect(`${canonicalPath}${url.search}`);
-    }
-
-    return parsed;
-  };
-};
+  return { ...parsed, homeDocumentId, sessionState };
+}
 
 const hydrateFallbackElement = <div aria-hidden="true" />;
 
@@ -125,8 +133,8 @@ const appRoutes = [
   },
   {
     path: '/',
-    loader: ({ request }: { request: Request }) => requirePublicAuthRoute(request),
-    element: <LoginRoute />,
+    loader: ({ request }: { request: Request }) => rootRouteLoader(request),
+    element: <RootRoute />,
     hydrateFallbackElement,
   },
   {
@@ -153,23 +161,20 @@ const appRoutes = [
     hydrateFallbackElement,
   },
   {
+    path: 'n/:docRef',
+    loader: documentLoader,
+    element: (
+      <AuthenticatedApp>
+        <DocumentRoute />
+      </AuthenticatedApp>
+    ),
+    hydrateFallbackElement,
+  },
+  {
     element: <AuthenticatedApp />,
     loader: authenticatedSessionLoader,
     hydrateFallbackElement,
     children: [
-      {
-        path: 'home',
-        loader: async ({ request }: { request: Request }) => {
-          const url = new URL(request.url);
-          throw redirect(`${createDocumentPath(await resolveRouteHomeDocumentId(request))}${url.search}`);
-        },
-        element: hydrateFallbackElement,
-      },
-      {
-        path: 'n/:docRef',
-        loader: createDocumentLoader(createDocumentPath),
-        element: <DocumentRoute />,
-      },
       {
         path: 'sharing',
         element: <SharingRoute />,

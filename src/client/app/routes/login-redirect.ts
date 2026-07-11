@@ -5,10 +5,10 @@ type AuthenticatedLoginRedirect =
   | { href: string; kind: 'document-redirect' }
   | { kind: 'route-redirect'; path: string };
 
-export async function resolveAuthenticatedLoginRedirect(
+export function resolveAuthenticatedLoginRedirect(
   search: string,
   currentOrigin: string,
-): Promise<AuthenticatedLoginRedirect> {
+): AuthenticatedLoginRedirect {
   if (isOAuthAuthorizeSearch(search)) {
     return {
       href: `/api/auth/oauth2/authorize${search}`,
@@ -18,6 +18,6 @@ export async function resolveAuthenticatedLoginRedirect(
 
   return {
     kind: 'route-redirect',
-    path: await resolvePostAuthPath(search, currentOrigin),
+    path: resolvePostAuthPath(search, currentOrigin),
   };
 }

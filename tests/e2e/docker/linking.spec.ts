@@ -60,9 +60,8 @@ test('links a source by URL and opens its Home document', async ({ page }) => {
   await expect(page.getByText(sourceOrigin, { exact: true })).toBeVisible();
 
   // Open the source's Home document from the switcher.
-  await page.goto('/home');
-  await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/n\/[\dA-Za-z]+$/u);
-  const homePathname = new URL(page.url()).pathname;
+  await page.goto('/');
+  await expect(page).toHaveURL(buildUrl(homeOrigin, '/'));
 
   const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
   await expect(switcherTrigger).toBeVisible();
@@ -75,7 +74,6 @@ test('links a source by URL and opens its Home document', async ({ page }) => {
   await sourceGroup.getByRole('option', { name: 'Home', exact: true }).click();
 
   await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/n\/[\dA-Za-z]+$/u);
-  expect(new URL(page.url()).pathname).not.toBe(homePathname);
   await waitForEditableEditor(page);
   await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
 });
