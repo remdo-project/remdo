@@ -11,7 +11,6 @@ function postJson(app: ReturnType<typeof createServerAppHarness>['app'], path: s
 }
 
 afterEach(() => {
-  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -60,24 +59,6 @@ describe('post /api/current-user/source-links', () => {
     }
   });
 
-  it('accepts browser-normal URL forms by normalizing to the origin', async () => {
-    const harness = createHarness({ allowSignup: false });
-    const headers = await harness.createSessionHeaders();
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ client_id: 'source-client-id' }), { status: 201 }));
-    vi.stubGlobal('fetch', fetchMock);
-    // A trailing slash and a deep link both reduce to the same source origin;
-    // neither is a 400 (the strict bare-origin check would have rejected both).
-    for (const url of ['https://source.example/', 'https://source.example/some/path']) {
-      const response = await postJson(harness.app, '/api/current-user/source-links', { url }, headers);
-      expect(response.status, `url=${url}`).not.toBe(400);
-    }
-    // The home registered against the normalized origin, not the raw URL.
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://source.example/api/auth/oauth2/register',
-      expect.objectContaining({ method: 'POST' }),
-    );
-  });
-
   it('maps a source that refuses registration to a client error, not a 500', async () => {
     const harness = createHarness({ allowSignup: false });
     const headers = await harness.createSessionHeaders();
@@ -114,7 +95,7 @@ describe('post /api/current-user/source-links', () => {
     expect(response.status).toBe(500);
   });
 
-  it('ensures a source client and reaches linkSocialAccount for a valid URL from any signed-in user', async () => {
+  it('normalizes a deep URL, ensures a source client, and reaches linkSocialAccount', async () => {
     const harness = createHarness({ allowSignup: false, swappableAuth: true });
     const headers = await harness.createSessionHeaders();
     let registeredRedirectUri: string | undefined;
@@ -127,7 +108,12 @@ describe('post /api/current-user/source-links', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    const response = await postJson(harness.app, '/api/current-user/source-links', { url: 'https://source.example' }, headers);
+    const response = await postJson(
+      harness.app,
+      '/api/current-user/source-links',
+      { url: 'https://source.example/some/path' },
+      headers,
+    );
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://source.example/api/auth/oauth2/register',

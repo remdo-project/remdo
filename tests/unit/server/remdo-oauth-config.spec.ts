@@ -94,7 +94,6 @@ describe('genericOAuth provider for a public-client source', () => {
   afterEach(async () => {
     await serverAuth.ensureReady();
     await database.close();
-    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -158,7 +157,7 @@ describe('genericOAuth provider for a public-client source', () => {
   it('does not implicitly link a same-email source account during normal sign-in', async () => {
     await serverAuth.ensureReady();
     const authContext = await serverAuth.auth.$context;
-    vi.spyOn(authContext.logger, 'error').mockImplementation(() => {});
+    using _loggerErrorSpy = vi.spyOn(authContext.logger, 'error').mockImplementation(() => {});
     const email = 'same-email@example.com';
     await createLocalUser(email);
     database.sqlite.prepare('UPDATE user SET emailVerified = 1 WHERE email = ?').run(email);
