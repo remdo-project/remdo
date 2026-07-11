@@ -21,11 +21,6 @@ function resolveYSweetBindHost(host: string): string {
   return host === 'localhost' ? '127.0.0.1' : host;
 }
 
-function ensureLogStream(): fs.WriteStream {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
-  return fs.createWriteStream(LOG_PATH, { flags: 'w' });
-}
-
 async function waitForPort(host: string, port: number): Promise<void> {
   for (let i = 0; i < MAX_ATTEMPTS; i++) {
     if (await isPortOpen(host, port)) {
@@ -71,7 +66,6 @@ export async function ensureCollabServer({
     throw new Error(`Collaboration websocket already running on ws://${probeHost}:${resolvedPort}`);
   }
 
-  const logStream = ensureLogStream();
   fs.mkdirSync(COLLAB_DATA_DIR, { recursive: true });
   const args = [
     'exec',
@@ -103,7 +97,7 @@ export async function ensureCollabServer({
     },
   );
 
-  const cleanup = attachManagedProcess(child, logStream);
+  const cleanup = attachManagedProcess(child, LOG_PATH);
   const stop = async () => {
     const exited = child.exitCode !== null || child.signalCode !== null;
     const exitPromise = exited ? Promise.resolve() : once(child, 'exit');

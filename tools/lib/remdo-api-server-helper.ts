@@ -1,6 +1,5 @@
 import type { ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
-import fs from 'node:fs';
 import path from 'node:path';
 import { setTimeout as wait } from 'node:timers/promises';
 
@@ -15,11 +14,6 @@ const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'remdo-api-server.log');
 const reusedServerStop = () => Promise.resolve();
-
-function ensureLogStream(): fs.WriteStream {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
-  return fs.createWriteStream(LOG_PATH, { flags: 'w' });
-}
 
 async function waitForPort(host: string, port: number, child: ChildProcess): Promise<void> {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
@@ -56,7 +50,6 @@ export async function ensureRemdoApiServer({
     return reusedServerStop;
   }
 
-  const logStream = ensureLogStream();
   const child = spawnPnpm(
     ['exec', 'tsx', './tools/remdo-api-server.ts'],
     {
@@ -77,16 +70,12 @@ export async function ensureRemdoApiServer({
     },
   );
 
-  const cleanup = attachManagedProcess(child, logStream);
+  const cleanup = attachManagedProcess(child, LOG_PATH);
   const stop = async () => {
-    let exited = child.exitCode !== null || child.signalCode !== null;
-    child.once('exit', () => {
-      exited = true;
-    });
+    const exited = child.exitCode !== null || child.signalCode !== null;
+    const exitPromise = exited ? Promise.resolve() : once(child, 'exit');
     terminateProcessGroup(child, 'SIGTERM');
-    if (!exited) {
-      await once(child, 'exit');
-    }
+    await exitPromise;
     cleanup();
   };
 

@@ -1,5 +1,6 @@
 import type { ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
+import path from 'node:path';
 import process from 'node:process';
 
 const TEARDOWN_SIGNALS = ['exit', 'SIGINT', 'SIGTERM'] as const;
@@ -34,7 +35,9 @@ export function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signal
  * teardown signals that terminate the child. Returns a `cleanup` that
  * unregisters the handlers and closes the log stream.
  */
-export function attachManagedProcess(child: ChildProcess, logStream: fs.WriteStream): () => void {
+export function attachManagedProcess(child: ChildProcess, logPath: string): () => void {
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
+  const logStream = fs.createWriteStream(logPath, { flags: 'w' });
   if (child.stdout) {
     child.stdout.pipe(logStream, { end: false });
   }
