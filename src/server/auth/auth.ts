@@ -16,7 +16,6 @@ import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { RemdoDatabase } from '#server/db/schema';
 import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
 import { readSourceServersSync } from '#server/remdo-oauth/source-server-store';
-import { resolveAuthLogger } from './logging';
 
 interface CreateServerAuthOptions {
   allowSignup?: boolean;
@@ -78,7 +77,7 @@ function createBetterAuthInstance({
     baseURL,
     trustedOrigins: [...trustedOrigins],
     secret,
-    logger: resolveAuthLogger(config.isProd),
+    logger: { disabled: config.isProd, level: 'error' },
     database,
     account: {
       accountLinking: {

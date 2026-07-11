@@ -9,10 +9,6 @@ import { isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
 import { reportInvariant } from '#client/editor/invariant';
 
-function formatPath(path: number[]): string {
-  return path.length === 0 ? 'root' : path.join('.');
-}
-
 function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, path: number[]) {
   // A children-wrapper is not a note. (Body-wrappers are already skipped by the
   // sole caller before this point.)
@@ -28,7 +24,7 @@ function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, path: 
     normalized = createNoteIdAvoiding(usedIds);
     $setState(item, noteIdState, normalized);
     const reason = noteId ? 'duplicate-note-id' : 'missing-note-id';
-    const pathLabel = `path=${formatPath(path)}`;
+    const pathLabel = `path=${path.join('.')}`;
     reportInvariant({ message: `note-id-normalized ${reason} ${pathLabel}` });
   }
 
