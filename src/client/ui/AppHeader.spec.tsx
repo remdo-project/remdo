@@ -24,7 +24,7 @@ describe('app header', () => {
     renderHeader({ status: 'unauthenticated' });
 
     expect(screen.getByRole('link', { name: 'RemDo' })).toHaveAttribute('href', '/');
-    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/');
     expect(screen.queryByRole('link', { name: 'Sharing' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Logout' })).toBeNull();
   });

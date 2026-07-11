@@ -43,7 +43,7 @@ async function requireAuthenticatedRoute(request: Request): Promise<SessionGateS
     return sessionState;
   }
 
-  throw redirect(`/login${createPostAuthNextSearch(request)}`);
+  throw redirect(`/${createPostAuthNextSearch(request)}`);
 }
 
 async function authenticatedSessionLoader({ request }: { request: Request }) {
@@ -66,10 +66,14 @@ async function requirePublicAuthRoute(request: Request) {
     throw redirect(createOfflinePath(request));
   }
   if (sessionState.status === 'offline-remembered') {
+    const explicitDocId = normalizeDocumentId(new URLSearchParams(search).get('doc'));
+    const defaultPath = explicitDocId
+      ? createDocumentPath(explicitDocId)
+      : resolveCachedHomeDocumentPath() ?? createOfflinePath(request);
     throw redirect(resolveNextPathOrDefault(
       search,
       url.origin,
-      resolveCachedHomeDocumentPath() ?? createOfflinePath(request),
+      defaultPath,
     ));
   }
 
@@ -79,18 +83,10 @@ async function requirePublicAuthRoute(request: Request) {
     : redirect(redirectTarget.path);
 }
 
-const redirectToDoc = async (request: Request): Promise<string> => {
-  const url = new URL(request.url);
-  const params = url.searchParams;
-  const explicitDocId = normalizeDocumentId(params.get('doc'));
-  const docId = explicitDocId ?? await resolveRouteHomeDocumentId(request);
-  return createDocumentPath(docId);
-};
-
 async function resolveRouteHomeDocumentId(request: Request): Promise<string> {
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
-    throw redirect(`/login${createPostAuthNextSearch(request)}`);
+    throw redirect(`/${createPostAuthNextSearch(request)}`);
   }
   if (sessionState.status === 'offline-unavailable') {
     throw redirect(createOfflinePath(request));
@@ -133,7 +129,7 @@ const appRoutes = [
     hydrateFallbackElement,
   },
   {
-    path: '/login',
+    path: '/',
     loader: ({ request }: { request: Request }) => requirePublicAuthRoute(request),
     element: <LoginRoute />,
     hydrateFallbackElement,
@@ -162,17 +158,10 @@ const appRoutes = [
     hydrateFallbackElement,
   },
   {
-    path: '/',
     element: <AuthenticatedApp />,
     loader: authenticatedSessionLoader,
     hydrateFallbackElement,
     children: [
-      {
-        index: true,
-        loader: async ({ request }: { request: Request }) => {
-          throw redirect(await redirectToDoc(request));
-        },
-      },
       {
         path: 'home',
         loader: async ({ request }: { request: Request }) => {

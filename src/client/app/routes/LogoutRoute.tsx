@@ -22,7 +22,7 @@ export default function LogoutRoute() {
     setStatus('signing-out');
     const result = await logoutCurrentUser();
     if (result.serverSignedOut) {
-      globalThis.location.assign('/login');
+      globalThis.location.assign('/');
       return;
     }
     setStatus('server-failed');

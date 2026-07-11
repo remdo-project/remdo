@@ -1,6 +1,7 @@
 import { createPath, resolvePath } from 'react-router-dom';
 import { getHomeDocumentId } from '#client/app/documents/current-user-bootstrap';
 import { createDocumentPath } from '#document-routes';
+import { normalizeDocumentId } from '#domain/documents/ids';
 
 export function createPostAuthNextSearch(request: Request): string {
   const url = new URL(request.url);
@@ -38,7 +39,13 @@ async function resolveHomeDocumentPath(): Promise<string> {
 }
 
 export async function resolvePostAuthPath(search: string, currentOrigin: string): Promise<string> {
-  return resolveExplicitReturnTo(search, currentOrigin) ?? await resolveHomeDocumentPath();
+  const returnTo = resolveExplicitReturnTo(search, currentOrigin);
+  if (returnTo) {
+    return returnTo;
+  }
+
+  const explicitDocId = normalizeDocumentId(new URLSearchParams(search).get('doc'));
+  return explicitDocId ? createDocumentPath(explicitDocId) : await resolveHomeDocumentPath();
 }
 
 export function resolveNextPathOrDefault(

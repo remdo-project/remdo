@@ -108,7 +108,7 @@ function createBetterAuthInstance({
       }),
       oauthProvider({
         consentPage: '/oauth/consent',
-        loginPage: '/login',
+        loginPage: '/',
         scopes: [...REMDO_SERVER_OAUTH_SCOPES],
         // Better Auth's resource model binds access-token audiences to explicit
         // protected resources. A RemDo source exposes exactly its own canonical

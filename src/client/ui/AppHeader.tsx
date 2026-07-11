@@ -48,7 +48,7 @@ export default function AppHeader({ authState }: AppHeaderProps) {
               </Anchor>
             )}
             {authState.status === 'unauthenticated' && (
-              <NavLink className={navLinkClassName} to="/login">
+              <NavLink className={navLinkClassName} to="/">
                 Sign in
               </NavLink>
             )}

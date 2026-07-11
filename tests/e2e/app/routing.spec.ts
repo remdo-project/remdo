@@ -67,11 +67,36 @@ test.describe('Routing', () => {
     try {
       await page.goto('/home');
 
-      await expectPath(page, '/login');
+      await expectPath(page, '/');
       expect(new URL(page.url()).searchParams.get('next')).toBe('/home');
       await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
       await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
       await expect(page.getByRole('link', { name: 'Sharing' })).toHaveCount(0);
+      await page.waitForLoadState('networkidle');
+      expect(userDataRequests).toEqual([]);
+    } finally {
+      detachPageGuards();
+      await context.close();
+    }
+  });
+
+  test('shows login at the bare root when unauthenticated', async ({ browser, contextOptions }) => {
+    const context = await browser.newContext({
+      ...contextOptions,
+      storageState: {
+        cookies: [],
+        origins: [],
+      },
+    });
+    const page = await context.newPage();
+    const detachPageGuards = attachPageGuards(page);
+    const userDataRequests = collectUserDataRuntimeRequests(page);
+    try {
+      await page.goto('/');
+
+      await expectPath(page, '/');
+      expect(new URL(page.url()).search).toBe('');
+      await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
       await page.waitForLoadState('networkidle');
       expect(userDataRequests).toEqual([]);
     } finally {
@@ -85,7 +110,7 @@ test.describe('Routing', () => {
     expect(bootstrapResponse.ok()).toBe(true);
     const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
 
-    await page.goto('/login?next=/home');
+    await page.goto('/?next=/home');
 
     await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
   });
@@ -177,7 +202,7 @@ test.describe('Routing', () => {
 
       await page.getByRole('link', { name: 'Logout' }).click();
 
-      await expectPath(page, '/login');
+      await expectPath(page, '/');
       await expect.poll(async () => hasIndexedDb(page, 'y-sweet-logout-test')).toBe(false);
       const bootstrapResponse = await page.request.get('/api/current-user');
       expect(bootstrapResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
