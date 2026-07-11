@@ -1,4 +1,4 @@
-import { attachPageGuards, expect, test } from '#e2e/fixtures';
+import { expect, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import type { CurrentUserBootstrap } from '#domain/documents/user-data';
 import { HTTP_STATUS } from '#platform/http/status';
@@ -12,6 +12,13 @@ const freshAuthenticatedTest = test.extend({
     } finally {
       await context.close();
     }
+  },
+});
+
+const unauthenticatedTest = test.extend({
+  storageState: {
+    cookies: [],
+    origins: [],
   },
 });
 
@@ -62,42 +69,25 @@ test.describe('Routing', () => {
     await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
   });
 
-  test('uses the root login entry and preserves a protected next target when unauthenticated', async ({
-    browser,
-    contextOptions,
-  }) => {
-    const context = await browser.newContext({
-      ...contextOptions,
-      storageState: {
-        cookies: [],
-        origins: [],
-      },
-    });
-    const page = await context.newPage();
-    const detachPageGuards = attachPageGuards(page);
+  unauthenticatedTest('uses the root login entry and preserves a protected next target when unauthenticated', async ({ page }) => {
     const userDataRequests = collectUserDataRuntimeRequests(page);
-    try {
-      await page.goto('/');
+    await page.goto('/');
 
-      await expectPath(page, '/');
-      expect(new URL(page.url()).search).toBe('');
-      await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
-      await page.waitForLoadState('networkidle');
-      expect(userDataRequests).toEqual([]);
+    await expectPath(page, '/');
+    expect(new URL(page.url()).search).toBe('');
+    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    expect(userDataRequests).toEqual([]);
 
-      await page.goto('/home');
+    await page.goto('/home');
 
-      await expectPath(page, '/');
-      expect(new URL(page.url()).searchParams.get('next')).toBe('/home');
-      await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Sharing' })).toHaveCount(0);
-      await page.waitForLoadState('networkidle');
-      expect(userDataRequests).toEqual([]);
-    } finally {
-      detachPageGuards();
-      await context.close();
-    }
+    await expectPath(page, '/');
+    expect(new URL(page.url()).searchParams.get('next')).toBe('/home');
+    await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Sharing' })).toHaveCount(0);
+    await page.waitForLoadState('networkidle');
+    expect(userDataRequests).toEqual([]);
   });
 
   freshAuthenticatedTest('resolves default landing next targets after login', async ({ page }) => {
@@ -162,31 +152,14 @@ test.describe('Routing', () => {
     expect(userDataRequests).toContain('/api/current-user');
   });
 
-  test('keeps unauthenticated admin enrollment outside user data', async ({
-    browser,
-    contextOptions,
-  }) => {
-    const context = await browser.newContext({
-      ...contextOptions,
-      storageState: {
-        cookies: [],
-        origins: [],
-      },
-    });
-    const page = await context.newPage();
-    const detachPageGuards = attachPageGuards(page);
+  unauthenticatedTest('keeps unauthenticated admin enrollment outside user data', async ({ page }) => {
     const userDataRequests = collectUserDataRuntimeRequests(page);
-    try {
-      await page.goto('/admin');
+    await page.goto('/admin');
 
-      await expect(page.getByRole('main')).toBeVisible();
-      await expect(page.getByRole('heading', { level: 1, name: 'Become admin' })).toBeVisible();
-      await page.waitForLoadState('networkidle');
-      expect(userDataRequests).toEqual([]);
-    } finally {
-      detachPageGuards();
-      await context.close();
-    }
+    await expect(page.getByRole('main')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Become admin' })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    expect(userDataRequests).toEqual([]);
   });
 
   freshAuthenticatedTest('logs out the active session from the app header', async ({ page }) => {
