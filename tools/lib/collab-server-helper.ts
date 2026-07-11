@@ -1,4 +1,3 @@
-import { once } from 'node:events';
 import fs from 'node:fs';
 import path from 'node:path';
 import { setTimeout as wait } from 'node:timers/promises';
@@ -97,17 +96,13 @@ export async function ensureCollabServer({
     },
   );
 
-  const cleanup = attachManagedProcess(child, LOG_PATH);
+  const stopManagedProcess = attachManagedProcess(child, LOG_PATH);
   const stop = async () => {
-    const exited = child.exitCode !== null || child.signalCode !== null;
-    const exitPromise = exited ? Promise.resolve() : once(child, 'exit');
-    terminateProcessGroup(child, 'SIGTERM');
-    await exitPromise;
+    await stopManagedProcess();
     if (!(await waitForPortClosed(probeHost, resolvedPort))) {
       terminateProcessGroup(child, 'SIGKILL');
       await waitForPortClosed(probeHost, resolvedPort);
     }
-    cleanup();
   };
 
   try {

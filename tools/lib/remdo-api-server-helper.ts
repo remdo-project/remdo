@@ -1,11 +1,10 @@
 import type { ChildProcess } from 'node:child_process';
-import { once } from 'node:events';
 import path from 'node:path';
 import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
 import { resolveLoopbackHost } from '#platform/net/loopback';
-import { attachManagedProcess, readRecentLog, terminateProcessGroup } from './managed-process';
+import { attachManagedProcess, readRecentLog } from './managed-process';
 import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
 
@@ -70,14 +69,7 @@ export async function ensureRemdoApiServer({
     },
   );
 
-  const cleanup = attachManagedProcess(child, LOG_PATH);
-  const stop = async () => {
-    const exited = child.exitCode !== null || child.signalCode !== null;
-    const exitPromise = exited ? Promise.resolve() : once(child, 'exit');
-    terminateProcessGroup(child, 'SIGTERM');
-    await exitPromise;
-    cleanup();
-  };
+  const stop = attachManagedProcess(child, LOG_PATH);
 
   try {
     await waitForPort(probeHost, resolvedPort, child);
