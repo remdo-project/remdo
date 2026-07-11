@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDocumentPath } from '#document-routes';
 import {
@@ -21,7 +21,7 @@ function setSearchSnapshot(snapshot: TestSearchSnapshot) {
 
 async function openSearch() {
   const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-  searchInput.focus();
+  act(() => searchInput.focus());
   return searchInput;
 }
 
@@ -230,9 +230,11 @@ describe('document search', () => {
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
 
     const secondOption = getResultByLabel('note2');
-    expect(firstOption).toHaveAttribute('aria-selected', 'false');
-    expect(secondOption).toHaveAttribute('aria-selected', 'true');
-    expect(searchInput).toHaveAttribute('aria-activedescendant', secondOption.id);
+    await waitFor(() => {
+      expect(firstOption).toHaveAttribute('aria-selected', 'false');
+      expect(secondOption).toHaveAttribute('aria-selected', 'true');
+      expect(searchInput).toHaveAttribute('aria-activedescendant', secondOption.id);
+    });
   });
 
   it('keeps the first matching result highlighted when recovering from no matches', async () => {

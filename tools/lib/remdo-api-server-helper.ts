@@ -1,11 +1,10 @@
-import { once } from 'node:events';
-import fs from 'node:fs';
+import type { ChildProcess } from 'node:child_process';
 import path from 'node:path';
 import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
 import { resolveLoopbackHost } from '#platform/net/loopback';
-import { attachManagedProcess, terminateProcessGroup } from './managed-process';
+import { attachManagedProcess, prepareManagedProcessLog, readRecentLog } from './managed-process';
 import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
 
@@ -15,15 +14,15 @@ const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'remdo-api-server.log');
 const reusedServerStop = () => Promise.resolve();
 
-function ensureLogStream(): fs.WriteStream {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
-  return fs.createWriteStream(LOG_PATH, { flags: 'w' });
-}
-
-async function waitForPort(host: string, port: number): Promise<void> {
+async function waitForPort(host: string, port: number, child: ChildProcess): Promise<void> {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
     if (await isPortOpen(host, port)) {
       return;
+    }
+    if (child.exitCode !== null || child.signalCode !== null) {
+      throw new Error(
+        `RemDo API server exited before listening (code ${String(child.exitCode)}, signal ${String(child.signalCode)})`,
+      );
     }
     await wait(POLL_INTERVAL);
   }
@@ -50,7 +49,7 @@ export async function ensureRemdoApiServer({
     return reusedServerStop;
   }
 
-  const logStream = ensureLogStream();
+  prepareManagedProcessLog(LOG_PATH);
   const child = spawnPnpm(
     ['exec', 'tsx', './tools/remdo-api-server.ts'],
     {
@@ -71,23 +70,16 @@ export async function ensureRemdoApiServer({
     },
   );
 
-  const cleanup = attachManagedProcess(child, logStream);
-  const stop = async () => {
-    let exited = child.exitCode !== null || child.signalCode !== null;
-    child.once('exit', () => {
-      exited = true;
-    });
-    terminateProcessGroup(child, 'SIGTERM');
-    if (!exited) {
-      await once(child, 'exit');
-    }
-    cleanup();
-  };
+  const stop = attachManagedProcess(child, LOG_PATH);
 
   try {
-    await waitForPort(probeHost, resolvedPort);
+    await waitForPort(probeHost, resolvedPort, child);
   } catch (error) {
     await stop();
+    const recentLog = readRecentLog(LOG_PATH);
+    if (recentLog) {
+      throw new Error(`${error instanceof Error ? error.message : String(error)}\n${recentLog}`);
+    }
     throw error;
   }
 

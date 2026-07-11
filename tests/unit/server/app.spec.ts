@@ -107,7 +107,6 @@ describe('remdo api app', () => {
 
   it('rejects cross-site form-style browser mutations with Hono CSRF protection', async () => {
     const harness = createHarnessWithSourceServer();
-    const headers = await harness.createSessionHeaders();
     const mutatingRoutes = inspectRoutes(harness.app)
       .filter(({ method }) => !SAFE_HTTP_METHODS.has(method))
       .map(({ method, path }) => ({ key: `${method} ${path}`, method, path }));
@@ -122,13 +121,13 @@ describe('remdo api app', () => {
       const requestPath = path
         .replace(':serverId', TEST_SOURCE_SERVER.id)
         .replaceAll(/:[^/]+/gu, 'placeholder');
-      const requestHeaders = new Headers(headers);
-      requestHeaders.set('content-type', 'text/plain');
-      requestHeaders.set('origin', 'https://evil.example');
-      requestHeaders.set('sec-fetch-site', 'cross-site');
       const response = await harness.app.request(requestPath, {
         method,
-        headers: requestHeaders,
+        headers: {
+          'content-type': 'text/plain',
+          origin: 'https://evil.example',
+          'sec-fetch-site': 'cross-site',
+        },
         body: '{}',
       });
       expect(response.status, `${key} accepted a cross-site form-style mutation`)

@@ -1,11 +1,16 @@
-import { once } from 'node:events';
+import type { ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
 import { resolveLoopbackHost } from '#platform/net/loopback';
-import { attachManagedProcess, terminateProcessGroup } from './managed-process';
+import {
+  attachManagedProcess,
+  prepareManagedProcessLog,
+  readRecentLog,
+  terminateProcessGroup,
+} from './managed-process';
 import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
 
@@ -21,15 +26,15 @@ function resolveYSweetBindHost(host: string): string {
   return host === 'localhost' ? '127.0.0.1' : host;
 }
 
-function ensureLogStream(): fs.WriteStream {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
-  return fs.createWriteStream(LOG_PATH, { flags: 'w' });
-}
-
-async function waitForPort(host: string, port: number): Promise<void> {
+async function waitForPort(host: string, port: number, child: ChildProcess): Promise<void> {
   for (let i = 0; i < MAX_ATTEMPTS; i++) {
     if (await isPortOpen(host, port)) {
       return;
+    }
+    if (child.exitCode !== null || child.signalCode !== null) {
+      throw new Error(
+        `Collaboration websocket exited before listening (code ${String(child.exitCode)}, signal ${String(child.signalCode)})`,
+      );
     }
     await wait(POLL_INTERVAL);
   }
@@ -48,13 +53,6 @@ async function waitForPortClosed(host: string, port: number): Promise<boolean> {
   return false;
 }
 
-function readRecentLog(): string {
-  try {
-    return fs.readFileSync(LOG_PATH, 'utf8').trim().slice(-2000);
-  } catch {
-    return '';
-  }
-}
 export type StopCollabServer = () => Promise<void>;
 
 interface CollabServerOptions {
@@ -78,8 +76,8 @@ export async function ensureCollabServer({
     throw new Error(`Collaboration websocket already running on ws://${probeHost}:${resolvedPort}`);
   }
 
-  const logStream = ensureLogStream();
   fs.mkdirSync(COLLAB_DATA_DIR, { recursive: true });
+  prepareManagedProcessLog(LOG_PATH);
   const args = [
     'exec',
     'y-sweet',
@@ -110,24 +108,19 @@ export async function ensureCollabServer({
     },
   );
 
-  const cleanup = attachManagedProcess(child, logStream);
-  const stop = async () => {
-    const exited = child.exitCode !== null || child.signalCode !== null;
-    const exitPromise = exited ? Promise.resolve() : once(child, 'exit');
-    terminateProcessGroup(child, 'SIGTERM');
-    await exitPromise;
+  const stopManagedProcess = attachManagedProcess(child, LOG_PATH);
+  const stop = () => stopManagedProcess(async () => {
     if (!(await waitForPortClosed(probeHost, resolvedPort))) {
       terminateProcessGroup(child, 'SIGKILL');
       await waitForPortClosed(probeHost, resolvedPort);
     }
-    cleanup();
-  };
+  });
 
   try {
-    await waitForPort(probeHost, resolvedPort);
+    await waitForPort(probeHost, resolvedPort, child);
   } catch (error) {
     await stop();
-    const recentLog = readRecentLog();
+    const recentLog = readRecentLog(LOG_PATH);
     if (recentLog) {
       throw new Error(`${error instanceof Error ? error.message : String(error)}\n${recentLog}`);
     }
