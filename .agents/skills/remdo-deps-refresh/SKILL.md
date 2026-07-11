@@ -23,9 +23,8 @@ Operating principle: **apply everything, then make it green.**
    step — pausing to ask just defers the same work and contradicts the
    run-and-walk-away intent.
 2. **The checks are the gate**, not human judgement: the full local suites here,
-   plus the CI matrix on the dev push (the skill never lands on `main` directly;
-   the push itself stays the user's — see Permissions — so report the CI leg as
-   pending, not covered).
+   plus the CI matrix when the refresh branch is pushed. The push itself stays
+   the user's — see Permissions — so report the CI leg as pending, not covered.
    A regression that the suites catch is for the skill to diagnose and fix now,
    from the failure in hand — the same investigation a "stop" would have produced,
    just without the wait.
@@ -34,6 +33,22 @@ Operating principle: **apply everything, then make it green.**
    upgraded, what broke, what was done about it, and what (if anything) is a true
    dead-end. Surface only genuine dead-ends — a break the skill could not safely
    resolve, or a change whose correctness the tests cannot establish.
+
+## Start on a fresh branch
+
+At the start of each new run, before applying an update, run:
+
+```sh
+sh .agents/skills/remdo-deps-refresh/tools/start-refresh-branch.sh
+```
+
+The script refuses a dirty tree, fetches `origin`, and creates the next available
+`chore/deps-refresh-<date>` branch from the fetched `origin/main` without an
+upstream. Record the reported branch and base for the final response. On a
+non-zero exit, resolve the condition it names or report it as a dead-end; never
+apply refresh changes on the branch where the skill was invoked. When continuing
+the same run after an interruption, stay on its recorded refresh branch instead
+of starting another run.
 
 ## The loop
 
@@ -70,7 +85,7 @@ Iterate:
       `CI=true pnpm install --no-frozen-lockfile` as the consistency gate. For a
       **Node** change also run `pnpm run test:e2e:docker` (the only local surface
       that exercises the alpine base); other items lean on the docker-tests CI job
-      on the dev push.
+      when the refresh branch is pushed.
    2. **If anything fails, heal it — this is the core job, not a hand-back.**
       Diagnose from the failure in hand and fix forward: adjust a workaround in
       [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md),
@@ -95,10 +110,10 @@ Iterate:
 ## Permissions
 
 Running this skill is an explicitly declared autonomous scope (per AGENTS.md):
-the loop commits each healed upgrade as it goes, so invoking it authorizes those
-commits **on `dev`** — never on `main`, and never push. Pushing to `dev` to
-trigger the CI matrix, where the loop relies on it, stays a separate explicit ask
-by the user.
+invoking it authorizes the initial fetch and topic-branch creation, then the loop
+commits each healed upgrade on the branch reported by the startup script. Never
+commit on `main` or `dev`, and never push. Pushing the refresh branch to trigger
+the CI matrix stays a separate explicit ask by the user.
 
 ## Finish
 
@@ -137,5 +152,6 @@ self-contained. Sections (omit a section if empty):
    migration, an ambiguous behavior change the tests cannot adjudicate), with what
    was tried. Omit if none. This is the only category that genuinely needs the
    user; everything else was handled.
-7. **Checks** — each final verification command with its pass/fail result, and
-   the CI matrix leg marked pending until the user pushes.
+7. **Checks** — each final verification command with its pass/fail result, the
+   refresh branch and base, and the CI matrix leg marked pending until the user
+   pushes that branch.

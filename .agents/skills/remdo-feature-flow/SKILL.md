@@ -96,7 +96,7 @@ plus a short approach summary. This is the only mandatory user gate.
 On approval, confirm the branch name/prefix, then run:
 
 ```sh
-sh .agents/skills/remdo-feature-flow/tools/create-task-branch.sh <name> <pinned-base-sha>
+sh .agents/skills/_shared/tools/create-branch-from-base.sh <name> <pinned-base-sha>
 ```
 
 The script forks from the pinned base carrying the approved uncommitted spec
@@ -252,7 +252,7 @@ that runtime's surfaces. Keep both columns adjacent so divergence stays visible.
 - Syncing `origin/main`: `remdo-sync` skill.
 - Preflight and branch creation:
   `.agents/skills/remdo-feature-flow/tools/preflight-base.sh`,
-  `.agents/skills/remdo-feature-flow/tools/create-task-branch.sh`.
+  `.agents/skills/_shared/tools/create-branch-from-base.sh`.
 - Documentation intent and invariants: `docs/documentation.md`; deferral rules:
   `docs/todo.md`.
 - Git workflow and branch prefixes: `docs/contributing.md#git-workflow`.

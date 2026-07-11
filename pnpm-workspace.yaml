@@ -16,6 +16,24 @@ trustPolicyExclude:
 
 updateNotifier: false
 
+updateConfig:
+  ignoreDependencies:
+    # TODO(deps): return to stable Better Auth after 1.7.0 ships with GHSA-p2fr-6hmx-4528 fixed.
+    # Probe: npm view @better-auth/oauth-provider version
+    - '@better-auth/core'
+    - '@better-auth/oauth-provider'
+    - better-auth
+    # TODO(deps): retry Kysely 0.29 after Better Auth publishes its adapter fix.
+    # Probe: npm view @better-auth/kysely-adapter version
+    - kysely
+    # TODO(deps): retry after Lexical 0.47 clears minimumReleaseAge; 0.46 fails editor invariants.
+    # Probe: npm view lexical 'time[0.47.0]'
+    - '@lexical/*'
+    - lexical
+    # TODO(deps): remove this hold when @typescript-eslint supports TypeScript 7.
+    # Probe: pnpm view @typescript-eslint/parser peerDependencies --json
+    - typescript
+
 overrides:
   '@babel/plugin-transform-modules-systemjs': '>=7.29.4 <8'
   '@eslint/config-array>minimatch': 3.1.5
@@ -30,6 +48,7 @@ overrides:
   fast-uri: '>=3.1.2'
   glob>minimatch: 10.2.4
   js-yaml: 4.2.0
+  kysely: 0.28.17
   markdown-it: '>=14.2.0'
   qs: 6.15.2
   serialize-javascript: 7.0.5
@@ -37,10 +56,11 @@ overrides:
 
 catalog:
   '@antfu/eslint-config': 9.1.0
-  '@ast-grep/cli': ^0.44.0
-  '@better-auth/oauth-provider': 1.6.20
-  '@eslint-react/eslint-plugin': ^5.9.2
-  '@hono/node-server': ^2.0.6
+  '@ast-grep/cli': ^0.44.1
+  '@better-auth/core': 1.7.0-rc.1
+  '@better-auth/oauth-provider': 1.7.0-rc.1
+  '@eslint-react/eslint-plugin': ^5.13.1
+  '@hono/node-server': ^2.0.8
   '@lexical/clipboard': ^0.45.0
   '@lexical/eslint-plugin': ^0.45.0
   '@lexical/link': ^0.45.0
@@ -49,9 +69,9 @@ catalog:
   '@lexical/react': ^0.45.0
   '@lexical/utils': ^0.45.0
   '@lexical/yjs': ^0.45.0
-  '@mantine/core': ^9.4.0
-  '@mantine/dates': 9.4.0
-  '@mantine/hooks': ^9.4.0
+  '@mantine/core': ^9.4.1
+  '@mantine/dates': 9.4.1
+  '@mantine/hooks': ^9.4.1
   '@playwright/test': ^1.61.1
   '@tabler/icons-react': ^3.44.0
   '@testing-library/jest-dom': ^6.9.1
@@ -60,47 +80,47 @@ catalog:
   '@types/estree': ^1.0.9
   '@types/jsdom': ^28.0.3
   '@types/linkify-it': ^5.0.0
-  '@types/node': ^26.0.0
+  '@types/node': ^26.1.1
   '@types/react': ^19.2.17
   '@types/react-dom': ^19.2.3
   '@types/ws': ^8.18.1
-  '@vitest/coverage-v8': 4.1.9
-  '@vitest/ui': 4.1.9
+  '@vitest/coverage-v8': 4.1.10
+  '@vitest/ui': 4.1.10
   '@y-sweet/client': ^0.9.1
   '@y-sweet/sdk': ^0.9.1
-  better-auth: ^1.6.20
+  better-auth: 1.7.0-rc.1
   better-sqlite3: ^12.11.1
   chokidar-cli: ^3.0.0
   concurrently: ^10.0.3
   cross-env: ^10.1.0
   csstree-validator: ^4.0.1
   dayjs: ^1.11.21
-  eslint: ^10.5.0
+  eslint: ^10.6.0
   eslint-plugin-compat: ^7.0.2
   eslint-plugin-react-refresh: ^0.5.3
-  hono: ^4.12.27
+  hono: ^4.12.28
   jiti: ^2.7.0
-  jscpd: ^5.0.11
+  jscpd: ^5.0.12
   jsdom: ^29.1.1
-  knip: ^6.20.0
-  kysely: ^0.29.2
+  knip: ^6.25.0
+  kysely: 0.28.17
   lexical: ^0.45.0
-  linkify-it: ^5.0.1
-  markdownlint-cli2: ^0.22.1
+  linkify-it: ^5.0.2
+  markdownlint-cli2: ^0.23.0
   markdownlint-rule-relative-links: ^5.1.1
-  nanoid: ^5.1.15
+  nanoid: ^5.1.16
   playwright: ^1.61.1
   react: ^19.2.7
   react-dom: ^19.2.7
-  react-router-dom: ^7.18.0
-  stylelint: ^17.13.0
+  react-router-dom: ^7.18.1
+  stylelint: ^17.14.0
   stylelint-config-recommended: ^18.0.0
   tlds: ^1.261.0
-  tsx: ^4.22.4
+  tsx: ^4.23.0
   typescript: ^6.0.3
-  vite: ^8.1.0
+  vite: ^8.1.4
   vite-plugin-pwa: ^1.3.0
-  vitest: 4.1.9
+  vitest: 4.1.10
   vitest-preview: ^0.0.3
   workbox-window: ^7.4.1
   ws: 8.21.0

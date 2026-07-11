@@ -8,11 +8,18 @@ import {
   CREATE_DOCUMENTS_TABLE_SQL,
   CREATE_SOURCE_SERVERS_TABLE_SQL,
   DOCUMENTS_TABLE_COLUMNS,
+  SOURCE_SERVERS_TABLE_COLUMNS,
 } from './schema';
 import type { RemdoDatabase } from './schema';
 import type { ServerDatabaseClient } from './types';
 
 const SQLITE_BUSY_TIMEOUT_MS = 5000;
+const LEGACY_SOURCE_SERVERS_TABLE_COLUMNS = [
+  'base_url',
+  'client_id',
+  'client_secret',
+  'created_at',
+] as const;
 
 export interface SqliteServerDatabaseClient extends ServerDatabaseClient {
   sqlite: Database.Database;
@@ -37,6 +44,17 @@ function tableExists(sqlite: Database.Database, tableName: string): boolean {
   return Boolean(row);
 }
 
+function readTableColumns(sqlite: Database.Database, tableName: string): string[] {
+  return (sqlite.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>)
+    .map((row) => row.name);
+}
+
+function hasExactColumns(actualColumns: readonly string[], expectedColumns: readonly string[]): boolean {
+  const actual = new Set(actualColumns);
+  return actual.size === expectedColumns.length
+    && expectedColumns.every((column) => actual.has(column));
+}
+
 // Raise a clear "reset local SQL data" error when an on-disk table's columns
 // don't match the current schema — so a stale dev DB fails loudly at startup
 // rather than with cryptic constraint errors on the first write.
@@ -45,10 +63,7 @@ function assertTableShape(
   tableName: string,
   expectedColumns: readonly string[],
 ): void {
-  const columnNames = new Set(
-    (sqlite.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>)
-      .map((row) => row.name),
-  );
+  const columnNames = new Set(readTableColumns(sqlite, tableName));
   const expected = new Set(expectedColumns);
   const missingColumns = expectedColumns.filter((column) => !columnNames.has(column));
   const unexpectedColumns = [...columnNames].filter((column) => !expected.has(column));
@@ -59,6 +74,20 @@ function assertTableShape(
   throw new Error(
     `Unsupported ${tableName} table schema. Reset local SQL data before starting RemDo. Missing columns: ${missingColumns.join(', ') || 'none'}. Unexpected columns: ${unexpectedColumns.join(', ') || 'none'}.`
   );
+}
+
+function assertSourceServersTableShape(sqlite: Database.Database): void {
+  const columns = readTableColumns(sqlite, 'source_servers');
+  if (
+    hasExactColumns(columns, SOURCE_SERVERS_TABLE_COLUMNS)
+    || hasExactColumns(columns, LEGACY_SOURCE_SERVERS_TABLE_COLUMNS)
+  ) {
+    return;
+  }
+
+  // The immediate predecessor's unused client_secret remains accepted until a
+  // real migration runner removes it. Unknown older shapes still fail loudly.
+  assertTableShape(sqlite, 'source_servers', SOURCE_SERVERS_TABLE_COLUMNS);
 }
 
 function ensureDocumentsTable(sqlite: Database.Database): void {
@@ -79,7 +108,7 @@ function ensureDocumentAccessTable(sqlite: Database.Database): void {
   sqlite.exec(CREATE_DOCUMENT_ACCESS_TABLE_SQL);
 
   if (tableExists(sqlite, 'source_servers')) {
-    assertTableShape(sqlite, 'source_servers', ['base_url', 'client_id', 'created_at']);
+    assertSourceServersTableShape(sqlite);
   }
   sqlite.exec(CREATE_SOURCE_SERVERS_TABLE_SQL);
 }

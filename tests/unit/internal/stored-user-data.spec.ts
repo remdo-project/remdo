@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
 import type { UserDataNote } from '#note-sdk';
+import { createDeferred } from '../_support/deferred';
 
 const USER_RUNTIME_DOCUMENT = { id: 'userHomeDoc', title: 'Home' } as const;
 const USER_SOURCE_SERVER = {
@@ -155,14 +156,6 @@ describe('stored user data', () => {
     entries.push([entry]);
     root.set('documents', entries);
     return doc;
-  };
-
-  const createDeferred = () => {
-    let resolve!: () => void;
-    const promise = new Promise<void>((promiseResolve) => {
-      resolve = promiseResolve;
-    });
-    return { promise, resolve };
   };
 
   const mockCollabSessions = ({

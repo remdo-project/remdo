@@ -87,7 +87,7 @@ export function createViteSharedConfig() {
       port: config.env.PORT,
       strictPort: true,
       watch: {
-        ignored: ['**/data/**'],
+        ignored: ['**/data/**', '**/.agent/**'],
       },
       allowedHosts: true as const,
       proxy: devProxy,

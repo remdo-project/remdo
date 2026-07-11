@@ -8,8 +8,9 @@ describe('registerPublicSourceClient', () => {
       const body = JSON.parse(String(init?.body));
       expect(body.token_endpoint_auth_method).toBe('none');
       expect(body.redirect_uris).toEqual([
-        'https://home.private/api/auth/oauth2/callback/src-id',
+        'https://home.private/api/auth/callback/src-id',
       ]);
+      expect(body.resources).toEqual(['https://source.example']);
       return new Response(JSON.stringify({ client_id: 'abc123' }), { status: 201 });
     });
     const result = await registerPublicSourceClient(

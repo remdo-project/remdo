@@ -208,6 +208,7 @@ export function createServerAppHarness({
       }
     },
     async cleanup() {
+      await auth.ensureReady();
       await client.close();
       fs.rmSync(tempDir, { recursive: true, force: true });
     },
