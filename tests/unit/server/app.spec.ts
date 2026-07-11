@@ -114,7 +114,7 @@ describe('remdo api app', () => {
 
     expect(mutatingRoutes.length).toBeGreaterThan(0);
     for (const { key, method, path } of mutatingRoutes) {
-      if (key === 'ALL /api/auth/*' || key === 'ALL /api') {
+      if (path.startsWith('/api/auth/') || key === 'ALL /api') {
         continue;
       }
       // Resolve params to real, existing values so each request reaches the
@@ -146,7 +146,7 @@ describe('remdo api app', () => {
 
     expect(mutatingRoutes.length).toBeGreaterThan(0);
     for (const { key, method, path } of mutatingRoutes) {
-      if (key === 'ALL /api/auth/*' || key === 'ALL /api') {
+      if (path.startsWith('/api/auth/') || key === 'ALL /api') {
         continue;
       }
       const requestPath = path
