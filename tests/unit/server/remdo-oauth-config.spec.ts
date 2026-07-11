@@ -4,6 +4,7 @@ import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { createServerDatabaseClient } from '#server/db/client';
 import { decodeSourceId, deriveSourceId, deriveSourceServer } from '#server/remdo-oauth/config';
 import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
+import { guardedBetterAuthLogger } from './_support/better-auth-test-logger';
 
 const HOME_ORIGIN = 'http://127.0.0.1:4000';
 const SOURCE_ORIGIN = 'https://source.example';
@@ -86,6 +87,7 @@ describe('genericOAuth provider for a public-client source', () => {
       allowSignup: false,
       baseURL: HOME_ORIGIN,
       database,
+      logger: guardedBetterAuthLogger,
       secret: 'test-better-auth-secret-0123456789',
       sourceServers: [SOURCE_SERVER],
     });

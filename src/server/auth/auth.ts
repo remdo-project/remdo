@@ -5,6 +5,7 @@ import {
 } from '@better-auth/oauth-provider';
 import { isLoopbackHost } from '@better-auth/core/utils/host';
 import { betterAuth } from 'better-auth';
+import type { BetterAuthOptions } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import type Database from 'better-sqlite3';
 import { admin, genericOAuth, jwt } from 'better-auth/plugins';
@@ -21,6 +22,7 @@ interface CreateServerAuthOptions {
   allowSignup?: boolean;
   baseURL?: string;
   database: SqliteServerDatabaseClient;
+  logger?: BetterAuthOptions['logger'];
   sourceServers?: readonly StoredSourceServer[];
   oauthClientCredentials?: OAuthClientCredentials;
   secret?: string;
@@ -58,6 +60,7 @@ function createBetterAuthInstance({
   allowSignup,
   baseURL,
   database,
+  logger,
   sourceServers,
   oauthClientCredentials,
   secret,
@@ -66,6 +69,7 @@ function createBetterAuthInstance({
   allowSignup: boolean;
   baseURL: string;
   database: Database.Database;
+  logger: BetterAuthOptions['logger'];
   sourceServers: readonly StoredSourceServer[];
   oauthClientCredentials?: OAuthClientCredentials;
   secret: string;
@@ -77,7 +81,7 @@ function createBetterAuthInstance({
     baseURL,
     trustedOrigins: [...trustedOrigins],
     secret,
-    logger: config.isProd ? undefined : { level: 'error' },
+    logger,
     database,
     account: {
       accountLinking: {
@@ -210,6 +214,7 @@ export function createServerAuth({
   allowSignup = config.env.ALLOW_SIGNUP,
   baseURL = config.env.AUTH_URL,
   database,
+  logger = config.isProd ? undefined : { level: 'error' },
   sourceServers = readSourceServersSync(database),
   oauthClientCredentials,
   secret = config.env.AUTH_SECRET,
@@ -236,6 +241,7 @@ export function createServerAuth({
     allowSignup,
     baseURL,
     database: database.sqlite,
+    logger,
     sourceServers,
     oauthClientCredentials,
     secret,
@@ -247,6 +253,7 @@ export function createServerAuth({
         allowSignup: true,
         baseURL,
         database: database.sqlite,
+        logger,
         sourceServers,
         oauthClientCredentials,
         secret,

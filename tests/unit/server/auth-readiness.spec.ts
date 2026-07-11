@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createServerAuth } from '#server/auth/auth';
 import { createServerDatabaseClient } from '#server/db/client';
 import { createDeferred } from '../_support/deferred';
+import { guardedBetterAuthLogger } from './_support/better-auth-test-logger';
 
 const betterAuthMock = vi.hoisted(() => vi.fn());
 const getMigrationsMock = vi.hoisted(() => vi.fn());
@@ -55,6 +56,7 @@ describe('server auth readiness', () => {
       allowSignup: false,
       baseURL: 'http://127.0.0.1:4000',
       database,
+      logger: guardedBetterAuthLogger,
       secret: 'test-better-auth-secret-0123456789',
     });
 
@@ -85,6 +87,7 @@ describe('server auth readiness', () => {
       allowSignup: false,
       baseURL: 'http://127.0.0.1:4000',
       database,
+      logger: guardedBetterAuthLogger,
       secret: 'test-better-auth-secret-0123456789',
     });
 
