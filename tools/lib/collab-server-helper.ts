@@ -97,13 +97,12 @@ export async function ensureCollabServer({
   );
 
   const stopManagedProcess = attachManagedProcess(child, LOG_PATH);
-  const stop = async () => {
-    await stopManagedProcess();
+  const stop = () => stopManagedProcess(async () => {
     if (!(await waitForPortClosed(probeHost, resolvedPort))) {
       terminateProcessGroup(child, 'SIGKILL');
       await waitForPortClosed(probeHost, resolvedPort);
     }
-  };
+  });
 
   try {
     await waitForPort(probeHost, resolvedPort);

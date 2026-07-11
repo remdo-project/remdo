@@ -37,7 +37,10 @@ export function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signal
  * teardown signals that terminate the child. Returns a stop operation that
  * terminates the process group, unregisters the handlers, and closes the log.
  */
-export function attachManagedProcess(child: ChildProcess, logPath: string): () => Promise<void> {
+export function attachManagedProcess(
+  child: ChildProcess,
+  logPath: string,
+): (afterChildExit?: () => void | Promise<void>) => Promise<void> {
   fs.mkdirSync(path.dirname(logPath), { recursive: true });
   const logStream = fs.createWriteStream(logPath, { flags: 'w' });
   if (child.stdout) {
@@ -53,10 +56,13 @@ export function attachManagedProcess(child: ChildProcess, logPath: string): () =
   for (const event of TEARDOWN_SIGNALS) {
     process.on(event, onSignal);
   }
+  const exitPromise = once(child, 'exit');
   const closePromise = once(child, 'close');
 
-  return async () => {
+  return async (afterChildExit?: () => void | Promise<void>) => {
     terminateProcessGroup(child, 'SIGTERM');
+    await exitPromise;
+    await afterChildExit?.();
     await closePromise;
     for (const event of TEARDOWN_SIGNALS) {
       process.off(event, onSignal);
