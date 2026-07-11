@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { MockInstance } from 'vitest';
 import { createServerAuth } from '#server/auth/auth';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { createServerDatabaseClient } from '#server/db/client';
@@ -78,7 +77,6 @@ describe('deriveSourceId', () => {
 // the built genericOAuth provider must still exist and authenticate via PKCE
 // alone, per docs/access-model.md#linking-a-source.
 describe('genericOAuth provider for a public-client source', () => {
-  let loggerErrorSpy: MockInstance | undefined;
   let database: SqliteServerDatabaseClient;
   let serverAuth: ReturnType<typeof createServerAuth>;
 
@@ -96,7 +94,6 @@ describe('genericOAuth provider for a public-client source', () => {
   afterEach(async () => {
     await serverAuth.ensureReady();
     await database.close();
-    loggerErrorSpy?.mockRestore();
     vi.unstubAllGlobals();
   });
 
@@ -160,7 +157,7 @@ describe('genericOAuth provider for a public-client source', () => {
   it('does not implicitly link a same-email source account during normal sign-in', async () => {
     await serverAuth.ensureReady();
     const authContext = await serverAuth.auth.$context;
-    loggerErrorSpy = vi.spyOn(authContext.logger, 'error').mockImplementation(() => {});
+    using _loggerErrorSpy = vi.spyOn(authContext.logger, 'error').mockImplementation(() => {});
     const email = 'same-email@example.com';
     await createLocalUser(email);
     database.sqlite.prepare('UPDATE user SET emailVerified = 1 WHERE email = ?').run(email);

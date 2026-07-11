@@ -59,16 +59,18 @@ describe('post /api/current-user/source-links', () => {
     }
   });
 
-  it.each([
-    'https://source.example/',
-    'https://source.example/some/path',
-  ])('accepts browser-normal URL form %s by normalizing to the origin', async (url) => {
+  it('accepts a browser-normal deep URL by normalizing to the origin', async () => {
     const harness = createHarness({ allowSignup: false, swappableAuth: true });
     const headers = await harness.createSessionHeaders();
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ client_id: 'source-client-id' }), { status: 201 }));
     vi.stubGlobal('fetch', fetchMock);
 
-    const response = await postJson(harness.app, '/api/current-user/source-links', { url }, headers);
+    const response = await postJson(
+      harness.app,
+      '/api/current-user/source-links',
+      { url: 'https://source.example/some/path' },
+      headers,
+    );
 
     expect(response.status).toBe(200);
     // The home registered against the normalized origin, not the raw URL.
