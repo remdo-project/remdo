@@ -60,37 +60,26 @@ async function rootRouteLoader(request: Request): Promise<RootRouteLoaderData> {
   if (sessionState.status === 'offline-unavailable') {
     throw redirect(createOfflinePath(request));
   }
+  let homeDocumentId: string;
+  let target: string;
   if (sessionState.status === 'offline-remembered') {
     const bootstrap = getCachedCurrentUserBootstrap();
     if (!bootstrap) {
       throw redirect(createOfflinePath(request));
     }
-    const target = resolveNextPathOrDefault(
-      search,
-      url.origin,
-      '/',
-    );
-    if (target !== '/' && target !== createDocumentPath(bootstrap.homeDocumentId)) {
-      throw redirect(target);
+    homeDocumentId = bootstrap.homeDocumentId;
+    target = resolveNextPathOrDefault(search, url.origin, '/');
+  } else {
+    const redirectTarget = resolveAuthenticatedLoginRedirect(search, url.origin);
+    if (redirectTarget.kind === 'document-redirect') {
+      throw redirectDocument(redirectTarget.href);
     }
-    if (search) {
-      throw redirect('/');
-    }
-    return {
-      docId: bootstrap.homeDocumentId,
-      homeDocumentId: bootstrap.homeDocumentId,
-      noteId: null,
-      sessionState,
-    };
+    homeDocumentId = await getHomeDocumentId();
+    target = redirectTarget.path;
   }
 
-  const redirectTarget = resolveAuthenticatedLoginRedirect(search, url.origin);
-  if (redirectTarget.kind === 'document-redirect') {
-    throw redirectDocument(redirectTarget.href);
-  }
-  const homeDocumentId = await getHomeDocumentId();
-  if (redirectTarget.path !== '/' && redirectTarget.path !== createDocumentPath(homeDocumentId)) {
-    throw redirect(redirectTarget.path);
+  if (target !== '/' && target !== createDocumentPath(homeDocumentId)) {
+    throw redirect(target);
   }
   if (search) {
     throw redirect('/');
@@ -121,28 +110,27 @@ async function resolveRouteHomeDocumentId(request: Request): Promise<string> {
   return getHomeDocumentId();
 }
 
-type DocumentPathBuilder = (docId: string, noteId?: string | null) => string;
+async function documentLoader({ request, params }: {
+  request: Request;
+  params: { docRef?: string };
+}) {
+  const url = new URL(request.url);
+  const parsed = parseDocumentRef(params.docRef);
+  if (!parsed) {
+    throw redirect(`/${url.search}`);
+  }
 
-const createDocumentLoader = (buildPath: DocumentPathBuilder) => {
-  return async ({ request, params }: { request: Request; params: { docRef?: string } }) => {
-    const url = new URL(request.url);
-    const parsed = parseDocumentRef(params.docRef);
-    if (!parsed) {
-      throw redirect(`/${url.search}`);
-    }
+  const homeDocumentId = await resolveRouteHomeDocumentId(request);
+  if (parsed.docId === homeDocumentId && parsed.noteId === null) {
+    throw redirect(`/${url.search}`);
+  }
+  const canonicalPath = createDocumentPath(parsed.docId, parsed.noteId);
+  if (url.pathname !== canonicalPath) {
+    throw redirect(`${canonicalPath}${url.search}`);
+  }
 
-    const homeDocumentId = await resolveRouteHomeDocumentId(request);
-    if (parsed.docId === homeDocumentId && parsed.noteId === null) {
-      throw redirect(`/${url.search}`);
-    }
-    const canonicalPath = buildPath(parsed.docId, parsed.noteId);
-    if (url.pathname !== canonicalPath) {
-      throw redirect(`${canonicalPath}${url.search}`);
-    }
-
-    return { ...parsed, homeDocumentId };
-  };
-};
+  return { ...parsed, homeDocumentId };
+}
 
 const hydrateFallbackElement = <div aria-hidden="true" />;
 
@@ -188,7 +176,7 @@ const appRoutes = [
     children: [
       {
         path: 'n/:docRef',
-        loader: createDocumentLoader(createDocumentPath),
+        loader: documentLoader,
         element: <DocumentRoute />,
       },
       {
