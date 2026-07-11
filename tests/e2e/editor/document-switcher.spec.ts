@@ -8,6 +8,34 @@ import { editorLocator } from './_support/locators';
 import { createEditorDocumentPath } from './_support/routes';
 
 test.describe('Document switcher', () => {
+  test('stacks document and search controls without horizontal overflow on narrow screens', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/home');
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+
+    const shell = editorLocator(page)
+      .locator('xpath=ancestor-or-self::*[contains(@class,"document-editor-shell")]');
+    const breadcrumbs = shell.locator('.document-header-breadcrumbs');
+    const actions = shell.locator('.document-header-actions');
+    await expect(breadcrumbs).toBeVisible();
+    await expect(actions).toBeVisible();
+
+    const [breadcrumbsBox, actionsBox] = await Promise.all([
+      breadcrumbs.boundingBox(),
+      actions.boundingBox(),
+    ]);
+    expect(breadcrumbsBox).not.toBeNull();
+    expect(actionsBox).not.toBeNull();
+    expect(actionsBox!.y).toBeGreaterThanOrEqual(breadcrumbsBox!.y + breadcrumbsBox!.height);
+
+    const overflow = await page.evaluate(() => ({
+      header: document.querySelector<HTMLElement>('.document-header')!.scrollWidth -
+        document.querySelector<HTMLElement>('.document-header')!.clientWidth,
+      page: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    }));
+    expect(overflow).toEqual({ header: 0, page: 0 });
+  });
+
   test('creates a listed document, switches to it, and switches back to the source document', async ({ page, captureCreatedDoc }) => {
     const sourceDocument = await createUserDocument(page, `Switcher Source ${Date.now()}`);
     try {

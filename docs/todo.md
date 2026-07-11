@@ -173,14 +173,6 @@ Deferred hardening; long-horizon items live in `docs/access-model.md#future`.
   "signed-in non-admin enrolls → sees the new admin's data, not the prior user's"
   (needs a non-admin session in the e2e setup, which today enrolls an admin).
 
-## User-data follow-ups
-
-- User-data route follow-up: handle rejected `userData.documents().create()` calls
-  from the document picker in `src/client/app/routes/DocumentRoute.tsx` so sync/write
-  failures do not surface as unhandled promise rejections and the UI can
-  recover cleanly. This is not required for sharing, but it is the same header
-  area and async-command UX pattern as the sharing control.
-
 ## One-service-per-container split
 
 - Docker treats running the client, API, and Y-Sweet collaboration server in a
@@ -596,8 +588,3 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   only checks `indent-jump`, which load normalization flattens. The validation is
   therefore practically inert today; add coverage if a schema rule that survives
   load is introduced.
-
-## App shell and route layout
-
-- Decompose `DocumentRoute` into route glue, document toolbar/actions, document
-  search, editor pane, and import flow.

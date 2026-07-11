@@ -1,102 +1,43 @@
 import { describe, expect, it, vi } from 'vitest';
 import { meta } from '#tests';
 import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
-import type {
-  BodyNote,
-  CollectionNote,
-  DocumentNote,
-  DocumentAccessNote,
-  DocumentSourceNote,
-  EditorNote,
-  Note,
-  NoteKind,
-  NoteListType,
-  SourceServerNote,
-  UserDataNote,
-} from '#note-sdk';
+import type { NoteListType } from '#note-sdk';
 import { collectDocumentSearchResults } from '#client/editor/search/search-candidates';
+import type { SearchCandidate } from '#client/editor/search/search-candidates';
 
 const ALL = { query: '', limit: Number.MAX_SAFE_INTEGER, childPreviewLimit: 2 };
 
-function createMockNoteAs(noteId: string, kind: () => NoteKind, self: () => Note): Note['as'] {
-  function asNote(kindToMatch: 'editor-note'): EditorNote;
-  function asNote(kindToMatch: 'body'): BodyNote;
-  function asNote(kindToMatch: 'user-data'): UserDataNote;
-  function asNote(kindToMatch: 'document'): DocumentNote;
-  function asNote(kindToMatch: 'document-access'): DocumentAccessNote;
-  function asNote(kindToMatch: 'document-source'): DocumentSourceNote;
-  function asNote(kindToMatch: 'collection'): CollectionNote;
-  function asNote(kindToMatch: 'source-server'): SourceServerNote;
-  function asNote(kindToMatch: NoteKind): Note;
-  function asNote(kindToMatch: NoteKind): Note {
-    const actualKind = kind();
-    if (actualKind !== kindToMatch) {
-      throw new Error(`Note "${noteId}" is "${actualKind}", expected "${kindToMatch}".`);
-    }
-    return self();
-  }
-  return asNote;
+const withoutChildPreviews = (results: SearchCandidate[]) =>
+  results.map(({ childPreview: _childPreview, ...result }) => result);
+
+interface MockEditorNote {
+  id: () => string;
+  text: () => string;
+  listType: () => NoteListType;
+  checked: () => boolean;
+  children: () => MockEditorNote[];
 }
 
 function createMockEditorNote(
   id: string,
   text: string,
-  children: EditorNote[] = [],
+  children: MockEditorNote[] = [],
   options: { listType?: NoteListType; checked?: boolean } = {}
-): EditorNote {
-  const kind = () => 'editor-note' as const;
-  const parent: EditorNote | null = null;
-  const note: EditorNote = {
+): MockEditorNote {
+  return {
     id: () => id,
-    kind,
-    attached: () => true,
     text: () => text,
     listType: () => options.listType ?? 'bullet',
     checked: () => options.checked ?? false,
-    parent: () => parent,
     children: () => children,
-    create: () => {
-      throw new Error('Editor note creation is not used in search candidate tests.');
-    },
-    body: () => null,
-    as: createMockNoteAs(id, kind, () => note),
   };
-  for (const child of children) {
-    (child as { parent: () => EditorNote | null }).parent = () => note;
-  }
-  return note;
 }
 
-function createMockDocumentNote(children: EditorNote[]): DocumentNote {
-  const kind = () => 'document' as const;
-  const accessKind = () => 'collection' as const;
-  const access: CollectionNote<DocumentAccessNote> = {
-    id: () => 'main/access',
-    kind: accessKind,
-    text: () => 'Access',
-    children: () => [],
-    byId: () => null,
-    as: createMockNoteAs('main/access', accessKind, () => access),
-  };
-  const note: DocumentNote = {
-    id: () => 'main',
-    kind,
-    text: () => 'Main',
-    access: () => access,
-    children: () => children,
-    create: () => {
-      throw new Error('Document note creation is not used in search candidate tests.');
-    },
-    shareable: () => false,
-    shareWith: async () => {
-      throw new Error('Document sharing is not used in search candidate tests.');
-    },
-    as: createMockNoteAs('main', kind, () => note),
-  };
-  return note;
+function createMockDocumentNote(children: MockEditorNote[]) {
+  return { children: () => children };
 }
 
-function createDeepChain(depth: number): EditorNote {
+function createDeepChain(depth: number): MockEditorNote {
   let current = createMockEditorNote(`deep-${depth - 1}`, `Deep ${depth - 1}`);
 
   for (let index = depth - 2; index >= 0; index -= 1) {
@@ -119,22 +60,34 @@ describe('search candidates', () => {
     }, ALL);
 
     expect(hasMore).toBe(false);
-    expect(flatResults).toEqual([
-      { noteId: 'top', text: 'Top', listType: 'bullet', checked: false, pathText: ['Top'] },
-      { noteId: 'child-a', text: 'Child A', listType: 'bullet', checked: false, pathText: ['Top', 'Child A'] },
-      { noteId: 'child-b', text: 'Child B', listType: 'bullet', checked: false, pathText: ['Top', 'Child B'] },
-      { noteId: 'leaf', text: 'Leaf', listType: 'bullet', checked: false, pathText: ['Top', 'Child B', 'Leaf'] },
-      { noteId: 'sibling', text: 'Sibling', listType: 'bullet', checked: false, pathText: ['Sibling'] },
+    expect(withoutChildPreviews(flatResults)).toEqual([
+      { noteId: 'top', text: 'Top', listType: 'bullet', checked: false, path: [{ noteId: 'top', label: 'Top' }] },
+      {
+        noteId: 'child-a', text: 'Child A', listType: 'bullet', checked: false,
+        path: [{ noteId: 'top', label: 'Top' }, { noteId: 'child-a', label: 'Child A' }],
+      },
+      {
+        noteId: 'child-b', text: 'Child B', listType: 'bullet', checked: false,
+        path: [{ noteId: 'top', label: 'Top' }, { noteId: 'child-b', label: 'Child B' }],
+      },
+      {
+        noteId: 'leaf', text: 'Leaf', listType: 'bullet', checked: false,
+        path: [
+          { noteId: 'top', label: 'Top' },
+          { noteId: 'child-b', label: 'Child B' },
+          { noteId: 'leaf', label: 'Leaf' },
+        ],
+      },
+      { noteId: 'sibling', text: 'Sibling', listType: 'bullet', checked: false, path: [{ noteId: 'sibling', label: 'Sibling' }] },
     ]);
   });
 
   it('returns empty results when there are no root notes', () => {
-    const { flatResults, childPreviewByNoteId, hasMore } = collectDocumentSearchResults({
+    const { flatResults, hasMore } = collectDocumentSearchResults({
       currentDocument: () => createMockDocumentNote([]),
     }, ALL);
 
     expect(flatResults).toEqual([]);
-    expect(childPreviewByNoteId).toEqual({});
     expect(hasMore).toBe(false);
   });
 
@@ -145,24 +98,25 @@ describe('search candidates', () => {
       createMockEditorNote('child-c', 'Child C'),
     ]);
 
-    const { childPreviewByNoteId } = collectDocumentSearchResults({
+    const { flatResults } = collectDocumentSearchResults({
       currentDocument: () => createMockDocumentNote([top]),
     }, ALL);
 
     // childPreviewLimit is 2, but totalCount reflects all three children so the
     // row can show "+1 more".
-    expect(childPreviewByNoteId.top).toEqual({
+    expect(flatResults.find((result) => result.noteId === 'top')!.childPreview).toEqual({
       items: [
         { noteId: 'child-a', text: 'Child A', listType: 'bullet', checked: false },
         { noteId: 'child-b', text: 'Child B', listType: 'bullet', checked: false },
       ],
       totalCount: 3,
     });
-    expect(childPreviewByNoteId['child-b']).toEqual({
+    expect(flatResults.find((result) => result.noteId === 'child-b')!.childPreview).toEqual({
       items: [{ noteId: 'leaf', text: 'Leaf', listType: 'bullet', checked: false }],
       totalCount: 1,
     });
-    expect(childPreviewByNoteId['child-a']).toEqual({ items: [], totalCount: 0 });
+    expect(flatResults.find((result) => result.noteId === 'child-a')!.childPreview)
+      .toEqual({ items: [], totalCount: 0 });
   });
 
   it('captures list type and checked state per child-preview item', () => {
@@ -171,11 +125,11 @@ describe('search candidates', () => {
       createMockEditorNote('done', 'Done item', [], { listType: 'check', checked: true }),
     ]);
 
-    const { childPreviewByNoteId } = collectDocumentSearchResults({
+    const { flatResults } = collectDocumentSearchResults({
       currentDocument: () => createMockDocumentNote([top]),
     }, ALL);
 
-    expect(childPreviewByNoteId.top!.items).toEqual([
+    expect(flatResults.find((result) => result.noteId === 'top')!.childPreview.items).toEqual([
       { noteId: 'step-1', text: 'Step one', listType: 'number', checked: false },
       { noteId: 'done', text: 'Done item', listType: 'check', checked: true },
     ]);
@@ -199,14 +153,12 @@ describe('search candidates', () => {
     const notes = Array.from({ length: 5 }, (_unused, index) =>
       createMockEditorNote(`n${index}`, `Note ${index}`));
 
-    const { flatResults, childPreviewByNoteId, hasMore } = collectDocumentSearchResults({
+    const { flatResults, hasMore } = collectDocumentSearchResults({
       currentDocument: () => createMockDocumentNote(notes),
     }, { ...ALL, limit: 3 });
 
     expect(hasMore).toBe(true);
     expect(flatResults.map((result) => result.noteId)).toEqual(['n0', 'n1', 'n2']);
-    // The peeked fourth match is not built into the preview map.
-    expect(Object.keys(childPreviewByNoteId)).toEqual(['n0', 'n1', 'n2']);
   });
 
   it('does not read children of the one-past-limit peeked match', () => {
@@ -243,16 +195,25 @@ describe('search candidates', () => {
       return collectDocumentSearchResults(sdk, ALL);
     });
 
-    expect(result.flatResults).toEqual([
-      { noteId: 'note1', text: 'note1', listType: 'bullet', checked: false, pathText: ['note1'] },
-      { noteId: 'note2', text: 'note2', listType: 'bullet', checked: false, pathText: ['note1', 'note2'] },
-      { noteId: 'note3', text: 'note3', listType: 'bullet', checked: false, pathText: ['note3'] },
+    expect(withoutChildPreviews(result.flatResults)).toEqual([
+      { noteId: 'note1', text: 'note1', listType: 'bullet', checked: false, path: [{ noteId: 'note1', label: 'note1' }] },
+      {
+        noteId: 'note2', text: 'note2', listType: 'bullet', checked: false,
+        path: [{ noteId: 'note1', label: 'note1' }, { noteId: 'note2', label: 'note2' }],
+      },
+      { noteId: 'note3', text: 'note3', listType: 'bullet', checked: false, path: [{ noteId: 'note3', label: 'note3' }] },
     ]);
-    expect(result.childPreviewByNoteId).toEqual({
-      note1: { items: [{ noteId: 'note2', text: 'note2', listType: 'bullet', checked: false }], totalCount: 1 },
-      note2: { items: [], totalCount: 0 },
-      note3: { items: [], totalCount: 0 },
-    });
+    expect(result.flatResults.map(({ noteId, childPreview }) => ({ noteId, childPreview }))).toEqual([
+      {
+        noteId: 'note1',
+        childPreview: {
+          items: [{ noteId: 'note2', text: 'note2', listType: 'bullet', checked: false }],
+          totalCount: 1,
+        },
+      },
+      { noteId: 'note2', childPreview: { items: [], totalCount: 0 } },
+      { noteId: 'note3', childPreview: { items: [], totalCount: 0 } },
+    ]);
   });
 
   it('collects deep single-child chains without stack overflow', () => {
@@ -262,21 +223,27 @@ describe('search candidates', () => {
       currentDocument: () => createMockDocumentNote([root]),
     };
 
-    const { flatResults, childPreviewByNoteId } = collectDocumentSearchResults(sdk, ALL);
+    const { flatResults } = collectDocumentSearchResults(sdk, ALL);
 
     expect(flatResults).toHaveLength(depth);
-    expect(flatResults[0]).toEqual({ noteId: 'deep-0', text: 'Deep 0', listType: 'bullet', checked: false, pathText: ['Deep 0'] });
-    expect(flatResults.at(-1)).toEqual({
+    expect(flatResults[0]).toMatchObject({
+      noteId: 'deep-0', text: 'Deep 0', listType: 'bullet', checked: false,
+      path: [{ noteId: 'deep-0', label: 'Deep 0' }],
+    });
+    expect(flatResults.at(-1)).toMatchObject({
       noteId: `deep-${depth - 1}`,
       text: `Deep ${depth - 1}`,
       listType: 'bullet',
       checked: false,
-      pathText: Array.from({ length: depth }, (_unused, index) => `Deep ${index}`),
+      path: Array.from({ length: depth }, (_unused, index) => ({
+        noteId: `deep-${index}`,
+        label: `Deep ${index}`,
+      })),
     });
-    expect(childPreviewByNoteId['deep-0']).toEqual({
+    expect(flatResults[0]!.childPreview).toEqual({
       items: [{ noteId: 'deep-1', text: 'Deep 1', listType: 'bullet', checked: false }],
       totalCount: 1,
     });
-    expect(childPreviewByNoteId[`deep-${depth - 1}`]).toEqual({ items: [], totalCount: 0 });
+    expect(flatResults.at(-1)!.childPreview).toEqual({ items: [], totalCount: 0 });
   });
 });

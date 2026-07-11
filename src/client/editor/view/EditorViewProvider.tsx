@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
 import { areNotePathsEqual } from '#client/editor/outline/note-traversal';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
-import type { EditorNotes } from '#note-sdk';
+import type { SearchableNotes } from '#client/editor/search/search-candidates';
 
 export interface EditorViewBindings {
   zoomNoteId?: string | null;
@@ -12,7 +12,7 @@ export interface EditorViewBindings {
 /** Runs `fn` against the live editor's SDK notes inside an editor read. Returns
  *  null before the editor has registered (no document ready). Re-created on each
  *  editor edit so consumers recompute by identity. */
-export type SearchNotesReader = <T>(fn: (notes: EditorNotes) => T) => T | null;
+export type SearchNotesReader = <T>(fn: (notes: SearchableNotes) => T) => T | null;
 
 const NULL_SEARCH_NOTES_READER: SearchNotesReader = () => null;
 
