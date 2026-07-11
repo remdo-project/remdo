@@ -3,6 +3,7 @@ import { once } from 'node:events';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { finished } from 'node:stream/promises';
 
 const TEARDOWN_SIGNALS = ['exit', 'SIGINT', 'SIGTERM'] as const;
 
@@ -62,5 +63,6 @@ export function attachManagedProcess(child: ChildProcess, logPath: string): () =
       process.off(event, onSignal);
     }
     logStream.end();
+    await finished(logStream);
   };
 }
