@@ -3,6 +3,7 @@ export type ServerDiagnosticEvent =
   | 'document.create-failed'
   | 'document.share-failed'
   | 'document-sync-token.issue-failed'
+  | 'request.unhandled'
   | 'server.start-failed'
   | 'source-current-user.load-failed'
   | 'source-link.failed'

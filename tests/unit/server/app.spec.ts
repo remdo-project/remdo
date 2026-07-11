@@ -670,6 +670,19 @@ describe('remdo api app', () => {
     ]);
   });
 
+  it('bounds uncaught request diagnostics', async () => {
+    const logError = vi.fn();
+    const harness = createHarness({ logError });
+    vi.spyOn(harness.auth, 'ensureReady').mockRejectedValueOnce(new Error('sentinel-confidential-value'));
+
+    const response = await harness.app.request('/api/health');
+
+    expect(response.status).toBe(HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    await expect(response.json()).resolves.toEqual({ error: 'Internal server error.' });
+    expect(logError).toHaveBeenCalledExactlyOnceWith('request.unhandled');
+    expect(JSON.stringify(logError.mock.calls)).not.toContain('sentinel-confidential-value');
+  });
+
   it('returns created user documents when projection refresh fails after registry insert', async () => {
     let failProjectionRefresh = false;
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 import { config } from '#config';
 import { HTTP_STATUS } from '#platform/http/status';
 import type { ServerAuth } from './auth/auth';
@@ -41,6 +42,14 @@ export function createServerApp({
     registry,
     tokenManager,
   };
+
+  app.onError((error, c) => {
+    if (error instanceof HTTPException) {
+      return error.getResponse();
+    }
+    logError('request.unhandled');
+    return c.json({ error: 'Internal server error.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  });
 
   app.route('/api/auth', createAuthRoutes(dependencies));
   app.route('/.well-known', createWellKnownRoutes(dependencies));
