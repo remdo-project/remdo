@@ -40,14 +40,23 @@ async function hasIndexedDb(page: Page, dbName: string): Promise<boolean> {
 }
 
 test.describe('Routing', () => {
-  test('redirects the home alias to the authenticated bootstrap home document', async ({ page }) => {
-    const bootstrapResponse = await page.request.get('/api/current-user');
-    expect(bootstrapResponse.ok()).toBe(true);
-    const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
+  test('redirects the home alias to the authenticated bootstrap home document', async ({ browser, contextOptions }) => {
+    const context = await createAuthenticatedContext(browser, contextOptions);
+    const page = await context.newPage();
+    const detachPageGuards = attachPageGuards(page);
+    try {
+      const bootstrapResponse = await page.request.get('/api/current-user');
+      expect(bootstrapResponse.ok()).toBe(true);
+      const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
 
-    await page.goto('/home');
+      await page.goto('/home');
 
-    await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
+      await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
+      await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+    } finally {
+      detachPageGuards();
+      await context.close();
+    }
   });
 
   test('uses the root login entry and preserves a protected next target when unauthenticated', async ({
@@ -88,15 +97,24 @@ test.describe('Routing', () => {
     }
   });
 
-  test('resolves default landing next targets after login', async ({ page }) => {
-    const bootstrapResponse = await page.request.get('/api/current-user');
-    expect(bootstrapResponse.ok()).toBe(true);
-    const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
+  test('resolves default landing next targets after login', async ({ browser, contextOptions }) => {
+    const context = await createAuthenticatedContext(browser, contextOptions);
+    const page = await context.newPage();
+    const detachPageGuards = attachPageGuards(page);
+    try {
+      const bootstrapResponse = await page.request.get('/api/current-user');
+      expect(bootstrapResponse.ok()).toBe(true);
+      const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
 
-    for (const target of ['/', '/home']) {
-      await page.goto(`/?next=${encodeURIComponent(target)}`);
+      for (const target of ['/', '/home']) {
+        await page.goto(`/?next=${encodeURIComponent(target)}`);
 
-      await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
+        await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
+        await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+      }
+    } finally {
+      detachPageGuards();
+      await context.close();
     }
   });
 
