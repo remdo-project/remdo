@@ -1,8 +1,26 @@
-import { attachPageGuards, expect, test } from '#e2e/fixtures';
+import { expect, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import type { CurrentUserBootstrap } from '#domain/documents/user-data';
 import { HTTP_STATUS } from '#platform/http/status';
 import { createAuthenticatedContext } from '../_support/auth-context';
+
+const freshAuthenticatedTest = test.extend({
+  context: async ({ browser, contextOptions }, applyFixture) => {
+    const context = await createAuthenticatedContext(browser, contextOptions);
+    try {
+      await applyFixture(context);
+    } finally {
+      await context.close();
+    }
+  },
+});
+
+const unauthenticatedTest = test.extend({
+  storageState: {
+    cookies: [],
+    origins: [],
+  },
+});
 
 async function expectPath(page: Page, pathname: string): Promise<void> {
   await expect.poll(() => new URL(page.url()).pathname).toBe(pathname);
@@ -40,7 +58,7 @@ async function hasIndexedDb(page: Page, dbName: string): Promise<boolean> {
 }
 
 test.describe('Routing', () => {
-  test('renders the authenticated Home document at the canonical root URL', async ({ page }) => {
+  freshAuthenticatedTest('renders the authenticated Home document at the canonical root URL', async ({ page }) => {
     const bootstrapResponse = await page.request.get('/api/current-user');
     expect(bootstrapResponse.ok()).toBe(true);
     const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
@@ -57,45 +75,28 @@ test.describe('Routing', () => {
     await expect(page.locator('.document-editor-shell')).toBeVisible();
   });
 
-  test('uses the root login entry and preserves a protected next target when unauthenticated', async ({
-    browser,
-    contextOptions,
-  }) => {
-    const context = await browser.newContext({
-      ...contextOptions,
-      storageState: {
-        cookies: [],
-        origins: [],
-      },
-    });
-    const page = await context.newPage();
-    const detachPageGuards = attachPageGuards(page);
+  unauthenticatedTest('uses the root login entry and preserves a protected next target when unauthenticated', async ({ page }) => {
     const userDataRequests = collectUserDataRuntimeRequests(page);
-    try {
-      await page.goto('/');
+    await page.goto('/');
 
-      await expectPath(page, '/');
-      expect(new URL(page.url()).search).toBe('');
-      await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
-      await page.waitForLoadState('networkidle');
-      expect(userDataRequests).toEqual([]);
+    await expectPath(page, '/');
+    expect(new URL(page.url()).search).toBe('');
+    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    expect(userDataRequests).toEqual([]);
 
-      await page.goto('/sharing');
+    await page.goto('/sharing');
 
-      await expectPath(page, '/');
-      expect(new URL(page.url()).searchParams.get('next')).toBe('/sharing');
-      await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Sharing' })).toHaveCount(0);
-      await page.waitForLoadState('networkidle');
-      expect(userDataRequests).toEqual([]);
-    } finally {
-      detachPageGuards();
-      await context.close();
-    }
+    await expectPath(page, '/');
+    expect(new URL(page.url()).searchParams.get('next')).toBe('/sharing');
+    await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Sharing' })).toHaveCount(0);
+    await page.waitForLoadState('networkidle');
+    expect(userDataRequests).toEqual([]);
   });
 
-  test('normalizes the default landing target to the authenticated root', async ({ page }) => {
+  freshAuthenticatedTest('normalizes the default landing target to the authenticated root', async ({ page }) => {
     await page.goto('/?next=%2F');
 
     await expectPath(page, '/');
@@ -152,51 +153,26 @@ test.describe('Routing', () => {
     expect(userDataRequests).toContain('/api/current-user');
   });
 
-  test('keeps unauthenticated admin enrollment outside user data', async ({
-    browser,
-    contextOptions,
-  }) => {
-    const context = await browser.newContext({
-      ...contextOptions,
-      storageState: {
-        cookies: [],
-        origins: [],
-      },
-    });
-    const page = await context.newPage();
-    const detachPageGuards = attachPageGuards(page);
+  unauthenticatedTest('keeps unauthenticated admin enrollment outside user data', async ({ page }) => {
     const userDataRequests = collectUserDataRuntimeRequests(page);
-    try {
-      await page.goto('/admin');
+    await page.goto('/admin');
 
-      await expect(page.getByRole('main')).toBeVisible();
-      await expect(page.getByRole('heading', { level: 1, name: 'Become admin' })).toBeVisible();
-      await page.waitForLoadState('networkidle');
-      expect(userDataRequests).toEqual([]);
-    } finally {
-      detachPageGuards();
-      await context.close();
-    }
+    await expect(page.getByRole('main')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Become admin' })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    expect(userDataRequests).toEqual([]);
   });
 
-  test('logs out the active session from the app header', async ({ browser, contextOptions }) => {
-    const context = await createAuthenticatedContext(browser, contextOptions);
-    const page = await context.newPage();
-    const detachPageGuards = attachPageGuards(page);
-    try {
-      await page.goto('/');
-      await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
-      await createIndexedDb(page, 'y-sweet-logout-test');
+  freshAuthenticatedTest('logs out the active session from the app header', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+    await createIndexedDb(page, 'y-sweet-logout-test');
 
-      await page.getByRole('link', { name: 'Logout' }).click();
+    await page.getByRole('link', { name: 'Logout' }).click();
 
-      await expectPath(page, '/');
-      await expect.poll(async () => hasIndexedDb(page, 'y-sweet-logout-test')).toBe(false);
-      const bootstrapResponse = await page.request.get('/api/current-user');
-      expect(bootstrapResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
-    } finally {
-      detachPageGuards();
-      await context.close();
-    }
+    await expectPath(page, '/');
+    await expect.poll(async () => hasIndexedDb(page, 'y-sweet-logout-test')).toBe(false);
+    const bootstrapResponse = await page.request.get('/api/current-user');
+    expect(bootstrapResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
   });
 });
