@@ -92,24 +92,6 @@ async function rootRouteLoader(request: Request): Promise<RootRouteLoaderData> {
   };
 }
 
-async function resolveRouteHomeDocumentId(request: Request): Promise<string> {
-  const sessionState = await resolveSessionGateState();
-  if (sessionState.status === 'unauthenticated') {
-    throw redirect(`/${createPostAuthNextSearch(request)}`);
-  }
-  if (sessionState.status === 'offline-unavailable') {
-    throw redirect(createOfflinePath(request));
-  }
-  if (sessionState.status === 'offline-remembered') {
-    const bootstrap = getCachedCurrentUserBootstrap();
-    if (!bootstrap) {
-      throw redirect(createOfflinePath(request));
-    }
-    return bootstrap.homeDocumentId;
-  }
-  return getHomeDocumentId();
-}
-
 async function documentLoader({ request, params }: {
   request: Request;
   params: { docRef?: string };
@@ -120,7 +102,14 @@ async function documentLoader({ request, params }: {
     throw redirect(`/${url.search}`);
   }
 
-  const homeDocumentId = await resolveRouteHomeDocumentId(request);
+  const sessionState = await requireAuthenticatedRoute(request);
+  const bootstrap = sessionState.status === 'offline-remembered'
+    ? getCachedCurrentUserBootstrap()
+    : null;
+  if (sessionState.status === 'offline-remembered' && !bootstrap) {
+    throw redirect(createOfflinePath(request));
+  }
+  const homeDocumentId = bootstrap?.homeDocumentId ?? await getHomeDocumentId();
   if (parsed.docId === homeDocumentId && parsed.noteId === null) {
     throw redirect(`/${url.search}`);
   }
@@ -129,7 +118,7 @@ async function documentLoader({ request, params }: {
     throw redirect(`${canonicalPath}${url.search}`);
   }
 
-  return { ...parsed, homeDocumentId };
+  return { ...parsed, homeDocumentId, sessionState };
 }
 
 const hydrateFallbackElement = <div aria-hidden="true" />;
@@ -170,15 +159,20 @@ const appRoutes = [
     hydrateFallbackElement,
   },
   {
+    path: 'n/:docRef',
+    loader: documentLoader,
+    element: (
+      <AuthenticatedApp>
+        <DocumentRoute />
+      </AuthenticatedApp>
+    ),
+    hydrateFallbackElement,
+  },
+  {
     element: <AuthenticatedApp />,
     loader: authenticatedSessionLoader,
     hydrateFallbackElement,
     children: [
-      {
-        path: 'n/:docRef',
-        loader: documentLoader,
-        element: <DocumentRoute />,
-      },
       {
         path: 'sharing',
         element: <SharingRoute />,

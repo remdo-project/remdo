@@ -27,7 +27,7 @@ export default function LoginRoute() {
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const completeAuth = async () => {
+  const completeAuth = () => {
     rememberAuthenticatedSession();
     if (isOAuthAuthorizeSearch(location.search)) {
       globalThis.location.assign(`/api/auth/oauth2/authorize${location.search}`);
@@ -51,7 +51,7 @@ export default function LoginRoute() {
         setErrorMessage(readAuthErrorMessage(result.error, 'Failed to sign in.'));
         return;
       }
-      await completeAuth();
+      completeAuth();
     } catch (error) {
       setErrorMessage(readAuthErrorMessage(error, 'Failed to sign in.'));
     } finally {
