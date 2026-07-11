@@ -15,6 +15,7 @@ test.describe('Offline app shell', () => {
     await page.goto('/');
     const homePath = new URL(page.url()).pathname;
     await waitForServiceWorkerControl(page);
+    await waitForEditableEditor(page);
     allowOfflineDisconnectedConsoleIssue(page);
     await page.close();
 
@@ -37,6 +38,7 @@ test.describe('Offline app shell', () => {
     await page.goto('/');
     const homePath = new URL(page.url()).pathname;
     await waitForServiceWorkerControl(page);
+    await waitForEditableEditor(page);
     allowServerUnavailableConsoleIssue(page);
     await page.close();
 
