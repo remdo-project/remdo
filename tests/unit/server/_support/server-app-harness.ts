@@ -11,6 +11,7 @@ import type { CreateAuthUserInput } from '#server/auth/auth';
 import { extractSessionCookie } from '#server/auth/session-cookie';
 import type { YSweetDocumentTokenManager } from '#server/collab-token';
 import { createServerDatabaseClient } from '#server/db/client';
+import type { ServerDiagnosticReporter } from '#server/diagnostics';
 import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
 import { createDocumentRegistry } from '#server/documents/document-registry';
 import * as Y from 'yjs';
@@ -35,6 +36,7 @@ export function createServerAppHarness({
   sourceServers = [],
   swappableAuth = false,
   onUpdateDoc,
+  logError = () => {},
 }: {
   adminSecret?: string;
   allowSignup?: boolean;
@@ -42,6 +44,7 @@ export function createServerAppHarness({
   sourceServers?: readonly StoredSourceServer[];
   swappableAuth?: boolean;
   onUpdateDoc?: (docId: string, update: Uint8Array) => void | Promise<void>;
+  logError?: ServerDiagnosticReporter;
 } = {}) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-server-auth-'));
   const dbPath = path.join(tempDir, 'remdo.sqlite');
@@ -102,7 +105,7 @@ export function createServerAppHarness({
     rebuildAuth: swappable?.rebuild,
     tokenManager,
     registry,
-    logError: () => {},
+    logError,
   });
 
   return {

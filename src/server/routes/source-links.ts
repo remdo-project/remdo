@@ -75,7 +75,7 @@ export function createSourceLinkRoutes(dependencies: ServerRouteDependencies) {
           : HTTP_STATUS.BAD_REQUEST;
         return c.json({ error: 'The source server did not accept the link.' }, status);
       }
-      logError(error, {});
+      logError('source-link.failed');
       return c.json({ error: 'Failed to link the source server.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });

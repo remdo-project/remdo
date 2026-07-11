@@ -162,7 +162,7 @@ describe('note id normalization on load', () => {
     meta({
       fixture: 'editor-schema/missing-note-id',
       fixtureSchemaBypass: true,
-      expectedConsoleIssues: ['runtime.invariant note-id-normalized missing-note-id path=0 text="note1"'],
+      expectedConsoleIssues: ['runtime.invariant note-id-normalized missing-note-id path=0'],
     }),
     async ({ remdo }) => {
       const outline = readOutline(remdo);
@@ -177,7 +177,7 @@ describe('note id normalization on load', () => {
     meta({
       fixture: 'editor-schema/duplicate-note-id',
       fixtureSchemaBypass: true,
-      expectedConsoleIssues: ['runtime.invariant note-id-normalized duplicate-note-id noteId=duplicated path=1 text="note2"'],
+      expectedConsoleIssues: ['runtime.invariant note-id-normalized duplicate-note-id path=1'],
     }),
     async ({ remdo }) => {
       const outline = readOutline(remdo);
