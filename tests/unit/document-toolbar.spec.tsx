@@ -29,6 +29,15 @@ describe('document toolbar and import', () => {
     fireEvent.click(await screen.findByText('Upload'));
   };
 
+  const rejectDocumentCreation = (message = 'offline') => {
+    const userData = getTestUserData();
+    const realDocuments = userData.documents.bind(userData);
+    vi.spyOn(userData, 'documents').mockImplementation(() => ({
+      ...realDocuments(),
+      create: vi.fn().mockRejectedValue(new Error(message)),
+    }));
+  };
+
   it('shows the upload action directly below the new document action', async () => {
     renderDocumentRoute();
 
@@ -64,12 +73,7 @@ describe('document toolbar and import', () => {
 
   it('does not register a pending import when upload document creation fails', async () => {
     const registerPendingImport = vi.spyOn(pendingDocumentImports, 'registerPendingDocumentImport');
-    const userData = getTestUserData();
-    const realDocuments = userData.documents.bind(userData);
-    vi.spyOn(userData, 'documents').mockImplementation(() => ({
-      ...realDocuments(),
-      create: vi.fn().mockRejectedValue(new Error('offline')),
-    }));
+    rejectDocumentCreation();
 
     renderDocumentRoute();
     await clickUploadDocument();
@@ -84,12 +88,7 @@ describe('document toolbar and import', () => {
   });
 
   it('surfaces an alert when creating a new document fails', async () => {
-    const userData = getTestUserData();
-    const realDocuments = userData.documents.bind(userData);
-    vi.spyOn(userData, 'documents').mockImplementation(() => ({
-      ...realDocuments(),
-      create: vi.fn().mockRejectedValue(new Error('offline')),
-    }));
+    rejectDocumentCreation();
 
     renderDocumentRoute();
     await clickNewDocument();
@@ -100,12 +99,7 @@ describe('document toolbar and import', () => {
   });
 
   it('dismisses the creation error alert via its close button', async () => {
-    const userData = getTestUserData();
-    const realDocuments = userData.documents.bind(userData);
-    vi.spyOn(userData, 'documents').mockImplementation(() => ({
-      ...realDocuments(),
-      create: vi.fn().mockRejectedValue(new Error('offline')),
-    }));
+    rejectDocumentCreation();
 
     renderDocumentRoute();
     await clickNewDocument();
@@ -119,12 +113,7 @@ describe('document toolbar and import', () => {
   });
 
   it('clears the creation error when navigating to another document', async () => {
-    const userData = getTestUserData();
-    const realDocuments = userData.documents.bind(userData);
-    vi.spyOn(userData, 'documents').mockImplementation(() => ({
-      ...realDocuments(),
-      create: vi.fn().mockRejectedValue(new Error('offline')),
-    }));
+    rejectDocumentCreation();
 
     const router = renderDocumentRoute(createDocumentPath('routeDoc'));
     await clickNewDocument();

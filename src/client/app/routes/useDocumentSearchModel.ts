@@ -112,10 +112,10 @@ export function useDocumentSearchModel({
   const searchNotes = useSearchNotes();
   const searchResults = useMemo(
     () => searchNotes((notes) => collectDocumentSearchResults(notes, {
-        query: searchQuery,
-        limit: SEARCH_RESULT_LIMIT,
-        childPreviewLimit: CHILD_PREVIEW_LIMIT,
-      })),
+      query: searchQuery,
+      limit: SEARCH_RESULT_LIMIT,
+      childPreviewLimit: CHILD_PREVIEW_LIMIT,
+    })),
     // searchNotes identity changes per editor edit; searchQuery per keystroke.
     [searchNotes, searchQuery],
   );

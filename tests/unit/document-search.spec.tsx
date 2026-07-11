@@ -19,6 +19,12 @@ function setSearchSnapshot(snapshot: TestSearchSnapshot) {
   setMockSearchSnapshot('routeDoc', snapshot);
 }
 
+async function openSearch() {
+  const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+  searchInput.focus();
+  return searchInput;
+}
+
 describe('document search', () => {
 
   beforeEach(() => {
@@ -77,9 +83,7 @@ describe('document search', () => {
   it('moves focus to editor when Escape is pressed in search', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-
-    searchInput.focus();
+    const searchInput = await openSearch();
     expect(searchInput).toHaveFocus();
 
     fireEvent.keyDown(searchInput, { key: 'Escape' });
@@ -90,8 +94,7 @@ describe('document search', () => {
   it('moves focus to editor on Escape in flat results when editor pane is hidden', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'note' } });
     await screen.findByTestId('document-search-results');
 
@@ -144,8 +147,7 @@ describe('document search', () => {
   it('shows all notes in flat results and highlights the first item on empty query', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    await openSearch();
 
     await waitFor(() => {
       expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
@@ -163,8 +165,7 @@ describe('document search', () => {
     });
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'work todo' } });
     await waitFor(() => {
       expect(getResultLabels()).toEqual(['TODO refine estimates']);
@@ -187,8 +188,7 @@ describe('document search', () => {
     });
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'Plan' } });
 
     await screen.findByRole('option', { name: 'Plan, in Work' });
@@ -198,8 +198,7 @@ describe('document search', () => {
   it('marks non-leaf flat results with a children hint flag', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    await openSearch();
 
     await waitFor(() => {
       expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
@@ -217,8 +216,7 @@ describe('document search', () => {
   it('exposes combobox/listbox semantics with active-descendant tracking', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
 
     const resultsListbox = await screen.findByRole('listbox', { name: 'Search results' });
     expect(searchInput).toHaveAttribute('aria-haspopup', 'listbox');
@@ -240,8 +238,7 @@ describe('document search', () => {
   it('keeps the first matching result highlighted when recovering from no matches', async () => {
     const router = renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'zzzz' } });
     await screen.findByText('No matches');
 
@@ -261,8 +258,7 @@ describe('document search', () => {
   it('keeps the search popup exposed as a listbox when there are no matches', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'zzzz' } });
 
     const resultsListbox = await screen.findByRole('listbox', { name: 'Search results' });
@@ -276,8 +272,7 @@ describe('document search', () => {
   it('zooms to a clicked search result and closes search', async () => {
     const router = renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'note3' } });
 
     const result = await screen.findByRole('option', { name: 'note3' });
@@ -319,8 +314,7 @@ describe('document search', () => {
       setManyNotes();
       renderDocumentRoute();
 
-      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-      searchInput.focus();
+      await openSearch();
 
       await waitFor(() => {
         expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
@@ -344,8 +338,7 @@ describe('document search', () => {
       setManyNotes();
       renderDocumentRoute();
 
-      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-      searchInput.focus();
+      const searchInput = await openSearch();
       await waitFor(() => {
         expect(getActiveResultLabel()).toBe('note01');
       });
@@ -364,8 +357,7 @@ describe('document search', () => {
       // The default route fixture has five notes — fewer than the cap.
       renderDocumentRoute();
 
-      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-      searchInput.focus();
+      await openSearch();
       await waitFor(() => {
         expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
       });
@@ -377,8 +369,7 @@ describe('document search', () => {
   it('dismisses search on outside primary click without changing the route', async () => {
     const router = renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'note' } });
 
     await screen.findByTestId('document-search-results');
@@ -398,8 +389,7 @@ describe('document search', () => {
   it('ignores search hotkeys while composition is active', async () => {
     const router = renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'note' } });
 
     await waitFor(() => {
@@ -432,8 +422,7 @@ describe('document search', () => {
   it('moves highlight with arrows over flat results without wraparound', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
 
     await waitFor(() => {
       expect(getActiveResultLabel()).toBe('note1');
@@ -467,8 +456,7 @@ describe('document search', () => {
   it('highlights a flat result on hover, like arrow navigation', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     await waitFor(() => {
       expect(getActiveResultLabel()).toBe('note1');
     });
@@ -487,8 +475,7 @@ describe('document search', () => {
   it('shows flat results across the whole document while query is non-empty', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'note' } });
 
     await screen.findByTestId('document-search-results');
@@ -504,8 +491,7 @@ describe('document search', () => {
 
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'sdk' } });
 
     await screen.findByTestId('document-search-results');
@@ -517,8 +503,7 @@ describe('document search', () => {
   it('keeps no highlight for no-match query and Enter is a no-op', async () => {
     const router = renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'zzz' } });
 
     await screen.findByText('No matches');
@@ -536,8 +521,7 @@ describe('document search', () => {
     setMockSearchSnapshot('other', null);
 
     const router = renderDocumentRoute();
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'main' } });
 
     await waitFor(() => {
@@ -546,8 +530,7 @@ describe('document search', () => {
 
     await router.navigate(createDocumentPath('other'));
 
-    const otherSearchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    otherSearchInput.focus();
+    const otherSearchInput = await openSearch();
     fireEvent.change(otherSearchInput, { target: { value: 'main' } });
 
     await waitFor(() => {
@@ -564,8 +547,7 @@ describe('document search', () => {
 
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'fresh' } });
 
     setMockSearchSnapshot('routeDoc', {
@@ -591,8 +573,7 @@ describe('document search', () => {
 
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'result' } });
 
     await waitFor(() => {
@@ -623,8 +604,7 @@ describe('document search', () => {
   it('zooms to highlighted flat result on Enter and moves focus to editor', async () => {
     const router = renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'note3' } });
 
     await waitFor(() => {
@@ -642,8 +622,7 @@ describe('document search', () => {
   it('ends search mode on blur and hides flat results', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
+    const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'note' } });
     await screen.findByTestId('document-search-results');
 
