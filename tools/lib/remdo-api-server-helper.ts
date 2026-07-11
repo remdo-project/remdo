@@ -20,12 +20,20 @@ function ensureLogStream(): fs.WriteStream {
   return fs.createWriteStream(LOG_PATH, { flags: 'w' });
 }
 
-async function waitForPort(host: string, port: number): Promise<void> {
+function readRecentLog(): string {
+  try {
+    return fs.readFileSync(LOG_PATH, 'utf8').trim().slice(-2000);
+  } catch {
+    return '';
+  }
+}
+
+async function waitForPort(host: string, port: number, signal: AbortSignal): Promise<void> {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
     if (await isPortOpen(host, port)) {
       return;
     }
-    await wait(POLL_INTERVAL);
+    await wait(POLL_INTERVAL, undefined, { signal });
   }
 
   throw new Error(`RemDo API server failed to start on http://${host}:${port}`);
@@ -72,6 +80,12 @@ export async function ensureRemdoApiServer({
   );
 
   const cleanup = attachManagedProcess(child, logStream);
+  const startupAbortController = new AbortController();
+  const childExit = once(child, 'exit').then(([code, signal]) => {
+    throw new Error(
+      `RemDo API server exited before listening (code ${String(code)}, signal ${String(signal)})`,
+    );
+  });
   const stop = async () => {
     let exited = child.exitCode !== null || child.signalCode !== null;
     child.once('exit', () => {
@@ -85,9 +99,16 @@ export async function ensureRemdoApiServer({
   };
 
   try {
-    await waitForPort(probeHost, resolvedPort);
+    await Promise.race([
+      waitForPort(probeHost, resolvedPort, startupAbortController.signal),
+      childExit,
+    ]).finally(() => startupAbortController.abort());
   } catch (error) {
     await stop();
+    const recentLog = readRecentLog();
+    if (recentLog) {
+      throw new Error(`${error instanceof Error ? error.message : String(error)}\n${recentLog}`);
+    }
     throw error;
   }
 
