@@ -77,7 +77,7 @@ function createBetterAuthInstance({
     baseURL,
     trustedOrigins: [...trustedOrigins],
     secret,
-    logger: config.isProd ? undefined : { level: 'error' },
+    logger: { disabled: config.isProd, level: 'error' },
     database,
     account: {
       accountLinking: {

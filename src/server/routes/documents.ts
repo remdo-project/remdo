@@ -55,8 +55,8 @@ export function createDocumentRoutes({
       );
 
       return c.json(document);
-    } catch (error) {
-      logError(error, {});
+    } catch {
+      logError('document.create-failed');
       return c.json({ error: 'Failed to create document.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });
@@ -102,8 +102,8 @@ export function createDocumentRoutes({
           name: user.name,
         },
       });
-    } catch (error) {
-      logError(error, { docId: c.req.param('docId') });
+    } catch {
+      logError('document.share-failed');
       return c.json({ error: 'Failed to share document.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });
@@ -130,8 +130,8 @@ export function createDocumentRoutes({
       }
 
       return c.json(result.token);
-    } catch (error) {
-      logError(error, { docId: c.req.param('docId') });
+    } catch {
+      logError('document-sync-token.issue-failed');
       return c.json({ error: 'Failed to issue Y-Sweet document client token.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });

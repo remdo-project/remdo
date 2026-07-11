@@ -1,10 +1,13 @@
 import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 import { config } from '#config';
 import { HTTP_STATUS } from '#platform/http/status';
 import type { ServerAuth } from './auth/auth';
 import { createYSweetDocumentTokenManager } from './collab-token';
 import type { YSweetDocumentTokenManager } from './collab-token';
 import type { SqliteServerDatabaseClient } from './db/client';
+import { reportServerDiagnostic } from './diagnostics';
+import type { ServerDiagnosticReporter } from './diagnostics';
 import type { DocumentRegistry } from './documents/document-registry';
 import { createApiRoutes } from './routes/api';
 import { createAuthRoutes } from './routes/auth';
@@ -17,14 +20,7 @@ interface ServerAppOptions {
   rebuildAuth?: () => Promise<void>;
   tokenManager?: YSweetDocumentTokenManager;
   registry: DocumentRegistry;
-  logError?: (error: unknown, details: { docId?: string }) => void;
-}
-
-function defaultLogError(error: unknown, details: { docId?: string }) {
-  console.error('[remdo-api] request failed', {
-    ...details,
-    message: error instanceof Error ? error.message : String(error),
-  });
+  logError?: ServerDiagnosticReporter;
 }
 
 export function createServerApp({
@@ -34,7 +30,7 @@ export function createServerApp({
   rebuildAuth = async () => {},
   tokenManager = createYSweetDocumentTokenManager(),
   registry,
-  logError = defaultLogError,
+  logError = reportServerDiagnostic,
 }: ServerAppOptions) {
   const app = new Hono();
   const dependencies = {
@@ -46,6 +42,14 @@ export function createServerApp({
     registry,
     tokenManager,
   };
+
+  app.onError((error, c) => {
+    if (error instanceof HTTPException) {
+      return error.getResponse();
+    }
+    logError('request.unhandled');
+    return c.json({ error: 'Internal server error.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  });
 
   app.route('/api/auth', createAuthRoutes(dependencies));
   app.route('/.well-known', createWellKnownRoutes(dependencies));

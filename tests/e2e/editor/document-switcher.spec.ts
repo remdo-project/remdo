@@ -10,7 +10,7 @@ import { createEditorDocumentPath } from './_support/routes';
 test.describe('Document switcher', () => {
   test('stacks document and search controls without horizontal overflow on narrow screens', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto('/home');
+    await page.goto('/');
     await editorLocator(page).locator('.editor-input').first().waitFor();
 
     const shell = editorLocator(page)

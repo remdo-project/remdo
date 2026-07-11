@@ -349,7 +349,9 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
      lockfile-backed tool path or at least an exact version; Docker currently
      pulls a different `esbuild` than the workspace.
   2. Decide whether `docker/Dockerfile` should keep `y-sweet@^0.9.1` or pin an
-     exact version for deterministic image builds.
+     exact version for deterministic image builds; the production error-output
+     audit is valid for `v0.9.1` and must not silently drift with the installed
+     binary.
   3. Decide whether to update the pinned `packageManager` version in
      `package.json` or intentionally keep the current pnpm line and suppress the
      resulting upgrade notices elsewhere.

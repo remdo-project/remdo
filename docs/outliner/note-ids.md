@@ -107,6 +107,7 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 
 - `noteRef` is composed as `documentId_noteId`.
 - Direct-link URLs use the form `/n/<noteRef>` for non-root notes.
-- The document root uses `/n/<documentId>` as its canonical URL.
+- The signed-in user's local Home document root uses `/` as its canonical URL.
+  Other document roots use `/n/<documentId>`.
 - A `noteRef` is valid only while the referenced note exists in the referenced
   document.

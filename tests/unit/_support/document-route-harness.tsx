@@ -4,7 +4,7 @@ import { render, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { vi } from 'vitest';
-import { resetTestUserData } from '#tests';
+import { resetTestUserData, TEST_USER_DATA_DOCUMENT } from '#tests';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import type {
   SearchableNote,
@@ -138,8 +138,20 @@ function MockEditor({
   );
 }
 
-function MockZoomBreadcrumbs({ documentControl }: { documentControl: React.ReactNode }) {
-  return <>{documentControl}</>;
+function MockZoomBreadcrumbs({
+  documentControl,
+  onSelectNoteId,
+}: {
+  documentControl: React.ReactNode;
+  onSelectNoteId: (noteId: string | null) => void;
+}) {
+  return (
+    <>
+      {documentControl}
+      <button onClick={() => onSelectNoteId('note3')} type="button">Zoom note</button>
+      <button onClick={() => onSelectNoteId(null)} type="button">Clear zoom</button>
+    </>
+  );
 }
 
 vi.mock('#client/editor/Editor', () => ({ default: MockEditor }));
@@ -169,13 +181,30 @@ export function resetDocumentRouteHarness() {
 }
 
 export function renderDocumentRouteWithResult(initialEntry: string = createDocumentPath('routeDoc')) {
+  const routeElement = <DocumentRoute />;
+  const hydrateFallbackElement = <div aria-hidden="true" />;
   const router = createMemoryRouter(
-    [{
-      path: '/n/:docRef',
-      loader: ({ params }) => parseDocumentRef(params.docRef)!,
-      element: <DocumentRoute />,
-      hydrateFallbackElement: <div aria-hidden="true" />,
-    }],
+    [
+      {
+        path: '/',
+        loader: () => ({
+          docId: TEST_USER_DATA_DOCUMENT.id,
+          homeDocumentId: TEST_USER_DATA_DOCUMENT.id,
+          noteId: null,
+        }),
+        element: routeElement,
+        hydrateFallbackElement,
+      },
+      {
+        path: '/n/:docRef',
+        loader: ({ params }) => ({
+          ...parseDocumentRef(params.docRef)!,
+          homeDocumentId: TEST_USER_DATA_DOCUMENT.id,
+        }),
+        element: routeElement,
+        hydrateFallbackElement,
+      },
+    ],
     { initialEntries: [initialEntry] },
   );
 

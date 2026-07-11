@@ -58,15 +58,21 @@ async function hasIndexedDb(page: Page, dbName: string): Promise<boolean> {
 }
 
 test.describe('Routing', () => {
-  freshAuthenticatedTest('redirects the home alias to the authenticated bootstrap home document', async ({ page }) => {
+  freshAuthenticatedTest('renders the authenticated Home document at the canonical root URL', async ({ page }) => {
     const bootstrapResponse = await page.request.get('/api/current-user');
     expect(bootstrapResponse.ok()).toBe(true);
     const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
 
-    await page.goto('/home');
+    await page.goto('/');
 
-    await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
+    await expectPath(page, '/');
+    await expect(page.locator('.document-editor-shell')).toBeVisible();
     await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+
+    await page.goto(`/n/${bootstrap.homeDocumentId}`);
+
+    await expectPath(page, '/');
+    await expect(page.locator('.document-editor-shell')).toBeVisible();
   });
 
   unauthenticatedTest('uses the root login entry and preserves a protected next target when unauthenticated', async ({ page }) => {
@@ -79,10 +85,10 @@ test.describe('Routing', () => {
     await page.waitForLoadState('networkidle');
     expect(userDataRequests).toEqual([]);
 
-    await page.goto('/home');
+    await page.goto('/sharing');
 
     await expectPath(page, '/');
-    expect(new URL(page.url()).searchParams.get('next')).toBe('/home');
+    expect(new URL(page.url()).searchParams.get('next')).toBe('/sharing');
     await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Sharing' })).toHaveCount(0);
@@ -90,17 +96,12 @@ test.describe('Routing', () => {
     expect(userDataRequests).toEqual([]);
   });
 
-  freshAuthenticatedTest('resolves default landing next targets after login', async ({ page }) => {
-    const bootstrapResponse = await page.request.get('/api/current-user');
-    expect(bootstrapResponse.ok()).toBe(true);
-    const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
+  freshAuthenticatedTest('normalizes the default landing target to the authenticated root', async ({ page }) => {
+    await page.goto('/?next=%2F');
 
-    for (const target of ['/', '/home']) {
-      await page.goto(`/?next=${encodeURIComponent(target)}`);
-
-      await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
-      await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
-    }
+    await expectPath(page, '/');
+    await expect.poll(() => new URL(page.url()).search).toBe('');
+    await expect(page.locator('.document-editor-shell')).toBeVisible();
   });
 
   test('keeps full authenticated navigation on the standalone consent route', async ({ page }) => {
@@ -163,7 +164,7 @@ test.describe('Routing', () => {
   });
 
   freshAuthenticatedTest('logs out the active session from the app header', async ({ page }) => {
-    await page.goto('/home');
+    await page.goto('/');
     await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
     await createIndexedDb(page, 'y-sweet-logout-test');
 

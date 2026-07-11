@@ -24,6 +24,11 @@ const STAGING_DIR_STALE_MS = 30 * 60 * 1000;
 const STAGING_PID_FILE = 'pid';
 const STAGING_STARTED_AT_FILE = 'started-at';
 
+// TODO: Replace backup console output with bounded events; raw errors and
+// resolved paths can disclose dataset metadata in production logs. Probe:
+// `rg -n 'console\.(error|info)' tools/snapshot/backup.ts` finds only fixed,
+// data-independent messages.
+
 function parseBackupOptions(argv: string[]): BackupOptions {
   let markdown = false;
 

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/dev-route';
 import {
   createPostAuthNextSearch,
-  resolveNextPathOrDefault,
   resolvePostAuthPath,
   resolvePostAuthTargetPath,
 } from '#client/app/routes/post-auth-path';
@@ -18,7 +17,7 @@ describe('post-auth paths', () => {
 
   it('allows relative post-auth targets', () => {
     expect(resolvePostAuthTargetPath('/', CURRENT_ORIGIN)).toBe('/');
-    expect(resolvePostAuthTargetPath('/home', CURRENT_ORIGIN)).toBe('/home');
+    expect(resolvePostAuthTargetPath('/sharing', CURRENT_ORIGIN)).toBe('/sharing');
     expect(resolvePostAuthTargetPath('/n/main', CURRENT_ORIGIN)).toBe('/n/main');
     expect(resolvePostAuthTargetPath(DEV_LEXICAL_DEMO_ROUTE, CURRENT_ORIGIN)).toBe(DEV_LEXICAL_DEMO_ROUTE);
     expect(resolvePostAuthTargetPath('/api/current-user', CURRENT_ORIGIN)).toBe('/api/current-user');
@@ -30,6 +29,8 @@ describe('post-auth paths', () => {
     expect(resolvePostAuthTargetPath('/n/../dev/lexical-demo#main', CURRENT_ORIGIN))
       .toBe(`${DEV_LEXICAL_DEMO_ROUTE}#main`);
     expect(resolvePostAuthTargetPath('/..//example.test/n/main', CURRENT_ORIGIN)).toBe('/example.test/n/main');
+    expect(resolvePostAuthTargetPath('https://remdo.test//example.test/n/main', CURRENT_ORIGIN))
+      .toBe('/example.test/n/main');
   });
 
   it('rejects external post-auth targets', () => {
@@ -42,17 +43,7 @@ describe('post-auth paths', () => {
     }
   });
 
-  it('uses the caller-provided default path when there is no accepted next target', () => {
-    expect(resolveNextPathOrDefault('', CURRENT_ORIGIN, '/default')).toBe('/default');
-    expect(resolveNextPathOrDefault('?next=%2F', CURRENT_ORIGIN, '/default')).toBe('/default');
-    expect(resolveNextPathOrDefault('?doc=main', CURRENT_ORIGIN, '/default')).toBe('/n/main');
-    expect(resolveNextPathOrDefault('?next=%2F%2Fexample.test%2Fn%2Fmain', CURRENT_ORIGIN, '/default'))
-      .toBe('/default');
-    expect(resolveNextPathOrDefault('?next=%2F%5Cexample.test%2Fn%2Fmain', CURRENT_ORIGIN, '/default'))
-      .toBe('/default');
-  });
-
-  it('preserves the root document query after authentication', async () => {
-    await expect(resolvePostAuthPath('?doc=main', CURRENT_ORIGIN)).resolves.toBe('/n/main');
+  it('preserves the root document query after authentication', () => {
+    expect(resolvePostAuthPath('?doc=main', CURRENT_ORIGIN)).toBe('/n/main');
   });
 });

@@ -11,6 +11,11 @@ import { withHeadlessCollabSession } from '../../src/headless/collab-session';
 const PATH_SEPARATOR_PATTERN = /[\\/]+/g;
 const LEADING_DOTS_PATTERN = /^\.+/;
 
+// TODO: Replace snapshot console output with bounded events; raw errors and
+// document-derived paths can disclose dataset metadata in production logs.
+// Probe: `rg -n 'console\.(error|info)' tools/snapshot/cli.ts` finds only fixed,
+// data-independent messages.
+
 interface CliArguments {
   command?: string;
   filePath?: string;
