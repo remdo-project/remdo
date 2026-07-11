@@ -23,7 +23,6 @@ import {
   createDocumentPath,
   parseDocumentRef,
 } from '#document-routes';
-import { normalizeDocumentId } from '#domain/documents/ids';
 
 function createOfflinePath(request: Request): string {
   return `/offline${createPostAuthNextSearch(request)}`;
@@ -66,14 +65,10 @@ async function requirePublicAuthRoute(request: Request) {
     throw redirect(createOfflinePath(request));
   }
   if (sessionState.status === 'offline-remembered') {
-    const explicitDocId = normalizeDocumentId(new URLSearchParams(search).get('doc'));
-    const defaultPath = explicitDocId
-      ? createDocumentPath(explicitDocId)
-      : resolveCachedHomeDocumentPath() ?? createOfflinePath(request);
     throw redirect(resolveNextPathOrDefault(
       search,
       url.origin,
-      defaultPath,
+      resolveCachedHomeDocumentPath() ?? createOfflinePath(request),
     ));
   }
 

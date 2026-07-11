@@ -29,23 +29,20 @@ export function resolvePostAuthTargetPath(value: string | null, currentOrigin: s
   return createPath(resolvePath(`${url.pathname}${url.search}${url.hash}`, '/'));
 }
 
-function resolveExplicitReturnTo(search: string, currentOrigin: string): string | null {
-  const value = new URLSearchParams(search).get('next');
-  return resolvePostAuthTargetPath(value, currentOrigin);
-}
-
-async function resolveHomeDocumentPath(): Promise<string> {
-  return createDocumentPath(await getHomeDocumentId());
-}
-
-export async function resolvePostAuthPath(search: string, currentOrigin: string): Promise<string> {
-  const returnTo = resolveExplicitReturnTo(search, currentOrigin);
+function resolveExplicitEntryPath(search: string, currentOrigin: string): string | null {
+  const params = new URLSearchParams(search);
+  const returnTo = resolvePostAuthTargetPath(params.get('next'), currentOrigin);
   if (returnTo) {
     return returnTo;
   }
 
-  const explicitDocId = normalizeDocumentId(new URLSearchParams(search).get('doc'));
-  return explicitDocId ? createDocumentPath(explicitDocId) : await resolveHomeDocumentPath();
+  const explicitDocId = normalizeDocumentId(params.get('doc'));
+  return explicitDocId ? createDocumentPath(explicitDocId) : null;
+}
+
+export async function resolvePostAuthPath(search: string, currentOrigin: string): Promise<string> {
+  return resolveExplicitEntryPath(search, currentOrigin)
+    ?? createDocumentPath(await getHomeDocumentId());
 }
 
 export function resolveNextPathOrDefault(
@@ -53,5 +50,5 @@ export function resolveNextPathOrDefault(
   currentOrigin: string,
   defaultPath: string,
 ): string {
-  return resolveExplicitReturnTo(search, currentOrigin) ?? defaultPath;
+  return resolveExplicitEntryPath(search, currentOrigin) ?? defaultPath;
 }
