@@ -6,7 +6,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
 import { resolveLoopbackHost } from '#platform/net/loopback';
-import { attachManagedProcess, terminateProcessGroup } from './managed-process';
+import { attachManagedProcess, readRecentLog, terminateProcessGroup } from './managed-process';
 import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
 
@@ -19,14 +19,6 @@ const reusedServerStop = () => Promise.resolve();
 function ensureLogStream(): fs.WriteStream {
   fs.mkdirSync(LOG_DIR, { recursive: true });
   return fs.createWriteStream(LOG_PATH, { flags: 'w' });
-}
-
-function readRecentLog(): string {
-  try {
-    return fs.readFileSync(LOG_PATH, 'utf8').trim().slice(-2000);
-  } catch {
-    return '';
-  }
 }
 
 async function waitForPort(host: string, port: number, child: ChildProcess): Promise<void> {
@@ -102,7 +94,7 @@ export async function ensureRemdoApiServer({
     await waitForPort(probeHost, resolvedPort, child);
   } catch (error) {
     await stop();
-    const recentLog = readRecentLog();
+    const recentLog = readRecentLog(LOG_PATH);
     if (recentLog) {
       throw new Error(`${error instanceof Error ? error.message : String(error)}\n${recentLog}`);
     }

@@ -1,8 +1,16 @@
 import type { ChildProcess } from 'node:child_process';
-import type fs from 'node:fs';
+import fs from 'node:fs';
 import process from 'node:process';
 
 const TEARDOWN_SIGNALS = ['exit', 'SIGINT', 'SIGTERM'] as const;
+
+export function readRecentLog(logPath: string): string {
+  try {
+    return fs.readFileSync(logPath, 'utf8').trim().slice(-2000);
+  } catch {
+    return '';
+  }
+}
 
 export function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
   if (child.killed) {

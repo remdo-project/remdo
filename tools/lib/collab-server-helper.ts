@@ -5,7 +5,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
 import { resolveLoopbackHost } from '#platform/net/loopback';
-import { attachManagedProcess, terminateProcessGroup } from './managed-process';
+import { attachManagedProcess, readRecentLog, terminateProcessGroup } from './managed-process';
 import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
 
@@ -48,13 +48,6 @@ async function waitForPortClosed(host: string, port: number): Promise<boolean> {
   return false;
 }
 
-function readRecentLog(): string {
-  try {
-    return fs.readFileSync(LOG_PATH, 'utf8').trim().slice(-2000);
-  } catch {
-    return '';
-  }
-}
 export type StopCollabServer = () => Promise<void>;
 
 interface CollabServerOptions {
@@ -127,7 +120,7 @@ export async function ensureCollabServer({
     await waitForPort(probeHost, resolvedPort);
   } catch (error) {
     await stop();
-    const recentLog = readRecentLog();
+    const recentLog = readRecentLog(LOG_PATH);
     if (recentLog) {
       throw new Error(`${error instanceof Error ? error.message : String(error)}\n${recentLog}`);
     }
