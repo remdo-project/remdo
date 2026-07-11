@@ -50,37 +50,10 @@ test.describe('Routing', () => {
     await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
   });
 
-  test('redirects the home alias to login with a next target when unauthenticated', async ({
+  test('uses the root login entry and preserves a protected next target when unauthenticated', async ({
     browser,
     contextOptions,
   }) => {
-    const context = await browser.newContext({
-      ...contextOptions,
-      storageState: {
-        cookies: [],
-        origins: [],
-      },
-    });
-    const page = await context.newPage();
-    const detachPageGuards = attachPageGuards(page);
-    const userDataRequests = collectUserDataRuntimeRequests(page);
-    try {
-      await page.goto('/home');
-
-      await expectPath(page, '/');
-      expect(new URL(page.url()).searchParams.get('next')).toBe('/home');
-      await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Sharing' })).toHaveCount(0);
-      await page.waitForLoadState('networkidle');
-      expect(userDataRequests).toEqual([]);
-    } finally {
-      detachPageGuards();
-      await context.close();
-    }
-  });
-
-  test('shows login at the bare root when unauthenticated', async ({ browser, contextOptions }) => {
     const context = await browser.newContext({
       ...contextOptions,
       storageState: {
@@ -97,6 +70,16 @@ test.describe('Routing', () => {
       await expectPath(page, '/');
       expect(new URL(page.url()).search).toBe('');
       await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+      await page.waitForLoadState('networkidle');
+      expect(userDataRequests).toEqual([]);
+
+      await page.goto('/home');
+
+      await expectPath(page, '/');
+      expect(new URL(page.url()).searchParams.get('next')).toBe('/home');
+      await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Sharing' })).toHaveCount(0);
       await page.waitForLoadState('networkidle');
       expect(userDataRequests).toEqual([]);
     } finally {
