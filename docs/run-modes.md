@@ -81,7 +81,7 @@ file as the [document registry](./architecture.md#document-registry).
      and private document access is limited to the registered document owner.
   3. The app is served at `http://127.0.0.1:<PORT>/`, where `PORT` derives from
      `PORT_BASE`. Stable dev users (Alice/Bob; credentials live in
-     `tools/lib/stable-auth-users.ts`) sign in at `/login`; seeded fixtures
+     `tools/lib/stable-auth-users.ts`) sign in at `/`; seeded fixtures
      appear in the document chooser as documents titled `fixture: <name>` (for
      example `fixture: tree-complex`).
   4. `pnpm run dev:data-reset` provisions the stable Alice/Bob users and seeds

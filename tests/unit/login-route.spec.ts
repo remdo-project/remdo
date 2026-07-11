@@ -4,7 +4,7 @@ import { isOAuthAuthorizeSearch } from '#client/app/routes/oauth-authorize-searc
 
 const CURRENT_ORIGIN = 'https://remdo.test';
 
-describe('login route OAuth resume detection', () => {
+describe('root login OAuth resume detection', () => {
   it('detects OAuth authorize resumes from required authorize fields', () => {
     const search = '?response_type=code&client_id=remdo-home&redirect_uri=http%3A%2F%2Flocalhost%3A5000%2Fcallback';
 

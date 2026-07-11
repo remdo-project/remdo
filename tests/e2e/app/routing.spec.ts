@@ -50,7 +50,7 @@ test.describe('Routing', () => {
     await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
   });
 
-  test('redirects the home alias to login with a next target when unauthenticated', async ({
+  test('uses the root login entry and preserves a protected next target when unauthenticated', async ({
     browser,
     contextOptions,
   }) => {
@@ -65,9 +65,17 @@ test.describe('Routing', () => {
     const detachPageGuards = attachPageGuards(page);
     const userDataRequests = collectUserDataRuntimeRequests(page);
     try {
+      await page.goto('/');
+
+      await expectPath(page, '/');
+      expect(new URL(page.url()).search).toBe('');
+      await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+      await page.waitForLoadState('networkidle');
+      expect(userDataRequests).toEqual([]);
+
       await page.goto('/home');
 
-      await expectPath(page, '/login');
+      await expectPath(page, '/');
       expect(new URL(page.url()).searchParams.get('next')).toBe('/home');
       await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
       await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
@@ -80,14 +88,16 @@ test.describe('Routing', () => {
     }
   });
 
-  test('resolves a home next target after login', async ({ page }) => {
+  test('resolves default landing next targets after login', async ({ page }) => {
     const bootstrapResponse = await page.request.get('/api/current-user');
     expect(bootstrapResponse.ok()).toBe(true);
     const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
 
-    await page.goto('/login?next=/home');
+    for (const target of ['/', '/home']) {
+      await page.goto(`/?next=${encodeURIComponent(target)}`);
 
-    await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
+      await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
+    }
   });
 
   test('keeps full authenticated navigation on the standalone consent route', async ({ page }) => {
@@ -177,7 +187,7 @@ test.describe('Routing', () => {
 
       await page.getByRole('link', { name: 'Logout' }).click();
 
-      await expectPath(page, '/login');
+      await expectPath(page, '/');
       await expect.poll(async () => hasIndexedDb(page, 'y-sweet-logout-test')).toBe(false);
       const bootstrapResponse = await page.request.get('/api/current-user');
       expect(bootstrapResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);

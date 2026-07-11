@@ -75,7 +75,7 @@ test.describe('Offline app shell', () => {
 
     try {
       detachWarmupGuards = attachPageGuards(warmupPage);
-      await warmupPage.goto('/login');
+      await warmupPage.goto('/');
       await waitForServiceWorkerControl(warmupPage);
       detachWarmupGuards();
       detachWarmupGuards = undefined;
@@ -91,7 +91,7 @@ test.describe('Offline app shell', () => {
 
       await context.setOffline(false);
       await offlinePage.getByRole('button', { name: 'Retry' }).click();
-      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/login');
+      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/');
       await expect(offlinePage.getByRole('heading', { name: 'Sign in' })).toBeVisible();
     } finally {
       if (detachWarmupGuards) {
