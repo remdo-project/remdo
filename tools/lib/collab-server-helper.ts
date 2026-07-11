@@ -1,3 +1,4 @@
+import type { ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { setTimeout as wait } from 'node:timers/promises';
@@ -25,10 +26,15 @@ function resolveYSweetBindHost(host: string): string {
   return host === 'localhost' ? '127.0.0.1' : host;
 }
 
-async function waitForPort(host: string, port: number): Promise<void> {
+async function waitForPort(host: string, port: number, child: ChildProcess): Promise<void> {
   for (let i = 0; i < MAX_ATTEMPTS; i++) {
     if (await isPortOpen(host, port)) {
       return;
+    }
+    if (child.exitCode !== null || child.signalCode !== null) {
+      throw new Error(
+        `Collaboration websocket exited before listening (code ${String(child.exitCode)}, signal ${String(child.signalCode)})`,
+      );
     }
     await wait(POLL_INTERVAL);
   }
@@ -111,7 +117,7 @@ export async function ensureCollabServer({
   });
 
   try {
-    await waitForPort(probeHost, resolvedPort);
+    await waitForPort(probeHost, resolvedPort, child);
   } catch (error) {
     await stop();
     const recentLog = readRecentLog(LOG_PATH);
