@@ -48,7 +48,6 @@ export default function DocumentToolbar({
       value: document.id(),
     })),
   })).filter((source) => source.options.length > 0);
-  const documentOptionsCount = documentGroups.reduce((count, group) => count + group.options.length, 0);
 
   const handleUploadInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0] ?? null;
@@ -87,7 +86,7 @@ export default function DocumentToolbar({
                 <ActionIcon
                   aria-label="Choose document"
                   className="document-header-doc-menu remdo-interaction-surface"
-                  disabled={documentOptionsCount === 0}
+                  disabled={documentGroups.length === 0}
                   onClick={() => documentPicker.toggleDropdown()}
                   size="sm"
                   variant="subtle"
