@@ -29,6 +29,8 @@ describe('post-auth paths', () => {
     expect(resolvePostAuthTargetPath('/n/../dev/lexical-demo#main', CURRENT_ORIGIN))
       .toBe(`${DEV_LEXICAL_DEMO_ROUTE}#main`);
     expect(resolvePostAuthTargetPath('/..//example.test/n/main', CURRENT_ORIGIN)).toBe('/example.test/n/main');
+    expect(resolvePostAuthTargetPath('https://remdo.test//example.test/n/main', CURRENT_ORIGIN))
+      .toBe('/example.test/n/main');
   });
 
   it('rejects external post-auth targets', () => {
