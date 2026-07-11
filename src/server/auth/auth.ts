@@ -3,10 +3,12 @@ import {
   oauthProviderAuthServerMetadata,
   oauthProviderOpenIdConfigMetadata,
 } from '@better-auth/oauth-provider';
+import { isLoopbackHost } from '@better-auth/core/utils/host';
 import { betterAuth } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import type Database from 'better-sqlite3';
 import { admin, genericOAuth, jwt } from 'better-auth/plugins';
+import type { GenericOAuthConfig } from 'better-auth/plugins';
 import type { ExpressionBuilder } from 'kysely';
 import { config } from '#config';
 import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
@@ -32,41 +34,19 @@ export const REMDO_SERVER_OAUTH_SCOPES = [
   'offline_access',
 ] as const;
 
-// Deliberate mirror of Better Auth's `validateIssuerUrl` (in
-// @better-auth/oauth-provider): it hard-codes `if (protocol !== 'https:' &&
-// !isLoopbackHost(host)) protocol = 'https:'` when a source advertises its
-// issuer, and that upgrade is not configurable. The home's requireIssuerValidation
-// compares against this value, so we must classify loopback the same way or a
-// token is rejected as an issuer mismatch. Keep this in sync with upstream's
-// `isLoopbackHost`. Preferred long-term fix (see docs/access-model.md#future):
+// Better Auth upgrades non-loopback HTTP issuers to HTTPS. The home's callback
+// issuer guard must normalize with the same exported host classifier or it can
+// reject a valid callback. Preferred long-term fix (see
+// docs/access-model.md#future):
 // reject non-loopback http sources at add time so every stored origin is one
-// upstream leaves alone, making `issuer: server.baseUrl` correct and this mirror
-// deletable.
-// Matches the 127.0.0.0/8 loopback block by shape (four numeric octets, first
-// 127), not by textual prefix — `127.example.com` is a public DNS name, not
-// loopback, and must not skip the https upgrade.
-const IPV4_LOOPBACK_PATTERN = /^127(?:\.\d{1,3}){3}$/u;
+// upstream leaves alone, making this normalization deletable.
 
-function isLoopbackForDevScheme(hostname: string): boolean {
-  return hostname === 'localhost'
-    || hostname.endsWith('.localhost')
-    || hostname === '::1'
-    || IPV4_LOOPBACK_PATTERN.test(hostname);
-}
-
-export function normalizeSourceIssuer(baseUrl: string): string {
-  try {
-    const url = new URL(baseUrl);
-    // url.hostname keeps the brackets for IPv6 (e.g. `[::1]`); strip them so the
-    // `::1` loopback check matches, mirroring Better Auth's host normalization.
-    const hostname = url.hostname.replace(/^\[|\]$/gu, '');
-    if (url.protocol !== 'https:' && !isLoopbackForDevScheme(hostname)) {
-      url.protocol = 'https:';
-    }
-    return url.origin;
-  } catch {
-    return baseUrl;
+export function normalizeSourceIssuer(sourceOrigin: string): string {
+  const url = new URL(sourceOrigin);
+  if (url.protocol !== 'https:' && !isLoopbackHost(url.host)) {
+    url.protocol = 'https:';
   }
+  return url.origin;
 }
 
 interface OAuthClientCredentials {
@@ -91,6 +71,7 @@ function createBetterAuthInstance({
   secret: string;
   trustedOrigins: readonly string[];
 }) {
+  const serverOrigin = new URL(baseURL).origin;
   return betterAuth({
     basePath: '/api/auth',
     baseURL,
@@ -98,6 +79,17 @@ function createBetterAuthInstance({
     secret,
     logger: config.isProd ? undefined : { level: 'error' },
     database,
+    account: {
+      accountLinking: {
+        // Source linking is an explicit, authenticated delegation between two
+        // independently identified accounts, so their emails need not match.
+        // Trust configured sources for that flow without allowing same-email
+        // OAuth sign-ins to attach a source account implicitly.
+        allowDifferentEmails: true,
+        disableImplicitLinking: true,
+        trustedProviders: sourceServers.map((server) => server.id),
+      },
+    },
     emailAndPassword: {
       enabled: true,
       disableSignUp: !allowSignup,
@@ -118,6 +110,11 @@ function createBetterAuthInstance({
         consentPage: '/oauth/consent',
         loginPage: '/login',
         scopes: [...REMDO_SERVER_OAUTH_SCOPES],
+        // Better Auth's resource model binds access-token audiences to explicit
+        // protected resources. A RemDo source exposes exactly its own canonical
+        // origin, and dynamic registration links each home client to that origin;
+        // keep the provider's default per-client resource enforcement enabled.
+        resources: [serverOrigin],
         // A public server acts as a source: a home self-registers its OAuth client
         // by a server-to-server call (no source session), so the source must accept
         // UNAUTHENTICATED dynamic registration. The registered client is public
@@ -156,8 +153,7 @@ function createBetterAuthInstance({
             providerId: server.id,
             authorizationUrl: `${server.baseUrl}/api/auth/oauth2/authorize`,
             tokenUrl: `${server.baseUrl}/api/auth/oauth2/token`,
-            issuer: normalizeSourceIssuer(server.baseUrl),
-            requireIssuerValidation: true,
+            userInfoUrl: `${server.baseUrl}/api/auth/oauth2/userinfo`,
             clientId: server.credentials.clientId,
             // Public client: no secret; PKCE authenticates the token exchange.
             scopes: [...REMDO_SERVER_OAUTH_SCOPES],
@@ -166,7 +162,7 @@ function createBetterAuthInstance({
             authorizationUrlParams: {
               resource: server.baseUrl,
             },
-          }];
+          } satisfies GenericOAuthConfig];
         }),
       }),
     ],
@@ -276,8 +272,21 @@ export function createServerAuth({
     async ensureReady() {
       if (!readyPromise) {
         readyPromise = (async () => {
-          const { runMigrations } = await getMigrations(auth.options);
-          await runMigrations();
+          // Better Auth starts plugin initialization at construction time. Keep
+          // every instance that shares this database inside RemDo's readiness
+          // boundary so resource seeding cannot outlive the database owner.
+          const results = await Promise.allSettled([
+            (async () => {
+              const { runMigrations } = await getMigrations(auth.options);
+              await runMigrations();
+            })(),
+            auth.$context,
+            userProvisioningAuth.$context,
+          ]);
+          const failure = results.find((result) => result.status === 'rejected');
+          if (failure) {
+            throw failure.reason;
+          }
         })().catch((error) => {
           readyPromise = null;
           throw error;
@@ -393,13 +402,18 @@ export interface SwappableServerAuth {
   auth: ServerAuth;
   // Rebuilds the underlying auth from the current DB source list, so a source
   // registered this session becomes a usable OAuth provider without a restart.
-  rebuild: () => void;
+  rebuild: () => Promise<void>;
+  // Waits until initialization and every queued rebuild have settled, so the
+  // shared database can be closed without auth work still using it.
+  waitForIdle: () => Promise<void>;
 }
 
 export function createSwappableServerAuth(
   options: CreateServerAuthOptions,
 ): SwappableServerAuth {
   let current = createServerAuth(options);
+  let closing = false;
+  let rebuildTail = Promise.resolve();
   // The Proxy target is only a structural placeholder; every access reads the
   // live `current` instance (updated by rebuild()), not the target.
   const proxy = new Proxy(current, {
@@ -411,10 +425,27 @@ export function createSwappableServerAuth(
   return {
     auth: proxy,
     rebuild() {
-      current = createServerAuth({
-        ...options,
-        sourceServers: readSourceServersSync(options.database),
+      if (closing) {
+        return Promise.reject(new Error('Auth is shutting down.'));
+      }
+      const pending = rebuildTail.then(async () => {
+        await current.ensureReady();
+        const replacement = createServerAuth({
+          ...options,
+          sourceServers: readSourceServersSync(options.database),
+        });
+        await replacement.ensureReady();
+        current = replacement;
       });
+      // A failed rebuild must reject its caller without poisoning later queued
+      // rebuilds, which can retry from the latest database state.
+      rebuildTail = pending.catch(() => {});
+      return pending;
+    },
+    async waitForIdle() {
+      closing = true;
+      await rebuildTail;
+      await current.ensureReady();
     },
   };
 }

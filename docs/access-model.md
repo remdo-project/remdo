@@ -123,7 +123,8 @@ sharing level, sharing still targets a local account on the document's server.
 - Home server: stores the user's OAuth account tokens for linked source
   accounts.
 - Source linking: the home server starts OAuth, the user signs in on the source
-  server, and Better Auth stores the resulting linked account.
+  server, and Better Auth stores the resulting linked account. Home and source
+  accounts are independent identities; their email addresses need not match.
 - Delegation scope: a linked source OAuth token is treated as the
   linking user's full delegate on that source server. The home server may call
   authenticated RemDo APIs as that source user, subject to the same owner/grant
@@ -144,7 +145,10 @@ entering its URL on the Sharing page ("Link source").
   the `source_servers` table, a self-filling cache keyed by the source's origin;
   later links to the same source (by any user) reuse the cached client. Newly
   registering a source triggers one in-process auth rebuild so it becomes a live
-  provider immediately, with no restart.
+  provider immediately, with no restart. The cached value carries a registration
+  contract version, so a predecessor client is re-registered on its next link;
+  predecessor account links are invalidated because their refresh tokens are
+  client-bound, and each affected user relinks explicitly.
 - Phishing resistance is **structural**, enforced by the source: its OAuth
   authorize and token endpoints require the `redirect_uri` to exactly match the
   client's registered `redirect_uris`. A public, redirect-locked client grants no

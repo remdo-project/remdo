@@ -130,6 +130,12 @@ sections to docs.
 - For bug fixes, reproduce the issue with a focused test, command, or browser
   check when practical, then verify the fix with that focused reproducer plus
   the required final checks below.
+- Tests must protect observable behavior or a stable contract, not merely
+  restate the edited implementation. Each new test needs a credible regression
+  it would catch while its setup remains valid. An assertion that only mirrors
+  a literal, configuration entry, type, or branch from the same change does not
+  count unless that exact value is itself the contract; treat such a unit test
+  as a poor fit under the rule below.
 - When a unit test is a poor fit for a behavior, escalate rather than retreat:
   don't contort it into an over-complex unit test, and don't fall back to a
   manual/live check as the coverage of record — reach for an e2e test

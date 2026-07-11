@@ -18,9 +18,9 @@ export class SourceRegistrationError extends Error {
 
 // Registers a PUBLIC OAuth client (token_endpoint_auth_method: "none", no
 // secret) on a source via its dynamic-registration endpoint. The redirect_uri is
-// locked to the home's own callback; the source enforces exact-match on it at
-// authorize+token, which is the structural phishing defense. No secret is issued
-// or stored — a public client relies on PKCE per authorization.
+// locked to the home's own callback and linked to the source's own protected
+// resource; the source enforces both at authorize+token. No secret is issued or
+// stored — a public client relies on PKCE per authorization.
 export async function registerPublicSourceClient(
   params: RegisterPublicClientParams,
   deps: { fetch?: typeof fetch } = {},
@@ -35,11 +35,12 @@ export async function registerPublicSourceClient(
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       client_name: `RemDo home ${params.homeOrigin}`,
-      redirect_uris: [`${params.homeOrigin}/api/auth/oauth2/callback/${params.sourceId}`],
+      redirect_uris: [`${params.homeOrigin}/api/auth/callback/${params.sourceId}`],
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
       token_endpoint_auth_method: 'none',
       scope: params.scopes.join(' '),
+      resources: [params.sourceBaseUrl],
     }),
   });
   if (!response.ok) {

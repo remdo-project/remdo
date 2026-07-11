@@ -14,7 +14,7 @@ interface ServerAppOptions {
   adminSecret?: string;
   auth: ServerAuth;
   database: SqliteServerDatabaseClient;
-  rebuildAuth?: () => void;
+  rebuildAuth?: () => Promise<void>;
   tokenManager?: YSweetDocumentTokenManager;
   registry: DocumentRegistry;
   logError?: (error: unknown, details: { docId?: string }) => void;
@@ -31,7 +31,7 @@ export function createServerApp({
   adminSecret = config.env.ADMIN_SECRET,
   auth,
   database,
-  rebuildAuth = () => {},
+  rebuildAuth = async () => {},
   tokenManager = createYSweetDocumentTokenManager(),
   registry,
   logError = defaultLogError,

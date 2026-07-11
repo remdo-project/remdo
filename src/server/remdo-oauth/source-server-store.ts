@@ -26,6 +26,22 @@ const SOURCE_SERVER_READ_COLUMNS = [
   'base_url', 'client_id',
 ] as const;
 
+// The cache version covers registration metadata that is not recoverable from
+// the opaque client id itself (currently callback URI + protected resources).
+// Unversioned values were registered by the predecessor flow and are refreshed
+// lazily the next time a user links that source.
+const CURRENT_CLIENT_ID_PREFIX = 'remdo:v1:';
+
+function decodeClientId(value: string): string {
+  return value.startsWith(CURRENT_CLIENT_ID_PREFIX)
+    ? value.slice(CURRENT_CLIENT_ID_PREFIX.length)
+    : value;
+}
+
+function encodeClientId(value: string): string {
+  return `${CURRENT_CLIENT_ID_PREFIX}${value}`;
+}
+
 // base_url is the stored identity; id and label are both derived from it.
 function rowToStored(row: SourceServerRow): StoredSourceServer {
   return {
@@ -34,7 +50,7 @@ function rowToStored(row: SourceServerRow): StoredSourceServer {
     baseUrl: row.base_url,
     credentials:
       row.client_id
-        ? { clientId: row.client_id }
+        ? { clientId: decodeClientId(row.client_id) }
         : null,
   };
 }
@@ -91,8 +107,40 @@ export async function claimSourceServerPublicClient(
 ): Promise<void> {
   await database.db
     .updateTable('source_servers')
-    .set({ client_id: clientId })
+    .set({ client_id: encodeClientId(clientId) })
     .where('base_url', '=', baseUrl)
     .where('client_id', 'is', null)
     .execute();
+}
+
+export function hasCurrentSourceServerPublicClient(
+  database: SqliteServerDatabaseClient,
+  baseUrl: string,
+): boolean {
+  const row = database.sqlite
+    .prepare('SELECT client_id FROM source_servers WHERE base_url = ?')
+    .get(baseUrl) as Pick<SourceServerRow, 'client_id'> | undefined;
+  return row?.client_id?.startsWith(CURRENT_CLIENT_ID_PREFIX) ?? false;
+}
+
+export function replaceLegacySourceServerPublicClient(
+  database: SqliteServerDatabaseClient,
+  baseUrl: string,
+  legacyClientId: string,
+  clientId: string,
+): void {
+  database.sqlite.transaction(() => {
+    const replaced = database.sqlite
+      .prepare('UPDATE source_servers SET client_id = ? WHERE base_url = ? AND client_id = ?')
+      .run(encodeClientId(clientId), baseUrl, legacyClientId);
+    if (replaced.changes > 0) {
+      // Refresh tokens are client-bound. Once the server-wide client changes,
+      // every predecessor account must relink instead of failing later with an
+      // opaque refresh error. The user driving this upgrade immediately creates
+      // a fresh account through the explicit link callback.
+      database.sqlite
+        .prepare('DELETE FROM account WHERE providerId = ?')
+        .run(deriveSourceId(baseUrl));
+    }
+  })();
 }

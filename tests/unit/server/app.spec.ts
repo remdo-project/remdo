@@ -4,6 +4,7 @@ import { config } from '#config';
 import { HTTP_STATUS } from '#platform/http/status';
 import { extractSessionCookie } from '#server/auth/session-cookie';
 import { listCurrentUserSourceServers } from '#server/documents/source-servers';
+import { deriveSourceId } from '#server/remdo-oauth/config';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 import { createTestResource } from '../_support/test-resource';
 import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';
@@ -55,6 +56,7 @@ describe('remdo api app', () => {
     const harness = createHarness();
 
     expect(inspectRoutes(harness.app).map(({ method, path }) => `${method} ${path}`)).toEqual([
+      'ALL /api/auth/callback/:providerId',
       'ALL /api/auth/*',
       'GET /.well-known/openid-configuration',
       'GET /.well-known/oauth-authorization-server',
@@ -74,6 +76,35 @@ describe('remdo api app', () => {
     ]);
   });
 
+  it('rejects source OAuth callbacks without revealing which sources are cached', async () => {
+    const sourceId = deriveSourceId(TEST_SOURCE_SERVER.baseUrl);
+    const unknownSourceId = deriveSourceId('https://unknown.example');
+    const harness = createHarness({
+      sourceServers: [{ ...TEST_SOURCE_SERVER, id: sourceId }],
+    });
+
+    for (const [providerId, query, error] of [
+      [sourceId, 'code=test&state=test', 'issuer_missing'],
+      [unknownSourceId, 'code=test&state=test', 'issuer_missing'],
+      [sourceId, 'code=test&state=test&iss=https%3A%2F%2Fother.example', 'issuer_mismatch'],
+    ] as const) {
+      const response = await harness.app.request(`/api/auth/callback/${providerId}?${query}`);
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get('location')).toBe(
+        `http://127.0.0.1:4000/api/auth/error?error=${error}`,
+      );
+    }
+
+    const authHandler = vi.spyOn(harness.auth.auth, 'handler')
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    const matchingIssuer = await harness.app.request(
+      `/api/auth/callback/${sourceId}?code=test&state=test&iss=https%3A%2F%2Fsource.example`,
+    );
+    expect(matchingIssuer.status).toBe(204);
+    expect(authHandler).toHaveBeenCalledOnce();
+  });
+
   it('rejects cross-site form-style browser mutations with Hono CSRF protection', async () => {
     const harness = createHarnessWithSourceServer();
     const headers = await harness.createSessionHeaders();
@@ -83,7 +114,7 @@ describe('remdo api app', () => {
 
     expect(mutatingRoutes.length).toBeGreaterThan(0);
     for (const { key, method, path } of mutatingRoutes) {
-      if (key === 'ALL /api/auth/*' || key === 'ALL /api') {
+      if (path.startsWith('/api/auth/') || key === 'ALL /api') {
         continue;
       }
       // Resolve params to real, existing values so each request reaches the
@@ -115,7 +146,7 @@ describe('remdo api app', () => {
 
     expect(mutatingRoutes.length).toBeGreaterThan(0);
     for (const { key, method, path } of mutatingRoutes) {
-      if (key === 'ALL /api/auth/*' || key === 'ALL /api') {
+      if (path.startsWith('/api/auth/') || key === 'ALL /api') {
         continue;
       }
       const requestPath = path

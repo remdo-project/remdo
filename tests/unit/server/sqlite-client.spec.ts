@@ -149,6 +149,47 @@ describe('sqlite server database client', () => {
     }
   });
 
+  it('accepts the immediate predecessor source schema without altering its data', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-db-schema-'));
+    const dbPath = path.join(tempDir, 'remdo.sqlite');
+    const client = createSqliteServerDatabaseClient({ dbPath });
+    try {
+      client.sqlite.exec(`
+        ALTER TABLE source_servers ADD COLUMN client_secret TEXT;
+        INSERT INTO source_servers (base_url, client_id, client_secret, created_at)
+        VALUES ('https://source.example', 'public-client-id', 'obsolete-secret', 123);
+      `);
+    } finally {
+      await client.close();
+    }
+
+    const reopenedClient = createSqliteServerDatabaseClient({ dbPath });
+    try {
+      const columns = reopenedClient.sqlite
+        .prepare('PRAGMA table_info(source_servers)')
+        .all() as Array<{ name: string }>;
+      const source = reopenedClient.sqlite
+        .prepare('SELECT base_url, client_id, client_secret, created_at FROM source_servers')
+        .get();
+
+      expect(columns.map((column) => column.name)).toEqual([
+        'base_url',
+        'client_id',
+        'created_at',
+        'client_secret',
+      ]);
+      expect(source).toEqual({
+        base_url: 'https://source.example',
+        client_id: 'public-client-id',
+        client_secret: 'obsolete-secret',
+        created_at: 123,
+      });
+    } finally {
+      await reopenedClient.close();
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it('creates the special-document index for an existing compatible table', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-db-schema-'));
     const dbPath = path.join(tempDir, 'remdo.sqlite');

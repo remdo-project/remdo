@@ -85,6 +85,12 @@ export const CREATE_DOCUMENT_ACCESS_TABLE_SQL = `
   );
 `;
 
+export const SOURCE_SERVERS_TABLE_COLUMNS = [
+  'base_url',
+  'client_id',
+  'created_at',
+] as const;
+
 export const CREATE_SOURCE_SERVERS_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS source_servers (
     base_url TEXT PRIMARY KEY,

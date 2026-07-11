@@ -342,6 +342,14 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   `collab.awaitSynced`, or raise/derive the readiness budget. Don't mask it by
   blanket-bumping the timeout without confirming the ws drop is the cause.
 
+## Testing guidance follow-ups
+
+- Review existing tests against AGENTS.md's behavior-and-regression rule and
+  remove tests that merely mirror implementation without protecting behavior or
+  a stable contract.
+- Research further high-signal testing recommendations for coding agents, then
+  fold only durable, repo-relevant rules into AGENTS.md.
+
 ## Warning and drift detection follow-ups
 
 - Pin / drift decisions:
@@ -452,6 +460,9 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 ## Skill architecture follow-ups
 
+- Re-run a focused cross-skill centralization pass: check shared executable
+  ownership, Git/scope guards, mutation/outcome/verification contracts, reviewer
+  transport, and report envelopes; decide only what needs one owner.
 - Decide ESLint coverage for hidden skill roots (`.agents/skills/**/*.ts` and
   the remaining Claude-only `.claude/skills/**/*.ts`): the skill TS is now
   typechecked (tsconfig dot-include) and unit-run (embedded bridge), but ESLint
@@ -543,6 +554,12 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 - Auth provisioning concepts: revisit user creation, dev fixture users, OAuth
   client creation restrictions, and server registration as separate flows with
   clearer boundaries.
+- Consider adding email verification, then review trusted-provider,
+  implicit-linking, and related authentication policies together.
+- Introduce a RemDo-owned, dialect-aware migration runner with ordered,
+  transactional migrations before the next persisted-schema change.
+- Once the runner exists, use it to drop `source_servers.client_secret`, then
+  remove the temporary predecessor-shape acceptance and its test.
 - Cross-server terminology: standardize OAuth/linking language around home
   server and source server, and keep "remote" only for unrelated generic cases.
 - Dev script ergonomics: update normal dev launchers to pre-kill conflicting
