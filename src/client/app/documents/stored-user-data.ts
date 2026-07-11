@@ -549,8 +549,8 @@ function readProjectedCollection<T>(
     }
     try {
       items.push(readEntry(value));
-    } catch (error) {
-      console.error(`Failed to read projection collection "${key}" entry.`, error);
+    } catch {
+      console.error(`Failed to read projection collection "${key}" entry.`);
     }
   }
   return items;

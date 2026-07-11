@@ -31,8 +31,8 @@ export function createCurrentUserRoutes(dependencies: ServerRouteDependencies) {
       });
 
       return c.json(bootstrap);
-    } catch (error) {
-      logError(error, {});
+    } catch {
+      logError('current-user.resolve-failed');
       return c.json({ error: 'Failed to resolve current user.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });

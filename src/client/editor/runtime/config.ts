@@ -13,7 +13,7 @@ export function createEditorInitialConfig(): InitialConfigType {
         throw error;
       }
 
-      console.error(error);
+      console.error('runtime.editor-error');
     },
   };
 }

@@ -345,11 +345,10 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
 ## Warning and drift detection follow-ups
 
 - `docs/principles.md#data-and-trust` prohibits confidential production
-  diagnostics, but production paths still emit note text, user/document
-  identifiers, and arbitrary error objects; Better Auth also retains its raw
-  default logger, and Y-Sweet logs document IDs at its default level. Replace
-  these with bounded, non-confidential events and add a regression check for
-  representative production failures.
+  diagnostics. App-owned diagnostics are bounded, Better Auth production
+  logging is disabled, and Y-Sweet is limited to errors; finish the operational
+  boundary by replacing raw backup/snapshot errors and validating the remaining
+  Y-Sweet error-level output.
 
 - Pin / drift decisions:
   1. Decide whether to replace `pnpm dlx esbuild` in `docker/Dockerfile` with a

@@ -3,6 +3,7 @@ import type { DocumentKind } from '#server/db/schema';
 import type { CurrentUserBootstrap, UserDocument } from '#domain/documents/user-data';
 import type { SourceServer } from '#domain/source-servers';
 import type { ServerAuth } from '#server/auth/auth';
+import { reportServerDiagnostic } from '#server/diagnostics';
 import {
   HOME_DOCUMENT_TITLE,
   USER_DATA_PROJECTION_TITLE,
@@ -190,10 +191,10 @@ export async function refreshCurrentUserDocumentsProjectionBestEffort(
 ): Promise<void> {
   try {
     await refreshCurrentUserDocumentsProjection(registry, tokenManager, userId, auth);
-  } catch (error) {
+  } catch {
     // SQL is the durable source of truth. A later bootstrap load or document
     // create can repair the derived user-data projection.
-    console.error(`[remdo-api] Failed to refresh user data projection for user ${userId}.`, error);
+    reportServerDiagnostic('user-data-projection.refresh-failed');
   }
 }
 

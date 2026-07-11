@@ -86,8 +86,8 @@ export function createSourceServerRoutes(dependencies: ServerRouteDependencies) 
         );
       }
       return c.json(await response.json());
-    } catch (error) {
-      logError(error, {});
+    } catch {
+      logError('source-current-user.load-failed');
       return c.json({ error: 'Failed to load source server current user.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });
@@ -121,8 +121,8 @@ export function createSourceServerRoutes(dependencies: ServerRouteDependencies) 
         );
       }
       return c.json(await response.json());
-    } catch (error) {
-      logError(error, { docId: normalizedDocId });
+    } catch {
+      logError('source-sync-token.issue-failed');
       return c.json({ error: 'Failed to issue source server Y-Sweet document client token.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });

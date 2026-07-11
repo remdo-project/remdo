@@ -7,6 +7,7 @@ import { createServerDatabaseClient } from './db/client';
 import type { SqliteServerDatabaseClient } from './db/client';
 import { createDocumentRegistry } from './documents/document-registry';
 import type { DocumentRegistry } from './documents/document-registry';
+import type { ServerDiagnosticReporter } from './diagnostics';
 import type { StoredSourceServer } from './remdo-oauth/source-server-store';
 
 interface OAuthClientCredentials {
@@ -20,7 +21,7 @@ interface ServerRuntimeOptions {
   baseURL?: string;
   dbPath?: string;
   sourceServers?: readonly StoredSourceServer[];
-  logError?: (error: unknown, details: { docId?: string }) => void;
+  logError?: ServerDiagnosticReporter;
   oauthClientCredentials?: OAuthClientCredentials;
   secret?: string;
   tokenManager?: YSweetDocumentTokenManager;

@@ -650,10 +650,7 @@ describe('stored user data', () => {
     expect(sourceSessions[0]!.connect).toHaveBeenCalledTimes(1);
     expect(sourceSessions[0]!.awaitSynced).toHaveBeenCalledTimes(1);
     expect(sourceSessions[0]!.destroy).not.toHaveBeenCalled();
-    expect(consoleError).toHaveBeenCalledWith(
-      'Failed to read projection collection "documents" entry.',
-      expect.any(TypeError),
-    );
+    expect(consoleError).toHaveBeenCalledWith('Failed to read projection collection "documents" entry.');
     expect(getDocumentSourcesLoading()).toBe(false);
     expect(listDocumentSources(userData)[1]?.documents).toEqual([
       { id: 'sourceHome', title: 'Home' },

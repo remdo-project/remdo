@@ -2,6 +2,7 @@ import process from 'node:process';
 import { serve } from '@hono/node-server';
 import { config } from '#config';
 import { createServerRuntime } from '#server/runtime';
+import { reportServerDiagnostic } from '#server/diagnostics';
 
 let runtime: ReturnType<typeof createServerRuntime> | null = null;
 
@@ -22,8 +23,8 @@ async function main() {
 }
 
 // CJS bundling for the Docker runner cannot preserve top-level await here.
-void main().catch((error) => {
-  console.error('[remdo-api] failed to start', error);
+void main().catch(() => {
+  reportServerDiagnostic('server.start-failed');
   process.exit(1);
 });
 

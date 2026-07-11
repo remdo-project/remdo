@@ -702,10 +702,7 @@ describe('remdo api app', () => {
     expect(harness.readProjectedDocumentIds(bootstrap.userDataDocumentId)).toEqual([
       bootstrap.homeDocumentId,
     ]);
-    expect(consoleError).toHaveBeenCalledWith(
-      expect.stringContaining('[remdo-api] Failed to refresh user data projection for user '),
-      expect.any(Error),
-    );
+    expect(consoleError).toHaveBeenCalledWith('[remdo-api] user-data-projection.refresh-failed');
   });
 
   it('rejects private Y-Sweet document client token issuance for a different user', async () => {

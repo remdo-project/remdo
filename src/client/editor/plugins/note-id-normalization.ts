@@ -13,15 +13,6 @@ function formatPath(path: number[]): string {
   return path.length === 0 ? 'root' : path.join('.');
 }
 
-function formatTextSnippet(text: string): string {
-  const trimmed = text.trim();
-  if (trimmed.length === 0) {
-    return '';
-  }
-  const snippet = trimmed.length > 40 ? `${trimmed.slice(0, 37)}...` : trimmed;
-  return JSON.stringify(snippet);
-}
-
 function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, path: number[]) {
   // A children-wrapper is not a note. (Body-wrappers are already skipped by the
   // sole caller before this point.)
@@ -36,11 +27,9 @@ function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, path: 
   } else {
     normalized = createNoteIdAvoiding(usedIds);
     $setState(item, noteIdState, normalized);
-    const reason = noteId ? `duplicate-note-id noteId=${noteId}` : 'missing-note-id';
+    const reason = noteId ? 'duplicate-note-id' : 'missing-note-id';
     const pathLabel = `path=${formatPath(path)}`;
-    const textLabel = formatTextSnippet(item.getTextContent());
-    const textSuffix = textLabel ? ` text=${textLabel}` : '';
-    reportInvariant({ message: `note-id-normalized ${reason} ${pathLabel}${textSuffix}` });
+    reportInvariant({ message: `note-id-normalized ${reason} ${pathLabel}` });
   }
 
   usedIds.add(normalized);

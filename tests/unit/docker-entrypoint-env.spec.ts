@@ -1,5 +1,6 @@
 /* eslint-disable node/no-process-env */
 import { execFileSync, spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 function runEntryPointEnv(command: string, overrides: NodeJS.ProcessEnv): ReturnType<typeof spawnSync> {
@@ -147,5 +148,13 @@ describe('docker entrypoint API secret validation', () => {
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('ADMIN_SECRET');
     expect(result.stderr).toContain('Set ADMIN_SECRET');
+  });
+});
+
+describe('docker entrypoint production diagnostics', () => {
+  it('limits Y-Sweet output to errors', () => {
+    const entrypoint = fs.readFileSync('docker/entrypoint.sh', 'utf8');
+
+    expect(entrypoint).toMatch(/RUST_LOG=error Y_SWEET_AUTH=.*y-sweet serve/su);
   });
 });
