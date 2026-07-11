@@ -4,7 +4,12 @@ import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
 import { resolveLoopbackHost } from '#platform/net/loopback';
-import { attachManagedProcess, readRecentLog, terminateProcessGroup } from './managed-process';
+import {
+  attachManagedProcess,
+  prepareManagedProcessLog,
+  readRecentLog,
+  terminateProcessGroup,
+} from './managed-process';
 import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
 
@@ -66,6 +71,7 @@ export async function ensureCollabServer({
   }
 
   fs.mkdirSync(COLLAB_DATA_DIR, { recursive: true });
+  prepareManagedProcessLog(LOG_PATH);
   const args = [
     'exec',
     'y-sweet',

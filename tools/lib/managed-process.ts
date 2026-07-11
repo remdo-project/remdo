@@ -15,6 +15,10 @@ export function readRecentLog(logPath: string): string {
   }
 }
 
+export function prepareManagedProcessLog(logPath: string): void {
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
+}
+
 export function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
   if (child.killed) {
     return;
@@ -41,7 +45,6 @@ export function attachManagedProcess(
   child: ChildProcess,
   logPath: string,
 ): (afterChildExit?: () => void | Promise<void>) => Promise<void> {
-  fs.mkdirSync(path.dirname(logPath), { recursive: true });
   const logStream = fs.createWriteStream(logPath, { flags: 'w' });
   if (child.stdout) {
     child.stdout.pipe(logStream, { end: false });
