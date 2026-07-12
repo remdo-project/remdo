@@ -13,9 +13,11 @@ import CenteredCardPage from '#client/ui/CenteredCardPage';
 // bounded set of backed-off retries so a clean reconnect recovers on its own.
 // Retries are *only* driven by a reconnect signal — never by a bare mount while
 // `navigator.onLine` is true — so a server that is genuinely down (network up)
-// is not auto-hammered on every render of this gate. Each retry waits for the
-// prior revalidation to settle before scheduling (react-router's `revalidate()`
-// aborts any in-flight one), so a slow reconnect is not a self-cancelling storm.
+// is not auto-hammered on every render of this gate. Each retry is chained off
+// the prior `revalidate()` promise (not the revalidator's `loading -> idle`
+// transition, which React 19 can batch away for a fast failure), so it waits for
+// the prior to settle — react-router's `revalidate()` aborts any in-flight one —
+// and a slow reconnect is not a self-cancelling storm.
 const RECONNECT_RETRY_BACKOFFS_MS = [150, 400, 1000];
 
 export default function OnlineGate({
@@ -34,30 +36,17 @@ export default function OnlineGate({
 
 function ConnectionUnavailable() {
   const { revalidate } = useRevalidator();
-  // The backoff timer for the pending retry, and a token identifying the current
-  // reconnect cycle. A new reconnect signal bumps the token so any still-pending
-  // chain from a prior cycle is abandoned, and unmount stops the chain entirely
-  // (recovery unmounts this component). Chaining off the `revalidate()` promise —
-  // rather than observing the revalidator's `loading -> idle` transition — means
-  // a fast-failing revalidation whose state React batches away still advances the
-  // ladder.
+  // Pending backoff timer, and a token for the current reconnect cycle: bumping
+  // it abandons any still-pending chain (a newer signal or unmount).
   const backoffTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const cycleRef = useRef(0);
 
-  // A reconnect signal (browser `online` event or the Retry button) fires an
-  // immediate revalidation and, each time it settles still-unavailable, a
-  // bounded set of backed-off retries. Each retry waits for the prior
-  // revalidation to settle (react-router's `revalidate()` aborts any in-flight
-  // one), so a slow reconnect is not a self-cancelling storm. Nothing else calls
-  // `revalidate()`, so a bare mount of a genuinely-down server is never
-  // auto-hammered — the "only on a reconnect signal" guarantee is structural.
+  // Fire the immediate revalidation for a reconnect signal, then chain a bounded
+  // backoff off each settle while this cycle is still live. See the module note.
   const armRetryBudget = useCallback(() => {
     const cycle = (cycleRef.current += 1);
     globalThis.clearTimeout(backoffTimerRef.current);
 
-    // Revalidate; once it settles still-unavailable (this component is still
-    // mounted) schedule the next backed-off attempt, until the budget runs out.
-    // A newer reconnect or unmount bumps `cycleRef`, abandoning this chain.
     const runAttempt = (attempt: number) => {
       void revalidate().then(() => {
         const delay = RECONNECT_RETRY_BACKOFFS_MS[attempt];
@@ -73,16 +62,14 @@ function ConnectionUnavailable() {
 
   useEffect(() => {
     globalThis.addEventListener('online', armRetryBudget);
-    return () => globalThis.removeEventListener('online', armRetryBudget);
+    return () => {
+      globalThis.removeEventListener('online', armRetryBudget);
+      // Recovery unmounts this component; abandon the cycle and cancel the
+      // pending backoff so no retry fires afterward.
+      cycleRef.current += 1;
+      globalThis.clearTimeout(backoffTimerRef.current);
+    };
   }, [armRetryBudget]);
-
-  // On unmount (recovery flips the session state and unmounts this component),
-  // invalidate the current cycle and cancel any pending backoff so no retry
-  // fires afterward.
-  useEffect(() => () => {
-    cycleRef.current += 1;
-    globalThis.clearTimeout(backoffTimerRef.current);
-  }, []);
 
   return (
     <CenteredCardPage
