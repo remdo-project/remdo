@@ -1,5 +1,5 @@
 import type { Page } from '#e2e/fixtures';
-import { expect, setExpectedConsoleIssues } from '#e2e/fixtures';
+import { attachPageGuards, expect, setExpectedConsoleIssues } from '#e2e/fixtures';
 import { config } from '#config';
 import type { BrowserContext } from '@playwright/test';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
@@ -72,5 +72,22 @@ export async function cleanupOfflineTest(
   }
   if (cleanupError) {
     throw cleanupError;
+  }
+}
+
+export async function withOfflinePage(
+  context: BrowserContext,
+  run: (page: Page) => Promise<void>,
+): Promise<void> {
+  let page: Page | undefined;
+  let detachGuards: (() => void) | undefined;
+  await context.setOffline(true);
+  try {
+    page = await context.newPage();
+    detachGuards = attachPageGuards(page);
+    allowOfflineDisconnectedConsoleIssue(page);
+    await run(page);
+  } finally {
+    await cleanupOfflineTest(context, page, detachGuards);
   }
 }
