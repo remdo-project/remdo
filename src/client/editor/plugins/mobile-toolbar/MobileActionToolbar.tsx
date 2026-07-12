@@ -52,8 +52,15 @@ export function MobileActionToolbar() {
   const [editor] = useLexicalComposerContext();
   const isCoarsePointer = useCoarsePointer();
   const keyboardInset = useKeyboardInset();
-  const portalRoot = resolvePortalRoot(editor);
+  const [portalRoot, setPortalRoot] = useState<Element | null>(() => resolvePortalRoot(editor));
   const [state, setState] = useState<ToolbarState>(INITIAL_STATE);
+
+  // Track the portal container from the root listener, like the other portal
+  // plugins, instead of re-querying the DOM on every render.
+  useEffect(
+    () => editor.registerRootListener(() => setPortalRoot(resolvePortalRoot(editor))),
+    [editor]
+  );
 
   useEffect(() => {
     if (!isCoarsePointer) {
@@ -66,8 +73,12 @@ export function MobileActionToolbar() {
       if (!active) {
         return;
       }
-      const capability = resolveSelectionCapability(editor);
-      setState((prev) => ({ ...prev, ...capability }));
+      const { fold, delete: canDelete } = resolveSelectionCapability(editor);
+      // Bail when unchanged: this fires on every editor update (keystroke), so a
+      // fresh object each time would re-render the toolbar for no visible change.
+      setState((prev) =>
+        prev.fold === fold && prev.delete === canDelete ? prev : { ...prev, fold, delete: canDelete }
+      );
     };
 
     // Seed capability for the current selection without a synchronous
@@ -79,7 +90,7 @@ export function MobileActionToolbar() {
       editor.registerCommand(
         CAN_UNDO_COMMAND,
         (canUndo) => {
-          setState((prev) => ({ ...prev, undo: canUndo }));
+          setState((prev) => (prev.undo === canUndo ? prev : { ...prev, undo: canUndo }));
           return false;
         },
         COMMAND_PRIORITY_LOW
@@ -87,7 +98,7 @@ export function MobileActionToolbar() {
       editor.registerCommand(
         CAN_REDO_COMMAND,
         (canRedo) => {
-          setState((prev) => ({ ...prev, redo: canRedo }));
+          setState((prev) => (prev.redo === canRedo ? prev : { ...prev, redo: canRedo }));
           return false;
         },
         COMMAND_PRIORITY_LOW
