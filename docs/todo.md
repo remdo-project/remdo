@@ -105,9 +105,9 @@ Rules:
 
 Deferred hardening; long-horizon items live in `docs/access-model.md#future`.
 
-- Public-source registration abuse: the home self-registers unauthenticatedly, so
-  the deleted per-account (userId-keyed) register limit can't be ported — there is
-  no session principal. The only bound left is Better Auth's IP-keyed
+- Public-source registration abuse: the home self-registers unauthenticatedly,
+  so the deleted per-account (userId-keyed) register limit can't be ported —
+  there is no session principal. The only bound left is Better Auth's IP-keyed
   `oauthProvider.rateLimit.register` (5/60s), which mis-keys for this case
   (NAT'd homes share a bucket; an attacker rotates IPs to evade). Needs a
   registration-abuse control fit for unauthenticated registration (e.g. a global
@@ -130,9 +130,9 @@ Deferred hardening; long-horizon items live in `docs/access-model.md#future`.
   linked source is down or its OAuth token can't refresh,
   `/source-servers/:id/current-user` fails and the client's `DelayedRetry`
   (`stored-user-data.ts`) re-fetches forever at a fixed interval with no backoff,
-  cap, or give-up — each attempt logs. Add backoff + a bounded retry, and expose a
-  user-visible per-source status ("source offline / re-link needed") instead of
-  only console errors. Related to the offline-collab retry item below.
+  cap, or give-up — each attempt logs. Add backoff + a bounded retry, and expose
+  a user-visible per-source status ("source offline / re-link needed") instead
+  of only console errors. Related to the offline-collab retry item below.
   - Also: the route returns 403 for "linked but no usable token" (source
     unreachable / token unrefreshable), conflating it with "not linked / no
     access". A source-unreachable/upstream failure is really a gateway error
@@ -307,7 +307,11 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   easier path. Keep the fail-closed gate; reword "failure" for expected issues.
 - Redesign `toMatchOutline` note content expectations from flattened text into
   node-level content. Target shape:
-  `{ noteId: 'note1', content: [{ text: 'before ' }, { date: '2026-06-10' }, { text: ' after' }] }`.
+
+  ```json
+  { "noteId": "note1", "content": [{ "text": "before " }, { "date": "2026-06-10" }, { "text": " after" }] }
+  ```
+
   Until then, flattened outline text stays readable/user-facing, while
   node-specific identity such as date ISO values stays covered by focused
   feature tests.
@@ -465,8 +469,9 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   code-lint gate. Extend the ESLint config to the dot tree (deciding which rules
   apply to skill specs, e.g. the `node/no-process-env` disables), or accept
   typecheck+tests as their gate. A config decision, not a mechanical fix.
-- Accepted limitation (docs-align references-shape rule): `references-shape.mjs` resolves a
-  reference link's `[label]` to its definition by exact (lowercased) match, so
+- Accepted limitation (docs-align references-shape rule):
+  `references-shape.mjs` resolves a reference link's `[label]` to its definition
+  by exact (lowercased) match, so
   CommonMark-equivalent labels differing only by internal whitespace
   (`[foo bar]` vs `[foo   bar]:`) don't resolve — an internal link with such a
   label could bypass the References-shape gate. Contrived on this corpus (no
@@ -524,8 +529,9 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   evaluate each for fit and independence before adding a rung.
 - Widen the review lens for shared-state writes: refine reviews a diff, so a bug
   where NEW code writes shared/global state and UNCHANGED code over-reads it sits
-  outside scope (the PR#356 cross-user source-leak: new `source-links.ts` wrote a
-  global `source_servers` row that the unchanged `listCurrentUserSourceServers`
+  outside scope (the PR#356 cross-user source-leak: new `source-links.ts` wrote
+  a global `source_servers` row that the unchanged
+  `listCurrentUserSourceServers`
   projected to every user). The GitHub Codex app caught it because it reviews the
   whole PR against the full repo, not the diff alone. Add a finder angle: when the
   diff writes to a shared cache/table/projection source, trace who *reads* that

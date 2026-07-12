@@ -23,11 +23,12 @@ The loop guard below is a judgement, not a tuned number.
 Refine works on a single diff, fixed at invocation. There are two scopes; pick
 exactly one and keep it for every pass.
 
-**Resolve the scope by running `sh .agents/skills/remdo-refine/tools/resolve-scope.sh [scope]`** (its
-header states the full contract). Pass no argument for the committed-range default
-(this branch's own work), or `working-tree` to review the uncommitted changes
-before they enter history. It prints `SCOPE=`/`BASE=` plus the file list. The
-judgment around it stays here:
+**Resolve the scope by running
+`sh .agents/skills/remdo-refine/tools/resolve-scope.sh [scope]`** (its header
+states the full contract). Pass no argument for the committed-range default (this
+branch's own work), or `working-tree` to review the uncommitted changes before
+they enter history. It prints `SCOPE=`/`BASE=` plus the file list. The judgment
+around it stays here:
 
 - **Refusal handling.** A non-zero exit means the requested scope is unresolvable
   — most often the mixed-scope refusal (committed range over a dirty tree). Warn
@@ -36,8 +37,9 @@ judgment around it stays here:
 - **Integration-branch confirmation.** The script's committed-range default
   (`origin/main...HEAD`) is meaningless on an integration branch (`dev`) or any
   branch where that range is not one unit of work — it would sweep in every commit
-  `dev` gathered since it forked from `main`, and refine *commits* fixes across all
-  of it. There, **do not accept the default: confirm an explicit range first.**
+  `dev` gathered since it forked from `main`, and refine *commits* fixes across
+  all of it. There, **do not accept the default: confirm an explicit range
+  first.**
   The conversation usually makes it obvious (the work just done, the last commit,
   the last few) — state the concrete range you'll pass to the script and proceed
   once confirmed.
@@ -256,8 +258,9 @@ at files, not prose, noting where in the diff each finding sat); tradeoffs taken
 with a pointer to their `docs/todo.md` entries; and any blocker with its gathered
 data.
 
-Close with `Refine: <total elapsed> — <rung-pass count and end reason>`, followed by
-a compact activity table with columns `Step`, `Calls`, `Wall time`, `Surfaced`,
+Close with
+`Refine: <total elapsed> — <rung-pass count and end reason>`, followed by a
+compact activity table with columns `Step`, `Calls`, `Wall time`, `Surfaced`,
 `Applied`, and `Tradeoffs`. Give simplify, internal review, and every named
 external reviewer separate rows. The applied/tradeoff columns distinguish real
 accepted findings from rejected noise. Then list each final check with its

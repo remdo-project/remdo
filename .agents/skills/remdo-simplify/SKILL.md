@@ -39,13 +39,15 @@ fresh subagent) so the review never inherits the caller's implementation memory.
 Use the exact scope supplied by the caller. A refine caller should pass only the
 scope and this skill, not its suspected fixes or implementation context.
 
-Resolve it by running `sh .agents/skills/remdo-refine/tools/resolve-scope.sh [scope]` (its header
+Resolve it by running
+`sh .agents/skills/remdo-refine/tools/resolve-scope.sh [scope]` (its header
 states the full contract): no argument for the committed-range default (this
 branch's own work), or `working-tree` for the uncommitted changes. It prints
-`SCOPE=`/`BASE=` plus the file list. This pass is read-only and never loops, so it
-needs no anchoring of its own — reusing the resolver just keeps one scope contract
-across the skills. On a non-zero exit, warn and stop rather than folding the other
-side's changes into the review; on an integration branch (`dev`) where the
+`SCOPE=`/`BASE=` plus the file list. This pass is read-only and never loops, so
+it needs no anchoring of its own — reusing the resolver just keeps one scope
+contract across the skills. On a non-zero exit, warn and stop rather than
+folding the other side's changes into the review; on an integration branch
+(`dev`) where the
 committed default is not one unit of work, report that an explicit scope is
 required.
 

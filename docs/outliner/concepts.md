@@ -37,8 +37,8 @@ notes:
   identified by their position relative to their owning note, not by an id.
 - Every note has exactly one parent (except the root) and maintains an ordered
   list of children owned by that parent. **Children** are the notes parented in
-  the structural tree (for an editor note, its sub-notes). A note's body is not a
-  child: it is a separate region owned by the note, reached on its own, never
+  the structural tree (for an editor note, its sub-notes). A note's body is not
+  a child: it is a separate region owned by the note, reached on its own, never
   part of the children list (see [Note kinds](#note-kinds)).
 - The note tree is never empty: the document always contains at least one note.
   If an operation would remove the final note, adapters must replace it with an
