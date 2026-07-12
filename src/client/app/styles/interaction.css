@@ -1,3 +1,23 @@
+/* `--remdo-accent` is the app's single accent (links, brand mark). Violet-3 is
+   the softer accent chosen against the violet-tinted glass backdrop, so the
+   accent reads as distinct rather than merging with the backdrop hue.
+   `--remdo-accent-rgb` exposes the same colour as bare channels for the aurora
+   glows in the app shell. */
+:root {
+  /* Cooler, slightly desaturated grey-violet so links/brand stay distinct from
+     the bold violet backdrop (a saturated violet accent would converge with it).
+     The aurora's primary glow still uses this hue via `--remdo-accent-rgb`. */
+  --remdo-accent: #a5a1e8; /* muted grey-violet */
+  --remdo-accent-hover: #c3bffb;
+  --remdo-accent-rgb: 165 161 232;
+}
+
+/* The page background matches the app-shell aurora base (faint-violet-black), so
+   overscroll and the inset gutter read as one seamless backdrop. */
+body {
+  background: #17151f;
+}
+
 .remdo-interaction-surface {
   --interaction-radius: var(--mantine-radius-sm);
   --interaction-accent-rgb: 111 138 255;

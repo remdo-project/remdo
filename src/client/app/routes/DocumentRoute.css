@@ -1,18 +1,39 @@
+/* The document fills the width of the app-shell card — no reading-column cap. A
+   cap would manufacture empty margins to solve a measure problem we don't yet
+   have: an outliner is scanned more than read, indentation shortens nested
+   notes, and the wide space is better spent by real components (a sidebar, a
+   second doc pane) once they exist — at which point the document narrows because
+   something is there, not because of an artificial limit. The card surface and
+   elevation come from AppFrame; the document body just adds its own inset. */
 .document-editor-shell {
-  margin: var(--mantine-spacing-md) auto;
-  border: 1px solid var(--mantine-color-dark-4);
-  border-radius: var(--mantine-radius-md);
-  background: var(--mantine-color-dark-6);
+  padding-block: var(--mantine-spacing-sm) var(--mantine-spacing-md);
 }
 
+/* The document label / search / actions read as a quiet strip. A subtle inset
+   hairline — inset to the editor's `xl` body padding so it sits over the note
+   column, stopping short of the card edges — separates it from the outline
+   without the heaviness of a full-width divider. The `xl` inline padding matches
+   the editor pane and search results (the shared body inset), keeping the label
+   row column-aligned with the notes. */
 .document-header {
-  border-bottom: 1px solid var(--mantine-color-dark-4);
-  padding: calc(var(--mantine-spacing-xs) - 0.05rem) var(--mantine-spacing-xl);
+  position: relative;
+  padding: 0 var(--mantine-spacing-xl) var(--mantine-spacing-sm);
+  margin-bottom: var(--mantine-spacing-xs);
   min-height: 1.9rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--mantine-spacing-md);
+}
+
+.document-header::after {
+  content: '';
+  position: absolute;
+  left: var(--mantine-spacing-xl);
+  right: var(--mantine-spacing-xl);
+  bottom: 0;
+  height: 1px;
+  background: var(--mantine-color-dark-5);
 }
 
 .document-header-breadcrumbs {
@@ -29,10 +50,17 @@
 }
 
 .document-header-search {
-  min-width: 10rem;
-  width: 16rem;
-  max-width: 22vw;
+  min-width: 11rem;
+  width: 18rem;
+  max-width: 24vw;
   --interaction-radius: var(--mantine-radius-sm);
+}
+
+/* Give the search field slightly more prominence: a lighter fill and stronger
+   border lift it off the header strip so it reads as the primary action there. */
+.document-header-search .mantine-Input-input {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
 }
 
 .document-header-doc-menu {
@@ -253,6 +281,13 @@
   padding-inline-start: calc(var(--remdo-bullet-allowance) - 1px);
   font-size: var(--mantine-font-size-xs);
   color: var(--mantine-color-dark-2);
+}
+
+/* The route container contributes no inline gutter: the body inset is owned by
+   the editor pane / document header (`xl`), which the search results anchor to.
+   Element+class beats Mantine's single-class `.mantine-Container-root` gutter. */
+main.document-route-container {
+  padding-inline: 0;
 }
 
 @media (max-width: 48em) {

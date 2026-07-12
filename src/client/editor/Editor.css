@@ -175,7 +175,7 @@
 }
 
 .text-link {
-  color: var(--mantine-color-blue-3);
+  color: var(--remdo-accent, var(--mantine-color-blue-3));
   cursor: pointer;
   text-decoration: underline;
   text-decoration-thickness: 1px;
@@ -184,7 +184,7 @@
 
 .text-link:hover,
 .text-link:focus-visible {
-  color: var(--mantine-color-blue-2);
+  color: var(--remdo-accent-hover, var(--mantine-color-blue-2));
 }
 
 .remdo-outline li.list-nested-item {

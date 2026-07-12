@@ -294,6 +294,18 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   leaf-only typing updates skip them; skip redundant structural-overlay and
   outline-selection store writes in `SelectionPlugin` when nothing changed.
 
+## Color standardization
+
+- Standardize the app's colors on a single accent token. `--remdo-accent`
+  (violet-3) now drives links (`.text-link`) and the brand mark, but other
+  interactive/highlight colors are still ad-hoc Mantine blues — e.g. the editor
+  bullet/checkbox/note-control hover (`--indicator-highlight-color` = `blue-3`)
+  and the interaction focus/hover ring (`--interaction-accent-rgb` in
+  `interaction.css`). Route these through the accent so hover/focus/link/brand
+  read as one system. (Bullet-hover was tried and reverted — too subtle at the
+  current bullet size to be worth a standalone change; fold it into the wider
+  pass, and reconsider the highlight strength there.)
+
 ## Client request follow-ups
 
 - Audit timeoutless browser requests and define operation-specific deadlines,
