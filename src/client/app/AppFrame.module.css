@@ -10,7 +10,10 @@
    aurora glows and other accent surfaces stay in one hue. */
 
 .backdrop {
-  min-height: 100vh;
+  /* `dvh` tracks the visible viewport as mobile browser chrome collapses/expands,
+     so a short route doesn't get a shell taller than the screen (which `vh` — the
+     large viewport — would cause). */
+  min-height: 100dvh;
   padding: var(--app-shell-inset);
   --app-shell-inset: 1.75rem;
   /* Bold aurora: two large accent radial glows over a faint-violet-black base,
@@ -29,7 +32,7 @@
 .shell {
   max-width: 87.5rem; /* 1400px */
   margin: 0 auto;
-  min-height: calc(100vh - 2 * var(--app-shell-inset));
+  min-height: calc(100dvh - 2 * var(--app-shell-inset));
   /* Frosted glass: translucent dark-7 fill + backdrop blur. The lower opacity
      (55%) lets more of the bold aurora show through the document. */
   background: rgb(36 36 36 / 55%);
@@ -52,6 +55,6 @@
     max-width: none;
     border-radius: 0;
     box-shadow: none;
-    min-height: 100vh;
+    min-height: 100dvh;
   }
 }
