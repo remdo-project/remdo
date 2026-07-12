@@ -2,7 +2,6 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import { CAN_REDO_COMMAND, CAN_UNDO_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
-import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -115,11 +114,13 @@ export function MobileActionToolbar() {
     return null;
   }
 
-  const onActionPointerDown = (id: MobileActionId) => (event: ReactPointerEvent<HTMLButtonElement>) => {
-    // Keep the editor focused so the keyboard stays up and actions chain.
-    event.preventDefault();
-    event.stopPropagation();
+  // Run on click (a completed tap), not pointerdown: the row scrolls
+  // horizontally, and acting on pointerdown would fire the action mid-swipe and
+  // block the native scroll gesture. A swipe cancels the click, so scrolling to
+  // reveal more actions never triggers one.
+  const onActionClick = (id: MobileActionId) => () => {
     runMobileAction(editor, id);
+    // Keep the editor focused so the keyboard stays up and actions chain.
     editor.focus();
   };
 
@@ -138,7 +139,7 @@ export function MobileActionToolbar() {
           className="mobile-action-toolbar__button"
           aria-label={action.label}
           disabled={isDisabled(action.id, state)}
-          onPointerDown={onActionPointerDown(action.id)}
+          onClick={onActionClick(action.id)}
         >
           <span aria-hidden="true">{action.icon}</span>
         </button>
