@@ -54,6 +54,14 @@ Rules:
   shared `usePortalRoot(editor)` hook and migrate all three — net deletion, but
   a cross-plugin refactor of otherwise-untouched code.
 
+- Mobile toolbar undo/redo can show a stale disabled state if the toolbar mounts
+  after history already has entries (e.g. coarse-pointer flips true mid-session):
+  Lexical emits `CAN_UNDO_COMMAND`/`CAN_REDO_COMMAND` only on stack changes, not
+  on registration, and RemDo doesn't own the `HistoryState` to seed from. Self-
+  corrects on the next edit. Normal mobile load mounts the toolbar with the
+  editor on empty history, so the common case is correct. Fix needs a
+  history-capability query/replay (no clean Lexical API today).
+
 ## Runtime and tooling source boundaries
 
 - Move runtime config under production source, split `tools/` into explicit
