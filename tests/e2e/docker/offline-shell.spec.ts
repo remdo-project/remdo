@@ -1,4 +1,10 @@
-import { attachPageGuards, expect, test } from '#e2e/fixtures';
+import {
+  attachPageGuards,
+  collectCurrentUserRequests,
+  expect,
+  test,
+  unauthenticatedTest,
+} from '#e2e/fixtures';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import type { Page } from '@playwright/test';
 import { createUserDocument } from '../_support/documents';
@@ -10,23 +16,6 @@ import {
   waitForEditableEditor,
   waitForServiceWorkerControl,
 } from './_support/helpers';
-
-const unauthenticatedTest = test.extend({
-  storageState: {
-    cookies: [],
-    origins: [],
-  },
-});
-
-function collectCurrentUserRequests(page: Page): string[] {
-  const requests: string[] = [];
-  page.on('request', (request) => {
-    if (new URL(request.url()).pathname === '/api/current-user') {
-      requests.push(request.url());
-    }
-  });
-  return requests;
-}
 
 test.describe('Offline app shell', () => {
   test('opens the cached bootstrap home route while offline', async ({ page, context }) => {

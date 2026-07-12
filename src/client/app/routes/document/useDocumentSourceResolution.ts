@@ -19,26 +19,25 @@ function useLocalDocumentAccessProbing(docId: string, enabled: boolean): boolean
     }
 
     const abortController = new AbortController();
+    const settle = () => {
+      if (!abortController.signal.aborted) {
+        setSettledDocId(docId);
+      }
+    };
     void fetch(createDocumentSyncTokenApiPath(docId), {
       body: JSON.stringify({ docId }),
       credentials: 'same-origin',
       headers: { 'content-type': 'application/json' },
       method: 'POST',
       signal: abortController.signal,
-    })
-      .then(() => setSettledDocId(docId))
-      .catch(() => {
-        if (!abortController.signal.aborted) {
-          setSettledDocId(docId);
-        }
-      });
+    }).then(settle, settle);
 
     return () => {
       abortController.abort();
     };
   }, [docId, enabled]);
 
-  return enabled && settledDocId !== docId;
+  return settledDocId !== docId;
 }
 
 export function useDocumentSourceResolution(
