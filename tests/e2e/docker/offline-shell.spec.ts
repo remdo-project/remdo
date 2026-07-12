@@ -148,6 +148,37 @@ test.describe('Offline app shell', () => {
     }
   });
 
+  test('withholds consent actions until the authenticated session can be revalidated', async ({
+    page,
+    context,
+  }) => {
+    await page.goto('/');
+    await waitForServiceWorkerControl(page);
+    allowOfflineDisconnectedConsoleIssue(page);
+    await page.close();
+
+    let offlinePage: Page | undefined;
+    let detachOfflineGuards: (() => void) | undefined;
+    await context.setOffline(true);
+    try {
+      offlinePage = await context.newPage();
+      detachOfflineGuards = attachPageGuards(offlinePage);
+      allowOfflineDisconnectedConsoleIssue(offlinePage);
+      await offlinePage.goto('/oauth/consent?client_id=test-client');
+
+      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/oauth/consent');
+      await expect(offlinePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
+      await expect(offlinePage.getByRole('button', { name: /^(?:Allow|Deny)$/u })).toHaveCount(0);
+
+      await context.setOffline(false);
+      await expect(offlinePage.getByRole('heading', { name: 'Authorize access' })).toBeVisible();
+      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/oauth/consent');
+      expect(new URL(offlinePage.url()).searchParams.get('client_id')).toBe('test-client');
+    } finally {
+      await cleanupOfflineTest(context, offlinePage, detachOfflineGuards);
+    }
+  });
+
   test('opens the app shell while offline after an online warm-up', async ({ page, context }) => {
     const { id: warmedDocId } = await createUserDocument(page, 'Offline Warmed Document');
     await page.goto(`/n/${warmedDocId}`);

@@ -1,6 +1,9 @@
 import { Alert, Button, Group } from '@mantine/core';
 import { useState } from 'react';
+import { useLoaderData } from 'react-router-dom';
+import type { SessionGateState } from '#client/app/auth/client';
 import CenteredCardPage from '#client/ui/CenteredCardPage';
+import ConnectionUnavailable from './ConnectionUnavailable';
 
 // Better Auth redirects the authorize flow here (its configured consentPage) with
 // the signed OAuth query in this page's URL. We echo that query back to
@@ -38,12 +41,17 @@ async function submitConsent(accept: boolean): Promise<void> {
 }
 
 export default function OAuthConsentRoute() {
+  const { sessionState } = useLoaderData<{ sessionState: SessionGateState }>();
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const clientId = readClientId();
   const description = clientId
     ? `A RemDo home server (${clientId}) is requesting access to your documents on this server.`
     : 'A RemDo home server is requesting access to your documents on this server.';
+
+  if (sessionState.status === 'offline-remembered' || sessionState.status === 'offline-unavailable') {
+    return <ConnectionUnavailable />;
+  }
 
   const decide = (accept: boolean) => {
     setPending(true);
