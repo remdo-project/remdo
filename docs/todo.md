@@ -306,6 +306,18 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   current bullet size to be worth a standalone change; fold it into the wider
   pass, and reconsider the highlight strength there.)
 
+## App-shell overflow vs inline menus
+
+- The app-shell `.shell` card uses `overflow: hidden` (needed to clip its rounded
+  corners) which becomes a clip box for inline dropdowns. The document switcher
+  menu (`DocumentToolbar.tsx`, `withinPortal={false}`) and the note menu
+  (`NoteMenuPlugin`, portaled into `.editor-container`) render inside it, so a
+  menu opening past the card's edge could be clipped rather than overflow. Narrow
+  exposure today (the card grows with content, and menus open near the top/mid),
+  but if a clip is ever observed, portal those menus to `document.body`
+  (`withinPortal`) rather than dropping the corner-clipping overflow. Deferred as
+  a tradeoff — the safe fix touches menu components outside the styling change.
+
 ## App-shell layout container follow-up
 
 - The header (`AppHeader.tsx` `Container size="xl"` + `.header .inner`) and the
