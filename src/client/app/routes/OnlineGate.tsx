@@ -33,24 +33,42 @@ export default function OnlineGate({
 }
 
 function ConnectionUnavailable() {
-  const { revalidate, state } = useRevalidator();
-  // Index of the next backoff retry into `RECONNECT_RETRY_BACKOFFS_MS`; the cycle
-  // ends once it reaches the array length.
-  const nextBackoffRef = useRef(0);
-  // Set true while a revalidation this cycle is in flight, so a backoff is only
-  // scheduled on the `loading -> idle` settle edge — never off the `idle` the
-  // immediate revalidation starts from (which would race a retry against the
-  // in-flight fetch and abort it).
-  const revalidationPendingRef = useRef(false);
+  const { revalidate } = useRevalidator();
+  // The backoff timer for the pending retry, and a token identifying the current
+  // reconnect cycle. A new reconnect signal bumps the token so any still-pending
+  // chain from a prior cycle is abandoned, and unmount stops the chain entirely
+  // (recovery unmounts this component). Chaining off the `revalidate()` promise —
+  // rather than observing the revalidator's `loading -> idle` transition — means
+  // a fast-failing revalidation whose state React batches away still advances the
+  // ladder.
+  const backoffTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const cycleRef = useRef(0);
 
   // A reconnect signal (browser `online` event or the Retry button) fires an
-  // immediate revalidation and opens a fresh backoff budget. Nothing else calls
+  // immediate revalidation and, each time it settles still-unavailable, a
+  // bounded set of backed-off retries. Each retry waits for the prior
+  // revalidation to settle (react-router's `revalidate()` aborts any in-flight
+  // one), so a slow reconnect is not a self-cancelling storm. Nothing else calls
   // `revalidate()`, so a bare mount of a genuinely-down server is never
   // auto-hammered — the "only on a reconnect signal" guarantee is structural.
   const armRetryBudget = useCallback(() => {
-    nextBackoffRef.current = 0;
-    revalidationPendingRef.current = true;
-    void revalidate();
+    const cycle = (cycleRef.current += 1);
+    globalThis.clearTimeout(backoffTimerRef.current);
+
+    // Revalidate; once it settles still-unavailable (this component is still
+    // mounted) schedule the next backed-off attempt, until the budget runs out.
+    // A newer reconnect or unmount bumps `cycleRef`, abandoning this chain.
+    const runAttempt = (attempt: number) => {
+      void revalidate().then(() => {
+        const delay = RECONNECT_RETRY_BACKOFFS_MS[attempt];
+        if (cycleRef.current !== cycle || delay === undefined) {
+          return;
+        }
+        backoffTimerRef.current = globalThis.setTimeout(runAttempt, delay, attempt + 1);
+      });
+    };
+
+    runAttempt(0);
   }, [revalidate]);
 
   useEffect(() => {
@@ -58,27 +76,13 @@ function ConnectionUnavailable() {
     return () => globalThis.removeEventListener('online', armRetryBudget);
   }, [armRetryBudget]);
 
-  // On the `loading -> idle` settle edge, with this component still mounted
-  // (i.e. still unavailable), spend one unit of the retry budget on a backed-off
-  // follow-up. Waiting for the settle — rather than a wall-clock offset — means
-  // each retry follows the prior instead of aborting it; recovery unmounts this
-  // component so no further retry fires.
-  useEffect(() => {
-    if (state === 'loading') {
-      return;
-    }
-    if (!revalidationPendingRef.current || nextBackoffRef.current >= RECONNECT_RETRY_BACKOFFS_MS.length) {
-      return;
-    }
-    revalidationPendingRef.current = false;
-    const delay = RECONNECT_RETRY_BACKOFFS_MS[nextBackoffRef.current];
-    const timer = globalThis.setTimeout(() => {
-      nextBackoffRef.current += 1;
-      revalidationPendingRef.current = true;
-      void revalidate();
-    }, delay);
-    return () => globalThis.clearTimeout(timer);
-  }, [revalidate, state]);
+  // On unmount (recovery flips the session state and unmounts this component),
+  // invalidate the current cycle and cancel any pending backoff so no retry
+  // fires afterward.
+  useEffect(() => () => {
+    cycleRef.current += 1;
+    globalThis.clearTimeout(backoffTimerRef.current);
+  }, []);
 
   return (
     <CenteredCardPage

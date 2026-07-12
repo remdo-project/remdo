@@ -1,5 +1,5 @@
 import { MantineProvider } from '@mantine/core';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import OnlineGate from '#client/app/routes/OnlineGate';
@@ -85,6 +85,28 @@ describe('online gate reconnect revalidation', () => {
     expect(screen.queryByRole('heading', { name: 'Connection unavailable' })).toBeNull();
     // At least one retry beyond the failed reconnect revalidation was required.
     expect(loaderCalls.count).toBeGreaterThanOrEqual(3);
+  });
+
+  it('recovers when the user clicks Retry (no online event)', async () => {
+    // No `online` event fires; the manual Retry button is the only recovery
+    // path (per the bounded-retry tradeoff). Clicking it must arm the same
+    // revalidation cycle and recover.
+    const { loaderCalls } = renderOnlineGate(2);
+
+    await vi.waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument(),
+    );
+    expect(loaderCalls.count).toBe(1);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    });
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(screen.getByText('signed-in-shell')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Connection unavailable' })).toBeNull();
   });
 
   it('fires no backoff retry when the immediate reconnect attempt recovers', async () => {
