@@ -17,6 +17,7 @@ export default function DocumentToolbar({
   documentSources,
   onCreateDocument,
   onSelectDocument,
+  onSelectHome,
   onSelectNoteId,
   onStatusHostChange,
   onUploadDocument,
@@ -29,6 +30,7 @@ export default function DocumentToolbar({
   documentSources: readonly DocumentSourceNote[];
   onCreateDocument: () => void;
   onSelectDocument: (docId: string) => void;
+  onSelectHome: () => void;
   onSelectNoteId: (noteId: string | null) => void;
   onStatusHostChange: (host: HTMLDivElement | null) => void;
   onUploadDocument: (file: File) => void;
@@ -132,6 +134,7 @@ export default function DocumentToolbar({
             </Combobox>
           )}
           path={path}
+          onSelectHome={onSelectHome}
           onSelectNoteId={onSelectNoteId}
         />
       </div>

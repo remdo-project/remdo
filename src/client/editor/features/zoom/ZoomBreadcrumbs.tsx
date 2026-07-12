@@ -8,14 +8,25 @@ interface ZoomBreadcrumbsProps {
   docLabel: string;
   documentControl?: ReactNode;
   path: NotePathItem[];
+  onSelectHome?: () => void;
   onSelectNoteId: (noteId: string | null) => void;
 }
 
-export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectNoteId }: ZoomBreadcrumbsProps) {
+export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectHome, onSelectNoteId }: ZoomBreadcrumbsProps) {
   const docLabelDisplay = formatNavigationLabel(docLabel);
 
   return (
     <Breadcrumbs className={styles.breadcrumbs} data-zoom-breadcrumbs>
+      {onSelectHome ? (
+        <button
+          type="button"
+          className={styles.crumbButton}
+          data-zoom-crumb="home"
+          onClick={onSelectHome}
+        >
+          Home
+        </button>
+      ) : null}
       {documentControl ? (
         <span className={styles.documentCrumbGroup} data-zoom-crumb="document-group">
           <button

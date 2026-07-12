@@ -19,6 +19,33 @@ const renderBreadcrumbs = (props: Parameters<typeof ZoomBreadcrumbs>[0]) =>
   );
 
 describe('zoom breadcrumbs', () => {
+  it('renders a Home crumb that opens Home when provided', () => {
+    const onSelect = vi.fn();
+    const onSelectHome = vi.fn();
+    renderBreadcrumbs({
+      docLabel: 'project',
+      onSelectHome,
+      path: [],
+      onSelectNoteId: onSelect,
+    });
+
+    const homeCrumb = screen.getByRole('button', { name: 'Home' });
+    homeCrumb.click();
+
+    expect(onSelectHome).toHaveBeenCalledTimes(1);
+  });
+
+  it('omits the Home crumb when no handler is provided', () => {
+    const onSelect = vi.fn();
+    renderBreadcrumbs({
+      docLabel: 'project',
+      path: [],
+      onSelectNoteId: onSelect,
+    });
+
+    expect(screen.queryByRole('button', { name: 'Home' })).toBeNull();
+  });
+
   it('renders the document crumb as the only item at the root', () => {
     const onSelect = vi.fn();
     const docLabel = '1234567890123456789012345';

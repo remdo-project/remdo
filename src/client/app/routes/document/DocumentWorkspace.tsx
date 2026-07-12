@@ -12,6 +12,8 @@ import Editor from '#client/editor/Editor';
 import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentSearchInput, DocumentSearchResults } from './DocumentSearch';
 import DocumentToolbar from './DocumentToolbar';
+import { HomeView } from './HomeView';
+import type { HomeDocumentEntry, HomeDocumentSource } from './HomeView';
 import { useDocumentActions } from './useDocumentActions';
 import { useDocumentSourceResolution } from './useDocumentSourceResolution';
 import '../DocumentRoute.css';
@@ -40,12 +42,34 @@ export default function DocumentWorkspace({
 }) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
+  const [homeActive, setHomeActive] = useState(false);
   const zoomPath = useZoomPath();
   const { requestZoomNoteId } = useEditorViewActions();
   const userData = useUserData();
   const documentSources = userData.documentSources().children();
   const source = useDocumentSourceResolution(docId, documentSources);
   const actions = useDocumentActions({ docId, onSelectDocument, userData });
+
+  const homeSources: HomeDocumentSource[] = documentSources.map((documentSource) => ({
+    id: documentSource.id(),
+    label: documentSource.text(),
+    documents: documentSource.documents().children().map((document) => ({
+      id: document.id(),
+      label: document.text(),
+    })),
+  }));
+  const openDocumentFromHome = (nextDocId: string) => {
+    setHomeActive(false);
+    onSelectDocument(nextDocId);
+  };
+  // Placeholder entry-point groups. Favorites/Recents mirror real documents so
+  // the layout reads correctly; Tags stays empty to exercise the hide-when-empty
+  // rule. Replaced by real favoriting/tagging/visit-history sources later
+  // (docs/todo.md → Home view follow-ups).
+  const allHomeDocuments = homeSources.flatMap((homeSource) => homeSource.documents);
+  const homeFavorites: HomeDocumentEntry[] = allHomeDocuments.slice(0, 2);
+  const homeRecents: HomeDocumentEntry[] = allHomeDocuments.slice(0, 3);
+  const homeTags: HomeDocumentEntry[] = [];
   const documentLabel = formatNavigationLabel(source.documentLabel);
   const titleItem = zoomPath.at(-1) ?? null;
   const pageTitle = titleItem
@@ -83,6 +107,7 @@ export default function DocumentWorkspace({
           void actions.createDocument();
         }}
         onSelectDocument={onSelectDocument}
+        onSelectHome={() => setHomeActive(true)}
         onSelectNoteId={requestZoomNoteId}
         onStatusHostChange={setStatusHost}
         onUploadDocument={(file) => {
@@ -114,7 +139,22 @@ export default function DocumentWorkspace({
         </Alert>
       )}
       <DocumentSearchResults model={search} />
-      <div className={search.searchModeActive
+      {homeActive && (
+        <HomeView
+          favorites={homeFavorites}
+          onCreateDocument={() => {
+            void actions.createDocument();
+          }}
+          onSelectDocument={openDocumentFromHome}
+          onUploadDocument={(file) => {
+            void actions.uploadDocument(file);
+          }}
+          recents={homeRecents}
+          sources={homeSources}
+          tags={homeTags}
+        />
+      )}
+      <div className={homeActive || search.searchModeActive
         ? 'document-editor-pane document-editor-pane--hidden'
         : 'document-editor-pane'}>
         {source.pending ? (
