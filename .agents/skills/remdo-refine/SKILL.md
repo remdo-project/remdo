@@ -23,11 +23,12 @@ The loop guard below is a judgement, not a tuned number.
 Refine works on a single diff, fixed at invocation. There are two scopes; pick
 exactly one and keep it for every pass.
 
-**Resolve the scope by running `sh .agents/skills/remdo-refine/tools/resolve-scope.sh [scope]`** (its
-header states the full contract). Pass no argument for the committed-range default
-(this branch's own work), or `working-tree` to review the uncommitted changes
-before they enter history. It prints `SCOPE=`/`BASE=` plus the file list. The
-judgment around it stays here:
+**Resolve the scope by running
+`sh .agents/skills/remdo-refine/tools/resolve-scope.sh [scope]`** (its header
+states the full contract). Pass no argument for the committed-range default (this
+branch's own work), or `working-tree` to review the uncommitted changes before
+they enter history. It prints `SCOPE=`/`BASE=` plus the file list. The judgment
+around it stays here:
 
 - **Refusal handling.** A non-zero exit means the requested scope is unresolvable
   — most often the mixed-scope refusal (committed range over a dirty tree). Warn
@@ -36,8 +37,9 @@ judgment around it stays here:
 - **Integration-branch confirmation.** The script's committed-range default
   (`origin/main...HEAD`) is meaningless on an integration branch (`dev`) or any
   branch where that range is not one unit of work — it would sweep in every commit
-  `dev` gathered since it forked from `main`, and refine *commits* fixes across all
-  of it. There, **do not accept the default: confirm an explicit range first.**
+  `dev` gathered since it forked from `main`, and refine *commits* fixes across
+  all of it. There, **do not accept the default: confirm an explicit range
+  first.**
   The conversation usually makes it obvious (the work just done, the last commit,
   the last few) — state the concrete range you'll pass to the script and proceed
   once confirmed.
@@ -154,15 +156,14 @@ a required fresh-context rung with an inline review by the coordinating session.
      reviewer's provenance; keep conflicting recommendations separate for
      triage. Apply each approved fix once, after the barrier. Any approved fix
      reruns the whole group concurrently; the rung settles only when one wave
-     produces no approved fixes.
-   - **Missing or failed reviewer:** confirm every required reviewer is available
-     before launching the wave. If any invocation fails, await and record the
-     remaining outcomes, then stop before triaging or applying findings from the
-     incomplete wave; never silently skip or replace a reviewer. Treat partial
-     output from the failed invocation as failure diagnostics, not a finding
-     report, with zero disposition counts. A later refine invocation resolves
-     its scope and starts a new ledger as usual; when it reaches this rung, it
-     starts the whole external wave again rather than reusing a prior result.
+     completes successfully with no approved fixes.
+   - **Missing or failed reviewer:** fail fast when a required reviewer is known
+     to be unavailable before launch. If an invocation fails, await the remaining
+     outcomes and triage findings from every reviewer that completed successfully;
+     partial output from the failed invocation is diagnostic only. The rung does
+     not settle from an incomplete wave: after applying any approved fixes, rerun
+     the whole group; if there is nothing to apply, stop and report the failed
+     reviewer. Never silently skip or replace a reviewer.
    - **Report back / triage:** the combined findings, triaged under the loop
      rules.
 
@@ -172,13 +173,13 @@ Forward the `AGENTS.md` findings-suppression rule to every rung and subagent.
 
 Keep one in-memory ledger from scope resolution through final checks. For every
 finder invocation, record its named step and ordinal, elapsed wall time,
-findings surfaced, approved findings applied, tradeoffs recorded in
-`docs/todo.md`, and outcome (`findings`, `clean`, `blocked`, or `failed`). Update
-the disposition counts after triage. Add an invocation to the ledger when it
-reaches a terminal outcome; no interim outcome is needed while a parallel call
-is running. For each clean outcome, record the diff state it inspected so the
-loop can distinguish current results from stale ones. Record each final
-verification command's elapsed time and the refine run's total wall time.
+findings surfaced, approved findings applied, tradeoff dispositions, and outcome
+(`findings`, `clean`, `blocked`, or `failed`). Update the disposition counts after
+triage. Add an invocation to the ledger when it reaches a terminal outcome; no
+interim outcome is needed while a parallel call is running. For each clean
+outcome, record the diff state it inspected so the loop can distinguish current
+results from stale ones. Record each final verification command's elapsed time
+and the refine run's total wall time.
 
 One invocation is one top-level call from refine to a subagent or CLI reviewer.
 Do not count or normalize hidden vendor/model requests, tokens, or cost. Use
@@ -213,10 +214,11 @@ earlier state stale. Continue down the ladder after settling the rung that made
 the fix. At the bottom, resume from the earliest rung whose clean result is
 stale or missing, then proceed in ladder order.
 
-**Done** when every rung has produced zero approved fixes against the current
-diff state. Recording a tradeoff that edits the resolved diff changes the state
-just like an approved fix. **Stuck** (stop and report) when a finding recurs with
-no progress, or the diff will not converge after a few state changes.
+**Done** when every rung has completed successfully with zero approved fixes
+against the current diff state. Recording a tradeoff that edits the resolved
+diff changes the state just like an approved fix. **Stuck** (stop and report)
+when a finding recurs with no progress, or the diff will not converge after a
+few state changes.
 **Blocker** — only a finding with no clear recommendation.
 
 ## Verification
@@ -256,8 +258,9 @@ at files, not prose, noting where in the diff each finding sat); tradeoffs taken
 with a pointer to their `docs/todo.md` entries; and any blocker with its gathered
 data.
 
-Close with `Refine: <total elapsed> — <rung-pass count and end reason>`, followed by
-a compact activity table with columns `Step`, `Calls`, `Wall time`, `Surfaced`,
+Close with
+`Refine: <total elapsed> — <rung-pass count and end reason>`, followed by a
+compact activity table with columns `Step`, `Calls`, `Wall time`, `Surfaced`,
 `Applied`, and `Tradeoffs`. Give simplify, internal review, and every named
 external reviewer separate rows. The applied/tradeoff columns distinguish real
 accepted findings from rejected noise. Then list each final check with its

@@ -30,8 +30,8 @@ entry, actions, and behavior.
    - Child list type actions per [List Types](./list-types.md), showing only
      the two non-current options; hidden for leaf notes.
 4. View actions:
-   - `Fold to level [0-9]` per [Folding](./folding.md), with digit shortcuts scoped to
-     the current zoom boundary. Clicking the action applies level `1`.
+   - `Fold to level [0-9]` per [Folding](./folding.md), with digit shortcuts
+     scoped to the current zoom boundary. Clicking the action applies level `1`.
 5. Menu labels visually mark shortcut letters where applicable.
 
 ## Behavior

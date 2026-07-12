@@ -44,8 +44,8 @@
     "default": true,
     "relative-links": { "root_path": "." }, // root-relative `/docs/...` links validate against the repo root
     "MD013": {
-      "line_length": 120,
-      "code_block_line_length": 0,
+      "line_length": 80,
+      "code_blocks": false,
       "tables": false
     },
     // MD012: existing docs intentionally keep double-blank separators.

@@ -50,11 +50,11 @@ The `@` and `!` pickers are opened by typing a trigger character. Each is a
 text after it, fixed at open time. The session is never re-derived from where the
 caret later sits.
 
-1. **Open.** A picker opens only on a fresh keypress of its trigger character at a
-   boundary — the start of note text, after whitespace, after opening punctuation
-   (`(`, `[`, `{`), or after an atomic inline token (a decorator node such as a
-   date). So `done!` and `a@b` stay plain text, and moving the caret back beside an
-   already-typed trigger never reopens the picker.
+1. **Open.** A picker opens only on a fresh keypress of its trigger character at
+   a boundary — the start of note text, after whitespace, after opening
+   punctuation (`(`, `[`, `{`), or after an atomic inline token (a decorator
+   node such as a date). So `done!` and `a@b` stay plain text, and moving the
+   caret back beside an already-typed trigger never reopens the picker.
 2. **Editable query (`@` only).** The `@` picker treats its span as a live query:
    per the editable-span exception, ordinary typing and `Backspace` edit the text
    after `@` and refilter. The `!` picker has no query — it opens its calendar

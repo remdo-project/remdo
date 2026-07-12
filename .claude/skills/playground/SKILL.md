@@ -14,8 +14,18 @@ what's needed to fit a headless dev VM and the project's look.
 Read the official skill and its templates first; they hold the patterns,
 prompt-output style, state model, and per-type guidance:
 
-- `~/.claude/plugins/cache/claude-plugins-official/playground/*/skills/playground/SKILL.md`
-- `~/.claude/plugins/cache/claude-plugins-official/playground/*/skills/playground/templates/` —
+- The official skill:
+
+  ```text
+  ~/.claude/plugins/cache/claude-plugins-official/playground/*/skills/playground/SKILL.md
+  ```
+
+- The official templates:
+
+  ```text
+  ~/.claude/plugins/cache/claude-plugins-official/playground/*/skills/playground/templates/
+  ```
+
   `design-playground.md`, `data-explorer.md`, `concept-map.md`,
   `document-critique.md`, `diff-review.md`, `code-map.md`
 

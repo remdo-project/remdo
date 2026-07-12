@@ -110,8 +110,8 @@ sections to docs.
   work or the remote). Push, pull, mutating fetch refspecs, and opening PRs are
   not — they cross into the remote or rewrite your branch, and the user owns them.
 - Uncommitted state may be incoherent; commits should not be. The working tree
-  is scratch that is allowed to be mid-transformation (e.g. docs ahead of code) —
-  don't raise such incoherencies while they stay uncommitted. At commit time,
+  is scratch that is allowed to be mid-transformation (e.g. docs ahead of code)
+  — don't raise such incoherencies while they stay uncommitted. At commit time,
   either the committed state is coherent or an ultra-short `docs/todo.md` trigger
   covers the gap (per `docs/documentation.md` invariant 4); add that
   trigger yourself and note it in the commit rather than asking.
@@ -268,11 +268,26 @@ Determine agent mode in this order:
 2. Code lint per path: `pnpm run lint:code -- <path ...>` keeps scripted
    `eslint` caching and is usually quick on a small set of files.
 3. Code lint for changed JS/TS files from git diff:
-   `git diff --name-only --diff-filter=ACMRTUXB HEAD | rg '\.(c|m)?(j|t)sx?$' | xargs -r pnpm run lint:code --`
+
+   ```sh
+   git diff --name-only --diff-filter=ACMRTUXB HEAD \
+     | rg '\.(c|m)?(j|t)sx?$' | xargs -r pnpm run lint:code --
+   ```
+
 4. CSS lint for changed files from git diff:
-   `git diff --name-only --diff-filter=ACMRTUXB HEAD | rg '\.css$' | xargs -r pnpm exec stylelint`
+
+   ```sh
+   git diff --name-only --diff-filter=ACMRTUXB HEAD \
+     | rg '\.css$' | xargs -r pnpm exec stylelint
+   ```
+
 5. CSS syntax validation for changed files:
-   `git diff --name-only --diff-filter=ACMRTUXB HEAD | rg '\.css$' | xargs -r -n1 pnpm exec csstree-validator`
+
+   ```sh
+   git diff --name-only --diff-filter=ACMRTUXB HEAD \
+     | rg '\.css$' | xargs -r -n1 pnpm exec csstree-validator
+   ```
+
    (`csstree-validator` accepts one file per invocation).
 6. Markdown lint: `pnpm run lint:md` (whole corpus, ~3s — small enough that no
    per-file variant exists).
