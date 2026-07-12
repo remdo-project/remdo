@@ -8,10 +8,12 @@ import type { SessionGateState } from '#client/app/auth/client';
 /**
  * Renders OnlineGate against a loader that returns `offline-unavailable` until
  * `failuresBeforeRecovery` revalidations have run, then returns
- * `unauthenticated` (a state that renders children). Returns the loader call
- * count so tests can assert how many retries were needed.
+ * `unauthenticated` (a state that renders children). Resolves once the gate has
+ * settled on the unavailable card after exactly the one mount load — the shared
+ * precondition of every test — returning the loader call count so tests can
+ * assert how many retries were needed.
  */
-function renderOnlineGate(failuresBeforeRecovery: number) {
+async function renderUnavailableGate(failuresBeforeRecovery: number) {
   const loaderCalls = { count: 0 };
   const router = createMemoryRouter(
     [
@@ -42,6 +44,11 @@ function renderOnlineGate(failuresBeforeRecovery: number) {
     </MantineProvider>,
   );
 
+  await vi.waitFor(() =>
+    expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument(),
+  );
+  expect(loaderCalls.count).toBe(1);
+
   return { loaderCalls };
 }
 
@@ -60,6 +67,18 @@ async function fireReconnectAndDrainLadder() {
   });
 }
 
+/**
+ * Asserts the retry budget is spent / the gate is quiescent: advancing well past
+ * the backoff window fires no further loads.
+ */
+async function expectNoFurtherLoads(loaderCalls: { count: number }) {
+  const before = loaderCalls.count;
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(5000);
+  });
+  expect(loaderCalls.count).toBe(before);
+}
+
 describe('online gate reconnect revalidation', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -72,12 +91,7 @@ describe('online gate reconnect revalidation', () => {
   it('recovers after a transient revalidation failure once connectivity returns', async () => {
     // The initial load and the first reconnect revalidation both land
     // offline-unavailable; only a backed-off retry finds the session again.
-    const { loaderCalls } = renderOnlineGate(2);
-
-    await vi.waitFor(() =>
-      expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument(),
-    );
-    expect(loaderCalls.count).toBe(1);
+    const { loaderCalls } = await renderUnavailableGate(2);
 
     await fireReconnectAndDrainLadder();
 
@@ -91,12 +105,7 @@ describe('online gate reconnect revalidation', () => {
     // No `online` event fires; the manual Retry button is the only recovery
     // path (per the bounded-retry tradeoff). Clicking it must arm the same
     // revalidation cycle and recover.
-    const { loaderCalls } = renderOnlineGate(2);
-
-    await vi.waitFor(() =>
-      expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument(),
-    );
-    expect(loaderCalls.count).toBe(1);
+    await renderUnavailableGate(2);
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
@@ -113,55 +122,30 @@ describe('online gate reconnect revalidation', () => {
     // failuresBeforeRecovery=1: mount fails, the immediate revalidation the
     // reconnect fires succeeds. No backoff retry may be scheduled or fired —
     // recovery unmounts the gate before the settle effect spends any budget.
-    const { loaderCalls } = renderOnlineGate(1);
-
-    await vi.waitFor(() =>
-      expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument(),
-    );
-    expect(loaderCalls.count).toBe(1);
+    const { loaderCalls } = await renderUnavailableGate(1);
 
     await fireReconnectAndDrainLadder();
 
     expect(screen.getByText('signed-in-shell')).toBeInTheDocument();
     // Mount (1) + the single immediate reconnect revalidation (2), nothing more.
-    const callsAfterRecovery = loaderCalls.count;
-    expect(callsAfterRecovery).toBe(2);
-
-    // Confirm no stray retry fires after the backoff window would have elapsed.
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(5000);
-    });
-    expect(loaderCalls.count).toBe(callsAfterRecovery);
+    expect(loaderCalls.count).toBe(2);
+    await expectNoFurtherLoads(loaderCalls);
   });
 
   it('does not retry on a bare mount without a reconnect signal', async () => {
     // No `online` event or Retry click is ever dispatched, so the gate is never
     // armed. Even though the server never recovers, it must not auto-hammer it:
     // exactly the single loader call from mount, no backoff retries.
-    const { loaderCalls } = renderOnlineGate(Number.POSITIVE_INFINITY);
+    const { loaderCalls } = await renderUnavailableGate(Number.POSITIVE_INFINITY);
 
-    await vi.waitFor(() =>
-      expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument(),
-    );
-    expect(loaderCalls.count).toBe(1);
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(5000);
-    });
-
-    expect(loaderCalls.count).toBe(1);
+    await expectNoFurtherLoads(loaderCalls);
     expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument();
   });
 
   it('bounds the reconnect retry budget when the server stays unavailable', async () => {
     // A reconnect signal fires against a server that never recovers. The ladder
     // must retry a bounded number of times and then stop, not loop forever.
-    const { loaderCalls } = renderOnlineGate(Number.POSITIVE_INFINITY);
-
-    await vi.waitFor(() =>
-      expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument(),
-    );
-    expect(loaderCalls.count).toBe(1);
+    const { loaderCalls } = await renderUnavailableGate(Number.POSITIVE_INFINITY);
 
     // A reconnect fires a bounded sequence of revalidations, then stops.
     await fireReconnectAndDrainLadder();
@@ -169,12 +153,9 @@ describe('online gate reconnect revalidation', () => {
     // The sequence ran (more than the single mount call) but stayed finite.
     expect(callsAfterFirstReconnect).toBeGreaterThan(1);
 
-    // Budget spent: more time passes with no additional revalidations — the
-    // contract is boundedness, not the exact ladder length.
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(5000);
-    });
-    expect(loaderCalls.count).toBe(callsAfterFirstReconnect);
+    // Budget spent: no more revalidations fire — the contract is boundedness,
+    // not the exact ladder length.
+    await expectNoFurtherLoads(loaderCalls);
     expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument();
 
     // A fresh reconnect signal re-arms the sequence for another bounded round.
@@ -182,10 +163,6 @@ describe('online gate reconnect revalidation', () => {
     expect(loaderCalls.count).toBeGreaterThan(callsAfterFirstReconnect);
 
     // The second round is also bounded — no runaway growth.
-    const callsAfterSecondReconnect = loaderCalls.count;
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(5000);
-    });
-    expect(loaderCalls.count).toBe(callsAfterSecondReconnect);
+    await expectNoFurtherLoads(loaderCalls);
   });
 });
