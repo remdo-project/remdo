@@ -1,19 +1,19 @@
 //TODO review, refactor, simplify, extract common helpers
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
+import { $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
-  $createParagraphNode,
   $createTextNode,
-  $getRoot,
   $getSelection,
   $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
+  COMMAND_PRIORITY_LOW,
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
 } from 'lexical';
 import type { LexicalNode, TextNode } from 'lexical';
+import { DELETE_SELECTED_NOTES_COMMAND } from '#client/editor/commands';
 import { useEffect, useState } from 'react';
 import {
   $getOrCreateChildList,
@@ -23,18 +23,13 @@ import {
   getPreviousContentSibling,
   insertBefore,
 } from '#client/editor/outline/list-structure';
-import {
-  $requireRootContentList,
-  $resolveRootContentList,
-  resolveContentItemFromNode,
-} from '#client/editor/outline/schema';
-import { $normalizeOutlineRoot } from '#client/editor/outline/normalization';
+import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
 import {
-  $resolveStructuralDeletionTargets,
-  applyStructuralDeletionTargets,
-} from '#client/editor/outline/selection/deletion';
+  $canDeleteSelectedNotes,
+  $deleteSelectedNotes,
+} from '#client/editor/outline/selection/delete-selection';
 import {
   getFirstDescendantListItem,
   getNestedList,
@@ -312,71 +307,13 @@ export function DeletionPlugin() {
 
   useEffect(() => {
     const $deleteStructuralSelection = (event: KeyboardEvent | null): boolean => {
-      if (!editor.selection.isStructural()) {
-        return false;
-      }
-
-      const outlineSelection = editor.selection.get();
-      const structuralRange = outlineSelection?.range;
-      if (!structuralRange) {
-        return false;
-      }
-
-      const selection = $getSelection();
-      const zoomRoot = $resolveZoomRoot(editor);
-      const structuralTargets = $resolveStructuralDeletionTargets(structuralRange, selection, zoomRoot);
-      if (!structuralTargets) {
+      if (!$canDeleteSelectedNotes(editor)) {
         return false;
       }
 
       event?.preventDefault();
       event?.stopPropagation();
-      applyStructuralDeletionTargets(structuralTargets);
-
-      let caretApplied = false;
-      if (structuralTargets.caretPlan) {
-        caretApplied = $selectItemEdge(structuralTargets.caretPlan.target, structuralTargets.caretPlan.edge);
-      }
-
-      if (!caretApplied && zoomRoot && zoomRoot.isAttached()) {
-        caretApplied = $selectItemEdge(zoomRoot, 'start');
-      }
-
-      if (!caretApplied) {
-        let rootList = $resolveRootContentList();
-        if (!rootList) {
-          $normalizeOutlineRoot($getRoot());
-          rootList = $requireRootContentList();
-        }
-
-        const firstItem = getFirstDescendantListItem(rootList);
-        let targetItem: ListItemNode;
-
-        if (firstItem) {
-          targetItem = firstItem;
-        } else {
-          const listItem = $createListItemNode();
-          listItem.append($createParagraphNode());
-          rootList.append(listItem);
-          targetItem = listItem;
-        }
-
-        caretApplied = $selectItemEdge(targetItem, 'start');
-      }
-
-      if (!caretApplied && $isRangeSelection(selection)) {
-        const anchorNode = selection.anchor.getNode();
-        if ($isTextNode(anchorNode)) {
-          selection.setTextNodeRange(anchorNode, selection.anchor.offset, anchorNode, selection.anchor.offset);
-        } else {
-          const contentItem = resolveContentItemFromNode(anchorNode);
-          if (contentItem) {
-            $selectItemEdge(contentItem, 'start');
-          }
-        }
-      }
-
-      return true;
+      return $deleteSelectedNotes(editor);
     };
 
     const $mergeAtStartOfNote = (selection: ReturnType<typeof $getSelection>, current: ListItemNode): boolean => {
@@ -519,9 +456,16 @@ export function DeletionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
+    const unregisterDeleteCommand = editor.registerCommand(
+      DELETE_SELECTED_NOTES_COMMAND,
+      () => $deleteSelectedNotes(editor),
+      COMMAND_PRIORITY_LOW
+    );
+
     return () => {
       unregisterBackspace();
       unregisterDelete();
+      unregisterDeleteCommand();
     };
   }, [editor]);
 

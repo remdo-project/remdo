@@ -25,9 +25,10 @@ toolbar surface and its behavior, not those operations.
      the [zoom](./zoom.md) boundary.
    - Move up / move down, per [Reordering](./reordering.md).
    - Toggle done, recursively per [List Types](./list-types.md).
-   - Toggle fold, per [Folding](./folding.md).
    - Delete, per [Deletion](./deletion.md), with no confirmation step.
-3. Undo and redo act on the document's edit history rather than the selection,
+3. Toggle fold acts on the focus note per [Folding](./folding.md), matching the
+   [menu](./menu.md)'s single-note fold contract.
+4. Undo and redo act on the document's edit history rather than the selection,
    reversing and reapplying the most recent edits.
 
 ## Capability
