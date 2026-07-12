@@ -136,6 +136,18 @@ describe('mobile toolbar actions', () => {
     expect(resolveSelectionCapability(remdo.editor).fold).toBe(false);
   });
 
+  it('does not fold the current zoom root', meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+    // Zoomed into note2 (which has child note3): folding note2 itself would hide
+    // the zoomed-in content, so with the caret on the zoom root fold is disabled
+    // and a tap is a no-op — matching the note menu's zoom-root guard.
+    await placeCaretAtNote(remdo, 'note2');
+    expect(resolveSelectionCapability(remdo.editor).fold).toBe(false);
+
+    const before = remdo.getEditorState();
+    runMobileAction(remdo.editor, 'fold');
+    expect(remdo).toMatchEditorState(before);
+  });
+
   it('reflects delete capability: enabled for a structural selection, disabled for a caret', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note5');
     expect(resolveSelectionCapability(remdo.editor).delete).toBe(false);

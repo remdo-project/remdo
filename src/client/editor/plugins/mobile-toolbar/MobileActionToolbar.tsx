@@ -61,7 +61,11 @@ export function MobileActionToolbar() {
     }
     installOutlineSelectionHelpers(editor);
 
+    let active = true;
     const syncCapability = () => {
+      if (!active) {
+        return;
+      }
       const capability = resolveSelectionCapability(editor);
       setState((prev) => ({ ...prev, ...capability }));
     };
@@ -70,7 +74,7 @@ export function MobileActionToolbar() {
     // set-state in the effect body; updates keep it in sync thereafter.
     queueMicrotask(syncCapability);
 
-    return mergeRegister(
+    const unregister = mergeRegister(
       editor.registerUpdateListener(syncCapability),
       editor.registerCommand(
         CAN_UNDO_COMMAND,
@@ -89,6 +93,11 @@ export function MobileActionToolbar() {
         COMMAND_PRIORITY_LOW
       )
     );
+
+    return () => {
+      active = false;
+      unregister();
+    };
   }, [editor, isCoarsePointer]);
 
   if (!isCoarsePointer || !portalRoot) {

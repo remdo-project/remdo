@@ -34,6 +34,13 @@ Rules:
   collapse or keep. Indent no-op tests assert editor state, not preventDefault,
   so they don't pin this.
 
+- Mobile toolbar fold: `resolveSelectionCapability` (button enabled state) and
+  `runMobileAction('fold')` (dispatch) each resolve the focus note independently,
+  so a selection change between the capability sync and the tap can fold a
+  different note than the button's enabled state reflected. The tap acts on the
+  current focus, which is arguably correct; revisit only if it proves confusing
+  in practice.
+
 ## Runtime and tooling source boundaries
 
 - Move runtime config under production source, split `tools/` into explicit

@@ -10,7 +10,16 @@ function readInset(): number {
   if (!viewport) {
     return 0;
   }
-  const obscured = globalThis.innerHeight - viewport.height - viewport.offsetTop;
+  // The keyboard shrinks the visual viewport below the layout viewport height;
+  // absent that shrink there is no keyboard and no inset. Only when shrunk do we
+  // also subtract offsetTop (the viewport pan the keyboard introduces), so plain
+  // outline scrolling — which changes offsetTop but not height — never lifts the
+  // toolbar.
+  const shrink = globalThis.innerHeight - viewport.height;
+  if (shrink <= 0) {
+    return 0;
+  }
+  const obscured = shrink - viewport.offsetTop;
   return obscured > 0 ? obscured : 0;
 }
 
