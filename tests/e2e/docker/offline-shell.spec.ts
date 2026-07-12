@@ -63,6 +63,12 @@ test.describe('Offline app shell', () => {
   unauthenticatedTest(
     'keeps the signed-out route while the app server is unavailable and retries in place',
     async ({ page, context }) => {
+      const userDataRequests: string[] = [];
+      page.on('request', (request) => {
+        if (new URL(request.url()).pathname === '/api/current-user') {
+          userDataRequests.push(request.url());
+        }
+      });
       allowServerUnavailableConsoleIssue(page);
       await context.route('**/api/**', (route) => {
         void route.abort();
@@ -78,6 +84,7 @@ test.describe('Offline app shell', () => {
         await expect(navigation.getByRole('link', {
           name: /^(?:Admin|Sharing|Logout|Sign in)$/u,
         })).toHaveCount(0);
+        expect(userDataRequests).toEqual([]);
 
         await context.unroute('**/api/**');
         await page.getByRole('button', { name: 'Retry' }).click();

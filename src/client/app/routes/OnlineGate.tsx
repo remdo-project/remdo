@@ -20,15 +20,15 @@ export default function OnlineGate({
 }
 
 function ConnectionUnavailable() {
-  const revalidator = useRevalidator();
+  const { revalidate } = useRevalidator();
 
   useEffect(() => {
-    const revalidate = () => {
-      void revalidator.revalidate();
+    const revalidateOnReconnect = () => {
+      void revalidate();
     };
-    globalThis.addEventListener('online', revalidate);
-    return () => globalThis.removeEventListener('online', revalidate);
-  }, [revalidator]);
+    globalThis.addEventListener('online', revalidateOnReconnect);
+    return () => globalThis.removeEventListener('online', revalidateOnReconnect);
+  }, [revalidate]);
 
   return (
     <CenteredCardPage
@@ -36,7 +36,7 @@ function ConnectionUnavailable() {
       title="Connection unavailable"
     >
       <Button onClick={() => {
-        void revalidator.revalidate();
+        void revalidate();
       }} type="button">
         Retry
       </Button>
