@@ -41,13 +41,13 @@ function renderOnlineGate(failuresBeforeRecovery: number) {
     { initialEntries: ['/'] },
   );
 
-  const result = render(
+  render(
     <MantineProvider>
       <RouterProvider router={router} />
     </MantineProvider>,
   );
 
-  return { loaderCalls, result };
+  return { loaderCalls };
 }
 
 /**

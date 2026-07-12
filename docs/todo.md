@@ -639,7 +639,7 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   therefore practically inert today; add coverage if a schema rule that survives
   load is introduced.
 
-- `OnlineGate` reconnect retry is bounded to `RECONNECT_RETRY_DELAYS_MS` per
+- `OnlineGate` reconnect retry is bounded to `RECONNECT_RETRY_OFFSETS_MS` per
   reconnect signal, so a server that recovers *without* a browser `online` event
   (transient 5xx / server restart while the network stays up) can leave the gate
   on "Connection unavailable" until the user clicks Retry. This is a deliberate
