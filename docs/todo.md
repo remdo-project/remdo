@@ -215,6 +215,28 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
 - Map leak: entries evict only on successful claim, so abandoned uploads retain
   the `File` for the session.
 
+## Home view follow-ups
+
+Tracks the gaps between [Home](outliner/home.md) as specified and what ships.
+
+- Favorites, Tags, and Recents on Home are static placeholder data, not derived
+  from real state. The entries are hardcoded until real favoriting, tagging, and
+  visit-history sources exist.
+- The document-source chevron combobox picker in `DocumentToolbar.tsx`
+  (`NEW_DOCUMENT_VALUE` / `UPLOAD_DOCUMENT_VALUE` and the grouped document
+  options) is replaced by Home: Home owns document browsing and the New/Upload
+  actions. Remove the picker once Home fully covers switching; the intervening
+  state (both present) is the recorded interim.
+- Breadcrumb accessibility: `ZoomBreadcrumbs` (Mantine `Breadcrumbs`) emits
+  neither a `nav` landmark nor an ordered list, and the crumbs carry no
+  `aria-current`. With the trail ending at the parent (the zoom root is the
+  title, not a crumb — see [Zoom breadcrumbs](outliner/zoom.md#breadcrumbs)), the
+  zoom-root title row should carry the view's heading semantics so heading
+  navigation still finds the current location; the editable Lexical node and the
+  heading role must stay on separate elements (a `textbox` role masks an inner
+  heading from assistive tech). Close these when implementing the parent-ending
+  breadcrumb.
+
 ## Note-first SDK follow-ups
 
 - App-resource SDK direction: model current-user app resources as projected

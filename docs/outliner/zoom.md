@@ -35,8 +35,9 @@ caret/selection state in the editor.
 5. While zoomed, edits are bounded to the zoom boundary. Commands MUST NOT
    create, merge, move, or target notes outside that boundary.
 6. The zoom root is presented distinctly from ordinary note rows. It remains
-   editable, but it serves as the local title/heading for the zoomed view
-   rather than reading as just another sibling in the list.
+   editable, but it serves as the title/heading for the zoomed view. The
+   breadcrumb trail stops at the zoom root's parent, so the title is not repeated
+   as a crumb.
 7. If the zoom root has direct children, those children are always visible
    while zoomed, even when the zoom root's stored fold state is `folded`.
    Descendants beneath those children still follow their own fold states.
@@ -82,17 +83,19 @@ no longer be resolved.
 
 ## Breadcrumbs
 
-1. **Document root zoom:** The breadcrumb trail contains a single item: the
-   document name.
-2. **Subtree zoom:** The breadcrumb trail expands to include the zoom path in
-   order: document name → ancestor notes → zoom root (included).
-3. Each breadcrumb item is clickable:
-   - Document name clears zoom.
-   - Any ancestor note breadcrumb re-zooms on that note.
-   - The zoom root breadcrumb is the current location and is not a link.
+The breadcrumb trail is the ancestor path above the current location; the
+current location itself is not a crumb but the view's title.
 
-Breadcrumb labels use the same display text as the corresponding outline note,
-truncated to 20 characters for display when needed.
+1. **Document root zoom:** The breadcrumb trail contains a single crumb: Home.
+2. **Subtree zoom:** The breadcrumb trail is the zoom path up to but excluding
+   the zoom root, in order: Home / document name / ancestor notes.
+3. Every breadcrumb item is a link:
+   - The Home crumb opens [Home](./home.md).
+   - The document name clears zoom.
+   - Any ancestor note breadcrumb re-zooms on that note.
+
+Breadcrumb labels other than Home use the same display text as the corresponding
+outline note, truncated to 20 characters for display when needed.
 
 ## Routing
 
