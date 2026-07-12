@@ -1,4 +1,10 @@
-import { attachPageGuards, expect, test } from '#e2e/fixtures';
+import {
+  attachPageGuards,
+  collectCurrentUserRequests,
+  expect,
+  test,
+  unauthenticatedTest,
+} from '#e2e/fixtures';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import type { Page } from '@playwright/test';
 import { createUserDocument } from '../_support/documents';
@@ -6,6 +12,7 @@ import {
   allowOfflineDisconnectedConsoleIssue,
   allowServerUnavailableConsoleIssue,
   cleanupOfflineTest,
+  withOfflinePage,
   waitForEditableEditor,
   waitForServiceWorkerControl,
 } from './_support/helpers';
@@ -19,19 +26,11 @@ test.describe('Offline app shell', () => {
     allowOfflineDisconnectedConsoleIssue(page);
     await page.close();
 
-    let offlinePage: Page | undefined;
-    let detachOfflineGuards: (() => void) | undefined;
-    await context.setOffline(true);
-    try {
-      offlinePage = await context.newPage();
-      detachOfflineGuards = attachPageGuards(offlinePage);
-      allowOfflineDisconnectedConsoleIssue(offlinePage);
+    await withOfflinePage(context, async (offlinePage) => {
       await offlinePage.goto('/');
-      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe(homePath);
+      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe(homePath);
       await expect(offlinePage.locator('.document-editor-shell')).toBeVisible();
-    } finally {
-      await cleanupOfflineTest(context, offlinePage, detachOfflineGuards);
-    }
+    });
   });
 
   test('opens the cached bootstrap home route when the API server is unavailable', async ({ page, context }) => {
@@ -60,46 +59,101 @@ test.describe('Offline app shell', () => {
     }
   });
 
-  test('shows a fallback when signed out offline', async ({ browser, contextOptions }) => {
-    const context = await browser.newContext({
-      ...contextOptions,
-      storageState: {
-        cookies: [],
-        origins: [],
-      },
-    });
-    const warmupPage = await context.newPage();
-    let detachWarmupGuards: (() => void) | undefined;
-    let offlinePage: Page | undefined;
-    let detachOfflineGuards: (() => void) | undefined;
+  unauthenticatedTest(
+    'keeps the signed-out route while the app server is unavailable and retries in place',
+    async ({ page, context }) => {
+      const currentUserRequests = collectCurrentUserRequests(page);
+      allowServerUnavailableConsoleIssue(page);
+      await context.route('**/api/**', (route) => {
+        void route.abort();
+      });
+      try {
+        await page.goto('/');
 
-    try {
-      detachWarmupGuards = attachPageGuards(warmupPage);
-      await warmupPage.goto('/');
-      await waitForServiceWorkerControl(warmupPage);
-      detachWarmupGuards();
-      detachWarmupGuards = undefined;
-      await warmupPage.close();
+        await expect.poll(() => new URL(page.url()).pathname).toBe('/');
+        expect(new URL(page.url()).search).toBe('');
+        await expect(page.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
+        const navigation = page.getByRole('navigation', { name: 'Primary' });
+        await expect(navigation.getByRole('link', {
+          name: /^(?:Admin|Sharing|Logout|Sign in)$/u,
+        })).toHaveCount(0);
+        expect(currentUserRequests).toEqual([]);
 
-      await context.setOffline(true);
-      offlinePage = await context.newPage();
-      detachOfflineGuards = attachPageGuards(offlinePage);
-      allowOfflineDisconnectedConsoleIssue(offlinePage);
-      await offlinePage.goto('/');
-      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/offline');
-      await expect(offlinePage.getByRole('heading', { name: 'Offline' })).toBeVisible();
+        await context.unroute('**/api/**');
+        await page.getByRole('button', { name: 'Retry' }).click();
+        await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+        await expect.poll(() => new URL(page.url()).pathname).toBe('/');
+      } finally {
+        await context.unroute('**/api/**');
+      }
+    },
+  );
+
+  unauthenticatedTest('revalidates the preserved route when browser connectivity returns', async ({
+    page,
+    context,
+  }) => {
+    await page.goto('/');
+    await waitForServiceWorkerControl(page);
+    await page.close();
+
+    await withOfflinePage(context, async (offlinePage) => {
+      await offlinePage.goto('/sharing');
+
+      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/sharing');
+      await expect(offlinePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
 
       await context.setOffline(false);
-      await offlinePage.getByRole('button', { name: 'Retry' }).click();
-      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/');
       await expect(offlinePage.getByRole('heading', { name: 'Sign in' })).toBeVisible();
-    } finally {
-      if (detachWarmupGuards) {
-        detachWarmupGuards();
-      }
-      await cleanupOfflineTest(context, offlinePage, detachOfflineGuards);
-      await context.close();
-    }
+      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/');
+      await expect.poll(() => new URL(offlinePage.url()).searchParams.get('next')).toBe('/sharing');
+    });
+  });
+
+  test('withholds consent actions until the authenticated session can be revalidated', async ({
+    page,
+    context,
+  }) => {
+    await page.goto('/');
+    await waitForServiceWorkerControl(page);
+    allowOfflineDisconnectedConsoleIssue(page);
+    await page.close();
+
+    await withOfflinePage(context, async (offlinePage) => {
+      const currentUserRequests = collectCurrentUserRequests(offlinePage);
+      await offlinePage.goto('/oauth/consent?client_id=test-client');
+
+      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/oauth/consent');
+      await expect(offlinePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
+      await expect(offlinePage.getByRole('button', { name: /^(?:Allow|Deny)$/u })).toHaveCount(0);
+      expect(currentUserRequests).toEqual([]);
+
+      await context.setOffline(false);
+      await expect(offlinePage.getByRole('heading', { name: 'Authorize access' })).toBeVisible();
+      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/oauth/consent');
+      expect(new URL(offlinePage.url()).searchParams.get('client_id')).toBe('test-client');
+    });
+  });
+
+  test('withholds admin actions until the authenticated session can be revalidated', async ({
+    page,
+    context,
+  }) => {
+    await page.goto('/');
+    await waitForServiceWorkerControl(page);
+    allowOfflineDisconnectedConsoleIssue(page);
+    await page.close();
+
+    await withOfflinePage(context, async (offlinePage) => {
+      const currentUserRequests = collectCurrentUserRequests(offlinePage);
+      await offlinePage.goto('/admin');
+
+      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/admin');
+      await expect(offlinePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
+      await expect(offlinePage.getByRole('heading', { name: /^(?:Admin|Become admin)$/u })).toHaveCount(0);
+      expect(currentUserRequests).toEqual([]);
+    });
   });
 
   test('opens the app shell while offline after an online warm-up', async ({ page, context }) => {
@@ -110,20 +164,12 @@ test.describe('Offline app shell', () => {
     allowOfflineDisconnectedConsoleIssue(page);
     await page.close();
 
-    let offlinePage: Page | undefined;
-    let detachOfflineGuards: (() => void) | undefined;
-    await context.setOffline(true);
-    try {
-      offlinePage = await context.newPage();
-      detachOfflineGuards = attachPageGuards(offlinePage);
-      allowOfflineDisconnectedConsoleIssue(offlinePage);
+    await withOfflinePage(context, async (offlinePage) => {
       await offlinePage.goto(`/n/${warmedDocId}`);
       await expect(offlinePage.getByRole('link', { name: 'RemDo' })).toBeVisible();
       await expect(offlinePage.locator('.document-editor-shell')).toBeVisible();
       await expect(offlinePage.locator('.editor-container')).toBeVisible();
-    } finally {
-      await cleanupOfflineTest(context, offlinePage, detachOfflineGuards);
-    }
+    });
   });
 
   test('shows offline empty state for a document without local cache', async ({ page, context }) => {
@@ -133,23 +179,18 @@ test.describe('Offline app shell', () => {
     allowOfflineDisconnectedConsoleIssue(page);
     await page.close();
 
-    let offlinePage: Page | undefined;
-    let detachOfflineGuards: (() => void) | undefined;
-    await context.setOffline(true);
-    try {
+    await withOfflinePage(context, async (offlinePage) => {
       const uncachedDocId = createUniqueNoteId();
-      offlinePage = await context.newPage();
-      detachOfflineGuards = attachPageGuards(offlinePage);
-      allowOfflineDisconnectedConsoleIssue(offlinePage);
       await offlinePage.goto(`/n/${uncachedDocId}`);
       await expect(offlinePage.locator('.editor-offline-empty-state')).toBeVisible();
       await expect(
-        offlinePage.getByText("You're offline. This document has no local copy yet.")
+        offlinePage.getByRole('heading', { name: 'Connection unavailable' })
+      ).toBeVisible();
+      await expect(
+        offlinePage.getByText("This document isn't available offline yet.")
       ).toBeVisible();
       await expect(offlinePage.locator('.editor-input')).toHaveCount(0);
-    } finally {
-      await cleanupOfflineTest(context, offlinePage, detachOfflineGuards);
-    }
+    });
   });
 
   test('reopens a cached document offline, accepts edits, and reconnects', async ({ page, context }) => {
@@ -170,15 +211,10 @@ test.describe('Offline app shell', () => {
     allowOfflineDisconnectedConsoleIssue(page);
     await page.close();
 
-    let offlinePage: Page | undefined;
-    let detachOfflineGuards: (() => void) | undefined;
-    await context.setOffline(true);
-    try {
-      offlinePage = await context.newPage();
-      detachOfflineGuards = attachPageGuards(offlinePage);
-      allowOfflineDisconnectedConsoleIssue(offlinePage);
+    await withOfflinePage(context, async (offlinePage) => {
       await offlinePage.goto(`/n/${docId}`);
       await waitForEditableEditor(offlinePage);
+      await expect(offlinePage.getByText('Sync paused · edits sync when reconnected')).toBeVisible();
       const offlineEditorInput = offlinePage.locator('.editor-input').first();
       await expect(offlinePage.locator('li.list-item').filter({ hasText: onlineSeedText })).toHaveCount(1);
 
@@ -189,9 +225,8 @@ test.describe('Offline app shell', () => {
 
       await context.setOffline(false);
       await expect(offlinePage.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+      await expect(offlinePage.getByText('Sync paused · edits sync when reconnected')).toHaveCount(0);
       await expect(offlinePage.locator('li.list-item').filter({ hasText: offlineEditText })).toHaveCount(1);
-    } finally {
-      await cleanupOfflineTest(context, offlinePage, detachOfflineGuards);
-    }
+    });
   });
 });

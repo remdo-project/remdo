@@ -1,4 +1,4 @@
-import { expect, test } from '#e2e/fixtures';
+import { collectCurrentUserRequests, expect, test, unauthenticatedTest } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import type { CurrentUserBootstrap } from '#domain/documents/user-data';
 import { HTTP_STATUS } from '#platform/http/status';
@@ -15,26 +15,8 @@ const freshAuthenticatedTest = test.extend({
   },
 });
 
-const unauthenticatedTest = test.extend({
-  storageState: {
-    cookies: [],
-    origins: [],
-  },
-});
-
 async function expectPath(page: Page, pathname: string): Promise<void> {
   await expect.poll(() => new URL(page.url()).pathname).toBe(pathname);
-}
-
-function collectUserDataRuntimeRequests(page: Page): string[] {
-  const requests: string[] = [];
-  page.on('request', (request) => {
-    const pathname = new URL(request.url()).pathname;
-    if (pathname === '/api/current-user') {
-      requests.push(pathname);
-    }
-  });
-  return requests;
 }
 
 async function createIndexedDb(page: Page, dbName: string): Promise<void> {
@@ -76,7 +58,7 @@ test.describe('Routing', () => {
   });
 
   unauthenticatedTest('uses the root login entry and preserves a protected next target when unauthenticated', async ({ page }) => {
-    const userDataRequests = collectUserDataRuntimeRequests(page);
+    const userDataRequests = collectCurrentUserRequests(page);
     await page.goto('/');
 
     await expectPath(page, '/');
@@ -105,7 +87,7 @@ test.describe('Routing', () => {
   });
 
   test('keeps full authenticated navigation on the standalone consent route', async ({ page }) => {
-    const userDataRequests = collectUserDataRuntimeRequests(page);
+    const userDataRequests = collectCurrentUserRequests(page);
     await page.goto('/oauth/consent?client_id=test-client');
 
     await expect(page.getByRole('heading', { name: 'Authorize access' })).toBeVisible();
@@ -118,23 +100,8 @@ test.describe('Routing', () => {
     expect(userDataRequests).toEqual([]);
   });
 
-  test('renders a brand-only header without user data on the offline route', async ({ page }) => {
-    const userDataRequests = collectUserDataRuntimeRequests(page);
-    await page.goto('/offline');
-
-    await expect(page.getByRole('heading', { name: 'Offline' })).toBeVisible();
-    await expect(page.getByRole('main')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
-    const navigation = page.getByRole('navigation', { name: 'Primary' });
-    await expect(navigation.getByRole('link', {
-      name: /^(?:Admin|Sharing|Logout|Sign in)$/u,
-    })).toHaveCount(0);
-    await page.waitForLoadState('networkidle');
-    expect(userDataRequests).toEqual([]);
-  });
-
   test('renders Sharing as a standard authenticated page', async ({ page }) => {
-    const userDataRequests = collectUserDataRuntimeRequests(page);
+    const userDataRequests = collectCurrentUserRequests(page);
     await page.goto('/sharing');
 
     await expect(page.getByRole('main')).toBeVisible();
@@ -144,7 +111,7 @@ test.describe('Routing', () => {
   });
 
   test('starts user data for a direct authenticated admin page', async ({ page }) => {
-    const userDataRequests = collectUserDataRuntimeRequests(page);
+    const userDataRequests = collectCurrentUserRequests(page);
     await page.goto('/admin');
 
     await expect(page.getByRole('main')).toBeVisible();
@@ -154,7 +121,7 @@ test.describe('Routing', () => {
   });
 
   unauthenticatedTest('keeps unauthenticated admin enrollment outside user data', async ({ page }) => {
-    const userDataRequests = collectUserDataRuntimeRequests(page);
+    const userDataRequests = collectCurrentUserRequests(page);
     await page.goto('/admin');
 
     await expect(page.getByRole('main')).toBeVisible();

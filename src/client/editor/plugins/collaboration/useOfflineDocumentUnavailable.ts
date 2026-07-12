@@ -1,6 +1,5 @@
 import { useCollaborationStatus } from './CollaborationProvider';
 import type { CollaborationConnectionStatus } from '#collaboration/runtime';
-import { useOnlineState } from '#client/runtime/useOnlineState';
 
 interface OfflineDocumentUnavailableSnapshot {
   enabled: boolean;
@@ -9,25 +8,23 @@ interface OfflineDocumentUnavailableSnapshot {
   connectionStatus: CollaborationConnectionStatus;
 }
 
+// An unreachable RemDo server produces the same unusable state as a dead device
+// network, so this gates on the collaboration connection alone — not
+// navigator.onLine, which reports true whenever a network interface exists.
 export function resolveOfflineDocumentUnavailable(
   snapshot: OfflineDocumentUnavailableSnapshot,
-  online: boolean,
 ): boolean {
   const disconnected = snapshot.connectionStatus === 'disconnected' || snapshot.connectionStatus === 'error';
-  return snapshot.enabled && !snapshot.hydrated && !snapshot.localCacheHydrated && disconnected && !online;
+  return snapshot.enabled && !snapshot.hydrated && !snapshot.localCacheHydrated && disconnected;
 }
 
 export function useOfflineDocumentUnavailable(): boolean {
   const { enabled, hydrated, localCacheHydrated, connectionStatus } = useCollaborationStatus();
-  const online = useOnlineState();
 
-  return resolveOfflineDocumentUnavailable(
-    {
-      enabled,
-      hydrated,
-      localCacheHydrated,
-      connectionStatus,
-    },
-    online,
-  );
+  return resolveOfflineDocumentUnavailable({
+    enabled,
+    hydrated,
+    localCacheHydrated,
+    connectionStatus,
+  });
 }

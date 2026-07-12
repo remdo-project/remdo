@@ -13,6 +13,7 @@ interface IndicatorViewModel {
   localPersistence: LocalPersistenceState;
   server: ServerState;
   status: StatusKey;
+  syncInterrupted: boolean;
 }
 
 interface CollaborationStatusSnapshot {
@@ -53,6 +54,7 @@ export function buildCollaborationIndicatorViewModel(snapshot: CollaborationStat
     localPersistence,
     server,
     status: localPersistence === 'enabled' && server === 'connected' ? 'healthy' : 'degraded',
+    syncInterrupted: localPersistence === 'enabled' && server === 'disconnected',
   };
 }
 
@@ -88,6 +90,11 @@ export function useCollaborationIndicator(): StatusDescriptor {
   } satisfies CollaborationStatusSnapshot;
   const view = buildCollaborationIndicatorViewModel(snapshot);
   const { icon } = STATUS_CONFIG[view.status];
+  const classNames = [
+    'collab-status',
+    `collab-status--${view.status}`,
+    view.syncInterrupted && 'collab-status--interrupted',
+  ].filter(Boolean).join(' ');
 
   return {
     key: 'collab',
@@ -95,6 +102,7 @@ export function useCollaborationIndicator(): StatusDescriptor {
     icon,
     ariaLabel: buildAriaLabel(view),
     title: buildStatusTitle(view),
-    className: `collab-status collab-status--${view.status}`,
+    text: view.syncInterrupted ? 'Sync paused · edits sync when reconnected' : undefined,
+    className: classNames,
   };
 }

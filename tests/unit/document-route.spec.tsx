@@ -76,6 +76,9 @@ describe('document route', () => {
   });
 
   it('waits for source resolution before opening a source-only plain document route', async () => {
+    // Keep the local-access probe in flight so the workspace stays on "Loading
+    // document" until source resolution completes, not because the probe failed.
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
     setTestDocumentSourcesLoading(true);
 
     renderDocumentRoute(createDocumentPath('sourceDoc'));
@@ -99,6 +102,28 @@ describe('document route', () => {
       expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', 'source');
       expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-origin', 'https://source.example');
     });
+  });
+
+  it('opens the editor when the local-access probe fails while source resolution is loading', async () => {
+    // Server unreachable: the sync-token probe rejects. The workspace must mount
+    // the editor (letting the collaboration layer surface the connection state)
+    // instead of hanging on "Loading document" forever.
+    const fetchMock = vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    setTestDocumentSourcesLoading(true);
+
+    renderDocumentRoute(createDocumentPath('unreachableDoc'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'unreachableDoc');
+      expect(screen.queryByRole('status')).toBeNull();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      createDocumentSyncTokenApiPath('unreachableDoc'),
+      expect.objectContaining({ method: 'POST' }),
+    );
   });
 
   it('opens an authorized local document while source resolution is loading', async () => {

@@ -164,6 +164,28 @@ export const test = base.extend({
   },
 });
 
+// Signed-out context: no cookies or stored origin state, so the app resolves the
+// unauthenticated session gate.
+export const unauthenticatedTest = test.extend({
+  storageState: {
+    cookies: [],
+    origins: [],
+  },
+});
+
+// Record every `/api/current-user` bootstrap request a page issues, so tests can
+// assert the unauthenticated fallback never reaches for user data.
+export function collectCurrentUserRequests(page: Page): string[] {
+  const requests: string[] = [];
+  page.on('request', (request) => {
+    const pathname = new URL(request.url()).pathname;
+    if (pathname === '/api/current-user') {
+      requests.push(pathname);
+    }
+  });
+  return requests;
+}
+
 expect.extend({
   async toMatchOutline(received: unknown, expected: Outline) {
     if (this.isNot) {
