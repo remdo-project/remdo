@@ -24,7 +24,9 @@ function renderOnlineGate(failuresBeforeRecovery: number) {
     [
       {
         path: '/',
-        loader: () => {
+        // Async so the revalidator observably transitions idle -> loading ->
+        // idle on each revalidation, as it does against the real session fetch.
+        loader: async () => {
           loaderCalls.count += 1;
           const status: SessionGateState['status'] =
             loaderCalls.count > failuresBeforeRecovery ? 'unauthenticated' : 'offline-unavailable';
@@ -51,9 +53,10 @@ function renderOnlineGate(failuresBeforeRecovery: number) {
 }
 
 /**
- * Fires a reconnect (`online`) signal, then drains every timer the reconnect
- * scheduled. The gate schedules its whole backoff sequence up front, so a single
- * `runAllTimersAsync` covers it regardless of the ladder's delays.
+ * Fires a reconnect (`online`) signal, then drains the full retry sequence. The
+ * gate schedules each backoff only after the prior revalidation settles, so
+ * `runAllTimersAsync` keeps running the timers it re-schedules until the budget
+ * is spent (or recovery unmounts the gate).
  */
 async function fireReconnectAndDrainLadder() {
   await act(async () => {
@@ -91,6 +94,31 @@ describe('online gate reconnect revalidation', () => {
     expect(screen.queryByRole('heading', { name: 'Connection unavailable' })).toBeNull();
     // At least one retry beyond the failed reconnect revalidation was required.
     expect(loaderCalls.count).toBeGreaterThanOrEqual(3);
+  });
+
+  it('fires no backoff retry when the immediate reconnect attempt recovers', async () => {
+    // failuresBeforeRecovery=1: mount fails, the immediate revalidation the
+    // reconnect fires succeeds. No backoff retry may be scheduled or fired —
+    // recovery unmounts the gate before the settle effect spends any budget.
+    const { loaderCalls } = renderOnlineGate(1);
+
+    await vi.waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument(),
+    );
+    expect(loaderCalls.count).toBe(1);
+
+    await fireReconnectAndDrainLadder();
+
+    expect(screen.getByText('signed-in-shell')).toBeInTheDocument();
+    // Mount (1) + the single immediate reconnect revalidation (2), nothing more.
+    const callsAfterRecovery = loaderCalls.count;
+    expect(callsAfterRecovery).toBe(2);
+
+    // Confirm no stray retry fires after the backoff window would have elapsed.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(loaderCalls.count).toBe(callsAfterRecovery);
   });
 
   it('does not retry on a bare mount while the server is down but the network is up', async () => {

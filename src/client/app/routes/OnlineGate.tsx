@@ -1,6 +1,6 @@
 import { Button } from '@mantine/core';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLoaderData, useRevalidator } from 'react-router-dom';
 import type { SessionGateState } from '#client/app/auth/client';
 import CenteredCardPage from '#client/ui/CenteredCardPage';
@@ -8,14 +8,15 @@ import CenteredCardPage from '#client/ui/CenteredCardPage';
 // The first session fetch after a reconnect (browser `online` event or a manual
 // retry) can still fail transiently while the connection re-establishes (e.g. a
 // reset socket), which would otherwise leave the gate stuck on "Connection
-// unavailable" until another manual retry. Each reconnect signal therefore
-// starts a bounded, backed-off sequence of revalidations so a clean reconnect
-// recovers on its own. The sequence is *only* driven by a reconnect signal —
-// never by a bare mount while `navigator.onLine` is true — so a server that is
-// genuinely down (network up) is not auto-hammered on every render of this gate.
-// Values are absolute offsets from the reconnect: an immediate attempt (0ms)
-// the reconnect warrants, then backed-off retries.
-const RECONNECT_RETRY_OFFSETS_MS = [0, 150, 550, 1550];
+// unavailable" until another manual retry. Each reconnect signal therefore fires
+// an immediate revalidation and then, only if it settles still-unavailable, a
+// bounded set of backed-off retries so a clean reconnect recovers on its own.
+// Retries are *only* driven by a reconnect signal — never by a bare mount while
+// `navigator.onLine` is true — so a server that is genuinely down (network up)
+// is not auto-hammered on every render of this gate. Each retry waits for the
+// prior revalidation to settle before scheduling (react-router's `revalidate()`
+// aborts any in-flight one), so a slow reconnect is not a self-cancelling storm.
+const RECONNECT_RETRY_BACKOFFS_MS = [150, 400, 1000];
 
 export default function OnlineGate({
   allowOfflineSession = false,
@@ -32,17 +33,23 @@ export default function OnlineGate({
 }
 
 function ConnectionUnavailable() {
-  const { revalidate } = useRevalidator();
+  const { revalidate, state } = useRevalidator();
   // A reconnect signal (browser `online` event or the Retry button) bumps
-  // `arming`; the effect below then schedules the whole `RECONNECT_RETRY_OFFSETS_MS`
-  // sequence at once and cancels any prior pending timers. `arming === 0` means
-  // never armed (a bare mount), so nothing is scheduled and a genuinely-down
-  // server is not auto-hammered. A successful revalidation flips the session
-  // state, unmounts this component, and its cleanup cancels the rest of the
-  // sequence, so it stops as soon as the connection recovers.
+  // `arming`, which fires an immediate revalidation and opens a fresh retry
+  // budget. `arming === 0` means never armed (a bare mount), so a genuinely-down
+  // server is not auto-hammered. `retriesLeftRef` is the remaining backoff
+  // budget for the current cycle; each backoff retry is scheduled only once the
+  // prior revalidation has settled (see the state-driven effect below).
   const [arming, setArming] = useState(0);
+  const retriesLeftRef = useRef(0);
+  // Set true while a revalidation this cycle is in flight, so a backoff is only
+  // scheduled on the `loading -> idle` settle edge — never off the `idle` the
+  // immediate revalidation starts from (which would race a retry against the
+  // in-flight fetch and abort it).
+  const revalidationPendingRef = useRef(false);
 
   const armRetryBudget = useCallback(() => {
+    retriesLeftRef.current = RECONNECT_RETRY_BACKOFFS_MS.length;
     setArming((count) => count + 1);
   }, []);
 
@@ -51,17 +58,37 @@ function ConnectionUnavailable() {
     return () => globalThis.removeEventListener('online', armRetryBudget);
   }, [armRetryBudget]);
 
+  // Fire the immediate revalidation for each reconnect signal.
   useEffect(() => {
     if (arming === 0) {
       return;
     }
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    for (const offset of RECONNECT_RETRY_OFFSETS_MS) {
-      const timer = globalThis.setTimeout(() => void revalidate(), offset);
-      timers.push(timer);
-    }
-    return () => timers.forEach((timer) => globalThis.clearTimeout(timer));
+    revalidationPendingRef.current = true;
+    void revalidate();
   }, [arming, revalidate]);
+
+  // On the `loading -> idle` settle edge, with this component still mounted
+  // (i.e. still unavailable), spend one unit of the retry budget on a backed-off
+  // follow-up. Waiting for the settle — rather than a wall-clock offset — means
+  // each retry follows the prior instead of aborting it; recovery unmounts this
+  // component so no further retry fires.
+  useEffect(() => {
+    if (state === 'loading') {
+      revalidationPendingRef.current = true;
+      return;
+    }
+    if (!revalidationPendingRef.current || retriesLeftRef.current === 0) {
+      return;
+    }
+    revalidationPendingRef.current = false;
+    const delay = RECONNECT_RETRY_BACKOFFS_MS[RECONNECT_RETRY_BACKOFFS_MS.length - retriesLeftRef.current];
+    const timer = globalThis.setTimeout(() => {
+      retriesLeftRef.current -= 1;
+      revalidationPendingRef.current = true;
+      void revalidate();
+    }, delay);
+    return () => globalThis.clearTimeout(timer);
+  }, [revalidate, state]);
 
   return (
     <CenteredCardPage
