@@ -41,7 +41,9 @@ function ConnectionUnavailable() {
   // budget for the current cycle; each backoff retry is scheduled only once the
   // prior revalidation has settled (see the state-driven effect below).
   const [arming, setArming] = useState(0);
-  const retriesLeftRef = useRef(0);
+  // Index of the next backoff retry into `RECONNECT_RETRY_BACKOFFS_MS`; the cycle
+  // ends once it reaches the array length.
+  const nextBackoffRef = useRef(0);
   // Set true while a revalidation this cycle is in flight, so a backoff is only
   // scheduled on the `loading -> idle` settle edge — never off the `idle` the
   // immediate revalidation starts from (which would race a retry against the
@@ -49,7 +51,7 @@ function ConnectionUnavailable() {
   const revalidationPendingRef = useRef(false);
 
   const armRetryBudget = useCallback(() => {
-    retriesLeftRef.current = RECONNECT_RETRY_BACKOFFS_MS.length;
+    nextBackoffRef.current = 0;
     setArming((count) => count + 1);
   }, []);
 
@@ -77,13 +79,13 @@ function ConnectionUnavailable() {
       revalidationPendingRef.current = true;
       return;
     }
-    if (!revalidationPendingRef.current || retriesLeftRef.current === 0) {
+    if (!revalidationPendingRef.current || nextBackoffRef.current >= RECONNECT_RETRY_BACKOFFS_MS.length) {
       return;
     }
     revalidationPendingRef.current = false;
-    const delay = RECONNECT_RETRY_BACKOFFS_MS[RECONNECT_RETRY_BACKOFFS_MS.length - retriesLeftRef.current];
+    const delay = RECONNECT_RETRY_BACKOFFS_MS[nextBackoffRef.current];
     const timer = globalThis.setTimeout(() => {
-      retriesLeftRef.current -= 1;
+      nextBackoffRef.current += 1;
       revalidationPendingRef.current = true;
       void revalidate();
     }, delay);

@@ -5,13 +5,6 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import OnlineGate from '#client/app/routes/OnlineGate';
 import type { SessionGateState } from '#client/app/auth/client';
 
-function setOnline(online: boolean) {
-  Object.defineProperty(globalThis.navigator, 'onLine', {
-    configurable: true,
-    value: online,
-  });
-}
-
 /**
  * Renders OnlineGate against a loader that returns `offline-unavailable` until
  * `failuresBeforeRecovery` revalidations have run, then returns
@@ -70,12 +63,10 @@ async function fireReconnectAndDrainLadder() {
 describe('online gate reconnect revalidation', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    setOnline(true);
   });
 
   afterEach(() => {
     vi.useRealTimers();
-    setOnline(true);
   });
 
   it('recovers after a transient revalidation failure once connectivity returns', async () => {
@@ -121,9 +112,9 @@ describe('online gate reconnect revalidation', () => {
     expect(loaderCalls.count).toBe(callsAfterRecovery);
   });
 
-  it('does not retry on a bare mount while the server is down but the network is up', async () => {
-    // navigator.onLine is true (set in beforeEach) but the server never
-    // recovers. Without a reconnect signal the gate must not auto-hammer it:
+  it('does not retry on a bare mount without a reconnect signal', async () => {
+    // No `online` event or Retry click is ever dispatched, so the gate is never
+    // armed. Even though the server never recovers, it must not auto-hammer it:
     // exactly the single loader call from mount, no backoff retries.
     const { loaderCalls } = renderOnlineGate(Number.POSITIVE_INFINITY);
 
