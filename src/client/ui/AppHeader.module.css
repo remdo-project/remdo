@@ -1,5 +1,5 @@
 /* Inside the app-shell glass card the header is the same frosted material as the
-   body, just denser (~84% vs the body's 70%) so it still reads as chrome by
+   body, just denser (69% vs the body's 55%) so it still reads as chrome by
    elevation rather than a hard line — one continuous glass panel. */
 .header {
   width: 100%;
@@ -8,23 +8,20 @@
   -webkit-backdrop-filter: blur(16px);
 }
 
-/* Align the header content to the document body's inline inset (`xl`), and span
+/* Align the header content to the document body's inline inset (`xl`), spanning
    the full card width, so the brand and nav line up with the "Document:" label
-   and status/cloud row directly below them — one shared spine. This overrides
-   Mantine Container's own gutter + max-width (element+class beats its single
-   `.mantine-Container-root`). */
-.inner {
+   and status/cloud row directly below them — one shared spine. The `.header`
+   qualifier makes this element+class rule outweigh Mantine Container's own
+   single-class gutter + max-width (`.mantine-Container-root`). */
+.header .inner {
   display: flex;
   min-height: 4rem;
   align-items: center;
   justify-content: space-between;
   gap: var(--mantine-spacing-lg);
   padding-block: var(--mantine-spacing-sm);
-}
-
-.header .inner {
-  max-width: none;
   padding-inline: var(--mantine-spacing-xl);
+  max-width: none;
 }
 
 .brandLink {
@@ -41,7 +38,7 @@
   width: 1.25rem;
   height: 1.25rem;
   flex-shrink: 0;
-  background-color: var(--remdo-accent, currentColor);
+  background-color: var(--remdo-accent);
   mask-image: url('/favicon.svg');
   mask-repeat: no-repeat;
   mask-position: center;
