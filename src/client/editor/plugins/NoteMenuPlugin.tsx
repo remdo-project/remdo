@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom';
 import { $getNoteId } from '#client/editor/runtime/note-id-state';
 
 import { FOLD_VIEW_TO_LEVEL_COMMAND, OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
-import { $resolveContentNoteFromDOMNode } from '#client/editor/outline/note-context';
+import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { requireContentItemFromNode } from '#client/editor/outline/schema';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { getNestedList } from '#client/editor/outline/selection/tree';
@@ -260,27 +260,8 @@ export function NoteMenuPlugin() {
       });
     };
 
-    const resolveSelectionKey = (): string | null => {
-      let key: string | null = null;
-      editor.read(() => {
-        const outlineSelection = editor.selection.get();
-        if (outlineSelection?.focusKey) {
-          key = outlineSelection.focusKey;
-          return;
-        }
-        const domSelection = globalThis.getSelection();
-        const focusNode = domSelection?.focusNode ?? domSelection?.anchorNode ?? null;
-        if (!focusNode) {
-          return;
-        }
-        const contentItem = $resolveContentNoteFromDOMNode(focusNode);
-        if (!contentItem) {
-          return;
-        }
-        key = contentItem.getKey();
-      });
-      return key;
-    };
+    const resolveSelectionKey = (): string | null =>
+      editor.read(() => $resolveFocusNoteKey(editor));
 
     const resolveContainerRect = () => {
       const root = rootRef.current ?? editor.getRootElement();

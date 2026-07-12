@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { useCoarsePointer } from '#client/runtime/useCoarsePointer';
 import { useKeyboardInset } from '#client/runtime/useKeyboardInset';
-import type { MobileActionId } from './actions';
+import type { MobileActionId, SelectionCapability } from './actions';
 import { resolveSelectionCapability, runMobileAction } from './actions';
 
 interface ActionSpec {
@@ -32,30 +32,15 @@ const ACTIONS: ActionSpec[] = [
   { id: 'redo', icon: '↻', label: 'Redo' },
 ];
 
-interface ToolbarState {
-  fold: boolean;
-  delete: boolean;
-  undo: boolean;
-  redo: boolean;
-}
+// Enabled-state for the actions the spec disables when they cannot apply
+// (fold, delete from the selection capability; undo, redo from CAN_UNDO/REDO).
+// Every action not keyed here stays enabled and no-ops.
+type ToolbarState = SelectionCapability & { undo: boolean; redo: boolean };
 
 const INITIAL_STATE: ToolbarState = { fold: true, delete: false, undo: false, redo: false };
 
-// Actions the spec disables when they cannot apply; every other action stays
-// enabled and no-ops.
 function isDisabled(id: MobileActionId, state: ToolbarState): boolean {
-  switch (id) {
-    case 'fold':
-      return !state.fold;
-    case 'delete':
-      return !state.delete;
-    case 'undo':
-      return !state.undo;
-    case 'redo':
-      return !state.redo;
-    default:
-      return false;
-  }
+  return id in state && !state[id as keyof ToolbarState];
 }
 
 function resolvePortalRoot(editor: LexicalEditor): Element | null {
@@ -78,7 +63,7 @@ export function MobileActionToolbar() {
 
     const syncCapability = () => {
       const capability = resolveSelectionCapability(editor);
-      setState((prev) => ({ ...prev, fold: capability.fold, delete: capability.delete }));
+      setState((prev) => ({ ...prev, ...capability }));
     };
 
     // Seed capability for the current selection without a synchronous

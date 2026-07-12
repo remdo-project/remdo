@@ -1,4 +1,4 @@
-import type { LexicalEditor } from 'lexical';
+import type { LexicalCommand, LexicalEditor } from 'lexical';
 import { $getNodeByKey, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
 import { $isListItemNode } from '@lexical/list';
 
@@ -11,13 +11,13 @@ import {
   SET_NOTE_CHECKED_COMMAND,
   SET_NOTE_FOLD_COMMAND,
 } from '#client/editor/commands';
-import { $resolveContentNoteFromDOMNode } from '#client/editor/outline/note-context';
+import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { $canDeleteSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 import { noteHasChildren } from '#client/editor/outline/selection/tree';
 
 // The toolbar's action set, in display order (docs/outliner/mobile-toolbar.md).
 // Icons and labels are the surface's own inventory; behavior reuses existing
-// operations via `run`.
+// operations via the dispatch below.
 export type MobileActionId =
   | 'indent'
   | 'outdent'
@@ -29,22 +29,17 @@ export type MobileActionId =
   | 'undo'
   | 'redo';
 
-// Resolve the focused note's Lexical key from the current selection, for the
-// per-note fold command. Mirrors NoteMenuPlugin's selection-key resolution.
-function resolveSelectedNoteKey(editor: LexicalEditor): string | null {
-  let key: string | null = null;
-  editor.read(() => {
-    const focusKey = editor.selection.get()?.focusKey;
-    if (focusKey) {
-      key = focusKey;
-      return;
-    }
-    const domSelection = globalThis.getSelection();
-    const focusNode = domSelection?.focusNode ?? domSelection?.anchorNode ?? null;
-    key = $resolveContentNoteFromDOMNode(focusNode)?.getKey() ?? null;
-  });
-  return key;
-}
+// Actions that map directly to a no-payload command. `done` and `fold` need a
+// payload, so they are handled explicitly in runMobileAction.
+const DIRECT_COMMANDS: Partial<Record<MobileActionId, LexicalCommand<undefined>>> = {
+  indent: INDENT_NOTES_COMMAND,
+  outdent: OUTDENT_NOTES_COMMAND,
+  moveUp: REORDER_NOTES_UP_COMMAND,
+  moveDown: REORDER_NOTES_DOWN_COMMAND,
+  delete: DELETE_SELECTED_NOTES_COMMAND,
+  undo: UNDO_COMMAND,
+  redo: REDO_COMMAND,
+};
 
 /**
  * Run a toolbar action against the editor's current selection. Every action is
@@ -52,38 +47,18 @@ function resolveSelectedNoteKey(editor: LexicalEditor): string | null {
  * handler, so this is invoked outside any editor update.
  */
 export function runMobileAction(editor: LexicalEditor, id: MobileActionId): void {
-  switch (id) {
-    case 'indent':
-      editor.dispatchCommand(INDENT_NOTES_COMMAND, undefined);
-      return;
-    case 'outdent':
-      editor.dispatchCommand(OUTDENT_NOTES_COMMAND, undefined);
-      return;
-    case 'moveUp':
-      editor.dispatchCommand(REORDER_NOTES_UP_COMMAND, undefined);
-      return;
-    case 'moveDown':
-      editor.dispatchCommand(REORDER_NOTES_DOWN_COMMAND, undefined);
-      return;
-    case 'done':
-      editor.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
-      return;
-    case 'fold': {
-      const noteItemKey = resolveSelectedNoteKey(editor);
-      if (noteItemKey) {
-        editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey });
-      }
-      return;
-    }
-    case 'delete':
-      editor.dispatchCommand(DELETE_SELECTED_NOTES_COMMAND, undefined);
-      return;
-    case 'undo':
-      editor.dispatchCommand(UNDO_COMMAND, undefined);
-      return;
-    case 'redo':
-      editor.dispatchCommand(REDO_COMMAND, undefined);
+  if (id === 'done') {
+    editor.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
+    return;
   }
+  if (id === 'fold') {
+    const noteItemKey = editor.read(() => $resolveFocusNoteKey(editor));
+    if (noteItemKey) {
+      editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey });
+    }
+    return;
+  }
+  editor.dispatchCommand(DIRECT_COMMANDS[id]!, undefined);
 }
 
 // Capability of the actions the spec disables (fold, delete). Undo/redo track
@@ -96,7 +71,7 @@ export interface SelectionCapability {
 /** Compute fold/delete capability for the current selection. Non-mutating. */
 export function resolveSelectionCapability(editor: LexicalEditor): SelectionCapability {
   return editor.read(() => {
-    const key = resolveSelectedNoteKey(editor);
+    const key = $resolveFocusNoteKey(editor);
     const foldTarget = key ? $getNodeByKey(key) : null;
     return {
       fold: $isListItemNode(foldTarget) ? noteHasChildren(foldTarget) : false,

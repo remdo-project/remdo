@@ -27,11 +27,9 @@ export function IndentationPlugin() {
       editor.registerCommand(
         KEY_TAB_COMMAND,
         (event: KeyboardEvent) => {
-          const range = $resolveSelectedNoteRange(editor);
-          if (!range) {
+          if (!$resolveSelectedNoteRange(editor)) {
             return false;
           }
-
           event.preventDefault();
           $indent(editor, event.shiftKey ? 'outdent' : 'indent');
           return true;

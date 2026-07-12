@@ -1,13 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 
 import { meta, placeCaretAtNote, selectStructuralNotes } from '#tests';
-import { REDO_COMMAND, UNDO_COMMAND } from 'lexical';
 import {
   DELETE_SELECTED_NOTES_COMMAND,
   INDENT_NOTES_COMMAND,
   OUTDENT_NOTES_COMMAND,
   REORDER_NOTES_DOWN_COMMAND,
-  REORDER_NOTES_UP_COMMAND,
   SET_NOTE_CHECKED_COMMAND,
   SET_NOTE_FOLD_COMMAND,
 } from '#client/editor/commands';
@@ -99,30 +97,19 @@ describe('mobile toolbar actions', () => {
     ]);
   });
 
-  it('maps each action id to its command dispatch', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    // note6 (a parent) so fold resolves a note key to dispatch with.
+  it('dispatches the payload commands for done and fold', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    // done and fold are the two actions with dispatch logic beyond a direct
+    // no-payload command: done carries a toggle payload; fold resolves the focus
+    // note key. The direct-command actions are covered behaviorally above.
     await placeCaretAtNote(remdo, 'note6');
     const foldKey = remdo.editor.read(() => remdo.editor.selection.get()?.focusKey);
     const dispatch = vi.spyOn(remdo.editor, 'dispatchCommand');
 
-    runMobileAction(remdo.editor, 'indent');
-    expect(dispatch).toHaveBeenCalledWith(INDENT_NOTES_COMMAND, undefined);
-    runMobileAction(remdo.editor, 'outdent');
-    expect(dispatch).toHaveBeenCalledWith(OUTDENT_NOTES_COMMAND, undefined);
-    runMobileAction(remdo.editor, 'moveUp');
-    expect(dispatch).toHaveBeenCalledWith(REORDER_NOTES_UP_COMMAND, undefined);
-    runMobileAction(remdo.editor, 'moveDown');
-    expect(dispatch).toHaveBeenCalledWith(REORDER_NOTES_DOWN_COMMAND, undefined);
     runMobileAction(remdo.editor, 'done');
     expect(dispatch).toHaveBeenCalledWith(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
+
     runMobileAction(remdo.editor, 'fold');
     expect(dispatch).toHaveBeenCalledWith(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: foldKey });
-    runMobileAction(remdo.editor, 'delete');
-    expect(dispatch).toHaveBeenCalledWith(DELETE_SELECTED_NOTES_COMMAND, undefined);
-    runMobileAction(remdo.editor, 'undo');
-    expect(dispatch).toHaveBeenCalledWith(UNDO_COMMAND, undefined);
-    runMobileAction(remdo.editor, 'redo');
-    expect(dispatch).toHaveBeenCalledWith(REDO_COMMAND, undefined);
 
     dispatch.mockRestore();
   });
