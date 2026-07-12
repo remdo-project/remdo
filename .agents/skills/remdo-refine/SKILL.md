@@ -8,19 +8,15 @@ description: Use to run the autonomous quality loop over a diff on the current b
 ## Overview
 
 Drive a diff to a clean quality bar through a fixed **ladder** of review passes,
-looping until a full pass finds nothing more worth fixing. Fixes settle the rung
-that found them, and a final confirmation cycle re-runs the whole ladder, so
-every pass ends having reviewed the finished code.
+looping until every rung has found nothing more worth fixing in the current diff
+state. Each clean rung result stays valid while that state is unchanged; fixes
+invalidate only results that inspected an earlier state.
 
 It improves **code quality**, not feature scope — it converges the code, not the
 spec. When `remdo-feature-flow` calls it, reaching the spec's described state
 stays that skill's gap-closing loop; refine polishes what that loop produced.
 
-Per the **Skill authoring** rule in `AGENTS.md`, this skill encodes *intent* and
-fixes a step only where the path is clear (the ladder order, the
-settle-then-confirm loop);
-where it does not, it states the intent and trusts the run — hence the loop guard
-below is a judgement, not a tuned number.
+The loop guard below is a judgement, not a tuned number.
 
 ## Scope
 
@@ -51,13 +47,13 @@ The two scopes differ in what the loop does with the resolved diff:
 ### Committed-range scope (default)
 
 The diff is `<base-sha>..HEAD` with the base anchored to the immutable SHA the
-script pinned. The loop commits fixes, so `HEAD` advances every cycle; reviewing
+script pinned. The loop commits fixes, so `HEAD` advances with every fix; reviewing
 against the pinned SHA (not a re-evaluated relative ref) keeps each fix inside the
 range for the next pass and never shifts the base forward under the loop.
 
 **The working tree must be clean** in this scope — the script's mixed-scope
 refusal enforces it, since staged/unstaged/untracked changes would sit outside the
-range and go silently unreviewed. So that each cycle reviews the previous one's
+range and go silently unreviewed. So that each pass reviews the previous one's
 result, **commit every applied fix** before re-running any pass — the fix then
 lands inside the resolved range and the tree stays clean for the next pass.
 
@@ -180,8 +176,9 @@ findings surfaced, approved findings applied, tradeoffs recorded in
 `docs/todo.md`, and outcome (`findings`, `clean`, `blocked`, or `failed`). Update
 the disposition counts after triage. Add an invocation to the ledger when it
 reaches a terminal outcome; no interim outcome is needed while a parallel call
-is running. Record each final verification command's elapsed time and the refine
-run's total wall time.
+is running. For each clean outcome, record the diff state it inspected so the
+loop can distinguish current results from stale ones. Record each final
+verification command's elapsed time and the refine run's total wall time.
 
 One invocation is one top-level call from refine to a subagent or CLI reviewer.
 Do not count or normalize hidden vendor/model requests, tokens, or cost. Use
@@ -198,9 +195,9 @@ tradeoff only once.
 Each rung produces findings. Triage, apply what is approved (committing it in
 committed-range scope; in place in working-tree scope), then **re-run that same
 rung** until it settles (returns nothing more to apply), and move down the
-ladder. Mid-loop fixes do not restart the ladder — the confirmation cycle below
-is where earlier rungs re-see the finished code, so a late nit no longer re-buys
-every earlier, more expensive rung on each iteration.
+ladder. A settled rung is clean only for the diff state it inspected. Keep that
+clean result while the diff is unchanged; do not invoke a rung again merely to
+confirm the same state.
 
 - **Approved fix** — clearly correct and safe (or an intended change the diff owns).
   Apply it (committed-range: commit; working-tree: leave in the tree); the run is
@@ -211,12 +208,16 @@ every earlier, more expensive rung on each iteration.
   the end report points at the entry.
 - **Reject** — not a real issue, or out of scope. Drop it.
 
-Once every rung has settled, run a **confirmation cycle**: the full ladder again
-from rung 1, against the finished diff. **Done** when a confirmation cycle
-produces zero approved fixes; if it produces any, settle the rung that raised
-them as above, then confirm again. **Stuck** (stop and
-report) when a finding recurs with no progress, or the diff will not converge
-after a few cycles. **Blocker** — only a finding with no clear recommendation.
+An applied fix changes the diff state and makes every clean result from an
+earlier state stale. Continue down the ladder after settling the rung that made
+the fix. At the bottom, resume from the earliest rung whose clean result is
+stale or missing, then proceed in ladder order.
+
+**Done** when every rung has produced zero approved fixes against the current
+diff state. Recording a tradeoff that edits the resolved diff changes the state
+just like an approved fix. **Stuck** (stop and report) when a finding recurs with
+no progress, or the diff will not converge after a few state changes.
+**Blocker** — only a finding with no clear recommendation.
 
 ## Verification
 
@@ -255,7 +256,7 @@ at files, not prose, noting where in the diff each finding sat); tradeoffs taken
 with a pointer to their `docs/todo.md` entries; and any blocker with its gathered
 data.
 
-Close with `Refine: <total elapsed> — <cycle count and end reason>`, followed by
+Close with `Refine: <total elapsed> — <rung-pass count and end reason>`, followed by
 a compact activity table with columns `Step`, `Calls`, `Wall time`, `Surfaced`,
 `Applied`, and `Tradeoffs`. Give simplify, internal review, and every named
 external reviewer separate rows. The applied/tradeoff columns distinguish real
