@@ -1,6 +1,6 @@
 import { Button } from '@mantine/core';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useLoaderData, useRevalidator } from 'react-router-dom';
 import type { SessionGateState } from '#client/app/auth/client';
 import CenteredCardPage from '#client/ui/CenteredCardPage';
@@ -34,11 +34,6 @@ export default function OnlineGate({
 
 function ConnectionUnavailable() {
   const { revalidate, state } = useRevalidator();
-  // A reconnect signal (browser `online` event or the Retry button) bumps
-  // `arming`, which fires an immediate revalidation and opens a fresh retry
-  // budget. `arming === 0` means never armed (a bare mount), so a genuinely-down
-  // server is not auto-hammered.
-  const [arming, setArming] = useState(0);
   // Index of the next backoff retry into `RECONNECT_RETRY_BACKOFFS_MS`; the cycle
   // ends once it reaches the array length.
   const nextBackoffRef = useRef(0);
@@ -48,24 +43,20 @@ function ConnectionUnavailable() {
   // in-flight fetch and abort it).
   const revalidationPendingRef = useRef(false);
 
+  // A reconnect signal (browser `online` event or the Retry button) fires an
+  // immediate revalidation and opens a fresh backoff budget. Nothing else calls
+  // `revalidate()`, so a bare mount of a genuinely-down server is never
+  // auto-hammered — the "only on a reconnect signal" guarantee is structural.
   const armRetryBudget = useCallback(() => {
     nextBackoffRef.current = 0;
-    setArming((count) => count + 1);
-  }, []);
+    revalidationPendingRef.current = true;
+    void revalidate();
+  }, [revalidate]);
 
   useEffect(() => {
     globalThis.addEventListener('online', armRetryBudget);
     return () => globalThis.removeEventListener('online', armRetryBudget);
   }, [armRetryBudget]);
-
-  // Fire the immediate revalidation for each reconnect signal.
-  useEffect(() => {
-    if (arming === 0) {
-      return;
-    }
-    revalidationPendingRef.current = true;
-    void revalidate();
-  }, [arming, revalidate]);
 
   // On the `loading -> idle` settle edge, with this component still mounted
   // (i.e. still unavailable), spend one unit of the retry budget on a backed-off
