@@ -37,9 +37,7 @@ function ConnectionUnavailable() {
   // A reconnect signal (browser `online` event or the Retry button) bumps
   // `arming`, which fires an immediate revalidation and opens a fresh retry
   // budget. `arming === 0` means never armed (a bare mount), so a genuinely-down
-  // server is not auto-hammered. `retriesLeftRef` is the remaining backoff
-  // budget for the current cycle; each backoff retry is scheduled only once the
-  // prior revalidation has settled (see the state-driven effect below).
+  // server is not auto-hammered.
   const [arming, setArming] = useState(0);
   // Index of the next backoff retry into `RECONNECT_RETRY_BACKOFFS_MS`; the cycle
   // ends once it reaches the array length.
