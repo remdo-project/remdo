@@ -33,11 +33,11 @@ describe('zoom breadcrumbs', () => {
     expect(container.querySelector('[data-zoom-crumb=\"current\"]')).toBeNull();
   });
 
-  it('renders ancestor crumbs as buttons and the current crumb as text', async () => {
+  it('excludes the zoom root from the trail and renders ancestors as links', async () => {
     const onSelect = vi.fn();
     const ancestorLabel = 'abcdefghijklmnopqrstuvwxyz';
     const currentLabel = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    renderBreadcrumbs({
+    const { container } = renderBreadcrumbs({
       docLabel: 'project',
       path: [
         { noteId: 'note1', label: ancestorLabel },
@@ -46,10 +46,11 @@ describe('zoom breadcrumbs', () => {
       onSelectNoteId: onSelect,
     });
 
+    // Document + parent are links; the zoom root (last path item) is not a crumb.
     expect(screen.getByRole('button', { name: 'project' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: truncateLabel(ancestorLabel) })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: truncateLabel(currentLabel) })).toBeNull();
-    expect(screen.getByText(truncateLabel(currentLabel))).toBeInTheDocument();
+    expect(screen.queryByText(truncateLabel(currentLabel))).toBeNull();
+    expect(container.querySelector('[data-zoom-crumb=\"current\"]')).toBeNull();
 
     screen.getByRole('button', { name: 'project' }).click();
     screen.getByRole('button', { name: truncateLabel(ancestorLabel) }).click();
@@ -58,11 +59,27 @@ describe('zoom breadcrumbs', () => {
     expect(onSelect).toHaveBeenNthCalledWith(2, 'note1');
   });
 
-  it('uses shared fallback labels for empty note crumbs', () => {
+  it('shows only the document crumb when the zoom root is a top-level note', () => {
     const onSelect = vi.fn();
     renderBreadcrumbs({
       docLabel: 'project',
-      path: [{ noteId: 'note1', label: '  \n ' }],
+      path: [{ noteId: 'note1', label: 'note1' }],
+      onSelectNoteId: onSelect,
+    });
+
+    // The single path item is the zoom root/title, so no note crumb renders.
+    expect(screen.getByRole('button', { name: 'project' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'note1' })).toBeNull();
+  });
+
+  it('uses shared fallback labels for empty ancestor crumbs', () => {
+    const onSelect = vi.fn();
+    renderBreadcrumbs({
+      docLabel: 'project',
+      path: [
+        { noteId: 'note1', label: '  \n ' },
+        { noteId: 'note2', label: 'child' },
+      ],
       onSelectNoteId: onSelect,
     });
 

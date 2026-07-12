@@ -40,29 +40,17 @@ export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectNoteI
           {docLabelDisplay}
         </button>
       )}
-      {path.map((item, index) => {
-        const isCurrent = index === path.length - 1;
-        const label = formatNavigationLabel(item.label);
-        if (isCurrent) {
-          return (
-            <span key={item.noteId} className={styles.crumbCurrent} data-zoom-crumb="current">
-              {label}
-            </span>
-          );
-        }
-
-        return (
-          <button
-            key={item.noteId}
-            type="button"
-            className={styles.crumbButton}
-            data-zoom-crumb="ancestor"
-            onClick={() => onSelectNoteId(item.noteId)}
-          >
-            {label}
-          </button>
-        );
-      })}
+      {path.slice(0, -1).map((item) => (
+        <button
+          key={item.noteId}
+          type="button"
+          className={styles.crumbButton}
+          data-zoom-crumb="ancestor"
+          onClick={() => onSelectNoteId(item.noteId)}
+        >
+          {formatNavigationLabel(item.label)}
+        </button>
+      ))}
     </Breadcrumbs>
   );
 }

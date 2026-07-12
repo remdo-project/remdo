@@ -74,12 +74,14 @@ test.describe('Zoom routing', () => {
     const metrics = await getBulletMetrics(note1);
     await page.mouse.click(metrics.x, metrics.y);
 
+    // The zoom root is the view title, not a crumb; a top-level zoom leaves only
+    // the document crumb and no ancestor crumbs.
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
     const breadcrumbs = zoomBreadcrumbs(page);
-    const currentCrumb = breadcrumbs.locator('[data-zoom-crumb="current"]');
-    await expect(currentCrumb).toHaveText('note1');
+    await expect(breadcrumbs.locator('[data-zoom-crumb="ancestor"]')).toHaveCount(0);
 
     await documentZoomBreadcrumb(page).click();
-    await expect(currentCrumb).toHaveCount(0);
+    await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
   });
 
   test('invalid zoom route resets to document URL', async ({ page, editor }) => {

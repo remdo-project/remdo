@@ -21,10 +21,6 @@
   text-decoration: underline;
 }
 
-.crumbCurrent {
-  color: var(--mantine-color-dark-2);
-}
-
 .documentControl {
   display: inline-flex;
   align-items: center;
