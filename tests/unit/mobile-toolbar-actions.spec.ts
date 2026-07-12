@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
+import { waitFor } from '@testing-library/react';
 
 import { meta, placeCaretAtNote, selectStructuralNotes } from '#tests';
 import {
@@ -6,9 +7,9 @@ import {
   INDENT_NOTES_COMMAND,
   OUTDENT_NOTES_COMMAND,
   REORDER_NOTES_DOWN_COMMAND,
-  SET_NOTE_CHECKED_COMMAND,
-  SET_NOTE_FOLD_COMMAND,
 } from '#client/editor/commands';
+import { $getNoteChecked } from '#client/editor/runtime/checklist-state';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { resolveSelectionCapability, runMobileAction } from '#client/editor/plugins/mobile-toolbar/actions';
 
 // Behavior coverage for the mobile action toolbar (docs/outliner/mobile-toolbar.md).
@@ -97,21 +98,34 @@ describe('mobile toolbar actions', () => {
     ]);
   });
 
-  it('dispatches the payload commands for done and fold', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    // done and fold are the two actions with dispatch logic beyond a direct
-    // no-payload command: done carries a toggle payload; fold resolves the focus
-    // note key. The direct-command actions are covered behaviorally above.
+  it('toggles fold on the focus note', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    // fold is the action with the most dispatch logic (resolve the focus note
+    // key). note6 is a parent, so folding it is observable in the outline.
     await placeCaretAtNote(remdo, 'note6');
-    const foldKey = remdo.editor.read(() => remdo.editor.selection.get()?.focusKey);
-    const dispatch = vi.spyOn(remdo.editor, 'dispatchCommand');
-
-    runMobileAction(remdo.editor, 'done');
-    expect(dispatch).toHaveBeenCalledWith(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
 
     runMobileAction(remdo.editor, 'fold');
-    expect(dispatch).toHaveBeenCalledWith(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: foldKey });
 
-    dispatch.mockRestore();
+    await waitFor(() => {
+      expect(remdo).toMatchOutline([
+        { noteId: 'note1', text: 'note1', children: [
+          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
+          { noteId: 'note4', text: 'note4' },
+        ] },
+        { noteId: 'note5', text: 'note5' },
+        { noteId: 'note6', text: 'note6', folded: true, children: [{ noteId: 'note7', text: 'note7' }] },
+      ]);
+    });
+  });
+
+  it('toggles done on the selected note', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note5');
+
+    runMobileAction(remdo.editor, 'done');
+
+    await waitFor(() => {
+      const checked = remdo.editor.getEditorState().read(() => $getNoteChecked($findNoteById('note5')!));
+      expect(checked).toBe(true);
+    });
   });
 
   it('reflects fold capability: enabled for a parent, disabled for a leaf', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {

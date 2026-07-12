@@ -26,10 +26,7 @@ import {
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
-import {
-  $canDeleteSelectedNotes,
-  $deleteSelectedNotes,
-} from '#client/editor/outline/selection/delete-selection';
+import { $deleteSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 import {
   getFirstDescendantListItem,
   getNestedList,
@@ -307,13 +304,12 @@ export function DeletionPlugin() {
 
   useEffect(() => {
     const $deleteStructuralSelection = (event: KeyboardEvent | null): boolean => {
-      if (!$canDeleteSelectedNotes(editor)) {
+      if (!$deleteSelectedNotes(editor)) {
         return false;
       }
-
       event?.preventDefault();
       event?.stopPropagation();
-      return $deleteSelectedNotes(editor);
+      return true;
     };
 
     const $mergeAtStartOfNote = (selection: ReturnType<typeof $getSelection>, current: ListItemNode): boolean => {

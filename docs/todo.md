@@ -25,6 +25,15 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
+- IndentationPlugin `KEY_TAB_COMMAND` handler resolves the selected note range
+  twice (once to gate `preventDefault`, once inside `$indent`). Collapsing it to
+  drive `preventDefault` off `$indent`'s boolean return would change Tab-at-
+  boundary semantics: today Tab is always swallowed when a range exists (even if
+  indent no-ops); the collapsed form lets Tab propagate on a no-op indent
+  (possible focus escape). Decide the intended Tab-at-boundary contract, then
+  collapse or keep. Indent no-op tests assert editor state, not preventDefault,
+  so they don't pin this.
+
 ## Runtime and tooling source boundaries
 
 - Move runtime config under production source, split `tools/` into explicit
