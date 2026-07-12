@@ -18,9 +18,10 @@ tie-breaker, so preserve that structure when editing this skill.
 - **Rules doc**: `docs/documentation.md` unless the caller names another
   with equivalent carve-outs (the templates assume its carve-out structure).
 - **Scope**, fixed at invocation: the working tree (uncommitted doc
-  changes), a committed range (resolved via `.agents/skills/remdo-refine/tools/resolve-scope.sh`, its
-  header states the contract), or an explicit file set (e.g. the whole corpus for
-  a realignment). A diff scope selects its touched files, read whole.
+  changes), a committed range (resolved via
+  `.agents/skills/remdo-refine/tools/resolve-scope.sh`, whose header states the
+  contract), or an explicit file set (e.g. the whole corpus for a realignment).
+  A diff scope selects its touched files, read whole.
 - Authoring new content is out of scope: write-time rules do not prevent
   redundancy (tested — they made it worse), so fresh text is aligned by
   running stages 3–4 over it after writing.

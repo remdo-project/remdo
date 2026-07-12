@@ -8,9 +8,9 @@ description: Use to bring the latest `origin/main` into the current branch. Merg
 ## Overview
 
 Bring the current branch up to date with `origin/main`. Review diffs use the
-`origin/main` merge-base (see `docs/contributing.md#git-workflow`), which needs no
-base tag to stay correct across a merge — so this skill owns no bookkeeping: it
-does one thing, integrate `origin/main` cleanly.
+`origin/main` merge-base (see `docs/contributing.md#git-workflow`), which needs
+no base tag to stay correct across a merge — so this skill owns no bookkeeping:
+it does one thing, integrate `origin/main` cleanly.
 
 Per the **Skill authoring** rule in `AGENTS.md`, this skill encodes *intent* —
 stay current, never rewrite shared history — and leaves judgement (notably
@@ -21,16 +21,17 @@ future run would do better.
 
 Integrate `origin/main` with a plain **`git merge origin/main`**, never rebase
 (it fast-forwards or makes a merge commit as needed). Merge never rewrites
-history, so it never needs a force-push and never scrambles an open PR's review —
-the right default for an autonomous skill. A user who wants a linear history can
-rebase by hand; this skill **never pushes**. (See `References` for
-the rebase-vs-merge tradeoff.)
+history, so it never needs a force-push and never scrambles an open PR's review
+— the right default for an autonomous skill. A user who wants a linear history
+can rebase by hand; this skill **never pushes**. (See `References` for the
+rebase-vs-merge tradeoff.)
 
 Sync runs on whatever branch is checked out (no branch-name gate).
 
 ## The flow
 
-**Probe first: run `sh .agents/skills/remdo-sync/tools/sync-probe.sh`** (its header states the full
+**Probe first: run
+`sh .agents/skills/remdo-sync/tools/sync-probe.sh`** (its header states the full
 contract). It fetches and classifies whether `origin/main` still needs merging,
 printing one `STATE=` line. Act on it:
 

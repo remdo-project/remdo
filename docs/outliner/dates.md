@@ -22,8 +22,8 @@ Define RemDo-owned inline date behavior in the outliner.
    to the editor. Committing inserts a date node plus a trailing space over the
    pinned `!` span.
 6. Clicking, or `Enter`/`Space` on a selected date token, opens the same calendar
-   in *edit* mode over that node. It is opened from a committed token rather than a
-   trigger session, so the trigger lifecycle does not apply, but the in-calendar
+   in *edit* mode over that node. It is opened from a committed token rather than
+   a trigger session, so the trigger lifecycle does not apply, but the in-calendar
    keyboard contract is identical — except commit updates the existing token
    rather than inserting a new one.
 
