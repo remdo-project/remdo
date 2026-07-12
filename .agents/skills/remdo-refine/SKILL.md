@@ -10,18 +10,13 @@ description: Use to run the autonomous quality loop over a diff on the current b
 Drive a diff to a clean quality bar through a fixed **ladder** of review passes,
 looping until every rung has found nothing more worth fixing in the current diff
 state. Each clean rung result stays valid while that state is unchanged; fixes
-invalidate only results that inspected an earlier state. This keeps the finished
-code reviewed by every rung without an unconditional confirmation pass.
+invalidate only results that inspected an earlier state.
 
 It improves **code quality**, not feature scope — it converges the code, not the
 spec. When `remdo-feature-flow` calls it, reaching the spec's described state
 stays that skill's gap-closing loop; refine polishes what that loop produced.
 
-Per the **Skill authoring** rule in `AGENTS.md`, this skill encodes *intent* and
-fixes a step only where the path is clear (the ladder order and clean-state
-invariant);
-where it does not, it states the intent and trusts the run — hence the loop guard
-below is a judgement, not a tuned number.
+The loop guard below is a judgement, not a tuned number.
 
 ## Scope
 
@@ -216,17 +211,13 @@ confirm the same state.
 An applied fix changes the diff state and makes every clean result from an
 earlier state stale. Continue down the ladder after settling the rung that made
 the fix. At the bottom, resume from the earliest rung whose clean result is
-stale or missing, then proceed in ladder order. Preserve clean results from the
-current state: for example, if a later rung changed the diff and an earlier rung
-then reports clean without editing it, do not re-run the already-clean later
-rungs that inspected that same state.
+stale or missing, then proceed in ladder order.
 
 **Done** when every rung has produced zero approved fixes against the current
-diff state. Rejected findings do not prevent a clean result. Recording a
-tradeoff that edits the resolved diff changes the state just like an approved
-fix. **Stuck** (stop and report) when a finding recurs with no progress, or the
-diff will not converge after a few state changes. **Blocker** — only a finding
-with no clear recommendation.
+diff state. Recording a tradeoff that edits the resolved diff changes the state
+just like an approved fix. **Stuck** (stop and report) when a finding recurs with
+no progress, or the diff will not converge after a few state changes.
+**Blocker** — only a finding with no clear recommendation.
 
 ## Verification
 
