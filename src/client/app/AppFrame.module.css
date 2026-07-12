@@ -34,8 +34,8 @@
   margin: 0 auto;
   min-height: calc(100dvh - 2 * var(--app-shell-inset));
   /* Frosted glass: translucent dark-7 fill + backdrop blur. The lower opacity
-     (55%) lets more of the bold aurora show through the document. */
-  background: rgb(36 36 36 / 55%);
+     lets more of the bold aurora show through the document. */
+  background: color-mix(in srgb, var(--mantine-color-dark-7) 55%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: var(--mantine-radius-lg);

@@ -1,9 +1,9 @@
-/* Inside the app-shell glass card the header is the same frosted material as the
-   body, just denser (69% vs the body's 55%) so it still reads as chrome by
-   elevation rather than a hard line — one continuous glass panel. */
+/* Inside the app-shell glass card the header is a denser frosted material than
+   the body (69% over dark-6 vs the body's 55% over dark-7) so it still reads as
+   chrome by elevation rather than a hard line — one continuous glass panel. */
 .header {
   width: 100%;
-  background-color: rgb(46 46 46 / 69%);
+  background-color: color-mix(in srgb, var(--mantine-color-dark-6) 69%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
