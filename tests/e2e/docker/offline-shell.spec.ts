@@ -60,7 +60,52 @@ test.describe('Offline app shell', () => {
     }
   });
 
-  test('shows a fallback when signed out offline', async ({ browser, contextOptions }) => {
+  test('keeps the signed-out route while the app server is unavailable and retries in place', async ({
+    browser,
+    contextOptions,
+  }) => {
+    const context = await browser.newContext({
+      ...contextOptions,
+      storageState: {
+        cookies: [],
+        origins: [],
+      },
+    });
+    const unavailablePage = await context.newPage();
+    let detachUnavailableGuards: (() => void) | undefined;
+
+    try {
+      detachUnavailableGuards = attachPageGuards(unavailablePage);
+      allowServerUnavailableConsoleIssue(unavailablePage);
+      await context.route('**/api/**', (route) => {
+        void route.abort();
+      });
+      await unavailablePage.goto('/');
+
+      await expect.poll(() => new URL(unavailablePage.url()).pathname).toBe('/');
+      expect(new URL(unavailablePage.url()).search).toBe('');
+      await expect(unavailablePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
+      await expect(unavailablePage.getByRole('link', { name: 'RemDo' })).toBeVisible();
+      const navigation = unavailablePage.getByRole('navigation', { name: 'Primary' });
+      await expect(navigation.getByRole('link', {
+        name: /^(?:Admin|Sharing|Logout|Sign in)$/u,
+      })).toHaveCount(0);
+
+      await context.unroute('**/api/**');
+      await unavailablePage.getByRole('button', { name: 'Retry' }).click();
+      await expect(unavailablePage.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+      await expect.poll(() => new URL(unavailablePage.url()).pathname).toBe('/');
+    } finally {
+      await context.unroute('**/api/**');
+      await cleanupOfflineTest(context, unavailablePage, detachUnavailableGuards);
+      await context.close();
+    }
+  });
+
+  test('revalidates the preserved route when browser connectivity returns', async ({
+    browser,
+    contextOptions,
+  }) => {
     const context = await browser.newContext({
       ...contextOptions,
       storageState: {
@@ -85,14 +130,15 @@ test.describe('Offline app shell', () => {
       offlinePage = await context.newPage();
       detachOfflineGuards = attachPageGuards(offlinePage);
       allowOfflineDisconnectedConsoleIssue(offlinePage);
-      await offlinePage.goto('/');
-      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/offline');
-      await expect(offlinePage.getByRole('heading', { name: 'Offline' })).toBeVisible();
+      await offlinePage.goto('/sharing');
+
+      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/sharing');
+      await expect(offlinePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
 
       await context.setOffline(false);
-      await offlinePage.getByRole('button', { name: 'Retry' }).click();
-      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/');
       await expect(offlinePage.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/');
+      await expect.poll(() => new URL(offlinePage!.url()).searchParams.get('next')).toBe('/sharing');
     } finally {
       if (detachWarmupGuards) {
         detachWarmupGuards();

@@ -4,7 +4,8 @@ import type { SessionGateState } from '#client/app/auth/client';
 // What `/admin` should render, resolved from the caller's session + role.
 export type AdminRouteState =
   | { kind: 'admin'; sessionState: SessionGateState }
-  | { kind: 'enroll'; sessionState: SessionGateState };
+  | { kind: 'enroll'; sessionState: SessionGateState }
+  | { kind: 'unavailable'; sessionState: SessionGateState };
 
 // `/admin` is the single admin entry route (see docs/access-model.md#admin-role):
 //   - admin → the admin panel (placeholder until panel content exists);
@@ -14,6 +15,9 @@ export type AdminRouteState =
 // Authorization stays server-side; this only chooses what to render.
 export async function adminRouteLoader(): Promise<AdminRouteState> {
   const session = await resolveSessionGateState();
+  if (session.status === 'offline-remembered' || session.status === 'offline-unavailable') {
+    return { kind: 'unavailable', sessionState: session };
+  }
   if (session.status !== 'authenticated') {
     return { kind: 'enroll', sessionState: session };
   }

@@ -118,21 +118,6 @@ test.describe('Routing', () => {
     expect(userDataRequests).toEqual([]);
   });
 
-  test('renders a brand-only header without user data on the offline route', async ({ page }) => {
-    const userDataRequests = collectUserDataRuntimeRequests(page);
-    await page.goto('/offline');
-
-    await expect(page.getByRole('heading', { name: 'Offline' })).toBeVisible();
-    await expect(page.getByRole('main')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
-    const navigation = page.getByRole('navigation', { name: 'Primary' });
-    await expect(navigation.getByRole('link', {
-      name: /^(?:Admin|Sharing|Logout|Sign in)$/u,
-    })).toHaveCount(0);
-    await page.waitForLoadState('networkidle');
-    expect(userDataRequests).toEqual([]);
-  });
-
   test('renders Sharing as a standard authenticated page', async ({ page }) => {
     const userDataRequests = collectUserDataRuntimeRequests(page);
     await page.goto('/sharing');

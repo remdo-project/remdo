@@ -45,4 +45,18 @@ describe('adminRouteLoader', () => {
       sessionState: userSession,
     });
   });
+
+  it.each(['offline-remembered', 'offline-unavailable'] as const)(
+    'renders connection unavailable rather than enrollment for %s session state',
+    async (status) => {
+      const { resolveSessionGateState } = await import('#client/app/auth/client');
+      vi.mocked(resolveSessionGateState).mockResolvedValue({ status });
+      const { adminRouteLoader } = await import('#client/app/routes/admin-route-loader');
+
+      await expect(adminRouteLoader()).resolves.toEqual({
+        kind: 'unavailable',
+        sessionState: { status },
+      });
+    },
+  );
 });

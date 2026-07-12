@@ -1,6 +1,5 @@
 import { createBrowserRouter, redirect, redirectDocument } from 'react-router-dom';
 import AppFrame from './AppFrame';
-import AuthenticatedApp from './AuthenticatedApp';
 import { resolveSessionGateState } from './auth/client';
 import type { SessionGateState } from './auth/client';
 import { getPublicClientConfig } from './config';
@@ -11,10 +10,10 @@ import { devRoutes } from './routes/devRoutes';
 import OAuthConsentRoute from './routes/OAuthConsentRoute';
 import DocumentRoute from './routes/DocumentRoute';
 import LogoutRoute from './routes/LogoutRoute';
-import OfflineRoute from './routes/OfflineRoute';
 import RootRoute from './routes/RootRoute';
 import type { RootRouteLoaderData } from './routes/RootRoute';
 import SharingRoute from './routes/SharingRoute';
+import AuthenticatedRoute from './routes/AuthenticatedRoute';
 import {
   createPostAuthNextSearch,
   resolvePostAuthPath,
@@ -26,15 +25,8 @@ import {
   parseDocumentRef,
 } from '#document-routes';
 
-function createOfflinePath(request: Request): string {
-  return `/offline${createPostAuthNextSearch(request)}`;
-}
-
 async function requireAuthenticatedRoute(request: Request): Promise<SessionGateState> {
   const sessionState = await resolveSessionGateState();
-  if (sessionState.status === 'offline-unavailable') {
-    throw redirect(createOfflinePath(request));
-  }
   if (sessionState.status !== 'unauthenticated') {
     return sessionState;
   }
@@ -59,14 +51,14 @@ async function rootRouteLoader(request: Request): Promise<RootRouteLoaderData> {
   const url = new URL(request.url);
   const search = url.search;
   if (sessionState.status === 'offline-unavailable') {
-    throw redirect(createOfflinePath(request));
+    return { sessionState };
   }
   let homeDocumentId: string;
   let target: string;
   if (sessionState.status === 'offline-remembered') {
     const bootstrap = getCachedCurrentUserBootstrap();
     if (!bootstrap) {
-      throw redirect(createOfflinePath(request));
+      return { sessionState: { status: 'offline-unavailable' } };
     }
     homeDocumentId = bootstrap.homeDocumentId;
     target = resolvePostAuthPath(search, url.origin);
@@ -98,17 +90,21 @@ async function documentLoader({ request, params }: {
   params: { docRef?: string };
 }) {
   const url = new URL(request.url);
+  const sessionState = await requireAuthenticatedRoute(request);
+  if (sessionState.status === 'offline-unavailable') {
+    return { sessionState };
+  }
+
   const parsed = parseDocumentRef(params.docRef);
   if (!parsed) {
     throw redirect(`/${url.search}`);
   }
 
-  const sessionState = await requireAuthenticatedRoute(request);
   const bootstrap = sessionState.status === 'offline-remembered'
     ? getCachedCurrentUserBootstrap()
     : null;
   if (sessionState.status === 'offline-remembered' && !bootstrap) {
-    throw redirect(createOfflinePath(request));
+    return { sessionState: { status: 'offline-unavailable' } as const };
   }
   const homeDocumentId = bootstrap?.homeDocumentId ?? await getHomeDocumentId();
   const canonicalPath = createCanonicalDocumentPath(
@@ -126,11 +122,6 @@ async function documentLoader({ request, params }: {
 const hydrateFallbackElement = <div aria-hidden="true" />;
 
 const appRoutes = [
-  {
-    path: '/offline',
-    element: <OfflineRoute />,
-    hydrateFallbackElement,
-  },
   {
     path: '/',
     loader: ({ request }: { request: Request }) => rootRouteLoader(request),
@@ -164,14 +155,14 @@ const appRoutes = [
     path: 'n/:docRef',
     loader: documentLoader,
     element: (
-      <AuthenticatedApp>
+      <AuthenticatedRoute>
         <DocumentRoute />
-      </AuthenticatedApp>
+      </AuthenticatedRoute>
     ),
     hydrateFallbackElement,
   },
   {
-    element: <AuthenticatedApp />,
+    element: <AuthenticatedRoute />,
     loader: authenticatedSessionLoader,
     hydrateFallbackElement,
     children: [
