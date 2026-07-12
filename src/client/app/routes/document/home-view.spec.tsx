@@ -75,14 +75,23 @@ describe('home view', () => {
     expect(screen.queryByRole('group', { name: 'Tags' })).toBeNull();
   });
 
-  it('exposes New and Upload document actions', () => {
+  it('creates a document via the New action', () => {
     const props = baseProps();
     renderHome(props);
 
     fireEvent.click(screen.getByRole('button', { name: /new document/i }));
-    expect(props.onCreateDocument).toHaveBeenCalledTimes(1);
 
-    // Upload is a file input trigger; the labelled control is present.
-    expect(screen.getByLabelText(/upload document/i)).toBeInTheDocument();
+    expect(props.onCreateDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it('uploads the chosen file via the Upload action', () => {
+    const props = baseProps();
+    renderHome(props);
+
+    const file = new File(['{}'], 'backup.json', { type: 'application/json' });
+    const input = screen.getByLabelText(/upload document/i);
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(props.onUploadDocument).toHaveBeenCalledWith(file);
   });
 });
