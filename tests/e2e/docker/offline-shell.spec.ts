@@ -10,6 +10,13 @@ import {
   waitForServiceWorkerControl,
 } from './_support/helpers';
 
+const unauthenticatedTest = test.extend({
+  storageState: {
+    cookies: [],
+    origins: [],
+  },
+});
+
 test.describe('Offline app shell', () => {
   test('opens the cached bootstrap home route while offline', async ({ page, context }) => {
     await page.goto('/');
@@ -60,71 +67,46 @@ test.describe('Offline app shell', () => {
     }
   });
 
-  test('keeps the signed-out route while the app server is unavailable and retries in place', async ({
-    browser,
-    contextOptions,
-  }) => {
-    const context = await browser.newContext({
-      ...contextOptions,
-      storageState: {
-        cookies: [],
-        origins: [],
-      },
-    });
-    const unavailablePage = await context.newPage();
-    let detachUnavailableGuards: (() => void) | undefined;
-
-    try {
-      detachUnavailableGuards = attachPageGuards(unavailablePage);
-      allowServerUnavailableConsoleIssue(unavailablePage);
+  unauthenticatedTest(
+    'keeps the signed-out route while the app server is unavailable and retries in place',
+    async ({ page, context }) => {
+      allowServerUnavailableConsoleIssue(page);
       await context.route('**/api/**', (route) => {
         void route.abort();
       });
-      await unavailablePage.goto('/');
+    try {
+        await page.goto('/');
 
-      await expect.poll(() => new URL(unavailablePage.url()).pathname).toBe('/');
-      expect(new URL(unavailablePage.url()).search).toBe('');
-      await expect(unavailablePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
-      await expect(unavailablePage.getByRole('link', { name: 'RemDo' })).toBeVisible();
-      const navigation = unavailablePage.getByRole('navigation', { name: 'Primary' });
-      await expect(navigation.getByRole('link', {
-        name: /^(?:Admin|Sharing|Logout|Sign in)$/u,
-      })).toHaveCount(0);
+        await expect.poll(() => new URL(page.url()).pathname).toBe('/');
+        expect(new URL(page.url()).search).toBe('');
+        await expect(page.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
+        const navigation = page.getByRole('navigation', { name: 'Primary' });
+        await expect(navigation.getByRole('link', {
+          name: /^(?:Admin|Sharing|Logout|Sign in)$/u,
+        })).toHaveCount(0);
 
-      await context.unroute('**/api/**');
-      await unavailablePage.getByRole('button', { name: 'Retry' }).click();
-      await expect(unavailablePage.getByRole('heading', { name: 'Sign in' })).toBeVisible();
-      await expect.poll(() => new URL(unavailablePage.url()).pathname).toBe('/');
-    } finally {
-      await context.unroute('**/api/**');
-      await cleanupOfflineTest(context, unavailablePage, detachUnavailableGuards);
-      await context.close();
-    }
-  });
+        await context.unroute('**/api/**');
+        await page.getByRole('button', { name: 'Retry' }).click();
+        await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+        await expect.poll(() => new URL(page.url()).pathname).toBe('/');
+      } finally {
+        await context.unroute('**/api/**');
+      }
+    },
+  );
 
-  test('revalidates the preserved route when browser connectivity returns', async ({
-    browser,
-    contextOptions,
+  unauthenticatedTest('revalidates the preserved route when browser connectivity returns', async ({
+    page,
+    context,
   }) => {
-    const context = await browser.newContext({
-      ...contextOptions,
-      storageState: {
-        cookies: [],
-        origins: [],
-      },
-    });
-    const warmupPage = await context.newPage();
-    let detachWarmupGuards: (() => void) | undefined;
     let offlinePage: Page | undefined;
     let detachOfflineGuards: (() => void) | undefined;
 
     try {
-      detachWarmupGuards = attachPageGuards(warmupPage);
-      await warmupPage.goto('/');
-      await waitForServiceWorkerControl(warmupPage);
-      detachWarmupGuards();
-      detachWarmupGuards = undefined;
-      await warmupPage.close();
+      await page.goto('/');
+      await waitForServiceWorkerControl(page);
+      await page.close();
 
       await context.setOffline(true);
       offlinePage = await context.newPage();
@@ -140,11 +122,7 @@ test.describe('Offline app shell', () => {
       await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/');
       await expect.poll(() => new URL(offlinePage!.url()).searchParams.get('next')).toBe('/sharing');
     } finally {
-      if (detachWarmupGuards) {
-        detachWarmupGuards();
-      }
       await cleanupOfflineTest(context, offlinePage, detachOfflineGuards);
-      await context.close();
     }
   });
 
