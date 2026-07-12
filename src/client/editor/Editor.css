@@ -31,6 +31,12 @@
   white-space: nowrap;
 }
 
+.collab-status--interrupted .status-icon-text {
+  margin-left: var(--mantine-spacing-xs);
+  max-width: 18rem;
+  opacity: 1;
+}
+
 .status-icon:hover .status-icon-text,
 .status-icon:focus-within .status-icon-text {
   margin-left: var(--mantine-spacing-xs);

@@ -154,8 +154,9 @@ Client-side storage for collaboration state.
   recovery actions.
 - Retry revalidates the current route. Restoration of browser connectivity also
   triggers revalidation.
-- Connectivity copy does not attribute the failure specifically to the device
-  network because an unavailable RemDo server produces the same state.
+- While locally available functionality remains usable, the application
+  indicates that synchronization is interrupted and local edits will sync after
+  reconnection.
 
 ### Offline cache recovery contract
 

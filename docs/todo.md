@@ -143,6 +143,9 @@ Deferred hardening; long-horizon items live in `docs/access-model.md#future`.
 
 ## Offline and local persistence follow-ups
 
+- Connectivity recovery feedback: visibly confirm when synchronization resumes;
+  coordinate the copy with the pending-local-changes signal below so it does not
+  claim that edits are server-synced before the collaboration layer confirms it.
 - Offline collaboration retry follow-up: reduce Y-Sweet document client token
   fetch and websocket reconnect noise when the app server or collaboration
   server is unavailable. The editor should keep showing a clear disconnected

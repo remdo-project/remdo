@@ -222,6 +222,7 @@ test.describe('Offline app shell', () => {
     await withOfflinePage(context, async (offlinePage) => {
       await offlinePage.goto(`/n/${docId}`);
       await waitForEditableEditor(offlinePage);
+      await expect(offlinePage.getByText('Sync paused · edits sync when reconnected')).toBeVisible();
       const offlineEditorInput = offlinePage.locator('.editor-input').first();
       await expect(offlinePage.locator('li.list-item').filter({ hasText: onlineSeedText })).toHaveCount(1);
 
@@ -232,6 +233,7 @@ test.describe('Offline app shell', () => {
 
       await context.setOffline(false);
       await expect(offlinePage.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+      await expect(offlinePage.getByText('Sync paused · edits sync when reconnected')).toHaveCount(0);
       await expect(offlinePage.locator('li.list-item').filter({ hasText: offlineEditText })).toHaveCount(1);
     });
   });
