@@ -78,7 +78,9 @@
 }
 
 @media (max-width: 48em) {
-  .inner {
+  /* Same `.header .inner` specificity as the base rule so this override wins on
+     source order (a bare `.inner` would lose to the qualified base rule). */
+  .header .inner {
     align-items: flex-start;
     flex-direction: column;
     gap: var(--mantine-spacing-xs);

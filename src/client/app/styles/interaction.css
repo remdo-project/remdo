@@ -10,12 +10,13 @@
   --remdo-accent: #a5a1e8; /* muted grey-violet */
   --remdo-accent-hover: #c3bffb;
   --remdo-accent-rgb: 165 161 232;
+  --remdo-backdrop: #17151f; /* app-shell aurora base; shared by body + backdrop */
 }
 
 /* The page background matches the app-shell aurora base (faint-violet-black), so
    overscroll and the inset gutter read as one seamless backdrop. */
 body {
-  background: #17151f;
+  background: var(--remdo-backdrop);
 }
 
 .remdo-interaction-surface {
