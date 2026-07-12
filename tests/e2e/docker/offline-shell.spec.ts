@@ -195,7 +195,10 @@ test.describe('Offline app shell', () => {
       await offlinePage.goto(`/n/${uncachedDocId}`);
       await expect(offlinePage.locator('.editor-offline-empty-state')).toBeVisible();
       await expect(
-        offlinePage.getByText("You're offline. This document has no local copy yet.")
+        offlinePage.getByRole('heading', { name: 'Connection unavailable' })
+      ).toBeVisible();
+      await expect(
+        offlinePage.getByText("This document isn't available offline yet.")
       ).toBeVisible();
       await expect(offlinePage.locator('.editor-input')).toHaveCount(0);
     });

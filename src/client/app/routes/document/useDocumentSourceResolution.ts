@@ -49,26 +49,6 @@ function useLocalDocumentAccess(docId: string, enabled: boolean): LocalAccessPro
   return probe.state;
 }
 
-export function resolveDocumentSourcePending({
-  online,
-  documentSourcesLoading,
-  localDocumentExists,
-  hasCurrentSource,
-  probeState,
-}: {
-  online: boolean;
-  documentSourcesLoading: boolean;
-  localDocumentExists: boolean;
-  hasCurrentSource: boolean;
-  probeState: LocalAccessProbeState;
-}): boolean {
-  const ambiguous = online && documentSourcesLoading && !localDocumentExists && !hasCurrentSource;
-  // Only block while the probe is still deciding. Once it settles either way we
-  // mount the editor: authorized reads from its source, unavailable falls
-  // through to the collaboration layer's offline empty state.
-  return ambiguous && probeState === 'probing';
-}
-
 export function useDocumentSourceResolution(
   docId: string,
   documentSources: readonly DocumentSourceNote[],
@@ -85,13 +65,10 @@ export function useDocumentSourceResolution(
   return {
     currentSourceId: currentSource?.id() ?? null,
     documentLabel: currentDocument?.text() ?? docId,
-    pending: resolveDocumentSourcePending({
-      online,
-      documentSourcesLoading,
-      localDocumentExists,
-      hasCurrentSource: Boolean(currentSource),
-      probeState,
-    }),
+    // Only block while the probe is still deciding. Once it settles either way
+    // we mount the editor: authorized reads from its source, unavailable falls
+    // through to the collaboration layer's offline empty state.
+    pending: ambiguous && probeState === 'probing',
     sourceId: currentSource?.local() === false ? currentSource.id() : null,
     sourceOrigin: currentSource?.baseUrl() ?? null,
   };
