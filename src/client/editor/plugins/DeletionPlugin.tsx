@@ -26,7 +26,10 @@ import {
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
-import { $deleteSelectedNotes } from '#client/editor/outline/selection/delete-selection';
+import {
+  $deleteFocusedOrSelectedNotes,
+  $deleteSelectedNotes,
+} from '#client/editor/outline/selection/delete-selection';
 import {
   getFirstDescendantListItem,
   getNestedList,
@@ -454,7 +457,7 @@ export function DeletionPlugin() {
 
     const unregisterDeleteCommand = editor.registerCommand(
       DELETE_SELECTED_NOTES_COMMAND,
-      () => $deleteSelectedNotes(editor),
+      () => $deleteFocusedOrSelectedNotes(editor),
       COMMAND_PRIORITY_LOW
     );
 

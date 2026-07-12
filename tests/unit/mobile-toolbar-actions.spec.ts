@@ -148,11 +148,29 @@ describe('mobile toolbar actions', () => {
     expect(remdo).toMatchEditorState(before);
   });
 
-  it('reflects delete capability: enabled for a structural selection, disabled for a caret', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  it('reflects delete capability: enabled for a caret in a note and for a structural selection', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note5');
-    expect(resolveSelectionCapability(remdo.editor).delete).toBe(false);
+    expect(resolveSelectionCapability(remdo.editor).delete).toBe(true);
 
     await selectStructuralNotes(remdo, 'note5', 'note6');
     expect(resolveSelectionCapability(remdo.editor).delete).toBe(true);
+  });
+
+  it('deletes the focused note from a caret (removes the note and its subtree)', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note6');
+
+    await remdo.dispatchCommand(DELETE_SELECTED_NOTES_COMMAND, undefined);
+
+    // note6 and its child note7 are gone; the rest is untouched.
+    expect(remdo).toMatchOutline([
+      {
+        noteId: 'note1', text: 'note1',
+        children: [
+          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
+          { noteId: 'note4', text: 'note4' },
+        ],
+      },
+      { noteId: 'note5', text: 'note5' },
+    ]);
   });
 });

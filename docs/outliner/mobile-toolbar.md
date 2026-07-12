@@ -25,7 +25,9 @@ toolbar surface and its behavior, not those operations.
      the [zoom](./zoom.md) boundary.
    - Move up / move down, per [Reordering](./reordering.md).
    - Toggle done, recursively per [List Types](./list-types.md).
-   - Delete, per [Deletion](./deletion.md), with no confirmation step.
+   - Delete removes the targeted notes and their subtrees per
+     [Deletion](./deletion.md), with no confirmation step. For a caret this
+     removes the focused note (not the caret-mode merge that Backspace performs).
 3. Toggle fold acts on the focus note per [Folding](./folding.md), matching the
    [menu](./menu.md)'s single-note fold contract.
 4. Undo and redo act on the document's edit history rather than the selection,

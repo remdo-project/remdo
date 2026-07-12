@@ -2,6 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import { CAN_REDO_COMMAND, CAN_UNDO_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -120,9 +121,14 @@ export function MobileActionToolbar() {
   // reveal more actions never triggers one.
   const onActionClick = (id: MobileActionId) => () => {
     runMobileAction(editor, id);
-    // Keep the editor focused so the keyboard stays up and actions chain.
     editor.focus();
   };
+
+  // Prevent focus leaving the editor on a tap so the keyboard stays up and
+  // actions chain. mousedown is synthesized only for a tap, not while scrolling,
+  // so this preserves focus without blocking the horizontal swipe (unlike
+  // preventing pointerdown).
+  const preserveEditorFocus = (event: ReactMouseEvent<HTMLButtonElement>) => event.preventDefault();
 
   return createPortal(
     <div
@@ -139,6 +145,7 @@ export function MobileActionToolbar() {
           className="mobile-action-toolbar__button"
           aria-label={action.label}
           disabled={isDisabled(action.id, state)}
+          onMouseDown={preserveEditorFocus}
           onClick={onActionClick(action.id)}
         >
           <span aria-hidden="true">{action.icon}</span>

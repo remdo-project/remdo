@@ -15,6 +15,7 @@ import {
   $resolveRootContentList,
   resolveContentItemFromNode,
 } from '#client/editor/outline/schema';
+import { $resolveSelectedNoteRange } from '#client/editor/plugins/selected-note-range';
 import { $selectItemEdge } from './caret';
 import { $resolveStructuralDeletionTargets, applyStructuralDeletionTargets } from './deletion';
 import { getFirstDescendantListItem } from './tree';
@@ -25,39 +26,72 @@ interface ResolvedDeletion {
   zoomRoot: ListItemNode | null;
 }
 
-// The deletion targets for the editor's current structural selection, plus the
-// selection and zoom root the caret placement needs. Null when there is no
-// deletable structural selection. Non-mutating.
-function $resolveDeletion(editor: LexicalEditor): ResolvedDeletion | null {
-  if (!editor.selection.isStructural()) {
-    return null;
-  }
-  const structuralRange = editor.selection.get()?.range;
-  if (!structuralRange) {
+// Deletion targets for a resolved note range, plus the selection and zoom root
+// the caret placement needs. Null when nothing is deletable. Non-mutating.
+function $resolveDeletionForRange(
+  editor: LexicalEditor,
+  range: ReturnType<typeof $resolveSelectedNoteRange>
+): ResolvedDeletion | null {
+  if (!range) {
     return null;
   }
   const selection = $getSelection();
   const zoomRoot = $resolveZoomRoot(editor);
-  const targets = $resolveStructuralDeletionTargets(structuralRange, selection, zoomRoot);
+  const targets = $resolveStructuralDeletionTargets(range, selection, zoomRoot);
   return targets ? { targets, selection, zoomRoot } : null;
 }
 
+// Keyboard Backspace/Delete path: only a structural multi-note selection removes
+// whole notes here; a caret is handled by the plugin's merge logic instead.
+function $resolveStructuralDeletion(editor: LexicalEditor): ResolvedDeletion | null {
+  if (!editor.selection.isStructural()) {
+    return null;
+  }
+  return $resolveDeletionForRange(editor, editor.selection.get()?.range ?? null);
+}
+
+// Toolbar "delete this note" path: the focused note for a caret, or every head
+// of a structural selection. Removing a whole note (with its subtree) is
+// distinct from caret-mode Backspace/Delete, which merges.
+function $resolveSelectedNotesDeletion(editor: LexicalEditor): ResolvedDeletion | null {
+  return $resolveDeletionForRange(editor, $resolveSelectedNoteRange(editor));
+}
+
 /**
- * Whether the editor's current structural selection has notes that can be
- * deleted. Non-mutating: safe to call for computing a disabled state.
+ * Whether the keyboard delete/backspace path can remove whole notes: true only
+ * for a structural multi-note selection. Non-mutating.
  */
 export function $canDeleteSelectedNotes(editor: LexicalEditor): boolean {
-  return $resolveDeletion(editor) !== null;
+  return $resolveStructuralDeletion(editor) !== null;
 }
 
 /**
  * Delete the notes in the editor's current structural selection and place the
- * caret sensibly. Returns false (no mutation) when there is no deletable
- * structural selection. Shared by the keyboard delete/backspace path and the
- * mobile action toolbar.
+ * caret. Returns false (no mutation) when there is no deletable structural
+ * selection — the keyboard path's caret handling lives in DeletionPlugin.
  */
 export function $deleteSelectedNotes(editor: LexicalEditor): boolean {
-  const resolved = $resolveDeletion(editor);
+  return $applyResolvedDeletion($resolveStructuralDeletion(editor));
+}
+
+/**
+ * Whether the mobile toolbar's delete can remove a note: true for a caret in a
+ * note or a structural selection. Non-mutating.
+ */
+export function $canDeleteFocusedOrSelectedNotes(editor: LexicalEditor): boolean {
+  return $resolveSelectedNotesDeletion(editor) !== null;
+}
+
+/**
+ * Mobile toolbar "delete this note": remove the focused note (for a caret) or
+ * every head of a structural selection, with its subtree, then place the caret.
+ * Returns false (no mutation) when nothing is deletable.
+ */
+export function $deleteFocusedOrSelectedNotes(editor: LexicalEditor): boolean {
+  return $applyResolvedDeletion($resolveSelectedNotesDeletion(editor));
+}
+
+function $applyResolvedDeletion(resolved: ResolvedDeletion | null): boolean {
   if (!resolved) {
     return false;
   }

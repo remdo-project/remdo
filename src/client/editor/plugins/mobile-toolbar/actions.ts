@@ -13,7 +13,7 @@ import {
 } from '#client/editor/commands';
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
-import { $canDeleteSelectedNotes } from '#client/editor/outline/selection/delete-selection';
+import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 import { noteHasChildren } from '#client/editor/outline/selection/tree';
 
 // The toolbar's action set, in display order (docs/outliner/mobile-toolbar.md).
@@ -90,6 +90,6 @@ export interface SelectionCapability {
 export function resolveSelectionCapability(editor: LexicalEditor): SelectionCapability {
   return editor.read(() => ({
     fold: $resolveFoldableNoteKey(editor) !== null,
-    delete: $canDeleteSelectedNotes(editor),
+    delete: $canDeleteFocusedOrSelectedNotes(editor),
   }));
 }
