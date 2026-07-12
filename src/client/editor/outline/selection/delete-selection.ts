@@ -19,20 +19,35 @@ import { $selectItemEdge } from './caret';
 import { $resolveStructuralDeletionTargets, applyStructuralDeletionTargets } from './deletion';
 import { getFirstDescendantListItem } from './tree';
 
+interface ResolvedDeletion {
+  targets: NonNullable<ReturnType<typeof $resolveStructuralDeletionTargets>>;
+  selection: ReturnType<typeof $getSelection>;
+  zoomRoot: ListItemNode | null;
+}
+
+// The deletion targets for the editor's current structural selection, plus the
+// selection and zoom root the caret placement needs. Null when there is no
+// deletable structural selection. Non-mutating.
+function $resolveDeletion(editor: LexicalEditor): ResolvedDeletion | null {
+  if (!editor.selection.isStructural()) {
+    return null;
+  }
+  const structuralRange = editor.selection.get()?.range;
+  if (!structuralRange) {
+    return null;
+  }
+  const selection = $getSelection();
+  const zoomRoot = $resolveZoomRoot(editor);
+  const targets = $resolveStructuralDeletionTargets(structuralRange, selection, zoomRoot);
+  return targets ? { targets, selection, zoomRoot } : null;
+}
+
 /**
  * Whether the editor's current structural selection has notes that can be
  * deleted. Non-mutating: safe to call for computing a disabled state.
  */
 export function $canDeleteSelectedNotes(editor: LexicalEditor): boolean {
-  if (!editor.selection.isStructural()) {
-    return false;
-  }
-  const structuralRange = editor.selection.get()?.range;
-  if (!structuralRange) {
-    return false;
-  }
-  const zoomRoot = $resolveZoomRoot(editor);
-  return $resolveStructuralDeletionTargets(structuralRange, $getSelection(), zoomRoot) !== null;
+  return $resolveDeletion(editor) !== null;
 }
 
 /**
@@ -42,21 +57,11 @@ export function $canDeleteSelectedNotes(editor: LexicalEditor): boolean {
  * mobile action toolbar.
  */
 export function $deleteSelectedNotes(editor: LexicalEditor): boolean {
-  if (!editor.selection.isStructural()) {
+  const resolved = $resolveDeletion(editor);
+  if (!resolved) {
     return false;
   }
-
-  const structuralRange = editor.selection.get()?.range;
-  if (!structuralRange) {
-    return false;
-  }
-
-  const selection = $getSelection();
-  const zoomRoot = $resolveZoomRoot(editor);
-  const structuralTargets = $resolveStructuralDeletionTargets(structuralRange, selection, zoomRoot);
-  if (!structuralTargets) {
-    return false;
-  }
+  const { targets: structuralTargets, selection, zoomRoot } = resolved;
 
   applyStructuralDeletionTargets(structuralTargets);
 
