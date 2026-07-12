@@ -147,7 +147,7 @@ Client-side storage for collaboration state.
   persists local edits for synchronization after reconnect. Document-local
   navigation and search remain available.
 - A document without a local copy stays at its canonical URL and shows a
-  non-editable connection-unavailable state until its content can load.
+  non-editable offline empty state until its content can load.
 - A route that cannot establish session state preserves its requested browser
   URL and renders a connection-unavailable state in place. Without remembered
   session state, that fallback exposes only the application identity and

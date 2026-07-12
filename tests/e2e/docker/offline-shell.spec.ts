@@ -140,6 +140,24 @@ test.describe('Offline app shell', () => {
     });
   });
 
+  test('withholds admin actions until the authenticated session can be revalidated', async ({
+    page,
+    context,
+  }) => {
+    await page.goto('/');
+    await waitForServiceWorkerControl(page);
+    allowOfflineDisconnectedConsoleIssue(page);
+    await page.close();
+
+    await withOfflinePage(context, async (offlinePage) => {
+      await offlinePage.goto('/admin');
+
+      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/admin');
+      await expect(offlinePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
+      await expect(offlinePage.getByRole('heading', { name: /^(?:Admin|Become admin)$/u })).toHaveCount(0);
+    });
+  });
+
   test('opens the app shell while offline after an online warm-up', async ({ page, context }) => {
     const { id: warmedDocId } = await createUserDocument(page, 'Offline Warmed Document');
     await page.goto(`/n/${warmedDocId}`);
