@@ -33,20 +33,17 @@ export default function OnlineGate({
 
 function ConnectionUnavailable() {
   const { revalidate } = useRevalidator();
-  // A reconnect signal arms the sequence; the effect below schedules each
-  // attempt off `RECONNECT_RETRY_DELAYS_MS[attempt]` and advances the index,
-  // stopping once it runs past the ladder. `attempt: null` means never armed
-  // (a bare mount). `arming` is a monotonic token so a repeated reconnect
-  // always re-arms — even when `attempt` is already 0, whose bare value React
-  // would dedupe. State (not a ref) so each advance re-renders and re-runs the
-  // effect deterministically.
-  const [retryState, setRetryState] = useState<{ arming: number; attempt: number | null }>({
-    arming: 0,
-    attempt: null,
-  });
+  // A reconnect signal (browser `online` event or the Retry button) bumps
+  // `arming`; the effect below then schedules the whole `RECONNECT_RETRY_DELAYS_MS`
+  // sequence at once and cancels any prior pending timers. `arming === 0` means
+  // never armed (a bare mount), so nothing is scheduled and a genuinely-down
+  // server is not auto-hammered. A successful revalidation flips the session
+  // state, unmounts this component, and its cleanup cancels the rest of the
+  // sequence, so it stops as soon as the connection recovers.
+  const [arming, setArming] = useState(0);
 
   const armRetryBudget = useCallback(() => {
-    setRetryState((prev) => ({ arming: prev.arming + 1, attempt: 0 }));
+    setArming((count) => count + 1);
   }, []);
 
   useEffect(() => {
@@ -54,26 +51,19 @@ function ConnectionUnavailable() {
     return () => globalThis.removeEventListener('online', armRetryBudget);
   }, [armRetryBudget]);
 
-  const { arming, attempt } = retryState;
   useEffect(() => {
-    // Only run while a reconnect signal has armed the sequence. This component
-    // staying mounted means the prior revalidation left the gate unavailable, so
-    // schedule the next attempt. Once the index runs past the ladder the budget
-    // is spent: schedule nothing and wait for the next reconnect signal.
-    if (attempt === null) {
+    if (arming === 0) {
       return;
     }
-    const delay = RECONNECT_RETRY_DELAYS_MS[attempt];
-    if (delay === undefined) {
-      return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let cumulativeDelay = 0;
+    for (const delay of RECONNECT_RETRY_DELAYS_MS) {
+      cumulativeDelay += delay;
+      const timer = globalThis.setTimeout(() => void revalidate(), cumulativeDelay);
+      timers.push(timer);
     }
-    const timer = globalThis.setTimeout(() => {
-      void revalidate();
-      setRetryState((prev) => ({ ...prev, attempt: attempt + 1 }));
-    }, delay);
-    return () => globalThis.clearTimeout(timer);
-    // `arming` is a dep so a re-arm to the same `attempt` (0) still re-runs.
-  }, [arming, attempt, revalidate]);
+    return () => timers.forEach((timer) => globalThis.clearTimeout(timer));
+  }, [arming, revalidate]);
 
   return (
     <CenteredCardPage

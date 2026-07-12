@@ -51,19 +51,17 @@ function renderOnlineGate(failuresBeforeRecovery: number) {
 }
 
 /**
- * Fires a reconnect (`online`) signal, then advances fake timers in small steps
- * well past the full backoff sequence, flushing React between steps so each
- * scheduled attempt timer is picked up before the next is due.
+ * Fires a reconnect (`online`) signal, then drains every timer the reconnect
+ * scheduled. The gate schedules its whole backoff sequence up front, so a single
+ * `runAllTimersAsync` covers it regardless of the ladder's delays.
  */
 async function fireReconnectAndDrainLadder() {
   await act(async () => {
     globalThis.dispatchEvent(new Event('online'));
   });
-  for (let elapsed = 0; elapsed < 3000; elapsed += 100) {
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(100);
-    });
-  }
+  await act(async () => {
+    await vi.runAllTimersAsync();
+  });
 }
 
 describe('online gate reconnect revalidation', () => {
