@@ -13,9 +13,9 @@ import CenteredCardPage from '#client/ui/CenteredCardPage';
 // recovers on its own. The sequence is *only* driven by a reconnect signal —
 // never by a bare mount while `navigator.onLine` is true — so a server that is
 // genuinely down (network up) is not auto-hammered on every render of this gate.
-// The leading 0ms attempt is the immediate revalidation the reconnect warrants;
-// the rest are the backed-off retries.
-const RECONNECT_RETRY_DELAYS_MS = [0, 150, 400, 1000];
+// Values are absolute offsets from the reconnect: an immediate attempt (0ms)
+// the reconnect warrants, then backed-off retries.
+const RECONNECT_RETRY_OFFSETS_MS = [0, 150, 550, 1550];
 
 export default function OnlineGate({
   allowOfflineSession = false,
@@ -34,7 +34,7 @@ export default function OnlineGate({
 function ConnectionUnavailable() {
   const { revalidate } = useRevalidator();
   // A reconnect signal (browser `online` event or the Retry button) bumps
-  // `arming`; the effect below then schedules the whole `RECONNECT_RETRY_DELAYS_MS`
+  // `arming`; the effect below then schedules the whole `RECONNECT_RETRY_OFFSETS_MS`
   // sequence at once and cancels any prior pending timers. `arming === 0` means
   // never armed (a bare mount), so nothing is scheduled and a genuinely-down
   // server is not auto-hammered. A successful revalidation flips the session
@@ -56,10 +56,8 @@ function ConnectionUnavailable() {
       return;
     }
     const timers: ReturnType<typeof setTimeout>[] = [];
-    let cumulativeDelay = 0;
-    for (const delay of RECONNECT_RETRY_DELAYS_MS) {
-      cumulativeDelay += delay;
-      const timer = globalThis.setTimeout(() => void revalidate(), cumulativeDelay);
+    for (const offset of RECONNECT_RETRY_OFFSETS_MS) {
+      const timer = globalThis.setTimeout(() => void revalidate(), offset);
       timers.push(timer);
     }
     return () => timers.forEach((timer) => globalThis.clearTimeout(timer));
