@@ -36,8 +36,8 @@
   /* Frosted glass: translucent dark-7 fill + backdrop blur. The lower opacity
      lets more of the bold aurora show through the document. */
   background: color-mix(in srgb, var(--mantine-color-dark-7) 55%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(var(--remdo-glass-blur));
+  -webkit-backdrop-filter: blur(var(--remdo-glass-blur));
   border-radius: var(--mantine-radius-lg);
   box-shadow: 0 1px 3px rgb(0 0 0 / 25%), 0 16px 44px rgb(0 0 0 / 30%);
   overflow: hidden;

@@ -14,6 +14,7 @@
      two-tone with the violet accent); as bare channels for rgb(... / a). */
   --remdo-accent-secondary-rgb: 116 143 252;
   --remdo-backdrop: #17151f; /* app-shell aurora base; shared by body + backdrop */
+  --remdo-glass-blur: 16px; /* shared frosted-glass blur (shell + header are one material) */
 }
 
 /* The page background matches the app-shell aurora base (faint-violet-black), so

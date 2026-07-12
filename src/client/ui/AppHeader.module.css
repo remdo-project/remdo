@@ -4,8 +4,8 @@
 .header {
   width: 100%;
   background-color: color-mix(in srgb, var(--mantine-color-dark-6) 69%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(var(--remdo-glass-blur));
+  -webkit-backdrop-filter: blur(var(--remdo-glass-blur));
 }
 
 /* Align the header content to the document body's inline inset (`xl`), spanning
