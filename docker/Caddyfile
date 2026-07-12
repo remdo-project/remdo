@@ -16,10 +16,10 @@
 			host {$CADDY_CANONICAL_HOST}
 		}
 		handle @canonical_host {
-			@app_favicon path /favicon.ico /favicon.svg
+			@app_favicon path /favicon.ico /favicon.png
 			handle @app_favicon {
 				root * /srv/remdo
-				rewrite * /favicon.svg
+				rewrite * /favicon.png
 				file_server
 			}
 
