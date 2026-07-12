@@ -139,6 +139,24 @@ Client-side storage for collaboration state.
   server sync).
 - **Synced:** provider is connected and has no pending unsent local changes.
 
+### Offline application behavior
+
+- A remembered session and cached current-user bootstrap allow the application
+  to open without reaching its app server.
+- A locally cached document opens at its canonical URL, remains editable, and
+  persists local edits for synchronization after reconnect. Document-local
+  navigation and search remain available.
+- A document without a local copy stays at its canonical URL and shows a
+  non-editable connection-unavailable state until its content can load.
+- A route that cannot establish session state preserves its requested browser
+  URL and renders a connection-unavailable state in place. Without remembered
+  session state, that fallback exposes only the application identity and
+  recovery actions.
+- Retry revalidates the current route. Restoration of browser connectivity also
+  triggers revalidation.
+- Connectivity copy does not attribute the failure specifically to the device
+  network because an unavailable RemDo server produces the same state.
+
 ### Offline cache recovery contract
 
 - First-open offline with no local document cache shows an offline empty state;
@@ -146,6 +164,16 @@ Client-side storage for collaboration state.
 - Local persistence is best-effort. If browser storage is cleared or evicted,
   the document behaves as uncached on the next offline open.
 - Reconnect rehydrates from the hub and returns the document to normal editing.
+
+### Future
+
+- Provide a locally persisted document inventory so a fresh offline launch can
+  list and switch among cached documents from the current server and linked
+  sources. Introduce that inventory with the replacement for projected
+  app-resource reads rather than extending the projection format.
+- Support offline document creation and import through durable local intents
+  that reconcile with the server after reconnect. Other server-owned actions
+  expose resumable pending state where their authorization semantics permit it.
 
 ## Multi-Hub Vocabulary
 
@@ -166,3 +194,11 @@ The terms below describe the target vocabulary for multi-hub document access.
 ## Multi-Hub Guardrails
 
 - Keep an explicit active hub context when opening a document in runtime.
+
+## References
+
+- [web.dev: Offline UX design guidelines](https://web.dev/articles/offline-ux-design-guidelines)
+  — contextual connectivity feedback and preserving usable content.
+- [Chrome for Developers: Managing fallback responses](https://developer.chrome.com/docs/workbox/managing-fallback-responses/)
+  — generic service-worker fallback responses when the application shell cannot
+  load.
