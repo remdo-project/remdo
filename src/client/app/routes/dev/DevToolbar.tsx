@@ -29,6 +29,7 @@ function buildUrl(host: HostContext, portOffset: number, path = ''): string {
 
 export function DevToolbarLinks({ linkClassName }: { linkClassName?: string }) {
   const host = resolveHost();
+  const pwaUrl = buildUrl(host, 20);
   const vitestUrl = buildUrl(host, 2, '/__vitest__/');
   const playwrightUrl = buildUrl({ protocol: 'http:', hostname: 'localhost', basePort: host.basePort }, 6);
   const lexicalUrl = `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`;
@@ -37,6 +38,9 @@ export function DevToolbarLinks({ linkClassName }: { linkClassName?: string }) {
     <>
       <DevVisibilityControl />
       <DevVisibilityGate>
+        <Anchor className={linkClassName} href={pwaUrl}>
+          PWA
+        </Anchor>
         <Anchor className={linkClassName} href={vitestUrl}>
           <Icon icon={IconBrandVite} />
           Vitest
