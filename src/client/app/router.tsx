@@ -14,6 +14,7 @@ import RootRoute from './routes/RootRoute';
 import type { RootRouteLoaderData } from './routes/RootRoute';
 import SharingRoute from './routes/SharingRoute';
 import AuthenticatedRoute from './routes/AuthenticatedRoute';
+import OnlineGate from './routes/OnlineGate';
 import {
   createPostAuthNextSearch,
   resolvePostAuthPath,
@@ -140,7 +141,11 @@ const appRoutes = [
     // ADMIN_SECRET-gated server-side either way.
     path: '/admin',
     loader: adminRouteLoader,
-    element: <AdminRoute />,
+    element: (
+      <OnlineGate>
+        <AdminRoute />
+      </OnlineGate>
+    ),
     hydrateFallbackElement,
   },
   {
@@ -148,7 +153,11 @@ const appRoutes = [
     // act on their behalf. Reachable only with a source session.
     path: '/oauth/consent',
     loader: authenticatedSessionLoader,
-    element: <OAuthConsentRoute />,
+    element: (
+      <OnlineGate>
+        <OAuthConsentRoute />
+      </OnlineGate>
+    ),
     hydrateFallbackElement,
   },
   {

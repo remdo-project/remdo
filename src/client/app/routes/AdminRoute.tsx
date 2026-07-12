@@ -7,17 +7,12 @@ import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-us
 import { resetUserData } from '#client/app/documents/user-data';
 import CenteredCardPage from '#client/ui/CenteredCardPage';
 import type { AdminRouteState } from './admin-route-loader';
-import ConnectionUnavailable from './ConnectionUnavailable';
 
 // /admin is public: an authenticated admin gets the panel inside the app shell
 // with the live user-data runtime; anyone else gets the standalone enroll form,
 // so no runtime/user-data fetch is attempted for a visitor who has no session.
 export default function AdminRoute() {
   const state = useLoaderData<AdminRouteState>();
-
-  if (state.kind === 'unavailable') {
-    return <ConnectionUnavailable />;
-  }
 
   if (state.kind === 'admin') {
     return (

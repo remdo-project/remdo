@@ -4,7 +4,7 @@ import type { SessionGateState } from '#client/app/auth/client';
 import type { ParsedDocumentRef } from '#document-routes';
 import DocumentRoute from './DocumentRoute';
 import LoginRoute from './LoginRoute';
-import ConnectionUnavailable from './ConnectionUnavailable';
+import OnlineGate from './OnlineGate';
 
 export type RootRouteLoaderData =
   | {
@@ -24,12 +24,11 @@ export default function RootRoute() {
   if (data.sessionState.status === 'unauthenticated') {
     return <LoginRoute />;
   }
-  if (data.sessionState.status === 'offline-unavailable') {
-    return <ConnectionUnavailable />;
-  }
   return (
-    <AuthenticatedApp>
-      <DocumentRoute />
-    </AuthenticatedApp>
+    <OnlineGate allowOfflineSession>
+      <AuthenticatedApp>
+        <DocumentRoute />
+      </AuthenticatedApp>
+    </OnlineGate>
   );
 }

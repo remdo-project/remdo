@@ -1,9 +1,25 @@
 import { Button } from '@mantine/core';
+import type { ReactNode } from 'react';
 import { useEffect } from 'react';
-import { useRevalidator } from 'react-router-dom';
+import { useLoaderData, useRevalidator } from 'react-router-dom';
+import type { SessionGateState } from '#client/app/auth/client';
 import CenteredCardPage from '#client/ui/CenteredCardPage';
 
-export default function ConnectionUnavailable() {
+export default function OnlineGate({
+  allowOfflineSession = false,
+  children,
+}: {
+  allowOfflineSession?: boolean;
+  children: ReactNode;
+}) {
+  const { sessionState } = useLoaderData<{ sessionState: SessionGateState }>();
+  const unavailable = sessionState.status === 'offline-unavailable'
+    || (!allowOfflineSession && sessionState.status === 'offline-remembered');
+
+  return unavailable ? <ConnectionUnavailable /> : children;
+}
+
+function ConnectionUnavailable() {
   const revalidator = useRevalidator();
 
   useEffect(() => {
