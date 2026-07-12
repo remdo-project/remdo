@@ -1,10 +1,9 @@
 import { useLoaderData } from 'react-router-dom';
-import AuthenticatedApp from '#client/app/AuthenticatedApp';
 import type { SessionGateState } from '#client/app/auth/client';
 import type { ParsedDocumentRef } from '#document-routes';
+import AuthenticatedRoute from './AuthenticatedRoute';
 import DocumentRoute from './DocumentRoute';
 import LoginRoute from './LoginRoute';
-import OnlineGate from './OnlineGate';
 
 export type RootRouteLoaderData =
   | {
@@ -25,10 +24,8 @@ export default function RootRoute() {
     return <LoginRoute />;
   }
   return (
-    <OnlineGate allowOfflineSession>
-      <AuthenticatedApp>
-        <DocumentRoute />
-      </AuthenticatedApp>
-    </OnlineGate>
+    <AuthenticatedRoute>
+      <DocumentRoute />
+    </AuthenticatedRoute>
   );
 }
