@@ -18,6 +18,16 @@ const unauthenticatedTest = test.extend({
   },
 });
 
+function collectCurrentUserRequests(page: Page): string[] {
+  const requests: string[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/current-user') {
+      requests.push(request.url());
+    }
+  });
+  return requests;
+}
+
 test.describe('Offline app shell', () => {
   test('opens the cached bootstrap home route while offline', async ({ page, context }) => {
     await page.goto('/');
@@ -63,12 +73,7 @@ test.describe('Offline app shell', () => {
   unauthenticatedTest(
     'keeps the signed-out route while the app server is unavailable and retries in place',
     async ({ page, context }) => {
-      const userDataRequests: string[] = [];
-      page.on('request', (request) => {
-        if (new URL(request.url()).pathname === '/api/current-user') {
-          userDataRequests.push(request.url());
-        }
-      });
+      const currentUserRequests = collectCurrentUserRequests(page);
       allowServerUnavailableConsoleIssue(page);
       await context.route('**/api/**', (route) => {
         void route.abort();
@@ -84,7 +89,7 @@ test.describe('Offline app shell', () => {
         await expect(navigation.getByRole('link', {
           name: /^(?:Admin|Sharing|Logout|Sign in)$/u,
         })).toHaveCount(0);
-        expect(userDataRequests).toEqual([]);
+        expect(currentUserRequests).toEqual([]);
 
         await context.unroute('**/api/**');
         await page.getByRole('button', { name: 'Retry' }).click();
@@ -127,11 +132,13 @@ test.describe('Offline app shell', () => {
     await page.close();
 
     await withOfflinePage(context, async (offlinePage) => {
+      const currentUserRequests = collectCurrentUserRequests(offlinePage);
       await offlinePage.goto('/oauth/consent?client_id=test-client');
 
       await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/oauth/consent');
       await expect(offlinePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
       await expect(offlinePage.getByRole('button', { name: /^(?:Allow|Deny)$/u })).toHaveCount(0);
+      expect(currentUserRequests).toEqual([]);
 
       await context.setOffline(false);
       await expect(offlinePage.getByRole('heading', { name: 'Authorize access' })).toBeVisible();
@@ -150,11 +157,13 @@ test.describe('Offline app shell', () => {
     await page.close();
 
     await withOfflinePage(context, async (offlinePage) => {
+      const currentUserRequests = collectCurrentUserRequests(offlinePage);
       await offlinePage.goto('/admin');
 
       await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/admin');
       await expect(offlinePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
       await expect(offlinePage.getByRole('heading', { name: /^(?:Admin|Become admin)$/u })).toHaveCount(0);
+      expect(currentUserRequests).toEqual([]);
     });
   });
 
