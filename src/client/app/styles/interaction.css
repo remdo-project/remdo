@@ -7,9 +7,9 @@
   /* Cooler, slightly desaturated grey-violet so links/brand stay distinct from
      the bold violet backdrop (a saturated violet accent would converge with it).
      The aurora's primary glow still uses this hue via `--remdo-accent-rgb`. */
-  --remdo-accent: #a5a1e8; /* muted grey-violet */
+  --remdo-accent-rgb: 165 161 232; /* muted grey-violet — single source of truth */
+  --remdo-accent: rgb(var(--remdo-accent-rgb)); /* opaque form for links/brand */
   --remdo-accent-hover: #c3bffb;
-  --remdo-accent-rgb: 165 161 232;
   --remdo-backdrop: #17151f; /* app-shell aurora base; shared by body + backdrop */
 }
 

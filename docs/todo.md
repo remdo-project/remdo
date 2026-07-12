@@ -306,6 +306,19 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   current bullet size to be worth a standalone change; fold it into the wider
   pass, and reconsider the highlight strength there.)
 
+## App-shell layout container follow-up
+
+- The header (`AppHeader.tsx` `Container size="xl"` + `.header .inner`) and the
+  document route (`DocumentRoute.tsx` `Container fluid` + `main.document-route-container`)
+  both use a Mantine `Container` whose max-width/gutter is then cancelled in CSS
+  (`max-width: none` / `padding-inline: 0`), needing an element+class selector to
+  outrank `.mantine-Container-root`. The Container contributes only its block
+  padding. Consider dropping `Container` for a plain `<div>`/`<main>` and owning
+  layout in the module CSS (removes the specificity workarounds and comments).
+  Deferred as a tradeoff: it's an architectural call about whether the app shell
+  keeps using Mantine's layout primitive, and the route Container's `py` was
+  being hand-tuned — not a mechanical simplify.
+
 ## Client request follow-ups
 
 - Audit timeoutless browser requests and define operation-specific deadlines,
