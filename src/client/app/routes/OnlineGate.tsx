@@ -36,16 +36,22 @@ export default function OnlineGate({
 
 function ConnectionUnavailable() {
   const { revalidate } = useRevalidator();
-  // Pending backoff timer, and a token for the current reconnect cycle: bumping
-  // it abandons any still-pending chain (a newer signal or unmount).
+  // Pending backoff timer, and a token for the current reconnect cycle.
   const backoffTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const cycleRef = useRef(0);
+
+  // Abandon any live cycle: bump the token so a still-pending `revalidate().then`
+  // chain stops, and cancel a scheduled-but-unfired backoff. Returns the new
+  // token identifying the cycle a caller is about to (re)start.
+  const abandonCycle = useCallback(() => {
+    globalThis.clearTimeout(backoffTimerRef.current);
+    return (cycleRef.current += 1);
+  }, []);
 
   // Fire the immediate revalidation for a reconnect signal, then chain a bounded
   // backoff off each settle while this cycle is still live. See the module note.
   const armRetryBudget = useCallback(() => {
-    const cycle = (cycleRef.current += 1);
-    globalThis.clearTimeout(backoffTimerRef.current);
+    const cycle = abandonCycle();
 
     const runAttempt = (attempt: number) => {
       void revalidate().then(() => {
@@ -58,18 +64,17 @@ function ConnectionUnavailable() {
     };
 
     runAttempt(0);
-  }, [revalidate]);
+  }, [abandonCycle, revalidate]);
 
   useEffect(() => {
     globalThis.addEventListener('online', armRetryBudget);
+    // Recovery unmounts this component; abandoning the cycle on cleanup cancels
+    // any pending backoff so no retry fires afterward.
     return () => {
       globalThis.removeEventListener('online', armRetryBudget);
-      // Recovery unmounts this component; abandon the cycle and cancel the
-      // pending backoff so no retry fires afterward.
-      cycleRef.current += 1;
-      globalThis.clearTimeout(backoffTimerRef.current);
+      abandonCycle();
     };
-  }, [armRetryBudget]);
+  }, [abandonCycle, armRetryBudget]);
 
   return (
     <CenteredCardPage
