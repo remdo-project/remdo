@@ -50,6 +50,22 @@ function renderOnlineGate(failuresBeforeRecovery: number) {
   return { loaderCalls, result };
 }
 
+/**
+ * Fires a reconnect (`online`) signal, then advances fake timers in small steps
+ * past the full backoff ladder (150+400+1000ms), flushing React between steps so
+ * each scheduled retry timer is picked up before the next is due.
+ */
+async function fireReconnectAndDrainLadder() {
+  await act(async () => {
+    globalThis.dispatchEvent(new Event('online'));
+  });
+  for (let elapsed = 0; elapsed < 3000; elapsed += 100) {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+  }
+}
+
 describe('online gate reconnect revalidation', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -71,13 +87,7 @@ describe('online gate reconnect revalidation', () => {
     );
     expect(loaderCalls.count).toBe(1);
 
-    await act(async () => {
-      globalThis.dispatchEvent(new Event('online'));
-    });
-    // Drain the reconnect revalidation plus the backoff retry ladder.
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await fireReconnectAndDrainLadder();
 
     expect(screen.getByText('signed-in-shell')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Connection unavailable' })).toBeNull();
@@ -85,21 +95,49 @@ describe('online gate reconnect revalidation', () => {
     expect(loaderCalls.count).toBeGreaterThanOrEqual(3);
   });
 
-  it('stops retrying while the browser reports offline', async () => {
-    setOnline(false);
+  it('does not retry on a bare mount while the server is down but the network is up', async () => {
+    // navigator.onLine is true (set in beforeEach) but the server never
+    // recovers. Without a reconnect signal the gate must not auto-hammer it:
+    // exactly the single loader call from mount, no backoff retries.
     const { loaderCalls } = renderOnlineGate(Number.POSITIVE_INFINITY);
 
     await vi.waitFor(() =>
       expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument(),
     );
-    const callsAfterMount = loaderCalls.count;
+    expect(loaderCalls.count).toBe(1);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5000);
     });
 
-    // No `online` event fired and navigator is offline, so nothing revalidates.
-    expect(loaderCalls.count).toBe(callsAfterMount);
+    expect(loaderCalls.count).toBe(1);
     expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument();
+  });
+
+  it('bounds the reconnect retry budget when the server stays unavailable', async () => {
+    // A reconnect signal fires against a server that never recovers. The ladder
+    // must retry a bounded number of times and then stop, not loop forever.
+    const { loaderCalls } = renderOnlineGate(Number.POSITIVE_INFINITY);
+
+    await vi.waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument(),
+    );
+    expect(loaderCalls.count).toBe(1);
+
+    await fireReconnectAndDrainLadder();
+    // 1 mount + 1 reconnect revalidation + a bounded 3-step ladder = 5.
+    const callsAfterFirstReconnect = loaderCalls.count;
+    expect(callsAfterFirstReconnect).toBe(5);
+
+    // Budget spent: more time passes with no additional revalidations.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(loaderCalls.count).toBe(callsAfterFirstReconnect);
+    expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument();
+
+    // A fresh reconnect signal re-arms the budget for another bounded ladder.
+    await fireReconnectAndDrainLadder();
+    expect(loaderCalls.count).toBe(callsAfterFirstReconnect + 4);
   });
 });

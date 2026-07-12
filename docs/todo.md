@@ -638,3 +638,12 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   only checks `indent-jump`, which load normalization flattens. The validation is
   therefore practically inert today; add coverage if a schema rule that survives
   load is introduced.
+
+- `OnlineGate` reconnect retry is bounded to `RECONNECT_RETRY_DELAYS_MS` per
+  reconnect signal, so a server that recovers *without* a browser `online` event
+  (transient 5xx / server restart while the network stays up) can leave the gate
+  on "Connection unavailable" until the user clicks Retry. This is a deliberate
+  tradeoff against the opposite failure — auto-hammering a genuinely-down server
+  on every render — so the gate never polls indefinitely. Revisit only if the
+  stuck-until-manual-retry case proves to hurt in practice (e.g. add a single
+  long-delay final probe, or a visibilitychange-triggered re-arm).
