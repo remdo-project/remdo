@@ -48,6 +48,12 @@ Rules:
   revisit if the mis-dock proves noticeable (e.g. gate on editor focus, or a
   minimum keyboard-height threshold).
 
+- Portal-root tracking (`root.closest('.editor-container')` seeded in state +
+  updated from `registerRootListener`) is now hand-rolled in three plugins
+  (`NoteControlsPlugin`, `NoteMenuPlugin`, `MobileActionToolbar`). Extract a
+  shared `usePortalRoot(editor)` hook and migrate all three — net deletion, but
+  a cross-plugin refactor of otherwise-untouched code.
+
 ## Runtime and tooling source boundaries
 
 - Move runtime config under production source, split `tools/` into explicit
