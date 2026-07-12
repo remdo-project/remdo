@@ -25,6 +25,26 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
+## Mobile action toolbar
+
+Implements [docs/outliner/mobile-toolbar.md](outliner/mobile-toolbar.md) — the
+whole doc is unbuilt until the plugin lands.
+
+- Build the `MobileActionToolbar` plugin inside the editor composer (like
+  `NoteControlsPlugin`, portaled into `.editor-container`), registered in
+  `Editor.tsx`.
+- Add a coarse-pointer / no-hover detection hook — first touch/viewport
+  detection in `src/client`.
+- Wire the nine actions to existing dispatch: reorder/done/fold via their
+  commands; indent/outdent via `indent/outdentNotesInRange`; delete via a new
+  `$deleteSelectedNotes` helper extracted from `DeletionPlugin`'s structural
+  deletion orchestration; undo/redo via Lexical's `UNDO_COMMAND`/`REDO_COMMAND`.
+- Disabled states via existing non-mutating checks: Fold (`noteHasChildren`),
+  Delete (`$resolveStructuralDeletionTargets`), Undo/Redo
+  (`CAN_UNDO_COMMAND`/`CAN_REDO_COMMAND`).
+- Icon glyphs, exact touch-target sizing (44px targets, 4px gap, 6px vertical
+  padding), and horizontally-scrolling row styling.
+
 ## Runtime and tooling source boundaries
 
 - Move runtime config under production source, split `tools/` into explicit
