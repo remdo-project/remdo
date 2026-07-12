@@ -1,0 +1,60 @@
+/* App shell: the whole app (header + routed content) is one elevated glass card
+   floating on a soft aurora backdrop — a desktop-app "window" feel. The card is
+   a semi-transparent, blurred surface (frosted glass) over the backdrop; the
+   accent-tinted radial glows read through it as a gentle wash. Because RemDo is
+   dark, the glass blends dark-into-dark, so body-text contrast stays ~10:1 (AAA)
+   despite the transparency. The card scrolls as a unit (the header is static,
+   not sticky) and clips its own rounded corners with `overflow: hidden`.
+
+   `--remdo-accent-rgb` is the shared accent (violet-3) as bare channels, so the
+   aurora glows and other accent surfaces stay in one hue. */
+
+.backdrop {
+  /* `dvh` tracks the visible viewport as mobile browser chrome collapses/expands,
+     so a short route doesn't get a shell taller than the screen (which `vh` — the
+     large viewport — would cause). */
+  min-height: 100dvh;
+  padding: var(--app-shell-inset);
+  --app-shell-inset: 1.75rem;
+  /* Bold aurora: two large accent radial glows over a faint-violet-black base,
+     sized to reach into the reading area (not just the corners) so the page reads
+     as designed, not plain. The base is lifted just off pure near-black so the
+     glows register while staying soft. Deliberately louder than a "calm" backdrop
+     for this early stage — the glass keeps body text ~9:1 (AAA) despite it. A
+     future "reduce transparency / calm mode" toggle can dial this back for
+     long-session comfort (see docs/todo.md). */
+  background:
+    radial-gradient(85% 75% at 15% -5%, rgb(var(--remdo-accent-rgb) / 0.231), transparent 72%),
+    radial-gradient(75% 80% at 95% 15%, rgb(var(--remdo-accent-secondary-rgb) / 0.154), transparent 72%),
+    var(--remdo-backdrop);
+}
+
+.shell {
+  max-width: 87.5rem; /* 1400px */
+  margin: 0 auto;
+  min-height: calc(100dvh - 2 * var(--app-shell-inset));
+  /* Frosted glass: translucent dark-7 fill + backdrop blur. The lower opacity
+     lets more of the bold aurora show through the document. */
+  background: color-mix(in srgb, var(--mantine-color-dark-7) 55%, transparent);
+  backdrop-filter: blur(var(--remdo-glass-blur));
+  -webkit-backdrop-filter: blur(var(--remdo-glass-blur));
+  border-radius: var(--mantine-radius-lg);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 25%), 0 16px 44px rgb(0 0 0 / 30%);
+  overflow: hidden;
+}
+
+/* On phones the card dissolves to full-bleed: the inset and rounded shadow waste
+   the narrow width. The app fills the screen edge-to-edge. The glass fill and
+   blur stay — the aurora backdrop still shows through. */
+@media (max-width: 48em) {
+  .backdrop {
+    --app-shell-inset: 0rem;
+  }
+
+  .shell {
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 100dvh;
+  }
+}

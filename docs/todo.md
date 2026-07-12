@@ -299,6 +299,43 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   leaf-only typing updates skip them; skip redundant structural-overlay and
   outline-selection store writes in `SelectionPlugin` when nothing changed.
 
+## Color standardization
+
+- Standardize the app's colors on a single accent token. `--remdo-accent`
+  (violet-3) now drives links (`.text-link`) and the brand mark, but other
+  interactive/highlight colors are still ad-hoc Mantine blues — e.g. the editor
+  bullet/checkbox/note-control hover (`--indicator-highlight-color` = `blue-3`)
+  and the interaction focus/hover ring (`--interaction-accent-rgb` in
+  `interaction.css`). Route these through the accent so hover/focus/link/brand
+  read as one system. (Bullet-hover was tried and reverted — too subtle at the
+  current bullet size to be worth a standalone change; fold it into the wider
+  pass, and reconsider the highlight strength there.)
+
+## App-shell overflow vs inline menus
+
+- The app-shell `.shell` card uses `overflow: hidden` (needed to clip its rounded
+  corners) which becomes a clip box for inline dropdowns. The document switcher
+  menu (`DocumentToolbar.tsx`, `withinPortal={false}`) and the note menu
+  (`NoteMenuPlugin`, portaled into `.editor-container`) render inside it, so a
+  menu opening past the card's edge could be clipped rather than overflow. Narrow
+  exposure today (the card grows with content, and menus open near the top/mid),
+  but if a clip is ever observed, portal those menus to `document.body`
+  (`withinPortal`) rather than dropping the corner-clipping overflow. Deferred as
+  a tradeoff — the safe fix touches menu components outside the styling change.
+
+## App-shell layout container follow-up
+
+- The header (`AppHeader.tsx` `Container size="xl"` + `.header .inner`) and the
+  document route (`DocumentRoute.tsx` `Container fluid` + `main.document-route-container`)
+  both use a Mantine `Container` whose max-width/gutter is then cancelled in CSS
+  (`max-width: none` / `padding-inline: 0`), needing an element+class selector to
+  outrank `.mantine-Container-root`. The Container contributes only its block
+  padding. Consider dropping `Container` for a plain `<div>`/`<main>` and owning
+  layout in the module CSS (removes the specificity workarounds and comments).
+  Deferred as a tradeoff: it's an architectural call about whether the app shell
+  keeps using Mantine's layout primitive, and the route Container's `py` was
+  being hand-tuned — not a mechanical simplify.
+
 ## Client request follow-ups
 
 - Audit timeoutless browser requests and define operation-specific deadlines,

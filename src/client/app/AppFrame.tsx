@@ -3,6 +3,7 @@ import type { UIMatch } from 'react-router-dom';
 import type { SessionGateState } from './auth/client';
 import AppHeader from '#client/ui/AppHeader';
 import type { AppHeaderAuthState } from '#client/ui/AppHeader';
+import styles from './AppFrame.module.css';
 
 interface SessionRouteData {
   sessionState: SessionGateState;
@@ -38,9 +39,11 @@ export default function AppFrame() {
   const sessionState = matches.findLast(hasSessionState)?.loaderData.sessionState ?? null;
 
   return (
-    <>
-      <AppHeader authState={resolveHeaderAuthState(sessionState)} />
-      <Outlet />
-    </>
+    <div className={styles.backdrop}>
+      <div className={styles.shell}>
+        <AppHeader authState={resolveHeaderAuthState(sessionState)} />
+        <Outlet />
+      </div>
+    </div>
   );
 }

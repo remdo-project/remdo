@@ -47,7 +47,7 @@ export default function DocumentRoute() {
   );
 
   return (
-    <Container component="main" size="xl" py="xl">
+    <Container className="document-route-container" component="main" fluid py="xs">
       <EditorViewProvider
         docId={docId}
         onZoomNoteIdChange={navigateToZoomNote}
