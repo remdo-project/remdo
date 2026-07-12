@@ -143,6 +143,12 @@ Deferred hardening; long-horizon items live in `docs/access-model.md#future`.
 
 ## Offline and local persistence follow-ups
 
+- Access-denied vs connection copy: a 403 sync-token response while online
+  (authenticated user opens a document they can't access by direct URL) settles
+  the probe in `useDocumentSourceResolution`, mounts the editor, and the collab
+  attach 403 surfaces the "Connection unavailable" empty state — misdescribing an
+  authorization denial as a connectivity failure. Distinguish denied from
+  unreachable and show an access-denied state instead.
 - Connectivity recovery feedback: visibly confirm when synchronization resumes;
   coordinate the copy with the pending-local-changes signal below so it does not
   claim that edits are server-synced before the collaboration layer confirms it.
