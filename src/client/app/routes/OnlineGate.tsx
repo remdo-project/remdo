@@ -76,7 +76,6 @@ function ConnectionUnavailable() {
   // component so no further retry fires.
   useEffect(() => {
     if (state === 'loading') {
-      revalidationPendingRef.current = true;
       return;
     }
     if (!revalidationPendingRef.current || nextBackoffRef.current >= RECONNECT_RETRY_BACKOFFS_MS.length) {
