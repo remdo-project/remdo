@@ -4,8 +4,14 @@ import { useOnlineState } from '#client/runtime/useOnlineState';
 import { createDocumentSyncTokenApiPath } from '#document-routes';
 import type { DocumentSourceNote } from '#note-sdk';
 
-function useLocalDocumentAccess(docId: string, enabled: boolean): boolean {
-  const [authorizedDocId, setAuthorizedDocId] = useState<string | null>(null);
+type LocalAccessProbeState = 'probing' | 'authorized' | 'unavailable';
+
+function useLocalDocumentAccess(docId: string, enabled: boolean): LocalAccessProbeState {
+  // Key the settled result to the probed docId so a docId change reads back as
+  // 'probing' without a synchronous reset inside the effect.
+  const [probe, setProbe] = useState<{ docId: string; state: LocalAccessProbeState }>(
+    { docId, state: 'probing' },
+  );
 
   useEffect(() => {
     if (!enabled) {
@@ -21,11 +27,14 @@ function useLocalDocumentAccess(docId: string, enabled: boolean): boolean {
       signal: abortController.signal,
     })
       .then((response) => {
-        setAuthorizedDocId(response.ok ? docId : null);
+        setProbe({ docId, state: response.ok ? 'authorized' : 'unavailable' });
       })
       .catch(() => {
+        // A failed probe (server unreachable) settles as unavailable rather than
+        // staying in flight, so the workspace stops gating on "Loading document"
+        // and lets the collaboration layer surface the connection state.
         if (!abortController.signal.aborted) {
-          setAuthorizedDocId(null);
+          setProbe({ docId, state: 'unavailable' });
         }
       });
 
@@ -34,7 +43,30 @@ function useLocalDocumentAccess(docId: string, enabled: boolean): boolean {
     };
   }, [docId, enabled]);
 
-  return enabled && authorizedDocId === docId;
+  if (!enabled || probe.docId !== docId) {
+    return 'probing';
+  }
+  return probe.state;
+}
+
+export function resolveDocumentSourcePending({
+  online,
+  documentSourcesLoading,
+  localDocumentExists,
+  hasCurrentSource,
+  probeState,
+}: {
+  online: boolean;
+  documentSourcesLoading: boolean;
+  localDocumentExists: boolean;
+  hasCurrentSource: boolean;
+  probeState: LocalAccessProbeState;
+}): boolean {
+  const ambiguous = online && documentSourcesLoading && !localDocumentExists && !hasCurrentSource;
+  // Only block while the probe is still deciding. Once it settles either way we
+  // mount the editor: authorized reads from its source, unavailable falls
+  // through to the collaboration layer's offline empty state.
+  return ambiguous && probeState === 'probing';
 }
 
 export function useDocumentSourceResolution(
@@ -47,13 +79,19 @@ export function useDocumentSourceResolution(
   const localSource = documentSources.find((source) => source.local()) ?? null;
   const localDocumentExists = Boolean(localSource?.documents().byId(docId));
   const ambiguous = online && documentSourcesLoading && !localDocumentExists && !currentSource;
-  const localAccessAuthorized = useLocalDocumentAccess(docId, ambiguous);
+  const probeState = useLocalDocumentAccess(docId, ambiguous);
   const currentDocument = currentSource?.documents().byId(docId) ?? null;
 
   return {
     currentSourceId: currentSource?.id() ?? null,
     documentLabel: currentDocument?.text() ?? docId,
-    pending: ambiguous && !localAccessAuthorized,
+    pending: resolveDocumentSourcePending({
+      online,
+      documentSourcesLoading,
+      localDocumentExists,
+      hasCurrentSource: Boolean(currentSource),
+      probeState,
+    }),
     sourceId: currentSource?.local() === false ? currentSource.id() : null,
     sourceOrigin: currentSource?.baseUrl() ?? null,
   };

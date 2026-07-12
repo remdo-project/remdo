@@ -9,27 +9,29 @@ describe('offline document unavailable resolution', () => {
     connectionStatus: 'disconnected' as const,
   };
 
-  it('returns true when collaboration is enabled, offline, disconnected, and no local cache exists', () => {
-    expect(resolveOfflineDocumentUnavailable(base, false)).toBe(true);
+  it('returns true when collaboration is enabled, disconnected, and no local cache exists', () => {
+    expect(resolveOfflineDocumentUnavailable(base)).toBe(true);
   });
 
-  it('returns false while browser network is online', () => {
-    expect(resolveOfflineDocumentUnavailable(base, true)).toBe(false);
+  it('treats a server-unreachable error the same as a disconnect', () => {
+    // An unreachable RemDo server produces the same unusable state as a dead
+    // device network, so gating is on the collaboration connection alone.
+    expect(resolveOfflineDocumentUnavailable({ ...base, connectionStatus: 'error' })).toBe(true);
+  });
+
+  it('returns false while still connecting', () => {
+    expect(resolveOfflineDocumentUnavailable({ ...base, connectionStatus: 'connecting' })).toBe(false);
   });
 
   it('returns false when local cache has hydrated', () => {
-    expect(resolveOfflineDocumentUnavailable({ ...base, localCacheHydrated: true }, false)).toBe(false);
+    expect(resolveOfflineDocumentUnavailable({ ...base, localCacheHydrated: true })).toBe(false);
   });
 
   it('returns false after hydration', () => {
-    expect(resolveOfflineDocumentUnavailable({ ...base, hydrated: true }, false)).toBe(false);
+    expect(resolveOfflineDocumentUnavailable({ ...base, hydrated: true })).toBe(false);
   });
 
   it('returns false when collaboration is disabled', () => {
-    expect(resolveOfflineDocumentUnavailable({ ...base, enabled: false }, false)).toBe(false);
-  });
-
-  it('treats error as disconnected for offline empty-state gating', () => {
-    expect(resolveOfflineDocumentUnavailable({ ...base, connectionStatus: 'error' }, false)).toBe(true);
+    expect(resolveOfflineDocumentUnavailable({ ...base, enabled: false })).toBe(false);
   });
 });

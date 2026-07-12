@@ -82,9 +82,9 @@ function EditorRuntime({
       <StatusIndicators portalRoot={statusPortalRoot} />
       {offlineDocumentUnavailable ? (
         <section className="editor-offline-empty-state" role="status" aria-live="polite">
-          <h2>Offline</h2>
-          <p>You&apos;re offline. This document has no local copy yet.</p>
-          <p>Reconnect to load it.</p>
+          <h2>Connection unavailable</h2>
+          <p>This document isn&apos;t available offline yet.</p>
+          <p>It will load once the RemDo server can be reached.</p>
         </section>
       ) : (
         <>
