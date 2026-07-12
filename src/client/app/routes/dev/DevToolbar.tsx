@@ -29,9 +29,10 @@ function buildUrl(host: HostContext, portOffset: number, path = ''): string {
 
 export function DevToolbarLinks({ linkClassName }: { linkClassName?: string }) {
   const host = resolveHost();
-  const pwaUrl = buildUrl(host, 20);
+  const localhost = { protocol: 'http:', hostname: 'localhost', basePort: host.basePort };
+  const pwaUrl = buildUrl(localhost, 20);
   const vitestUrl = buildUrl(host, 2, '/__vitest__/');
-  const playwrightUrl = buildUrl({ protocol: 'http:', hostname: 'localhost', basePort: host.basePort }, 6);
+  const playwrightUrl = buildUrl(localhost, 6);
   const lexicalUrl = `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`;
 
   return (
