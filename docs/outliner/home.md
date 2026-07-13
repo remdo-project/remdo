@@ -10,10 +10,9 @@ reached.
 
 ## Definitions
 
-- **Home:** The view listing the user's documents and their entry points
-  (tags, favorites, recents). It is not a document and holds no editable outline.
-- **Home crumb:** The leftmost [breadcrumb](./zoom.md#breadcrumbs) item,
-  labelled "Home", present in every document view. Activating it opens Home.
+- **Home:** The view listing the user's documents and their entry points. It is
+  not a document and holds no editable outline. Home is reached from any document
+  via the leftmost [breadcrumb](./zoom.md#breadcrumbs) crumb.
 
 ## Core behavior
 
@@ -44,8 +43,6 @@ reached.
 
 ## Future
 
-- **Home content in the sidebar.** The document list and the Favorites / Tags /
-  Recents groups are intended to also surface in a persistent navigation
-  sidebar, so a user can browse and switch without leaving the current document.
-  Home (this view) and the sidebar would present the same content in two places;
-  the division of responsibility between them remains an open design question.
+- **Home content in the sidebar.** Also surface Home's document, Favorites,
+  Tags, and Recents groups in a persistent navigation sidebar; its division of
+  responsibility with Home remains open.

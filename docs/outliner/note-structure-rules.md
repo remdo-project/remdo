@@ -12,8 +12,7 @@ here.
 
 When [zoom](./zoom.md) is active, indent/outdent must keep the moved subtree
 inside the zoom boundary. Any indent/outdent that would move the selection
-outside that boundary is a no-op. The current location is the
-[view header](./zoom.md#view-header), which no structural command targets.
+outside that boundary is a no-op.
 
 ## Subtree Atomic Move
 

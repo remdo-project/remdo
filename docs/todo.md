@@ -234,24 +234,15 @@ yet built; the entries below track the gap. Suspends the view-header rules in
 `outliner/zoom.md` and the pure-nav breadcrumb claim in
 [Zoom breadcrumbs](outliner/zoom.md#breadcrumbs).
 
-- No view header rendered. The current location is specified to render as an
-  editable header above the outline at both the document root and while zoomed.
-  Today there is no header element: while zoomed the zoom root is the editable
-  top outline `ListItemNode`, and at the document root the document name shows
-  only as a breadcrumb crumb (`ZoomBreadcrumbs`, the document crumb, which also
-  anchors the document picker). So the breadcrumb is not yet pure-nav at the
-  root — the document crumb remains as the interim picker anchor and clear-zoom
-  target until the header exists.
-- View header not yet the specified restricted kind. It is specified as a
-  non-structural editable heading that cannot be
-  folded/indented/reordered/merged/structurally deleted, with `Enter` = add first
-  child and `Shift+Enter` = body, its body rendering as a summary beneath. Today
-  the subtree-zoom root is an editable outline `ListItemNode` with those
-  operations bounded by per-command zoom-root special-casing (`InsertionPlugin`,
-  `DeletionPlugin`, `FoldingPlugin`, `IndentationPlugin`, `ReorderingPlugin`,
-  note-menu). Refactoring the zoom root into the restricted view-header kind
-  removes that special-casing; until then those plugins are the interim
-  enforcement.
+- No view header is rendered: while zoomed the zoom root remains the editable
+  top outline `ListItemNode`, and at the document root the document name remains
+  a breadcrumb crumb (`ZoomBreadcrumbs`), which also anchors the picker and is
+  the clear-zoom target — so the breadcrumb is not yet pure-nav there.
+- View header not yet the specified restricted kind: the subtree-zoom root is an
+  editable outline `ListItemNode`, and the view-header restrictions are enforced
+  through per-command zoom-root special-casing in `InsertionPlugin`,
+  `DeletionPlugin`, `FoldingPlugin`, `IndentationPlugin`, `ReorderingPlugin`, and
+  the note menu until the restricted kind exists.
 - Document name is not editable. Editing the header is specified to rename the
   document at the root, but `DocumentNote` (`src/note-sdk/documents.ts`) exposes
   only read-only `text()` and there is no rename command/endpoint. The coherent

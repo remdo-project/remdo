@@ -35,8 +35,8 @@ caret/selection state in the editor.
 5. While zoomed, edits are bounded to the zoom boundary. Commands MUST NOT
    create, merge, move, or target notes outside that boundary.
 6. The current location renders as the [view header](#view-header) — an editable
-   heading above the visible outline — not as an ordinary note row and not as a
-   breadcrumb crumb. The outline shows the current location's children.
+   heading above the visible outline. The outline shows the current location's
+   children.
 7. If the zoom root has direct children, those children are always visible
    while zoomed, even when the zoom root's stored fold state is `folded`.
    Descendants beneath those children still follow their own fold states.
@@ -69,8 +69,7 @@ in every document view.
 2. **Not a structural row.** The header is presented distinctly from ordinary
    note rows and is never one of them: it cannot be folded, indented, outdented,
    reordered, structurally deleted, or selected structurally, and no structural
-   command targets it. These operations act only on the children in the outline
-   below.
+   command targets it.
 3. **`Enter` adds a first child.** `Enter` in the header creates an empty first
    child of the current location and moves the caret into it.
 4. **`Shift+Enter` reaches the body.** Where the header's kind can own a
@@ -80,13 +79,11 @@ in every document view.
    renders beneath the header, above the children — the body's usual
    below-the-content position, applied to the header. It follows the same
    [body](./body.md) rules: it is reached by the gesture or a click, not by
-   arrowing down from the header (which lands on the first child), and its own
-   delete/empty lifecycle is unchanged.
+   arrowing down from the header (which lands on the first child).
 6. **`Backspace` at the header start is a no-op** — there is no note above the
    current location to merge into.
 
-Home is not a note and has no view header of its own; the [Home](./home.md) view
-presents its own document list rather than a header and outline.
+The view header does not apply to [Home](./home.md), which has no outline.
 
 ## Clearing zoom
 
@@ -118,8 +115,7 @@ These govern commands run from the outline children. Commands run from the
 ## Breadcrumbs
 
 The breadcrumb is pure navigation: the ancestor path above the current location,
-every item a link. The current location itself is not a crumb — it is the
-[view header](#view-header).
+every item a link.
 
 1. **Document root zoom:** The breadcrumb trail contains a single crumb: Home.
 2. **Subtree zoom:** The breadcrumb trail is the zoom path up to but excluding
