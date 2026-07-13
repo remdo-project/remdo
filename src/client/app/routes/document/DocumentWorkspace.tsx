@@ -96,8 +96,11 @@ export default function DocumentWorkspace({
     }
   });
   // Zooming to a note (from search accept or the toolbar) is a navigation away
-  // from Home.
-  const zoomToNote = leaveHome(requestZoomNoteId);
+  // from Home. Kept stable because the search model memoizes on this identity.
+  const zoomToNote = useCallback((noteId: string | null) => {
+    setHomeActive(false);
+    requestZoomNoteId(noteId);
+  }, [requestZoomNoteId]);
 
   const documentLabel = formatNavigationLabel(source.documentLabel);
   const titleItem = zoomPath.at(-1) ?? null;

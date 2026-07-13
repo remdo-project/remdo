@@ -227,7 +227,11 @@ Tracks the gaps between [Home](outliner/home.md) and the
   state (both present) is the recorded interim. While both exist they duplicate
   the upload file-input plumbing (`handleUploadInputChange` + hidden `<input>`)
   and the per-source document list; removing the picker resolves the duplication,
-  so leave it rather than extracting a shared helper now.
+  so leave it rather than extracting a shared helper now. The two also differ on
+  re-selecting the already-open document while zoomed: a Home row clears zoom to
+  the document root (per [Home](outliner/home.md) core behavior 3), the toolbar
+  picker keeps the zoom (its pre-existing switcher behavior). Removing the picker
+  removes the inconsistency; decide the picker's behavior only if it outlives Home.
 - Home visibility is component-local `homeActive` state in `DocumentWorkspace`,
   not URL/route backed, so it is lost on reload and not linkable. `home.md`
   "Entering and leaving Home" treats Home as the surface above `/`; route Home
