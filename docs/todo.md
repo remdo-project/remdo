@@ -62,6 +62,15 @@ Rules:
   editor on empty history, so the common case is correct. Fix needs a
   history-capability query/replay (no clean Lexical API today).
 
+- Mobile toolbar disabled-tap behavior (a greyed `aria-disabled` scroll action —
+  Delete/Redo — stays clickable, so `onActionClick`'s `if (action.disabled)`
+  guard must swallow the tap) is only live-verified, not covered by an automated
+  test: `renderDocumentRoute` never reaches `schemaReady`, so the toolbar (inside
+  the composer) never mounts in the jsdom harness. Add a dev e2e that taps a
+  disabled toolbar action and asserts no mutation, so dropping the guard is
+  caught. (`resolveToolbarLayout`'s disabled marking is unit-covered; the gap is
+  the render+click wiring.)
+
 ## Runtime and tooling source boundaries
 
 - Move runtime config under production source, split `tools/` into explicit
