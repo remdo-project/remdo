@@ -130,17 +130,24 @@ export function MobileActionToolbar() {
       return;
     }
     // The row rests at its leading edge (first action visible), so no initial
-    // scroll positioning is needed. A ResizeObserver re-syncs the fade when the
-    // scroll element's box changes — rotation, or the pinned group widening or
-    // narrowing (Undo showing/hiding) — and fires once on observe(), which seeds
-    // the initial fade. It observes the border-box, so a content-only reflow
-    // that widens the buttons without resizing the element (a late glyph/font
-    // swap) would not fire it; re-sync once fonts settle to cover that case too.
-    // The result: the fade never goes stale — shown when the row no longer
-    // scrolls, missing when it newly does.
+    // scroll positioning is needed. Seed the fade explicitly (deferred to keep
+    // the effect body free of a synchronous set-state), rather than relying on
+    // the ResizeObserver's first callback — which isn't guaranteed by every
+    // ResizeObserver (the test stub fires nothing). A ResizeObserver then
+    // re-syncs when the scroll element's box changes — rotation, or the pinned
+    // group widening or narrowing (Undo showing/hiding). It observes the
+    // border-box, so a content-only reflow that widens the buttons without
+    // resizing the element (a late glyph/font swap) would not fire it; re-sync
+    // once fonts settle to cover that case too. The result: the fade never goes
+    // stale — shown when the row no longer scrolls, missing when it newly does.
+    let active = true;
+    queueMicrotask(() => {
+      if (active) {
+        syncFade();
+      }
+    });
     const observer = new ResizeObserver(syncFade);
     observer.observe(el);
-    let active = true;
     void globalThis.document.fonts.ready.then(() => {
       if (active) {
         syncFade();
