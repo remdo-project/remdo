@@ -102,6 +102,55 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
     ).toBe(false);
   });
 
+  it('does not open a websocket when a token fetch resolves after teardown', async () => {
+    // The mirror of the abort case: if the in-flight token fetch *succeeds* just
+    // after destroy(), y-sweet must not resume and open a WebSocket (resurrecting
+    // a torn-down connection). authEndpoint hangs on success-after-destroy too.
+    const docId = 'tokenlateok';
+    await ensureCollabTestDocument(docId);
+    const sessionCookie = await getCollabTestSessionCookie();
+
+    const RealWebSocket = globalThis.WebSocket;
+    const wsUrls: string[] = [];
+    vi.spyOn(globalThis, 'WebSocket').mockImplementation((url, protocols) => {
+      wsUrls.push(String(url));
+      return new RealWebSocket(url, protocols);
+    });
+
+    const originalFetch = globalThis.fetch.bind(globalThis);
+    const tokenPath = createDocumentSyncTokenApiPath(docId);
+    // Hold the token request until we release it *successfully*, after teardown.
+    let resolveTokenRequest: (() => void) | undefined;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const request = withSessionCookie(input, init, sessionCookie);
+      if (request.url.includes(tokenPath)) {
+        // Fetch the real token once released, so the resolved value is valid.
+        await new Promise<void>((resolve) => {
+          resolveTokenRequest = resolve;
+        });
+        return originalFetch(request);
+      }
+      return originalFetch(request);
+    });
+
+    const { unmount } = render(
+      <MantineProvider>
+        <EditorViewProvider docId={docId}>
+          <Editor docId={docId} statusPortalRoot={null} />
+        </EditorViewProvider>
+      </MantineProvider>
+    );
+
+    await vi.waitFor(() => expect(resolveTokenRequest).toBeDefined());
+    const wsBeforeTeardown = wsUrls.length;
+    unmount();
+    resolveTokenRequest?.();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // No new WebSocket after teardown — the late-successful token was not used.
+    expect(wsUrls.length).toBe(wsBeforeTeardown);
+  });
+
   it('adds the session cookie to relative API requests', () => {
     const request = withSessionCookie(
       createDocumentSyncTokenApiPath('tokenroute'),

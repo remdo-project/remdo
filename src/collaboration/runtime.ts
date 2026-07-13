@@ -182,21 +182,25 @@ export function createProviderFactory({
     // flag, so it never suppresses a genuine failure on a still-live session
     // that shares the deduped in-flight token fetch.
     let destroyed = false;
+    // Once this session is destroyed, y-sweet's connect loop is parked awaiting
+    // this promise. Anything we return restarts it: resolving makes it open a
+    // WebSocket (resurrecting a torn-down connection / bogus token), rejecting
+    // makes it `console.warn`. So after destroy we hand it a never-settling
+    // promise on *either* outcome — the loop is already neutralized by the
+    // `provider.connect` no-op + `disconnect()` below, so this frame is never
+    // consumed. Do NOT "simplify" this to a returned value or a bare rethrow.
+    const settleUnlessDestroyed = <T>(settle: () => T): T | Promise<never> =>
+      destroyed ? new Promise<never>(() => {}) : settle();
     const authEndpoint = async (): Promise<ClientToken> => {
+      let token: ClientToken;
       try {
-        const token = await getAuthToken(id, endpoints);
-        return rewriteTokenHost(token, visibleOrigin);
+        token = await getAuthToken(id, endpoints);
       } catch (error) {
-        // A post-destroy token failure must neither reject (y-sweet would warn)
-        // nor resolve (y-sweet would try to open a WebSocket with a bogus token
-        // — see its connect loop). Hanging is deliberate: the loop is already
-        // torn down (the `provider.connect` no-op + `disconnect()` below), so
-        // this frame is never consumed. Do NOT "simplify" to a returned value.
-        if (destroyed) {
-          return new Promise<ClientToken>(() => {});
-        }
-        throw error;
+        return settleUnlessDestroyed(() => {
+          throw error;
+        });
       }
+      return settleUnlessDestroyed(() => rewriteTokenHost(token, visibleOrigin));
     };
 
     const localPersistenceSupport = await getLocalPersistenceSupportDecision();
