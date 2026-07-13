@@ -116,10 +116,11 @@ export function MobileActionToolbar() {
     }
     const max = el.scrollWidth - el.clientWidth;
     const overflowing = max > 0.5;
-    setFade({
-      start: overflowing && el.scrollLeft > 0.5,
-      end: overflowing && el.scrollLeft < max - 0.5,
-    });
+    const start = overflowing && el.scrollLeft > 0.5;
+    const end = overflowing && el.scrollLeft < max - 0.5;
+    // Bail when unchanged: onScroll fires on nearly every frame of a swipe, so a
+    // fresh object each time would re-render the whole toolbar for no change.
+    setFade((prev) => (prev.start === start && prev.end === end ? prev : { start, end }));
   }, []);
 
   const visible = isCoarsePointer && portalRoot !== null;
@@ -129,14 +130,14 @@ export function MobileActionToolbar() {
       return;
     }
     // The row rests at its leading edge (first action visible), so no initial
-    // scroll positioning is needed. A ResizeObserver re-syncs the fade whenever
-    // the scroll element's box changes — rotation, keyboard open or close, the
-    // pinned group widening/narrowing — and fires once on observe(), seeding the
-    // initial fade. It observes the border-box, so a content-only reflow that
-    // widens buttons without resizing the element (a late glyph/font swap) would
-    // not fire it; re-sync once fonts settle to cover that case too. The result:
-    // the fade never goes stale — shown when the row no longer scrolls, missing
-    // when it newly does.
+    // scroll positioning is needed. A ResizeObserver re-syncs the fade when the
+    // scroll element's box changes — rotation, or the pinned group widening or
+    // narrowing (Undo showing/hiding) — and fires once on observe(), which seeds
+    // the initial fade. It observes the border-box, so a content-only reflow
+    // that widens the buttons without resizing the element (a late glyph/font
+    // swap) would not fire it; re-sync once fonts settle to cover that case too.
+    // The result: the fade never goes stale — shown when the row no longer
+    // scrolls, missing when it newly does.
     const observer = new ResizeObserver(syncFade);
     observer.observe(el);
     let active = true;

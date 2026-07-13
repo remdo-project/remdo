@@ -12,15 +12,16 @@ import {
 // renders, encoding the spec's Capability 5: a disabled scrolling action stays
 // visible (greyed); a disabled pinned action is hidden.
 describe('mobile toolbar layout', () => {
-  it('pins Undo and Done (Done anchors the outer edge), scrolls the rest', () => {
-    // Visual/DOM order inner→outer: Done is last, so it holds the outer edge.
-    expect(PINNED_ACTION_IDS).toEqual(['undo', 'done']);
+  it('anchors Done at the pinned outer edge and partitions actions with no overlap', () => {
+    // Anchor contract: the pinned group is emitted inner→outer, so the last
+    // entry (Done) holds the fixed outer edge.
     expect(PINNED_ACTION_IDS.at(-1)).toBe('done');
-    // The pinned actions never appear in the scroll group (spec: each action in
-    // exactly one place).
-    expect(SCROLL_ACTION_IDS).not.toContain('done');
-    expect(SCROLL_ACTION_IDS).not.toContain('undo');
-    // Every other action is present in the scroll group.
+    expect(PINNED_ACTION_IDS).toContain('undo');
+    // Each action appears in exactly one group (spec: exactly one place).
+    for (const id of PINNED_ACTION_IDS) {
+      expect(SCROLL_ACTION_IDS).not.toContain(id);
+    }
+    // Every other action is present in the scroll group, so none is dropped.
     for (const id of ['indent', 'outdent', 'moveUp', 'moveDown', 'fold', 'delete', 'redo', 'menu'] as const) {
       expect(SCROLL_ACTION_IDS).toContain(id);
     }

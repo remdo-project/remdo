@@ -62,6 +62,12 @@ Rules:
   editor on empty history, so the common case is correct. Fix needs a
   history-capability query/replay (no clean Lexical API today).
 
+- Mobile toolbar edge fade seeds from the ResizeObserver's first (async)
+  callback, so an overflowing row can paint one frame without the end fade (a
+  static-looking edge) before it appears — a sub-frame cosmetic flash. Accepted:
+  a synchronous pre-paint seed trips the `react/set-state-in-effect` lint, and
+  the flash is negligible. Revisit if it's ever visible.
+
 - Mobile toolbar disabled-tap behavior (a greyed `aria-disabled` scroll action —
   Delete/Redo — stays clickable, so `onActionClick`'s `if (action.disabled)`
   guard must swallow the tap) is only live-verified, not covered by an automated
