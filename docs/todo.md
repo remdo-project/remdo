@@ -220,9 +220,6 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
 Tracks the gaps between [Home](outliner/home.md) and the
 [view header](outliner/zoom.md#view-header) as specified and what ships.
 
-- Favorites, Tags, and Recents on Home are static placeholder data, not derived
-  from real state. The entries are hardcoded until real favoriting, tagging, and
-  visit-history sources exist.
 - The document-source chevron combobox picker in `DocumentToolbar.tsx`
   (`NEW_DOCUMENT_VALUE` / `UPLOAD_DOCUMENT_VALUE` and the grouped document
   options) is replaced by Home: Home owns document browsing and the New/Upload
