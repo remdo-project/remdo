@@ -12,8 +12,10 @@ import {
 // renders, encoding the spec's Capability 5: a disabled scrolling action stays
 // visible (greyed); a disabled pinned action is hidden.
 describe('mobile toolbar layout', () => {
-  it('pins Done and Undo, scrolls the rest', () => {
-    expect(PINNED_ACTION_IDS).toEqual(['done', 'undo']);
+  it('pins Undo and Done (Done anchors the outer edge), scrolls the rest', () => {
+    // Visual/DOM order inner→outer: Done is last, so it holds the outer edge.
+    expect(PINNED_ACTION_IDS).toEqual(['undo', 'done']);
+    expect(PINNED_ACTION_IDS.at(-1)).toBe('done');
     // The pinned actions never appear in the scroll group (spec: each action in
     // exactly one place).
     expect(SCROLL_ACTION_IDS).not.toContain('done');
@@ -36,9 +38,9 @@ describe('mobile toolbar layout', () => {
     expect(layout.pinned.map((a) => a.id)).toEqual(['done']);
   });
 
-  it('renders every pinned action when none are disabled', () => {
+  it('renders every pinned action when none are disabled, Done last (outer edge)', () => {
     const layout = resolveToolbarLayout(new Set());
-    expect(layout.pinned.map((a) => a.id)).toEqual(['done', 'undo']);
+    expect(layout.pinned.map((a) => a.id)).toEqual(['undo', 'done']);
     expect(layout.pinned.every((a) => !a.disabled)).toBe(true);
   });
 

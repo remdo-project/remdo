@@ -1,11 +1,12 @@
 import type { MobileActionId } from './actions';
 
-// The pinned group, in anchor order: the first entry holds the group's fixed
-// outer edge and is always present; later entries sit inward and may hide when
-// disabled, so hiding them never moves the outer anchor
-// (docs/outliner/mobile-toolbar.md "Layout"). Done anchors; Undo hides on empty
-// history.
-export const PINNED_ACTION_IDS = ['done', 'undo'] as const satisfies readonly MobileActionId[];
+// The pinned group, in visual/DOM order (inner → outer edge): the LAST entry is
+// the always-present anchor holding the group's fixed outer edge; earlier
+// entries sit inward and may hide when disabled, so hiding them never moves the
+// anchor (docs/outliner/mobile-toolbar.md "Layout"). DOM order matches visual
+// order so keyboard/AT focus follows the row. Undo hides on empty history; Done
+// anchors the edge.
+export const PINNED_ACTION_IDS = ['undo', 'done'] as const satisfies readonly MobileActionId[];
 
 // The scrolling group, left→right. Menu sits early so the "everything else"
 // escape hatch is not stranded at the far scroll end.

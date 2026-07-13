@@ -115,22 +115,22 @@ export function MobileActionToolbar() {
       return;
     }
     const max = el.scrollWidth - el.clientWidth;
-    const overflowing = max > 1;
+    const overflowing = max > 0.5;
     setFade({
-      start: overflowing && el.scrollLeft > 1,
-      end: overflowing && el.scrollLeft < max - 1,
+      start: overflowing && el.scrollLeft > 0.5,
+      end: overflowing && el.scrollLeft < max - 0.5,
     });
   }, []);
 
-  // Center the scrolling group when it first mounts so it can be swiped in both
-  // directions and its movability is discoverable.
+  // Center the scrolling group so it can be swiped in both directions and its
+  // movability is discoverable.
   const centerScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) {
       return;
     }
     const max = el.scrollWidth - el.clientWidth;
-    if (max > 1) {
+    if (max > 0.5) {
       el.scrollLeft = max / 2;
     }
     syncFade();
@@ -138,10 +138,23 @@ export function MobileActionToolbar() {
 
   const visible = isCoarsePointer && portalRoot !== null;
   useEffect(() => {
-    if (visible) {
-      centerScroll();
+    if (!visible) {
+      return;
     }
-  }, [visible, centerScroll]);
+    const el = scrollRef.current;
+    centerScroll();
+    if (!el) {
+      return;
+    }
+    // Re-sync the fade when the row's width changes — rotation, keyboard open or
+    // close, the pinned group widening/narrowing, or late glyph reflow — so the
+    // affordance never goes stale (shown when the row no longer scrolls, or
+    // missing when it newly does). Centering stays a one-shot on appearance so a
+    // resize does not yank the user's scroll position back to the middle.
+    const observer = new ResizeObserver(syncFade);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visible, centerScroll, syncFade]);
 
   if (!visible) {
     return null;

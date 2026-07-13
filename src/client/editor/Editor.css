@@ -595,7 +595,10 @@
   display: flex;
   gap: 8px;
   align-items: center;
-  justify-content: center;
+  /* `safe center` centers when the row fits but falls back to start-alignment
+     when it overflows, so the leading buttons stay reachable (plain `center`
+     pushes the start overflow outside the scrollable range). */
+  justify-content: safe center;
   overflow-x: auto;
   min-width: 0;
   flex: 1;
@@ -616,13 +619,14 @@
   background-color: color-mix(in srgb, var(--mantine-color-dark-0) 14%, transparent);
 }
 
-/* Pinned group: row-reverse so the first action (Done, the always-present
-   anchor) sits at the outer edge; a hidden inner action (Undo on empty history)
-   shrinks the group from the inner side without moving the anchor. */
+/* Pinned group. The layout emits it in visual/DOM order (inner→outer), so the
+   always-present anchor (Done) is the last child and sits at the outer edge; a
+   hidden inner action (Undo on empty history) shrinks the group from the inner
+   side without moving the anchor. DOM order matches visual order — no reverse —
+   so keyboard/AT focus order follows the row (WCAG 2.4.3). */
 .mobile-action-toolbar__pinned {
   flex: 0 0 auto;
   display: flex;
-  flex-direction: row-reverse;
   gap: 8px;
   align-items: center;
 }
