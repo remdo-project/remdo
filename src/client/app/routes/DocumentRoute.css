@@ -329,13 +329,11 @@ main.document-route-container {
 }
 
 .home-doc {
-  --interaction-radius: var(--mantine-radius-sm);
   display: block;
   width: 100%;
   text-align: start;
   background: none;
   border: none;
-  border-radius: var(--interaction-radius);
   padding: calc(var(--mantine-spacing-xs) / 2) var(--mantine-spacing-xs);
   color: var(--mantine-color-dark-0);
   font: inherit;

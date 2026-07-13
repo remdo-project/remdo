@@ -13,40 +13,10 @@ import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentSearchInput, DocumentSearchResults } from './DocumentSearch';
 import DocumentToolbar from './DocumentToolbar';
 import { HomeView } from './HomeView';
-import type { HomeDocumentEntry, HomeDocumentSource } from './HomeView';
+import { buildHomeContent } from './home-content';
 import { useDocumentActions } from './useDocumentActions';
 import { useDocumentSourceResolution } from './useDocumentSourceResolution';
 import '../DocumentRoute.css';
-import type { DocumentSourceNote } from '#note-sdk';
-
-interface HomeProps {
-  sources: HomeDocumentSource[];
-  favorites: HomeDocumentEntry[];
-  recents: HomeDocumentEntry[];
-  tags: HomeDocumentEntry[];
-}
-
-// Builds the Home view's props from the live document sources. Favorites and
-// Recents are static placeholder slices of the real document list; Tags is left
-// empty to exercise the hide-when-empty rule. Replaced by real
-// favoriting/tagging/visit-history sources later (docs/outliner/home.md#future).
-function buildHomeProps(documentSources: readonly DocumentSourceNote[]): HomeProps {
-  const sources: HomeDocumentSource[] = documentSources.map((documentSource) => ({
-    id: documentSource.id(),
-    label: documentSource.text(),
-    documents: documentSource.documents().children().map((document) => ({
-      id: document.id(),
-      label: document.text(),
-    })),
-  }));
-  const allDocuments = sources.flatMap((source) => source.documents);
-  return {
-    sources,
-    favorites: allDocuments.slice(0, 2),
-    recents: allDocuments.slice(0, 3),
-    tags: [],
-  };
-}
 
 function isVisibleInCurrentView(element: HTMLElement): boolean {
   if (element.classList.contains('zoom-hidden')) {
@@ -89,6 +59,15 @@ export default function DocumentWorkspace({
       setHomeActive(false);
       action(...args);
     };
+  // Navigating document actions, shared by the toolbar and Home so both leave
+  // Home the same way.
+  const selectDocument = leaveHome(onSelectDocument);
+  const createDocument = leaveHome(() => {
+    void actions.createDocument();
+  });
+  const uploadDocument = leaveHome((file: File) => {
+    void actions.uploadDocument(file);
+  });
 
   const documentLabel = formatNavigationLabel(source.documentLabel);
   const titleItem = zoomPath.at(-1) ?? null;
@@ -123,7 +102,7 @@ export default function DocumentWorkspace({
   // props are built only while visible, skipping the document-tree walk on the
   // editor's render hot path.
   const homeVisible = homeActive && !search.searchModeActive;
-  const home = homeVisible ? buildHomeProps(documentSources) : null;
+  const home = homeVisible ? buildHomeContent(documentSources) : null;
 
   return (
     <div className="document-editor-shell" ref={shellRef}>
@@ -132,16 +111,12 @@ export default function DocumentWorkspace({
         docId={docId}
         documentLabel={source.documentLabel}
         documentSources={documentSources}
-        onCreateDocument={leaveHome(() => {
-          void actions.createDocument();
-        })}
-        onSelectDocument={leaveHome(onSelectDocument)}
+        onCreateDocument={createDocument}
+        onSelectDocument={selectDocument}
         onSelectHome={() => setHomeActive(true)}
         onSelectNoteId={leaveHome(requestZoomNoteId)}
         onStatusHostChange={setStatusHost}
-        onUploadDocument={leaveHome((file: File) => {
-          void actions.uploadDocument(file);
-        })}
+        onUploadDocument={uploadDocument}
         path={zoomPath}
         searchControl={<DocumentSearchInput model={search} />}
       />
@@ -170,17 +145,10 @@ export default function DocumentWorkspace({
       <DocumentSearchResults model={search} />
       {home && (
         <HomeView
-          favorites={home.favorites}
-          onCreateDocument={leaveHome(() => {
-            void actions.createDocument();
-          })}
-          onSelectDocument={leaveHome(onSelectDocument)}
-          onUploadDocument={leaveHome((file: File) => {
-            void actions.uploadDocument(file);
-          })}
-          recents={home.recents}
-          sources={home.sources}
-          tags={home.tags}
+          {...home}
+          onCreateDocument={createDocument}
+          onSelectDocument={selectDocument}
+          onUploadDocument={uploadDocument}
         />
       )}
       <div className={homeActive || search.searchModeActive

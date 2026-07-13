@@ -2,23 +2,9 @@ import { IconPlus, IconUpload } from '@tabler/icons-react';
 import type { ChangeEvent } from 'react';
 import { useRef } from 'react';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
+import type { HomeContent, HomeDocumentEntry } from './home-content';
 
-export interface HomeDocumentEntry {
-  id: string;
-  label: string;
-}
-
-export interface HomeDocumentSource {
-  id: string;
-  label: string;
-  documents: readonly HomeDocumentEntry[];
-}
-
-export interface HomeViewProps {
-  sources: readonly HomeDocumentSource[];
-  favorites: readonly HomeDocumentEntry[];
-  tags: readonly HomeDocumentEntry[];
-  recents: readonly HomeDocumentEntry[];
+export interface HomeViewProps extends HomeContent {
   onSelectDocument: (docId: string) => void;
   onCreateDocument: () => void;
   onUploadDocument: (file: File) => void;
