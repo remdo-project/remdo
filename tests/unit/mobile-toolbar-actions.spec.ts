@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { waitFor } from '@testing-library/react';
 
-import { meta, placeCaretAtNote, selectStructuralNotes } from '#tests';
+import { meta, getNoteKey, placeCaretAtNote, selectStructuralNotes } from '#tests';
 import {
   DELETE_SELECTED_NOTES_COMMAND,
   INDENT_NOTES_COMMAND,
+  OPEN_NOTE_MENU_COMMAND,
   OUTDENT_NOTES_COMMAND,
   REORDER_NOTES_DOWN_COMMAND,
 } from '#client/editor/commands';
@@ -115,6 +116,17 @@ describe('mobile toolbar actions', () => {
         { noteId: 'note6', text: 'note6', folded: true, children: [{ noteId: 'note7', text: 'note7' }] },
       ]);
     });
+  });
+
+  it('opens the note menu for the focus note', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note6');
+    const noteItemKey = getNoteKey(remdo, 'note6');
+    const dispatch = vi.spyOn(remdo.editor, 'dispatchCommand');
+
+    runMobileAction(remdo.editor, 'menu');
+
+    expect(dispatch).toHaveBeenCalledWith(OPEN_NOTE_MENU_COMMAND, { noteItemKey });
+    dispatch.mockRestore();
   });
 
   it('toggles done on the selected note', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {

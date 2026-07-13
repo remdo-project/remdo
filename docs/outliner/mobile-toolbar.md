@@ -17,7 +17,7 @@ toolbar surface and its behavior, not those operations.
 ## Actions
 
 1. The toolbar exposes these actions, left to right: indent, outdent, move up,
-   move down, toggle done, toggle fold, delete, undo, redo.
+   move down, toggle done, toggle fold, delete, undo, redo, open note menu.
 2. The structural actions target the current [selection](./selection.md): the
    focused note for a caret selection, or every head of a structural multi-note
    selection. Each acts identically to its existing entry:
@@ -32,6 +32,8 @@ toolbar surface and its behavior, not those operations.
    [menu](./menu.md)'s single-note fold contract.
 4. Undo and redo act on the document's edit history rather than the selection,
    reversing and reapplying the most recent edits.
+5. Open note menu opens the [quick action menu](./menu.md) for the focus note,
+   giving access to the actions the toolbar does not carry.
 
 ## Capability
 

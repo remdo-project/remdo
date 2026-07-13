@@ -5,6 +5,7 @@ import { $isListItemNode } from '@lexical/list';
 import {
   DELETE_SELECTED_NOTES_COMMAND,
   INDENT_NOTES_COMMAND,
+  OPEN_NOTE_MENU_COMMAND,
   OUTDENT_NOTES_COMMAND,
   REORDER_NOTES_DOWN_COMMAND,
   REORDER_NOTES_UP_COMMAND,
@@ -28,7 +29,8 @@ export type MobileActionId =
   | 'fold'
   | 'delete'
   | 'undo'
-  | 'redo';
+  | 'redo'
+  | 'menu';
 
 // Actions that map directly to a no-payload command. `done` and `fold` need a
 // payload, so they are handled explicitly in runMobileAction.
@@ -56,6 +58,13 @@ export function runMobileAction(editor: LexicalEditor, id: MobileActionId): void
     const noteItemKey = editor.read(() => $resolveFoldableNoteKey(editor));
     if (noteItemKey) {
       editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey });
+    }
+    return;
+  }
+  if (id === 'menu') {
+    const noteItemKey = editor.read(() => $resolveFocusNoteKey(editor));
+    if (noteItemKey) {
+      editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey });
     }
     return;
   }

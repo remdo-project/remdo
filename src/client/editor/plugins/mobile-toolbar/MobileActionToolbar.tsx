@@ -30,6 +30,7 @@ const ACTIONS: ActionSpec[] = [
   { id: 'delete', icon: '🗑', label: 'Delete' },
   { id: 'undo', icon: '↺', label: 'Undo' },
   { id: 'redo', icon: '↻', label: 'Redo' },
+  { id: 'menu', icon: '⋯', label: 'Note menu' },
 ];
 
 // Enabled-state for the actions the spec disables when they cannot apply
