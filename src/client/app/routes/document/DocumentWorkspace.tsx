@@ -95,6 +95,9 @@ export default function DocumentWorkspace({
       requestZoomNoteId(null);
     }
   });
+  // Zooming to a note (from search accept or the toolbar) is a navigation away
+  // from Home.
+  const zoomToNote = leaveHome(requestZoomNoteId);
 
   const documentLabel = formatNavigationLabel(source.documentLabel);
   const titleItem = zoomPath.at(-1) ?? null;
@@ -114,9 +117,7 @@ export default function DocumentWorkspace({
   }, []);
   const search = useDocumentSearchModel({
     focusEditorInput,
-    // Accepting a search result zooms to a note, which is a navigation away from
-    // Home, so leave Home rather than reappearing over the zoomed note.
-    setZoomNoteId: leaveHome(requestZoomNoteId),
+    setZoomNoteId: zoomToNote,
   });
 
   useEffect(() => {
@@ -141,7 +142,7 @@ export default function DocumentWorkspace({
         onCreateDocument={createDocument}
         onSelectDocument={selectDocument}
         onSelectHome={() => setHomeActive(true)}
-        onSelectNoteId={leaveHome(requestZoomNoteId)}
+        onSelectNoteId={zoomToNote}
         onStatusHostChange={setStatusHost}
         onUploadDocument={uploadDocument}
         path={zoomPath}
