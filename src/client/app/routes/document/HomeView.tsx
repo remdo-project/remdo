@@ -59,34 +59,26 @@ export function HomeView({
     }
   };
 
-  const entryGroups: Array<{ label: string; entries: readonly HomeDocumentEntry[] }> = [
-    { label: 'Favorites', entries: favorites },
-    { label: 'Tags', entries: tags },
-    { label: 'Recents', entries: recents },
+  // Entry-point groups first, then the document sources; each renders the same
+  // way and is omitted when empty.
+  const groups: Array<{ key: string; label: string; documents: readonly HomeDocumentEntry[] }> = [
+    { key: 'Favorites', label: 'Favorites', documents: favorites },
+    { key: 'Tags', label: 'Tags', documents: tags },
+    { key: 'Recents', label: 'Recents', documents: recents },
+    ...sources.map((source) => ({ key: source.id, label: source.label, documents: source.documents })),
   ];
 
   return (
     <section aria-label="Home" className="document-home" data-testid="document-home">
       <h1 className="document-home-title">Home</h1>
 
-      {entryGroups
-        .filter((group) => group.entries.length > 0)
+      {groups
+        .filter((group) => group.documents.length > 0)
         .map((group) => (
           <DocumentGroup
-            documents={group.entries}
-            key={group.label}
+            documents={group.documents}
+            key={group.key}
             label={group.label}
-            onSelectDocument={onSelectDocument}
-          />
-        ))}
-
-      {sources
-        .filter((source) => source.documents.length > 0)
-        .map((source) => (
-          <DocumentGroup
-            documents={source.documents}
-            key={source.id}
-            label={source.label}
             onSelectDocument={onSelectDocument}
           />
         ))}
