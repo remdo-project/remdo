@@ -87,6 +87,25 @@ test.describe('Home view', () => {
     await expect(editorLocator(page)).toBeVisible();
   });
 
+  test('changing the document via history dismisses Home', async ({ page, editor }) => {
+    await editor.load('basic');
+
+    // Create a second document so history holds two different document URLs.
+    await page.getByRole('button', { name: 'Choose document' }).click();
+    await page.getByRole('option', { name: 'New', exact: true }).click();
+    await waitForSynced(page);
+
+    // Open Home over the new document, then go back to the previous document's
+    // URL. Routing swaps the document without going through Home's handlers, so
+    // Home must not keep covering the document the URL now points at.
+    await homeZoomBreadcrumb(page).click();
+    await expect(homeView(page)).toBeVisible();
+    await page.goBack();
+
+    await expect(homeView(page)).toHaveCount(0);
+    await expect(editorLocator(page)).toBeVisible();
+  });
+
   test('switching documents from the toolbar picker dismisses Home', async ({ page, editor }) => {
     await editor.load('basic');
     await homeZoomBreadcrumb(page).click();

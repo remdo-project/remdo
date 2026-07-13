@@ -43,6 +43,15 @@ export default function DocumentWorkspace({
   const shellRef = useRef<HTMLDivElement | null>(null);
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
   const [homeActive, setHomeActive] = useState(false);
+  // The document can change under Home via routing (history back/forward, a
+  // shared link); reset Home so it never covers a document the URL now points at.
+  const previousDocIdRef = useRef(docId);
+  if (previousDocIdRef.current !== docId) {
+    previousDocIdRef.current = docId;
+    if (homeActive) {
+      setHomeActive(false);
+    }
+  }
   const zoomPath = useZoomPath();
   const { requestZoomNoteId } = useEditorViewActions();
   const userData = useUserData();
