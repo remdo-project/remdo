@@ -60,11 +60,12 @@ The **view header** is how the current location presents itself above its
 children: an editable heading rendering the current note's own content, present
 in every document view.
 
-1. **What it shows.** At document root the header is the document note; while
-   zoomed it is the zoom root. Editing the header edits that note's content —
-   renaming the document at the root, or the zoom root's text while zoomed. The
-   header carries the same key-driven inline content as note content (inline
-   formatting and [note links](./links.md)).
+1. **What it shows.** The header renders the current location's own text and
+   editing it edits that text in place. What the text may contain follows from
+   the location's [kind](./concepts.md#note-kinds): a zoomed editor note carries
+   the same inline content as any note (inline formatting and
+   [note links](./links.md)); the document root carries whatever the document
+   kind allows.
 2. **Not a structural row.** The header is presented distinctly from ordinary
    note rows and is never one of them: it cannot be folded, indented, outdented,
    reordered, structurally deleted, or selected structurally, and no structural
@@ -72,12 +73,15 @@ in every document view.
    below.
 3. **`Enter` adds a first child.** `Enter` in the header creates an empty first
    child of the current location and moves the caret into it.
-4. **`Shift+Enter` reaches the body.** `Shift+Enter` in the header focuses the
-   current note's [body](./body.md), adding one if absent — the same body gesture
-   defined for note content.
-5. **Body as summary.** When the current location has a [body](./body.md), it
+4. **`Shift+Enter` reaches the body.** Where the header's kind can own a
+   [body](./body.md), `Shift+Enter` focuses it, adding one if absent — the same
+   body gesture defined for note content.
+5. **Body as summary.** When the header's note has a [body](./body.md), it
    renders beneath the header, above the children — the body's usual
-   below-the-content position, applied to the header.
+   below-the-content position, applied to the header. It follows the same
+   [body](./body.md) rules: it is reached by the gesture or a click, not by
+   arrowing down from the header (which lands on the first child), and its own
+   delete/empty lifecycle is unchanged.
 6. **`Backspace` at the header start is a no-op** — there is no note above the
    current location to merge into.
 

@@ -51,10 +51,6 @@ keeps merges inside the zoom boundary:
 2. For all other notes inside the zoom boundary, caret-mode deletion uses the
    default rules above.
 
-The current location is the [view header](./zoom.md#view-header), not an outline
-note; `Backspace` at its start is a no-op (defined with the view-header rules),
-and no child can merge upward into it.
-
 ## Structural selection (contiguous note range)
 
 1. Pressing `Backspace` or `Delete` removes the selected notes and all of their
