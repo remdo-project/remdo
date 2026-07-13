@@ -152,7 +152,9 @@ export default function DocumentWorkspace({
         searchControl={(
           // Entering search takes over the content region; dismiss Home so the
           // two never render at once and closing search returns to the document.
-          <span onFocusCapture={() => setHomeActive(false)}>
+          // display:contents keeps the input the flex item so its header sizing
+          // is unaffected by the focus-capturing wrapper.
+          <span onFocusCapture={() => setHomeActive(false)} style={{ display: 'contents' }}>
             <DocumentSearchInput model={search} />
           </span>
         )}
