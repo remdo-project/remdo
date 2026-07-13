@@ -158,8 +158,12 @@ Deferred hardening; long-horizon items live in `docs/access-model.md#future`.
   disconnected state, but repeated retries should avoid flooding the console and
   test guards. (The *teardown* case — a token fetch cancelled when navigating
   away mid-connect — is fixed: once `session.destroy()` runs, `authEndpoint`
-  swallows the failed token fetch so y-sweet's connect loop does not warn; see
-  `token-acquisition.collab.spec.tsx`. What remains is the
+  hands y-sweet a never-settling promise for that connect attempt so its loop
+  neither warns nor opens a socket; see `token-acquisition.collab.spec.tsx`.
+  Tradeoff: that pending promise retains its closure for the page lifetime, so a
+  session that opens/tears-down many docs leaks one per teardown-aborted connect
+  — bounded and minor, but a clean fix would let the connect loop actually exit
+  on destroy rather than park forever. What remains is the
   server-down/reconnect-loop noise on a *live* session.)
 - Unsynced local edits follow-up: expose a reliable "pending local changes"
   signal from the collaboration/local-persistence layer and show it in the UI.

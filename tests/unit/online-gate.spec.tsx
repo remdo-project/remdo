@@ -97,8 +97,12 @@ describe('online gate reconnect revalidation', () => {
 
     expect(screen.getByText('signed-in-shell')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Connection unavailable' })).toBeNull();
-    // At least one retry beyond the failed reconnect revalidation was required.
+    // A retry beyond the failed reconnect revalidation was needed (>= 3), and the
+    // recovery path stays bounded by the ladder: mount (1) + immediate (2) + the
+    // 3 backoff steps = 5 max. The upper bound guards against an unbounded-retry
+    // regression firing extra revalidations on the recovery path.
     expect(loaderCalls.count).toBeGreaterThanOrEqual(3);
+    expect(loaderCalls.count).toBeLessThanOrEqual(5);
   });
 
   it('recovers when the user clicks Retry (no online event)', async () => {
