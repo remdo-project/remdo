@@ -25,6 +25,66 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
+- IndentationPlugin `KEY_TAB_COMMAND` handler resolves the selected note range
+  twice (once to gate `preventDefault`, once inside `$indent`). Collapsing it to
+  drive `preventDefault` off `$indent`'s boolean return would change Tab-at-
+  boundary semantics: today Tab is always swallowed when a range exists (even if
+  indent no-ops); the collapsed form lets Tab propagate on a no-op indent
+  (possible focus escape). Decide the intended Tab-at-boundary contract, then
+  collapse or keep. Indent no-op tests assert editor state, not preventDefault,
+  so they don't pin this.
+
+- Mobile toolbar fold: `resolveSelectionCapability` (button enabled state) and
+  `runMobileAction('fold')` (dispatch) each resolve the focus note independently,
+  so a selection change between the capability sync and the tap can fold a
+  different note than the button's enabled state reflected. The tap acts on the
+  current focus, which is arguably correct; revisit only if it proves confusing
+  in practice.
+
+- `useKeyboardInset` treats any visual-viewport height shrink as the keyboard,
+  but mobile browsers also shrink it when the dynamic URL bar collapses (no
+  keyboard), which can lift the docked mobile toolbar off `bottom: 0` mid-screen.
+  Distinguishing keyboard shrink from browser-chrome shrink has no clean API;
+  revisit if the mis-dock proves noticeable (e.g. gate on editor focus, or a
+  minimum keyboard-height threshold).
+
+- Portal-root tracking (`root.closest('.editor-container')` seeded in state +
+  updated from `registerRootListener`) is now hand-rolled in three plugins
+  (`NoteControlsPlugin`, `NoteMenuPlugin`, `MobileActionToolbar`). Extract a
+  shared `usePortalRoot(editor)` hook and migrate all three — net deletion, but
+  a cross-plugin refactor of otherwise-untouched code.
+
+- Mobile toolbar undo/redo can show a stale disabled state if the toolbar mounts
+  after history already has entries (e.g. coarse-pointer flips true mid-session):
+  Lexical emits `CAN_UNDO_COMMAND`/`CAN_REDO_COMMAND` only on stack changes, not
+  on registration, and RemDo doesn't own the `HistoryState` to seed from. Self-
+  corrects on the next edit. Normal mobile load mounts the toolbar with the
+  editor on empty history, so the common case is correct. Fix needs a
+  history-capability query/replay (no clean Lexical API today).
+
+- Mobile toolbar disabled buttons use `aria-disabled` (not native `disabled`),
+  so a keyboard/AT user can focus a greyed action and it announces as disabled,
+  but Enter/Space no-ops (an inert focus stop). This is the intended WAI-ARIA
+  trade (announce-vs-skip) chosen for the a11y benefit; the toolbar is touch-only
+  (coarse pointer), so physical-keyboard tabbing is rare. Revisit only if the
+  inert focus stop proves confusing for switch/AT users (e.g. add a spoken hint,
+  or reconsider hide-vs-disable for scroll actions).
+
+- Mobile toolbar edge fade seeds from the ResizeObserver's first (async)
+  callback, so an overflowing row can paint one frame without the end fade (a
+  static-looking edge) before it appears — a sub-frame cosmetic flash. Accepted:
+  a synchronous pre-paint seed trips the `react/set-state-in-effect` lint, and
+  the flash is negligible. Revisit if it's ever visible.
+
+- Mobile toolbar disabled-tap behavior (a greyed `aria-disabled` scroll action —
+  Delete/Redo — stays clickable, so `onActionClick`'s `if (action.disabled)`
+  guard must swallow the tap) is only live-verified, not covered by an automated
+  test: `renderDocumentRoute` never reaches `schemaReady`, so the toolbar (inside
+  the composer) never mounts in the jsdom harness. Add a dev e2e that taps a
+  disabled toolbar action and asserts no mutation, so dropping the guard is
+  caught. (`resolveToolbarLayout`'s disabled marking is unit-covered; the gap is
+  the render+click wiring.)
+
 ## Runtime and tooling source boundaries
 
 - Move runtime config under production source, split `tools/` into explicit
@@ -307,6 +367,17 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   validation and `RootSchemaPlugin` repair scans on dirty-set contents so
   leaf-only typing updates skip them; skip redundant structural-overlay and
   outline-selection store writes in `SelectionPlugin` when nothing changed.
+
+## Frosted-glass material follow-ups
+
+- The frosted-glass surfaces (app shell, header, mobile toolbar) use a
+  translucent `color-mix` fill that relies on `backdrop-filter` for legibility,
+  with no `@supports (backdrop-filter)` opaque fallback and no
+  `prefers-reduced-transparency` handling. Where the blur is inert (some Android
+  WebViews, reduce-transparency settings) content shows through. This is a
+  consistent app-wide choice, not a per-surface bug — decide the fallback policy
+  once for the shared `--remdo-glass-*` material rather than patching one surface
+  (patching only the toolbar would fragment the material the token unified).
 
 ## Color standardization
 
@@ -656,3 +727,29 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   on every render — so the gate never polls indefinitely. Revisit only if the
   stuck-until-manual-retry case proves to hurt in practice (e.g. add a single
   long-delay final probe, or a visibilitychange-triggered re-arm).
+
+## Mobile toolbar design tuning — ✅ shipped
+
+Playground-driven design tuning for the mobile action toolbar (pinned Done+Undo
+with the anchor rule, hide-vs-grey disabled behavior, left-aligned scroll with
+peek + edge-fade, sizing, `aria-disabled`) is implemented; the durable contract
+lives in [docs/outliner/mobile-toolbar.md](outliner/mobile-toolbar.md), and the
+open follow-ups it left are the mobile-toolbar entries under the plugin
+follow-ups above. Design rationale is in git history.
+
+## Unify note actions across toolbar and menu (decided direction)
+
+The mobile action toolbar and the note [quick action menu](outliner/menu.md) are
+two ad-hoc renderings of the same context-sensitive note-action set. Decided
+(research-backed; git history for the rationale): build a shared note-action
+registry — `(id, icon, label, when-applicable predicate, dispatch)` — that both
+surfaces render, so the popup menu, the touch toolbar, and keyboard entries come
+from one source. Rendering stays per-surface: the menu is a popup and *hides*
+inapplicable actions; the toolbar keeps its current rule (grey scroll actions,
+hide pinned via the anchor rule). Icons/labels may vary by note state
+(Fold/Unfold, Check/Uncheck). Folds in the tracked seams: dedup the two fold
+predicates, promote the menu's inline list-type change to a command, put
+`NoteMenuPlugin` on the shared popup engine, extract `usePortalRoot`. The
+toolbar's "open menu" icon and the menu's fuller-set-only actions (zoom,
+list-type, fold-to-level) are open design questions. Sized as a
+`remdo-feature-flow`, based on top of the mobile-toolbar work — not yet scoped.

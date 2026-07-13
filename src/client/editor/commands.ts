@@ -2,6 +2,9 @@ import { createCommand } from 'lexical';
 
 export const REORDER_NOTES_UP_COMMAND = createCommand<undefined>('remdo:reorder-notes-up');
 export const REORDER_NOTES_DOWN_COMMAND = createCommand<undefined>('remdo:reorder-notes-down');
+export const INDENT_NOTES_COMMAND = createCommand<undefined>('remdo:indent-notes');
+export const OUTDENT_NOTES_COMMAND = createCommand<undefined>('remdo:outdent-notes');
+export const DELETE_SELECTED_NOTES_COMMAND = createCommand<undefined>('remdo:delete-selected-notes');
 type NoteCheckedState = 'checked' | 'unchecked' | 'toggle';
 export interface SetNoteCheckedPayload {
   state: NoteCheckedState;

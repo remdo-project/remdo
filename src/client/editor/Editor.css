@@ -519,3 +519,139 @@
 .editor-root li.note-body-wrapper.zoom-hidden {
   display: none;
 }
+
+/* Mobile action toolbar (docs/outliner/mobile-toolbar.md): a fixed row of
+   note-action buttons docked at the bottom of the viewport on touch devices.
+   When the keyboard is shown, the component lifts the bar by the visual-viewport
+   inset (inline `bottom`) so it docks above the keyboard; when dismissed it
+   rests at `bottom: 0`, clear of the safe-area inset. */
+:root {
+  --mobile-action-toolbar-height: 44px;
+}
+
+/* The toolbar is fixed, so it overlays the bottom of the scrolled document.
+   On the touch devices where it renders, reserve matching scroll space under
+   the editor so the last note can never sit behind the bar. */
+@media (hover: none) and (pointer: coarse) {
+  .editor-container {
+    padding-bottom: calc(
+      var(--mantine-spacing-lg) + var(--mobile-action-toolbar-height) +
+        env(safe-area-inset-bottom, 0px)
+    );
+  }
+}
+
+/* Outer bar: a scrolling group + a divider + a pinned group, docked at the
+   bottom. The pinned group sits beside — never over — the scroll region so a
+   focused scrolled button is never hidden behind it. */
+.mobile-action-toolbar {
+  --mobile-action-toolbar-fill: color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent);
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  background-color: var(--mobile-action-toolbar-fill);
+  /* Same frosted-glass material as the shell/header; -webkit- prefix so the
+     blur renders on iOS Safari (the toolbar's primary target), which the
+     project prefixes by hand (no autoprefixer). */
+  backdrop-filter: blur(var(--remdo-glass-blur));
+  -webkit-backdrop-filter: blur(var(--remdo-glass-blur));
+  border-top: 1px solid var(--mantine-color-dark-4);
+}
+
+/* Scroll shell hosts the fade masks; the inner element does the scrolling. */
+.mobile-action-toolbar__scroll-shell {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+}
+
+/* A fade appears only on a side that has more content off-screen — the signal
+   that the group scrolls (rather than a static edge). */
+.mobile-action-toolbar__scroll-shell.fade-start::before,
+.mobile-action-toolbar__scroll-shell.fade-end::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 22px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mobile-action-toolbar__scroll-shell.fade-start::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--mobile-action-toolbar-fill), transparent);
+}
+
+.mobile-action-toolbar__scroll-shell.fade-end::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--mobile-action-toolbar-fill), transparent);
+}
+
+.mobile-action-toolbar__scroll {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow-x: auto;
+  min-width: 0;
+  flex: 1;
+  scrollbar-width: none;
+}
+
+.mobile-action-toolbar__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-action-toolbar__divider {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 1px;
+  margin: 6px;
+  background-color: color-mix(in srgb, var(--mantine-color-dark-0) 14%, transparent);
+}
+
+/* Pinned group. The layout emits it in visual/DOM order (inner→outer), so the
+   always-present anchor (Done) is the last child and sits at the outer edge; a
+   hidden inner action (Undo on empty history) shrinks the group from the inner
+   side without moving the anchor. DOM order matches visual order — no reverse —
+   so keyboard/AT focus order follows the row (WCAG 2.4.3). */
+.mobile-action-toolbar__pinned {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mobile-action-toolbar__button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 8px;
+  /* ~22px at the default root size, but rem so glyphs scale with the user's
+     font-size preference. */
+  font-size: 1.375rem;
+  color: var(--mantine-color-dark-0);
+  background-color: transparent;
+  border: none;
+  border-radius: var(--mantine-radius-sm);
+  cursor: pointer;
+}
+
+.mobile-action-toolbar__button[aria-disabled="true"] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.mobile-action-toolbar__button:active:not([aria-disabled="true"]) {
+  background-color: var(--mantine-color-dark-5);
+}

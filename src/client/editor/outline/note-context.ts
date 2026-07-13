@@ -1,6 +1,6 @@
 import type { ListItemNode } from '@lexical/list';
 import { $getNearestNodeFromDOMNode } from 'lexical';
-import type { LexicalNode } from 'lexical';
+import type { LexicalEditor, LexicalNode } from 'lexical';
 
 import {
   $requireContentItemNoteId,
@@ -13,6 +13,18 @@ export function $resolveContentNoteFromDOMNode(node: Node | null): ListItemNode 
     return null;
   }
   return resolveContentItemFromNode($getNearestNodeFromDOMNode(node));
+}
+
+// The Lexical key of the focus note: the outline selection's focus, falling back
+// to the DOM selection's focus/anchor. Call inside editor.read/update.
+export function $resolveFocusNoteKey(editor: LexicalEditor): string | null {
+  const focusKey = editor.selection.get()?.focusKey;
+  if (focusKey) {
+    return focusKey;
+  }
+  const domSelection = globalThis.getSelection();
+  const focusNode = domSelection?.focusNode ?? domSelection?.anchorNode ?? null;
+  return $resolveContentNoteFromDOMNode(focusNode)?.getKey() ?? null;
 }
 
 export function $resolveNoteIdFromNode(node: LexicalNode | null): string | null {

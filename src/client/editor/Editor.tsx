@@ -26,6 +26,7 @@ import { ZoomVisibilityPlugin } from './features/zoom/ZoomVisibilityPlugin';
 import { FoldingPlugin } from './plugins/FoldingPlugin';
 import { NoteControlsPlugin } from './plugins/NoteControlsPlugin';
 import { NoteMenuPlugin } from './plugins/NoteMenuPlugin';
+import { MobileActionToolbar } from './plugins/mobile-toolbar/MobileActionToolbar';
 import { SearchCandidatesPlugin } from './plugins/SearchCandidatesPlugin';
 import { PendingDocumentImportPlugin } from './plugins/PendingDocumentImportPlugin';
 import './Editor.css';
@@ -110,6 +111,7 @@ function EditorRuntime({
               <FoldingPlugin />
               <NoteControlsPlugin />
               <NoteMenuPlugin />
+              <MobileActionToolbar />
               <ZoomPlugin />
               <ZoomVisibilityPlugin />
               {searchModeRequested ? (
