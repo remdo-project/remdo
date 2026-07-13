@@ -68,4 +68,31 @@ test.describe('Home view', () => {
     await expect(homeView(page)).toHaveCount(0);
     await expect(editorLocator(page)).toBeVisible();
   });
+
+  test('opening search from the toolbar dismisses Home', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    await expect(homeView(page)).toBeVisible();
+
+    // The toolbar search stays reachable over Home; focusing it takes over the
+    // content region, so Home must not stay rendered alongside search results.
+    await page.getByRole('combobox', { name: 'Search document' }).click();
+
+    await expect(homeView(page)).toHaveCount(0);
+  });
+
+  test('switching documents from the toolbar picker dismisses Home', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    await expect(homeView(page)).toBeVisible();
+
+    // The document picker stays in the toolbar over Home; choosing a document
+    // must leave Home so the chosen document's editor is shown.
+    await page.getByRole('button', { name: 'Choose document' }).click();
+    await page.getByRole('option').first().click();
+    await waitForSynced(page);
+
+    await expect(homeView(page)).toHaveCount(0);
+    await expect(editorLocator(page)).toBeVisible();
+  });
 });

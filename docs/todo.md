@@ -225,6 +225,11 @@ Tracks the gaps between [Home](outliner/home.md) and the
   options) is replaced by Home: Home owns document browsing and the New/Upload
   actions. Remove the picker once Home fully covers switching; the intervening
   state (both present) is the recorded interim.
+- Home visibility is component-local `homeActive` state in `DocumentWorkspace`,
+  not URL/route backed, so it is lost on reload and not linkable. `home.md`
+  "Entering and leaving Home" treats Home as the surface above `/`; route Home
+  with the view-header work (which owns the `/` relationship), rather than
+  encoding a second ad-hoc route now.
 
 The [view header](outliner/zoom.md#view-header) (Model F) is specified but not
 yet built; the entries below track the gap. Suspends the view-header rules in

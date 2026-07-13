@@ -17,6 +17,36 @@ import type { HomeDocumentEntry, HomeDocumentSource } from './HomeView';
 import { useDocumentActions } from './useDocumentActions';
 import { useDocumentSourceResolution } from './useDocumentSourceResolution';
 import '../DocumentRoute.css';
+import type { DocumentSourceNote } from '#note-sdk';
+
+interface HomeProps {
+  sources: HomeDocumentSource[];
+  favorites: HomeDocumentEntry[];
+  recents: HomeDocumentEntry[];
+  tags: HomeDocumentEntry[];
+}
+
+// Builds the Home view's props from the live document sources. Favorites and
+// Recents are static placeholder slices of the real document list; Tags is left
+// empty to exercise the hide-when-empty rule. Replaced by real
+// favoriting/tagging/visit-history sources later (docs/outliner/home.md#future).
+function buildHomeProps(documentSources: readonly DocumentSourceNote[]): HomeProps {
+  const sources: HomeDocumentSource[] = documentSources.map((documentSource) => ({
+    id: documentSource.id(),
+    label: documentSource.text(),
+    documents: documentSource.documents().children().map((document) => ({
+      id: document.id(),
+      label: document.text(),
+    })),
+  }));
+  const allDocuments = sources.flatMap((source) => source.documents);
+  return {
+    sources,
+    favorites: allDocuments.slice(0, 2),
+    recents: allDocuments.slice(0, 3),
+    tags: [],
+  };
+}
 
 function isVisibleInCurrentView(element: HTMLElement): boolean {
   if (element.classList.contains('zoom-hidden')) {
@@ -50,31 +80,23 @@ export default function DocumentWorkspace({
   const source = useDocumentSourceResolution(docId, documentSources);
   const actions = useDocumentActions({ docId, onSelectDocument, userData });
 
-  const homeSources: HomeDocumentSource[] = documentSources.map((documentSource) => ({
-    id: documentSource.id(),
-    label: documentSource.text(),
-    documents: documentSource.documents().children().map((document) => ({
-      id: document.id(),
-      label: document.text(),
-    })),
-  }));
-  const openDocumentFromHome = (nextDocId: string) => {
-    setHomeActive(false);
-    onSelectDocument(nextDocId);
-  };
-  // Placeholder entry-point groups. Favorites/Recents mirror real documents so
-  // the layout reads correctly; Tags stays empty to exercise the hide-when-empty
-  // rule. Replaced by real favoriting/tagging/visit-history sources later
-  // (docs/todo.md → Home view follow-ups).
-  const allHomeDocuments = homeSources.flatMap((homeSource) => homeSource.documents);
-  const homeFavorites: HomeDocumentEntry[] = allHomeDocuments.slice(0, 2);
-  const homeRecents: HomeDocumentEntry[] = allHomeDocuments.slice(0, 3);
-  const homeTags: HomeDocumentEntry[] = [];
+  // Home is a temporary overlay; any navigation away from it (opening a
+  // document, creating/uploading one, zooming, or opening search) must dismiss
+  // it, or the overlay would keep covering the editor for the newly targeted
+  // document. leaveHome wraps a navigating action with that dismissal.
+  const leaveHome = <Args extends unknown[]>(action: (...args: Args) => void) =>
+    (...args: Args) => {
+      setHomeActive(false);
+      action(...args);
+    };
+
   const documentLabel = formatNavigationLabel(source.documentLabel);
   const titleItem = zoomPath.at(-1) ?? null;
-  const pageTitle = titleItem
-    ? `${formatNavigationLabel(titleItem.label)} · ${documentLabel} · ${APP_TITLE}`
-    : `${documentLabel} · ${APP_TITLE}`;
+  const pageTitle = homeActive
+    ? `Home · ${APP_TITLE}`
+    : titleItem
+      ? `${formatNavigationLabel(titleItem.label)} · ${documentLabel} · ${APP_TITLE}`
+      : `${documentLabel} · ${APP_TITLE}`;
 
   const focusEditorInput = useCallback(() => {
     const editorInput = shellRef.current?.querySelector<HTMLElement>('.editor-input') ?? null;
@@ -96,6 +118,13 @@ export default function DocumentWorkspace({
     };
   }, [pageTitle]);
 
+  // Home and search both take over the content region; search wins while active,
+  // so Home is suppressed rather than rendered alongside search results. Its
+  // props are built only while visible, skipping the document-tree walk on the
+  // editor's render hot path.
+  const homeVisible = homeActive && !search.searchModeActive;
+  const home = homeVisible ? buildHomeProps(documentSources) : null;
+
   return (
     <div className="document-editor-shell" ref={shellRef}>
       <DocumentToolbar
@@ -103,16 +132,16 @@ export default function DocumentWorkspace({
         docId={docId}
         documentLabel={source.documentLabel}
         documentSources={documentSources}
-        onCreateDocument={() => {
+        onCreateDocument={leaveHome(() => {
           void actions.createDocument();
-        }}
-        onSelectDocument={onSelectDocument}
+        })}
+        onSelectDocument={leaveHome(onSelectDocument)}
         onSelectHome={() => setHomeActive(true)}
-        onSelectNoteId={requestZoomNoteId}
+        onSelectNoteId={leaveHome(requestZoomNoteId)}
         onStatusHostChange={setStatusHost}
-        onUploadDocument={(file) => {
+        onUploadDocument={leaveHome((file: File) => {
           void actions.uploadDocument(file);
-        }}
+        })}
         path={zoomPath}
         searchControl={<DocumentSearchInput model={search} />}
       />
@@ -139,21 +168,19 @@ export default function DocumentWorkspace({
         </Alert>
       )}
       <DocumentSearchResults model={search} />
-      {homeActive && (
+      {home && (
         <HomeView
-          favorites={homeFavorites}
-          onCreateDocument={() => {
-            setHomeActive(false);
+          favorites={home.favorites}
+          onCreateDocument={leaveHome(() => {
             void actions.createDocument();
-          }}
-          onSelectDocument={openDocumentFromHome}
-          onUploadDocument={(file) => {
-            setHomeActive(false);
+          })}
+          onSelectDocument={leaveHome(onSelectDocument)}
+          onUploadDocument={leaveHome((file: File) => {
             void actions.uploadDocument(file);
-          }}
-          recents={homeRecents}
-          sources={homeSources}
-          tags={homeTags}
+          })}
+          recents={home.recents}
+          sources={home.sources}
+          tags={home.tags}
         />
       )}
       <div className={homeActive || search.searchModeActive
