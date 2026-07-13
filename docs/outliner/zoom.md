@@ -34,10 +34,9 @@ caret/selection state in the editor.
    [Selection](./selection.md).
 5. While zoomed, edits are bounded to the zoom boundary. Commands MUST NOT
    create, merge, move, or target notes outside that boundary.
-6. The zoom root is presented distinctly from ordinary note rows. It remains
-   editable, but it serves as the title/heading for the zoomed view. The
-   breadcrumb trail stops at the zoom root's parent, so the title is not repeated
-   as a crumb.
+6. The current location renders as the [view header](#view-header) — an editable
+   heading above the visible outline — not as an ordinary note row and not as a
+   breadcrumb crumb. The outline shows the current location's children.
 7. If the zoom root has direct children, those children are always visible
    while zoomed, even when the zoom root's stored fold state is `folded`.
    Descendants beneath those children still follow their own fold states.
@@ -53,9 +52,37 @@ caret/selection state in the editor.
    places the caret in the first visible child so work continues in the zoomed
    content immediately.
 4. When the zoom root has no visible direct children, entering zoom places the
-   caret within the zoom root so editing can proceed there.
-5. The zoom root remains directly editable while zoomed; clicking or otherwise
-   targeting the heading enters inline editing for that note.
+   caret in the [view header](#view-header) so editing can proceed there.
+
+## View header
+
+The **view header** is how the current location presents itself above its
+children: an editable heading rendering the current note's own content, present
+in every document view.
+
+1. **What it shows.** At document root the header is the document note; while
+   zoomed it is the zoom root. Editing the header edits that note's content —
+   renaming the document at the root, or the zoom root's text while zoomed. The
+   header carries the same key-driven inline content as note content (inline
+   formatting and [note links](./links.md)).
+2. **Not a structural row.** The header is presented distinctly from ordinary
+   note rows and is never one of them: it cannot be folded, indented, outdented,
+   reordered, structurally deleted, or selected structurally, and no structural
+   command targets it. These operations act only on the children in the outline
+   below.
+3. **`Enter` adds a first child.** `Enter` in the header creates an empty first
+   child of the current location and moves the caret into it.
+4. **`Shift+Enter` reaches the body.** `Shift+Enter` in the header focuses the
+   current note's [body](./body.md), adding one if absent — the same body gesture
+   defined for note content.
+5. **Body as summary.** When the current location has a [body](./body.md), it
+   renders beneath the header, above the children — the body's usual
+   below-the-content position, applied to the header.
+6. **`Backspace` at the header start is a no-op** — there is no note above the
+   current location to merge into.
+
+Home is not a note and has no view header of its own; the [Home](./home.md) view
+presents its own document list rather than a header and outline.
 
 ## Clearing zoom
 
@@ -71,6 +98,9 @@ no longer be resolved.
 
 ## Boundary-specific command rules
 
+These govern commands run from the outline children. Commands run from the
+[view header](#view-header) follow the header's own rules instead.
+
 1. `Enter` boundary behavior is defined in [Insertion](./insertion.md).
 2. `Backspace`/`Delete` boundary behavior is defined in
    [Deletion](./deletion.md).
@@ -83,8 +113,9 @@ no longer be resolved.
 
 ## Breadcrumbs
 
-The breadcrumb trail is the ancestor path above the current location; the
-current location itself is not a crumb but the view's title.
+The breadcrumb is pure navigation: the ancestor path above the current location,
+every item a link. The current location itself is not a crumb — it is the
+[view header](#view-header).
 
 1. **Document root zoom:** The breadcrumb trail contains a single crumb: Home.
 2. **Subtree zoom:** The breadcrumb trail is the zoom path up to but excluding

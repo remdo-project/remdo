@@ -13,7 +13,8 @@ here.
 When [zoom](./zoom.md) is active, indent/outdent must keep the moved subtree
 inside the zoom boundary (the zoom root and descendants). Any indent/outdent
 that would move the selection outside that boundary is a no-op. The zoom root
-itself cannot be indented or outdented: both are no-ops.
+itself is the [view header](./zoom.md#view-header), not an outline row, so it is
+never a target of indent/outdent.
 
 ## Subtree Atomic Move
 

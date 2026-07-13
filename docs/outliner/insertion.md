@@ -19,17 +19,11 @@ collapsed parent behavior is called out explicitly (see [Folding](./folding.md))
 
 ## Zoom boundary behavior (caret mode)
 
-When [zoom](./zoom.md) is active, default insertion still applies except where it
-would place the new note outside the zoom boundary. In those cases, insertion
-stays inside the zoom root subtree:
-
-1. **Caret in zoom root at start** – insert a new first child.
-2. **Caret in zoom root in middle** – split the zoom root so text before the
-   caret becomes a new first child; the zoom root keeps trailing text and
-   existing children.
-3. **Caret in zoom root at end** – insert a new first child.
-4. For all other notes inside the zoom boundary, use default start/middle/end
-   behavior.
+When [zoom](./zoom.md) is active, default insertion still applies to the outline
+children except where it would place the new note outside the zoom boundary; in
+those cases insertion stays inside the subtree. The current location is the
+[view header](./zoom.md#view-header), not an outline note, so `Enter` there adds
+a first child rather than splitting a row (see the view-header rules).
 
 ## Focus rules
 
@@ -39,8 +33,8 @@ stays inside the zoom root subtree:
    caret) so the trailing text remains the active line.
 3. **End of note:** place the caret at the start of the newly created note
    (child or sibling) so typing immediately fills it.
-4. In zoom-boundary insertion at the zoom root, focus follows the same
-   start/middle/end policy above (child for start/end, zoom root for middle).
+4. `Enter` in the [view header](./zoom.md#view-header) places the caret in the
+   new first child.
 
 ## Paste placement (caret mode)
 

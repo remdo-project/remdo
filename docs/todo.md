@@ -229,13 +229,29 @@ Tracks the gaps between [Home](outliner/home.md) as specified and what ships.
   state (both present) is the recorded interim.
 - Breadcrumb accessibility: `ZoomBreadcrumbs` (Mantine `Breadcrumbs`) emits
   neither a `nav` landmark nor an ordered list, and the crumbs carry no
-  `aria-current`. With the trail ending at the parent (the zoom root is the
-  title, not a crumb — see [Zoom breadcrumbs](outliner/zoom.md#breadcrumbs)), the
-  zoom-root title row should carry the view's heading semantics so heading
-  navigation still finds the current location; the editable Lexical node and the
-  heading role must stay on separate elements (a `textbox` role masks an inner
-  heading from assistive tech). Close these when implementing the parent-ending
-  breadcrumb.
+  `aria-current`. The breadcrumb is pure navigation (ancestors only — see
+  [Zoom breadcrumbs](outliner/zoom.md#breadcrumbs)); the
+  [view header](outliner/zoom.md#view-header) carries the view's heading
+  semantics so heading navigation finds the current location. The editable
+  content and the heading role must stay on separate elements (a `textbox` role
+  masks an inner heading from assistive tech). Close with the view-header work.
+- View header (subtree zoom) not yet the specified restricted kind. The
+  [view header](outliner/zoom.md#view-header) is specified as a non-structural,
+  editable heading that cannot be folded/indented/reordered/merged/structurally
+  deleted, with `Enter` = add first child and `Shift+Enter` = body. Today the
+  subtree-zoom root is still an editable outline `ListItemNode` with those
+  operations bounded by per-command zoom-root special-casing (`InsertionPlugin`,
+  `DeletionPlugin`, `FoldingPlugin`, `IndentationPlugin`, `ReorderingPlugin`,
+  note-menu). Refactoring the zoom root into the restricted view-header kind
+  removes that special-casing; until then those plugins are the interim
+  enforcement. The document-root view header (chrome heading) is the built part.
+- Document name is not editable. The [view header](outliner/zoom.md#view-header)
+  specifies editing the header renames the document at the root, but `DocumentNote`
+  (`src/note-sdk/documents.ts`) exposes only read-only `text()` and there is no
+  rename command/endpoint. The coherent end state is the document name being the
+  document root note's own text (a CRDT edit), which also unifies the root and
+  subtree-zoom header. Needs an SDK rename capability, its server/collab path,
+  and a name migration; the root header renders read-only until then.
 
 ## Note-first SDK follow-ups
 
