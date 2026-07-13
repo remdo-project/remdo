@@ -143,10 +143,12 @@ export default function DocumentWorkspace({
         <HomeView
           favorites={homeFavorites}
           onCreateDocument={() => {
+            setHomeActive(false);
             void actions.createDocument();
           }}
           onSelectDocument={openDocumentFromHome}
           onUploadDocument={(file) => {
+            setHomeActive(false);
             void actions.uploadDocument(file);
           }}
           recents={homeRecents}

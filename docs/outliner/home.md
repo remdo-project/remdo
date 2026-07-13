@@ -25,9 +25,9 @@ reached.
 3. Each listed document shows its display name and opens that document when
    activated, landing on its document-root [zoom](./zoom.md) view.
 4. Home presents three additional entry-point groups alongside the document
-   list: **Favorites**, **Tags**, and **Recents**. Each is a list of shortcuts
-   into documents or document notes, shown as static placeholder entries until
-   the [backing sources exist](#future).
+   list: **Favorites**, **Tags**, and **Recents**. Each is a list of document
+   shortcuts, shown as static placeholder entries until the
+   [backing sources exist](#future).
 5. A group with no entries is omitted from Home entirely; Home never shows an
    empty group as a placeholder.
 
@@ -46,8 +46,9 @@ reached.
 
 - **Entry-point groups need their own sources.** Replace the static placeholder
   Favorites, Tags, and Recents with real entries once favoriting, tagging, and
-  visit-history exist. Build each with its subsystem, then define its own spec
-  and point this doc's entry-point groups at it.
+  visit-history exist — entries that may target a document or a note within one.
+  Build each with its subsystem, then define its own spec and point this doc's
+  entry-point groups at it.
 - **Home content in the sidebar.** Also surface Home's document, Favorites,
   Tags, and Recents groups in a persistent navigation sidebar; its division of
   responsibility with Home remains open.

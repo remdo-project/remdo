@@ -42,4 +42,30 @@ test.describe('Home view', () => {
     // Tags has no placeholder entries, so its group is not rendered.
     await expect(home.getByRole('group', { name: 'Tags' })).toHaveCount(0);
   });
+
+  test('lists documents grouped under their source heading', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+
+    const home = homeView(page);
+    // The local source renders as a "Current Server" group holding its documents.
+    const currentServer = home.getByRole('group', { name: 'Current Server' });
+    await expect(currentServer).toBeVisible();
+    await expect(currentServer.locator('[data-home-document-ref]').first()).toBeVisible();
+  });
+
+  test('owns the New and Upload document actions', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+
+    const home = homeView(page);
+    await expect(home.getByRole('button', { name: 'New document' })).toBeVisible();
+    await expect(home.getByRole('button', { name: 'Upload document' })).toBeVisible();
+
+    // New document leaves Home and opens the freshly created document.
+    await home.getByRole('button', { name: /new document/i }).click();
+    await waitForSynced(page);
+    await expect(homeView(page)).toHaveCount(0);
+    await expect(editorLocator(page)).toBeVisible();
+  });
 });
