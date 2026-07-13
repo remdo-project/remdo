@@ -32,6 +32,12 @@ if (typeof Range !== 'undefined' && !Range.prototype.getBoundingClientRect) {
 }
 
 const MockResizeObserver = class MockResizeObserver {
+  // Mirror the real ResizeObserver(callback) signature. The stub never fires the
+  // callback (jsdom has no layout), which is fine — code seeds/re-syncs through
+  // other paths. Accepting the param keeps callers' `new ResizeObserver(cb)` from
+  // reading as a superfluous argument against a zero-arg constructor.
+  constructor(_callback: ResizeObserverCallback) {}
+
   disconnect = vi.fn();
   observe = vi.fn();
   unobserve = vi.fn();
