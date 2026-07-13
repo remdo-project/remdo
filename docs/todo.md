@@ -736,3 +736,20 @@ peek + edge-fade, sizing, `aria-disabled`) is implemented; the durable contract
 lives in [docs/outliner/mobile-toolbar.md](outliner/mobile-toolbar.md), and the
 open follow-ups it left are the mobile-toolbar entries under the plugin
 follow-ups above. Design rationale is in git history.
+
+## Unify note actions across toolbar and menu (decided direction)
+
+The mobile action toolbar and the note [quick action menu](outliner/menu.md) are
+two ad-hoc renderings of the same context-sensitive note-action set. Decided
+(research-backed; git history for the rationale): build a shared note-action
+registry — `(id, icon, label, when-applicable predicate, dispatch)` — that both
+surfaces render, so the popup menu, the touch toolbar, and keyboard entries come
+from one source. Rendering stays per-surface: the menu is a popup and *hides*
+inapplicable actions; the toolbar keeps its current rule (grey scroll actions,
+hide pinned via the anchor rule). Icons/labels may vary by note state
+(Fold/Unfold, Check/Uncheck). Folds in the tracked seams: dedup the two fold
+predicates, promote the menu's inline list-type change to a command, put
+`NoteMenuPlugin` on the shared popup engine, extract `usePortalRoot`. The
+toolbar's "open menu" icon and the menu's fuller-set-only actions (zoom,
+list-type, fold-to-level) are open design questions. Sized as a
+`remdo-feature-flow`, based on top of the mobile-toolbar work — not yet scoped.
