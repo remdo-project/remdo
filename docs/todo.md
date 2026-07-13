@@ -359,6 +359,17 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   leaf-only typing updates skip them; skip redundant structural-overlay and
   outline-selection store writes in `SelectionPlugin` when nothing changed.
 
+## Frosted-glass material follow-ups
+
+- The frosted-glass surfaces (app shell, header, mobile toolbar) use a
+  translucent `color-mix` fill that relies on `backdrop-filter` for legibility,
+  with no `@supports (backdrop-filter)` opaque fallback and no
+  `prefers-reduced-transparency` handling. Where the blur is inert (some Android
+  WebViews, reduce-transparency settings) content shows through. This is a
+  consistent app-wide choice, not a per-surface bug — decide the fallback policy
+  once for the shared `--remdo-glass-*` material rather than patching one surface
+  (patching only the toolbar would fragment the material the token unified).
+
 ## Color standardization
 
 - Standardize the app's colors on a single accent token. `--remdo-accent`
