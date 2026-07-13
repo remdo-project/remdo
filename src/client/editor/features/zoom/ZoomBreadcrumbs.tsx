@@ -14,6 +14,16 @@ interface ZoomBreadcrumbsProps {
 
 export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectHome, onSelectNoteId }: ZoomBreadcrumbsProps) {
   const docLabelDisplay = formatNavigationLabel(docLabel);
+  const documentCrumb = (
+    <button
+      type="button"
+      className={styles.crumbButton}
+      data-zoom-crumb="document"
+      onClick={() => onSelectNoteId(null)}
+    >
+      {docLabelDisplay}
+    </button>
+  );
 
   return (
     <Breadcrumbs className={styles.breadcrumbs} data-zoom-breadcrumbs>
@@ -29,27 +39,13 @@ export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectHome,
       ) : null}
       {documentControl ? (
         <span className={styles.documentCrumbGroup} data-zoom-crumb="document-group">
-          <button
-            type="button"
-            className={styles.crumbButton}
-            data-zoom-crumb="document"
-            onClick={() => onSelectNoteId(null)}
-          >
-            {docLabelDisplay}
-          </button>
+          {documentCrumb}
           <span className={styles.documentControl} data-zoom-crumb="document-control">
             {documentControl}
           </span>
         </span>
       ) : (
-        <button
-          type="button"
-          className={styles.crumbButton}
-          data-zoom-crumb="document"
-          onClick={() => onSelectNoteId(null)}
-        >
-          {docLabelDisplay}
-        </button>
+        documentCrumb
       )}
       {path.slice(0, -1).map((item) => (
         <button
