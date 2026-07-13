@@ -21,9 +21,8 @@ collapsed parent behavior is called out explicitly (see [Folding](./folding.md))
 
 When [zoom](./zoom.md) is active, default insertion still applies to the outline
 children except where it would place the new note outside the zoom boundary; in
-those cases insertion stays inside the subtree. The current location is the
-[view header](./zoom.md#view-header), not an outline note, so `Enter` there adds
-a first child rather than splitting a row (see the view-header rules).
+those cases insertion stays inside the subtree. `Enter` from the
+[view header](./zoom.md#view-header) is defined with the view-header rules.
 
 ## Focus rules
 
@@ -33,8 +32,6 @@ a first child rather than splitting a row (see the view-header rules).
    caret) so the trailing text remains the active line.
 3. **End of note:** place the caret at the start of the newly created note
    (child or sibling) so typing immediately fills it.
-4. `Enter` in the [view header](./zoom.md#view-header) places the caret in the
-   new first child.
 
 ## Paste placement (caret mode)
 

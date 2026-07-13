@@ -264,6 +264,16 @@ yet built; the entries below track the gap. Suspends the view-header rules in
   and the header carries the view's heading semantics; the editable content and
   the heading role must stay on separate elements (a `textbox` role masks an
   inner heading from assistive tech). Close with the view-header work.
+- Fold semantics at the view header are unreconciled with the restricted kind.
+  [Zoom](outliner/zoom.md) items 7–8 describe the zoom root's *stored* fold state
+  being preserved and not hiding its children while zoomed, but the
+  [view header](outliner/zoom.md#view-header) cannot be folded, and
+  [Folding](outliner/folding.md) item 8, [Menu](outliner/menu.md) (the `F`
+  fold shortcut "for the current zoom root"), and fold-to-level ("applies from
+  the current zoom root") still describe the zoom root as a foldable outline
+  target. Reconcile these — what a header's fold control and stored state mean
+  once it is a non-structural header — when the view-header kind is built. Kept
+  out of this spec pass to avoid redesigning folding/menu now.
 
 ## Note-first SDK follow-ups
 
