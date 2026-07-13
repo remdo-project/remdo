@@ -187,6 +187,11 @@ export function createProviderFactory({
         const token = await getAuthToken(id, endpoints);
         return rewriteTokenHost(token, visibleOrigin);
       } catch (error) {
+        // A post-destroy token failure must neither reject (y-sweet would warn)
+        // nor resolve (y-sweet would try to open a WebSocket with a bogus token
+        // — see its connect loop). Hanging is deliberate: the loop is already
+        // torn down (the `provider.connect` no-op + `disconnect()` below), so
+        // this frame is never consumed. Do NOT "simplify" to a returned value.
         if (destroyed) {
           return new Promise<ClientToken>(() => {});
         }
