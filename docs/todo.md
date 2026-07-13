@@ -675,3 +675,128 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   only checks `indent-jump`, which load normalization flattens. The validation is
   therefore practically inert today; add coverage if a schema rule that survives
   load is introduced.
+
+## Mobile toolbar design tuning (playground-driven, under discussion)
+
+Config being decided for the mobile action toolbar
+(`src/client/editor/plugins/mobile-toolbar/`,
+[docs/outliner/mobile-toolbar.md](outliner/mobile-toolbar.md)), from the design
+playground. Not yet applied; the pushback items below are open for discussion.
+
+### Piotr's preferred config (verbatim)
+
+> Split the row into a fixed pinned group and a scrolling group: pin Done, Undo
+> to the right side, always visible, separated from the scrolling actions by a
+> vertical divider. The pinned group must sit beside (not overlapping) the
+> scroll region so a focused scrolled item is never hidden (WCAG 2.4.11).
+>
+> Scrolling actions (left→right): Indent, Outdent, Up, Down, Fold, Delete, Redo,
+> Menu.
+>
+> Scroll-reveal affordances: peek (clip the next button so the edge looks
+> deliberately cut off); a conditional edge fade/gradient at whichever end has
+> more content; scroll-snap (proximity, never mandatory); center the scroll row
+> when it appears so it can move both directions; a one-shot nudge animation on
+> first appearance.
+>
+> Scroll-row alignment: left-aligned.
+>
+> Sizing: 44px touch targets, 8px gap, 20px icons, 8px corner radius, 6px
+> vertical padding.
+>
+> Style: blur background, icon-only (keep aria-labels).
+
+### Pushback / open items (numbered for reference)
+
+1. ✅ Resolved — pinned pair kept as **Done + Undo** (see "Resolved: pinning &
+   disabled-state" below). My earlier pushback ("undo is a weak pin — system
+   gestures cover it") was wrong: research shows the iOS undo gestures
+   (shake / three-finger swipe) are undiscoverable and partly inaccessible
+   (Gruber; a 35%-use / 85%-want-a-button reader poll; NN/g on gesture
+   affordance), so a *visible* undo button is the de-facto best practice
+   (Apple Notes, Bear, Google Docs, Workflowy all added one). Done as a primary
+   is backed by revealed preference — Workflowy pins complete as its headline
+   action, "one of the most common tasks on the go." Indent/outdent are the #1
+   documented cross-app pain point, but that's largely because they're hard to
+   deliver on touch (no Tab key); RemDo already has real buttons, so keeping them
+   one swipe away in the scroll is acceptable.
+2. ✅ Resolved — trim five affordances to **peek + edge-fade + one motion cue**
+   (the research pair plus a single motion signal).
+3. ✅ Resolved — drop scroll-snap (removes the snap-vs-center conflict).
+4. ✅ Resolved — only one appearance animation kept (center-on-appear); no
+   stacking.
+5. ✅ Resolved — switch to **center alignment** so center-on-appear is consistent
+   (was left-align + center-on-appear, contradictory).
+6. ✅ Resolved — keep Menu reachable per research (durable overflow affordance);
+   moved earlier in the scroll order rather than left at the far end.
+7. ✅ Resolved — icons **22px** (≈0.5 ratio in a 44px target).
+
+Solidly right (no notes): 44px targets, 8px gap, blur background, icon-only with
+aria-labels, peek + conditional edge-fade, beside-not-overlapping pinned divider
+(WCAG 2.4.11).
+
+### Final settled config (all items resolved)
+
+The config to apply when the toolbar is built:
+
+- **Pinned (right, divider, beside-not-overlapping):** Done + Undo, edge→inward
+  `[Done][Undo?]` per the anchor rule below.
+- **Scrolling (left→right):** Indent, Outdent, Menu, Up, Down, Fold, Delete, Redo
+  (Menu moved earlier so the "everything else" escape hatch isn't at the far end).
+- **Scroll-reveal affordances:** peek + conditional edge-fade + center-on-appear.
+  (Dropped scroll-snap and the nudge.)
+- **Alignment:** center (required for center-on-appear).
+- **Sizing:** 44px targets, 8px gap, **22px** icons, 8px radius, 6px vertical padding.
+- **Style:** blur background, icon-only (keep aria-labels).
+- Plus the pinning/disabled-state and `aria-disabled` rules below.
+
+### Resolved: pinning & disabled-state rules (item 1)
+
+Decided with Piotr after wider research (2 agents; digest below). Applies to the
+real toolbar when built:
+
+- **Pinned pair: Done + Undo**, right side (as preferred).
+- **Anchor rule:** within the pinned group, the always-visible action anchors the
+  outer/edge position and never moves; the sometimes-hidden action collapses on
+  the inner side (toward the scroll region + divider). Concretely for right-pin,
+  edge→inward: `[Done][Undo?]` — Done is hard against the outer edge and never
+  relocates; only the scroll↔pin boundary shifts when Undo toggles. This keeps
+  the reliably-visible button rock-stable and sidesteps the mis-tap-from-shifting
+  problem the hide-vs-disable research warns about.
+- **Disabled-pinned = hidden (reserved-anchor variant):** a pinned action that is
+  currently disabled is *hidden*, not greyed — but per the anchor rule this never
+  moves the always-visible action, so it reclaims the space without layout shift.
+  (Undo is disabled/hidden most of the time on empty history; Done is always
+  visible and holds the anchor.)
+- **Disabled-scroll = greyed, shown:** an unpinned/scrolling action that is
+  disabled stays visible and greyed, to teach that the capability exists
+  (discoverability). This split (hide-when-pinned vs disable-when-scrolling) is
+  the *inverse* of the generic "permanence" rule the research documents, but is
+  justified here by the anchor rule removing the layout-shift cost that normally
+  makes hiding-pinned bad.
+- **No redundant icons (item's Rule B, kept):** each action appears in exactly
+  one place; if pinned, the pinned group owns it fully and it never also appears
+  in the scroll (even while hidden).
+- **Use `aria-disabled` (+ visible reason), not native `disabled`:** keeps
+  disabled buttons keyboard-focusable and screen-reader-announced with adequate
+  contrast (WAI-ARIA APG / GOV.UK); native `disabled` drops them from tab order
+  and gets the WCAG faint-contrast exemption. The current toolbar uses native
+  `disabled` — switch it as part of this work.
+
+Research digest (sources in the agent transcripts):
+
+- Which actions to pin — no telemetry exists for any app; evidence is revealed
+  preference and it *splits*: Workflowy pins complete; Dynalist/RemNote pin
+  indent/outdent/move. Indent/outdent is the most-complained friction everywhere
+  (but mostly because touch lacks Tab). Delete is demoted behind a menu in most
+  competitors.
+- Undo on mobile — iOS shake/three-finger-swipe are widely panned as
+  undiscoverable/inaccessible; visible undo button is de-facto best practice.
+- Hide vs disable — documented axis is *permanence* (hide = never applies /
+  permission; disable = applies-but-not-now), not prominence. Hiding a
+  fixed-slot pinned item normally reclaims nothing and causes mis-tap-inducing
+  reflow — which the anchor rule above specifically avoids, so our hide-pinned
+  choice is safe here.
+
+All pushback items (1–7) resolved; see "Final settled config" above. Nothing
+open — ready to implement when picked up.
