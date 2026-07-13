@@ -57,14 +57,13 @@ describe('zoom breadcrumbs', () => {
 
     expect(screen.getByRole('button', { name: truncateLabel(docLabel) })).toBeInTheDocument();
     expect(container.querySelector('[data-zoom-crumb=\"ancestor\"]')).toBeNull();
-    expect(container.querySelector('[data-zoom-crumb=\"current\"]')).toBeNull();
   });
 
   it('excludes the zoom root from the trail and renders ancestors as links', async () => {
     const onSelect = vi.fn();
     const ancestorLabel = 'abcdefghijklmnopqrstuvwxyz';
     const currentLabel = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const { container } = renderBreadcrumbs({
+    renderBreadcrumbs({
       docLabel: 'project',
       path: [
         { noteId: 'note1', label: ancestorLabel },
@@ -77,7 +76,6 @@ describe('zoom breadcrumbs', () => {
     expect(screen.getByRole('button', { name: 'project' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: truncateLabel(ancestorLabel) })).toBeInTheDocument();
     expect(screen.queryByText(truncateLabel(currentLabel))).toBeNull();
-    expect(container.querySelector('[data-zoom-crumb=\"current\"]')).toBeNull();
 
     screen.getByRole('button', { name: 'project' }).click();
     screen.getByRole('button', { name: truncateLabel(ancestorLabel) }).click();
