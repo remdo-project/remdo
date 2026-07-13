@@ -351,15 +351,14 @@ test.describe('Note menu', () => {
     const checkItem = menu.item('list-check');
     const viewItem = menu.item('view-fold-to-level');
 
-    // Drive Mantine's roving focus one item at a time, pressing ArrowDown on
-    // the item that currently holds focus. Targeting the focused locator (rather
-    // than `page.keyboard`) makes Playwright wait for that item to be actionable
-    // before dispatching, so a keystroke can't race the focus effect settling.
-    const arrowLoop = [foldItem, zoomItem, numberItem, checkItem, viewItem, toggleItem];
-
-    await toggleItem.focus();
+    // Land focus on the first item via the natural open -> settle -> ArrowDown
+    // flow (see `focusFirstItem`), then drive Mantine's roving focus one item at
+    // a time. Pressing ArrowDown on the currently-focused item (rather than
+    // `page.keyboard`) makes Playwright wait for it to be actionable first.
+    await menu.focusFirstItem();
     await expect(toggleItem).toBeFocused();
 
+    const arrowLoop = [foldItem, zoomItem, numberItem, checkItem, viewItem, toggleItem];
     let focusedItem = toggleItem;
     for (const nextItem of arrowLoop) {
       await focusedItem.press('ArrowDown');
