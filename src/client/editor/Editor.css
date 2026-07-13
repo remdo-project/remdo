@@ -541,6 +541,9 @@
   }
 }
 
+/* Outer bar: a scrolling group + a divider + a pinned group, docked at the
+   bottom. The pinned group sits beside — never over — the scroll region so a
+   focused scrolled button is never hidden behind it. */
 .mobile-action-toolbar {
   position: fixed;
   left: 0;
@@ -548,18 +551,79 @@
   bottom: 0;
   z-index: 5;
   display: flex;
-  gap: 4px;
   align-items: center;
   padding: 6px 8px;
   padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
-  overflow-x: auto;
-  background-color: var(--mantine-color-dark-7);
+  background-color: color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent);
+  backdrop-filter: blur(12px);
   border-top: 1px solid var(--mantine-color-dark-4);
+}
+
+/* Scroll shell hosts the fade masks; the inner element does the scrolling. */
+.mobile-action-toolbar__scroll-shell {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+}
+
+/* A fade appears only on a side that has more content off-screen — the signal
+   that the group scrolls (rather than a static edge). */
+.mobile-action-toolbar__scroll-shell.fade-start::before,
+.mobile-action-toolbar__scroll-shell.fade-end::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 22px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mobile-action-toolbar__scroll-shell.fade-start::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--mantine-color-dark-7), transparent);
+}
+
+.mobile-action-toolbar__scroll-shell.fade-end::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--mantine-color-dark-7), transparent);
+}
+
+.mobile-action-toolbar__scroll {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  overflow-x: auto;
+  min-width: 0;
+  flex: 1;
+  /* Peek: leave a sliver so the next button clips at the edge. */
+  scroll-padding-inline: 18px;
   scrollbar-width: none;
 }
 
-.mobile-action-toolbar::-webkit-scrollbar {
+.mobile-action-toolbar__scroll::-webkit-scrollbar {
   display: none;
+}
+
+.mobile-action-toolbar__divider {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 1px;
+  margin: 6px 6px;
+  background-color: color-mix(in srgb, var(--mantine-color-dark-0) 14%, transparent);
+}
+
+/* Pinned group: row-reverse so the first action (Done, the always-present
+   anchor) sits at the outer edge; a hidden inner action (Undo on empty history)
+   shrinks the group from the inner side without moving the anchor. */
+.mobile-action-toolbar__pinned {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 8px;
+  align-items: center;
 }
 
 .mobile-action-toolbar__button {
@@ -570,7 +634,7 @@
   min-width: 44px;
   height: 44px;
   padding: 0 8px;
-  font-size: 1.15rem;
+  font-size: 22px;
   color: var(--mantine-color-dark-0);
   background-color: transparent;
   border: none;
@@ -578,11 +642,11 @@
   cursor: pointer;
 }
 
-.mobile-action-toolbar__button:disabled {
+.mobile-action-toolbar__button[aria-disabled="true"] {
   opacity: 0.35;
   cursor: default;
 }
 
-.mobile-action-toolbar__button:active:not(:disabled) {
+.mobile-action-toolbar__button:active:not([aria-disabled="true"]) {
   background-color: var(--mantine-color-dark-5);
 }

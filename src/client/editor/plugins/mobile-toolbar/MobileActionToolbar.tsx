@@ -3,7 +3,7 @@ import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import { CAN_REDO_COMMAND, CAN_UNDO_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
 import type { MouseEvent as ReactMouseEvent } from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
@@ -11,37 +11,36 @@ import { useCoarsePointer } from '#client/runtime/useCoarsePointer';
 import { useKeyboardInset } from '#client/runtime/useKeyboardInset';
 import type { MobileActionId, SelectionCapability } from './actions';
 import { resolveSelectionCapability, runMobileAction } from './actions';
+import type { LaidOutAction } from './toolbar-layout';
+import { resolveToolbarLayout } from './toolbar-layout';
 
-interface ActionSpec {
-  id: MobileActionId;
-  icon: string;
-  label: string;
-}
-
-// Display order per docs/outliner/mobile-toolbar.md. Glyphs and labels are the
-// surface's own inventory.
-const ACTIONS: ActionSpec[] = [
-  { id: 'indent', icon: '⇥', label: 'Indent' },
-  { id: 'outdent', icon: '⇤', label: 'Outdent' },
-  { id: 'moveUp', icon: '↑', label: 'Move up' },
-  { id: 'moveDown', icon: '↓', label: 'Move down' },
-  { id: 'done', icon: '✓', label: 'Toggle done' },
-  { id: 'fold', icon: '▸', label: 'Toggle fold' },
-  { id: 'delete', icon: '🗑', label: 'Delete' },
-  { id: 'undo', icon: '↺', label: 'Undo' },
-  { id: 'redo', icon: '↻', label: 'Redo' },
-  { id: 'menu', icon: '⋯', label: 'Note menu' },
-];
+// Glyphs and accessible labels — the toolbar surface's own inventory.
+const ACTION_META: Record<MobileActionId, { icon: string; label: string }> = {
+  indent: { icon: '⇥', label: 'Indent' },
+  outdent: { icon: '⇤', label: 'Outdent' },
+  moveUp: { icon: '↑', label: 'Move up' },
+  moveDown: { icon: '↓', label: 'Move down' },
+  done: { icon: '✓', label: 'Toggle done' },
+  fold: { icon: '▸', label: 'Toggle fold' },
+  delete: { icon: '🗑', label: 'Delete' },
+  undo: { icon: '↺', label: 'Undo' },
+  redo: { icon: '↻', label: 'Redo' },
+  menu: { icon: '⋯', label: 'Note menu' },
+};
 
 // Enabled-state for the actions the spec disables when they cannot apply
 // (fold, delete from the selection capability; undo, redo from CAN_UNDO/REDO).
-// Every action not keyed here stays enabled and no-ops.
 type ToolbarState = SelectionCapability & { undo: boolean; redo: boolean };
 
 const INITIAL_STATE: ToolbarState = { fold: true, delete: false, undo: false, redo: false };
 
-function isDisabled(id: MobileActionId, state: ToolbarState): boolean {
-  return id in state && !state[id as keyof ToolbarState];
+function disabledIds(state: ToolbarState): Set<MobileActionId> {
+  const set = new Set<MobileActionId>();
+  if (!state.fold) set.add('fold');
+  if (!state.delete) set.add('delete');
+  if (!state.undo) set.add('undo');
+  if (!state.redo) set.add('redo');
+  return set;
 }
 
 function resolvePortalRoot(editor: LexicalEditor): Element | null {
@@ -55,9 +54,9 @@ export function MobileActionToolbar() {
   const keyboardInset = useKeyboardInset();
   const [portalRoot, setPortalRoot] = useState<Element | null>(() => resolvePortalRoot(editor));
   const [state, setState] = useState<ToolbarState>(INITIAL_STATE);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [fade, setFade] = useState<{ start: boolean; end: boolean }>({ start: false, end: false });
 
-  // Track the portal container from the root listener, like the other portal
-  // plugins, instead of re-querying the DOM on every render.
   useEffect(
     () => editor.registerRootListener(() => setPortalRoot(resolvePortalRoot(editor))),
     [editor]
@@ -75,15 +74,11 @@ export function MobileActionToolbar() {
         return;
       }
       const { fold, delete: canDelete } = resolveSelectionCapability(editor);
-      // Bail when unchanged: this fires on every editor update (keystroke), so a
-      // fresh object each time would re-render the toolbar for no visible change.
       setState((prev) =>
         prev.fold === fold && prev.delete === canDelete ? prev : { ...prev, fold, delete: canDelete }
       );
     };
 
-    // Seed capability for the current selection without a synchronous
-    // set-state in the effect body; updates keep it in sync thereafter.
     queueMicrotask(syncCapability);
 
     const unregister = mergeRegister(
@@ -112,24 +107,80 @@ export function MobileActionToolbar() {
     };
   }, [editor, isCoarsePointer]);
 
-  if (!isCoarsePointer || !portalRoot) {
+  // Show an edge fade only on a side that actually has more content, so the
+  // scrolling group signals it scrolls rather than presenting a static edge.
+  const syncFade = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    const max = el.scrollWidth - el.clientWidth;
+    const overflowing = max > 1;
+    setFade({
+      start: overflowing && el.scrollLeft > 1,
+      end: overflowing && el.scrollLeft < max - 1,
+    });
+  }, []);
+
+  // Center the scrolling group when it first mounts so it can be swiped in both
+  // directions and its movability is discoverable.
+  const centerScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    const max = el.scrollWidth - el.clientWidth;
+    if (max > 1) {
+      el.scrollLeft = max / 2;
+    }
+    syncFade();
+  }, [syncFade]);
+
+  const visible = isCoarsePointer && portalRoot;
+  useEffect(() => {
+    if (visible) {
+      centerScroll();
+    }
+  }, [visible, centerScroll]);
+
+  if (!visible) {
     return null;
   }
 
+  const layout = resolveToolbarLayout(disabledIds(state));
+
   // Run on click (a completed tap), not pointerdown: the row scrolls
   // horizontally, and acting on pointerdown would fire the action mid-swipe and
-  // block the native scroll gesture. A swipe cancels the click, so scrolling to
-  // reveal more actions never triggers one.
-  const onActionClick = (id: MobileActionId) => () => {
-    runMobileAction(editor, id);
+  // block the native scroll gesture. A swipe cancels the click.
+  const onActionClick = (action: LaidOutAction) => () => {
+    if (action.disabled) {
+      return;
+    }
+    runMobileAction(editor, action.id);
     editor.focus();
   };
 
-  // Prevent focus leaving the editor on a tap so the keyboard stays up and
-  // actions chain. mousedown is synthesized only for a tap, not while scrolling,
-  // so this preserves focus without blocking the horizontal swipe (unlike
-  // preventing pointerdown).
+  // Prevent focus leaving the editor on a tap so the keyboard stays up.
+  // mousedown is synthesized only for a tap, not while scrolling, so this
+  // preserves focus without blocking the horizontal swipe.
   const preserveEditorFocus = (event: ReactMouseEvent<HTMLButtonElement>) => event.preventDefault();
+
+  const renderButton = (action: LaidOutAction) => {
+    const meta = ACTION_META[action.id];
+    return (
+      <button
+        key={action.id}
+        type="button"
+        className="mobile-action-toolbar__button"
+        aria-label={meta.label}
+        aria-disabled={action.disabled || undefined}
+        onMouseDown={preserveEditorFocus}
+        onClick={onActionClick(action)}
+      >
+        <span aria-hidden="true">{meta.icon}</span>
+      </button>
+    );
+  };
 
   return createPortal(
     <div
@@ -139,19 +190,17 @@ export function MobileActionToolbar() {
       contentEditable={false}
       style={keyboardInset > 0 ? { bottom: `${keyboardInset}px` } : undefined}
     >
-      {ACTIONS.map((action) => (
-        <button
-          key={action.id}
-          type="button"
-          className="mobile-action-toolbar__button"
-          aria-label={action.label}
-          disabled={isDisabled(action.id, state)}
-          onMouseDown={preserveEditorFocus}
-          onClick={onActionClick(action.id)}
-        >
-          <span aria-hidden="true">{action.icon}</span>
-        </button>
-      ))}
+      <div
+        className={`mobile-action-toolbar__scroll-shell${fade.start ? ' fade-start' : ''}${
+          fade.end ? ' fade-end' : ''
+        }`}
+      >
+        <div className="mobile-action-toolbar__scroll" ref={scrollRef} onScroll={syncFade}>
+          {layout.scroll.map(renderButton)}
+        </div>
+      </div>
+      <div className="mobile-action-toolbar__divider" aria-hidden="true" />
+      <div className="mobile-action-toolbar__pinned">{layout.pinned.map(renderButton)}</div>
     </div>,
     portalRoot
   );
