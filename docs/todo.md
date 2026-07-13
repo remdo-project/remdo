@@ -224,7 +224,10 @@ Tracks the gaps between [Home](outliner/home.md) and the
   (`NEW_DOCUMENT_VALUE` / `UPLOAD_DOCUMENT_VALUE` and the grouped document
   options) is replaced by Home: Home owns document browsing and the New/Upload
   actions. Remove the picker once Home fully covers switching; the intervening
-  state (both present) is the recorded interim.
+  state (both present) is the recorded interim. While both exist they duplicate
+  the upload file-input plumbing (`handleUploadInputChange` + hidden `<input>`)
+  and the per-source document list; removing the picker resolves the duplication,
+  so leave it rather than extracting a shared helper now.
 - Home visibility is component-local `homeActive` state in `DocumentWorkspace`,
   not URL/route backed, so it is lost on reload and not linkable. `home.md`
   "Entering and leaving Home" treats Home as the surface above `/`; route Home
