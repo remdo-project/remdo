@@ -21,7 +21,10 @@ export interface HomeContent {
 // Builds Home's content from the live document sources. Favorites and Recents
 // are static placeholder slices of the real document list; Tags is left empty to
 // exercise the hide-when-empty rule. Replaced by real favoriting/tagging/
-// visit-history sources later (see home.md#future).
+// visit-history sources later (see home.md#future). A document listed here also
+// appears under its source group — an entry-point group is a shortcut into the
+// same documents, so overlap (and a shared data-home-document-ref) is expected,
+// as it will be with real favorites/recents.
 export function buildHomeContent(documentSources: readonly DocumentSourceNote[]): HomeContent {
   const sources: HomeDocumentSource[] = documentSources.map((documentSource) => ({
     id: documentSource.id(),

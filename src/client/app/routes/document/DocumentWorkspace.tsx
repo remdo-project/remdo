@@ -82,13 +82,14 @@ export default function DocumentWorkspace({
     void actions.uploadDocument(file);
   });
   // Opening a document from Home lands on its document-root view. Selecting the
-  // already-open document is a no-op route change, so clear zoom directly to
-  // reach the root instead of returning to the previous zoomed subtree.
+  // already-open document is a no-op route change, so clear zoom directly (only
+  // when actually zoomed) to reach the root instead of returning to the previous
+  // zoomed subtree.
   const openDocumentFromHome = leaveHome((nextDocId: string) => {
-    if (nextDocId === docId) {
-      requestZoomNoteId(null);
-    } else {
+    if (nextDocId !== docId) {
       onSelectDocument(nextDocId);
+    } else if (zoomNoteId !== null) {
+      requestZoomNoteId(null);
     }
   });
 
