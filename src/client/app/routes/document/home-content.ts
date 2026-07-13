@@ -35,7 +35,7 @@ export function buildHomeContent(documentSources: readonly DocumentSourceNote[])
   return {
     sources,
     favorites: allDocuments.slice(0, 2),
-    recents: allDocuments.slice(0, 3),
+    recents: allDocuments.slice(2, 5),
     tags: [],
   };
 }

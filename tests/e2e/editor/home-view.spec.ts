@@ -76,9 +76,15 @@ test.describe('Home view', () => {
 
     // The toolbar search stays reachable over Home; focusing it takes over the
     // content region, so Home must not stay rendered alongside search results.
-    await page.getByRole('combobox', { name: 'Search document' }).click();
-
+    const searchInput = page.getByRole('combobox', { name: 'Search document' });
+    await searchInput.click();
     await expect(homeView(page)).toHaveCount(0);
+
+    // Search dismisses Home (not merely suppresses it): closing search returns
+    // to the document, it must not bounce back to Home.
+    await searchInput.press('Escape');
+    await expect(homeView(page)).toHaveCount(0);
+    await expect(editorLocator(page)).toBeVisible();
   });
 
   test('switching documents from the toolbar picker dismisses Home', async ({ page, editor }) => {

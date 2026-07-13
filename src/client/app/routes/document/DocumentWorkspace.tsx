@@ -87,7 +87,9 @@ export default function DocumentWorkspace({
   }, []);
   const search = useDocumentSearchModel({
     focusEditorInput,
-    setZoomNoteId: requestZoomNoteId,
+    // Accepting a search result zooms to a note, which is a navigation away from
+    // Home, so leave Home rather than reappearing over the zoomed note.
+    setZoomNoteId: leaveHome(requestZoomNoteId),
   });
 
   useEffect(() => {
@@ -97,12 +99,10 @@ export default function DocumentWorkspace({
     };
   }, [pageTitle]);
 
-  // Home and search both take over the content region; search wins while active,
-  // so Home is suppressed rather than rendered alongside search results. Its
-  // props are built only while visible, skipping the document-tree walk on the
-  // editor's render hot path.
-  const homeVisible = homeActive && !search.searchModeActive;
-  const home = homeVisible ? buildHomeContent(documentSources) : null;
+  // Home props are built only while it is open, skipping the document-tree walk
+  // on the editor's render hot path when it is closed. (Opening search dismisses
+  // Home via the search control's focus handler, so the two never co-render.)
+  const home = homeActive ? buildHomeContent(documentSources) : null;
 
   return (
     <div className="document-editor-shell" ref={shellRef}>
@@ -118,7 +118,13 @@ export default function DocumentWorkspace({
         onStatusHostChange={setStatusHost}
         onUploadDocument={uploadDocument}
         path={zoomPath}
-        searchControl={<DocumentSearchInput model={search} />}
+        searchControl={(
+          // Entering search takes over the content region; dismiss Home so the
+          // two never render at once and closing search returns to the document.
+          <span onFocusCapture={() => setHomeActive(false)}>
+            <DocumentSearchInput model={search} />
+          </span>
+        )}
       />
       {actions.createError && (
         <Alert
