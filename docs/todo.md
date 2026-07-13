@@ -676,12 +676,14 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   therefore practically inert today; add coverage if a schema rule that survives
   load is introduced.
 
-## Mobile toolbar design tuning (playground-driven, under discussion)
+## Mobile toolbar design tuning (playground-driven) — ✅ shipped
 
-Config being decided for the mobile action toolbar
-(`src/client/editor/plugins/mobile-toolbar/`,
-[docs/outliner/mobile-toolbar.md](outliner/mobile-toolbar.md)), from the design
-playground. Not yet applied; the pushback items below are open for discussion.
+Design tuning for the mobile action toolbar
+(`src/client/editor/plugins/mobile-toolbar/`), decided from the design
+playground and **now implemented**; the durable contract lives in
+[docs/outliner/mobile-toolbar.md](outliner/mobile-toolbar.md). The rationale
+below is kept as design history — collapse this section to a one-line pointer
+once it has clearly served its purpose.
 
 ### Piotr's preferred config (verbatim)
 
@@ -723,10 +725,12 @@ playground. Not yet applied; the pushback items below are open for discussion.
 2. ✅ Resolved — trim five affordances to **peek + edge-fade + one motion cue**
    (the research pair plus a single motion signal).
 3. ✅ Resolved — drop scroll-snap (removes the snap-vs-center conflict).
-4. ✅ Resolved — only one appearance animation kept (center-on-appear); no
-   stacking.
-5. ✅ Resolved — switch to **center alignment** so center-on-appear is consistent
-   (was left-align + center-on-appear, contradictory).
+4. ✅ Resolved — no appearance animation stacking. (Center-on-appear was later
+   dropped entirely — see item 5.)
+5. ✅ Resolved — **left-aligned**: the scroll row rests at its leading edge so
+   the first action shows by default and the user scrolls one direction. (An
+   earlier center-on-appear idea was reverted after hands-on review; centering an
+   overflowing scroll row also risked clipping the leading action.)
 6. ✅ Resolved — keep Menu reachable per research (durable overflow affordance);
    moved earlier in the scroll order rather than left at the far end.
 7. ✅ Resolved — icons **22px** (≈0.5 ratio in a 44px target).
@@ -743,9 +747,9 @@ The config to apply when the toolbar is built:
   `[Done][Undo?]` per the anchor rule below.
 - **Scrolling (left→right):** Indent, Outdent, Menu, Up, Down, Fold, Delete, Redo
   (Menu moved earlier so the "everything else" escape hatch isn't at the far end).
-- **Scroll-reveal affordances:** peek + conditional edge-fade + center-on-appear.
-  (Dropped scroll-snap and the nudge.)
-- **Alignment:** center (required for center-on-appear).
+- **Scroll-reveal affordances:** peek + conditional edge-fade. (Dropped
+  scroll-snap, nudge, and center-on-appear.)
+- **Alignment:** left-aligned (row starts at its leading edge).
 - **Sizing:** 44px targets, 8px gap, **22px** icons, 8px radius, 6px vertical padding.
 - **Style:** blur background, icon-only (keep aria-labels).
 - Plus the pinning/disabled-state and `aria-disabled` rules below.

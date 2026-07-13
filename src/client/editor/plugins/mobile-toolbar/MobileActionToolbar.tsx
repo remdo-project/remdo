@@ -124,21 +124,16 @@ export function MobileActionToolbar() {
 
   const visible = isCoarsePointer && portalRoot !== null;
   useEffect(() => {
-    if (!visible) {
-      return;
-    }
     const el = scrollRef.current;
-    // The row rests at its leading edge (first action visible), so no initial
-    // scroll positioning is needed — just seed the fade (deferred so the effect
-    // body has no synchronous set-state).
-    queueMicrotask(syncFade);
-    if (!el) {
+    if (!visible || !el) {
       return;
     }
-    // Re-sync the fade when the row's width changes — rotation, keyboard open or
-    // close, the pinned group widening/narrowing, or late glyph reflow — so the
-    // affordance never goes stale (shown when the row no longer scrolls, or
-    // missing when it newly does).
+    // The row rests at its leading edge (first action visible), so no initial
+    // scroll positioning is needed. A ResizeObserver re-syncs the fade whenever
+    // the row's width changes — rotation, keyboard open or close, the pinned
+    // group widening/narrowing, or late glyph reflow — and also fires once on
+    // observe(), which seeds the initial fade, so the affordance never goes
+    // stale (shown when the row no longer scrolls, or missing when it newly does).
     const observer = new ResizeObserver(syncFade);
     observer.observe(el);
     return () => observer.disconnect();
