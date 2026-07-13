@@ -1,6 +1,7 @@
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, homeView, homeZoomBreadcrumb } from '#editor/locators';
 import { waitForSynced } from './_support/bridge';
+import { createEditorDocumentPath } from './_support/routes';
 
 test.describe('Home view', () => {
   test('the Home crumb opens Home and hides the editor', async ({ page, editor }) => {
@@ -62,6 +63,42 @@ test.describe('Home view', () => {
     // Search dismisses Home (not merely suppresses it): closing search returns
     // to the document, it must not bounce back to Home.
     await searchInput.press('Escape');
+    await expect(homeView(page)).toHaveCount(0);
+    await expect(editorLocator(page)).toBeVisible();
+  });
+
+  test('opening the current document from Home lands on the document root', async ({ page, editor }) => {
+    await editor.load('basic');
+    // Zoom into a nested note, then open Home.
+    await page.goto(createEditorDocumentPath(editor.docId, 'note1'));
+    await waitForSynced(page);
+    await homeZoomBreadcrumb(page).click();
+    await expect(homeView(page)).toBeVisible();
+
+    // Selecting the already-open document must clear zoom (document root), not
+    // return to the previous zoomed subtree — so the URL no longer carries the
+    // note zoom target.
+    const zoomedUrl = new RegExp(`${editor.docId}[^/]*note1`);
+    await expect(page).toHaveURL(zoomedUrl);
+    await homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).first().click();
+    await waitForSynced(page);
+
+    await expect(homeView(page)).toHaveCount(0);
+    await expect(page).not.toHaveURL(zoomedUrl);
+  });
+
+  test('a history change to the zoom target dismisses Home', async ({ page, editor }) => {
+    await editor.load('basic');
+    // Build history: document root, then a zoomed URL.
+    await page.goto(createEditorDocumentPath(editor.docId, 'note1'));
+    await waitForSynced(page);
+
+    // Open Home over the zoomed URL, then go back to the document-root URL. Only
+    // the zoom target changed (same document), so Home must still dismiss.
+    await homeZoomBreadcrumb(page).click();
+    await expect(homeView(page)).toBeVisible();
+    await page.goBack();
+
     await expect(homeView(page)).toHaveCount(0);
     await expect(editorLocator(page)).toBeVisible();
   });

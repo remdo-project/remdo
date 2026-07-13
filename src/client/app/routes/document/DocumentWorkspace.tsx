@@ -35,19 +35,23 @@ function isVisibleInCurrentView(element: HTMLElement): boolean {
 
 export default function DocumentWorkspace({
   docId,
+  zoomNoteId,
   onSelectDocument,
 }: {
   docId: string;
+  zoomNoteId: string | null;
   onSelectDocument: (docId: string) => void;
 }) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
   const [homeActive, setHomeActive] = useState(false);
-  // The document can change under Home via routing (history back/forward, a
-  // shared link); reset Home so it never covers a document the URL now points at.
-  const previousDocIdRef = useRef(docId);
-  if (previousDocIdRef.current !== docId) {
-    previousDocIdRef.current = docId;
+  // The route can change under Home — a different document or a different zoom
+  // target within the same document (history back/forward, a shared link). Reset
+  // Home on any route change so it never covers the location the URL points at.
+  const routeKey = zoomNoteId === null ? docId : `${docId}/${zoomNoteId}`;
+  const previousRouteKeyRef = useRef(routeKey);
+  if (previousRouteKeyRef.current !== routeKey) {
+    previousRouteKeyRef.current = routeKey;
     if (homeActive) {
       setHomeActive(false);
     }
@@ -76,6 +80,16 @@ export default function DocumentWorkspace({
   });
   const uploadDocument = leaveHome((file: File) => {
     void actions.uploadDocument(file);
+  });
+  // Opening a document from Home lands on its document-root view. Selecting the
+  // already-open document is a no-op route change, so clear zoom directly to
+  // reach the root instead of returning to the previous zoomed subtree.
+  const openDocumentFromHome = leaveHome((nextDocId: string) => {
+    if (nextDocId === docId) {
+      requestZoomNoteId(null);
+    } else {
+      onSelectDocument(nextDocId);
+    }
   });
 
   const documentLabel = formatNavigationLabel(source.documentLabel);
@@ -162,7 +176,7 @@ export default function DocumentWorkspace({
         <HomeView
           {...home}
           onCreateDocument={createDocument}
-          onSelectDocument={selectDocument}
+          onSelectDocument={openDocumentFromHome}
           onUploadDocument={uploadDocument}
         />
       )}
