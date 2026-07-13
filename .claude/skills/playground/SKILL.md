@@ -43,22 +43,36 @@ the RemDo deltas below (they win on conflict).
 The VM is headless (SSH + HTTP only), so the file must be reachable in a
 browser, not just on disk.
 
-- Write the file to `public/playground/index.html`. Create the folder if
-  missing; it is gitignored (`/public/playground/`), so these are unversioned
-  scratch artifacts, like `.agent/`.
-- Vite serves `public/` at the web root, so the file is live at
-  `http://<HOST>:<PORT>/playground/index.html` (Vite dev serves public files by
-  exact path — the bare `/playground/` directory URL falls through to the SPA).
-  `PORT` derives from
+- Write playgrounds into `public/playground/`. Create the folder if missing; it
+  is gitignored (`/public/playground/`), so these are unversioned scratch
+  artifacts, like `.agent/`.
+- **Never overwrite a previous playground. Each build is a new numbered file and
+  `index.html` is a symlink to the latest one:**
+  1. Find the lowest `N ≥ 0` for which `index-N.html` does not yet exist; that
+     is the target slot.
+  2. If a real (non-symlink) `index.html` already exists, it is legacy content
+     with no number — move it into the current lowest-free slot first (`git mv`
+     is unnecessary; a plain `mv`), then recompute the lowest-free slot for the
+     new build. This only happens once, on the first run after this scheme lands.
+  3. Write the new playground to `index-N.html`.
+  4. Point `index.html` at it: `ln -sfn index-N.html public/playground/index.html`
+     (relative target, so the link survives a directory move; `-f` replaces an
+     existing symlink, `-n` avoids dereferencing when one is already present).
+  - Numbering only ever grows — do **not** prune or renumber old files. They are
+    cheap gitignored scratch and serve as browsable history.
+- The dev server serves `public/` at the web root, so the latest build is live
+  at `http://<HOST>:<PORT>/playground/index.html`. `PORT` derives from
   `PORT_BASE` in `.env` (default `4000`). Assume the dev server (`pnpm run dev`)
   is already running — it is owned by the developer; do not start or stop it.
+  Your job is to write the file and update the symlink; do **not** curl it, load
+  it, or otherwise verify serving — hand the developer the URL and stop.
 - **Do not run `open`** (the plugin skill's step 4) — there is no display. After
-  writing the file, print the full URL so the developer can open it from their
-  own machine.
+  writing the file and updating the symlink, print the full
+  `/playground/index.html` URL so the developer can open it from their own
+  machine.
 - **Always print the URL with the VM's hostname, never a loopback/local IP**
   (`127.0.0.1`/`localhost`/a LAN IP) — the developer reaches this box by name
-  over the network. Use `127.0.0.1` only for your own `curl` health checks, not
-  in the URL handed to the user. Take `PORT` from the running config.
+  over the network. Take `PORT` from the running config.
 
 ### 2. Styling — self-contained, themed with RemDo's Mantine tokens
 
