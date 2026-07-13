@@ -8,17 +8,18 @@ import type { MobileActionId } from './actions';
 // anchors the edge.
 export const PINNED_ACTION_IDS = ['undo', 'done'] as const satisfies readonly MobileActionId[];
 
-// The scrolling group, left→right. Menu sits early so the "everything else"
-// escape hatch is not stranded at the far scroll end.
+// The scrolling group, left→right. Menu sits last (the far/right end of the
+// scroll row, before the pinned divider) as the "everything else" trailing
+// affordance.
 export const SCROLL_ACTION_IDS = [
   'indent',
   'outdent',
-  'menu',
   'moveUp',
   'moveDown',
   'fold',
   'delete',
   'redo',
+  'menu',
 ] as const satisfies readonly MobileActionId[];
 
 export interface LaidOutAction {
