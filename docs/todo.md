@@ -213,9 +213,18 @@ Deferred hardening; long-horizon items live in `docs/access-model.md#future`.
   coordinate the copy with the pending-local-changes signal below so it does not
   claim that edits are server-synced before the collaboration layer confirms it.
 - Offline collaboration retry follow-up: reduce Y-Sweet document client token
-  fetch and websocket reconnect noise when the app server or collaboration
-  server is unavailable. The editor should keep showing a clear disconnected
-  state, but repeated retries should avoid flooding the console and test guards.
+  fetch and websocket reconnect noise when the app *server* or collaboration
+  server is genuinely unavailable. The editor should keep showing a clear
+  disconnected state, but repeated retries should avoid flooding the console and
+  test guards. (The *teardown* case — a token fetch cancelled when navigating
+  away mid-connect — is fixed: once `session.destroy()` runs, `authEndpoint`
+  hands y-sweet a never-settling promise for that connect attempt so its loop
+  neither warns nor opens a socket; see `token-acquisition.collab.spec.tsx`.
+  Tradeoff: that pending promise retains its closure for the page lifetime, so a
+  session that opens/tears-down many docs leaks one per teardown-aborted connect
+  — bounded and minor, but a clean fix would let the connect loop actually exit
+  on destroy rather than park forever. What remains is the
+  server-down/reconnect-loop noise on a *live* session.)
 - Unsynced local edits follow-up: expose a reliable "pending local changes"
   signal from the collaboration/local-persistence layer and show it in the UI.
   Destructive actions such as logout should warn before clearing local Yjs data
@@ -709,6 +718,15 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   only checks `indent-jump`, which load normalization flattens. The validation is
   therefore practically inert today; add coverage if a schema rule that survives
   load is introduced.
+
+- `OnlineGate` reconnect retry is bounded to `RECONNECT_RETRY_BACKOFFS_MS` per
+  reconnect signal, so a server that recovers *without* a browser `online` event
+  (transient 5xx / server restart while the network stays up) can leave the gate
+  on "Connection unavailable" until the user clicks Retry. This is a deliberate
+  tradeoff against the opposite failure — auto-hammering a genuinely-down server
+  on every render — so the gate never polls indefinitely. Revisit only if the
+  stuck-until-manual-retry case proves to hurt in practice (e.g. add a single
+  long-delay final probe, or a visibilitychange-triggered re-arm).
 
 ## Mobile toolbar design tuning — ✅ shipped
 

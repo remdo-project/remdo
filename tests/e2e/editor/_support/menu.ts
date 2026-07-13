@@ -22,6 +22,8 @@ interface MenuHandle {
   listItem: Locator;
   menu: Locator;
   item: (id: MenuItemId) => Locator;
+  /** All action items in DOM (visual + arrow-roving) order. */
+  itemOrder: Locator;
   close: () => Promise<void>;
   pressShortcut: (key: string) => Promise<void>;
   expectOpen: () => Promise<void>;
@@ -31,6 +33,8 @@ interface MenuHandle {
 const menuLocator = (page: Page): Locator => editorLocator(page).locator('[data-note-menu]');
 const menuItem = (page: Page, id: MenuItemId): Locator =>
   editorLocator(page).locator(`[data-note-menu-item="${id}"]`);
+const menuItems = (page: Page): Locator =>
+  editorLocator(page).locator('[data-note-menu-item]');
 
 const findNoteItem = (page: Page, label: string): Locator =>
   editorLocator(page)
@@ -71,6 +75,7 @@ export const openNoteMenu = async (page: Page, label: string, options?: OpenMenu
     listItem,
     menu,
     item: (id) => menuItem(page, id),
+    itemOrder: menuItems(page),
     close: async () => {
       await page.keyboard.press('Escape');
       await expect(menu).toHaveCount(0);
