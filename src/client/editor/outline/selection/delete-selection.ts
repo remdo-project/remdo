@@ -58,14 +58,6 @@ function $resolveSelectedNotesDeletion(editor: LexicalEditor): ResolvedDeletion 
 }
 
 /**
- * Whether the keyboard delete/backspace path can remove whole notes: true only
- * for a structural multi-note selection. Non-mutating.
- */
-export function $canDeleteSelectedNotes(editor: LexicalEditor): boolean {
-  return $resolveStructuralDeletion(editor) !== null;
-}
-
-/**
  * Delete the notes in the editor's current structural selection and place the
  * caret. Returns false (no mutation) when there is no deletable structural
  * selection — the keyboard path's caret handling lives in DeletionPlugin.
