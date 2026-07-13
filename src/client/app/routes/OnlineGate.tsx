@@ -41,17 +41,17 @@ function ConnectionUnavailable() {
   const cycleRef = useRef(0);
 
   // Abandon any live cycle: bump the token so a still-pending `revalidate().then`
-  // chain stops, and cancel a scheduled-but-unfired backoff. Returns the new
-  // token identifying the cycle a caller is about to (re)start.
+  // chain stops, and cancel a scheduled-but-unfired backoff.
   const abandonCycle = useCallback(() => {
     globalThis.clearTimeout(backoffTimerRef.current);
-    return (cycleRef.current += 1);
+    cycleRef.current += 1;
   }, []);
 
   // Fire the immediate revalidation for a reconnect signal, then chain a bounded
   // backoff off each settle while this cycle is still live. See the module note.
   const armRetryBudget = useCallback(() => {
-    const cycle = abandonCycle();
+    abandonCycle();
+    const cycle = cycleRef.current;
 
     const runAttempt = (attempt: number) => {
       void revalidate().then(() => {
