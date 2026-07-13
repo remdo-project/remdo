@@ -556,7 +556,11 @@
   padding: 6px 8px;
   padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
   background-color: var(--mobile-action-toolbar-fill);
-  backdrop-filter: blur(12px);
+  /* Same frosted-glass material as the shell/header; -webkit- prefix so the
+     blur renders on iOS Safari (the toolbar's primary target), which the
+     project prefixes by hand (no autoprefixer). */
+  backdrop-filter: blur(var(--remdo-glass-blur));
+  -webkit-backdrop-filter: blur(var(--remdo-glass-blur));
   border-top: 1px solid var(--mantine-color-dark-4);
 }
 
@@ -633,7 +637,9 @@
   min-width: 44px;
   height: 44px;
   padding: 0 8px;
-  font-size: 22px;
+  /* ~22px at the default root size, but rem so glyphs scale with the user's
+     font-size preference. */
+  font-size: 1.375rem;
   color: var(--mantine-color-dark-0);
   background-color: transparent;
   border: none;

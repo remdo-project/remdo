@@ -62,6 +62,14 @@ Rules:
   editor on empty history, so the common case is correct. Fix needs a
   history-capability query/replay (no clean Lexical API today).
 
+- Mobile toolbar disabled buttons use `aria-disabled` (not native `disabled`),
+  so a keyboard/AT user can focus a greyed action and it announces as disabled,
+  but Enter/Space no-ops (an inert focus stop). This is the intended WAI-ARIA
+  trade (announce-vs-skip) chosen for the a11y benefit; the toolbar is touch-only
+  (coarse pointer), so physical-keyboard tabbing is rare. Revisit only if the
+  inert focus stop proves confusing for switch/AT users (e.g. add a spoken hint,
+  or reconsider hide-vs-disable for scroll actions).
+
 - Mobile toolbar edge fade seeds from the ResizeObserver's first (async)
   callback, so an overflowing row can paint one frame without the end fade (a
   static-looking edge) before it appears — a sub-frame cosmetic flash. Accepted:
