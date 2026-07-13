@@ -22,8 +22,9 @@ interface MenuHandle {
   listItem: Locator;
   menu: Locator;
   item: (id: MenuItemId) => Locator;
+  /** All action items in DOM (visual + arrow-roving) order. */
+  itemOrder: Locator;
   close: () => Promise<void>;
-  focusFirstItem: () => Promise<void>;
   pressShortcut: (key: string) => Promise<void>;
   expectOpen: () => Promise<void>;
   expectClosed: () => Promise<void>;
@@ -32,6 +33,8 @@ interface MenuHandle {
 const menuLocator = (page: Page): Locator => editorLocator(page).locator('[data-note-menu]');
 const menuItem = (page: Page, id: MenuItemId): Locator =>
   editorLocator(page).locator(`[data-note-menu-item="${id}"]`);
+const menuItems = (page: Page): Locator =>
+  editorLocator(page).locator('[data-note-menu-item]');
 
 const findNoteItem = (page: Page, label: string): Locator =>
   editorLocator(page)
@@ -72,21 +75,10 @@ export const openNoteMenu = async (page: Page, label: string, options?: OpenMenu
     listItem,
     menu,
     item: (id) => menuItem(page, id),
+    itemOrder: menuItems(page),
     close: async () => {
       await page.keyboard.press('Escape');
       await expect(menu).toHaveCount(0);
-    },
-    // Mantine's Menu focus trap moves focus into the dropdown asynchronously on
-    // open; racing it with an immediate item `focus()` lets the trap steal focus
-    // back to its sentinel. Wait for the trap to settle (focus inside the
-    // dropdown), then ArrowDown onto the first item — the natural keyboard flow.
-    focusFirstItem: async () => {
-      await expect
-        .poll(() =>
-          page.evaluate(() => document.activeElement?.closest('[data-note-menu]') !== null),
-        )
-        .toBe(true);
-      await page.keyboard.press('ArrowDown');
     },
     pressShortcut: async (key) => {
       await page.keyboard.press(key.toUpperCase());

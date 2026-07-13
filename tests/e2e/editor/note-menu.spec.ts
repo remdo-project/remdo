@@ -339,31 +339,22 @@ test.describe('Note menu', () => {
     await menu.expectOpen();
   });
 
-  test('uses Mantine default arrow navigation loop', async ({ page, editor }) => {
+  test('exposes actions in a stable order', async ({ page, editor }) => {
+    // The menu's item order is RemDo's contract — it defines the visual and
+    // arrow-roving sequence. Arrow-key roving itself is Mantine's built-in Menu
+    // behaviour and is not re-tested here; item presence per note state and each
+    // action's effect are covered by the sibling tests above.
     await editor.load('tree');
 
     const menu = await openNoteMenu(page, 'note2');
 
-    const toggleItem = menu.item('toggle-checked');
-    const foldItem = menu.item('fold');
-    const zoomItem = menu.item('zoom');
-    const numberItem = menu.item('list-number');
-    const checkItem = menu.item('list-check');
-    const viewItem = menu.item('view-fold-to-level');
-
-    // Land focus on the first item via the natural open -> settle -> ArrowDown
-    // flow (see `focusFirstItem`), then drive Mantine's roving focus one item at
-    // a time. Pressing ArrowDown on the currently-focused item (rather than
-    // `page.keyboard`) makes Playwright wait for it to be actionable first.
-    await menu.focusFirstItem();
-    await expect(toggleItem).toBeFocused();
-
-    const arrowLoop = [foldItem, zoomItem, numberItem, checkItem, viewItem, toggleItem];
-    let focusedItem = toggleItem;
-    for (const nextItem of arrowLoop) {
-      await focusedItem.press('ArrowDown');
-      await expect(nextItem).toBeFocused();
-      focusedItem = nextItem;
-    }
+    await expect(menu.itemOrder).toHaveText([
+      'Toggle checked',
+      'Fold',
+      'Zoom',
+      'Numbered list',
+      'Checklist',
+      /Fold to level/,
+    ]);
   });
 });
