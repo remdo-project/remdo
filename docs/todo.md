@@ -365,7 +365,11 @@ yet built; the entries below track the gap. Suspends the view-header rules in
   `interaction.css`). Route these through the accent so hover/focus/link/brand
   read as one system. (Bullet-hover was tried and reverted — too subtle at the
   current bullet size to be worth a standalone change; fold it into the wider
-  pass, and reconsider the highlight strength there.)
+  pass, and reconsider the highlight strength there.) The Home document rows
+  (`.home-doc`) carry `remdo-interaction-surface` for its focus ring but hover
+  via a separate `.home-doc:hover` background because nothing wires the surface's
+  JS `data-active='hover'` state for them; unify that mixed hover model in this
+  pass rather than wiring JS hover for one list.
 
 ## App-shell overflow vs inline menus
 
