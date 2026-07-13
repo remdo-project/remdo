@@ -136,7 +136,7 @@ export function MobileActionToolbar() {
     syncFade();
   }, [syncFade]);
 
-  const visible = isCoarsePointer && portalRoot;
+  const visible = isCoarsePointer && portalRoot !== null;
   useEffect(() => {
     if (visible) {
       centerScroll();

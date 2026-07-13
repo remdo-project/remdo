@@ -545,6 +545,7 @@
    bottom. The pinned group sits beside — never over — the scroll region so a
    focused scrolled button is never hidden behind it. */
 .mobile-action-toolbar {
+  --mobile-action-toolbar-fill: color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent);
   position: fixed;
   left: 0;
   right: 0;
@@ -554,7 +555,7 @@
   align-items: center;
   padding: 6px 8px;
   padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
-  background-color: color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent);
+  background-color: var(--mobile-action-toolbar-fill);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--mantine-color-dark-4);
 }
@@ -582,12 +583,12 @@
 
 .mobile-action-toolbar__scroll-shell.fade-start::before {
   left: 0;
-  background: linear-gradient(90deg, var(--mantine-color-dark-7), transparent);
+  background: linear-gradient(90deg, var(--mobile-action-toolbar-fill), transparent);
 }
 
 .mobile-action-toolbar__scroll-shell.fade-end::after {
   right: 0;
-  background: linear-gradient(270deg, var(--mantine-color-dark-7), transparent);
+  background: linear-gradient(270deg, var(--mobile-action-toolbar-fill), transparent);
 }
 
 .mobile-action-toolbar__scroll {
