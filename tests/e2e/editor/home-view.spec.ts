@@ -105,11 +105,15 @@ test.describe('Home view', () => {
 
   test('changing the document via history dismisses Home', async ({ page, editor }) => {
     await editor.load('basic');
+    const firstUrl = page.url();
 
-    // Create a second document so history holds two different document URLs.
+    // Create a second document so history holds two different document URLs, and
+    // wait for its navigation to land before interacting.
     await page.getByRole('button', { name: 'Choose document' }).click();
     await page.getByRole('option', { name: 'New', exact: true }).click();
+    await expect.poll(() => page.url()).not.toBe(firstUrl);
     await waitForSynced(page);
+    await expect(editorLocator(page)).toBeVisible();
 
     // Open Home over the new document, then go back to the previous document's
     // URL. Routing swaps the document without going through Home's handlers, so
@@ -118,6 +122,7 @@ test.describe('Home view', () => {
     await expect(homeView(page)).toBeVisible();
     await page.goBack();
 
+    await expect.poll(() => page.url()).toBe(firstUrl);
     await expect(homeView(page)).toHaveCount(0);
     await expect(editorLocator(page)).toBeVisible();
   });
