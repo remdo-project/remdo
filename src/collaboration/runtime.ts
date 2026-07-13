@@ -172,9 +172,35 @@ export function createProviderFactory({
 
     const endpoints = resolveEndpoints(id);
 
-    const authEndpoint = async () => {
-      const token = await getAuthToken(id, endpoints);
-      return rewriteTokenHost(token, visibleOrigin);
+    // Navigating away tears the session down mid-connect, which aborts the
+    // in-flight token fetch (the browser cancels it). y-sweet's connect loop
+    // `console.warn`s any token failure, so once this session is destroyed a
+    // token failure is expected: hand y-sweet a never-settling promise instead
+    // of rejecting, so it has nothing to warn about (its loop is already
+    // neutralized by the `provider.connect` override below). This is per-session
+    // — a failure is swallowed only for the session that owns this `destroyed`
+    // flag, so it never suppresses a genuine failure on a still-live session
+    // that shares the deduped in-flight token fetch.
+    let destroyed = false;
+    // Once this session is destroyed, y-sweet's connect loop is parked awaiting
+    // this promise. Anything we return restarts it: resolving makes it open a
+    // WebSocket (resurrecting a torn-down connection / bogus token), rejecting
+    // makes it `console.warn`. So after destroy we hand it a never-settling
+    // promise on *either* outcome — the loop is already neutralized by the
+    // `provider.connect` no-op + `disconnect()` below, so this frame is never
+    // consumed. Do NOT "simplify" this to a returned value or a bare rethrow.
+    const settleUnlessDestroyed = <T>(settle: () => T): T | Promise<never> =>
+      destroyed ? new Promise<never>(() => {}) : settle();
+    const authEndpoint = async (): Promise<ClientToken> => {
+      let token: ClientToken;
+      try {
+        token = await getAuthToken(id, endpoints);
+      } catch (error) {
+        return settleUnlessDestroyed(() => {
+          throw error;
+        });
+      }
+      return settleUnlessDestroyed(() => rewriteTokenHost(token, visibleOrigin));
     };
 
     const localPersistenceSupport = await getLocalPersistenceSupportDecision();
@@ -189,7 +215,6 @@ export function createProviderFactory({
       offlineSupport: localPersistenceSupport.enabled,
       showDebuggerLink: false,
     });
-    let destroyed = false;
     const destroyIndexedDbProvider = guardYSweetIndexedDbProviderLifecycle(
       provider as unknown as CollaborationProviderInstance & { indexedDBProvider?: unknown }
     );
