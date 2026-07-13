@@ -232,6 +232,12 @@ Tracks the gaps between [Home](outliner/home.md) and the
   the document root (per [Home](outliner/home.md) core behavior 3), the toolbar
   picker keeps the zoom (its pre-existing switcher behavior). Removing the picker
   removes the inconsistency; decide the picker's behavior only if it outlives Home.
+  Retirement is its own PR: delete the picker combobox and the `documentControl`
+  slot from `ZoomBreadcrumbs` (the doc name stays a crumb — full pure-nav is the
+  view-header work), delete its specs (`document-switcher.spec.ts`, the picker
+  cases in `document-toolbar.spec.tsx`/`document-route.spec.tsx`), and rewrite the
+  source-linking switch in `tests/e2e/docker/linking.spec.ts` to reach a linked
+  document through Home instead of the picker dropdown.
 - Home visibility is component-local `homeActive` state in `DocumentWorkspace`,
   not URL/route backed, so it is lost on reload and not linkable. `home.md`
   "Entering and leaving Home" treats Home as the surface above `/`; route Home
