@@ -652,12 +652,3 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   on every render — so the gate never polls indefinitely. Revisit only if the
   stuck-until-manual-retry case proves to hurt in practice (e.g. add a single
   long-delay final probe, or a visibilitychange-triggered re-arm).
-
-- `OnlineGate` schedules reconnect retries via `void revalidate().then(...)`
-  with no `.catch`. Harmless under the pinned react-router 7.18 (its revalidation
-  deferred only ever resolves, never rejects), but if a future react-router
-  version rejects that promise it becomes an unhandled rejection — which the test
-  harness fails on. Left un-caught rather than adding an error-swallowing
-  `.catch` that would mask a real future rejection; revisit at the next
-  react-router major (verify `revalidate()` still cannot reject, or add a handler
-  that surfaces the error deliberately).
