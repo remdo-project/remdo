@@ -72,15 +72,18 @@ export default function DocumentWorkspace({
       setHomeActive(false);
       action(...args);
     };
-  // Navigating document actions, shared by the toolbar and Home so both leave
-  // Home the same way.
+  // Selecting a document leaves Home immediately (a synchronous route change).
   const selectDocument = leaveHome(onSelectDocument);
-  const createDocument = leaveHome(() => {
+  // Create/upload are async: Home is left when they succeed and navigate to the
+  // new document (the route-change reset below), not eagerly — so a failure
+  // keeps the user on Home where its error alert is shown, rather than dropping
+  // them into the editor for the previously-open document.
+  const createDocument = () => {
     void actions.createDocument();
-  });
-  const uploadDocument = leaveHome((file: File) => {
+  };
+  const uploadDocument = (file: File) => {
     void actions.uploadDocument(file);
-  });
+  };
   // Opening a document from Home lands on its document-root view. Selecting the
   // already-open document is a no-op route change, so clear zoom directly (only
   // when actually zoomed) to reach the root instead of returning to the previous
