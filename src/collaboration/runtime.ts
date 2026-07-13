@@ -173,21 +173,20 @@ export function createProviderFactory({
     const endpoints = resolveEndpoints(id);
 
     // Navigating away tears the session down mid-connect, which aborts the
-    // in-flight token fetch. y-sweet's connect loop `console.warn`s any token
-    // failure, so a benign teardown abort would otherwise trip the e2e console
-    // guard. Abort the fetch ourselves on destroy and, once destroyed, hand
-    // y-sweet a never-settling promise so it has nothing to warn about — the
-    // loop is already neutralized by the `provider.connect` override below.
+    // in-flight token fetch (the browser cancels it). y-sweet's connect loop
+    // `console.warn`s any token failure, so once this session is destroyed a
+    // token failure is expected: hand y-sweet a never-settling promise instead
+    // of rejecting, so it has nothing to warn about (its loop is already
+    // neutralized by the `provider.connect` override below). This is per-session
+    // — a failure is swallowed only for the session that owns this `destroyed`
+    // flag, so it never suppresses a genuine failure on a still-live session
+    // that shares the deduped in-flight token fetch.
     let destroyed = false;
-    const tokenAbort = new AbortController();
     const authEndpoint = async (): Promise<ClientToken> => {
       try {
-        const token = await getAuthToken(id, endpoints, tokenAbort.signal);
+        const token = await getAuthToken(id, endpoints);
         return rewriteTokenHost(token, visibleOrigin);
       } catch (error) {
-        // After teardown, a failed (aborted) token fetch is expected — never
-        // reject, so y-sweet's connect loop has nothing to warn about. A genuine
-        // failure on a live session still rejects and surfaces normally.
         if (destroyed) {
           return new Promise<ClientToken>(() => {});
         }
@@ -217,9 +216,6 @@ export function createProviderFactory({
         return;
       }
       destroyed = true;
-      // Cancel any in-flight token fetch so its rejection doesn't reach y-sweet's
-      // connect loop (which would `console.warn`).
-      tokenAbort.abort();
       // Prevent the provider from scheduling reconnections after teardown, which can
       // otherwise keep Node processes (e.g., snapshot CLI) alive.
       provider.connect = () => Promise.resolve();
@@ -251,7 +247,6 @@ function createEndpointResolver(origin: string | undefined, createSyncTokenPath:
 function getAuthToken(
   docId: string,
   endpoints: { token: string },
-  signal?: AbortSignal,
 ): Promise<ClientToken> {
   const cacheKey = `${endpoints.token}\0${docId}`;
   const existing = docTokenInFlight.get(cacheKey);
@@ -265,7 +260,6 @@ function getAuthToken(
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ docId }),
-      signal,
     });
     if (!response.ok) {
       trace('collab', 'auth token request failed', { docId, status: response.status });

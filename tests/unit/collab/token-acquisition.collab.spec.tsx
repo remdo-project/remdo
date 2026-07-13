@@ -68,18 +68,15 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
 
     const originalFetch = globalThis.fetch.bind(globalThis);
     const tokenPath = createDocumentSyncTokenApiPath(docId);
-    // Hold the token request in flight until we release it, and fail it the way
-    // a navigation-cancelled fetch does — after teardown. The runtime aborts the
-    // request on destroy; y-sweet warns on any token rejection, so the fix must
-    // keep this teardown failure silent.
+    // Hold the token request in flight until we release it, then fail it the way
+    // a navigation-cancelled fetch does — after teardown. y-sweet warns on any
+    // token rejection, so the fix must keep this post-teardown failure silent.
     let failTokenRequest: (() => void) | undefined;
     vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
       const request = withSessionCookie(input, init, sessionCookie);
       if (request.url.includes(tokenPath)) {
         return new Promise<Response>((_resolve, reject) => {
-          const fail = () => reject(new TypeError('Failed to fetch'));
-          failTokenRequest = fail;
-          request.signal.addEventListener('abort', fail);
+          failTokenRequest = () => reject(new TypeError('Failed to fetch'));
         });
       }
       return originalFetch(request);
