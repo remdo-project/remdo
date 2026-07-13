@@ -595,10 +595,6 @@
   display: flex;
   gap: 8px;
   align-items: center;
-  /* `safe center` centers when the row fits but falls back to start-alignment
-     when it overflows, so the leading buttons stay reachable (plain `center`
-     pushes the start overflow outside the scrollable range). */
-  justify-content: safe center;
   overflow-x: auto;
   min-width: 0;
   flex: 1;

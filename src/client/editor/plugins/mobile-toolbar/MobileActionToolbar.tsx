@@ -122,39 +122,27 @@ export function MobileActionToolbar() {
     });
   }, []);
 
-  // Center the scrolling group so it can be swiped in both directions and its
-  // movability is discoverable.
-  const centerScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) {
-      return;
-    }
-    const max = el.scrollWidth - el.clientWidth;
-    if (max > 0.5) {
-      el.scrollLeft = max / 2;
-    }
-    syncFade();
-  }, [syncFade]);
-
   const visible = isCoarsePointer && portalRoot !== null;
   useEffect(() => {
     if (!visible) {
       return;
     }
     const el = scrollRef.current;
-    centerScroll();
+    // The row rests at its leading edge (first action visible), so no initial
+    // scroll positioning is needed — just seed the fade (deferred so the effect
+    // body has no synchronous set-state).
+    queueMicrotask(syncFade);
     if (!el) {
       return;
     }
     // Re-sync the fade when the row's width changes — rotation, keyboard open or
     // close, the pinned group widening/narrowing, or late glyph reflow — so the
     // affordance never goes stale (shown when the row no longer scrolls, or
-    // missing when it newly does). Centering stays a one-shot on appearance so a
-    // resize does not yank the user's scroll position back to the middle.
+    // missing when it newly does).
     const observer = new ResizeObserver(syncFade);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [visible, centerScroll, syncFade]);
+  }, [visible, syncFade]);
 
   if (!visible) {
     return null;

@@ -42,8 +42,10 @@ surface and its behavior, not those operations.
 3. Within the pinned group, an action that is always present holds a fixed
    position at the group's outer edge; an action that may hide (below) occupies
    the inner edge.
-4. The scrolling group scrolls horizontally when its actions exceed the available
-   width and signals that it scrolls rather than presenting a static edge.
+4. The scrolling group starts at its leading edge, so its first action is
+   visible without scrolling; it scrolls horizontally when its actions exceed the
+   available width and signals that it scrolls rather than presenting a static
+   edge.
 
 ## Capability
 
