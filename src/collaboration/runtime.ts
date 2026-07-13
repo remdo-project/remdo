@@ -172,9 +172,27 @@ export function createProviderFactory({
 
     const endpoints = resolveEndpoints(id);
 
-    const authEndpoint = async () => {
-      const token = await getAuthToken(id, endpoints);
-      return rewriteTokenHost(token, visibleOrigin);
+    // Navigating away tears the session down mid-connect, which aborts the
+    // in-flight token fetch. y-sweet's connect loop `console.warn`s any token
+    // failure, so a benign teardown abort would otherwise trip the e2e console
+    // guard. Abort the fetch ourselves on destroy and, once destroyed, hand
+    // y-sweet a never-settling promise so it has nothing to warn about — the
+    // loop is already neutralized by the `provider.connect` override below.
+    let destroyed = false;
+    const tokenAbort = new AbortController();
+    const authEndpoint = async (): Promise<ClientToken> => {
+      try {
+        const token = await getAuthToken(id, endpoints, tokenAbort.signal);
+        return rewriteTokenHost(token, visibleOrigin);
+      } catch (error) {
+        // After teardown, a failed (aborted) token fetch is expected — never
+        // reject, so y-sweet's connect loop has nothing to warn about. A genuine
+        // failure on a live session still rejects and surfaces normally.
+        if (destroyed) {
+          return new Promise<ClientToken>(() => {});
+        }
+        throw error;
+      }
     };
 
     const localPersistenceSupport = await getLocalPersistenceSupportDecision();
@@ -189,7 +207,6 @@ export function createProviderFactory({
       offlineSupport: localPersistenceSupport.enabled,
       showDebuggerLink: false,
     });
-    let destroyed = false;
     const destroyIndexedDbProvider = guardYSweetIndexedDbProviderLifecycle(
       provider as unknown as CollaborationProviderInstance & { indexedDBProvider?: unknown }
     );
@@ -200,6 +217,9 @@ export function createProviderFactory({
         return;
       }
       destroyed = true;
+      // Cancel any in-flight token fetch so its rejection doesn't reach y-sweet's
+      // connect loop (which would `console.warn`).
+      tokenAbort.abort();
       // Prevent the provider from scheduling reconnections after teardown, which can
       // otherwise keep Node processes (e.g., snapshot CLI) alive.
       provider.connect = () => Promise.resolve();
@@ -231,6 +251,7 @@ function createEndpointResolver(origin: string | undefined, createSyncTokenPath:
 function getAuthToken(
   docId: string,
   endpoints: { token: string },
+  signal?: AbortSignal,
 ): Promise<ClientToken> {
   const cacheKey = `${endpoints.token}\0${docId}`;
   const existing = docTokenInFlight.get(cacheKey);
@@ -244,6 +265,7 @@ function getAuthToken(
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ docId }),
+      signal,
     });
     if (!response.ok) {
       trace('collab', 'auth token request failed', { docId, status: response.status });

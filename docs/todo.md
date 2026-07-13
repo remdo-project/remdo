@@ -153,17 +153,14 @@ Deferred hardening; long-horizon items live in `docs/access-model.md#future`.
   coordinate the copy with the pending-local-changes signal below so it does not
   claim that edits are server-synced before the collaboration layer confirms it.
 - Offline collaboration retry follow-up: reduce Y-Sweet document client token
-  fetch and websocket reconnect noise when the app server or collaboration
-  server is unavailable. The editor should keep showing a clear disconnected
-  state, but repeated retries should avoid flooding the console and test guards.
-  - Observed a very-low-frequency (~1 in several hundred) e2e flake from this
-    class: `admin-link.spec.ts` failed once under full-suite load on a transient
-    `console.error` (the fixture fails on any console error), and did not
-    reproduce in isolation or in 900+ targeted concurrent repeats. It is not
-    tied to the OnlineGate reconnect change (that only runs in the offline
-    branch, which this happy-path test never mounts). Root it out with the
-    console-noise reduction above, or by letting auth/session probes swallow
-    transient token/fetch errors on the happy path.
+  fetch and websocket reconnect noise when the app *server* or collaboration
+  server is genuinely unavailable. The editor should keep showing a clear
+  disconnected state, but repeated retries should avoid flooding the console and
+  test guards. (The *teardown* case — a token fetch aborted when navigating away
+  mid-connect — is fixed: `createProviderFactory` aborts the fetch on
+  `session.destroy()` and swallows the post-destroy failure so y-sweet does not
+  warn; see `token-acquisition.collab.spec.tsx`. What remains is the
+  server-down/reconnect-loop noise on a *live* session.)
 - Unsynced local edits follow-up: expose a reliable "pending local changes"
   signal from the collaboration/local-persistence layer and show it in the UI.
   Destructive actions such as logout should warn before clearing local Yjs data
