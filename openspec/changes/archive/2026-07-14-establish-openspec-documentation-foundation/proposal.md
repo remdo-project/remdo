@@ -15,7 +15,8 @@ long-lived specifications with temporary migration work.
   into OpenSpec configuration and documentation workflow guidance.
 - Add a short, explicitly temporary migration tracker with the current phase,
   completed capabilities, and one next capability.
-- Establish `list-types` as the first capability migration after this foundation.
+- Establish `outliner-list-types` as the first capability migration after this
+  foundation.
 
 ## Capabilities
 

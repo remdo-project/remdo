@@ -25,7 +25,7 @@ surface and its behavior, not those operations.
      the [zoom](./zoom.md) boundary.
    - Move up / move down, per [Reordering](./reordering.md).
    - Toggle done, recursively per
-     [List Types](../../openspec/specs/list-types/spec.md).
+     [List Types](../../openspec/specs/outliner-list-types/spec.md).
    - Delete removes the targeted notes and their subtrees per
      [Deletion](./deletion.md), with no confirmation step. For a caret this
      removes the focused note (not the caret-mode merge that Backspace performs).

@@ -66,7 +66,7 @@ and procedural reference material.
 
 `openspec/MIGRATION.md` records only the current phase, completed capabilities,
 and one next capability. It is deleted when migration finishes. The first next
-capability is `list-types`.
+capability is `outliner-list-types`.
 
 Alternative: use one long-lived OpenSpec change as the tracker. Rejected because
 it would keep product deltas unincorporated until the entire multi-PR migration
@@ -110,11 +110,11 @@ the completed documentation-only change with `--skip-specs` so
 1. Update the documentation workflow and OpenSpec configuration to establish
    the new ownership and lifecycle rules.
 2. Add the temporary migration manifest with foundation as the current phase
-   and `list-types` as the next capability.
+   and `outliner-list-types` as the next capability.
 3. Verify documentation links, Markdown, and OpenSpec health without changing
    product specs or application code.
 4. Archive this change with `--skip-specs` after implementation.
-5. Migrate `list-types` in the next single-purpose change.
+5. Migrate `outliner-list-types` in the next single-purpose change.
 
 Rollback is removal of the foundation edits and migration manifest; no product
 or persisted-data rollback is involved.

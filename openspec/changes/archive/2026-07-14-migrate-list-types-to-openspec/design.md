@@ -3,14 +3,16 @@
 The accepted list-type contract currently lives in
 `docs/outliner/list-types.md`; `openspec/specs/` has no product capabilities yet.
 Four outliner documents link to the current owner, and `openspec/MIGRATION.md`
-names `list-types` as the next migration. Focused unit and E2E coverage support
-the documented behavior, while `docs/todo.md` records no exception for it.
+names `outliner-list-types` as the next migration. Focused unit and E2E coverage
+support the documented behavior, while `docs/todo.md` records no exception for
+it.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Move the complete durable, observable `list-types` contract to one main spec.
+- Move the complete durable, observable `outliner-list-types` contract to one
+  main spec.
 - Preserve working links and advance the migration manifest.
 - Use the migration as a small validation of the established workflow.
 
@@ -38,9 +40,9 @@ and repairs every inbound link in one change. Keeping a redirect or summary in
 
 ### Advance only one migration step
 
-The manifest records `list-types` as complete and names exactly one next
-capability. Selecting that capability remains migration sequencing, not part of
-the `list-types` product contract.
+The manifest records `outliner-list-types` as complete and names exactly one
+next capability. Selecting that capability remains migration sequencing, not
+part of the `outliner-list-types` product contract.
 
 ## Risks / Trade-offs
 

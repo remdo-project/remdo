@@ -114,7 +114,7 @@ selection.
 
 | Selection state | Allowed operations |
 | --------------- | ------------------ |
-| Caret / inline text range | Typing, inline formatting, inline delete/backspace, toggle checked (per [List Types](../../openspec/specs/list-types/spec.md)); structural commands act on the caret's note and subtree. |
+| Caret / inline text range | Typing, inline formatting, inline delete/backspace, toggle checked (per [List Types](../../openspec/specs/outliner-list-types/spec.md)); structural commands act on the caret's note and subtree. |
 | Note range | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste, toggle checked, and other structural commands, always executed in document order. |
 
 Clipboard behavior for note ranges and inline ranges is defined in

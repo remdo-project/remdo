@@ -69,7 +69,7 @@ is complete.
 
 - **WHEN** the foundation change is implemented
 - **THEN** the manifest identifies the foundation phase, records no completed
-  capability migration, and names `list-types` as next
+  capability migration, and names `outliner-list-types` as next
 
 #### Scenario: A capability migration completes
 

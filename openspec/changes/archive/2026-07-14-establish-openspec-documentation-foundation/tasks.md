@@ -16,7 +16,8 @@
   `openspec/config.yaml` for scope-first, minimal, observable,
   implementation-independent specs and non-redundant scenarios.
 - [x] 2.2 Add `openspec/MIGRATION.md` with the foundation phase, no completed
-  capability migrations, and `list-types` as the single next capability.
+  capability migrations, and `outliner-list-types` as the single next
+  capability.
 - [x] 2.3 Check that every affected documentation topic has one normative owner
   and all changed inbound links resolve.
 
@@ -27,4 +28,4 @@
 - [x] 3.2 Run the repository's required Markdown and final checks, fixing any
   failures caused by this change.
 - [x] 3.3 Confirm the completed change is documentation-only and must be archived
-  with `--skip-specs` before handing off the `list-types` migration.
+  with `--skip-specs` before handing off the `outliner-list-types` migration.

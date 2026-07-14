@@ -22,14 +22,14 @@ entry, actions, and behavior.
    - **View:** acts on the current [zoom](./zoom.md) boundary.
 2. Note actions:
    - Toggle checked recursively per
-     [List Types](../../openspec/specs/list-types/spec.md), shortcut
+     [List Types](../../openspec/specs/outliner-list-types/spec.md), shortcut
      `Cmd/Ctrl+Enter`.
    - Fold/Unfold per [Folding](./folding.md) (`toggle` state), hidden for leaf
      notes and for the current zoom root, shortcut `F` when the menu is open.
    - Zoom per [Zoom](./zoom.md), shortcut `Z`.
 3. Children actions:
    - Child list type actions per
-     [List Types](../../openspec/specs/list-types/spec.md), showing only
+     [List Types](../../openspec/specs/outliner-list-types/spec.md), showing only
      the two non-current options; hidden for leaf notes.
 4. View actions:
    - `Fold to level [0-9]` per [Folding](./folding.md), with digit shortcuts
