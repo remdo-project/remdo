@@ -104,6 +104,12 @@ sections to docs.
      `remdo-deps-refresh` —
      each states its scope where it lives, so this list is illustrative, not the
      source of authority.)
+  4. The user explicitly requests archiving an OpenSpec change with
+     `--skip-specs` — covers one archive-only commit after confirming that the
+     delta is already synchronized or intentionally has no durable-spec impact.
+     Run strict OpenSpec validation after archiving, then stage only the archive
+     move and commit it immediately. If validation fails or unrelated changes
+     overlap the archive paths, leave the archive uncommitted and report why.
   Plain requests to update/change/fix/do X are **not** an autonomous-scope
   declaration: produce the changes uncommitted and point at them. Authorization
   covers commits only; pushing always needs an explicit, separate ask.
