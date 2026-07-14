@@ -108,7 +108,7 @@ export async function typeText(remdo: RemdoTestApi, text: string): Promise<void>
 
       const allowed = root.dispatchEvent(event);
       if (!allowed) {
-        continue; // respect prevention (e.g., structural selection)
+        continue; // respect prevention (e.g., structural mode)
       }
 
       remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, ch);

@@ -7,7 +7,7 @@ import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
-  it('bubbles Delete when structural selection was removed by a collaborator', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  it('bubbles Delete when the note range was removed by a collaborator', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     const secondary = await createCollabPeer(remdo);
     expect(readOutline(secondary)).toEqual(readOutline(remdo));
 

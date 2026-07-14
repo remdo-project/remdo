@@ -476,7 +476,7 @@ function $injectNoteBodiesIntoClipboardNodes(nodes: SerializedLexicalNode[]): vo
     }
     // Always carry the full live body. Lexical may already have serialized a
     // body-wrapper here — either the complete one (between two selected notes) or
-    // a partial one when a structural selection ends mid-body — so replace any
+    // a partial one when a note range ends mid-body — so replace any
     // existing serialized body-wrapper rather than appending a second.
     if (isSerializedBodyWrapper(nodes[i + 1])) {
       nodes.splice(i + 1, 1, serializeNodeTree(body));
@@ -532,7 +532,7 @@ function noteClipboardPlainText(note: ListItemNode): string[] {
 // content/links/structure and inject the body-wrappers it omits; build the plain
 // text as each note's own text followed by its body text. `isCut` tags the
 // payload so a same-document cut-paste can move the originals. Returns false for
-// non-structural selections, leaving inline copy to Lexical's default handler.
+// caret and inline selections, leaving inline copy to Lexical's default handler.
 function $populateClipboardFromSelection(
   editor: LexicalEditor,
   heads: ListItemNode[],
@@ -555,7 +555,7 @@ function $populateClipboardFromSelection(
     return false;
   }
   $injectNoteBodiesIntoClipboardNodes(payload.nodes);
-  // A structural selection acts on whole notes, but the native RangeSelection may
+  // A note range acts on whole notes, but the native RangeSelection may
   // only partially cover a head's label (a drag from mid-label into its body),
   // so Lexical serializes a truncated label. Restore each note's full own content
   // from the live tree, matching the plain-text flavor.
@@ -580,7 +580,7 @@ function $populateClipboardFromSelection(
 
 // The whole-note (structural) context a copy or cut acts on: the current
 // selection, its structural range, and the selected note heads. Null when the
-// selection is not a non-empty whole-note selection (inline selections defer to
+// selection is not a non-empty note range (inline selections defer to
 // Lexical's default copy).
 function $resolveStructuralClipboardContext(
   editor: LexicalEditor

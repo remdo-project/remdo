@@ -387,7 +387,7 @@ describe('note ids on paste', () => {
     }
   );
 
-  it('regenerates noteIds when pasting over a structural selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('regenerates noteIds when pasting over a note range', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note2');
 
     const clipboardPayload = await copySelection(remdo);
@@ -453,7 +453,7 @@ describe('note ids on paste', () => {
     expect(new Set(noteIds).size).toBe(noteIds.length);
   });
 
-  it('regenerates ids when replacing multi-note structural selections', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  it('regenerates ids when replacing multi-note ranges', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await selectStructuralNotesByDomRange(remdo, 'note1', 'note6');
     expect(remdo).toMatchSelection({
       state: 'structural',
@@ -715,7 +715,7 @@ describe('note ids on paste', () => {
     expect(remdo).toMatchOutline(expectedOutline);
   });
 
-  it('collapses structural selection after cutting multiple notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('collapses the note range after cutting multiple notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note2', 'note3');
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 

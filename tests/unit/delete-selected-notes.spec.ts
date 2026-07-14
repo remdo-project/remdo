@@ -6,7 +6,7 @@ import { $deleteSelectedNotes } from '#client/editor/outline/selection/delete-se
 // $deleteSelectedNotes is the structural-delete seam the keyboard Backspace/Delete
 // path reuses (docs/outliner/deletion.md), callable outside a KeyboardEvent.
 describe('deleteSelectedNotes helper', () => {
-  it('deletes the structural selection', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  it('deletes the note range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note2', 'note3');
 
     let deleted = false;
@@ -22,8 +22,8 @@ describe('deleteSelectedNotes helper', () => {
     ]);
   });
 
-  it('no-ops without a structural selection', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    // No structural selection: the helper returns false without mutating, so it
+  it('no-ops without a note range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    // No note range: the helper returns false without mutating, so it
     // runs inside read() (mutate() would assert an update that never happens).
     expect(remdo.editor.read(() => $deleteSelectedNotes(remdo.editor))).toBe(false);
   });

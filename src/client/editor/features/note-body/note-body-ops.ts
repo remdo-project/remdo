@@ -329,7 +329,7 @@ export function $getSelectionBody(selection: RangeSelection): NoteBodyNode | nul
  * True when the whole selection sits inside a single note body — an inline range
  * within one body, which the outline leaves alone. A selection with only one end
  * in a body, or ends in two different bodies, crosses a region boundary and is a
- * structural selection instead (see `docs/outliner/body.md`).
+ * note range instead (see `docs/outliner/body.md`).
  */
 export function $isSelectionWithinOneBody(selection: RangeSelection): boolean {
   return $getSelectionBody(selection) !== null;
@@ -338,7 +338,7 @@ export function $isSelectionWithinOneBody(selection: RangeSelection): boolean {
 /**
  * True when the selection's two ends sit in different regions — a note's content
  * and a body, or two different bodies. Crossing a region boundary is always a
- * structural selection, even within a single note (content ↔ its own body),
+ * note range, even within a single note (content ↔ its own body),
  * which is why this is distinct from the multi-note checks. A selection wholly
  * within one region (one content note, or one body) returns false.
  */

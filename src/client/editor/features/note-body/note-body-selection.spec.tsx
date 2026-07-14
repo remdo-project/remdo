@@ -116,7 +116,7 @@ describe('note body selection contract (docs/outliner/body.md)', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
   });
 
-  it('extending a pre-existing structural selection into a later note body keeps it structural and includes that note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('extending a note range into a later note body keeps structural mode and includes that note', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await addBody(remdo, 'note3', 'bodythree');
 
     // Structural note1..note2 first, then shift-click into note3's body.

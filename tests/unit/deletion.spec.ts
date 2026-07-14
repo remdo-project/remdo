@@ -551,7 +551,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     });
   });
 
-  describe('structural selection', () => {
+  describe('note range', () => {
     it('removes the selected notes and focuses the next sibling at the same depth', meta({ fixture: 'flat' }), async ({ remdo }) => {
             await selectNoteRange(remdo, 'note1', 'note2');
 

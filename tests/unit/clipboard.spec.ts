@@ -196,7 +196,7 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
   });
 
-  it('replaces structural selections when pasting multi-line plain text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('replaces note ranges when pasting multi-line plain text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note2');
     await pastePlainText(remdo, 'A\nB');
 

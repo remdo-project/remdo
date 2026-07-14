@@ -64,7 +64,6 @@ notes:
   are its children.
 - **Subtree:** a note and all of its descendants; structural moves are always
   subtree-atomic (see `./note-structure-rules.md`).
-- **Sibling slab:** a contiguous run of sibling notes under the same parent.
 - **Note path:** the ordered chain of notes from a top-level note down to and
   including the note itself — its ancestors followed by the note. The document
   root note is not part of any note path.

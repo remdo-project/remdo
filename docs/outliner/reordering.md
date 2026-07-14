@@ -40,7 +40,7 @@ resulting placement stays inside the zoom boundary:
 ## Structural guarantees
 
 1. [Selection](./selection.md) constraints still apply: reorder operates on
-   contiguous [sibling slabs](./concepts.md#definitions).
+   [note ranges](./selection.md#selection-states).
 
 ## Future
 

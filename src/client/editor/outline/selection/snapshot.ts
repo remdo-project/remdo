@@ -126,7 +126,7 @@ export function $computeOutlineSelectionSnapshot({
   boundaryKey,
 }: OutlineSelectionSnapshotInput): OutlineSelectionSnapshot {
   // An inline range wholly inside one body is its own region: it never feeds
-  // structural selection or the ladder. Return a neutral snapshot so the body
+  // a note range or the ladder. Return a neutral snapshot so the body
   // owns its caret/range. A selection that crosses out of a body — into the
   // owning note's content or into another note — falls through to the structural
   // snap below (see docs/outliner/body.md "Selection and navigation").

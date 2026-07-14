@@ -580,7 +580,7 @@ describe('note body (docs/outliner/body.md)', () => {
     ]);
   });
 
-  it('structural selection of a note with a body never selects the body as a note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('a note range never selects the body as a note', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'body');
@@ -623,7 +623,7 @@ describe('note body (docs/outliner/body.md)', () => {
     await selectStructuralNotes(remdo, 'note1', 'note2');
     const payload = await copySelection(remdo);
 
-    // Paste over a structural selection replaces it, so the two pasted copies
+    // Paste over a note range replaces it, so the two pasted copies
     // take note3's place. Both carry their own bodies.
     await selectStructuralNotes(remdo, 'note3', 'note3');
     await pastePayload(remdo, payload);
@@ -717,7 +717,7 @@ describe('note body (docs/outliner/body.md)', () => {
 
   it('structural copy starting mid-label into a body copies the whole note', meta({ fixture: 'flat' }), async ({ remdo }) => {
     // Drag from the MIDDLE of note1's label into its body: still a structural
-    // whole-note selection. The internal payload must carry the full label
+    // note range. The internal payload must carry the full label
     // ('note1'), not the selected suffix ('te1'), so an internal paste recreates
     // the complete note — matching the plain-text flavor.
     await placeCaretAtNote(remdo, 'note1', 0);

@@ -226,7 +226,7 @@ export function computeStructuralRangeFromHeads(heads: ListItemNode[]): OutlineS
  * sweep step at a time (reusing $replayLadder so no traversal is duplicated)
  * until the replayed range reaches the far edge of the live selection. The
  * resulting stack is `[subtree, sibling×N]` in the inferred sweep direction, so
- * a following Shift+Arrow pops the last sibling exactly. Pointer slabs are
+ * a following Shift+Arrow pops the last sibling exactly. Pointer note ranges are
  * always structural, so the inline rung (rung 1) is irrelevant and omitted.
  */
 export function $inferPointerProgressionState(
@@ -243,7 +243,7 @@ export function $inferPointerProgressionState(
     return null;
   }
 
-  // Only seed a ladder for a same-level sibling slab. Cross-level heads can't be
+  // Only seed a ladder for a same-level sibling range. Cross-level heads can't be
   // reached by sibling sweeps from the anchor's level, so seeding would exhaust
   // the replay loop and fall back to an anchor-subtree-only ladder that silently
   // drops the rest of the pointer selection. Bail instead and leave the existing
@@ -254,22 +254,22 @@ export function $inferPointerProgressionState(
   }
 
   const sorted = sortHeadsByDocumentOrder(heads);
-  const slabStartKey = sorted[0]!.getKey();
-  const slabEndKey = getSubtreeTail(sorted.at(-1)!).getKey();
+  const rangeStartKey = sorted[0]!.getKey();
+  const rangeEndKey = getSubtreeTail(sorted.at(-1)!).getKey();
   const anchorKey = anchorContent.getKey();
 
-  // Sweep away from the anchor: if the anchor sits at the slab's start, the
+  // Sweep away from the anchor: if the anchor sits at the range's start, the
   // selection grew downward; otherwise treat it as an upward sweep.
-  const direction: Direction = slabStartKey === anchorKey ? 'down' : 'up';
+  const direction: Direction = rangeStartKey === anchorKey ? 'down' : 'up';
 
   const rangeReachesFarEdge = (plan: ReturnType<typeof $replayLadder>): boolean => {
     if (!plan || plan.type !== 'range') {
       return false;
     }
-    return direction === 'down' ? plan.endKey === slabEndKey : plan.startKey === slabStartKey;
+    return direction === 'down' ? plan.endKey === rangeEndKey : plan.startKey === rangeStartKey;
   };
 
-  // Start at the anchor subtree (rung 2); pointer slabs are always structural,
+  // Start at the anchor subtree (rung 2); pointer note ranges are structural,
   // so the inline rung is irrelevant here.
   const stack: Rung[] = [{ kind: 'subtree' }];
   const MAX_STEPS = 64;

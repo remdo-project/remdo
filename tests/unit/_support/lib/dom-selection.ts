@@ -32,7 +32,7 @@ export async function dragDomSelectionBetween(start: Node, startOffset: number, 
   });
 }
 
-// DOM list-item boundary selection for pointer-style multi-note selection.
+// DOM list-item boundary selection for a pointer-created note range.
 // Limitations: requires sibling notes under the same list parent and can over-select
 // in nested lists due to DOM range semantics (use only when testing pointer paths).
 async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNoteId: string, endNoteId: string) {
@@ -63,7 +63,7 @@ async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNoteId: st
   });
 }
 
-// Structural selection helper: single-note uses Shift+Arrow to climb to structural,
+// Note-range helper: single-note uses Shift+Arrow to enter structural mode,
 // multi-note uses a Lexical range selection to trigger structural snapping.
 // Limitations: multi-note path requires text nodes in both notes and does not
 // simulate DOM pointer selection; use selectStructuralNotesByDomRange for that path.
@@ -93,7 +93,7 @@ export async function selectStructuralNotes(
   });
 }
 
-// DOM-range structural selection for pointer-driven paths only.
+// DOM-created note range for pointer-driven paths only.
 // Limitations: only works for sibling notes sharing a list parent and can include
 // extra siblings in nested lists; assert the resulting selection explicitly.
 export async function selectStructuralNotesByDomRange(

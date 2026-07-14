@@ -408,12 +408,12 @@ describe('editor notes core', () => {
     expect(() => sdk.moveUp({ start: 'b', end: 'b' })).toThrow(NoteNotFoundError);
   });
 
-  it('uses structural selection range for sdk operations', () => {
+  it('uses the structural range for sdk operations', () => {
     const fixture = createMockAdapterFixture({ kind: 'structural', range: { start: 'b', end: 'b' } });
     const sdk = createEditorNotes(fixture.adapter);
     const selection = sdk.selection();
     if (selection.kind !== 'structural') {
-      throw new Error(`Expected structural selection, got ${selection.kind}`);
+      throw new Error(`Expected structural kind, got ${selection.kind}`);
     }
 
     expect(sdk.moveDown(selection.range)).toBe(true);

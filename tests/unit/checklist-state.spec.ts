@@ -103,7 +103,7 @@ it('toggles checked state recursively for the caret note subtree', meta({ fixtur
   expect(afterUncheckedToggle).toEqual([true, true, undefined]);
 });
 
-it('applies one target state to every selected root when toggling', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+it('applies one target state to every note in the range when toggling', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
   await setRawNoteCheckedState(remdo, 'note2', true);
   await setRawNoteCheckedState(remdo, 'note3', false);
   await setRawNoteCheckedState(remdo, 'note4', false);
@@ -190,7 +190,7 @@ it('sets checked state explicitly for selected notes', meta({ fixture: 'flat' })
   expect(afterChecked).toEqual([true, true]);
 });
 
-it('sets checked state explicitly for selected roots recursively', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+it('sets checked state recursively for every note in the range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
   await setRawNoteCheckedState(remdo, 'note2', true);
   await setRawNoteCheckedState(remdo, 'note3', false);
   await setRawNoteCheckedState(remdo, 'note4', true);

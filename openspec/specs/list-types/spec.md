@@ -1,4 +1,11 @@
-## ADDED Requirements
+# List Types Specification
+
+## Purpose
+
+Define supported outliner list types and the user-visible behavior of changing
+list types and note checked state.
+
+## Requirements
 
 ### Requirement: Lists support level-local types
 

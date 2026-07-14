@@ -41,7 +41,7 @@ function $resolveDeletionForRange(
   return targets ? { targets, selection, zoomRoot } : null;
 }
 
-// Keyboard Backspace/Delete path: only a structural multi-note selection removes
+// Keyboard Backspace/Delete path: only a note range removes
 // whole notes here; a caret is handled by the plugin's merge logic instead.
 function $resolveStructuralDeletion(editor: LexicalEditor): ResolvedDeletion | null {
   if (!editor.selection.isStructural()) {
@@ -50,17 +50,17 @@ function $resolveStructuralDeletion(editor: LexicalEditor): ResolvedDeletion | n
   return $resolveDeletionForRange(editor, editor.selection.get()?.range ?? null);
 }
 
-// Toolbar "delete this note" path: the focused note for a caret, or every head
-// of a structural selection. Removing a whole note (with its subtree) is
+// Toolbar "delete this note" path: the focused note for a caret, or every note
+// in a note range. Removing a whole note (with its subtree) is
 // distinct from caret-mode Backspace/Delete, which merges.
 function $resolveSelectedNotesDeletion(editor: LexicalEditor): ResolvedDeletion | null {
   return $resolveDeletionForRange(editor, $resolveSelectedNoteRange(editor));
 }
 
 /**
- * Delete the notes in the editor's current structural selection and place the
- * caret. Returns false (no mutation) when there is no deletable structural
- * selection — the keyboard path's caret handling lives in DeletionPlugin.
+ * Delete the notes in the editor's current note range and place the caret.
+ * Returns false (no mutation) when there is no deletable note range — the
+ * keyboard path's caret handling lives in DeletionPlugin.
  */
 export function $deleteSelectedNotes(editor: LexicalEditor): boolean {
   return $applyResolvedDeletion($resolveStructuralDeletion(editor));
@@ -68,7 +68,7 @@ export function $deleteSelectedNotes(editor: LexicalEditor): boolean {
 
 /**
  * Whether the mobile toolbar's delete can remove a note: true for a caret in a
- * note or a structural selection. Non-mutating.
+ * note or a note range. Non-mutating.
  */
 export function $canDeleteFocusedOrSelectedNotes(editor: LexicalEditor): boolean {
   return $resolveSelectedNotesDeletion(editor) !== null;
@@ -76,7 +76,7 @@ export function $canDeleteFocusedOrSelectedNotes(editor: LexicalEditor): boolean
 
 /**
  * Mobile toolbar "delete this note": remove the focused note (for a caret) or
- * every head of a structural selection, with its subtree, then place the caret.
+ * every note in a note range, with its subtree, then place the caret.
  * Returns false (no mutation) when nothing is deletable.
  */
 export function $deleteFocusedOrSelectedNotes(editor: LexicalEditor): boolean {

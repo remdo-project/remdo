@@ -157,7 +157,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       activeIndex: number;
     } | { kind: 'keep' } | { kind: 'close' } => {
       if (editor.selection.isStructural()) {
-        // A structural selection is not a typing context, so a pending trigger
+        // Structural mode is not a typing context, so a pending trigger
         // keypress here can never resolve — drop it rather than leave it armed.
         pendingTriggerRef.current = false;
         return { kind: 'close' };

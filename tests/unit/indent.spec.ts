@@ -117,7 +117,7 @@ it("tab on note2 in the middle nests it under note1", meta({ fixture: 'flat' }),
   ]);
 });
 
-it('tab indents every note in a multi-note selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
+it('tab indents every note in a note range', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectNoteRange(remdo, 'note2', 'note3');
   await pressKey(remdo, { key: 'Tab' });
 
@@ -132,7 +132,7 @@ it('tab indents every note in a multi-note selection', meta({ fixture: 'flat' })
   ]);
 });
 
-it('tab on a multi-note selection starting at the first root note is a no-op', meta({ fixture: 'flat' }), async ({ remdo }) => {
+it('tab on a note range starting at the first top-level note is a no-op', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectNoteRange(remdo, 'note1', 'note2');
   await pressKey(remdo, { key: 'Tab' });
 
@@ -143,7 +143,7 @@ it('tab on a multi-note selection starting at the first root note is a no-op', m
   ]);
 });
 
-it('tab indents multi-note selection regardless of drag direction', meta({ fixture: 'flat' }), async ({ remdo }) => {
+it('tab indents a note range regardless of drag direction', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectNoteRange(remdo, 'note3', 'note2');
   await pressKey(remdo, { key: 'Tab' });
 
@@ -205,7 +205,7 @@ it('tab indents when note text selection spans the entire note', meta({ fixture:
   ]);
 });
 
-it('shift+tab outdents when note selection spans the entire note', meta({ fixture: 'basic' }), async ({ remdo }) => {
+it('shift+tab outdents a single-note range', meta({ fixture: 'basic' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note2');
   await pressKey(remdo, { key: 'Tab', shift: true });
 

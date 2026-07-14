@@ -12,7 +12,7 @@ function readWrapperChildList(wrapper: LexicalNode | null | undefined): ListNode
   return children.length === 1 && $isListNode(children[0] ?? null) ? (children[0] as ListNode) : null;
 }
 
-describe('structural selection delete regression (local)', () => {
+describe('note-range delete regression (local)', () => {
   it('bubbles Delete when structural heads were removed remotely', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
         await selectStructuralNotes(remdo, 'note2', 'note3');
 
