@@ -40,7 +40,7 @@ describe('editor notes', () => {
     expect(selection.range.end).toBe('note3');
   });
 
-  it('resolves structural selection range', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('resolves the structural range', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectNoteRange(remdo, 'note2', 'note3');
 
     const selection = remdo.validate(() => {
@@ -49,14 +49,14 @@ describe('editor notes', () => {
     });
 
     if (selection.kind !== 'structural') {
-      throw new Error(`Expected structural selection, got ${selection.kind}`);
+      throw new Error(`Expected structural kind, got ${selection.kind}`);
     }
     expect(selection.range.start).toBe('note2');
     expect(selection.range.end).toBe('note3');
   });
 
   it(
-    'falls back to structural selection range when outline selection store is unavailable',
+    'falls back to the structural range when the outline selection store is unavailable',
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       await selectNoteRange(remdo, 'note2', 'note3');
@@ -69,7 +69,7 @@ describe('editor notes', () => {
           const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
           const selection = sdk.selection();
           if (selection.kind !== 'structural') {
-            throw new Error(`Expected structural selection, got ${selection.kind}`);
+            throw new Error(`Expected structural kind, got ${selection.kind}`);
           }
           return {
             start: selection.range.start,
@@ -85,7 +85,7 @@ describe('editor notes', () => {
   );
 
   it(
-    'falls back to structural selection for parent-to-descendant range with a single-point range',
+    'falls back to a structural range for a parent-to-descendant single-point range',
     meta({ fixture: 'tree-complex' }),
     async ({ remdo }) => {
       await selectNoteRange(remdo, 'note2', 'note3');
@@ -98,7 +98,7 @@ describe('editor notes', () => {
           const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
           const selection = sdk.selection();
           if (selection.kind !== 'structural') {
-            throw new Error(`Expected structural selection, got ${selection.kind}`);
+            throw new Error(`Expected structural kind, got ${selection.kind}`);
           }
           return {
             start: selection.range.start,

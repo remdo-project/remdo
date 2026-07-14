@@ -32,7 +32,7 @@ semantics are defined in [Selection](./selection.md); when a merged note has a
             of the previous note.
 4. Forward `Delete` at end of note (caret at final character):
    1. If the current note is an empty leaf: delete it; focus is resolved as in
-      Structural selection → Focus after deletion.
+      Note range → Focus after deletion.
    2. Otherwise, use the next note in document order. If no next note exists,
       forward `Delete` is a no-op.
    3. If both the current note and the next note have children: forward `Delete`
@@ -51,7 +51,7 @@ keeps merges inside the zoom boundary:
 2. For all other notes inside the zoom boundary, caret-mode deletion uses the
    default rules above.
 
-## Structural selection (contiguous note range)
+## Note range
 
 1. Pressing `Backspace` or `Delete` removes the selected notes and all of their
    descendants.

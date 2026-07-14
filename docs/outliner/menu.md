@@ -21,13 +21,15 @@ entry, actions, and behavior.
    - **Children:** acts on the current note's child subtree.
    - **View:** acts on the current [zoom](./zoom.md) boundary.
 2. Note actions:
-   - Toggle checked recursively per [List Types](./list-types.md), shortcut
+   - Toggle checked recursively per
+     [List Types](../../openspec/specs/outliner-list-types/spec.md), shortcut
      `Cmd/Ctrl+Enter`.
    - Fold/Unfold per [Folding](./folding.md) (`toggle` state), hidden for leaf
      notes and for the current zoom root, shortcut `F` when the menu is open.
    - Zoom per [Zoom](./zoom.md), shortcut `Z`.
 3. Children actions:
-   - Child list type actions per [List Types](./list-types.md), showing only
+   - Child list type actions per
+     [List Types](../../openspec/specs/outliner-list-types/spec.md), showing only
      the two non-current options; hidden for leaf notes.
 4. View actions:
    - `Fold to level [0-9]` per [Folding](./folding.md), with digit shortcuts
@@ -46,8 +48,8 @@ entry, actions, and behavior.
    first-letter type-ahead).
 3. When opened from a row, the current note is that row's note. When opened
    from double-Shift, the current note is the caret note.
-4. Structural selections never open multi-note menus; only the focus note is
-   used as note context.
+4. Note ranges never open multi-note menus; only the focus note is used as note
+   context.
 5. While the menu is open, `1`-`9` apply the chosen level and `0` fully
    unfolds the current zoom boundary.
 

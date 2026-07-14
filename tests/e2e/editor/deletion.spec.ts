@@ -111,7 +111,7 @@ test.describe('deletion (native browser behavior)', () => {
     ]);
   });
 
-  test('Delete removes structural selection block and focuses next sibling', async ({ page, editor }) => {
+  test('Delete removes a note range and focuses the next sibling', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1');
 

@@ -25,6 +25,13 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
+- OpenSpec migration: work through every note in
+  [`openspec/MIGRATION-BACKLOG.md`](../openspec/MIGRATION-BACKLOG.md), move its
+  accepted decision to the permanent owner, drop its temporary **Avoid**
+  guidance, and remove it from the backlog. Delete the backlog and its
+  migration-tracker/config hooks as soon as the backlog is empty and the
+  migration is complete.
+
 - IndentationPlugin `KEY_TAB_COMMAND` handler resolves the selected note range
   twice (once to gate `preventDefault`, once inside `$indent`). Collapsing it to
   drive `preventDefault` off `$indent`'s boolean return would change Tab-at-

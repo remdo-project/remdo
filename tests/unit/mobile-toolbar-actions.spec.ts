@@ -83,7 +83,7 @@ describe('mobile toolbar actions', () => {
     ]);
   });
 
-  it('deletes the structural selection', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  it('deletes the note range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note5', 'note6');
 
     await remdo.dispatchCommand(DELETE_SELECTED_NOTES_COMMAND, undefined);
@@ -160,7 +160,7 @@ describe('mobile toolbar actions', () => {
     expect(remdo).toMatchEditorState(before);
   });
 
-  it('reflects delete capability: enabled for a caret in a note and for a structural selection', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  it('reflects delete capability for a caret and a note range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note5');
     expect(resolveSelectionCapability(remdo.editor).delete).toBe(true);
 

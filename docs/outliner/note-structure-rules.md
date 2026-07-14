@@ -24,17 +24,16 @@ removed note's children to the survivor — see [Deletion](./deletion.md).
 
 ## Valid Indentation
 
-Indenting a note selection is allowed only when the selection has an immediate
-preceding sibling; the indented notes become that sibling's children. A
-contiguous sibling selection nests as one unit, preserving its order and
+Indenting a [note range](./selection.md#selection-states) is allowed only when
+the range has an immediate preceding sibling; the notes in the range become
+that sibling's children. The range nests as one unit, preserving its order and
 internal structure. Without such a sibling, indent is a no-op.
 
 ## Valid Outdentation
 
-Outdenting a note selection is allowed only when the notes have a parent: the
-selection moves up one level to become siblings of that parent. A contiguous
-selection under one parent lifts as one unit, preserving its order. Outdenting
-a top-level note is a no-op.
+Outdenting a note range is allowed only when its notes have a parent: the range
+moves up one level to become siblings of that parent. It lifts as one unit,
+preserving its order. Outdenting a top-level note is a no-op.
 
 ### Outdent Placement
 

@@ -26,7 +26,7 @@ async function removeNote(remdo: RemdoTestApi, noteId: string): Promise<void> {
   });
 }
 
-// Build a structural selection over note2's subtree (anchor note2 → note2,
+// Build a note range over note2's subtree (anchor note2 → note2,
 // note3) by climbing the Shift+Arrow ladder: inline, then subtree.
 async function selectNote2Subtree(remdo: RemdoTestApi): Promise<void> {
   await placeCaretAtNote(remdo, 'note2');
@@ -38,11 +38,11 @@ async function selectNote2Subtree(remdo: RemdoTestApi): Promise<void> {
 }
 
 describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
-  it("tier 1/2: grows the structural selection to include a remotely-added descendant", meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  it("tier 1/2: grows the note range to include a remotely-added descendant", meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     const secondary = await createCollabPeer(remdo);
     expect(readOutline(secondary)).toEqual(readOutline(remdo));
 
-    // On A: structural selection over note2's subtree (anchor note2 → note2, note3).
+    // On A: note range over note2's subtree (anchor note2 → note2, note3).
     await selectNote2Subtree(remdo);
 
     // On B: add a new child note under note3 (Enter at end of note3 makes a
@@ -59,7 +59,7 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
     const newId = noteIds(secondary).find((id) => !idsBefore.has(id));
     expect(newId).toBeDefined();
 
-    // A's structural selection auto-reshapes to cover note2's grown subtree,
+    // A's note range auto-reshapes to cover note2's grown subtree,
     // now including the remotely-added descendant.
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', newId!] });
@@ -70,7 +70,7 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
     const secondary = await createCollabPeer(remdo);
     expect(readOutline(secondary)).toEqual(readOutline(remdo));
 
-    // On A: structural selection sweeping the last root note5 down into the
+    // On A: note range sweeping the last root note5 down into the
     // final root sibling note6 (anchor note5 → note5, note6, note7). Climb the
     // ladder: inline, subtree, sibling-down. The terminal sibling rung resolves
     // only because note6 follows note5 at the root level.
@@ -127,7 +127,7 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
     });
   });
 
-  it("keeps the structural selection through a remote edit into the anchor note", meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  it("keeps the note range through a remote edit into the anchor note", meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     // Guards against the "anchor shift desync" concern: a remote edit that does
     // NOT delete the anchor note must keep the selection structural and anchored
     // (Lexical keeps the live anchor on its note, so the ladder still matches).
@@ -149,7 +149,7 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
     const secondary = await createCollabPeer(remdo);
     expect(readOutline(secondary)).toEqual(readOutline(remdo));
 
-    // On A: structural selection anchored on note2 (covers note2, note3).
+    // On A: note range anchored on note2 (covers note2, note3).
     await selectNote2Subtree(remdo);
 
     // On B: delete note2 and its subtree.
@@ -161,7 +161,7 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
       expect(noteIds(remdo)).not.toContain('note3');
     });
 
-    // A no longer has a structural selection; it collapsed to a caret.
+    // A no longer has a note range; it collapsed to a caret.
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(false);
     });

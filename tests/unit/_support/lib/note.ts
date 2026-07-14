@@ -258,7 +258,7 @@ export async function selectNoteRange(
   startNoteId: string,
   endNoteId: string
 ): Promise<void> {
-  // Creates a Lexical RangeSelection spanning note text (snaps to structural selection when it crosses notes).
+  // Creates a Lexical RangeSelection spanning note text (snaps to a note range when it crosses notes).
   // Limitations: requires text nodes in both notes and does not simulate DOM pointer selection.
   if (startNoteId === endNoteId) {
     await selectEntireNote(remdo, startNoteId);

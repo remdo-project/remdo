@@ -65,13 +65,13 @@ function $growLadder(
   anchorContent: ListItemNode,
   direction: 'up' | 'down',
   boundaryReplayKey: string | null,
-  slab: boolean
+  expandToSiblingGroup: boolean
 ): { ladder: ProgressiveSelectionState; plan: ProgressivePlan | null } {
   let ladder = pushStep(base, direction);
-  let plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, slab);
+  let plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, expandToSiblingGroup);
   if (!plan && ladder.stack.length === 1) {
     ladder = pushStep(ladder, direction);
-    plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, slab);
+    plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, expandToSiblingGroup);
   }
   return { ladder, plan };
 }
@@ -145,7 +145,7 @@ export function $computeProgressivePlan(
   const boundaryReplayKey = boundaryRoot ? boundaryRoot.getKey() : null;
 
   // Cmd+A is direction-neutral: it only ever grows the ladder outward, and its
-  // slab rung selects the whole sibling group regardless of direction. So it
+  // sibling rung selects the whole sibling group regardless of direction. So it
   // always pushes in the canonical 'down' direction — it never inherits a prior
   // Shift+Arrow sweep, and never leaves an 'up' bias that would make a following
   // Shift+Arrow read as contraction. Start from a down-oriented base when
@@ -166,7 +166,7 @@ export function $computeProgressivePlan(
       }
     } else {
       // Document root (no zoom): replay the last good ladder — the whole-document
-      // slab the previous press already reached — so a further Cmd+A is a handled
+      // note range the previous press already reached — so a further Cmd+A is a handled
       // no-op rather than a fall-through.
       const clampedPlan = $replayLadder(anchorContent, base.stack, boundaryReplayKey, true);
       if (clampedPlan) {
@@ -209,7 +209,7 @@ export function $computeDirectionalPlan(
   // on a collapsed caret therefore always starts a fresh ladder in the pressed
   // direction — Up grows up, Down grows down — matching plain text selection
   // (anchor+focus) once you are back at the caret. The "no flip" rule applies
-  // only while a structural selection still exists (reversal pops toward the
+  // only while a note range still exists (reversal pops toward the
   // anchor), not after collapse.
 
   const anchorContent = $resolveProgressionAnchorContent(selection, progressionRef, initialProgression);
@@ -283,4 +283,3 @@ export function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
 
   return setSelectionBetweenItems(selection, startItem, endItem, result.plan.startMode, result.plan.endMode);
 }
-

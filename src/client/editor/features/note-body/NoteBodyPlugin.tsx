@@ -128,7 +128,7 @@ function $isCaretOnBodyEdgeVisualLine(
 /**
  * Handle a Shift+Arrow whose focus is inside a body. A body is a self-contained
  * selection world, so the selection must never extend out of it, and a vertical
- * Shift+Arrow must not fall through to the structural selection ladder (which
+ * Shift+Arrow must not fall through to the note-range ladder (which
  * `SelectionPlugin` drives off Shift+Up/Down). Returns true when the event was
  * consumed (blocked at the edge, or extended within the body), false to let
  * native handling run (horizontal arrows away from the edge).

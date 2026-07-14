@@ -5,7 +5,7 @@ import { editorLocator, setCaretAtText } from '#editor/locators';
 // Pointer selection contract for note bodies (docs/outliner/body.md "Selection
 // and navigation"): a note's content and its body are two distinct regions. A
 // shift-click within one region stays inline; a shift-click crossing regions —
-// content ↔ its own body, or into another note — is a structural selection.
+// content ↔ its own body, or into another note — is a note range.
 //
 // These run in a real browser because the thing under test is the native
 // pointer → caret-at-coordinate path: a Shift+Click resolves the click point to
@@ -73,7 +73,7 @@ test.describe('note body pointer selection contract (docs/outliner/body.md)', ()
     await expect(input(page)).toHaveClass(/editor-input--structural/);
   });
 
-  test('Shift+Click extends a pre-existing structural selection into a later note body', async ({ page, editor }) => {
+  test('Shift+Click extends a pre-existing note range into a later note body', async ({ page, editor }) => {
     await editor.load('flat');
     await addBody(page, 'note3', 'bodythree');
 

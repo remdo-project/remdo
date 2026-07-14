@@ -10,15 +10,16 @@ Target runtimes and browser support are defined in `docs/contributing.md`. Rely
 on those baselines—no legacy browser shims.
 
 AGENTS.md is the only doc you must read at the start of every session. Do one
-full pass through the `docs/` folder when you onboard; after that, before coding,
-identify the feature area and read the matching docs — filenames plus each
-doc's scope opener are the navigation — do not reread unrelated docs. For the
-documentation invariants, see `docs/documentation.md`.
+full pass through `docs/` and `openspec/specs/` when you onboard. During the
+OpenSpec migration, `openspec/MIGRATION.md` says which capabilities have moved;
+unlisted capabilities remain owned by `docs/`. After onboarding, identify the
+feature area and read only its current owner — filenames and scope openers are
+the navigation. For the documentation invariants, see `docs/documentation.md`.
 
-When working, deep-link to the authoritative doc (e.g.,
+When working, deep-link to the authoritative doc or spec (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
-source of truth. When a change supersedes a doc's contract or breaks an inbound
-link, fix it in the same change —
+source of truth. When a change supersedes a contract or breaks an inbound link,
+fix it in the same change —
 not a follow-up. If nothing needs updating, say why. Do not add update-tracking
 sections to docs.
 
@@ -103,6 +104,12 @@ sections to docs.
      `remdo-deps-refresh` —
      each states its scope where it lives, so this list is illustrative, not the
      source of authority.)
+  4. The user explicitly requests archiving an OpenSpec change with
+     `--skip-specs` — covers one archive-only commit after confirming that the
+     delta is already synchronized or intentionally has no durable-spec impact.
+     Run strict OpenSpec validation after archiving, then stage only the archive
+     move and commit it immediately. If validation fails or unrelated changes
+     overlap the archive paths, leave the archive uncommitted and report why.
   Plain requests to update/change/fix/do X are **not** an autonomous-scope
   declaration: produce the changes uncommitted and point at them. Authorization
   covers commits only; pushing always needs an explicit, separate ask.
@@ -330,6 +337,8 @@ Determine agent mode in this order:
 
 ## Tools
 
+- OpenSpec is project-local: when an OpenSpec workflow shows `openspec ...`,
+  run the equivalent `./tools/openspec ...` from the repository root.
 - `pnpm run dev:init` is the one-shot workspace bootstrap. It runs
   `pnpm i --frozen-lockfile`. Use it when you clone RemDo for the first time—or
   if you blow away `node_modules`. Skip it in workspaces that are already

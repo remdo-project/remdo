@@ -7,7 +7,7 @@ paste placement depends on caret position. Note-id identity implications live in
 [Note IDs](./note-ids.md); note-link `docId` clipboard/persistence rules
 live in [Links](./links.md).
 
-## Structural selections (note range)
+## Note range
 
 - Copy duplicates the selected notes (including their subtrees and each note's
   [body](./body.md)) and leaves the document unchanged.

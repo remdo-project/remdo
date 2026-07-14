@@ -113,17 +113,17 @@ function $hasInlineBoundary(item: ListItemNode): boolean {
  * @param anchorItem  The anchor content ListItemNode.
  * @param stack       Ordered list of rungs to replay.
  * @param boundaryKey Optional zoom boundary: never extend outside that root's subtree.
- * @param slab        When true, a `sibling` rung extends the range all the way to the
- *                    last sibling in its direction at the current level (instead of
- *                    advancing one position). Used by Cmd/Ctrl+A to select the whole
- *                    remaining sibling slab in one press. Hoist behaviour (when no
- *                    sibling exists at the current level) is unchanged.
+ * @param expandToSiblingGroup When true, a `sibling` rung extends the range to
+ *                    the first and last siblings at the current level instead
+ *                    of advancing one position. Used by Cmd/Ctrl+A to select
+ *                    the whole sibling group in one press. Hoist behaviour is
+ *                    unchanged when no sibling exists at the current level.
  */
 export function $replayLadder(
   anchorItem: ListItemNode,
   stack: Rung[],
   boundaryKey: string | null = null,
-  slab = false
+  expandToSiblingGroup = false
 ): ProgressivePlan | null {
   const boundaryRoot = boundaryKey ? $getNodeByKey<ListItemNode>(boundaryKey) : null;
   const withinBoundary = (item: ListItemNode): boolean =>
@@ -166,37 +166,36 @@ export function $replayLadder(
     // the parent's whole subtree (the hoist itself is the step). A step that can
     // neither advance nor hoist (past the document/zoom root) is unresolvable.
     //
-    // In slab mode the range extends to the LAST sibling in the direction
-    // (instead of just one), selecting the entire remaining slab in one press.
-    // Hoist behaviour is unchanged.
+    // In whole-group mode the range extends to every sibling at this level
+    // instead of advancing by one. Hoist behaviour is unchanged.
     const sibling =
       rung.direction === 'down' ? getNextContentSibling(contextItem) : getPreviousContentSibling(contextItem);
 
-    if (slab) {
-      // Slab mode: extend the range to ALL siblings at the current level
+    if (expandToSiblingGroup) {
+      // Extend the range to ALL siblings at the current level
       // (first to last), advancing contextItem to the last one. This selects
       // the entire sibling group in one press, regardless of sweep direction.
       //
       // Hoist (fall through) when either:
       //   - There are no siblings at this level (only one item in the list), or
-      //   - The range already covers the full slab (detected by startHead/endHead
-      //     already pinned to first/last), meaning a previous slab rung consumed
-      //     this level. The next rung should escalate to the parent.
+      //   - The range already covers the full sibling group (detected by
+      //     startHead/endHead already pinned to first/last), meaning a previous
+      //     whole-group rung consumed this level. The next rung escalates.
       const allSiblings = getContentSiblingsForItem(contextItem).filter(withinBoundary);
       const firstSib = allSiblings[0];
       const lastSib = allSiblings.at(-1);
-      const alreadyFullSlab =
+      const alreadyFullSiblingGroup =
         firstSib &&
         lastSib &&
         startHead?.getKey() === firstSib.getKey() &&
         endHead?.getKey() === lastSib.getKey();
-      if (firstSib && lastSib && allSiblings.length > 1 && !alreadyFullSlab) {
+      if (firstSib && lastSib && allSiblings.length > 1 && !alreadyFullSiblingGroup) {
         startHead = firstSib;
         endHead = lastSib;
         contextItem = lastSib;
         continue;
       }
-      // Single-item sibling list or already covering the full slab: fall through to hoist.
+      // A single item or an already-covered group falls through to hoist.
     } else if (sibling && withinBoundary(sibling)) {
       contextItem = sibling;
       if (rung.direction === 'down') {

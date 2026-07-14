@@ -77,7 +77,7 @@ function readClipboardPayload(clipboardEvent: ClipboardEvent, label: string) {
   return JSON.parse(rawPayload) as { namespace?: string; nodes?: unknown[] };
 }
 
-// CUT_COMMAND only marks a structural selection for move; this helper reads
+// CUT_COMMAND only marks a note range for move; this helper reads
 // the payload the cut handler writes to the clipboard so paste stays realistic.
 // Limitation: structural cut collapses the selection onto the cut note; in
 // collab tests, relocate the caret before a remote delete of that note to
