@@ -2,12 +2,6 @@
   align-items: center;
 }
 
-.breadcrumbs::before {
-  content: 'Document:';
-  color: var(--mantine-color-dark-2);
-  margin-right: var(--mantine-spacing-xs);
-}
-
 .crumbButton {
   background: none;
   border: none;
@@ -19,10 +13,6 @@
 
 .crumbButton:hover {
   text-decoration: underline;
-}
-
-.crumbCurrent {
-  color: var(--mantine-color-dark-2);
 }
 
 .documentControl {

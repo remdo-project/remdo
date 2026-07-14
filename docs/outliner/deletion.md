@@ -43,13 +43,12 @@ semantics are defined in [Selection](./selection.md); when a merged note has a
 
 ## Zoom boundary behavior (caret mode)
 
-When [zoom](./zoom.md) is active, caret-mode deletion keeps merges inside the
-zoom boundary:
+When [zoom](./zoom.md) is active, caret-mode deletion from the outline children
+keeps merges inside the zoom boundary:
 
-1. `Backspace` at the start of the zoom root is a no-op.
-2. Forward `Delete` at the end of the zoom root is a no-op when the next note
-   in document order is outside the zoom boundary.
-3. For all other notes inside the zoom boundary, caret-mode deletion uses the
+1. Forward `Delete` at the end of a child is a no-op when the next note in
+   document order is outside the zoom boundary.
+2. For all other notes inside the zoom boundary, caret-mode deletion uses the
    default rules above.
 
 ## Structural selection (contiguous note range)

@@ -284,6 +284,72 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
 - Map leak: entries evict only on successful claim, so abandoned uploads retain
   the `File` for the session.
 
+## Home and view-header follow-ups
+
+Tracks the gaps between [Home](outliner/home.md) and the
+[view header](outliner/zoom.md#view-header) as specified and what ships.
+
+- The document-source chevron combobox picker in `DocumentToolbar.tsx`
+  (`NEW_DOCUMENT_VALUE` / `UPLOAD_DOCUMENT_VALUE` and the grouped document
+  options) is replaced by Home: Home owns document browsing and the New/Upload
+  actions. Remove the picker once Home fully covers switching; the intervening
+  state (both present) is the recorded interim. While both exist they duplicate
+  the upload file-input plumbing (`handleUploadInputChange` + hidden `<input>`)
+  and the per-source document list; removing the picker resolves the duplication,
+  so leave it rather than extracting a shared helper now. The two also differ on
+  re-selecting the already-open document while zoomed: a Home row clears zoom to
+  the document root (per [Home](outliner/home.md) core behavior 3), the toolbar
+  picker keeps the zoom (its pre-existing switcher behavior). Removing the picker
+  removes the inconsistency; decide the picker's behavior only if it outlives Home.
+  Retirement is its own PR: delete the picker combobox and the `documentControl`
+  slot from `ZoomBreadcrumbs` (the doc name stays a crumb — full pure-nav is the
+  view-header work), delete its specs (`document-switcher.spec.ts`, the picker
+  cases in `document-toolbar.spec.tsx`/`document-route.spec.tsx`), and rewrite the
+  source-linking switch in `tests/e2e/docker/linking.spec.ts` to reach a linked
+  document through Home instead of the picker dropdown.
+- Home visibility is component-local `homeActive` state in `DocumentWorkspace`,
+  not URL/route backed, so it is lost on reload and not linkable. `home.md`
+  "Entering and leaving Home" treats Home as the surface above `/`; route Home
+  with the view-header work (which owns the `/` relationship), rather than
+  encoding a second ad-hoc route now.
+
+The [view header](outliner/zoom.md#view-header) (Model F) is specified but not
+yet built; the entries below track the gap. Suspends the view-header rules in
+`outliner/zoom.md` and the pure-nav breadcrumb claim in
+[Zoom breadcrumbs](outliner/zoom.md#breadcrumbs).
+
+- No view header is rendered: while zoomed the zoom root remains the editable
+  top outline `ListItemNode`, and at the document root the document name remains
+  a breadcrumb crumb (`ZoomBreadcrumbs`), which also anchors the picker and is
+  the clear-zoom target — so the breadcrumb is not yet pure-nav there.
+- View header not yet the specified restricted kind: the subtree-zoom root is an
+  editable outline `ListItemNode`, and the view-header restrictions are enforced
+  through per-command zoom-root special-casing in `InsertionPlugin`,
+  `DeletionPlugin`, `FoldingPlugin`, `IndentationPlugin`, `ReorderingPlugin`, and
+  the note menu until the restricted kind exists.
+- Document name is not editable. Editing the header is specified to rename the
+  document at the root, but `DocumentNote` (`src/note-sdk/documents.ts`) exposes
+  only read-only `text()` and there is no rename command/endpoint. The coherent
+  end state is the document name being the document root note's own text (a CRDT
+  edit), which also unifies the root and subtree-zoom header. Needs an SDK rename
+  capability, its server/collab path, and a name migration.
+- Breadcrumb accessibility: `ZoomBreadcrumbs` (Mantine `Breadcrumbs`) emits
+  neither a `nav` landmark nor an ordered list, and the crumbs carry no
+  `aria-current`. When the header lands the breadcrumb becomes pure navigation
+  and the header carries the view's heading semantics; the editable content and
+  the heading role must stay on separate elements (a `textbox` role masks an
+  inner heading from assistive tech). Close with the view-header work.
+- Fold semantics at the view header are unreconciled with the restricted kind.
+  [Zoom](outliner/zoom.md) items 7–8 describe the zoom root's *stored* fold state
+  being preserved and not hiding its children while zoomed, but the
+  [view header](outliner/zoom.md#view-header) cannot be folded, and
+  [Folding](outliner/folding.md) item 8, [Menu](outliner/menu.md) (the `F`
+  fold shortcut "for the current zoom root"), and fold-to-level ("applies from
+  the current zoom root") still describe the zoom root as a foldable outline
+  target. Reconcile these — what a header's fold control and stored state mean
+  once it is a non-structural header — when the view-header kind is built. Kept
+  out of this spec pass to avoid redesigning folding/menu now.
+
 ## Note-first SDK follow-ups
 
 - App-resource SDK direction: model current-user app resources as projected
@@ -389,7 +455,11 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
   `interaction.css`). Route these through the accent so hover/focus/link/brand
   read as one system. (Bullet-hover was tried and reverted — too subtle at the
   current bullet size to be worth a standalone change; fold it into the wider
-  pass, and reconsider the highlight strength there.)
+  pass, and reconsider the highlight strength there.) The Home document rows
+  (`.home-doc`) carry `remdo-interaction-surface` for its focus ring but hover
+  via a separate `.home-doc:hover` background because nothing wires the surface's
+  JS `data-active='hover'` state for them; unify that mixed hover model in this
+  pass rather than wiring JS hover for one list.
 
 ## App-shell overflow vs inline menus
 

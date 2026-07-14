@@ -34,9 +34,9 @@ caret/selection state in the editor.
    [Selection](./selection.md).
 5. While zoomed, edits are bounded to the zoom boundary. Commands MUST NOT
    create, merge, move, or target notes outside that boundary.
-6. The zoom root is presented distinctly from ordinary note rows. It remains
-   editable, but it serves as the local title/heading for the zoomed view
-   rather than reading as just another sibling in the list.
+6. The current location renders as the [view header](#view-header) — an editable
+   heading above the visible outline. The outline shows the current location's
+   children.
 7. If the zoom root has direct children, those children are always visible
    while zoomed, even when the zoom root's stored fold state is `folded`.
    Descendants beneath those children still follow their own fold states.
@@ -52,9 +52,38 @@ caret/selection state in the editor.
    places the caret in the first visible child so work continues in the zoomed
    content immediately.
 4. When the zoom root has no visible direct children, entering zoom places the
-   caret within the zoom root so editing can proceed there.
-5. The zoom root remains directly editable while zoomed; clicking or otherwise
-   targeting the heading enters inline editing for that note.
+   caret in the [view header](#view-header) so editing can proceed there.
+
+## View header
+
+The **view header** is how the current location presents itself above its
+children: an editable heading rendering the current note's own content, present
+in every document view.
+
+1. **What it shows.** The header renders the current location's own text and
+   editing it edits that text in place. What the text may contain follows from
+   the location's [kind](./concepts.md#note-kinds): a zoomed editor note carries
+   the same inline content as any note (inline formatting and
+   [note links](./links.md)); the document root carries whatever the document
+   kind allows.
+2. **Not a structural row.** The header is presented distinctly from ordinary
+   note rows and is never one of them: it cannot be folded, indented, outdented,
+   reordered, structurally deleted, or selected structurally, and no structural
+   command targets it.
+3. **`Enter` adds a first child.** `Enter` in the header creates an empty first
+   child of the current location and moves the caret into it.
+4. **`Shift+Enter` reaches the body.** Where the header's kind can own a
+   [body](./body.md), `Shift+Enter` focuses it, adding one if absent — the same
+   body gesture defined for note content.
+5. **Body as summary.** When the header's note has a [body](./body.md), it
+   renders beneath the header, above the children — the body's usual
+   below-the-content position, applied to the header. It follows the same
+   [body](./body.md) rules: it is reached by the gesture or a click, not by
+   arrowing down from the header (which lands on the first child).
+6. **`Backspace` at the header start is a no-op** — there is no note above the
+   current location to merge into.
+
+The view header does not apply to [Home](./home.md), which has no outline.
 
 ## Clearing zoom
 
@@ -70,6 +99,9 @@ no longer be resolved.
 
 ## Boundary-specific command rules
 
+These govern commands run from the outline children. Commands run from the
+[view header](#view-header) follow the header's own rules instead.
+
 1. `Enter` boundary behavior is defined in [Insertion](./insertion.md).
 2. `Backspace`/`Delete` boundary behavior is defined in
    [Deletion](./deletion.md).
@@ -82,17 +114,19 @@ no longer be resolved.
 
 ## Breadcrumbs
 
-1. **Document root zoom:** The breadcrumb trail contains a single item: the
-   document name.
-2. **Subtree zoom:** The breadcrumb trail expands to include the zoom path in
-   order: document name → ancestor notes → zoom root (included).
-3. Each breadcrumb item is clickable:
-   - Document name clears zoom.
-   - Any ancestor note breadcrumb re-zooms on that note.
-   - The zoom root breadcrumb is the current location and is not a link.
+The breadcrumb is pure navigation: the ancestor path above the current location,
+every item a link.
 
-Breadcrumb labels use the same display text as the corresponding outline note,
-truncated to 20 characters for display when needed.
+1. **Document root zoom:** The breadcrumb trail contains a single crumb: Home.
+2. **Subtree zoom:** The breadcrumb trail is the zoom path up to but excluding
+   the zoom root, in order: Home / document name / ancestor notes.
+3. Every breadcrumb item is a link:
+   - The Home crumb opens [Home](./home.md).
+   - The document name clears zoom.
+   - Any ancestor note breadcrumb re-zooms on that note.
+
+Breadcrumb labels other than Home use the same display text as the corresponding
+outline note, truncated to 20 characters for display when needed.
 
 ## Routing
 

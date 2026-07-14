@@ -1,6 +1,6 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
-import { documentZoomBreadcrumb, editorLocator, setCaretAtText, zoomBreadcrumbs } from '#editor/locators';
+import { documentZoomBreadcrumb, editorLocator, setCaretAtText } from '#editor/locators';
 import { openNoteMenu } from './_support/menu';
 import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
 
@@ -300,25 +300,6 @@ test.describe('Zoom visibility', () => {
 
     await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note2'));
     await expect(note1).toBeHidden();
-  });
-
-  test('current breadcrumb is not interactive', async ({ page, editor }) => {
-    await editor.load('basic');
-
-    const editorRoot = editorLocator(page);
-    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
-    const note3 = editorRoot.locator('li.list-item', { hasText: 'note3' }).first();
-    const metrics = await getBulletMetrics(note1);
-
-    await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
-
-    const breadcrumbs = zoomBreadcrumbs(page);
-    const currentCrumb = breadcrumbs.locator('[data-zoom-crumb="current"]').first();
-    await currentCrumb.click();
-
-    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
-    await expect(note3).toBeHidden();
   });
 
   test('zoom state persists across reload', async ({ page, editor }) => {

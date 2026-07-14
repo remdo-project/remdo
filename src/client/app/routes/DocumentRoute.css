@@ -290,6 +290,87 @@ main.document-route-container {
   padding-inline: 0;
 }
 
+/* Home view: takes over the content region (like search mode). Inline padding
+   matches the editor pane / document header (`xl`) so the layout stays aligned. */
+.document-home {
+  padding: var(--mantine-spacing-lg) var(--mantine-spacing-xl) var(--mantine-spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-lg);
+}
+
+.document-home-title {
+  margin: 0;
+  font-size: var(--mantine-font-size-xl);
+  color: var(--mantine-color-dark-0);
+}
+
+.home-group {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--mantine-spacing-xs) / 2);
+}
+
+.home-group-label {
+  margin: 0 0 calc(var(--mantine-spacing-xs) / 2);
+  font-size: var(--mantine-font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mantine-color-dark-2);
+}
+
+.home-doc-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--mantine-spacing-xs) / 2);
+}
+
+.home-doc {
+  display: block;
+  width: 100%;
+  text-align: start;
+  background: none;
+  border: none;
+  padding: calc(var(--mantine-spacing-xs) / 2) var(--mantine-spacing-xs);
+  color: var(--mantine-color-dark-0);
+  font: inherit;
+  cursor: pointer;
+}
+
+.home-doc:hover {
+  background: var(--mantine-color-dark-6);
+}
+
+.home-actions {
+  display: flex;
+  gap: var(--mantine-spacing-sm);
+  flex-wrap: wrap;
+}
+
+.home-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  background: var(--mantine-color-dark-6);
+  border: 1px solid var(--mantine-color-dark-5);
+  border-radius: var(--mantine-radius-sm);
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  color: var(--mantine-color-dark-0);
+  font: inherit;
+  cursor: pointer;
+}
+
+.home-action:hover {
+  background: var(--mantine-color-dark-5);
+}
+
+.home-upload-input {
+  display: none;
+}
+
 @media (max-width: 48em) {
   .document-header {
     align-items: stretch;

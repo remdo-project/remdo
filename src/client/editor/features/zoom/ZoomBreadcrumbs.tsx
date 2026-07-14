@@ -8,61 +8,56 @@ interface ZoomBreadcrumbsProps {
   docLabel: string;
   documentControl?: ReactNode;
   path: NotePathItem[];
+  onSelectHome?: () => void;
   onSelectNoteId: (noteId: string | null) => void;
 }
 
-export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectNoteId }: ZoomBreadcrumbsProps) {
+export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectHome, onSelectNoteId }: ZoomBreadcrumbsProps) {
   const docLabelDisplay = formatNavigationLabel(docLabel);
+  const documentCrumb = (
+    <button
+      type="button"
+      className={styles.crumbButton}
+      data-zoom-crumb="document"
+      onClick={() => onSelectNoteId(null)}
+    >
+      {docLabelDisplay}
+    </button>
+  );
 
   return (
     <Breadcrumbs className={styles.breadcrumbs} data-zoom-breadcrumbs>
+      {onSelectHome ? (
+        <button
+          type="button"
+          className={styles.crumbButton}
+          data-zoom-crumb="home"
+          onClick={onSelectHome}
+        >
+          Home
+        </button>
+      ) : null}
       {documentControl ? (
         <span className={styles.documentCrumbGroup} data-zoom-crumb="document-group">
-          <button
-            type="button"
-            className={styles.crumbButton}
-            data-zoom-crumb="document"
-            onClick={() => onSelectNoteId(null)}
-          >
-            {docLabelDisplay}
-          </button>
+          {documentCrumb}
           <span className={styles.documentControl} data-zoom-crumb="document-control">
             {documentControl}
           </span>
         </span>
       ) : (
+        documentCrumb
+      )}
+      {path.slice(0, -1).map((item) => (
         <button
+          key={item.noteId}
           type="button"
           className={styles.crumbButton}
-          data-zoom-crumb="document"
-          onClick={() => onSelectNoteId(null)}
+          data-zoom-crumb="ancestor"
+          onClick={() => onSelectNoteId(item.noteId)}
         >
-          {docLabelDisplay}
+          {formatNavigationLabel(item.label)}
         </button>
-      )}
-      {path.map((item, index) => {
-        const isCurrent = index === path.length - 1;
-        const label = formatNavigationLabel(item.label);
-        if (isCurrent) {
-          return (
-            <span key={item.noteId} className={styles.crumbCurrent} data-zoom-crumb="current">
-              {label}
-            </span>
-          );
-        }
-
-        return (
-          <button
-            key={item.noteId}
-            type="button"
-            className={styles.crumbButton}
-            data-zoom-crumb="ancestor"
-            onClick={() => onSelectNoteId(item.noteId)}
-          >
-            {label}
-          </button>
-        );
-      })}
+      ))}
     </Breadcrumbs>
   );
 }

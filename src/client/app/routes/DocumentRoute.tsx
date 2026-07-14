@@ -55,6 +55,7 @@ export default function DocumentRoute() {
       >
         <DocumentWorkspace
           docId={docId}
+          zoomNoteId={zoomNoteId}
           onSelectDocument={navigateToDocument}
         />
       </EditorViewProvider>
