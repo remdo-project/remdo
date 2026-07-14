@@ -90,8 +90,9 @@ by that feature and other modules ask it by name. Known exception to repay:
 several `outline/` modules still import note-body primitives from
 `features/note-body/` (see `docs/todo.md`).
 
-Keep durable product behavior in `docs/`; source feature folders should not
-replace the stable behavior specs.
+Keep durable product behavior in its current owner: `docs/` until the capability
+is migrated, then `openspec/specs/`. Source feature folders do not replace
+stable behavior specs.
 
 ## Environment
 

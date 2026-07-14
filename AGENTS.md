@@ -10,15 +10,16 @@ Target runtimes and browser support are defined in `docs/contributing.md`. Rely
 on those baselines—no legacy browser shims.
 
 AGENTS.md is the only doc you must read at the start of every session. Do one
-full pass through the `docs/` folder when you onboard; after that, before coding,
-identify the feature area and read the matching docs — filenames plus each
-doc's scope opener are the navigation — do not reread unrelated docs. For the
-documentation invariants, see `docs/documentation.md`.
+full pass through `docs/` and `openspec/specs/` when you onboard. During the
+OpenSpec migration, `openspec/MIGRATION.md` says which capabilities have moved;
+unlisted capabilities remain owned by `docs/`. After onboarding, identify the
+feature area and read only its current owner — filenames and scope openers are
+the navigation. For the documentation invariants, see `docs/documentation.md`.
 
-When working, deep-link to the authoritative doc (e.g.,
+When working, deep-link to the authoritative doc or spec (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
-source of truth. When a change supersedes a doc's contract or breaks an inbound
-link, fix it in the same change —
+source of truth. When a change supersedes a contract or breaks an inbound link,
+fix it in the same change —
 not a follow-up. If nothing needs updating, say why. Do not add update-tracking
 sections to docs.
 
