@@ -1,12 +1,11 @@
 import { MantineProvider } from '@mantine/core';
 import { render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import Editor from '#client/editor/Editor';
-import { EditorViewProvider } from '#client/editor/view/EditorViewProvider';
 import { createDocumentSyncTokenApiPath } from '#document-routes';
 import { getCollabTestSessionCookie, withSessionCookie } from './_support/auth';
 import { ensureCollabTestDocument } from './_support/documents';
 import { renderRemdoEditor } from './_support/render-editor';
+import { TestEditorView } from './_support/test-editor-view';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 interface RecordedRequest {
@@ -84,9 +83,7 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
 
     const { unmount } = render(
       <MantineProvider>
-        <EditorViewProvider docId={docId}>
-          <Editor docId={docId} statusPortalRoot={null} />
-        </EditorViewProvider>
+        <TestEditorView docId={docId} />
       </MantineProvider>
     );
 
@@ -135,9 +132,7 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
 
     const { unmount } = render(
       <MantineProvider>
-        <EditorViewProvider docId={docId}>
-          <Editor docId={docId} statusPortalRoot={null} />
-        </EditorViewProvider>
+        <TestEditorView docId={docId} />
       </MantineProvider>
     );
 

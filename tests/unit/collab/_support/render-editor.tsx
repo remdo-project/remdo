@@ -1,11 +1,10 @@
 import { MantineProvider } from '@mantine/core';
 import { render } from '@testing-library/react';
-import Editor from '#client/editor/Editor';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { getTestBridgeRegistry } from '#client/editor/plugins/dev/testBridgeRegistry';
-import { EditorViewProvider } from '#client/editor/view/EditorViewProvider';
 import type { EditorViewBindings } from '#client/editor/view/EditorViewProvider';
 import { ensureCollabTestDocument } from './documents';
+import { TestEditorView } from './test-editor-view';
 
 /**
  * Renders the RemDo editor for tests and resolves its remdoTest bridge.
@@ -27,9 +26,7 @@ export async function renderRemdoEditor(
 
   const { unmount } = render(
     <MantineProvider>
-      <EditorViewProvider docId={docId} {...viewProps}>
-        <Editor docId={docId} statusPortalRoot={null} />
-      </EditorViewProvider>
+      <TestEditorView docId={docId} viewProps={viewProps} />
     </MantineProvider>
   );
 
