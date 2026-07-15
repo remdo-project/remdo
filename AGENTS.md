@@ -17,6 +17,12 @@ identify the feature area and read only its current owner — filenames and scop
 openers are the navigation. For the documentation invariants, see
 `docs/documentation.md`.
 
+Changes that add or modify durable requirements follow the
+[`development-change-workflow`](openspec/specs/development-change-workflow/spec.md).
+A branch has at most one active OpenSpec change. On such a branch, read its main
+specs together with its incomplete tasks: the specs state accepted target
+behavior and the tasks disclose any remaining implementation gap.
+
 When working, deep-link to the authoritative doc or spec (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
 source of truth. When a change supersedes a contract or breaks an inbound link,

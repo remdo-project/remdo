@@ -7,9 +7,12 @@ The agent-facing doc workflow lives in [AGENTS.md](../AGENTS.md).
 
 ## Ownership
 
-- `openspec/specs/` owns accepted durable requirements for RemDo-maintained
-  product, development, and operational behavior after migration.
-- `openspec/changes/` owns proposed behavior, design, and implementation tasks.
+- `openspec/specs/` owns accepted durable target requirements for
+  RemDo-maintained product, development, and operational behavior after
+  migration.
+- `openspec/changes/` owns proposals, design, requirement deltas, and
+  implementation tasks. On an active branch, its incomplete tasks disclose any
+  gap between accepted target requirements and implementation.
 - `docs/` owns project principles, contributor guidance, runbooks, explanatory
   reference, and accepted requirements not yet migrated.
 - [The migration manifest](../openspec/MIGRATION.md) records migrated
@@ -53,13 +56,15 @@ accepted behavior and the skill owns its execution procedure.
    relies on (specs, standards, third-party docs) — all of those, and nothing
    incidental; links within this documentation system MUST be inline, never
    collected into `References`.
-4. **Spec, not status.** A durable spec MUST describe accepted behavior in
-   timeless prose. Proposed behavior, design, tasks, and sequencing MUST live in
-   an active OpenSpec change. During migration, an unmigrated `docs/` spec MAY
-   retain target behavior ahead of code only when `docs/todo.md` names the
-   suspended contract; do not copy that unimplemented behavior into a main
-   OpenSpec spec. A long-horizon non-target direction MAY live as a brief
-   trigger in the owning spec's `Future` section.
+4. **Spec, not status.** A durable spec MUST describe accepted target behavior
+   in timeless prose. Before acceptance, proposed behavior, design, tasks, and
+   sequencing MUST live in an active OpenSpec change. On a branch with one
+   active change, an accepted main spec MAY lead implementation only while the
+   change's incomplete tasks name every known gap; the branch MUST converge
+   before merge. During migration, an unmigrated `docs/` spec MAY retain target
+   behavior ahead of code only when `docs/todo.md` names the suspended contract.
+   A long-horizon non-target direction MAY live as a brief trigger in the owning
+   spec's `Future` section.
 5. **Minimal by default.** State the rule, not the inventory: beyond what the
    other invariants require, a clause MUST be omitted unless its absence would
    let someone misuse the contract. That covers implementation detail that is
