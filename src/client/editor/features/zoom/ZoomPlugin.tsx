@@ -73,6 +73,12 @@ export function ZoomPlugin() {
         if ($placeCaretAtZoomEntry(noteId) === 'missing') {
           return false;
         }
+        // Publish the new zoom root synchronously: the React effects that
+        // normally maintain it land only after the next commit, and a keypress
+        // in between (e.g. Backspace right after a bullet click) must already
+        // see the new boundary.
+        zoomNoteIdRef.current = resolveZoomNoteId(noteId);
+        setZoomRoot(editor, $findNoteById(noteId)?.getKey() ?? null);
         requestZoomNoteId(noteId);
         editor.focus();
         return true;

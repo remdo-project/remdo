@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { SUBPROCESS_TEST_TIMEOUT_MS } from './_support/timeouts';
 
 const STALE_STAGING_STARTED_AT = Date.now() - (31 * 60 * 1000);
 
@@ -53,7 +54,7 @@ function runBackup(dataDir: string, args: string[] = []): ReturnType<typeof spaw
   );
 }
 
-describe('snapshot backup CLI', () => {
+describe('snapshot backup CLI', { timeout: SUBPROCESS_TEST_TIMEOUT_MS }, () => {
   let tempDirs: string[] = [];
 
   beforeEach(() => {

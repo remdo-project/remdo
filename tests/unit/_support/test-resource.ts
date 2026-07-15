@@ -7,16 +7,21 @@ interface TestResource {
 export function createTestResource<TOptions, TResource extends TestResource>(
   createResource: (options?: TOptions) => TResource,
 ): (options?: TOptions) => TResource {
-  let currentResource: TResource | null = null;
+  let resources: TResource[] = [];
 
   afterEach(async () => {
-    await currentResource?.cleanup();
-    currentResource = null;
+    // Every resource is cleaned up here, awaited — a fire-and-forget cleanup
+    // when a test creates a second resource races the rest of the test.
+    const pending = resources;
+    resources = [];
+    for (const resource of pending) {
+      await resource.cleanup();
+    }
   });
 
   return (options?: TOptions) => {
-    void currentResource?.cleanup();
-    currentResource = createResource(options);
-    return currentResource;
+    const resource = createResource(options);
+    resources.push(resource);
+    return resource;
   };
 }
