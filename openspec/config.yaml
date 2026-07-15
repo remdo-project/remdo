@@ -19,6 +19,8 @@ rules:
     - Group closely related rules into one requirement; split behaviors that can change independently.
     - Before naming a product concept, consult the migration backlog and current docs/specs; reuse the established term and link its authoritative definition at first use.
     - Use the minimum scenarios needed to clarify outcomes and failure branches; do not restate the requirement.
+    - Keep examples under scenarios and treat them as informative; they must not introduce behavior absent from the scenario.
+    - Add examples only when they materially clarify the scenario. Use consistent Example, Before, Action, and After labels as applicable, with fenced text blocks for structured content.
     - Do not add known unimplemented behavior to a main spec; keep it in the active change until incorporation.
   design:
     - Record only decisions and rationale that prevent ambiguity or repeated relitigation.

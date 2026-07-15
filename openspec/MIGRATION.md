@@ -6,5 +6,5 @@ Accepted decisions awaiting a permanent owner live in the temporary
 [migration backlog](./MIGRATION-BACKLOG.md).
 
 - Phase: capability migration
-- Completed capabilities: `outliner-list-types`
-- Next capability: `reordering`
+- Completed capabilities: `outliner-list-types`, `outliner-reordering`
+- Next capability: `outliner-indentation`

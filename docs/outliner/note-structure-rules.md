@@ -24,7 +24,7 @@ removed note's children to the survivor — see [Deletion](./deletion.md).
 
 ## Valid Indentation
 
-Indenting a [note range](./selection.md#selection-states) is allowed only when
+Indenting a [note range](./selection.md#note-ranges) is allowed only when
 the range has an immediate preceding sibling; the notes in the range become
 that sibling's children. The range nests as one unit, preserving its order and
 internal structure. Without such a sibling, indent is a no-op.
@@ -42,5 +42,6 @@ immediately after their former parent.
 
 ## Reordering Behavior
 
-Reordering semantics are defined in [Reordering (keyboard)](./reordering.md);
+Reordering semantics are defined in
+[Reordering (keyboard)](../../openspec/specs/outliner-reordering/spec.md);
 this document supplies the structural invariants those commands rely on.

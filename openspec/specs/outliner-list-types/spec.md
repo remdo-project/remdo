@@ -32,7 +32,7 @@ list-type changes, reload, and collaboration.
 ### Requirement: Checked-state changes apply recursively
 
 Changing a note's checked state MUST set that note and all its descendants to
-the same state. For a [note range](/docs/outliner/selection.md#selection-states),
+the same state. For a [note range](/docs/outliner/selection.md#note-ranges),
 RemDo MUST use one target state: uncheck when every note in the range is
 checked; otherwise check.
 
@@ -43,9 +43,9 @@ checked; otherwise check.
 - **THEN** that note and all its descendants change to the opposite state of
   the note
 
-#### Scenario: Toggle a note range
+#### Scenario: Toggle a selected note range
 
-- **WHEN** a user toggles checked state for a note range
+- **WHEN** a user toggles checked state for a selected note range
 - **THEN** every note in the range and its descendants use the shared target
   state
 
@@ -53,7 +53,7 @@ checked; otherwise check.
 
 Users MUST be able to toggle checked state with `Cmd+Enter` on macOS and
 `Ctrl+Enter` on Windows and Linux, using the current caret, inline text range,
-or note range as the target.
+or selected note range as the target.
 
 #### Scenario: Invoke the platform shortcut
 

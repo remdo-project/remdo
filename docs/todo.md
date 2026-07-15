@@ -620,6 +620,9 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   no-op (cut stays pending) since a body can't hold notes. Pin the final
   semantics (no-op vs. move-as-flattened-text) in the cut/paste redesign;
   `NoteIdPlugin` `SELECTION_INSERT_CLIPBOARD_NODES_COMMAND` body branch.
+- Decide whether reordering from an inline selection inside a note body targets
+  its owner or is a no-op; specify the chosen behavior and add focused coverage
+  during the note-body design pass.
 
 ## Docs spec accuracy (branch docs/spec-accuracy)
 

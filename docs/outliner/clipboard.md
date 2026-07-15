@@ -7,7 +7,7 @@ paste placement depends on caret position. Note-id identity implications live in
 [Note IDs](./note-ids.md); note-link `docId` clipboard/persistence rules
 live in [Links](./links.md).
 
-## Note range
+## Structural selection
 
 - Copy duplicates the selected notes (including their subtrees and each note's
   [body](./body.md)) and leaves the document unchanged.
@@ -19,7 +19,7 @@ live in [Links](./links.md).
   is canceled so edits stay where they were made.
 - After a structural cut, the selection collapses to the visual start so you
   can keep editing with a clear caret position.
-- Pasting while a note range is selected replaces that selection with the
+- Pasting while a selected note range is active replaces that selection with the
   pasted notes.
 - Pasting after a cut moves the cut notes to the new location. If the cut is no
   longer valid, paste does nothing.

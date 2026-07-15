@@ -10,13 +10,18 @@ entry.
 
 ## Terminology
 
-### Note range
+### Structural selection and note ranges
 
-- **Decision:** Use **note range** for one or more contiguous sibling notes,
-  each selected together with its entire subtree.
-- **Avoid:** Do not use **selection head** or **structural selection** as product
-  terms. The first describes editor-internal machinery; use **note range** for
-  the selection state and reserve **structural** for modes and commands.
+- **Decision:** A **structural selection** selects one or more notes as
+  structural units rather than selecting their text. A **note range** is one or
+  more contiguous sibling notes, each together with its entire subtree; it is a
+  shared structural-command operand, not a selection kind. Use **selected note
+  range** for a structural selection's range and **target note range** when a
+  command may resolve the range from either a structural or non-structural
+  selection.
+- **Avoid:** Do not use **selection head** as a product term or use **note
+  range** as the name of a selection kind. Do not introduce **block selection**
+  as an alias: RemDo's product-level structural unit is a note.
 - **Current authority:** [Selection](/docs/outliner/selection.md#selection-states).
 - **Intended owner:** The selection capability; structural commands consume the
   term but do not redefine it.

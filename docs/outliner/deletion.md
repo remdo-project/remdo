@@ -41,7 +41,7 @@ semantics are defined in [Selection](./selection.md); when a merged note has a
       empty-leaf deletion and merge/reparent behavior).
 5. Middle of a note: `Backspace`/`Delete` behave like a plain text editor.
 
-## Zoom boundary behavior (caret mode)
+## Zoom boundary behavior (caret selection)
 
 When [zoom](./zoom.md) is active, caret-mode deletion from the outline children
 keeps merges inside the zoom boundary:
@@ -51,7 +51,7 @@ keeps merges inside the zoom boundary:
 2. For all other notes inside the zoom boundary, caret-mode deletion uses the
    default rules above.
 
-## Note range
+## Structural selection
 
 1. Pressing `Backspace` or `Delete` removes the selected notes and all of their
    descendants.
