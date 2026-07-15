@@ -1,6 +1,0 @@
-interface:
-  display_name: "RemDo Change Flow"
-  short_description: "Conduct RemDo-specific OpenSpec lifecycle actions"
-  default_prompt: "Use $remdo-change-flow to conduct the requested RemDo OpenSpec lifecycle action while preserving its durable workflow requirements."
-policy:
-  allow_implicit_invocation: true

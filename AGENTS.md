@@ -15,9 +15,6 @@ OpenSpec migration, `openspec/MIGRATION.md` says which capabilities have moved;
 unlisted capabilities remain owned by `docs/`. After onboarding, identify the
 feature area and read only its current owner — filenames and scope openers are
 the navigation. For the documentation invariants, see `docs/documentation.md`.
-RemDo-specific extensions to the OpenSpec lifecycle are implemented by the
-`remdo-change-flow` skill; route customized actions through it and treat
-generated OpenSpec skills as delegated upstream primitives.
 
 When working, deep-link to the authoritative doc or spec (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
@@ -104,7 +101,7 @@ sections to docs.
      skill's declaration is the authorization and carries its own branch scope;
      honour that scope rather than this default. (Self-authorizing skills today:
      `remdo-feature-flow`, `remdo-refine`, `remdo-docs-align`, `remdo-sync`,
-     `remdo-deps-refresh`, `remdo-change-flow` —
+     `remdo-deps-refresh` —
      each states its scope where it lives, so this list is illustrative, not the
      source of authority.)
   Plain requests to update/change/fix/do X are **not** an autonomous-scope
