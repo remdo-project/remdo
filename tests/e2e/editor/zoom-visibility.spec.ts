@@ -324,10 +324,12 @@ test.describe('Zoom visibility', () => {
 
     const editorRoot = editorLocator(page);
     const note2Text = editorRoot.locator('[data-lexical-text="true"]', { hasText: 'note2' }).first();
+    const note2 = note2Text.locator('xpath=ancestor::li[contains(@class, "list-item")][1]');
     const metrics = await getBulletMetrics(note2Text);
 
     await page.mouse.click(metrics.x, metrics.y);
     await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note2'));
+    await expect(note2).toHaveAttribute('data-zoom-root', 'true');
 
     await setCaretAtText(page, 'note2', 0);
     await page.keyboard.press('Control+A');

@@ -1,6 +1,3 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createServerDatabaseClient } from '#server/db/client';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
@@ -14,17 +11,14 @@ import {
 const SOURCE_ID = deriveSourceId('https://source.example');
 
 describe('source server store', () => {
-  let dir: string;
   let database: SqliteServerDatabaseClient;
 
   beforeEach(() => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-source-store-'));
-    database = createServerDatabaseClient({ dbPath: path.join(dir, 'remdo.sqlite') });
+    database = createServerDatabaseClient({ dbPath: ':memory:' });
   });
 
   afterEach(async () => {
     await database.close();
-    fs.rmSync(dir, { recursive: true, force: true });
   });
 
   it('starts empty', async () => {

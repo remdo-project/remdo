@@ -1,6 +1,3 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createServerDatabaseClient } from '#server/db/client';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
@@ -9,17 +6,14 @@ import { deriveSourceId } from '#server/remdo-oauth/config';
 import { ensureSourceServerRow, readSourceServersSync } from '#server/remdo-oauth/source-server-store';
 
 describe('ensureSourceClient', () => {
-  let dir: string;
   let database: SqliteServerDatabaseClient;
 
   beforeEach(() => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-ensure-source-client-'));
-    database = createServerDatabaseClient({ dbPath: path.join(dir, 'remdo.sqlite') });
+    database = createServerDatabaseClient({ dbPath: ':memory:' });
   });
 
   afterEach(async () => {
     await database.close();
-    fs.rmSync(dir, { recursive: true, force: true });
   });
 
   it('registers and caches a public client on first link to a source origin', async () => {

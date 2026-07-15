@@ -51,28 +51,31 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it(
     'saves the current editor state via snapshot CLI',
     meta({ collabDocId: 'snapshotFlat', fixture: 'flat' }),
-    async () => {
+    async ({ remdo }: TestContext) => {
       const docId = 'snapshotFlat';
 
       const savePath = snapshotOutputPath('snapshot.cli.flat.json');
       const expectedState = readEditorState(path.resolve('tests/fixtures/flat.json'));
+      await remdo.waitForSynced();
+
       await waitFor(() => {
         runSnapshotSave(['--doc', docId, savePath]);
         const saved = stripEditorStateDefaults(readEditorState(savePath));
-        return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
+        expect(saved.root).toEqual(expectedState.root);
       });
     }
   );
 
-  it('resolves the document id from the CLI flag', meta({ collabDocId: 'cliFlag', fixture: 'basic' }), async () => {
+  it('resolves the document id from the CLI flag', meta({ collabDocId: 'cliFlag', fixture: 'basic' }), async ({ remdo }: TestContext) => {
     const docId = 'cliFlag';
     const expected = readEditorState(path.resolve('tests/fixtures/basic.json'));
     const savePath = snapshotOutputPath(`${docId}.json`);
+    await remdo.waitForSynced();
 
     await waitFor(() => {
       runSnapshotSave(['--doc', docId, savePath]);
       const saved = stripEditorStateDefaults(readEditorState(savePath));
-      return JSON.stringify(saved) === JSON.stringify(expected);
+      expect(saved).toEqual(expected);
     });
   });
 

@@ -1,4 +1,4 @@
-import { waitFor } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { $getNodeByKey, $getSelection, $isRangeSelection, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
 import type { TextNode } from 'lexical';
@@ -17,6 +17,7 @@ import {
   meta,
 } from '#tests';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
 
 // Coverage gaps (handled in e2e instead of unit tests):
 // - Inline Backspace/Delete inside a note: jsdom doesn’t emulate native deletion
@@ -52,6 +53,25 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       await placeCaretAtNote(remdo, 'note2', 0);
 
       await pressKey(remdo, { key: 'Backspace' });
+
+      expect(remdo).toMatchEditorState(before);
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+    });
+
+    it('backspace racing the zoom command still respects the new zoom boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+      await placeCaretAtNote(remdo, 'note2', 0);
+      const before = remdo.getEditorState();
+
+      // Zoom command and keydown in one act block: the keypress lands before
+      // React commits the zoom effects, like a fast keypress right after a
+      // bullet click. The boundary guard must already see the new zoom root.
+      const root = remdo.editor.getRootElement()!;
+      await act(async () => {
+        remdo.editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId: 'note2' });
+        root.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }),
+        );
+      });
 
       expect(remdo).toMatchEditorState(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });

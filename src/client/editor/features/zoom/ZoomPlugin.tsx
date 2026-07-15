@@ -70,10 +70,17 @@ export function ZoomPlugin() {
           editor.focus();
           return true;
         }
-        if ($placeCaretAtZoomEntry(noteId) === 'missing') {
+        const zoomRoot = $findNoteById(noteId);
+        if (!zoomRoot || $placeCaretAtZoomEntry(noteId) === 'missing') {
           return false;
         }
         requestZoomNoteId(noteId);
+        // Publish the new zoom root synchronously: the React effects that
+        // normally maintain it land only after the next commit, and a keypress
+        // in between (e.g. Backspace right after a bullet click) must already
+        // see the new boundary.
+        zoomNoteIdRef.current = resolveZoomNoteId(noteId);
+        setZoomRoot(editor, zoomRoot.getKey());
         editor.focus();
         return true;
       },

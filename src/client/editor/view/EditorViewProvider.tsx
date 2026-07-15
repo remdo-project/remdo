@@ -6,7 +6,6 @@ import type { SearchableNotes } from '#client/editor/search/search-candidates';
 
 export interface EditorViewBindings {
   zoomNoteId?: string | null;
-  onZoomNoteIdChange?: (noteId: string | null) => void;
 }
 
 /** Runs `fn` against the live editor's SDK notes inside an editor read. Returns
@@ -35,7 +34,11 @@ export function EditorViewProvider({
   docId,
   zoomNoteId = null,
   onZoomNoteIdChange,
-}: EditorViewBindings & { children: ReactNode; docId: string }) {
+}: EditorViewBindings & {
+  children: ReactNode;
+  docId: string;
+  onZoomNoteIdChange: (noteId: string | null) => void;
+}) {
   const [zoomPathState, setZoomPathState] = useState({
     sourceDocId: docId,
     path: EMPTY_PATH,
@@ -59,7 +62,7 @@ export function EditorViewProvider({
   }, [docId]);
 
   const requestZoomNoteId = useCallback((noteId: string | null) => {
-    onZoomNoteIdChangeRef.current?.(noteId);
+    onZoomNoteIdChangeRef.current(noteId);
   }, []);
 
   // The editor (inside the composer) registers a reader bound to its live state;

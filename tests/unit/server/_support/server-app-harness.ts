@@ -1,6 +1,3 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
 import { createServerApp } from '#server/app';
 import {
@@ -46,9 +43,10 @@ export function createServerAppHarness({
   onUpdateDoc?: (docId: string, update: Uint8Array) => void | Promise<void>;
   logError?: ServerDiagnosticReporter;
 } = {}) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-server-auth-'));
-  const dbPath = path.join(tempDir, 'remdo.sqlite');
-  const client = createServerDatabaseClient({ dbPath });
+  // In-memory like the other server harnesses — a per-test on-disk DB fsyncs
+  // on every DDL/write, which turns contended-CI disk latency into test and
+  // teardown timeouts.
+  const client = createServerDatabaseClient({ dbPath: ':memory:' });
   // Derive trusted origins from the harness's own baseURL (not the env singleton)
   // so the auth instance honours the baseURL it was given.
   const trustedOrigins = deriveAuthTrustedOrigins({
@@ -213,7 +211,6 @@ export function createServerAppHarness({
     async cleanup() {
       await auth.ensureReady();
       await client.close();
-      fs.rmSync(tempDir, { recursive: true, force: true });
     },
   };
 }
