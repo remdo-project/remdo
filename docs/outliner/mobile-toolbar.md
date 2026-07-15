@@ -19,11 +19,12 @@ surface and its behavior, not those operations.
 1. The toolbar carries these actions: indent, outdent, move up, move down, toggle
    done, toggle fold, delete, undo, redo, open note menu.
 2. The structural actions target the current [selection](./selection.md): the
-   focused note for a caret selection, or every note in a note range. Their
+   focused note for a caret selection, or every note in a selected note range. Their
    contracts are:
    - Indent / outdent, per the [selection](./selection.md) structural rules and
      the [zoom](./zoom.md) boundary.
-   - Move up / move down, per [Reordering](./reordering.md).
+   - Move up / move down, per
+     [Reordering](../../openspec/specs/outliner-reordering/spec.md).
    - Toggle done, recursively per
      [List Types](../../openspec/specs/outliner-list-types/spec.md).
    - Delete removes the targeted notes and their subtrees per

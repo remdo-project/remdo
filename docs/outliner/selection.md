@@ -8,28 +8,41 @@ detailed in [Note Structure Rules](./note-structure-rules.md).
 
 A selection is always exactly one of:
 
-1. **Caret / inline text range** — the caret, or a text range, inside a single
-   note. Typing, inline formatting, and inline delete operate on it. Structural
-   commands treat the caret's note (and its subtree) as their target even with
-   no visible range.
-2. **Note range** — one or more contiguous sibling notes, each selected together
-   with its entire subtree.
+1. **Caret selection** — a collapsed caret inside one note region.
+2. **Inline text selection** — a non-collapsed text range inside one note
+   region. Selecting all text in that region remains inline; textual coverage
+   does not make a selection structural.
+3. **Structural selection** — one or more notes selected as structural units,
+   each together with its entire subtree.
 
-**Mode switch.** Typing inserts characters only in state 1. As soon as the
-selection covers any whole note (state 2), the editor is in structural mode:
-keystrokes that would type become no-ops and structural commands take over.
-`Esc`, or clicking into a note's text, returns to a caret.
+**Mode switch.** Typing inserts characters only in states 1 and 2. In state 3,
+the editor is in structural mode: keystrokes that would type become no-ops and
+structural commands take over. `Esc`, or clicking into a note's text, returns
+to a caret.
+
+## Note ranges
+
+A **note range** is one or more contiguous sibling notes, each together with
+its entire subtree. It is the shared operand used by structural commands, not a
+selection kind, and a one-note range is valid.
+
+A structural selection has a **selected note range**. A structural command
+operates on a **target note range**, which it may resolve from that selected
+range or from a non-structural selection as defined by the command. Use the
+qualified forms where the source matters; otherwise, **note range** refers to
+the common structure.
 
 ## Whole-note snapping
 
 A selection can never partially cross a note boundary. The moment a text
-selection extends beyond one note's content, it snaps to a note range.
+selection extends beyond one note's content, it becomes a structural selection
+whose selected note range covers the crossed notes.
 
 ## The selection ladder
 
-A note range cannot grow by single rows; it grows and shrinks along a
-single ordered ladder whose every rung is itself a legal whole-subtree
-selection. Its defining property is **symmetric
+The selection cannot grow by single rows; it grows and shrinks along a single
+ordered ladder whose every structural rung has a legal selected note range.
+Its defining property is **symmetric
 grow/shrink**: pressing the opposite direction *exactly inverts* the previous
 step.
 
@@ -81,11 +94,11 @@ in place where possible; the disturbance tiers are defined in
 | `Shift+Left/Right` | Inline-only text selection inside the active note; a no-op at the note boundary. |
 | `Shift+Up/Down` | Walk the selection ladder one note at a time in that direction (push the next rung, or pop on reversal). |
 | `Cmd/Ctrl+A` | Grow the same ladder outward one rung per press (direction-neutral), adding the whole sibling group of a sibling rung at once. |
-| `Shift+Click` | Extend to the clicked note, producing a contiguous note range; the anchor is the click origin and the resulting range seeds the ladder so later `Shift+Up/Down` can pop it. |
+| `Shift+Click` | Extend to the clicked note, producing a structural selection with a contiguous selected note range; the anchor is the click origin and the resulting range seeds the ladder so later `Shift+Up/Down` can pop it. |
 | Drag | Highlights text until it crosses a note boundary, then snaps to whole notes. |
 | Long-press (touch) | Enters caret selection; dragging handles behaves like text selection until it crosses a boundary, then snaps to whole notes. |
-| `Esc` | Collapses any note range to a caret without changing the document. |
-| Unmodified Arrow / `Home` / `End` / `Page` keys | Collapse a note range and place the caret at the corresponding edge (start/end or top/bottom) so typing resumes there. |
+| `Esc` | Collapses any structural selection to a caret without changing the document. |
+| Unmodified Arrow / `Home` / `End` / `Page` keys | Collapse a structural selection and place the caret at the corresponding edge (start/end or top/bottom) so typing resumes there. |
 | `Tab` / `Shift+Tab` | Indent / outdent the selection — see [Note Structure Rules](./note-structure-rules.md). |
 | `Enter` | Caret mode: see [Insertion](./insertion.md). Structural mode: no-op. |
 
@@ -114,8 +127,9 @@ selection.
 
 | Selection state | Allowed operations |
 | --------------- | ------------------ |
-| Caret / inline text range | Typing, inline formatting, inline delete/backspace, toggle checked (per [List Types](../../openspec/specs/outliner-list-types/spec.md)); structural commands act on the caret's note and subtree. |
-| Note range | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste, toggle checked, and other structural commands, always executed in document order. |
+| Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List Types](../../openspec/specs/outliner-list-types/spec.md)); structural commands may resolve a one-note target range as defined by the command. |
+| Inline text selection | Inline formatting, inline delete/backspace, and toggle checked; structural commands define whether and how the selection resolves to a target note range. |
+| Structural selection | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste, toggle checked, and other structural commands operate on its selected note range in document order. |
 
-Clipboard behavior for note ranges and inline ranges is defined in
-[Clipboard](./clipboard.md).
+Clipboard behavior for structural selections and inline text selections is
+defined in [Clipboard](./clipboard.md).

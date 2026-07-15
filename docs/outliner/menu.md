@@ -48,8 +48,8 @@ entry, actions, and behavior.
    first-letter type-ahead).
 3. When opened from a row, the current note is that row's note. When opened
    from double-Shift, the current note is the caret note.
-4. Note ranges never open multi-note menus; only the focus note is used as note
-   context.
+4. Selected note ranges never open multi-note menus; only the focus note is
+   used as note context.
 5. While the menu is open, `1`-`9` apply the chosen level and `0` fully
    unfolds the current zoom boundary.
 

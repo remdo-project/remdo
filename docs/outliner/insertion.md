@@ -1,12 +1,13 @@
 # Insertion (Enter) Semantics
 
-Defines how RemDo inserts new notes when `Enter` is pressed in **caret mode**
-(mode definitions in [Selection](./selection.md)).
+Defines how RemDo inserts new notes when `Enter` is pressed with a
+**caret selection** (selection states are defined in
+[Selection](./selection.md)).
 This spec assumes the caret is inside a single note and actions apply to the
 active note text. Unless stated otherwise, parent notes are expanded; folded and
 collapsed parent behavior is called out explicitly (see [Folding](./folding.md)).
 
-## Default behavior (caret mode)
+## Default behavior (caret selection)
 
 1. **Start of note** – create a previous sibling immediately above. Children of
    the original note stay attached to it.
@@ -17,7 +18,7 @@ collapsed parent behavior is called out explicitly (see [Folding](./folding.md))
    expanded, create a new first child. Otherwise (no children or collapsed
    parent), insert a next sibling immediately below.
 
-## Zoom boundary behavior (caret mode)
+## Zoom boundary behavior (caret selection)
 
 When [zoom](./zoom.md) is active, default insertion still applies to the outline
 children except where it would place the new note outside the zoom boundary; in
@@ -33,7 +34,7 @@ those cases insertion stays inside the subtree. `Enter` from the
 3. **End of note:** place the caret at the start of the newly created note
    (child or sibling) so typing immediately fills it.
 
-## Paste placement (caret mode)
+## Paste placement (caret selection)
 
 When a paste inserts multiple notes, its placement follows the same
 start/middle/end rules as `Enter`. Clipboard details (including how multi-line

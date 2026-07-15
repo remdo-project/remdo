@@ -107,7 +107,8 @@ These govern commands run from the outline children. Commands run from the
    [Deletion](./deletion.md).
 3. Indent/outdent boundary behavior is defined in
    [Note Structure Rules](./note-structure-rules.md).
-4. Reorder boundary behavior is defined in [Reordering](./reordering.md).
+4. Reorder boundary behavior is defined in
+   [Reordering](../../openspec/specs/outliner-reordering/spec.md).
 5. When a command hits the boundary, the editor may show brief non-modal
    feedback, but the command result is always determined by the linked command
    specs.
