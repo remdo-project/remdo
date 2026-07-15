@@ -7,254 +7,151 @@ description: Use when starting a self-contained bigger RemDo change — a new fe
 
 ## Overview
 
-Drive a self-contained bigger change from a vague idea to finished, reviewed,
-locally-committed work. This skill is a conductor: it sequences existing skills,
-sets the autonomy policy, and keeps the run grounded in versioned docs. It does
-not reimplement the skills it calls.
+Drive a self-contained larger feature from a vague idea to finished,
+locally-committed work. This skill supplies autonomous implementation and the
+quality loop; it delegates the full specification lifecycle to
+[`remdo-change-flow`](../remdo-change-flow/SKILL.md).
 
-The user reviews **intent**, not steps. The spec is the durable goal; the plan is
-disposable. Execution converges on the spec autonomously; review, simplify, and
-verify are part of done.
-
-The two review surfaces are concrete versioned-repo content: the **`docs/`
-changes** in Phase 3 and the **report's diff index** in Phase 5. Deferrals land
-in `docs/todo.md`. `.agent/` is agent-only scratch, never a user review surface.
+The user reviews intent in the main OpenSpec specs together with the active
+tasks. The final report indexes the implementation diff. `.agent/` remains
+agent-only scratch, never a user review surface.
 
 ## Preflight — pin the design base
 
-Run this first, before the flow reads code or docs: fact verification, dialog,
-and the spec must all be shaped against exactly the state the task branch will
-fork from.
+Run `sh .agents/skills/remdo-feature-flow/tools/preflight-base.sh` before
+reading feature code or docs. Its output either pins `BASE=<sha>` from a clean,
+even-or-behind checkout or explains why the flow must stop. Do not design from
+an ahead or diverged base that the task branch would not inherit.
 
-Run `sh .agents/skills/remdo-feature-flow/tools/preflight-base.sh`. Its header
-states the full contract. It leaves the branch proceedable or exits for a state
-the run must stop on:
+## Phase 1 — Draft and dialog
 
-- **Proceedable** (`STATE=even`/`behind`) — take `BASE=<sha>` as the pinned fork
-  point and proceed. Phase 3 forks from that pinned SHA, not a re-fetched
-  `origin/main`.
-- **Non-zero exit** — stop, read stderr, and act on why:
-  - **Dirty tree** — resolve it locally by judgment, then rerun.
-  - **Ahead / diverged** — the branch holds committed work the fork would not
-    carry. Ask the user to land it in `origin/main` first or to design from a
-    checkout already at `origin/main`.
+1. Verify the user's stated facts against the pinned base.
+2. Record verified facts and decisions in
+   `.agent/plans/<YYYY-MM-DD>-<feature>.md`.
+3. Read the owning docs/specs and relevant code before asking residual
+   questions.
+4. Determine whether the request is one concern or several. Independent
+   concerns require separate branches and OpenSpec changes.
+5. Use Research only for a concrete question whose answer can materially change
+   the contract.
 
-## Phase 1 — Draft
+Continue when the intended behavior is ready to specify autonomously.
 
-The user states the vague idea: what they know, what they are unsure about. No
-structure is required. Verify every fact the user asserts before building on it.
-Record verified facts and outcomes in `.agent/plans/<YYYY-MM-DD>-<feature>.md`
-so the design basis survives beyond session memory.
+## Phase 2 — Create the task branch
 
-## Phase 2 — Dialog
-
-Conversation plus cheap checks, inline and interactive.
-
-1. Read relevant `docs/` and code before asking.
-2. Ask only genuine residual questions, batched rather than one at a time.
-3. Default to local checks for anything answerable from code, docs, app tools,
-   fixtures, or the browser.
-
-Gather enough that autonomous implementation is realistic. When a question
-needs prior-art weight, suggest the Research capability below; the user launches
-it during dialog. Ask whether the change is one concern or several, and record
-split decisions and design tradeoffs in `docs/todo.md`.
-
-## Phase 3 — Spec approval
-
-**Precondition — no unrelated changes in the tree.** If there were pre-existing
-tracked edits unrelated to this flow, stop before the refine pass and branch
-creation. The user commits or sets them aside first. Flow-owned spec docs and
-flow-owned `docs/todo.md` notes are expected.
-
-The spec is the versioned-doc changes themselves, written so the docs read as if
-the target behavior already works. Edit the relevant docs under `docs/`, or add
-new docs that match the existing structure. Track not-yet-built parts, gaps, and
-sequencing in `docs/todo.md`, not as caveats in stable prose. Follow
-`docs/documentation.md`.
-
-Before presenting the docs, invoke `remdo-docs-align` on the uncommitted spec
-docs:
-
-- **Objective:** converge the spec docs to `docs/documentation.md` before the
-  user reviews them — the spec is pure prose here, so doc alignment is the fitting
-  pass, not the code-quality ladder.
-- **Scope passed:** the flow-owned `docs/` and `docs/todo.md` changes
-  (working-tree).
-- **Result handling:** docs-align applies its dispositions in place and commits
-  nothing at this stage; surface any ESCALATE row with the spec handoff.
-
-Aligning the spec here is the flow's only doc-alignment pass — it happens
-*before* the user gate, so the docs the user approves are already converged.
-Treat that approved prose as settled: later phases should not re-improve it. This
-ordering is the point; it keeps a later pass from reworking docs the user already
-signed off on.
-
-The user reviews the `docs/` changes, with chat as a thin pointer: changed docs
-plus a short approach summary. This is the only mandatory user gate.
-
-On approval, confirm the branch name/prefix, then run:
+Require a clean tracked working tree, confirm the branch name and prefix with
+the user, then run:
 
 ```sh
 sh .agents/skills/_shared/tools/create-branch-from-base.sh <name> <pinned-base-sha>
 ```
 
-The script forks from the pinned base carrying the approved uncommitted spec
-edits. On a non-zero exit, resolve the drift it names and retry. The approved
-spec docs are then the task branch's first commit.
+Resolve any drift reported by the script before continuing. The active
+OpenSpec change belongs to this branch; do not create it on the base branch and
+move it later.
 
-If the user rejects the spec at the gate, revert the flow-owned `docs/` and
-`docs/todo.md` changes before exiting.
+## Phase 3 — Delegate specification and approval
+
+Invoke `remdo-change-flow` for exploration handoff, proposal creation, early
+spec synchronization, and the approval gate. Supply the verified dialog
+outcomes; do not maintain a parallel docs-first specification.
+
+The user reviews the main specs and active tasks. This is the only mandatory
+user gate. On approval, this skill's autonomous scope authorizes the local
+baseline commit required by `remdo-change-flow`. If the user rejects the
+contract, revise through that flow or remove flow-owned artifacts before
+exiting.
 
 ## Phase 4 — Autonomous execution
 
-1. Grow `.agent/plans/<YYYY-MM-DD>-<feature>.md` into the detailed working plan.
-2. Run the gap-closing loop: repeatedly ask what remains between the branch and
-   the spec's described state, then take the next step that closes it. For new
-   behavior, prefer test-first implementation. For bugs or unexpected failures,
-   reproduce, isolate, fix, and verify rather than guessing. Prefer existing
-   RemDo helpers and proven libraries over ad-hoc invention.
-3. When the loop believes the spec is reached, get a fresh spec-compliance read:
-   compare the branch's `docs/` changes and branch diff both ways, specified but
-   not built and built but not specified. The reviewer reads the repo as needed
-   but not `.agent/`, and receives neither the plan nor implementation memory.
-   Run it through the current agent's fresh-context surface (see Agent adapters),
-   passing only the spec docs, branch diff scope, and the `AGENTS.md`
-   findings-suppression rule.
-   The reviewer reports only; the coordinating agent fixes real gaps, documents
-   or removes unspecified behavior, and records deliberate deferrals in
-   `docs/todo.md`.
-4. For user-facing behavior, verify live per AGENTS.md DevTools guidance and add
-   automated coverage per its e2e escalation rule.
-5. Once the spec is reached, commit the Phase-4 work. Leave the user-approved
-   spec docs as they were approved — doc alignment happened before the Phase-3
-   gate, so avoid re-improving that prose now; record any real spec/implementation
-   divergence in `docs/todo.md` rather than silently rewriting the approved docs.
-   Any genuinely new prose implementation added is committed as-is here; a
-   separate `remdo-docs-align` pass on it later is the user's call, not part of
-   this flow. If
-   `origin/main` advanced since branch creation, suggest `remdo-sync` after the
-   tree is clean. Then run `remdo-refine` in committed-range scope over this
-   branch's own work (`origin/main...HEAD`). Refine owns the code-quality loop,
-   final checks, review-finding tradeoff policy, and quality activity report;
-   retain that report for Phase 5.
-6. For mid-work decisions, use judgment for small blast-radius choices and record
-   them in `docs/todo.md`. Stop only for genuine large-blast-radius forks, also
-   recording the fork, options, and blocker in `docs/todo.md`.
+1. Resume `remdo-change-flow` from its approved implementation phase and use
+   the active tasks as the gap ledger.
+2. Repeatedly compare implementation with the approved main specs and close the
+   next gap. Prefer test-first work for new behavior. Reproduce and isolate
+   failures before fixing them.
+3. If implementation invalidates a requirement, return through
+   `remdo-change-flow`'s revision and renewed-approval gate. Do not silently edit
+   an approved spec.
+4. For user-facing behavior, verify live per `AGENTS.md` and add automated
+   coverage at the appropriate level.
+5. When the tasks appear complete, run a fresh-context compliance read in both
+   directions: specified but missing and implemented but unspecified. Pass only
+   the approved main specs, active tasks, branch diff scope, and the
+   `AGENTS.md` finding-suppression rule.
+6. Fix accepted findings, then commit the implementation. If `origin/main`
+   advanced, suggest `remdo-sync` after the tree is clean.
+7. Run `remdo-refine` over `origin/main...HEAD`. It owns simplification,
+   internal review, final repository checks, and its quality report.
+8. Resume `remdo-change-flow` for final convergence verification and archival
+   with spec synchronization skipped. This autonomous scope authorizes the
+   archive-only local commit; it never authorizes a push.
 
-Iterate until the spec's state is reached or a true blocker hits.
+Use judgment for small implementation choices. A real contract change goes
+through renewed approval; a large unresolved implementation fork stops the run
+with gathered evidence and options.
 
-## Phase 5 — Report + retro
+## Phase 5 — Report and retro
 
-The report indexes the diff, not re-narrates it:
+Report:
 
-1. What changed, pointing at files/areas.
-2. `docs/todo.md` entries added or resolved.
-3. Any blocker, with gathered data.
-4. Quality: preserve refine's scope, end reason, total elapsed time, per-reviewer
-   activity table, and final-check status. Do not repeat refine's file-by-file
-   fix list when item 1 already indexes those changes.
-5. Workflow retro: stable improvements go into this shared skill or relevant
-   docs (see the Execution model's Memory rule for the agent-memory gate).
+1. Changed files/areas as an index, not a re-narration.
+2. Tasks and `docs/todo.md` entries resolved or added.
+3. Any blocker or deliberate tradeoff.
+4. The retained `remdo-refine` scope, end reason, reviewer activity, and final
+   check status.
+5. Stable workflow improvements applied to the shared skill or owning docs.
 
-The work is already committed through the flow/refine by this point. Integration
-after the report, including merge to `dev`, push, or PR creation, is a separate
-step that still needs the user's explicit ask.
+The work is locally committed. Merge, push, or PR creation remains a separate
+user-owned action.
 
 ## Research capability
 
-Use Research for heavyweight investigation that validates the so-far-agreed
-design against recognized guidelines, established patterns, and prior art.
-
-- In dialog, suggest Research and let the user launch it.
-- In autonomous execution, self-launch Research when it disambiguates a problem.
-- Bound Research by a concrete question, not by exhaustiveness.
-- Spikes may run in parallel when independent, isolated according to AGENTS.md
-  worktree and `PORT_BASE` rules. Keep findings and discard spike code.
-- Fold well-fitted sources as citations into the design/spec.
+Use Research for heavyweight investigation against recognized guidelines,
+prior art, or established patterns. Bound it by one concrete question. During
+autonomous execution, use it when it disambiguates the implementation; during
+dialog, suggest it and let the user launch it. Keep findings and discard spike
+code.
 
 ## Permissions
 
-Invoking this skill is an explicitly declared autonomous scope (per AGENTS.md):
-authorization to create and commit on a confirmed task branch. Within a run:
+Invoking this skill is an explicitly declared autonomous scope: it authorizes
+branch creation after user confirmation and local commits on that task branch,
+including the approved spec baseline, implementation, and archive. It never
+authorizes commits on `main` or `dev`, rebases, pushes, pulls, force-pushes, or
+PR operations.
 
-- **Local commits on a confirmed task branch: allowed.** Never commit directly
-  onto `dev` or `main`.
-- **Fast-forwarding the current branch to `origin/main`** as part of
-  `preflight-base.sh`: allowed. The FF-only merge advances a behind branch along
-  existing history and fails on diverged branches.
-- **Push / pull / opening PRs: never without the user's explicit ask.**
-- **Branch creation and cross-branch ops** require user confirmation, except the
-  approved task-branch creation step above.
-- **Web read/search: allowed by default.**
+## Branch and execution model
 
-## Branch base
+The branch diff base is the merge-base of `origin/main` and `HEAD`:
 
-The single base for every diff is the merge-base of `origin/main` and `HEAD`.
+- Committed range: `git diff origin/main...HEAD`.
+- Working tree: `git diff "$(git merge-base origin/main HEAD)"` plus untracked
+  files.
 
-- **Committed range:** `git diff origin/main...HEAD`.
-- **Working tree included:** `git diff "$(git merge-base origin/main HEAD)"`,
-  plus `git ls-files --others --exclude-standard`.
-
-Creating the branch forks from the base SHA pinned at preflight. This flow forks
-task branches from `origin/main` only; stacked/dependent branches are out of
-scope and must be handled by hand.
-
-Branch prefixes come from `docs/contributing.md`: `feat/`, `fix/`, `refactor/`,
-`chore/`, `docs/`. The user confirms the branch name.
-
-## Execution model
-
-Choose by activity:
-
-- **Dialog:** inline in the main session.
-- **Autonomous execution and Research spikes:** subagent-eligible when work is
-  genuinely parallel and independent; otherwise stay inline.
-- **Spec-compliance exit read:** must be fresh-context, through the current
-  agent's adapter. If the user forbids subagents and the runtime has no
-  equivalent isolated review surface, stop or use a narrower non-feature-flow
-  process rather than weakening the fresh-context read.
-- **Memory:** do not write agent memory unless the user explicitly asks (the
-  Phase 5 retro owns where stable improvements land instead).
+Use inline dialog for design. Use isolated subagents only when authorized and
+materially useful for independent Research, implementation, or required fresh
+reads. The final spec-compliance read must use a fresh context; if the runtime
+cannot provide one, stop rather than silently weakening it. Do not write agent
+memory unless the user explicitly asks.
 
 ## Agent adapters
 
-This shared skill is the single source; each runtime maps its process intent to
-that runtime's surfaces. Keep both columns adjacent so divergence stays visible.
+**Claude Code:** Use the installed test-driven development, systematic
+debugging, verification-before-completion, parallel-agent, worktree, and branch
+finishing skills where their named roles apply. Run the compliance read through
+a Claude fork/explore context.
 
-**Claude Code:**
-
-- **Test-first implementation** (Phase 4 new behavior): use
-  `superpowers:test-driven-development` for a red/green loop.
-- **Unexpected failures:** use `superpowers:systematic-debugging` for bugs,
-  failing checks, or confusing runtime behavior.
-- **Verification exit discipline:** use
-  `superpowers:verification-before-completion` plus the AGENTS.md DevTools/e2e
-  requirements.
-- **Parallel and spike work:** use `superpowers:dispatching-parallel-agents` and
-  `superpowers:using-git-worktrees` where independent work or Research spikes
-  should run outside the coordinating session.
-- **Spec-compliance exit read:** run through a Claude Code fork/explore context.
-- **Post-report integration:** `superpowers:finishing-a-development-branch` is
-  the separate user-launched step for merge to `dev`, push, PR, or keep.
-
-**Codex:**
-
-- **Spec-compliance exit read** and other required fresh-context reads: dispatch
-  a fresh explorer/review subagent (authorized in `agents/openai.yaml`), prompted
-  with scope only per the Phase-4 rule.
-- **Parallel Phase-4 / Research work:** use isolated subagents per the AGENTS.md
-  worktree and `PORT_BASE` rules.
+**Codex:** Dispatch the required compliance read through a fresh review agent.
+Use worktree-isolated subagents for genuinely independent Phase-4 or Research
+work.
 
 ## References
 
-- Phase-4 quality loop: `remdo-refine` skill.
-- Syncing `origin/main`: `remdo-sync` skill.
-- Preflight and branch creation:
-  `.agents/skills/remdo-feature-flow/tools/preflight-base.sh`,
-  `.agents/skills/_shared/tools/create-branch-from-base.sh`.
-- Documentation intent and invariants: `docs/documentation.md`; deferral rules:
-  `docs/todo.md`.
-- Git workflow and branch prefixes: `docs/contributing.md#git-workflow`.
-- Global commit/index defaults, worktree isolation, DevTools checks, and final
-  checks: `AGENTS.md`.
+- Specification lifecycle: `.agents/skills/remdo-change-flow/SKILL.md`.
+- Quality loop: `.agents/skills/remdo-refine/SKILL.md`.
+- Syncing `origin/main`: `.agents/skills/remdo-sync/SKILL.md`.
+- Branch helpers: `.agents/skills/remdo-feature-flow/tools/preflight-base.sh`
+  and `.agents/skills/_shared/tools/create-branch-from-base.sh`.
+- Documentation invariants: `docs/documentation.md`.
+- Git workflow: `docs/contributing.md#git-workflow`.
+- Global permissions, testing, worktrees, and DevTools: `AGENTS.md`.

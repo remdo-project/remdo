@@ -11,17 +11,17 @@
 
 ## 2. Implement the conductor
 
-- [ ] 2.1 Add the shared `remdo-change-flow` skill and agent adapters that
+- [x] 2.1 Add the shared `remdo-change-flow` skill and agent adapters that
   compose the project-local OpenSpec propose, sync, apply, verify, and archive
   primitives.
-- [ ] 2.2 Enforce the one-active-change branch gate and the explicit
+- [x] 2.2 Enforce the one-active-change branch gate and the explicit
   specification approval, freeze, revision, and convergence gates.
-- [ ] 2.3 Make `remdo-feature-flow` delegate its specification lifecycle to
+- [x] 2.3 Make `remdo-feature-flow` delegate its specification lifecycle to
   `remdo-change-flow` while preserving its feature-specific autonomous
   execution and refinement behavior.
 
 ## 3. Verify the workflow
 
-- [ ] 3.1 Add focused automated coverage for deterministic conductor helpers
+- [x] 3.1 Add focused automated coverage for deterministic conductor helpers
   and routing behavior.
-- [ ] 3.2 Validate the active change strictly and run the repository checks.
+- [x] 3.2 Validate the active change strictly and run the repository checks.
