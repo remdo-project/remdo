@@ -9,26 +9,6 @@ RemDo places requirements on its use.
 
 ## Requirements
 
-### Requirement: Durable requirements use one specification flow
-
-Accepted durable requirements for RemDo-maintained product, development, and
-operational behavior MUST use main OpenSpec specs as their authoritative source.
-A change to those requirements MUST use an OpenSpec change; implementation work
-that preserves the accepted requirements need not create a durable spec update.
-
-#### Scenario: Development behavior warrants a durable contract
-
-- **WHEN** a proposed development workflow behavior needs a stable contract
-  across implementations or dependency versions
-- **THEN** its requirements are proposed and incorporated through the same
-  OpenSpec lifecycle as product requirements
-
-#### Scenario: Implementation changes without changing the contract
-
-- **WHEN** code, configuration, tests, or agent instructions change while
-  preserving accepted requirements
-- **THEN** the work may proceed without changing a main spec
-
 ### Requirement: RemDo workflow requirements survive OpenSpec updates
 
 RemDo-specific development workflow behavior MUST remain authoritative outside
