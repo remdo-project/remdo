@@ -25,6 +25,7 @@
     // (remdo-simplify, playground) hold their own SKILL.md and must stay linted.
     // Kept in sync by tests/unit/skills/embedded.spec.ts (fails if a symlink is
     // missing here).
+    ".claude/skills/remdo-change-flow",
     ".claude/skills/remdo-deps-refresh",
     ".claude/skills/remdo-docs-align",
     ".claude/skills/remdo-feature-flow",

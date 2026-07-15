@@ -1,4 +1,13 @@
-## ADDED Requirements
+# Development Change Workflow Specification
+
+## Purpose
+
+Define RemDo's agent-assisted development change lifecycle, including OpenSpec
+transitions, automatic local actions, responsibility boundaries, and failure
+handling. Generated OpenSpec behavior is outside this capability except where
+RemDo places requirements on its use.
+
+## Requirements
 
 ### Requirement: Durable requirements use one specification flow
 
