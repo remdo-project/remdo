@@ -21,8 +21,8 @@ surface and its behavior, not those operations.
 2. The structural actions target the current [selection](./selection.md): the
    focused note for a caret selection, or every note in a selected note range. Their
    contracts are:
-   - Indent / outdent, per the [selection](./selection.md) structural rules and
-     the [zoom](./zoom.md) boundary.
+   - Indent / outdent, per
+     [Indentation](../../openspec/specs/outliner-indentation/spec.md).
    - Move up / move down, per
      [Reordering](../../openspec/specs/outliner-reordering/spec.md).
    - Toggle done, recursively per

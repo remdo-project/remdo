@@ -1,5 +1,7 @@
 import { expect, it } from 'vitest';
+import { act } from '@testing-library/react';
 import {
+  getRootElementOrThrow,
   placeCaretAtNote,
   selectEntireNote,
   selectNoteRange,
@@ -18,6 +20,29 @@ it('tab on note1 at start is a no-op (no structure change)', meta({ fixture: 'fl
   await placeCaretAtNote(remdo, 'note1');
   await pressKey(remdo, { key: 'Tab' }); // indent attempt on first root item
 
+  expect(remdo).toMatchEditorState(before);
+});
+
+it('keeps focus in the editor when indentation keys are no-ops', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  const root = getRootElementOrThrow(remdo.editor);
+  await placeCaretAtNote(remdo, 'note1');
+  const before = remdo.getEditorState();
+
+  for (const shiftKey of [false, true]) {
+    const event = new KeyboardEvent('keydown', {
+      key: 'Tab',
+      bubbles: true,
+      cancelable: true,
+      shiftKey,
+    });
+    await act(async () => {
+      root.dispatchEvent(event);
+    });
+    await remdo.waitForSynced();
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(root).toHaveFocus();
+  }
   expect(remdo).toMatchEditorState(before);
 });
 

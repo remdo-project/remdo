@@ -32,15 +32,6 @@ Rules:
   migration-tracker/config hooks as soon as the backlog is empty and the
   migration is complete.
 
-- IndentationPlugin `KEY_TAB_COMMAND` handler resolves the selected note range
-  twice (once to gate `preventDefault`, once inside `$indent`). Collapsing it to
-  drive `preventDefault` off `$indent`'s boolean return would change Tab-at-
-  boundary semantics: today Tab is always swallowed when a range exists (even if
-  indent no-ops); the collapsed form lets Tab propagate on a no-op indent
-  (possible focus escape). Decide the intended Tab-at-boundary contract, then
-  collapse or keep. Indent no-op tests assert editor state, not preventDefault,
-  so they don't pin this.
-
 - Mobile toolbar fold: `resolveSelectionCapability` (button enabled state) and
   `runMobileAction('fold')` (dispatch) each resolve the focus note independently,
   so a selection change between the capability sync and the tap can fold a
