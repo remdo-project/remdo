@@ -7,10 +7,11 @@ The agent-facing doc workflow lives in [AGENTS.md](../AGENTS.md).
 
 ## Ownership
 
-- `openspec/specs/` owns accepted durable product behavior after migration.
+- `openspec/specs/` owns accepted durable requirements for RemDo-maintained
+  product, development, and operational behavior after migration.
 - `openspec/changes/` owns proposed behavior, design, and implementation tasks.
-- `docs/` owns project principles, contributor and development policy, runbooks,
-  and product behavior not yet migrated.
+- `docs/` owns project principles, contributor guidance, runbooks, explanatory
+  reference, and accepted requirements not yet migrated.
 - [The migration manifest](../openspec/MIGRATION.md) records migrated
   capabilities and the single next migration.
 
@@ -32,13 +33,13 @@ reader and question — the invariants carry over, the persona does not.
 
 ## Invariants
 
-These invariants apply to every durable doc and main spec, and to agent skill files
-(the `.claude/` and `.agents/` skill roots), which carry the same
-risks — except where an invariant is inherently about the corpus's shape rather
-than a doc's content: their `References` sections link sibling skills rather
-than only external sources,
-and — since a skill's procedure is its contract — its steps are not the how-to
-prose invariant 5 omits.
+These invariants apply to every durable doc and main spec, and to agent skill
+files (the `.claude/` and `.agents/` skill roots), which carry the same risks —
+except where an invariant is inherently about the corpus's shape rather than a
+doc's content: their `References` sections link sibling skills rather than only
+external sources, and their executable steps are not the how-to prose invariant
+5 omits. When a skill implements a specified capability, the main spec owns the
+accepted behavior and the skill owns its execution procedure.
 
 1. **Single source per topic.** Each behavior and each precise term MUST be
    defined exactly once, in its current owning doc or spec, and MUST NOT be
@@ -52,9 +53,9 @@ prose invariant 5 omits.
    relies on (specs, standards, third-party docs) — all of those, and nothing
    incidental; links within this documentation system MUST be inline, never
    collected into `References`.
-4. **Spec, not status.** A durable product spec MUST describe accepted behavior
-   in timeless prose. Proposed behavior, design, tasks, and sequencing MUST live
-   in an active OpenSpec change. During migration, an unmigrated `docs/` spec MAY
+4. **Spec, not status.** A durable spec MUST describe accepted behavior in
+   timeless prose. Proposed behavior, design, tasks, and sequencing MUST live in
+   an active OpenSpec change. During migration, an unmigrated `docs/` spec MAY
    retain target behavior ahead of code only when `docs/todo.md` names the
    suspended contract; do not copy that unimplemented behavior into a main
    OpenSpec spec. A long-horizon non-target direction MAY live as a brief
@@ -76,9 +77,9 @@ prose invariant 5 omits.
    meanings — used sparingly, with MUST reserved for requirements whose
    violation breaks the contract; lowercase forms keep their plain-English
    meanings.
-8. **Structure mirrors the product.** Spec boundaries SHOULD follow the
-   product's feature and machinery boundaries, so code and specs are navigated
-   in parallel.
+8. **Structure mirrors the system.** Spec boundaries SHOULD follow the
+   maintained product, development, and operational capability boundaries, so
+   their implementations and specs are navigated in parallel.
 
 ## References
 
@@ -86,7 +87,7 @@ prose invariant 5 omits.
   [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) — normative keywords
   (invariant 7).
 - [Diátaxis: reference](https://diataxis.fr/reference/) — reference-writing
-  discipline; structure mirrors the product.
+  discipline; structure mirrors the maintained system.
 - [Every Page Is Page One](https://everypageispageone.com/the-book/) —
   self-containment, scope-first, subject-affinity linking.
 - [Write the Docs: docs as code](https://www.writethedocs.org/guide/docs-as-code/)

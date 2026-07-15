@@ -3,8 +3,9 @@ schema: spec-driven
 context: |
   RemDo is a collaborative, keyboard-first outliner built on TypeScript,
   React, Lexical, and Yjs. docs/documentation.md defines the documentation
-  invariants. Main specs contain accepted durable product behavior; active
-  changes contain proposed behavior, design, and implementation tasks.
+  invariants. Main specs contain accepted durable requirements for maintained
+  product, development, and operational behavior; active changes contain
+  proposed behavior, design, and implementation tasks.
   openspec/MIGRATION.md tracks which capabilities have moved out of docs/.
   openspec/MIGRATION-BACKLOG.md preserves accepted migration decisions until
   their permanent OpenSpec owners exist.
@@ -12,12 +13,12 @@ context: |
 rules:
   proposal:
     - Keep the motivation and scope concise.
-    - List only capabilities whose product requirements change; if the default schema requires a change-local capability for documentation or tooling work, mark it temporary and archive with --skip-specs.
+    - List only capabilities whose durable requirements change; if the default schema requires a change-local capability for work with no durable requirement impact, mark it temporary and archive with --skip-specs.
   specs:
-    - State observable product behavior, not implementation inventories.
+    - State observable maintained behavior, not implementation inventories.
     - Keep requirements scope-first and minimal; omit derivable detail.
     - Group closely related rules into one requirement; split behaviors that can change independently.
-    - Before naming a product concept, consult the migration backlog and current docs/specs; reuse the established term and link its authoritative definition at first use.
+    - Before naming a domain concept, consult the migration backlog and current docs/specs; reuse the established term and link its authoritative definition at first use.
     - Use the minimum scenarios needed to clarify outcomes and failure branches; do not restate the requirement.
     - Keep examples under scenarios and treat them as informative; they must not introduce behavior absent from the scenario.
     - Add examples only when they materially clarify the scenario. Use consistent Example, Before, Action, and After labels as applicable, with fenced text blocks for structured content.

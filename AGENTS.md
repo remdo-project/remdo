@@ -12,9 +12,10 @@ on those baselines—no legacy browser shims.
 AGENTS.md is the only doc you must read at the start of every session. Do one
 full pass through `docs/` and `openspec/specs/` when you onboard. During the
 OpenSpec migration, `openspec/MIGRATION.md` says which capabilities have moved;
-unlisted capabilities remain owned by `docs/`. After onboarding, identify the
-feature area and read only its current owner — filenames and scope openers are
-the navigation. For the documentation invariants, see `docs/documentation.md`.
+unlisted product capabilities remain owned by `docs/`. After onboarding,
+identify the feature area and read only its current owner — filenames and scope
+openers are the navigation. For the documentation invariants, see
+`docs/documentation.md`.
 
 When working, deep-link to the authoritative doc or spec (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
@@ -104,12 +105,6 @@ sections to docs.
      `remdo-deps-refresh` —
      each states its scope where it lives, so this list is illustrative, not the
      source of authority.)
-  4. The user explicitly requests archiving an OpenSpec change with
-     `--skip-specs` — covers one archive-only commit after confirming that the
-     delta is already synchronized or intentionally has no durable-spec impact.
-     Run strict OpenSpec validation after archiving, then stage only the archive
-     move and commit it immediately. If validation fails or unrelated changes
-     overlap the archive paths, leave the archive uncommitted and report why.
   Plain requests to update/change/fix/do X are **not** an autonomous-scope
   declaration: produce the changes uncommitted and point at them. Authorization
   covers commits only; pushing always needs an explicit, separate ask.
