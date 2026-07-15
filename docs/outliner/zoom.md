@@ -106,7 +106,7 @@ These govern commands run from the outline children. Commands run from the
 2. `Backspace`/`Delete` boundary behavior is defined in
    [Deletion](./deletion.md).
 3. Indent/outdent boundary behavior is defined in
-   [Note Structure Rules](./note-structure-rules.md).
+   [Indentation](../../openspec/specs/outliner-indentation/spec.md).
 4. Reorder boundary behavior is defined in
    [Reordering](../../openspec/specs/outliner-reordering/spec.md).
 5. When a command hits the boundary, the editor may show brief non-modal
