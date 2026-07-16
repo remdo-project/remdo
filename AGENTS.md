@@ -338,8 +338,10 @@ Determine agent mode in this order:
 
 ## Tools
 
-- OpenSpec is project-local: when an OpenSpec workflow shows `openspec ...`,
-  run the equivalent `./tools/openspec ...` from the repository root.
+- OpenSpec is project-local through `tools/openspec`. Claude session wiring puts
+  `tools/` first on `PATH`, so generated bare `openspec ...` commands resolve to
+  it. In agent environments without that wiring, run the equivalent
+  `./tools/openspec ...` from the repository root.
 - `pnpm run dev:init` is the one-shot workspace bootstrap. It runs
   `pnpm i --frozen-lockfile`. Use it when you clone RemDo for the first time—or
   if you blow away `node_modules`. Skip it in workspaces that are already
