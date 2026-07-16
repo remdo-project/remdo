@@ -1,7 +1,7 @@
 ---
 name: openspec-update-change
 description: Update an OpenSpec change by revising its existing planning artifacts and keeping them coherent with one another. Use when the user wants to revise a change's plan, fold new decisions into it, or reconcile its artifacts after an edit. Never edits code.
-allowed-tools: Bash(./tools/openspec:*)
+allowed-tools: Bash(openspec:*)
 license: MIT
 compatibility: Requires openspec CLI.
 metadata:
@@ -12,7 +12,7 @@ metadata:
 
 Revise a change's existing planning artifacts and keep them coherent. Never edit code.
 
-**Store selection:** If the user names a store (a store is a standalone OpenSpec repo registered on this machine) or the work lives in one, run `./tools/openspec store list --json` to discover registered store ids, then pass `--store <id>` on the commands that read or write specs and changes (`new change`, `status`, `instructions`, `list`, `show`, `validate`, `archive`, `doctor`, `context`). Other commands do not take the flag. Hints printed by commands already carry the flag; keep it on follow-ups. Without a store, commands act on the nearest local `openspec/` root.
+**Store selection:** If the user names a store (a store is a standalone OpenSpec repo registered on this machine) or the work lives in one, run `openspec store list --json` to discover registered store ids, then pass `--store <id>` on the commands that read or write specs and changes (`new change`, `status`, `instructions`, `list`, `show`, `validate`, `archive`, `doctor`, `context`). Other commands do not take the flag. Hints printed by commands already carry the flag; keep it on follow-ups. Without a store, commands act on the nearest local `openspec/` root.
 
 **Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
@@ -20,8 +20,7 @@ Revise a change's existing planning artifacts and keep them coherent. Never edit
 
 1. **If no change name provided, prompt for selection**
 
-   Run `./tools/openspec list --json` to get available changes sorted by most
-   recently modified. Then ask the user which change to update.
+   Run `openspec list --json` to get available changes sorted by most recently modified. Then use the **AskUserQuestion tool** to let the user select which change to update.
 
    Present the top 3-4 most recently modified changes as options, showing:
    - Change name
@@ -35,7 +34,7 @@ Revise a change's existing planning artifacts and keep them coherent. Never edit
 
 2. **Get the change's artifacts**
    ```bash
-   ./tools/openspec status --change "<name>" --json
+   openspec status --change "<name>" --json
    ```
    Parse the JSON to understand current state. The response includes:
    - `schemaName`: The workflow schema being used (e.g., "spec-driven")
@@ -63,7 +62,7 @@ Revise a change's existing planning artifacts and keep them coherent. Never edit
    - If the user rejects a revision, do not write it - leave that artifact unchanged.
    - When a substantial rewrite is needed, get that artifact's rules and template first:
      ```bash
-     ./tools/openspec instructions <artifact-id> --change "<name>" --json
+     openspec instructions <artifact-id> --change "<name>" --json
      ```
 
 6. **Point to the next step (guidance only - NEVER act on it)**
@@ -80,7 +79,7 @@ After each invocation, show:
 
 **Guardrails**
 - Planning artifacts only - NEVER edit implementation code. If the revised plan implies code changes, stop and point to `/opsx:apply`.
-- Use the artifact ids and paths reported by `./tools/openspec status`; never branch on hardcoded artifact names.
+- Use the artifact ids and paths reported by `openspec status`; never branch on hardcoded artifact names.
 - Edit only the concrete files in `existingOutputPaths`; never write to a glob `resolvedOutputPath`.
 - Do not advance the build frontier: no new artifacts, no new files under glob artifacts - that is `/opsx:continue`'s job.
 - Confirm every edit with the user before writing.
