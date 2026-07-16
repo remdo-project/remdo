@@ -93,7 +93,6 @@ function EditorRuntime({
             contentEditable={
               <ContentEditable
                 className="editor-input"
-                autoComplete="off"
                 autoCapitalize="sentences"
                 autoCorrect="on"
                 inputMode="text"
