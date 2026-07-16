@@ -39,13 +39,6 @@ Rules:
   current focus, which is arguably correct; revisit only if it proves confusing
   in practice.
 
-- `useKeyboardInset` treats any visual-viewport height shrink as the keyboard,
-  but mobile browsers also shrink it when the dynamic URL bar collapses (no
-  keyboard), which can lift the docked mobile toolbar off `bottom: 0` mid-screen.
-  Distinguishing keyboard shrink from browser-chrome shrink has no clean API;
-  revisit if the mis-dock proves noticeable (e.g. gate on editor focus, or a
-  minimum keyboard-height threshold).
-
 - Portal-root tracking (`root.closest('.editor-container')` seeded in state +
   updated from `registerRootListener`) is now hand-rolled in three plugins
   (`NoteControlsPlugin`, `NoteMenuPlugin`, `MobileActionToolbar`). Extract a
