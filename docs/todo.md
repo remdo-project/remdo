@@ -25,6 +25,10 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
+- After `rebuild-change-verification`, use its active-or-archived
+  `documentation-review-information-architecture.md` research note to propose
+  the separate review-optimization change; preserve contextual main-spec review.
+
 - OpenSpec migration: work through every note in
   [`openspec/MIGRATION-BACKLOG.md`](../openspec/MIGRATION-BACKLOG.md), move its
   accepted decision to the permanent owner, drop its temporary **Avoid**

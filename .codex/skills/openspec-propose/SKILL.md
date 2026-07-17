@@ -29,7 +29,7 @@ When ready to implement, run /opsx:apply
 
 1. **If no clear input provided, ask what they want to build**
 
-   Use the **AskUserQuestion tool** (open-ended, no preset options) to ask:
+   Ask the user an open-ended question with no preset options:
    > "What change do you want to work on? Describe what you want to build or fix."
 
    From their description, derive a kebab-case name (e.g., "add user authentication" → `add-user-auth`).
@@ -53,7 +53,7 @@ When ready to implement, run /opsx:apply
 
 4. **Create artifacts in sequence until apply-ready**
 
-   Use the **TodoWrite tool** to track progress through the artifacts.
+   Use `update_plan` to track progress through the artifacts.
 
    Loop through artifacts in dependency order (artifacts with no pending dependencies first):
 
@@ -80,7 +80,7 @@ When ready to implement, run /opsx:apply
       - Stop when all `applyRequires` artifacts are done
 
    c. **If an artifact requires user input** (unclear context):
-      - Use **AskUserQuestion tool** to clarify
+      - Ask the user to clarify
       - Then continue with creation
 
 5. **Show final status**
