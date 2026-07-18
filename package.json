@@ -140,7 +140,6 @@
     "@antfu/eslint-config": "catalog:",
     "@ast-grep/cli": "catalog:",
     "@eslint-react/eslint-plugin": "catalog:",
-    "@fission-ai/openspec": "catalog:",
     "@lexical/eslint-plugin": "catalog:",
     "@playwright/test": "catalog:",
     "@testing-library/jest-dom": "catalog:",

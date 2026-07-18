@@ -59,15 +59,3 @@ describe('change-gate.sh', () => {
     expect(multiple.stderr).toContain('target, other');
   });
 });
-
-describe('change-flow routing', () => {
-  it('keeps feature flow delegated to the shared OpenSpec lifecycle', () => {
-    const shared = fs.readFileSync('.agents/skills/remdo-change-flow/SKILL.md', 'utf8');
-    const feature = fs.readFileSync('.agents/skills/remdo-feature-flow/SKILL.md', 'utf8');
-
-    expect(shared).toContain('openspec-sync-specs');
-    expect(shared).toContain('archive with `--skip-specs`');
-    expect(feature).toContain('remdo-change-flow');
-    expect(feature).toContain('delegates');
-  });
-});

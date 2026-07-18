@@ -1,12 +1,11 @@
-# OpenSpec Migration
+# Legacy OpenSpec Migration Record
 
-Tracks the gradual move of durable product behavior from `docs/` to
-`openspec/specs/`. Unlisted product capabilities remain owned by `docs/`;
-newly established development and operational capabilities are not migration
-entries. Accepted decisions awaiting a permanent owner live in the temporary
-[migration backlog](./MIGRATION-BACKLOG.md).
+This records capabilities moved from `docs/` to `openspec/specs/` before
+[`spec/`](../spec/README.md) became the authoritative entry point. These
+capabilities remain delegated owners until migrated to `spec/`. OpenSpec change
+artifacts are evidence, not an active development workflow.
 
-- Phase: capability migration
-- Completed capabilities: `outliner-list-types`, `outliner-reordering`,
+- Delegated capabilities: `outliner-list-types`, `outliner-reordering`,
   `outliner-indentation`
-- Next capability: `outliner-selection`
+- Accepted decisions awaiting migration remain in the temporary
+  [migration backlog](./MIGRATION-BACKLOG.md).

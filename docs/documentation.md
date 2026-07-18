@@ -7,16 +7,12 @@ The agent-facing doc workflow lives in [AGENTS.md](../AGENTS.md).
 
 ## Ownership
 
-- `openspec/specs/` owns accepted durable target requirements for
-  RemDo-maintained product, development, and operational behavior after
-  migration.
-- `openspec/changes/` owns proposals, design, requirement deltas, and
-  implementation tasks. On an active branch, its incomplete tasks disclose any
-  gap between accepted target requirements and implementation.
+- [`spec/`](../spec/README.md) is the authoritative entry point and owns every
+  contract stated there.
 - `docs/` owns project principles, contributor guidance, runbooks, explanatory
-  reference, and accepted requirements not yet migrated.
-- [The migration manifest](../openspec/MIGRATION.md) records migrated
-  capabilities and the single next migration.
+  reference, and delegated requirements not yet moved to `spec/`.
+- `openspec/specs/` retains only the accepted capability contracts delegated by
+  `spec/`. All other OpenSpec artifacts are evidence only.
 
 A capability migration moves its complete contract, updates inbound links, and
 removes the former normative definition in the same change.
@@ -57,14 +53,11 @@ accepted behavior and the skill owns its execution procedure.
    incidental; links within this documentation system MUST be inline, never
    collected into `References`.
 4. **Spec, not status.** A durable spec MUST describe accepted target behavior
-   in timeless prose. Before acceptance, proposed behavior, design, tasks, and
-   sequencing MUST live in an active OpenSpec change. On a branch with one
-   active change, an accepted main spec MAY lead implementation only while the
-   change's incomplete tasks name every known gap; the branch MUST converge
-   before merge. During migration, an unmigrated `docs/` spec MAY retain target
-   behavior ahead of code only when `docs/todo.md` names the suspended contract.
-   A long-horizon non-target direction MAY live as a brief trigger in the owning
-   spec's `Future` section.
+   in timeless prose, never project status or sequencing. Temporary change
+   state and implementation gaps live outside permanent owners. Accepted target
+   behavior MAY lead implementation only while a temporary ledger names every
+   known gap; the branch MUST converge before merge. A long-horizon non-target
+   direction MAY live as a brief trigger in the owning spec's `Future` section.
 5. **Minimal by default.** State the rule, not the inventory: beyond what the
    other invariants require, a clause MUST be omitted unless its absence would
    let someone misuse the contract. That covers implementation detail that is

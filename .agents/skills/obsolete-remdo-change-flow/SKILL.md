@@ -1,13 +1,15 @@
 ---
-name: remdo-change-flow
-description: Use for any RemDo change that adds or modifies durable product, development, or operational requirements. Conducts the change from exploration through main-spec approval, implementation, verification, and archival while composing the installed OpenSpec skills. Triggers include requests to start or continue a spec-bearing change, approve or revise its contract, implement an approved OpenSpec change, or finalize it.
+name: obsolete-remdo-change-flow
+description: Reference-only snapshot of RemDo's retired OpenSpec-backed change workflow. Never invoke it to conduct current work.
 ---
 
-# Change Flow
+# Obsolete Change Flow
 
 ## Overview
 
-Conduct a spec-bearing RemDo change through the lifecycle defined by the
+This retired procedure is preserved as migration evidence. Do not invoke it.
+It previously conducted a spec-bearing RemDo change through the lifecycle
+defined by the
 [`development-change-workflow`](../../../openspec/specs/development-change-workflow/spec.md).
 Compose the installed OpenSpec skills; do not reproduce or modify their
 generated procedures.
@@ -20,12 +22,21 @@ transport, design history, and implementation-gap ledger.
 Run the deterministic branch gate before an OpenSpec action:
 
 - **Starting a change:**
-  `pnpm exec tsx .agents/skills/remdo-change-flow/tools/change-gate.ts start`.
+
+  ```sh
+  pnpm exec tsx \
+    .agents/skills/obsolete-remdo-change-flow/tools/change-gate.ts start
+  ```
+
   Continue only with no active change. Confirm the task branch with the user
   before creating or switching branches.
 - **Continuing a change:**
-  `pnpm exec tsx .agents/skills/remdo-change-flow/tools/change-gate.ts continue
-  <name>`.
+
+  ```sh
+  pnpm exec tsx \
+    .agents/skills/obsolete-remdo-change-flow/tools/change-gate.ts continue <name>
+  ```
+
   Continue only when that name is the branch's sole active change.
 
 A different change requires a different branch or worktree. Do not archive,
@@ -115,9 +126,7 @@ provide a narrower autonomous scope; preserve its limits.
 
 - Durable lifecycle requirements:
   `openspec/specs/development-change-workflow/spec.md`.
-- Active-change gate:
-  `.agents/skills/remdo-change-flow/tools/change-gate.ts`.
-- Feature-specific autonomous wrapper:
-  `.agents/skills/remdo-feature-flow/SKILL.md`.
+- Retired active-change gate:
+  `.agents/skills/obsolete-remdo-change-flow/tools/change-gate.ts`.
 - Documentation invariants: `docs/documentation.md`.
 - Repository permissions and checks: `AGENTS.md`.

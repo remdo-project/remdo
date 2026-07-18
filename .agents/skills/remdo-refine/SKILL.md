@@ -1,6 +1,6 @@
 ---
 name: remdo-refine
-description: Use to run the autonomous quality loop over a diff on the current branch — simplify, review at max effort, then independent external reviews, looping until a clean pass. Works on either a committed range (default `origin/main...HEAD`, or an explicit range, clean tree) or the uncommitted working tree (opt-in, for reviewing changes before committing). Triggers include "refine this", "run the refine ladder", "review/simplify/fix loop", "refine the uncommitted changes", or `remdo-feature-flow` calling it in Phase 4.
+description: Use to run the autonomous quality loop over a diff on the current branch — simplify, review at max effort, then independent external reviews, looping until a clean pass. Works on either a committed range (default `origin/main...HEAD`, or an explicit range, clean tree) or the uncommitted working tree (opt-in, for reviewing changes before committing). Triggers include "refine this", "run the refine ladder", "review/simplify/fix loop", or "refine the uncommitted changes".
 ---
 
 # Refine
@@ -13,8 +13,8 @@ state. Each clean rung result stays valid while that state is unchanged; fixes
 invalidate only results that inspected an earlier state.
 
 It improves **code quality**, not feature scope — it converges the code, not the
-spec. When `remdo-feature-flow` calls it, reaching the spec's described state
-stays that skill's gap-closing loop; refine polishes what that loop produced.
+spec. Reaching the spec's described state remains the caller's gap-closing loop;
+refine polishes what that loop produced.
 
 The loop guard below is a judgement, not a tuned number.
 
@@ -240,8 +240,8 @@ In **committed-range** scope refine commits each fix, so invoking it is an
 explicitly declared autonomous scope (per AGENTS.md): authorization to commit
 **on the current branch** — never push. **`main` stays protected**:
 if invoked on `main`, warn and stop (same guard as the dirty-tree check) rather
-than self-committing there. Inside a `remdo-feature-flow` run, that skill's commit
-policy already governs.
+than self-committing there. A calling skill's narrower commit policy still
+governs.
 
 In **working-tree** scope refine commits nothing — its boundary is *no commit*,
 not *no clean files*. Applying a finding may require editing a clean companion

@@ -1,6 +1,0 @@
-interface:
-  display_name: "RemDo Change Flow"
-  short_description: "Spec-first RemDo development workflow"
-  default_prompt: "Use $remdo-change-flow to guide a spec-bearing RemDo change from exploration through verified archival."
-policy:
-  allow_implicit_invocation: true

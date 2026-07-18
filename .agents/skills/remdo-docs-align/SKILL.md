@@ -1,6 +1,6 @@
 ---
 name: remdo-docs-align
-description: Use to converge documentation and skill files to the documentation intent and invariants (docs/documentation.md) over a chosen scope — deterministic gates, an align pass, then a cross-family deletion advocate whose proposals are adjudicated under the face-value tie-breaker. Triggers include "align the docs", "run docs-align", a corpus realignment, or remdo-feature-flow aligning a spec at its Phase-3 gate.
+description: Use to converge documentation and skill files to the documentation intent and invariants (docs/documentation.md) over a chosen scope — deterministic gates, an align pass, then a cross-family deletion advocate whose proposals are adjudicated under the face-value tie-breaker. Triggers include "align the docs", "run docs-align", or a corpus realignment.
 ---
 
 # Docs align
@@ -96,5 +96,4 @@ there, warn and stop rather than self-committing), and never push. An **explicit
 file-set scope** (e.g. a whole-corpus realignment) is treated the same as a
 committed-range: commit each stage's edits on the current branch. In
 **working-tree scope** it commits nothing — the applied edits stay in the tree
-and the caller (a standalone user, or `remdo-feature-flow` at its Phase-3 spec
-gate) owns the eventual commit.
+and the caller owns the eventual commit.

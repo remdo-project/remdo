@@ -16,8 +16,8 @@ Rules:
 
 - Mark completed items as `✅ Done` while a section is still active.
 - Delete sections once fully done.
-- Move durable decisions/specs into the relevant doc under `docs/`, leaving a
-  link behind.
+- Move durable decisions/specs into the owner routed by `spec/`, leaving a link
+  behind.
 
 ## Scratchpad maintenance
 
@@ -25,16 +25,11 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
-- After `rebuild-change-verification`, use its active-or-archived
-  `documentation-review-information-architecture.md` research note to propose
-  the separate review-optimization change; preserve contextual main-spec review.
-
-- OpenSpec migration: work through every note in
-  [`openspec/MIGRATION-BACKLOG.md`](../openspec/MIGRATION-BACKLOG.md), move its
-  accepted decision to the permanent owner, drop its temporary **Avoid**
-  guidance, and remove it from the backlog. Delete the backlog and its
-  migration-tracker/config hooks as soon as the backlog is empty and the
-  migration is complete.
+- Grow `spec/` through small capability migrations from delegated `docs/` and
+  `openspec/specs/` owners. Move each complete contract, repair inbound links,
+  and remove the former normative copy in the same change. Preserve accepted
+  decisions from [`openspec/MIGRATION-BACKLOG.md`](../openspec/MIGRATION-BACKLOG.md)
+  while their subjects move.
 
 - Mobile toolbar fold: `resolveSelectionCapability` (button enabled state) and
   `runMobileAction('fold')` (dispatch) each resolve the focus note independently,
@@ -682,10 +677,10 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   have each skill state only its delta: one stop/escalation taxonomy (today
   six names: ESCALATE/Blocker/Stuck/stop/dead-end/callout), one
   mutation-permission vocabulary (today five variants), one report skeleton,
-  and a one-line verification-ownership map (feature-flow proves spec
-  behavior; refine owns quality backstops; sync the post-merge check;
-  deps-refresh its matrix). Reconcile with AGENTS.md's declare-scope-in-situ
-  rule via shared vocabulary + per-skill delta.
+  and a one-line verification-ownership map for retained skills (refine owns
+  quality backstops; sync the post-merge check; deps-refresh its matrix).
+  Reconcile with AGENTS.md's declare-scope-in-situ rule via shared vocabulary +
+  per-skill delta.
 - ESCALATE (docs-align): `docs/outliner/menu.md:40` — advocate
   proposed deleting "it has no query span, so it owns every key;" as a
   restatement of the shared editor-popup contract. Dual adjudicators split:
@@ -826,5 +821,5 @@ hide pinned via the anchor rule). Icons/labels may vary by note state
 predicates, promote the menu's inline list-type change to a command, put
 `NoteMenuPlugin` on the shared popup engine, extract `usePortalRoot`. The
 toolbar's "open menu" icon and the menu's fuller-set-only actions (zoom,
-list-type, fold-to-level) are open design questions. Sized as a
-`remdo-feature-flow`, based on top of the mobile-toolbar work — not yet scoped.
+list-type, fold-to-level) are open design questions. This should follow the
+durable change workflow once its scope is defined.

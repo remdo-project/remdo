@@ -9,19 +9,15 @@ portability.
 Target runtimes and browser support are defined in `docs/contributing.md`. Rely
 on those baselines—no legacy browser shims.
 
-AGENTS.md is the only doc you must read at the start of every session. Do one
-full pass through `docs/` and `openspec/specs/` when you onboard. During the
-OpenSpec migration, `openspec/MIGRATION.md` says which capabilities have moved;
-unlisted product capabilities remain owned by `docs/`. After onboarding,
-identify the feature area and read only its current owner — filenames and scope
-openers are the navigation. For the documentation invariants, see
+AGENTS.md is the only doc you must read at the start of every session. Use
+[`spec/`](spec/README.md) as the authoritative entry point when accepted
+behavior matters, then read only the current owner it identifies. Filenames and
+scope openers are the navigation. For the documentation invariants, see
 `docs/documentation.md`.
 
-Changes that add or modify durable requirements follow the
-[`development-change-workflow`](openspec/specs/development-change-workflow/spec.md).
-A branch has at most one active OpenSpec change. On such a branch, read its main
-specs together with its incomplete tasks: the specs state accepted target
-behavior and the tasks disclose any remaining implementation gap.
+Changes that add or modify durable requirements update the owner routed by
+`spec/`. OpenSpec changes and the `obsolete-remdo-change-flow` skill are
+reference material, not active development workflows.
 
 When working, deep-link to the authoritative doc or spec (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
@@ -107,7 +103,7 @@ sections to docs.
   3. A running skill declares an autonomous scope in its own SKILL.md. The
      skill's declaration is the authorization and carries its own branch scope;
      honour that scope rather than this default. (Self-authorizing skills today:
-     `remdo-feature-flow`, `remdo-refine`, `remdo-docs-align`, `remdo-sync`,
+     `remdo-refine`, `remdo-docs-align`, `remdo-sync`,
      `remdo-deps-refresh` —
      each states its scope where it lives, so this list is illustrative, not the
      source of authority.)
@@ -338,10 +334,6 @@ Determine agent mode in this order:
 
 ## Tools
 
-- OpenSpec is project-local through `tools/openspec`. Claude session wiring puts
-  `tools/` first on `PATH`, so generated bare `openspec ...` commands resolve to
-  it. In agent environments without that wiring, run the equivalent
-  `./tools/openspec ...` from the repository root.
 - `pnpm run dev:init` is the one-shot workspace bootstrap. It runs
   `pnpm i --frozen-lockfile`. Use it when you clone RemDo for the first time—or
   if you blow away `node_modules`. Skip it in workspaces that are already

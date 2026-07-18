@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'if [ -n \"${CLAUDE_ENV_FILE:-}\" ]; then printf \"export PATH=\\\"%s/tools:\\$PATH\\\"\\n\" \"$CLAUDE_PROJECT_DIR\" >> \"$CLAUDE_ENV_FILE\"; fi; export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; cd \"$CLAUDE_PROJECT_DIR\"; V=$(jq -r .engines.node package.json); nvm install \"${V%.x}\"; nvm alias default \"${V%.x}\"; pnpm run dev:init'"
+            "command": "bash -c 'export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; cd \"$CLAUDE_PROJECT_DIR\"; V=$(jq -r .engines.node package.json); nvm install \"${V%.x}\"; nvm alias default \"${V%.x}\"; pnpm run dev:init'"
           }
         ]
       }

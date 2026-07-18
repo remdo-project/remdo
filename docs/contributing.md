@@ -13,7 +13,7 @@ concern, forked from `origin/main`. Local reviews diff against the branch's own
 work with the three-dot merge-base range **`origin/main...HEAD`** (or
 `git diff "$(git merge-base origin/main HEAD)"` to include uncommitted work) — no
 tag to maintain, since the merge-base is recomputed from the two refs and stays
-correct even after merging `origin/main` in (see the `remdo-feature-flow` skill).
+correct even after merging `origin/main` in.
 
 Name topic branches with clear prefixes so intent is obvious:
 
@@ -90,9 +90,8 @@ by that feature and other modules ask it by name. Known exception to repay:
 several `outline/` modules still import note-body primitives from
 `features/note-body/` (see `docs/todo.md`).
 
-Keep durable product behavior in its current owner: `docs/` until the capability
-is migrated, then `openspec/specs/`. Source feature folders do not replace
-stable behavior specs.
+Use [`spec/`](../spec/README.md) to find the current owner of durable product
+behavior. Source feature folders do not replace stable behavior specs.
 
 ## Environment
 

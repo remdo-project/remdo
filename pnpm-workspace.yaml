@@ -60,7 +60,6 @@ catalog:
   '@better-auth/core': 1.7.0-rc.1
   '@better-auth/oauth-provider': 1.7.0-rc.1
   '@eslint-react/eslint-plugin': ^5.13.1
-  '@fission-ai/openspec': ^1.6.0
   '@hono/node-server': ^2.0.8
   '@lexical/clipboard': ^0.45.0
   '@lexical/eslint-plugin': ^0.45.0
@@ -133,7 +132,6 @@ strictDepBuilds: true
 
 allowBuilds:
   '@ast-grep/cli': true
-  '@fission-ai/openspec': false
   better-sqlite3: true
   esbuild: true
   y-sweet: true
