@@ -64,11 +64,11 @@ Default policy:
 ## Code Comments
 
 `TODO:` and `FIXME:` are the only tracked comment markers — use them for any
-comment worth tracking (a workaround, a deferred fix, a known gap). `FIXME:`
-marks something wrong that should be fixed; `TODO:` marks intentional,
-working-but-revisit code. State the rationale and, where one exists, the
-one-line probe that proves the comment obsolete (delete the shim / flip the flag
-/ run the suite) right there in the comment.
+comment worth tracking (a workaround, a deferred fix, a known gap). Use the
+repository-wide [work marker meanings](../spec/README.md#work-markers). State
+the rationale and, where one exists, the one-line probe that proves the comment
+obsolete (delete the shim / flip the flag / run the suite) right there in the
+comment.
 
 Because these markers are scanned and tracked, trust them as the record:
 once a workaround is a tracked marker at its code site, do **not** add a second
