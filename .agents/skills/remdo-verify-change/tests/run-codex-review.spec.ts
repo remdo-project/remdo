@@ -27,6 +27,7 @@ while [ "$#" -gt 0 ]; do
   fi
   shift
 done
+printf '{"type":"item.completed","item":{"type":"agent_message","text":"No findings."}}\n'
 printf '{"type":"turn.completed"}\n'
 `);
 
@@ -37,6 +38,8 @@ printf '{"type":"turn.completed"}\n'
     const args = fs.readFileSync(path.join(cwd, 'args'), 'utf8');
     expect(args).toContain('--uncommitted\n');
     expect(args).toContain('--json\n');
+    const argLines = args.trimEnd().split('\n');
+    expect(argLines[argLines.length - 2]).toBe('--output-last-message');
   });
 
   it('passes the immutable base to committed-range review', () => {
@@ -51,6 +54,7 @@ while [ "$#" -gt 0 ]; do
   fi
   shift
 done
+printf '{"type":"item.completed","item":{"type":"agent_message","text":"Range clean."}}\n'
 printf '{"type":"turn.completed"}\n'
 `);
 
@@ -58,7 +62,10 @@ printf '{"type":"turn.completed"}\n'
 
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('Range clean.\n');
-    expect(fs.readFileSync(path.join(cwd, 'args'), 'utf8')).toContain('--base\nbase123\n');
+    const args = fs.readFileSync(path.join(cwd, 'args'), 'utf8');
+    expect(args).toContain('--base\nbase123\n');
+    const argLines = args.trimEnd().split('\n');
+    expect(argLines[argLines.length - 2]).toBe('--output-last-message');
   });
 
   it('reports reviewer failure without treating its output as findings', () => {
@@ -103,7 +110,7 @@ printf '{"type":"turn.completed"}\n'
     expect(result.stderr).toContain('review completed without a final report');
   });
 
-  it('rejects a successful Codex response when native review did not complete', () => {
+  it('rejects a Codex response when the protocol turn does not complete', () => {
     const cwd = makeDir('verify-codex-work-');
     const result = runScript(script, cwd, ['working-tree'], codexStub(`
 while [ "$#" -gt 0 ]; do
@@ -114,10 +121,31 @@ while [ "$#" -gt 0 ]; do
   fi
   shift
 done
+printf '{"type":"item.completed","item":{"type":"agent_message","text":"I could not inspect the requested scope."}}\n'
 `));
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
     expect(result.stderr).toContain('did not provide explicit completion evidence');
+  });
+
+  it('rejects a final report that does not match the completed agent message', () => {
+    const cwd = makeDir('verify-codex-work-');
+    const result = runScript(script, cwd, ['working-tree'], codexStub(`
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = '--output-last-message' ]; then
+    shift
+    printf 'Different report.\n' > "$1"
+    break
+  fi
+  shift
+done
+printf '{"type":"item.completed","item":{"type":"agent_message","text":"Completed report."}}\n'
+printf '{"type":"turn.completed"}\n'
+`));
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain('did not match the completed Codex review output');
   });
 });

@@ -226,6 +226,108 @@ exec ${realGit} "$@"
     expect(result.stderr).toContain('git diff --cached --name-only failed');
   });
 
+  it('fails with resolver context when the committed-range file query fails', () => {
+    const work = taskBranch();
+    const bin = makeDir('resolve-scope-git-stub-');
+    const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
+    writeFile(
+      bin,
+      'git',
+      `#!/usr/bin/env sh
+if [ "$1" = diff ] && [ "$2" = --name-only ]; then
+  exit 23
+fi
+exec ${realGit} "$@"
+`,
+    );
+    fs.chmodSync(path.join(bin, 'git'), 0o755);
+
+    const result = runScript(path.join(__dirname, '../tools/resolve-scope.sh'), work, ['HEAD~1..HEAD'], bin);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('git diff --name-only failed while resolving committed-range files');
+  });
+
+  it('fails instead of classifying a broken Git state query as dirty', () => {
+    const work = taskBranch();
+    const bin = makeDir('resolve-scope-git-stub-');
+    const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
+    writeFile(
+      bin,
+      'git',
+      `#!/usr/bin/env sh
+if [ "$1" = diff ] && [ "$2" = --quiet ]; then
+  exit 23
+fi
+exec ${realGit} "$@"
+`,
+    );
+    fs.chmodSync(path.join(bin, 'git'), 0o755);
+
+    const result = runScript(path.join(__dirname, '../tools/resolve-scope.sh'), work, ['HEAD~1..HEAD'], bin);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('git diff --quiet failed while checking working tree state');
+    expect(result.stderr).not.toContain('working tree is dirty');
+  });
+
+  it.each([
+    [
+      'cached diff',
+      '[ "$1" = diff ] && [ "$2" = --cached ] && [ "$3" = --quiet ]',
+      'git diff --cached --quiet failed while checking working tree state',
+    ],
+    [
+      'untracked-file query',
+      '[ "$1" = ls-files ] && [ "$2" = --others ] && [ "$3" = --exclude-standard ]',
+      'git ls-files failed while checking working tree state',
+    ],
+  ])('fails when the %s used for dirtiness inspection fails', (_name, condition, message) => {
+    const work = taskBranch();
+    const bin = makeDir('resolve-scope-git-stub-');
+    const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
+    writeFile(
+      bin,
+      'git',
+      `#!/usr/bin/env sh
+if ${condition}; then
+  exit 23
+fi
+exec ${realGit} "$@"
+`,
+    );
+    fs.chmodSync(path.join(bin, 'git'), 0o755);
+
+    const result = runScript(path.join(__dirname, '../tools/resolve-scope.sh'), work, ['HEAD~1..HEAD'], bin);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(message);
+  });
+
+  it('fails when working-tree HEAD cannot be resolved', () => {
+    const work = taskBranch();
+    writeFile(work, 'c.md', '# C uncommitted\n');
+    const bin = makeDir('resolve-scope-git-stub-');
+    const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
+    writeFile(
+      bin,
+      'git',
+      `#!/usr/bin/env sh
+if [ "$1" = rev-parse ] && [ "$2" = --verify ] && [ "$3" = HEAD ]; then
+  exit 23
+fi
+exec ${realGit} "$@"
+`,
+    );
+    fs.chmodSync(path.join(bin, 'git'), 0o755);
+
+    const result = runScript(path.join(__dirname, '../tools/resolve-scope.sh'), work, ['working-tree'], bin);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('HEAD does not resolve to a commit');
+    expect(result.stdout).not.toContain('HEAD_SHA=');
+  });
+
   it('refuses an explicit range whose left revision does not resolve', () => {
     const result = run(taskBranch(), ['deadbeef..HEAD']);
     expect(result.status).not.toBe(0);

@@ -45,19 +45,32 @@ except (OSError, UnicodeError, json.JSONDecodeError) as error:
     sys.stderr.write(f"run-codex-review: could not parse Codex event stream: {error}\n")
     sys.exit(1)
 
-if not any(event.get("type") == "turn.completed" for event in events):
+if not any(isinstance(event, dict) and event.get("type") == "turn.completed" for event in events):
     sys.stderr.write("run-codex-review: review did not provide explicit completion evidence\n")
     sys.exit(1)
 
 try:
     with open(report_path, encoding="utf-8") as handle:
-        report = handle.read()
+        body = handle.read()
 except (OSError, UnicodeError) as error:
     sys.stderr.write(f"run-codex-review: could not read final report: {error}\n")
     sys.exit(1)
 
-if not report.strip():
+report = body.strip()
+if not report:
     sys.stderr.write("run-codex-review: review completed without a final report\n")
+    sys.exit(1)
+
+agent_messages = [
+    event.get("item", {}).get("text")
+    for event in events
+    if isinstance(event, dict)
+    and event.get("type") == "item.completed"
+    and isinstance(event.get("item"), dict)
+    and event["item"].get("type") == "agent_message"
+]
+if not agent_messages or not isinstance(agent_messages[-1], str) or agent_messages[-1].strip() != report:
+    sys.stderr.write("run-codex-review: final report did not match the completed Codex review output\n")
     sys.exit(1)
 
 sys.stdout.write(report)

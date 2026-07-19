@@ -12,12 +12,25 @@ function claudeStub(body: string): string {
   return dir;
 }
 
+function shellJson(data: unknown): string {
+  return `printf '%s' '${JSON.stringify(data).replace(/'/g, `'\\''`)}'`;
+}
+
 function jsonResult(result: string): string {
-  return `printf '%s' '${JSON.stringify({ type: 'result', subtype: 'success', is_error: false, result }).replace(/'/g, `'\\''`)}'`;
+  const data = { type: 'result', subtype: 'success', is_error: false, result };
+  return shellJson(data);
 }
 
 function completedResult(report: string): string {
-  return jsonResult(`REMDO_CODE_REVIEW_COMPLETE\n${report}`);
+  const structuredOutput = { review_complete: true, report };
+  const data = {
+    type: 'result',
+    subtype: 'success',
+    is_error: false,
+    result: JSON.stringify(structuredOutput),
+    structured_output: structuredOutput,
+  };
+  return shellJson(data);
 }
 
 afterEach(cleanupTempDirs);
@@ -38,7 +51,9 @@ ${completedResult('## Code review — 0 findings\n\nNo issues found.')}
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('## Code review — 0 findings\n\nNo issues found.\n');
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
-    expect(args).toContain('including every finding and its location');
+    expect(args).toContain('--json-schema\n');
+    expect(args).not.toContain('REMDO_CODE_REVIEW_COMPLETE');
+    expect(args).toContain('structured report field must contain the complete final review report');
     expect(args).toContain('Bash,Read,Grep,Glob,Skill,Agent');
   });
 
@@ -82,13 +97,22 @@ ${completedResult('## Code review — 0 findings')}
     expect(result.stdout).toBe(`${report}\n`);
   });
 
-  it('discards intermediate output before explicit completion evidence', () => {
+  it('returns the structured final report instead of prose result text', () => {
     const report = '## Code review — 1 finding\n\nFinding with a location.';
+    const structuredOutput = { review_complete: true, report };
+    const data = {
+      type: 'result',
+      subtype: 'success',
+      is_error: false,
+      result: 'I verified the candidate first.',
+      structured_output: structuredOutput,
+      terminal_reason: 'completed',
+    };
     const result = runScript(
       script,
       makeDir('verify-claude-work-'),
       ['working-tree'],
-      claudeStub(jsonResult(`I verified the candidate first.\n\nREMDO_CODE_REVIEW_COMPLETE\n${report}`)),
+      claudeStub(shellJson(data)),
     );
 
     expect(result.status).toBe(0);
@@ -133,7 +157,7 @@ exit 7
       script,
       makeDir('verify-claude-work-'),
       ['working-tree'],
-      claudeStub(`printf '%s' '${JSON.stringify({ type: 'result', subtype: 'error_during_execution', is_error: true }).replace(/'/g, `'\\''`)}'`),
+      claudeStub(`printf '%s' '${JSON.stringify({ type: 'result', subtype: 'error_during_execution', is_error: true, terminal_reason: 'error' }).replace(/'/g, `'\\''`)}'`),
     );
 
     expect(result.status).toBe(1);
@@ -169,5 +193,84 @@ exit 7
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
     expect(result.stderr).toContain('did not provide explicit completion evidence');
+    expect(result.stderr).toContain('Plan mode is currently active');
+  });
+
+  it('rejects structured output that omits review completion evidence', () => {
+    const structuredOutput = { report: 'No completion field.' };
+    const data = {
+      type: 'result',
+      subtype: 'success',
+      is_error: false,
+      result: JSON.stringify(structuredOutput),
+      structured_output: structuredOutput,
+      terminal_reason: 'completed',
+    };
+    const result = runScript(
+      script,
+      makeDir('verify-claude-work-'),
+      ['working-tree'],
+      claudeStub(shellJson(data)),
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain('did not provide explicit completion evidence');
+  });
+
+  it('reports a schema-compliant explicit review decline as diagnostics', () => {
+    const structuredOutput = { review_complete: false, report: 'Scope inspection failed.' };
+    const data = {
+      type: 'result',
+      subtype: 'success',
+      is_error: false,
+      result: JSON.stringify(structuredOutput),
+      structured_output: structuredOutput,
+    };
+    const result = runScript(
+      script,
+      makeDir('verify-claude-work-'),
+      ['working-tree'],
+      claudeStub(shellJson(data)),
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain('did not provide explicit completion evidence');
+    expect(result.stderr).toContain('Scope inspection failed.');
+  });
+
+  it('fails cleanly when Claude returns a non-string result', () => {
+    const data = {
+      type: 'result',
+      subtype: 'success',
+      is_error: false,
+      result: { unexpected: true },
+    };
+    const result = runScript(
+      script,
+      makeDir('verify-claude-work-'),
+      ['working-tree'],
+      claudeStub(shellJson(data)),
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain('did not provide explicit completion evidence');
+    expect(result.stderr).not.toContain('Traceback');
+  });
+
+  it('fails cleanly when Claude returns non-object JSON', () => {
+    const result = runScript(
+      script,
+      makeDir('verify-claude-work-'),
+      ['working-tree'],
+      claudeStub("printf '%s' 'null'"),
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain('claude output was not a JSON object');
+    expect(result.stderr).not.toContain('Traceback');
   });
 });

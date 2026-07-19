@@ -33,15 +33,34 @@ scope_arg=${1-}
 # (remdo-refine "Scope"). This is the mixed-scope refusal — a committed range
 # requested while uncommitted work is present.
 tree_is_dirty() {
-  ! git diff --quiet 2>/dev/null \
-    || ! git diff --cached --quiet 2>/dev/null \
-    || [ -n "$(git ls-files --others --exclude-standard)" ]
+  if git diff --quiet 2>/dev/null; then
+    :
+  else
+    status=$?
+    [ "$status" -eq 1 ] \
+      || fail "git diff --quiet failed while checking working tree state"
+    return 0
+  fi
+
+  if git diff --cached --quiet 2>/dev/null; then
+    :
+  else
+    status=$?
+    [ "$status" -eq 1 ] \
+      || fail "git diff --cached --quiet failed while checking working tree state"
+    return 0
+  fi
+
+  untracked=$(git ls-files --others --exclude-standard) \
+    || fail "git ls-files failed while checking working tree state"
+  [ -n "$untracked" ]
 }
 
 emit_files_committed() {
   # Files changed in the range, three-dot semantics already baked into $base.
   echo "FILES"
-  git diff --name-only "$1..$2"
+  git diff --name-only "$1..$2" \
+    || fail "git diff --name-only failed while resolving committed-range files"
 }
 
 emit_files_working_tree() {
@@ -63,9 +82,11 @@ resolve_working_tree() {
   if ! tree_is_dirty; then
     fail "working-tree scope requested but the tree is clean — nothing to resolve"
   fi
+  head_sha=$(git rev-parse --verify HEAD) \
+    || fail "HEAD does not resolve to a commit"
   echo "SCOPE=working-tree"
   echo "BASE=WORKING_TREE"
-  echo "HEAD_SHA=$(git rev-parse --verify HEAD)"
+  echo "HEAD_SHA=$head_sha"
   emit_files_working_tree
 }
 

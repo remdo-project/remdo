@@ -14,10 +14,14 @@ command -v claude >/dev/null 2>&1 || fail "claude is unavailable"
 command -v python3 >/dev/null 2>&1 || fail "python3 is unavailable"
 
 scope=${1-}
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+schema_json=$(cat "$script_dir/review-output.schema.json") \
+  || fail "could not read review output schema"
+report_instruction='The structured report field must contain the complete final review report, including every finding and its location. Do not replace findings with counts, a summary, or a reference to other output.'
 
-working_tree_prompt='Review only the current working-tree scope (staged, unstaged, and untracked changes, including separate staged and unstaged versions of one path) under repository rules. After native review completes, place REMDO_CODE_REVIEW_COMPLETE on its own line immediately before the complete final review report, including every finding and its location; do not replace findings with counts or a summary. If review cannot complete, do not emit the marker. Do not edit, stage, commit, or repeat the deterministic checks.'
+working_tree_prompt="Review only the current working-tree scope (staged, unstaged, and untracked changes, including separate staged and unstaged versions of one path) under repository rules. $report_instruction Do not edit, stage, commit, or repeat the deterministic checks."
 range_prompt() {
-  echo "Review only the exact resolved range \`$1..$2\` under repository rules. After native review completes, place REMDO_CODE_REVIEW_COMPLETE on its own line immediately before the complete final review report, including every finding and its location; do not replace findings with counts or a summary. If review cannot complete, do not emit the marker. Do not edit, stage, commit, or repeat the deterministic checks."
+  echo "Review only the exact resolved range \`$1..$2\` under repository rules. $report_instruction Do not edit, stage, commit, or repeat the deterministic checks."
 }
 
 case "$scope" in
@@ -53,6 +57,7 @@ if claude -p --effort max --permission-mode plan \
   --settings '{"disableAllHooks":true}' \
   --no-session-persistence \
   --output-format json \
+  --json-schema "$schema_json" \
   "$command_arg" >"$raw" 2>"$diagnostics"; then
   :
 else
@@ -78,32 +83,37 @@ except json.JSONDecodeError:
     sys.stderr.write(raw[-4000:])
     sys.exit(1)
 
+if not isinstance(data, dict):
+    sys.stderr.write("run-claude-review: claude output was not a JSON object\n")
+    sys.exit(1)
+
 result = data.get("result")
 is_error = data.get("is_error", False)
+structured = data.get("structured_output")
 
-if result and result.strip() == "Unknown command: /code-review":
+if isinstance(result, str) and result.strip() == "Unknown command: /code-review":
     sys.stderr.write("run-claude-review: /code-review is unavailable in this session\n")
     sys.exit(2)
 
-if is_error or not result:
+if is_error:
     sys.stderr.write(f"run-claude-review: review did not complete cleanly (is_error={is_error})\n")
     sys.stderr.write(json.dumps(data, indent=2)[-4000:])
     sys.exit(1)
 
-body = result.strip()
-marker = "REMDO_CODE_REVIEW_COMPLETE"
-lines = body.splitlines()
-marker_lines = [index for index, line in enumerate(lines) if line.strip() == marker]
-if len(marker_lines) != 1:
+if not isinstance(structured, dict) or structured.get("review_complete") is not True:
     sys.stderr.write("run-claude-review: review did not provide explicit completion evidence\n")
-    sys.stderr.write(json.dumps(data, indent=2)[-4000:])
+    if isinstance(structured, dict) and isinstance(structured.get("report"), str):
+        sys.stderr.write(structured["report"].rstrip()[-4000:] + "\n")
+    elif isinstance(result, str):
+        sys.stderr.write(result.rstrip()[-4000:] + "\n")
     sys.exit(1)
 
-report = "\n".join(lines[marker_lines[0] + 1:]).strip()
-if not report:
+report = structured.get("report")
+if not isinstance(report, str) or not report.strip():
     sys.stderr.write("run-claude-review: review completed without a final report\n")
     sys.exit(1)
 
+report = report.strip()
 sys.stdout.write(report)
 if not report.endswith("\n"):
     sys.stdout.write("\n")
