@@ -8,6 +8,9 @@ testing. `Post-change` is the version considered a better fit for the recorded
 change request. A case does not claim that version is canonical, generally
 applicable, or ideal.
 
+Research should consider both referenced source sessions and broader relevant
+historical-log searches as additional evidence.
+
 ## Case shape
 
 Every case has the same logical parts regardless of its file and directory
