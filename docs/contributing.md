@@ -72,8 +72,9 @@ comment.
 
 Because these markers are scanned and tracked, trust them as the record:
 once a workaround is a tracked marker at its code site, do **not** add a second
-tracker for it elsewhere (a `docs/` list, a `docs/todo.md` line). The comment
-travels with the code and is seen on deletion; a duplicate note only drifts.
+tracker for it elsewhere (a `docs/` list, a
+[`spec/todo.md`](../spec/todo.md) entry). The comment travels with the code and
+is seen on deletion; a duplicate note only drifts.
 
 ## Editor Feature Modules
 
@@ -88,7 +89,8 @@ Dependencies point one way: a feature MAY import from the shared base
 import a feature. A capability that is genuinely one feature's concern is owned
 by that feature and other modules ask it by name. Known exception to repay:
 several `outline/` modules still import note-body primitives from
-`features/note-body/` (see `docs/todo.md`).
+`features/note-body/` (see
+[Editor feature module follow-ups](legacy-backlog.md#editor-feature-module-follow-ups)).
 
 Use [`spec/`](../spec/README.md) to find the current owner of durable product
 behavior. Source feature folders do not replace stable behavior specs.

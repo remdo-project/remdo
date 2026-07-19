@@ -1,20 +1,19 @@
-# RemDo work ledger
+# RemDo TODO
 
-This file is the authoritative **new TODO** for temporary work state, known gaps,
-unresolved decisions, and follow-up work. It does not define or override
-accepted target behavior. Until the legacy [`docs/todo.md`](../docs/todo.md) is
-retired, requests naming the new TODO refer here.
+This file is RemDo's authoritative TODO and sole intake for temporary work
+state, known gaps, unresolved decisions, and follow-up work. It does not define
+or override accepted target behavior.
+
+The closed [legacy backlog](../docs/legacy-backlog.md) retains unresolved entries
+created before this file became the sole intake. Do not add entries there; its
+existing entries remain part of duplicate and review-suppression checks until
+they are resolved or migrated.
 
 Reviewers treat explicitly recorded gaps as intended temporary state rather than
 new findings. Group related notes under short topic headings within their `TODO`
 or `FIXME` section. Remove rejected or obsolete notes and empty sections.
 
 ## TODO
-
-### Retire the "new TODO" transition
-
-Retire `docs/todo.md` and its live references, migrate its remaining useful
-entries, then refer to this file simply as the TODO.
 
 ### Propagate nested results
 

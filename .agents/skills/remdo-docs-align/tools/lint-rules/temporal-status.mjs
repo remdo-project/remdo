@@ -1,9 +1,9 @@
 // Temporal-status wording (docs/documentation.md invariant 4): spec prose is
 // timeless. Conservative token list — only unambiguous status markers; "new" is
-// semantic (feature-age vs domain use) and stays with review. docs/todo.md is
-// the status ledger and docs/documentation.md quotes the banned tokens as rules,
-// so both are exempt. The private runner passes docs/**/*.md only; product
-// markdown lint does not load this rule.
+// semantic (feature-age vs domain use) and stays with review. The legacy backlog
+// retains status wording and docs/documentation.md quotes the banned tokens as
+// rules, so both are exempt. The private runner passes docs/**/*.md only;
+// product markdown lint does not load this rule.
 //
 // Riding the micromark token stream, code spans and fenced blocks are distinct
 // token types (codeText / codeFlowValue …), so their content never reaches the
@@ -12,9 +12,9 @@
 // skipped too so a URL is never mistaken for prose.
 
 const TEMPORAL = /\bfor now\b|\bcurrently\b|\bat the moment\b|\bnot yet\b|\bwill soon\b|\(early draft\)/i;
-// Exact repo-relative paths, not basenames: only these two docs are the status
-// ledger / the doc that quotes the banned tokens as rules.
-const EXEMPT = new Set(['docs/todo.md', 'docs/documentation.md']);
+// Exact repo-relative paths, not basenames: only the closed legacy backlog and
+// the doc that quotes the banned tokens as rules are exempt.
+const EXEMPT = new Set(['docs/legacy-backlog.md', 'docs/documentation.md']);
 
 // Descendant token types whose text is a link/image destination, not prose.
 const DESTINATION = new Set(['resourceDestination', 'definitionDestination']);

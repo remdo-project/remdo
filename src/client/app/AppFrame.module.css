@@ -22,7 +22,8 @@
      glows register while staying soft. Deliberately louder than a "calm" backdrop
      for this early stage — the glass keeps body text ~9:1 (AAA) despite it. A
      future "reduce transparency / calm mode" toggle can dial this back for
-     long-session comfort (see docs/todo.md). */
+     long-session comfort (see
+     docs/legacy-backlog.md#frosted-glass-material-follow-ups). */
   background:
     radial-gradient(85% 75% at 15% -5%, rgb(var(--remdo-accent-rgb) / 0.231), transparent 72%),
     radial-gradient(75% 80% at 95% 15%, rgb(var(--remdo-accent-secondary-rgb) / 0.154), transparent 72%),

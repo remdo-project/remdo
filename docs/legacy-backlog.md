@@ -1,23 +1,19 @@
-# TODO
+# Legacy backlog
 
-## About this file (scratchpad)
+This file retains unresolved work recorded before
+[`spec/todo.md`](../spec/todo.md) became RemDo's authoritative TODO and sole
+intake. It is closed to new entries; record new temporary work in
+`spec/todo.md`. This file does not define or override accepted target behavior.
 
-This file is an intentionally messy scratchpad for current and near-term work —
-things we plan to get back to soon. Entries are short reminders, not agreed
-decisions or write-ups. Keep each to a line or two; being vague is fine if it
-keeps it short. Don't add findings, measurements, or rationale here — that
-belongs in the work itself when it happens.
-
-A long-horizon future direction (deferred indefinitely, not near-term) does not
-belong here — it lives as a short trigger in the owning doc's `Future` section,
-rediscovered when that area is worked on again.
+Existing entries remain tracked until they are completed and deleted or moved
+to `spec/todo.md` or an owning spec's `Future` section. They remain part of
+duplicate and review-suppression checks while they are here.
 
 Rules:
 
 - Mark completed items as `✅ Done` while a section is still active.
 - Delete sections once fully done.
-- Move durable decisions/specs into the owner routed by `spec/`, leaving a link
-  behind.
+- Move durable decisions and requirements into the owner routed by `spec/`.
 
 ## Scratchpad maintenance
 

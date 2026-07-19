@@ -72,7 +72,6 @@ Read these first:
 1. `AGENTS.md`
 2. `docs/contributing.md`
 3. `spec/todo.md`
-4. `docs/todo.md`
 
 Choose directly relevant product docs for the touched area by filename and
 scope opener. Do not reread unrelated docs.

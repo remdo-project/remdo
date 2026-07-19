@@ -3,7 +3,7 @@
 - [x] 1.1 Add focused automated coverage that proves a resolvable `Tab` or
   `Shift+Tab` structural no-op keeps focus inside the editor.
 - [x] 1.2 Remove the resolved `IndentationPlugin` boundary-key decision from
-  `docs/todo.md` without changing the keyboard handler.
+  `docs/legacy-backlog.md` without changing the keyboard handler.
 - [x] 1.3 Remove `docs/outliner/note-structure-rules.md` and update every inbound
   documentation and code-comment link to the main `outliner-indentation` spec,
   preserving links to the existing reordering and adjacent capability owners.

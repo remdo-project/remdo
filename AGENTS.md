@@ -116,8 +116,8 @@ sections to docs.
 - Uncommitted state may be incoherent; commits should not be. The working tree
   is scratch that is allowed to be mid-transformation (e.g. docs ahead of code)
   — don't raise such incoherencies while they stay uncommitted. At commit time,
-  either the committed state is coherent or an ultra-short trigger in the new
-  TODO (`spec/todo.md`) or legacy `docs/todo.md` covers the gap (per
+  either the committed state is coherent or an ultra-short trigger in
+  `spec/todo.md` covers the gap (per
   `docs/documentation.md` invariant 4); add that trigger yourself and note it
   in the commit rather than asking.
 - The Git index may be used by the developer as private review bookkeeping.
@@ -207,8 +207,8 @@ sections to docs.
 - The shared test harness treats console warnings/errors as failures; if you
   need temporary instrumentation during debugging, prefer `console.log` or
   `console.info` and remove the statements before finishing a task.
-- Code review: silently drop any finding already flagged in the new TODO
-  (`spec/todo.md`) or legacy `docs/todo.md` (match only when the entry names the
+- Code review: use `spec/todo.md` as the tracking entry point and silently drop
+  any finding already tracked through it (match only when the entry names the
   same file, symbol, or specific behavior, not just a topical overlap); add one
   tail line `Suppressed N finding(s) already tracked in a TODO` (omit when `N`
   is 0). Forward this rule to any finder/reviewer subagents you spawn.

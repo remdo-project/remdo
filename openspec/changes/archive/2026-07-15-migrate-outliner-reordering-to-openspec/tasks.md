@@ -5,8 +5,8 @@
   `openspec/MIGRATION-BACKLOG.md` with the accepted terminology and its intended
   permanent selection owner.
 - [x] 1.2 Compare `docs/outliner/reordering.md` with the focused implementation,
-  tests, `docs/todo.md`, and `openspec/MIGRATION-BACKLOG.md`; adjust the delta
-  spec to contain the complete accepted observable contract and no
+  tests, `docs/legacy-backlog.md`, and `openspec/MIGRATION-BACKLOG.md`; adjust the
+  delta spec to contain the complete accepted observable contract and no
   implementation encoding.
 - [x] 1.3 Sync the `outliner-reordering` delta into the main OpenSpec specs,
   preserve pointer drag-and-drop only as a brief `Future` direction, and confirm
@@ -16,7 +16,7 @@
   documentation link to the main `outliner-reordering` spec.
 - [x] 1.5 Remove the invariant-only no-target scenario from the delta and main
   specs; track the unresolved inline-body reordering behavior in
-  `docs/todo.md` for the note-body design pass.
+  `docs/legacy-backlog.md` for the note-body design pass.
 - [x] 1.6 Add informative examples for reparenting and outdenting where a
   concrete outline materially clarifies the structural transformation.
 

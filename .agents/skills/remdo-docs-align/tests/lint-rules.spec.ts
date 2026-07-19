@@ -50,8 +50,8 @@ describe('remdo-temporal-status', () => {
     expect(await temporal('docs/a.md', 'Use `currently` here.\n\n```\nfor now this is code\n```\n')).toEqual([]);
   });
 
-  it('exempts docs/todo.md and docs/documentation.md', async () => {
-    expect(await temporal('docs/todo.md', 'for now this lives here\n')).toEqual([]);
+  it('exempts docs/legacy-backlog.md and docs/documentation.md', async () => {
+    expect(await temporal('docs/legacy-backlog.md', 'for now this lives here\n')).toEqual([]);
     expect(await temporal('docs/documentation.md', 'the banned token "currently"\n')).toEqual([]);
   });
 
