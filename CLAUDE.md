@@ -61,8 +61,9 @@ don't re-investigate to fill the format. Severity glyphs: 🔺 High, 🔸 Medium
 🔹 Low. `Status` is `Confirmed` (cite the line) or `Plausible`. `Repro`: write
 `as above` when the trigger is obvious from **What happens**, else user-level
 steps if UI-reachable, else the exact technical conditions (say so if no user
-can hit it). Close with `Suppressed N finding(s) already tracked in docs/todo.md`
-(omit when `N` is 0).
+can hit it). Close with `Suppressed N finding(s) already tracked in a TODO`
+(omit when `N` is 0). Check both the new TODO (`spec/todo.md`) and legacy
+`docs/todo.md`.
 
 <!-- markdownlint-disable MD013 -->
 > Code review — 2 findings (1 high, 1 low)

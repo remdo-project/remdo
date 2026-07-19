@@ -29,6 +29,7 @@
     ".claude/skills/remdo-deps-refresh",
     ".claude/skills/remdo-docs-align",
     ".claude/skills/remdo-refine",
+    ".claude/skills/remdo-verify-change",
     ".claude/skills/remdo-sync"
   ],
   // Link/anchor validation rides markdownlint's own parser:

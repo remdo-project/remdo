@@ -40,12 +40,12 @@ Use the exact scope supplied by the caller. A refine caller should pass only the
 scope and this skill, not its suspected fixes or implementation context.
 
 Resolve it by running
-`sh .agents/skills/remdo-refine/tools/resolve-scope.sh [scope]` (its header
+`sh .agents/skills/_shared/tools/resolve-scope.sh [scope]` (its header
 states the full contract): no argument for the committed-range default (this
 branch's own work), or `working-tree` for the uncommitted changes. It prints
-`SCOPE=`/`BASE=` plus the file list. This pass is read-only and never loops, so
-it needs no anchoring of its own — reusing the resolver just keeps one scope
-contract across the skills. On a non-zero exit, warn and stop rather than
+`SCOPE=`/`BASE=`/`HEAD_SHA=` plus the file list. This pass is read-only and never
+loops, so it needs no anchoring of its own — reusing the resolver keeps one
+scope contract across the skills. On a non-zero exit, warn and stop rather than
 folding the other side's changes into the review; on an integration branch
 (`dev`) where the
 committed default is not one unit of work, report that an explicit scope is
@@ -59,7 +59,7 @@ git diff --name-status <range>
 git diff --check <range>
 ```
 
-`<range>` is the committed range's base (`<base-sha>..HEAD`) in committed-range
+`<range>` is `<base-sha>..<head-sha>` in committed-range
 scope and `HEAD` (the working-tree diff) in working-tree scope, so every command
 targets exactly the scope's diff. Read the diff
 per file when the total diff is large. Read untracked files that belong to the
@@ -71,7 +71,8 @@ Read these first:
 
 1. `AGENTS.md`
 2. `docs/contributing.md`
-3. `docs/todo.md`
+3. `spec/todo.md`
+4. `docs/todo.md`
 
 Choose directly relevant product docs for the touched area by filename and
 scope opener. Do not reread unrelated docs.
@@ -138,7 +139,7 @@ Every finding should satisfy these checks:
 3. It is worth the churn: expected deletion, consolidation, or ownership clarity
    outweighs the extra edit.
 4. It does not require choosing new product behavior.
-5. It is not already tracked in `docs/todo.md`.
+5. It is not already tracked in either TODO.
 
 When there is a real tradeoff, report an **Option** rather than a finding. Include
 brief pros/cons and mark one **Recommended** only when the code/docs give a reason
@@ -190,7 +191,7 @@ Sources read: <key files/docs, not every grep>
 
 <Use only when no findings survived the bar. State the main areas inspected.>
 
-Suppressed N finding(s) already tracked in docs/todo.md
+Suppressed N finding(s) already tracked in a TODO
 ```
 
 Priority labels:
@@ -204,7 +205,7 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 
 ## References
 
-- [Scope resolution](../remdo-refine/tools/resolve-scope.sh)
+- [Scope resolution](../_shared/tools/resolve-scope.sh)
 - [Agent guidelines](../../../AGENTS.md)
 - [Doc/skill-prose convergence](../remdo-docs-align/SKILL.md)
 - [Git workflow / branch base](../../../docs/contributing.md#git-workflow)

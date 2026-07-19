@@ -24,11 +24,15 @@ Refine works on a single diff, fixed at invocation. There are two scopes; pick
 exactly one and keep it for every pass.
 
 **Resolve the scope by running
-`sh .agents/skills/remdo-refine/tools/resolve-scope.sh [scope]`** (its header
+`sh .agents/skills/_shared/tools/resolve-scope.sh [scope]`** (its header
 states the full contract). Pass no argument for the committed-range default (this
 branch's own work), or `working-tree` to review the uncommitted changes before
-they enter history. It prints `SCOPE=`/`BASE=` plus the file list. The judgment
-around it stays here:
+they enter history. It prints `SCOPE=`/`BASE=`/`HEAD_SHA=` plus the file list.
+The judgment around it stays here:
+
+- **Committed-range boundary.** The resolver requires the range to end at
+  `HEAD`; `HEAD_SHA` records that initial tip. Refine commits fixes and advances
+  `HEAD`, while the pinned `BASE` keeps the mutating loop anchored.
 
 - **Refusal handling.** A non-zero exit means the requested scope is unresolvable
   — most often the mixed-scope refusal (committed range over a dirty tree). Warn
@@ -204,7 +208,7 @@ confirm the same state.
   Apply it (committed-range: commit; working-tree: leave in the tree); the run is
   not done.
 - **Tradeoff** — a real choice with no single correct answer. Solve it best-effort
-  and **record it in `docs/todo.md`** — a tradeoff is a deferral until a final
+  and **record it in `spec/todo.md`** — a tradeoff is a deferral until a final
   decision is deliberately taken, so the entry persists until then. Never blocks;
   the end report points at the entry.
 - **Reject** — not a real issue, or out of scope. Drop it.
@@ -255,7 +259,7 @@ eventual commit.
 
 Index the result, do not re-narrate it: scope and base; fixes applied (pointing
 at files, not prose, noting where in the diff each finding sat); tradeoffs taken
-with a pointer to their `docs/todo.md` entries; and any blocker with its gathered
+with a pointer to their `spec/todo.md` entries; and any blocker with its gathered
 data.
 
 Close with
@@ -271,7 +275,7 @@ it also includes scope resolution, triage, fixes, tests, and commits.
 
 - Ladder rungs invoked in order: `remdo-simplify` skill, current-agent internal
   review, external review.
-- Scope resolution mechanics: `.agents/skills/remdo-refine/tools/resolve-scope.sh`.
+- Scope resolution mechanics: `.agents/skills/_shared/tools/resolve-scope.sh`.
 - Branch base and the `origin/main...HEAD` diff contract:
   `docs/contributing.md#git-workflow`.
 - Bringing `origin/main` into the branch: `remdo-sync` skill.

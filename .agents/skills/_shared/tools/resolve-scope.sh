@@ -1,18 +1,19 @@
 #!/usr/bin/env sh
-# Resolve explicit range / task-branch default / working-tree to an immutable
-# base SHA + file list; refuse mixed scopes.
+# Resolve explicit range / task-branch default / working-tree to immutable
+# comparison SHAs + a file list; refuse mixed scopes.
 # Usage: resolve-scope.sh [<range> | working-tree]
 #   no arg        infer: task-branch default origin/main...HEAD (committed range);
 #                 refuses a detached HEAD (no branch identity for the default)
-#   <range>       an explicit committed range: A..B or A...B. Both endpoints must
-#                 resolve to a commit and the tip B must be HEAD (the review loop
-#                 walks base..HEAD); empty endpoints default to HEAD.
+#   <range>       an explicit committed range: A..B or A...B. Both endpoints are
+#                 required and must resolve to commits; B must resolve to HEAD,
+#                 and A must be its ancestor for a two-dot range.
 #   working-tree  the uncommitted changes (staged + unstaged + untracked)
 #
 # Classification and refusal only — no resolution or review judgment. Prints, to
 # stdout, key=value lines a caller parses:
 #   SCOPE=committed-range | working-tree
-#   BASE=<immutable-sha>  | WORKING_TREE
+#   BASE=<immutable comparison-base-sha> | WORKING_TREE
+#   HEAD_SHA=<immutable HEAD sha>
 #   then a FILES section: a line "FILES", then one path per line (may be empty).
 # Fails loud (non-zero + stderr) on every refused state; makes no commits, never
 # writes the tree.
@@ -40,7 +41,7 @@ tree_is_dirty() {
 emit_files_committed() {
   # Files changed in the range, three-dot semantics already baked into $base.
   echo "FILES"
-  git diff --name-only "$1..HEAD"
+  git diff --name-only "$1..$2"
 }
 
 emit_files_working_tree() {
@@ -62,20 +63,24 @@ resolve_working_tree() {
   fi
   echo "SCOPE=working-tree"
   echo "BASE=WORKING_TREE"
+  echo "HEAD_SHA=$(git rev-parse --verify HEAD)"
   emit_files_working_tree
 }
 
 resolve_committed_range() {
-  # $1 is the range's base ref (already extracted). Anchor it to an immutable
-  # SHA so a caller looping past it cannot let the base move.
-  base=$(git rev-parse --verify --quiet "$1^{commit}") \
-    || fail "cannot resolve range base '$1' to a commit"
+  base=$1
+  resolved_head=$2
+  head=$(git rev-parse --verify HEAD)
+  if [ "$resolved_head" != "$head" ]; then
+    fail "range right revision must resolve to HEAD"
+  fi
   if tree_is_dirty; then
     fail "committed-range scope but the working tree is dirty — commit or stash first (mixed scope refused)"
   fi
   echo "SCOPE=committed-range"
   echo "BASE=$base"
-  emit_files_committed "$base"
+  echo "HEAD_SHA=$resolved_head"
+  emit_files_committed "$base" "$resolved_head"
 }
 
 case "$scope_arg" in
@@ -102,45 +107,56 @@ case "$scope_arg" in
       || fail "origin/main not found — cannot compute the task-branch default; pass an explicit range"
     merge_base=$(git merge-base origin/main HEAD 2>/dev/null) \
       || fail "no merge-base with origin/main — cannot compute the task-branch default; pass an explicit range"
-    resolve_committed_range "$merge_base"
+    right_sha=$(git rev-parse --verify HEAD)
+    resolve_committed_range "$merge_base" "$right_sha"
     ;;
   *..*)
-    # Explicit range A..B or A...B. The caller's review loop always runs
-    # base..HEAD, so B must resolve to HEAD — a range ending anywhere else would
-    # silently review a different tip than the loop walks. Validate BOTH
-    # endpoints resolve, refuse B != HEAD, then extract A (three-dot as a
-    # merge-base request).
+    # Resolve both endpoints once and require the right endpoint to be HEAD.
+    # Three-dot Git diff semantics compare the endpoints' merge base with HEAD,
+    # so emit that canonical comparison as BASE..HEAD_SHA.
     case "$scope_arg" in
       *...*)
         left=${scope_arg%%...*}
-        right=${scope_arg##*...}
+        right=${scope_arg#*...}
         ;;
       *)
         left=${scope_arg%%..*}
-        right=${scope_arg##*..}
+        right=${scope_arg#*..}
         ;;
     esac
-    left=${left:-HEAD}
-    right=${right:-HEAD}
+    [ -n "$left" ] || fail "range left revision is missing"
+    [ -n "$right" ] || fail "range right revision is missing"
+
+    # Reject a second delimiter (eg. 'A..B..C'): the trims above only strip the
+    # first/outermost occurrence, so a stray '..' left in either endpoint means
+    # the argument had more than one range separator instead of one valid range.
+    case "$right" in
+      .*|*..*)
+        fail "range '$scope_arg' has more than one delimiter"
+        ;;
+    esac
+    case "$left" in
+      *..*)
+        fail "range '$scope_arg' has more than one delimiter"
+        ;;
+    esac
 
     left_sha=$(git rev-parse --verify --quiet "$left^{commit}") \
-      || fail "range base '$left' does not resolve to a commit"
+      || fail "range left revision '$left' does not resolve to a commit"
     right_sha=$(git rev-parse --verify --quiet "$right^{commit}") \
-      || fail "range tip '$right' does not resolve to a commit"
-    head_sha=$(git rev-parse --verify HEAD)
-    [ "$right_sha" = "$head_sha" ] \
-      || fail "range tip '$right' is not HEAD — the review loop walks base..HEAD, so the tip must be HEAD"
-
+      || fail "range right revision '$right' does not resolve to a commit"
     case "$scope_arg" in
       *...*)
-        base_ref=$(git merge-base "$left" "$right" 2>/dev/null) \
+        base_ref=$(git merge-base "$left_sha" "$right_sha" 2>/dev/null) \
           || fail "cannot compute merge-base for range '$scope_arg'"
         ;;
       *)
-        base_ref=$left
+        git merge-base --is-ancestor "$left_sha" "$right_sha" \
+          || fail "two-dot range left revision must be an ancestor of HEAD; use three-dot for divergent histories"
+        base_ref=$left_sha
         ;;
     esac
-    resolve_committed_range "$base_ref"
+    resolve_committed_range "$base_ref" "$right_sha"
     ;;
   *)
     fail "unrecognized scope '$scope_arg' — expected a range (A..B / A...B) or 'working-tree'"

@@ -1,4 +1,4 @@
-// resolve-scope.sh (skill-local tools/): happy paths (inferred default, explicit range,
+// Shared resolve-scope.sh: happy paths (inferred default, explicit range,
 // working-tree) and every refusal, exercised in scratch git repos.
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -25,13 +25,14 @@ function taskBranch(): string {
 
 afterEach(cleanupTempDirs);
 
-describe('resolve-scope.sh (skill-local tools/)', () => {
+describe('resolve-scope.sh (shared tool)', () => {
   it('infers the origin/main...HEAD default on a task branch', () => {
     const result = run(taskBranch());
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('SCOPE=committed-range');
     expect(result.stdout).toMatch(/BASE=[0-9a-f]{40}/);
+    expect(result.stdout).toMatch(/HEAD_SHA=[0-9a-f]{40}/);
     expect(result.stdout).toContain('b.md');
   });
 
@@ -39,7 +40,36 @@ describe('resolve-scope.sh (skill-local tools/)', () => {
     const result = run(taskBranch(), ['HEAD~1..HEAD']);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('SCOPE=committed-range');
+    expect(result.stdout).toMatch(/HEAD_SHA=[0-9a-f]{40}/);
     expect(result.stdout).toContain('b.md');
+  });
+
+  it('refuses a divergent two-dot range', () => {
+    const work = taskBranch();
+    git(work, 'switch', '--quiet', 'main');
+    writeFile(work, 'upstream.md', '# Upstream\n');
+    commitAll(work, 'advance main');
+    git(work, 'switch', '--quiet', 'feat/x');
+
+    const result = run(work, ['main..HEAD']);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('use three-dot for divergent histories');
+  });
+
+  it('resolves a divergent three-dot range', () => {
+    const work = taskBranch();
+    git(work, 'switch', '--quiet', 'main');
+    writeFile(work, 'upstream.md', '# Upstream\n');
+    commitAll(work, 'advance main');
+    git(work, 'switch', '--quiet', 'feat/x');
+
+    const result = run(work, ['main...HEAD']);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('SCOPE=committed-range');
+    expect(result.stdout).toContain('b.md');
+    expect(result.stdout).not.toContain('upstream.md');
   });
 
   it('resolves working-tree scope on a dirty tree', () => {
@@ -49,6 +79,7 @@ describe('resolve-scope.sh (skill-local tools/)', () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('SCOPE=working-tree');
     expect(result.stdout).toContain('BASE=WORKING_TREE');
+    expect(result.stdout).toMatch(/HEAD_SHA=[0-9a-f]{40}/);
     expect(result.stdout).toContain('c.md');
   });
 
@@ -99,21 +130,69 @@ describe('resolve-scope.sh (skill-local tools/)', () => {
     expect(result.stderr).toContain('merge-base');
   });
 
-  it('refuses an explicit range whose tip is not HEAD', () => {
-    // The review loop walks base..HEAD, so a range ending at HEAD~1 would review
-    // a different tip than the loop; refuse it.
-    const result = run(taskBranch(), ['HEAD~1..HEAD~1']);
+  it('refuses an explicit range whose right revision is not HEAD', () => {
+    const work = taskBranch();
+    writeFile(work, 'c.md', '# C\n');
+    commitAll(work, 'add c');
+    const result = run(work, ['HEAD~2..HEAD~1']);
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('not HEAD');
+    expect(result.stderr).toContain('resolve to HEAD');
   });
 
-  it('refuses an explicit range whose base does not resolve', () => {
+  it('refuses an explicit three-dot range whose right revision is not HEAD', () => {
+    const work = taskBranch();
+    writeFile(work, 'c.md', '# C\n');
+    commitAll(work, 'add c');
+    const result = run(work, ['HEAD~2...HEAD~1']);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('resolve to HEAD');
+  });
+
+  it('refuses an explicit range with a missing revision', () => {
+    expect(run(taskBranch(), ['..HEAD']).stderr).toContain('left revision is missing');
+    expect(run(taskBranch(), ['HEAD..']).stderr).toContain('right revision is missing');
+  });
+
+  it('refuses a range with more than one delimiter instead of silently keeping only the outer endpoints', () => {
+    const work = taskBranch();
+    const result = run(work, ['HEAD~1..HEAD~1..HEAD']);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('more than one delimiter');
+  });
+
+  it('refuses a three-dot range with an extra delimiter', () => {
+    const result = run(taskBranch(), ['HEAD~1...HEAD~1...HEAD']);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('more than one delimiter');
+  });
+
+  it('refuses mixed range delimiters in either order', () => {
+    const work = taskBranch();
+
+    expect(run(work, ['HEAD~1..HEAD...HEAD']).stderr).toContain('more than one delimiter');
+    expect(run(work, ['HEAD~1...HEAD..HEAD']).stderr).toContain('more than one delimiter');
+  });
+
+  it('still resolves a range whose endpoints contain single dots', () => {
+    const work = taskBranch();
+    git(work, 'tag', 'v1.0.0');
+    writeFile(work, 'c.md', '# C\n');
+    commitAll(work, 'add c');
+    git(work, 'tag', 'v1.0.1');
+
+    const result = run(work, ['v1.0.0..v1.0.1']);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('SCOPE=committed-range');
+  });
+
+  it('refuses an explicit range whose left revision does not resolve', () => {
     const result = run(taskBranch(), ['deadbeef..HEAD']);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('does not resolve');
   });
 
-  it('refuses an explicit range whose tip does not resolve', () => {
+  it('refuses an explicit range whose right revision does not resolve', () => {
     const result = run(taskBranch(), ['HEAD~1..deadbeef']);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('does not resolve');

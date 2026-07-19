@@ -9,8 +9,8 @@ define accepted contracts.
 
 ## Work markers
 
-Prefix tracked follow-up work with `FIXME:` when the current state contains a
-defect; otherwise use `TODO:`.
+Mark tracked follow-up work as `FIXME` when the current state contains a defect;
+otherwise as `TODO`.
 
 A rule stated here overrides delegated material. Until a subject moves here,
 its accepted behavior remains in its current owner under `docs/` or

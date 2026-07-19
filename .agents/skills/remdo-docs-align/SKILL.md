@@ -19,7 +19,7 @@ tie-breaker, so preserve that structure when editing this skill.
   with equivalent carve-outs (the templates assume its carve-out structure).
 - **Scope**, fixed at invocation: the working tree (uncommitted doc
   changes), a committed range (resolved via
-  `.agents/skills/remdo-refine/tools/resolve-scope.sh`, whose header states the
+  `.agents/skills/_shared/tools/resolve-scope.sh`, whose header states the
   contract), or an explicit file set (e.g. the whole corpus for a realignment).
   A diff scope selects its touched files, read whole.
 - Authoring new content is out of scope: write-time rules do not prevent
