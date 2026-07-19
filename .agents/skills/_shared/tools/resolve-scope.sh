@@ -50,11 +50,13 @@ emit_files_working_tree() {
   # net worktree-vs-HEAD change; add `diff --cached` so a file whose index
   # differs but whose worktree is back at HEAD (staged then reverted) is still
   # listed — the scope is staged + unstaged + untracked, matching tree_is_dirty.
-  {
-    git diff --name-only HEAD
-    git diff --cached --name-only
-    git ls-files --others --exclude-standard
-  } | sort -u
+  tracked=$(git diff --name-only HEAD) \
+    || fail "git diff --name-only HEAD failed while resolving working-tree files"
+  staged=$(git diff --cached --name-only) \
+    || fail "git diff --cached --name-only failed while resolving working-tree files"
+  untracked=$(git ls-files --others --exclude-standard) \
+    || fail "git ls-files failed while resolving working-tree files"
+  printf '%s\n%s\n%s\n' "$tracked" "$staged" "$untracked" | sed '/^$/d' | sort -u
 }
 
 resolve_working_tree() {
@@ -70,10 +72,6 @@ resolve_working_tree() {
 resolve_committed_range() {
   base=$1
   resolved_head=$2
-  head=$(git rev-parse --verify HEAD)
-  if [ "$resolved_head" != "$head" ]; then
-    fail "range right revision must resolve to HEAD"
-  fi
   if tree_is_dirty; then
     fail "committed-range scope but the working tree is dirty — commit or stash first (mixed scope refused)"
   fi
@@ -145,6 +143,10 @@ case "$scope_arg" in
       || fail "range left revision '$left' does not resolve to a commit"
     right_sha=$(git rev-parse --verify --quiet "$right^{commit}") \
       || fail "range right revision '$right' does not resolve to a commit"
+    head_sha=$(git rev-parse --verify HEAD)
+    if [ "$right_sha" != "$head_sha" ]; then
+      fail "range right revision must resolve to HEAD"
+    fi
     case "$scope_arg" in
       *...*)
         base_ref=$(git merge-base "$left_sha" "$right_sha" 2>/dev/null) \

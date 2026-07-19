@@ -1,11 +1,14 @@
 // Shared resolve-scope.sh: happy paths (inferred default, explicit range,
 // working-tree) and every refusal, exercised in scratch git repos.
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   cleanupTempDirs,
   commitAll,
   git,
+  makeDir,
   makeNonRepoDir,
   makeScratchWithOrigin,
   runScript,
@@ -148,6 +151,20 @@ describe('resolve-scope.sh (shared tool)', () => {
     expect(result.stderr).toContain('resolve to HEAD');
   });
 
+  it('reports a non-HEAD right revision before checking two-dot ancestry', () => {
+    const work = taskBranch();
+    git(work, 'switch', '--quiet', 'main');
+    writeFile(work, 'upstream.md', '# Upstream\n');
+    commitAll(work, 'advance main');
+    git(work, 'switch', '--quiet', 'feat/x');
+
+    const result = run(work, ['main..HEAD~1']);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('resolve to HEAD');
+    expect(result.stderr).not.toContain('ancestor');
+  });
+
   it('refuses an explicit range with a missing revision', () => {
     expect(run(taskBranch(), ['..HEAD']).stderr).toContain('left revision is missing');
     expect(run(taskBranch(), ['HEAD..']).stderr).toContain('right revision is missing');
@@ -184,6 +201,29 @@ describe('resolve-scope.sh (shared tool)', () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('SCOPE=committed-range');
+  });
+
+  it('fails when a working-tree file query fails instead of returning a partial list', () => {
+    const work = taskBranch();
+    writeFile(work, 'c.md', '# C uncommitted\n');
+    const bin = makeDir('resolve-scope-git-stub-');
+    const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
+    writeFile(
+      bin,
+      'git',
+      `#!/usr/bin/env sh
+if [ "$1" = diff ] && [ "$2" = --cached ] && [ "$3" = --name-only ]; then
+  exit 23
+fi
+exec ${realGit} "$@"
+`,
+    );
+    fs.chmodSync(path.join(bin, 'git'), 0o755);
+
+    const result = runScript(path.join(__dirname, '../tools/resolve-scope.sh'), work, ['working-tree'], bin);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('git diff --cached --name-only failed');
   });
 
   it('refuses an explicit range whose left revision does not resolve', () => {

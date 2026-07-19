@@ -22,20 +22,21 @@ printf '%s\n' "$@" > "${cwd}/args"
 while [ "$#" -gt 0 ]; do
   if [ "$1" = '--output-last-message' ]; then
     shift
-    printf 'REMDO_CODE_REVIEW_COMPLETE\nNo findings.\n' > "$1"
+    printf 'No findings.\n' > "$1"
     break
   fi
   shift
 done
-printf 'intermediate transcript\n'
+printf '{"type":"turn.completed"}\n'
 `);
 
     const result = runScript(script, cwd, ['working-tree'], stub);
 
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('No findings.\n');
-    expect(result.stdout).not.toContain('intermediate transcript');
-    expect(fs.readFileSync(path.join(cwd, 'args'), 'utf8')).toContain('--uncommitted\n');
+    const args = fs.readFileSync(path.join(cwd, 'args'), 'utf8');
+    expect(args).toContain('--uncommitted\n');
+    expect(args).toContain('--json\n');
   });
 
   it('passes the immutable base to committed-range review', () => {
@@ -45,11 +46,12 @@ printf '%s\n' "$@" > "${cwd}/args"
 while [ "$#" -gt 0 ]; do
   if [ "$1" = '--output-last-message' ]; then
     shift
-    printf 'REMDO_CODE_REVIEW_COMPLETE\nRange clean.\n' > "$1"
+    printf 'Range clean.\n' > "$1"
     break
   fi
   shift
 done
+printf '{"type":"turn.completed"}\n'
 `);
 
     const result = runScript(script, cwd, ['committed-range', 'base123'], stub);
@@ -88,11 +90,12 @@ printf 'last diagnostic before exit\n' >&2
 while [ "$#" -gt 0 ]; do
   if [ "$1" = '--output-last-message' ]; then
     shift
-    printf 'REMDO_CODE_REVIEW_COMPLETE\n \n\t\n' > "$1"
+    printf ' \n\t\n' > "$1"
     break
   fi
   shift
 done
+printf '{"type":"turn.completed"}\n'
 `));
 
     expect(result.status).toBe(1);
