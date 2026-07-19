@@ -1,7 +1,8 @@
 # Section Responsibility
 
-This case records a structural correction made while drafting the
-[`remdo-verify-change`](../../skills/remdo-verify-change.md) contract.
+This user-raised case records a structural correction made while drafting the
+[`remdo-verify-change`](../../skills/remdo-verify-change.md) contract in Codex
+session `019f744f-c6fd-7f03-8e89-7362d3ba18f4`.
 
 ## Pre-change
 

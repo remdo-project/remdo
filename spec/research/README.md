@@ -16,7 +16,8 @@ layout. The simplest representation makes them explicit in one Markdown file:
 ```markdown
 # Case name
 
-Identify the affected artifact and the activity that produced the case.
+Identify the affected artifact, the activity that produced the case, who raised
+the challenge, and the source session when available.
 
 ## Pre-change
 

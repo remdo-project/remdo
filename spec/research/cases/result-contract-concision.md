@@ -1,7 +1,8 @@
 # Result Contract Concision
 
-This case records a wording correction in the
-[`remdo-verify-change`](../../skills/remdo-verify-change.md) result contract.
+This user-raised case records a wording correction in the
+[`remdo-verify-change`](../../skills/remdo-verify-change.md) result contract in
+Codex session `019f744f-c6fd-7f03-8e89-7362d3ba18f4`.
 
 ## Pre-change
 
