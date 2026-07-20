@@ -15,6 +15,11 @@ or `FIXME` section. Remove rejected or obsolete notes and empty sections.
 
 ## TODO
 
+### Agent specification structure
+
+Move `spec/skills/remdo-verify-change.md` under `spec/agents/skills/` and update
+all inbound links in the same change.
+
 ### Propagate nested results
 
 - Components report facts through their results; their callers decide what
