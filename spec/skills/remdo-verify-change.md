@@ -55,10 +55,39 @@ degradation. Any failed proof fails validation.
 
 ## Result
 
-The result reports the scope, check outcomes, and each reviewer's output,
-unavailability, or failure. It is clean when checks pass and no findings are
-reported; reviewer unavailability or failure alone does not make it non-clean.
-The result is evidence, not approval.
+The result follows this order:
+
+```text
+Verification: <clean | findings | stopped> [(degraded)]
+
+Scope
+<requested and resolved scope, or resolution failure>
+
+Checks
+<command>: <passed | failed>
+<failure evidence when failed>
+or
+not run: <reason>
+
+Reviews
+not run: <reason>
+or
+Codex: <completed | unavailable | failed>
+<final report or failure evidence>
+
+Claude: <completed | unavailable | failed>
+<final report or failure evidence>
+```
+
+`clean` means checks passed and completed reviewers reported no findings;
+`findings` means at least one completed reviewer reported findings. `stopped`
+means scope resolution or checks prevented reviews. Add `degraded` when an
+attempted reviewer was unavailable or failed; neither condition alone changes
+`clean` to `findings`.
+
+Report only evidence relevant to a failure, not successful sub-results of the
+same failed step. Reviews intentionally not attempted are `not run`, not
+`unavailable`. The result is evidence, not approval.
 
 ## Future
 
