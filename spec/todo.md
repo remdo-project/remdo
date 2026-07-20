@@ -15,6 +15,12 @@ or `FIXME` section. Remove rejected or obsolete notes and empty sections.
 
 ## TODO
 
+### Specification feedback ownership
+
+Rename `spec/research/` so its path clearly owns session-derived
+specification-authoring feedback cases, then update inbound links. Decide
+separately whether durable general research needs a repository owner.
+
 ### Agent specification structure
 
 Move `spec/skills/remdo-verify-change.md` under `spec/agents/skills/` and update

@@ -80,3 +80,6 @@ here.
   and result behavior were interleaved before each received a clear owner.
 - [Result contract concision](cases/result-contract-concision.md) — the verifier
   result contract was shortened while retaining its key boundaries.
+- [Positive scope opener](cases/positive-scope-opener/README.md) — a runner
+  contract replaced unneeded negated non-goals with a positive statement of
+  owned behavior.
