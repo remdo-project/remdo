@@ -1,7 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanupTempDirs, makeDir, runScript, writeFile } from '../../_shared/test-support/git-scratch';
+import {
+  cleanupTempDirs,
+  commitAll,
+  git,
+  makeDir,
+  makeScratchWithOrigin,
+  runScript,
+  writeFile,
+} from '../../_shared/test-support/git-scratch';
 
 const script = path.join(__dirname, '../tools/run-claude-review.sh');
 
@@ -33,28 +41,68 @@ function completedResult(report: string): string {
   return shellJson(data);
 }
 
+function workingTree(): string {
+  const { work } = makeScratchWithOrigin({ 'candidate.md': 'base\n' });
+  git(work, 'switch', '--quiet', '--create', 'feature', '--track', 'origin/main');
+  writeFile(work, 'ahead.md', 'committed ahead of upstream\n');
+  commitAll(work, 'ahead');
+  writeFile(work, 'candidate.md', 'changed\n');
+  return work;
+}
+
 afterEach(cleanupTempDirs);
 
 describe('run-claude-review.sh', () => {
   it('returns only the final report for a clean working-tree review', () => {
     const stub = claudeStub(`
 printf '%s\n' "$@" > "$(dirname "$0")/args"
+printf '%s\n' "$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0" "$GIT_CONFIG_KEY_1" "$GIT_CONFIG_VALUE_1" "$GIT_CONFIG_KEY_2" "$GIT_CONFIG_VALUE_2" > "$(dirname "$0")/git-env"
+git rev-list --count '@{u}..HEAD' > "$(dirname "$0")/ahead-count"
+git status --short --untracked-files=all > "$(dirname "$0")/status"
 ${completedResult('## Code review — 0 findings\n\nNo issues found.')}
 `);
+    const work = workingTree();
     const result = runScript(
       script,
-      makeDir('verify-claude-work-'),
+      work,
       ['working-tree'],
       stub,
+      {
+        GIT_CONFIG_COUNT: '001',
+        GIT_CONFIG_KEY_0: 'safe.directory',
+        GIT_CONFIG_VALUE_0: '*',
+      },
     );
 
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('## Code review — 0 findings\n\nNo issues found.\n');
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
+    expect(args).toContain('--effort\nmedium\n');
     expect(args).toContain('--json-schema\n');
     expect(args).not.toContain('REMDO_CODE_REVIEW_COMPLETE');
     expect(args).toContain('structured report field must contain the complete final review report');
     expect(args).toContain('Bash,Read,Grep,Glob,Skill,Agent');
+    const gitEnv = fs.readFileSync(path.join(stub, 'git-env'), 'utf8').trimEnd().split('\n');
+    expect(gitEnv.slice(0, 4)).toEqual(['3', 'safe.directory', '*', 'branch.feature.remote']);
+    expect(gitEnv[4]).toMatch(/^remdo-verify-\d+$/);
+    expect(gitEnv[5]).toBe(`remote.${gitEnv[4]}.fetch`);
+    expect(gitEnv[6]).toBe('+refs/heads/main:refs/heads/feature');
+    expect(fs.readFileSync(path.join(stub, 'ahead-count'), 'utf8')).toBe('0\n');
+    expect(fs.readFileSync(path.join(stub, 'status'), 'utf8')).toBe(' M candidate.md\n');
+    expect(git(work, 'config', '--get', 'branch.feature.remote').stdout.trim()).toBe('origin');
+    expect(git(work, 'rev-list', '--count', '@{u}..HEAD').stdout).toBe('1\n');
+  });
+
+  it('rejects detached working-tree scope', () => {
+    const work = workingTree();
+    git(work, 'checkout', '--quiet', '--detach');
+    const stub = claudeStub(completedResult('not reached'));
+
+    const result = runScript(script, work, ['working-tree'], stub);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain('working-tree review requires an attached branch');
   });
 
   it('passes the resolved range to committed-range review', () => {
@@ -74,7 +122,7 @@ ${completedResult('## Code review — 0 findings')}
   it('treats an unrecognized /code-review command as unavailable', () => {
     const result = runScript(
       script,
-      makeDir('verify-claude-work-'),
+      workingTree(),
       ['working-tree'],
       claudeStub(jsonResult('Unknown command: /code-review')),
     );
@@ -88,7 +136,7 @@ ${completedResult('## Code review — 0 findings')}
     const report = '## Code review — 1 finding\n\nDo not match `Unknown command: /code-review` inside findings.';
     const result = runScript(
       script,
-      makeDir('verify-claude-work-'),
+      workingTree(),
       ['working-tree'],
       claudeStub(completedResult(report)),
     );
@@ -110,7 +158,7 @@ ${completedResult('## Code review — 0 findings')}
     };
     const result = runScript(
       script,
-      makeDir('verify-claude-work-'),
+      workingTree(),
       ['working-tree'],
       claudeStub(shellJson(data)),
     );
@@ -122,7 +170,7 @@ ${completedResult('## Code review — 0 findings')}
   it('keeps successful stderr diagnostics out of the JSON report', () => {
     const result = runScript(
       script,
-      makeDir('verify-claude-work-'),
+      workingTree(),
       ['working-tree'],
       claudeStub(`
 printf 'benign startup warning\n' >&2
@@ -138,7 +186,7 @@ ${completedResult('## Code review — 0 findings')}
   it('reports process failure without treating diagnostic output as findings', () => {
     const result = runScript(
       script,
-      makeDir('verify-claude-work-'),
+      workingTree(),
       ['working-tree'],
       claudeStub(`
 printf 'diagnostic transcript\n'
@@ -155,7 +203,7 @@ exit 7
   it('treats an error result as a failed review even when the process exits 0', () => {
     const result = runScript(
       script,
-      makeDir('verify-claude-work-'),
+      workingTree(),
       ['working-tree'],
       claudeStub(`printf '%s' '${JSON.stringify({ type: 'result', subtype: 'error_during_execution', is_error: true, terminal_reason: 'error' }).replace(/'/g, `'\\''`)}'`),
     );
@@ -168,7 +216,7 @@ exit 7
   it('treats a result containing only the Local skills footer as a failed review', () => {
     const result = runScript(
       script,
-      makeDir('verify-claude-work-'),
+      workingTree(),
       ['working-tree'],
       claudeStub(jsonResult('Local skills: none')),
     );
@@ -181,7 +229,7 @@ exit 7
   it('rejects a successful Claude response when native review did not complete', () => {
     const result = runScript(
       script,
-      makeDir('verify-claude-work-'),
+      workingTree(),
       ['working-tree'],
       claudeStub(
         jsonResult(
@@ -208,7 +256,7 @@ exit 7
     };
     const result = runScript(
       script,
-      makeDir('verify-claude-work-'),
+      workingTree(),
       ['working-tree'],
       claudeStub(shellJson(data)),
     );
@@ -229,7 +277,7 @@ exit 7
     };
     const result = runScript(
       script,
-      makeDir('verify-claude-work-'),
+      workingTree(),
       ['working-tree'],
       claudeStub(shellJson(data)),
     );
@@ -249,7 +297,7 @@ exit 7
     };
     const result = runScript(
       script,
-      makeDir('verify-claude-work-'),
+      workingTree(),
       ['working-tree'],
       claudeStub(shellJson(data)),
     );
@@ -263,7 +311,7 @@ exit 7
   it('fails cleanly when Claude returns non-object JSON', () => {
     const result = runScript(
       script,
-      makeDir('verify-claude-work-'),
+      workingTree(),
       ['working-tree'],
       claudeStub("printf '%s' 'null'"),
     );

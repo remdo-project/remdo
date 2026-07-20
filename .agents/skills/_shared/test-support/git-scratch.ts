@@ -125,10 +125,11 @@ export function runScript(
   cwd: string,
   args: string[] = [],
   extraPath?: string,
+  envOverrides: NodeJS.ProcessEnv = {},
 ): SpawnSyncReturns<string> {
   const env = extraPath
-    ? { ...gitEnv, PATH: `${extraPath}:${process.env.PATH}` }
-    : gitEnv;
+    ? { ...gitEnv, ...envOverrides, PATH: `${extraPath}:${process.env.PATH}` }
+    : { ...gitEnv, ...envOverrides };
   return spawnSync('sh', [script, ...args], {
     cwd,
     encoding: 'utf8',

@@ -11,6 +11,7 @@ fail() {
 }
 
 command -v claude >/dev/null 2>&1 || fail "claude is unavailable"
+command -v git >/dev/null 2>&1 || fail "git is unavailable"
 command -v python3 >/dev/null 2>&1 || fail "python3 is unavailable"
 
 scope=${1-}
@@ -27,6 +28,35 @@ range_prompt() {
 case "$scope" in
   working-tree)
     [ "$#" -eq 1 ] || fail "working-tree scope takes no revisions"
+    branch=$(git symbolic-ref --quiet --short HEAD) \
+      || fail "working-tree review requires an attached branch"
+    merge_refs=$(git config --get-all "branch.$branch.merge" || :)
+    [ -n "$merge_refs" ] || merge_refs="refs/heads/$branch"
+    # Bare /code-review includes commits ahead of upstream. Give its inherited
+    # Git view a synthetic upstream whose merge targets resolve to this branch.
+    config_count=${GIT_CONFIG_COUNT:-0}
+    case "$config_count" in
+      ''|*[!0-9]*) fail "GIT_CONFIG_COUNT must be a non-negative integer" ;;
+    esac
+    while [ "${config_count#0}" != "$config_count" ]; do
+      config_count=${config_count#0}
+    done
+    config_count=${config_count:-0}
+    remote_name="remdo-verify-$$"
+    export "GIT_CONFIG_KEY_$config_count=branch.$branch.remote"
+    export "GIT_CONFIG_VALUE_$config_count=$remote_name"
+    config_count=$((config_count + 1))
+    old_ifs=$IFS
+    IFS='
+'
+    for merge_ref in $merge_refs; do
+      export "GIT_CONFIG_KEY_$config_count=remote.$remote_name.fetch"
+      export "GIT_CONFIG_VALUE_$config_count=+$merge_ref:refs/heads/$branch"
+      config_count=$((config_count + 1))
+    done
+    IFS=$old_ifs
+    GIT_CONFIG_COUNT=$config_count
+    export GIT_CONFIG_COUNT
     system_prompt=$working_tree_prompt
     command_arg='/code-review'
     ;;
@@ -51,7 +81,7 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-if claude -p --effort max --permission-mode plan \
+if claude -p --effort medium --permission-mode dontAsk \
   --allowedTools 'Bash,Read,Grep,Glob,Skill,Agent' \
   --append-system-prompt "$system_prompt" \
   --settings '{"disableAllHooks":true}' \

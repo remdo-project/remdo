@@ -14,6 +14,8 @@ the selected scope.
 
 Require exactly one caller-supplied scope: `working-tree` or an explicit
 `<left>..HEAD` / `<left>...HEAD` Git diff range. Do not infer a default.
+For `working-tree`, stop unless `git symbolic-ref --quiet --short HEAD`
+succeeds.
 
 Run the [shared scope resolver](../_shared/tools/resolve-scope.sh) from the
 repository root:
@@ -55,18 +57,9 @@ Run the adapters exactly as provided; each owns its reviewer-specific target,
 prompt, permissions, isolation, and output parsing. Successful stdout is the
 final report. Classify a missing reviewer as unavailable and any other non-zero
 adapter result as failed; treat its output as diagnostic, not as findings.
+The Claude adapter uses medium effort.
 
 ## Report
 
-Return one concise result containing:
-
-- the resolved scope;
-- the deterministic command and outcome;
-- Codex and Claude status (`completed`, `unavailable`, or `failed`) and
-  attributed output;
-- whether the result is clean.
-
-The result is clean when checks passed and completed reviewers reported no
-findings. Reviewer unavailability or failure alone does not make it non-clean,
-but always remains visible. Report evidence and findings without approving the
-scope or deciding what its caller does next.
+Return the result exactly as defined by the authoritative specification's
+[Result](../../../spec/skills/remdo-verify-change.md#result) section.
