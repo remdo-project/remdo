@@ -33,11 +33,15 @@ inbound links, and removes the former normative definition in the same change.
 ## Contracts
 
 Contracts are clear without consulting external sources. Their clauses are
-normative unless marked otherwise and use declarative present tense.
+normative unless marked otherwise.
 
 ### Target behavior
 
-A durable specification describes accepted target behavior in timeless prose.
+A durable specification states its target behavior as fact in timeless prose,
+regardless of implementation status.
+
+Known gaps between target behavior and implementation are tracked in
+[RemDo TODO](todo.md).
 
 ### Minimality
 
@@ -70,7 +74,7 @@ Use as the single owner for terms introduced by the document.
 
 #### Future
 
-Use for a brief trigger describing long-horizon, non-target direction.
+Use for brief triggers describing long-horizon, non-target direction.
 
 #### References
 
