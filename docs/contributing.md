@@ -66,7 +66,7 @@ Default policy:
 
 `TODO:` and `FIXME:` are the only tracked comment markers — use them for any
 comment worth tracking (a workaround, a deferred fix, a known gap). Use the
-repository-wide [work marker meanings](../spec/README.md#work-markers). State
+repository-wide [work marker meanings](../spec/todo.md#work-markers). State
 the rationale and, where one exists, the one-line probe that proves the comment
 obsolete (delete the shim / flip the flag / run the suite) right there in the
 comment.

@@ -23,6 +23,10 @@ does not.
 documents link to that owner instead of redefining or shadowing it, and no two
 sources describe conflicting target behavior.
 
+**Internal owners.** Where a document relies on another owner's term or
+contract, it links inline at first use so readers arriving mid-system can follow
+the dependency.
+
 **Contract migration.** A migration moves the complete contract, updates
 inbound links, and removes the former normative definition in the same change.
 
@@ -34,9 +38,6 @@ normative unless marked otherwise and use declarative present tense.
 ### Target behavior
 
 A durable specification describes accepted target behavior in timeless prose.
-Temporary status, sequencing, and implementation gaps live in
-[`spec/todo.md`](todo.md). Target behavior may lead implementation only while
-that ledger names every known gap; the branch converges before merge.
 
 ### Minimality
 
@@ -71,14 +72,9 @@ Use as the single owner for terms introduced by the document.
 
 Use for a brief trigger describing long-horizon, non-target direction.
 
-#### Reference sections
+#### References
 
-**External sources.** A final `References` section lists every source and
-dependency the document relies on.
-
-**Internal owners.** Where a document relies on another owner's term or
-contract, it links inline at first use so readers arriving mid-system can follow
-the dependency.
+Use for external sources and dependencies the document relies on.
 
 ## Specification structure
 
@@ -113,6 +109,7 @@ The placeholders describe structural roles, not required section names.
 7. A generic container or document-wide section exists only when it represents
    a real shared responsibility.
 
+<!-- markdownlint-disable-next-line MD024 -->
 ## References
 
 - [Diátaxis: reference](https://diataxis.fr/reference/) — reference-writing

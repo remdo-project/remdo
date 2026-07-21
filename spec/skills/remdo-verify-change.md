@@ -117,18 +117,3 @@ attempted reviewer was unavailable or failed; neither condition alone changes
 Report only evidence relevant to a failure, not successful sub-results of the
 same failed step. Reviews intentionally not attempted are `not run`, not
 `unavailable`. The result is evidence, not approval.
-
-## Future
-
-- TODO: Decide whether deterministic checks belong in this skill at all.
-
-- TODO: Decide whether deterministic checks and their selection rules belong in
-  this specification or in the skill contract.
-
-- TODO: Research explicit specification- and implementation-readiness modes
-  only if standalone and change-flow use exposes recurring ambiguity that
-  reviewer inference cannot resolve reliably.
-
-- TODO: Consider running the verifier as a fresh subagent, created either by
-  its caller or by the verifier itself, if evidence from real runs shows that
-  doing so is more efficient.

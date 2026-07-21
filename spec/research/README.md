@@ -1,7 +1,8 @@
 # Specification Research
 
 This directory records non-normative evidence about how RemDo specifications
-are written. It does not define accepted behavior or documentation rules.
+are written. This README defines how that evidence is structured and maintained.
+The evidence does not define accepted behavior or documentation rules.
 
 A **spec-quality case** preserves evidence for later specification research and
 testing. `Post-change` is the version considered a better fit for the recorded

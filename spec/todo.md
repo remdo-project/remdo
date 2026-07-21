@@ -1,17 +1,28 @@
 # RemDo TODO
 
-This file is RemDo's authoritative TODO and sole intake for temporary work
-state, known gaps, unresolved decisions, and follow-up work. It does not define
-or override accepted target behavior.
+This file is RemDo's temporary-work ledger. It records known divergences from
+[accepted target behavior](documentation.md#target-behavior), cross-cutting
+temporary state, unresolved decisions, and follow-up work without a better
+colocated owner. Entries acknowledge incomplete work without defining or
+changing accepted target behavior.
 
 The closed [legacy backlog](../docs/legacy-backlog.md) retains unresolved entries
-created before this file became the sole intake. Do not add entries there; its
+created before this file became the active ledger. Do not add entries there; its
 existing entries remain part of duplicate and review-suppression checks until
 they are resolved or migrated.
 
 Reviewers treat explicitly recorded gaps as intended temporary state rather than
 new findings. Group related notes under short topic headings within their `TODO`
 or `FIXME` section. Remove rejected or obsolete notes and empty sections.
+
+## Work markers
+
+Tracked follow-up work uses `FIXME` when the current state contains a defect and
+`TODO` otherwise.
+
+Code-local follow-up remains in tracked comments under the
+[contributor guidance](../docs/contributing.md#code-comments) and is not
+duplicated here.
 
 ## TODO
 
@@ -45,8 +56,8 @@ an unattributed mutable synthesis as provenance.
 
 ### Agent specification structure
 
-Move `spec/skills/remdo-verify-change.md` under `spec/agents/skills/` and update
-all inbound links in the same change.
+Move the [`remdo-verify-change`](skills/remdo-verify-change.md) specification
+under `spec/agents/skills/` and update all inbound links in the same change.
 
 ### Propagate nested results
 
@@ -58,7 +69,20 @@ all inbound links in the same change.
 ### Fresh-session ownership
 
 Deliberately decide which components run in fresh sessions and whether each
-session is started by the caller or the invoked skill.
+session is started by the caller or the invoked skill. Use evidence from real
+verifier runs, adopting a fresh-subagent boundary only if it is more efficient.
+
+### Verifier deterministic checks
+
+Decide whether deterministic checks belong in `remdo-verify-change`. If they
+remain, decide whether their selection rules are accepted behavior owned by the
+verifier specification or execution procedure owned by the skill.
+
+### Verifier readiness modes
+
+Research explicit specification- and implementation-readiness modes only if
+standalone and change-flow use exposes recurring ambiguity that reviewer
+inference cannot resolve reliably.
 
 ### Post-skill retrospectives
 
