@@ -5,6 +5,7 @@ import type { DisposableTempDir } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
+import { terminateProcessGroup } from '../../../../tools/lib/managed-process';
 
 export type CodexAgentRequest =
   | {
@@ -112,32 +113,18 @@ function runProcess(command: string, args: string[], options: RunProcessOptions)
       options.signal?.removeEventListener('abort', abort);
       resolve({ ...outcome, aborted, stdout });
     };
-    const signalProcess = (signal: NodeJS.Signals): void => {
-      if (child.pid === undefined) {
-        return;
-      }
-      try {
-        if (process.platform === 'win32') {
-          child.kill(signal);
-        } else {
-          process.kill(-child.pid, signal);
-        }
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
-          try {
-            child.kill(signal);
-          } catch {
-            // The close or error event remains authoritative for the outcome.
-          }
-        }
-      }
-    };
     const terminate = (): void => {
       if (terminating) {
         return;
       }
       terminating = true;
-      signalProcess('SIGKILL');
+      if (child.pid !== undefined) {
+        try {
+          terminateProcessGroup(child, 'SIGKILL');
+        } catch {
+          // The close or error event remains authoritative for the outcome.
+        }
+      }
     };
     const abort = (): void => {
       aborted = true;
