@@ -133,12 +133,11 @@ while :; do sleep 1; done
 
   it('reports an unavailable Git executable without a raw exception', () => {
     const emptyPath = makeDir('verify-claude-empty-path-');
-    const tsx = path.resolve('node_modules/tsx/dist/cli.mjs');
     const tool = path.join(__dirname, '../tools/run-claude-review.ts');
 
     const result = spawnSync(
       process.execPath,
-      [tsx, tool, 'working-tree'],
+      [tool, 'working-tree'],
       {
         cwd: makeDir('verify-claude-work-'),
         encoding: 'utf8',

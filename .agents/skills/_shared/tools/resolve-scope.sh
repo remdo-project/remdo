@@ -93,12 +93,8 @@ case "$scope_arg" in
     # merge-base range = this branch's own work). Refuse on an integration
     # branch where that default is meaningless (remdo-refine case 3): main/dev,
     # or no merge-base with origin/main at all.
-    branch=$(git rev-parse --abbrev-ref HEAD)
-    # A detached HEAD has no branch identity, so the origin/main...HEAD default
-    # ("this branch's own work") is meaningless — refuse and demand a range.
-    if [ "$branch" = HEAD ]; then
-      fail "detached HEAD — no branch for the origin/main...HEAD default; pass an explicit range"
-    fi
+    branch=$(git symbolic-ref --quiet --short HEAD) \
+      || fail "detached HEAD — no branch for the origin/main...HEAD default; pass an explicit range"
     case "$branch" in
       main | dev)
         fail "on integration branch '$branch' — refusing the origin/main...HEAD default; pass an explicit range"

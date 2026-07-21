@@ -5,7 +5,7 @@ import type { DisposableTempDir } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
-import { terminateProcessGroup } from '../../../../tools/lib/managed-process';
+import { terminateProcessGroup } from '../../../../tools/lib/managed-process.ts';
 
 export type CodexAgentRequest =
   | {
@@ -519,17 +519,14 @@ export async function runReadOnlyAgentWithProcessSignals(
 ): Promise<ReadOnlyAgentResult> {
   const controller = new AbortController();
   const cancel = (): void => controller.abort();
-  if (options.signal?.aborted) {
-    cancel();
-  } else {
-    options.signal?.addEventListener('abort', cancel, { once: true });
-  }
+  const signal = options.signal === undefined
+    ? controller.signal
+    : AbortSignal.any([controller.signal, options.signal]);
   process.once('SIGINT', cancel);
   process.once('SIGTERM', cancel);
   try {
-    return await runReadOnlyAgent(request, { ...options, signal: controller.signal });
+    return await runReadOnlyAgent(request, { ...options, signal });
   } finally {
-    options.signal?.removeEventListener('abort', cancel);
     process.removeListener('SIGINT', cancel);
     process.removeListener('SIGTERM', cancel);
   }

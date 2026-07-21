@@ -1,6 +1,6 @@
 import process from 'node:process';
-import { runReadOnlyAgentWithProcessSignals } from '../../_shared/tools/read-only-agent-runner';
-import type { CodexAgentRequest, ReadOnlyAgentResult } from '../../_shared/tools/read-only-agent-runner';
+import { runReadOnlyAgentWithProcessSignals } from '../../_shared/tools/read-only-agent-runner.ts';
+import type { CodexAgentRequest, ReadOnlyAgentResult } from '../../_shared/tools/read-only-agent-runner.ts';
 
 function fail(message: string): never {
   process.stderr.write(`run-codex-review: ${message}\n`);

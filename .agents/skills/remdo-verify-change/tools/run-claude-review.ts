@@ -5,12 +5,12 @@ import { z } from 'zod';
 import {
   normalizeReadOnlyEnvironment,
   runReadOnlyAgentWithProcessSignals,
-} from '../../_shared/tools/read-only-agent-runner';
+} from '../../_shared/tools/read-only-agent-runner.ts';
 import type {
   ClaudeAgentRequest,
   ReadOnlyAgentResult,
   RunReadOnlyAgentOptions,
-} from '../../_shared/tools/read-only-agent-runner';
+} from '../../_shared/tools/read-only-agent-runner.ts';
 
 const REPORT_INSTRUCTION = 'The structured report field must contain the complete final review report, including every finding and its location. Do not replace findings with counts, a summary, or a reference to other output.';
 const REVIEW_OUTPUT_SCHEMA = z.strictObject({

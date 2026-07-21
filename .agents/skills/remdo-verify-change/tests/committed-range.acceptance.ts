@@ -1,6 +1,6 @@
 /* eslint-disable node/no-process-env */
 // Opt-in real-provider validation; excluded from normal test suites.
-// Usage: node --import tsx committed-range.acceptance.ts
+// Usage: node committed-range.acceptance.ts
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
