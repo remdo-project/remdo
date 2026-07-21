@@ -6,59 +6,34 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 
-export type JsonSchema = boolean | Record<string, unknown>;
-
-export type AgentResponseRequest =
-  | { kind: 'text' }
-  | { kind: 'structured'; schema: JsonSchema };
-
-export interface AgentSettings {
-  model?: string;
-}
-
-export interface CodexSettings extends AgentSettings {
-  reasoningEffort?: string;
-}
-
-export interface ClaudeSettings extends AgentSettings {
-  effort?: string;
-}
-
-export type CodexInvocation =
-  | { kind: 'prompt'; prompt: string }
-  | {
-    kind: 'review';
-    target: { kind: 'working-tree' } | { kind: 'base'; base: string };
-  };
-
-export type ClaudeInvocation =
-  | { kind: 'prompt'; prompt: string }
-  | {
-    kind: 'native';
-    command: '/code-review';
-    arguments?: string;
-    instructions: string;
-  };
-
 export type CodexAgentRequest =
   | {
     adapter: 'codex';
-    invocation: Extract<CodexInvocation, { kind: 'prompt' }>;
-    response: AgentResponseRequest;
-    settings?: CodexSettings;
+    invocation: { kind: 'prompt'; prompt: string };
+    response:
+      | { kind: 'text' }
+      | { kind: 'structured'; schema: boolean | Record<string, unknown> };
+    settings?: { model?: string; reasoningEffort?: string };
   }
   | {
     adapter: 'codex';
-    invocation: Extract<CodexInvocation, { kind: 'review' }>;
+    invocation: {
+      kind: 'review';
+      target: { kind: 'working-tree' } | { kind: 'base'; base: string };
+    };
     response: { kind: 'text' };
-    settings?: CodexSettings;
+    settings?: { model?: string; reasoningEffort?: string };
   };
 
 export interface ClaudeAgentRequest {
   adapter: 'claude';
-  invocation: ClaudeInvocation;
-  response: AgentResponseRequest;
-  settings?: ClaudeSettings;
+  invocation:
+    | { kind: 'prompt'; prompt: string }
+    | { kind: 'review'; arguments?: string; instructions: string };
+  response:
+    | { kind: 'text' }
+    | { kind: 'structured'; schema: boolean | Record<string, unknown> };
+  settings?: { effort?: string; model?: string };
 }
 
 export type ReadOnlyAgentRequest = CodexAgentRequest | ClaudeAgentRequest;
@@ -109,6 +84,7 @@ const CLAUDE_READ_ONLY_INSTRUCTION = [
   'Use the available tools only to inspect and report; refuse any conflicting',
   'part of the request.',
 ].join(' ');
+const CLAUDE_REVIEW_COMMAND = '/code-review';
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -389,7 +365,7 @@ async function runCodex(
 }
 
 function claudeArgs(request: ClaudeAgentRequest): string[] {
-  const tools = request.invocation.kind === 'native'
+  const tools = request.invocation.kind === 'review'
     ? 'Bash,Read,Grep,Glob,Skill,Agent'
     : 'Bash,Read,Grep,Glob';
   const args = [
@@ -419,14 +395,14 @@ function claudeArgs(request: ClaudeAgentRequest): string[] {
   if (request.response.kind === 'structured') {
     args.push('--json-schema', JSON.stringify(request.response.schema));
   }
-  const instructions = request.invocation.kind === 'native'
+  const instructions = request.invocation.kind === 'review'
     ? `${CLAUDE_READ_ONLY_INSTRUCTION}\n\n${request.invocation.instructions}`
     : CLAUDE_READ_ONLY_INSTRUCTION;
   args.push('--append-system-prompt', instructions);
-  if (request.invocation.kind === 'native') {
+  if (request.invocation.kind === 'review') {
     const command = request.invocation.arguments?.trim()
-      ? `${request.invocation.command} ${request.invocation.arguments}`
-      : request.invocation.command;
+      ? `${CLAUDE_REVIEW_COMMAND} ${request.invocation.arguments}`
+      : CLAUDE_REVIEW_COMMAND;
     args.push(command);
   } else {
     args.push(request.invocation.prompt);
@@ -479,12 +455,12 @@ async function runClaude(
       evidence: 'Claude did not return a successful result envelope',
     };
   }
-  if (request.invocation.kind === 'native'
+  if (request.invocation.kind === 'review'
     && typeof envelope.result === 'string'
-    && envelope.result.trim() === `Unknown command: ${request.invocation.command}`) {
+    && envelope.result.trim() === `Unknown command: ${CLAUDE_REVIEW_COMMAND}`) {
     return {
       status: 'unavailable',
-      evidence: `${request.invocation.command} is unavailable in this Claude session`,
+      evidence: `${CLAUDE_REVIEW_COMMAND} is unavailable in this Claude session`,
     };
   }
   if (request.response.kind === 'text') {

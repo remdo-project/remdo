@@ -101,6 +101,6 @@ and reviews run so neither is repeated unnecessarily.
 Consider specification rules for checks that run only at the lifecycle phase
 where they provide value, such as end-to-end adapter validation during skill
 implementation. Use
-[verifier validation](skills/remdo-verify-change.md#validation)
+[verifier validation](skills/remdo-verify-change.md#adapter-validation)
 and its fixture-pass/real-repository-failure dogfood as the first case. Find a
 clearer name before establishing the mechanism.

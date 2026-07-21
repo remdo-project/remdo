@@ -20,9 +20,9 @@ The closed invocation dialects are:
   to one base commit. Prompts support text and structured responses. Native
   review supports text only because its provider surface does not honor a
   response schema.
-- **Claude:** a prompt, or the native `/code-review` command with optional
-  arguments and caller instructions. Both variants support text and structured
-  responses.
+- **Claude:** a prompt, or a review invocation with optional arguments and
+  caller instructions. The adapter maps review to native `/code-review`. Both
+  variants support text and structured responses.
 
 Callers cannot supply raw provider arguments or replace adapter-owned sandbox,
 permission, tool, hook, configuration, persistence, temporary-output, or
@@ -81,8 +81,8 @@ missing or empty output fails the invocation.
 
 For Claude, exit status zero and a successful result envelope are required.
 Text comes from its non-empty `result`; structured output comes from
-`structured_output`. An exact unknown response for a declared native command
-means that capability is unavailable.
+`structured_output`. An exact unknown response for the adapter-owned review
+capability means that capability is unavailable.
 
 The adapter returns only the final text or parsed structured value on success.
 Intermediate provider output is internal to response extraction and is not part
@@ -96,7 +96,7 @@ to interpret.
 The result has one status:
 
 - `responded`, with the complete final response;
-- `unavailable`, when the provider executable or a declared native provider
+- `unavailable`, when the provider executable or an adapter-owned provider
   capability is unavailable; or
 - `failed`, with a concise runner-generated classification when an attempted
   invocation did not produce a trustworthy final response.

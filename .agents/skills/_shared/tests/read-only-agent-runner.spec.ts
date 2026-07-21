@@ -262,8 +262,7 @@ describe('read-only agent runner', () => {
     const result = await runReadOnlyAgent({
       adapter: 'claude',
       invocation: {
-        kind: 'native',
-        command: '/code-review',
+        kind: 'review',
         instructions: 'Review without editing.',
       },
       response: { kind: 'structured', schema: { type: 'object' } },

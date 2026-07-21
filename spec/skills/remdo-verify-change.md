@@ -67,11 +67,11 @@ requests. Codex selects native working-tree or base review and returns its
 provider's text-only final report as response content. The executing verifier,
 not a fixed phrase matcher, determines whether that report represents a review
 of the full scope; an inability or unresolved ambiguity about full-scope
-inspection is failed and the report is failure evidence. Claude selects
-`/code-review`, supplies the exact resolved range when present, and accepts only
-schema-valid output with `review_complete: true` and a non-empty complete
-report. A missing declared native command is unavailable; other runner failures
-remain failed.
+inspection is failed and the report is failure evidence. Claude selects review,
+supplies the exact resolved range when present, and accepts only schema-valid
+output with `review_complete: true` and a non-empty complete report. The runner
+maps review to `/code-review`; a missing review capability is unavailable, while
+other runner failures remain failed.
 
 When a reviewer request builder is added or changed, test it end to end for
 every supported scope. Prove that it invokes native review, inspects the

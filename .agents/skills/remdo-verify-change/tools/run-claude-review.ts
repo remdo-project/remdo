@@ -1,7 +1,7 @@
 /* eslint-disable node/no-process-env */
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
-import schema from './review-output.schema.json' with { type: 'json' };
+import { z } from 'zod';
 import {
   normalizeReadOnlyEnvironment,
   runReadOnlyAgentWithProcessSignals,
@@ -13,11 +13,18 @@ import type {
 } from '../../_shared/tools/read-only-agent-runner';
 
 const REPORT_INSTRUCTION = 'The structured report field must contain the complete final review report, including every finding and its location. Do not replace findings with counts, a summary, or a reference to other output.';
-
-interface ReviewOutput {
-  report: string;
-  review_complete: boolean;
-}
+const REVIEW_OUTPUT_SCHEMA = z.strictObject({
+  review_complete: z.boolean().describe(
+    'True only after native review inspected the full requested scope and completed; false when review could not complete.',
+  ),
+  report: z.string().describe(
+    'The complete final review report, including every finding and its location rather than only counts or a summary, when review_complete is true; otherwise an explanation of why review could not complete.',
+  ),
+});
+const REVIEW_OUTPUT_JSON_SCHEMA = z.toJSONSchema(
+  REVIEW_OUTPUT_SCHEMA,
+  { target: 'draft-07' },
+);
 
 function fail(message: string): never {
   process.stderr.write(`run-claude-review: ${message}\n`);
@@ -142,27 +149,14 @@ function requestFromArgs(args: string[]): {
     request: {
       adapter: 'claude',
       invocation: {
-        kind: 'native',
-        command: '/code-review',
+        kind: 'review',
         arguments: argumentsText,
         instructions,
       },
-      response: { kind: 'structured', schema },
+      response: { kind: 'structured', schema: REVIEW_OUTPUT_JSON_SCHEMA },
       settings: { effort: 'medium' },
     },
   };
-}
-
-function isReviewOutput(value: unknown): value is ReviewOutput {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return false;
-  }
-  const review = value as Record<string, unknown>;
-  const keys = Object.keys(review);
-  return keys.length === 2
-    && keys.every(key => key === 'report' || key === 'review_complete')
-    && typeof review.report === 'string'
-    && typeof review.review_complete === 'boolean';
 }
 
 function reportResult(result: ReadOnlyAgentResult): void {
@@ -173,13 +167,16 @@ function reportResult(result: ReadOnlyAgentResult): void {
   if (result.status === 'failed') {
     fail(result.evidence);
   }
-  if (result.response.kind !== 'structured' || !isReviewOutput(result.response.value)) {
+  if (result.response.kind !== 'structured') {
     fail('shared runner returned an invalid review response');
   }
-  const review = result.response.value;
-  const report = review.report;
-  if (review.review_complete !== true || typeof report !== 'string' || report.trim() === '') {
-    fail(typeof report === 'string' && report.trim() !== ''
+  const parsed = REVIEW_OUTPUT_SCHEMA.safeParse(result.response.value);
+  if (!parsed.success) {
+    fail('shared runner returned an invalid review response');
+  }
+  const { report, review_complete: reviewComplete } = parsed.data;
+  if (reviewComplete !== true || report.trim() === '') {
+    fail(report.trim() !== ''
       ? `review did not complete\n${report.trim()}`
       : 'review did not provide explicit completion evidence');
   }

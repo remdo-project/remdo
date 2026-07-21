@@ -182,6 +182,24 @@ ${completedResult('## Code review — 0 findings\n\nNo issues found.')}
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
     expect(args).toContain('--effort\nmedium\n');
     expect(args).toContain('--json-schema\n');
+    const argv = args.trimEnd().split('\n');
+    const jsonSchema = JSON.parse(argv[argv.indexOf('--json-schema') + 1]!);
+    expect(jsonSchema).toMatchObject({
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      additionalProperties: false,
+      properties: {
+        review_complete: {
+          description: 'True only after native review inspected the full requested scope and completed; false when review could not complete.',
+          type: 'boolean',
+        },
+        report: {
+          description: 'The complete final review report, including every finding and its location rather than only counts or a summary, when review_complete is true; otherwise an explanation of why review could not complete.',
+          type: 'string',
+        },
+      },
+      required: ['review_complete', 'report'],
+      type: 'object',
+    });
     expect(args).not.toContain('REMDO_CODE_REVIEW_COMPLETE');
     expect(args).toContain('structured report field must contain the complete final review report');
     expect(args).toContain('Bash,Read,Grep,Glob,Skill,Agent');
@@ -349,6 +367,17 @@ exit 7
       report: 'No issues found.',
       extra: 'not part of the contract',
     };
+    const result = runWorkingTreeReview(structuredResult(structuredOutput));
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain('shared runner returned an invalid review response');
+  });
+
+  it.each([
+    { report: 'Complete.', review_complete: 'true' },
+    { report: 1, review_complete: true },
+  ])('rejects structured output with invalid field types', (structuredOutput) => {
     const result = runWorkingTreeReview(structuredResult(structuredOutput));
 
     expect(result.status).toBe(1);
