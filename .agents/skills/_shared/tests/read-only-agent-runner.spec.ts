@@ -6,8 +6,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { runReadOnlyAgent } from '../tools/read-only-agent-runner';
 import {
   cleanupTempDirs,
+  makeBareMain,
   makeDir,
-  makeScratchWithOrigin,
   waitForPath,
   writeFile,
 } from '../test-support/git-scratch';
@@ -36,7 +36,7 @@ afterEach(cleanupTempDirs);
 
 describe('read-only agent runner', () => {
   it('runs a structured Codex prompt with fixed safety and final response capture', async () => {
-    const { work } = makeScratchWithOrigin({ 'tracked.md': 'tracked\n' });
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = makeDir('runner-codex-stub-');
     const repoTmp = path.join(work, 'repo-tmp');
     const sourceCodexHome = path.join(stub, 'source-codex-home');
@@ -127,7 +127,7 @@ describe('read-only agent runner', () => {
   });
 
   it('preserves a dedicated Codex access token and the caller Codex home', async () => {
-    const { work } = makeScratchWithOrigin({ 'tracked.md': 'tracked\n' });
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = makeDir('runner-codex-token-stub-');
     const sourceCodexHome = makeDir('runner-codex-source-home-');
     fs.writeFileSync(path.join(sourceCodexHome, 'auth.json'), 'must not be read');
@@ -166,7 +166,7 @@ describe('read-only agent runner', () => {
   });
 
   it('returns parsed structured Codex output for caller validation', async () => {
-    const { work } = makeScratchWithOrigin({ 'tracked.md': 'tracked\n' });
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = makeDir('runner-codex-stub-');
     executable(stub, 'codex', [
       'report=\'\'',
@@ -197,7 +197,7 @@ describe('read-only agent runner', () => {
   });
 
   it('runs a structured Claude prompt with its cooperative prompt profile', async () => {
-    const { work } = makeScratchWithOrigin({ 'tracked.md': 'tracked\n' });
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = makeDir('runner-claude-stub-');
     executable(stub, 'claude', [
       'printf \'%s\\n\' \"$@\" > \"$RUNNER_STUB_CAPTURE/args\"',
@@ -252,7 +252,7 @@ describe('read-only agent runner', () => {
   });
 
   it('classifies a missing Claude native capability as unavailable', async () => {
-    const { work } = makeScratchWithOrigin({ 'tracked.md': 'tracked\n' });
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = makeDir('runner-claude-stub-');
     executable(stub, 'claude', [
       'printf \'%s\\n\' \'{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"Unknown command: /code-review\"}\'',
@@ -275,7 +275,7 @@ describe('read-only agent runner', () => {
   });
 
   it('cancels a provider invocation without producing a response', async () => {
-    const { work } = makeScratchWithOrigin({ 'tracked.md': 'tracked\n' });
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = makeDir('runner-claude-stub-');
     const ready = path.join(stub, 'ready');
     executable(stub, 'claude', [
@@ -303,7 +303,7 @@ describe('read-only agent runner', () => {
   });
 
   it('kills provider descendants on cancellation', async () => {
-    const { work } = makeScratchWithOrigin({ 'tracked.md': 'tracked\n' });
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = makeDir('runner-claude-stub-');
     const marker = path.join(stub, 'survived');
     const ready = path.join(stub, 'ready');

@@ -54,6 +54,12 @@ function completedResult(report: string): string {
 }
 
 function workingTree(): string {
+  const work = makeBareMain({ 'candidate.md': 'base\n' });
+  writeFile(work, 'candidate.md', 'changed\n');
+  return work;
+}
+
+function trackedWorkingTree(): string {
   const { work } = makeScratchWithOrigin({ 'candidate.md': 'base\n' });
   git(work, 'switch', '--quiet', '--create', 'feature', '--track', 'origin/main');
   writeFile(work, 'ahead.md', 'committed ahead of upstream\n');
@@ -152,7 +158,7 @@ git rev-list --count '@{u}..HEAD' > "$(dirname "$0")/ahead-count"
 git status --short --untracked-files=all > "$(dirname "$0")/status"
 ${completedResult('## Code review — 0 findings\n\nNo issues found.')}
 `);
-    const work = workingTree();
+    const work = trackedWorkingTree();
     const result = runScript(
       script,
       work,

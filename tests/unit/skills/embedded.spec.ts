@@ -13,7 +13,6 @@ import '../../../.agents/skills/remdo-docs-align/tests/lint-rules.spec';
 import '../../../.agents/skills/_shared/tests/create-branch-from-base.spec';
 import '../../../.agents/skills/_shared/tests/read-only-agent-runner.spec';
 import '../../../.agents/skills/remdo-deps-refresh/tests/start-refresh-branch.spec';
-import '../../../.agents/skills/obsolete-remdo-change-flow/tests/change-gate.spec';
 import '../../../.agents/skills/_shared/tests/resolve-scope.spec';
 import '../../../.agents/skills/remdo-verify-change/tests/run-codex-review.spec';
 import '../../../.agents/skills/remdo-verify-change/tests/run-claude-review.spec';

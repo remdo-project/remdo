@@ -1,9 +1,8 @@
-// Temporal-status wording (docs/documentation.md invariant 4): spec prose is
+// Temporal-status wording (spec/documentation.md target behavior): spec prose is
 // timeless. Conservative token list — only unambiguous status markers; "new" is
 // semantic (feature-age vs domain use) and stays with review. The legacy backlog
-// retains status wording and docs/documentation.md quotes the banned tokens as
-// rules, so both are exempt. The private runner passes docs/**/*.md only;
-// product markdown lint does not load this rule.
+// retains status wording, so it is exempt. The private runner passes docs/**/*.md
+// only; product markdown lint does not load this rule.
 //
 // Riding the micromark token stream, code spans and fenced blocks are distinct
 // token types (codeText / codeFlowValue …), so their content never reaches the
@@ -12,9 +11,9 @@
 // skipped too so a URL is never mistaken for prose.
 
 const TEMPORAL = /\bfor now\b|\bcurrently\b|\bat the moment\b|\bnot yet\b|\bwill soon\b|\(early draft\)/i;
-// Exact repo-relative paths, not basenames: only the closed legacy backlog and
-// the doc that quotes the banned tokens as rules are exempt.
-const EXEMPT = new Set(['docs/legacy-backlog.md', 'docs/documentation.md']);
+// Exact repo-relative paths, not basenames: only the closed legacy backlog is
+// exempt.
+const EXEMPT = new Set(['docs/legacy-backlog.md']);
 
 // Descendant token types whose text is a link/image destination, not prose.
 const DESTINATION = new Set(['resourceDestination', 'definitionDestination']);
@@ -43,7 +42,7 @@ const collectProse = (tokens, out) => {
 export default {
   names: ['remdo-temporal-status'],
   description: 'Docs prose must not use temporal-status wording',
-  information: new URL('https://github.com/remdo/remdo/blob/main/docs/documentation.md'),
+  information: new URL('https://github.com/remdo/remdo/blob/main/spec/documentation.md#target-behavior'),
   tags: ['remdo'],
   parser: 'micromark',
   function: (params, onError) => {

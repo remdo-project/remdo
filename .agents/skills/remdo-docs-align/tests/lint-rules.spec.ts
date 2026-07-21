@@ -50,9 +50,9 @@ describe('remdo-temporal-status', () => {
     expect(await temporal('docs/a.md', 'Use `currently` here.\n\n```\nfor now this is code\n```\n')).toEqual([]);
   });
 
-  it('exempts docs/legacy-backlog.md and docs/documentation.md', async () => {
+  it('exempts only docs/legacy-backlog.md', async () => {
     expect(await temporal('docs/legacy-backlog.md', 'for now this lives here\n')).toEqual([]);
-    expect(await temporal('docs/documentation.md', 'the banned token "currently"\n')).toEqual([]);
+    expect(await temporal('docs/documentation.md', 'the banned token "currently"\n')).toEqual([1]);
   });
 
   it('exempts by exact repo-relative path, not basename — a nested todo.md is in scope', async () => {
