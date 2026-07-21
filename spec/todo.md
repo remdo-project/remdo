@@ -15,6 +15,23 @@ or `FIXME` section. Remove rejected or obsolete notes and empty sections.
 
 ## TODO
 
+### Documentation tree consolidation
+
+Until consolidation, `spec/` routes current owners and receives new or
+materially revised contracts. Existing delegated contracts remain in `docs/`
+or accepted `openspec/specs/`; all other OpenSpec artifacts are evidence only.
+
+After the documentation contract converges, make `docs/` the single
+documentation root: move component contracts from `spec/` to `docs/specs/`,
+give the remaining `spec/` artifacts explicit homes under `docs/`, update
+routing and inbound links, then remove `spec/`.
+
+### Normative prose migration
+
+Rewrite RFC-style uppercase requirement keywords in current contract owners and
+agent skills as declarative present-tense clauses, preserving distinctions
+expressed by `SHOULD` and `MAY`. Leave retired and archived evidence unchanged.
+
 ### Specification feedback ownership
 
 Rename `spec/research/` so its path clearly owns session-derived

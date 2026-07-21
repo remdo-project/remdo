@@ -10,10 +10,11 @@ Target runtimes and browser support are defined in `docs/contributing.md`. Rely
 on those baselines—no legacy browser shims.
 
 AGENTS.md is the only doc you must read at the start of every session. Use
-[`spec/`](spec/README.md) as the authoritative entry point when accepted
-behavior matters, then read only the current owner it identifies. Filenames and
-scope openers are the navigation. For the documentation invariants, see
-`docs/documentation.md`.
+[`spec/`](spec/README.md) to locate accepted behavior, then read only the current
+owner it identifies. Filenames and scope openers are the navigation. When
+creating or reviewing durable documentation, read
+[Documentation](spec/documentation.md) and verify the document against each
+applicable clause separately before finishing.
 
 Changes that add or modify durable requirements update the owner routed by
 `spec/`. OpenSpec changes and the `obsolete-remdo-change-flow` skill are
@@ -118,8 +119,8 @@ sections to docs.
   — don't raise such incoherencies while they stay uncommitted. At commit time,
   either the committed state is coherent or an ultra-short trigger in
   `spec/todo.md` covers the gap (per
-  `docs/documentation.md` invariant 4); add that trigger yourself and note it
-  in the commit rather than asking.
+  [target behavior](spec/documentation.md#target-behavior)); add that trigger
+  yourself and note it in the commit rather than asking.
 - The Git index may be used by the developer as private review bookkeeping.
   Treat staged vs unstaged state as semantically invisible: it does not mark
   files as done, final, approved, protected, or out of scope. When the agreed
@@ -214,6 +215,11 @@ sections to docs.
   is 0). Forward this rule to any finder/reviewer subagents you spawn.
 
 ## Skill authoring
+
+Agent skills are durable documentation and follow
+[Documentation](spec/documentation.md). A skill owns its execution procedure;
+the specification it implements owns accepted behavior. Required execution
+steps are procedural content, not explanatory how-to prose.
 
 When writing or editing an agent skill, assume every run is performed by a model
 **at least as capable as the current one**. Encode *intent* — what the skill is

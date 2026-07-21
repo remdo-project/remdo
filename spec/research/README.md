@@ -67,8 +67,7 @@ every case below.
 
 No guidance has been promoted. Promote a lesson only when cases, research, or
 established practice provide sufficient evidence. When it becomes a durable
-rule, move it to [Documentation](../../docs/documentation.md) and remove it
-here.
+rule, move it to [Documentation](../documentation.md) and remove it here.
 
 ## Cases
 

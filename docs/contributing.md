@@ -2,7 +2,8 @@
 
 The conventions RemDo changes must follow: Git workflow, runtime and
 compatibility baselines, and rules for comments and editor feature modules.
-How docs themselves are written lives in [docs/documentation.md](documentation.md).
+How docs themselves are written lives in
+[Documentation](../spec/documentation.md).
 
 ## Git Workflow
 
