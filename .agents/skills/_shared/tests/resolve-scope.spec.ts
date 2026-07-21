@@ -1,6 +1,5 @@
 // Shared resolve-scope.sh: happy paths (inferred default, explicit range,
 // working-tree) and every refusal, exercised in scratch git repos.
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -21,7 +20,6 @@ const run = (cwd: string, args: string[] = [], extraPath?: string) =>
 
 function failingGitProxy(condition: string): string {
   const bin = makeDir('resolve-scope-git-stub-');
-  const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
   writeFile(
     bin,
     'git',
@@ -29,7 +27,9 @@ function failingGitProxy(condition: string): string {
 if ${condition}; then
   exit 23
 fi
-exec "${realGit}" "$@"
+PATH=\${PATH#*:}
+export PATH
+exec git "$@"
 `,
   );
   fs.chmodSync(path.join(bin, 'git'), 0o755);

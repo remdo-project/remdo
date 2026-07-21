@@ -22,7 +22,10 @@
   // mirrors so only the canonical `.agents` copy is scanned — the same
   // no-symlink-traversal `.markdownlint-cli2.jsonc` enforces for the doc gate.
   "ignore": [
-    ".claude/skills/**"
+    ".claude/skills/**",
+    // Reference-only evidence retained with the retired workflow; never invoke
+    // or treat it as part of the active project graph.
+    ".agents/skills/obsolete-remdo-change-flow/tools/change-gate.ts"
   ],
   // Test-visible exports that are also used inside their production module are
   // live implementation details, not dead production code.
@@ -39,7 +42,12 @@
     "tools/{dev,e2e}/**/*.ts",
     "tests/perf/**/*.bench.ts",
     "tests/perf/generate-workload.ts",
-    "vitest.bench.perf.config.mts"
+    "vitest.bench.perf.config.mts",
+    // Standalone skill tools launched from shell; knip cannot discover their
+    // TypeScript entry points from those callers.
+    ".agents/skills/remdo-verify-change/tools/run-{claude,codex}-review.ts",
+    // Opt-in real-provider validation, intentionally outside normal test suites.
+    ".agents/skills/remdo-verify-change/tests/committed-range.acceptance.ts"
   ],
   "project": [
     // `!` marks the production graph used by `knip --production`.
