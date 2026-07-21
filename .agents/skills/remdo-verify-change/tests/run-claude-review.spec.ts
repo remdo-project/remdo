@@ -1,11 +1,15 @@
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import process from 'node:process';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   cleanupTempDirs,
   commitAll,
   git,
+  makeBareMain,
   makeDir,
+  makeExternalBareMain,
   makeScratchWithOrigin,
   runScript,
   writeFile,
@@ -50,11 +54,111 @@ function workingTree(): string {
   return work;
 }
 
+async function waitForPath(target: string): Promise<void> {
+  if (fs.existsSync(target)) {
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    let settled = false;
+    const watcher = fs.watch(path.dirname(target), (_event, filename) => {
+      if (!settled && filename?.toString() === path.basename(target) && fs.existsSync(target)) {
+        settled = true;
+        watcher.close();
+        resolve();
+      }
+    });
+    if (fs.existsSync(target)) {
+      settled = true;
+      watcher.close();
+      resolve();
+    }
+  });
+}
+
 afterEach(cleanupTempDirs);
 
 describe('run-claude-review.sh', () => {
+  it('loads its runtime outside the project tree', () => {
+    const result = runScript(
+      script,
+      makeExternalBareMain({ 'tracked.md': 'tracked\n' }),
+      ['working-tree'],
+      claudeStub(completedResult('External repo clean.')),
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('External repo clean.\n');
+  });
+
+  it('translates process termination into provider cancellation', async () => {
+    const ready = path.join(makeDir('verify-claude-ready-'), 'ready');
+    const stub = claudeStub(`
+printf ready > "$RUNNER_STUB_READY"
+while :; do sleep 1; done
+`);
+    const child = spawn(script, ['working-tree'], {
+      cwd: workingTree(),
+      env: {
+        ...process.env,
+        CODEX_ACCESS_TOKEN: 'unit-test-token',
+        PATH: `${stub}:${process.env.PATH}`,
+        RUNNER_STUB_READY: ready,
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', chunk => {
+      stdout += chunk;
+    });
+    child.stderr.on('data', chunk => {
+      stderr += chunk;
+    });
+    const closePromise = new Promise<number | null>(resolve => {
+      child.once('close', resolve);
+    });
+    try {
+      await waitForPath(ready);
+      child.kill('SIGTERM');
+      const status = await closePromise;
+
+      expect(status).toBe(1);
+      expect(stdout).toBe('');
+      expect(stderr).toContain('run-claude-review: Claude was cancelled');
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) {
+        child.kill('SIGKILL');
+      }
+    }
+  });
+
+  it('reports an unavailable Git executable without a raw exception', () => {
+    const emptyPath = makeDir('verify-claude-empty-path-');
+    const tsx = path.resolve('node_modules/tsx/dist/cli.mjs');
+    const tool = path.join(__dirname, '../tools/run-claude-review.ts');
+
+    const result = spawnSync(
+      process.execPath,
+      [tsx, tool, 'working-tree'],
+      {
+        cwd: makeDir('verify-claude-work-'),
+        encoding: 'utf8',
+        env: { ...process.env, PATH: emptyPath },
+      },
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('run-claude-review: spawnSync git ENOENT');
+    expect(result.stderr).not.toContain('TypeError');
+    expect(result.stderr).not.toContain('at gitConfigValues');
+  });
+
   it('returns only the final report for a clean working-tree review', () => {
     const stub = claudeStub(`
+[ -z "\${GIT_DIR+x}" ] || exit 91
+[ -z "\${GIT_WORK_TREE+x}" ] || exit 92
 printf '%s\n' "$@" > "$(dirname "$0")/args"
 printf '%s\n' "$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0" "$GIT_CONFIG_KEY_1" "$GIT_CONFIG_VALUE_1" "$GIT_CONFIG_KEY_2" "$GIT_CONFIG_VALUE_2" > "$(dirname "$0")/git-env"
 git rev-list --count '@{u}..HEAD' > "$(dirname "$0")/ahead-count"
@@ -71,6 +175,8 @@ ${completedResult('## Code review — 0 findings\n\nNo issues found.')}
         GIT_CONFIG_COUNT: '001',
         GIT_CONFIG_KEY_0: 'safe.directory',
         GIT_CONFIG_VALUE_0: '*',
+        GIT_DIR: '/path/that/must/not/be-used',
+        GIT_WORK_TREE: '/another/path/that/must/not/be-used',
       },
     );
 
@@ -105,13 +211,39 @@ ${completedResult('## Code review — 0 findings\n\nNo issues found.')}
     expect(result.stderr).toContain('working-tree review requires an attached branch');
   });
 
+  it('synthesizes a merge ref for an attached branch without upstream config', () => {
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
+    git(work, 'switch', '--quiet', '--create', 'feature');
+    writeFile(work, 'tracked.md', 'changed\n');
+    const stub = claudeStub(`
+printf '%s\n' "$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0" "$GIT_CONFIG_KEY_1" "$GIT_CONFIG_VALUE_1" "$GIT_CONFIG_KEY_2" "$GIT_CONFIG_VALUE_2" > "$(dirname "$0")/git-env"
+${completedResult('## Code review — 0 findings')}
+`);
+
+    const result = runScript(script, work, ['working-tree'], stub);
+
+    expect(result.status).toBe(0);
+    const gitEnv = fs.readFileSync(path.join(stub, 'git-env'), 'utf8').trimEnd().split('\n');
+    expect(gitEnv[0]).toBe('3');
+    expect(gitEnv[1]).toBe('branch.feature.remote');
+    expect(gitEnv[3]).toBe('branch.feature.merge');
+    expect(gitEnv[4]).toBe('refs/heads/feature');
+    expect(gitEnv[5]).toMatch(/^remote\.remdo-verify-\d+\.fetch$/);
+    expect(gitEnv[6]).toBe('+refs/heads/feature:refs/heads/feature');
+  });
+
   it('passes the resolved range to committed-range review', () => {
     const stub = claudeStub(`
 printf '%s\n' "$@" > "$(dirname "$0")/args"
 ${completedResult('## Code review — 0 findings')}
 `);
 
-    const result = runScript(script, makeDir('verify-claude-work-'), ['committed-range', 'base123', 'head456'], stub);
+    const result = runScript(
+      script,
+      makeBareMain({ 'tracked.md': 'tracked\n' }),
+      ['committed-range', 'base123', 'head456'],
+      stub,
+    );
 
     expect(result.status).toBe(0);
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
@@ -183,7 +315,7 @@ ${completedResult('## Code review — 0 findings')}
     expect(result.stderr).toBe('');
   });
 
-  it('reports process failure without treating diagnostic output as findings', () => {
+  it('reports process failure without exposing provider output', () => {
     const result = runScript(
       script,
       workingTree(),
@@ -194,10 +326,10 @@ exit 7
 `),
     );
 
-    expect(result.status).toBe(7);
+    expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('claude failed with status 7');
-    expect(result.stderr).toContain('diagnostic transcript');
+    expect(result.stderr).toContain('Claude failed with status 7');
+    expect(result.stderr).not.toContain('diagnostic transcript');
   });
 
   it('treats an error result as a failed review even when the process exits 0', () => {
@@ -223,7 +355,7 @@ exit 7
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('did not provide explicit completion evidence');
+    expect(result.stderr).toContain('completed without structured output');
   });
 
   it('rejects a successful Claude response when native review did not complete', () => {
@@ -240,8 +372,8 @@ exit 7
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('did not provide explicit completion evidence');
-    expect(result.stderr).toContain('Plan mode is currently active');
+    expect(result.stderr).toContain('completed without structured output');
+    expect(result.stderr).not.toContain('Plan mode is currently active');
   });
 
   it('rejects structured output that omits review completion evidence', () => {
@@ -263,7 +395,32 @@ exit 7
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('did not provide explicit completion evidence');
+    expect(result.stderr).toContain('shared runner returned an invalid review response');
+  });
+
+  it('rejects structured output with fields outside the review contract', () => {
+    const structuredOutput = {
+      review_complete: true,
+      report: 'No issues found.',
+      extra: 'not part of the contract',
+    };
+    const data = {
+      type: 'result',
+      subtype: 'success',
+      is_error: false,
+      result: JSON.stringify(structuredOutput),
+      structured_output: structuredOutput,
+    };
+    const result = runScript(
+      script,
+      workingTree(),
+      ['working-tree'],
+      claudeStub(shellJson(data)),
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain('shared runner returned an invalid review response');
   });
 
   it('reports a schema-compliant explicit review decline as diagnostics', () => {
@@ -284,7 +441,7 @@ exit 7
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('did not provide explicit completion evidence');
+    expect(result.stderr).toContain('review did not complete');
     expect(result.stderr).toContain('Scope inspection failed.');
   });
 
@@ -304,7 +461,7 @@ exit 7
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('did not provide explicit completion evidence');
+    expect(result.stderr).toContain('completed without structured output');
     expect(result.stderr).not.toContain('Traceback');
   });
 
@@ -318,7 +475,7 @@ exit 7
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('claude output was not a JSON object');
+    expect(result.stderr).toContain('Claude output was not a JSON object');
     expect(result.stderr).not.toContain('Traceback');
   });
 });

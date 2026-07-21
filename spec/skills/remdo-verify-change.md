@@ -35,28 +35,52 @@ The verifier runs applicable deterministic repository checks in place. Any
 failure is reported and stops verification before reviewer calls.
 
 After all checks pass, the verifier invokes fresh, independent Codex and Claude
-native review surfaces in parallel. Reviewers inspect the selected working-tree
-changes or exact resolved range under repository rules. Codex uses an enforced
-read-only sandbox. Claude is trusted to honor read-only instructions because
-its native review requires tool execution; its permissions are not a security
-boundary.
-Claude reviews run at medium effort.
+native review surfaces in parallel through the shared
+[read-only agent runner](../agents/tools/read-only-runner.md). The verifier owns
+scope construction, review instructions, Claude's temporary synthetic upstream,
+review-completion meaning, and findings. The runner owns fresh provider
+sessions, safety boundaries, cancellation, protocol completion, and
+final-response extraction. A runner response is necessary but not sufficient
+for a completed review.
+
+Reviewers inspect the selected working-tree changes or exact resolved range
+under repository rules. Codex uses its provider-owned read-only sandbox with
+approval fixed to `never`. Claude is trusted to honor the runner-owned read-only
+instruction because its native review requires tool execution; its permissions
+are not a security boundary. Claude reviews run at medium effort.
 An unavailable or failed review is reported and does not abort the other
 review. A review that cannot inspect its full scope has failed. Normal
 verification exposes each complete final reviewer report without intermediate
-execution; intermediate execution is diagnostic evidence for failed reviews or
-intentional debugging.
+provider output. Provider execution failures expose only the runner's failure
+classification; a completed final response remains available for verifier
+interpretation.
+
+Reviewer runtime is unspecified and neither silence nor elapsed time is failure
+evidence. Monitor each managed parallel call through its completion notification
+instead of polling it. Cancel a review only when the caller or enclosing
+lifecycle explicitly abandons it; cancellation is reported as a failed review.
 
 ## Adapter validation
 
-When a reviewer adapter is added or changed, test it end to end for every
-supported scope. Prove that it invokes native review, inspects the complete
-scope, returns the complete final report without intermediate output, and
-does not mutate the repository during startup or an end-to-end review. The
-adapter accepts only output carrying explicit review-completion evidence. Use
-a permission configuration proven to support complete review without silent
-degradation. Claude validation proves cooperative reviewer behavior, not
-adversarial containment. Any failed proof fails validation.
+The verifier's shell entry points are thin fronts over provider-specific runner
+requests. Codex selects native working-tree or base review and returns its
+provider's text-only final report as response content. The executing verifier,
+not a fixed phrase matcher, determines whether that report represents a review
+of the full scope; an inability or unresolved ambiguity about full-scope
+inspection is failed and the report is failure evidence. Claude selects
+`/code-review`, supplies the exact resolved range when present, and accepts only
+schema-valid output with `review_complete: true` and a non-empty complete
+report. A missing declared native command is unavailable; other runner failures
+remain failed.
+
+When a reviewer request builder is added or changed, test it end to end for
+every supported scope. Prove that it invokes native review, inspects the
+complete scope, returns the complete final report without intermediate output,
+and does not mutate the repository during review. Codex validation includes its
+provider-owned read-only sandbox and text completion channel. Claude validation
+includes its fixed cooperative profile, explicit review-completion field, and
+synthetic upstream for branches both with and without configured merge refs.
+Any missing proof or silent safety degradation fails validation.
 
 ## Result
 

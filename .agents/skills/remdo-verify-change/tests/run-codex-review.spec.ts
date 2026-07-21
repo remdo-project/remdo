@@ -1,7 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanupTempDirs, makeDir, runScript, writeFile } from '../../_shared/test-support/git-scratch';
+import {
+  cleanupTempDirs,
+  makeBareMain,
+  makeDir,
+  makeExternalBareMain,
+  runScript,
+  writeFile,
+} from '../../_shared/test-support/git-scratch';
 
 const script = path.join(__dirname, '../tools/run-codex-review.sh');
 
@@ -12,88 +19,122 @@ function codexStub(body: string): string {
   return dir;
 }
 
+function codexWork(): string {
+  return makeBareMain({ 'tracked.md': 'tracked\n' });
+}
+
+function runCodexScript(
+  cwd: string,
+  args: string[],
+  stub: string,
+): ReturnType<typeof runScript> {
+  return runScript(script, cwd, args, stub, {
+    CODEX_ACCESS_TOKEN: 'unit-test-token',
+    CODEX_HOME: path.join(stub, 'unused-codex-home'),
+  });
+}
+
 afterEach(cleanupTempDirs);
 
 describe('run-codex-review.sh', () => {
-  it('returns only the final report for working-tree review', () => {
-    const cwd = makeDir('verify-codex-work-');
-    const stub = codexStub(`
-printf '%s\n' "$@" > "${cwd}/args"
+  it('loads its runtime outside the project tree', () => {
+    const result = runCodexScript(
+      makeExternalBareMain({ 'tracked.md': 'tracked\n' }),
+      ['working-tree'],
+      codexStub(`
 while [ "$#" -gt 0 ]; do
   if [ "$1" = '--output-last-message' ]; then
     shift
-    printf 'No findings.\n' > "$1"
+    printf 'External repo clean.\n' > "$1"
     break
   fi
   shift
 done
-printf '{"type":"item.completed","item":{"type":"agent_message","text":"No findings."}}\n'
-printf '{"type":"turn.completed"}\n'
+`),
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('External repo clean.\n');
+  });
+
+  it('returns only the final report for working-tree review', () => {
+    const cwd = codexWork();
+    const stub = codexStub(`
+uncommitted=0
+ignored_config=0
+ignored_rules=0
+read_only=0
+never_approve=0
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --uncommitted) uncommitted=1 ;;
+    --ignore-user-config) ignored_config=1 ;;
+    --ignore-rules) ignored_rules=1 ;;
+    --sandbox) shift; [ "$1" = read-only ] && read_only=1 ;;
+    -c) shift; [ "$1" = 'approval_policy="never"' ] && never_approve=1 ;;
+    --output-last-message) shift; report=$1 ;;
+  esac
+  shift
+done
+[ "$uncommitted$ignored_config$ignored_rules$read_only$never_approve" = 11111 ]
+printf 'No findings.\n' > "$report"
 `);
 
-    const result = runScript(script, cwd, ['working-tree'], stub);
+    const result = runCodexScript(cwd, ['working-tree'], stub);
 
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('No findings.\n');
-    const args = fs.readFileSync(path.join(cwd, 'args'), 'utf8');
-    expect(args).toContain('--uncommitted\n');
-    expect(args).toContain('--json\n');
-    const argLines = args.trimEnd().split('\n');
-    expect(argLines[argLines.length - 2]).toBe('--output-last-message');
   });
 
   it('passes the immutable base to committed-range review', () => {
-    const cwd = makeDir('verify-codex-work-');
+    const cwd = codexWork();
     const stub = codexStub(`
-printf '%s\n' "$@" > "${cwd}/args"
+base=0
+ephemeral=0
 while [ "$#" -gt 0 ]; do
-  if [ "$1" = '--output-last-message' ]; then
-    shift
-    printf 'Range clean.\n' > "$1"
-    break
-  fi
+  case "$1" in
+    --base) shift; [ "$1" = base123 ] && base=1 ;;
+    --ephemeral) ephemeral=1 ;;
+    --output-last-message) shift; report=$1 ;;
+  esac
   shift
 done
-printf '{"type":"item.completed","item":{"type":"agent_message","text":"Range clean."}}\n'
-printf '{"type":"turn.completed"}\n'
+[ "$base$ephemeral" = 11 ]
+printf 'Range clean.\n' > "$report"
 `);
 
-    const result = runScript(script, cwd, ['committed-range', 'base123'], stub);
+    const result = runCodexScript(cwd, ['committed-range', 'base123'], stub);
 
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('Range clean.\n');
-    const args = fs.readFileSync(path.join(cwd, 'args'), 'utf8');
-    expect(args).toContain('--base\nbase123\n');
-    const argLines = args.trimEnd().split('\n');
-    expect(argLines[argLines.length - 2]).toBe('--output-last-message');
   });
 
-  it('reports reviewer failure without treating its output as findings', () => {
-    const result = runScript(script, makeDir('verify-codex-work-'), ['working-tree'], codexStub(`
+  it('reports reviewer failure without exposing provider output', () => {
+    const result = runCodexScript(codexWork(), ['working-tree'], codexStub(`
 printf 'diagnostic transcript\n' >&2
 exit 7
 `));
 
-    expect(result.status).toBe(7);
+    expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('codex failed with status 7');
-    expect(result.stderr).toContain('diagnostic transcript');
+    expect(result.stderr).toContain('Codex failed with status 7');
+    expect(result.stderr).not.toContain('diagnostic transcript');
   });
 
-  it('preserves diagnostics when Codex omits its final report', () => {
-    const result = runScript(script, makeDir('verify-codex-work-'), ['working-tree'], codexStub(`
+  it('classifies a missing final report without exposing provider output', () => {
+    const result = runCodexScript(codexWork(), ['working-tree'], codexStub(`
 printf 'last diagnostic before exit\n' >&2
 `));
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('review completed without a final report');
-    expect(result.stderr).toContain('last diagnostic before exit');
+    expect(result.stderr).toContain('completed without a final response');
+    expect(result.stderr).not.toContain('last diagnostic before exit');
   });
 
   it('rejects a whitespace-only final report', () => {
-    const cwd = makeDir('verify-codex-work-');
-    const result = runScript(script, cwd, ['working-tree'], codexStub(`
+    const cwd = codexWork();
+    const result = runCodexScript(cwd, ['working-tree'], codexStub(`
 while [ "$#" -gt 0 ]; do
   if [ "$1" = '--output-last-message' ]; then
     shift
@@ -102,17 +143,16 @@ while [ "$#" -gt 0 ]; do
   fi
   shift
 done
-printf '{"type":"turn.completed"}\n'
 `));
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('review completed without a final report');
+    expect(result.stderr).toContain('completed without a final response');
   });
 
-  it('rejects a Codex response when the protocol turn does not complete', () => {
-    const cwd = makeDir('verify-codex-work-');
-    const result = runScript(script, cwd, ['working-tree'], codexStub(`
+  it('returns a refusal for verifier-level interpretation', () => {
+    const cwd = codexWork();
+    const result = runCodexScript(cwd, ['working-tree'], codexStub(`
 while [ "$#" -gt 0 ]; do
   if [ "$1" = '--output-last-message' ]; then
     shift
@@ -121,31 +161,11 @@ while [ "$#" -gt 0 ]; do
   fi
   shift
 done
-printf '{"type":"item.completed","item":{"type":"agent_message","text":"I could not inspect the requested scope."}}\n'
 `));
 
-    expect(result.status).toBe(1);
-    expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('did not provide explicit completion evidence');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('I could not inspect the requested scope.\n');
+    expect(result.stderr).toBe('');
   });
 
-  it('rejects a final report that does not match the completed agent message', () => {
-    const cwd = makeDir('verify-codex-work-');
-    const result = runScript(script, cwd, ['working-tree'], codexStub(`
-while [ "$#" -gt 0 ]; do
-  if [ "$1" = '--output-last-message' ]; then
-    shift
-    printf 'Different report.\n' > "$1"
-    break
-  fi
-  shift
-done
-printf '{"type":"item.completed","item":{"type":"agent_message","text":"Completed report."}}\n'
-printf '{"type":"turn.completed"}\n'
-`));
-
-    expect(result.status).toBe(1);
-    expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('did not match the completed Codex review output');
-  });
 });

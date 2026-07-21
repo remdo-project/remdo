@@ -21,6 +21,11 @@ Rename `spec/research/` so its path clearly owns session-derived
 specification-authoring feedback cases, then update inbound links. Decide
 separately whether durable general research needs a repository owner.
 
+Specify when a research artifact may be treated as provenance. Distinguish
+user findings, agent or subagent experiments, self-review, and later decisions;
+decide what source identity and chronology must be preserved, and do not treat
+an unattributed mutable synthesis as provenance.
+
 ### Agent specification structure
 
 Move `spec/skills/remdo-verify-change.md` under `spec/agents/skills/` and update

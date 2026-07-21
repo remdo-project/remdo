@@ -53,11 +53,29 @@ Use these adapters:
   working-tree` or replace the last argument with
   `committed-range <BASE> <HEAD_SHA>`.
 
-Run the adapters exactly as provided; each owns its reviewer-specific target,
-prompt, permissions, isolation, and output parsing. Successful stdout is the
-final report. Classify a missing reviewer as unavailable and any other non-zero
-adapter result as failed; treat its output as diagnostic, not as findings.
-The Claude adapter uses medium effort.
+Run the adapters exactly as provided. Each builds its closed provider request
+for the shared
+[`read-only agent runner`](../_shared/tools/read-only-agent-runner.ts), which
+owns the fresh session, safety boundary, cancellation, protocol completion,
+and final-response extraction. The provider fronts retain verifier-specific
+scope construction and instructions. Claude's front validates its explicit
+completion field; the executing verifier interprets Codex's text as described
+below.
+
+Reviewer runtime is unspecified. Wait for each managed call's completion
+notification; do not poll it or interpret silence or elapsed time as failure.
+Cancel a review only when the caller or enclosing lifecycle explicitly abandons
+it.
+
+Exit status `2` means the provider or its declared native review capability is
+unavailable. Any other non-zero result is
+failed; treat its output as failure evidence, not as findings. Exit status `0`
+carries the final response. Claude's adapter has already proved explicit completion.
+For Codex, interpret the whole report: classify it as completed only when it
+represents inspection of the full selected scope. If it states or leaves
+unresolved that full-scope inspection did not occur, classify Codex as failed
+and use the report as failure evidence. Do not substitute a fixed phrase list
+for this semantic judgment. The Claude adapter uses medium effort.
 
 ## Report
 

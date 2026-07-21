@@ -120,6 +120,20 @@ export function makeBareMain(files: Record<string, string>): string {
   return dir;
 }
 
+// Keep this fixture outside the repository even when the test environment's
+// TMPDIR points into data/. It catches entry points that accidentally resolve
+// their own runtime dependencies from the reviewed repository.
+export function makeExternalBareMain(files: Record<string, string>): string {
+  const dir = fs.mkdtempSync('/tmp/skills-external-main-');
+  tempDirs.push(dir);
+  gitOk(dir, 'init', '--quiet', '--initial-branch=main');
+  for (const [file, content] of Object.entries(files)) {
+    writeFile(dir, file, content);
+  }
+  commitAll(dir, 'initial');
+  return dir;
+}
+
 export function runScript(
   script: string,
   cwd: string,
