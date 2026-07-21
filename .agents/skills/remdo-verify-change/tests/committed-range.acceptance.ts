@@ -332,9 +332,9 @@ async function main(): Promise<void> {
   if (process.argv.length !== 2) {
     fail('usage: committed-range.acceptance.ts');
   }
-  const fixtures = [createLinearFixture(), createDivergentFixture()];
   const observations: ReviewObservation[] = [];
   try {
+    const fixtures = [createLinearFixture(), createDivergentFixture()];
     for (const fixture of fixtures) {
       observations.push(await observe(fixture, 'codex'));
       observations.push(await observe(fixture, 'claude'));
@@ -369,7 +369,4 @@ try {
     `committed-range acceptance: ${error instanceof Error ? error.message : String(error)}\n`,
   );
   process.exitCode = 1;
-  for (const root of tempRoots.reverse()) {
-    fs.rmSync(root, { force: true, recursive: true });
-  }
 }

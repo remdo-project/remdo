@@ -34,6 +34,27 @@ export function cleanupTempDirs(): void {
   }
 }
 
+export async function waitForPath(target: string): Promise<void> {
+  if (fs.existsSync(target)) {
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    let settled = false;
+    const watcher = fs.watch(path.dirname(target), (_event, filename) => {
+      if (!settled && filename?.toString() === path.basename(target) && fs.existsSync(target)) {
+        settled = true;
+        watcher.close();
+        resolve();
+      }
+    });
+    if (fs.existsSync(target)) {
+      settled = true;
+      watcher.close();
+      resolve();
+    }
+  });
+}
+
 // A tracked scratch dir under the temp root — cleaned by cleanupTempDirs() in
 // each spec's afterEach, so specs never hand-roll their own dir bookkeeping.
 export function makeDir(prefix: string): string {

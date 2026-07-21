@@ -128,20 +128,6 @@ case "$scope_arg" in
     [ -n "$left" ] || fail "range left revision is missing"
     [ -n "$right" ] || fail "range right revision is missing"
 
-    # Reject a second delimiter (eg. 'A..B..C'): the trims above only strip the
-    # first/outermost occurrence, so a stray '..' left in either endpoint means
-    # the argument had more than one range separator instead of one valid range.
-    case "$right" in
-      .*|*..*)
-        fail "range '$scope_arg' has more than one delimiter"
-        ;;
-    esac
-    case "$left" in
-      *..*)
-        fail "range '$scope_arg' has more than one delimiter"
-        ;;
-    esac
-
     left_sha=$(git rev-parse --verify --quiet "$left^{commit}") \
       || fail "range left revision '$left' does not resolve to a commit"
     right_sha=$(git rev-parse --verify --quiet "$right^{commit}") \

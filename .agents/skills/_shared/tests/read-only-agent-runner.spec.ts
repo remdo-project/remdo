@@ -8,6 +8,7 @@ import {
   cleanupTempDirs,
   makeDir,
   makeScratchWithOrigin,
+  waitForPath,
   writeFile,
 } from '../test-support/git-scratch';
 
@@ -29,27 +30,6 @@ function providerEnvironment(stub: string, overrides: NodeJS.ProcessEnv = {}): N
 
 function shellLiteral(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
-}
-
-async function waitForPath(target: string): Promise<void> {
-  if (fs.existsSync(target)) {
-    return;
-  }
-  await new Promise<void>((resolve) => {
-    let settled = false;
-    const watcher = fs.watch(path.dirname(target), (_event, filename) => {
-      if (!settled && filename?.toString() === path.basename(target) && fs.existsSync(target)) {
-        settled = true;
-        watcher.close();
-        resolve();
-      }
-    });
-    if (fs.existsSync(target)) {
-      settled = true;
-      watcher.close();
-      resolve();
-    }
-  });
 }
 
 afterEach(cleanupTempDirs);

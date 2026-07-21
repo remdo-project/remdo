@@ -182,24 +182,16 @@ describe('resolve-scope.sh (shared tool)', () => {
     expect(run(taskBranch(), ['HEAD..']).stderr).toContain('right revision is missing');
   });
 
-  it('refuses a range with more than one delimiter instead of silently keeping only the outer endpoints', () => {
-    const work = taskBranch();
-    const result = run(work, ['HEAD~1..HEAD~1..HEAD']);
+  it.each([
+    'HEAD~1..HEAD~1..HEAD',
+    'HEAD~1...HEAD~1...HEAD',
+    'HEAD~1..HEAD...HEAD',
+    'HEAD~1...HEAD..HEAD',
+  ])('refuses malformed range %s', range => {
+    const result = run(taskBranch(), [range]);
+
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('more than one delimiter');
-  });
-
-  it('refuses a three-dot range with an extra delimiter', () => {
-    const result = run(taskBranch(), ['HEAD~1...HEAD~1...HEAD']);
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('more than one delimiter');
-  });
-
-  it('refuses mixed range delimiters in either order', () => {
-    const work = taskBranch();
-
-    expect(run(work, ['HEAD~1..HEAD...HEAD']).stderr).toContain('more than one delimiter');
-    expect(run(work, ['HEAD~1...HEAD..HEAD']).stderr).toContain('more than one delimiter');
+    expect(result.stderr).toContain('does not resolve to a commit');
   });
 
   it('still resolves a range whose endpoints contain single dots', () => {

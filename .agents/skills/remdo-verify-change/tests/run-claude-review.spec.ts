@@ -12,6 +12,7 @@ import {
   makeExternalBareMain,
   makeScratchWithOrigin,
   runScript,
+  waitForPath,
   writeFile,
 } from '../../_shared/test-support/git-scratch';
 
@@ -33,16 +34,23 @@ function jsonResult(result: string): string {
   return shellJson(data);
 }
 
-function completedResult(report: string): string {
-  const structuredOutput = { review_complete: true, report };
+function structuredResult(
+  structuredOutput: unknown,
+  overrides: { result?: unknown; terminal_reason?: string } = {},
+): string {
   const data = {
     type: 'result',
     subtype: 'success',
     is_error: false,
     result: JSON.stringify(structuredOutput),
     structured_output: structuredOutput,
+    ...overrides,
   };
   return shellJson(data);
+}
+
+function completedResult(report: string): string {
+  return structuredResult({ review_complete: true, report });
 }
 
 function workingTree(): string {
@@ -52,27 +60,6 @@ function workingTree(): string {
   commitAll(work, 'ahead');
   writeFile(work, 'candidate.md', 'changed\n');
   return work;
-}
-
-async function waitForPath(target: string): Promise<void> {
-  if (fs.existsSync(target)) {
-    return;
-  }
-  await new Promise<void>((resolve) => {
-    let settled = false;
-    const watcher = fs.watch(path.dirname(target), (_event, filename) => {
-      if (!settled && filename?.toString() === path.basename(target) && fs.existsSync(target)) {
-        settled = true;
-        watcher.close();
-        resolve();
-      }
-    });
-    if (fs.existsSync(target)) {
-      settled = true;
-      watcher.close();
-      resolve();
-    }
-  });
 }
 
 afterEach(cleanupTempDirs);
@@ -280,19 +267,14 @@ ${completedResult('## Code review — 0 findings')}
   it('returns the structured final report instead of prose result text', () => {
     const report = '## Code review — 1 finding\n\nFinding with a location.';
     const structuredOutput = { review_complete: true, report };
-    const data = {
-      type: 'result',
-      subtype: 'success',
-      is_error: false,
-      result: 'I verified the candidate first.',
-      structured_output: structuredOutput,
-      terminal_reason: 'completed',
-    };
     const result = runScript(
       script,
       workingTree(),
       ['working-tree'],
-      claudeStub(shellJson(data)),
+      claudeStub(structuredResult(structuredOutput, {
+        result: 'I verified the candidate first.',
+        terminal_reason: 'completed',
+      })),
     );
 
     expect(result.status).toBe(0);
@@ -378,19 +360,11 @@ exit 7
 
   it('rejects structured output that omits review completion evidence', () => {
     const structuredOutput = { report: 'No completion field.' };
-    const data = {
-      type: 'result',
-      subtype: 'success',
-      is_error: false,
-      result: JSON.stringify(structuredOutput),
-      structured_output: structuredOutput,
-      terminal_reason: 'completed',
-    };
     const result = runScript(
       script,
       workingTree(),
       ['working-tree'],
-      claudeStub(shellJson(data)),
+      claudeStub(structuredResult(structuredOutput, { terminal_reason: 'completed' })),
     );
 
     expect(result.status).toBe(1);
@@ -404,18 +378,11 @@ exit 7
       report: 'No issues found.',
       extra: 'not part of the contract',
     };
-    const data = {
-      type: 'result',
-      subtype: 'success',
-      is_error: false,
-      result: JSON.stringify(structuredOutput),
-      structured_output: structuredOutput,
-    };
     const result = runScript(
       script,
       workingTree(),
       ['working-tree'],
-      claudeStub(shellJson(data)),
+      claudeStub(structuredResult(structuredOutput)),
     );
 
     expect(result.status).toBe(1);
@@ -425,18 +392,11 @@ exit 7
 
   it('reports a schema-compliant explicit review decline as diagnostics', () => {
     const structuredOutput = { review_complete: false, report: 'Scope inspection failed.' };
-    const data = {
-      type: 'result',
-      subtype: 'success',
-      is_error: false,
-      result: JSON.stringify(structuredOutput),
-      structured_output: structuredOutput,
-    };
     const result = runScript(
       script,
       workingTree(),
       ['working-tree'],
-      claudeStub(shellJson(data)),
+      claudeStub(structuredResult(structuredOutput)),
     );
 
     expect(result.status).toBe(1);
