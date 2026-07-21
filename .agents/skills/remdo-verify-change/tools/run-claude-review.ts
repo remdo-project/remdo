@@ -1,15 +1,13 @@
 /* eslint-disable node/no-process-env */
 import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
 import process from 'node:process';
-import { fileURLToPath } from 'node:url';
+import schema from './review-output.schema.json' with { type: 'json' };
 import {
   normalizeReadOnlyEnvironment,
   runReadOnlyAgentWithProcessSignals,
 } from '../../_shared/tools/read-only-agent-runner';
 import type {
   ClaudeAgentRequest,
-  JsonSchema,
   ReadOnlyAgentResult,
   RunReadOnlyAgentOptions,
 } from '../../_shared/tools/read-only-agent-runner';
@@ -139,8 +137,6 @@ function requestFromArgs(args: string[]): {
     return fail("expected 'working-tree' or 'committed-range' scope");
   }
 
-  const schemaPath = fileURLToPath(new URL('./review-output.schema.json', import.meta.url));
-  const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8')) as JsonSchema;
   return {
     options: { environment },
     request: {

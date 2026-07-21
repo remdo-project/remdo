@@ -122,6 +122,7 @@ describe('read-only agent runner', () => {
     });
     const reportPath = fs.readFileSync(path.join(stub, 'report-path'), 'utf8');
     expect(reportPath).not.toContain(work);
+    expect(fs.existsSync(path.dirname(reportPath))).toBe(false);
     expect(fs.readFileSync(path.join(stub, 'schema-path'), 'utf8')).not.toContain(work);
     expect(fs.readFileSync(path.join(sourceCodexHome, 'auth.json'), 'utf8')).toBe(sourceAuth);
   });

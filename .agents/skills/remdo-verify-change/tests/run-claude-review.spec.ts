@@ -68,6 +68,10 @@ function trackedWorkingTree(): string {
   return work;
 }
 
+function runWorkingTreeReview(body: string) {
+  return runScript(script, workingTree(), ['working-tree'], claudeStub(body));
+}
+
 afterEach(cleanupTempDirs);
 
 describe('run-claude-review.sh', () => {
@@ -245,12 +249,7 @@ ${completedResult('## Code review — 0 findings')}
   });
 
   it('treats an unrecognized /code-review command as unavailable', () => {
-    const result = runScript(
-      script,
-      workingTree(),
-      ['working-tree'],
-      claudeStub(jsonResult('Unknown command: /code-review')),
-    );
+    const result = runWorkingTreeReview(jsonResult('Unknown command: /code-review'));
 
     expect(result.status).toBe(2);
     expect(result.stdout).toBe('');
@@ -259,12 +258,7 @@ ${completedResult('## Code review — 0 findings')}
 
   it('keeps a review report that mentions the unknown-command diagnostic', () => {
     const report = '## Code review — 1 finding\n\nDo not match `Unknown command: /code-review` inside findings.';
-    const result = runScript(
-      script,
-      workingTree(),
-      ['working-tree'],
-      claudeStub(completedResult(report)),
-    );
+    const result = runWorkingTreeReview(completedResult(report));
 
     expect(result.status).toBe(0);
     expect(result.stdout).toBe(`${report}\n`);
@@ -273,14 +267,11 @@ ${completedResult('## Code review — 0 findings')}
   it('returns the structured final report instead of prose result text', () => {
     const report = '## Code review — 1 finding\n\nFinding with a location.';
     const structuredOutput = { review_complete: true, report };
-    const result = runScript(
-      script,
-      workingTree(),
-      ['working-tree'],
-      claudeStub(structuredResult(structuredOutput, {
+    const result = runWorkingTreeReview(
+      structuredResult(structuredOutput, {
         result: 'I verified the candidate first.',
         terminal_reason: 'completed',
-      })),
+      }),
     );
 
     expect(result.status).toBe(0);
@@ -288,15 +279,10 @@ ${completedResult('## Code review — 0 findings')}
   });
 
   it('keeps successful stderr diagnostics out of the JSON report', () => {
-    const result = runScript(
-      script,
-      workingTree(),
-      ['working-tree'],
-      claudeStub(`
+    const result = runWorkingTreeReview(`
 printf 'benign startup warning\n' >&2
 ${completedResult('## Code review — 0 findings')}
-`),
-    );
+`);
 
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('## Code review — 0 findings\n');
@@ -304,15 +290,10 @@ ${completedResult('## Code review — 0 findings')}
   });
 
   it('reports process failure without exposing provider output', () => {
-    const result = runScript(
-      script,
-      workingTree(),
-      ['working-tree'],
-      claudeStub(`
+    const result = runWorkingTreeReview(`
 printf 'diagnostic transcript\n'
 exit 7
-`),
-    );
+`);
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
@@ -321,11 +302,8 @@ exit 7
   });
 
   it('treats an error result as a failed review even when the process exits 0', () => {
-    const result = runScript(
-      script,
-      workingTree(),
-      ['working-tree'],
-      claudeStub(`printf '%s' '${JSON.stringify({ type: 'result', subtype: 'error_during_execution', is_error: true, terminal_reason: 'error' }).replace(/'/g, `'\\''`)}'`),
+    const result = runWorkingTreeReview(
+      `printf '%s' '${JSON.stringify({ type: 'result', subtype: 'error_during_execution', is_error: true, terminal_reason: 'error' }).replace(/'/g, `'\\''`)}'`,
     );
 
     expect(result.status).toBe(1);
@@ -334,12 +312,7 @@ exit 7
   });
 
   it('treats a result containing only the Local skills footer as a failed review', () => {
-    const result = runScript(
-      script,
-      workingTree(),
-      ['working-tree'],
-      claudeStub(jsonResult('Local skills: none')),
-    );
+    const result = runWorkingTreeReview(jsonResult('Local skills: none'));
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
@@ -347,14 +320,9 @@ exit 7
   });
 
   it('rejects a successful Claude response when native review did not complete', () => {
-    const result = runScript(
-      script,
-      workingTree(),
-      ['working-tree'],
-      claudeStub(
-        jsonResult(
-          'Plan mode is currently active, so I cannot run the finder and verifier agents required by /code-review.',
-        ),
+    const result = runWorkingTreeReview(
+      jsonResult(
+        'Plan mode is currently active, so I cannot run the finder and verifier agents required by /code-review.',
       ),
     );
 
@@ -366,11 +334,8 @@ exit 7
 
   it('rejects structured output that omits review completion evidence', () => {
     const structuredOutput = { report: 'No completion field.' };
-    const result = runScript(
-      script,
-      workingTree(),
-      ['working-tree'],
-      claudeStub(structuredResult(structuredOutput, { terminal_reason: 'completed' })),
+    const result = runWorkingTreeReview(
+      structuredResult(structuredOutput, { terminal_reason: 'completed' }),
     );
 
     expect(result.status).toBe(1);
@@ -384,12 +349,7 @@ exit 7
       report: 'No issues found.',
       extra: 'not part of the contract',
     };
-    const result = runScript(
-      script,
-      workingTree(),
-      ['working-tree'],
-      claudeStub(structuredResult(structuredOutput)),
-    );
+    const result = runWorkingTreeReview(structuredResult(structuredOutput));
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
@@ -398,12 +358,7 @@ exit 7
 
   it('reports a schema-compliant explicit review decline as diagnostics', () => {
     const structuredOutput = { review_complete: false, report: 'Scope inspection failed.' };
-    const result = runScript(
-      script,
-      workingTree(),
-      ['working-tree'],
-      claudeStub(structuredResult(structuredOutput)),
-    );
+    const result = runWorkingTreeReview(structuredResult(structuredOutput));
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
@@ -418,12 +373,7 @@ exit 7
       is_error: false,
       result: { unexpected: true },
     };
-    const result = runScript(
-      script,
-      workingTree(),
-      ['working-tree'],
-      claudeStub(shellJson(data)),
-    );
+    const result = runWorkingTreeReview(shellJson(data));
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
@@ -432,12 +382,7 @@ exit 7
   });
 
   it('fails cleanly when Claude returns non-object JSON', () => {
-    const result = runScript(
-      script,
-      workingTree(),
-      ['working-tree'],
-      claudeStub("printf '%s' 'null'"),
-    );
+    const result = runWorkingTreeReview("printf '%s' 'null'");
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');

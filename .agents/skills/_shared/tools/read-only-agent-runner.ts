@@ -1,6 +1,7 @@
 /* eslint-disable node/no-process-env */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
+import type { DisposableTempDir } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -268,7 +269,9 @@ function pathIsInside(parent: string, candidate: string): boolean {
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
-async function createPrivateTempDir(protectedPaths: readonly string[]): Promise<string> {
+async function createPrivateTempDir(
+  protectedPaths: readonly string[],
+): Promise<DisposableTempDir> {
   for (const candidate of new Set(['/tmp', os.tmpdir()])) {
     let base: string;
     try {
@@ -279,7 +282,7 @@ async function createPrivateTempDir(protectedPaths: readonly string[]): Promise<
     if (protectedPaths.some(protectedPath => pathIsInside(protectedPath, base))) {
       continue;
     }
-    return await fs.mkdtemp(path.join(base, 'remdo-read-only-agent-runner.'));
+    return await fs.mkdtempDisposable(path.join(base, 'remdo-read-only-agent-runner.'));
   }
   throw new Error('no temporary directory outside the repository is available');
 }
@@ -517,37 +520,34 @@ export async function runReadOnlyAgent(
     };
   }
   const { git: gitPaths, repository } = pathResult.paths;
-  let tempDir: string;
+  let privateTempDir: DisposableTempDir;
   try {
-    tempDir = await createPrivateTempDir([repository, ...gitPaths]);
+    privateTempDir = await createPrivateTempDir([repository, ...gitPaths]);
   } catch (error) {
     return { status: 'failed', evidence: `could not create private temporary output: ${String(error)}` };
   }
-  try {
-    const invocationEnvironment: NodeJS.ProcessEnv = {
-      ...environment,
-      TEMP: tempDir,
-      TMP: tempDir,
-      TMPDIR: tempDir,
-    };
-    if (request.adapter === 'codex') {
-      return await runCodex(
-        request,
-        repository,
-        invocationEnvironment,
-        options.signal,
-        tempDir,
-      );
-    }
-    return await runClaude(
+  await using output = privateTempDir;
+  const invocationEnvironment: NodeJS.ProcessEnv = {
+    ...environment,
+    TEMP: output.path,
+    TMP: output.path,
+    TMPDIR: output.path,
+  };
+  if (request.adapter === 'codex') {
+    return await runCodex(
       request,
       repository,
       invocationEnvironment,
       options.signal,
+      output.path,
     );
-  } finally {
-    await fs.rm(tempDir, { force: true, recursive: true });
   }
+  return await runClaude(
+    request,
+    repository,
+    invocationEnvironment,
+    options.signal,
+  );
 }
 
 export async function runReadOnlyAgentWithProcessSignals(

@@ -15,7 +15,26 @@ import {
   writeFile,
 } from '../../_shared/test-support/git-scratch';
 
-const run = (cwd: string, args: string[] = []) => runScript(path.join(__dirname, '../tools/resolve-scope.sh'), cwd, args);
+const script = path.join(__dirname, '../tools/resolve-scope.sh');
+const run = (cwd: string, args: string[] = [], extraPath?: string) =>
+  runScript(script, cwd, args, extraPath);
+
+function failingGitProxy(condition: string): string {
+  const bin = makeDir('resolve-scope-git-stub-');
+  const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
+  writeFile(
+    bin,
+    'git',
+    `#!/usr/bin/env sh
+if ${condition}; then
+  exit 23
+fi
+exec "${realGit}" "$@"
+`,
+  );
+  fs.chmodSync(path.join(bin, 'git'), 0o755);
+  return bin;
+}
 
 // A task branch: cloned from origin (main), branched, with one commit ahead.
 function taskBranch(): string {
@@ -210,21 +229,11 @@ describe('resolve-scope.sh (shared tool)', () => {
   it('fails when a working-tree file query fails instead of returning a partial list', () => {
     const work = taskBranch();
     writeFile(work, 'c.md', '# C uncommitted\n');
-    const bin = makeDir('resolve-scope-git-stub-');
-    const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
-    writeFile(
-      bin,
-      'git',
-      `#!/usr/bin/env sh
-if [ "$1" = diff ] && [ "$2" = --cached ] && [ "$3" = --name-only ]; then
-  exit 23
-fi
-exec ${realGit} "$@"
-`,
+    const bin = failingGitProxy(
+      '[ "$1" = diff ] && [ "$2" = --cached ] && [ "$3" = --name-only ]',
     );
-    fs.chmodSync(path.join(bin, 'git'), 0o755);
 
-    const result = runScript(path.join(__dirname, '../tools/resolve-scope.sh'), work, ['working-tree'], bin);
+    const result = run(work, ['working-tree'], bin);
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('git diff --cached --name-only failed');
@@ -232,21 +241,9 @@ exec ${realGit} "$@"
 
   it('fails with resolver context when the committed-range file query fails', () => {
     const work = taskBranch();
-    const bin = makeDir('resolve-scope-git-stub-');
-    const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
-    writeFile(
-      bin,
-      'git',
-      `#!/usr/bin/env sh
-if [ "$1" = diff ] && [ "$2" = --name-only ]; then
-  exit 23
-fi
-exec ${realGit} "$@"
-`,
-    );
-    fs.chmodSync(path.join(bin, 'git'), 0o755);
+    const bin = failingGitProxy('[ "$1" = diff ] && [ "$2" = --name-only ]');
 
-    const result = runScript(path.join(__dirname, '../tools/resolve-scope.sh'), work, ['HEAD~1..HEAD'], bin);
+    const result = run(work, ['HEAD~1..HEAD'], bin);
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('git diff --name-only failed while resolving committed-range files');
@@ -254,21 +251,9 @@ exec ${realGit} "$@"
 
   it('fails instead of classifying a broken Git status query as dirty', () => {
     const work = taskBranch();
-    const bin = makeDir('resolve-scope-git-stub-');
-    const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
-    writeFile(
-      bin,
-      'git',
-      `#!/usr/bin/env sh
-if [ "$1" = status ] && [ "$2" = --porcelain=v1 ]; then
-  exit 23
-fi
-exec ${realGit} "$@"
-`,
-    );
-    fs.chmodSync(path.join(bin, 'git'), 0o755);
+    const bin = failingGitProxy('[ "$1" = status ] && [ "$2" = --porcelain=v1 ]');
 
-    const result = runScript(path.join(__dirname, '../tools/resolve-scope.sh'), work, ['HEAD~1..HEAD'], bin);
+    const result = run(work, ['HEAD~1..HEAD'], bin);
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('git status --porcelain failed while checking working tree state');
@@ -278,21 +263,11 @@ exec ${realGit} "$@"
   it('fails when working-tree HEAD cannot be resolved', () => {
     const work = taskBranch();
     writeFile(work, 'c.md', '# C uncommitted\n');
-    const bin = makeDir('resolve-scope-git-stub-');
-    const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
-    writeFile(
-      bin,
-      'git',
-      `#!/usr/bin/env sh
-if [ "$1" = rev-parse ] && [ "$2" = --verify ] && [ "$3" = HEAD ]; then
-  exit 23
-fi
-exec ${realGit} "$@"
-`,
+    const bin = failingGitProxy(
+      '[ "$1" = rev-parse ] && [ "$2" = --verify ] && [ "$3" = HEAD ]',
     );
-    fs.chmodSync(path.join(bin, 'git'), 0o755);
 
-    const result = runScript(path.join(__dirname, '../tools/resolve-scope.sh'), work, ['working-tree'], bin);
+    const result = run(work, ['working-tree'], bin);
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('HEAD does not resolve to a commit');
