@@ -114,6 +114,18 @@ describe('resolve-scope.sh (shared tool)', () => {
     expect(result.stderr).toContain('clean');
   });
 
+  it('ignores files excluded by Git standard ignore rules', () => {
+    const work = taskBranch();
+    writeFile(work, '.gitignore', 'ignored.md\n');
+    commitAll(work, 'ignore fixture file');
+    writeFile(work, 'ignored.md', '# Ignored\n');
+
+    const result = run(work, ['working-tree']);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('clean');
+  });
+
   it('refuses the default on an integration branch (main)', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     // clone leaves us on main
@@ -248,7 +260,7 @@ exec ${realGit} "$@"
     expect(result.stderr).toContain('git diff --name-only failed while resolving committed-range files');
   });
 
-  it('fails instead of classifying a broken Git state query as dirty', () => {
+  it('fails instead of classifying a broken Git status query as dirty', () => {
     const work = taskBranch();
     const bin = makeDir('resolve-scope-git-stub-');
     const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
@@ -256,7 +268,7 @@ exec ${realGit} "$@"
       bin,
       'git',
       `#!/usr/bin/env sh
-if [ "$1" = diff ] && [ "$2" = --quiet ]; then
+if [ "$1" = status ] && [ "$2" = --porcelain=v1 ]; then
   exit 23
 fi
 exec ${realGit} "$@"
@@ -267,41 +279,8 @@ exec ${realGit} "$@"
     const result = runScript(path.join(__dirname, '../tools/resolve-scope.sh'), work, ['HEAD~1..HEAD'], bin);
 
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('git diff --quiet failed while checking working tree state');
+    expect(result.stderr).toContain('git status --porcelain failed while checking working tree state');
     expect(result.stderr).not.toContain('working tree is dirty');
-  });
-
-  it.each([
-    [
-      'cached diff',
-      '[ "$1" = diff ] && [ "$2" = --cached ] && [ "$3" = --quiet ]',
-      'git diff --cached --quiet failed while checking working tree state',
-    ],
-    [
-      'untracked-file query',
-      '[ "$1" = ls-files ] && [ "$2" = --others ] && [ "$3" = --exclude-standard ]',
-      'git ls-files failed while checking working tree state',
-    ],
-  ])('fails when the %s used for dirtiness inspection fails', (_name, condition, message) => {
-    const work = taskBranch();
-    const bin = makeDir('resolve-scope-git-stub-');
-    const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
-    writeFile(
-      bin,
-      'git',
-      `#!/usr/bin/env sh
-if ${condition}; then
-  exit 23
-fi
-exec ${realGit} "$@"
-`,
-    );
-    fs.chmodSync(path.join(bin, 'git'), 0o755);
-
-    const result = runScript(path.join(__dirname, '../tools/resolve-scope.sh'), work, ['HEAD~1..HEAD'], bin);
-
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain(message);
   });
 
   it('fails when working-tree HEAD cannot be resolved', () => {

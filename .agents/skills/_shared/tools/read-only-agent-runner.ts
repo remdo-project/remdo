@@ -219,50 +219,47 @@ function unavailableOrFailure(
   return undefined;
 }
 
-async function repositoryRoot(
+async function repositoryPaths(
   cwd: string,
   environment: NodeJS.ProcessEnv,
   signal: AbortSignal | undefined,
-): Promise<{ evidence?: string; root?: string }> {
-  const outcome = await runProcess('git', ['rev-parse', '--show-toplevel'], {
-    cwd,
-    environment,
-    signal,
-  });
+): Promise<{ evidence?: string; paths?: { git: string[]; repository: string } }> {
+  const outcome = await runProcess(
+    'git',
+    [
+      'rev-parse',
+      '--path-format=absolute',
+      '--show-toplevel',
+      '--absolute-git-dir',
+      '--git-common-dir',
+    ],
+    { cwd, environment, signal },
+  );
   if (outcome.aborted) {
     return { evidence: 'repository resolution was cancelled' };
   }
   if (outcome.spawnError !== undefined || outcome.exitCode !== 0) {
-    return { evidence: 'could not resolve repository root' };
+    return { evidence: 'could not resolve repository paths' };
   }
-  const root = outcome.stdout.trim();
-  return root === '' ? { evidence: 'git returned an empty repository root' } : { root };
-}
-
-async function repositoryGitPaths(
-  repository: string,
-  environment: NodeJS.ProcessEnv,
-  signal: AbortSignal | undefined,
-): Promise<{ evidence?: string; paths?: string[] }> {
-  const outcome = await runProcess(
-    'git',
-    ['rev-parse', '--path-format=absolute', '--absolute-git-dir', '--git-common-dir'],
-    { cwd: repository, environment, signal },
-  );
-  if (outcome.aborted) {
-    return { evidence: 'repository Git metadata resolution was cancelled' };
-  }
-  if (outcome.spawnError !== undefined || outcome.exitCode !== 0) {
-    return { evidence: 'could not resolve repository Git metadata' };
-  }
-  const paths = outcome.stdout.split('\n').filter(Boolean);
-  if (paths.length !== 2) {
-    return { evidence: 'git did not return its Git directory and common directory' };
+  const output = outcome.stdout.endsWith('\n')
+    ? outcome.stdout.slice(0, -1)
+    : outcome.stdout;
+  const paths = output.split('\n');
+  if (paths.length !== 3 || paths.some(item => item === '')) {
+    return { evidence: 'git did not return the repository and Git metadata paths' };
   }
   try {
-    return { paths: [...new Set(await Promise.all(paths.map(item => fs.realpath(item))))] };
+    const [repository, gitDir, commonDir] = await Promise.all(
+      paths.map(item => fs.realpath(item)),
+    );
+    return {
+      paths: {
+        git: [...new Set([gitDir!, commonDir!])],
+        repository: repository!,
+      },
+    };
   } catch (error) {
-    return { evidence: `could not canonicalize repository Git metadata: ${String(error)}` };
+    return { evidence: `could not canonicalize repository paths: ${String(error)}` };
   }
 }
 
@@ -512,26 +509,17 @@ export async function runReadOnlyAgent(
   }
   const cwd = path.resolve(options.cwd ?? process.cwd());
   const environment = normalizeReadOnlyEnvironment(options.environment ?? process.env);
-  const rootResult = await repositoryRoot(cwd, environment, options.signal);
-  if (rootResult.root === undefined) {
-    return { status: 'failed', evidence: rootResult.evidence ?? 'could not resolve repository root' };
-  }
-  let repository: string;
-  try {
-    repository = await fs.realpath(rootResult.root);
-  } catch (error) {
-    return { status: 'failed', evidence: `could not canonicalize repository root: ${String(error)}` };
-  }
-  const gitPaths = await repositoryGitPaths(repository, environment, options.signal);
-  if (gitPaths.paths === undefined) {
+  const pathResult = await repositoryPaths(cwd, environment, options.signal);
+  if (pathResult.paths === undefined) {
     return {
       status: 'failed',
-      evidence: gitPaths.evidence ?? 'could not resolve repository Git metadata',
+      evidence: pathResult.evidence ?? 'could not resolve repository paths',
     };
   }
+  const { git: gitPaths, repository } = pathResult.paths;
   let tempDir: string;
   try {
-    tempDir = await createPrivateTempDir([repository, ...gitPaths.paths]);
+    tempDir = await createPrivateTempDir([repository, ...gitPaths]);
   } catch (error) {
     return { status: 'failed', evidence: `could not create private temporary output: ${String(error)}` };
   }

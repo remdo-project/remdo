@@ -33,27 +33,9 @@ scope_arg=${1-}
 # (remdo-refine "Scope"). This is the mixed-scope refusal — a committed range
 # requested while uncommitted work is present.
 tree_is_dirty() {
-  if git diff --quiet 2>/dev/null; then
-    :
-  else
-    status=$?
-    [ "$status" -eq 1 ] \
-      || fail "git diff --quiet failed while checking working tree state"
-    return 0
-  fi
-
-  if git diff --cached --quiet 2>/dev/null; then
-    :
-  else
-    status=$?
-    [ "$status" -eq 1 ] \
-      || fail "git diff --cached --quiet failed while checking working tree state"
-    return 0
-  fi
-
-  untracked=$(git ls-files --others --exclude-standard) \
-    || fail "git ls-files failed while checking working tree state"
-  [ -n "$untracked" ]
+  tree_status=$(GIT_OPTIONAL_LOCKS=0 git status --porcelain=v1 --untracked-files=normal 2>/dev/null) \
+    || fail "git status --porcelain failed while checking working tree state"
+  [ -n "$tree_status" ]
 }
 
 emit_files_committed() {

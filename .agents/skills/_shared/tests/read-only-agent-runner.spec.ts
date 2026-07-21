@@ -368,9 +368,8 @@ describe('read-only agent runner', () => {
     const stub = makeDir('runner-git-stub-');
     executable(stub, 'git', [
       'case "$*" in',
-      '  "rev-parse --show-toplevel") printf \'%s\\n\' "$RUNNER_STUB_CAPTURE" ;;',
-      '  "rev-parse --path-format=absolute --absolute-git-dir --git-common-dir")',
-      '    printf \'%s\\n%s\\n\' "$RUNNER_STUB_CAPTURE" "$RUNNER_STUB_CAPTURE"',
+      '  "rev-parse --path-format=absolute --show-toplevel --absolute-git-dir --git-common-dir")',
+      '    printf \'%s\\n%s\\n%s\\n\' "$RUNNER_STUB_CAPTURE" "$RUNNER_STUB_CAPTURE" "$RUNNER_STUB_CAPTURE"',
       '    ;;',
       '  *) exit 1 ;;',
       'esac',
@@ -396,9 +395,8 @@ describe('read-only agent runner', () => {
     const stub = makeDir('runner-git-path-stub-');
     executable(stub, 'git', [
       'case "$*" in',
-      '  "rev-parse --show-toplevel") printf \'%s\\n\' "$RUNNER_WORK" ;;',
-      '  "rev-parse --path-format=absolute --absolute-git-dir --git-common-dir")',
-      '    printf \'%s\\n%s\\n\' /tmp "$RUNNER_OS_TMP"',
+      '  "rev-parse --path-format=absolute --show-toplevel --absolute-git-dir --git-common-dir")',
+      '    printf \'%s\\n%s\\n%s\\n\' "$RUNNER_WORK" /tmp "$RUNNER_OS_TMP"',
       '    ;;',
       '  *) exit 1 ;;',
       'esac',
