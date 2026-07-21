@@ -325,7 +325,7 @@ exit 7
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('did not complete cleanly');
+    expect(result.stderr).toContain('did not return a successful result envelope');
   });
 
   it('treats a result containing only the Local skills footer as a failed review', () => {
@@ -392,6 +392,15 @@ exit 7
     expect(result.stdout).toBe('');
     expect(result.stderr).toContain('review did not complete');
     expect(result.stderr).toContain('Scope inspection failed.');
+  });
+
+  it('rejects a completed review without a non-empty report', () => {
+    const structuredOutput = { review_complete: true, report: '  \n' };
+    const result = runWorkingTreeReview(structuredResult(structuredOutput));
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain('review did not provide a non-empty report');
   });
 
   it('fails cleanly when Claude returns a non-string result', () => {

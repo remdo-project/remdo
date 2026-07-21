@@ -174,13 +174,17 @@ function reportResult(result: ReadOnlyAgentResult): void {
   if (!parsed.success) {
     fail('shared runner returned an invalid review response');
   }
-  const { report, review_complete: reviewComplete } = parsed.data;
-  if (reviewComplete !== true || report.trim() === '') {
-    fail(report.trim() !== ''
-      ? `review did not complete\n${report.trim()}`
+  const { review_complete: reviewComplete } = parsed.data;
+  const report = parsed.data.report.trim();
+  if (reviewComplete !== true) {
+    fail(report !== ''
+      ? `review did not complete\n${report}`
       : 'review did not provide explicit completion evidence');
   }
-  process.stdout.write(report.trim());
+  if (report === '') {
+    fail('review did not provide a non-empty report');
+  }
+  process.stdout.write(report);
   process.stdout.write('\n');
 }
 

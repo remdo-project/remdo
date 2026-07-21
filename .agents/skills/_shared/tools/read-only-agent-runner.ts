@@ -254,8 +254,10 @@ function codexArgs(request: CodexAgentRequest, tempDir: string): {
   args: string[];
   input?: string;
   reportPath: string;
+  schemaPath: string;
 } {
   const reportPath = path.join(tempDir, 'final-response');
+  const schemaPath = path.join(tempDir, 'response.schema.json');
   const args = [
     'exec',
     '--ignore-user-config',
@@ -278,12 +280,16 @@ function codexArgs(request: CodexAgentRequest, tempDir: string): {
   }
   args.push('--output-last-message', reportPath);
   if (request.response.kind === 'structured') {
-    const schemaPath = path.join(tempDir, 'response.schema.json');
     args.push('--output-schema', schemaPath);
   }
   if (request.invocation.kind === 'prompt') {
     args.push('-');
-    return { args, input: request.invocation.prompt, reportPath };
+    return {
+      args,
+      input: request.invocation.prompt,
+      reportPath,
+      schemaPath,
+    };
   }
   args.push('review');
   if (request.invocation.target.kind === 'working-tree') {
@@ -291,7 +297,7 @@ function codexArgs(request: CodexAgentRequest, tempDir: string): {
   } else {
     args.push('--base', request.invocation.target.base);
   }
-  return { args, reportPath };
+  return { args, reportPath, schemaPath };
 }
 
 async function runCodex(
@@ -304,7 +310,7 @@ async function runCodex(
   const invocation = codexArgs(request, tempDir);
   if (request.response.kind === 'structured') {
     await fs.writeFile(
-      path.join(tempDir, 'response.schema.json'),
+      invocation.schemaPath,
       JSON.stringify(request.response.schema),
       'utf8',
     );
@@ -426,12 +432,6 @@ async function runClaude(
     return {
       status: 'failed',
       evidence: `could not parse Claude result: ${String(error)}`,
-    };
-  }
-  if (envelope.is_error === true) {
-    return {
-      status: 'failed',
-      evidence: 'Claude did not complete cleanly',
     };
   }
   if (envelope.type !== 'result'
