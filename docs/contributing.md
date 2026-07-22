@@ -64,10 +64,12 @@ Default policy:
 
 ## Code Comments
 
-`TODO:` and `FIXME:` are the only tracked comment markers — use them for any
-comment worth tracking (a workaround, a deferred fix, a known gap). Use the
-repository-wide [work marker meanings](../spec/todo.md#work-markers). State
-the rationale and, where one exists, the one-line probe that proves the comment
+`TODO:` and `FIXME:` are the only tracked comment markers. Use `FIXME:` when the
+current state contains a defect and `TODO:` otherwise. Use either for work worth
+tracking, such as a workaround, deferred fix, or known gap. Follow the
+repository-wide
+[tracked follow-up convention](../spec/todo.md#tracked-follow-up). State the
+rationale and, where one exists, the one-line probe that proves the comment
 obsolete (delete the shim / flip the flag / run the suite) right there in the
 comment.
 

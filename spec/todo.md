@@ -1,30 +1,29 @@
 # RemDo TODO
 
-This file is RemDo's temporary-work ledger. It records known divergences from
+This ledger is RemDo's near-term backlog and single entry point for tracked
+follow-up. It lists known gaps from
 [accepted target behavior](documentation.md#target-behavior), cross-cutting
-temporary state, unresolved decisions, and follow-up work without a better
-colocated owner. Entries acknowledge incomplete work without defining or
-changing accepted target behavior.
+temporary state, unresolved decisions, and follow-up without a better owner.
+Entries do not define accepted behavior.
 
-The closed [legacy backlog](../docs/legacy-backlog.md) retains unresolved entries
-created before this file became the active ledger. Do not add entries there; its
-existing entries remain part of duplicate and review-suppression checks until
-they are resolved or migrated.
+The closed [legacy backlog](../docs/legacy-backlog.md) holds earlier unresolved
+entries. Continue checking its entries for duplicates and review suppression
+until they are resolved or migrated.
 
-Reviewers treat explicitly recorded gaps as intended temporary state rather than
-new findings. Group related notes under short topic headings within their `TODO`
-or `FIXME` section. Remove rejected or obsolete notes and empty sections.
+## Tracked follow-up
 
-## Work markers
+Record code-local follow-up in
+[tracked comments](../docs/contributing.md#code-comments), long-horizon
+follow-up in the owning specification's [`Future`](documentation.md#future)
+section, and other work intended to be done soon in this backlog. Together,
+these locations form the tracking record; do not duplicate an item between
+them.
 
-Tracked follow-up work uses `FIXME` when the current state contains a defect and
-`TODO` otherwise.
+Reviewers suppress a finding only when it matches the same specific tracked
+behavior. Within this backlog, group related items under short topic headings.
+Remove rejected or obsolete items and empty sections.
 
-Code-local follow-up remains in tracked comments under the
-[contributor guidance](../docs/contributing.md#code-comments) and is not
-duplicated here.
-
-## TODO
+## Backlog
 
 ### Documentation tree consolidation
 

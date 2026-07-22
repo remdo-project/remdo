@@ -11,8 +11,7 @@ development, and operational behavior.
   invocation, safety, completion, and result behavior.
 - [`remdo-verify-change`](skills/remdo-verify-change.md) defines verification of
   an explicit repository scope.
-- [RemDo TODO](todo.md) is the temporary-work ledger for known divergences,
-  cross-cutting work, and follow-ups without a better colocated owner.
+- [RemDo TODO](todo.md) routes tracked follow-up and holds the near-term backlog.
 - [Specification research](research/README.md) contains non-normative evidence
   and candidate guidance.
 - The [legacy migration record](../openspec/MIGRATION.md) locates capabilities
