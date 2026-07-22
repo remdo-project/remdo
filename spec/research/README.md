@@ -83,3 +83,6 @@ rule, move it to [Documentation](../documentation.md) and remove it here.
 - [Positive scope opener](cases/positive-scope-opener/README.md) — a runner
   contract replaced unneeded negated non-goals with a positive statement of
   owned behavior.
+- [Delegated responsibility restatement](cases/delegated-responsibility-restatement/README.md)
+  — a verifier stopped summarizing behavior owned by its linked runner and
+  provider-specific sections.

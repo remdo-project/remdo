@@ -27,18 +27,21 @@ The caller keeps the selected scope unchanged until verification finishes.
     ├─ failure ─> [report and stop]
     │
     └─ pass
-        ├─> [Codex review] ──┐
-        └─> [Claude review] ─┴─> [report]
+        ├─> [fresh Codex review] ──┐
+        └─> [fresh Claude review] ─┴─> [report]
 ```
 
 The verifier runs applicable deterministic repository checks in place.
 
 ## Reviews
 
-The verifier constructs the scope and instructions, invokes independent Codex
-and Claude reviews through the shared
-[read-only agent runner](../agents/tools/read-only-runner.md), and interprets
-their completion and findings.
+The verifier invokes fresh, independent Codex and Claude native review surfaces
+through the shared
+[read-only agent runner](../agents/tools/read-only-runner.md). The verifier owns
+scope construction, review instructions, review-completion meaning, and
+findings. The runner owns fresh provider sessions, safety boundaries,
+cancellation, protocol completion, and final-response extraction. A runner
+response is necessary but not sufficient for a completed review.
 
 Reviewers inspect the selected working-tree changes or exact resolved range
 under repository rules and the runner's
@@ -55,17 +58,19 @@ call's completion notification, and cancels a review only when the caller or
 enclosing lifecycle explicitly abandons it. Cancellation is reported as a
 failed review.
 
-**Codex.** Codex selects native working-tree or base review. The executing
-verifier, not a fixed phrase matcher, determines whether that report represents
-a review of the full scope; an inability or unresolved ambiguity about
-full-scope inspection is failed and the report is failure evidence.
+**Codex.** Codex selects native working-tree or base review and returns its
+provider's text-only final report as response content. The executing verifier,
+not a fixed phrase matcher, determines whether that report represents a review
+of the full scope; an inability or unresolved ambiguity about full-scope
+inspection is failed and the report is failure evidence.
 
-**Claude.** Claude selects native review, supplies the exact resolved range when
+**Claude.** Claude selects review, supplies the exact resolved range when
 present, and accepts only schema-valid output with `review_complete: true` and a
-non-empty complete report. For working-tree scope, Claude sees the current
-branch as its own upstream only during the review, excluding committed branch
-history without changing repository configuration. Claude reviews run at
-medium effort.
+non-empty complete report. The runner maps review to `/code-review`; a missing
+review capability is unavailable, while other runner failures remain failed.
+For working-tree scope, Claude sees the current branch as its own upstream only
+during the review, excluding committed branch history without changing
+repository configuration. Claude reviews run at medium effort.
 
 ## Adapter validation
 
