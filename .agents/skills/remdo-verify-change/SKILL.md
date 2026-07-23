@@ -12,8 +12,11 @@ the selected scope.
 
 ## Resolve the scope
 
-Require exactly one caller-supplied scope: `working-tree` or an explicit
-`<left>..HEAD` / `<left>...HEAD` Git diff range. Do not infer a default.
+Accept exactly one caller-supplied scope as `working-tree`, an explicit
+`<left>..HEAD` / `<left>...HEAD` Git diff range, or an unambiguous description
+that maps to one of them. Translate a description to its supported input before
+running the resolver. Ask the caller when their intent does not determine one
+exact input; do not infer a scope from silence.
 For `working-tree`, stop unless `git symbolic-ref --quiet --short HEAD`
 succeeds.
 

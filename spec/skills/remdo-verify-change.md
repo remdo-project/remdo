@@ -1,26 +1,34 @@
 # remdo-verify-change
 
-`remdo-verify-change` verifies one explicit scope. It reports evidence and
-findings without changing repository state, approving the scope, or controlling
-its lifecycle.
+`remdo-verify-change` verifies one review scope selected explicitly by its
+caller. It reports evidence and findings without changing repository state,
+approving the review scope, or controlling its lifecycle.
 
 ## Scope
 
-The caller explicitly selects one scope: the working tree on an attached branch
-or an explicit Git diff range ending at `HEAD`, `<left>..HEAD` or
-`<left>...HEAD`. Working-tree scope includes staged, unstaged, and untracked
-files not excluded by Git's standard ignore rules. A two-dot range requires
-`left` to be an ancestor of `HEAD`; divergent histories must be passed as a
-three-dot range. A range resolves once to immutable commits, uses Git's diff
-semantics, and requires a clean working tree. A missing, empty, invalid, or
-mixed scope stops before verification.
+A **review scope** is the repository state to verify. The caller selects exactly
+one:
 
-The caller keeps the selected scope unchanged until verification finishes.
+- `working-tree` (`working-tree` input): all staged and unstaged changes plus
+  untracked files not excluded by Git's standard ignore rules, relative to the
+  resolved `HEAD` on an attached branch.
+- `committed-range` (`<left>..HEAD` or `<left>...HEAD` input): the exact
+  `BASE..HEAD` diff between resolved immutable commits; the working tree must be
+  clean. With two dots, `left` must be an ancestor of `HEAD` and becomes `BASE`.
+  With three dots, their merge base becomes `BASE`.
+
+When invoked interactively, the verifier maps an unambiguous description of the
+intended scope to one of these inputs; otherwise it asks the caller to clarify.
+
+Verification stops when the input is missing, empty, or invalid, or when a
+range is combined with working-tree changes.
+
+The caller keeps the review scope unchanged until verification finishes.
 
 ## Verification
 
 ```text
-[explicit scope]
+[review scope]
     │
     v
 [deterministic checks]
@@ -35,19 +43,19 @@ The verifier runs applicable deterministic repository checks in place.
 
 ## Reviews
 
-The verifier constructs the scope and instructions, invokes independent Codex
-and Claude reviews through the shared
-[read-only agent runner](../agents/tools/read-only-runner.md), and interprets
+The verifier resolves the selected review scope and constructs the
+instructions. It invokes independent Codex and Claude reviews through the shared
+[read-only agent runner](../agents/tools/read-only-runner.md) and interprets
 their completion and findings.
 
-Reviewers inspect the selected working-tree changes or exact resolved range
-under repository rules and the runner's
-[repository protection](../agents/tools/read-only-runner.md#repository-protection).
+Reviewers inspect the complete review scope under repository rules and the
+[runner's repository protection](../agents/tools/read-only-runner.md#repository-protection).
 The verifier maps the runner's [result](../agents/tools/read-only-runner.md#result)
 to each review status; only a response is eligible for verifier interpretation.
 An unavailable or failed review is reported and does not abort the other review.
-A review that cannot inspect its full scope has failed. Each completed review
-exposes its complete final report without intermediate provider output.
+A review that cannot inspect its complete review scope has failed. Each
+completed review exposes its complete final report without intermediate
+provider output.
 
 The verifier follows the runner's
 [lifecycle](../agents/tools/read-only-runner.md#lifecycle), awaits each managed
@@ -55,17 +63,18 @@ call's completion notification, and cancels a review only when the caller or
 enclosing lifecycle explicitly abandons it. Cancellation is reported as a
 failed review.
 
-**Codex.** Codex selects native working-tree or base review. The executing
-verifier, not a fixed phrase matcher, determines whether that report represents
-a review of the full scope; an inability or unresolved ambiguity about
-full-scope inspection is failed and the report is failure evidence.
+**Codex.** Codex selects native `working-tree` or `committed-range` review. The
+executing verifier, not a fixed phrase matcher, determines whether that report
+represents a review of the complete review scope. If inspection of the complete
+review scope is impossible or remains ambiguous, the review has failed and the
+report is failure evidence.
 
-**Claude.** Claude selects native review, supplies the exact resolved range when
-present, and accepts only schema-valid output with `review_complete: true` and a
-non-empty complete report. For working-tree scope, Claude sees the current
-branch as its own upstream only during the review, excluding committed branch
-history without changing repository configuration. Claude reviews run at
-medium effort.
+**Claude.** Claude selects native review, supplies the exact `committed-range`
+review scope when selected, and accepts only schema-valid output with
+`review_complete: true` and a non-empty complete report. For a `working-tree`
+review scope, Claude sees the current branch as its own upstream only during the
+review, excluding committed branch history without changing repository
+configuration. Claude reviews run at medium effort.
 
 ## Adapter validation
 
@@ -73,16 +82,16 @@ The verifier's shell entry points are thin fronts over provider-specific runner
 requests.
 
 Every added or changed reviewer request builder has end-to-end validation for
-every supported scope. The validation proves that it invokes native review,
-inspects the complete scope, returns the complete final report without
-intermediate output, and does not mutate the repository during review.
+every supported review scope kind. The validation proves that it invokes native
+review, inspects the complete review scope, returns the complete final report
+without intermediate output, and does not mutate the repository during review.
 
 **Codex.** Validation includes its provider-owned read-only sandbox and text
 completion channel.
 
 **Claude.** Validation includes the runner's cooperative repository protection,
-the explicit review-completion field, and working-tree branches both with and
-without pre-existing upstream configuration.
+the explicit review-completion field, and `working-tree` review scopes on
+branches both with and without pre-existing upstream configuration.
 
 Any missing proof or silent safety degradation fails validation.
 
@@ -94,7 +103,7 @@ The result follows this order:
 Verification: <clean | findings | stopped> [(degraded)]
 
 Scope
-<requested and resolved scope, or resolution failure>
+<requested and resolved review scope, or resolution failure>
 
 Checks
 <command>: <passed | failed>
@@ -114,9 +123,9 @@ Claude: <completed | unavailable | failed>
 
 `clean` means checks passed and completed reviewers reported no findings;
 `findings` means at least one completed reviewer reported findings. `stopped`
-means scope resolution or checks prevented reviews. `degraded` accompanies the
-status when an attempted reviewer was unavailable or failed; neither condition
-alone changes `clean` to `findings`.
+means review scope resolution or checks prevented reviews. `degraded`
+accompanies the status when an attempted reviewer was unavailable or failed;
+neither condition alone changes `clean` to `findings`.
 
 A failed step reports only evidence relevant to its failure, not its successful
 sub-results. Reviews intentionally not attempted are `not run`, not
