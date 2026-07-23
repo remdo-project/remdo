@@ -42,12 +42,16 @@ Preserve the same material and context verbatim in the resulting state so the
 two snapshots can be diffed directly.
 ```
 
-Treat `Pre-change` as immutable evidence whose coverage may only grow. Before
-editing material not already covered, add its current content and required
-context without changing existing evidence. After every iteration, rewrite
-`Change request` to include all still-relevant challenges and agreed actions,
-then replace `Post-change` with the current version of everything covered by
-`Pre-change`.
+Create or amend a case only when the user explicitly requests it during an
+interactive session. During that request, treat `Pre-change` as immutable
+evidence whose coverage may only grow. Before editing material not already
+covered, add its current content and required context without changing existing
+evidence. After each requested iteration, rewrite `Change request` to include
+all still-relevant challenges and agreed actions, then replace `Post-change`
+with the current version of everything covered by `Pre-change`.
+
+Outside such a request, every case is frozen. Later changes to its source
+material do not update it.
 
 These are logical parts, not required filesystem boundaries. Use one
 descriptively named file under `cases/` when excerpts provide enough evidence.

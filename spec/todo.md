@@ -41,6 +41,11 @@ Remove rejected or obsolete items and empty sections.
   distinctions expressed by `SHOULD` and `MAY` in ordinary prose. Leave retired
   and archived evidence unchanged.
 
+- **Specification vocabulary review.** Make future specification-authoring and
+  review workflows apply the [ownership](documentation.md#ownership) and
+  [minimality](documentation.md#minimality) rules to every domain- or
+  component-specific term, including consistent actor and component identity.
+
 - **Specification feedback ownership.** Rename `spec/research/` so its path
   clearly owns session-derived specification-authoring feedback cases, then
   update inbound links. Decide separately whether durable general research
@@ -51,6 +56,16 @@ Remove rejected or obsolete items and empty sections.
   provenance.
 
 ### Agents
+
+- **Runner/verifier implementation alignment.** Align the executable runner,
+  verifier skill, and tests with the accepted
+  [runner](agents/tools/read-only-runner.md) and
+  [verifier](skills/remdo-verify-change.md) contracts before relying on the
+  revised flow.
+
+- **External dependency verification.** Define how implementation work checks
+  current authoritative documentation or public APIs for external dependencies
+  before using [empirical checks](documentation.md#empirical-checks).
 
 - **Agent specification structure.** Move the
   [`remdo-verify-change`](skills/remdo-verify-change.md) specification under
@@ -85,9 +100,10 @@ Remove rejected or obsolete items and empty sections.
   verifier, decide when deterministic checks and reviews run so neither is
   repeated unnecessarily.
 
-- **Phase-specific checks.** Consider specification rules for checks that run
-  only at the lifecycle phase where they provide value, such as end-to-end
-  adapter validation during skill implementation. Use
-  [verifier validation](skills/remdo-verify-change.md#adapter-validation) and its
-  fixture-pass/real-repository-failure dogfood as the first case. Find a clearer
-  name before establishing the mechanism.
+- **Empirical-check execution.** Define when and how implementation work runs a
+  specification's empirical checks, records their evidence, and makes it
+  available when deciding whether implementation is complete. Define how
+  reviewers determine whether that evidence establishes conformance and when
+  independent repetition is required. Use the [read-only
+  runner](agents/tools/read-only-runner.md#empirical-checks) as the first
+  case, including its fixture-pass/real-repository-failure dogfood.

@@ -2,7 +2,7 @@
 
 This user-raised case records an ownership correction across the
 [`remdo-verify-change`](../../../skills/remdo-verify-change.md) and
-[read-only agent runner](../../../agents/tools/read-only-runner.md) contracts.
+[read-only runner](../../../agents/tools/read-only-runner.md) contracts.
 
 ## Pre-change
 

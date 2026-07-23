@@ -72,6 +72,12 @@ purposes.
 
 Use as the single owner for terms introduced by the document.
 
+#### Empirical checks
+
+Use when authoritative dependency contracts and deterministic tests together
+cannot establish implementation conformance. List only behavior requiring
+empirical confirmation; empirical checks do not replace deterministic coverage.
+
 #### Future
 
 Use for brief triggers describing long-horizon, non-target direction.

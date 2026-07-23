@@ -43,57 +43,16 @@ The verifier runs applicable deterministic repository checks in place.
 
 ## Reviews
 
-The verifier resolves the selected review scope and constructs the
-instructions. It invokes independent Codex and Claude reviews through the shared
-[read-only agent runner](../agents/tools/read-only-runner.md) and interprets
-their completion and findings.
+The verifier invokes the [read-only
+runner](../agents/tools/read-only-runner.md#call) independently for Codex and
+Claude with a `review` invocation, the resolved review scope, and `high` effort.
 
-Reviewers inspect the complete review scope under repository rules and the
-[runner's repository protection](../agents/tools/read-only-runner.md#repository-protection).
-The verifier maps the runner's [result](../agents/tools/read-only-runner.md#result)
-to each review status; only a response is eligible for verifier interpretation.
-An unavailable or failed review is reported and does not abort the other review.
-A review that cannot inspect its complete review scope has failed. Each
-completed review exposes its complete final report without intermediate
-provider output.
-
-The verifier follows the runner's
-[lifecycle](../agents/tools/read-only-runner.md#lifecycle), awaits each managed
-call's completion notification, and cancels a review only when the caller or
-enclosing lifecycle explicitly abandons it. Cancellation is reported as a
-failed review.
-
-**Codex.** Codex selects native `working-tree` or `committed-range` review. The
-executing verifier, not a fixed phrase matcher, determines whether that report
-represents a review of the complete review scope. If inspection of the complete
-review scope is impossible or remains ambiguous, the review has failed and the
-report is failure evidence.
-
-**Claude.** Claude selects native review, supplies the exact `committed-range`
-review scope when selected, and accepts only schema-valid output with
-`review_complete: true` and a non-empty complete report. For a `working-tree`
-review scope, Claude sees the current branch as its own upstream only during the
-review, excluding committed branch history without changing repository
-configuration. Claude reviews run at medium effort.
-
-## Adapter validation
-
-The verifier's shell entry points are thin fronts over provider-specific runner
-requests.
-
-Every added or changed reviewer request builder has end-to-end validation for
-every supported review scope kind. The validation proves that it invokes native
-review, inspects the complete review scope, returns the complete final report
-without intermediate output, and does not mutate the repository during review.
-
-**Codex.** Validation includes its provider-owned read-only sandbox and text
-completion channel.
-
-**Claude.** Validation includes the runner's cooperative repository protection,
-the explicit review-completion field, and `working-tree` review scopes on
-branches both with and without pre-existing upstream configuration.
-
-Any missing proof or silent safety degradation fails validation.
+Review [results](../agents/tools/read-only-runner.md#result) are independent:
+one never interrupts another. The verifier reports `unavailable` and `failed`
+directly. It treats `responded` as `completed`, includes the complete report,
+and interprets its findings unless the report indicates that inspection of the
+complete review scope failed or remains uncertain; then it treats the review as
+`failed` and uses the report as evidence.
 
 ## Result
 

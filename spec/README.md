@@ -7,7 +7,7 @@ development, and operational behavior.
 
 - [Documentation](documentation.md) defines corpus ownership, contract
   migration, and document and specification structure.
-- [Read-only agent runner](agents/tools/read-only-runner.md) defines provider
+- [Read-only runner](agents/tools/read-only-runner.md) defines agent
   invocation, safety, completion, and result behavior.
 - [`remdo-verify-change`](skills/remdo-verify-change.md) defines verification of
   an explicit repository scope.

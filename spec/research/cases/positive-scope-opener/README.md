@@ -1,7 +1,7 @@
 # Positive Scope Opener
 
 This user-raised case records a scope correction in the
-[`read-only agent runner`](../../../agents/tools/read-only-runner.md) contract.
+[`read-only runner`](../../../agents/tools/read-only-runner.md) contract.
 
 ## Pre-change
 
