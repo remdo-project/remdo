@@ -24,6 +24,9 @@ A `clean` or `findings` verification is converged when no determined correction
 remains to apply, including when findings remain unresolved or verification is
 degraded.
 
+A re-verification stopped because corrections emptied the retained scope is
+also converged.
+
 ## Result
 
 The result reports whether the state converged, the scope, corrections applied,

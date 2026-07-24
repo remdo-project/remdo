@@ -44,8 +44,9 @@ Do not amend, create an empty commit, or push.
 
 A `clean` or `findings` result is converged when validation leaves no determined
 correction to apply. This includes degraded verification and unresolved
-findings. A `stopped` result without a correction that can advance repository
-state is not converged.
+findings. A re-verification stopped because corrections emptied the retained
+scope is also converged. Any other `stopped` result without a correction that
+can advance repository state is not converged.
 
 ## Commit authority
 
