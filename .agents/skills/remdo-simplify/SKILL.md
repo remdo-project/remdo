@@ -1,6 +1,6 @@
 ---
 name: remdo-simplify
-description: The read-only code/test simplification finder that `remdo-refine` runs as its first rung; invoke directly only for an explicitly requested one-off simplify review (e.g. "run a simplify review", "what could be simpler here"). Reports code and test opportunities to make a selected diff's end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Doc and skill-prose convergence belongs to `remdo-docs-align`. Does not edit files, stage, commit, or run mutating checks.
+description: A standalone read-only code/test simplification finder for an explicitly requested one-off simplify review (e.g. "run a simplify review", "what could be simpler here"). Reports opportunities to make a selected diff's end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Doc and skill-prose convergence belongs to `remdo-docs-align`. Does not edit files, stage, commit, or run mutating checks.
 ---
 
 # RemDo Simplify
@@ -22,11 +22,11 @@ the RemDo documentation invariants is `remdo-docs-align`'s job — do not report
 doc/prose findings here, even in passing. Docs are read only as *context* for
 judging whether a simpler code shape exists.
 
-The pass is intentionally read-only so it can serve as an independent
-simplification finder — for a `remdo-refine`-style quality loop, or run standalone
-before an editing pass. Run it with fresh context where the caller can provide
-that isolation (for example, a Claude Code fork/explore context or a Codex
-fresh subagent) so the review never inherits the caller's implementation memory.
+The pass is intentionally read-only and standalone so it can run before an
+editing pass or be composed by a future workflow. Run it with fresh context
+where the caller can provide that isolation (for example, a Claude Code
+fork/explore context or a Codex fresh subagent) so the review never inherits the
+caller's implementation memory.
 
 ## Non-goals
 
@@ -36,8 +36,8 @@ fresh subagent) so the review never inherits the caller's implementation memory.
 
 ## Select the scope
 
-Use the exact scope supplied by the caller. A refine caller should pass only the
-scope and this skill, not its suspected fixes or implementation context.
+Use the exact scope supplied by the caller. A composing caller should pass only
+the scope and this skill, not its suspected fixes or implementation context.
 
 Resolve it by running
 `sh .agents/skills/_shared/tools/resolve-scope.sh [scope]` (its header

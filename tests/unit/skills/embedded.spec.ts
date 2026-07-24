@@ -42,7 +42,6 @@ describe('skill-local spec bridge', () => {
   it('keeps subagent authorization machine-readable for multiagent skills', () => {
     const configs = [
       '.agents/skills/remdo-docs-align/agents/openai.yaml',
-      '.agents/skills/remdo-refine/agents/openai.yaml',
     ];
 
     for (const configPath of configs) {

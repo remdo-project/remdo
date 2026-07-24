@@ -57,11 +57,6 @@ Remove rejected or obsolete items and empty sections.
 
 ### Agents
 
-- **Converge-change cutover.** Implement
-  [`remdo-converge-change`](skills/remdo-converge-change.md), then delete
-  `.agents/skills/remdo-refine/` and update its inbound references. Its legacy
-  CodeRabbit review integration is removed without replacement.
-
 - **Review scope ownership.** Find a neutral owner for the
   [review scope definition](skills/remdo-verify-change.md#scope), then update
   the verifier and convergence specifications to link to it.
