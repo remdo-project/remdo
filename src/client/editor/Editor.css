@@ -521,10 +521,11 @@
 }
 
 /* Mobile action toolbar (docs/outliner/mobile-toolbar.md): a fixed row of
-   note-action buttons docked at the bottom of the viewport on touch devices.
-   When the keyboard is shown, the component lifts the bar by the visual-viewport
-   inset (inline `bottom`) so it docks above the keyboard; when dismissed it
-   rests at `bottom: 0`, clear of the safe-area inset. */
+   note-action buttons docked at the bottom of the visual viewport on touch
+   devices. The component supplies an inline `top` at the visual viewport's
+   lower edge and translates the bar above it, so iOS's layout-viewport fixed
+   positioning cannot leave the bar behind the keyboard. `bottom: 0` is the
+   fallback when the Visual Viewport API is unavailable. */
 :root {
   --mobile-action-toolbar-height: 44px;
 }

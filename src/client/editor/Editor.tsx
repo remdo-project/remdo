@@ -90,7 +90,14 @@ function EditorRuntime({
       ) : (
         <>
           <RichTextPlugin
-            contentEditable={<ContentEditable className="editor-input" />}
+            contentEditable={
+              <ContentEditable
+                className="editor-input"
+                autoCapitalize="sentences"
+                autoCorrect="on"
+                inputMode="text"
+              />
+            }
             ErrorBoundary={LexicalErrorBoundary}
           />
           <RootSchemaPlugin onSchemaReadyChange={handleSchemaReadyChange} />

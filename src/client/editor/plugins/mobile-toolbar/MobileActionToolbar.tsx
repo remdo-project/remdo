@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { useCoarsePointer } from '#client/runtime/useCoarsePointer';
-import { useKeyboardInset } from '#client/runtime/useKeyboardInset';
+import { useVisualViewportBottom } from '#client/runtime/useVisualViewportBottom';
 import type { MobileActionId, SelectionCapability } from './actions';
 import { resolveSelectionCapability, runMobileAction } from './actions';
 import type { LaidOutAction } from './toolbar-layout';
@@ -51,7 +51,7 @@ function resolvePortalRoot(editor: LexicalEditor): Element | null {
 export function MobileActionToolbar() {
   const [editor] = useLexicalComposerContext();
   const isCoarsePointer = useCoarsePointer();
-  const keyboardInset = useKeyboardInset();
+  const visualViewportBottom = useVisualViewportBottom();
   const [portalRoot, setPortalRoot] = useState<Element | null>(() => resolvePortalRoot(editor));
   const [state, setState] = useState<ToolbarState>(INITIAL_STATE);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -204,7 +204,15 @@ export function MobileActionToolbar() {
       role="toolbar"
       aria-label="Note actions"
       contentEditable={false}
-      style={keyboardInset > 0 ? { bottom: `${keyboardInset}px` } : undefined}
+      style={
+        visualViewportBottom === null
+          ? undefined
+          : {
+              bottom: 'auto',
+              top: `${visualViewportBottom}px`,
+              transform: 'translateY(-100%)',
+            }
+      }
     >
       <div
         className={`mobile-action-toolbar__scroll-shell${fade.start ? ' fade-start' : ''}${
