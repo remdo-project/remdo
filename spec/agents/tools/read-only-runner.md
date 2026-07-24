@@ -32,18 +32,20 @@ agent's corresponding CLI settings and leaves absent settings unset.
 
 **Review.** For Codex, the runner maps `working-tree` to native review with
 `--uncommitted` and `committed-range` to `--base <base>`. For Claude, it maps
-`working-tree` to native `/code-review`, excluding committed branch history,
-and `committed-range` to native `/code-review` for `<base>..HEAD` after
-resolving the current `HEAD` commit. Both reviews use the native command's
-instructions and repository guidance loaded by the agent session.
+`working-tree` to native `/code-review` with each resolved changed path as a
+target, without adding paths solely from committed branch history. It maps
+`committed-range` to native `/code-review` for `<base>..HEAD` after resolving
+the current `HEAD` commit. Both reviews use the native command's instructions
+and repository guidance loaded by the agent session.
 
 ## Repository protection
 
 An invocation does not change the caller's Git repository.
 
 The runner invokes Codex in its read-only sandbox with approval fixed to
-`never`. It supplies Claude a read-only instruction; Claude's permissions are
-not a security boundary.
+`never`. Claude prompt invocations receive a read-only instruction. Claude
+review invokes native `/code-review` without mutation flags; Claude's
+permissions are not a security boundary.
 
 ## Lifecycle
 
@@ -80,8 +82,7 @@ validation.
   reviews exactly the committed-range scope.
 - Claude executes `/code-review` through non-interactive `claude -p`.
 - Claude reviews exactly the committed-range scope.
-- Claude `working-tree` review includes the complete working-tree scope and
-  excludes committed branch history on branches with and without existing
-  upstream configuration.
+- Claude `working-tree` review includes every resolved changed-path target and
+  does not add targets solely from committed branch history.
 - Claude prompt and review invocations leave the repository unchanged under the
   runner's cooperative protection.

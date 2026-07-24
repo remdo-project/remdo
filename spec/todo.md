@@ -57,12 +57,6 @@ Remove rejected or obsolete items and empty sections.
 
 ### Agents
 
-- **Runner/verifier implementation alignment.** Align the executable runner,
-  verifier skill, and tests with the accepted
-  [runner](agents/tools/read-only-runner.md) and
-  [verifier](skills/remdo-verify-change.md) contracts before relying on the
-  revised flow.
-
 - **External dependency verification.** Define how implementation work checks
   current authoritative documentation or public APIs for external dependencies
   before using [empirical checks](documentation.md#empirical-checks).

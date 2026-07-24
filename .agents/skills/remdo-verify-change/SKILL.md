@@ -48,22 +48,19 @@ the runtime's managed parallel-call surface. Never shell-background either
 process. Do not substitute another reviewer when one is missing or fails, and
 do not abort the other review.
 
-Use these adapters:
+Invoke the shared runner directly with high effort:
 
-- Codex: `sh .agents/skills/remdo-verify-change/tools/run-codex-review.sh
-  working-tree` or replace the last argument with `committed-range <BASE>`.
-- Claude: `sh .agents/skills/remdo-verify-change/tools/run-claude-review.sh
-  working-tree` or replace the last argument with
-  `committed-range <BASE> <HEAD_SHA>`.
+- Codex: `node .agents/skills/_shared/tools/read-only-runner.ts --effort high
+  codex review working-tree` or replace `working-tree` with
+  `committed-range <BASE>`.
+- Claude: `node .agents/skills/_shared/tools/read-only-runner.ts --effort high
+  claude review working-tree` or replace `working-tree` with
+  `committed-range <BASE>`.
 
-Run the adapters exactly as provided. Each builds its closed provider request
-for the shared
-[`read-only agent runner`](../_shared/tools/read-only-agent-runner.ts), which
-owns the fresh session, safety boundary, cancellation, protocol completion,
-and final-response extraction. The provider fronts retain verifier-specific
-scope construction and instructions. Claude's front validates its explicit
-completion field; the executing verifier interprets Codex's text as described
-below.
+Run these commands exactly. The
+[`read-only runner`](../_shared/tools/read-only-runner.ts) owns the fresh
+session, review scope mapping, safety boundary, cancellation, protocol
+completion, and final-response extraction.
 
 Reviewer runtime is unspecified. Wait for each managed call's completion
 notification; do not poll it or interpret silence or elapsed time as failure.
@@ -73,12 +70,11 @@ it.
 Exit status `2` means the provider or its declared native review capability is
 unavailable. Any other non-zero result is
 failed; treat its output as failure evidence, not as findings. Exit status `0`
-carries the final response. Claude's adapter has already proved explicit completion.
-For Codex, interpret the whole report: classify it as completed only when it
-represents inspection of the full selected scope. If it states or leaves
-unresolved that full-scope inspection did not occur, classify Codex as failed
-and use the report as failure evidence. Do not substitute a fixed phrase list
-for this semantic judgment. The Claude adapter uses medium effort.
+carries the final response. Interpret each whole report: classify it as
+completed only when it represents inspection of the full selected scope. If it
+states or leaves unresolved that full-scope inspection did not occur, classify
+that review as failed and use the report as failure evidence. Do not substitute
+a fixed phrase list for this semantic judgment.
 
 ## Report
 
