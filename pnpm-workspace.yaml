@@ -61,7 +61,7 @@ catalog:
   '@better-auth/oauth-provider': 1.7.0-rc.1
   '@eslint-react/eslint-plugin': ^5.13.1
   '@fission-ai/openspec': ^1.6.0
-  '@hono/node-server': ^2.0.8
+  '@hono/node-server': ^2.0.10
   '@lexical/clipboard': ^0.45.0
   '@lexical/eslint-plugin': ^0.45.0
   '@lexical/link': ^0.45.0
