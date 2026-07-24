@@ -867,7 +867,8 @@ export function NoteIdPlugin() {
             // there is no valid move target here. Interim behavior: no-op, leave
             // the cut pending (never inject list nodes into the body, and never
             // copy-without-moving). Final semantics are deferred to the cut/paste
-            // redesign — see docs/todo.md.
+            // redesign — see
+            // docs/legacy-backlog.md#note-body-follow-ups.
             if (pasteBody) {
               return true;
             }

@@ -790,8 +790,9 @@ describe('note ids on paste', () => {
   it('pasting a cut into a non-cut note\'s body is an interim no-op (cut stays pending)', meta({ fixture: 'flat' }), async ({ remdo }) => {
     // A body can't structurally hold notes, so there is no valid move target.
     // Interim behavior (final semantics deferred to the cut/paste redesign, see
-    // docs/todo.md): the paste does nothing and the cut stays pending — it must
-    // never inject list nodes into the body nor copy the text without moving.
+    // docs/legacy-backlog.md#note-body-follow-ups): the paste does nothing and
+    // the cut stays pending — it must never inject list nodes into the body nor
+    // copy the text without moving.
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'b1');

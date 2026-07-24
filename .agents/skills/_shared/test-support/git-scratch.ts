@@ -34,6 +34,27 @@ export function cleanupTempDirs(): void {
   }
 }
 
+export async function waitForPath(target: string): Promise<void> {
+  if (fs.existsSync(target)) {
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    let settled = false;
+    const watcher = fs.watch(path.dirname(target), (_event, filename) => {
+      if (!settled && filename?.toString() === path.basename(target) && fs.existsSync(target)) {
+        settled = true;
+        watcher.close();
+        resolve();
+      }
+    });
+    if (fs.existsSync(target)) {
+      settled = true;
+      watcher.close();
+      resolve();
+    }
+  });
+}
+
 // A tracked scratch dir under the temp root — cleaned by cleanupTempDirs() in
 // each spec's afterEach, so specs never hand-roll their own dir bookkeeping.
 export function makeDir(prefix: string): string {
@@ -120,15 +141,30 @@ export function makeBareMain(files: Record<string, string>): string {
   return dir;
 }
 
+// Keep this fixture outside the repository even when the test environment's
+// TMPDIR points into data/. It catches entry points that accidentally resolve
+// their own runtime dependencies from the reviewed repository.
+export function makeExternalBareMain(files: Record<string, string>): string {
+  const dir = fs.mkdtempSync('/tmp/skills-external-main-');
+  tempDirs.push(dir);
+  gitOk(dir, 'init', '--quiet', '--initial-branch=main');
+  for (const [file, content] of Object.entries(files)) {
+    writeFile(dir, file, content);
+  }
+  commitAll(dir, 'initial');
+  return dir;
+}
+
 export function runScript(
   script: string,
   cwd: string,
   args: string[] = [],
   extraPath?: string,
+  envOverrides: NodeJS.ProcessEnv = {},
 ): SpawnSyncReturns<string> {
   const env = extraPath
-    ? { ...gitEnv, PATH: `${extraPath}:${process.env.PATH}` }
-    : gitEnv;
+    ? { ...gitEnv, ...envOverrides, PATH: `${extraPath}:${process.env.PATH}` }
+    : { ...gitEnv, ...envOverrides };
   return spawnSync('sh', [script, ...args], {
     cwd,
     encoding: 'utf8',

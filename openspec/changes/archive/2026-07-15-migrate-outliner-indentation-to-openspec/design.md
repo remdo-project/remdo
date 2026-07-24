@@ -8,8 +8,8 @@ migration tracker names indentation as the next capability.
 
 The current keyboard handler consumes `Tab` and `Shift+Tab` whenever it can
 resolve a target note range, even when the structural operation cannot change
-the outline. `docs/todo.md` records that focus behavior as an unresolved
-contract question; this change accepts the existing behavior.
+the outline. `docs/legacy-backlog.md` records that focus behavior as an
+unresolved contract question; this change accepts the existing behavior.
 
 ## Goals / Non-Goals
 

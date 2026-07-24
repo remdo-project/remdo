@@ -73,6 +73,7 @@
       "vite/client",
       "vite-plugin-pwa/client"
     ],
+    "allowImportingTsExtensions": true,
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noEmit": true,

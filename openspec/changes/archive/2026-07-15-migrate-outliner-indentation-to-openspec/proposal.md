@@ -33,5 +33,5 @@ None.
 Documentation ownership moves from
 `docs/outliner/note-structure-rules.md` to
 `openspec/specs/outliner-indentation/spec.md`. Inbound documentation links,
-`docs/todo.md`, and `openspec/MIGRATION.md` change. Product code, APIs,
+`docs/legacy-backlog.md`, and `openspec/MIGRATION.md` change. Product code, APIs,
 dependencies, and runtime behavior do not change.

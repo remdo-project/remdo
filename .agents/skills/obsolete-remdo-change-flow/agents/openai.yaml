@@ -1,0 +1,6 @@
+interface:
+  display_name: "Obsolete RemDo Change Flow"
+  short_description: "Reference-only OpenSpec-era workflow"
+  default_prompt: "Do not invoke this obsolete workflow; consult it only as migration evidence."
+policy:
+  allow_implicit_invocation: false

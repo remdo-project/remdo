@@ -24,7 +24,7 @@ intermediate state and leave a small cross-session navigation aid.
 **Non-Goals:**
 
 - Migrate any product capability in this change.
-- Rewrite or classify the full `docs/todo.md` backlog.
+- Rewrite or classify the full `docs/legacy-backlog.md` backlog.
 - Change product behavior, application code, or test behavior.
 - Decide the complete order of later capability migrations.
 

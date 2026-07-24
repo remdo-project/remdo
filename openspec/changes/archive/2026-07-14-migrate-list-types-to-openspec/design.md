@@ -4,8 +4,8 @@ The accepted list-type contract currently lives in
 `docs/outliner/list-types.md`; `openspec/specs/` has no product capabilities yet.
 Four outliner documents link to the current owner, and `openspec/MIGRATION.md`
 names `outliner-list-types` as the next migration. Focused unit and E2E coverage
-support the documented behavior, while `docs/todo.md` records no exception for
-it.
+support the documented behavior, while `docs/legacy-backlog.md` records no
+exception for it.
 
 ## Goals / Non-Goals
 

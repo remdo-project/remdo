@@ -1,0 +1,6 @@
+interface:
+  display_name: "RemDo Verify Change"
+  short_description: "Read-only dual-review verification for changes"
+  default_prompt: "Use $remdo-verify-change to verify the explicitly selected RemDo working-tree or Git-range scope."
+policy:
+  allow_implicit_invocation: false

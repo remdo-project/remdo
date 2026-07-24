@@ -9,19 +9,16 @@ portability.
 Target runtimes and browser support are defined in `docs/contributing.md`. Rely
 on those baselines—no legacy browser shims.
 
-AGENTS.md is the only doc you must read at the start of every session. Do one
-full pass through `docs/` and `openspec/specs/` when you onboard. During the
-OpenSpec migration, `openspec/MIGRATION.md` says which capabilities have moved;
-unlisted product capabilities remain owned by `docs/`. After onboarding,
-identify the feature area and read only its current owner — filenames and scope
-openers are the navigation. For the documentation invariants, see
-`docs/documentation.md`.
+AGENTS.md is the only doc you must read at the start of every session. Use
+[`spec/`](spec/README.md) to locate accepted behavior, then read only the current
+owner it identifies. Filenames and scope openers are the navigation. When
+creating or reviewing durable documentation, read
+[Documentation](spec/documentation.md) and verify the document against each
+applicable clause separately before finishing.
 
-Changes that add or modify durable requirements follow the
-[`development-change-workflow`](openspec/specs/development-change-workflow/spec.md).
-A branch has at most one active OpenSpec change. On such a branch, read its main
-specs together with its incomplete tasks: the specs state accepted target
-behavior and the tasks disclose any remaining implementation gap.
+Changes that add or modify durable requirements update the owner routed by
+`spec/`. OpenSpec changes and the `obsolete-remdo-change-flow` skill are
+reference material, not active development workflows.
 
 When working, deep-link to the authoritative doc or spec (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
@@ -107,7 +104,7 @@ sections to docs.
   3. A running skill declares an autonomous scope in its own SKILL.md. The
      skill's declaration is the authorization and carries its own branch scope;
      honour that scope rather than this default. (Self-authorizing skills today:
-     `remdo-feature-flow`, `remdo-refine`, `remdo-docs-align`, `remdo-sync`,
+     `remdo-refine`, `remdo-docs-align`, `remdo-sync`,
      `remdo-deps-refresh` —
      each states its scope where it lives, so this list is illustrative, not the
      source of authority.)
@@ -120,9 +117,10 @@ sections to docs.
 - Uncommitted state may be incoherent; commits should not be. The working tree
   is scratch that is allowed to be mid-transformation (e.g. docs ahead of code)
   — don't raise such incoherencies while they stay uncommitted. At commit time,
-  either the committed state is coherent or an ultra-short `docs/todo.md` trigger
-  covers the gap (per `docs/documentation.md` invariant 4); add that
-  trigger yourself and note it in the commit rather than asking.
+  either the committed state is coherent or an ultra-short trigger in
+  `spec/todo.md` covers the gap (per
+  [target behavior](spec/documentation.md#target-behavior)); add that trigger
+  yourself and note it in the commit rather than asking.
 - The Git index may be used by the developer as private review bookkeeping.
   Treat staged vs unstaged state as semantically invisible: it does not mark
   files as done, final, approved, protected, or out of scope. When the agreed
@@ -210,13 +208,22 @@ sections to docs.
 - The shared test harness treats console warnings/errors as failures; if you
   need temporary instrumentation during debugging, prefer `console.log` or
   `console.info` and remove the statements before finishing a task.
-- Code review: silently drop any finding already flagged in `docs/todo.md`
-  (match only when the entry names the same file, symbol, or specific behavior,
-  not just a topical overlap); add one tail line `Suppressed N finding(s)
-  already tracked in docs/todo.md` (omit when `N` is 0). Forward this rule to any
-  finder/reviewer subagents you spawn.
+- Code review: use `spec/todo.md` as the tracking entry point and silently drop
+  any finding already tracked through it (match only when the entry names the
+  same file, symbol, or specific behavior, not just a topical overlap); add one
+  tail line `Suppressed N finding(s) already tracked in a TODO` (omit when `N`
+  is 0). Forward this rule to any finder/reviewer subagents you spawn.
+- Code review: ignore `spec/research/cases/**`. Do not report findings about
+  case content, compare it with current sources, or propose refreshes. Review
+  `spec/research/README.md` normally; cases change only under its explicit
+  interactive-session rules.
 
 ## Skill authoring
+
+Agent skills are durable documentation and follow
+[Documentation](spec/documentation.md). A skill owns its execution procedure;
+the specification it implements owns accepted behavior. Required execution
+steps are procedural content, not explanatory how-to prose.
 
 When writing or editing an agent skill, assume every run is performed by a model
 **at least as capable as the current one**. Encode *intent* — what the skill is
@@ -338,8 +345,6 @@ Determine agent mode in this order:
 
 ## Tools
 
-- OpenSpec is project-local: when an OpenSpec workflow shows `openspec ...`,
-  run the equivalent `./tools/openspec ...` from the repository root.
 - `pnpm run dev:init` is the one-shot workspace bootstrap. It runs
   `pnpm i --frozen-lockfile`. Use it when you clone RemDo for the first time—or
   if you blow away `node_modules`. Skip it in workspaces that are already

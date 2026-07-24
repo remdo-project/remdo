@@ -1,8 +1,8 @@
 ## 1. Migrate the capability contract
 
 - [x] 1.1 Compare `docs/outliner/list-types.md` with the focused implementation,
-  tests, and `docs/todo.md`; adjust the delta spec to contain the complete
-  accepted observable contract and no implementation encoding.
+  tests, and `docs/legacy-backlog.md`; adjust the delta spec to contain the
+  complete accepted observable contract and no implementation encoding.
 - [x] 1.2 Sync the `outliner-list-types` delta into the main OpenSpec specs and
   confirm `openspec/specs/outliner-list-types/spec.md` is the complete new
   normative owner.
