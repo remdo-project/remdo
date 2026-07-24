@@ -1,8 +1,8 @@
 // Temporal-status wording (spec/documentation.md target behavior): spec prose is
 // timeless. Conservative token list — only unambiguous status markers; "new" is
 // semantic (feature-age vs domain use) and stays with review. The legacy backlog
-// retains status wording, so it is exempt. The private runner passes docs/**/*.md
-// only; product markdown lint does not load this rule.
+// retains status wording, so it is exempt. The private runner passes consolidated
+// docs/**/*.md only; product markdown lint does not load this rule.
 //
 // Riding the micromark token stream, code spans and fenced blocks are distinct
 // token types (codeText / codeFlowValue …), so their content never reaches the

@@ -10,15 +10,15 @@ Target runtimes and browser support are defined in `docs/contributing.md`. Rely
 on those baselines—no legacy browser shims.
 
 AGENTS.md is the only doc you must read at the start of every session. Use
-[`spec/`](spec/README.md) to locate accepted behavior, then read only the current
-owner it identifies. Filenames and scope openers are the navigation. When
+filenames and scope openers under `docs/` and `spec/` to locate accepted
+behavior, then read only the current owner. When
 creating or reviewing durable documentation, read
 [Documentation](spec/documentation.md) and verify the document against each
 applicable clause separately before finishing.
 
-Changes that add or modify durable requirements update the owner routed by
-`spec/`. OpenSpec changes and the `obsolete-remdo-change-flow` skill are
-reference material, not active development workflows.
+Changes that add or modify durable requirements update the current owner.
+OpenSpec changes and the `obsolete-remdo-change-flow` skill are reference
+material, not active development workflows.
 
 When working, deep-link to the authoritative doc or spec (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the

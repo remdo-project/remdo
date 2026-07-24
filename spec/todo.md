@@ -27,14 +27,17 @@ Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Documentation tree consolidation.** Until consolidation, `spec/` routes
-  current owners and receives new or materially revised contracts. Existing
-  delegated contracts remain in `docs/` or accepted `openspec/specs/`; all
-  other OpenSpec artifacts are evidence only. After the documentation contract
-  converges, make `docs/` the single documentation root: move component
-  contracts from `spec/` to `docs/specs/`, give the remaining `spec/` artifacts
-  explicit homes under `docs/`, update routing and inbound links, then remove
-  `spec/`.
+- **Documentation tree consolidation.** Make `docs/` the single documentation
+  root. Material awaiting disposition lives temporarily under
+  `docs/pending-review/`: `openspec/current/` contains the delegated
+  indentation, list-types, and reordering contracts, while
+  `openspec/evidence/` contains retired OpenSpec material. Current contracts
+  remain authoritative until an atomic migration moves the complete contract
+  and its inbound links. Review each pending artifact into a final owner,
+  tracked follow-up, retained archive, or deletion after its useful content is
+  migrated or deliberately rejected. Move existing `docs/` contracts through
+  the same review, give every `spec/` artifact an explicit final home, then
+  remove the temporary paths and `spec/`.
 
 - **Normative prose migration.** Remove RFC-style uppercase requirement
   keywords from current contract owners and agent skills, preserving

@@ -1,8 +1,8 @@
 # Legacy Specification Migration Backlog
 
 Tracks accepted decisions that migration work must preserve until their
-permanent owner under [`spec/`](../spec/README.md) exists. This file is temporary
-and non-normative: each
+permanent owner under `docs/` exists. This file is temporary and non-normative:
+each
 entry links its current authoritative source, names its intended destination,
 and defines when the entry can be removed. Only the accepted decision moves to
 the permanent owner. **Avoid** guidance exists to prevent drift while the

@@ -183,4 +183,16 @@ describe('gate integration over a scratch fixture repo', () => {
     expect(skillOut).toContain('remdo-references-shape');
     expect(skillOut).not.toContain('relative-links');
   }, 30_000);
+
+  it('the skill gate excludes pending OpenSpec material', () => {
+    const dir = scratchDocs({
+      'docs/x.md': '# X\n\nDurable prose.\n',
+      'docs/pending-review/openspec/evidence/x.md': '# Evidence\n\nCurrently historical.\n',
+    });
+    const product = lintProduct(dir);
+    expect(product.status, product.stdout + product.stderr).toBe(0);
+    const skill = lintSkill(dir);
+    expect(skill.status, skill.stdout + skill.stderr).toBe(0);
+    expect(skill.stderr).toContain('across 1 file(s)');
+  }, 30_000);
 });
