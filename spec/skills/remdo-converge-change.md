@@ -32,4 +32,5 @@ verification result, and any condition that prevented convergence.
 
 ## Future
 
-- Add a simplification step once its scope and ownership are specified.
+- Add a simplification step and its `audit:cleanup` backstop once the step's
+  scope and ownership are specified.
