@@ -10,3 +10,7 @@ artifacts are evidence, not an active development workflow.
   `outliner-indentation`
 - Accepted decisions awaiting migration remain in the temporary
   [migration backlog](./MIGRATION-BACKLOG.md).
+
+Only the listed capabilities remain delegated. The OpenSpec-era
+`development-change-workflow` and `agent-skill-remdo-verify-change` contracts
+are retired evidence.

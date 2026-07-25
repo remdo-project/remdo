@@ -2,13 +2,13 @@
 // section collects external sources only — no links into the corpus. Inside that
 // section, any link or reference definition whose target is not external (a URL
 // scheme or a protocol-relative `//host`) is a violation; corpus links belong
-// inline in the body. The private runner passes docs/**/*.md only; product
-// markdown lint does not load this rule.
+// inline in the body. The private runner passes maintained docs/**/*.md prose
+// and excludes specification-research cases; product markdown lint does not
+// load this rule.
 //
 // The section runs from the `## References` heading to the next level-2 heading
 // (matching the old checker: `###`/`####` subheadings stay inside it). Links come
 // from the micromark token stream, so code-span/fenced examples never count.
-// The private runner excludes frozen specification-research cases.
 
 // External = a URL scheme (`https:`, `mailto:`) or protocol-relative (`//host`).
 // Same test the relative-links rule uses to skip a target, so the two rules

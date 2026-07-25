@@ -23,10 +23,10 @@ does not.
 documents link to that owner instead of redefining or shadowing it, and no two
 sources describe conflicting target behavior.
 
-**Corpus layout.** Durable documentation lives under `docs/`. The corpus
-contract and backlog live at `docs/documentation.md` and `docs/todo.md`.
+**Corpus layout.** RemDo's behavior and policy corpus lives under `docs/`. The
+corpus contract and backlog live at `docs/documentation.md` and `docs/todo.md`.
 Capability specifications and specification-authoring research live under
-`docs/spec/`; other documentation remains elsewhere under `docs/`.
+`docs/spec/`; other corpus documents remain elsewhere under `docs/`.
 
 **Internal owners.** Where a document relies on another owner's term or
 contract, it links inline at first use so readers arriving mid-system can follow

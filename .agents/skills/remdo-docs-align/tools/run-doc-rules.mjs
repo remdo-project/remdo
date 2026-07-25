@@ -10,7 +10,7 @@ import temporalStatus from './lint-rules/temporal-status.mjs';
 
 const files = fs
   .globSync('docs/**/*.md', { cwd: process.cwd() })
-  .filter((file) => !file.startsWith('docs/spec/research/cases/'));
+  .filter((file) => !file.replaceAll('\\', '/').startsWith('docs/spec/research/cases/'));
 if (files.length === 0) {
   console.error('run-doc-rules: no docs/**/*.md found — run from the repo root');
   process.exit(1);

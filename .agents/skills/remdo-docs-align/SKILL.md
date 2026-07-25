@@ -25,6 +25,9 @@ tie-breaker, so preserve that structure when editing this skill.
 - Authoring new content is out of scope: write-time rules do not prevent
   redundancy (tested — they made it worse), so fresh text is aligned by
   running stages 3–4 over it after writing.
+- **Specification research cases**: [case content](../../../docs/spec/research/README.md#case-shape)
+  is outside alignment. File moves may repair link destinations without
+  changing that content.
 
 ## Pipeline
 
@@ -34,10 +37,9 @@ they run in this order.
 1. **Gates.** Run `pnpm run lint:md` (the product's style/link gate) and
    `sh .agents/skills/remdo-docs-align/tools/check-doc-rules.sh` (this
    skill's private doc-invariant rules — temporal wording, References shape —
-   over `docs/` prose except frozen specification-research cases; skill-file
-   prose is covered by the align/advocate stages, not the gates) and fix to
-   clean. On a scope
-   narrower than the corpus,
+   over `docs/` prose except specification-research cases; skill-file prose is
+   covered by the align/advocate stages, not the gates) and fix to clean. On a
+   scope narrower than the corpus,
    clean means no new findings versus the pre-run baseline; pre-existing
    out-of-scope findings go to the stage-5 report.
 2. **Align pass.** An editor fixes the remaining rule violations across the

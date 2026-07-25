@@ -27,11 +27,12 @@ Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Specification consolidation.** Review existing documents and delegated
-  `openspec/specs/` contracts one by one. Move each actual specification into
-  `docs/spec/`, leaving other documentation elsewhere under `docs/`. Move the
-  complete contract, update inbound links, and remove its former normative
-  definition in the same change. Other OpenSpec artifacts remain evidence only.
+- **Specification consolidation.** Review existing documents and capabilities
+  in the [legacy OpenSpec migration record](../openspec/MIGRATION.md) one by one.
+  Move each actual specification into `docs/spec/`, leaving other documentation
+  elsewhere under `docs/`. Move the complete contract, update inbound links,
+  and remove its former normative definition in the same change. Other OpenSpec
+  artifacts remain evidence only.
 
 - **Normative prose migration.** Remove RFC-style uppercase requirement
   keywords from current contract owners and agent skills, preserving

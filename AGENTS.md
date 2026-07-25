@@ -15,9 +15,12 @@ only the current owner. When creating or reviewing durable documentation, read
 [Documentation](docs/documentation.md) and verify the document against each
 applicable clause separately before finishing.
 
-Changes that add or modify durable requirements update their owner under
-`docs/`. OpenSpec changes and the `obsolete-remdo-change-flow` skill are
-reference material, not active development workflows.
+Changes that add or modify durable requirements update their current owner.
+Owners normally live under `docs/`; the
+[legacy OpenSpec migration record](openspec/MIGRATION.md) identifies delegated
+owners awaiting migration. OpenSpec changes and the
+`obsolete-remdo-change-flow` skill are reference material, not active
+development workflows.
 
 When working, deep-link to the authoritative doc or spec (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
