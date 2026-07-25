@@ -61,6 +61,12 @@ const CLAUDE_READ_ONLY_INSTRUCTION = [
   'part of the request.',
 ].join(' ');
 
+const REVIEW_INSTRUCTION = [
+  'Do not run repository checks.',
+  'When delegating review work, explicitly instruct every delegated',
+  'reviewer not to run repository checks.',
+].join(' ');
+
 const CLAUDE_REVIEW_COMMAND = '/code-review';
 
 function parseCall(args: string[]): RunnerCall {
@@ -396,6 +402,7 @@ function codexArgs(
   } else {
     args.push('--base', call.invocation.scope.base);
   }
+  args.push(REVIEW_INSTRUCTION);
   return { args };
 }
 
@@ -705,9 +712,10 @@ function claudeInvocation(
   if (call.settings.effort !== undefined) {
     args.push('--effort', call.settings.effort);
   }
-  if (!review) {
-    args.push('--append-system-prompt', CLAUDE_READ_ONLY_INSTRUCTION);
-  }
+  args.push(
+    '--append-system-prompt',
+    review ? REVIEW_INSTRUCTION : CLAUDE_READ_ONLY_INSTRUCTION,
+  );
   return {
     args,
     input: call.invocation.kind === 'prompt'

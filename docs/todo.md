@@ -84,11 +84,10 @@ Remove rejected or obsolete items and empty sections.
   invoked skill. Use evidence from real verifier runs, adopting a fresh-subagent
   boundary only if it is more efficient.
 
-- **Verifier deterministic checks.** Decide whether deterministic checks belong
-  in `remdo-verify-change`. If they remain, decide whether their selection rules
-  are accepted behavior owned by the verifier specification or execution
-  procedure owned by the skill, and how failures unrelated to the selected scope
-  are classified and reported.
+- **Deterministic-check ownership.** Choose the single component and lifecycle
+  point that runs authoritative repository checks. Define check selection and
+  unrelated-failure handling there; other workflow components consume the result
+  without repeating the checks.
 
 - **Verifier readiness modes.** Research explicit specification- and
   implementation-readiness modes only if standalone and change-flow use exposes
@@ -99,10 +98,6 @@ Remove rejected or obsolete items and empty sections.
   or costly work, and concrete lessons. Add dedicated orchestration or
   instrumentation only if real retrospectives show that the existing evidence
   is insufficient.
-
-- **Change-flow verification order.** When defining flows that include the
-  verifier, decide when deterministic checks and reviews run so neither is
-  repeated unnecessarily.
 
 - **Empirical-check execution.** Define when and how implementation work runs a
   specification's empirical checks, records their evidence, and makes it

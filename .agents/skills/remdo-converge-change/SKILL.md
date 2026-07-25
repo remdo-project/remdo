@@ -34,9 +34,13 @@ For every verifier result:
    you can correct into one complete correction batch. Preserve the verifier's
    finding dispositions and record confirmed findings that cannot be corrected.
 3. Apply the complete correction batch only after verification has finished.
-   Keep working-tree corrections uncommitted. In committed-range scope, make one
-   coherent correction commit before running verification again.
-4. Run the complete verifier again only when the repository state changed. Use
+4. Before committing or re-verifying, review the correction diff against every
+   applicable authoritative contract and fix inconsistencies introduced by the
+   batch. For durable documentation, check each applicable
+   [`Documentation`](../../../docs/documentation.md) clause separately.
+5. Keep working-tree corrections uncommitted. In committed-range scope, make
+   one coherent correction commit before running verification again.
+6. Run the complete verifier again only when the repository state changed. Use
    the retained scope, and repeat.
 
 Do not amend, create an empty commit, or push.

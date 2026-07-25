@@ -36,7 +36,9 @@ agent's corresponding CLI settings and leaves absent settings unset.
 target, without adding paths solely from committed branch history. It maps
 `committed-range` to native `/code-review` for `<base>..HEAD` after resolving
 the current `HEAD` commit. Both reviews use the native command's instructions
-and repository guidance loaded by the agent session.
+and repository guidance loaded by the agent session. The runner additionally
+instructs the reviewing agent and every reviewer it delegates to not to run
+repository checks.
 
 ## Repository protection
 
@@ -84,5 +86,7 @@ validation.
 - Claude reviews exactly the committed-range scope.
 - Claude `working-tree` review includes every resolved changed-path target and
   does not add targets solely from committed branch history.
+- Codex and Claude review invocations, including delegated reviewers, do not run
+  repository checks.
 - Claude prompt and review invocations leave the repository unchanged under the
   runner's cooperative protection.

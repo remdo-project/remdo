@@ -308,6 +308,11 @@ describe('read-only runner CLI', () => {
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
     expect(args).toContain('review\n--uncommitted\n');
     expect(args).not.toContain('--base\n');
+    expect(args).toContain([
+      'Do not run repository checks.',
+      'When delegating review work, explicitly instruct every delegated',
+      'reviewer not to run repository checks.',
+    ].join(' '));
   });
 
   it('passes the immutable base to native Codex committed-range review', () => {
@@ -448,7 +453,11 @@ describe('read-only runner CLI', () => {
     const argv = args.trimEnd().split('\n');
     const settings = JSON.parse(argv[argv.indexOf('--settings') + 1]!);
     expect(settings).toEqual({ disableAllHooks: true });
-    expect(argv).not.toContain('--append-system-prompt');
+    const instruction = argv[argv.indexOf('--append-system-prompt') + 1];
+    expect(instruction).toContain('Do not run repository checks.');
+    expect(instruction).toContain(
+      'explicitly instruct every delegated reviewer not to run repository checks',
+    );
     expect(argv).not.toContain('--append-subagent-system-prompt');
     expect(argv).toContain('Bash,Read,Grep,Glob,Skill,Agent');
     const input = fs.readFileSync(path.join(stub, 'stdin'), 'utf8');

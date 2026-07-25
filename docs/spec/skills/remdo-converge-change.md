@@ -17,6 +17,9 @@ For `working-tree`, corrections remain uncommitted. For `committed-range`, the
 resolved `BASE` remains fixed and the skill commits corrections before running
 verification again.
 
+Before committing or re-verifying, the skill checks the correction batch
+against every applicable authoritative contract.
+
 After applying all determined corrections from one verification, the skill runs
 complete verification again. It does not re-verify unchanged state and continues
 using available evidence when [verification is degraded](remdo-verify-change.md#result).
