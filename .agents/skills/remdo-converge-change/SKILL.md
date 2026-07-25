@@ -1,6 +1,6 @@
 ---
 name: remdo-converge-change
-description: Converge one explicitly selected RemDo working-tree or Git-range scope by invoking remdo-verify-change, validating its evidence, applying confirmed corrections, and re-verifying only changed repository states. Use only when the caller explicitly invokes $remdo-converge-change with exactly one scope.
+description: Converge one explicitly selected RemDo working-tree or Git-range scope by invoking remdo-verify-change, correcting confirmed issues, and re-verifying only changed repository states. Use only when the caller explicitly invokes $remdo-converge-change with exactly one scope.
 ---
 
 # RemDo Converge Change
@@ -28,12 +28,11 @@ from repository state or caller silence.
 
 For every verifier result:
 
-1. Wait for verification to finish, then validate every reported failure and
-   finding against the repository, accepted behavior, and available evidence.
-2. Collect every confirmed, correctable issue into one complete correction
-   batch. Record invalid findings as rejected with reasons. Record findings that
-   remain indeterminate or cannot be corrected as unresolved, and continue
-   through all other available evidence.
+1. Wait for verification to finish.
+2. Collect every failed check and
+   [`confirmed` finding](../../../docs/spec/skills/remdo-verify-change.md#findings)
+   you can correct into one complete correction batch. Preserve the verifier's
+   finding dispositions and record confirmed findings that cannot be corrected.
 3. Apply the complete correction batch only after verification has finished.
    Keep working-tree corrections uncommitted. In committed-range scope, make one
    coherent correction commit before running verification again.
@@ -42,11 +41,9 @@ For every verifier result:
 
 Do not amend, create an empty commit, or push.
 
-A `clean` or `findings` result is converged when validation leaves no determined
-correction to apply. This includes degraded verification and unresolved
-findings. A re-verification stopped because corrections emptied the retained
-scope is also converged. Any other `stopped` result without a correction that
-can advance repository state is not converged.
+Determine convergence under the authoritative specification's
+[Convergence](../../../docs/spec/skills/remdo-converge-change.md#convergence)
+contract.
 
 ## Commit authority
 
@@ -58,15 +55,8 @@ Working-tree invocation does not authorize commits.
 
 ## Report
 
-Report:
-
-- whether the state converged;
-- the requested and retained resolved scope;
-- all correction batches and commits;
-- rejected findings and their reasons;
-- remaining unresolved findings;
-- the latest verifier result; and
-- any condition that prevented convergence.
+Return the result defined by the authoritative specification's
+[Result](../../../docs/spec/skills/remdo-converge-change.md#result) section.
 
 ## References
 

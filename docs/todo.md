@@ -74,9 +74,10 @@ Remove rejected or obsolete items and empty sections.
   change.
 
 - **Propagate nested results.** Components report facts through their results;
-  their callers decide what happens next. A future change flow should include
-  the verifier's unavailable or failed reviewers and convergence's unresolved
-  findings in its user-facing task result.
+  their callers decide what happens next. A future change flow should include in
+  its user-facing task result the verifier's unavailable or failed reviewers
+  and [finding dispositions](spec/skills/remdo-verify-change.md#findings), plus
+  confirmed findings convergence could not correct.
 
 - **Fresh-session ownership.** Deliberately decide which components run in
   fresh sessions and whether each session is started by the caller or the

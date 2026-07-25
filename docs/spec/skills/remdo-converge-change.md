@@ -1,16 +1,17 @@
 # remdo-converge-change
 
 This skill advances one explicitly selected [`remdo-verify-change` review
-scope](remdo-verify-change.md#scope) by applying validated corrections and
-re-verifying until the current repository state converges. It does not select or
-expand intended behavior.
+scope](remdo-verify-change.md#scope) by applying confirmed corrections and
+re-verifying until the current repository state converges. It does not select
+or expand intended behavior.
 
 ## Convergence
 
 The skill invokes [`remdo-verify-change`](remdo-verify-change.md) against the
-current state. It validates each reported failure and finding, fixes those it
-confirms and can correct, rejects those it determines invalid with reasons, and
-reports the rest as unresolved.
+current state. It applies every correction it can determine from a failed check
+or [`confirmed` finding](remdo-verify-change.md#findings) and carries every
+finding disposition into its result. It does not correct `material out of
+scope` findings or reinterpret dispositions.
 
 For `working-tree`, corrections remain uncommitted. For `committed-range`, the
 resolved `BASE` remains fixed and the skill commits corrections before running
@@ -20,9 +21,9 @@ After applying all determined corrections from one verification, the skill runs
 complete verification again. It does not re-verify unchanged state and continues
 using available evidence when [verification is degraded](remdo-verify-change.md#result).
 
-A `clean` or `findings` verification is converged when no determined correction
-remains to apply, including when findings remain unresolved or verification is
-degraded.
+A `clean` or `findings` verification is converged when no `confirmed` finding
+remains that the skill can correct, including when other dispositions remain or
+verification is degraded.
 
 A re-verification stopped because corrections emptied the retained scope is
 also converged.
@@ -30,8 +31,8 @@ also converged.
 ## Result
 
 The result reports whether the state converged, the scope, corrections applied,
-rejected findings and their reasons, unresolved findings, the latest
-verification result, and any condition that prevented convergence.
+the verifier's finding dispositions, confirmed findings it could not correct,
+the latest verification result, and any condition that prevented convergence.
 
 ## Future
 

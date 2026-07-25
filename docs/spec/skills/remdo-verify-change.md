@@ -36,7 +36,7 @@ The caller keeps the review scope unchanged until verification finishes.
     │
     └─ pass
         ├─> [Codex review] ──┐
-        └─> [Claude review] ─┴─> [report]
+        └─> [Claude review] ─┴─> [finding validation] ─> [report]
 ```
 
 The verifier runs applicable deterministic repository checks in place.
@@ -53,6 +53,34 @@ directly. It treats `responded` as `completed`, includes the complete report,
 and interprets its findings unless the report indicates that inspection of the
 complete review scope failed or remains uncertain; then it treats the review as
 `failed` and uses the report as evidence.
+
+## Findings
+
+The verifier judges each finding against the actual change, repository
+evidence, accepted behavior, and intended behavior established by the caller. A
+relocation does not make unchanged file content part of the change, but its
+effects on content preservation, ownership, and links remain subject to review.
+
+Reviewer disagreement alone does not invalidate intended behavior established
+by the caller. When caller intent resolves an objection, the verifier still
+checks that the resulting behavior is represented as
+[target behavior](../../documentation.md#target-behavior) by its current
+contract owner, including a brief
+[rationale](../../documentation.md#minimality) only when its omission would
+reopen the decision. Implementation and test choices that establish no durable
+behavior require no documentation.
+
+Each finding has one disposition:
+
+- `confirmed`: evidence supports the finding within the selected scope;
+- `rejected`: the finding is refuted, or it is immaterial and outside the
+  selected scope;
+- `unresolved`: available evidence cannot determine the finding; or
+- `material out of scope`: evidence supports the finding outside the selected
+  scope and it could materially affect the caller's decision.
+
+The result includes the reason for each disposition. Verification does not
+expand the selected scope or decide what happens next.
 
 ## Result
 
@@ -78,13 +106,21 @@ Codex: <completed | unavailable | failed>
 
 Claude: <completed | unavailable | failed>
 <final report or failure evidence>
+
+Findings
+not run: <reason>
+or
+none
+or
+<disposition, finding, and reason>
 ```
 
-`clean` means checks passed and completed reviewers reported no findings;
-`findings` means at least one completed reviewer reported findings. `stopped`
-means review scope resolution or checks prevented reviews. `degraded`
-accompanies the status when an attempted reviewer was unavailable or failed;
-neither condition alone changes `clean` to `findings`.
+`clean` means checks passed, finding validation completed, and it produced only
+`rejected` dispositions or no findings. `findings` means completed validation
+produced a `confirmed`, `unresolved`, or `material out of scope` disposition.
+`stopped` means scope resolution, checks, or finding validation prevented
+completion. `degraded` accompanies the status when an attempted reviewer was
+unavailable or failed; neither condition alone changes `clean` to `findings`.
 
 A failed step reports only evidence relevant to its failure, not its successful
 sub-results. Reviews intentionally not attempted are `not run`, not
