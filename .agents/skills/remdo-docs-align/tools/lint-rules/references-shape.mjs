@@ -8,6 +8,7 @@
 // The section runs from the `## References` heading to the next level-2 heading
 // (matching the old checker: `###`/`####` subheadings stay inside it). Links come
 // from the micromark token stream, so code-span/fenced examples never count.
+// The private runner excludes frozen specification-research cases.
 
 // External = a URL scheme (`https:`, `mailto:`) or protocol-relative (`//host`).
 // Same test the relative-links rule uses to skip a target, so the two rules

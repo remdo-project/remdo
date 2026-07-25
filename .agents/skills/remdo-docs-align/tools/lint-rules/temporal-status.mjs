@@ -1,8 +1,9 @@
-// Temporal-status wording (spec/documentation.md target behavior): spec prose is
+// Temporal-status wording (docs/documentation.md target behavior): spec prose is
 // timeless. Conservative token list — only unambiguous status markers; "new" is
 // semantic (feature-age vs domain use) and stays with review. The legacy backlog
-// retains status wording, so it is exempt. The private runner passes docs/**/*.md
-// only; product markdown lint does not load this rule.
+// retains status wording, so it is exempt. The private runner passes maintained
+// docs/**/*.md prose and excludes frozen specification-research cases; product
+// markdown lint does not load this rule.
 //
 // Riding the micromark token stream, code spans and fenced blocks are distinct
 // token types (codeText / codeFlowValue …), so their content never reaches the
@@ -42,7 +43,7 @@ const collectProse = (tokens, out) => {
 export default {
   names: ['remdo-temporal-status'],
   description: 'Docs prose must not use temporal-status wording',
-  information: new URL('https://github.com/remdo/remdo/blob/main/spec/documentation.md#target-behavior'),
+  information: new URL('https://github.com/remdo/remdo/blob/main/docs/documentation.md#target-behavior'),
   tags: ['remdo'],
   parser: 'micromark',
   function: (params, onError) => {

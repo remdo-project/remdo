@@ -208,7 +208,7 @@ confirm the same state.
   Apply it (committed-range: commit; working-tree: leave in the tree); the run is
   not done.
 - **Tradeoff** — a real choice with no single correct answer. Solve it best-effort
-  and **record it in `spec/todo.md`** — a tradeoff is a deferral until a final
+  and **record it in `docs/todo.md`** — a tradeoff is a deferral until a final
   decision is deliberately taken, so the entry persists until then. Never blocks;
   the end report points at the entry.
 - **Reject** — not a real issue, or out of scope. Drop it.
@@ -259,8 +259,8 @@ eventual commit.
 
 Index the result, do not re-narrate it: scope and base; fixes applied (pointing
 at files, not prose, noting where in the diff each finding sat); tradeoffs taken
-with a pointer to their `spec/todo.md` entries; and any blocker with its gathered
-data.
+with a pointer to their `docs/todo.md` entries; and any blocker with its
+gathered data.
 
 Close with
 `Refine: <total elapsed> — <rung-pass count and end reason>`, followed by a

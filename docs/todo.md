@@ -6,14 +6,14 @@ follow-up. It lists known gaps from
 temporary state, unresolved decisions, and follow-up without a better owner.
 Entries do not define accepted behavior.
 
-The closed [legacy backlog](../docs/legacy-backlog.md) holds earlier unresolved
+The closed [legacy backlog](legacy-backlog.md) holds earlier unresolved
 entries. Continue checking its entries for duplicates and review suppression
 until they are resolved or migrated.
 
 ## Tracked follow-up
 
 Record code-local follow-up in
-[tracked comments](../docs/contributing.md#code-comments), long-horizon
+[tracked comments](contributing.md#code-comments), long-horizon
 follow-up in the owning specification's [`Future`](documentation.md#future)
 section, and other work intended to be done soon in this backlog. Together,
 these locations form the tracking record; do not duplicate an item between
@@ -27,14 +27,11 @@ Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Documentation tree consolidation.** Until consolidation, `spec/` routes
-  current owners and receives new or materially revised contracts. Existing
-  delegated contracts remain in `docs/` or accepted `openspec/specs/`; all
-  other OpenSpec artifacts are evidence only. After the documentation contract
-  converges, make `docs/` the single documentation root: move component
-  contracts from `spec/` to `docs/specs/`, give the remaining `spec/` artifacts
-  explicit homes under `docs/`, update routing and inbound links, then remove
-  `spec/`.
+- **Specification consolidation.** Review existing documents and delegated
+  `openspec/specs/` contracts one by one. Move each actual specification into
+  `docs/spec/`, leaving other documentation elsewhere under `docs/`. Move the
+  complete contract, update inbound links, and remove its former normative
+  definition in the same change. Other OpenSpec artifacts remain evidence only.
 
 - **Normative prose migration.** Remove RFC-style uppercase requirement
   keywords from current contract owners and agent skills, preserving
@@ -46,7 +43,7 @@ Remove rejected or obsolete items and empty sections.
   [minimality](documentation.md#minimality) rules to every domain- or
   component-specific term, including consistent actor and component identity.
 
-- **Specification feedback ownership.** Rename `spec/research/` so its path
+- **Specification feedback ownership.** Rename `docs/spec/research/` so its path
   clearly owns session-derived specification-authoring feedback cases, then
   update inbound links. Decide separately whether durable general research
   needs a repository owner. Specify when a research artifact may be treated as
@@ -62,8 +59,9 @@ Remove rejected or obsolete items and empty sections.
   before using [empirical checks](documentation.md#empirical-checks).
 
 - **Agent specification structure.** Move the
-  [`remdo-verify-change`](skills/remdo-verify-change.md) specification under
-  `spec/agents/skills/` and update all inbound links in the same change.
+  [`remdo-verify-change`](spec/skills/remdo-verify-change.md) specification
+  under `docs/spec/agents/skills/` and update all inbound links in the same
+  change.
 
 - **Propagate nested results.** Components report facts through their results;
   their callers decide what happens next. A future change flow should include
@@ -98,6 +96,6 @@ Remove rejected or obsolete items and empty sections.
   specification's empirical checks, records their evidence, and makes it
   available when deciding whether implementation is complete. Define how
   reviewers determine whether that evidence establishes conformance and when
-  independent repetition is required. Use the [read-only
-  runner](agents/tools/read-only-runner.md#empirical-checks) as the first
-  case, including its fixture-pass/real-repository-failure dogfood.
+  independent repetition is required. Use the
+  [read-only runner](spec/agents/tools/read-only-runner.md#empirical-checks) as
+  the first case, including its fixture-pass/real-repository-failure dogfood.

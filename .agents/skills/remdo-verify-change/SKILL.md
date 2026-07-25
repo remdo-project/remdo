@@ -6,7 +6,8 @@ description: Verify one explicitly selected RemDo working-tree or Git-range scop
 # RemDo Verify Change
 
 Verify one explicit scope under the authoritative
-[`remdo-verify-change`](../../../spec/skills/remdo-verify-change.md) contract.
+[`remdo-verify-change`](../../../docs/spec/skills/remdo-verify-change.md)
+contract.
 Remain read-only: do not edit, stage, commit, or run checks intended to change
 the selected scope.
 
@@ -79,4 +80,4 @@ a fixed phrase list for this semantic judgment.
 ## Report
 
 Return the result exactly as defined by the authoritative specification's
-[Result](../../../spec/skills/remdo-verify-change.md#result) section.
+[Result](../../../docs/spec/skills/remdo-verify-change.md#result) section.

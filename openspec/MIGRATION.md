@@ -1,8 +1,9 @@
 # Legacy OpenSpec Migration Record
 
 This records capabilities moved from `docs/` to `openspec/specs/` before
-[`spec/`](../spec/README.md) became the authoritative entry point. These
-capabilities remain delegated owners until migrated to `spec/`. OpenSpec change
+`docs/spec/` became the specification home under the
+[documentation contract](../docs/documentation.md#ownership). These
+capabilities remain delegated owners until migrated there. OpenSpec change
 artifacts are evidence, not an active development workflow.
 
 - Delegated capabilities: `outliner-list-types`, `outliner-reordering`,

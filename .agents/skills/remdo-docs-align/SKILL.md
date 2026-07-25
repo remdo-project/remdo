@@ -34,8 +34,9 @@ they run in this order.
 1. **Gates.** Run `pnpm run lint:md` (the product's style/link gate) and
    `sh .agents/skills/remdo-docs-align/tools/check-doc-rules.sh` (this
    skill's private doc-invariant rules — temporal wording, References shape —
-   over `docs/` prose; skill-file prose is covered by the align/advocate
-   stages, not the gates) and fix to clean. On a scope
+   over `docs/` prose except frozen specification-research cases; skill-file
+   prose is covered by the align/advocate stages, not the gates) and fix to
+   clean. On a scope
    narrower than the corpus,
    clean means no new findings versus the pre-run baseline; pre-existing
    out-of-scope findings go to the stage-5 report.
