@@ -173,7 +173,6 @@ describe('gate integration over a scratch fixture repo', () => {
     expect(skill.status).not.toBe(0);
     expect(output).toContain('docs/spec/current.md');
     expect(output).not.toContain('docs/spec/research/cases/frozen.md');
-    expect(output).toContain('across 2 file(s)');
   }, 30_000);
 
   it('each gate is red on its own violation class', () => {

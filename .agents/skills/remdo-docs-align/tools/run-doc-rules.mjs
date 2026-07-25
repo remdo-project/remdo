@@ -12,7 +12,7 @@ const files = fs
   .globSync('docs/**/*.md', { cwd: process.cwd() })
   .filter((file) => !file.replaceAll('\\', '/').startsWith('docs/spec/research/cases/'));
 if (files.length === 0) {
-  console.error('run-doc-rules: no docs/**/*.md found — run from the repo root');
+  console.error('run-doc-rules: no in-scope docs/**/*.md found');
   process.exit(1);
 }
 const results = await lint({

@@ -26,8 +26,7 @@ tie-breaker, so preserve that structure when editing this skill.
   redundancy (tested — they made it worse), so fresh text is aligned by
   running stages 3–4 over it after writing.
 - **Specification research cases**: [case content](../../../docs/spec/research/README.md#case-shape)
-  is outside alignment. File moves may repair link destinations without
-  changing that content.
+  is outside alignment.
 
 ## Pipeline
 
