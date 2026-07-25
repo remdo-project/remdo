@@ -62,6 +62,33 @@ function claudeResult(result: unknown, overrides: Record<string, unknown> = {}):
   });
 }
 
+function claudeStream(...events: unknown[]): string {
+  return `printf '%s\\n' ${
+    events.map(event => shellLiteral(JSON.stringify(event))).join(' ')
+  }`;
+}
+
+function claudeReviewResult(
+  result: unknown,
+  slashCommands: unknown = ['code-review'],
+  overrides: Record<string, unknown> = {},
+): string {
+  return claudeStream(
+    {
+      type: 'system',
+      subtype: 'init',
+      slash_commands: slashCommands,
+    },
+    {
+      type: 'result',
+      subtype: 'success',
+      is_error: false,
+      result,
+      ...overrides,
+    },
+  );
+}
+
 function providerEnvironment(
   stub: string,
   overrides: NodeJS.ProcessEnv = {},
@@ -430,7 +457,7 @@ describe('read-only runner CLI', () => {
       '[ -z "$' + '{GIT_WORK_TREE+x}" ]',
       'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
       'printf \'%s\\n\' "$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0" > "$RUNNER_STUB_CAPTURE/git-env"',
-      claudeResult('No findings.'),
+      claudeReviewResult('No findings.'),
     ]);
 
     const result = runRunner(
@@ -460,6 +487,9 @@ describe('read-only runner CLI', () => {
     );
     expect(argv).not.toContain('--append-subagent-system-prompt');
     expect(argv).toContain('Bash,Read,Grep,Glob,Skill,Agent');
+    expect(argv).toContain('stream-json');
+    expect(argv).toContain('--verbose');
+    expect(argv).not.toContain('json');
     const input = fs.readFileSync(path.join(stub, 'stdin'), 'utf8');
     expect(input).toBe(
       '/code-review "deleted.md" "staged.md" "candidate.md" '
@@ -484,7 +514,7 @@ describe('read-only runner CLI', () => {
     writeFile(work, 'line\nbreak.md', 'untracked\n');
     const stub = claudeStub([
       'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
-      claudeResult('No findings.'),
+      claudeReviewResult('No findings.'),
     ]);
 
     const result = runRunner(
@@ -508,7 +538,7 @@ describe('read-only runner CLI', () => {
         'untracked\n',
       );
     }
-    const stub = claudeStub([claudeResult('No findings.')]);
+    const stub = claudeStub([claudeReviewResult('No findings.')]);
 
     const result = runRunner(
       work,
@@ -542,7 +572,7 @@ describe('read-only runner CLI', () => {
     const head = git(work, 'rev-parse', 'HEAD').stdout.trim();
     const stub = claudeStub([
       'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
-      claudeResult('Range clean.'),
+      claudeReviewResult('Range clean.'),
     ]);
 
     const result = runRunner(
@@ -557,32 +587,115 @@ describe('read-only runner CLI', () => {
     );
   });
 
-  it('classifies only Claude exact unknown native review output as unavailable', () => {
+  it('classifies Claude review availability from init instead of result prose', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     writeFile(work, 'tracked.md', 'changed\n');
-    const exact = claudeStub([
-      claudeResult('Unknown command: /code-review'),
+    const unavailableStub = claudeStub([
+      claudeReviewResult('', []),
     ]);
-    const mentioned = claudeStub([
-      claudeResult(' Unknown command: /code-review '),
+    const availableStub = claudeStub([
+      claudeReviewResult('Unknown command: /code-review'),
     ]);
 
     const unavailable = runRunner(
       work,
       ['claude', 'review', 'working-tree'],
-      exact,
+      unavailableStub,
     );
     const response = runRunner(
       work,
       ['claude', 'review', 'working-tree'],
-      mentioned,
+      availableStub,
     );
 
     expect(unavailable.status).toBe(2);
     expect(unavailable.stdout).toBe('');
     expect(unavailable.stderr).toContain('/code-review is unavailable');
     expect(response.status).toBe(0);
-    expect(response.stdout).toBe(' Unknown command: /code-review ');
+    expect(response.stdout).toBe('Unknown command: /code-review');
+  });
+
+  it('uses the first init event and terminal result in a delegated review stream', () => {
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
+    writeFile(work, 'tracked.md', 'changed\n');
+    const init = {
+      type: 'system',
+      subtype: 'init',
+      slash_commands: ['code-review'],
+    };
+    const stub = claudeStub([
+      claudeStream(
+        init,
+        {
+          type: 'result',
+          subtype: 'success',
+          is_error: false,
+          result: 'Delegated result.',
+        },
+        init,
+        {
+          type: 'result',
+          subtype: 'success',
+          is_error: false,
+          result: 'Final result.',
+        },
+      ),
+    ]);
+
+    const result = runRunner(
+      work,
+      ['claude', 'review', 'working-tree'],
+      stub,
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('Final result.');
+  });
+
+  it.each([
+    {
+      body: "printf '%s\\n' 'not-json'",
+      evidence: 'could not parse Claude stream line 1',
+    },
+    {
+      body: claudeResult('No init.'),
+      evidence: 'did not include an init event',
+    },
+    {
+      body: claudeReviewResult('Invalid commands.', 'code-review'),
+      evidence: 'did not include a valid slash command list',
+    },
+    {
+      body: `printf '%s\\n' ${
+        shellLiteral(JSON.stringify({
+          type: 'system',
+          subtype: 'init',
+          slash_commands: ['code-review'],
+        }))
+      }`,
+      evidence: 'did not end with a result event',
+    },
+    {
+      body: claudeReviewResult('Failed.', ['code-review'], {
+        subtype: 'error_during_execution',
+        is_error: true,
+      }),
+      evidence: 'did not return a successful result envelope',
+    },
+  ])('rejects an invalid Claude review stream: $evidence', ({ body, evidence }) => {
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
+    writeFile(work, 'tracked.md', 'changed\n');
+    const stub = claudeStub([body]);
+
+    const result = runRunner(
+      work,
+      ['claude', 'review', 'working-tree'],
+      stub,
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain(evidence);
   });
 
   it.each([

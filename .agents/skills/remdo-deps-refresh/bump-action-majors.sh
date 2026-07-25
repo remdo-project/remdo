@@ -33,13 +33,19 @@ for ref in ${refs}; do
   # failure (auth, rate-limit, network), so the latter aborts and surfaces in the
   # loop instead of silently skipping every action and reporting a green no-op.
   gh_err="$(mktemp)"
-  if latest_tag="$(gh api "repos/${repo}/releases/latest" --jq '.tag_name' 2>"${gh_err}")"; then
+  if gh_response="$(gh api "repos/${repo}/releases/latest" --include --jq '.tag_name' 2>"${gh_err}")"; then
     rm -f "${gh_err}"
-  elif grep -q 'HTTP 404' "${gh_err}"; then
-    rm -f "${gh_err}"
-    echo "bump-action-majors: no latest release for ${repo}; skipping." >&2
-    continue
+    latest_tag="$(printf '%s\n' "${gh_response}" | tr -d '\r' | sed '1,/^$/d')"
   else
+    status_line="$(printf '%s\n' "${gh_response}" | sed -n '1{s/\r$//;p;}')"
+    case "${status_line}" in
+      HTTP/*" 404 "*)
+        rm -f "${gh_err}"
+        echo "bump-action-majors: no latest release for ${repo}; skipping." >&2
+        continue
+        ;;
+    esac
+
     echo "bump-action-majors: gh api failed for ${repo}:" >&2
     cat "${gh_err}" >&2
     rm -f "${gh_err}"
