@@ -773,7 +773,8 @@ function claudePromptResult(stdout: string): RunnerResult {
 
 function claudeReviewResult(stdout: string): RunnerResult {
   const lines = stdout.split(/\r?\n/u).filter(line => line.trim() !== '');
-  const events: Record<string, unknown>[] = [];
+  let initEvent: Record<string, unknown> | undefined;
+  let finalEvent: Record<string, unknown> | undefined;
   for (const [index, line] of lines.entries()) {
     let parsed: unknown;
     try {
@@ -790,12 +791,16 @@ function claudeReviewResult(stdout: string): RunnerResult {
         evidence: `Claude stream line ${index + 1} was not a JSON object`,
       };
     }
-    events.push(parsed);
+    if (
+      initEvent === undefined
+      && parsed.type === 'system'
+      && parsed.subtype === 'init'
+    ) {
+      initEvent = parsed;
+    }
+    finalEvent = parsed;
   }
 
-  const initEvent = events.find(
-    event => event.type === 'system' && event.subtype === 'init',
-  );
   if (initEvent === undefined) {
     return {
       status: 'failed',
@@ -819,7 +824,6 @@ function claudeReviewResult(stdout: string): RunnerResult {
     };
   }
 
-  const finalEvent = events.at(-1);
   if (finalEvent?.type !== 'result') {
     return {
       status: 'failed',
