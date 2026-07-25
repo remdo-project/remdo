@@ -10,7 +10,7 @@ description: Reference-only snapshot of RemDo's retired OpenSpec-backed change w
 This retired procedure is preserved as migration evidence. Do not invoke it.
 It previously conducted a spec-bearing RemDo change through the lifecycle
 defined by the
-[`development-change-workflow`](../../../docs/pending-review/openspec/evidence/development-change-workflow/spec.md).
+[`development-change-workflow`](../../../openspec/specs/development-change-workflow/spec.md).
 Compose the installed OpenSpec skills; do not reproduce or modify their
 generated procedures.
 
@@ -125,7 +125,7 @@ provide a narrower autonomous scope; preserve its limits.
 ## References
 
 - Durable lifecycle requirements:
-  `docs/pending-review/openspec/evidence/development-change-workflow/spec.md`.
+  `openspec/specs/development-change-workflow/spec.md`.
 - Retired active-change gate:
   `.agents/skills/obsolete-remdo-change-flow/tools/change-gate.ts`.
 - Documentation invariants: `docs/documentation.md`.

@@ -13,7 +13,7 @@ Rules:
 
 - Mark completed items as `✅ Done` while a section is still active.
 - Delete sections once fully done.
-- Move durable decisions and requirements into their current owner.
+- Move durable decisions and requirements into the owner routed by `spec/`.
 
 ## Scratchpad maintenance
 
@@ -21,10 +21,10 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
-- Consolidate documentation through small capability migrations from current
-  owners. Move each complete contract, repair inbound links, and remove the
-  former normative copy in the same change. Preserve accepted decisions from
-  the [legacy specification migration backlog](pending-review/openspec/MIGRATION-BACKLOG.md)
+- Grow `spec/` through small capability migrations from delegated `docs/` and
+  `openspec/specs/` owners. Move each complete contract, repair inbound links,
+  and remove the former normative copy in the same change. Preserve accepted
+  decisions from [`openspec/MIGRATION-BACKLOG.md`](../openspec/MIGRATION-BACKLOG.md)
   while their subjects move.
 
 - Mobile toolbar fold: `resolveSelectionCapability` (button enabled state) and

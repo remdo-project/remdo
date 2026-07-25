@@ -95,9 +95,8 @@ several `outline/` modules still import note-body primitives from
 `features/note-body/` (see
 [Editor feature module follow-ups](legacy-backlog.md#editor-feature-module-follow-ups)).
 
-Use filenames and scope openers under `docs/` and `spec/` to find the current
-owner of durable product behavior. Source feature folders do not replace stable
-behavior specs.
+Use [`spec/`](../spec/README.md) to find the current owner of durable product
+behavior. Source feature folders do not replace stable behavior specs.
 
 ## Environment
 

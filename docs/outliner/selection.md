@@ -1,8 +1,7 @@
 # Selection
 
 This document defines the cursor-driven selection model used throughout RemDo
-and is the contract structural commands rely on.
-[Indentation](../pending-review/openspec/current/outliner-indentation/spec.md)
+and is the contract structural commands rely on. [Indentation](../../openspec/specs/outliner-indentation/spec.md)
 defines how its commands consume that selection.
 
 ## Selection states
@@ -100,7 +99,7 @@ in place where possible; the disturbance tiers are defined in
 | Long-press (touch) | Enters caret selection; dragging handles behaves like text selection until it crosses a boundary, then snaps to whole notes. |
 | `Esc` | Collapses any structural selection to a caret without changing the document. |
 | Unmodified Arrow / `Home` / `End` / `Page` keys | Collapse a structural selection and place the caret at the corresponding edge (start/end or top/bottom) so typing resumes there. |
-| `Tab` / `Shift+Tab` | Indent / outdent the selection — see [Indentation](../pending-review/openspec/current/outliner-indentation/spec.md). |
+| `Tab` / `Shift+Tab` | Indent / outdent the selection — see [Indentation](../../openspec/specs/outliner-indentation/spec.md). |
 | `Enter` | Caret mode: see [Insertion](./insertion.md). Structural mode: no-op. |
 
 ## Collaboration reshaping
@@ -128,7 +127,7 @@ selection.
 
 | Selection state | Allowed operations |
 | --------------- | ------------------ |
-| Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List Types](../pending-review/openspec/current/outliner-list-types/spec.md)); structural commands may resolve a one-note target range as defined by the command. |
+| Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List Types](../../openspec/specs/outliner-list-types/spec.md)); structural commands may resolve a one-note target range as defined by the command. |
 | Inline text selection | Inline formatting, inline delete/backspace, and toggle checked; structural commands define whether and how the selection resolves to a target note range. |
 | Structural selection | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste, toggle checked, and other structural commands operate on its selected note range in document order. |
 
