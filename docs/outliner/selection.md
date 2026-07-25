@@ -127,7 +127,7 @@ selection.
 
 | Selection state | Allowed operations |
 | --------------- | ------------------ |
-| Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List Types](../../openspec/specs/outliner-list-types/spec.md)); structural commands may resolve a one-note target range as defined by the command. |
+| Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List types](../spec/outliner/list-types.md#toggling)); structural commands may resolve a one-note target range as defined by the command. |
 | Inline text selection | Inline formatting, inline delete/backspace, and toggle checked; structural commands define whether and how the selection resolves to a target note range. |
 | Structural selection | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste, toggle checked, and other structural commands operate on its selected note range in document order. |
 

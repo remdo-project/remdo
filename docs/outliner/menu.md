@@ -17,19 +17,21 @@ entry, actions, and behavior.
 ## Actions
 
 1. Menu actions have three scopes:
-   - **Note:** acts on the current note.
+   - **Note:** acts on the current note, unless the action defines a wider
+     target.
    - **Children:** acts on the current note's child subtree.
    - **View:** acts on the current [zoom](./zoom.md) boundary.
 2. Note actions:
-   - Toggle checked recursively per
-     [List Types](../../openspec/specs/outliner-list-types/spec.md), shortcut
-     `Cmd/Ctrl+Enter`.
+   - Toggle checked per
+     [List types](../spec/outliner/list-types.md#toggling): targets the
+     selected note range when the current note is inside a structural
+     selection, otherwise the current note; shortcut `Cmd/Ctrl+Enter`.
    - Fold/Unfold per [Folding](./folding.md) (`toggle` state), hidden for leaf
      notes and for the current zoom root, shortcut `F` when the menu is open.
    - Zoom per [Zoom](./zoom.md), shortcut `Z`.
 3. Children actions:
    - Child list type actions per
-     [List Types](../../openspec/specs/outliner-list-types/spec.md), showing only
+     [List types](../spec/outliner/list-types.md#type-conversion), showing only
      the two non-current options; hidden for leaf notes.
 4. View actions:
    - `Fold to level [0-9]` per [Folding](./folding.md), with digit shortcuts
@@ -49,10 +51,12 @@ entry, actions, and behavior.
 3. When opened from a row, the current note is that row's note. When opened
    from double-Shift, the current note is the caret note.
 4. Selected note ranges never open multi-note menus; only the focus note is
-   used as note context.
+   used as note context, even when an action's target widens per its contract
+   (as Toggle checked's does).
 5. While the menu is open, `1`-`9` apply the chosen level and `0` fully
    unfolds the current zoom boundary.
 
 ## Non-goals
 
-1. Recursive fold/unfold or bulk actions are out of scope.
+1. Recursive fold/unfold and multi-note menu surfaces are out of scope; what
+   an action targets is owned by that action's contract.

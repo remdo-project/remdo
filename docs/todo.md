@@ -32,7 +32,23 @@ Remove rejected or obsolete items and empty sections.
   Move each actual specification into `docs/spec/`, leaving other documentation
   elsewhere under `docs/`. Move the complete contract, update inbound links,
   and remove its former normative definition in the same change. Other OpenSpec
-  artifacts remain evidence only.
+  artifacts remain evidence only. Per-spec recipe (refine as migrations teach
+  more; `outliner-list-types` was the first):
+
+  1. Recover the pre-OpenSpec original from its deletion commit
+     (`docs/outliner/reordering.md`: `b90aa1a9`;
+     `docs/outliner/note-structure-rules.md`, indentation: `0de8244d`).
+  2. Diff it against the current `openspec/specs/` version, using the archived
+     change's `design.md` to separate deliberate drops from accidental ones.
+  3. Verify any semantic drift between the versions against the
+     implementation.
+  4. Rewrite in `docs/spec/` form per [documentation](documentation.md),
+     checked clause by clause.
+  5. In the same change, retarget inbound links, delete the OpenSpec spec
+     directory, and update the delegated list in the migration record.
+
+  Once that list empties, decide the disposition of everything remaining under
+  `openspec/`; it stays evidence throughout.
 
 - **Normative prose migration.** Remove RFC-style uppercase requirement
   keywords from current contract owners and agent skills, preserving
@@ -52,6 +68,34 @@ Remove rejected or obsolete items and empty sections.
   self-review, and later decisions; decide what source identity and chronology
   must be preserved, and do not treat an unattributed mutable synthesis as
   provenance.
+
+### Outliner
+
+- **Tri-state checked rendering and toggle polarity.** Target behavior
+  ([List types](spec/outliner/list-types.md#checked-state)): a note whose
+  subtree is only partly checked displays as mixed, and toggling unchecks only
+  when the whole target subtree is already checked. The implementation renders
+  binary markers and computes toggle state from the targeted notes' own states
+  (`CheckListPlugin.tsx`: single-note opposite, `targets.every` over range
+  notes; asserted by `tests/unit/checklist-state.spec.ts`). Add mixed
+  rendering and subtree-driven polarity together, updating the tests in the
+  same change.
+
+- **Menu toggle inside a structural selection.** Target behavior
+  ([Menu](outliner/menu.md)): the note menu's toggle applies to the selected
+  note range when the current note is inside it. The implementation always
+  targets the menu's note (`noteItemKey` is resolved first in
+  `CheckListPlugin.tsx`, asserted by `tests/unit/checklist-state.spec.ts`);
+  adjust the resolution and tests.
+
+- **Check-marker click vs selection.** Target behavior
+  ([toggle targets](spec/outliner/list-types.md#toggling)): a marker
+  click on a note inside a structural selection toggles the selected note
+  range; the implementation always toggles only the clicked note (the marker
+  click handler in `CheckListPlugin.tsx` sets state directly instead of
+  dispatching `SET_NOTE_CHECKED_COMMAND`). Reroute it and cover with a test.
+  The click's selection consequences stay with
+  [Selection](outliner/selection.md).
 
 ### Agents
 
