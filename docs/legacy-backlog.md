@@ -667,8 +667,9 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   have each skill state only its delta: one stop/escalation taxonomy (today
   six names: ESCALATE/Blocker/Stuck/stop/dead-end/callout), one
   mutation-permission vocabulary (today five variants), one report skeleton,
-  and a one-line verification-ownership map for retained skills (refine owns
-  quality backstops; sync the post-merge check; deps-refresh its matrix).
+  and a one-line verification-ownership map for retained skills (verification
+  owns checks and reviews; convergence owns correction lifecycle; sync the
+  post-merge check; deps-refresh its matrix).
   Reconcile with AGENTS.md's declare-scope-in-situ rule via shared vocabulary +
   per-skill delta.
 - ESCALATE (docs-align): `docs/outliner/menu.md:40` — advocate
@@ -695,23 +696,18 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   the file crawler, so include globs can't reach them); requires re-verifying
   `--changed` and forceRerunTriggers semantics across projects.
 
-## remdo-refine follow-ups
+## Review and convergence follow-ups
 
 - Working-tree scope currently unions `git diff HEAD` with cached paths, so a
   staged edit undone in the checked-out file remains review noise despite having
   no net artifact. Define the scope as the checked-out tree versus `HEAD` plus
   untracked files; update `resolve-scope.sh`, its intentional regression test,
-  and the refine/simplify scope wording. Keep the any-layer dirty check only for
-  refusing committed-range mode with unrelated local changes.
-- Loop structure: nested settle/confirmation loops terminate on judgment, not
-  structure, against stochastic reviewers that resample findings per run; rung
-  re-runs re-review the whole diff rather than the delta since their last pass.
-- Add more external review tools/skills/programs worth considering in the refine
-  ladder beyond `codex review` (e.g. other reviewers or static analyzers);
-  evaluate each for fit and independence before adding a rung.
-- Widen the review lens for shared-state writes: refine reviews a diff, so a bug
-  where NEW code writes shared/global state and UNCHANGED code over-reads it sits
-  outside scope (the PR#356 cross-user source-leak: new `source-links.ts` wrote
+  and the verifier/simplify scope wording. Keep the any-layer dirty check only
+  for refusing committed-range mode with unrelated local changes.
+- Widen the review lens for shared-state writes: change verification reviews a
+  diff, so a bug where NEW code writes shared/global state and UNCHANGED code
+  over-reads it sits outside scope (the PR#356 cross-user source-leak: new
+  `source-links.ts` wrote
   a global `source_servers` row that the unchanged
   `listCurrentUserSourceServers`
   projected to every user). The GitHub Codex app caught it because it reviews the
