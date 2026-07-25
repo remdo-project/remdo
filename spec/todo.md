@@ -57,6 +57,15 @@ Remove rejected or obsolete items and empty sections.
 
 ### Agents
 
+- **Review scope ownership.** Find a neutral owner for the
+  [review scope definition](skills/remdo-verify-change.md#scope), then update
+  the verifier and convergence specifications to link to it.
+
+- **Default verification scope.** Default to `working-tree` when the repository
+  is dirty and `origin/main...HEAD` otherwise, clearly reporting the selected
+  scope. Before implementing, confirm which component and contract level own
+  this decision.
+
 - **External dependency verification.** Define how implementation work checks
   current authoritative documentation or public APIs for external dependencies
   before using [empirical checks](documentation.md#empirical-checks).
@@ -67,8 +76,8 @@ Remove rejected or obsolete items and empty sections.
 
 - **Propagate nested results.** Components report facts through their results;
   their callers decide what happens next. A future change flow should include
-  the verifier's unavailable or failed reviewers in its user-facing task
-  result.
+  the verifier's unavailable or failed reviewers and convergence's unresolved
+  findings in its user-facing task result.
 
 - **Fresh-session ownership.** Deliberately decide which components run in
   fresh sessions and whether each session is started by the caller or the
@@ -78,7 +87,8 @@ Remove rejected or obsolete items and empty sections.
 - **Verifier deterministic checks.** Decide whether deterministic checks belong
   in `remdo-verify-change`. If they remain, decide whether their selection rules
   are accepted behavior owned by the verifier specification or execution
-  procedure owned by the skill.
+  procedure owned by the skill, and how failures unrelated to the selected scope
+  are classified and reported.
 
 - **Verifier readiness modes.** Research explicit specification- and
   implementation-readiness modes only if standalone and change-flow use exposes

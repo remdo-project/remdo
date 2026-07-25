@@ -11,6 +11,8 @@ development, and operational behavior.
   invocation, safety, completion, and result behavior.
 - [`remdo-verify-change`](skills/remdo-verify-change.md) defines verification of
   an explicit repository scope.
+- [`remdo-converge-change`](skills/remdo-converge-change.md) defines mutation and
+  re-verification of an explicit repository scope until it converges.
 - [RemDo TODO](todo.md) routes tracked follow-up and holds the near-term backlog.
 - [Specification research](research/README.md) contains non-normative evidence
   and candidate guidance.

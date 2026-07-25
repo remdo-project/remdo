@@ -1,0 +1,6 @@
+interface:
+  display_name: "RemDo Converge Change"
+  short_description: "Fix and re-verify a RemDo change"
+  default_prompt: "Use $remdo-converge-change to converge one explicitly selected RemDo working-tree or Git-range scope."
+policy:
+  allow_implicit_invocation: false

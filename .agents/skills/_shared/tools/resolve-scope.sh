@@ -30,7 +30,7 @@ scope_arg=${1-}
 
 # A committed range must run against a clean tree: staged/unstaged/untracked
 # changes sit outside the resolved range and would be silently unreviewed
-# (remdo-refine "Scope"). This is the mixed-scope refusal — a committed range
+# by a committed-range caller. This is the mixed-scope refusal — a committed range
 # requested while uncommitted work is present.
 tree_is_dirty() {
   tree_status=$(GIT_OPTIONAL_LOCKS=0 git status --porcelain=v1 --untracked-files=normal 2>/dev/null) \
@@ -91,7 +91,7 @@ case "$scope_arg" in
   '')
     # Infer: the task-branch default is origin/main...HEAD (the three-dot
     # merge-base range = this branch's own work). Refuse on an integration
-    # branch where that default is meaningless (remdo-refine case 3): main/dev,
+    # branch where that default is meaningless: main/dev,
     # or no merge-base with origin/main at all.
     branch=$(git symbolic-ref --quiet --short HEAD) \
       || fail "detached HEAD — no branch for the origin/main...HEAD default; pass an explicit range"
