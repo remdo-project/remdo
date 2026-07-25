@@ -362,7 +362,10 @@ describe('read-only runner CLI', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = makeDir('runner-codex-capability-stub-');
     executable(stub, 'codex', [
-      'if [ "$*" = "exec review --help" ]; then exit 7; fi',
+      'if [ "$*" = "exec review --help" ]; then',
+      '  printf "review help failed\\n" >&2',
+      '  exit 7',
+      'fi',
       'exit 99',
     ]);
 
@@ -371,6 +374,7 @@ describe('read-only runner CLI', () => {
     expect(result.status).toBe(2);
     expect(result.stdout).toBe('');
     expect(result.stderr).toContain('Codex native review is unavailable');
+    expect(result.stderr).toContain('review help failed');
   });
 
   it('forwards a Claude prompt and exact settings through the generic read-only profile', () => {
@@ -761,7 +765,7 @@ describe('read-only runner CLI', () => {
     expect(claude.stderr).toContain('Claude executable is unavailable');
   });
 
-  it('keeps provider failures and diagnostics out of stdout and stderr', () => {
+  it('preserves provider stderr but not stdout on failure', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = claudeStub([
       'printf "provider transcript\\n" >&2',
@@ -773,9 +777,43 @@ describe('read-only runner CLI', () => {
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('Claude failed with status 7');
-    expect(result.stderr).not.toContain('provider transcript');
+    expect(result.stderr).toBe(
+      'read-only-runner: Claude failed with status 7\n'
+      + 'provider transcript\n',
+    );
     expect(result.stderr).not.toContain('provider stdout');
+  });
+
+  it('captures stderr from a failed Codex invocation', () => {
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
+    const stub = codexStub([
+      'printf "codex diagnostic\\n" >&2',
+      'printf "partial protocol\\n"',
+      'exit 9',
+    ]);
+
+    const result = runRunner(work, ['codex', 'prompt', 'Inspect.'], stub);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toBe(
+      'read-only-runner: Codex failed with status 9\n'
+      + 'codex diagnostic\n',
+    );
+  });
+
+  it('does not expose provider stderr after a successful response', () => {
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
+    const stub = claudeStub([
+      'printf "provider warning\\n" >&2',
+      claudeResult('Review complete.'),
+    ]);
+
+    const result = runRunner(work, ['claude', 'prompt', 'Inspect.'], stub);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('Review complete.');
+    expect(result.stderr).toBe('');
   });
 
   it('rejects missing and whitespace-only Codex final responses', () => {

@@ -213,6 +213,10 @@ function runProcess(
   });
 }
 
+function providerFailureEvidence(summary: string, stderr: string): string {
+  return stderr.trim() === '' ? summary : `${summary}\n${stderr}`;
+}
+
 function providerFailure(
   provider: Agent,
   outcome: ProcessOutcome,
@@ -221,24 +225,39 @@ function providerFailure(
   if (outcome.spawnError?.code === 'ENOENT') {
     return {
       status: 'unavailable',
-      evidence: `${name} executable is unavailable`,
+      evidence: providerFailureEvidence(
+        `${name} executable is unavailable`,
+        outcome.stderr,
+      ),
     };
   }
   if (outcome.spawnError !== undefined) {
     return {
       status: 'failed',
-      evidence: `${name} could not start: ${outcome.spawnError.message}`,
+      evidence: providerFailureEvidence(
+        `${name} could not start: ${outcome.spawnError.message}`,
+        outcome.stderr,
+      ),
     };
   }
   if (outcome.aborted) {
-    return { status: 'failed', evidence: `${name} was cancelled` };
+    return {
+      status: 'failed',
+      evidence: providerFailureEvidence(
+        `${name} was cancelled`,
+        outcome.stderr,
+      ),
+    };
   }
   if (outcome.exitCode !== 0) {
     return {
       status: 'failed',
-      evidence: `${name} failed with status ${
-        outcome.exitCode ?? `signal ${outcome.signal ?? 'unknown'}`
-      }`,
+      evidence: providerFailureEvidence(
+        `${name} failed with status ${
+          outcome.exitCode ?? `signal ${outcome.signal ?? 'unknown'}`
+        }`,
+        outcome.stderr,
+      ),
     };
   }
   return undefined;
@@ -343,7 +362,7 @@ async function probeCodexReview(
   const outcome = await runProcess(
     'codex',
     ['exec', 'review', '--help'],
-    { cwd: repository, environment, signal },
+    { captureStderr: true, cwd: repository, environment, signal },
   );
   const failure = providerFailure('codex', outcome);
   if (failure?.status === 'unavailable') {
@@ -355,7 +374,10 @@ async function probeCodexReview(
   if (outcome.exitCode !== 0) {
     return {
       status: 'unavailable',
-      evidence: 'Codex native review is unavailable',
+      evidence: providerFailureEvidence(
+        'Codex native review is unavailable',
+        outcome.stderr,
+      ),
     };
   }
   return undefined;
@@ -552,6 +574,7 @@ async function runCodex(
     integrationOverrides.args,
   );
   const outcome = await runProcess('codex', invocation.args, {
+    captureStderr: true,
     cwd: repository,
     environment,
     input: invocation.input,
@@ -874,6 +897,7 @@ async function runClaude(
   }
   const invocation = claudeInvocation(call, reviewCommand);
   const outcome = await runProcess('claude', invocation.args, {
+    captureStderr: true,
     cwd: repository,
     environment: sourceEnvironment,
     input: invocation.input,
@@ -945,7 +969,10 @@ async function main(): Promise<void> {
       process.stdout.write(result.response);
       return;
     }
-    process.stderr.write(`read-only-runner: ${result.evidence}\n`);
+    process.stderr.write(`read-only-runner: ${result.evidence}`);
+    if (!result.evidence.endsWith('\n')) {
+      process.stderr.write('\n');
+    }
     process.exitCode = result.status === 'unavailable' ? 2 : 1;
   } catch (error) {
     process.stderr.write(

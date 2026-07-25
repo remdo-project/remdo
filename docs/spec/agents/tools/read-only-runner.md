@@ -69,11 +69,13 @@ A result is encoded by the runner's exit status and output:
   stdout;
 - `unavailable`: exit `2` and write evidence that the agent CLI or requested
   native capability is unavailable to stderr;
-- `failed`: any other non-zero exit and concise failure evidence on stderr.
+- `failed`: any other non-zero exit and failure evidence on stderr.
 
 Only `responded` writes stdout. It confirms transport and response integrity,
 not that the response satisfies the caller's task; the caller owns that
-validation.
+validation. When a provider process exits unsuccessfully, its failure evidence
+includes any non-empty provider stderr verbatim after the runner-owned summary;
+provider stdout is not failure evidence.
 
 ## Empirical checks
 
