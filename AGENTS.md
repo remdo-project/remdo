@@ -148,13 +148,17 @@ sections to docs.
   don't contort it into an over-complex unit test, and don't fall back to a
   manual/live check as the coverage of record — reach for an e2e test
   (`pnpm test:e2e`). Live/DevTools checks are a development aid, not a substitute
-  for an automated test. If a behavior genuinely ends up covered only by a live
-  check, say so explicitly as a tradeoff in the work summary.
+  for an automated test; behavior may rely on an
+  [empirical check](docs/documentation.md#empirical-checks) only when its current
+  owner lists it there.
+- When a change could affect a listed empirical check, perform it before
+  finishing and report the outcome. Reviewers judge whether the empirical
+  classification is valid without requiring a repository artifact.
 - Reviewing a change includes judging whether its tests give reasonable coverage
   of the behavior it claims: each distinct behavior the change introduces or
-  fixes should have a test that would fail if that behavior broke. This is a
-  behavior check, not a line-coverage target — name any behavior left untested as
-  a tradeoff.
+  fixes should have a test that would fail if that behavior broke or be
+  explicitly listed as empirical. This is a behavior check, not a line-coverage
+  target — name any behavior neither mechanism covers as a tradeoff.
 - When writing tests against known fixtures, assume the fixture shape; avoid
   defensive assertions about expected structure unless the test is explicitly
   about validation.

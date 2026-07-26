@@ -89,11 +89,3 @@ Remove rejected or obsolete items and empty sections.
   or costly work, and concrete lessons. Add dedicated orchestration or
   instrumentation only if real retrospectives show that the existing evidence
   is insufficient.
-
-- **Empirical-check execution.** Define when and how implementation work runs a
-  specification's empirical checks, records their evidence, and makes it
-  available when deciding whether implementation is complete. Define how
-  reviewers determine whether that evidence establishes conformance and when
-  independent repetition is required. Use the
-  [read-only runner](spec/agents/tools/read-only-runner.md#empirical-checks) as
-  the first case, including its fixture-pass/real-repository-failure dogfood.
