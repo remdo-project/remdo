@@ -27,11 +27,6 @@ Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **OpenSpec retirement.** All delegated OpenSpec capability specifications
-  have moved to `docs/spec/`. Decide the disposition of everything remaining
-  under `openspec/`. It remains evidence until each item is retained,
-  relocated, or rejected deliberately.
-
 - **Normative prose migration.** Remove RFC-style uppercase requirement
   keywords from current contract owners and agent skills, preserving
   distinctions expressed by `SHOULD` and `MAY` in ordinary prose. Leave retired
@@ -116,25 +111,13 @@ Remove rejected or obsolete items and empty sections.
   under `docs/spec/agents/skills/` and update all inbound links in the same
   change.
 
-- **Propagate nested results.** Components report facts through their results;
-  their callers decide what happens next. A future change flow should include in
-  its user-facing task result the verifier's unavailable or failed reviewers
-  and [finding dispositions](spec/skills/remdo-verify-change.md#findings), plus
-  confirmed findings convergence could not correct.
-
-- **Fresh-session ownership.** Deliberately decide which components run in
-  fresh sessions and whether each session is started by the caller or the
-  invoked skill. Use evidence from real verifier runs, adopting a fresh-subagent
-  boundary only if it is more efficient.
-
-- **Deterministic-check ownership.** Choose the single component and lifecycle
-  point that runs authoritative repository checks. Define check selection and
-  unrelated-failure handling there; other workflow components consume the result
-  without repeating the checks.
-
-- **Verifier readiness modes.** Research explicit specification- and
-  implementation-readiness modes only if standalone and change-flow use exposes
-  recurring ambiguity that reviewer inference cannot resolve reliably.
+- **Development change workflow design.** Before implementing the initial
+  [workflow contract](spec/agents/development-change-workflow.md), validate its
+  phase boundaries through real changes and revise them when evidence requires.
+  Define the active change record and approval baseline, how nested component
+  results reach the user, which component owns deterministic checks, where fresh
+  sessions begin, and whether recurring ambiguity justifies separate
+  specification- and implementation-readiness modes.
 
 - **Post-skill retrospectives.** Make an on-demand retrospective available
   after skill runs, using saved session logs to explain elapsed time, repeated

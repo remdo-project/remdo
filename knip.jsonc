@@ -21,12 +21,7 @@
   // (which has no `_shared`) and report as unresolved. Ignore the
   // mirrors so only the canonical `.agents` copy is scanned — the same
   // no-symlink-traversal `.markdownlint-cli2.jsonc` enforces for the doc gate.
-  "ignore": [
-    ".claude/skills/**",
-    // Reference-only evidence retained with the retired workflow; never invoke
-    // or treat it as part of the active project graph.
-    ".agents/skills/obsolete-remdo-change-flow/tools/change-gate.ts"
-  ],
+  "ignore": [".claude/skills/**"],
   // Test-visible exports that are also used inside their production module are
   // live implementation details, not dead production code.
   "ignoreExportsUsedInFile": true,
