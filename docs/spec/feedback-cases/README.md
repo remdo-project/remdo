@@ -43,13 +43,15 @@ Preserve the same material and context verbatim in the resulting state so the
 two snapshots can be diffed directly.
 ```
 
-Create or amend a case only when the user explicitly requests it during an
-interactive session. During that request, treat `Pre-change` as immutable
-evidence whose coverage may only grow. Before editing material not already
-covered, add its current content and required context without changing existing
-evidence. After each requested iteration, rewrite `Change request` to include
-all still-relevant challenges and agreed actions, then replace `Post-change`
-with the current version of everything covered by `Pre-change`.
+Create or amend a case only when the user explicitly asks to record or refine
+that case; a request to change its source material does not authorize changing
+the case. During requested case work, preserve all previously captured
+`Pre-change` material. Expand or reorganize it as needed — including adding
+context or artifacts or changing the case layout — but do not rewrite, correct,
+shorten, update, or remove the original material. After each requested
+iteration, rewrite `Change request` to include all still-relevant challenges
+and agreed actions, then replace `Post-change` with the current version of
+everything covered by `Pre-change`.
 
 Outside such a request, every case is frozen. Later changes to its source
 material do not update it. Link destinations may be repaired when files move;
