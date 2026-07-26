@@ -6,7 +6,7 @@ This records capabilities moved from `docs/` to `openspec/specs/` before
 capabilities remain delegated owners until migrated there. OpenSpec change
 artifacts are evidence, not an active development workflow.
 
-- Delegated capabilities: `outliner-reordering`, `outliner-indentation`
+- Delegated capability: `outliner-indentation`
 - Accepted decisions awaiting migration remain in the temporary
   [migration backlog](./MIGRATION-BACKLOG.md).
 

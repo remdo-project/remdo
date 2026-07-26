@@ -24,7 +24,7 @@ surface and its behavior, not those operations.
    - Indent / outdent, per
      [Indentation](../../openspec/specs/outliner-indentation/spec.md).
    - Move up / move down, per
-     [Reordering](../../openspec/specs/outliner-reordering/spec.md).
+     [Reordering](../spec/outliner/reordering.md).
    - Toggle done per
      [List types](../spec/outliner/list-types.md#toggling).
    - Delete removes the targeted notes and their subtrees per
