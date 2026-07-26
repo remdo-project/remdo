@@ -1,8 +1,8 @@
 // The two RemDo custom markdownlint rules, exercised through markdownlint's own
 // lint API with fixture strings (happy / violation / exemption for each), plus
-// two integration cases running the real cli2 over a *scratch fixture repo*
-// wired with the production config + rules (a green tree, and a red tree that
-// trips all three rules). The rules ride the micromark token stream, so code
+// integration cases running the real cli2 over a *scratch fixture repo* wired
+// with the production config + rules. The rules ride the micromark token
+// stream, so code
 // spans and fences are excluded for free — the fixtures assert that rather than
 // re-testing parsing.
 import { spawnSync } from 'node:child_process';
@@ -172,6 +172,18 @@ describe('gate integration over a scratch fixture repo', () => {
     const output = skill.stdout + skill.stderr;
     expect(skill.status).not.toBe(0);
     expect(output).toContain('docs/spec/current.md');
+    expect(output).not.toContain('docs/spec/feedback-cases/cases/frozen.md');
+  }, 30_000);
+
+  it('product gate checks the feedback-case owner and excludes case payloads', () => {
+    const dir = scratchDocs({
+      'docs/spec/feedback-cases/README.md': '# Feedback cases\n\n[Missing](missing.md)\n',
+      'docs/spec/feedback-cases/cases/frozen.md': '# Frozen\n\n[Historical](historical.md)\n',
+    });
+    const product = lintProduct(dir);
+    expect(product.status).not.toBe(0);
+    const output = product.stdout + product.stderr;
+    expect(output).toContain('docs/spec/feedback-cases/README.md');
     expect(output).not.toContain('docs/spec/feedback-cases/cases/frozen.md');
   }, 30_000);
 

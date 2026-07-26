@@ -54,8 +54,8 @@ and agreed actions, then replace `Post-change` with the current version of
 everything covered by `Pre-change`.
 
 Outside such a request, every case is frozen. Later changes to its source
-material do not update it. Link destinations may be repaired when files move;
-this does not change the case's archived content.
+material, including moved link destinations, do not update it. Current
+navigation belongs in this README.
 
 These are logical parts, not required filesystem boundaries. Use one
 descriptively named file under `cases/` when excerpts provide enough evidence.
