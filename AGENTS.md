@@ -10,15 +10,17 @@ Target runtimes and browser support are defined in `docs/contributing.md`. Rely
 on those baselines—no legacy browser shims.
 
 AGENTS.md is the only doc you must read at the start of every session. Use
-[`spec/`](spec/README.md) to locate accepted behavior, then read only the current
-owner it identifies. Filenames and scope openers are the navigation. When
-creating or reviewing durable documentation, read
-[Documentation](spec/documentation.md) and verify the document against each
+filenames and scope openers under `docs/` to locate accepted behavior, then read
+only the current owner. When creating or reviewing durable documentation, read
+[Documentation](docs/documentation.md) and verify the document against each
 applicable clause separately before finishing.
 
-Changes that add or modify durable requirements update the owner routed by
-`spec/`. OpenSpec changes and the `obsolete-remdo-change-flow` skill are
-reference material, not active development workflows.
+Changes that add or modify durable requirements update their current owner.
+Owners normally live under `docs/`; the
+[legacy OpenSpec migration record](openspec/MIGRATION.md) identifies delegated
+owners awaiting migration. OpenSpec changes and the
+`obsolete-remdo-change-flow` skill are reference material, not active
+development workflows.
 
 When working, deep-link to the authoritative doc or spec (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
@@ -118,8 +120,8 @@ sections to docs.
   is scratch that is allowed to be mid-transformation (e.g. docs ahead of code)
   — don't raise such incoherencies while they stay uncommitted. At commit time,
   either the committed state is coherent or an ultra-short trigger in
-  `spec/todo.md` covers the gap (per
-  [target behavior](spec/documentation.md#target-behavior)); add that trigger
+  `docs/todo.md` covers the gap (per
+  [target behavior](docs/documentation.md#target-behavior)); add that trigger
   yourself and note it in the commit rather than asking.
 - The Git index may be used by the developer as private review bookkeeping.
   Treat staged vs unstaged state as semantically invisible: it does not mark
@@ -208,20 +210,20 @@ sections to docs.
 - The shared test harness treats console warnings/errors as failures; if you
   need temporary instrumentation during debugging, prefer `console.log` or
   `console.info` and remove the statements before finishing a task.
-- Code review: use `spec/todo.md` as the tracking entry point and silently drop
+- Code review: use `docs/todo.md` as the tracking entry point and silently drop
   any finding already tracked through it (match only when the entry names the
   same file, symbol, or specific behavior, not just a topical overlap); add one
   tail line `Suppressed N finding(s) already tracked in a TODO` (omit when `N`
   is 0). Forward this rule to any finder/reviewer subagents you spawn.
-- Code review: ignore `spec/research/cases/**`. Do not report findings about
+- Code review: ignore `docs/spec/research/cases/**`. Do not report findings about
   case content, compare it with current sources, or propose refreshes. Review
-  `spec/research/README.md` normally; cases change only under its explicit
+  `docs/spec/research/README.md` normally; cases change only under its explicit
   interactive-session rules.
 
 ## Skill authoring
 
 Agent skills are durable documentation and follow
-[Documentation](spec/documentation.md). A skill owns its execution procedure;
+[Documentation](docs/documentation.md). A skill owns its execution procedure;
 the specification it implements owns accepted behavior. Required execution
 steps are procedural content, not explanatory how-to prose.
 

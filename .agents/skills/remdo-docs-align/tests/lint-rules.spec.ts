@@ -162,6 +162,19 @@ describe('gate integration over a scratch fixture repo', () => {
     expect(skill.status, skill.stdout + skill.stderr).toBe(0);
   }, 30_000);
 
+  it('includes specifications and excludes specification-research cases', () => {
+    const dir = scratchDocs({
+      'docs/x.md': '# X\n\nA maintained document.\n',
+      'docs/spec/current.md': '# Current\n\nThis is currently maintained.\n',
+      'docs/spec/research/cases/frozen.md': '# Frozen\n\nThis is currently preserved evidence.\n',
+    });
+    const skill = lintSkill(dir);
+    const output = skill.stdout + skill.stderr;
+    expect(skill.status).not.toBe(0);
+    expect(output).toContain('docs/spec/current.md');
+    expect(output).not.toContain('docs/spec/research/cases/frozen.md');
+  }, 30_000);
+
   it('each gate is red on its own violation class', () => {
     // One file trips all three classes: a broken relative link (product
     // gate: relative-links), a "currently" temporal word and an internal

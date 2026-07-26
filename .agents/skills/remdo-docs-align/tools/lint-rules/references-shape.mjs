@@ -2,8 +2,7 @@
 // section collects external sources only — no links into the corpus. Inside that
 // section, any link or reference definition whose target is not external (a URL
 // scheme or a protocol-relative `//host`) is a violation; corpus links belong
-// inline in the body. The private runner passes docs/**/*.md only; product
-// markdown lint does not load this rule.
+// inline in the body. Product markdown lint does not load this rule.
 //
 // The section runs from the `## References` heading to the next level-2 heading
 // (matching the old checker: `###`/`####` subheadings stay inside it). Links come
@@ -66,7 +65,6 @@ const headingText = (heading) => {
 export default {
   names: ['remdo-references-shape'],
   description: 'Links in a docs References section must be external',
-  information: new URL('https://github.com/remdo/remdo/blob/main/docs/documentation.md'),
   tags: ['remdo'],
   parser: 'micromark',
   function: (params, onError) => {

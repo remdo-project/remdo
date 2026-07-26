@@ -79,6 +79,13 @@ async function expectNoFurtherLoads(loaderCalls: { count: number }) {
   expect(loaderCalls.count).toBe(before);
 }
 
+async function expectRecoveredGate() {
+  await vi.waitFor(() => {
+    expect(screen.getByText('signed-in-shell')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Connection unavailable' })).toBeNull();
+  });
+}
+
 describe('online gate reconnect revalidation', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -95,8 +102,7 @@ describe('online gate reconnect revalidation', () => {
 
     await fireReconnectAndDrainLadder();
 
-    expect(screen.getByText('signed-in-shell')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Connection unavailable' })).toBeNull();
+    await expectRecoveredGate();
     // A retry beyond the failed reconnect revalidation was needed (>= 3), and the
     // recovery path stays bounded by the ladder: mount (1) + immediate (2) + the
     // 3 backoff steps = 5 max. The upper bound guards against an unbounded-retry
@@ -118,8 +124,7 @@ describe('online gate reconnect revalidation', () => {
       await vi.runAllTimersAsync();
     });
 
-    expect(screen.getByText('signed-in-shell')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Connection unavailable' })).toBeNull();
+    await expectRecoveredGate();
   });
 
   it('fires no backoff retry when the immediate reconnect attempt recovers', async () => {
@@ -130,7 +135,7 @@ describe('online gate reconnect revalidation', () => {
 
     await fireReconnectAndDrainLadder();
 
-    expect(screen.getByText('signed-in-shell')).toBeInTheDocument();
+    await expectRecoveredGate();
     // Mount (1) + the single immediate reconnect revalidation (2), nothing more.
     expect(loaderCalls.count).toBe(2);
     await expectNoFurtherLoads(loaderCalls);

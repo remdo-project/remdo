@@ -51,7 +51,8 @@ all still-relevant challenges and agreed actions, then replace `Post-change`
 with the current version of everything covered by `Pre-change`.
 
 Outside such a request, every case is frozen. Later changes to its source
-material do not update it.
+material do not update it. Link destinations may be repaired when files move;
+this does not change the case's research content.
 
 These are logical parts, not required filesystem boundaries. Use one
 descriptively named file under `cases/` when excerpts provide enough evidence.
@@ -72,7 +73,7 @@ every case below.
 
 No guidance has been promoted. Promote a lesson only when cases, research, or
 established practice provide sufficient evidence. When it becomes a durable
-rule, move it to [Documentation](../documentation.md) and remove it here.
+rule, move it to [Documentation](../../documentation.md) and remove it here.
 
 ## Cases
 

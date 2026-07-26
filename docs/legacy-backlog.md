@@ -1,19 +1,19 @@
 # Legacy backlog
 
 This file retains unresolved work recorded before
-[`spec/todo.md`](../spec/todo.md) became RemDo's authoritative TODO and sole
-intake. It is closed to new entries; record new temporary work in
-`spec/todo.md`. This file does not define or override accepted target behavior.
+[`docs/todo.md`](todo.md) became RemDo's authoritative TODO and sole intake. It
+is closed to new entries; record new temporary work in `docs/todo.md`. This file
+does not define or override accepted target behavior.
 
 Existing entries remain tracked until they are completed and deleted or moved
-to `spec/todo.md` or an owning spec's `Future` section. They remain part of
+to `docs/todo.md` or an owning spec's `Future` section. They remain part of
 duplicate and review-suppression checks while they are here.
 
 Rules:
 
 - Mark completed items as `✅ Done` while a section is still active.
 - Delete sections once fully done.
-- Move durable decisions and requirements into the owner routed by `spec/`.
+- Move durable decisions and requirements into their owner under `docs/`.
 
 ## Scratchpad maintenance
 
@@ -21,11 +21,12 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
-- Grow `spec/` through small capability migrations from delegated `docs/` and
-  `openspec/specs/` owners. Move each complete contract, repair inbound links,
-  and remove the former normative copy in the same change. Preserve accepted
-  decisions from [`openspec/MIGRATION-BACKLOG.md`](../openspec/MIGRATION-BACKLOG.md)
-  while their subjects move.
+- Grow `docs/spec/` through small capability migrations from delegated `docs/`
+  and `openspec/specs/` owners. Move each complete contract, repair inbound
+  links, and remove the former normative copy in the same change. Preserve
+  accepted decisions from
+  [`openspec/MIGRATION-BACKLOG.md`](../openspec/MIGRATION-BACKLOG.md) while their
+  subjects move.
 
 - Mobile toolbar fold: `resolveSelectionCapability` (button enabled state) and
   `runMobileAction('fold')` (dispatch) each resolve the focus note independently,

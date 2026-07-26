@@ -6,14 +6,14 @@ follow-up. It lists known gaps from
 temporary state, unresolved decisions, and follow-up without a better owner.
 Entries do not define accepted behavior.
 
-The closed [legacy backlog](../docs/legacy-backlog.md) holds earlier unresolved
+The closed [legacy backlog](legacy-backlog.md) holds earlier unresolved
 entries. Continue checking its entries for duplicates and review suppression
 until they are resolved or migrated.
 
 ## Tracked follow-up
 
 Record code-local follow-up in
-[tracked comments](../docs/contributing.md#code-comments), long-horizon
+[tracked comments](contributing.md#code-comments), long-horizon
 follow-up in the owning specification's [`Future`](documentation.md#future)
 section, and other work intended to be done soon in this backlog. Together,
 these locations form the tracking record; do not duplicate an item between
@@ -27,14 +27,12 @@ Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Documentation tree consolidation.** Until consolidation, `spec/` routes
-  current owners and receives new or materially revised contracts. Existing
-  delegated contracts remain in `docs/` or accepted `openspec/specs/`; all
-  other OpenSpec artifacts are evidence only. After the documentation contract
-  converges, make `docs/` the single documentation root: move component
-  contracts from `spec/` to `docs/specs/`, give the remaining `spec/` artifacts
-  explicit homes under `docs/`, update routing and inbound links, then remove
-  `spec/`.
+- **Specification consolidation.** Review existing documents and capabilities
+  in the [legacy OpenSpec migration record](../openspec/MIGRATION.md) one by one.
+  Move each actual specification into `docs/spec/`, leaving other documentation
+  elsewhere under `docs/`. Move the complete contract, update inbound links,
+  and remove its former normative definition in the same change. Other OpenSpec
+  artifacts remain evidence only.
 
 - **Normative prose migration.** Remove RFC-style uppercase requirement
   keywords from current contract owners and agent skills, preserving
@@ -46,7 +44,7 @@ Remove rejected or obsolete items and empty sections.
   [minimality](documentation.md#minimality) rules to every domain- or
   component-specific term, including consistent actor and component identity.
 
-- **Specification feedback ownership.** Rename `spec/research/` so its path
+- **Specification feedback ownership.** Rename `docs/spec/research/` so its path
   clearly owns session-derived specification-authoring feedback cases, then
   update inbound links. Decide separately whether durable general research
   needs a repository owner. Specify when a research artifact may be treated as
@@ -58,7 +56,7 @@ Remove rejected or obsolete items and empty sections.
 ### Agents
 
 - **Review scope ownership.** Find a neutral owner for the
-  [review scope definition](skills/remdo-verify-change.md#scope), then update
+  [review scope definition](spec/skills/remdo-verify-change.md#scope), then update
   the verifier and convergence specifications to link to it.
 
 - **Default verification scope.** Default to `working-tree` when the repository
@@ -71,24 +69,25 @@ Remove rejected or obsolete items and empty sections.
   before using [empirical checks](documentation.md#empirical-checks).
 
 - **Agent specification structure.** Move the
-  [`remdo-verify-change`](skills/remdo-verify-change.md) specification under
-  `spec/agents/skills/` and update all inbound links in the same change.
+  [`remdo-verify-change`](spec/skills/remdo-verify-change.md) specification
+  under `docs/spec/agents/skills/` and update all inbound links in the same
+  change.
 
 - **Propagate nested results.** Components report facts through their results;
-  their callers decide what happens next. A future change flow should include
-  the verifier's unavailable or failed reviewers and convergence's unresolved
-  findings in its user-facing task result.
+  their callers decide what happens next. A future change flow should include in
+  its user-facing task result the verifier's unavailable or failed reviewers
+  and [finding dispositions](spec/skills/remdo-verify-change.md#findings), plus
+  confirmed findings convergence could not correct.
 
 - **Fresh-session ownership.** Deliberately decide which components run in
   fresh sessions and whether each session is started by the caller or the
   invoked skill. Use evidence from real verifier runs, adopting a fresh-subagent
   boundary only if it is more efficient.
 
-- **Verifier deterministic checks.** Decide whether deterministic checks belong
-  in `remdo-verify-change`. If they remain, decide whether their selection rules
-  are accepted behavior owned by the verifier specification or execution
-  procedure owned by the skill, and how failures unrelated to the selected scope
-  are classified and reported.
+- **Deterministic-check ownership.** Choose the single component and lifecycle
+  point that runs authoritative repository checks. Define check selection and
+  unrelated-failure handling there; other workflow components consume the result
+  without repeating the checks.
 
 - **Verifier readiness modes.** Research explicit specification- and
   implementation-readiness modes only if standalone and change-flow use exposes
@@ -100,14 +99,10 @@ Remove rejected or obsolete items and empty sections.
   instrumentation only if real retrospectives show that the existing evidence
   is insufficient.
 
-- **Change-flow verification order.** When defining flows that include the
-  verifier, decide when deterministic checks and reviews run so neither is
-  repeated unnecessarily.
-
 - **Empirical-check execution.** Define when and how implementation work runs a
   specification's empirical checks, records their evidence, and makes it
   available when deciding whether implementation is complete. Define how
   reviewers determine whether that evidence establishes conformance and when
-  independent repetition is required. Use the [read-only
-  runner](agents/tools/read-only-runner.md#empirical-checks) as the first
-  case, including its fixture-pass/real-repository-failure dogfood.
+  independent repetition is required. Use the
+  [read-only runner](spec/agents/tools/read-only-runner.md#empirical-checks) as
+  the first case, including its fixture-pass/real-repository-failure dogfood.

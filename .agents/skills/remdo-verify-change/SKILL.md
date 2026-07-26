@@ -1,12 +1,13 @@
 ---
 name: remdo-verify-change
-description: Verify one explicitly selected RemDo working-tree or Git-range scope with repository checks followed by fresh Codex and Claude reviews. Use when the user or another workflow asks to verify, inspect, or independently review a completed repository change without editing, approving, committing, or advancing its lifecycle.
+description: Verify one explicitly selected RemDo working-tree or Git-range scope with repository checks, fresh Codex and Claude reviews, and evidence-based finding dispositions. Use when the user or another workflow asks to verify, inspect, or independently review a completed repository change without editing, approving, committing, or advancing its lifecycle.
 ---
 
 # RemDo Verify Change
 
 Verify one explicit scope under the authoritative
-[`remdo-verify-change`](../../../spec/skills/remdo-verify-change.md) contract.
+[`remdo-verify-change`](../../../docs/spec/skills/remdo-verify-change.md)
+contract.
 Remain read-only: do not edit, stage, commit, or run checks intended to change
 the selected scope.
 
@@ -76,7 +77,14 @@ states or leaves unresolved that full-scope inspection did not occur, classify
 that review as failed and use the report as failure evidence. Do not substitute
 a fixed phrase list for this semantic judgment.
 
+## Validate findings
+
+After both review attempts finish, classify every finding under the
+authoritative specification's
+[Findings](../../../docs/spec/skills/remdo-verify-change.md#findings) contract.
+Keep verification read-only.
+
 ## Report
 
 Return the result exactly as defined by the authoritative specification's
-[Result](../../../spec/skills/remdo-verify-change.md#result) section.
+[Result](../../../docs/spec/skills/remdo-verify-change.md#result) section.
