@@ -16,8 +16,8 @@ only the current owner. When creating or reviewing durable documentation, read
 applicable clause separately before finishing.
 
 Changes that add or modify durable requirements update their current owner
-under `docs/`. OpenSpec changes and the `obsolete-remdo-change-flow` skill are
-reference material, not active development workflows.
+under `docs/`. The `obsolete-remdo-change-flow` skill is reference material,
+not an active development workflow.
 
 When working, deep-link to the authoritative doc or spec (e.g.,
 `docs/contributing.md#git-workflow`) in discussions or PRs so others know the

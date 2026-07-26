@@ -27,12 +27,10 @@ Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **OpenSpec retirement.** All delegated capability specifications in the
-  [legacy OpenSpec migration record](../openspec/MIGRATION.md) have moved to
-  `docs/spec/`. Decide the disposition of everything remaining under
-  `openspec/`, including the accepted terminology in its temporary migration
-  backlog. It remains evidence until each item is retained, relocated, or
-  rejected deliberately.
+- **OpenSpec retirement.** All delegated OpenSpec capability specifications
+  have moved to `docs/spec/`. Decide the disposition of everything remaining
+  under `openspec/`. It remains evidence until each item is retained,
+  relocated, or rejected deliberately.
 
 - **Normative prose migration.** Remove RFC-style uppercase requirement
   keywords from current contract owners and agent skills, preserving

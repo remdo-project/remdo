@@ -4,8 +4,8 @@
 
 This document owns the current architecture of RemDo's agent-assisted,
 spec-bearing development workflow. The adjacent spec owns lifecycle behavior;
-the [`agent-skill-remdo-verify-change`](../agent-skill-remdo-verify-change/spec.md)
-capability owns readiness-verification behavior and mechanics.
+the current [`remdo-verify-change`](../../../docs/spec/skills/remdo-verify-change.md)
+capability owns verification behavior and mechanics.
 
 ## Lifecycle ownership
 
