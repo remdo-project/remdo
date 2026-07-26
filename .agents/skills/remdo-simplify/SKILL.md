@@ -48,18 +48,27 @@ and never loops, so it needs no anchoring of its own — reusing the resolver
 keeps one scope contract across the skills. On a non-zero exit, warn and stop
 rather than folding the other side's changes into the review.
 
-For the resolved scope, run this read-only inspection to read the diff surface:
+For a resolved commit range, run this read-only inspection:
 
 ```sh
-git diff --stat <range>
-git diff --name-status <range>
-git diff --check <range>
+git diff --stat <base-sha>..<head-sha>
+git diff --name-status <base-sha>..<head-sha>
+git diff --check <base-sha>..<head-sha>
 ```
 
-`<range>` is `<base-sha>..<head-sha>` in commit-range scope and `HEAD` in
-uncommitted scope, so every command targets exactly the scope's diff. Read the diff
-per file when the total diff is large. Read untracked files that belong to the
-scope (from the resolver's file list).
+For a resolved uncommitted scope, inspect the staged and unstaged layers:
+
+```sh
+git diff --stat --cached HEAD
+git diff --name-status --cached HEAD
+git diff --check --cached
+git diff --stat
+git diff --name-status
+git diff --check
+```
+
+Read the diff per file when the total diff is large. Read untracked files that
+belong to the scope from the resolver's file list.
 
 ## Read RemDo guidance
 
