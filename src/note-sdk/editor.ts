@@ -16,7 +16,7 @@ export interface EditorNote extends AddressableNote<'editor-note'> {
   children: () => readonly EditorNote[];
   /** Marker style of the list this note belongs to. */
   listType: () => NoteListType;
-  /** Checked state; relevant only when listType is 'check' (false otherwise). */
+  /** Checked state; independent of the note's list type. */
   checked: () => boolean;
   /** Creates and places a child editor note relative to this note. */
   create: {
@@ -90,7 +90,7 @@ export interface EditorNotesAdapter extends EditorNotesBase {
   textOf: (noteId: NoteId) => string;
   /** Reads the marker style of the note's list. Throws when note does not exist. */
   listTypeOf: (noteId: NoteId) => NoteListType;
-  /** Reads checked state (false unless the note is in a check list). Throws when note does not exist. */
+  /** Reads checked state, independent of the note's list type. Throws when note does not exist. */
   checkedOf: (noteId: NoteId) => boolean;
   /** Reads the parent note id, or null for a top-level note. Throws when note does not exist. */
   parentIdOf: (noteId: NoteId) => NoteId | null;

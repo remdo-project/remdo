@@ -24,9 +24,9 @@ surface and its behavior, not those operations.
    - Indent / outdent, per
      [Indentation](../../openspec/specs/outliner-indentation/spec.md).
    - Move up / move down, per
-     [Reordering](../../openspec/specs/outliner-reordering/spec.md).
-   - Toggle done, recursively per
-     [List Types](../../openspec/specs/outliner-list-types/spec.md).
+     [Reordering](../spec/outliner/reordering.md).
+   - Toggle done per
+     [List types](../spec/outliner/list-types.md#toggling).
    - Delete removes the targeted notes and their subtrees per
      [Deletion](./deletion.md), with no confirmation step. For a caret this
      removes the focused note (not the caret-mode merge that Backspace performs).
