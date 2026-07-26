@@ -413,6 +413,12 @@ function codexArgs(
       `model_reasoning_effort=${tomlString(call.settings.effort)}`,
     );
   }
+  if (call.invocation.kind === 'review') {
+    args.push(
+      '-c',
+      `developer_instructions=${tomlString(REVIEW_INSTRUCTION)}`,
+    );
+  }
   args.push('--output-last-message', reportPath);
   if (call.invocation.kind === 'prompt') {
     args.push('-');
@@ -424,7 +430,6 @@ function codexArgs(
   } else {
     args.push('--base', call.invocation.scope.base);
   }
-  args.push(REVIEW_INSTRUCTION);
   return { args };
 }
 
@@ -840,7 +845,12 @@ function claudeReviewResult(stdout: string): RunnerResult {
       evidence: 'Claude init event did not include a valid slash command list',
     };
   }
-  if (!slashCommands.includes(CLAUDE_REVIEW_COMMAND.slice(1))) {
+  if (
+    !slashCommands.some(command =>
+      command === CLAUDE_REVIEW_COMMAND
+      || command === CLAUDE_REVIEW_COMMAND.slice(1),
+    )
+  ) {
     return {
       status: 'unavailable',
       evidence: `${CLAUDE_REVIEW_COMMAND} is unavailable in this Claude session`,

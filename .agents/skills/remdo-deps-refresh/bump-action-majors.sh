@@ -39,7 +39,7 @@ for ref in ${refs}; do
   else
     status_line="$(printf '%s\n' "${gh_response}" | sed -n '1{s/\r$//;p;}')"
     case "${status_line}" in
-      HTTP/*" 404 "*)
+      HTTP/*" 404"|HTTP/*" 404 "*)
         rm -f "${gh_err}"
         echo "bump-action-majors: no latest release for ${repo}; skipping." >&2
         continue

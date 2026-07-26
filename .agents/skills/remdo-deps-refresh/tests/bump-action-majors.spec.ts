@@ -10,7 +10,9 @@ import {
 
 const sourceScript = path.join(__dirname, '../bump-action-majors.sh');
 
-function makeFixture(scenario: 'success' | 'missing' | 'failure'): {
+function makeFixture(
+  scenario: 'success' | 'missing' | 'missingWithoutReason' | 'failure',
+): {
   root: string;
   script: string;
   workflow: string;
@@ -36,6 +38,11 @@ case "${scenario}" in
     ;;
   missing)
     printf 'HTTP/2.0 404 Not Found\\r\\nContent-Type: application/json\\r\\n\\r\\n{"status":"404"}\\n'
+    echo "opaque gh diagnostic" >&2
+    exit 1
+    ;;
+  missingWithoutReason)
+    printf 'HTTP/2.0 404\\r\\nContent-Type: application/json\\r\\n\\r\\n{"status":"404"}\\n'
     echo "opaque gh diagnostic" >&2
     exit 1
     ;;
@@ -67,15 +74,25 @@ describe('bump-action-majors.sh', () => {
     expect(fs.readFileSync(fixture.workflow, 'utf8')).toContain('actions/checkout@v5');
   });
 
-  it('treats an included 404 status as a missing release without parsing stderr', () => {
-    const fixture = makeFixture('missing');
+  it.each(['missing', 'missingWithoutReason'] as const)(
+    'treats an included 404 status as a missing release: %s',
+    (scenario) => {
+      const fixture = makeFixture(scenario);
 
-    const result = runScript(fixture.script, fixture.root, [], path.join(fixture.root, 'bin'));
+      const result = runScript(
+        fixture.script,
+        fixture.root,
+        [],
+        path.join(fixture.root, 'bin'),
+      );
 
-    expect(result.status).toBe(0);
-    expect(result.stderr).toContain('no latest release for actions/checkout');
-    expect(fs.readFileSync(fixture.workflow, 'utf8')).toContain('actions/checkout@v4');
-  });
+      expect(result.status).toBe(0);
+      expect(result.stderr).toContain('no latest release for actions/checkout');
+      expect(fs.readFileSync(fixture.workflow, 'utf8')).toContain(
+        'actions/checkout@v4',
+      );
+    },
+  );
 
   it('surfaces a non-404 API failure', () => {
     const fixture = makeFixture('failure');

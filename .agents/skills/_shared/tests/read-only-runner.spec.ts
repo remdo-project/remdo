@@ -70,7 +70,7 @@ function claudeStream(...events: unknown[]): string {
 
 function claudeReviewResult(
   result: unknown,
-  slashCommands: unknown = ['code-review'],
+  slashCommands: unknown = ['/code-review'],
   overrides: Record<string, unknown> = {},
 ): string {
   return claudeStream(
@@ -333,8 +333,9 @@ describe('read-only runner CLI', () => {
     expect(result.stdout).toBe('No findings.');
     expect(fs.readFileSync(path.join(stub, 'probe'), 'utf8')).toBe('probed');
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
-    expect(args).toContain('review\n--uncommitted\n');
+    expect(args).toMatch(/review\n--uncommitted\n$/u);
     expect(args).not.toContain('--base\n');
+    expect(args).toContain('developer_instructions=');
     expect(args).toContain([
       'Do not run repository checks.',
       'When delegating review work, explicitly instruct every delegated',
@@ -353,8 +354,8 @@ describe('read-only runner CLI', () => {
     );
 
     expect(result.status).toBe(0);
-    expect(fs.readFileSync(path.join(stub, 'args'), 'utf8')).toContain(
-      'review\n--base\nbase123\n',
+    expect(fs.readFileSync(path.join(stub, 'args'), 'utf8')).toMatch(
+      /review\n--base\nbase123\n$/u,
     );
   });
 
@@ -617,6 +618,23 @@ describe('read-only runner CLI', () => {
     expect(unavailable.stderr).toContain('/code-review is unavailable');
     expect(response.status).toBe(0);
     expect(response.stdout).toBe('Unknown command: /code-review');
+  });
+
+  it('accepts the unprefixed Claude command emitted by the current CLI', () => {
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
+    writeFile(work, 'tracked.md', 'changed\n');
+    const stub = claudeStub([
+      claudeReviewResult('No findings.', ['code-review']),
+    ]);
+
+    const result = runRunner(
+      work,
+      ['claude', 'review', 'working-tree'],
+      stub,
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('No findings.');
   });
 
   it('uses the first init event and terminal result in a delegated review stream', () => {
