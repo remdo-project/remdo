@@ -11,8 +11,16 @@ contract. Do not expand intended behavior.
 
 ## Fix the scope
 
-Accept an omitted or caller-supplied `remdo-verify-change` scope. Invoke the
-verifier with that initial input and retain its resolved scope.
+Accept an omitted or caller-supplied `remdo-verify-change` scope. Make scope
+resolution the run's first repository action; apart from instructions required
+to resolve it, do not inspect repository context or start other work first. If
+the runtime requires a user-visible update before resolution, say only that
+scope resolution is starting.
+
+Invoke the verifier with that initial input and retain its resolved scope.
+Immediately after successful resolution, emit a progress update containing
+only `Scope: uncommitted changes` or `Scope: <requested-or-default-range>`.
+Do not add commit IDs, changed files, or the next action to this update.
 
 Use that scope for the rest of the run:
 

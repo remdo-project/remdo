@@ -7,6 +7,11 @@ skill does not select or expand intended behavior.
 
 ## Convergence
 
+The skill resolves its change scope before other repository work. Immediately
+after resolution, it reports the selected scope as a short, standalone
+`Scope:` line before continuing. It reports `uncommitted changes` or the
+caller-visible Git range, without internal commit IDs or other progress.
+
 The skill invokes [`remdo-verify-change`](remdo-verify-change.md) against the
 current state. It applies every correction it can determine from a failed check
 or [`confirmed` finding](remdo-verify-change.md#findings) and carries every
