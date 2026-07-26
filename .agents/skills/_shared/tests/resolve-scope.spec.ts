@@ -123,6 +123,22 @@ describe('resolve-scope.sh (shared tool)', () => {
     expect(result.stdout).not.toContain('a.md');
   });
 
+  it('does not reclassify a restored HEAD path as untracked', () => {
+    const work = taskBranch();
+    git(work, 'mv', 'a.md', 'renamed.md');
+    fs.renameSync(
+      path.join(work, 'renamed.md'),
+      path.join(work, 'a.md'),
+    );
+
+    const result = run(work, ['uncommitted']);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('STATE=no-change');
+    expect(result.stdout).not.toContain('a.md');
+    expect(result.stdout).not.toContain('renamed.md');
+  });
+
   it('defaults to uncommitted when the repository is dirty', () => {
     const work = taskBranch();
     writeFile(work, 'a.md', '# A changed\n');
@@ -268,13 +284,15 @@ describe('resolve-scope.sh (shared tool)', () => {
     const work = taskBranch();
     writeFile(work, 'c.md', '# C uncommitted\n');
     const bin = failingGitProxy(
-      '[ "$1" = diff ] && [ "$2" = --name-only ] && [ "$3" = HEAD ]',
+      '[ "$1" = diff ] && [ "$2" = --name-only ] && [ "$#" = 2 ]',
     );
 
     const result = run(work, ['uncommitted'], bin);
 
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('git diff --name-only HEAD failed');
+    expect(result.stderr).toContain(
+      'git diff failed while resolving uncommitted files',
+    );
   });
 
   it('fails with resolver context when the commit-range file query fails', () => {

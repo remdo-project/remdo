@@ -15,7 +15,8 @@ scope` findings or reinterpret dispositions.
 
 For `uncommitted`, corrections remain uncommitted. For a commit range, the
 resolved `BASE` remains fixed and the skill commits corrections before running
-verification again.
+verification again. It does not apply commit-range corrections from a detached
+`HEAD`.
 
 Before committing or re-verifying, the skill checks the correction batch
 against every applicable authoritative contract.

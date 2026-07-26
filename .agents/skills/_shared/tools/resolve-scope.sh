@@ -45,11 +45,15 @@ list_commit_range_files() {
 }
 
 list_uncommitted_files() {
-  # `diff HEAD` compares current tracked file contents with the current commit,
-  # leaving index-only bookkeeping out of the selected change.
-  tracked=$(git diff --name-only HEAD) \
-    || fail "git diff --name-only HEAD failed while resolving uncommitted files"
-  untracked=$(git ls-files --others --exclude-standard) \
+  temp_dir=$(mktemp -d /tmp/remdo-resolve-scope.XXXXXX) \
+    || fail "could not create a temporary index for uncommitted files"
+  trap 'rm -rf "$temp_dir"' 0
+  temp_index=$temp_dir/index
+  GIT_INDEX_FILE=$temp_index git read-tree HEAD \
+    || fail "could not initialize a temporary index for uncommitted files"
+  tracked=$(GIT_INDEX_FILE=$temp_index git diff --name-only) \
+    || fail "git diff failed while resolving uncommitted files"
+  untracked=$(GIT_INDEX_FILE=$temp_index git ls-files --others --exclude-standard) \
     || fail "git ls-files failed while resolving uncommitted files"
   printf '%s\n%s\n' "$tracked" "$untracked" | sed '/^$/d' | sort -u
 }

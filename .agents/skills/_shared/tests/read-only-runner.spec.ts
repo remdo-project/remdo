@@ -343,6 +343,38 @@ describe('read-only runner CLI', () => {
     ].join(' '));
   });
 
+  it('isolates native Codex uncommitted review from index-only state', () => {
+    const work = makeBareMain({
+      'actual.md': 'base\n',
+      'private.md': 'base\n',
+    });
+    writeFile(work, 'private.md', 'staged\n');
+    git(work, 'add', 'private.md');
+    writeFile(work, 'private.md', 'base\n');
+    writeFile(work, 'actual.md', 'changed\n');
+    expect(git(work, 'diff', '--cached', '--name-only', 'HEAD').stdout.trim())
+      .toBe('private.md');
+    const stub = reportWritingCodex('No findings.', [
+      '[ -n "$' + '{GIT_INDEX_FILE:-}" ]',
+      'git diff --cached --name-only HEAD > "$RUNNER_STUB_CAPTURE/cached"',
+      'git diff --name-only > "$RUNNER_STUB_CAPTURE/unstaged"',
+      'git ls-files --others --exclude-standard > "$RUNNER_STUB_CAPTURE/untracked"',
+    ]);
+
+    const result = runRunner(
+      work,
+      ['codex', 'review', 'uncommitted'],
+      stub,
+    );
+
+    expect(result.status).toBe(0);
+    expect(fs.readFileSync(path.join(stub, 'cached'), 'utf8')).toBe('');
+    expect(fs.readFileSync(path.join(stub, 'unstaged'), 'utf8')).toBe(
+      'actual.md\n',
+    );
+    expect(fs.readFileSync(path.join(stub, 'untracked'), 'utf8')).toBe('');
+  });
+
   it('passes the immutable base to native Codex commit-range review', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = reportWritingCodex('Range clean.');
@@ -587,6 +619,31 @@ describe('read-only runner CLI', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('uncommitted review has no changed paths');
+  });
+
+  it('does not target a restored HEAD path as untracked for Claude', () => {
+    const work = makeBareMain({
+      'actual.md': 'base\n',
+      'source.md': 'base\n',
+    });
+    git(work, 'mv', 'source.md', 'renamed.md');
+    fs.renameSync(
+      path.join(work, 'renamed.md'),
+      path.join(work, 'source.md'),
+    );
+    writeFile(work, 'actual.md', 'changed\n');
+    const stub = claudeStub([claudeReviewResult('No findings.')]);
+
+    const result = runRunner(
+      work,
+      ['claude', 'review', 'uncommitted'],
+      stub,
+    );
+
+    expect(result.status).toBe(0);
+    expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(
+      '/code-review "actual.md"',
+    );
   });
 
   it('resolves the immutable current HEAD for Claude commit-range review', () => {
