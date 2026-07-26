@@ -165,7 +165,7 @@ Use this shape:
 ```md
 # RemDo simplify report
 
-Scope: <committed range or working tree>
+Scope: <commit range or uncommitted changes>
 Sources read: <key files/docs, not every grep>
 
 ## Findings

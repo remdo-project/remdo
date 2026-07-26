@@ -6,7 +6,7 @@
 #   <range>      an explicit commit range: A..B or A...B. Both endpoints are
 #                required and must resolve to commits; B must resolve to HEAD,
 #                and A must be its ancestor for a two-dot range.
-#   uncommitted  changes in current tracked files plus untracked-not-ignored
+#   uncommitted  staged, unstaged, and untracked-not-ignored changes
 #
 # Prints, to stdout, key=value lines a caller parses:
 #   STATE=ready | no-change
@@ -45,20 +45,14 @@ list_commit_range_files() {
 }
 
 list_uncommitted_files() {
-  temp_dir=$(mktemp -d /tmp/remdo-resolve-scope.XXXXXX) \
-    || fail "could not create a temporary index for uncommitted files"
-  trap 'rm -rf "$temp_dir"' 0
-  temp_index=$temp_dir/index
-  GIT_INDEX_FILE=$temp_index git read-tree HEAD \
-    || fail "could not initialize a temporary index for uncommitted files"
-  tracked=$(GIT_INDEX_FILE=$temp_index git diff --name-only) \
+  staged=$(git diff --cached --name-only HEAD) \
+    || fail "git diff --cached failed while resolving uncommitted files"
+  unstaged=$(git diff --name-only) \
     || fail "git diff failed while resolving uncommitted files"
-  untracked=$(GIT_INDEX_FILE=$temp_index git ls-files --others --exclude-standard) \
+  untracked=$(git ls-files --others --exclude-standard) \
     || fail "git ls-files failed while resolving uncommitted files"
-  files=$(printf '%s\n%s\n' "$tracked" "$untracked" | sed '/^$/d' | sort -u)
-  rm -rf "$temp_dir"
-  trap - 0
-  printf '%s\n' "$files"
+  printf '%s\n%s\n%s\n' "$staged" "$unstaged" "$untracked" \
+    | sed '/^$/d' | sort -u
 }
 
 emit_resolution() {
