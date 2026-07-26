@@ -8,7 +8,7 @@ description: Use to bring the latest `origin/main` into the current branch. Merg
 ## Overview
 
 Bring the current branch up to date with `origin/main`. Review diffs use the
-`origin/main` merge-base (see `docs/contributing.md#git-workflow`), which needs
+`origin/main` merge-base (see `docs/spec/agents/change-scope.md`), which needs
 no base tag to stay correct across a merge — so this skill owns no bookkeeping:
 it does one thing, integrate `origin/main` cleanly.
 
@@ -81,5 +81,5 @@ was skipped for a fast-forward).
   <https://www.atlassian.com/git/tutorials/merging-vs-rebasing>.
 - Status-probe mechanics: `.agents/skills/remdo-sync/tools/sync-probe.sh`.
 - Branch base (`origin/main...HEAD`) and the diff contract:
-  `docs/contributing.md#git-workflow`.
+  `docs/spec/agents/change-scope.md`.
 - Skill-authoring rule and fetch/push policy: `AGENTS.md`.

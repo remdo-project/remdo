@@ -1,20 +1,19 @@
 #!/usr/bin/env sh
-# Resolve explicit range / task-branch default / working-tree to immutable
-# comparison SHAs + a file list; refuse mixed scopes.
-# Usage: resolve-scope.sh [<range> | working-tree]
-#   no arg        infer: task-branch default origin/main...HEAD (committed range);
-#                 refuses a detached HEAD (no branch identity for the default)
-#   <range>       an explicit committed range: A..B or A...B. Both endpoints are
-#                 required and must resolve to commits; B must resolve to HEAD,
-#                 and A must be its ancestor for a two-dot range.
-#   working-tree  the uncommitted changes (staged + unstaged + untracked)
+# Resolve an optional change-scope input to immutable comparison SHAs and a file
+# list; refuse mixed scopes.
+# Usage: resolve-scope.sh [<range> | uncommitted]
+#   no arg       select uncommitted when dirty, origin/main...HEAD otherwise
+#   <range>      an explicit commit range: A..B or A...B. Both endpoints are
+#                required and must resolve to commits; B must resolve to HEAD,
+#                and A must be its ancestor for a two-dot range.
+#   uncommitted  staged, unstaged, and untracked-not-ignored changes
 #
-# Classification and refusal only — no resolution or review judgment. Prints, to
-# stdout, key=value lines a caller parses:
-#   SCOPE=committed-range | working-tree
-#   BASE=<immutable comparison-base-sha> | WORKING_TREE
+# Prints, to stdout, key=value lines a caller parses:
+#   STATE=ready | no-change
+#   SCOPE=commit-range | uncommitted
+#   BASE=<immutable comparison-base-sha> | UNCOMMITTED
 #   HEAD_SHA=<immutable HEAD sha>
-#   then a FILES section: a line "FILES", then one path per line (may be empty).
+#   then a FILES section: a line "FILES", then one path per line
 # Fails loud (non-zero + stderr) on every refused state; makes no commits, never
 # writes the tree.
 set -eu
@@ -25,12 +24,13 @@ fail() {
 }
 
 git rev-parse --git-dir >/dev/null 2>&1 || fail "not a git repository"
+[ "$#" -le 1 ] || fail "expected at most one scope input"
 
 scope_arg=${1-}
 
-# A committed range must run against a clean tree: staged/unstaged/untracked
+# A commit range must run against a clean tree: staged/unstaged/untracked
 # changes sit outside the resolved range and would be silently unreviewed
-# by a committed-range caller. This is the mixed-scope refusal — a committed range
+# by a commit-range caller. This is the mixed-scope refusal — a commit range
 # requested while uncommitted work is present.
 tree_is_dirty() {
   tree_status=$(GIT_OPTIONAL_LOCKS=0 git status --porcelain=v1 --untracked-files=normal 2>/dev/null) \
@@ -38,74 +38,72 @@ tree_is_dirty() {
   [ -n "$tree_status" ]
 }
 
-emit_files_committed() {
+list_commit_range_files() {
   # Files changed in the range, three-dot semantics already baked into $base.
-  echo "FILES"
   git diff --name-only "$1..$2" \
-    || fail "git diff --name-only failed while resolving committed-range files"
+    || fail "git diff --name-only failed while resolving commit-range files"
 }
 
-emit_files_working_tree() {
-  echo "FILES"
-  # Tracked changes plus untracked-not-ignored, deduped. `diff HEAD` shows the
-  # net worktree-vs-HEAD change; add `diff --cached` so a file whose index
-  # differs but whose worktree is back at HEAD (staged then reverted) is still
-  # listed — the scope is staged + unstaged + untracked, matching tree_is_dirty.
-  tracked=$(git diff --name-only HEAD) \
-    || fail "git diff --name-only HEAD failed while resolving working-tree files"
-  staged=$(git diff --cached --name-only) \
-    || fail "git diff --cached --name-only failed while resolving working-tree files"
+list_uncommitted_files() {
+  staged=$(git diff --cached --name-only HEAD) \
+    || fail "git diff --cached failed while resolving uncommitted files"
+  unstaged=$(git diff --name-only) \
+    || fail "git diff failed while resolving uncommitted files"
   untracked=$(git ls-files --others --exclude-standard) \
-    || fail "git ls-files failed while resolving working-tree files"
-  printf '%s\n%s\n%s\n' "$tracked" "$staged" "$untracked" | sed '/^$/d' | sort -u
+    || fail "git ls-files failed while resolving uncommitted files"
+  printf '%s\n%s\n%s\n' "$staged" "$unstaged" "$untracked" \
+    | sed '/^$/d' | sort -u
 }
 
-resolve_working_tree() {
-  if ! tree_is_dirty; then
-    fail "working-tree scope requested but the tree is clean — nothing to resolve"
+emit_resolution() {
+  scope=$1
+  base=$2
+  resolved_head=$3
+  files=$4
+  if [ -n "$files" ]; then
+    echo "STATE=ready"
+  else
+    echo "STATE=no-change"
   fi
+  echo "SCOPE=$scope"
+  echo "BASE=$base"
+  echo "HEAD_SHA=$resolved_head"
+  echo "FILES"
+  [ -z "$files" ] || printf '%s\n' "$files"
+}
+
+resolve_uncommitted() {
   head_sha=$(git rev-parse --verify HEAD) \
     || fail "HEAD does not resolve to a commit"
-  echo "SCOPE=working-tree"
-  echo "BASE=WORKING_TREE"
-  echo "HEAD_SHA=$head_sha"
-  emit_files_working_tree
+  files=$(list_uncommitted_files)
+  emit_resolution "uncommitted" "UNCOMMITTED" "$head_sha" "$files"
 }
 
-resolve_committed_range() {
+resolve_commit_range() {
   base=$1
   resolved_head=$2
   if tree_is_dirty; then
-    fail "committed-range scope but the working tree is dirty — commit or stash first (mixed scope refused)"
+    fail "commit-range scope but the repository is dirty — commit or stash first (mixed scope refused)"
   fi
-  echo "SCOPE=committed-range"
-  echo "BASE=$base"
-  echo "HEAD_SHA=$resolved_head"
-  emit_files_committed "$base" "$resolved_head"
+  files=$(list_commit_range_files "$base" "$resolved_head")
+  emit_resolution "commit-range" "$base" "$resolved_head" "$files"
 }
 
 case "$scope_arg" in
-  working-tree)
-    resolve_working_tree
+  uncommitted)
+    resolve_uncommitted
     ;;
   '')
-    # Infer: the task-branch default is origin/main...HEAD (the three-dot
-    # merge-base range = this branch's own work). Refuse on an integration
-    # branch where that default is meaningless: main/dev,
-    # or no merge-base with origin/main at all.
-    branch=$(git symbolic-ref --quiet --short HEAD) \
-      || fail "detached HEAD — no branch for the origin/main...HEAD default; pass an explicit range"
-    case "$branch" in
-      main | dev)
-        fail "on integration branch '$branch' — refusing the origin/main...HEAD default; pass an explicit range"
-        ;;
-    esac
+    if tree_is_dirty; then
+      resolve_uncommitted
+      exit 0
+    fi
     git rev-parse --verify --quiet origin/main >/dev/null \
       || fail "origin/main not found — cannot compute the task-branch default; pass an explicit range"
     merge_base=$(git merge-base origin/main HEAD 2>/dev/null) \
       || fail "no merge-base with origin/main — cannot compute the task-branch default; pass an explicit range"
     right_sha=$(git rev-parse --verify HEAD)
-    resolve_committed_range "$merge_base" "$right_sha"
+    resolve_commit_range "$merge_base" "$right_sha"
     ;;
   *..*)
     # Resolve both endpoints once and require the right endpoint to be HEAD.
@@ -143,9 +141,9 @@ case "$scope_arg" in
         base_ref=$left_sha
         ;;
     esac
-    resolve_committed_range "$base_ref" "$right_sha"
+    resolve_commit_range "$base_ref" "$right_sha"
     ;;
   *)
-    fail "unrecognized scope '$scope_arg' — expected a range (A..B / A...B) or 'working-tree'"
+    fail "unrecognized scope '$scope_arg' — expected a range (A..B / A...B) or 'uncommitted'"
     ;;
 esac

@@ -36,34 +36,39 @@ caller's implementation memory.
 
 ## Select the scope
 
-Use the exact scope supplied by the caller. A composing caller should pass only
-the scope and this skill, not its suspected fixes or implementation context.
+Use the caller's scope when supplied; otherwise use the shared default. A
+composing caller should pass only the scope and this skill, not its suspected
+fixes or implementation context.
 
 Resolve it by running
-`sh .agents/skills/_shared/tools/resolve-scope.sh [scope]` (its header
-states the full contract): no argument for the committed-range default (this
-branch's own work), or `working-tree` for the uncommitted changes. It prints
-`SCOPE=`/`BASE=`/`HEAD_SHA=` plus the file list. This pass is read-only and never
-loops, so it needs no anchoring of its own — reusing the resolver keeps one
-scope contract across the skills. On a non-zero exit, warn and stop rather than
-folding the other side's changes into the review; on an integration branch
-(`dev`) where the
-committed default is not one unit of work, report that an explicit scope is
-required.
+`sh .agents/skills/_shared/tools/resolve-scope.sh [scope]` (its header states
+the full contract). It prints `STATE=`/`SCOPE=`/`BASE=`/`HEAD_SHA=` plus the
+file list. On `no-change`, report no findings and stop. This pass is read-only
+and never loops, so it needs no anchoring of its own — reusing the resolver
+keeps one scope contract across the skills. On a non-zero exit, warn and stop
+rather than folding the other side's changes into the review.
 
-For the resolved scope, run this read-only inspection to read the diff surface:
+For a resolved commit range, run this read-only inspection:
 
 ```sh
-git diff --stat <range>
-git diff --name-status <range>
-git diff --check <range>
+git diff --stat <base-sha>..<head-sha>
+git diff --name-status <base-sha>..<head-sha>
+git diff --check <base-sha>..<head-sha>
 ```
 
-`<range>` is `<base-sha>..<head-sha>` in committed-range
-scope and `HEAD` (the working-tree diff) in working-tree scope, so every command
-targets exactly the scope's diff. Read the diff
-per file when the total diff is large. Read untracked files that belong to the
-scope (from the resolver's file list).
+For a resolved uncommitted scope, inspect the staged and unstaged layers:
+
+```sh
+git diff --stat --cached HEAD
+git diff --name-status --cached HEAD
+git diff --check --cached
+git diff --stat
+git diff --name-status
+git diff --check
+```
+
+Read the diff per file when the total diff is large. Read untracked files that
+belong to the scope from the resolver's file list.
 
 ## Read RemDo guidance
 
@@ -169,7 +174,7 @@ Use this shape:
 ```md
 # RemDo simplify report
 
-Scope: <committed range or working tree>
+Scope: <commit range or uncommitted changes>
 Sources read: <key files/docs, not every grep>
 
 ## Findings
@@ -207,7 +212,7 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 - [Scope resolution](../_shared/tools/resolve-scope.sh)
 - [Agent guidelines](../../../AGENTS.md)
 - [Doc/skill-prose convergence](../remdo-docs-align/SKILL.md)
-- [Git workflow / branch base](../../../docs/contributing.md#git-workflow)
+- [Change scope / branch base](../../../docs/spec/agents/change-scope.md)
 - [Runtime baseline](../../../docs/contributing.md#runtime-baseline)
 - [Compatibility policy](../../../docs/contributing.md#compatibility-policy-pre-10)
 - [Editor feature modules](../../../docs/contributing.md#editor-feature-modules)

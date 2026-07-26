@@ -13,7 +13,7 @@ type Invocation =
   | { kind: 'prompt'; prompt: string }
   | {
     kind: 'review';
-    scope: { kind: 'committed-range'; base: string } | { kind: 'working-tree' };
+    scope: { kind: 'commit-range'; base: string } | { kind: 'uncommitted' };
   };
 
 interface RunnerCall {
@@ -106,30 +106,30 @@ function parseCall(args: string[]): RunnerCall {
   }
   if (invocation === 'review') {
     const scope = args[index + 2];
-    if (scope === 'working-tree') {
+    if (scope === 'uncommitted') {
       if (args.length !== index + 3) {
-        throw new Error('working-tree review takes no revisions');
+        throw new Error('uncommitted review takes no revisions');
       }
       return {
         agent,
-        invocation: { kind: 'review', scope: { kind: 'working-tree' } },
+        invocation: { kind: 'review', scope: { kind: 'uncommitted' } },
         settings,
       };
     }
-    if (scope === 'committed-range') {
+    if (scope === 'commit-range') {
       if (args.length !== index + 4) {
-        throw new Error('committed-range review requires exactly one base');
+        throw new Error('commit-range review requires exactly one base');
       }
       return {
         agent,
         invocation: {
           kind: 'review',
-          scope: { kind: 'committed-range', base: args[index + 3]! },
+          scope: { kind: 'commit-range', base: args[index + 3]! },
         },
         settings,
       };
     }
-    throw new Error("expected review scope 'working-tree' or 'committed-range'");
+    throw new Error("expected review scope 'uncommitted' or 'commit-range'");
   }
   throw new Error("expected invocation 'prompt' or 'review'");
 }
@@ -425,7 +425,7 @@ function codexArgs(
     return { args, input: call.invocation.prompt };
   }
   args.push('review');
-  if (call.invocation.scope.kind === 'working-tree') {
+  if (call.invocation.scope.kind === 'uncommitted') {
     args.push('--uncommitted');
   } else {
     args.push('--base', call.invocation.scope.base);
@@ -637,7 +637,7 @@ async function gitPathList(
   return { paths };
 }
 
-async function claudeWorkingTreeTarget(
+async function claudeUncommittedTarget(
   repository: string,
   environment: NodeJS.ProcessEnv,
   signal: AbortSignal,
@@ -647,15 +647,15 @@ async function claudeWorkingTreeTarget(
       repository,
       environment,
       signal,
-      ['diff', '--cached', '--name-only', '-z', 'HEAD', '--'],
-      'staged',
+      ['diff', '--name-only', '-z', '--'],
+      'unstaged',
     ),
     gitPathList(
       repository,
       environment,
       signal,
-      ['diff', '--name-only', '-z', '--'],
-      'unstaged',
+      ['diff', '--cached', '--name-only', '-z', 'HEAD', '--'],
+      'staged',
     ),
     gitPathList(
       repository,
@@ -672,7 +672,7 @@ async function claudeWorkingTreeTarget(
   }
   const paths = [...new Set(results.flatMap(result => result.paths!))];
   if (paths.length === 0) {
-    return { evidence: 'working-tree review has no changed paths' };
+    return { evidence: 'uncommitted review has no changed paths' };
   }
   return {
     target: `${CLAUDE_REVIEW_COMMAND} ${
@@ -874,8 +874,8 @@ async function runClaude(
 ): Promise<RunnerResult> {
   let reviewCommand: string | undefined;
   if (call.invocation.kind === 'review') {
-    if (call.invocation.scope.kind === 'working-tree') {
-      const resolved = await claudeWorkingTreeTarget(
+    if (call.invocation.scope.kind === 'uncommitted') {
+      const resolved = await claudeUncommittedTarget(
         repository,
         sourceEnvironment,
         signal,
@@ -884,7 +884,7 @@ async function runClaude(
         return {
           status: 'failed',
           evidence: resolved.evidence
-          ?? 'could not resolve working-tree review paths',
+          ?? 'could not resolve uncommitted review paths',
         };
       }
       reviewCommand = resolved.target;

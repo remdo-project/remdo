@@ -15,7 +15,7 @@ interface Fixture {
   base?: string;
   excludedSignals: string[];
   expectedSignals: string[][];
-  invocation: 'committed-range' | 'working-tree';
+  invocation: 'commit-range' | 'uncommitted';
   name: string;
   root: string;
 }
@@ -119,7 +119,7 @@ function initializeRepository(name: string): string {
 }
 
 function createCommittedRangeFixture(): Fixture {
-  const root = initializeRepository('committed-range');
+  const root = initializeRepository('commit-range');
   const base = git(root, 'rev-parse', 'HEAD');
   git(root, 'switch', '--quiet', '--create', 'feature');
   write(root, 'src/range-authorization.ts', [
@@ -135,14 +135,14 @@ function createCommittedRangeFixture(): Fixture {
     expectedSignals: [
       ['src/range-authorization.ts', 'canDeleteWorkspace'],
     ],
-    invocation: 'committed-range',
-    name: 'known-defect-committed-range',
+    invocation: 'commit-range',
+    name: 'known-defect-commit-range',
     root,
   };
 }
 
-function createWorkingTreeFixture(): Fixture {
-  const root = initializeRepository('working-tree');
+function createUncommittedFixture(): Fixture {
+  const root = initializeRepository('uncommitted');
   git(root, 'switch', '--quiet', '--create', 'feature');
   write(root, 'src/server/cache-policy.ts', [
     'export function cacheIsFresh(savedAt: number, now: number, ttl: number): boolean {',
@@ -210,8 +210,8 @@ function createWorkingTreeFixture(): Fixture {
       ['src/client/untracked page.ts', 'takePage'],
       ['src/server/delete-document.ts', 'required-owner'],
     ],
-    invocation: 'working-tree',
-    name: 'literal-path-working-tree',
+    invocation: 'uncommitted',
+    name: 'literal-path-uncommitted',
     root,
   };
 }
@@ -361,9 +361,9 @@ async function observeReview(
     `[runner-acceptance] review ${fixture.name} ${provider}: starting\n`,
   );
   const before = fingerprint(fixture.root);
-  const scope = fixture.invocation === 'working-tree'
-    ? ['working-tree']
-    : ['committed-range', fixture.base!];
+  const scope = fixture.invocation === 'uncommitted'
+    ? ['uncommitted']
+    : ['commit-range', fixture.base!];
   const result = await invoke(fixture.root, [
     '--effort',
     'high',
@@ -407,7 +407,7 @@ async function main(): Promise<void> {
     observations.push(await observePrompt(range, 'claude'));
     observations.push(await observeReview(range, 'codex'));
     observations.push(await observeReview(range, 'claude'));
-    observations.push(await observeReview(createWorkingTreeFixture(), 'claude'));
+    observations.push(await observeReview(createUncommittedFixture(), 'claude'));
   } finally {
     for (const root of tempRoots.reverse()) {
       fs.rmSync(root, { force: true, recursive: true });

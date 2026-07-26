@@ -158,9 +158,9 @@ describe('read-only runner CLI', () => {
     ['codex', 'prompt', 'one', 'two'],
     ['claude', 'review'],
     ['claude', 'review', 'other'],
-    ['claude', 'review', 'working-tree', 'extra'],
-    ['claude', 'review', 'committed-range'],
-    ['claude', 'review', 'committed-range', 'base', 'extra'],
+    ['claude', 'review', 'uncommitted', 'extra'],
+    ['claude', 'review', 'commit-range'],
+    ['claude', 'review', 'commit-range', 'base', 'extra'],
   ];
 
   it.each(invalidCalls.map(args => ({ args })))(
@@ -318,14 +318,14 @@ describe('read-only runner CLI', () => {
     expect(args).not.toContain('model_reasoning_effort');
   });
 
-  it('uses native Codex working-tree review after a capability probe', () => {
+  it('uses native Codex uncommitted review after a capability probe', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     writeFile(work, 'tracked.md', 'changed\n');
     const stub = reportWritingCodex('No findings.');
 
     const result = runRunner(
       work,
-      ['--effort', 'high', 'codex', 'review', 'working-tree'],
+      ['--effort', 'high', 'codex', 'review', 'uncommitted'],
       stub,
     );
 
@@ -343,13 +343,13 @@ describe('read-only runner CLI', () => {
     ].join(' '));
   });
 
-  it('passes the immutable base to native Codex committed-range review', () => {
+  it('passes the immutable base to native Codex commit-range review', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = reportWritingCodex('Range clean.');
 
     const result = runRunner(
       work,
-      ['codex', 'review', 'committed-range', 'base123'],
+      ['codex', 'review', 'commit-range', 'base123'],
       stub,
     );
 
@@ -370,7 +370,7 @@ describe('read-only runner CLI', () => {
       'exit 99',
     ]);
 
-    const result = runRunner(work, ['codex', 'review', 'working-tree'], stub);
+    const result = runRunner(work, ['codex', 'review', 'uncommitted'], stub);
 
     expect(result.status).toBe(2);
     expect(result.stdout).toBe('');
@@ -445,7 +445,7 @@ describe('read-only runner CLI', () => {
     expect(args).not.toContain('--effort\n');
   });
 
-  it('maps Claude working-tree review to literal changed-path targets', () => {
+  it('maps Claude uncommitted review to literal changed-path targets', () => {
     const work = makeBareMain({
       'candidate.md': 'base\n',
       'deleted.md': 'delete me\n',
@@ -467,7 +467,7 @@ describe('read-only runner CLI', () => {
 
     const result = runRunner(
       work,
-      ['--effort', 'high', 'claude', 'review', 'working-tree'],
+      ['--effort', 'high', 'claude', 'review', 'uncommitted'],
       stub,
       {
         GIT_CONFIG_COUNT: '001',
@@ -497,7 +497,7 @@ describe('read-only runner CLI', () => {
     expect(argv).not.toContain('json');
     const input = fs.readFileSync(path.join(stub, 'stdin'), 'utf8');
     expect(input).toBe(
-      '/code-review "deleted.md" "staged.md" "candidate.md" '
+      '/code-review "candidate.md" "deleted.md" "staged.md" '
       + '"untracked file.md"',
     );
     expect(input).not.toContain('ahead.md');
@@ -524,7 +524,7 @@ describe('read-only runner CLI', () => {
 
     const result = runRunner(
       work,
-      ['claude', 'review', 'working-tree'],
+      ['claude', 'review', 'uncommitted'],
       stub,
     );
 
@@ -534,7 +534,7 @@ describe('read-only runner CLI', () => {
     );
   });
 
-  it('passes a large Claude working-tree target through stdin', () => {
+  it('passes a large Claude uncommitted target through stdin', () => {
     const work = makeBareMain({ 'candidate.md': 'base\n' });
     for (let index = 0; index < 1_400; index += 1) {
       writeFile(
@@ -547,7 +547,7 @@ describe('read-only runner CLI', () => {
 
     const result = runRunner(
       work,
-      ['claude', 'review', 'working-tree'],
+      ['claude', 'review', 'uncommitted'],
       stub,
     );
 
@@ -556,23 +556,42 @@ describe('read-only runner CLI', () => {
       .toBeGreaterThan(128 * 1_024);
   });
 
-  it('rejects Claude working-tree review without changed paths', () => {
+  it('rejects Claude uncommitted review without changed paths', () => {
     const work = makeBareMain({ 'candidate.md': 'base\n' });
     const stub = claudeStub([claudeResult('not reached')]);
 
     const result = runRunner(
       work,
-      ['claude', 'review', 'working-tree'],
+      ['claude', 'review', 'uncommitted'],
       stub,
     );
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('working-tree review has no changed paths');
+    expect(result.stderr).toContain('uncommitted review has no changed paths');
     expect(fs.existsSync(path.join(stub, 'args'))).toBe(false);
   });
 
-  it('resolves the immutable current HEAD for Claude committed-range review', () => {
+  it('includes index-only paths in Claude uncommitted review', () => {
+    const work = makeBareMain({ 'candidate.md': 'base\n' });
+    writeFile(work, 'candidate.md', 'staged\n');
+    git(work, 'add', 'candidate.md');
+    writeFile(work, 'candidate.md', 'base\n');
+    const stub = claudeStub([claudeReviewResult('No findings.')]);
+
+    const result = runRunner(
+      work,
+      ['claude', 'review', 'uncommitted'],
+      stub,
+    );
+
+    expect(result.status).toBe(0);
+    expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(
+      '/code-review "candidate.md"',
+    );
+  });
+
+  it('resolves the immutable current HEAD for Claude commit-range review', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const head = git(work, 'rev-parse', 'HEAD').stdout.trim();
     const stub = claudeStub([
@@ -582,7 +601,7 @@ describe('read-only runner CLI', () => {
 
     const result = runRunner(
       work,
-      ['claude', 'review', 'committed-range', 'base123'],
+      ['claude', 'review', 'commit-range', 'base123'],
       stub,
     );
 
@@ -604,12 +623,12 @@ describe('read-only runner CLI', () => {
 
     const unavailable = runRunner(
       work,
-      ['claude', 'review', 'working-tree'],
+      ['claude', 'review', 'uncommitted'],
       unavailableStub,
     );
     const response = runRunner(
       work,
-      ['claude', 'review', 'working-tree'],
+      ['claude', 'review', 'uncommitted'],
       availableStub,
     );
 
@@ -629,7 +648,7 @@ describe('read-only runner CLI', () => {
 
     const result = runRunner(
       work,
-      ['claude', 'review', 'working-tree'],
+      ['claude', 'review', 'uncommitted'],
       stub,
     );
 
@@ -666,7 +685,7 @@ describe('read-only runner CLI', () => {
 
     const result = runRunner(
       work,
-      ['claude', 'review', 'working-tree'],
+      ['claude', 'review', 'uncommitted'],
       stub,
     );
 
@@ -711,7 +730,7 @@ describe('read-only runner CLI', () => {
 
     const result = runRunner(
       work,
-      ['claude', 'review', 'working-tree'],
+      ['claude', 'review', 'uncommitted'],
       stub,
     );
 

@@ -1,11 +1,11 @@
 ---
 name: remdo-verify-change
-description: Verify one explicitly selected RemDo working-tree or Git-range scope with repository checks, fresh Codex and Claude reviews, and evidence-based finding dispositions. Use when the user or another workflow asks to verify, inspect, or independently review a completed repository change without editing, approving, committing, or advancing its lifecycle.
+description: Verify a default or explicitly selected RemDo uncommitted or Git-range scope with repository checks, fresh Codex and Claude reviews, and evidence-based finding dispositions. Use when the user or another workflow asks to verify, inspect, or independently review a completed repository change without editing, approving, committing, or advancing its lifecycle.
 ---
 
 # RemDo Verify Change
 
-Verify one explicit scope under the authoritative
+Verify one scope under the authoritative
 [`remdo-verify-change`](../../../docs/spec/skills/remdo-verify-change.md)
 contract.
 Remain read-only: do not edit, stage, commit, or run checks intended to change
@@ -13,31 +13,29 @@ the selected scope.
 
 ## Resolve the scope
 
-Accept exactly one caller-supplied scope as `working-tree`, an explicit
-`<left>..HEAD` / `<left>...HEAD` Git diff range, or an unambiguous description
-that maps to one of them. Translate a description to its supported input before
-running the resolver. Ask the caller when their intent does not determine one
-exact input; do not infer a scope from silence.
-For `working-tree`, stop unless `git symbolic-ref --quiet --short HEAD`
-succeeds.
+Accept an omitted scope, `uncommitted`, an explicit `<left>..HEAD` /
+`<left>...HEAD` Git range, or an unambiguous description that maps to one of
+them. Translate a supplied description before running the resolver; ask only
+when it is ambiguous.
 
 Run the [shared scope resolver](../_shared/tools/resolve-scope.sh) from the
 repository root:
 
 ```sh
-sh <shared-resolver-path> <scope>
+sh <shared-resolver-path> [scope]
 ```
 
-Stop on a non-zero exit or an empty `FILES` section. Retain the emitted
-`SCOPE`, immutable `BASE` and `HEAD_SHA`, and file list. Checks and reviewers
-must inspect this selected scope; the caller owns its stability.
+Stop on a non-zero exit. Retain the emitted `STATE`, `SCOPE`, immutable `BASE`
+and `HEAD_SHA`, and file list. Report `no-change` immediately when `STATE`
+equals it; do not run checks or reviews. Otherwise checks and reviewers must
+inspect the selected scope; the caller owns its stability.
 
 ## Run deterministic checks
 
 Run the final repository check prescribed for the agent mode and scope:
 
-- local `working-tree`: `pnpm run check`
-- cloud agents or a committed range: `pnpm run check:full`
+- local `uncommitted`: `pnpm run check`
+- cloud agents or a commit range: `pnpm run check:full`
 
 If the command fails, report its command and outcome, then stop before invoking
 reviewers.
@@ -52,11 +50,11 @@ do not abort the other review.
 Invoke the shared runner directly with high effort:
 
 - Codex: `node .agents/skills/_shared/tools/read-only-runner.ts --effort high
-  codex review working-tree` or replace `working-tree` with
-  `committed-range <BASE>`.
+  codex review uncommitted` or replace `uncommitted` with
+  `commit-range <BASE>`.
 - Claude: `node .agents/skills/_shared/tools/read-only-runner.ts --effort high
-  claude review working-tree` or replace `working-tree` with
-  `committed-range <BASE>`.
+  claude review uncommitted` or replace `uncommitted` with
+  `commit-range <BASE>`.
 
 Run these commands exactly. The
 [`read-only runner`](../_shared/tools/read-only-runner.ts) owns the fresh

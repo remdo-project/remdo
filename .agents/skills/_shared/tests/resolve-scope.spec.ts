@@ -1,5 +1,5 @@
 // Shared resolve-scope.sh: happy paths (inferred default, explicit range,
-// working-tree) and every refusal, exercised in scratch git repos.
+// uncommitted) and every refusal, exercised in scratch git repos.
 import fs from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -52,7 +52,8 @@ describe('resolve-scope.sh (shared tool)', () => {
     const result = run(taskBranch());
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('SCOPE=committed-range');
+    expect(result.stdout).toContain('STATE=ready');
+    expect(result.stdout).toContain('SCOPE=commit-range');
     expect(result.stdout).toMatch(/BASE=[0-9a-f]{40}/);
     expect(result.stdout).toMatch(/HEAD_SHA=[0-9a-f]{40}/);
     expect(result.stdout).toContain('b.md');
@@ -61,7 +62,8 @@ describe('resolve-scope.sh (shared tool)', () => {
   it('resolves an explicit range against a clean tree', () => {
     const result = run(taskBranch(), ['HEAD~1..HEAD']);
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('SCOPE=committed-range');
+    expect(result.stdout).toContain('STATE=ready');
+    expect(result.stdout).toContain('SCOPE=commit-range');
     expect(result.stdout).toMatch(/HEAD_SHA=[0-9a-f]{40}/);
     expect(result.stdout).toContain('b.md');
   });
@@ -89,48 +91,75 @@ describe('resolve-scope.sh (shared tool)', () => {
     const result = run(work, ['main...HEAD']);
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('SCOPE=committed-range');
+    expect(result.stdout).toContain('SCOPE=commit-range');
     expect(result.stdout).toContain('b.md');
     expect(result.stdout).not.toContain('upstream.md');
   });
 
-  it('resolves working-tree scope on a dirty tree', () => {
+  it('resolves uncommitted scope on a dirty tree', () => {
     const work = taskBranch();
     writeFile(work, 'c.md', '# C uncommitted\n');
-    const result = run(work, ['working-tree']);
+    const result = run(work, ['uncommitted']);
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('SCOPE=working-tree');
-    expect(result.stdout).toContain('BASE=WORKING_TREE');
+    expect(result.stdout).toContain('STATE=ready');
+    expect(result.stdout).toContain('SCOPE=uncommitted');
+    expect(result.stdout).toContain('BASE=UNCOMMITTED');
     expect(result.stdout).toMatch(/HEAD_SHA=[0-9a-f]{40}/);
     expect(result.stdout).toContain('c.md');
   });
 
-  it('lists a staged-then-reverted file in working-tree scope', () => {
+  it('includes index-only staged state', () => {
     // a.md is committed; stage an edit, then restore the worktree copy to HEAD.
-    // The index differs from HEAD but the worktree matches it, so `diff HEAD`
-    // alone misses the file — the scope must still list it (staged counts).
     const work = taskBranch();
     writeFile(work, 'a.md', '# A staged\n');
     git(work, 'add', 'a.md');
     writeFile(work, 'a.md', '# A\n');
-    const result = run(work, ['working-tree']);
+    const result = run(work, ['uncommitted']);
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('SCOPE=working-tree');
+    expect(result.stdout).toContain('STATE=ready');
+    expect(result.stdout).toContain('SCOPE=uncommitted');
     expect(result.stdout).toContain('a.md');
   });
 
-  it('refuses a committed range when the tree is dirty (mixed scope)', () => {
+  it('includes a staged rename restored in the worktree', () => {
+    const work = taskBranch();
+    git(work, 'mv', 'a.md', 'renamed.md');
+    fs.renameSync(
+      path.join(work, 'renamed.md'),
+      path.join(work, 'a.md'),
+    );
+
+    const result = run(work, ['uncommitted']);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('STATE=ready');
+    expect(result.stdout).toContain('a.md');
+    expect(result.stdout).toContain('renamed.md');
+  });
+
+  it('defaults to uncommitted when the repository is dirty', () => {
     const work = taskBranch();
     writeFile(work, 'a.md', '# A changed\n');
-    const result = run(work); // inferred committed-range default
+    const result = run(work);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('STATE=ready');
+    expect(result.stdout).toContain('SCOPE=uncommitted');
+    expect(result.stdout).toContain('a.md');
+  });
+
+  it('refuses an explicit commit range when the repository is dirty', () => {
+    const work = taskBranch();
+    writeFile(work, 'a.md', '# A changed\n');
+    const result = run(work, ['origin/main...HEAD']);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('dirty');
   });
 
-  it('refuses working-tree scope on a clean tree', () => {
-    const result = run(taskBranch(), ['working-tree']);
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('clean');
+  it('returns no-change for explicit uncommitted scope on a clean tree', () => {
+    const result = run(taskBranch(), ['uncommitted']);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('STATE=no-change');
+    expect(result.stdout).toContain('SCOPE=uncommitted');
   });
 
   it('ignores files excluded by Git standard ignore rules', () => {
@@ -139,18 +168,33 @@ describe('resolve-scope.sh (shared tool)', () => {
     commitAll(work, 'ignore fixture file');
     writeFile(work, 'ignored.md', '# Ignored\n');
 
-    const result = run(work, ['working-tree']);
+    const result = run(work, ['uncommitted']);
 
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('clean');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('STATE=no-change');
+    expect(result.stdout).not.toContain('ignored.md');
   });
 
-  it('refuses the default on an integration branch (main)', () => {
+  it('returns no-change for the default on main aligned with origin/main', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
-    // clone leaves us on main
     const result = run(work);
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('integration branch');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('STATE=no-change');
+    expect(result.stdout).toContain('SCOPE=commit-range');
+  });
+
+  it('uses the default normally on a dev branch', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    git(work, 'switch', '--quiet', '-c', 'dev');
+    writeFile(work, 'dev.md', '# Dev\n');
+    commitAll(work, 'advance dev');
+
+    const result = run(work);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('STATE=ready');
+    expect(result.stdout).toContain('SCOPE=commit-range');
+    expect(result.stdout).toContain('dev.md');
   });
 
   it('refuses when there is no merge-base with origin/main', () => {
@@ -223,30 +267,40 @@ describe('resolve-scope.sh (shared tool)', () => {
     const result = run(work, ['v1.0.0..v1.0.1']);
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('SCOPE=committed-range');
+    expect(result.stdout).toContain('SCOPE=commit-range');
   });
 
-  it('fails when a working-tree file query fails instead of returning a partial list', () => {
+  it('returns no-change for an empty explicit commit range', () => {
+    const result = run(taskBranch(), ['HEAD..HEAD']);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('STATE=no-change');
+    expect(result.stdout).toContain('SCOPE=commit-range');
+  });
+
+  it('fails when an uncommitted file query fails instead of returning a partial list', () => {
     const work = taskBranch();
     writeFile(work, 'c.md', '# C uncommitted\n');
     const bin = failingGitProxy(
-      '[ "$1" = diff ] && [ "$2" = --cached ] && [ "$3" = --name-only ]',
+      '[ "$1" = diff ] && [ "$2" = --cached ]',
     );
 
-    const result = run(work, ['working-tree'], bin);
+    const result = run(work, ['uncommitted'], bin);
 
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('git diff --cached --name-only failed');
+    expect(result.stderr).toContain(
+      'git diff --cached failed while resolving uncommitted files',
+    );
   });
 
-  it('fails with resolver context when the committed-range file query fails', () => {
+  it('fails with resolver context when the commit-range file query fails', () => {
     const work = taskBranch();
     const bin = failingGitProxy('[ "$1" = diff ] && [ "$2" = --name-only ]');
 
     const result = run(work, ['HEAD~1..HEAD'], bin);
 
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('git diff --name-only failed while resolving committed-range files');
+    expect(result.stderr).toContain('git diff --name-only failed while resolving commit-range files');
   });
 
   it('fails instead of classifying a broken Git status query as dirty', () => {
@@ -257,17 +311,17 @@ describe('resolve-scope.sh (shared tool)', () => {
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('git status --porcelain failed while checking working tree state');
-    expect(result.stderr).not.toContain('working tree is dirty');
+    expect(result.stderr).not.toContain('repository is dirty');
   });
 
-  it('fails when working-tree HEAD cannot be resolved', () => {
+  it('fails when uncommitted HEAD cannot be resolved', () => {
     const work = taskBranch();
     writeFile(work, 'c.md', '# C uncommitted\n');
     const bin = failingGitProxy(
       '[ "$1" = rev-parse ] && [ "$2" = --verify ] && [ "$3" = HEAD ]',
     );
 
-    const result = run(work, ['working-tree'], bin);
+    const result = run(work, ['uncommitted'], bin);
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('HEAD does not resolve to a commit');
@@ -286,18 +340,36 @@ describe('resolve-scope.sh (shared tool)', () => {
     expect(result.stderr).toContain('does not resolve');
   });
 
-  it('refuses the no-arg default on a detached HEAD', () => {
+  it('resolves the clean default on a detached HEAD', () => {
     const work = taskBranch();
     git(work, 'checkout', '--quiet', '--detach', 'HEAD');
     const result = run(work);
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('detached HEAD');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('STATE=ready');
+    expect(result.stdout).toContain('SCOPE=commit-range');
+  });
+
+  it('resolves the dirty default as uncommitted on a detached HEAD', () => {
+    const work = taskBranch();
+    git(work, 'checkout', '--quiet', '--detach', 'HEAD');
+    writeFile(work, 'c.md', '# C\n');
+    const result = run(work);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('STATE=ready');
+    expect(result.stdout).toContain('SCOPE=uncommitted');
+    expect(result.stdout).toContain('c.md');
   });
 
   it('refuses an unrecognized scope argument', () => {
     const result = run(taskBranch(), ['nonsense']);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('unrecognized scope');
+  });
+
+  it('refuses more than one scope input', () => {
+    const result = run(taskBranch(), ['uncommitted', 'HEAD~1..HEAD']);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('at most one scope input');
   });
 
   it('fails loud outside a git repository', () => {
