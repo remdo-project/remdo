@@ -13,6 +13,22 @@ applicable, or ideal.
 Research should consider both referenced source sessions and broader relevant
 historical-log searches as additional evidence.
 
+## Provenance
+
+Every indexed case is provenance of its recorded feedback event. It does not
+establish that the challenge is correct or that `Post-change` became accepted
+policy.
+
+A case identifies the affected activity and attributes the feedback to its
+origin: user feedback, an agent or subagent experiment, or self-review. Include
+a stable source reference when available, but an attributed case remains
+provenance without one. When a case records a later decision, distinguish its
+actor from the origin of the observation.
+
+`Pre-change`, `Change request`, and `Post-change` preserve the required
+chronology; timestamps and intermediate interaction history are not required.
+An unattributed mutable synthesis is not provenance.
+
 ## Case shape
 
 Every case has the same logical parts regardless of its file and directory
@@ -21,8 +37,8 @@ layout. The simplest representation makes them explicit in one Markdown file:
 ```markdown
 # Case name
 
-Identify the affected artifact, the activity that produced the case, who raised
-the challenge, and the source session when available.
+Identify the affected artifact and activity, attribute the feedback, and name a
+stable source when available.
 
 ## Pre-change
 

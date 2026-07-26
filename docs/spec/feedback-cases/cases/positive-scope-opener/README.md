@@ -1,7 +1,8 @@
 # Positive Scope Opener
 
 This user-raised case records a scope correction in the
-[`read-only runner`](../../../agents/tools/read-only-runner.md) contract.
+[`read-only runner`](../../../agents/tools/read-only-runner.md) contract in
+Codex session `019f7ed8-0f30-7b41-978f-2021d241e06b`.
 
 ## Pre-change
 

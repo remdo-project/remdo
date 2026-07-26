@@ -61,13 +61,6 @@ Remove rejected or obsolete items and empty sections.
   [minimality](documentation.md#minimality) rules to every domain- or
   component-specific term, including consistent actor and component identity.
 
-- **Specification feedback provenance.** Specify when an archived feedback case
-  may be treated as provenance. Distinguish user findings, agent or subagent
-  experiments, self-review, and later decisions; decide what source identity
-  and chronology must be preserved, and do not treat an unattributed mutable
-  synthesis as provenance. Decide separately whether durable general research
-  needs a repository owner.
-
 ### Outliner
 
 - **Body-local note-target ownership.** Reconsider moving the rule that a
