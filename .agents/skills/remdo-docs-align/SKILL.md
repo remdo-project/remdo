@@ -17,11 +17,12 @@ tie-breaker, so preserve that structure when editing this skill.
 
 - **Rules doc**: `docs/documentation.md` unless the caller names another
   with equivalent carve-outs (the templates assume its carve-out structure).
-- **Scope**, fixed at invocation: the working tree (uncommitted doc
-  changes), a committed range (resolved via
-  `.agents/skills/_shared/tools/resolve-scope.sh`, whose header states the
-  contract), or an explicit file set (e.g. the whole corpus for a realignment).
+- **Scope**, fixed at invocation: uncommitted doc changes, a commit range
+  (resolved via `.agents/skills/_shared/tools/resolve-scope.sh`, whose header
+  states the contract), or an explicit file set (e.g. the whole corpus for a
+  realignment).
   A diff scope selects its touched files, read whole.
+- A `no-change` diff scope reports a no-op and stops before the pipeline.
 - Authoring new content is out of scope: write-time rules do not prevent
   redundancy (tested — they made it worse), so fresh text is aligned by
   running stages 3–4 over it after writing.
@@ -91,11 +92,11 @@ Forward the `AGENTS.md` findings-suppression rule to every stage.
 
 Commit authority follows the resolved scope, not the caller.
 
-A **committed-range scope** is an explicitly declared autonomous scope (per
+A **commit-range scope** is an explicitly declared autonomous scope (per
 AGENTS.md): authorization to commit each stage's applied edits **on the current
 branch**, keeping the resolved range honest — never onto `main` (if invoked
 there, warn and stop rather than self-committing), and never push. An **explicit
 file-set scope** (e.g. a whole-corpus realignment) is treated the same as a
-committed-range: commit each stage's edits on the current branch. In
-**working-tree scope** it commits nothing — the applied edits stay in the tree
+commit range: commit each stage's edits on the current branch. In
+**uncommitted scope** it commits nothing — the applied edits stay in the tree
 and the caller owns the eventual commit.

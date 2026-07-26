@@ -36,20 +36,17 @@ caller's implementation memory.
 
 ## Select the scope
 
-Use the exact scope supplied by the caller. A composing caller should pass only
-the scope and this skill, not its suspected fixes or implementation context.
+Use the caller's scope when supplied; otherwise use the shared default. A
+composing caller should pass only the scope and this skill, not its suspected
+fixes or implementation context.
 
 Resolve it by running
-`sh .agents/skills/_shared/tools/resolve-scope.sh [scope]` (its header
-states the full contract): no argument for the committed-range default (this
-branch's own work), or `working-tree` for the uncommitted changes. It prints
-`SCOPE=`/`BASE=`/`HEAD_SHA=` plus the file list. This pass is read-only and never
-loops, so it needs no anchoring of its own — reusing the resolver keeps one
-scope contract across the skills. On a non-zero exit, warn and stop rather than
-folding the other side's changes into the review; on an integration branch
-(`dev`) where the
-committed default is not one unit of work, report that an explicit scope is
-required.
+`sh .agents/skills/_shared/tools/resolve-scope.sh [scope]` (its header states
+the full contract). It prints `STATE=`/`SCOPE=`/`BASE=`/`HEAD_SHA=` plus the
+file list. On `no-change`, report no findings and stop. This pass is read-only
+and never loops, so it needs no anchoring of its own — reusing the resolver
+keeps one scope contract across the skills. On a non-zero exit, warn and stop
+rather than folding the other side's changes into the review.
 
 For the resolved scope, run this read-only inspection to read the diff surface:
 
@@ -59,9 +56,8 @@ git diff --name-status <range>
 git diff --check <range>
 ```
 
-`<range>` is `<base-sha>..<head-sha>` in committed-range
-scope and `HEAD` (the working-tree diff) in working-tree scope, so every command
-targets exactly the scope's diff. Read the diff
+`<range>` is `<base-sha>..<head-sha>` in commit-range scope and `HEAD` in
+uncommitted scope, so every command targets exactly the scope's diff. Read the diff
 per file when the total diff is large. Read untracked files that belong to the
 scope (from the resolver's file list).
 

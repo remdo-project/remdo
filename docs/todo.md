@@ -55,10 +55,6 @@ Remove rejected or obsolete items and empty sections.
 
 ### Agents
 
-- **Change scope implementation.** Implement the
-  [change-scope contract](spec/agents/change-scope.md) across the shared resolver
-  and its consumers.
-
 - **External dependency verification.** Define how implementation work checks
   current authoritative documentation or public APIs for external dependencies
   before using [empirical checks](documentation.md#empirical-checks).
