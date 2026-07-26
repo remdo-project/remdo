@@ -1,15 +1,15 @@
 # Legacy OpenSpec Migration Record
 
-This records capabilities moved from `docs/` to `openspec/specs/` before
-`docs/spec/` became the specification home under the
-[documentation contract](../docs/documentation.md#ownership). These
-capabilities remain delegated owners until migrated there. OpenSpec change
-artifacts are evidence, not an active development workflow.
+The product capabilities once delegated to `openspec/specs/` have all moved to
+`docs/spec/`, the specification home under the
+[documentation contract](../docs/documentation.md#ownership).
 
-- Delegated capability: `outliner-indentation`
-- Accepted decisions awaiting migration remain in the temporary
-  [migration backlog](./MIGRATION-BACKLOG.md).
+No delegated capabilities remain.
 
-Only the listed capabilities remain delegated. The OpenSpec-era
-`development-change-workflow` and `agent-skill-remdo-verify-change` contracts
-are retired evidence.
+Accepted decisions awaiting migration remain in the temporary
+[migration backlog](./MIGRATION-BACKLOG.md).
+
+Everything else under `openspec/` is evidence pending disposition, not an
+active development workflow. This includes OpenSpec change artifacts and the
+retired `development-change-workflow` and `agent-skill-remdo-verify-change`
+contracts.

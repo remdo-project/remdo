@@ -21,13 +21,6 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
-- Grow `docs/spec/` through small capability migrations from delegated `docs/`
-  and `openspec/specs/` owners. Move each complete contract, repair inbound
-  links, and remove the former normative copy in the same change. Preserve
-  accepted decisions from
-  [`openspec/MIGRATION-BACKLOG.md`](../openspec/MIGRATION-BACKLOG.md) while their
-  subjects move.
-
 - Mobile toolbar fold: `resolveSelectionCapability` (button enabled state) and
   `runMobileAction('fold')` (dispatch) each resolve the focus note independently,
   so a selection change between the capability sync and the tap can fold a

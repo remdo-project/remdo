@@ -27,29 +27,12 @@ Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Specification consolidation.** Review existing documents and capabilities
-  in the [legacy OpenSpec migration record](../openspec/MIGRATION.md) one by one.
-  Move each actual specification into `docs/spec/`, leaving other documentation
-  elsewhere under `docs/`. Move the complete contract, update inbound links,
-  and remove its former normative definition in the same change. Other OpenSpec
-  artifacts remain evidence only. Per-spec recipe (refine as migrations teach
-  more; `outliner-list-types` was the first):
-
-  1. Recover the pre-OpenSpec original from its deletion commit
-     (`docs/outliner/note-structure-rules.md`, indentation: `0de8244d`).
-  2. Diff it against the current `openspec/specs/` version, using the archived
-     proposal, design, tasks, and any later corrective changes to separate
-     deliberate drops from accidental ones.
-  3. Verify semantic drift against the implementation and focused tests.
-     Classify relevant migration and legacy backlog entries as part of the
-     contract, current follow-up, or a deliberate drop.
-  4. Rewrite in `docs/spec/` form per [documentation](documentation.md),
-     checked clause by clause.
-  5. In the same change, retarget inbound links, delete the OpenSpec spec
-     directory, and update the delegated list in the migration record.
-
-  Once that list empties, decide the disposition of everything remaining under
-  `openspec/`; it stays evidence throughout.
+- **OpenSpec retirement.** All delegated capability specifications in the
+  [legacy OpenSpec migration record](../openspec/MIGRATION.md) have moved to
+  `docs/spec/`. Decide the disposition of everything remaining under
+  `openspec/`, including the accepted terminology in its temporary migration
+  backlog. It remains evidence until each item is retained, relocated, or
+  rejected deliberately.
 
 - **Normative prose migration.** Remove RFC-style uppercase requirement
   keywords from current contract owners and agent skills, preserving
@@ -72,21 +55,22 @@ Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
-- **Body-local note-target ownership.** Reconsider moving the rule that a
-  body-local selection supplies its owning editor note to
-  [Body](outliner/body.md), then align [Selection](outliner/selection.md),
-  indentation, checked-state targeting, toolbar actions, and other
-  target-note-range consumers that should share it. Remove action-local
-  restatements only when the shared owner exists.
+- **Body-local note-target ownership.** Move the rule that a body-local
+  selection supplies its owning editor note to [Body](outliner/body.md), then
+  align [Selection](outliner/selection.md), indentation, reordering,
+  checked-state targeting, toolbar actions, and other target-note-range
+  consumers that should share it. Remove action-local restatements only when
+  the shared owner exists.
 
-- **Body-local reordering target.** Target behavior
-  ([Reordering](spec/outliner/reordering.md#keyboard-reordering)): a caret or
+- **Body-local structural-command target.** Target behavior
+  ([Indentation](spec/outliner/indentation.md#keyboard-indentation),
+  [Reordering](spec/outliner/reordering.md#keyboard-reordering)): a caret or
   inline text selection targets the editor note owning its region. The
   implementation resolves a body caret through
   `$resolveStructuralRangeFromLexicalSelection`'s collapsed fallback, but
   `$getContiguousSelectionHeads` returns no heads for a body-local inline
-  selection, so reordering is a no-op. Align the resolver and add focused
-  coverage.
+  selection, so indentation and reordering are no-ops. Align the resolver and
+  add focused coverage for both commands.
 
 - **Tri-state checked rendering and toggle polarity.** Target behavior
   ([List types](spec/outliner/list-types.md#checked-state)): a note whose

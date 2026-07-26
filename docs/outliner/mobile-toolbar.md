@@ -22,7 +22,7 @@ surface and its behavior, not those operations.
    focused note for a caret selection, or every note in a selected note range. Their
    contracts are:
    - Indent / outdent, per
-     [Indentation](../../openspec/specs/outliner-indentation/spec.md).
+     [Indentation](../spec/outliner/indentation.md).
    - Move up / move down, per
      [Reordering](../spec/outliner/reordering.md).
    - Toggle done per
