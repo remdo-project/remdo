@@ -1,16 +1,33 @@
-# Specification Research
+# Specification Feedback Cases
 
-This directory records non-normative evidence about how RemDo specifications
-are written. This README defines how that evidence is structured and maintained.
-The evidence does not define accepted behavior or documentation rules.
+This directory records non-normative feedback cases about how RemDo
+specifications are written. This README defines how that evidence is structured
+and maintained. The evidence does not define accepted behavior or documentation
+rules.
 
-A **spec-quality case** preserves evidence for later specification research and
+A **feedback case** preserves evidence for later specification research and
 testing. `Post-change` is the version considered a better fit for the recorded
 change request. A case does not claim that version is canonical, generally
 applicable, or ideal.
 
 Research should consider both referenced source sessions and broader relevant
 historical-log searches as additional evidence.
+
+## Provenance
+
+Every indexed case is provenance of its recorded feedback event. It does not
+establish that the challenge is correct or that `Post-change` became accepted
+policy.
+
+A case identifies the affected activity and attributes the feedback to its
+origin: user feedback, an agent or subagent experiment, or self-review. Include
+a stable source reference when available, but an attributed case remains
+provenance without one. When a case records a later decision, distinguish its
+actor from the origin of the observation.
+
+`Pre-change`, `Change request`, and `Post-change` preserve the required
+chronology; timestamps and intermediate interaction history are not required.
+An unattributed mutable synthesis is not provenance.
 
 ## Case shape
 
@@ -20,8 +37,8 @@ layout. The simplest representation makes them explicit in one Markdown file:
 ```markdown
 # Case name
 
-Identify the affected artifact, the activity that produced the case, who raised
-the challenge, and the source session when available.
+Identify the affected artifact and activity, attribute the feedback, and name a
+stable source when available.
 
 ## Pre-change
 
@@ -42,17 +59,19 @@ Preserve the same material and context verbatim in the resulting state so the
 two snapshots can be diffed directly.
 ```
 
-Create or amend a case only when the user explicitly requests it during an
-interactive session. During that request, treat `Pre-change` as immutable
-evidence whose coverage may only grow. Before editing material not already
-covered, add its current content and required context without changing existing
-evidence. After each requested iteration, rewrite `Change request` to include
-all still-relevant challenges and agreed actions, then replace `Post-change`
-with the current version of everything covered by `Pre-change`.
+Create or amend a case only when the user explicitly asks to record or refine
+that case; a request to change its source material does not authorize changing
+the case. During requested case work, preserve all previously captured
+`Pre-change` material. Expand or reorganize it as needed — including adding
+context or artifacts or changing the case layout — but do not rewrite, correct,
+shorten, update, or remove the original material. After each requested
+iteration, rewrite `Change request` to include all still-relevant challenges
+and agreed actions, then replace `Post-change` with the current version of
+everything covered by `Pre-change`.
 
 Outside such a request, every case is frozen. Later changes to its source
-material do not update it. Link destinations may be repaired when files move;
-this does not change the case's research content.
+material, including moved link destinations, do not update it. Current
+navigation belongs in this README.
 
 These are logical parts, not required filesystem boundaries. Use one
 descriptively named file under `cases/` when excerpts provide enough evidence.
