@@ -27,30 +27,6 @@ Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Specification consolidation.** Review existing documents and capabilities
-  in the [legacy OpenSpec migration record](../openspec/MIGRATION.md) one by one.
-  Move each actual specification into `docs/spec/`, leaving other documentation
-  elsewhere under `docs/`. Move the complete contract, update inbound links,
-  and remove its former normative definition in the same change. Other OpenSpec
-  artifacts remain evidence only. Per-spec recipe (refine as migrations teach
-  more; `outliner-list-types` was the first):
-
-  1. Recover the pre-OpenSpec original from its deletion commit
-     (`docs/outliner/note-structure-rules.md`, indentation: `0de8244d`).
-  2. Diff it against the current `openspec/specs/` version, using the archived
-     proposal, design, tasks, and any later corrective changes to separate
-     deliberate drops from accidental ones.
-  3. Verify semantic drift against the implementation and focused tests.
-     Classify relevant migration and legacy backlog entries as part of the
-     contract, current follow-up, or a deliberate drop.
-  4. Rewrite in `docs/spec/` form per [documentation](documentation.md),
-     checked clause by clause.
-  5. In the same change, retarget inbound links, delete the OpenSpec spec
-     directory, and update the delegated list in the migration record.
-
-  Once that list empties, decide the disposition of everything remaining under
-  `openspec/`; it stays evidence throughout.
-
 - **Normative prose migration.** Remove RFC-style uppercase requirement
   keywords from current contract owners and agent skills, preserving
   distinctions expressed by `SHOULD` and `MAY` in ordinary prose. Leave retired
@@ -63,21 +39,22 @@ Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
-- **Body-local note-target ownership.** Reconsider moving the rule that a
-  body-local selection supplies its owning editor note to
-  [Body](outliner/body.md), then align [Selection](outliner/selection.md),
-  indentation, checked-state targeting, toolbar actions, and other
-  target-note-range consumers that should share it. Remove action-local
-  restatements only when the shared owner exists.
+- **Body-local note-target ownership.** Move the rule that a body-local
+  selection supplies its owning editor note to [Body](outliner/body.md), then
+  align [Selection](outliner/selection.md), indentation, reordering,
+  checked-state targeting, toolbar actions, and other target-note-range
+  consumers that should share it. Remove action-local restatements only when
+  the shared owner exists.
 
-- **Body-local reordering target.** Target behavior
-  ([Reordering](spec/outliner/reordering.md#keyboard-reordering)): a caret or
+- **Body-local structural-command target.** Target behavior
+  ([Indentation](spec/outliner/indentation.md#keyboard-indentation),
+  [Reordering](spec/outliner/reordering.md#keyboard-reordering)): a caret or
   inline text selection targets the editor note owning its region. The
   implementation resolves a body caret through
   `$resolveStructuralRangeFromLexicalSelection`'s collapsed fallback, but
   `$getContiguousSelectionHeads` returns no heads for a body-local inline
-  selection, so reordering is a no-op. Align the resolver and add focused
-  coverage.
+  selection, so indentation and reordering are no-ops. Align the resolver and
+  add focused coverage for both commands.
 
 - **Tri-state checked rendering and toggle polarity.** Target behavior
   ([List types](spec/outliner/list-types.md#checked-state)): a note whose
@@ -125,25 +102,13 @@ Remove rejected or obsolete items and empty sections.
   under `docs/spec/agents/skills/` and update all inbound links in the same
   change.
 
-- **Propagate nested results.** Components report facts through their results;
-  their callers decide what happens next. A future change flow should include in
-  its user-facing task result the verifier's unavailable or failed reviewers
-  and [finding dispositions](spec/skills/remdo-verify-change.md#findings), plus
-  confirmed findings convergence could not correct.
-
-- **Fresh-session ownership.** Deliberately decide which components run in
-  fresh sessions and whether each session is started by the caller or the
-  invoked skill. Use evidence from real verifier runs, adopting a fresh-subagent
-  boundary only if it is more efficient.
-
-- **Deterministic-check ownership.** Choose the single component and lifecycle
-  point that runs authoritative repository checks. Define check selection and
-  unrelated-failure handling there; other workflow components consume the result
-  without repeating the checks.
-
-- **Verifier readiness modes.** Research explicit specification- and
-  implementation-readiness modes only if standalone and change-flow use exposes
-  recurring ambiguity that reviewer inference cannot resolve reliably.
+- **Development change workflow design.** Before implementing the initial
+  [workflow contract](spec/agents/development-change-workflow.md), validate its
+  phase boundaries through real changes and revise them when evidence requires.
+  Define the active change record and approval baseline, how nested component
+  results reach the user, which component owns deterministic checks, where fresh
+  sessions begin, and whether recurring ambiguity justifies separate
+  specification- and implementation-readiness modes.
 
 - **Post-skill retrospectives.** Make an on-demand retrospective available
   after skill runs, using saved session logs to explain elapsed time, repeated

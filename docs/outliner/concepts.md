@@ -63,7 +63,7 @@ notes:
   itself. It has no parent and is not directly selectable; all top-level notes
   are its children.
 - **Subtree:** a note and all of its descendants; structural moves are always
-  subtree-atomic (see [Indentation](../../openspec/specs/outliner-indentation/spec.md)
+  subtree-atomic (see [Indentation](../spec/outliner/indentation.md)
   and [Reordering](../spec/outliner/reordering.md)).
 - **Note path:** the ordered chain of notes from a top-level note down to and
   including the note itself — its ancestors followed by the note. The document
@@ -114,7 +114,7 @@ Lexical node shape:
 
 - Conceptually, RemDo models a tree: every note has exactly one parent; the
   editing invariants for restructuring live in
-  [Indentation](../../openspec/specs/outliner-indentation/spec.md) and
+  [Indentation](../spec/outliner/indentation.md) and
   [Reordering](../spec/outliner/reordering.md).
 - In the Lexical adapter, nesting is represented by a wrapper list item plus a
   nested list. The `indent` field is treated as metadata and must agree with the
