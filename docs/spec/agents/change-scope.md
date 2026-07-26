@@ -9,9 +9,10 @@ The caller may request `uncommitted`, a two-dot range (`<left>..HEAD`), or a
 three-dot range (`<left>...HEAD`). Without input, resolution selects
 `uncommitted` when the repository is dirty and `origin/main...HEAD` otherwise.
 
-`uncommitted` contains Git's staged and unstaged changes plus untracked files
-not excluded by standard ignore rules. A repository is dirty when standard Git
-status reports any such work.
+`uncommitted` compares current tracked file contents with `HEAD`, ignores
+index-only state, and adds untracked files not excluded by Git's standard
+ignore rules. A repository is dirty when standard Git status reports staged,
+unstaged, or untracked work.
 
 A commit range is the exact `BASE..HEAD` diff between resolved immutable
 commits and requires a clean repository. For two dots, `left` must be an

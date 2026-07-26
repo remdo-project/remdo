@@ -30,15 +30,15 @@ agent's corresponding CLI settings and leaves absent settings unset.
 **Prompt.** For Codex, the runner invokes `codex exec`; for Claude, it invokes
 `claude -p`.
 
-**Review.** For Codex, the runner maps `uncommitted` to native review with
-`--uncommitted` and `commit-range` to `--base <base>`. For Claude, it maps
-`uncommitted` to native `/code-review` with each staged, unstaged, or untracked
-changed path as a target, without adding paths solely from committed branch
-history. It maps `commit-range` to native `/code-review` for `<base>..HEAD`
-after resolving the current `HEAD` commit. Both reviews use the native
-command's instructions and repository guidance loaded by the agent session.
-The runner additionally instructs the reviewing agent and every reviewer it
-delegates to not to run repository checks.
+**Review.** The runner evaluates `uncommitted` independently of index-only
+state. For Codex, it maps that scope to native review with `--uncommitted` and
+`commit-range` to `--base <base>`. For Claude, it maps `uncommitted` to native
+`/code-review` with each resolved changed path as a target, without adding
+paths solely from committed branch history. It maps `commit-range` to native
+`/code-review` for `<base>..HEAD` after resolving the current `HEAD` commit.
+Both reviews use the native command's instructions and repository guidance
+loaded by the agent session. The runner additionally instructs the reviewing
+agent and every reviewer it delegates to not to run repository checks.
 
 ## Repository protection
 
@@ -84,6 +84,7 @@ provider stdout is not failure evidence.
   referenced files.
 - Codex accepts the resolved immutable `base` commit through `--base` and
   reviews exactly the commit-range scope.
+- Codex `uncommitted` review excludes index-only state.
 - Claude executes `/code-review` through non-interactive `claude -p`.
 - Claude reviews exactly the commit-range scope.
 - Claude `uncommitted` review includes every resolved changed-path target and
