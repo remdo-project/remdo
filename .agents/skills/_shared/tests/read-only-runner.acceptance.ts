@@ -141,7 +141,7 @@ function createCommittedRangeFixture(): Fixture {
   };
 }
 
-function createWorkingTreeFixture(): Fixture {
+function createUncommittedFixture(): Fixture {
   const root = initializeRepository('uncommitted');
   git(root, 'switch', '--quiet', '--create', 'feature');
   write(root, 'src/server/cache-policy.ts', [
@@ -407,7 +407,7 @@ async function main(): Promise<void> {
     observations.push(await observePrompt(range, 'claude'));
     observations.push(await observeReview(range, 'codex'));
     observations.push(await observeReview(range, 'claude'));
-    observations.push(await observeReview(createWorkingTreeFixture(), 'claude'));
+    observations.push(await observeReview(createUncommittedFixture(), 'claude'));
   } finally {
     for (const root of tempRoots.reverse()) {
       fs.rmSync(root, { force: true, recursive: true });

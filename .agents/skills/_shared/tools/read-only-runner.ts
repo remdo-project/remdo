@@ -648,7 +648,14 @@ async function claudeUncommittedTarget(
       environment,
       signal,
       ['diff', '--name-only', '-z', '--'],
-      'tracked',
+      'unstaged',
+    ),
+    gitPathList(
+      repository,
+      environment,
+      signal,
+      ['diff', '--cached', '--name-only', '-z', 'HEAD', '--'],
+      'staged',
     ),
     gitPathList(
       repository,
@@ -948,35 +955,6 @@ async function run(
     TMP: output.path,
     TMPDIR: output.path,
   };
-  if (
-    call.invocation.kind === 'review'
-    && call.invocation.scope.kind === 'uncommitted'
-  ) {
-    invocationEnvironment.GIT_INDEX_FILE = path.join(output.path, 'index');
-    const indexResult = await runProcess(
-      'git',
-      ['read-tree', 'HEAD'],
-      {
-        captureStderr: true,
-        cwd: repository,
-        environment: invocationEnvironment,
-        signal,
-      },
-    );
-    if (
-      indexResult.aborted
-      || indexResult.spawnError !== undefined
-      || indexResult.exitCode !== 0
-    ) {
-      return {
-        status: 'failed',
-        evidence: providerFailureEvidence(
-          'could not isolate uncommitted review from the index',
-          indexResult.stderr,
-        ),
-      };
-    }
-  }
   if (call.agent === 'codex') {
     return await runCodex(
       call,
