@@ -1,8 +1,9 @@
-# Specification Research
+# Specification Feedback Cases
 
-This directory records non-normative evidence about how RemDo specifications
-are written. This README defines how that evidence is structured and maintained.
-The evidence does not define accepted behavior or documentation rules.
+This directory records non-normative feedback cases about how RemDo
+specifications are written. This README defines how that evidence is structured
+and maintained. The evidence does not define accepted behavior or documentation
+rules.
 
 A **spec-quality case** preserves evidence for later specification research and
 testing. `Post-change` is the version considered a better fit for the recorded
@@ -52,7 +53,7 @@ with the current version of everything covered by `Pre-change`.
 
 Outside such a request, every case is frozen. Later changes to its source
 material do not update it. Link destinations may be repaired when files move;
-this does not change the case's research content.
+this does not change the case's archived content.
 
 These are logical parts, not required filesystem boundaries. Use one
 descriptively named file under `cases/` when excerpts provide enough evidence.

@@ -215,10 +215,10 @@ sections to docs.
   same file, symbol, or specific behavior, not just a topical overlap); add one
   tail line `Suppressed N finding(s) already tracked in a TODO` (omit when `N`
   is 0). Forward this rule to any finder/reviewer subagents you spawn.
-- Code review: ignore `docs/spec/research/cases/**`. Do not report findings about
-  case content, compare it with current sources, or propose refreshes. Review
-  `docs/spec/research/README.md` normally; cases change only under its explicit
-  interactive-session rules.
+- Code review: ignore `docs/spec/feedback-cases/cases/**`. Do not report findings
+  about case content, compare it with current sources, or propose refreshes.
+  Review `docs/spec/feedback-cases/README.md` normally; cases change only under
+  its explicit interactive-session rules.
 
 ## Skill authoring
 

@@ -10,7 +10,7 @@ import temporalStatus from './lint-rules/temporal-status.mjs';
 
 const files = fs
   .globSync('docs/**/*.md', { cwd: process.cwd() })
-  .filter((file) => !file.replaceAll('\\', '/').startsWith('docs/spec/research/cases/'));
+  .filter((file) => !file.replaceAll('\\', '/').startsWith('docs/spec/feedback-cases/cases/'));
 if (files.length === 0) {
   console.error('run-doc-rules: no in-scope docs/**/*.md found');
   process.exit(1);
