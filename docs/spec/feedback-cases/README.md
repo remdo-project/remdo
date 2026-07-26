@@ -5,7 +5,7 @@ specifications are written. This README defines how that evidence is structured
 and maintained. The evidence does not define accepted behavior or documentation
 rules.
 
-A **spec-quality case** preserves evidence for later specification research and
+A **feedback case** preserves evidence for later specification research and
 testing. `Post-change` is the version considered a better fit for the recorded
 change request. A case does not claim that version is canonical, generally
 applicable, or ideal.
