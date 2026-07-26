@@ -1,9 +1,9 @@
 # remdo-converge-change
 
-This skill advances one explicitly selected [`remdo-verify-change` review
-scope](remdo-verify-change.md#scope) by applying confirmed corrections and
-re-verifying until the current repository state converges. It does not select
-or expand intended behavior.
+This skill verifies a repository change, applies every correction
+supported by the evidence, and repeats until no further correction can be
+determined. One [change scope](../agents/change-scope.md) bounds the run; the
+skill does not select or expand intended behavior.
 
 ## Convergence
 
@@ -13,7 +13,7 @@ or [`confirmed` finding](remdo-verify-change.md#findings) and carries every
 finding disposition into its result. It does not correct `material out of
 scope` findings or reinterpret dispositions.
 
-For `working-tree`, corrections remain uncommitted. For `committed-range`, the
+For `uncommitted`, corrections remain uncommitted. For a commit range, the
 resolved `BASE` remains fixed and the skill commits corrections before running
 verification again.
 
@@ -24,12 +24,9 @@ After applying all determined corrections from one verification, the skill runs
 complete verification again. It does not re-verify unchanged state and continues
 using available evidence when [verification is degraded](remdo-verify-change.md#result).
 
-A `clean` or `findings` verification is converged when no `confirmed` finding
-remains that the skill can correct, including when other dispositions remain or
-verification is degraded.
-
-A re-verification stopped because corrections emptied the retained scope is
-also converged.
+A `clean`, `findings`, or `no-change` verification is converged when no
+`confirmed` finding remains that the skill can correct, including when other
+dispositions remain or verification is degraded.
 
 ## Result
 

@@ -16,9 +16,9 @@ read-only-runner [options] <agent> <invocation>
   - `prompt <prompt>`
   - `review <scope>`
 - `<scope>`: a resolved
-  [review scope](../../skills/remdo-verify-change.md#scope), encoded as:
-  - `working-tree`
-  - `committed-range <base>`
+  [change scope](../change-scope.md), encoded as:
+  - `uncommitted`
+  - `commit-range <base>`
 - `--model <model>`: optional model value.
 - `--effort <effort>`: optional effort value.
 
@@ -30,12 +30,12 @@ agent's corresponding CLI settings and leaves absent settings unset.
 **Prompt.** For Codex, the runner invokes `codex exec`; for Claude, it invokes
 `claude -p`.
 
-**Review.** For Codex, the runner maps `working-tree` to native review with
-`--uncommitted` and `committed-range` to `--base <base>`. For Claude, it maps
-`working-tree` to native `/code-review` with each resolved changed path as a
+**Review.** For Codex, the runner maps `uncommitted` to native review with
+`--uncommitted` and `commit-range` to `--base <base>`. For Claude, it maps
+`uncommitted` to native `/code-review` with each resolved changed path as a
 target, without adding paths solely from committed branch history. It maps
-`committed-range` to native `/code-review` for `<base>..HEAD` after resolving
-the current `HEAD` commit. Both reviews use the native command's instructions
+`commit-range` to native `/code-review` for `<base>..HEAD` after resolving the
+current `HEAD` commit. Both reviews use the native command's instructions
 and repository guidance loaded by the agent session. The runner additionally
 instructs the reviewing agent and every reviewer it delegates to not to run
 repository checks.
@@ -83,10 +83,10 @@ provider stdout is not failure evidence.
   ability to inspect the complete scope, repository guidance, Git context, and
   referenced files.
 - Codex accepts the resolved immutable `base` commit through `--base` and
-  reviews exactly the committed-range scope.
+  reviews exactly the commit-range scope.
 - Claude executes `/code-review` through non-interactive `claude -p`.
-- Claude reviews exactly the committed-range scope.
-- Claude `working-tree` review includes every resolved changed-path target and
+- Claude reviews exactly the commit-range scope.
+- Claude `uncommitted` review includes every resolved changed-path target and
   does not add targets solely from committed branch history.
 - Codex and Claude review invocations, including delegated reviewers, do not run
   repository checks.

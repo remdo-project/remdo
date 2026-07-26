@@ -55,14 +55,9 @@ Remove rejected or obsolete items and empty sections.
 
 ### Agents
 
-- **Review scope ownership.** Find a neutral owner for the
-  [review scope definition](spec/skills/remdo-verify-change.md#scope), then update
-  the verifier and convergence specifications to link to it.
-
-- **Default verification scope.** Default to `working-tree` when the repository
-  is dirty and `origin/main...HEAD` otherwise, clearly reporting the selected
-  scope. Before implementing, confirm which component and contract level own
-  this decision.
+- **Change scope implementation.** Implement the
+  [change-scope contract](spec/agents/change-scope.md) across the shared resolver
+  and its consumers.
 
 - **External dependency verification.** Define how implementation work checks
   current authoritative documentation or public APIs for external dependencies

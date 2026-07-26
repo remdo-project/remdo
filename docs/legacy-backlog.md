@@ -698,12 +698,6 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 
 ## Review and convergence follow-ups
 
-- Working-tree scope currently unions `git diff HEAD` with cached paths, so a
-  staged edit undone in the checked-out file remains review noise despite having
-  no net artifact. Define the scope as the checked-out tree versus `HEAD` plus
-  untracked files; update `resolve-scope.sh`, its intentional regression test,
-  and the verifier/simplify scope wording. Keep the any-layer dirty check only
-  for refusing committed-range mode with unrelated local changes.
 - Widen the review lens for shared-state writes: change verification reviews a
   diff, so a bug where NEW code writes shared/global state and UNCHANGED code
   over-reads it sits outside scope (the PR#356 cross-user source-leak: new
