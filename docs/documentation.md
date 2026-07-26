@@ -79,9 +79,15 @@ Use as the single owner for terms introduced by the document.
 
 #### Empirical checks
 
-Use when authoritative dependency contracts and deterministic tests together
-cannot establish implementation conformance. List only behavior requiring
-empirical confirmation; empirical checks do not replace deterministic coverage.
+Use only when authoritative dependency contracts and repository-owned automated
+tests cannot establish implementation conformance with a meaningful
+machine-checkable result, a reliable signal, and acceptable cost at a defined
+lifecycle point. List only behavior requiring empirical confirmation;
+empirical checks do not replace deterministic coverage.
+
+An empirical check has no committed executable, scenario, or evidence artifact.
+When behavior becomes suitable for automated coverage, that coverage replaces
+its empirical classification.
 
 #### Future
 

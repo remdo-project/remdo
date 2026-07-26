@@ -40,9 +40,7 @@
     "vitest.bench.perf.config.mts",
     // Standalone skill tools launched from shell; knip cannot discover their
     // TypeScript entry points from those callers.
-    ".agents/skills/_shared/tools/read-only-runner.ts",
-    // Opt-in real-provider validation, intentionally outside normal test suites.
-    ".agents/skills/_shared/tests/read-only-runner.acceptance.ts"
+    ".agents/skills/_shared/tools/read-only-runner.ts"
   ],
   "project": [
     // `!` marks the production graph used by `knip --production`.
