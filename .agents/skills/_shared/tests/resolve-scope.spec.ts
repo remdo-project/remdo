@@ -139,6 +139,22 @@ describe('resolve-scope.sh (shared tool)', () => {
     expect(result.stdout).not.toContain('renamed.md');
   });
 
+  it('removes its temporary index after resolution', () => {
+    const before = new Set(
+      fs.readdirSync('/tmp').filter(name =>
+        name.startsWith('remdo-resolve-scope.')
+      ),
+    );
+
+    const result = run(taskBranch(), ['uncommitted']);
+
+    expect(result.status).toBe(0);
+    const additions = fs.readdirSync('/tmp').filter(name =>
+      name.startsWith('remdo-resolve-scope.') && !before.has(name)
+    );
+    expect(additions).toEqual([]);
+  });
+
   it('defaults to uncommitted when the repository is dirty', () => {
     const work = taskBranch();
     writeFile(work, 'a.md', '# A changed\n');

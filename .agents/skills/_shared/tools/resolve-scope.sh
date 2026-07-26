@@ -55,7 +55,10 @@ list_uncommitted_files() {
     || fail "git diff failed while resolving uncommitted files"
   untracked=$(GIT_INDEX_FILE=$temp_index git ls-files --others --exclude-standard) \
     || fail "git ls-files failed while resolving uncommitted files"
-  printf '%s\n%s\n' "$tracked" "$untracked" | sed '/^$/d' | sort -u
+  files=$(printf '%s\n%s\n' "$tracked" "$untracked" | sed '/^$/d' | sort -u)
+  rm -rf "$temp_dir"
+  trap - 0
+  printf '%s\n' "$files"
 }
 
 emit_resolution() {
