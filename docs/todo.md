@@ -84,6 +84,10 @@ Remove rejected or obsolete items and empty sections.
 
 ### Agents
 
+- **`remdo-merge-main` implementation.** Implement the
+  [merge-main contract](spec/skills/remdo-merge-main.md) with a deterministic
+  runner, then retire `remdo-sync`.
+
 - **External dependency verification.** Define how implementation work checks
   current authoritative documentation or public APIs for external dependencies
   before using [empirical checks](documentation.md#empirical-checks).
