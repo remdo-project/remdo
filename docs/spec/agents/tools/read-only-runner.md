@@ -56,10 +56,12 @@ keeps that state unchanged when it requires consistency for the whole
 invocation.
 
 Each invocation makes one attempt in a non-persistent session; retry belongs to
-the caller. The runner has no execution deadline, and neither silence nor
-elapsed time indicates failure. It runs until the agent completes or the caller
-cancels it. Cancellation ends the agent invocation and returns a failed result
-without a response.
+the caller. Claude review's provider-level wait for background subagents and
+workflows has no ceiling, so their results remain part of the final response.
+The runner has no execution deadline, and neither silence nor elapsed time
+indicates failure. It runs until the agent completes or the caller cancels it.
+Cancellation ends the agent invocation and returns a failed result without a
+response.
 
 ## Result
 
@@ -84,9 +86,16 @@ provider stdout is not failure evidence.
 - Codex native review honors the resolved immutable `base` as the exact
   commit-range scope.
 - Claude native review honors the exact resolved commit-range scope.
+- Claude waits for background review work and returns its result rather than a
+  pending-task notification.
 - Claude native `uncommitted` review can inspect every resolved changed path
   without adding committed branch history to the scope.
 - Codex and Claude review invocations, including delegated reviewers, do not run
   repository checks.
 - Claude prompt and review invocations leave the repository unchanged under the
   runner's cooperative protection.
+
+## References
+
+- [Claude Code: background tasks at exit](https://code.claude.com/docs/en/headless#background-tasks-at-exit)
+  — print-mode waiting behavior for background subagents and workflows.
