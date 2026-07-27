@@ -25,7 +25,20 @@ state_value() {
 }
 
 write_value() {
-  printf '%s\n' "$2" >"$state_dir/$1"
+  value_temp="$state_dir/.$1-$$"
+  value_number=0
+  while [ -e "$value_temp" ]; do
+    value_number=$((value_number + 1))
+    value_temp="$state_dir/.$1-$$-$value_number"
+  done
+  if ! printf '%s\n' "$2" >"$value_temp"; then
+    rm -f -- "$value_temp"
+    fail "run state could not write $1"
+  fi
+  if ! mv -f "$value_temp" "$state_dir/$1"; then
+    rm -f -- "$value_temp"
+    fail "run state could not publish $1"
+  fi
 }
 
 load_state() {
@@ -305,9 +318,13 @@ remove_private_stash() {
   private_ref_name="refs/remdo-merge-main/private-${run_saved_ref##*/}/stash"
   private_refs_dir=$(git rev-parse --path-format=absolute \
     --git-path "${private_ref_name%/stash}")
+  private_value=$(git rev-parse --verify --quiet "$private_ref_name" || true)
+  if [ -n "$private_value" ]; then
+    git update-ref -d "$private_ref_name" "$private_value" \
+      || fail "private saved-work ref could not be removed"
+  fi
   [ ! -e "$state_dir/private-stash" ] \
     || rm -rf -- "$state_dir/private-stash"
-  git update-ref -d "$private_ref_name" 2>/dev/null || true
   rmdir "$private_refs_dir" 2>/dev/null || true
 }
 
@@ -359,6 +376,7 @@ preserve_and_integrate() {
   fi
   [ -n "$current_saved" ] \
     || fail "saved-work identity is missing"
+  stash_status=0
   if [ -z "$run_stash" ]; then
     [ "$current_saved" = "$run_start_head" ] \
       || fail "saved-work identity belongs to another run"
@@ -376,7 +394,7 @@ preserve_and_integrate() {
     else
       stash_status=0
     fi
-    if [ "$stash_status" -ne 0 ] || [ -z "$private_saved" ]; then
+    if [ -z "$private_saved" ]; then
       remove_private_stash
       echo "merge-main: local work could not be preserved" >&2
       restore_saved_work stopped
@@ -394,6 +412,11 @@ preserve_and_integrate() {
       || fail "preserved work could not be journaled"
   fi
   remove_private_stash
+  if [ "$stash_status" -ne 0 ]; then
+    echo "merge-main: local work was saved but cleanup failed" >&2
+    restore_saved_work stopped
+    return 1
+  fi
   if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
     echo "merge-main: preservation did not produce a clean committed state" >&2
     restore_saved_work stopped

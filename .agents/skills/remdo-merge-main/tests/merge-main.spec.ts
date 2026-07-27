@@ -347,6 +347,43 @@ describe('merge-main.sh', () => {
     expect(value(run(work, 'finish').stdout, 'STATE')).toBe('merged');
   });
 
+  it('keeps the prior phase when its replacement is interrupted', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    const bin = makeDir('skills-phase-publish-wrapper-');
+    const mvWrapper = path.join(bin, 'mv');
+    writeFile(
+      bin,
+      'mv',
+      [
+        '#!/usr/bin/env sh',
+        'case "${3-}" in',
+        '  */remdo-merge-main/phase)',
+        '    kill -KILL "$PPID"',
+        '    exit 91',
+        '    ;;',
+        'esac',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec mv "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(mvWrapper, 0o755);
+
+    const interrupted = runScript(script, work, ['start'], bin);
+
+    expect(interrupted.status).not.toBe(0);
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+      'integration-ready',
+    );
+    expect(value(run(work, 'continue').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+  });
+
   it('reintegrates the fixed target after verification resets to the start', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
@@ -570,6 +607,47 @@ describe('merge-main.sh', () => {
     ).toBe('');
   });
 
+  it('restores a valid stash when its cleanup reports failure', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'a.md', 'saved work\n');
+    const bin = makeDir('skills-stash-cleanup-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = stash ] && [ "$2" = push ]; then',
+        '  PATH=${PATH#*:}',
+        '  export PATH',
+        '  git "$@"',
+        '  [ "$?" -ne 0 ] || exit 91',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const result = runScript(
+      script,
+      work,
+      ['start', '--preserve'],
+      bin,
+    );
+
+    expect(result.status).not.toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('stopped');
+    expect(result.stderr).toContain('saved but cleanup failed');
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+    expect(
+      git(work, 'for-each-ref', 'refs/remdo-merge-main').stdout,
+    ).toBe('');
+  });
+
   it('resumes after its private stash was created', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'saved work\n');
@@ -615,6 +693,48 @@ describe('merge-main.sh', () => {
     expect(value(run(work, 'continue').stdout, 'STATE')).toBe('up-to-date');
     expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
     expect(git(work, 'stash', 'list').stdout).toBe('');
+    expect(
+      git(work, 'for-each-ref', 'refs/remdo-merge-main').stdout,
+    ).toBe('');
+  });
+
+  it('resumes when private saved-work ref cleanup fails', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'a.md', 'saved work\n');
+    const bin = makeDir('skills-private-ref-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = update-ref ] && [ "$2" = -d ]; then',
+        '  case "$3" in',
+        '    refs/remdo-merge-main/private-*) exit 91 ;;',
+        '  esac',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const interrupted = runScript(
+      script,
+      work,
+      ['start', '--preserve'],
+      bin,
+    );
+
+    expect(interrupted.status).not.toBe(0);
+    expect(interrupted.stderr).toContain('private saved-work ref');
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+      'preservation-needed',
+    );
+    expect(value(run(work, 'continue').stdout, 'STATE')).toBe('up-to-date');
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
     expect(
       git(work, 'for-each-ref', 'refs/remdo-merge-main').stdout,
     ).toBe('');
