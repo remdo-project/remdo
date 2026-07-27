@@ -207,17 +207,19 @@ status_run() {
 }
 
 initialize_state() {
-  mkdir "$state_dir"
-  write_value branch "$run_branch"
-  write_value start-head "$run_start_head"
-  write_value target "$run_target"
-  write_value incoming "$run_incoming"
-  write_value form "$run_form"
-  write_value outcome "$run_outcome"
-  write_value phase "$run_phase"
-  write_value stash "$run_stash"
-  write_value stash-before "$run_stash_before"
-  write_value stash-marker "$run_stash_marker"
+  initial_dir="$state_dir-initial-$$"
+  mkdir "$initial_dir"
+  printf '%s\n' "$run_branch" >"$initial_dir/branch"
+  printf '%s\n' "$run_start_head" >"$initial_dir/start-head"
+  printf '%s\n' "$run_target" >"$initial_dir/target"
+  printf '%s\n' "$run_incoming" >"$initial_dir/incoming"
+  printf '%s\n' "$run_form" >"$initial_dir/form"
+  printf '%s\n' "$run_outcome" >"$initial_dir/outcome"
+  printf '%s\n' "$run_phase" >"$initial_dir/phase"
+  printf '%s\n' "$run_stash" >"$initial_dir/stash"
+  printf '%s\n' "$run_stash_before" >"$initial_dir/stash-before"
+  printf '%s\n' "$run_stash_marker" >"$initial_dir/stash-marker"
+  mv "$initial_dir" "$state_dir"
 }
 
 integrate_target() {
@@ -316,8 +318,9 @@ start_run() {
   operation_in_progress \
     && fail "another Git operation is already in progress"
 
-  git fetch --quiet --no-tags origin refs/heads/main
-  run_target=$(git rev-parse --verify --quiet 'FETCH_HEAD^{commit}') \
+  git fetch --quiet --prune --no-tags origin
+  run_target=$(git rev-parse --verify --quiet \
+    'refs/remotes/origin/main^{commit}') \
     || fail "origin/main not found after fetch"
   git merge-base HEAD "$run_target" >/dev/null 2>&1 \
     || fail "HEAD and origin/main have unrelated histories"
@@ -422,9 +425,15 @@ continue_run() {
 
   git merge-base --is-ancestor "$run_target" HEAD \
     || fail "resolved merge does not contain the fixed target"
-  write_value phase verification
-  run_phase=verification
-  emit_state verification-needed
+  if [ "$run_form" = merge-commit ]; then
+    write_value phase verification
+    run_phase=verification
+    emit_state verification-needed
+  else
+    write_value phase ready-to-restore
+    run_phase=ready-to-restore
+    emit_state finish-needed
+  fi
 }
 
 finish_run() {
@@ -452,18 +461,19 @@ finish_run() {
       fail "run is not ready to finish"
       ;;
   esac
-  if [ "$verification_failed" = yes ]; then
-    [ "$run_phase" = verification ] \
-      || fail "only a verified merge can record verification failure"
-    run_outcome=verification-failed
-    write_value outcome "$run_outcome"
-  fi
+  [ "$verification_failed" = no ] \
+    || [ "$run_phase" = verification ] \
+    || fail "verification failure requires a merge awaiting verification"
   operation_in_progress \
     && fail "a Git operation is still in progress"
   git merge-base --is-ancestor "$run_target" HEAD \
     || fail "branch no longer contains the fixed target"
   [ -z "$(git status --porcelain --untracked-files=normal)" ] \
     || fail "integration state is not clean and committed"
+  if [ "$verification_failed" = yes ]; then
+    run_outcome=verification-failed
+    write_value outcome "$run_outcome"
+  fi
   restore_saved_work "$run_outcome"
 }
 

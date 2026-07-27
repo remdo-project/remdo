@@ -70,6 +70,22 @@ describe('merge-main.sh', () => {
     expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(
       git(origin, 'rev-parse', 'main').stdout,
     );
+    expect(git(work, 'rev-parse', 'origin/main').stdout).toBe(
+      git(origin, 'rev-parse', 'main').stdout,
+    );
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
+  it('ignores an incomplete unpublished state directory', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const incomplete = `${stateDir(work)}-initial-dead`;
+    fs.mkdirSync(incomplete);
+    writeFile(incomplete, 'branch', 'partial\n');
+
+    const result = run(work, 'start');
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('up-to-date');
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
@@ -124,13 +140,15 @@ describe('merge-main.sh', () => {
     );
     writeFile(work, 'unfinished.md', '# unfinished\n');
 
-    const finished = run(work, 'finish');
+    const finished = run(work, 'finish', '--verification-failed');
 
     expect(finished.status).not.toBe(0);
     expect(finished.stderr).toContain('not clean and committed');
     expect(value(run(work, 'status').stdout, 'STATE')).toBe(
       'verification-needed',
     );
+    expect(git(work, 'clean', '-f', '--quiet').status).toBe(0);
+    expect(value(run(work, 'finish').stdout, 'STATE')).toBe('merged');
   });
 
   it('clears completed state while retaining unexpected entries', () => {
@@ -228,6 +246,39 @@ describe('merge-main.sh', () => {
     expect(value(run(work, 'continue').stdout, 'STATE')).toBe(
       'verification-needed',
     );
+  });
+
+  it('continues an interrupted fast-forward without verification', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    advanceOrigin(origin);
+    const bin = makeDir('skills-fast-forward-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = merge ]; then',
+        '  PATH=${PATH#*:}',
+        '  export PATH',
+        '  git "$@"',
+        '  status=$?',
+        '  kill -KILL "$PPID"',
+        '  exit "$status"',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const interrupted = runScript(script, work, ['start'], bin);
+
+    expect(interrupted.status).not.toBe(0);
+    expect(value(run(work, 'continue').stdout, 'STATE')).toBe('finish-needed');
+    expect(value(run(work, 'finish').stdout, 'STATE')).toBe('fast-forwarded');
   });
 
   it('refuses dirty work unless preserve mode is explicit', () => {
