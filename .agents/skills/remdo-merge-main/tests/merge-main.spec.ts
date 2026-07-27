@@ -151,6 +151,25 @@ describe('merge-main.sh', () => {
     expect(value(run(work, 'finish').stdout, 'STATE')).toBe('merged');
   });
 
+  it('refuses to finish after the branch loses its original head', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    const started = run(work, 'start');
+    expect(value(started.stdout, 'STATE')).toBe('verification-needed');
+    const target = value(started.stdout, 'TARGET')!;
+    expect(git(work, 'reset', '--hard', '--quiet', target).status).toBe(0);
+
+    const finished = run(work, 'finish');
+
+    expect(finished.status).not.toBe(0);
+    expect(finished.stderr).toContain('no longer contains its original head');
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+  });
+
   it('clears completed state while retaining unexpected entries', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
@@ -369,6 +388,9 @@ describe('merge-main.sh', () => {
     expect(
       git(path.join(work, 'nested'), 'diff', '--name-only').stdout.trim(),
     ).toBe('nested.md');
+    expect(
+      git(work, 'for-each-ref', 'refs/remdo-merge-main').stdout,
+    ).toBe('');
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
@@ -407,6 +429,88 @@ describe('merge-main.sh', () => {
     expect(value(run(work, 'continue').stdout, 'STATE')).toBe('up-to-date');
     expect(git(work, 'diff', '--name-only').stdout.trim()).toBe('a.md');
     expect(git(work, 'stash', 'list').stdout).toBe('');
+  });
+
+  it('resumes preservation after its shared stash entry was dropped', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'a.md', 'saved work\n');
+    const bin = makeDir('skills-stash-drop-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = stash ] && [ "$2" = drop ]; then',
+        '  PATH=${PATH#*:}',
+        '  export PATH',
+        '  git "$@"',
+        '  status=$?',
+        '  [ "$status" -ne 0 ] || kill -KILL "$PPID"',
+        '  exit "$status"',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const interrupted = runScript(
+      script,
+      work,
+      ['start', '--preserve'],
+      bin,
+    );
+
+    expect(interrupted.status).not.toBe(0);
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+      'preservation-needed',
+    );
+    expect(git(work, 'stash', 'list').stdout).toBe('');
+    expect(value(run(work, 'continue').stdout, 'STATE')).toBe('up-to-date');
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
+    expect(git(work, 'stash', 'list').stdout).toBe('');
+    expect(
+      git(work, 'for-each-ref', 'refs/remdo-merge-main').stdout,
+    ).toBe('');
+  });
+
+  it('does not reuse a retained saved-work identity', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'a.md', 'old work\n');
+    expect(git(work, 'stash', 'push', '--quiet').status).toBe(0);
+    const oldStash = git(work, 'rev-parse', 'refs/stash').stdout.trim();
+    expect(git(work, 'stash', 'drop', '--quiet').status).toBe(0);
+    writeFile(work, 'a.md', 'current work\n');
+    const wrapperDir = makeDir('skills-saved-ref-collision-');
+    const wrapper = path.join(wrapperDir, 'run.sh');
+    writeFile(
+      wrapperDir,
+      'run.sh',
+      [
+        '#!/usr/bin/env sh',
+        'target=$(git rev-parse origin/main)',
+        'git update-ref "refs/remdo-merge-main/saved-$target-$$" "$OLD_STASH"',
+        'exec sh "$MERGE_MAIN_SCRIPT" start --preserve',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(wrapper, 0o755);
+
+    const result = runScript(wrapper, work, [], undefined, {
+      MERGE_MAIN_SCRIPT: script,
+      OLD_STASH: oldStash,
+    });
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('up-to-date');
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('current work\n');
+    expect(
+      git(work, 'for-each-ref', '--format=%(objectname)', 'refs/remdo-merge-main')
+        .stdout.trim(),
+    ).toBe(oldStash);
   });
 
   it('keeps preserved work separate from another worktree stash', () => {

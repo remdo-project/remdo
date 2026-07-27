@@ -41,7 +41,6 @@ load_state() {
   run_phase=$(state_value phase)
   run_stash=$(state_value stash)
   run_saved_ref=$(state_value saved-ref)
-  run_stash_before=$(state_value stash-before)
   run_stash_marker=$(state_value stash-marker)
 }
 
@@ -70,7 +69,6 @@ clear_state() {
     "$state_dir/phase" \
     "$state_dir/stash" \
     "$state_dir/saved-ref" \
-    "$state_dir/stash-before" \
     "$state_dir/stash-marker"
   if ! rmdir "$state_dir"; then
     leftover_dir="$state_dir-leftovers-$$"
@@ -144,7 +142,7 @@ stash_entry_for_marker() {
 
 remove_shared_stash() {
   entry=$(stash_entry_for_marker "$run_stash_marker")
-  [ -n "$entry" ] || return
+  [ -n "$entry" ] || return 0
   entry_hash=${entry%% *}
   rest=${entry#* }
   entry_ref=${rest%% *}
@@ -164,6 +162,14 @@ restore_saved_work() {
   run_outcome=$final_state
   write_value outcome "$run_outcome"
   if [ -z "$run_stash" ]; then
+    if [ -n "$run_saved_ref" ]; then
+      saved=$(git rev-parse --verify --quiet "$run_saved_ref" || true)
+      if [ -n "$saved" ]; then
+        [ "$saved" = "$run_start_head" ] \
+          || fail "saved-work reservation belongs to another run"
+        git update-ref -d "$run_saved_ref" "$run_start_head"
+      fi
+    fi
     clear_state
     emit_state "$final_state"
     return
@@ -269,9 +275,26 @@ initialize_state() {
   printf '%s\n' "$run_phase" >"$initial_dir/phase"
   printf '%s\n' "$run_stash" >"$initial_dir/stash"
   printf '%s\n' "$run_saved_ref" >"$initial_dir/saved-ref"
-  printf '%s\n' "$run_stash_before" >"$initial_dir/stash-before"
   printf '%s\n' "$run_stash_marker" >"$initial_dir/stash-marker"
   mv -T "$initial_dir" "$state_dir"
+}
+
+reserve_saved_ref() {
+  saved_ref_base="refs/remdo-merge-main/saved-$run_target-$$"
+  saved_ref_suffix=
+  saved_ref_number=0
+  while :; do
+    candidate="$saved_ref_base$saved_ref_suffix"
+    if git update-ref "$candidate" "$run_start_head" "" 2>/dev/null; then
+      run_saved_ref=$candidate
+      run_stash_marker="remdo-merge-main-${candidate##*/}"
+      return
+    fi
+    git rev-parse --verify --quiet "$candidate" >/dev/null \
+      || fail "saved-work identity could not be reserved"
+    saved_ref_number=$((saved_ref_number + 1))
+    saved_ref_suffix="-$saved_ref_number"
+  done
 }
 
 integrate_target() {
@@ -311,9 +334,13 @@ integrate_target() {
 }
 
 preserve_and_integrate() {
-  acquire_stash_lock
-  current_stash=$(git rev-parse --verify --quiet "$run_saved_ref" || true)
-  if [ -z "$current_stash" ]; then
+  [ "$stash_lock_held" = yes ] || acquire_stash_lock
+  current_saved=$(git rev-parse --verify --quiet "$run_saved_ref" || true)
+  [ -n "$current_saved" ] \
+    || fail "saved-work identity is missing"
+  if [ -z "$run_stash" ]; then
+    [ "$current_saved" = "$run_start_head" ] \
+      || fail "saved-work identity belongs to another run"
     entry=$(stash_entry_for_marker "$run_stash_marker")
     if [ -z "$entry" ]; then
       git stash push --quiet --include-untracked \
@@ -326,14 +353,19 @@ preserve_and_integrate() {
       restore_saved_work stopped
       return 1
     fi
-    current_stash=${entry%% *}
-    git update-ref "$run_saved_ref" "$current_stash" ""
+    run_stash=${entry%% *}
+    write_value stash "$run_stash"
+  elif [ "$current_saved" != "$run_start_head" ] \
+    && [ "$current_saved" != "$run_stash" ]; then
+    fail "saved-work identity does not match preserved work"
   fi
 
-  run_stash=$current_stash
+  if [ "$current_saved" = "$run_start_head" ]; then
+    git update-ref "$run_saved_ref" "$run_stash" "$run_start_head" \
+      || fail "preserved work could not be journaled"
+  fi
   remove_shared_stash
   release_stash_lock
-  write_value stash "$run_stash"
   if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
     echo "merge-main: preservation did not produce a clean committed state" >&2
     restore_saved_work stopped
@@ -410,13 +442,11 @@ start_run() {
 
   run_stash=
   run_saved_ref=
-  run_stash_before=
   run_stash_marker=
   if [ "$preserve" = yes ] && [ -n "$dirty" ]; then
     run_phase=preserving
-    run_stash_before=$(git rev-parse --verify --quiet refs/stash || true)
-    run_stash_marker="remdo-merge-main-$run_target-$$"
-    run_saved_ref="refs/remdo-merge-main/saved-$run_target-$$"
+    acquire_stash_lock
+    reserve_saved_ref
   else
     run_phase=prepared
   fi
@@ -522,6 +552,8 @@ finish_run() {
     && fail "a Git operation is still in progress"
   git merge-base --is-ancestor "$run_target" HEAD \
     || fail "branch no longer contains the fixed target"
+  git merge-base --is-ancestor "$run_start_head" HEAD \
+    || fail "branch no longer contains its original head"
   [ -z "$(git status --porcelain --untracked-files=normal)" ] \
     || fail "integration state is not clean and committed"
   if [ "$verification_failed" = yes ]; then
