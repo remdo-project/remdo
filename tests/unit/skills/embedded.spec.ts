@@ -15,7 +15,7 @@ import '../../../.agents/skills/_shared/tests/read-only-runner.spec';
 import '../../../.agents/skills/remdo-deps-refresh/tests/bump-action-majors.spec';
 import '../../../.agents/skills/remdo-deps-refresh/tests/start-refresh-branch.spec';
 import '../../../.agents/skills/_shared/tests/resolve-scope.spec';
-import '../../../.agents/skills/remdo-sync/tests/sync-probe.spec';
+import '../../../.agents/skills/remdo-merge-main/tests/merge-main.spec';
 
 describe('skill-local spec bridge', () => {
   it('imports every spec under canonical hidden skill roots', () => {

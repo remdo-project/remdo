@@ -31,8 +31,8 @@
     ".claude/skills/remdo-converge-change",
     ".claude/skills/remdo-deps-refresh",
     ".claude/skills/remdo-docs-align",
-    ".claude/skills/remdo-verify-change",
-    ".claude/skills/remdo-sync"
+    ".claude/skills/remdo-merge-main",
+    ".claude/skills/remdo-verify-change"
   ],
   // Link/anchor validation rides markdownlint's own parser:
   // relative-link existence + `#fragment` heading match (MD051-style),

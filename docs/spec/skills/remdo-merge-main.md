@@ -49,10 +49,10 @@ the result without rolling back the merge.
 
 ## Authority
 
-Invocation supplies the [repository action
-authority](../../../AGENTS.md#safety--process) for the branch update, merge and
-correction commits, and determined conflict resolutions. Explicit preserve mode
-additionally authorizes saving and restoring local work.
+The skill declares the [autonomous
+scope](../../../AGENTS.md#safety--process) for the branch update, merge and
+correction commits, and determined conflict resolutions. Preserve mode also
+covers saving and restoring local work.
 
 ## Result
 
