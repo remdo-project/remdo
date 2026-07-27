@@ -26,6 +26,7 @@ Set `runner` to
 - On `STATE=restore-ready`, run `sh "$runner" complete-restore`.
 - On `STATE=restore-conflicted`, continue under
   [Restoration](#restoration).
+- On `STATE=restore-uncertain`, continue under [Restoration](#restoration).
 - On any other unfinished or invalid state, report the runner output and stop.
 
 Trust the runner's fixed target, merge form, incoming count, preservation
@@ -58,10 +59,12 @@ without changing unrelated code.
 The runner restores preserved work only after integration verification
 finishes. On `STATE=restore-conflicted`, use the reported saved-work commit to
 resolve only what repository evidence determines, including its staged versus
-unstaged intent. Then run `sh "$runner" complete-restore`.
+unstaged intent. On `STATE=restore-uncertain`, verify the restored work against
+that commit. Then run `sh "$runner" complete-restore`.
 
-The runner retains saved work after a manually resolved restoration conflict.
-Leave an uncertain conflict resumable; do not drop or replace the saved work.
+The runner retains saved work after a manually resolved or interrupted
+restoration. Leave an uncertain conflict resumable; do not drop or replace the
+saved work.
 
 ## Authority
 
