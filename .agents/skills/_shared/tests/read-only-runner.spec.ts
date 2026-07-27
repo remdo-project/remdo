@@ -462,6 +462,7 @@ describe('read-only runner CLI', () => {
       '[ -z "$' + '{GIT_WORK_TREE+x}" ]',
       'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
       'printf \'%s\\n\' "$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0" > "$RUNNER_STUB_CAPTURE/git-env"',
+      'printf \'%s\' "$CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS" > "$RUNNER_STUB_CAPTURE/background-wait"',
       claudeReviewResult('No findings.'),
     ]);
 
@@ -475,6 +476,7 @@ describe('read-only runner CLI', () => {
         GIT_CONFIG_VALUE_0: '*',
         GIT_DIR: '/must/not/be-used',
         GIT_WORK_TREE: '/must/not/be-used',
+        CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: '123',
       },
     );
 
@@ -495,6 +497,10 @@ describe('read-only runner CLI', () => {
     expect(argv).toContain('stream-json');
     expect(argv).toContain('--verbose');
     expect(argv).not.toContain('json');
+    expect(argv).not.toContain('--json-schema');
+    expect(
+      fs.readFileSync(path.join(stub, 'background-wait'), 'utf8'),
+    ).toBe('0');
     const input = fs.readFileSync(path.join(stub, 'stdin'), 'utf8');
     expect(input).toBe(
       '/code-review "candidate.md" "deleted.md" "staged.md" '
@@ -656,7 +662,7 @@ describe('read-only runner CLI', () => {
     expect(result.stdout).toBe('No findings.');
   });
 
-  it('uses the first init event and terminal result in a delegated review stream', () => {
+  it('uses the first init and terminal top-level result in a delegated review stream', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     writeFile(work, 'tracked.md', 'changed\n');
     const init = {
@@ -672,8 +678,21 @@ describe('read-only runner CLI', () => {
           subtype: 'success',
           is_error: false,
           result: 'Delegated result.',
+          parent_tool_use_id: 'delegated-review',
         },
         init,
+        {
+          type: 'system',
+          subtype: 'task_notification',
+          task_id: 'reviewer',
+        },
+        {
+          type: 'result',
+          subtype: 'success',
+          is_error: false,
+          result: 'Late delegated result.',
+          parent_tool_use_id: 'late-delegated-review',
+        },
         {
           type: 'result',
           subtype: 'success',
@@ -714,14 +733,56 @@ describe('read-only runner CLI', () => {
           slash_commands: ['code-review'],
         }))
       }`,
-      evidence: 'did not end with a result event',
+      evidence: 'did not end with a top-level result event',
     },
     {
-      body: claudeReviewResult('Failed.', ['code-review'], {
+      body: claudeStream(
+        {
+          type: 'system',
+          subtype: 'init',
+          slash_commands: ['code-review'],
+        },
+        {
+          type: 'result',
+          subtype: 'success',
+          is_error: false,
+          result: 'Premature result.',
+        },
+        {
+          type: 'system',
+          subtype: 'task_notification',
+          task_id: 'reviewer',
+        },
+      ),
+      evidence: 'did not end with a top-level result event',
+    },
+    {
+      body: claudeStream(
+        {
+          type: 'system',
+          subtype: 'init',
+          slash_commands: ['code-review'],
+        },
+        {
+          type: 'result',
+          subtype: 'success',
+          is_error: false,
+          result: 'Delegated result.',
+          parent_tool_use_id: 'delegated-review',
+        },
+      ),
+      evidence: 'did not end with a top-level result event',
+    },
+    {
+      body: claudeReviewResult('Failed.', ['/code-review'], {
         subtype: 'error_during_execution',
         is_error: true,
       }),
       evidence: 'did not return a successful result envelope',
+    },
+    {
+      body: claudeReviewResult(' \n\t'),
+      evidence: 'completed without a final text response',
     },
   ])('rejects an invalid Claude review stream: $evidence', ({ body, evidence }) => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
