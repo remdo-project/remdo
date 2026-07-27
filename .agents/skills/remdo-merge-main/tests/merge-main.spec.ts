@@ -144,10 +144,14 @@ describe('merge-main.sh', () => {
     );
 
     expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('another remdo-merge-main run');
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
     expect(
       git(work, 'for-each-ref', 'refs/remdo-merge-main').stdout,
     ).toBe('');
+    expect(
+      fs.globSync(`${stateDir(work)}-initial-*`),
+    ).toHaveLength(0);
     expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
   });
 
@@ -527,7 +531,7 @@ describe('merge-main.sh', () => {
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
-  it('journals preservation before invoking stash and resumes it', () => {
+  it('stops safely when local work cannot be stashed', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'saved work\n');
     const bin = makeDir('skills-stash-wrapper-');
@@ -556,12 +560,14 @@ describe('merge-main.sh', () => {
     );
 
     expect(interrupted.status).not.toBe(0);
-    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
-      'preservation-needed',
-    );
-    expect(value(run(work, 'continue').stdout, 'STATE')).toBe('up-to-date');
+    expect(value(interrupted.stdout, 'STATE')).toBe('stopped');
+    expect(interrupted.stderr).toContain('could not be preserved');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
     expect(git(work, 'diff', '--name-only').stdout.trim()).toBe('a.md');
     expect(git(work, 'stash', 'list').stdout).toBe('');
+    expect(
+      git(work, 'for-each-ref', 'refs/remdo-merge-main').stdout,
+    ).toBe('');
   });
 
   it('resumes after its private stash was created', () => {
@@ -994,6 +1000,26 @@ describe('merge-main.sh', () => {
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('another Git operation');
+  });
+
+  it('refuses unresolved paths without a recorded Git operation', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    expect(git(work, 'switch', '--quiet', '-c', 'other').status).toBe(0);
+    writeFile(work, 'a.md', 'other\n');
+    commitAll(work, 'other');
+    expect(git(work, 'switch', '--quiet', 'main').status).toBe(0);
+    writeFile(work, 'a.md', 'main\n');
+    commitAll(work, 'main');
+    expect(git(work, 'merge', '--quiet', 'other').status).not.toBe(0);
+    const mergeHead = git(work, 'rev-parse', '--git-path', 'MERGE_HEAD')
+      .stdout.trim();
+    fs.rmSync(path.join(work, mergeHead));
+
+    const result = run(work, 'start', '--preserve');
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('unresolved paths');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
   it('refuses a missing origin and a non-repository', () => {

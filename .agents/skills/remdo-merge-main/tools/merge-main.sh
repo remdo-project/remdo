@@ -240,7 +240,10 @@ initialize_state() {
   printf '%s\n' "$run_phase" >"$initial_dir/phase"
   printf '%s\n' "$run_stash" >"$initial_dir/stash"
   printf '%s\n' "$run_saved_ref" >"$initial_dir/saved-ref"
-  mv -T "$initial_dir" "$state_dir"
+  if ! mv -T "$initial_dir" "$state_dir"; then
+    rm -rf -- "$initial_dir"
+    fail "another remdo-merge-main run started concurrently"
+  fi
 }
 
 reserve_saved_ref() {
@@ -362,13 +365,18 @@ preserve_and_integrate() {
     prepare_private_stash
     private_saved=$(private_stash_git rev-parse --verify --quiet refs/stash || true)
     if [ -z "$private_saved" ]; then
+      set +e
       private_stash_git stash push --quiet --include-untracked \
         --message remdo-merge-main
+      stash_status=$?
+      set -e
       private_saved=$(
         private_stash_git rev-parse --verify --quiet refs/stash || true
       )
+    else
+      stash_status=0
     fi
-    if [ -z "$private_saved" ]; then
+    if [ "$stash_status" -ne 0 ] || [ -z "$private_saved" ]; then
       remove_private_stash
       echo "merge-main: local work could not be preserved" >&2
       restore_saved_work stopped
@@ -418,6 +426,8 @@ start_run() {
   run_start_head=$(git rev-parse --verify HEAD)
   operation_in_progress \
     && fail "another Git operation is already in progress"
+  has_unmerged_paths \
+    && fail "working tree has unresolved paths"
 
   git fetch --quiet --prune --no-tags origin
   run_target=$(git rev-parse --verify --quiet \
