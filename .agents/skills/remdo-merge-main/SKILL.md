@@ -60,7 +60,7 @@ The runner restores preserved work only after integration verification
 finishes. On `STATE=restore-conflicted`, use the reported saved-work commit to
 resolve only what repository evidence determines, including its staged versus
 unstaged intent. On `STATE=restore-uncertain`, verify the restored work against
-that commit. Then run `sh "$runner" complete-restore`.
+that commit. Then run `sh "$runner" complete-restore --resolved`.
 
 The runner retains saved work after a manually resolved or interrupted
 restoration. Leave an uncertain conflict resumable; do not drop or replace the

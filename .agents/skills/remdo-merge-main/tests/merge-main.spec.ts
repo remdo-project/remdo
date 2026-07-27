@@ -89,6 +89,32 @@ describe('merge-main.sh', () => {
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
+  it('does not reuse an unpublished state directory from an older PID', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const wrapperDir = makeDir('skills-initial-state-collision-');
+    const wrapper = path.join(wrapperDir, 'run.sh');
+    writeFile(
+      wrapperDir,
+      'run.sh',
+      [
+        '#!/usr/bin/env sh',
+        'state=$(git rev-parse --path-format=absolute --git-path remdo-merge-main)',
+        'mkdir "$state-initial-$$"',
+        'exec sh "$MERGE_MAIN_SCRIPT" start',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(wrapper, 0o755);
+
+    const result = runScript(wrapper, work, [], undefined, {
+      MERGE_MAIN_SCRIPT: script,
+    });
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('up-to-date');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
   it('publishes no saved ref when run-state initialization fails', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'saved work\n');
@@ -500,7 +526,7 @@ describe('merge-main.sh', () => {
     expect(git(work, 'stash', 'list').stdout).toBe('');
   });
 
-  it('resumes preservation after its shared stash entry was dropped', () => {
+  it('resumes after its private stash was created', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'saved work\n');
     const bin = makeDir('skills-stash-drop-wrapper-');
@@ -510,7 +536,7 @@ describe('merge-main.sh', () => {
       'git',
       [
         '#!/usr/bin/env sh',
-        'if [ "$1" = stash ] && [ "$2" = drop ]; then',
+        'if [ "$1" = stash ] && [ "$2" = push ]; then',
         '  PATH=${PATH#*:}',
         '  export PATH',
         '  git "$@"',
@@ -744,7 +770,7 @@ describe('merge-main.sh', () => {
     writeFile(work, 'a.md', 'resolved dirty\n');
     expect(git(work, 'add', 'a.md').status).toBe(0);
     expect(git(work, 'reset', '--quiet', '--', 'a.md').status).toBe(0);
-    const completed = run(work, 'complete-restore');
+    const completed = run(work, 'complete-restore', '--resolved');
 
     expect(completed.status).toBe(0);
     expect(value(completed.stdout, 'STATE')).toBe('fast-forwarded');
@@ -777,6 +803,30 @@ describe('merge-main.sh', () => {
       git(work, 'for-each-ref', '--format=%(objectname)', 'refs/remdo-merge-main')
         .stdout,
     ).toContain(saved);
+  });
+
+  it('requires resolved untracked restoration conflicts to be acknowledged', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    pushChange(origin, { 'new.md': 'upstream\n' });
+    writeFile(work, 'new.md', 'saved work\n');
+
+    const started = run(work, 'start', '--preserve');
+
+    expect(started.status).toBe(0);
+    expect(value(started.stdout, 'STATE')).toBe('restore-conflicted');
+    expect(git(work, 'diff', '--name-only', '--diff-filter=U').stdout).toBe('');
+    const premature = run(work, 'complete-restore');
+    expect(premature.status).not.toBe(0);
+    expect(premature.stderr).toContain('requires --resolved');
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+      'restore-conflicted',
+    );
+
+    writeFile(work, 'new.md', 'saved work\n');
+    const completed = run(work, 'complete-restore', '--resolved');
+    expect(completed.status).toBe(0);
+    expect(value(completed.stdout, 'STATE')).toBe('fast-forwarded');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
   it('reports an interrupted successful restoration as uncertain', () => {
@@ -817,7 +867,7 @@ describe('merge-main.sh', () => {
     expect(value(run(work, 'continue').stdout, 'STATE')).toBe(
       'restore-uncertain',
     );
-    const completed = run(work, 'complete-restore');
+    const completed = run(work, 'complete-restore', '--resolved');
     expect(value(completed.stdout, 'STATE')).toBe('up-to-date');
     expect(value(completed.stdout, 'STASH')).toBeTruthy();
   });
@@ -855,7 +905,7 @@ describe('merge-main.sh', () => {
     expect(started.status).not.toBe(0);
     expect(value(started.stdout, 'STATE')).toBe('restore-conflicted');
     writeFile(work, 'a.md', 'resolved work\n');
-    const completed = run(work, 'complete-restore');
+    const completed = run(work, 'complete-restore', '--resolved');
     expect(value(completed.stdout, 'STATE')).toBe('stopped');
   });
 

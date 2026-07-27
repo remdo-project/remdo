@@ -5,7 +5,7 @@
 #   merge-main.sh start [--preserve]
 #   merge-main.sh continue
 #   merge-main.sh finish [--verification-failed]
-#   merge-main.sh complete-restore
+#   merge-main.sh complete-restore [--resolved]
 set -eu
 
 fail() {
@@ -17,9 +17,6 @@ git rev-parse --git-dir >/dev/null 2>&1 \
   || fail "not a git repository"
 
 state_dir=$(git rev-parse --path-format=absolute --git-path remdo-merge-main)
-stash_lock_ref=refs/remdo-merge-main/preservation-lock
-stash_lock_held=no
-stash_lock_owner=
 
 state_value() {
   [ -f "$state_dir/$1" ] \
@@ -41,7 +38,6 @@ load_state() {
   run_phase=$(state_value phase)
   run_stash=$(state_value stash)
   run_saved_ref=$(state_value saved-ref)
-  run_stash_marker=$(state_value stash-marker)
 }
 
 emit_state() {
@@ -76,8 +72,7 @@ clear_state() {
     "$completed_dir/outcome" \
     "$completed_dir/phase" \
     "$completed_dir/stash" \
-    "$completed_dir/saved-ref" \
-    "$completed_dir/stash-marker"
+    "$completed_dir/saved-ref"
   if ! rmdir "$completed_dir"; then
     leftover_dir="$state_dir-leftovers-$$"
     mv "$completed_dir" "$leftover_dir"
@@ -108,79 +103,6 @@ operation_in_progress() {
     || [ -d "$(git rev-parse --git-path rebase-apply)" ] \
     || [ -d "$(git rev-parse --git-path rebase-merge)" ] \
     || [ -d "$(git rev-parse --git-path sequencer)" ]
-}
-
-release_stash_lock() {
-  if [ "$stash_lock_held" = yes ]; then
-    git update-ref -d "$stash_lock_ref" "$stash_lock_owner" 2>/dev/null || true
-    stash_lock_held=no
-  fi
-}
-
-process_start_time() {
-  sed 's/.*) //' "/proc/$1/stat" 2>/dev/null | awk '{print $20}'
-}
-
-acquire_stash_lock() {
-  owner_start=$(process_start_time "$$" || true)
-  stash_lock_owner=$(printf '%s %s\n' "$$" "$owner_start" \
-    | git hash-object -w --stdin) \
-    || fail "preservation lock owner could not be created"
-  while :; do
-    current_owner=$(git rev-parse --verify --quiet "$stash_lock_ref" || true)
-    if [ -z "$current_owner" ]; then
-      if git update-ref "$stash_lock_ref" "$stash_lock_owner" "" 2>/dev/null; then
-        break
-      fi
-      continue
-    fi
-    lock_identity=$(git cat-file blob "$current_owner" 2>/dev/null) \
-      || fail "preservation lock has an invalid owner"
-    lock_pid=${lock_identity%% *}
-    lock_start=${lock_identity#* }
-    case "$lock_pid" in
-      ''|*[!0-9]*)
-        fail "preservation lock has an invalid owner"
-        ;;
-    esac
-    if kill -0 "$lock_pid" 2>/dev/null; then
-      actual_start=$(process_start_time "$lock_pid" || true)
-      if [ -z "$lock_start" ] \
-        || [ -z "$actual_start" ] \
-        || [ "$actual_start" = "$lock_start" ]; then
-        fail "another worktree is preserving local work"
-      fi
-    fi
-    if git update-ref \
-      "$stash_lock_ref" "$stash_lock_owner" "$current_owner" 2>/dev/null; then
-      break
-    fi
-  done
-  stash_lock_held=yes
-  trap 'release_stash_lock' EXIT
-  trap 'release_stash_lock; exit 1' HUP INT TERM
-}
-
-stash_entry_for_marker() {
-  marker=$1
-  tab=$(printf '\t')
-  git stash list --format='%H%x09%gd%x09%gs' \
-    | while IFS="$tab" read -r entry_hash entry_ref entry_subject; do
-      [ "${entry_subject#*: }" = "$marker" ] || continue
-      printf '%s %s %s\n' "$entry_hash" "$entry_ref" "$entry_subject"
-      break
-    done
-}
-
-remove_shared_stash() {
-  entry=$(stash_entry_for_marker "$run_stash_marker")
-  [ -n "$entry" ] || return 0
-  entry_hash=${entry%% *}
-  rest=${entry#* }
-  entry_ref=${rest%% *}
-  [ "$entry_hash" = "$run_stash" ] \
-    || fail "preserved work does not match its shared stash entry"
-  git stash drop --quiet "$entry_ref"
 }
 
 drop_saved_work() {
@@ -297,6 +219,11 @@ status_run() {
 
 initialize_state() {
   initial_dir="$state_dir-initial-$$"
+  initial_number=0
+  while [ -e "$initial_dir" ]; do
+    initial_number=$((initial_number + 1))
+    initial_dir="$state_dir-initial-$$-$initial_number"
+  done
   mkdir "$initial_dir"
   printf '%s\n' "$run_branch" >"$initial_dir/branch"
   printf '%s\n' "$run_start_head" >"$initial_dir/start-head"
@@ -307,7 +234,6 @@ initialize_state() {
   printf '%s\n' "$run_phase" >"$initial_dir/phase"
   printf '%s\n' "$run_stash" >"$initial_dir/stash"
   printf '%s\n' "$run_saved_ref" >"$initial_dir/saved-ref"
-  printf '%s\n' "$run_stash_marker" >"$initial_dir/stash-marker"
   mv -T "$initial_dir" "$state_dir"
 }
 
@@ -326,8 +252,6 @@ reserve_saved_ref() {
       continue
     fi
     run_saved_ref=$candidate
-    run_stash_marker="remdo-merge-main-${candidate##*/}"
-    write_value stash-marker "$run_stash_marker"
     write_value saved-ref "$run_saved_ref"
     if git update-ref "$candidate" "$run_start_head" "" 2>/dev/null; then
       return
@@ -337,6 +261,30 @@ reserve_saved_ref() {
     saved_ref_number=$((saved_ref_number + 1))
     saved_ref_suffix="-$saved_ref_number"
   done
+}
+
+prepare_private_stash() {
+  private_stash_dir="$state_dir/private-stash"
+  private_work_tree=$(git rev-parse --show-toplevel)
+  private_index=$(git rev-parse --path-format=absolute --git-path index)
+  private_objects=$(git rev-parse --path-format=absolute --git-path objects)
+  if [ ! -d "$private_stash_dir" ]; then
+    mkdir -p "$private_stash_dir/objects" "$private_stash_dir/refs"
+    printf '%s\n' "$run_start_head" >"$private_stash_dir/HEAD"
+  fi
+}
+
+private_stash_git() {
+  GIT_DIR="$private_stash_dir" \
+  GIT_WORK_TREE="$private_work_tree" \
+  GIT_INDEX_FILE="$private_index" \
+  GIT_OBJECT_DIRECTORY="$private_objects" \
+    git "$@"
+}
+
+remove_private_stash() {
+  [ ! -e "$state_dir/private-stash" ] \
+    || rm -rf -- "$state_dir/private-stash"
 }
 
 integrate_target() {
@@ -376,7 +324,6 @@ integrate_target() {
 }
 
 preserve_and_integrate() {
-  [ "$stash_lock_held" = yes ] || acquire_stash_lock
   if [ -z "$run_saved_ref" ]; then
     reserve_saved_ref
   fi
@@ -391,19 +338,22 @@ preserve_and_integrate() {
   if [ -z "$run_stash" ]; then
     [ "$current_saved" = "$run_start_head" ] \
       || fail "saved-work identity belongs to another run"
-    entry=$(stash_entry_for_marker "$run_stash_marker")
-    if [ -z "$entry" ]; then
-      git stash push --quiet --include-untracked \
-        --message "$run_stash_marker"
-      entry=$(stash_entry_for_marker "$run_stash_marker")
+    prepare_private_stash
+    private_saved=$(private_stash_git rev-parse --verify --quiet refs/stash || true)
+    if [ -z "$private_saved" ]; then
+      private_stash_git stash push --quiet --include-untracked \
+        --message remdo-merge-main
+      private_saved=$(
+        private_stash_git rev-parse --verify --quiet refs/stash || true
+      )
     fi
-    if [ -z "$entry" ]; then
-      release_stash_lock
+    if [ -z "$private_saved" ]; then
+      remove_private_stash
       echo "merge-main: local work could not be preserved" >&2
       restore_saved_work stopped
       return 1
     fi
-    run_stash=${entry%% *}
+    run_stash=$private_saved
     write_value stash "$run_stash"
   elif [ "$current_saved" != "$run_start_head" ] \
     && [ "$current_saved" != "$run_stash" ]; then
@@ -414,8 +364,7 @@ preserve_and_integrate() {
     git update-ref "$run_saved_ref" "$run_stash" "$run_start_head" \
       || fail "preserved work could not be journaled"
   fi
-  remove_shared_stash
-  release_stash_lock
+  remove_private_stash
   if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
     echo "merge-main: preservation did not produce a clean committed state" >&2
     restore_saved_work stopped
@@ -492,7 +441,6 @@ start_run() {
 
   run_stash=
   run_saved_ref=
-  run_stash_marker=
   if [ "$preserve" = yes ] && [ -n "$dirty" ]; then
     run_phase=preserving
   else
@@ -612,6 +560,19 @@ finish_run() {
 }
 
 complete_restore() {
+  resolved=no
+  case "${1-}" in
+    "")
+      ;;
+    --resolved)
+      resolved=yes
+      ;;
+    *)
+      fail "usage: merge-main.sh complete-restore [--resolved]"
+      ;;
+  esac
+  [ "$#" -le 1 ] \
+    || fail "usage: merge-main.sh complete-restore [--resolved]"
   [ -d "$state_dir" ] \
     || fail "no remdo-merge-main run exists"
   load_state
@@ -623,6 +584,13 @@ complete_restore() {
       fail "run is not waiting for restoration resolution"
       ;;
   esac
+  if [ "$run_phase" = restore-applied ]; then
+    [ "$resolved" = no ] \
+      || fail "--resolved requires a conflicted or uncertain restoration"
+  else
+    [ "$resolved" = yes ] \
+      || fail "conflicted or uncertain restoration requires --resolved"
+  fi
   has_unmerged_paths \
     && fail "restoration still has unmerged paths"
   [ -n "$run_stash" ] \
@@ -655,9 +623,8 @@ case "$command" in
     finish_run "$@"
     ;;
   complete-restore)
-    [ "$#" -eq 1 ] \
-      || fail "usage: merge-main.sh complete-restore"
-    complete_restore
+    shift
+    complete_restore "$@"
     ;;
   *)
     fail "usage: merge-main.sh <status|start|continue|finish|complete-restore>"
