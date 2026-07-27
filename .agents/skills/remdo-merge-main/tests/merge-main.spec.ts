@@ -89,6 +89,42 @@ describe('merge-main.sh', () => {
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
+  it('publishes no saved ref when run-state initialization fails', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'a.md', 'saved work\n');
+    const bin = makeDir('skills-state-publish-wrapper-');
+    const mvWrapper = path.join(bin, 'mv');
+    writeFile(
+      bin,
+      'mv',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = -T ] && [ "${3##*/}" = remdo-merge-main ]; then',
+        '  exit 91',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec mv "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(mvWrapper, 0o755);
+
+    const result = runScript(
+      script,
+      work,
+      ['start', '--preserve'],
+      bin,
+    );
+
+    expect(result.status).not.toBe(0);
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+    expect(
+      git(work, 'for-each-ref', 'refs/remdo-merge-main').stdout,
+    ).toBe('');
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
+  });
+
   it('holds a merge commit for verification and keeps its target pinned', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
@@ -189,6 +225,39 @@ describe('merge-main.sh', () => {
     expect(
       fs.globSync(`${stateDir(work)}-leftovers-*`),
     ).toHaveLength(1);
+  });
+
+  it('retires completed state before deleting its fields', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const bin = makeDir('skills-state-clear-wrapper-');
+    const rmWrapper = path.join(bin, 'rm');
+    writeFile(
+      bin,
+      'rm',
+      [
+        '#!/usr/bin/env sh',
+        'case "$*" in',
+        '  *remdo-merge-main*/branch*)',
+        '    PATH=${PATH#*:}',
+        '    export PATH',
+        '    rm "$@"',
+        '    kill -KILL "$PPID"',
+        '    exit 0',
+        '    ;;',
+        'esac',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec rm "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(rmWrapper, 0o755);
+
+    const interrupted = runScript(script, work, ['start'], bin);
+
+    expect(interrupted.status).not.toBe(0);
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe('up-to-date');
   });
 
   it('persists a recovered verification phase after merge interruption', () => {
@@ -477,6 +546,57 @@ describe('merge-main.sh', () => {
     ).toBe('');
   });
 
+  it('recovers past an ownerless legacy preservation lock', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    const commonDir = git(
+      work,
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-common-dir',
+    ).stdout.trim();
+    fs.mkdirSync(path.join(commonDir, 'remdo-merge-main-stash.lock'));
+    writeFile(work, 'a.md', 'saved work\n');
+
+    const result = run(work, 'start', '--preserve');
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('up-to-date');
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
+  });
+
+  it('matches only the exact saved-work stash marker', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    const wrapperDir = makeDir('skills-stash-marker-prefix-');
+    const wrapper = path.join(wrapperDir, 'run.sh');
+    writeFile(
+      wrapperDir,
+      'run.sh',
+      [
+        '#!/usr/bin/env sh',
+        'target=$(git rev-parse origin/main)',
+        'git_dir=$(git rev-parse --path-format=absolute --git-dir)',
+        'worktree_id=$(printf "%s\\n" "$git_dir" | git hash-object --stdin)',
+        'marker="remdo-merge-main-saved-$target-$worktree_id-1"',
+        'printf "other work\\n" >a.md',
+        'git stash push --quiet --message "$marker"',
+        'printf "current work\\n" >a.md',
+        'exec sh "$MERGE_MAIN_SCRIPT" start --preserve',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(wrapper, 0o755);
+
+    const result = runScript(wrapper, work, [], undefined, {
+      MERGE_MAIN_SCRIPT: script,
+    });
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('up-to-date');
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('current work\n');
+    expect(git(work, 'stash', 'list').stdout).toContain('-1');
+    expect(git(work, 'stash', 'list').stdout.trim().split('\n')).toHaveLength(1);
+  });
+
   it('does not reuse a retained saved-work identity', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'old work\n');
@@ -492,7 +612,10 @@ describe('merge-main.sh', () => {
       [
         '#!/usr/bin/env sh',
         'target=$(git rev-parse origin/main)',
-        'git update-ref "refs/remdo-merge-main/saved-$target-$$" "$OLD_STASH"',
+        'git_dir=$(git rev-parse --path-format=absolute --git-dir)',
+        'worktree_id=$(printf "%s\\n" "$git_dir" | git hash-object --stdin)',
+        'git update-ref \\',
+        '  "refs/remdo-merge-main/saved-$target-$worktree_id" "$OLD_STASH"',
         'exec sh "$MERGE_MAIN_SCRIPT" start --preserve',
         '',
       ].join('\n'),

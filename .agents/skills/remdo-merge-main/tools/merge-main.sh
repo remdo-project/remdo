@@ -17,9 +17,9 @@ git rev-parse --git-dir >/dev/null 2>&1 \
   || fail "not a git repository"
 
 state_dir=$(git rev-parse --path-format=absolute --git-path remdo-merge-main)
-common_dir=$(git rev-parse --path-format=absolute --git-common-dir)
-stash_lock_dir="$common_dir/remdo-merge-main-stash.lock"
+stash_lock_ref=refs/remdo-merge-main/preservation-lock
 stash_lock_held=no
+stash_lock_owner=
 
 state_value() {
   [ -f "$state_dir/$1" ] \
@@ -59,20 +59,28 @@ emit_state() {
 }
 
 clear_state() {
+  completed_dir="$state_dir-completed-$$"
+  completed_number=0
+  while [ -e "$completed_dir" ]; do
+    completed_number=$((completed_number + 1))
+    completed_dir="$state_dir-completed-$$-$completed_number"
+  done
+  mv "$state_dir" "$completed_dir" \
+    || fail "completed run state could not be retired"
   rm -f \
-    "$state_dir/branch" \
-    "$state_dir/start-head" \
-    "$state_dir/target" \
-    "$state_dir/incoming" \
-    "$state_dir/form" \
-    "$state_dir/outcome" \
-    "$state_dir/phase" \
-    "$state_dir/stash" \
-    "$state_dir/saved-ref" \
-    "$state_dir/stash-marker"
-  if ! rmdir "$state_dir"; then
+    "$completed_dir/branch" \
+    "$completed_dir/start-head" \
+    "$completed_dir/target" \
+    "$completed_dir/incoming" \
+    "$completed_dir/form" \
+    "$completed_dir/outcome" \
+    "$completed_dir/phase" \
+    "$completed_dir/stash" \
+    "$completed_dir/saved-ref" \
+    "$completed_dir/stash-marker"
+  if ! rmdir "$completed_dir"; then
     leftover_dir="$state_dir-leftovers-$$"
-    mv "$state_dir" "$leftover_dir"
+    mv "$completed_dir" "$leftover_dir"
     echo "merge-main: retained unexpected run-state entries at $leftover_dir" >&2
   fi
 }
@@ -104,40 +112,64 @@ operation_in_progress() {
 
 release_stash_lock() {
   if [ "$stash_lock_held" = yes ]; then
-    rm -f "$stash_lock_dir/pid"
-    rmdir "$stash_lock_dir" 2>/dev/null || true
+    git update-ref -d "$stash_lock_ref" "$stash_lock_owner" 2>/dev/null || true
     stash_lock_held=no
   fi
 }
 
+process_start_time() {
+  sed 's/.*) //' "/proc/$1/stat" 2>/dev/null | awk '{print $20}'
+}
+
 acquire_stash_lock() {
-  if ! mkdir "$stash_lock_dir" 2>/dev/null; then
-    [ -f "$stash_lock_dir/pid" ] \
-      || fail "preservation lock is initializing or incomplete"
-    lock_pid=$(sed -n '1p' "$stash_lock_dir/pid")
+  owner_start=$(process_start_time "$$" || true)
+  stash_lock_owner=$(printf '%s %s\n' "$$" "$owner_start" \
+    | git hash-object -w --stdin) \
+    || fail "preservation lock owner could not be created"
+  while :; do
+    current_owner=$(git rev-parse --verify --quiet "$stash_lock_ref" || true)
+    if [ -z "$current_owner" ]; then
+      if git update-ref "$stash_lock_ref" "$stash_lock_owner" "" 2>/dev/null; then
+        break
+      fi
+      continue
+    fi
+    lock_identity=$(git cat-file blob "$current_owner" 2>/dev/null) \
+      || fail "preservation lock has an invalid owner"
+    lock_pid=${lock_identity%% *}
+    lock_start=${lock_identity#* }
     case "$lock_pid" in
       ''|*[!0-9]*)
         fail "preservation lock has an invalid owner"
         ;;
     esac
     if kill -0 "$lock_pid" 2>/dev/null; then
-      fail "another worktree is preserving local work"
+      actual_start=$(process_start_time "$lock_pid" || true)
+      if [ -z "$lock_start" ] \
+        || [ -z "$actual_start" ] \
+        || [ "$actual_start" = "$lock_start" ]; then
+        fail "another worktree is preserving local work"
+      fi
     fi
-    rm -f "$stash_lock_dir/pid"
-    rmdir "$stash_lock_dir" \
-      || fail "stale preservation lock could not be recovered"
-    mkdir "$stash_lock_dir" \
-      || fail "preservation lock could not be acquired"
-  fi
-  printf '%s\n' "$$" >"$stash_lock_dir/pid"
+    if git update-ref \
+      "$stash_lock_ref" "$stash_lock_owner" "$current_owner" 2>/dev/null; then
+      break
+    fi
+  done
   stash_lock_held=yes
   trap 'release_stash_lock' EXIT
   trap 'release_stash_lock; exit 1' HUP INT TERM
 }
 
 stash_entry_for_marker() {
-  git stash list --format='%H %gd %gs' \
-    | grep -F -- "$1" | sed -n '1p'
+  marker=$1
+  tab=$(printf '\t')
+  git stash list --format='%H%x09%gd%x09%gs' \
+    | while IFS="$tab" read -r entry_hash entry_ref entry_subject; do
+      [ "${entry_subject#*: }" = "$marker" ] || continue
+      printf '%s %s %s\n' "$entry_hash" "$entry_ref" "$entry_subject"
+      break
+    done
 }
 
 remove_shared_stash() {
@@ -280,14 +312,24 @@ initialize_state() {
 }
 
 reserve_saved_ref() {
-  saved_ref_base="refs/remdo-merge-main/saved-$run_target-$$"
+  worktree_id=$(printf '%s\n' \
+    "$(git rev-parse --path-format=absolute --git-dir)" \
+    | git hash-object --stdin)
+  saved_ref_base="refs/remdo-merge-main/saved-$run_target-$worktree_id"
   saved_ref_suffix=
   saved_ref_number=0
   while :; do
     candidate="$saved_ref_base$saved_ref_suffix"
+    if git rev-parse --verify --quiet "$candidate" >/dev/null; then
+      saved_ref_number=$((saved_ref_number + 1))
+      saved_ref_suffix="-$saved_ref_number"
+      continue
+    fi
+    run_saved_ref=$candidate
+    run_stash_marker="remdo-merge-main-${candidate##*/}"
+    write_value stash-marker "$run_stash_marker"
+    write_value saved-ref "$run_saved_ref"
     if git update-ref "$candidate" "$run_start_head" "" 2>/dev/null; then
-      run_saved_ref=$candidate
-      run_stash_marker="remdo-merge-main-${candidate##*/}"
       return
     fi
     git rev-parse --verify --quiet "$candidate" >/dev/null \
@@ -335,7 +377,15 @@ integrate_target() {
 
 preserve_and_integrate() {
   [ "$stash_lock_held" = yes ] || acquire_stash_lock
+  if [ -z "$run_saved_ref" ]; then
+    reserve_saved_ref
+  fi
   current_saved=$(git rev-parse --verify --quiet "$run_saved_ref" || true)
+  if [ -z "$current_saved" ]; then
+    git update-ref "$run_saved_ref" "$run_start_head" "" \
+      || fail "saved-work identity could not be reserved"
+    current_saved=$run_start_head
+  fi
   [ -n "$current_saved" ] \
     || fail "saved-work identity is missing"
   if [ -z "$run_stash" ]; then
@@ -445,8 +495,6 @@ start_run() {
   run_stash_marker=
   if [ "$preserve" = yes ] && [ -n "$dirty" ]; then
     run_phase=preserving
-    acquire_stash_lock
-    reserve_saved_ref
   else
     run_phase=prepared
   fi
