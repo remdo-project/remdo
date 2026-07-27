@@ -98,6 +98,62 @@ describe('merge-main.sh', () => {
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
+  it('records verification failure as the terminal result', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+
+    const finished = run(work, 'finish', '--verification-failed');
+
+    expect(finished.status).toBe(0);
+    expect(value(finished.stdout, 'STATE')).toBe('verification-failed');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
+  it('refuses to finish an uncommitted integration state', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+    writeFile(work, 'unfinished.md', '# unfinished\n');
+
+    const finished = run(work, 'finish');
+
+    expect(finished.status).not.toBe(0);
+    expect(finished.stderr).toContain('not clean and committed');
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+  });
+
+  it('clears completed state while retaining unexpected entries', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+    writeFile(stateDir(work), 'unexpected', 'retain\n');
+
+    const finished = run(work, 'finish');
+
+    expect(finished.status).toBe(0);
+    expect(value(finished.stdout, 'STATE')).toBe('merged');
+    expect(finished.stderr).toContain('retained unexpected run-state entries');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+    expect(
+      fs.globSync(`${stateDir(work)}-leftovers-*`),
+    ).toHaveLength(1);
+  });
+
   it('persists a recovered verification phase after merge interruption', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
@@ -115,6 +171,28 @@ describe('merge-main.sh', () => {
       fs.readFileSync(path.join(stateDir(work), 'phase'), 'utf8'),
     ).toBe('verification\n');
     expect(value(run(work, 'finish').stdout, 'STATE')).toBe('merged');
+  });
+
+  it('reintegrates the fixed target after verification resets to the start', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+    const startHead = fs.readFileSync(
+      path.join(stateDir(work), 'start-head'),
+      'utf8',
+    ).trim();
+    expect(git(work, 'reset', '--hard', '--quiet', startHead).status).toBe(0);
+
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+      'integration-ready',
+    );
+    expect(value(run(work, 'continue').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
   });
 
   it('retries integration interrupted before the branch changes', () => {
@@ -333,7 +411,8 @@ describe('merge-main.sh', () => {
 
     expect(completed.status).toBe(0);
     expect(value(completed.stdout, 'STATE')).toBe('fast-forwarded');
-    expect(git(work, 'stash', 'list').stdout).toBe('');
+    expect(value(completed.stdout, 'STASH')).toBeTruthy();
+    expect(git(work, 'stash', 'list').stdout).not.toBe('');
     expect(git(work, 'diff', '--name-only').stdout.trim()).toBe('a.md');
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
@@ -348,9 +427,12 @@ describe('merge-main.sh', () => {
     const saved = git(work, 'rev-parse', 'refs/stash').stdout;
     writeFile(stateDir(work), 'phase', 'restore-pending\n');
 
-    expect(value(run(work, 'status').stdout, 'STATE')).toBe('stopped');
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe('restore-pending');
     const completed = run(work, 'complete-restore');
     expect(completed.status).not.toBe(0);
+    expect(value(run(work, 'continue').stdout, 'STATE')).toBe(
+      'restore-conflicted',
+    );
     expect(git(work, 'rev-parse', 'refs/stash').stdout).toBe(saved);
   });
 
@@ -441,5 +523,17 @@ describe('merge-main.sh', () => {
     const nonRepo = run(makeNonRepoDir(), 'start');
     expect(nonRepo.status).not.toBe(0);
     expect(nonRepo.stderr).toContain('not a git repository');
+  });
+
+  it('refuses a deleted remote main instead of using a stale tracking ref', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const before = git(work, 'rev-parse', 'HEAD').stdout;
+    expect(git(origin, 'update-ref', '-d', 'refs/heads/main').status).toBe(0);
+
+    const result = run(work, 'start');
+
+    expect(result.status).not.toBe(0);
+    expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(before);
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 });

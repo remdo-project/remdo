@@ -22,6 +22,7 @@ Set `runner` to
   [Conflict resolution](#conflict-resolution).
 - On `STATE=verification-needed`, continue under [Verification](#verification).
 - On `STATE=finish-needed`, run `sh "$runner" finish`.
+- On `STATE=restore-pending`, run `sh "$runner" continue`.
 - On `STATE=restore-ready`, run `sh "$runner" complete-restore`.
 - On `STATE=restore-conflicted`, continue under
   [Restoration](#restoration).
@@ -49,8 +50,8 @@ commit one coherent correction batch, and run `pnpm run check:full` again.
 Repeat only after a correction changes repository state.
 
 When no integration correction can be determined, retain the failure as the
-verification result and run `sh "$runner" finish` without changing unrelated
-code.
+verification result and run `sh "$runner" finish --verification-failed`
+without changing unrelated code.
 
 ## Restoration
 
@@ -59,8 +60,8 @@ finishes. On `STATE=restore-conflicted`, use the reported saved-work commit to
 resolve only what repository evidence determines, including its staged versus
 unstaged intent. Then run `sh "$runner" complete-restore`.
 
-Leave an uncertain restoration conflict resumable; do not drop or replace the
-saved work.
+The runner retains saved work after a manually resolved restoration conflict.
+Leave an uncertain conflict resumable; do not drop or replace the saved work.
 
 ## Authority
 

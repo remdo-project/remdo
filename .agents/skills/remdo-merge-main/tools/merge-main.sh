@@ -4,7 +4,7 @@
 #   merge-main.sh status
 #   merge-main.sh start [--preserve]
 #   merge-main.sh continue
-#   merge-main.sh finish
+#   merge-main.sh finish [--verification-failed]
 #   merge-main.sh complete-restore
 set -eu
 
@@ -67,7 +67,11 @@ clear_state() {
     "$state_dir/stash" \
     "$state_dir/stash-before" \
     "$state_dir/stash-marker"
-  rmdir "$state_dir"
+  if ! rmdir "$state_dir"; then
+    leftover_dir="$state_dir-leftovers-$$"
+    mv "$state_dir" "$leftover_dir"
+    echo "merge-main: retained unexpected run-state entries at $leftover_dir" >&2
+  fi
 }
 
 current_branch() {
@@ -174,7 +178,15 @@ status_run() {
       fi
       ;;
     verification)
-      emit_state verification-needed
+      if git merge-base --is-ancestor "$run_target" HEAD; then
+        emit_state verification-needed
+      elif [ "$(git rev-parse HEAD)" = "$run_start_head" ]; then
+        write_value phase prepared
+        run_phase=prepared
+        emit_state integration-ready
+      else
+        emit_state stopped
+      fi
       ;;
     ready-to-restore)
       emit_state finish-needed
@@ -186,7 +198,7 @@ status_run() {
       emit_state restore-conflicted
       ;;
     restore-pending)
-      emit_state stopped
+      emit_state restore-pending
       ;;
     *)
       fail "unknown run phase: $run_phase"
@@ -263,16 +275,18 @@ preserve_and_integrate() {
     current_stash=$(git rev-parse --verify --quiet refs/stash || true)
     if [ -z "$current_stash" ] \
       || [ "$current_stash" = "$run_stash_before" ]; then
+      echo "merge-main: local work could not be preserved" >&2
       restore_saved_work stopped
-      fail "local work could not be preserved"
+      return 1
     fi
   fi
 
   run_stash=$current_stash
   write_value stash "$run_stash"
   if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
+    echo "merge-main: preservation did not produce a clean committed state" >&2
     restore_saved_work stopped
-    fail "preservation did not produce a clean committed state"
+    return 1
   fi
 
   write_value phase prepared
@@ -302,8 +316,8 @@ start_run() {
   operation_in_progress \
     && fail "another Git operation is already in progress"
 
-  git fetch --quiet origin
-  run_target=$(git rev-parse --verify --quiet 'origin/main^{commit}') \
+  git fetch --quiet --no-tags origin refs/heads/main
+  run_target=$(git rev-parse --verify --quiet 'FETCH_HEAD^{commit}') \
     || fail "origin/main not found after fetch"
   git merge-base HEAD "$run_target" >/dev/null 2>&1 \
     || fail "HEAD and origin/main have unrelated histories"
@@ -375,6 +389,17 @@ continue_run() {
       integrate_target
       return
       ;;
+    restore-pending)
+      if has_unmerged_paths \
+        || [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
+        write_value phase restore-conflicted
+        run_phase=restore-conflicted
+        emit_state restore-conflicted
+      else
+        restore_saved_work "$run_outcome"
+      fi
+      return
+      ;;
     merging)
       ;;
     *)
@@ -403,6 +428,19 @@ continue_run() {
 }
 
 finish_run() {
+  verification_failed=no
+  case "${1-}" in
+    "")
+      ;;
+    --verification-failed)
+      verification_failed=yes
+      ;;
+    *)
+      fail "usage: merge-main.sh finish [--verification-failed]"
+      ;;
+  esac
+  [ "$#" -le 1 ] \
+    || fail "usage: merge-main.sh finish [--verification-failed]"
   [ -d "$state_dir" ] \
     || fail "no remdo-merge-main run exists"
   load_state
@@ -414,10 +452,18 @@ finish_run() {
       fail "run is not ready to finish"
       ;;
   esac
+  if [ "$verification_failed" = yes ]; then
+    [ "$run_phase" = verification ] \
+      || fail "only a verified merge can record verification failure"
+    run_outcome=verification-failed
+    write_value outcome "$run_outcome"
+  fi
   operation_in_progress \
     && fail "a Git operation is still in progress"
   git merge-base --is-ancestor "$run_target" HEAD \
     || fail "branch no longer contains the fixed target"
+  [ -z "$(git status --porcelain --untracked-files=normal)" ] \
+    || fail "integration state is not clean and committed"
   restore_saved_work "$run_outcome"
 }
 
@@ -440,8 +486,6 @@ complete_restore() {
   if [ "$run_phase" = restore-applied ]; then
     ref=$(stash_ref_for "$run_stash")
     [ -z "$ref" ] || git stash drop --quiet "$ref"
-  else
-    drop_saved_work
   fi
   clear_state
   emit_state "$run_outcome"
@@ -464,9 +508,8 @@ case "$command" in
     continue_run
     ;;
   finish)
-    [ "$#" -eq 1 ] \
-      || fail "usage: merge-main.sh finish"
-    finish_run
+    shift
+    finish_run "$@"
     ;;
   complete-restore)
     [ "$#" -eq 1 ] \
