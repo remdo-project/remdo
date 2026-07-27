@@ -257,6 +257,28 @@ describe('merge-main.sh', () => {
     ).toHaveLength(1);
   });
 
+  it('clears an interrupted state-field publication', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+    writeFile(stateDir(work), '.outcome-dead', 'partial\n');
+
+    const finished = run(work, 'finish');
+
+    expect(finished.status).toBe(0);
+    expect(value(finished.stdout, 'STATE')).toBe('merged');
+    expect(finished.stderr).not.toContain(
+      'retained unexpected run-state entries',
+    );
+    expect(
+      fs.globSync(`${stateDir(work)}-leftovers-*`),
+    ).toHaveLength(0);
+  });
+
   it('retains unexpected state beside an older leftover directory', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
@@ -486,6 +508,19 @@ describe('merge-main.sh', () => {
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
+  it('allows clean preserve mode to enter merge conflict resolution', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'a.md', 'local\n');
+    commitAll(work, 'local');
+    pushChange(origin, { 'a.md': 'upstream\n' });
+
+    const result = run(work, 'start', '--preserve');
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('conflicted');
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe('conflicted');
+  });
+
   it('preserves staged, unstaged, and untracked work across a fast-forward', () => {
     const { work, origin } = makeScratchWithOrigin({
       'staged.md': '# staged\n',
@@ -530,6 +565,20 @@ describe('merge-main.sh', () => {
     expect(
       git(work, 'ls-files', '--others', '--exclude-standard').stdout.trim(),
     ).toBe('dirty.md');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
+  it('reports fetch failure through the runner diagnostic', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    expect(
+      git(work, 'remote', 'set-url', 'origin', '/nonexistent/repository.git')
+        .status,
+    ).toBe(0);
+
+    const result = run(work, 'start');
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('merge-main: could not fetch origin');
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 

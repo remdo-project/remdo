@@ -14,10 +14,10 @@ target, unrelated histories, or an unrelated Git operation already in progress.
 
 ## Working state
 
-By default, the capability requires a clean repository. Explicit preserve mode
-proceeds only when the fixed target merges cleanly with `HEAD`. It saves staged,
-unstaged, and non-ignored untracked work, including staged versus unstaged
-distinctions, before changing the branch.
+By default, the capability requires a clean repository. When local work is
+present, explicit preserve mode proceeds only when the fixed target merges
+cleanly with `HEAD`. It saves staged, unstaged, and non-ignored untracked work,
+including staged versus unstaged distinctions, before changing the branch.
 
 Integration and verification finish against the clean committed state before
 restoration begins. Saved work remains recoverable until restoration completes.

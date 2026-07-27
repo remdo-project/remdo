@@ -85,8 +85,17 @@ clear_state() {
     "$completed_dir/outcome" \
     "$completed_dir/phase" \
     "$completed_dir/stash" \
-    "$completed_dir/saved-ref"
-  if ! rmdir "$completed_dir"; then
+    "$completed_dir/saved-ref" \
+    "$completed_dir"/.branch-* \
+    "$completed_dir"/.start-head-* \
+    "$completed_dir"/.target-* \
+    "$completed_dir"/.incoming-* \
+    "$completed_dir"/.form-* \
+    "$completed_dir"/.outcome-* \
+    "$completed_dir"/.phase-* \
+    "$completed_dir"/.stash-* \
+    "$completed_dir"/.saved-ref-*
+  if ! rmdir "$completed_dir" 2>/dev/null; then
     leftover_dir="$state_dir-leftovers-$$"
     leftover_number=0
     while [ -e "$leftover_dir" ]; do
@@ -452,7 +461,8 @@ start_run() {
   has_unmerged_paths \
     && fail "working tree has unresolved paths"
 
-  git fetch --quiet --prune --no-tags origin
+  git fetch --quiet --prune --no-tags origin \
+    || fail "could not fetch origin"
   run_target=$(git rev-parse --verify --quiet \
     'refs/remotes/origin/main^{commit}') \
     || fail "origin/main not found after fetch"
@@ -476,7 +486,7 @@ start_run() {
     fail "working tree is dirty; use explicit preserve mode or clean it first"
   fi
 
-  if [ "$preserve" = yes ]; then
+  if [ "$preserve" = yes ] && [ -n "$dirty" ]; then
     set +e
     git merge-tree --write-tree HEAD "$run_target" >/dev/null
     merge_tree_status=$?
