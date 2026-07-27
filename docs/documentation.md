@@ -5,40 +5,34 @@ written, structured, and maintained.
 
 ## Intent
 
-A documentation system optimizes one metric: the cost for its reader to
-reliably answer the question the corpus exists to answer. Reliability comes
-from trust: the documentation rules below let the reader take a doc at face
-value.
+**Governing principle:** Write the smallest contract sufficient for faithful
+implementation.
+Smallness lowers review cost; sufficiency prevents agents from inventing product
+decisions. Readers take contracts at face value.
 
-This system serves contributors and coding agents, assumed fluent in the stack;
-its question is "what is the accepted behavior of X?". For that expert audience
-it is reference only: behavior and policy, no tutorials or how-tos. Docs for any
-other audience (user- or admin-level) are a separate corpus declaring its own
-reader and question — the content and structure rules carry over, the persona
-does not.
+This corpus answers "what is the accepted behavior of X?" for contributors and
+coding agents fluent in the stack. It covers behavior and policy, not tutorials
+or how-tos. Other audiences use separate corpora declaring their reader and
+question; content and structure rules apply, not this persona.
 
 ## Ownership
 
-**Single source.** Each behavior and precise term has one current owner. Other
-documents link to that owner instead of redefining or shadowing it, and no two
-sources describe conflicting target behavior.
-
-**Corpus layout.** RemDo's behavior and policy corpus lives under `docs/`. The
-corpus contract and backlog live at `docs/documentation.md` and `docs/todo.md`.
-Capability specifications and specification-authoring research live under
-`docs/spec/`; other corpus documents remain elsewhere under `docs/`.
-
-**Internal owners.** Where a document relies on another owner's term or
-contract, it links inline at first use so readers arriving mid-system can follow
-the dependency.
-
-**Contract migration.** A migration moves the complete contract, updates
-inbound links, and removes the former normative definition in the same change.
+- **Single source.** Each behavior and precise term has one current owner; each
+  precise term uses the name established by its owner. Other documents link to
+  that owner rather than restate or shadow its contract. Local rules and tracked
+  gaps include only required owned context; neither becomes another owner. No
+  sources define conflicting target behavior.
+- **Internal owners.** A document links inline at first use of another owner's
+  term or contract.
+- **Contract migration.** A migration moves the complete contract, updates
+  inbound links, and removes the former normative definition in the same
+  change.
 
 ## Contracts
 
-Contracts are clear without consulting external sources. Their clauses are
-normative unless marked otherwise.
+Contracts are clear without consulting external sources.
+
+**Normative default.** Contract clauses are normative unless marked otherwise.
 
 ### Target behavior
 
@@ -50,32 +44,49 @@ Known gaps between target behavior and implementation are tracked in
 
 ### Minimality
 
-**Misuse test.** A clause belongs in the contract only when its absence could
-let a reader misuse the contract. The test takes surrounding rules at face
-value; anticipated rationalization does not justify restatement.
+- **Misuse test.** Keep a clause only when its removal could permit an incorrect
+  interpretation or implementation. Take surrounding rules at face value;
+  anticipated rationalization does not justify restatement.
+- **Excluded material.** Contract clauses exclude inventories, non-contract
+  implementation details, how-to prose, and redundant restatement.
+- **Rationale.** Keep brief rationale only when removing it could reopen a
+  settled decision.
+- **Edge behavior.** Preserve materially relevant boundaries, failures, and
+  no-ops.
+- **Sufficiency.** If two reasonable implementers could produce materially
+  different behavior, clarify the contract or surface the unresolved product
+  decision.
 
-**Excluded material.** Contract clauses exclude inventories, implementation
-detail outside the contract, explanatory how-to prose, and redundant
-restatement.
+## Documentation changes
 
-**Rationale.** A brief rationale remains only when its omission would reopen a
-settled decision.
-
-**Edge behavior.** Edge and failure semantics remain part of the contract.
+A documentation change touches only regions needed for its intended semantic
+difference. Preserve unaffected wording and structure; separate unrelated
+cleanup. For an explicit realignment, whole-scope conformance is the intended
+difference. Check sufficiency before compressing.
 
 ## Document structure
 
 Every durable document begins with a title and a short paragraph stating what
 it covers, with any boundary needed to avoid confusion.
 
+Establish triggers, inputs, scope, rules, and concepts before dependent
+behavior.
+Describe actions in causal order, keep exceptions and no-ops beside what they
+modify, and state results after the behavior producing them. Organize
+non-procedural contracts by responsibility in dependency order.
+
+State owned behavior positively. Retain a negation only when it prevents a
+credible misuse.
+
 ### Common supporting sections
 
-These conventions give common supporting sections consistent names and
-purposes.
+Reserve these names for their stated responsibilities; name other
+responsibilities directly.
 
 #### Definitions
 
-Use as the single owner for terms introduced by the document.
+Define each document-owned term once: here when readers need to find it
+independently, otherwise at first use.
 
 #### Empirical checks
 
@@ -99,35 +110,16 @@ Use for external sources and dependencies the document relies on.
 
 ## Specification structure
 
-```text
-# <title>
-<Short paragraph stating what this document specifies, with any boundary needed
-to avoid confusion.>
-
-## <subject responsibility>
-<rules owned by this responsibility>
-
-### <contained responsibility>
-<rules that are part of the parent responsibility>
-
-## <another subject responsibility>
-<rules owned by this responsibility>
-```
-
-The placeholders describe structural roles, not required section names.
-
-1. Each specification owns one coherent product, development, or operational
-   capability.
-2. Each section owns one cohesive, reader-relevant responsibility identified by
-   its heading path. Introduce a section only when its content is worth finding
-   or linking to independently.
-3. Each section sits beneath the narrowest parent whose responsibility contains
-   it.
-4. When a parent naturally divides into parallel variants, stages, or
+1. Each specification owns one coherent capability.
+2. Each heading path identifies one cohesive responsibility worth locating or
+   linking to. Place each section beneath the narrowest parent containing its
+   responsibility, and all material at the narrowest level that owns it.
+3. When a parent naturally divides into parallel variants, stages, or
    components, its children use that division consistently.
-5. Examples and scenarios remain beneath the rules they illustrate.
-6. Each piece of material sits at the narrowest level that owns it.
-7. A generic container or document-wide section exists only when it represents
+4. Keep examples and scenarios beneath their rules and only when they
+   distinguish behavior more efficiently than prose or prevent credible
+   misinterpretation.
+5. A generic container or document-wide section exists only when it represents
    a real shared responsibility.
 
 <!-- markdownlint-disable-next-line MD024 -->

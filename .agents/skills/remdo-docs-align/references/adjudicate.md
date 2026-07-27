@@ -1,7 +1,9 @@
 # Adjudication — prompt template
 
 Inputs: `{RULES_DOC}` — the rules doc; `{PROPOSALS}` — the advocate's
-numbered proposal file. Run conditions: [SKILL.md](../SKILL.md), stage 4.
+numbered proposal file after the caller's fixed-scope filter. Run conditions:
+[SKILL.md](../SKILL.md), stage 4. Skill procedure is governed by
+[Skill authoring](../../../../AGENTS.md#skill-authoring).
 
 ---
 
@@ -15,6 +17,9 @@ nothing; their lists are diffed before any edit happens. **Applying (a single
 standalone adjudicator):** decide and apply what survives. The per-mode
 instructions are in the closing paragraph.
 
+The caller has removed proposals that exceed its fixed scope or require an
+outside-scope repair. Do not broaden that scope.
+
 The face-value tie-breaker, applied strictly: the corpus intent promises that
 a reader takes every rule at face value. An exhaustive rule ("only X",
 "never Y", "exactly one", "MUST NOT") already forecloses everything outside
@@ -24,14 +29,16 @@ deleted. "A reader might rationalize around the rule", "it closes a gap",
 valid keep-reasons — they contradict the corpus's own trust model. A
 keep-reason is valid only if it names a concrete misuse that remains possible
 even when the adjacent rule is read at face value, or if the text falls under
-a carve-out the rules doc grants — its minimal-by-default rule and its
-invariants preamble, e.g. edge and failure semantics, the one-sentence
-rationale where dropping it would invite relitigating a settled choice, a
-skill's procedural steps and sibling-link References. One decided precedent:
-a proposal targeting a navigation-only section whose links are load-bearing
-resolves as relocate-then-delete — move each link inline to its subject's
-first substantive mention, then delete the section; neither wholesale keep
-nor wholesale delete is correct there.
+a rules-doc carve-out: materially relevant boundary, failure, and no-op
+semantics; clauses needed to prevent materially different behavior from
+reasonable implementations; brief rationale where dropping it would invite
+relitigating a settled choice. A skill's procedural steps and sibling-link
+References are also valid keep-reasons under the repository's
+`AGENTS.md#skill-authoring` contract. One decided precedent: a proposal
+targeting a navigation-only section whose links are load-bearing resolves as
+relocate-then-delete — move each link inline to its subject's first substantive
+mention, then delete the section; neither wholesale keep nor wholesale delete
+is correct there.
 
 Default to keeping a proposal (APPLY its removal). If deciding a proposal
 requires choosing between two conflicting sanctioned rules, do not decide it:
