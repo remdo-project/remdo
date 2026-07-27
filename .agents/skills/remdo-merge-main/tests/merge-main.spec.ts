@@ -20,6 +20,14 @@ const script = path.join(__dirname, '../tools/merge-main.sh');
 const run = (cwd: string, ...args: string[]) => runScript(script, cwd, args);
 const value = (stdout: string, key: string) =>
   stdout.match(new RegExp(`^${key}=(.*)$`, 'm'))?.[1];
+const stateDir = (cwd: string) =>
+  git(
+    cwd,
+    'rev-parse',
+    '--path-format=absolute',
+    '--git-path',
+    'remdo-merge-main',
+  ).stdout.trim();
 
 function pushChange(
   origin: string,
@@ -88,6 +96,60 @@ describe('merge-main.sh', () => {
     const finished = run(work, 'finish');
     expect(value(finished.stdout, 'STATE')).toBe('merged');
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
+  it('persists a recovered verification phase after merge interruption', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+    writeFile(stateDir(work), 'phase', 'merging\n');
+
+    const recovered = run(work, 'status');
+
+    expect(value(recovered.stdout, 'STATE')).toBe('verification-needed');
+    expect(
+      fs.readFileSync(path.join(stateDir(work), 'phase'), 'utf8'),
+    ).toBe('verification\n');
+    expect(value(run(work, 'finish').stdout, 'STATE')).toBe('merged');
+  });
+
+  it('retries integration interrupted before the branch changes', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    const bin = makeDir('skills-merge-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = merge ]; then',
+        '  kill -KILL "$PPID"',
+        '  exit 91',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const interrupted = runScript(script, work, ['start'], bin);
+
+    expect(interrupted.status).not.toBe(0);
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+      'integration-ready',
+    );
+    expect(value(run(work, 'continue').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
   });
 
   it('refuses dirty work unless preserve mode is explicit', () => {
@@ -178,6 +240,43 @@ describe('merge-main.sh', () => {
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
+  it('journals preservation before invoking stash and resumes it', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'a.md', 'saved work\n');
+    const bin = makeDir('skills-stash-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = stash ] && [ "$2" = push ]; then',
+        '  exit 91',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const interrupted = runScript(
+      script,
+      work,
+      ['start', '--preserve'],
+      bin,
+    );
+
+    expect(interrupted.status).not.toBe(0);
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+      'preservation-needed',
+    );
+    expect(value(run(work, 'continue').stdout, 'STATE')).toBe('up-to-date');
+    expect(git(work, 'diff', '--name-only').stdout.trim()).toBe('a.md');
+    expect(git(work, 'stash', 'list').stdout).toBe('');
+  });
+
   it('continues a determined merge resolution into verification', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'local\n');
@@ -237,6 +336,22 @@ describe('merge-main.sh', () => {
     expect(git(work, 'stash', 'list').stdout).toBe('');
     expect(git(work, 'diff', '--name-only').stdout.trim()).toBe('a.md');
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
+  it('does not drop saved work from an ambiguous restoration phase', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'a.md', 'local dirty\n');
+    pushChange(origin, { 'a.md': 'upstream\n' });
+    expect(value(run(work, 'start', '--preserve').stdout, 'STATE')).toBe(
+      'restore-conflicted',
+    );
+    const saved = git(work, 'rev-parse', 'refs/stash').stdout;
+    writeFile(stateDir(work), 'phase', 'restore-pending\n');
+
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe('stopped');
+    const completed = run(work, 'complete-restore');
+    expect(completed.status).not.toBe(0);
+    expect(git(work, 'rev-parse', 'refs/stash').stdout).toBe(saved);
   });
 
   it('retains a stopped result through restoration conflict completion', () => {

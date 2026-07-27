@@ -30,12 +30,15 @@ write_value() {
 
 load_state() {
   run_branch=$(state_value branch)
+  run_start_head=$(state_value start-head)
   run_target=$(state_value target)
   run_incoming=$(state_value incoming)
   run_form=$(state_value form)
   run_outcome=$(state_value outcome)
   run_phase=$(state_value phase)
   run_stash=$(state_value stash)
+  run_stash_before=$(state_value stash-before)
+  run_stash_marker=$(state_value stash-marker)
 }
 
 emit_state() {
@@ -55,12 +58,15 @@ emit_state() {
 clear_state() {
   rm -f \
     "$state_dir/branch" \
+    "$state_dir/start-head" \
     "$state_dir/target" \
     "$state_dir/incoming" \
     "$state_dir/form" \
     "$state_dir/outcome" \
     "$state_dir/phase" \
-    "$state_dir/stash"
+    "$state_dir/stash" \
+    "$state_dir/stash-before" \
+    "$state_dir/stash-marker"
   rmdir "$state_dir"
 }
 
@@ -111,7 +117,7 @@ restore_saved_work() {
     return
   fi
 
-  write_value phase restoring
+  write_value phase restore-pending
   set +e
   git stash apply --index "$run_stash" >/dev/null
   apply_status=$?
@@ -123,6 +129,7 @@ restore_saved_work() {
     return
   fi
 
+  write_value phase restore-applied
   drop_saved_work
   clear_state
   emit_state "$final_state"
@@ -137,13 +144,31 @@ status_run() {
   load_state
   require_run_branch
   case "$run_phase" in
+    preserving)
+      emit_state preservation-needed
+      ;;
+    prepared)
+      emit_state integration-ready
+      ;;
     merging)
       if has_unmerged_paths; then
         emit_state conflicted
       elif [ -e "$(git rev-parse --git-path MERGE_HEAD)" ]; then
         emit_state merge-ready
       elif git merge-base --is-ancestor "$run_target" HEAD; then
-        emit_state verification-needed
+        if [ "$run_form" = merge-commit ]; then
+          write_value phase verification
+          run_phase=verification
+          emit_state verification-needed
+        else
+          write_value phase ready-to-restore
+          run_phase=ready-to-restore
+          emit_state finish-needed
+        fi
+      elif [ "$(git rev-parse HEAD)" = "$run_start_head" ]; then
+        write_value phase prepared
+        run_phase=prepared
+        emit_state integration-ready
       else
         emit_state stopped
       fi
@@ -151,13 +176,108 @@ status_run() {
     verification)
       emit_state verification-needed
       ;;
-    restoring|restore-conflicted)
+    ready-to-restore)
+      emit_state finish-needed
+      ;;
+    restore-applied)
+      emit_state restore-ready
+      ;;
+    restore-conflicted)
       emit_state restore-conflicted
+      ;;
+    restore-pending)
+      emit_state stopped
       ;;
     *)
       fail "unknown run phase: $run_phase"
       ;;
   esac
+}
+
+initialize_state() {
+  mkdir "$state_dir"
+  write_value branch "$run_branch"
+  write_value start-head "$run_start_head"
+  write_value target "$run_target"
+  write_value incoming "$run_incoming"
+  write_value form "$run_form"
+  write_value outcome "$run_outcome"
+  write_value phase "$run_phase"
+  write_value stash "$run_stash"
+  write_value stash-before "$run_stash_before"
+  write_value stash-marker "$run_stash_marker"
+}
+
+integrate_target() {
+  write_value phase merging
+  run_phase=merging
+  case "$run_form" in
+    up-to-date)
+      restore_saved_work up-to-date
+      ;;
+    fast-forward)
+      if git merge --quiet --ff-only "$run_target"; then
+        restore_saved_work fast-forwarded
+      else
+        restore_saved_work stopped
+        return 1
+      fi
+      ;;
+    merge-commit)
+      set +e
+      git merge --quiet --no-edit --no-ff "$run_target"
+      merge_status=$?
+      set -e
+      if [ "$merge_status" -eq 0 ] \
+        || git merge-base --is-ancestor "$run_target" HEAD; then
+        write_value phase verification
+        run_phase=verification
+        emit_state verification-needed
+      elif has_unmerged_paths \
+        || [ -e "$(git rev-parse --git-path MERGE_HEAD)" ]; then
+        emit_state conflicted
+      else
+        restore_saved_work stopped
+        return 1
+      fi
+      ;;
+  esac
+}
+
+preserve_and_integrate() {
+  current_stash=$(git rev-parse --verify --quiet refs/stash || true)
+  if [ "$current_stash" != "$run_stash_before" ]; then
+    [ -n "$current_stash" ] \
+      || fail "stash state changed while preservation was interrupted"
+    stash_subject=$(git log -1 --format=%s "$current_stash")
+    case "$stash_subject" in
+      *"$run_stash_marker")
+        ;;
+      *)
+        fail "stash state changed while preservation was interrupted"
+        ;;
+    esac
+  else
+    git stash push --quiet --include-untracked \
+      --message "$run_stash_marker"
+    current_stash=$(git rev-parse --verify --quiet refs/stash || true)
+    if [ -z "$current_stash" ] \
+      || [ "$current_stash" = "$run_stash_before" ]; then
+      restore_saved_work stopped
+      fail "local work could not be preserved"
+    fi
+  fi
+
+  run_stash=$current_stash
+  write_value stash "$run_stash"
+  if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
+    restore_saved_work stopped
+    fail "preservation did not produce a clean committed state"
+  fi
+
+  write_value phase prepared
+  run_phase=prepared
+  integrate_target
 }
 
 start_run() {
@@ -178,6 +298,7 @@ start_run() {
     || fail "a remdo-merge-main run already exists; use status"
 
   run_branch=$(current_branch)
+  run_start_head=$(git rev-parse --verify HEAD)
   operation_in_progress \
     && fail "another Git operation is already in progress"
 
@@ -222,64 +343,22 @@ start_run() {
   fi
 
   run_stash=
+  run_stash_before=
+  run_stash_marker=
   if [ "$preserve" = yes ] && [ -n "$dirty" ]; then
-    stash_before=$(git rev-parse --verify --quiet refs/stash || true)
-    git stash push --quiet --include-untracked \
-      --message "remdo-merge-main $run_branch $run_target"
-    stash_after=$(git rev-parse --verify --quiet refs/stash || true)
-    if [ -z "$stash_after" ] || [ "$stash_after" = "$stash_before" ]; then
-      fail "local work could not be preserved"
-    fi
-    run_stash=$stash_after
+    run_phase=preserving
+    run_stash_before=$(git rev-parse --verify --quiet refs/stash || true)
+    run_stash_marker="remdo-merge-main-$run_target-$$"
+  else
+    run_phase=prepared
   fi
+  initialize_state
 
-  mkdir "$state_dir"
-  run_phase=merging
-  write_value branch "$run_branch"
-  write_value target "$run_target"
-  write_value incoming "$run_incoming"
-  write_value form "$run_form"
-  write_value outcome "$run_outcome"
-  write_value phase "$run_phase"
-  write_value stash "$run_stash"
-
-  if [ "$preserve" = yes ] \
-    && [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
-    restore_saved_work stopped
-    fail "preservation did not produce a clean committed state"
+  if [ "$run_phase" = preserving ]; then
+    preserve_and_integrate
+  else
+    integrate_target
   fi
-
-  case "$run_form" in
-    up-to-date)
-      restore_saved_work up-to-date
-      ;;
-    fast-forward)
-      if git merge --quiet --ff-only "$run_target"; then
-        restore_saved_work fast-forwarded
-      else
-        restore_saved_work stopped
-        return 1
-      fi
-      ;;
-    merge-commit)
-      set +e
-      git merge --quiet --no-edit --no-ff "$run_target"
-      merge_status=$?
-      set -e
-      if [ "$merge_status" -eq 0 ] \
-        || git merge-base --is-ancestor "$run_target" HEAD; then
-        write_value phase verification
-        run_phase=verification
-        emit_state verification-needed
-      elif has_unmerged_paths \
-        || [ -e "$(git rev-parse --git-path MERGE_HEAD)" ]; then
-        emit_state conflicted
-      else
-        restore_saved_work stopped
-        return 1
-      fi
-      ;;
-  esac
 }
 
 continue_run() {
@@ -287,8 +366,21 @@ continue_run() {
     || fail "no remdo-merge-main run exists"
   load_state
   require_run_branch
-  [ "$run_phase" = merging ] \
-    || fail "run is not waiting for merge resolution"
+  case "$run_phase" in
+    preserving)
+      preserve_and_integrate
+      return
+      ;;
+    prepared)
+      integrate_target
+      return
+      ;;
+    merging)
+      ;;
+    *)
+      fail "run is not ready to continue integration"
+      ;;
+  esac
 
   if has_unmerged_paths; then
     emit_state conflicted
@@ -315,8 +407,13 @@ finish_run() {
     || fail "no remdo-merge-main run exists"
   load_state
   require_run_branch
-  [ "$run_phase" = verification ] \
-    || fail "run is not ready to finish verification"
+  case "$run_phase" in
+    verification|ready-to-restore)
+      ;;
+    *)
+      fail "run is not ready to finish"
+      ;;
+  esac
   operation_in_progress \
     && fail "a Git operation is still in progress"
   git merge-base --is-ancestor "$run_target" HEAD \
@@ -330,7 +427,7 @@ complete_restore() {
   load_state
   require_run_branch
   case "$run_phase" in
-    restoring|restore-conflicted)
+    restore-applied|restore-conflicted)
       ;;
     *)
       fail "run is not waiting for restoration resolution"
@@ -340,7 +437,12 @@ complete_restore() {
     && fail "restoration still has unmerged paths"
   [ -n "$run_stash" ] \
     || fail "run has no saved work"
-  drop_saved_work
+  if [ "$run_phase" = restore-applied ]; then
+    ref=$(stash_ref_for "$run_stash")
+    [ -z "$ref" ] || git stash drop --quiet "$ref"
+  else
+    drop_saved_work
+  fi
   clear_state
   emit_state "$run_outcome"
 }

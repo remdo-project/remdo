@@ -16,9 +16,13 @@ Set `runner` to
 
 - On `STATE=idle`, run `sh "$runner" start`. Add `--preserve` only when the
   user explicitly asks to preserve local work.
+- On `STATE=preservation-needed` or `STATE=integration-ready`, run
+  `sh "$runner" continue`.
 - On `STATE=conflicted` or `STATE=merge-ready`, continue under
   [Conflict resolution](#conflict-resolution).
 - On `STATE=verification-needed`, continue under [Verification](#verification).
+- On `STATE=finish-needed`, run `sh "$runner" finish`.
+- On `STATE=restore-ready`, run `sh "$runner" complete-restore`.
 - On `STATE=restore-conflicted`, continue under
   [Restoration](#restoration).
 - On any other unfinished or invalid state, report the runner output and stop.
