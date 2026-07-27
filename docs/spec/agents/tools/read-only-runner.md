@@ -81,17 +81,15 @@ provider stdout is not failure evidence.
 
 ## Empirical checks
 
-- Runner-owned arguments preserve each agent's native review behavior and its
-  ability to inspect the complete scope, repository guidance, Git context, and
-  referenced files.
-- Codex accepts the resolved immutable `base` commit through `--base` and
-  reviews exactly the commit-range scope.
-- Claude executes `/code-review` through non-interactive `claude -p`.
+- Native Codex and Claude reviews can inspect the complete resolved scope,
+  repository guidance, Git context, and referenced files.
+- Codex native review honors the resolved immutable `base` as the exact
+  commit-range scope.
+- Claude native review honors the exact resolved commit-range scope.
 - Claude waits for background review work and returns its result rather than a
   pending-task notification.
-- Claude reviews exactly the commit-range scope.
-- Claude `uncommitted` review includes every resolved changed-path target and
-  does not add targets solely from committed branch history.
+- Claude native `uncommitted` review can inspect every resolved changed path
+  without adding committed branch history to the scope.
 - Codex and Claude review invocations, including delegated reviewers, do not run
   repository checks.
 - Claude prompt and review invocations leave the repository unchanged under the
