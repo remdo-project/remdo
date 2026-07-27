@@ -253,6 +253,44 @@ describe('merge-main.sh', () => {
     ).toHaveLength(1);
   });
 
+  it('retains unexpected state beside an older leftover directory', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+    const wrapperDir = makeDir('skills-leftover-collision-');
+    const wrapper = path.join(wrapperDir, 'run.sh');
+    writeFile(
+      wrapperDir,
+      'run.sh',
+      [
+        '#!/usr/bin/env sh',
+        'state=$(git rev-parse --path-format=absolute --git-path remdo-merge-main)',
+        'mkdir "$state-leftovers-$$"',
+        'printf "retain\\n" >"$state/unexpected"',
+        'exec sh "$MERGE_MAIN_SCRIPT" finish',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(wrapper, 0o755);
+
+    const finished = runScript(wrapper, work, [], undefined, {
+      MERGE_MAIN_SCRIPT: script,
+    });
+
+    expect(finished.status).toBe(0);
+    expect(value(finished.stdout, 'STATE')).toBe('merged');
+    const retained = fs.globSync(`${stateDir(work)}-leftovers-*`)
+      .filter(dir => fs.existsSync(path.join(dir, 'unexpected')));
+    expect(retained).toHaveLength(1);
+    expect(fs.readFileSync(path.join(retained[0]!, 'unexpected'), 'utf8')).toBe(
+      'retain\n',
+    );
+  });
+
   it('retires completed state before deleting its fields', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     const bin = makeDir('skills-state-clear-wrapper-');
@@ -564,6 +602,10 @@ describe('merge-main.sh', () => {
       'preservation-needed',
     );
     expect(git(work, 'stash', 'list').stdout).toBe('');
+    expect(
+      git(work, 'for-each-ref', '--format=%(objectname)', 'refs/remdo-merge-main')
+        .stdout.trim().split('\n'),
+    ).toHaveLength(2);
     expect(value(run(work, 'continue').stdout, 'STATE')).toBe('up-to-date');
     expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
     expect(git(work, 'stash', 'list').stdout).toBe('');

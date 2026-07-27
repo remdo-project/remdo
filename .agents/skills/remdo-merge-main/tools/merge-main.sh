@@ -75,7 +75,13 @@ clear_state() {
     "$completed_dir/saved-ref"
   if ! rmdir "$completed_dir"; then
     leftover_dir="$state_dir-leftovers-$$"
-    mv "$completed_dir" "$leftover_dir"
+    leftover_number=0
+    while [ -e "$leftover_dir" ]; do
+      leftover_number=$((leftover_number + 1))
+      leftover_dir="$state_dir-leftovers-$$-$leftover_number"
+    done
+    mv "$completed_dir" "$leftover_dir" \
+      || fail "unexpected run-state entries could not be retained"
     echo "merge-main: retained unexpected run-state entries at $leftover_dir" >&2
   fi
 }
@@ -268,8 +274,18 @@ prepare_private_stash() {
   private_work_tree=$(git rev-parse --show-toplevel)
   private_index=$(git rev-parse --path-format=absolute --git-path index)
   private_objects=$(git rev-parse --path-format=absolute --git-path objects)
-  if [ ! -d "$private_stash_dir" ]; then
-    mkdir -p "$private_stash_dir/objects" "$private_stash_dir/refs"
+  private_config=$(git rev-parse --path-format=absolute --git-path config)
+  private_ref_name="refs/remdo-merge-main/private-${run_saved_ref##*/}/stash"
+  private_refs_dir=$(git rev-parse --path-format=absolute \
+    --git-path "${private_ref_name%/stash}")
+  mkdir -p "$private_stash_dir/objects" "$private_refs_dir"
+  if [ ! -e "$private_stash_dir/refs" ]; then
+    ln -s "$private_refs_dir" "$private_stash_dir/refs"
+  fi
+  if [ ! -e "$private_stash_dir/config" ]; then
+    ln -s "$private_config" "$private_stash_dir/config"
+  fi
+  if [ ! -f "$private_stash_dir/HEAD" ]; then
     printf '%s\n' "$run_start_head" >"$private_stash_dir/HEAD"
   fi
 }
@@ -283,8 +299,13 @@ private_stash_git() {
 }
 
 remove_private_stash() {
+  private_ref_name="refs/remdo-merge-main/private-${run_saved_ref##*/}/stash"
+  private_refs_dir=$(git rev-parse --path-format=absolute \
+    --git-path "${private_ref_name%/stash}")
   [ ! -e "$state_dir/private-stash" ] \
     || rm -rf -- "$state_dir/private-stash"
+  git update-ref -d "$private_ref_name" 2>/dev/null || true
+  rmdir "$private_refs_dir" 2>/dev/null || true
 }
 
 integrate_target() {
