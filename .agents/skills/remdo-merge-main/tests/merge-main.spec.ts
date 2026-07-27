@@ -1,5 +1,6 @@
 // merge-main.sh owns deterministic target pinning, integration, preservation,
 // continuation, and restoration for remdo-merge-main.
+import fs from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -116,6 +117,7 @@ describe('merge-main.sh', () => {
 
     expect(result.status).toBe(0);
     expect(value(result.stdout, 'STATE')).toBe('fast-forwarded');
+    expect(result.stdout.startsWith('STATE=fast-forwarded\n')).toBe(true);
     expect(git(work, 'diff', '--cached', '--name-only').stdout.trim()).toBe(
       'staged.md',
     );
@@ -144,6 +146,38 @@ describe('merge-main.sh', () => {
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
+  it('does not adopt an older stash when dirty submodule work is not stashable', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const submodule = makeBareMain({ 'nested.md': '# nested\n' });
+    expect(
+      git(
+        work,
+        '-c',
+        'protocol.file.allow=always',
+        'submodule',
+        'add',
+        '--quiet',
+        submodule,
+        'nested',
+      ).status,
+    ).toBe(0);
+    commitAll(work, 'add submodule');
+    writeFile(work, 'a.md', '# older stash\n');
+    expect(git(work, 'stash', 'push', '--quiet').status).toBe(0);
+    const olderStash = git(work, 'rev-parse', 'refs/stash').stdout;
+    writeFile(path.join(work, 'nested'), 'nested.md', '# dirty nested\n');
+
+    const result = run(work, 'start', '--preserve');
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('could not be preserved');
+    expect(git(work, 'rev-parse', 'refs/stash').stdout).toBe(olderStash);
+    expect(
+      git(path.join(work, 'nested'), 'diff', '--name-only').stdout.trim(),
+    ).toBe('nested.md');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
   it('continues a determined merge resolution into verification', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'local\n');
@@ -163,6 +197,22 @@ describe('merge-main.sh', () => {
       git(work, 'rev-list', '--parents', '-n', '1', 'HEAD').stdout.trim().split(' '),
     ).toHaveLength(3);
     expect(value(run(work, 'finish').stdout, 'STATE')).toBe('merged');
+  });
+
+  it('creates a divergent merge commit when Git is configured for ff-only', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    expect(git(work, 'config', 'merge.ff', 'only').status).toBe(0);
+
+    const result = run(work, 'start');
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('verification-needed');
+    expect(
+      git(work, 'rev-list', '--parents', '-n', '1', 'HEAD').stdout.trim().split(' '),
+    ).toHaveLength(3);
   });
 
   it('retains saved work until a restoration conflict is completed', () => {
@@ -187,6 +237,43 @@ describe('merge-main.sh', () => {
     expect(git(work, 'stash', 'list').stdout).toBe('');
     expect(git(work, 'diff', '--name-only').stdout.trim()).toBe('a.md');
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
+  it('retains a stopped result through restoration conflict completion', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    advanceOrigin(origin);
+    writeFile(work, 'a.md', 'saved work\n');
+    const bin = makeDir('skills-git-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = merge ]; then',
+        '  printf "merge failure\\n" >a.md',
+        '  exit 1',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const started = runScript(
+      script,
+      work,
+      ['start', '--preserve'],
+      bin,
+    );
+
+    expect(started.status).not.toBe(0);
+    expect(value(started.stdout, 'STATE')).toBe('restore-conflicted');
+    writeFile(work, 'a.md', 'resolved work\n');
+    const completed = run(work, 'complete-restore');
+    expect(value(completed.stdout, 'STATE')).toBe('stopped');
   });
 
   it('refuses a detached merge destination', () => {

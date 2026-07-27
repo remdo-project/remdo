@@ -103,6 +103,8 @@ drop_saved_work() {
 
 restore_saved_work() {
   final_state=$1
+  run_outcome=$final_state
+  write_value outcome "$run_outcome"
   if [ -z "$run_stash" ]; then
     clear_state
     emit_state "$final_state"
@@ -111,7 +113,7 @@ restore_saved_work() {
 
   write_value phase restoring
   set +e
-  git stash apply --index "$run_stash"
+  git stash apply --index "$run_stash" >/dev/null
   apply_status=$?
   set -e
   if [ "$apply_status" -ne 0 ]; then
@@ -221,9 +223,14 @@ start_run() {
 
   run_stash=
   if [ "$preserve" = yes ] && [ -n "$dirty" ]; then
+    stash_before=$(git rev-parse --verify --quiet refs/stash || true)
     git stash push --quiet --include-untracked \
       --message "remdo-merge-main $run_branch $run_target"
-    run_stash=$(git rev-parse --verify refs/stash)
+    stash_after=$(git rev-parse --verify --quiet refs/stash || true)
+    if [ -z "$stash_after" ] || [ "$stash_after" = "$stash_before" ]; then
+      fail "local work could not be preserved"
+    fi
+    run_stash=$stash_after
   fi
 
   mkdir "$state_dir"
@@ -235,6 +242,12 @@ start_run() {
   write_value outcome "$run_outcome"
   write_value phase "$run_phase"
   write_value stash "$run_stash"
+
+  if [ "$preserve" = yes ] \
+    && [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
+    restore_saved_work stopped
+    fail "preservation did not produce a clean committed state"
+  fi
 
   case "$run_form" in
     up-to-date)
@@ -250,7 +263,7 @@ start_run() {
       ;;
     merge-commit)
       set +e
-      git merge --quiet --no-edit "$run_target"
+      git merge --quiet --no-edit --no-ff "$run_target"
       merge_status=$?
       set -e
       if [ "$merge_status" -eq 0 ] \
