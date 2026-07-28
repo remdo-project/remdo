@@ -84,6 +84,11 @@ Remove rejected or obsolete items and empty sections.
 
 ### Agents
 
+- **Simplify remdo-merge-main.** Align the
+  [`remdo-merge-main`](spec/skills/remdo-merge-main.md) runner and skill with
+  ordinary merge conflicts in preserve mode, Git-owned conflict state, and the
+  narrowed interruption and concurrency boundary.
+
 - **External dependency verification.** Define how implementation work checks
   current authoritative documentation or public APIs for external dependencies
   before using [empirical checks](documentation.md#empirical-checks).
