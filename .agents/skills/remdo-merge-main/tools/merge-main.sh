@@ -4,7 +4,7 @@
 #   merge-main.sh start [--preserve]
 #   merge-main.sh continue <target>
 #   merge-main.sh restore <stash-commit>
-#   merge-main.sh complete-restore <stash-commit>
+#   merge-main.sh complete-restore <stash-commit> --resolved
 set -eu
 
 fail() {
@@ -82,9 +82,11 @@ emit_run_state() {
   printf 'TARGET=%s\n' "$run_target"
   printf 'INCOMING=%s\n' "$run_incoming"
   printf 'FORM=%s\n' "$run_form"
-  if [ -n "$run_stash" ]; then
+  if [ "$run_preserved" = yes ]; then
     printf 'PRESERVED=yes\n'
-    printf 'STASH=%s\n' "$run_stash"
+    if [ -n "$run_stash" ]; then
+      printf 'STASH=%s\n' "$run_stash"
+    fi
   else
     printf 'PRESERVED=no\n'
   fi
@@ -122,8 +124,8 @@ start_run() {
     fail "working tree is dirty; use explicit preserve mode or clean it first"
   fi
 
-  git fetch --quiet origin \
-    || fail "could not fetch origin"
+  git fetch --quiet origin refs/heads/main \
+    || fail "could not fetch origin/main"
   [ "$(current_branch)" = "$run_branch" ] \
     || fail "destination branch changed during fetch"
   [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
@@ -132,13 +134,14 @@ start_run() {
   [ "$working_status" = "$initial_status" ] \
     || fail "working tree changed during fetch"
 
-  run_target=$(git rev-parse --verify --quiet 'origin/main^{commit}' || true)
+  run_target=$(git rev-parse --verify --quiet 'FETCH_HEAD^{commit}' || true)
   [ -n "$run_target" ] \
     || fail "origin/main not found after fetch"
   git merge-base "$run_start_head" "$run_target" >/dev/null 2>&1 \
     || fail "HEAD and origin/main have unrelated histories"
   run_incoming=$(git rev-list --count "$run_start_head..$run_target")
   run_stash=
+  run_preserved=no
 
   if is_ancestor "$run_target" "$run_start_head"; then
     run_form=up-to-date
@@ -158,6 +161,7 @@ start_run() {
     run_stash=$(git rev-parse --verify --quiet 'stash@{0}^{commit}' || true)
     [ -n "$run_stash" ] && [ "$run_stash" != "$stash_before" ] \
       || fail "local work was not saved"
+    run_preserved=yes
     read_working_status
     [ -z "$working_status" ] \
       || fail "not all local work was saved; stash retained as $run_stash"
@@ -177,6 +181,7 @@ start_run() {
             emit_run_state restore-conflicted
             return
           fi
+          run_stash=
         fi
         emit_run_state fast-forwarded
         return
@@ -252,12 +257,14 @@ restore_run() {
     || fail "saved work is not a commit"
   restore_saved_work "$restore_oid"
   printf 'STATE=%s\n' "$restore_state"
-  printf 'STASH=%s\n' "$restore_oid"
+  if [ "$restore_state" = restore-conflicted ]; then
+    printf 'STASH=%s\n' "$restore_oid"
+  fi
 }
 
 complete_restore() {
-  [ "$#" -eq 1 ] \
-    || fail "usage: merge-main.sh complete-restore <stash-commit>"
+  [ "$#" -eq 2 ] && [ "$2" = --resolved ] \
+    || fail "usage: merge-main.sh complete-restore <stash-commit> --resolved"
   operation_in_progress \
     && fail "another Git operation is already in progress"
   read_unmerged_paths
@@ -270,7 +277,6 @@ complete_restore() {
   git stash drop --quiet "$stash_selector" \
     || fail "restored work could not be removed from the stash"
   printf 'STATE=restored\n'
-  printf 'STASH=%s\n' "$restore_oid"
 }
 
 git rev-parse --git-dir >/dev/null 2>&1 \

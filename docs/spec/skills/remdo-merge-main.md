@@ -7,7 +7,7 @@ and recovery from an interrupted run are also outside the capability.
 
 ## Target
 
-The run fetches `origin` and fixes the resolved `origin/main` commit as its
+The run fetches remote `main` from `origin` and fixes the fetched commit as its
 target. Later remote changes do not change that target.
 
 The destination is any attached branch. The capability refuses a missing

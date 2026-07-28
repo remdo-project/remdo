@@ -61,8 +61,13 @@ conflict. Otherwise run `sh "$runner" restore "$STASH"`.
 
 When it reports `restore-conflicted`, resolve only what intended behavior and
 repository evidence determine, including the saved index versus working-tree
-intent. Stage or unstage each determined result accordingly. When no unmerged
-path remains, run `sh "$runner" complete-restore "$STASH"`.
+intent. Inspect the saved index tree at `STASH^2`, the saved working tree at
+`STASH`, and any saved untracked tree at `STASH^3`; absence of an unmerged path
+does not prove that saved work was applied. Stage or unstage every determined
+result accordingly.
+
+Only after all saved paths and their index intent are accounted for, run
+`sh "$runner" complete-restore "$STASH" --resolved`.
 
 If restoration remains uncertain, leave both the conflict and stash unchanged
 and report `restore-conflicted` for manual recovery. Otherwise report the

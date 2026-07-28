@@ -128,6 +128,7 @@ describe('merge-main.sh', () => {
     expect(result.status).toBe(0);
     expect(value(result.stdout, 'STATE')).toBe('fast-forwarded');
     expect(value(result.stdout, 'PRESERVED')).toBe('yes');
+    expect(value(result.stdout, 'STASH')).toBeUndefined();
     expect(git(work, 'diff', '--cached', '--name-only').stdout).toBe(
       'staged.md\n',
     );
@@ -201,13 +202,75 @@ describe('merge-main.sh', () => {
     writeFile(work, 'a.md', 'resolved saved work\n');
     expect(git(work, 'add', 'a.md').status).toBe(0);
     expect(git(work, 'reset', '--quiet', 'HEAD', '--', 'a.md').status).toBe(0);
-    const completed = run(work, 'complete-restore', stash);
+    const completed = run(work, 'complete-restore', stash, '--resolved');
 
     expect(value(completed.stdout, 'STATE')).toBe('restored');
     expect(git(work, 'stash', 'list').stdout).toBe('');
     expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe(
       'resolved saved work\n',
     );
+  });
+
+  it('requires explicit resolution before dropping an unapplied untracked file', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    pushChange(origin, { 'untracked.md': 'upstream file\n' });
+    writeFile(work, 'untracked.md', 'saved untracked\n');
+
+    const started = run(work, 'start', '--preserve');
+    const stash = value(started.stdout, 'STASH')!;
+
+    expect(value(started.stdout, 'STATE')).toBe('restore-conflicted');
+    expect(git(work, 'diff', '--name-only', '--diff-filter=U').stdout).toBe('');
+    expect(fs.readFileSync(path.join(work, 'untracked.md'), 'utf8')).toBe(
+      'upstream file\n',
+    );
+    const unsafe = run(work, 'complete-restore', stash);
+    expect(unsafe.status).not.toBe(0);
+    expect(git(work, 'stash', 'list', '--format=%H').stdout.trim()).toBe(stash);
+
+    writeFile(work, 'untracked.md', 'resolved saved untracked\n');
+    const completed = run(work, 'complete-restore', stash, '--resolved');
+
+    expect(value(completed.stdout, 'STATE')).toBe('restored');
+    expect(git(work, 'stash', 'list').stdout).toBe('');
+    expect(fs.readFileSync(path.join(work, 'untracked.md'), 'utf8')).toBe(
+      'resolved saved untracked\n',
+    );
+  });
+
+  it('fetches remote main even when the configured fetch map excludes it', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    advanceOrigin(origin);
+    expect(git(work, 'config', '--unset-all', 'remote.origin.fetch').status).toBe(
+      0,
+    );
+    expect(
+      git(
+        work,
+        'config',
+        '--add',
+        'remote.origin.fetch',
+        '+refs/heads/other:refs/remotes/origin/other',
+      ).status,
+    ).toBe(0);
+
+    const result = run(work, 'start');
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('fast-forwarded');
+    expect(value(result.stdout, 'TARGET')).toBe(
+      git(origin, 'rev-parse', 'main').stdout.trim(),
+    );
+  });
+
+  it('does not reuse stale origin/main after remote main is deleted', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    expect(git(origin, 'update-ref', '-d', 'refs/heads/main').status).toBe(0);
+
+    const result = run(work, 'start');
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('could not fetch origin/main');
   });
 
   it('reports a hook-rejected merge commit as ready to continue', () => {
