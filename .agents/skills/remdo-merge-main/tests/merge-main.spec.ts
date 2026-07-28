@@ -175,6 +175,34 @@ describe('merge-main.sh', () => {
     expect(value(result.stdout, 'STATE')).toBe('fast-forwarded');
   });
 
+  it('fetches into a shallow checkout without changing its boundary', () => {
+    const { origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    advanceOrigin(origin);
+    const work = makeDir('skills-shallow-work-');
+    expect(
+      git(work, 'clone', '--quiet', '--depth', '1', `file://${origin}`, '.')
+        .status,
+    ).toBe(0);
+    const shallowFile = git(
+      work,
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-path',
+      'shallow',
+    ).stdout.trim();
+    const boundary = fs.readFileSync(shallowFile, 'utf8');
+    pushChange(origin, { 'later.md': '# later\n' }, 'later upstream change');
+
+    const result = run(work, 'start');
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('fast-forwarded');
+    expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(
+      git(origin, 'rev-parse', 'main').stdout,
+    );
+    expect(fs.readFileSync(shallowFile, 'utf8')).toBe(boundary);
+  });
+
   it('keeps the target pinned when another fetch replaces FETCH_HEAD', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     const pusher = makeDir('skills-other-pusher-');
@@ -1290,6 +1318,35 @@ describe('merge-main.sh', () => {
     expect(value(started.stdout, 'STATE')).toBe('merge-commit-failed');
     expect(git(work, 'diff', '--name-only', '--diff-filter=U').stdout).toBe('');
     expect(value(run(work, 'stop').stdout, 'STATE')).toBe('stopped');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
+  it('restores preserved work after a rejected merge is externally aborted', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    writeFile(work, 'precious.md', 'saved work\n');
+    const hook = git(
+      work,
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-path',
+      'hooks/pre-merge-commit',
+    ).stdout.trim();
+    fs.writeFileSync(hook, '#!/usr/bin/env sh\nexit 1\n');
+    fs.chmodSync(hook, 0o755);
+
+    const started = run(work, 'start', '--preserve');
+
+    expect(value(started.stdout, 'STATE')).toBe('merge-commit-failed');
+    expect(git(work, 'merge', '--abort').status).toBe(0);
+    const stopped = run(work, 'stop');
+    expect(stopped.status).toBe(0);
+    expect(value(stopped.stdout, 'STATE')).toBe('stopped');
+    expect(fs.readFileSync(path.join(work, 'precious.md'), 'utf8')).toBe(
+      'saved work\n',
+    );
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 

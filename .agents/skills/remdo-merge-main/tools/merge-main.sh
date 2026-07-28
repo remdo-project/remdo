@@ -167,9 +167,12 @@ fetch_target() {
   done
   fetch_objects=$(git rev-parse --path-format=absolute --git-path objects)
   fetch_config=$(git rev-parse --path-format=absolute --git-path config)
+  fetch_shallow=$(git rev-parse --path-format=absolute --git-path shallow)
   mkdir -p "$fetch_git_dir/refs"
   unpublished_fetch_dir=$fetch_git_dir
   ln -s "$fetch_config" "$fetch_git_dir/config"
+  [ ! -f "$fetch_shallow" ] \
+    || cp "$fetch_shallow" "$fetch_git_dir/shallow"
   printf 'ref: refs/heads/remdo-merge-main-fetch\n' >"$fetch_git_dir/HEAD"
   negotiation_tip=${tracking_before:-$run_start_head}
   GIT_DIR="$fetch_git_dir" \
@@ -830,6 +833,11 @@ stop_run() {
     && fail "a Git operation is still in progress"
   has_unmerged_paths \
     && fail "working tree has unresolved paths"
+  if [ "$run_phase" = commit-failed ] \
+    && [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ]; then
+    restore_saved_work stopped
+    return
+  fi
   if [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
     || {
       git merge-base --is-ancestor "$run_target" HEAD \
