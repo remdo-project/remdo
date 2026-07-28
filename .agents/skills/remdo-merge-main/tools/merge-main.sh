@@ -368,12 +368,13 @@ integrate_target() {
       fi
       ;;
     merge-commit)
-      set +e
-      git merge --quiet --no-edit --no-ff "$run_target" >/dev/null
-      merge_status=$?
-      set -e
-      if [ "$merge_status" -eq 0 ] \
-        || git merge-base --is-ancestor "$run_target" HEAD; then
+      git -c "branch.$run_branch.mergeOptions=" \
+        merge --quiet --commit --no-edit --no-ff --no-squash \
+        "$run_target" >/dev/null \
+        || true
+      if git merge-base --is-ancestor "$run_target" HEAD \
+        && git merge-base --is-ancestor "$run_start_head" HEAD \
+        && ! operation_in_progress; then
         write_value phase verification
         run_phase=verification
         emit_state verification-needed
@@ -476,10 +477,10 @@ start_run() {
   has_unmerged_paths \
     && fail "working tree has unresolved paths"
 
-  git fetch --quiet --prune --no-tags origin \
+  git fetch --quiet --no-tags origin refs/heads/main \
     || fail "could not fetch origin"
   run_target=$(git rev-parse --verify --quiet \
-    'refs/remotes/origin/main^{commit}') \
+    'FETCH_HEAD^{commit}') \
     || fail "origin/main not found after fetch"
   git merge-base HEAD "$run_target" >/dev/null 2>&1 \
     || fail "HEAD and origin/main have unrelated histories"
@@ -553,8 +554,17 @@ continue_run() {
         && fail "another Git operation is already in progress"
       [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
         || fail "branch changed before integration"
-      [ -z "$(git status --porcelain --untracked-files=normal)" ] \
-        || fail "integration state is not clean"
+      if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
+        if [ "$run_form" = fast-forward ] \
+          && git diff --quiet \
+          && git diff --cached --quiet "$run_target"; then
+          git update-ref HEAD "$run_target" "$run_start_head" \
+            || fail "interrupted fast-forward could not be completed"
+          restore_saved_work fast-forwarded
+          return
+        fi
+        fail "integration state is not clean"
+      fi
       integrate_target
       return
       ;;

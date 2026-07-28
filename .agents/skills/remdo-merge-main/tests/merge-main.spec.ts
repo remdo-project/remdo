@@ -70,10 +70,33 @@ describe('merge-main.sh', () => {
     expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(
       git(origin, 'rev-parse', 'main').stdout,
     );
-    expect(git(work, 'rev-parse', 'origin/main').stdout).toBe(
-      git(origin, 'rev-parse', 'main').stdout,
+    expect(value(result.stdout, 'TARGET')).toBe(
+      git(origin, 'rev-parse', 'main').stdout.trim(),
     );
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
+  it('fetches main independently of the configured remote refspec', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const staleTracking = git(work, 'rev-parse', 'origin/main').stdout;
+    expect(
+      git(
+        work,
+        'config',
+        'remote.origin.fetch',
+        '+refs/heads/other:refs/remotes/origin/other',
+      ).status,
+    ).toBe(0);
+    pushChange(origin, { 'later.md': '# later\n' }, 'later upstream change');
+
+    const result = run(work, 'start');
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('fast-forwarded');
+    expect(value(result.stdout, 'TARGET')).toBe(
+      git(origin, 'rev-parse', 'main').stdout.trim(),
+    );
+    expect(git(work, 'rev-parse', 'origin/main').stdout).toBe(staleTracking);
   });
 
   it('ignores an incomplete unpublished state directory', () => {
@@ -440,7 +463,11 @@ describe('merge-main.sh', () => {
       'git',
       [
         '#!/usr/bin/env sh',
-        'if [ "$1" = merge ]; then',
+        'is_merge=no',
+        'for argument do',
+        '  [ "$argument" != merge ] || is_merge=yes',
+        'done',
+        'if [ "$is_merge" = yes ]; then',
         '  kill -KILL "$PPID"',
         '  exit 91',
         'fi',
@@ -478,7 +505,11 @@ describe('merge-main.sh', () => {
       'git',
       [
         '#!/usr/bin/env sh',
-        'if [ "$1" = merge ]; then',
+        'is_merge=no',
+        'for argument do',
+        '  [ "$argument" != merge ] || is_merge=yes',
+        'done',
+        'if [ "$is_merge" = yes ]; then',
         '  PATH=${PATH#*:}',
         '  export PATH',
         '  git "$@"',
@@ -499,6 +530,47 @@ describe('merge-main.sh', () => {
     expect(interrupted.status).not.toBe(0);
     expect(value(run(work, 'continue').stdout, 'STATE')).toBe('finish-needed');
     expect(value(run(work, 'finish').stdout, 'STATE')).toBe('fast-forwarded');
+  });
+
+  it('completes an interrupted fast-forward checkout', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    advanceOrigin(origin);
+    const bin = makeDir('skills-partial-fast-forward-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = merge ]; then',
+        '  for argument do target=$argument; done',
+        '  PATH=${PATH#*:}',
+        '  export PATH',
+        '  git read-tree -u "$target"',
+        '  kill -KILL "$PPID"',
+        '  exit 91',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const interrupted = runScript(script, work, ['start'], bin);
+
+    expect(interrupted.status).not.toBe(0);
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+      'integration-ready',
+    );
+    expect(value(run(work, 'continue').stdout, 'STATE')).toBe(
+      'fast-forwarded',
+    );
+    expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(
+      git(origin, 'rev-parse', 'main').stdout,
+    );
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
   it('refuses dirty work unless preserve mode is explicit', () => {
@@ -1040,12 +1112,20 @@ describe('merge-main.sh', () => {
     expect(git(work, 'rev-parse', 'MERGE_HEAD').stdout.trim()).toBe(other);
   });
 
-  it('creates a divergent merge commit when Git is configured for ff-only', () => {
+  it('creates a divergent merge commit despite configured merge options', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
     commitAll(work, 'local');
     advanceOrigin(origin);
     expect(git(work, 'config', 'merge.ff', 'only').status).toBe(0);
+    expect(
+      git(
+        work,
+        'config',
+        'branch.main.mergeOptions',
+        '--no-commit --squash',
+      ).status,
+    ).toBe(0);
 
     const result = run(work, 'start');
 
@@ -1211,7 +1291,11 @@ describe('merge-main.sh', () => {
       'git',
       [
         '#!/usr/bin/env sh',
-        'if [ "$1" = merge ]; then',
+        'is_merge=no',
+        'for argument do',
+        '  [ "$argument" != merge ] || is_merge=yes',
+        'done',
+        'if [ "$is_merge" = yes ]; then',
         '  printf "merge failure\\n" >a.md',
         '  exit 1',
         'fi',
