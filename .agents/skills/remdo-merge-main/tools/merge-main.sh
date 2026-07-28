@@ -300,6 +300,7 @@ prepare_private_stash() {
   private_index=$(git rev-parse --path-format=absolute --git-path index)
   private_objects=$(git rev-parse --path-format=absolute --git-path objects)
   private_config=$(git rev-parse --path-format=absolute --git-path config)
+  private_info=$(git rev-parse --path-format=absolute --git-path info)
   private_ref_name="refs/remdo-merge-main/private-${run_saved_ref##*/}/stash"
   private_refs_dir=$(git rev-parse --path-format=absolute \
     --git-path "${private_ref_name%/stash}")
@@ -309,6 +310,9 @@ prepare_private_stash() {
   fi
   if [ ! -e "$private_stash_dir/config" ]; then
     ln -s "$private_config" "$private_stash_dir/config"
+  fi
+  if [ ! -e "$private_stash_dir/info" ]; then
+    ln -s "$private_info" "$private_stash_dir/info"
   fi
   if [ ! -f "$private_stash_dir/HEAD" ]; then
     printf '%s\n' "$run_start_head" >"$private_stash_dir/HEAD"
@@ -562,7 +566,7 @@ continue_run() {
   if [ -e "$(git rev-parse --git-path MERGE_HEAD)" ]; then
     git diff --quiet \
       || fail "unstaged merge-resolution changes remain"
-    [ -z "$(git ls-files --others --exclude-standard)" ] \
+    [ -z "$(git ls-files --others --exclude-standard -- ':/')" ] \
       || fail "untracked merge-resolution files remain"
     git commit --quiet --no-edit
   fi

@@ -699,6 +699,15 @@ describe('merge-main.sh', () => {
 
   it('resumes after its private stash was created', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    const exclude = git(
+      work,
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-path',
+      'info/exclude',
+    ).stdout.trim();
+    fs.appendFileSync(exclude, 'runtime/\n');
+    writeFile(work, 'runtime/state', 'ignored\n');
     writeFile(work, 'a.md', 'saved work\n');
     const bin = makeDir('skills-stash-drop-wrapper-');
     const gitWrapper = path.join(bin, 'git');
@@ -733,6 +742,9 @@ describe('merge-main.sh', () => {
     expect(interrupted.status).not.toBe(0);
     expect(value(run(work, 'status').stdout, 'STATE')).toBe(
       'preservation-needed',
+    );
+    expect(fs.readFileSync(path.join(work, 'runtime/state'), 'utf8')).toBe(
+      'ignored\n',
     );
     expect(git(work, 'stash', 'list').stdout).toBe('');
     expect(
@@ -950,6 +962,28 @@ describe('merge-main.sh', () => {
       git(work, 'rev-list', '--parents', '-n', '1', 'HEAD').stdout.trim().split(' '),
     ).toHaveLength(3);
     expect(value(run(work, 'finish').stdout, 'STATE')).toBe('merged');
+  });
+
+  it('finds untracked merge-resolution files from a subdirectory', () => {
+    const { work, origin } = makeScratchWithOrigin({
+      'a.md': 'base\n',
+      'nested/tracked.md': 'tracked\n',
+    });
+    writeFile(work, 'a.md', 'local\n');
+    commitAll(work, 'local');
+    pushChange(origin, { 'a.md': 'upstream\n' });
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe('conflicted');
+    writeFile(work, 'a.md', 'resolved\n');
+    expect(git(work, 'add', 'a.md').status).toBe(0);
+    writeFile(work, 'resolution-note.md', 'untracked\n');
+
+    const continued = run(path.join(work, 'nested'), 'continue');
+
+    expect(continued.status).not.toBe(0);
+    expect(continued.stderr).toContain(
+      'untracked merge-resolution files remain',
+    );
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe('merge-ready');
   });
 
   it('creates a divergent merge commit when Git is configured for ff-only', () => {
