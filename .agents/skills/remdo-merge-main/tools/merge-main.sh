@@ -137,6 +137,8 @@ start_run() {
   run_target=$(git rev-parse --verify --quiet 'FETCH_HEAD^{commit}' || true)
   [ -n "$run_target" ] \
     || fail "origin/main not found after fetch"
+  git update-ref refs/remotes/origin/main "$run_target" \
+    || fail "origin/main could not be updated"
   git merge-base "$run_start_head" "$run_target" >/dev/null 2>&1 \
     || fail "HEAD and origin/main have unrelated histories"
   run_incoming=$(git rev-list --count "$run_start_head..$run_target")

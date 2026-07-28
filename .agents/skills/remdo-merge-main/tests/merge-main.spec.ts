@@ -261,6 +261,9 @@ describe('merge-main.sh', () => {
     expect(value(result.stdout, 'TARGET')).toBe(
       git(origin, 'rev-parse', 'main').stdout.trim(),
     );
+    expect(git(work, 'rev-parse', 'origin/main').stdout).toBe(
+      git(origin, 'rev-parse', 'main').stdout,
+    );
   });
 
   it('does not reuse stale origin/main after remote main is deleted', () => {
