@@ -458,6 +458,11 @@ describe('merge-main.sh', () => {
     expect(value(run(work, 'status').stdout, 'STATE')).toBe(
       'integration-ready',
     );
+    writeFile(work, 'unexpected.md', 'dirty\n');
+    const dirty = run(work, 'continue');
+    expect(dirty.status).not.toBe(0);
+    expect(dirty.stderr).toContain('integration state is not clean');
+    fs.rmSync(path.join(work, 'unexpected.md'));
     expect(value(run(work, 'continue').stdout, 'STATE')).toBe(
       'verification-needed',
     );
@@ -986,6 +991,31 @@ describe('merge-main.sh', () => {
     expect(value(run(work, 'status').stdout, 'STATE')).toBe('merge-ready');
   });
 
+  it('refuses to commit another merge during conflict continuation', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    expect(git(work, 'switch', '--quiet', '-c', 'other').status).toBe(0);
+    writeFile(work, 'other.md', 'other\n');
+    commitAll(work, 'other');
+    const other = git(work, 'rev-parse', 'HEAD').stdout.trim();
+    expect(git(work, 'switch', '--quiet', 'main').status).toBe(0);
+    writeFile(work, 'a.md', 'local\n');
+    commitAll(work, 'local');
+    pushChange(origin, { 'a.md': 'upstream\n' });
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe('conflicted');
+    expect(git(work, 'merge', '--abort').status).toBe(0);
+    expect(
+      git(work, 'merge', '--quiet', '--no-commit', '--no-ff', 'other').status,
+    ).toBe(0);
+
+    const continued = run(work, 'continue');
+
+    expect(continued.status).not.toBe(0);
+    expect(continued.stderr).toContain(
+      'merge operation does not belong to this run',
+    );
+    expect(git(work, 'rev-parse', 'MERGE_HEAD').stdout.trim()).toBe(other);
+  });
+
   it('creates a divergent merge commit when Git is configured for ff-only', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
@@ -1078,6 +1108,29 @@ describe('merge-main.sh', () => {
     expect(completed.status).toBe(0);
     expect(value(completed.stdout, 'STATE')).toBe('fast-forwarded');
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
+  it('refuses restoration completion after integration is lost', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    pushChange(origin, { 'new.md': 'upstream\n' });
+    writeFile(work, 'new.md', 'saved work\n');
+    const started = run(work, 'start', '--preserve');
+    expect(value(started.stdout, 'STATE')).toBe('restore-conflicted');
+    const startHead = fs.readFileSync(
+      path.join(stateDir(work), 'start-head'),
+      'utf8',
+    ).trim();
+    expect(git(work, 'reset', '--hard', '--quiet', startHead).status).toBe(0);
+
+    const completed = run(work, 'complete-restore', '--resolved');
+
+    expect(completed.status).not.toBe(0);
+    expect(completed.stderr).toContain(
+      'branch no longer contains the fixed target',
+    );
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+      'restore-conflicted',
+    );
   });
 
   it('reports an interrupted successful restoration as uncertain', () => {

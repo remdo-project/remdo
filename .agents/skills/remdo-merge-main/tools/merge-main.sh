@@ -125,12 +125,23 @@ has_unmerged_paths() {
 
 operation_in_progress() {
   [ -e "$(git rev-parse --git-path MERGE_HEAD)" ] \
-    || [ -e "$(git rev-parse --git-path CHERRY_PICK_HEAD)" ] \
+    || non_merge_operation_in_progress
+}
+
+non_merge_operation_in_progress() {
+  [ -e "$(git rev-parse --git-path CHERRY_PICK_HEAD)" ] \
     || [ -e "$(git rev-parse --git-path REVERT_HEAD)" ] \
     || [ -e "$(git rev-parse --git-path BISECT_LOG)" ] \
     || [ -d "$(git rev-parse --git-path rebase-apply)" ] \
     || [ -d "$(git rev-parse --git-path rebase-merge)" ] \
     || [ -d "$(git rev-parse --git-path sequencer)" ]
+}
+
+require_integration_ancestry() {
+  git merge-base --is-ancestor "$run_target" HEAD \
+    || fail "branch no longer contains the fixed target"
+  git merge-base --is-ancestor "$run_start_head" HEAD \
+    || fail "branch no longer contains its original head"
 }
 
 drop_saved_work() {
@@ -534,6 +545,12 @@ continue_run() {
       return
       ;;
     prepared)
+      operation_in_progress \
+        && fail "another Git operation is already in progress"
+      [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
+        || fail "branch changed before integration"
+      [ -z "$(git status --porcelain --untracked-files=normal)" ] \
+        || fail "integration state is not clean"
       integrate_target
       return
       ;;
@@ -552,6 +569,14 @@ continue_run() {
       return
       ;;
     merging)
+      non_merge_operation_in_progress \
+        && fail "another Git operation is already in progress"
+      merge_head_path=$(git rev-parse --git-path MERGE_HEAD)
+      if [ -e "$merge_head_path" ]; then
+        merge_head=$(git rev-parse --verify MERGE_HEAD)
+        [ "$merge_head" = "$run_target" ] \
+          || fail "merge operation does not belong to this run"
+      fi
       ;;
     *)
       fail "run is not ready to continue integration"
@@ -571,8 +596,7 @@ continue_run() {
     git commit --quiet --no-edit
   fi
 
-  git merge-base --is-ancestor "$run_target" HEAD \
-    || fail "resolved merge does not contain the fixed target"
+  require_integration_ancestry
   if [ "$run_form" = merge-commit ]; then
     write_value phase verification
     run_phase=verification
@@ -614,10 +638,7 @@ finish_run() {
     || fail "verification failure requires a merge awaiting verification"
   operation_in_progress \
     && fail "a Git operation is still in progress"
-  git merge-base --is-ancestor "$run_target" HEAD \
-    || fail "branch no longer contains the fixed target"
-  git merge-base --is-ancestor "$run_start_head" HEAD \
-    || fail "branch no longer contains its original head"
+  require_integration_ancestry
   [ -z "$(git status --porcelain --untracked-files=normal)" ] \
     || fail "integration state is not clean and committed"
   if [ "$verification_failed" = yes ]; then
@@ -661,6 +682,10 @@ complete_restore() {
   fi
   has_unmerged_paths \
     && fail "restoration still has unmerged paths"
+  operation_in_progress \
+    && fail "a Git operation is still in progress"
+  [ "$run_outcome" = stopped ] \
+    || require_integration_ancestry
   [ -n "$run_stash" ] \
     || fail "run has no saved work"
   if [ "$run_phase" = restore-applied ]; then
