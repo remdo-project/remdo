@@ -27,11 +27,13 @@ Set `runner` to
 - On `STATE=restore-conflicted`, continue under
   [Restoration](#restoration).
 - On `STATE=restore-uncertain`, continue under [Restoration](#restoration).
-- On any other unfinished or invalid state, report the runner output and stop.
+- On `STATE=stopped`, report the runner output and stop.
+- On any other state, report the runner output and stop.
 
 Trust the runner's fixed target, merge form, incoming count, preservation
 identity, and state transitions. Do not reproduce its Git plumbing manually.
-An `up-to-date` or `fast-forwarded` result is complete.
+An `up-to-date`, `fast-forwarded`, or `merged` result is complete.
+`verification-failed` and `stopped` are terminal results.
 
 ## Conflict resolution
 

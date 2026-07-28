@@ -541,6 +541,10 @@ continue_run() {
   require_run_branch
   case "$run_phase" in
     preserving)
+      operation_in_progress \
+        && fail "another Git operation is already in progress"
+      [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
+        || fail "branch changed before preservation completed"
       preserve_and_integrate
       return
       ;;

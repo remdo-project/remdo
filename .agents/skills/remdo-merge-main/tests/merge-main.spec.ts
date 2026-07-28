@@ -751,6 +751,30 @@ describe('merge-main.sh', () => {
     expect(fs.readFileSync(path.join(work, 'runtime/state'), 'utf8')).toBe(
       'ignored\n',
     );
+    const cherryPickHead = git(
+      work,
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-path',
+      'CHERRY_PICK_HEAD',
+    ).stdout.trim();
+    writeFile(path.dirname(cherryPickHead), path.basename(cherryPickHead), 'x\n');
+    const operation = run(work, 'continue');
+    expect(operation.status).not.toBe(0);
+    expect(operation.stderr).toContain('another Git operation');
+    fs.rmSync(cherryPickHead);
+    writeFile(work, 'unexpected.md', 'changed branch\n');
+    commitAll(work, 'changed branch');
+    const changed = run(work, 'continue');
+    expect(changed.status).not.toBe(0);
+    expect(changed.stderr).toContain(
+      'branch changed before preservation completed',
+    );
+    const startHead = fs.readFileSync(
+      path.join(stateDir(work), 'start-head'),
+      'utf8',
+    ).trim();
+    expect(git(work, 'reset', '--hard', '--quiet', startHead).status).toBe(0);
     expect(git(work, 'stash', 'list').stdout).toBe('');
     expect(
       git(work, 'for-each-ref', '--format=%(objectname)', 'refs/remdo-merge-main')
