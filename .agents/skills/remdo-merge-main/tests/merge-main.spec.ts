@@ -79,6 +79,45 @@ describe('merge-main.sh', () => {
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
+  it('reports a completed fast-forward despite a post-merge tree change', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    pushChange(origin, { 'later.md': '# later\n' }, 'later upstream change');
+    const bin = makeDir('skills-fast-forward-post-check-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = merge ] && [ "$2" = --quiet ] && [ "$3" = --ff-only ]; then',
+        '  PATH=${PATH#*:}',
+        '  export PATH',
+        '  git "$@"',
+        '  status=$?',
+        `  printf 'post-merge change\\n' > ${JSON.stringify(path.join(work, 'post-merge.md'))}`,
+        '  exit "$status"',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const result = runScript(script, work, ['start'], bin);
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('fast-forwarded');
+    expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(
+      git(origin, 'rev-parse', 'main').stdout,
+    );
+    expect(fs.readFileSync(path.join(work, 'post-merge.md'), 'utf8')).toBe(
+      'post-merge change\n',
+    );
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
   it('fetches main independently of the configured remote refspec', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     expect(
@@ -101,6 +140,39 @@ describe('merge-main.sh', () => {
     expect(git(work, 'rev-parse', 'origin/main').stdout).toBe(
       git(origin, 'rev-parse', 'main').stdout,
     );
+  });
+
+  it('seeds the isolated fetch with the previous main tip', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const previousMain = git(work, 'rev-parse', 'origin/main').stdout.trim();
+    pushChange(origin, { 'later.md': '# later\n' }, 'later upstream change');
+    const bin = makeDir('skills-fetch-negotiation-wrapper-');
+    const marker = path.join(bin, 'negotiation-tip');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = fetch ]; then',
+        '  PATH=${PATH#*:}',
+        '  export PATH',
+        `  git rev-parse --verify refs/remdo-merge-main/negotiation > ${JSON.stringify(marker)}`,
+        '  exec git "$@"',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const result = runScript(script, work, ['start'], bin);
+
+    expect(result.status).toBe(0);
+    expect(fs.readFileSync(marker, 'utf8').trim()).toBe(previousMain);
+    expect(value(result.stdout, 'STATE')).toBe('fast-forwarded');
   });
 
   it('keeps the target pinned when another fetch replaces FETCH_HEAD', () => {
@@ -1324,6 +1396,33 @@ describe('merge-main.sh', () => {
         .stdout,
     ).toContain(saved);
     expect(git(work, 'diff', '--name-only').stdout.trim()).toBe('a.md');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
+  it('finishes restoration when the saved-work ref was replaced', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'local.md', 'local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    writeFile(work, 'dirty.md', 'saved work\n');
+
+    const started = run(work, 'start', '--preserve');
+
+    expect(value(started.stdout, 'STATE')).toBe('verification-needed');
+    const savedRef = value(started.stdout, 'SAVED_REF')!;
+    const stash = value(started.stdout, 'STASH')!;
+    const replacement = git(work, 'rev-parse', 'HEAD').stdout.trim();
+    expect(git(work, 'update-ref', savedRef, replacement, stash).status).toBe(0);
+
+    const finished = run(work, 'finish');
+
+    expect(finished.status).toBe(0);
+    expect(value(finished.stdout, 'STATE')).toBe('merged');
+    expect(finished.stderr).toContain('retained saved-work ref');
+    expect(fs.readFileSync(path.join(work, 'dirty.md'), 'utf8')).toBe(
+      'saved work\n',
+    );
+    expect(git(work, 'rev-parse', savedRef).stdout.trim()).toBe(replacement);
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 

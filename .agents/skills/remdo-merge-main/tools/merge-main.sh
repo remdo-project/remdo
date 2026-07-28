@@ -171,6 +171,11 @@ fetch_target() {
   unpublished_fetch_dir=$fetch_git_dir
   ln -s "$fetch_config" "$fetch_git_dir/config"
   printf 'ref: refs/heads/remdo-merge-main-fetch\n' >"$fetch_git_dir/HEAD"
+  negotiation_tip=${tracking_before:-$run_start_head}
+  GIT_DIR="$fetch_git_dir" \
+  GIT_OBJECT_DIRECTORY="$fetch_objects" \
+    git update-ref refs/remdo-merge-main/negotiation "$negotiation_tip" \
+    || fail "fetch negotiation tip could not be prepared"
 
   if ! GIT_DIR="$fetch_git_dir" \
     GIT_OBJECT_DIRECTORY="$fetch_objects" \
@@ -240,8 +245,10 @@ require_integration_ancestry() {
 
 drop_saved_work() {
   saved=$(git rev-parse --verify --quiet "$run_saved_ref" || true)
-  [ -z "$saved" ] \
-    || git update-ref -d "$run_saved_ref" "$run_stash"
+  if [ -n "$saved" ] \
+    && ! git update-ref -d "$run_saved_ref" "$run_stash"; then
+    echo "merge-main: retained saved-work ref $run_saved_ref" >&2
+  fi
 }
 
 restore_saved_work() {
@@ -477,14 +484,14 @@ integrate_target() {
       restore_saved_work up-to-date
       ;;
     fast-forward)
-      if GIT_CONFIG_COUNT=1 \
+      GIT_CONFIG_COUNT=1 \
         GIT_CONFIG_KEY_0="branch.$run_branch.mergeOptions" \
         GIT_CONFIG_VALUE_0='' \
           git merge --quiet --ff-only "$run_target" \
-        && git merge-base --is-ancestor "$run_target" HEAD \
+        || true
+      if git merge-base --is-ancestor "$run_target" HEAD \
         && git merge-base --is-ancestor "$run_start_head" HEAD \
-        && ! operation_in_progress \
-        && [ -z "$(git status --porcelain --untracked-files=normal)" ]; then
+        && ! operation_in_progress; then
         restore_saved_work fast-forwarded
       else
         restore_saved_work stopped
