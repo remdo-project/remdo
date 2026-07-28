@@ -138,7 +138,9 @@ clear_state() {
     "$completed_dir"/.saved-ref-* \
     "$completed_dir"/.retain-saved-work-* \
     "$completed_dir"/.ignored-work-* \
+    "$completed_dir"/.ignored-work-raw-* \
     "$completed_dir"/.preservation-untracked-* \
+    "$completed_dir"/.preservation-untracked-raw-* \
     "$completed_dir"/.restore-untracked-conflicts-* \
     "$completed_dir"/.restore-untracked-index-*
   if ! rmdir "$completed_dir" 2>/dev/null; then
@@ -295,12 +297,17 @@ downgrade_lost_integration() {
 
 capture_ignored_work() {
   ignored_temp="$state_dir/.ignored-work-$$"
+  ignored_raw="$state_dir/.ignored-work-raw-$$"
   if ! git -C "$repo_root" \
-    ls-files --others --ignored --exclude-standard -- ':/' \
-    | LC_ALL=C sort -u >"$ignored_temp"; then
-    rm -f -- "$ignored_temp"
+    ls-files --others --ignored --exclude-standard -- ':/' >"$ignored_raw"; then
+    rm -f -- "$ignored_raw" "$ignored_temp"
     fail "ignored working paths could not be recorded"
   fi
+  if ! LC_ALL=C sort -u "$ignored_raw" >"$ignored_temp"; then
+    rm -f -- "$ignored_raw" "$ignored_temp"
+    fail "ignored working paths could not be recorded"
+  fi
+  rm -f -- "$ignored_raw"
   mv -f "$ignored_temp" "$state_dir/ignored-work" \
     || fail "ignored working paths could not be published"
 }
@@ -310,11 +317,17 @@ preservation_is_clean() {
     && git diff --cached --quiet \
     || return 1
   untracked_temp="$state_dir/.preservation-untracked-$$"
-  if ! git -C "$repo_root" ls-files --others --exclude-standard -- ':/' \
-    | LC_ALL=C sort -u >"$untracked_temp"; then
-    rm -f -- "$untracked_temp"
+  untracked_raw="$state_dir/.preservation-untracked-raw-$$"
+  if ! git -C "$repo_root" \
+    ls-files --others --exclude-standard -- ':/' >"$untracked_raw"; then
+    rm -f -- "$untracked_raw" "$untracked_temp"
     return 1
   fi
+  if ! LC_ALL=C sort -u "$untracked_raw" >"$untracked_temp"; then
+    rm -f -- "$untracked_raw" "$untracked_temp"
+    return 1
+  fi
+  rm -f -- "$untracked_raw"
   unexpected=$(LC_ALL=C comm -23 "$untracked_temp" "$state_dir/ignored-work")
   rm -f -- "$untracked_temp"
   [ -z "$unexpected" ]
@@ -367,6 +380,7 @@ restore_saved_work() {
   fi
 
   write_value phase restore-pending
+  rm -f -- "$state_dir/restore-untracked-conflicts"
   set +e
   git stash apply --index "$run_stash" >/dev/null
   apply_status=$?
@@ -903,6 +917,8 @@ continue_run() {
       emit_state merge-ready
       return 1
     fi
+    git hook run --ignore-missing post-merge -- 0 \
+      || true
   fi
 
   require_integration_ancestry

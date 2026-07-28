@@ -26,7 +26,7 @@ The capability resolves a restoration conflict only when the correct result can
 be determined. Otherwise, restoration remains resumable and the saved work is
 retained.
 
-If integrated history is removed before restoration completes, the result is
+If integrated history is removed after restoration begins, the result is
 `stopped` and the saved work remains retained.
 
 ## Merge

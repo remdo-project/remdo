@@ -1069,6 +1069,47 @@ describe('merge-main.sh', () => {
     ).toBe('');
   });
 
+  it('does not mask a post-preservation ls-files failure', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'a.md', 'saved work\n');
+    const bin = makeDir('skills-ls-files-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'is_ls_files=no',
+        'ignored=no',
+        'for argument do',
+        '  [ "$argument" != ls-files ] || is_ls_files=yes',
+        '  [ "$argument" != --ignored ] || ignored=yes',
+        'done',
+        '[ "$is_ls_files" = no ] || [ "$ignored" = yes ] || exit 91',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const result = runScript(
+      script,
+      work,
+      ['start', '--preserve'],
+      bin,
+    );
+
+    expect(result.status).not.toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('stopped');
+    expect(result.stderr).toContain(
+      'preservation did not produce a clean committed state',
+    );
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
   it('restores a valid stash when its cleanup reports failure', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'saved work\n');
@@ -1458,10 +1499,24 @@ describe('merge-main.sh', () => {
 
     writeFile(work, 'a.md', 'resolved\n');
     expect(git(work, 'add', 'a.md').status).toBe(0);
+    const hookMarker = path.join(work, '.git', 'resolved-post-merge');
+    const hook = git(
+      work,
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-path',
+      'hooks/post-merge',
+    ).stdout.trim();
+    fs.writeFileSync(
+      hook,
+      `#!/usr/bin/env sh\nprintf '%s\\n' "$1" > ${JSON.stringify(hookMarker)}\n`,
+    );
+    fs.chmodSync(hook, 0o755);
     const continued = run(work, 'continue');
 
     expect(continued.status).toBe(0);
     expect(value(continued.stdout, 'STATE')).toBe('verification-needed');
+    expect(fs.readFileSync(hookMarker, 'utf8')).toBe('0\n');
     expect(
       git(work, 'rev-list', '--parents', '-n', '1', 'HEAD').stdout.trim().split(' '),
     ).toHaveLength(3);
