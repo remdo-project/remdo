@@ -307,9 +307,26 @@ describe('merge-main.sh', () => {
 
     expect(finished.status).not.toBe(0);
     expect(finished.stderr).toContain('no longer contains its original head');
-    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe('stopped');
+    expect(value(run(work, 'stop').stdout, 'STATE')).toBe('stopped');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
+  it('rejects an empty required state value without clearing the run', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe(
       'verification-needed',
     );
+    fs.writeFileSync(path.join(stateDir(work), 'outcome'), '');
+
+    const finished = run(work, 'finish');
+
+    expect(finished.status).not.toBe(0);
+    expect(finished.stderr).toContain('run state is incomplete: empty outcome');
+    expect(fs.existsSync(stateDir(work))).toBe(true);
   });
 
   it('clears completed state while retaining unexpected entries', () => {
@@ -1127,6 +1144,37 @@ describe('merge-main.sh', () => {
       git(work, 'rev-list', '--parents', '-n', '1', 'HEAD').stdout.trim().split(' '),
     ).toHaveLength(3);
     expect(value(run(work, 'finish').stdout, 'STATE')).toBe('merged');
+  });
+
+  it('reports a merge-resolution commit failure', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'a.md', 'local\n');
+    commitAll(work, 'local');
+    pushChange(origin, { 'a.md': 'upstream\n' });
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe('conflicted');
+    writeFile(work, 'a.md', 'resolved\n');
+    expect(git(work, 'add', 'a.md').status).toBe(0);
+    const bin = makeDir('skills-commit-failure-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = commit ]; then exit 91; fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const continued = runScript(script, work, ['continue'], bin);
+
+    expect(continued.status).not.toBe(0);
+    expect(continued.stderr).toContain('merge-resolution commit failed');
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe('merge-ready');
   });
 
   it('finds untracked merge-resolution files from a subdirectory', () => {

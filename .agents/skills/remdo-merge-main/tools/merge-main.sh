@@ -27,10 +27,17 @@ cleanup_unpublished_target() {
 }
 trap cleanup_unpublished_target EXIT
 
-state_value() {
+optional_state_value() {
   [ -f "$state_dir/$1" ] \
     || fail "run state is incomplete: missing $1"
   sed -n '1p' "$state_dir/$1"
+}
+
+state_value() {
+  state_result=$(optional_state_value "$1")
+  [ -n "$state_result" ] \
+    || fail "run state is incomplete: empty $1"
+  printf '%s\n' "$state_result"
 }
 
 write_value() {
@@ -59,8 +66,8 @@ load_state() {
   run_form=$(state_value form)
   run_outcome=$(state_value outcome)
   run_phase=$(state_value phase)
-  run_stash=$(state_value stash)
-  run_saved_ref=$(state_value saved-ref)
+  run_stash=$(optional_state_value stash)
+  run_saved_ref=$(optional_state_value saved-ref)
 }
 
 emit_state() {
@@ -261,7 +268,8 @@ status_run() {
         emit_state conflicted
       elif [ -e "$(git rev-parse --git-path MERGE_HEAD)" ]; then
         emit_state merge-ready
-      elif git merge-base --is-ancestor "$run_target" HEAD; then
+      elif git merge-base --is-ancestor "$run_target" HEAD \
+        && git merge-base --is-ancestor "$run_start_head" HEAD; then
         if [ "$run_form" = merge-commit ]; then
           write_value phase verification
           run_phase=verification
@@ -280,7 +288,8 @@ status_run() {
       fi
       ;;
     verification)
-      if git merge-base --is-ancestor "$run_target" HEAD; then
+      if git merge-base --is-ancestor "$run_target" HEAD \
+        && git merge-base --is-ancestor "$run_start_head" HEAD; then
         emit_state verification-needed
       elif [ "$(git rev-parse HEAD)" = "$run_start_head" ]; then
         write_value phase prepared
@@ -677,7 +686,8 @@ continue_run() {
       || fail "unstaged merge-resolution changes remain"
     [ -z "$(git ls-files --others --exclude-standard -- ':/')" ] \
       || fail "untracked merge-resolution files remain"
-    git commit --quiet --no-edit
+    git commit --quiet --no-edit \
+      || fail "merge-resolution commit failed"
   fi
 
   require_integration_ancestry
@@ -748,8 +758,11 @@ stop_run() {
     && fail "a Git operation is still in progress"
   has_unmerged_paths \
     && fail "working tree has unresolved paths"
-  if git merge-base --is-ancestor "$run_target" HEAD \
-    || [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ]; then
+  if [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
+    || {
+      git merge-base --is-ancestor "$run_target" HEAD \
+        && git merge-base --is-ancestor "$run_start_head" HEAD
+    }; then
     fail "run is not stopped"
   fi
   restore_saved_work stopped
