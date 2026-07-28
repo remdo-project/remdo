@@ -20,6 +20,7 @@ git rev-parse --git-dir >/dev/null 2>&1 \
 state_dir=$(git rev-parse --path-format=absolute --git-path remdo-merge-main)
 unpublished_target_ref=
 unpublished_fetch_dir=
+retain_saved_work=no
 
 cleanup_unpublished_target() {
   [ -z "$unpublished_fetch_dir" ] \
@@ -257,10 +258,25 @@ require_integration_ancestry() {
 }
 
 drop_saved_work() {
+  if [ "$retain_saved_work" = yes ]; then
+    return 0
+  fi
   saved=$(git rev-parse --verify --quiet "$run_saved_ref" || true)
   if [ -n "$saved" ] \
     && ! git update-ref -d "$run_saved_ref" "$run_stash"; then
     echo "merge-main: retained saved-work ref $run_saved_ref" >&2
+  fi
+}
+
+downgrade_lost_integration() {
+  if [ "$run_outcome" != stopped ] \
+    && {
+      ! git merge-base --is-ancestor "$run_target" HEAD \
+        || ! git merge-base --is-ancestor "$run_start_head" HEAD
+    }; then
+    run_outcome=stopped
+    retain_saved_work=yes
+    write_value outcome "$run_outcome"
   fi
 }
 
@@ -358,10 +374,18 @@ status_run() {
   fi
   case "$run_phase" in
     preserving)
-      emit_state preservation-needed
+      if [ "$(git rev-parse HEAD)" = "$run_start_head" ]; then
+        emit_state preservation-needed
+      else
+        emit_state stopped
+      fi
       ;;
     prepared)
-      emit_state integration-ready
+      if [ "$(git rev-parse HEAD)" = "$run_start_head" ]; then
+        emit_state integration-ready
+      else
+        emit_state stopped
+      fi
       ;;
     merging)
       if has_unmerged_paths; then
@@ -400,7 +424,12 @@ status_run() {
       fi
       ;;
     ready-to-restore)
-      emit_state finish-needed
+      if git merge-base --is-ancestor "$run_target" HEAD \
+        && git merge-base --is-ancestor "$run_start_head" HEAD; then
+        emit_state finish-needed
+      else
+        emit_state stopped
+      fi
       ;;
     restore-applied)
       emit_state restore-ready
@@ -441,7 +470,8 @@ initialize_state() {
   printf '%s\n' "$run_phase" >"$initial_dir/phase"
   printf '%s\n' "$run_stash" >"$initial_dir/stash"
   printf '%s\n' "$run_saved_ref" >"$initial_dir/saved-ref"
-  if ! mv -T "$initial_dir" "$state_dir"; then
+  if ! mv -T --no-clobber "$initial_dir" "$state_dir" \
+    || [ -e "$initial_dir" ]; then
     rm -rf -- "$initial_dir"
     fail "another remdo-merge-main run started concurrently"
   fi
@@ -530,6 +560,29 @@ remove_private_stash() {
   rmdir "$private_refs_dir" 2>/dev/null || true
 }
 
+journal_private_stash() {
+  [ -n "$run_saved_ref" ] \
+    || return
+  current_saved=$(git rev-parse --verify --quiet "$run_saved_ref" || true)
+  [ -n "$current_saved" ] \
+    || fail "saved-work identity is missing"
+  prepare_private_stash
+  private_saved=$(private_stash_value)
+  if [ -z "$run_stash" ] && [ -n "$private_saved" ]; then
+    run_stash=$private_saved
+    write_value stash "$run_stash"
+  fi
+  if [ -n "$run_stash" ]; then
+    if [ "$current_saved" = "$run_start_head" ]; then
+      git update-ref "$run_saved_ref" "$run_stash" "$run_start_head" \
+        || fail "preserved work could not be journaled"
+    elif [ "$current_saved" != "$run_stash" ]; then
+      fail "saved-work identity does not match preserved work"
+    fi
+  fi
+  remove_private_stash
+}
+
 integrate_target() {
   require_run_branch
   [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
@@ -598,7 +651,8 @@ preserve_and_integrate() {
   if [ -z "$run_stash" ]; then
     [ "$current_saved" = "$run_start_head" ] \
       || fail "saved-work identity belongs to another run"
-    capture_ignored_work
+    [ -f "$state_dir/ignored-work" ] \
+      || capture_ignored_work
     prepare_private_stash
     private_saved=$(private_stash_value)
     if [ -z "$private_saved" ]; then
@@ -766,6 +820,7 @@ continue_run() {
       return
       ;;
     restore-pending)
+      downgrade_lost_integration
       if has_unmerged_paths; then
         write_value phase restore-conflicted
         run_phase=restore-conflicted
@@ -869,6 +924,14 @@ stop_run() {
   load_state
   require_run_branch
   case "$run_phase" in
+    preserving|prepared|ready-to-restore)
+      operation_in_progress \
+        && fail "another Git operation is already in progress"
+      [ "$run_phase" != preserving ] \
+        || journal_private_stash
+      restore_saved_work stopped
+      return
+      ;;
     merging|verification|commit-failed)
       ;;
     *)
@@ -943,17 +1006,11 @@ complete_restore() {
     && fail "restoration still has unmerged paths"
   operation_in_progress \
     && fail "a Git operation is still in progress"
-  if [ "$run_outcome" != stopped ] \
-    && {
-      ! git merge-base --is-ancestor "$run_target" HEAD \
-        || ! git merge-base --is-ancestor "$run_start_head" HEAD
-    }; then
-    run_outcome=stopped
-    write_value outcome "$run_outcome"
-  fi
+  downgrade_lost_integration
   [ -n "$run_stash" ] \
     || fail "run has no saved work"
   if [ "$run_phase" = restore-applied ]; then
+    retain_saved_work=yes
     drop_saved_work
   fi
   clear_state
