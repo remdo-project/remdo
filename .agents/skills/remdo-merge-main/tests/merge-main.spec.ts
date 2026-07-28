@@ -118,6 +118,59 @@ describe('merge-main.sh', () => {
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
+  it('does not restore saved work while another Git operation remains', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    advanceOrigin(origin);
+    writeFile(work, 'a.md', 'saved work\n');
+    const operationPath = git(
+      work,
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-path',
+      'CHERRY_PICK_HEAD',
+    ).stdout.trim();
+    const bin = makeDir('skills-fast-forward-operation-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = merge ]; then',
+        '  PATH=${PATH#*:}',
+        '  export PATH',
+        '  git "$@"',
+        '  status=$?',
+        `  printf 'external\\n' > ${JSON.stringify(operationPath)}`,
+        '  exit "$status"',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const result = runScript(
+      script,
+      work,
+      ['start', '--preserve'],
+      bin,
+    );
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(
+      'a Git operation remains after fast-forward integration',
+    );
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('# A\n');
+    expect(run(work, 'status').status).not.toBe(0);
+    fs.rmSync(operationPath);
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe('finish-needed');
+    expect(value(run(work, 'finish').stdout, 'STATE')).toBe('fast-forwarded');
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
+  });
+
   it('fetches main independently of the configured remote refspec', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     expect(
@@ -140,6 +193,40 @@ describe('merge-main.sh', () => {
     expect(git(work, 'rev-parse', 'origin/main').stdout).toBe(
       git(origin, 'rev-parse', 'main').stdout,
     );
+  });
+
+  it('pins the fetched target before removing the isolated fetch refs', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    advanceOrigin(origin);
+    const bin = makeDir('skills-fetch-pin-wrapper-');
+    const marker = path.join(bin, 'target-ref');
+    const rmWrapper = path.join(bin, 'rm');
+    writeFile(
+      bin,
+      'rm',
+      [
+        '#!/usr/bin/env sh',
+        'case "${3-}" in',
+        '  *remdo-merge-main-fetch-*)',
+        '    PATH=${PATH#*:}',
+        '    export PATH',
+        `    git for-each-ref refs/remdo-merge-main > ${JSON.stringify(marker)}`,
+        `    [ -s ${JSON.stringify(marker)} ] || exit 91`,
+        '    ;;',
+        'esac',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec rm "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(rmWrapper, 0o755);
+
+    const result = runScript(script, work, ['start'], bin);
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('fast-forwarded');
+    expect(fs.readFileSync(marker, 'utf8')).not.toBe('');
   });
 
   it('uses the linked worktree origin configuration', () => {
@@ -432,6 +519,39 @@ describe('merge-main.sh', () => {
     );
     expect(git(work, 'clean', '-f', '--quiet').status).toBe(0);
     expect(value(run(work, 'finish').stdout, 'STATE')).toBe('merged');
+  });
+
+  it('does not mask a working-status failure during finish', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+    const bin = makeDir('skills-status-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'for argument do [ "$argument" != status ] || exit 91; done',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const finished = runScript(script, work, ['finish'], bin);
+
+    expect(finished.status).not.toBe(0);
+    expect(finished.stderr).toContain('working tree could not be inspected');
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
   });
 
   it('refuses to finish after the branch loses its original head', () => {
@@ -1698,6 +1818,31 @@ describe('merge-main.sh', () => {
     expect(
       git(work, 'rev-list', '--parents', '-n', '1', 'HEAD').stdout.trim().split(' '),
     ).toHaveLength(3);
+  });
+
+  it('preserves inherited command-scoped Git configuration', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    const hooks = makeDir('skills-command-config-hooks-');
+    const marker = path.join(hooks, 'marker');
+    writeFile(
+      hooks,
+      'post-merge',
+      `#!/usr/bin/env sh\nprintf 'ran\\n' > ${JSON.stringify(marker)}\n`,
+    );
+    fs.chmodSync(path.join(hooks, 'post-merge'), 0o755);
+
+    const result = runScript(script, work, ['start'], undefined, {
+      GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_KEY_0: 'core.hooksPath',
+      GIT_CONFIG_VALUE_0: hooks,
+    });
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('verification-needed');
+    expect(fs.readFileSync(marker, 'utf8')).toBe('ran\n');
   });
 
   it('retains saved work until a restoration conflict is completed', () => {

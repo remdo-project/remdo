@@ -168,7 +168,22 @@ require_run_branch() {
 }
 
 has_unmerged_paths() {
-  [ -n "$(git diff --name-only --diff-filter=U)" ]
+  if ! unmerged_paths=$(git diff --name-only --diff-filter=U); then
+    fail "unmerged paths could not be inspected"
+  fi
+  [ -n "$unmerged_paths" ]
+}
+
+read_working_status() {
+  if ! working_status=$(git status --porcelain --untracked-files=normal); then
+    fail "working tree could not be inspected"
+  fi
+}
+
+read_untracked_paths() {
+  if ! untracked_paths=$(git ls-files --others --exclude-standard -- ':/'); then
+    fail "untracked paths could not be inspected"
+  fi
 }
 
 operation_in_progress() {
@@ -217,8 +232,6 @@ fetch_target() {
     GIT_OBJECT_DIRECTORY="$fetch_objects" \
       git rev-parse --verify --quiet 'FETCH_HEAD^{commit}' || true
   )
-  rm -rf -- "$fetch_git_dir"
-  unpublished_fetch_dir=
   [ -n "$run_target" ] \
     || fail "origin/main not found after fetch"
 
@@ -236,6 +249,8 @@ fetch_target() {
   done
   run_target_ref=$fetch_ref
   unpublished_target_ref=$fetch_ref
+  rm -rf -- "$fetch_git_dir"
+  unpublished_fetch_dir=
 
   if [ -n "$tracking_before" ]; then
     if ! git update-ref "$tracking_ref" "$run_target" "$tracking_before" \
@@ -337,8 +352,24 @@ integration_is_clean() {
   if [ -n "$run_stash" ] && [ -f "$state_dir/ignored-work" ]; then
     preservation_is_clean
   else
-    [ -z "$(git status --porcelain --untracked-files=normal)" ]
+    read_working_status
+    [ -z "$working_status" ]
   fi
+}
+
+merge_with_neutral_options() {
+  inherited_config_count=${GIT_CONFIG_COUNT:-0}
+  case "$inherited_config_count" in
+    *[!0-9]*)
+      fail "inherited Git configuration count is invalid"
+      ;;
+  esac
+  override_config_count=$((inherited_config_count + 1))
+  env \
+    "GIT_CONFIG_COUNT=$override_config_count" \
+    "GIT_CONFIG_KEY_$inherited_config_count=branch.$run_branch.mergeOptions" \
+    "GIT_CONFIG_VALUE_$inherited_config_count=" \
+    git merge "$@"
 }
 
 record_untracked_restore_conflicts() {
@@ -426,6 +457,8 @@ status_run() {
       fi
       ;;
     merging)
+      non_merge_operation_in_progress \
+        && fail "another Git operation is already in progress"
       merge_head_path=$(git rev-parse --git-path MERGE_HEAD)
       if [ -e "$merge_head_path" ]; then
         merge_head=$(git rev-parse --verify MERGE_HEAD)
@@ -641,25 +674,22 @@ integrate_target() {
       restore_saved_work up-to-date
       ;;
     fast-forward)
-      GIT_CONFIG_COUNT=1 \
-        GIT_CONFIG_KEY_0="branch.$run_branch.mergeOptions" \
-        GIT_CONFIG_VALUE_0='' \
-          git merge --quiet --ff-only "$run_target" \
+      merge_with_neutral_options --quiet --ff-only "$run_target" \
         || true
       if git merge-base --is-ancestor "$run_target" HEAD \
         && git merge-base --is-ancestor "$run_start_head" HEAD \
         && ! operation_in_progress; then
         restore_saved_work fast-forwarded
+      elif operation_in_progress; then
+        fail "a Git operation remains after fast-forward integration"
       else
         restore_saved_work stopped
         return 1
       fi
       ;;
     merge-commit)
-      GIT_CONFIG_COUNT=1 \
-      GIT_CONFIG_KEY_0="branch.$run_branch.mergeOptions" \
-      GIT_CONFIG_VALUE_0='' \
-        git merge --quiet --commit --no-edit --no-ff --no-squash \
+      merge_with_neutral_options \
+        --quiet --commit --no-edit --no-ff --no-squash \
         "$run_target" >/dev/null \
         || true
       if git merge-base --is-ancestor "$run_target" HEAD \
@@ -674,6 +704,8 @@ integrate_target() {
         write_value phase commit-failed
         run_phase=commit-failed
         emit_state merge-commit-failed
+      elif operation_in_progress; then
+        fail "a Git operation remains after merge integration"
       else
         restore_saved_work stopped
         return 1
@@ -773,7 +805,8 @@ start_run() {
     && fail "working tree has unresolved paths"
 
   fetch_target
-  [ "$(current_branch)" = "$run_branch" ] \
+  fetched_branch=$(current_branch)
+  [ "$fetched_branch" = "$run_branch" ] \
     || fail "destination branch changed during fetch"
   [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
     || fail "destination HEAD changed during fetch"
@@ -792,7 +825,8 @@ start_run() {
     run_outcome=merged
   fi
 
-  dirty=$(git status --porcelain --untracked-files=normal)
+  read_working_status
+  dirty=$working_status
   if [ -n "$dirty" ] && [ "$preserve" = no ]; then
     fail "working tree is dirty; use explicit preserve mode or clean it first"
   fi
@@ -849,23 +883,26 @@ continue_run() {
         && fail "another Git operation is already in progress"
       [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
         || fail "branch changed before integration"
-      if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
+      read_working_status
+      if [ -n "$working_status" ]; then
         if [ -n "$run_stash" ] \
           && [ -f "$state_dir/ignored-work" ] \
           && preservation_is_clean; then
           integrate_target
           return
         fi
-        if [ "$run_form" = fast-forward ] \
-          && git diff --quiet \
-          && git diff --cached --quiet "$run_target" \
-          && [ -z "$(git ls-files --others --exclude-standard -- ':/')" ]; then
-          git update-ref HEAD "$run_target" "$run_start_head" \
-            || fail "interrupted fast-forward could not be completed"
-          git hook run --ignore-missing post-merge -- 0 \
-            || true
-          restore_saved_work fast-forwarded
-          return
+        if [ "$run_form" = fast-forward ]; then
+          read_untracked_paths
+          if git diff --quiet \
+            && git diff --cached --quiet "$run_target" \
+            && [ -z "$untracked_paths" ]; then
+            git update-ref HEAD "$run_target" "$run_start_head" \
+              || fail "interrupted fast-forward could not be completed"
+            git hook run --ignore-missing post-merge -- 0 \
+              || true
+            restore_saved_work fast-forwarded
+            return
+          fi
         fi
         fail "integration state is not clean"
       fi
@@ -878,12 +915,15 @@ continue_run() {
         write_value phase restore-conflicted
         run_phase=restore-conflicted
         emit_state restore-conflicted
-      elif [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
-        write_value phase restore-uncertain
-        run_phase=restore-uncertain
-        emit_state restore-uncertain
       else
-        restore_saved_work "$run_outcome"
+        read_working_status
+        if [ -n "$working_status" ]; then
+          write_value phase restore-uncertain
+          run_phase=restore-uncertain
+          emit_state restore-uncertain
+        else
+          restore_saved_work "$run_outcome"
+        fi
       fi
       return
       ;;
@@ -910,7 +950,8 @@ continue_run() {
   if [ -e "$(git rev-parse --git-path MERGE_HEAD)" ]; then
     git diff --quiet \
       || fail "unstaged merge-resolution changes remain"
-    [ -z "$(git ls-files --others --exclude-standard -- ':/')" ] \
+    read_untracked_paths
+    [ -z "$untracked_paths" ] \
       || fail "untracked merge-resolution files remain"
     if ! git commit --quiet --no-edit; then
       echo "merge-main: merge-resolution commit failed; use stop to abort" >&2
