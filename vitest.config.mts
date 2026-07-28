@@ -7,6 +7,8 @@ import { configDefaults, defineConfig } from 'vitest/config';
 
 const isVitestUi = process.argv.includes('--ui');
 const isVitestList = process.argv.includes('list');
+const directlyRunsSkillTests = process.argv.some(argument =>
+  /(?:^|[/\\])\.(?:agents|claude)[/\\]skills[/\\]/.test(argument));
 
 export default defineConfig({
   ...createViteSharedConfig(),
@@ -59,8 +61,10 @@ export default defineConfig({
       ...configDefaults.exclude,
       '**/.pnpm-store/**',
       '**/data/**',
-      '**/.agents/skills/**/tests/**',
-      '**/.claude/skills/**/tests/**',
+      ...(directlyRunsSkillTests ? [] : [
+        '**/.agents/skills/**/tests/**',
+        '**/.claude/skills/**/tests/**',
+      ]),
       'tests/e2e/**',
       'tests/perf/**',
       ...(config.env.COLLAB_ENABLED ? [] : ['tests/unit/collab/**']),
