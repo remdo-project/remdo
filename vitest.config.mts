@@ -59,6 +59,8 @@ export default defineConfig({
       ...configDefaults.exclude,
       '**/.pnpm-store/**',
       '**/data/**',
+      '**/.agents/skills/**/tests/**',
+      '**/.claude/skills/**/tests/**',
       'tests/e2e/**',
       'tests/perf/**',
       ...(config.env.COLLAB_ENABLED ? [] : ['tests/unit/collab/**']),
