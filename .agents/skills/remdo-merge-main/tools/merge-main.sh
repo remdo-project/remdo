@@ -136,7 +136,8 @@ clear_state() {
     "$completed_dir"/.retain-saved-work-* \
     "$completed_dir"/.ignored-work-* \
     "$completed_dir"/.preservation-untracked-* \
-    "$completed_dir"/.restore-untracked-conflicts-*
+    "$completed_dir"/.restore-untracked-conflicts-* \
+    "$completed_dir"/.restore-untracked-index-*
   if ! rmdir "$completed_dir" 2>/dev/null; then
     leftover_dir="$state_dir-leftovers-$$"
     leftover_number=0
@@ -182,10 +183,14 @@ fetch_target() {
   done
   fetch_objects=$(git rev-parse --path-format=absolute --git-path objects)
   fetch_config=$(git rev-parse --path-format=absolute --git-path config)
+  fetch_worktree_config=$(git rev-parse --path-format=absolute \
+    --git-path config.worktree)
   fetch_shallow=$(git rev-parse --path-format=absolute --git-path shallow)
   mkdir -p "$fetch_git_dir/refs"
   unpublished_fetch_dir=$fetch_git_dir
   ln -s "$fetch_config" "$fetch_git_dir/config"
+  [ ! -f "$fetch_worktree_config" ] \
+    || cp "$fetch_worktree_config" "$fetch_git_dir/config.worktree"
   [ ! -f "$fetch_shallow" ] \
     || cp "$fetch_shallow" "$fetch_git_dir/shallow"
   printf 'ref: refs/heads/remdo-merge-main-fetch\n' >"$fetch_git_dir/HEAD"
@@ -313,20 +318,20 @@ preservation_is_clean() {
 
 record_untracked_restore_conflicts() {
   conflicts_temp="$state_dir/.restore-untracked-conflicts-$$"
+  conflicts_index="$state_dir/.restore-untracked-index-$$"
   : >"$conflicts_temp"
   untracked_tree=$(git rev-parse --verify --quiet "$run_stash^3" || true)
   if [ -n "$untracked_tree" ]; then
-    git -C "$repo_root" -c core.quotePath=false \
-      ls-tree -r --full-tree --name-only "$untracked_tree" \
-      | while IFS= read -r saved_path; do
-        saved_blob=$(git -C "$repo_root" \
-          rev-parse "$untracked_tree:$saved_path")
-        current_blob=$(git -C "$repo_root" \
-          hash-object -- "$saved_path" 2>/dev/null || true)
-        [ "$current_blob" = "$saved_blob" ] \
-          || printf '%s\n' "$saved_path"
-      done >>"$conflicts_temp"
+    GIT_INDEX_FILE="$conflicts_index" \
+      git -C "$repo_root" read-tree "$untracked_tree"
+    GIT_INDEX_FILE="$conflicts_index" \
+      git -C "$repo_root" update-index --refresh >/dev/null 2>&1 \
+      || true
+    GIT_INDEX_FILE="$conflicts_index" \
+      git -C "$repo_root" -c core.quotePath=true \
+      diff-files --name-only >"$conflicts_temp"
   fi
+  rm -f -- "$conflicts_index"
   mv -f "$conflicts_temp" "$state_dir/restore-untracked-conflicts" \
     || fail "untracked restoration conflicts could not be recorded"
 }

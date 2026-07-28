@@ -142,6 +142,43 @@ describe('merge-main.sh', () => {
     );
   });
 
+  it('uses the linked worktree origin configuration', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const alternate = makeDir('skills-alternate-origin-');
+    expect(git(alternate, 'clone', '--quiet', '--bare', origin, '.').status).toBe(
+      0,
+    );
+    pushChange(alternate, { 'alternate.md': '# alternate\n' }, 'alternate main');
+    expect(
+      git(work, 'config', 'extensions.worktreeConfig', 'true').status,
+    ).toBe(0);
+    const sibling = makeDir('skills-config-worktree-');
+    expect(
+      git(work, 'worktree', 'add', '--quiet', '-b', 'configured', sibling)
+        .status,
+    ).toBe(0);
+    expect(
+      git(
+        sibling,
+        'config',
+        '--worktree',
+        `url.${alternate}.insteadOf`,
+        origin,
+      ).status,
+    ).toBe(0);
+    expect(git(sibling, 'remote', 'get-url', 'origin').stdout.trim()).toBe(
+      alternate,
+    );
+
+    const result = run(sibling, 'start');
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('fast-forwarded');
+    expect(git(sibling, 'rev-parse', 'HEAD').stdout).toBe(
+      git(alternate, 'rev-parse', 'main').stdout,
+    );
+  });
+
   it('seeds the isolated fetch with the previous main tip', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     const previousMain = git(work, 'rev-parse', 'origin/main').stdout.trim();
@@ -1709,6 +1746,38 @@ describe('merge-main.sh', () => {
     expect(completed.status).toBe(0);
     expect(value(completed.stdout, 'STATE')).toBe('fast-forwarded');
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
+  it('reports an untracked restoration mode conflict', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    const pusher = makeDir('skills-mode-pusher-');
+    expect(git(pusher, 'clone', '--quiet', origin, '.').status).toBe(0);
+    writeFile(pusher, 'script.sh', '#!/bin/sh\n');
+    fs.chmodSync(path.join(pusher, 'script.sh'), 0o755);
+    commitAll(pusher, 'add executable');
+    expect(git(pusher, 'push', '--quiet', 'origin', 'main').status).toBe(0);
+    writeFile(work, 'script.sh', '#!/bin/sh\n');
+
+    const started = run(work, 'start', '--preserve');
+
+    expect(value(started.stdout, 'STATE')).toBe('restore-conflicted');
+    expect(value(started.stdout, 'UNTRACKED_CONFLICT')).toBe('script.sh');
+    expect(fs.statSync(path.join(work, 'script.sh')).mode & 0o111).not.toBe(0);
+  });
+
+  it('reports an untracked conflict whose path contains a newline', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    const filename = 'new\nline.md';
+    pushChange(origin, { [filename]: 'upstream\n' });
+    writeFile(work, filename, 'saved work\n');
+
+    const started = run(work, 'start', '--preserve');
+
+    expect(started.status).toBe(0);
+    expect(value(started.stdout, 'STATE')).toBe('restore-conflicted');
+    expect(value(started.stdout, 'UNTRACKED_CONFLICT')).toBe(
+      JSON.stringify(filename),
+    );
   });
 
   it('stops restoration after integration is lost', () => {
