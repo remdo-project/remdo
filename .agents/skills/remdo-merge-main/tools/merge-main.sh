@@ -19,8 +19,11 @@ git rev-parse --git-dir >/dev/null 2>&1 \
 
 state_dir=$(git rev-parse --path-format=absolute --git-path remdo-merge-main)
 unpublished_target_ref=
+unpublished_fetch_dir=
 
 cleanup_unpublished_target() {
+  [ -z "$unpublished_fetch_dir" ] \
+    || rm -rf -- "$unpublished_fetch_dir"
   [ -z "$unpublished_target_ref" ] \
     || git update-ref -d "$unpublished_target_ref" 2>/dev/null \
     || true
@@ -154,26 +157,56 @@ operation_in_progress() {
 fetch_target() {
   tracking_ref=refs/remotes/origin/main
   tracking_before=$(git rev-parse --verify --quiet "$tracking_ref" || true)
+  fetch_git_base="$state_dir-fetch-$$"
+  fetch_git_dir=$fetch_git_base
+  fetch_git_number=0
+  while [ -e "$fetch_git_dir" ]; do
+    fetch_git_number=$((fetch_git_number + 1))
+    fetch_git_dir="$fetch_git_base-$fetch_git_number"
+  done
+  fetch_objects=$(git rev-parse --path-format=absolute --git-path objects)
+  fetch_config=$(git rev-parse --path-format=absolute --git-path config)
+  mkdir -p "$fetch_git_dir/refs"
+  unpublished_fetch_dir=$fetch_git_dir
+  ln -s "$fetch_config" "$fetch_git_dir/config"
+  printf 'ref: refs/heads/remdo-merge-main-fetch\n' >"$fetch_git_dir/HEAD"
+
+  if ! GIT_DIR="$fetch_git_dir" \
+    GIT_OBJECT_DIRECTORY="$fetch_objects" \
+      git fetch --quiet --no-tags origin refs/heads/main; then
+    rm -rf -- "$fetch_git_dir"
+    fail "could not fetch origin"
+  fi
+  run_target=$(
+    GIT_DIR="$fetch_git_dir" \
+    GIT_OBJECT_DIRECTORY="$fetch_objects" \
+      git rev-parse --verify --quiet 'FETCH_HEAD^{commit}' || true
+  )
+  rm -rf -- "$fetch_git_dir"
+  unpublished_fetch_dir=
+  [ -n "$run_target" ] \
+    || fail "origin/main not found after fetch"
+
   fetch_ref_base="refs/remdo-merge-main/target-$$"
   fetch_ref=$fetch_ref_base
   fetch_number=0
-  while git rev-parse --verify --quiet "$fetch_ref" >/dev/null; do
+  while :; do
+    if git update-ref "$fetch_ref" "$run_target" "" 2>/dev/null; then
+      break
+    fi
+    git rev-parse --verify --quiet "$fetch_ref" >/dev/null \
+      || fail "fixed-target ref could not be created"
     fetch_number=$((fetch_number + 1))
     fetch_ref="$fetch_ref_base-$fetch_number"
   done
+  run_target_ref=$fetch_ref
+  unpublished_target_ref=$fetch_ref
 
-  if ! git fetch --quiet --no-tags origin "refs/heads/main:$fetch_ref"; then
-    git update-ref -d "$fetch_ref" 2>/dev/null || true
-    fail "could not fetch origin"
-  fi
-  run_target=$(git rev-parse --verify --quiet "$fetch_ref^{commit}") \
-    || fail "origin/main not found after fetch"
   if [ -n "$tracking_before" ]; then
     if ! git update-ref "$tracking_ref" "$run_target" "$tracking_before" \
       2>/dev/null; then
       tracking_current=$(git rev-parse --verify --quiet "$tracking_ref" || true)
       if [ "$tracking_current" != "$run_target" ]; then
-        git update-ref -d "$fetch_ref" "$run_target" 2>/dev/null || true
         fail "origin/main changed during fetch"
       fi
     fi
@@ -181,13 +214,10 @@ fetch_target() {
     if ! git update-ref "$tracking_ref" "$run_target" "" 2>/dev/null; then
       tracking_current=$(git rev-parse --verify --quiet "$tracking_ref" || true)
       if [ "$tracking_current" != "$run_target" ]; then
-        git update-ref -d "$fetch_ref" "$run_target" 2>/dev/null || true
         fail "origin/main changed during fetch"
       fi
     fi
   fi
-  run_target_ref=$fetch_ref
-  unpublished_target_ref=$fetch_ref
 }
 
 non_merge_operation_in_progress() {
@@ -255,7 +285,11 @@ status_run() {
   fi
 
   load_state
-  require_run_branch
+  status_branch=$(git symbolic-ref --quiet --short HEAD || true)
+  if [ "$status_branch" != "$run_branch" ]; then
+    emit_state branch-mismatch
+    return
+  fi
   case "$run_phase" in
     preserving)
       emit_state preservation-needed
@@ -428,6 +462,9 @@ remove_private_stash() {
 }
 
 integrate_target() {
+  require_run_branch
+  [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
+    || fail "branch changed before integration"
   write_value phase merging
   run_phase=merging
   case "$run_form" in
@@ -561,6 +598,10 @@ start_run() {
     && fail "working tree has unresolved paths"
 
   fetch_target
+  [ "$(current_branch)" = "$run_branch" ] \
+    || fail "destination branch changed during fetch"
+  [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
+    || fail "destination HEAD changed during fetch"
   git merge-base HEAD "$run_target" >/dev/null 2>&1 \
     || fail "HEAD and origin/main have unrelated histories"
 
@@ -765,8 +806,6 @@ stop_run() {
     merge_head=$(git rev-parse --verify MERGE_HEAD)
     [ "$merge_head" = "$run_target" ] \
       || fail "merge operation does not belong to this run"
-    has_unmerged_paths \
-      && fail "merge still has unresolved paths"
     git merge --abort \
       || fail "runner-owned merge could not be aborted"
     restore_saved_work stopped

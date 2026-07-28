@@ -124,7 +124,10 @@ describe('merge-main.sh', () => {
         '  export PATH',
         '  git "$@"',
         '  status=$?',
-        '  [ "$status" -ne 0 ] || git fetch --quiet origin refs/heads/other',
+        '  if [ "$status" -eq 0 ]; then',
+        '    (unset GIT_DIR GIT_OBJECT_DIRECTORY',
+        '     git fetch --quiet origin refs/heads/other)',
+        '  fi',
         '  exit "$status"',
         'fi',
         'PATH=${PATH#*:}',
@@ -1146,6 +1149,20 @@ describe('merge-main.sh', () => {
     expect(value(run(work, 'finish').stdout, 'STATE')).toBe('merged');
   });
 
+  it('can stop a runner-owned merge with unresolved paths', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'a.md', 'local\n');
+    commitAll(work, 'local');
+    pushChange(origin, { 'a.md': 'upstream\n' });
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe('conflicted');
+
+    const stopped = run(work, 'stop');
+
+    expect(value(stopped.stdout, 'STATE')).toBe('stopped');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('local\n');
+  });
+
   it('reports a merge-resolution commit failure', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'local\n');
@@ -1489,6 +1506,26 @@ describe('merge-main.sh', () => {
     expect(
       git(work, 'for-each-ref', 'refs/remdo-merge-main').stdout,
     ).toBe('');
+  });
+
+  it('reports preserved state after the destination branch is renamed', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'local.md', 'local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    writeFile(work, 'dirty.md', 'saved work\n');
+    expect(value(run(work, 'start', '--preserve').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+    expect(git(work, 'branch', '-m', 'renamed').status).toBe(0);
+
+    const status = run(work, 'status');
+
+    expect(status.status).toBe(0);
+    expect(value(status.stdout, 'STATE')).toBe('branch-mismatch');
+    expect(value(status.stdout, 'BRANCH')).toBe('main');
+    expect(value(status.stdout, 'PRESERVED')).toBe('yes');
+    expect(value(status.stdout, 'STASH')).toBeTruthy();
   });
 
   it('refuses a detached merge destination', () => {
