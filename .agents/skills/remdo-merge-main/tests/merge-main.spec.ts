@@ -126,6 +126,7 @@ describe('merge-main.sh', () => {
     const result = run(work, 'start', '--preserve');
 
     expect(result.status).toBe(0);
+    expect(result.stdout.startsWith('STATE=')).toBe(true);
     expect(value(result.stdout, 'STATE')).toBe('fast-forwarded');
     expect(value(result.stdout, 'PRESERVED')).toBe('yes');
     expect(value(result.stdout, 'STASH')).toBeUndefined();
@@ -137,6 +138,29 @@ describe('merge-main.sh', () => {
       'saved untracked\n',
     );
     expect(git(work, 'stash', 'list').stdout).toBe('');
+  });
+
+  it('reports a recoverable partial stash when unsupported paths remain', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    advanceOrigin(origin);
+    writeFile(work, 'a.md', 'saved tracked work\n');
+    const nested = path.join(work, 'nested');
+    fs.mkdirSync(nested);
+    expect(
+      git(nested, 'init', '--quiet', '--initial-branch=main').status,
+    ).toBe(0);
+    writeFile(nested, 'nested.md', 'nested work\n');
+
+    const result = run(work, 'start', '--preserve');
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('local work was partially saved');
+    expect(result.stderr).toMatch(/recover stash [0-9a-f]+ before continuing/);
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('base\n');
+    expect(fs.readFileSync(path.join(nested, 'nested.md'), 'utf8')).toBe(
+      'nested work\n',
+    );
+    expect(git(work, 'stash', 'list').stdout).not.toBe('');
   });
 
   it('keeps saved work until a merge commit is verified', () => {

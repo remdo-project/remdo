@@ -67,7 +67,7 @@ find_stash() {
 restore_saved_work() {
   restore_oid=$1
   find_stash "$restore_oid"
-  if git stash apply --index "$restore_oid"; then
+  if git stash apply --quiet --index "$restore_oid"; then
     git stash drop --quiet "$stash_selector" \
       || fail "restored work could not be removed from the stash"
     restore_state=restored
@@ -175,7 +175,7 @@ start_run() {
     run_preserved=yes
     read_working_status
     [ -z "$working_status" ] \
-      || fail "not all local work was saved; stash retained as $run_stash"
+      || fail "local work was partially saved; recover stash $run_stash before continuing"
   fi
 
   case "$run_form" in
