@@ -301,6 +301,7 @@ describe('merge-main.sh', () => {
     expect(git(work, 'add', 'a.md').status).toBe(0);
 
     const continued = run(work, 'continue', target);
+    expect(continued.stdout.startsWith('STATE=')).toBe(true);
     expect(value(continued.stdout, 'STATE')).toBe('verification-needed');
     expect(value(run(work, 'restore', stash).stdout, 'STATE')).toBe('restored');
     expect(fs.readFileSync(path.join(work, 'dirty.md'), 'utf8')).toBe(
@@ -467,6 +468,35 @@ describe('merge-main.sh', () => {
     expect(
       git(work, 'rev-list', '--parents', '-n', '1', 'HEAD').stdout.trim().split(' '),
     ).toHaveLength(3);
+  });
+
+  it('neutralizes merge options with a zero-padded inherited config count', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    expect(
+      git(work, 'config', 'branch.main.mergeOptions', '--strategy=ours').status,
+    ).toBe(0);
+    const inheritedConfig: NodeJS.ProcessEnv = { GIT_CONFIG_COUNT: '010' };
+    for (let index = 0; index < 10; index += 1) {
+      inheritedConfig[`GIT_CONFIG_KEY_${index}`] = `test.inherited${index}`;
+      inheritedConfig[`GIT_CONFIG_VALUE_${index}`] = `${index}`;
+    }
+
+    const result = runScript(
+      script,
+      work,
+      ['start'],
+      undefined,
+      inheritedConfig,
+    );
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('verification-needed');
+    expect(fs.readFileSync(path.join(work, 'upstream.md'), 'utf8')).toBe(
+      '# upstream\n',
+    );
   });
 
   it('neutralizes merge options for a branch name containing equals', () => {

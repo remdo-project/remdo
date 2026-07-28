@@ -105,6 +105,10 @@ merge_with_neutral_options() {
       fail "inherited Git configuration count is invalid"
       ;;
   esac
+  while [ "${inherited_config_count#0}" != "$inherited_config_count" ]; do
+    inherited_config_count=${inherited_config_count#0}
+  done
+  [ -n "$inherited_config_count" ] || inherited_config_count=0
   override_config_count=$((inherited_config_count + 1))
   env \
     "GIT_CONFIG_COUNT=$override_config_count" \
@@ -264,7 +268,7 @@ continue_run() {
   [ -z "$untracked_paths" ] \
     || fail "untracked merge-resolution files remain"
 
-  GIT_EDITOR=true git merge --continue \
+  GIT_EDITOR=true git merge --continue 1>&2 \
     || fail "merge commit could not be completed"
   is_ancestor "$expected_target" HEAD \
     || fail "branch no longer contains the fixed target"
