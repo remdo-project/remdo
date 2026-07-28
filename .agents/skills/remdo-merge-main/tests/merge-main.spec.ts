@@ -1595,6 +1595,7 @@ describe('merge-main.sh', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     expect(git(work, 'switch', '--quiet', '-c', 'other').status).toBe(0);
     writeFile(work, 'other.md', 'other\n');
+    writeFile(work, 'a.md', 'other\n');
     commitAll(work, 'other');
     const other = git(work, 'rev-parse', 'HEAD').stdout.trim();
     expect(git(work, 'switch', '--quiet', 'main').status).toBe(0);
@@ -1605,10 +1606,13 @@ describe('merge-main.sh', () => {
     expect(git(work, 'merge', '--abort').status).toBe(0);
     expect(
       git(work, 'merge', '--quiet', '--no-commit', '--no-ff', 'other').status,
-    ).toBe(0);
+    ).not.toBe(0);
 
+    const status = run(work, 'status');
     const continued = run(work, 'continue');
 
+    expect(status.status).not.toBe(0);
+    expect(status.stderr).toContain('merge operation does not belong');
     expect(continued.status).not.toBe(0);
     expect(continued.stderr).toContain(
       'merge operation does not belong to this run',

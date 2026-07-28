@@ -412,10 +412,18 @@ status_run() {
       fi
       ;;
     merging)
-      if has_unmerged_paths; then
-        emit_state conflicted
-      elif [ -e "$(git rev-parse --git-path MERGE_HEAD)" ]; then
-        emit_state merge-ready
+      merge_head_path=$(git rev-parse --git-path MERGE_HEAD)
+      if [ -e "$merge_head_path" ]; then
+        merge_head=$(git rev-parse --verify MERGE_HEAD)
+        [ "$merge_head" = "$run_target" ] \
+          || fail "merge operation does not belong to this run"
+        if has_unmerged_paths; then
+          emit_state conflicted
+        else
+          emit_state merge-ready
+        fi
+      elif has_unmerged_paths; then
+        fail "unmerged paths do not belong to this run"
       elif git merge-base --is-ancestor "$run_target" HEAD \
         && git merge-base --is-ancestor "$run_start_head" HEAD; then
         if [ "$run_form" = merge-commit ]; then
