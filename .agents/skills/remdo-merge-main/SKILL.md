@@ -7,70 +7,66 @@ description: Merge the latest fetched origin/main into the current attached bran
 
 Implement the authoritative
 [`remdo-merge-main`](../../../docs/spec/skills/remdo-merge-main.md) contract.
+Invocation declares the autonomous scope in [Authority](#authority).
 
-## Run state
+## Start
 
 Set `runner` to
 `.agents/skills/remdo-merge-main/tools/merge-main.sh`. Run
-`sh "$runner" status` before other repository work.
+`sh "$runner" start`. Add `--preserve` only when the user explicitly asks to
+preserve local work.
 
-- On `STATE=idle`, run `sh "$runner" start`. Add `--preserve` only when the
-  user explicitly asks to preserve local work.
-- On `STATE=preservation-needed` or `STATE=integration-ready`, run
-  `sh "$runner" continue`.
-- On `STATE=conflicted`, continue under [Conflict resolution](#conflict-resolution).
-- On `STATE=merge-ready`, run `sh "$runner" continue`. If the runner reports
-  that the merge-resolution commit failed, run `sh "$runner" stop`.
-- On `STATE=merge-commit-failed`, run `sh "$runner" stop`.
-- On `STATE=verification-needed`, continue under [Verification](#verification).
-- On `STATE=finish-needed`, run `sh "$runner" finish`.
-- On `STATE=restore-pending`, run `sh "$runner" continue`.
-- On `STATE=restore-ready`, run `sh "$runner" complete-restore`.
-- On `STATE=restore-conflicted`, continue under
-  [Restoration](#restoration).
-- On `STATE=restore-uncertain`, continue under [Restoration](#restoration).
-- On `STATE=stopped`, run `sh "$runner" stop`.
-- On any other state, report the runner output and stop.
+Retain `TARGET` and `STASH` from the runner output for this run:
 
-Trust the runner's fixed target, merge form, incoming count, preservation
-identity, and state transitions. Do not reproduce its Git plumbing manually.
-An `up-to-date`, `fast-forwarded`, or `merged` result is complete.
-`verification-failed` and `stopped` are terminal results.
+- `up-to-date` and `fast-forwarded` are complete.
+- `conflicted` and `merge-ready` continue under [Merge conflicts](#merge-conflicts).
+- `verification-needed` continues under [Verification](#verification).
+- `restore-conflicted` continues under [Restoration](#restoration).
+- Any failure is terminal. Report its output and any retained stash.
 
-## Conflict resolution
+Concurrent repository mutation and recovery after an unexpected interruption
+are unsupported. Do not construct a parallel run journal or infer a resumable
+skill phase.
+
+## Merge conflicts
 
 Resolve a merge conflict only when intended behavior and repository evidence
-determine the result. Inspect both sides, relevant contracts, and history.
-Stage only determined resolutions, then run `sh "$runner" continue`. Leave an
-uncertain conflict resumable and report what remains uncertain.
+determine the result. Inspect both sides and their authoritative contracts.
+Stage every determined resolution.
+
+When no unmerged path remains, run
+`sh "$runner" continue "$TARGET"` and continue under [Verification](#verification).
+Otherwise leave the Git merge state and retained stash unchanged, and report
+`conflicted` for manual recovery.
 
 ## Verification
 
-Run `pnpm run check:full` for `STATE=verification-needed`.
+Run `pnpm run check:full`.
 
-When it passes, run `sh "$runner" finish`. When it fails, wait for the complete
-result and correct only failures determined to have been caused by integrating
-the fixed target. Check each correction against its authoritative contracts,
-commit one coherent correction batch, and run `pnpm run check:full` again.
-Repeat only after a correction changes repository state.
+When it fails, wait for the complete result and correct only failures determined
+to have been caused by integrating `TARGET`. Check every correction against its
+authoritative contracts, commit one coherent correction batch, and run the full
+check again. Repeat only after a correction changes repository state.
 
 When no integration correction can be determined, retain the failure as the
-verification result and run `sh "$runner" finish --verification-failed`
-without changing unrelated code.
+verification outcome without changing unrelated code.
+
+After verification, continue under [Restoration](#restoration) when `STASH` was
+reported. Otherwise report `merged` or `verification-failed`.
 
 ## Restoration
 
-The runner restores preserved work only after integration verification
-finishes. On `STATE=restore-conflicted`, use the reported saved-work commit to
-resolve only what repository evidence determines, including its staged versus
-unstaged intent. Compare every reported `UNTRACKED_CONFLICT` with its version
-in the saved-work commit; the working path may still contain the integrated
-version. On `STATE=restore-uncertain`, verify the restored work against that
-commit. Then run `sh "$runner" complete-restore --resolved`.
+When `restore-conflicted` came from `start`, continue with the existing
+conflict. Otherwise run `sh "$runner" restore "$STASH"`.
 
-The runner retains saved work after a manually resolved or interrupted
-restoration. Leave an uncertain conflict resumable; do not drop or replace the
-saved work.
+When it reports `restore-conflicted`, resolve only what intended behavior and
+repository evidence determine, including the saved index versus working-tree
+intent. Stage or unstage each determined result accordingly. When no unmerged
+path remains, run `sh "$runner" complete-restore "$STASH"`.
+
+If restoration remains uncertain, leave both the conflict and stash unchanged
+and report `restore-conflicted` for manual recovery. Otherwise report the
+integration and verification outcome retained before restoration.
 
 ## Authority
 
@@ -81,4 +77,5 @@ authorize pull, rebase, push, force-push, or other remote mutation.
 
 ## Report
 
-Return the contract's [Result](../../../docs/spec/skills/remdo-merge-main.md#result).
+Return the contract's
+[`Result`](../../../docs/spec/skills/remdo-merge-main.md#result).
