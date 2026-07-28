@@ -1726,7 +1726,7 @@ describe('merge-main.sh', () => {
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
-  it('retains saved work after restore-applied cleanup is interrupted', () => {
+  it('finishes restore-applied cleanup after interruption', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'saved work\n');
     const bin = makeDir('skills-restore-applied-wrapper-');
@@ -1757,7 +1757,7 @@ describe('merge-main.sh', () => {
     const savedRef = value(completed.stdout, 'SAVED_REF')!;
 
     expect(value(completed.stdout, 'STATE')).toBe('up-to-date');
-    expect(git(work, 'rev-parse', savedRef).status).toBe(0);
+    expect(git(work, 'rev-parse', savedRef).status).not.toBe(0);
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
@@ -1834,6 +1834,7 @@ describe('merge-main.sh', () => {
     fs.chmodSync(gitWrapper, 0o755);
     expect(runScript(script, work, ['finish'], bin).status).not.toBe(0);
     expect(git(work, 'reset', '--hard', '--quiet', startHead).status).toBe(0);
+    expect(runScript(script, work, ['continue'], bin).status).not.toBe(0);
 
     const continued = run(work, 'continue');
 

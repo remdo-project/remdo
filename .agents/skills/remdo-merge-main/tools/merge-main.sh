@@ -72,6 +72,7 @@ load_state() {
   run_phase=$(state_value phase)
   run_stash=$(optional_state_value stash)
   run_saved_ref=$(optional_state_value saved-ref)
+  retain_saved_work=$(state_value retain-saved-work)
 }
 
 emit_state() {
@@ -118,6 +119,7 @@ clear_state() {
     "$completed_dir/phase" \
     "$completed_dir/stash" \
     "$completed_dir/saved-ref" \
+    "$completed_dir/retain-saved-work" \
     "$completed_dir/ignored-work" \
     "$completed_dir/restore-untracked-conflicts" \
     "$completed_dir"/.branch-* \
@@ -130,6 +132,7 @@ clear_state() {
     "$completed_dir"/.phase-* \
     "$completed_dir"/.stash-* \
     "$completed_dir"/.saved-ref-* \
+    "$completed_dir"/.retain-saved-work-* \
     "$completed_dir"/.ignored-work-* \
     "$completed_dir"/.preservation-untracked-* \
     "$completed_dir"/.restore-untracked-conflicts-*
@@ -277,6 +280,7 @@ downgrade_lost_integration() {
     run_outcome=stopped
     retain_saved_work=yes
     write_value outcome "$run_outcome"
+    write_value retain-saved-work "$retain_saved_work"
   fi
 }
 
@@ -470,6 +474,7 @@ initialize_state() {
   printf '%s\n' "$run_phase" >"$initial_dir/phase"
   printf '%s\n' "$run_stash" >"$initial_dir/stash"
   printf '%s\n' "$run_saved_ref" >"$initial_dir/saved-ref"
+  printf '%s\n' "$retain_saved_work" >"$initial_dir/retain-saved-work"
   if ! mv -T --no-clobber "$initial_dir" "$state_dir" \
     || [ -e "$initial_dir" ]; then
     rm -rf -- "$initial_dir"
@@ -1010,7 +1015,6 @@ complete_restore() {
   [ -n "$run_stash" ] \
     || fail "run has no saved work"
   if [ "$run_phase" = restore-applied ]; then
-    retain_saved_work=yes
     drop_saved_work
   fi
   clear_state
