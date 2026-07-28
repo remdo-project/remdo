@@ -5,6 +5,7 @@
 #   merge-main.sh start [--preserve]
 #   merge-main.sh continue
 #   merge-main.sh finish [--verification-failed]
+#   merge-main.sh stop
 #   merge-main.sh complete-restore [--resolved]
 set -eu
 
@@ -17,6 +18,14 @@ git rev-parse --git-dir >/dev/null 2>&1 \
   || fail "not a git repository"
 
 state_dir=$(git rev-parse --path-format=absolute --git-path remdo-merge-main)
+unpublished_target_ref=
+
+cleanup_unpublished_target() {
+  [ -z "$unpublished_target_ref" ] \
+    || git update-ref -d "$unpublished_target_ref" 2>/dev/null \
+    || true
+}
+trap cleanup_unpublished_target EXIT
 
 state_value() {
   [ -f "$state_dir/$1" ] \
@@ -45,6 +54,7 @@ load_state() {
   run_branch=$(state_value branch)
   run_start_head=$(state_value start-head)
   run_target=$(state_value target)
+  run_target_ref=$(state_value target-ref)
   run_incoming=$(state_value incoming)
   run_form=$(state_value form)
   run_outcome=$(state_value outcome)
@@ -76,10 +86,15 @@ clear_state() {
   done
   mv "$state_dir" "$completed_dir" \
     || fail "completed run state could not be retired"
+  if [ -n "$run_target_ref" ] \
+    && ! git update-ref -d "$run_target_ref" "$run_target"; then
+    echo "merge-main: retained fixed-target ref $run_target_ref" >&2
+  fi
   rm -f \
     "$completed_dir/branch" \
     "$completed_dir/start-head" \
     "$completed_dir/target" \
+    "$completed_dir/target-ref" \
     "$completed_dir/incoming" \
     "$completed_dir/form" \
     "$completed_dir/outcome" \
@@ -89,6 +104,7 @@ clear_state() {
     "$completed_dir"/.branch-* \
     "$completed_dir"/.start-head-* \
     "$completed_dir"/.target-* \
+    "$completed_dir"/.target-ref-* \
     "$completed_dir"/.incoming-* \
     "$completed_dir"/.form-* \
     "$completed_dir"/.outcome-* \
@@ -131,7 +147,7 @@ operation_in_progress() {
 fetch_target() {
   tracking_ref=refs/remotes/origin/main
   tracking_before=$(git rev-parse --verify --quiet "$tracking_ref" || true)
-  fetch_ref_base="refs/remdo-merge-main/fetch-$$"
+  fetch_ref_base="refs/remdo-merge-main/target-$$"
   fetch_ref=$fetch_ref_base
   fetch_number=0
   while git rev-parse --verify --quiet "$fetch_ref" >/dev/null; do
@@ -163,8 +179,8 @@ fetch_target() {
       fi
     fi
   fi
-  git update-ref -d "$fetch_ref" "$run_target" \
-    || fail "fetched target ref could not be removed"
+  run_target_ref=$fetch_ref
+  unpublished_target_ref=$fetch_ref
 }
 
 non_merge_operation_in_progress() {
@@ -306,6 +322,7 @@ initialize_state() {
   printf '%s\n' "$run_branch" >"$initial_dir/branch"
   printf '%s\n' "$run_start_head" >"$initial_dir/start-head"
   printf '%s\n' "$run_target" >"$initial_dir/target"
+  printf '%s\n' "$run_target_ref" >"$initial_dir/target-ref"
   printf '%s\n' "$run_incoming" >"$initial_dir/incoming"
   printf '%s\n' "$run_form" >"$initial_dir/form"
   printf '%s\n' "$run_outcome" >"$initial_dir/outcome"
@@ -316,6 +333,7 @@ initialize_state() {
     rm -rf -- "$initial_dir"
     fail "another remdo-merge-main run started concurrently"
   fi
+  unpublished_target_ref=
 }
 
 reserve_saved_ref() {
@@ -375,6 +393,15 @@ private_stash_git() {
   GIT_INDEX_FILE="$private_index" \
   GIT_OBJECT_DIRECTORY="$private_objects" \
     git "$@"
+}
+
+private_stash_value() {
+  private_saved=$(private_stash_git rev-parse --verify --quiet refs/stash \
+    || true)
+  if [ -z "$private_saved" ]; then
+    private_saved=$(git rev-parse --verify --quiet "$private_ref_name" || true)
+  fi
+  printf '%s\n' "$private_saved"
 }
 
 remove_private_stash() {
@@ -454,16 +481,14 @@ preserve_and_integrate() {
     [ "$current_saved" = "$run_start_head" ] \
       || fail "saved-work identity belongs to another run"
     prepare_private_stash
-    private_saved=$(private_stash_git rev-parse --verify --quiet refs/stash || true)
+    private_saved=$(private_stash_value)
     if [ -z "$private_saved" ]; then
       set +e
       private_stash_git stash push --quiet --include-untracked \
         --message remdo-merge-main
       stash_status=$?
       set -e
-      private_saved=$(
-        private_stash_git rev-parse --verify --quiet refs/stash || true
-      )
+      private_saved=$(private_stash_value)
     else
       stash_status=0
     fi
@@ -707,6 +732,29 @@ finish_run() {
   restore_saved_work "$run_outcome"
 }
 
+stop_run() {
+  [ -d "$state_dir" ] \
+    || fail "no remdo-merge-main run exists"
+  load_state
+  require_run_branch
+  case "$run_phase" in
+    merging|verification)
+      ;;
+    *)
+      fail "run is not stopped"
+      ;;
+  esac
+  operation_in_progress \
+    && fail "a Git operation is still in progress"
+  has_unmerged_paths \
+    && fail "working tree has unresolved paths"
+  if git merge-base --is-ancestor "$run_target" HEAD \
+    || [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ]; then
+    fail "run is not stopped"
+  fi
+  restore_saved_work stopped
+}
+
 complete_restore() {
   resolved=no
   case "${1-}" in
@@ -774,11 +822,16 @@ case "$command" in
     shift
     finish_run "$@"
     ;;
+  stop)
+    [ "$#" -eq 1 ] \
+      || fail "usage: merge-main.sh stop"
+    stop_run
+    ;;
   complete-restore)
     shift
     complete_restore "$@"
     ;;
   *)
-    fail "usage: merge-main.sh <status|start|continue|finish|complete-restore>"
+    fail "usage: merge-main.sh <status|start|continue|finish|stop|complete-restore>"
     ;;
 esac

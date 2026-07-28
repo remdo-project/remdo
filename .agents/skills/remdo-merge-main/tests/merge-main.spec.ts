@@ -856,7 +856,10 @@ describe('merge-main.sh', () => {
         '  export PATH',
         '  git "$@"',
         '  status=$?',
-        '  [ "$status" -ne 0 ] || kill -KILL "$PPID"',
+        '  if [ "$status" -eq 0 ]; then',
+        '    git pack-refs --all',
+        '    kill -KILL "$PPID"',
+        '  fi',
         '  exit "$status"',
         'fi',
         'PATH=${PATH#*:}',
@@ -906,10 +909,13 @@ describe('merge-main.sh', () => {
     ).trim();
     expect(git(work, 'reset', '--hard', '--quiet', startHead).status).toBe(0);
     expect(git(work, 'stash', 'list').stdout).toBe('');
-    expect(
-      git(work, 'for-each-ref', '--format=%(objectname)', 'refs/remdo-merge-main')
-        .stdout.trim().split('\n'),
-    ).toHaveLength(2);
+    const targetRef = fs.readFileSync(
+      path.join(stateDir(work), 'target-ref'),
+      'utf8',
+    ).trim();
+    expect(git(work, 'rev-parse', targetRef).stdout.trim()).toBe(
+      value(run(work, 'status').stdout, 'TARGET'),
+    );
     expect(value(run(work, 'continue').stdout, 'STATE')).toBe('up-to-date');
     expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
     expect(git(work, 'stash', 'list').stdout).toBe('');
@@ -1378,6 +1384,36 @@ describe('merge-main.sh', () => {
     writeFile(work, 'a.md', 'resolved work\n');
     const completed = run(work, 'complete-restore', '--resolved');
     expect(value(completed.stdout, 'STATE')).toBe('stopped');
+  });
+
+  it('restores preserved work after external history stops a run', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'local.md', 'local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    writeFile(work, 'dirty.md', 'saved work\n');
+    const started = run(work, 'start', '--preserve');
+    expect(value(started.stdout, 'STATE')).toBe('verification-needed');
+    const startHead = fs.readFileSync(
+      path.join(stateDir(work), 'start-head'),
+      'utf8',
+    ).trim();
+    expect(
+      git(work, 'reset', '--hard', '--quiet', `${startHead}^`),
+    ).toHaveProperty('status', 0);
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe('stopped');
+
+    const stopped = run(work, 'stop');
+
+    expect(stopped.status).toBe(0);
+    expect(value(stopped.stdout, 'STATE')).toBe('stopped');
+    expect(fs.readFileSync(path.join(work, 'dirty.md'), 'utf8')).toBe(
+      'saved work\n',
+    );
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+    expect(
+      git(work, 'for-each-ref', 'refs/remdo-merge-main').stdout,
+    ).toBe('');
   });
 
   it('refuses a detached merge destination', () => {

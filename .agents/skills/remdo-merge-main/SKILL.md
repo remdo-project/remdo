@@ -27,7 +27,7 @@ Set `runner` to
 - On `STATE=restore-conflicted`, continue under
   [Restoration](#restoration).
 - On `STATE=restore-uncertain`, continue under [Restoration](#restoration).
-- On `STATE=stopped`, report the runner output and stop.
+- On `STATE=stopped`, run `sh "$runner" stop`.
 - On any other state, report the runner output and stop.
 
 Trust the runner's fixed target, merge form, incoming count, preservation
