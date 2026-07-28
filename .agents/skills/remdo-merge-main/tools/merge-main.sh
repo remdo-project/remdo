@@ -105,6 +105,9 @@ clear_state() {
   done
   mv "$state_dir" "$completed_dir" \
     || fail "completed run state could not be retired"
+  if [ -n "$run_stash" ]; then
+    drop_saved_work
+  fi
   if [ -n "$run_target_ref" ] \
     && ! git update-ref -d "$run_target_ref" "$run_target"; then
     echo "merge-main: retained fixed-target ref $run_target_ref" >&2
@@ -377,7 +380,6 @@ restore_saved_work() {
   fi
 
   write_value phase restore-applied
-  drop_saved_work
   clear_state
   emit_state "$final_state"
 }
@@ -1038,8 +1040,8 @@ complete_restore() {
   downgrade_lost_integration
   [ -n "$run_stash" ] \
     || fail "run has no saved work"
-  if [ "$run_phase" = restore-applied ]; then
-    drop_saved_work
+  if [ "$run_phase" != restore-applied ]; then
+    retain_saved_work=yes
   fi
   clear_state
   emit_state "$run_outcome"

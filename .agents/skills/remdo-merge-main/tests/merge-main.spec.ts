@@ -1806,7 +1806,7 @@ describe('merge-main.sh', () => {
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
-  it('finishes restore-applied cleanup after interruption', () => {
+  it('retains saved work if cleanup is interrupted after state retirement', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'saved work\n');
     const bin = makeDir('skills-restore-applied-wrapper-');
@@ -1832,13 +1832,10 @@ describe('merge-main.sh', () => {
     expect(
       runScript(script, work, ['start', '--preserve'], bin).status,
     ).not.toBe(0);
-    expect(value(run(work, 'status').stdout, 'STATE')).toBe('restore-ready');
-    const completed = run(work, 'complete-restore');
-    const savedRef = value(completed.stdout, 'SAVED_REF')!;
-
-    expect(value(completed.stdout, 'STATE')).toBe('up-to-date');
-    expect(git(work, 'rev-parse', savedRef).status).not.toBe(0);
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+    expect(
+      git(work, 'for-each-ref', 'refs/remdo-merge-main').stdout,
+    ).not.toBe('');
   });
 
   it('reports an interrupted successful restoration as uncertain', () => {
