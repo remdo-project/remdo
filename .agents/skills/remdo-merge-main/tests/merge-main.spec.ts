@@ -62,6 +62,9 @@ describe('merge-main.sh', () => {
   it('fast-forwards to the fixed target without leaving run state', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     pushChange(origin, { 'later.md': '# later\n' }, 'later upstream change');
+    expect(
+      git(work, 'config', 'branch.main.mergeOptions', '--squash').status,
+    ).toBe(0);
 
     const result = run(work, 'start');
 
@@ -78,7 +81,6 @@ describe('merge-main.sh', () => {
 
   it('fetches main independently of the configured remote refspec', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
-    const staleTracking = git(work, 'rev-parse', 'origin/main').stdout;
     expect(
       git(
         work,
@@ -96,7 +98,58 @@ describe('merge-main.sh', () => {
     expect(value(result.stdout, 'TARGET')).toBe(
       git(origin, 'rev-parse', 'main').stdout.trim(),
     );
-    expect(git(work, 'rev-parse', 'origin/main').stdout).toBe(staleTracking);
+    expect(git(work, 'rev-parse', 'origin/main').stdout).toBe(
+      git(origin, 'rev-parse', 'main').stdout,
+    );
+  });
+
+  it('keeps the target pinned when another fetch replaces FETCH_HEAD', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const pusher = makeDir('skills-other-pusher-');
+    expect(git(pusher, 'clone', '--quiet', origin, '.').status).toBe(0);
+    expect(git(pusher, 'switch', '--quiet', '-c', 'other').status).toBe(0);
+    writeFile(pusher, 'other.md', '# other\n');
+    commitAll(pusher, 'other branch');
+    expect(git(pusher, 'push', '--quiet', 'origin', 'other').status).toBe(0);
+    pushChange(origin, { 'later.md': '# later\n' }, 'later upstream change');
+    const bin = makeDir('skills-concurrent-fetch-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = fetch ]; then',
+        '  PATH=${PATH#*:}',
+        '  export PATH',
+        '  git "$@"',
+        '  status=$?',
+        '  [ "$status" -ne 0 ] || git fetch --quiet origin refs/heads/other',
+        '  exit "$status"',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const result = runScript(script, work, ['start'], bin);
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'TARGET')).toBe(
+      git(origin, 'rev-parse', 'main').stdout.trim(),
+    );
+    expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(
+      git(origin, 'rev-parse', 'main').stdout,
+    );
+    expect(git(work, 'rev-parse', 'FETCH_HEAD').stdout).toBe(
+      git(origin, 'rev-parse', 'other').stdout,
+    );
+    expect(
+      git(work, 'for-each-ref', 'refs/remdo-merge-main').stdout,
+    ).toBe('');
   });
 
   it('ignores an incomplete unpublished state directory', () => {
@@ -564,6 +617,11 @@ describe('merge-main.sh', () => {
     expect(value(run(work, 'status').stdout, 'STATE')).toBe(
       'integration-ready',
     );
+    writeFile(work, 'untracked.md', 'untracked\n');
+    const dirty = run(work, 'continue');
+    expect(dirty.status).not.toBe(0);
+    expect(dirty.stderr).toContain('integration state is not clean');
+    fs.rmSync(path.join(work, 'untracked.md'));
     expect(value(run(work, 'continue').stdout, 'STATE')).toBe(
       'fast-forwarded',
     );
@@ -1117,12 +1175,13 @@ describe('merge-main.sh', () => {
     writeFile(work, 'local.md', '# local\n');
     commitAll(work, 'local');
     advanceOrigin(origin);
+    expect(git(work, 'branch', '-m', 'feature=x').status).toBe(0);
     expect(git(work, 'config', 'merge.ff', 'only').status).toBe(0);
     expect(
       git(
         work,
         'config',
-        'branch.main.mergeOptions',
+        'branch.feature=x.mergeOptions',
         '--no-commit --squash',
       ).status,
     ).toBe(0);

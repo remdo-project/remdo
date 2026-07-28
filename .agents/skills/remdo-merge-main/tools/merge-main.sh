@@ -128,6 +128,45 @@ operation_in_progress() {
     || non_merge_operation_in_progress
 }
 
+fetch_target() {
+  tracking_ref=refs/remotes/origin/main
+  tracking_before=$(git rev-parse --verify --quiet "$tracking_ref" || true)
+  fetch_ref_base="refs/remdo-merge-main/fetch-$$"
+  fetch_ref=$fetch_ref_base
+  fetch_number=0
+  while git rev-parse --verify --quiet "$fetch_ref" >/dev/null; do
+    fetch_number=$((fetch_number + 1))
+    fetch_ref="$fetch_ref_base-$fetch_number"
+  done
+
+  if ! git fetch --quiet --no-tags origin "refs/heads/main:$fetch_ref"; then
+    git update-ref -d "$fetch_ref" 2>/dev/null || true
+    fail "could not fetch origin"
+  fi
+  run_target=$(git rev-parse --verify --quiet "$fetch_ref^{commit}") \
+    || fail "origin/main not found after fetch"
+  if [ -n "$tracking_before" ]; then
+    if ! git update-ref "$tracking_ref" "$run_target" "$tracking_before" \
+      2>/dev/null; then
+      tracking_current=$(git rev-parse --verify --quiet "$tracking_ref" || true)
+      if [ "$tracking_current" != "$run_target" ]; then
+        git update-ref -d "$fetch_ref" "$run_target" 2>/dev/null || true
+        fail "origin/main changed during fetch"
+      fi
+    fi
+  else
+    if ! git update-ref "$tracking_ref" "$run_target" "" 2>/dev/null; then
+      tracking_current=$(git rev-parse --verify --quiet "$tracking_ref" || true)
+      if [ "$tracking_current" != "$run_target" ]; then
+        git update-ref -d "$fetch_ref" "$run_target" 2>/dev/null || true
+        fail "origin/main changed during fetch"
+      fi
+    fi
+  fi
+  git update-ref -d "$fetch_ref" "$run_target" \
+    || fail "fetched target ref could not be removed"
+}
+
 non_merge_operation_in_progress() {
   [ -e "$(git rev-parse --git-path CHERRY_PICK_HEAD)" ] \
     || [ -e "$(git rev-parse --git-path REVERT_HEAD)" ] \
@@ -360,7 +399,14 @@ integrate_target() {
       restore_saved_work up-to-date
       ;;
     fast-forward)
-      if git merge --quiet --ff-only "$run_target"; then
+      if GIT_CONFIG_COUNT=1 \
+        GIT_CONFIG_KEY_0="branch.$run_branch.mergeOptions" \
+        GIT_CONFIG_VALUE_0='' \
+          git merge --quiet --ff-only "$run_target" \
+        && git merge-base --is-ancestor "$run_target" HEAD \
+        && git merge-base --is-ancestor "$run_start_head" HEAD \
+        && ! operation_in_progress \
+        && [ -z "$(git status --porcelain --untracked-files=normal)" ]; then
         restore_saved_work fast-forwarded
       else
         restore_saved_work stopped
@@ -368,8 +414,10 @@ integrate_target() {
       fi
       ;;
     merge-commit)
-      git -c "branch.$run_branch.mergeOptions=" \
-        merge --quiet --commit --no-edit --no-ff --no-squash \
+      GIT_CONFIG_COUNT=1 \
+      GIT_CONFIG_KEY_0="branch.$run_branch.mergeOptions" \
+      GIT_CONFIG_VALUE_0='' \
+        git merge --quiet --commit --no-edit --no-ff --no-squash \
         "$run_target" >/dev/null \
         || true
       if git merge-base --is-ancestor "$run_target" HEAD \
@@ -477,11 +525,7 @@ start_run() {
   has_unmerged_paths \
     && fail "working tree has unresolved paths"
 
-  git fetch --quiet --no-tags origin refs/heads/main \
-    || fail "could not fetch origin"
-  run_target=$(git rev-parse --verify --quiet \
-    'FETCH_HEAD^{commit}') \
-    || fail "origin/main not found after fetch"
+  fetch_target
   git merge-base HEAD "$run_target" >/dev/null 2>&1 \
     || fail "HEAD and origin/main have unrelated histories"
 
@@ -557,7 +601,8 @@ continue_run() {
       if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
         if [ "$run_form" = fast-forward ] \
           && git diff --quiet \
-          && git diff --cached --quiet "$run_target"; then
+          && git diff --cached --quiet "$run_target" \
+          && [ -z "$(git ls-files --others --exclude-standard -- ':/')" ]; then
           git update-ref HEAD "$run_target" "$run_start_head" \
             || fail "interrupted fast-forward could not be completed"
           restore_saved_work fast-forwarded

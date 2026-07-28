@@ -57,7 +57,7 @@ covers saving and restoring local work.
 ## Result
 
 The result is `up-to-date`, `fast-forwarded`, `merged`, `conflicted`,
-`verification-failed`, `restore-conflicted`, or `stopped`.
+`verification-failed`, `restore-conflicted`, `restore-uncertain`, or `stopped`.
 
 It reports the destination branch, fixed target, incoming commit count, merge
 form, conflict dispositions, committed corrections, verification outcome,
