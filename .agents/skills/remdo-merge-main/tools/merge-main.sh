@@ -14,6 +14,13 @@ fail() {
   exit 1
 }
 
+is_ancestor() {
+  git merge-base --is-ancestor "$1" "$2" && return 0
+  ancestor_status=$?
+  [ "$ancestor_status" -eq 1 ] && return 1
+  fail "commit ancestry could not be inspected"
+}
+
 git rev-parse --git-dir >/dev/null 2>&1 \
   || fail "not a git repository"
 
@@ -280,9 +287,9 @@ non_merge_operation_in_progress() {
 }
 
 require_integration_ancestry() {
-  git merge-base --is-ancestor "$run_target" HEAD \
+  is_ancestor "$run_target" HEAD \
     || fail "branch no longer contains the fixed target"
-  git merge-base --is-ancestor "$run_start_head" HEAD \
+  is_ancestor "$run_start_head" HEAD \
     || fail "branch no longer contains its original head"
 }
 
@@ -300,8 +307,8 @@ drop_saved_work() {
 downgrade_lost_integration() {
   if [ "$run_outcome" != stopped ] \
     && {
-      ! git merge-base --is-ancestor "$run_target" HEAD \
-        || ! git merge-base --is-ancestor "$run_start_head" HEAD
+      ! is_ancestor "$run_target" HEAD \
+        || ! is_ancestor "$run_start_head" HEAD
     }; then
     run_outcome=stopped
     retain_saved_work=yes
@@ -471,8 +478,8 @@ status_run() {
         fi
       elif has_unmerged_paths; then
         fail "unmerged paths do not belong to this run"
-      elif git merge-base --is-ancestor "$run_target" HEAD \
-        && git merge-base --is-ancestor "$run_start_head" HEAD; then
+      elif is_ancestor "$run_target" HEAD \
+        && is_ancestor "$run_start_head" HEAD; then
         if [ "$run_form" = merge-commit ]; then
           write_value phase verification
           run_phase=verification
@@ -491,8 +498,8 @@ status_run() {
       fi
       ;;
     verification)
-      if git merge-base --is-ancestor "$run_target" HEAD \
-        && git merge-base --is-ancestor "$run_start_head" HEAD; then
+      if is_ancestor "$run_target" HEAD \
+        && is_ancestor "$run_start_head" HEAD; then
         emit_state verification-needed
       elif [ "$(git rev-parse HEAD)" = "$run_start_head" ]; then
         write_value phase prepared
@@ -503,8 +510,8 @@ status_run() {
       fi
       ;;
     ready-to-restore)
-      if git merge-base --is-ancestor "$run_target" HEAD \
-        && git merge-base --is-ancestor "$run_start_head" HEAD; then
+      if is_ancestor "$run_target" HEAD \
+        && is_ancestor "$run_start_head" HEAD; then
         emit_state finish-needed
       else
         emit_state stopped
@@ -676,8 +683,8 @@ integrate_target() {
     fast-forward)
       merge_with_neutral_options --quiet --ff-only "$run_target" \
         || true
-      if git merge-base --is-ancestor "$run_target" HEAD \
-        && git merge-base --is-ancestor "$run_start_head" HEAD \
+      if is_ancestor "$run_target" HEAD \
+        && is_ancestor "$run_start_head" HEAD \
         && ! operation_in_progress; then
         restore_saved_work fast-forwarded
       elif operation_in_progress; then
@@ -692,8 +699,8 @@ integrate_target() {
         --quiet --commit --no-edit --no-ff --no-squash \
         "$run_target" >/dev/null \
         || true
-      if git merge-base --is-ancestor "$run_target" HEAD \
-        && git merge-base --is-ancestor "$run_start_head" HEAD \
+      if is_ancestor "$run_target" HEAD \
+        && is_ancestor "$run_start_head" HEAD \
         && ! operation_in_progress; then
         write_value phase verification
         run_phase=verification
@@ -814,10 +821,10 @@ start_run() {
     || fail "HEAD and origin/main have unrelated histories"
 
   run_incoming=$(git rev-list --count "HEAD..$run_target")
-  if git merge-base --is-ancestor "$run_target" HEAD; then
+  if is_ancestor "$run_target" HEAD; then
     run_form=up-to-date
     run_outcome=up-to-date
-  elif git merge-base --is-ancestor HEAD "$run_target"; then
+  elif is_ancestor HEAD "$run_target"; then
     run_form=fast-forward
     run_outcome=fast-forwarded
   else
@@ -1058,8 +1065,8 @@ stop_run() {
   fi
   if [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
     || {
-      git merge-base --is-ancestor "$run_target" HEAD \
-        && git merge-base --is-ancestor "$run_start_head" HEAD
+      is_ancestor "$run_target" HEAD \
+        && is_ancestor "$run_start_head" HEAD
     }; then
     fail "run is not stopped"
   fi

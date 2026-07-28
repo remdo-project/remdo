@@ -554,6 +554,44 @@ describe('merge-main.sh', () => {
     );
   });
 
+  it('does not treat an ancestry inspection failure as lost integration', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    expect(value(run(work, 'start').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+    const bin = makeDir('skills-ancestry-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = merge-base ] && [ "$2" = --is-ancestor ]; then',
+        '  exit 91',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const status = runScript(script, work, ['status'], bin);
+    const finished = runScript(script, work, ['finish'], bin);
+
+    expect(status.status).not.toBe(0);
+    expect(status.stderr).toContain('commit ancestry could not be inspected');
+    expect(finished.status).not.toBe(0);
+    expect(finished.stderr).toContain('commit ancestry could not be inspected');
+    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+  });
+
   it('refuses to finish after the branch loses its original head', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
