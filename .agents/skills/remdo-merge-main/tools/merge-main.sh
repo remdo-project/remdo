@@ -17,6 +17,7 @@ fail() {
 git rev-parse --git-dir >/dev/null 2>&1 \
   || fail "not a git repository"
 
+repo_root=$(git rev-parse --show-toplevel)
 state_dir=$(git rev-parse --path-format=absolute --git-path remdo-merge-main)
 unpublished_target_ref=
 unpublished_fetch_dir=
@@ -286,7 +287,7 @@ downgrade_lost_integration() {
 
 capture_ignored_work() {
   ignored_temp="$state_dir/.ignored-work-$$"
-  if ! git ls-files --others --ignored --exclude-standard \
+  if ! git ls-files --others --ignored --exclude-standard -- ':/' \
     | LC_ALL=C sort -u >"$ignored_temp"; then
     rm -f -- "$ignored_temp"
     fail "ignored working paths could not be recorded"
@@ -300,7 +301,7 @@ preservation_is_clean() {
     && git diff --cached --quiet \
     || return 1
   untracked_temp="$state_dir/.preservation-untracked-$$"
-  if ! git ls-files --others --exclude-standard \
+  if ! git ls-files --others --exclude-standard -- ':/' \
     | LC_ALL=C sort -u >"$untracked_temp"; then
     rm -f -- "$untracked_temp"
     return 1
@@ -315,10 +316,13 @@ record_untracked_restore_conflicts() {
   : >"$conflicts_temp"
   untracked_tree=$(git rev-parse --verify --quiet "$run_stash^3" || true)
   if [ -n "$untracked_tree" ]; then
-    git -c core.quotePath=false ls-tree -r --name-only "$untracked_tree" \
+    git -C "$repo_root" -c core.quotePath=false \
+      ls-tree -r --full-tree --name-only "$untracked_tree" \
       | while IFS= read -r saved_path; do
-        saved_blob=$(git rev-parse "$untracked_tree:$saved_path")
-        current_blob=$(git hash-object -- "$saved_path" 2>/dev/null || true)
+        saved_blob=$(git -C "$repo_root" \
+          rev-parse "$untracked_tree:$saved_path")
+        current_blob=$(git -C "$repo_root" \
+          hash-object -- "$saved_path" 2>/dev/null || true)
         [ "$current_blob" = "$saved_blob" ] \
           || printf '%s\n' "$saved_path"
       done >>"$conflicts_temp"

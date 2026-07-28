@@ -1681,16 +1681,21 @@ describe('merge-main.sh', () => {
   });
 
   it('requires resolved untracked restoration conflicts to be acknowledged', () => {
-    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
-    pushChange(origin, { 'new.md': 'upstream\n' });
-    writeFile(work, 'new.md', 'saved work\n');
+    const { work, origin } = makeScratchWithOrigin({
+      'a.md': 'base\n',
+      'nested/tracked.md': 'tracked\n',
+    });
+    pushChange(origin, { 'nested/new.md': 'upstream\n' });
+    writeFile(work, 'nested/new.md', 'saved work\n');
 
-    const started = run(work, 'start', '--preserve');
+    const started = run(path.join(work, 'nested'), 'start', '--preserve');
 
     expect(started.status).toBe(0);
     expect(value(started.stdout, 'STATE')).toBe('restore-conflicted');
-    expect(value(started.stdout, 'UNTRACKED_CONFLICT')).toBe('new.md');
-    expect(fs.readFileSync(path.join(work, 'new.md'), 'utf8')).toBe('upstream\n');
+    expect(value(started.stdout, 'UNTRACKED_CONFLICT')).toBe('nested/new.md');
+    expect(fs.readFileSync(path.join(work, 'nested/new.md'), 'utf8')).toBe(
+      'upstream\n',
+    );
     expect(git(work, 'diff', '--name-only', '--diff-filter=U').stdout).toBe('');
     const premature = run(work, 'complete-restore');
     expect(premature.status).not.toBe(0);
@@ -1699,7 +1704,7 @@ describe('merge-main.sh', () => {
       'restore-conflicted',
     );
 
-    writeFile(work, 'new.md', 'saved work\n');
+    writeFile(work, 'nested/new.md', 'saved work\n');
     const completed = run(work, 'complete-restore', '--resolved');
     expect(completed.status).toBe(0);
     expect(value(completed.stdout, 'STATE')).toBe('fast-forwarded');
