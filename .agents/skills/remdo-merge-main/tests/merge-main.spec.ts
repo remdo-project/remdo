@@ -575,6 +575,38 @@ describe('merge-main.sh', () => {
     );
   });
 
+  it('reports saved work when integration leaves an unexpected operation', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    writeFile(work, 'dirty.md', 'saved work\n');
+    const bin = makeDir('skills-foreign-merge-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'if [ "$1" = merge ]; then',
+        '  git rev-parse HEAD > "$(git rev-parse --git-path MERGE_HEAD)"',
+        '  exit 91',
+        'fi',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const result = runScript(script, work, ['start', '--preserve'], bin);
+    const stash = git(work, 'rev-parse', 'stash@{0}').stdout.trim();
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(`saved work remains in stash ${stash}`);
+  });
+
   it('uses conditional Git configuration from the real repository', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     advanceOrigin(origin);

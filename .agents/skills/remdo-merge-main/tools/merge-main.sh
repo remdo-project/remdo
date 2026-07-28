@@ -240,6 +240,9 @@ start_run() {
   esac
 
   if operation_in_progress; then
+    if [ -n "$run_stash" ]; then
+      fail "an unexpected Git operation remains; saved work remains in stash $run_stash"
+    fi
     fail "an unexpected Git operation remains after integration"
   fi
   if [ -n "$run_stash" ]; then
