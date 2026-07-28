@@ -163,6 +163,69 @@ describe('merge-main.sh', () => {
     expect(git(work, 'stash', 'list').stdout).not.toBe('');
   });
 
+  it('does not adopt an older stash when no local work can be saved', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    advanceOrigin(origin);
+    writeFile(work, 'a.md', 'older saved work\n');
+    expect(
+      git(work, 'stash', 'push', '--quiet', '--message', 'older').status,
+    ).toBe(0);
+    const olderStash = git(work, 'rev-parse', 'stash@{0}').stdout.trim();
+    const nested = path.join(work, 'nested');
+    fs.mkdirSync(nested);
+    expect(
+      git(nested, 'init', '--quiet', '--initial-branch=main').status,
+    ).toBe(0);
+    writeFile(nested, 'nested.md', 'nested work\n');
+
+    const result = run(work, 'start', '--preserve');
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('working tree was unchanged');
+    expect(result.stderr).not.toContain(olderStash);
+    expect(git(work, 'stash', 'list', '--format=%H').stdout).toContain(
+      olderStash,
+    );
+    expect(fs.readFileSync(path.join(nested, 'nested.md'), 'utf8')).toBe(
+      'nested work\n',
+    );
+  });
+
+  it('reports a retained stash when stash cleanup returns failure', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    advanceOrigin(origin);
+    writeFile(work, 'a.md', 'saved work\n');
+    const bin = makeDir('skills-stash-failure-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = stash ] && [ "$2" = push ]; then',
+        '  PATH=${PATH#*:}',
+        '  export PATH',
+        '  git "$@"',
+        '  exit 91',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const result = runScript(script, work, ['start', '--preserve'], bin);
+    const stash = git(work, 'rev-parse', 'stash@{0}').stdout.trim();
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(
+      `local work was saved but stash failed; recover stash ${stash}`,
+    );
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('base\n');
+  });
+
   it('keeps saved work until a merge commit is verified', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
@@ -197,6 +260,7 @@ describe('merge-main.sh', () => {
     const stash = value(started.stdout, 'STASH')!;
 
     expect(value(started.stdout, 'STATE')).toBe('conflicted');
+    expect(started.stdout.startsWith('STATE=')).toBe(true);
     expect(fs.existsSync(path.join(work, 'dirty.md'))).toBe(false);
     writeFile(work, 'a.md', 'resolved\n');
     expect(git(work, 'add', 'a.md').status).toBe(0);
@@ -218,6 +282,7 @@ describe('merge-main.sh', () => {
     const stash = value(started.stdout, 'STASH')!;
 
     expect(value(started.stdout, 'STATE')).toBe('restore-conflicted');
+    expect(started.stdout.startsWith('STATE=')).toBe(true);
     expect(git(work, 'diff', '--name-only', '--diff-filter=U').stdout).toBe(
       'a.md\n',
     );
@@ -320,6 +385,33 @@ describe('merge-main.sh', () => {
 
     expect(value(started.stdout, 'STATE')).toBe('merge-ready');
     fs.rmSync(hook);
+    expect(value(run(work, 'continue', target).stdout, 'STATE')).toBe(
+      'verification-needed',
+    );
+  });
+
+  it('refuses to continue with unstaged or untracked resolution work', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    writeFile(work, 'a.md', 'local\n');
+    commitAll(work, 'local');
+    pushChange(origin, { 'a.md': 'upstream\n' });
+    const started = run(work, 'start');
+    const target = value(started.stdout, 'TARGET')!;
+    writeFile(work, 'a.md', 'resolved\n');
+    expect(git(work, 'add', 'a.md').status).toBe(0);
+    writeFile(work, 'a.md', 'unstaged remainder\n');
+
+    const unstaged = run(work, 'continue', target);
+    expect(unstaged.status).not.toBe(0);
+    expect(unstaged.stderr).toContain('unstaged merge-resolution changes');
+
+    writeFile(work, 'a.md', 'resolved\n');
+    writeFile(work, 'scratch.md', 'untracked remainder\n');
+    const untracked = run(work, 'continue', target);
+    expect(untracked.status).not.toBe(0);
+    expect(untracked.stderr).toContain('untracked merge-resolution files');
+
+    fs.rmSync(path.join(work, 'scratch.md'));
     expect(value(run(work, 'continue', target).stdout, 'STATE')).toBe(
       'verification-needed',
     );

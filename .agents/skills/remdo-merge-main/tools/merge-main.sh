@@ -52,6 +52,12 @@ read_working_status() {
   fi
 }
 
+read_untracked_paths() {
+  if ! untracked_paths=$(git ls-files --others --exclude-standard -- ':/'); then
+    fail "untracked paths could not be inspected"
+  fi
+}
+
 find_stash() {
   if ! stash_entries=$(git stash list --format='%gd %H'); then
     fail "saved work could not be inspected"
@@ -67,7 +73,7 @@ find_stash() {
 restore_saved_work() {
   restore_oid=$1
   find_stash "$restore_oid"
-  if git stash apply --quiet --index "$restore_oid"; then
+  if git stash apply --quiet --index "$restore_oid" 1>&2; then
     git stash drop --quiet "$stash_selector" \
       || fail "restored work could not be removed from the stash"
     restore_state=restored
@@ -104,7 +110,7 @@ merge_with_neutral_options() {
     "GIT_CONFIG_COUNT=$override_config_count" \
     "GIT_CONFIG_KEY_$inherited_config_count=branch.$run_branch.mergeOptions" \
     "GIT_CONFIG_VALUE_$inherited_config_count=" \
-    git merge "$@"
+    git merge "$@" 1>&2
 }
 
 start_run() {
@@ -168,12 +174,20 @@ start_run() {
   fi
 
   if [ -n "$initial_status" ]; then
-    git stash push --quiet --include-untracked --message remdo-merge-main \
-      || fail "local work could not be saved"
-    run_stash=$(git rev-parse --verify --quiet 'stash@{0}^{commit}' || true)
-    [ -n "$run_stash" ] || fail "local work was not saved"
-    run_preserved=yes
+    if git stash push --quiet --include-untracked --message remdo-merge-main; then
+      stash_status=0
+    else
+      stash_status=$?
+    fi
     read_working_status
+    [ "$working_status" != "$initial_status" ] \
+      || fail "local work could not be saved; working tree was unchanged"
+    run_stash=$(git rev-parse --verify --quiet 'stash@{0}^{commit}' || true)
+    [ -n "$run_stash" ] \
+      || fail "local work changed but its stash could not be identified"
+    run_preserved=yes
+    [ "$stash_status" -eq 0 ] \
+      || fail "local work was saved but stash failed; recover stash $run_stash before continuing"
     [ -z "$working_status" ] \
       || fail "local work was partially saved; recover stash $run_stash before continuing"
   fi
@@ -244,6 +258,11 @@ continue_run() {
   read_unmerged_paths
   [ -z "$unmerged_paths" ] \
     || fail "merge conflicts remain unresolved"
+  git diff --quiet \
+    || fail "unstaged merge-resolution changes remain"
+  read_untracked_paths
+  [ -z "$untracked_paths" ] \
+    || fail "untracked merge-resolution files remain"
 
   GIT_EDITOR=true git merge --continue \
     || fail "merge commit could not be completed"

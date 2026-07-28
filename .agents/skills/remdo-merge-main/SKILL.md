@@ -71,7 +71,7 @@ Only after all saved paths and their index intent are accounted for, run
 
 If restoration remains uncertain, leave both the conflict and stash unchanged
 and report `restore-conflicted` for manual recovery. Otherwise report the
-integration and verification outcome retained before restoration.
+retained integration outcome and, when verification ran, its outcome.
 
 ## Authority
 
