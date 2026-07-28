@@ -18,8 +18,9 @@ Set `runner` to
   user explicitly asks to preserve local work.
 - On `STATE=preservation-needed` or `STATE=integration-ready`, run
   `sh "$runner" continue`.
-- On `STATE=conflicted` or `STATE=merge-ready`, continue under
-  [Conflict resolution](#conflict-resolution).
+- On `STATE=conflicted`, continue under [Conflict resolution](#conflict-resolution).
+- On `STATE=merge-ready`, run `sh "$runner" continue`. If the runner reports
+  that the merge-resolution commit failed, run `sh "$runner" stop`.
 - On `STATE=verification-needed`, continue under [Verification](#verification).
 - On `STATE=finish-needed`, run `sh "$runner" finish`.
 - On `STATE=restore-pending`, run `sh "$runner" continue`.

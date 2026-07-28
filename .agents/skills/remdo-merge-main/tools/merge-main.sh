@@ -462,9 +462,10 @@ integrate_target() {
         write_value phase verification
         run_phase=verification
         emit_state verification-needed
-      elif has_unmerged_paths \
-        || [ -e "$(git rev-parse --git-path MERGE_HEAD)" ]; then
+      elif has_unmerged_paths; then
         emit_state conflicted
+      elif [ -e "$(git rev-parse --git-path MERGE_HEAD)" ]; then
+        emit_state merge-ready
       else
         restore_saved_work stopped
         return 1
@@ -686,8 +687,11 @@ continue_run() {
       || fail "unstaged merge-resolution changes remain"
     [ -z "$(git ls-files --others --exclude-standard -- ':/')" ] \
       || fail "untracked merge-resolution files remain"
-    git commit --quiet --no-edit \
-      || fail "merge-resolution commit failed"
+    if ! git commit --quiet --no-edit; then
+      echo "merge-main: merge-resolution commit failed; use stop to abort" >&2
+      emit_state merge-ready
+      return 1
+    fi
   fi
 
   require_integration_ancestry
@@ -754,6 +758,20 @@ stop_run() {
       fail "run is not stopped"
       ;;
   esac
+  merge_head_path=$(git rev-parse --git-path MERGE_HEAD)
+  if [ "$run_phase" = merging ] && [ -e "$merge_head_path" ]; then
+    non_merge_operation_in_progress \
+      && fail "another Git operation is already in progress"
+    merge_head=$(git rev-parse --verify MERGE_HEAD)
+    [ "$merge_head" = "$run_target" ] \
+      || fail "merge operation does not belong to this run"
+    has_unmerged_paths \
+      && fail "merge still has unresolved paths"
+    git merge --abort \
+      || fail "runner-owned merge could not be aborted"
+    restore_saved_work stopped
+    return
+  fi
   operation_in_progress \
     && fail "a Git operation is still in progress"
   has_unmerged_paths \

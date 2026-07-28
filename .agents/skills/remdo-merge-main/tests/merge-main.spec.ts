@@ -1174,7 +1174,34 @@ describe('merge-main.sh', () => {
 
     expect(continued.status).not.toBe(0);
     expect(continued.stderr).toContain('merge-resolution commit failed');
+    expect(value(continued.stdout, 'STATE')).toBe('merge-ready');
     expect(value(run(work, 'status').stdout, 'STATE')).toBe('merge-ready');
+    expect(value(run(work, 'stop').stdout, 'STATE')).toBe('stopped');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
+  });
+
+  it('reports a clean merge whose commit hook rejects it as merge-ready', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    const hook = git(
+      work,
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-path',
+      'hooks/pre-merge-commit',
+    ).stdout.trim();
+    fs.writeFileSync(hook, '#!/usr/bin/env sh\nexit 1\n');
+    fs.chmodSync(hook, 0o755);
+
+    const started = run(work, 'start');
+
+    expect(started.status).toBe(0);
+    expect(value(started.stdout, 'STATE')).toBe('merge-ready');
+    expect(git(work, 'diff', '--name-only', '--diff-filter=U').stdout).toBe('');
+    expect(value(run(work, 'stop').stdout, 'STATE')).toBe('stopped');
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
   it('finds untracked merge-resolution files from a subdirectory', () => {
