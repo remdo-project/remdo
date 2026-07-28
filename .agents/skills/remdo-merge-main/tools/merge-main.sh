@@ -93,7 +93,18 @@ emit_run_state() {
 }
 
 merge_with_neutral_options() {
-  git -c "branch.$run_branch.mergeOptions=" merge "$@"
+  inherited_config_count=${GIT_CONFIG_COUNT:-0}
+  case "$inherited_config_count" in
+    *[!0-9]*)
+      fail "inherited Git configuration count is invalid"
+      ;;
+  esac
+  override_config_count=$((inherited_config_count + 1))
+  env \
+    "GIT_CONFIG_COUNT=$override_config_count" \
+    "GIT_CONFIG_KEY_$inherited_config_count=branch.$run_branch.mergeOptions" \
+    "GIT_CONFIG_VALUE_$inherited_config_count=" \
+    git merge "$@"
 }
 
 start_run() {
@@ -157,12 +168,10 @@ start_run() {
   fi
 
   if [ -n "$initial_status" ]; then
-    stash_before=$(git rev-parse --verify --quiet 'stash@{0}' || true)
     git stash push --quiet --include-untracked --message remdo-merge-main \
       || fail "local work could not be saved"
     run_stash=$(git rev-parse --verify --quiet 'stash@{0}^{commit}' || true)
-    [ -n "$run_stash" ] && [ "$run_stash" != "$stash_before" ] \
-      || fail "local work was not saved"
+    [ -n "$run_stash" ] || fail "local work was not saved"
     run_preserved=yes
     read_working_status
     [ -z "$working_status" ] \

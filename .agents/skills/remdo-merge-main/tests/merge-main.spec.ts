@@ -318,6 +318,82 @@ describe('merge-main.sh', () => {
     ).toHaveLength(3);
   });
 
+  it('neutralizes merge options for a branch name containing equals', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    expect(git(work, 'branch', '--move', 'feat/a=b').status).toBe(0);
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    expect(
+      git(
+        work,
+        'config',
+        'branch.feat/a=b.mergeOptions',
+        '--strategy=ours',
+      ).status,
+    ).toBe(0);
+
+    const result = run(work, 'start');
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('verification-needed');
+    expect(fs.readFileSync(path.join(work, 'upstream.md'), 'utf8')).toBe(
+      '# upstream\n',
+    );
+  });
+
+  it('accepts an identical saved-work commit from an earlier failed run', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    advanceOrigin(origin);
+    writeFile(work, 'a.md', 'saved work\n');
+    const bin = makeDir('skills-merge-failure-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = merge ]; then exit 91; fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+    const fixedDate = '2026-01-01T00:00:00Z';
+    const dates = {
+      GIT_AUTHOR_DATE: fixedDate,
+      GIT_COMMITTER_DATE: fixedDate,
+    };
+
+    const failed = runScript(
+      script,
+      work,
+      ['start', '--preserve'],
+      bin,
+      dates,
+    );
+    const firstStash = git(work, 'rev-parse', 'stash@{0}').stdout.trim();
+    expect(failed.status).not.toBe(0);
+    expect(git(work, 'stash', 'apply', '--index', firstStash).status).toBe(0);
+
+    const retried = runScript(
+      script,
+      work,
+      ['start', '--preserve'],
+      bin,
+      dates,
+    );
+
+    expect(retried.status).not.toBe(0);
+    expect(retried.stderr).toContain('integration failed');
+    expect(retried.stderr).not.toContain('local work was not saved');
+    expect(git(work, 'rev-parse', 'stash@{0}').stdout.trim()).toBe(
+      firstStash,
+    );
+  });
+
   it('uses conditional Git configuration from the real repository', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     advanceOrigin(origin);
