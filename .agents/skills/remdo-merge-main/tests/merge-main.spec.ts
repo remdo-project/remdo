@@ -737,6 +737,19 @@ describe('merge-main.sh', () => {
     expect(value(run(work, 'status').stdout, 'STATE')).toBe(
       'integration-ready',
     );
+    const hookMarker = path.join(work, '.git', 'post-merge-marker');
+    const hook = git(
+      work,
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-path',
+      'hooks/post-merge',
+    ).stdout.trim();
+    fs.writeFileSync(
+      hook,
+      `#!/usr/bin/env sh\nprintf '%s\\n' "$1" > ${JSON.stringify(hookMarker)}\n`,
+    );
+    fs.chmodSync(hook, 0o755);
     writeFile(work, 'untracked.md', 'untracked\n');
     const dirty = run(work, 'continue');
     expect(dirty.status).not.toBe(0);
@@ -748,6 +761,7 @@ describe('merge-main.sh', () => {
     expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(
       git(origin, 'rev-parse', 'main').stdout,
     );
+    expect(fs.readFileSync(hookMarker, 'utf8')).toBe('0\n');
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
@@ -1227,6 +1241,28 @@ describe('merge-main.sh', () => {
     ).toBe('');
   });
 
+  it('preserves work when its gitignore change hides existing files', () => {
+    const { work } = makeScratchWithOrigin({
+      '.gitignore': 'existing/\n',
+      'a.md': 'base\n',
+    });
+    fs.appendFileSync(path.join(work, '.gitignore'), 'newbuild/\n');
+    writeFile(work, 'newbuild/output', 'ignored output\n');
+    writeFile(work, 'a.md', 'saved work\n');
+
+    const result = run(work, 'start', '--preserve');
+
+    expect(result.status).toBe(0);
+    expect(value(result.stdout, 'STATE')).toBe('up-to-date');
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
+    expect(fs.readFileSync(path.join(work, 'newbuild/output'), 'utf8')).toBe(
+      'ignored output\n',
+    );
+    expect(fs.readFileSync(path.join(work, '.gitignore'), 'utf8')).toBe(
+      'existing/\nnewbuild/\n',
+    );
+  });
+
   it('continues a determined merge resolution into verification', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'local\n');
@@ -1513,6 +1549,8 @@ describe('merge-main.sh', () => {
 
     expect(started.status).toBe(0);
     expect(value(started.stdout, 'STATE')).toBe('restore-conflicted');
+    expect(value(started.stdout, 'UNTRACKED_CONFLICT')).toBe('new.md');
+    expect(fs.readFileSync(path.join(work, 'new.md'), 'utf8')).toBe('upstream\n');
     expect(git(work, 'diff', '--name-only', '--diff-filter=U').stdout).toBe('');
     const premature = run(work, 'complete-restore');
     expect(premature.status).not.toBe(0);
@@ -1528,7 +1566,7 @@ describe('merge-main.sh', () => {
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
-  it('refuses restoration completion after integration is lost', () => {
+  it('stops restoration after integration is lost', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     pushChange(origin, { 'new.md': 'upstream\n' });
     writeFile(work, 'new.md', 'saved work\n');
@@ -1542,13 +1580,10 @@ describe('merge-main.sh', () => {
 
     const completed = run(work, 'complete-restore', '--resolved');
 
-    expect(completed.status).not.toBe(0);
-    expect(completed.stderr).toContain(
-      'branch no longer contains the fixed target',
-    );
-    expect(value(run(work, 'status').stdout, 'STATE')).toBe(
-      'restore-conflicted',
-    );
+    expect(completed.status).toBe(0);
+    expect(value(completed.stdout, 'STATE')).toBe('stopped');
+    expect(value(completed.stdout, 'SAVED_REF')).toBeTruthy();
+    expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
   it('reports an interrupted successful restoration as uncertain', () => {

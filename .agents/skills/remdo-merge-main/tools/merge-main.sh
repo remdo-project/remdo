@@ -86,6 +86,11 @@ emit_state() {
   else
     printf 'PRESERVED=no\n'
   fi
+  if [ -f "$state_dir/restore-untracked-conflicts" ]; then
+    while IFS= read -r conflict_path; do
+      printf 'UNTRACKED_CONFLICT=%s\n' "$conflict_path"
+    done <"$state_dir/restore-untracked-conflicts"
+  fi
 }
 
 clear_state() {
@@ -112,6 +117,8 @@ clear_state() {
     "$completed_dir/phase" \
     "$completed_dir/stash" \
     "$completed_dir/saved-ref" \
+    "$completed_dir/ignored-work" \
+    "$completed_dir/restore-untracked-conflicts" \
     "$completed_dir"/.branch-* \
     "$completed_dir"/.start-head-* \
     "$completed_dir"/.target-* \
@@ -121,7 +128,10 @@ clear_state() {
     "$completed_dir"/.outcome-* \
     "$completed_dir"/.phase-* \
     "$completed_dir"/.stash-* \
-    "$completed_dir"/.saved-ref-*
+    "$completed_dir"/.saved-ref-* \
+    "$completed_dir"/.ignored-work-* \
+    "$completed_dir"/.preservation-untracked-* \
+    "$completed_dir"/.restore-untracked-conflicts-*
   if ! rmdir "$completed_dir" 2>/dev/null; then
     leftover_dir="$state_dir-leftovers-$$"
     leftover_number=0
@@ -254,6 +264,49 @@ drop_saved_work() {
   fi
 }
 
+capture_ignored_work() {
+  ignored_temp="$state_dir/.ignored-work-$$"
+  if ! git ls-files --others --ignored --exclude-standard \
+    | LC_ALL=C sort -u >"$ignored_temp"; then
+    rm -f -- "$ignored_temp"
+    fail "ignored working paths could not be recorded"
+  fi
+  mv -f "$ignored_temp" "$state_dir/ignored-work" \
+    || fail "ignored working paths could not be published"
+}
+
+preservation_is_clean() {
+  git diff --quiet \
+    && git diff --cached --quiet \
+    || return 1
+  untracked_temp="$state_dir/.preservation-untracked-$$"
+  if ! git ls-files --others --exclude-standard \
+    | LC_ALL=C sort -u >"$untracked_temp"; then
+    rm -f -- "$untracked_temp"
+    return 1
+  fi
+  unexpected=$(LC_ALL=C comm -23 "$untracked_temp" "$state_dir/ignored-work")
+  rm -f -- "$untracked_temp"
+  [ -z "$unexpected" ]
+}
+
+record_untracked_restore_conflicts() {
+  conflicts_temp="$state_dir/.restore-untracked-conflicts-$$"
+  : >"$conflicts_temp"
+  untracked_tree=$(git rev-parse --verify --quiet "$run_stash^3" || true)
+  if [ -n "$untracked_tree" ]; then
+    git -c core.quotePath=false ls-tree -r --name-only "$untracked_tree" \
+      | while IFS= read -r saved_path; do
+        saved_blob=$(git rev-parse "$untracked_tree:$saved_path")
+        current_blob=$(git hash-object -- "$saved_path" 2>/dev/null || true)
+        [ "$current_blob" = "$saved_blob" ] \
+          || printf '%s\n' "$saved_path"
+      done >>"$conflicts_temp"
+  fi
+  mv -f "$conflicts_temp" "$state_dir/restore-untracked-conflicts" \
+    || fail "untracked restoration conflicts could not be recorded"
+}
+
 restore_saved_work() {
   final_state=$1
   run_outcome=$final_state
@@ -278,6 +331,7 @@ restore_saved_work() {
   apply_status=$?
   set -e
   if [ "$apply_status" -ne 0 ]; then
+    record_untracked_restore_conflicts
     write_value phase restore-conflicted
     run_phase=restore-conflicted
     emit_state restore-conflicted
@@ -544,6 +598,7 @@ preserve_and_integrate() {
   if [ -z "$run_stash" ]; then
     [ "$current_saved" = "$run_start_head" ] \
       || fail "saved-work identity belongs to another run"
+    capture_ignored_work
     prepare_private_stash
     private_saved=$(private_stash_value)
     if [ -z "$private_saved" ]; then
@@ -567,6 +622,8 @@ preserve_and_integrate() {
   elif [ "$current_saved" != "$run_start_head" ] \
     && [ "$current_saved" != "$run_stash" ]; then
     fail "saved-work identity does not match preserved work"
+  elif [ ! -f "$state_dir/ignored-work" ]; then
+    fail "run state is incomplete: missing ignored-work"
   fi
 
   if [ "$current_saved" = "$run_start_head" ]; then
@@ -579,7 +636,7 @@ preserve_and_integrate() {
     restore_saved_work stopped
     return 1
   fi
-  if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
+  if ! preservation_is_clean; then
     echo "merge-main: preservation did not produce a clean committed state" >&2
     restore_saved_work stopped
     return 1
@@ -698,6 +755,8 @@ continue_run() {
           && [ -z "$(git ls-files --others --exclude-standard -- ':/')" ]; then
           git update-ref HEAD "$run_target" "$run_start_head" \
             || fail "interrupted fast-forward could not be completed"
+          git hook run --ignore-missing post-merge -- 0 \
+            || true
           restore_saved_work fast-forwarded
           return
         fi
@@ -884,8 +943,14 @@ complete_restore() {
     && fail "restoration still has unmerged paths"
   operation_in_progress \
     && fail "a Git operation is still in progress"
-  [ "$run_outcome" = stopped ] \
-    || require_integration_ancestry
+  if [ "$run_outcome" != stopped ] \
+    && {
+      ! git merge-base --is-ancestor "$run_target" HEAD \
+        || ! git merge-base --is-ancestor "$run_start_head" HEAD
+    }; then
+    run_outcome=stopped
+    write_value outcome "$run_outcome"
+  fi
   [ -n "$run_stash" ] \
     || fail "run has no saved work"
   if [ "$run_phase" = restore-applied ]; then
