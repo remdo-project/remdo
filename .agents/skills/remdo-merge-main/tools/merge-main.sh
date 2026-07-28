@@ -82,6 +82,7 @@ emit_state() {
   if [ -n "$run_stash" ]; then
     printf 'PRESERVED=yes\n'
     printf 'STASH=%s\n' "$run_stash"
+    printf 'SAVED_REF=%s\n' "$run_saved_ref"
   else
     printf 'PRESERVED=no\n'
   fi
@@ -173,7 +174,8 @@ fetch_target() {
 
   if ! GIT_DIR="$fetch_git_dir" \
     GIT_OBJECT_DIRECTORY="$fetch_objects" \
-      git fetch --quiet --no-tags origin refs/heads/main; then
+      git fetch --quiet --no-auto-maintenance --no-tags \
+      origin refs/heads/main; then
     rm -rf -- "$fetch_git_dir"
     fail "could not fetch origin"
   fi
@@ -348,6 +350,9 @@ status_run() {
     restore-pending)
       emit_state restore-pending
       ;;
+    commit-failed)
+      emit_state merge-commit-failed
+      ;;
     *)
       fail "unknown run phase: $run_phase"
       ;;
@@ -393,9 +398,9 @@ reserve_saved_ref() {
       saved_ref_suffix="-$saved_ref_number"
       continue
     fi
-    run_saved_ref=$candidate
-    write_value saved-ref "$run_saved_ref"
     if git update-ref "$candidate" "$run_start_head" "" 2>/dev/null; then
+      run_saved_ref=$candidate
+      write_value saved-ref "$run_saved_ref"
       return
     fi
     git rev-parse --verify --quiet "$candidate" >/dev/null \
@@ -502,7 +507,9 @@ integrate_target() {
       elif has_unmerged_paths; then
         emit_state conflicted
       elif [ -e "$(git rev-parse --git-path MERGE_HEAD)" ]; then
-        emit_state merge-ready
+        write_value phase commit-failed
+        run_phase=commit-failed
+        emit_state merge-commit-failed
       else
         restore_saved_work stopped
         return 1
@@ -793,14 +800,15 @@ stop_run() {
   load_state
   require_run_branch
   case "$run_phase" in
-    merging|verification)
+    merging|verification|commit-failed)
       ;;
     *)
       fail "run is not stopped"
       ;;
   esac
   merge_head_path=$(git rev-parse --git-path MERGE_HEAD)
-  if [ "$run_phase" = merging ] && [ -e "$merge_head_path" ]; then
+  if { [ "$run_phase" = merging ] || [ "$run_phase" = commit-failed ]; } \
+    && [ -e "$merge_head_path" ]; then
     non_merge_operation_in_progress \
       && fail "another Git operation is already in progress"
     merge_head=$(git rev-parse --verify MERGE_HEAD)

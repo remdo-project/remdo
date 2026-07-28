@@ -1197,7 +1197,7 @@ describe('merge-main.sh', () => {
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
   });
 
-  it('reports a clean merge whose commit hook rejects it as merge-ready', () => {
+  it('reports a clean merge whose commit hook rejects it separately', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
     commitAll(work, 'local');
@@ -1215,7 +1215,7 @@ describe('merge-main.sh', () => {
     const started = run(work, 'start');
 
     expect(started.status).toBe(0);
-    expect(value(started.stdout, 'STATE')).toBe('merge-ready');
+    expect(value(started.stdout, 'STATE')).toBe('merge-commit-failed');
     expect(git(work, 'diff', '--name-only', '--diff-filter=U').stdout).toBe('');
     expect(value(run(work, 'stop').stdout, 'STATE')).toBe('stopped');
     expect(run(work, 'status').stdout).toBe('STATE=idle\n');
@@ -1317,6 +1317,7 @@ describe('merge-main.sh', () => {
     expect(completed.status).toBe(0);
     expect(value(completed.stdout, 'STATE')).toBe('fast-forwarded');
     expect(value(completed.stdout, 'STASH')).toBeTruthy();
+    expect(value(completed.stdout, 'SAVED_REF')).toBeTruthy();
     expect(git(work, 'stash', 'list').stdout).toBe('');
     expect(
       git(work, 'for-each-ref', '--format=%(objectname)', 'refs/remdo-merge-main')
