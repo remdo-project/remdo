@@ -75,7 +75,7 @@ restore_saved_work() {
   find_stash "$restore_oid"
   if git stash apply --quiet --index "$restore_oid" 1>&2; then
     git stash drop --quiet "$stash_selector" \
-      || fail "restored work could not be removed from the stash"
+      || fail "restored work could not be removed; retained stash $restore_oid"
     restore_state=restored
   else
     restore_state=restore-conflicted
@@ -141,7 +141,7 @@ start_run() {
     fail "working tree is dirty; use explicit preserve mode or clean it first"
   fi
 
-  git fetch --quiet origin refs/heads/main \
+  git fetch --quiet --refmap= origin refs/heads/main \
     || fail "could not fetch origin/main"
   [ "$(current_branch)" = "$run_branch" ] \
     || fail "destination branch changed during fetch"
@@ -154,10 +154,10 @@ start_run() {
   run_target=$(git rev-parse --verify --quiet 'FETCH_HEAD^{commit}' || true)
   [ -n "$run_target" ] \
     || fail "origin/main not found after fetch"
-  git update-ref refs/remotes/origin/main "$run_target" \
-    || fail "origin/main could not be updated"
   git merge-base "$run_start_head" "$run_target" >/dev/null 2>&1 \
     || fail "HEAD and origin/main have unrelated histories"
+  git update-ref refs/remotes/origin/main "$run_target" \
+    || fail "origin/main could not be updated"
   run_incoming=$(git rev-list --count "$run_start_head..$run_target")
   run_stash=
   run_preserved=no

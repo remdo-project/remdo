@@ -226,6 +226,41 @@ describe('merge-main.sh', () => {
     expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('base\n');
   });
 
+  it('reports the retained stash when restored work cannot be dropped', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
+    advanceOrigin(origin);
+    writeFile(work, 'a.md', 'saved work\n');
+    const bin = makeDir('skills-stash-drop-failure-wrapper-');
+    const gitWrapper = path.join(bin, 'git');
+    writeFile(
+      bin,
+      'git',
+      [
+        '#!/usr/bin/env sh',
+        'if [ "$1" = stash ] && [ "$2" = drop ]; then',
+        '  exit 92',
+        'fi',
+        'PATH=${PATH#*:}',
+        'export PATH',
+        'exec git "$@"',
+        '',
+      ].join('\n'),
+    );
+    fs.chmodSync(gitWrapper, 0o755);
+
+    const result = runScript(script, work, ['start', '--preserve'], bin);
+    const stash = git(work, 'rev-parse', 'stash@{0}').stdout.trim();
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(`retained stash ${stash}`);
+    expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(
+      git(origin, 'rev-parse', 'main').stdout,
+    );
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe(
+      'saved work\n',
+    );
+  });
+
   it('keeps saved work until a merge commit is verified', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
@@ -539,6 +574,7 @@ describe('merge-main.sh', () => {
 
   it('refuses an unrelated target history', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const previousTarget = git(work, 'rev-parse', 'origin/main').stdout;
     const other = makeBareMain({ 'other.md': '# other\n' });
     expect(git(work, 'remote', 'set-url', 'origin', other).status).toBe(0);
 
@@ -546,6 +582,7 @@ describe('merge-main.sh', () => {
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('unrelated histories');
+    expect(git(work, 'rev-parse', 'origin/main').stdout).toBe(previousTarget);
   });
 
   it('refuses a detached destination', () => {
