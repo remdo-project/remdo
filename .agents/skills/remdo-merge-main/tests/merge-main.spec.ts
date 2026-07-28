@@ -1195,6 +1195,7 @@ describe('merge-main.sh', () => {
     const { work } = makeScratchWithOrigin({
       '.gitignore': 'existing/\n',
       'a.md': 'base\n',
+      'nested/tracked.md': 'tracked\n',
     });
     fs.appendFileSync(path.join(work, '.gitignore'), 'newbuild/\n');
     writeFile(work, 'newbuild/output', 'ignored output\n');
@@ -1225,7 +1226,7 @@ describe('merge-main.sh', () => {
     expect(
       runScript(script, work, ['start', '--preserve'], bin).status,
     ).not.toBe(0);
-    const continued = run(work, 'continue');
+    const continued = run(path.join(work, 'nested'), 'continue');
 
     expect(value(continued.stdout, 'STATE')).toBe('up-to-date');
     expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
@@ -1419,18 +1420,23 @@ describe('merge-main.sh', () => {
   });
 
   it('preserves work when its gitignore change hides existing files', () => {
-    const { work } = makeScratchWithOrigin({
+    const { work, origin } = makeScratchWithOrigin({
       '.gitignore': 'existing/\n',
       'a.md': 'base\n',
     });
+    writeFile(work, 'local.md', 'local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
     fs.appendFileSync(path.join(work, '.gitignore'), 'newbuild/\n');
     writeFile(work, 'newbuild/output', 'ignored output\n');
     writeFile(work, 'a.md', 'saved work\n');
 
-    const result = run(work, 'start', '--preserve');
+    const started = run(work, 'start', '--preserve');
+    const finished = run(work, 'finish');
 
-    expect(result.status).toBe(0);
-    expect(value(result.stdout, 'STATE')).toBe('up-to-date');
+    expect(value(started.stdout, 'STATE')).toBe('verification-needed');
+    expect(finished.status).toBe(0);
+    expect(value(finished.stdout, 'STATE')).toBe('merged');
     expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('saved work\n');
     expect(fs.readFileSync(path.join(work, 'newbuild/output'), 'utf8')).toBe(
       'ignored output\n',

@@ -292,7 +292,8 @@ downgrade_lost_integration() {
 
 capture_ignored_work() {
   ignored_temp="$state_dir/.ignored-work-$$"
-  if ! git ls-files --others --ignored --exclude-standard -- ':/' \
+  if ! git -C "$repo_root" \
+    ls-files --others --ignored --exclude-standard -- ':/' \
     | LC_ALL=C sort -u >"$ignored_temp"; then
     rm -f -- "$ignored_temp"
     fail "ignored working paths could not be recorded"
@@ -306,7 +307,7 @@ preservation_is_clean() {
     && git diff --cached --quiet \
     || return 1
   untracked_temp="$state_dir/.preservation-untracked-$$"
-  if ! git ls-files --others --exclude-standard -- ':/' \
+  if ! git -C "$repo_root" ls-files --others --exclude-standard -- ':/' \
     | LC_ALL=C sort -u >"$untracked_temp"; then
     rm -f -- "$untracked_temp"
     return 1
@@ -314,6 +315,14 @@ preservation_is_clean() {
   unexpected=$(LC_ALL=C comm -23 "$untracked_temp" "$state_dir/ignored-work")
   rm -f -- "$untracked_temp"
   [ -z "$unexpected" ]
+}
+
+integration_is_clean() {
+  if [ -n "$run_stash" ] && [ -f "$state_dir/ignored-work" ]; then
+    preservation_is_clean
+  else
+    [ -z "$(git status --porcelain --untracked-files=normal)" ]
+  fi
 }
 
 record_untracked_restore_conflicts() {
@@ -817,6 +826,12 @@ continue_run() {
       [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
         || fail "branch changed before integration"
       if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
+        if [ -n "$run_stash" ] \
+          && [ -f "$state_dir/ignored-work" ] \
+          && preservation_is_clean; then
+          integrate_target
+          return
+        fi
         if [ "$run_form" = fast-forward ] \
           && git diff --quiet \
           && git diff --cached --quiet "$run_target" \
@@ -923,7 +938,7 @@ finish_run() {
   operation_in_progress \
     && fail "a Git operation is still in progress"
   require_integration_ancestry
-  [ -z "$(git status --porcelain --untracked-files=normal)" ] \
+  integration_is_clean \
     || fail "integration state is not clean and committed"
   if [ "$verification_failed" = yes ]; then
     run_outcome=verification-failed
