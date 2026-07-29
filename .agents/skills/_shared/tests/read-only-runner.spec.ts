@@ -713,6 +713,57 @@ describe('read-only runner CLI', () => {
     expect(result.stdout).toBe('Final result.');
   });
 
+  it('preserves structured ReportFindings in the Claude review response', () => {
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
+    writeFile(work, 'tracked.md', 'changed\n');
+    const report = {
+      findings: [{
+        file: 'tracked.md',
+        line: 1,
+        summary: 'The structured finding.',
+        failure_scenario: 'The consumer would otherwise miss it.',
+      }],
+    };
+    const stub = claudeStub([
+      claudeStream(
+        {
+          type: 'system',
+          subtype: 'init',
+          slash_commands: ['code-review'],
+        },
+        {
+          type: 'assistant',
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'ReportFindings',
+              input: report,
+            }],
+          },
+        },
+        {
+          type: 'result',
+          subtype: 'success',
+          is_error: false,
+          result: 'Review complete.',
+        },
+      ),
+    ]);
+
+    const result = runRunner(
+      work,
+      ['claude', 'review', 'uncommitted'],
+      stub,
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe([
+      'Review complete.',
+      'ReportFindings',
+      JSON.stringify(report, null, 2),
+    ].join('\n\n'));
+  });
+
   it.each([
     {
       body: "printf '%s\\n' 'not-json'",
