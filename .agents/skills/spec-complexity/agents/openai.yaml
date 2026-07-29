@@ -1,0 +1,6 @@
+interface:
+  display_name: "Spec Complexity"
+  short_description: "Assess complexity caused by one specification"
+  default_prompt: "Use $spec-complexity to identify the specification decisions that create the most implementation complexity and their simpler alternatives."
+policy:
+  allow_implicit_invocation: true
