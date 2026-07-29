@@ -463,6 +463,7 @@ describe('read-only runner CLI', () => {
       'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
       'printf \'%s\\n\' "$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0" > "$RUNNER_STUB_CAPTURE/git-env"',
       'printf \'%s\' "$CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS" > "$RUNNER_STUB_CAPTURE/background-wait"',
+      'printf \'%s\' "$CLAUDE_CODE_REPORT_FINDINGS" > "$RUNNER_STUB_CAPTURE/report-findings"',
       claudeReviewResult('No findings.'),
     ]);
 
@@ -477,6 +478,7 @@ describe('read-only runner CLI', () => {
         GIT_DIR: '/must/not/be-used',
         GIT_WORK_TREE: '/must/not/be-used',
         CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: '123',
+        CLAUDE_CODE_REPORT_FINDINGS: '0',
       },
     );
 
@@ -502,6 +504,9 @@ describe('read-only runner CLI', () => {
     expect(
       fs.readFileSync(path.join(stub, 'background-wait'), 'utf8'),
     ).toBe('0');
+    expect(
+      fs.readFileSync(path.join(stub, 'report-findings'), 'utf8'),
+    ).toBe('1');
     const input = fs.readFileSync(path.join(stub, 'stdin'), 'utf8');
     expect(input).toBe(
       '/code-review "candidate.md" "deleted.md" "staged.md" '
@@ -738,6 +743,16 @@ describe('read-only runner CLI', () => {
               type: 'tool_use',
               name: 'ReportFindings',
               input: report,
+            }],
+          },
+        },
+        {
+          type: 'assistant',
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'ReportFindings',
+              input: { findings: [] },
             }],
           },
         },

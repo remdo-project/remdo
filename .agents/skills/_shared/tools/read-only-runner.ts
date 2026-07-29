@@ -69,6 +69,7 @@ const REVIEW_INSTRUCTION = [
 
 const CLAUDE_REVIEW_COMMAND = '/code-review';
 const CLAUDE_REVIEW_BACKGROUND_WAIT_CEILING_MS = '0';
+const CLAUDE_REVIEW_REPORT_FINDINGS = '1';
 
 function parseCall(args: string[]): RunnerCall {
   const settings: RunnerCall['settings'] = {};
@@ -816,9 +817,8 @@ function claudePromptResult(stdout: string): RunnerResult {
 function claudeReportFindings(
   event: Record<string, unknown>,
 ): {
-  called: boolean;
   evidence?: string;
-  report?: Record<string, unknown>;
+  reports: Record<string, unknown>[];
 } {
   if (
     event.type !== 'assistant'
@@ -828,11 +828,11 @@ function claudeReportFindings(
       && event.parent_tool_use_id !== null
     )
   ) {
-    return { called: false };
+    return { reports: [] };
   }
   const { content } = event.message;
   if (!Array.isArray(content)) {
-    return { called: false };
+    return { reports: [] };
   }
   const blocks = content
     .filter(isObject)
@@ -840,26 +840,29 @@ function claudeReportFindings(
       block.type === 'tool_use' && block.name === 'ReportFindings',
     );
   if (blocks.length === 0) {
-    return { called: false };
+    return { reports: [] };
   }
-  const input = blocks[blocks.length - 1]!.input;
-  if (!isObject(input) || !Array.isArray(input.findings)) {
-    return {
-      called: true,
-      evidence: 'Claude ReportFindings tool input was invalid',
-    };
+  const reports: Record<string, unknown>[] = [];
+  for (const block of blocks) {
+    const { input } = block;
+    if (!isObject(input) || !Array.isArray(input.findings)) {
+      return {
+        evidence: 'Claude ReportFindings tool input was invalid',
+        reports: [],
+      };
+    }
+    if (input.findings.length > 0) {
+      reports.push(input);
+    }
   }
-  return {
-    called: true,
-    report: input.findings.length === 0 ? undefined : input,
-  };
+  return { reports };
 }
 
 function claudeReviewResult(stdout: string): RunnerResult {
   const lines = stdout.split(/\r?\n/u).filter(line => line.trim() !== '');
   let initEvent: Record<string, unknown> | undefined;
   let finalEvent: Record<string, unknown> | undefined;
-  let reportFindings: Record<string, unknown> | undefined;
+  const reportFindings: Record<string, unknown>[] = [];
   for (const [index, line] of lines.entries()) {
     let parsed: unknown;
     try {
@@ -887,9 +890,7 @@ function claudeReviewResult(stdout: string): RunnerResult {
     if (reported.evidence !== undefined) {
       return { status: 'failed', evidence: reported.evidence };
     }
-    if (reported.called) {
-      reportFindings = reported.report;
-    }
+    reportFindings.push(...reported.reports);
     finalEvent = parsed;
   }
 
@@ -934,7 +935,7 @@ function claudeReviewResult(stdout: string): RunnerResult {
     };
   }
   const result = claudeResult(finalEvent);
-  if (result.status !== 'responded' || reportFindings === undefined) {
+  if (result.status !== 'responded' || reportFindings.length === 0) {
     return result;
   }
   return {
@@ -942,7 +943,7 @@ function claudeReviewResult(stdout: string): RunnerResult {
     response: [
       result.response,
       'ReportFindings',
-      JSON.stringify(reportFindings, null, 2),
+      reportFindings.map(findings => JSON.stringify(findings, null, 2)).join('\n\n'),
     ].join('\n\n'),
   };
 }
@@ -992,6 +993,7 @@ async function runClaude(
       ...sourceEnvironment,
       CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS:
         CLAUDE_REVIEW_BACKGROUND_WAIT_CEILING_MS,
+      CLAUDE_CODE_REPORT_FINDINGS: CLAUDE_REVIEW_REPORT_FINDINGS,
     }
     : sourceEnvironment;
   const outcome = await runProcess('claude', invocation.args, {
