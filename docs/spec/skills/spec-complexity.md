@@ -24,11 +24,11 @@ Each area caused by the specification identifies:
 
 Classify areas as High when they dominate implementation or test complexity,
 Medium when they remain substantial but contained, and Low when they do not
-materially drive the design. Report Low areas only when the caller requests
-them. Classifications and estimates are directional, and estimates may overlap.
-Causal attribution takes priority over estimate precision: line ranges need
-only show relative cost, but repository evidence must connect each mechanism
-to the specification decision assigned to it.
+materially drive the design. Report Low areas in either section only when the
+caller requests them. Classifications and estimates are directional, and
+estimates may overlap. Causal attribution takes priority over estimate
+precision: line ranges need only show relative cost, but repository evidence
+must connect each mechanism to the specification decision assigned to it.
 
 The report distinguishes substantial implementation complexity that no
 specification decision requires from complexity caused by the specification.
