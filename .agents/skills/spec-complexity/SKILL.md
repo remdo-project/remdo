@@ -14,7 +14,8 @@ Remain read-only.
 Require the caller to name the specification. Read it in full and confirm that
 it is the current
 [contract owner](../../../docs/documentation.md#ownership). Inspect its
-implementation, tests, and relevant Git history.
+implementation, tests, and relevant Git history. Follow linked contract owners
+as needed before classifying complexity as unrequired.
 
 Identify the few decisions that materially drive complexity. For each:
 
@@ -40,7 +41,8 @@ within the soft word budget unless causal accuracy requires more:
 
 - sort areas by complexity class, then estimated cost;
 - give a deduplicated total implementation/test estimate in the summary;
-- put the uniform implementation/test estimate immediately below each heading;
+- put the uniform implementation/test estimate immediately below each area
+  heading;
 - limit the explanation, alternative, and tradeoff to their decision-relevant
   facts; and
 - format the result to pass the repository's normal Markdown lint rules.

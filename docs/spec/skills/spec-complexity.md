@@ -48,6 +48,7 @@ The result uses this structure:
 # Spec complexity: <specification>
 
 ## Summary
+
 **Total estimated cost:** <implementation range> implementation lines; <test range> test lines
 <dominant complexity and simplification opportunity>
 
