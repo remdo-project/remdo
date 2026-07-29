@@ -814,55 +814,10 @@ function claudePromptResult(stdout: string): RunnerResult {
   return claudeResult(envelope);
 }
 
-function claudeReportFindings(
-  event: Record<string, unknown>,
-): {
-  evidence?: string;
-  reports: Record<string, unknown>[];
-} {
-  if (
-    event.type !== 'assistant'
-    || !isObject(event.message)
-    || (
-      event.parent_tool_use_id !== undefined
-      && event.parent_tool_use_id !== null
-    )
-  ) {
-    return { reports: [] };
-  }
-  const { content } = event.message;
-  if (!Array.isArray(content)) {
-    return { reports: [] };
-  }
-  const blocks = content
-    .filter(isObject)
-    .filter(block =>
-      block.type === 'tool_use' && block.name === 'ReportFindings',
-    );
-  if (blocks.length === 0) {
-    return { reports: [] };
-  }
-  const reports: Record<string, unknown>[] = [];
-  for (const block of blocks) {
-    const { input } = block;
-    if (!isObject(input) || !Array.isArray(input.findings)) {
-      return {
-        evidence: 'Claude ReportFindings tool input was invalid',
-        reports: [],
-      };
-    }
-    if (input.findings.length > 0) {
-      reports.push(input);
-    }
-  }
-  return { reports };
-}
-
 function claudeReviewResult(stdout: string): RunnerResult {
   const lines = stdout.split(/\r?\n/u).filter(line => line.trim() !== '');
   let initEvent: Record<string, unknown> | undefined;
   let finalEvent: Record<string, unknown> | undefined;
-  const reportFindings: Record<string, unknown>[] = [];
   for (const [index, line] of lines.entries()) {
     let parsed: unknown;
     try {
@@ -886,11 +841,6 @@ function claudeReviewResult(stdout: string): RunnerResult {
     ) {
       initEvent = parsed;
     }
-    const reported = claudeReportFindings(parsed);
-    if (reported.evidence !== undefined) {
-      return { status: 'failed', evidence: reported.evidence };
-    }
-    reportFindings.push(...reported.reports);
     finalEvent = parsed;
   }
 
@@ -934,18 +884,7 @@ function claudeReviewResult(stdout: string): RunnerResult {
       evidence: 'Claude review stream did not end with a top-level result event',
     };
   }
-  const result = claudeResult(finalEvent);
-  if (result.status !== 'responded' || reportFindings.length === 0) {
-    return result;
-  }
-  return {
-    status: 'responded',
-    response: [
-      result.response,
-      'ReportFindings',
-      reportFindings.map(findings => JSON.stringify(findings, null, 2)).join('\n\n'),
-    ].join('\n\n'),
-  };
+  return claudeResult(finalEvent);
 }
 
 async function runClaude(
