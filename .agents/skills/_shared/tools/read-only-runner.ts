@@ -715,7 +715,7 @@ function claudeInvocation(
 ): { args: string[]; input: string } {
   const review = call.invocation.kind === 'review';
   const tools = review
-    ? 'Bash,Read,Grep,Glob,Skill,Agent'
+    ? 'Bash,Read,Grep,Glob,LSP,Skill,Agent,ReportFindings'
     : 'Bash,Read,Grep,Glob';
   const args = [
     '-p',

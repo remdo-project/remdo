@@ -482,9 +482,11 @@ describe('read-only runner CLI', () => {
 
     expect(result.status).toBe(0);
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
-    expect(args).toContain('Bash,Read,Grep,Glob,Skill,Agent');
     expect(args).toContain('--effort\nhigh\n');
     const argv = args.trimEnd().split('\n');
+    const reviewTools = 'Bash,Read,Grep,Glob,LSP,Skill,Agent,ReportFindings';
+    expect(argv[argv.indexOf('--tools') + 1]).toBe(reviewTools);
+    expect(argv[argv.indexOf('--allowedTools') + 1]).toBe(reviewTools);
     const settings = JSON.parse(argv[argv.indexOf('--settings') + 1]!);
     expect(settings).toEqual({ disableAllHooks: true });
     const instruction = argv[argv.indexOf('--append-system-prompt') + 1];
@@ -493,7 +495,6 @@ describe('read-only runner CLI', () => {
       'explicitly instruct every delegated reviewer not to run repository checks',
     );
     expect(argv).not.toContain('--append-subagent-system-prompt');
-    expect(argv).toContain('Bash,Read,Grep,Glob,Skill,Agent');
     expect(argv).toContain('stream-json');
     expect(argv).toContain('--verbose');
     expect(argv).not.toContain('json');
