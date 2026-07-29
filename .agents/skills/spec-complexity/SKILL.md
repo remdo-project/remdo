@@ -35,13 +35,5 @@ requests them.
 
 ## Report
 
-Return the report in the specification's
-[Result](../../../docs/spec/skills/spec-complexity.md#result) format. Keep it
-within the soft word budget unless causal accuracy requires more:
-
-- sort areas by complexity class, then estimated cost;
-- give a deduplicated total implementation/test estimate in the summary;
-- put the implementation/test estimate immediately below each area heading;
-- limit the explanation, alternative, and tradeoff to their decision-relevant
-  facts; and
-- format the result to pass the repository's normal Markdown lint rules.
+Return the report defined by the specification's
+[Result](../../../docs/spec/skills/spec-complexity.md#result) section.
