@@ -764,6 +764,56 @@ describe('read-only runner CLI', () => {
     ].join('\n\n'));
   });
 
+  it('ignores delegated and empty top-level ReportFindings', () => {
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
+    writeFile(work, 'tracked.md', 'changed\n');
+    const stub = claudeStub([
+      claudeStream(
+        {
+          type: 'system',
+          subtype: 'init',
+          slash_commands: ['code-review'],
+        },
+        {
+          type: 'assistant',
+          parent_tool_use_id: 'delegated-review',
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'ReportFindings',
+              input: { findings: [{ summary: 'Discarded draft.' }] },
+            }],
+          },
+        },
+        {
+          type: 'assistant',
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'ReportFindings',
+              input: { findings: [] },
+            }],
+          },
+        },
+        {
+          type: 'result',
+          subtype: 'success',
+          is_error: false,
+          result: 'No findings.',
+        },
+      ),
+    ]);
+
+    const result = runRunner(
+      work,
+      ['claude', 'review', 'uncommitted'],
+      stub,
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('No findings.');
+  });
+
   it.each([
     {
       body: "printf '%s\\n' 'not-json'",
@@ -835,6 +885,31 @@ describe('read-only runner CLI', () => {
     {
       body: claudeReviewResult(' \n\t'),
       evidence: 'completed without a final text response',
+    },
+    {
+      body: claudeStream(
+        {
+          type: 'system',
+          subtype: 'init',
+          slash_commands: ['code-review'],
+        },
+        {
+          type: 'assistant',
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'ReportFindings',
+            }],
+          },
+        },
+        {
+          type: 'result',
+          subtype: 'success',
+          is_error: false,
+          result: 'Review complete.',
+        },
+      ),
+      evidence: 'ReportFindings tool input was invalid',
     },
   ])('rejects an invalid Claude review stream: $evidence', ({ body, evidence }) => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });

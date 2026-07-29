@@ -815,27 +815,51 @@ function claudePromptResult(stdout: string): RunnerResult {
 
 function claudeReportFindings(
   event: Record<string, unknown>,
-): unknown[] {
-  if (event.type !== 'assistant' || !isObject(event.message)) {
-    return [];
+): {
+  called: boolean;
+  evidence?: string;
+  report?: Record<string, unknown>;
+} {
+  if (
+    event.type !== 'assistant'
+    || !isObject(event.message)
+    || (
+      event.parent_tool_use_id !== undefined
+      && event.parent_tool_use_id !== null
+    )
+  ) {
+    return { called: false };
   }
   const { content } = event.message;
   if (!Array.isArray(content)) {
-    return [];
+    return { called: false };
   }
-  return content
+  const blocks = content
     .filter(isObject)
     .filter(block =>
       block.type === 'tool_use' && block.name === 'ReportFindings',
-    )
-    .map(block => block.input);
+    );
+  if (blocks.length === 0) {
+    return { called: false };
+  }
+  const input = blocks[blocks.length - 1]!.input;
+  if (!isObject(input) || !Array.isArray(input.findings)) {
+    return {
+      called: true,
+      evidence: 'Claude ReportFindings tool input was invalid',
+    };
+  }
+  return {
+    called: true,
+    report: input.findings.length === 0 ? undefined : input,
+  };
 }
 
 function claudeReviewResult(stdout: string): RunnerResult {
   const lines = stdout.split(/\r?\n/u).filter(line => line.trim() !== '');
   let initEvent: Record<string, unknown> | undefined;
   let finalEvent: Record<string, unknown> | undefined;
-  const reportFindings: unknown[] = [];
+  let reportFindings: Record<string, unknown> | undefined;
   for (const [index, line] of lines.entries()) {
     let parsed: unknown;
     try {
@@ -859,7 +883,13 @@ function claudeReviewResult(stdout: string): RunnerResult {
     ) {
       initEvent = parsed;
     }
-    reportFindings.push(...claudeReportFindings(parsed));
+    const reported = claudeReportFindings(parsed);
+    if (reported.evidence !== undefined) {
+      return { status: 'failed', evidence: reported.evidence };
+    }
+    if (reported.called) {
+      reportFindings = reported.report;
+    }
     finalEvent = parsed;
   }
 
@@ -904,7 +934,7 @@ function claudeReviewResult(stdout: string): RunnerResult {
     };
   }
   const result = claudeResult(finalEvent);
-  if (result.status !== 'responded' || reportFindings.length === 0) {
+  if (result.status !== 'responded' || reportFindings === undefined) {
     return result;
   }
   return {
@@ -912,7 +942,7 @@ function claudeReviewResult(stdout: string): RunnerResult {
     response: [
       result.response,
       'ReportFindings',
-      reportFindings.map(findings => JSON.stringify(findings, null, 2)).join('\n\n'),
+      JSON.stringify(reportFindings, null, 2),
     ].join('\n\n'),
   };
 }

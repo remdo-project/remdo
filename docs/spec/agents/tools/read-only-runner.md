@@ -67,8 +67,9 @@ response.
 
 A result is encoded by the runner's exit status and output:
 
-- `responded`: exit `0` and write only the non-empty complete final text to
-  stdout;
+- `responded`: exit `0` and write only the non-empty complete final response
+  text to stdout, including any non-empty structured findings delivered
+  separately from the provider's terminal text;
 - `unavailable`: exit `2` and write evidence that the agent CLI or requested
   native capability is unavailable to stderr;
 - `failed`: any other non-zero exit and failure evidence on stderr.
