@@ -1,0 +1,6 @@
+interface:
+  display_name: "RemDo Merge Main"
+  short_description: "Merge origin/main into the current branch"
+  default_prompt: "Use $remdo-merge-main to merge origin/main into the current RemDo branch and verify the result."
+policy:
+  allow_implicit_invocation: false
