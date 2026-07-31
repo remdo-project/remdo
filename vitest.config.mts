@@ -33,6 +33,7 @@ export default defineConfig({
     // changes.
     forceRerunTriggers: [
       ...configDefaults.forceRerunTriggers,
+      '**/vite.config.*',
       '**/vitest.config.*',
       '**/package.json',
       '**/pnpm-lock.yaml',
