@@ -33,6 +33,7 @@ export default defineConfig({
     // changes.
     forceRerunTriggers: [
       ...configDefaults.forceRerunTriggers,
+      '**/vite.config.*',
       '**/vitest.config.*',
       '**/package.json',
       '**/pnpm-lock.yaml',
@@ -60,6 +61,7 @@ export default defineConfig({
     exclude: [
       ...configDefaults.exclude,
       '**/.pnpm-store/**',
+      '**/.agent/**',
       '**/data/**',
       ...(directlyRunsSkillTests ? [] : [
         '**/.agents/skills/**/tests/**',
