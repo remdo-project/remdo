@@ -33,6 +33,9 @@ The verifier runs applicable deterministic repository checks in place.
 The verifier invokes the [read-only
 runner](../agents/tools/read-only-runner.md#call) independently for Codex and
 Claude with a `review` invocation, the resolved change scope, and `high` effort.
+For Claude, the verifier exercises the caller judgement required by the runner's
+[trusted-prompt level](../agents/tools/read-only-runner.md#trusted-prompt): its
+prompt is the vendor-owned native review command.
 
 Review [results](../agents/tools/read-only-runner.md#result) are independent:
 one never interrupts another. The verifier reports `unavailable` and `failed`

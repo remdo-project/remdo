@@ -41,33 +41,33 @@ reviewer it delegates to not to run repository checks.
 
 ## Repository protection
 
-An invocation does not change the caller's Git repository, and does not act
-outside it by publishing, scheduling, or establishing persistent monitoring,
-notification, or remote control.
+Repository protection has one target outcome: an invocation leaves the caller's
+Git repository unchanged and does not publish, schedule, or establish persistent
+monitoring, notification, or remote control outside it. Each invocation provides
+a protection level, fixed by its agent, that states the caller condition for
+that outcome.
 
 An invocation retains the inspection access its task requires, including
 complete Git history and repository state.
 
-Each invocation provides one of two protection levels, fixed by its agent. The
-caller chooses an agent whose level suits the prompt it supplies.
+The caller chooses an agent whose level suits the prompt it supplies.
 
 ### Enforced
 
-The invocation cannot change the repository, whatever the prompt asks. Codex
-invocations are enforced: the runner invokes Codex under a read-only sandbox
-that denies approval of any escalation.
+Codex invocations are enforced: the invocation cannot change the repository,
+whatever the prompt asks, and the session cannot lift the restriction.
 
 ### Trusted prompt
 
-The invocation does not change the repository when the prompt does not seek to.
-Claude invocations are trusted-prompt: shell access remains available so the
-invocation can inspect Git completely, and a shell reaches any effect a
-restriction on other tools would prevent, so the runner offers no guarantee at
-this level.
+Claude invocations are trusted-prompt: the runner provides the target outcome
+when the prompt does not seek mutation or outside action. Shell access remains
+available so the invocation can inspect Git completely, and a shell reaches any
+effect a restriction on other tools would prevent, so this level offers no
+protection from a prompt that seeks those effects.
 
-The caller supplies a prompt it trusts not to seek mutation, and owns that
-judgement. A vendor-owned command documented as read-only meets this; an
-untrusted prompt does not.
+The caller supplies a prompt it trusts not to seek those effects and owns that
+judgement. A vendor-owned command documented to inspect and report meets this;
+an untrusted prompt does not.
 
 ## Lifecycle
 
@@ -118,11 +118,8 @@ provider stdout is not failure evidence.
 
 ## Future
 
-Enforced Claude invocations, so a caller can supply a prompt it does not trust.
-The provider sandbox that would enforce them requires host tools beyond the
-agent binary, and refuses to start when they are absent; adopting it makes those
-tools a runtime requirement of every invocation, including review, which does
-not need them.
+- Enforce Claude invocations without adding host requirements to trusted review
+  sessions.
 
 ## References
 
