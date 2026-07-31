@@ -59,6 +59,7 @@ export default defineConfig({
     ],
     exclude: [
       ...configDefaults.exclude,
+      '**/.agent/**',
       '**/.pnpm-store/**',
       '**/data/**',
       ...(directlyRunsSkillTests ? [] : [
