@@ -2,7 +2,7 @@
 
 This specification defines indent and outdent behavior for
 [target note ranges](../../outliner/selection.md#note-ranges). Indent and
-outdent preserve the target range's order.
+outdent preserve the target note range's order.
 
 ## Keyboard indentation
 
