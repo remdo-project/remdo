@@ -61,10 +61,10 @@ that denies approval of any escalation.
 ### Trusted prompt
 
 The invocation does not change the repository when the prompt does not seek to.
-Claude invocations are trusted-prompt: shell access remains available so review
-can inspect Git completely, and a shell reaches any effect a restriction on
-other tools would prevent, so the runner restricts no tool and offers no
-guarantee at this level.
+Claude invocations are trusted-prompt: shell access remains available so the
+invocation can inspect Git completely, and a shell reaches any effect a
+restriction on other tools would prevent, so the runner offers no guarantee at
+this level.
 
 The caller supplies a prompt it trusts not to seek mutation, and owns that
 judgement. A vendor-owned command documented as read-only meets this; an

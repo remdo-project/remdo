@@ -418,7 +418,6 @@ describe('read-only runner CLI', () => {
       'exact model',
       '--effort',
       'custom effort',
-      '--append-system-prompt',
     ]));
     expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(
       'Inspect this prompt.',
@@ -431,9 +430,9 @@ describe('read-only runner CLI', () => {
     expect(args[args.indexOf('--settings') + 1]).toBe(
       '{"disableAllHooks":true}',
     );
-    const instruction = args[args.indexOf('--append-system-prompt') + 1];
-    expect(instruction).toContain('Keep the repository read-only');
-    expect(instruction).not.toContain('review_complete');
+    // Protection comes from the fixed tool set, not from instructing the
+    // session to behave.
+    expect(args).not.toContain('--append-system-prompt');
   });
 
   it('omits absent Claude model and effort settings completely', () => {
@@ -495,16 +494,15 @@ describe('read-only runner CLI', () => {
     expect(argv[argv.indexOf('--permission-mode') + 1]).toBe(
       'bypassPermissions',
     );
-    expect(argv[argv.indexOf('--tools') + 1]).toBe('default');
-    expect(argv).not.toContain('--allowedTools');
     // Trusted-prompt level: review keeps every tool, including shell, so it
     // can inspect Git completely. Restricting tools here would suggest a
     // boundary the shell defeats anyway.
+    expect(argv).not.toContain('--tools');
+    expect(argv).not.toContain('--allowedTools');
     expect(argv).not.toContain('--disallowedTools');
     const settings = JSON.parse(argv[argv.indexOf('--settings') + 1]!);
     expect(settings).toEqual({ disableAllHooks: true });
     const instruction = argv[argv.indexOf('--append-system-prompt') + 1];
-    expect(instruction).toContain('Keep the repository read-only.');
     expect(instruction).toContain('Do not run repository checks.');
     expect(instruction).toContain(
       'explicitly instruct every delegated reviewer not to run repository checks',

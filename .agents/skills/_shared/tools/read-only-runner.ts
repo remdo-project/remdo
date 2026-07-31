@@ -53,14 +53,6 @@ const GIT_REDIRECTION_KEYS = [
   'GIT_WORK_TREE',
 ] as const;
 
-const CLAUDE_READ_ONLY_INSTRUCTION = [
-  'Keep the repository read-only.',
-  'Do not create, modify, delete, move, stage, commit, or otherwise change',
-  'repository files, the index, untracked files, or Git references.',
-  'Use the available tools only to inspect and report; refuse any conflicting',
-  'part of the request.',
-].join(' ');
-
 const REVIEW_INSTRUCTION = [
   'Do not run repository checks.',
   'When delegating review work, explicitly instruct every delegated',
@@ -715,20 +707,19 @@ function claudeInvocation(
   reviewCommand: string | undefined,
 ): { args: string[]; input: string } {
   const review = call.invocation.kind === 'review';
-  // Review runs at the trusted-prompt level and restricts no tool: it keeps
-  // shell access to inspect Git completely, and a shell reaches any effect a
-  // denied tool would, so denying tools would suggest a boundary that does not
-  // exist. The caller supplies a prompt that does not seek mutation.
-  const tools = review ? 'default' : 'Bash,Read,Grep,Glob';
   const args = [
     '-p',
     '--permission-mode',
     review ? 'bypassPermissions' : 'dontAsk',
-    '--tools',
-    tools,
   ];
   if (!review) {
-    args.push('--allowedTools', tools);
+    // Prompt invocations keep a fixed inspection-only tool set. Review instead
+    // runs at the trusted-prompt level and restricts nothing: it needs shell
+    // access to inspect Git completely, and a shell reaches any effect a
+    // restriction would prevent, so restricting tools would suggest a boundary
+    // that does not exist.
+    const tools = 'Bash,Read,Grep,Glob';
+    args.push('--tools', tools, '--allowedTools', tools);
   }
   args.push(
     '--settings',
@@ -750,12 +741,9 @@ function claudeInvocation(
   if (call.settings.effort !== undefined) {
     args.push('--effort', call.settings.effort);
   }
-  args.push(
-    '--append-system-prompt',
-    review
-      ? `${CLAUDE_READ_ONLY_INSTRUCTION} ${REVIEW_INSTRUCTION}`
-      : CLAUDE_READ_ONLY_INSTRUCTION,
-  );
+  if (review) {
+    args.push('--append-system-prompt', REVIEW_INSTRUCTION);
+  }
   return {
     args,
     input: call.invocation.kind === 'prompt'
@@ -772,9 +760,7 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '';
 }
 
-function claudeResultEnvelopeFailure(
-  envelope: Record<string, unknown>,
-): RunnerResult | undefined {
+function claudeResult(envelope: Record<string, unknown>): RunnerResult {
   if (
     envelope.type !== 'result'
     || envelope.subtype !== 'success'
@@ -784,13 +770,6 @@ function claudeResultEnvelopeFailure(
       status: 'failed',
       evidence: 'Claude did not return a successful result envelope',
     };
-  }
-}
-
-function claudeResult(envelope: Record<string, unknown>): RunnerResult {
-  const failure = claudeResultEnvelopeFailure(envelope);
-  if (failure !== undefined) {
-    return failure;
   }
   if (!isNonEmptyString(envelope.result)) {
     return {
