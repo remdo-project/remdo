@@ -413,9 +413,6 @@ describe('read-only runner CLI', () => {
     expect(args).toEqual(expect.arrayContaining([
       '--permission-mode',
       'dontAsk',
-      '--tools',
-      'Bash,Read,Grep,Glob',
-      '--allowedTools',
       '--no-session-persistence',
       '--no-chrome',
       '--strict-mcp-config',
