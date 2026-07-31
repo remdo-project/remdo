@@ -142,6 +142,14 @@ function shellLiteral(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
+function argumentAfter(args: string[], flag: string): string {
+  const index = args.indexOf(flag);
+  if (index === -1 || index === args.length - 1) {
+    throw new Error(`missing ${flag} argument`);
+  }
+  return args[index + 1]!;
+}
+
 afterEach(cleanupTempDirs);
 
 describe('read-only runner CLI', () => {
@@ -405,10 +413,6 @@ describe('read-only runner CLI', () => {
     expect(args).toEqual(expect.arrayContaining([
       '--permission-mode',
       'dontAsk',
-      '--tools',
-      'Bash,Read,Grep,Glob',
-      '--allowedTools',
-      '{"disableAllHooks":true}',
       '--no-session-persistence',
       '--no-chrome',
       '--strict-mcp-config',
@@ -419,15 +423,21 @@ describe('read-only runner CLI', () => {
       'exact model',
       '--effort',
       'custom effort',
-      '--append-system-prompt',
     ]));
     expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(
       'Inspect this prompt.',
     );
+    expect(argumentAfter(args, '--tools')).toBe('Bash,Read,Grep,Glob');
+    expect(argumentAfter(args, '--allowedTools')).toBe(
+      'Bash,Read,Grep,Glob',
+    );
+    expect(args).not.toContain('--disallowedTools');
     expect(args).not.toContain('--json-schema');
-    const instruction = args[args.indexOf('--append-system-prompt') + 1];
-    expect(instruction).toContain('Keep the repository read-only');
-    expect(instruction).not.toContain('review_complete');
+    expect(argumentAfter(args, '--settings')).toBe(
+      '{"disableAllHooks":true}',
+    );
+    // The fixed tool set is the prompt profile, not an enforcement boundary.
+    expect(args).not.toContain('--append-system-prompt');
   });
 
   it('omits absent Claude model and effort settings completely', () => {
@@ -463,6 +473,7 @@ describe('read-only runner CLI', () => {
       'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
       'printf \'%s\\n\' "$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0" > "$RUNNER_STUB_CAPTURE/git-env"',
       'printf \'%s\' "$CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS" > "$RUNNER_STUB_CAPTURE/background-wait"',
+      'printf \'%s\' "$CLAUDE_CODE_REPORT_FINDINGS" > "$RUNNER_STUB_CAPTURE/report-findings"',
       claudeReviewResult('No findings.'),
     ]);
 
@@ -477,29 +488,42 @@ describe('read-only runner CLI', () => {
         GIT_DIR: '/must/not/be-used',
         GIT_WORK_TREE: '/must/not/be-used',
         CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: '123',
+        CLAUDE_CODE_REPORT_FINDINGS: '0',
       },
     );
 
     expect(result.status).toBe(0);
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
-    expect(args).toContain('Bash,Read,Grep,Glob,Skill,Agent');
     expect(args).toContain('--effort\nhigh\n');
     const argv = args.trimEnd().split('\n');
-    const settings = JSON.parse(argv[argv.indexOf('--settings') + 1]!);
+    expect(argumentAfter(argv, '--permission-mode')).toBe(
+      'bypassPermissions',
+    );
+    // Trusted-prompt level: review keeps every tool, including shell, so it
+    // can inspect Git completely. Restricting tools here would suggest a
+    // boundary the shell defeats anyway.
+    expect(argv).not.toContain('--tools');
+    expect(argv).not.toContain('--allowedTools');
+    expect(argv).not.toContain('--disallowedTools');
+    const settings = JSON.parse(argumentAfter(argv, '--settings'));
     expect(settings).toEqual({ disableAllHooks: true });
-    const instruction = argv[argv.indexOf('--append-system-prompt') + 1];
+    const instruction = argumentAfter(argv, '--append-system-prompt');
     expect(instruction).toContain('Do not run repository checks.');
     expect(instruction).toContain(
       'explicitly instruct every delegated reviewer not to run repository checks',
     );
     expect(argv).not.toContain('--append-subagent-system-prompt');
-    expect(argv).toContain('Bash,Read,Grep,Glob,Skill,Agent');
     expect(argv).toContain('stream-json');
     expect(argv).toContain('--verbose');
     expect(argv).not.toContain('json');
     expect(argv).not.toContain('--json-schema');
     expect(
       fs.readFileSync(path.join(stub, 'background-wait'), 'utf8'),
+    ).toBe('0');
+    // The runner does not select a report shape, so a caller's value passes
+    // through untouched.
+    expect(
+      fs.readFileSync(path.join(stub, 'report-findings'), 'utf8'),
     ).toBe('0');
     const input = fs.readFileSync(path.join(stub, 'stdin'), 'utf8');
     expect(input).toBe(

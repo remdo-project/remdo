@@ -22,46 +22,67 @@ read-only-runner [options] <agent> <invocation>
 - `--model <model>`: optional model value.
 - `--effort <effort>`: optional effort value.
 
-The runner forwards supplied model and effort values unchanged through the
-agent's corresponding CLI settings and leaves absent settings unset.
+The runner forwards supplied model and effort values to the agent unchanged and
+leaves absent values unset, so the agent applies its own default.
 
 ## Invocations
 
-**Prompt.** For Codex, the runner invokes `codex exec`; for Claude, it invokes
-`claude -p`.
+**Prompt.** The runner passes the prompt to the agent's non-interactive session
+unchanged.
 
-**Review.** For Codex, the runner maps `uncommitted` to native review with
-`--uncommitted` and `commit-range` to `--base <base>`. For Claude, it maps
-`uncommitted` to native `/code-review` with each staged, unstaged, or untracked
-changed path as a target, without adding paths solely from committed branch
-history. It maps `commit-range` to native `/code-review` for `<base>..HEAD`
-after resolving the current `HEAD` commit. Both reviews use the native
-command's instructions and repository guidance loaded by the agent session.
-The runner additionally instructs the reviewing agent and every reviewer it
-delegates to not to run repository checks.
+**Review.** The runner gives each agent's native review the resolved scope:
+`uncommitted` covers every staged, unstaged, and untracked changed path and
+nothing from committed branch history, and `commit-range` covers `base` through
+the commit `HEAD` names when the invocation begins.
+
+A review uses the native command's instructions and the repository guidance its
+session loads. The runner additionally instructs the reviewing agent and every
+reviewer it delegates to not to run repository checks.
 
 ## Repository protection
 
-An invocation does not change the caller's Git repository.
+Repository protection has one target outcome: an invocation leaves the caller's
+Git repository unchanged and does not publish, schedule, or establish persistent
+monitoring, notification, or remote control outside it. Each invocation provides
+a protection level, fixed by its agent, that states the caller condition for
+that outcome.
 
-The runner invokes Codex in its read-only sandbox with approval fixed to
-`never`. Claude prompt invocations receive a read-only instruction. Claude
-review invokes native `/code-review` without mutation flags; Claude's
-permissions are not a security boundary.
+An invocation retains the inspection access its task requires, including
+complete Git history and repository state.
+
+The caller chooses an agent whose level suits the prompt it supplies.
+
+### Enforced
+
+Codex invocations are enforced: the invocation cannot change the repository,
+whatever the prompt asks, and the session cannot lift the restriction.
+
+### Trusted prompt
+
+Claude invocations are trusted-prompt: the runner provides the target outcome
+when the prompt does not seek mutation or outside action. Shell access remains
+available so the invocation can inspect Git completely, and a shell reaches any
+effect a restriction on other tools would prevent, so this level offers no
+protection from a prompt that seeks those effects.
+
+The caller supplies a prompt it trusts not to seek those effects and owns that
+judgement. A vendor-owned command documented to inspect and report meets this;
+an untrusted prompt does not.
 
 ## Lifecycle
 
-The invocation observes repository state present when it begins. The caller
-keeps that state unchanged when it requires consistency for the whole
+The invocation observes repository state present when it begins. A review
+caller keeps that state unchanged until completion to preserve the resolved
+scope; another caller does so when it requires consistency for the whole
 invocation.
 
 Each invocation makes one attempt in a non-persistent session; retry belongs to
-the caller. Claude review's provider-level wait for background subagents and
-workflows has no ceiling, so their results remain part of the final response.
-The runner has no execution deadline, and neither silence nor elapsed time
-indicates failure. It runs until the agent completes or the caller cancels it.
-Cancellation ends the agent invocation and returns a failed result without a
-response.
+the caller. The runner waits without a ceiling for background subagents and
+workflows the review delegates to, so their results remain part of the final
+response rather than a pending-task notification. The runner has no execution
+deadline, and neither silence nor elapsed time indicates failure. It runs until
+the agent completes or the caller cancels it. Cancellation ends the agent
+invocation and returns a failed result without a response.
 
 ## Result
 
@@ -81,19 +102,24 @@ provider stdout is not failure evidence.
 
 ## Empirical checks
 
-- Native Codex and Claude reviews can inspect the complete resolved scope,
-  repository guidance, Git context, and referenced files.
-- Codex native review honors the resolved immutable `base` as the exact
-  commit-range scope.
-- Claude native review honors the exact resolved commit-range scope.
-- Claude waits for background review work and returns its result rather than a
-  pending-task notification.
-- Claude native `uncommitted` review can inspect every resolved changed path
-  without adding committed branch history to the scope.
-- Codex and Claude review invocations, including delegated reviewers, do not run
-  repository checks.
-- Claude prompt and review invocations leave the repository unchanged under the
-  runner's cooperative protection.
+- Each agent's review inspects the complete resolved scope, repository
+  guidance, Git context, and referenced files, and reviews the scope the runner
+  resolved rather than one the agent selects itself. A review whose inspection
+  access is incomplete still reports findings and reports success, so this is
+  confirmed by observing the review's reach rather than its result.
+- Review invocations, including delegated reviewers, do not run repository
+  checks. Forwarded instructions do not establish that agents follow them, so
+  conformance is confirmed by observing the commands they run.
+- Invocations leave the repository unchanged and cause no outside effect.
+  Provider documentation defines each restriction in isolation, not whether the
+  combination holds for a session that can reach mutation through an
+  unrestricted path, so conformance is confirmed by observing repository and
+  external state.
+
+## Future
+
+- Enforce Claude invocations without adding host requirements to trusted review
+  sessions.
 
 ## References
 

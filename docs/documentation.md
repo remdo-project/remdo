@@ -49,6 +49,11 @@ Known gaps between target behavior and implementation are tracked in
   anticipated rationalization does not justify restatement.
 - **Excluded material.** Contract clauses exclude inventories, non-contract
   implementation details, how-to prose, and redundant restatement.
+- **Property over mechanism.** State the property a mechanism must have, not the
+  mechanism. A detail belongs in the contract when choosing differently would
+  break the promise; one that only determines how the promise is met belongs in
+  the implementation. Named external interfaces, flags, and settings are
+  mechanisms.
 - **Rationale.** Keep brief rationale only when removing it could reopen a
   settled decision.
 - **Edge behavior.** Preserve materially relevant boundaries, failures, and
@@ -99,6 +104,10 @@ empirical checks do not replace deterministic coverage.
 An empirical check has no committed executable, scenario, or evidence artifact.
 When behavior becomes suitable for automated coverage, that coverage replaces
 its empirical classification.
+
+A check carries a brief rationale when the behavior it confirms is not derivable
+from its dependency contracts, so that a later reader does not retire the check
+by reasoning from those contracts alone.
 
 #### Future
 

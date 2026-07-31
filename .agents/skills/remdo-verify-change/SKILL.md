@@ -58,8 +58,9 @@ Invoke the shared runner directly with high effort:
 
 Run these commands exactly. The
 [`read-only runner`](../_shared/tools/read-only-runner.ts) owns the fresh
-session, review scope mapping, safety boundary, cancellation, protocol
-completion, and final-response extraction.
+session, review scope mapping,
+[repository protection](../../../docs/spec/agents/tools/read-only-runner.md#repository-protection),
+cancellation, protocol completion, and final-response extraction.
 
 Reviewer runtime is unspecified. Wait for each managed call's completion
 notification; do not poll it or interpret silence or elapsed time as failure.
