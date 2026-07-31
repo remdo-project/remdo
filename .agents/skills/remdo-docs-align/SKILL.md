@@ -21,7 +21,12 @@ tie-breaker, so preserve that structure when editing this skill.
   (resolved via `.agents/skills/_shared/tools/resolve-scope.sh`, whose header
   states the contract), or an explicit file set (e.g. the whole corpus for a
   realignment).
-  A diff scope selects its touched files, read whole.
+  A diff scope selects touched files, read whole for context. It never adds
+  files. Within that selection, stages follow
+  [Documentation changes](../../../docs/documentation.md#documentation-changes).
+  For stage 3, pass one scope argument describing a diff's resolved comparison,
+  retained file list, and coherent earlier-stage edits, or an explicit file
+  selection and its realignment intent.
 - A `no-change` diff scope reports a no-op and stops before the pipeline.
 - Authoring new content is out of scope: write-time rules do not prevent
   redundancy (tested — they made it worse), so fresh text is aligned by
@@ -42,32 +47,43 @@ they run in this order.
    scope narrower than the corpus,
    clean means no new findings versus the pre-run baseline; pre-existing
    out-of-scope findings go to the stage-5 report.
-2. **Align pass.** An editor fixes the remaining rule violations across the
-   scope, re-running the gates after each batch.
+2. **Align pass.** Before editing, follow affected ownership and links far
+   enough to identify required coherence repairs. If one lies outside the fixed
+   scope, stop the pipeline and put it in the stage-5 report without applying or
+   committing an incoherent batch. Otherwise an editor aligns the scope within
+   the boundary above, re-running the gates after each batch.
 3. **Advocate.** Run the Codex advocate:
-   `sh .agents/skills/remdo-docs-align/tools/advocate-run.sh <rules-doc> <scope>
-   <output-file>` — invoke the script directly in exactly that form, in the
-   foreground; MUST NOT wrap it in a helper script, background it, or
-   re-implement its steps (a backgrounded run is orphaned when a headless
-   session ends its turn). Use a repo-local `<output-file>` such as
-   `.agent/tmp/advocate.txt` (headless editors cannot read `/tmp`); the
-   script header states the full contract. It captures the numbered proposal
-   table. On a non-zero exit (the retry also failed), surface it in the stage-5
-   report rather than proceeding to adjudicate an empty table. On
+
+   ```sh
+   sh .agents/skills/remdo-docs-align/tools/advocate-run.sh <rules-doc> <scope-argument> <output-file>
+   ```
+
+   Preserve `<scope-argument>` as one literal shell argument. Invoke the script
+   directly in exactly that form, in the foreground; MUST NOT wrap it in a
+   helper script, background it, or re-implement its steps (a backgrounded run
+   is orphaned when a headless session ends its turn). Use a repo-local
+   `<output-file>` such as `.agent/tmp/advocate.txt` (headless editors cannot
+   read `/tmp`); the script header states the full contract. It captures the
+   numbered proposal table. On a non-zero exit (the retry also failed), surface
+   it in the stage-5 report rather than proceeding to adjudicate an empty table.
+   On
    `PROPOSALS=none` (the advocate emitted its `NO PROPOSALS` sentinel — a clean
    no-op on an already-minimal scope), skip stage 4 and note the no-op in the
    report; there is nothing to adjudicate.
-4. **Adjudicate (dual).** First the coordinating session suppresses: it drops
-   table entries matching the standing-keeps ledger on BOTH keys — the
+4. **Adjudicate (dual).** First the coordinating session rejects and records
+   any proposal outside the fixed selection, outside its applicable
+   [Documentation changes](../../../docs/documentation.md#documentation-changes)
+   boundary, or requiring a coherence repair outside the selection. It then
+   drops table entries matching the standing-keeps ledger on BOTH keys — the
    proposal's file equals the entry's file, and the quoted text matches
    (whitespace-normalized substring); the same words in a different doc are a
    different proposal and MUST NOT be suppressed. (User-settled keeps; report
    the count — removing a ledger entry is how a keep is reopened.) The ledger
-   lives in a machine-local checkout of the `remdo-docs-qa` bench repo — a sibling
-   of the RemDo checkout (same parent directory); if absent, suppression is
-   unavailable (degraded mode) and the run proceeds without it. If suppression
-   empties the table, skip the adjudicators and report it like `PROPOSALS=none`
-   — there is nothing left to adjudicate.
+   lives in a machine-local checkout of the `remdo-docs-qa` bench repo — a
+   sibling of the RemDo checkout (same parent directory); if absent, suppression
+   is unavailable (degraded mode) and the run proceeds without it. If these
+   steps empty the table, skip the adjudicators and report it like
+   `PROPOSALS=none` — there is nothing left to adjudicate.
    Otherwise two independent, fresh, contextless adjudicators
    — never the session that ran stages 1-3 — each produce verdict-only
    dispositions over the remaining table per `references/adjudicate.md`,
@@ -90,13 +106,12 @@ Forward the `AGENTS.md` findings-suppression rule to every stage.
 
 ## Permissions
 
-Commit authority follows the resolved scope, not the caller.
+Commit authority follows the selected scope, not the caller.
 
-A **commit-range scope** is an explicitly declared autonomous scope (per
-AGENTS.md): authorization to commit each stage's applied edits **on the current
-branch**, keeping the resolved range honest — never onto `main` (if invoked
-there, warn and stop rather than self-committing), and never push. An **explicit
-file-set scope** (e.g. a whole-corpus realignment) is treated the same as a
-commit range: commit each stage's edits on the current branch. In
-**uncommitted scope** it commits nothing — the applied edits stay in the tree
-and the caller owns the eventual commit.
+A **commit-range** or **explicit file-set scope** is an explicitly declared
+autonomous scope (per AGENTS.md): authorization to commit each completed
+stage's coherent edits **on the current branch** — never onto `main` (if invoked
+there, warn and stop rather than self-committing), and never push. A commit
+range also keeps its resolved range honest. In **uncommitted scope** the skill
+commits nothing — applied edits stay in the tree and the caller owns the
+eventual commit.

@@ -3,7 +3,8 @@
 # proposal artifact.
 # Usage: advocate-run.sh <rules-doc> <scope> <output-file>
 #   <rules-doc>   value substituted for {RULES_DOC} (e.g. docs/documentation.md)
-#   <scope>       value substituted for {SCOPE} (the files or diff under review)
+#   <scope>       fixed comparison or file selection from SKILL.md stage 3,
+#                 substituted for {SCOPE}
 #   <output-file> where the canonical proposal table is written (caller-named)
 #
 # Substitutes the two placeholders in
@@ -73,13 +74,16 @@ repo_root=$(CDPATH='' cd -- "$skill_dir/../../.." && pwd)
 
 # Build the prompt: take the template body after the '---' separator (the header
 # above it is authoring notes, not part of the prompt), then substitute the two
-# placeholders literally. gsub's replacement string gives `&` a "matched text"
-# meaning, so a value containing `&` (e.g. a scope with "A & B") would corrupt —
-# splice with index()/substr() instead, treating both the search and the
-# replacement as plain text.
+# placeholders literally. Pass their values through the environment because
+# awk -v processes backslash escapes. gsub's replacement string also gives `&`
+# a "matched text" meaning, so splice with index()/substr() instead.
 prompt=$(
   awk 'seen { print } /^---[[:space:]]*$/ { seen = 1 }' "$template" \
-    | awk -v r="$rules_doc" -v s="$scope" '
+    | DOCS_ALIGN_RULES_DOC=$rules_doc DOCS_ALIGN_SCOPE=$scope awk '
+        BEGIN {
+          r = ENVIRON["DOCS_ALIGN_RULES_DOC"]
+          s = ENVIRON["DOCS_ALIGN_SCOPE"]
+        }
         function splice(line, needle, value,   out, pos) {
           out = ""
           while ((pos = index(line, needle)) > 0) {
