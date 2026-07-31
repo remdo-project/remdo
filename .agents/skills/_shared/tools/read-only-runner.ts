@@ -715,17 +715,22 @@ function claudeInvocation(
   reviewCommand: string | undefined,
 ): { args: string[]; input: string } {
   const review = call.invocation.kind === 'review';
-  const tools = review
-    ? 'Bash,Read,Grep,Glob,LSP,Skill,Agent,ReportFindings'
-    : 'Bash,Read,Grep,Glob';
+  // Review runs at the trusted-prompt level and restricts no tool: it keeps
+  // shell access to inspect Git completely, and a shell reaches any effect a
+  // denied tool would, so denying tools would suggest a boundary that does not
+  // exist. The caller supplies a prompt that does not seek mutation.
+  const tools = review ? 'default' : 'Bash,Read,Grep,Glob';
   const args = [
     '-p',
     '--permission-mode',
-    'dontAsk',
+    review ? 'bypassPermissions' : 'dontAsk',
     '--tools',
     tools,
-    '--allowedTools',
-    tools,
+  ];
+  if (!review) {
+    args.push('--allowedTools', tools);
+  }
+  args.push(
     '--settings',
     '{"disableAllHooks":true}',
     '--no-session-persistence',
@@ -735,7 +740,7 @@ function claudeInvocation(
     '{"mcpServers":{}}',
     '--output-format',
     review ? 'stream-json' : 'json',
-  ];
+  );
   if (review) {
     args.push('--verbose');
   }
@@ -747,7 +752,9 @@ function claudeInvocation(
   }
   args.push(
     '--append-system-prompt',
-    review ? REVIEW_INSTRUCTION : CLAUDE_READ_ONLY_INSTRUCTION,
+    review
+      ? `${CLAUDE_READ_ONLY_INSTRUCTION} ${REVIEW_INSTRUCTION}`
+      : CLAUDE_READ_ONLY_INSTRUCTION,
   );
   return {
     args,

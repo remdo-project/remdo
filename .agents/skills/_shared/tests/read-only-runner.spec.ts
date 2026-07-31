@@ -408,7 +408,6 @@ describe('read-only runner CLI', () => {
       '--tools',
       'Bash,Read,Grep,Glob',
       '--allowedTools',
-      '{"disableAllHooks":true}',
       '--no-session-persistence',
       '--no-chrome',
       '--strict-mcp-config',
@@ -424,7 +423,14 @@ describe('read-only runner CLI', () => {
     expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(
       'Inspect this prompt.',
     );
+    expect(args[args.indexOf('--allowedTools') + 1]).toBe(
+      'Bash,Read,Grep,Glob',
+    );
+    expect(args).not.toContain('--disallowedTools');
     expect(args).not.toContain('--json-schema');
+    expect(args[args.indexOf('--settings') + 1]).toBe(
+      '{"disableAllHooks":true}',
+    );
     const instruction = args[args.indexOf('--append-system-prompt') + 1];
     expect(instruction).toContain('Keep the repository read-only');
     expect(instruction).not.toContain('review_complete');
@@ -486,12 +492,19 @@ describe('read-only runner CLI', () => {
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
     expect(args).toContain('--effort\nhigh\n');
     const argv = args.trimEnd().split('\n');
-    const reviewTools = 'Bash,Read,Grep,Glob,LSP,Skill,Agent,ReportFindings';
-    expect(argv[argv.indexOf('--tools') + 1]).toBe(reviewTools);
-    expect(argv[argv.indexOf('--allowedTools') + 1]).toBe(reviewTools);
+    expect(argv[argv.indexOf('--permission-mode') + 1]).toBe(
+      'bypassPermissions',
+    );
+    expect(argv[argv.indexOf('--tools') + 1]).toBe('default');
+    expect(argv).not.toContain('--allowedTools');
+    // Trusted-prompt level: review keeps every tool, including shell, so it
+    // can inspect Git completely. Restricting tools here would suggest a
+    // boundary the shell defeats anyway.
+    expect(argv).not.toContain('--disallowedTools');
     const settings = JSON.parse(argv[argv.indexOf('--settings') + 1]!);
     expect(settings).toEqual({ disableAllHooks: true });
     const instruction = argv[argv.indexOf('--append-system-prompt') + 1];
+    expect(instruction).toContain('Keep the repository read-only.');
     expect(instruction).toContain('Do not run repository checks.');
     expect(instruction).toContain(
       'explicitly instruct every delegated reviewer not to run repository checks',
