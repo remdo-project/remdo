@@ -110,6 +110,8 @@ Use for external sources and dependencies the document relies on.
 
 ## Specification structure
 
+Specifications live under `docs/spec/`.
+
 1. Each specification owns one coherent capability.
 2. Each heading path identifies one cohesive responsibility worth locating or
    linking to. Place each section beneath the narrowest parent containing its
