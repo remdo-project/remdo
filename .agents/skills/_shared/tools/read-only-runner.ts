@@ -68,6 +68,7 @@ const REVIEW_INSTRUCTION = [
 ].join(' ');
 
 const CLAUDE_REVIEW_COMMAND = '/code-review';
+const CLAUDE_REVIEW_BACKGROUND_WAIT_CEILING_MS = '0';
 
 function parseCall(args: string[]): RunnerCall {
   const settings: RunnerCall['settings'] = {};
@@ -759,7 +760,13 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function claudeResult(envelope: Record<string, unknown>): RunnerResult {
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
+}
+
+function claudeResultEnvelopeFailure(
+  envelope: Record<string, unknown>,
+): RunnerResult | undefined {
   if (
     envelope.type !== 'result'
     || envelope.subtype !== 'success'
@@ -770,7 +777,14 @@ function claudeResult(envelope: Record<string, unknown>): RunnerResult {
       evidence: 'Claude did not return a successful result envelope',
     };
   }
-  if (typeof envelope.result !== 'string' || envelope.result.trim() === '') {
+}
+
+function claudeResult(envelope: Record<string, unknown>): RunnerResult {
+  const failure = claudeResultEnvelopeFailure(envelope);
+  if (failure !== undefined) {
+    return failure;
+  }
+  if (!isNonEmptyString(envelope.result)) {
     return {
       status: 'failed',
       evidence: 'Claude completed without a final text response',
@@ -857,10 +871,16 @@ function claudeReviewResult(stdout: string): RunnerResult {
     };
   }
 
-  if (finalEvent?.type !== 'result') {
+  if (
+    finalEvent?.type !== 'result'
+    || (
+      finalEvent.parent_tool_use_id !== undefined
+      && finalEvent.parent_tool_use_id !== null
+    )
+  ) {
     return {
       status: 'failed',
-      evidence: 'Claude review stream did not end with a result event',
+      evidence: 'Claude review stream did not end with a top-level result event',
     };
   }
   return claudeResult(finalEvent);
@@ -906,10 +926,17 @@ async function runClaude(
     }
   }
   const invocation = claudeInvocation(call, reviewCommand);
+  const environment = call.invocation.kind === 'review'
+    ? {
+      ...sourceEnvironment,
+      CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS:
+        CLAUDE_REVIEW_BACKGROUND_WAIT_CEILING_MS,
+    }
+    : sourceEnvironment;
   const outcome = await runProcess('claude', invocation.args, {
     captureStderr: true,
     cwd: repository,
-    environment: sourceEnvironment,
+    environment,
     input: invocation.input,
     signal,
   });
