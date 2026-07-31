@@ -142,6 +142,14 @@ function shellLiteral(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
+function argumentAfter(args: string[], flag: string): string {
+  const index = args.indexOf(flag);
+  if (index === -1 || index === args.length - 1) {
+    throw new Error(`missing ${flag} argument`);
+  }
+  return args[index + 1]!;
+}
+
 afterEach(cleanupTempDirs);
 
 describe('read-only runner CLI', () => {
@@ -422,16 +430,16 @@ describe('read-only runner CLI', () => {
     expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(
       'Inspect this prompt.',
     );
-    expect(args[args.indexOf('--allowedTools') + 1]).toBe(
+    expect(argumentAfter(args, '--tools')).toBe('Bash,Read,Grep,Glob');
+    expect(argumentAfter(args, '--allowedTools')).toBe(
       'Bash,Read,Grep,Glob',
     );
     expect(args).not.toContain('--disallowedTools');
     expect(args).not.toContain('--json-schema');
-    expect(args[args.indexOf('--settings') + 1]).toBe(
+    expect(argumentAfter(args, '--settings')).toBe(
       '{"disableAllHooks":true}',
     );
-    // Protection comes from the fixed tool set, not from instructing the
-    // session to behave.
+    // The fixed tool set is the prompt profile, not an enforcement boundary.
     expect(args).not.toContain('--append-system-prompt');
   });
 
@@ -491,7 +499,7 @@ describe('read-only runner CLI', () => {
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
     expect(args).toContain('--effort\nhigh\n');
     const argv = args.trimEnd().split('\n');
-    expect(argv[argv.indexOf('--permission-mode') + 1]).toBe(
+    expect(argumentAfter(argv, '--permission-mode')).toBe(
       'bypassPermissions',
     );
     // Trusted-prompt level: review keeps every tool, including shell, so it
@@ -500,9 +508,9 @@ describe('read-only runner CLI', () => {
     expect(argv).not.toContain('--tools');
     expect(argv).not.toContain('--allowedTools');
     expect(argv).not.toContain('--disallowedTools');
-    const settings = JSON.parse(argv[argv.indexOf('--settings') + 1]!);
+    const settings = JSON.parse(argumentAfter(argv, '--settings'));
     expect(settings).toEqual({ disableAllHooks: true });
-    const instruction = argv[argv.indexOf('--append-system-prompt') + 1];
+    const instruction = argumentAfter(argv, '--append-system-prompt');
     expect(instruction).toContain('Do not run repository checks.');
     expect(instruction).toContain(
       'explicitly instruct every delegated reviewer not to run repository checks',

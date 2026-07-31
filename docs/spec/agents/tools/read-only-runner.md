@@ -30,11 +30,10 @@ leaves absent values unset, so the agent applies its own default.
 **Prompt.** The runner passes the prompt to the agent's non-interactive session
 unchanged.
 
-**Review.** The runner gives each agent's native review the resolved scope
-exactly: `uncommitted` covers every staged, unstaged, and untracked changed
-path and nothing from committed branch history, and `commit-range` covers
-`base` through the commit `HEAD` names when the invocation begins, so a later
-commit cannot widen it.
+**Review.** The runner gives each agent's native review the resolved scope:
+`uncommitted` covers every staged, unstaged, and untracked changed path and
+nothing from committed branch history, and `commit-range` covers `base` through
+the commit `HEAD` names when the invocation begins.
 
 A review uses the native command's instructions and the repository guidance its
 session loads. The runner additionally instructs the reviewing agent and every
@@ -72,8 +71,9 @@ untrusted prompt does not.
 
 ## Lifecycle
 
-The invocation observes repository state present when it begins. The caller
-keeps that state unchanged when it requires consistency for the whole
+The invocation observes repository state present when it begins. A review
+caller keeps that state unchanged until completion to preserve the resolved
+scope; another caller does so when it requires consistency for the whole
 invocation.
 
 Each invocation makes one attempt in a non-persistent session; retry belongs to
@@ -108,11 +108,13 @@ provider stdout is not failure evidence.
   access is incomplete still reports findings and reports success, so this is
   confirmed by observing the review's reach rather than its result.
 - Review invocations, including delegated reviewers, do not run repository
-  checks.
+  checks. Forwarded instructions do not establish that agents follow them, so
+  conformance is confirmed by observing the commands they run.
 - Invocations leave the repository unchanged and cause no outside effect.
   Provider documentation defines each restriction in isolation, not whether the
   combination holds for a session that can reach mutation through an
-  unrestricted path, so conformance is confirmed by observing repository state.
+  unrestricted path, so conformance is confirmed by observing repository and
+  external state.
 
 ## Future
 

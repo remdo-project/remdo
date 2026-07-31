@@ -712,11 +712,10 @@ function claudeInvocation(
     review ? 'bypassPermissions' : 'dontAsk',
   ];
   if (!review) {
-    // Prompt invocations keep a fixed inspection-only tool set. Review instead
-    // runs at the trusted-prompt level and restricts nothing: it needs shell
-    // access to inspect Git completely, and a shell reaches any effect a
-    // restriction would prevent, so restricting tools would suggest a boundary
-    // that does not exist.
+    // Prompt invocations expose and pre-approve a fixed set of tools used for
+    // repository inspection. This limits first-class capabilities but is not an
+    // enforcement boundary: Bash can reach any effect. Review therefore
+    // restricts nothing while retaining the same trusted-prompt protection level.
     const tools = 'Bash,Read,Grep,Glob';
     args.push('--tools', tools, '--allowedTools', tools);
   }
