@@ -1,9 +1,8 @@
-// Vite's dev-server proxy logs routine WebSocket teardown (`EPIPE`/`ECONNRESET`)
-// as errors with stacks; this wrapper reclassifies only those disconnects.
-import { createLogger } from 'vite';
+// Vite's dev-server proxy logs routine WebSocket teardown (`EPIPE`) as an error
+// with a stack; this wrapper reclassifies only that disconnect.
 import type { LogErrorOptions, Logger } from 'vite';
 
-const expectedWebSocketCloseCodes = new Set(['ECONNRESET', 'EPIPE']);
+const expectedWebSocketCloseCodes = new Set(['EPIPE']);
 
 function expectedWebSocketDisconnect(
   message: string,
@@ -23,7 +22,7 @@ function expectedWebSocketDisconnect(
     : null;
 }
 
-export function createViteLogger(logger: Logger = createLogger()): Logger {
+export function createViteLogger(logger: Logger): Logger {
   const logError = logger.error.bind(logger);
 
   logger.error = (message, options) => {

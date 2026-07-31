@@ -6,7 +6,15 @@ const sharedConfig = createViteSharedConfig();
 
 export default defineConfig({
   ...sharedConfig,
-  customLogger: createViteLogger(),
+  plugins: [
+    ...sharedConfig.plugins,
+    {
+      name: 'remdo-vite-logger',
+      configResolved(config) {
+        createViteLogger(config.logger);
+      },
+    },
+  ],
   build: {
     ...sharedConfig.build,
     outDir: "dist",
