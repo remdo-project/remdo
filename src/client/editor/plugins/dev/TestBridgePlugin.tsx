@@ -11,14 +11,6 @@ import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { TEST_BRIDGE_LOAD_TAG, TEST_BRIDGE_MUTATE_TAG } from '#client/editor/update-tags';
 import { getTestBridgeRegistry } from './testBridgeRegistry';
 
-async function withTimeout<T>(fnOrPromise: (() => Promise<T>) | Promise<T>, ms: number, message: string): Promise<T> {
-  const promise = typeof fnOrPromise === 'function' ? fnOrPromise() : fnOrPromise;
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(message)), ms)),
-  ]);
-}
-
 type EditorOutcome =
   | { status: 'update' }
   | { status: 'noop' }
@@ -147,16 +139,7 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     }
   };
 
-  const waitForCollaborationReady = async (timeoutMs = 2000) => {
-    if (!collab.enabled) return;
-    if (collab.hydrated && collab.synced) return;
-
-    await withTimeout(
-      collab.awaitSynced,
-      timeoutMs,
-      'TestBridgePlugin: collaboration readiness timed out'
-    );
-  };
+  const waitForCollaborationReady = () => collab.awaitSynced();
 
   const applySerializedState = async (input: string, options?: ApplySerializedStateOptions) => {
     await ensureHydrated();

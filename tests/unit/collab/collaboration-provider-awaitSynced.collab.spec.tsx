@@ -17,6 +17,12 @@ describe('collaboration session awaitSynced', { timeout: COLLAB_LONG_TIMEOUT_MS 
     return { session, mock };
   };
 
+  it('resolves immediately when collaboration is disabled', async () => {
+    const session = new CollabSession({ enabled: false, docId: 'docId' });
+
+    await expect(session.awaitSynced()).resolves.toBeUndefined();
+  });
+
   it('waits for sync plus local-change drain', async () => {
     const { session, mock } = createSession();
 
