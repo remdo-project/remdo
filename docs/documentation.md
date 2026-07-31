@@ -58,6 +58,12 @@ value; anticipated rationalization does not justify restatement.
 detail outside the contract, explanatory how-to prose, and redundant
 restatement.
 
+**Property over mechanism.** Where a contract depends on how it is achieved, it
+states the property the mechanism must have, not the mechanism. A detail belongs
+in the contract when choosing differently would break the promise; a detail that
+only determines how a stated promise is met belongs in the implementation.
+Named external interfaces, flags, and settings are mechanism.
+
 **Rationale.** A brief rationale remains only when its omission would reopen a
 settled decision.
 
@@ -88,6 +94,10 @@ empirical checks do not replace deterministic coverage.
 An empirical check has no committed executable, scenario, or evidence artifact.
 When behavior becomes suitable for automated coverage, that coverage replaces
 its empirical classification.
+
+A check carries a brief rationale when the behavior it confirms is not derivable
+from its dependency contracts, so that a later reader does not retire the check
+by reasoning from those contracts alone.
 
 #### Future
 
