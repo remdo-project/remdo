@@ -323,6 +323,16 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(raw).not.toContain('{SCOPE}');
   });
 
+  it('splices backslashes in a scope literally (no awk -v escape processing)', () => {
+    const out = tempOut();
+    const stub = stubDir(echoPromptWriteProposal);
+    const scope = String.raw`diff C:\path\to\notes; intent: preserve \t literally`;
+    const result = run(['docs/documentation.md', scope, out], stub);
+    expect(result.status).toBe(0);
+    const raw = fs.readFileSync(`${out}.raw`, 'utf8');
+    expect(raw).toContain(scope);
+  });
+
   it('refuses a fourth argument', () => {
     const result = run(['docs/documentation.md', 'scope', tempOut(), 'extra'], stubDir('cat'));
     expect(result.status).not.toBe(0);

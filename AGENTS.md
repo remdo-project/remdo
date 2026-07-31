@@ -29,10 +29,6 @@ sections to docs.
 
 - Background processes started from the root workdir are controlled by the
   developer; do not start or kill them.
-- Exception: agents may start the shared DevTools Chromium endpoint on
-  `127.0.0.1:9222` when it is down; leave it running.
-- Do not stop or clean up the shared DevTools endpoint on `127.0.0.1:9222`
-  unless the user asks, or troubleshooting requires a restart.
 - Background processes started from worktrees (by their unique ports) can be
   started or stopped by coding agents as needed without asking.
 - Git worktrees are the standard tool for isolating parallel work (separate
@@ -189,17 +185,10 @@ sections to docs.
 - Use DevTools snapshots, screenshots, and in-page inspection as the primary source
   of truth when checking “what this looks like” or confirming browser-side
   changes.
-- DevTools bootstrap: the `chrome-devtools` MCP attaches to a shared headless
-  CDP endpoint on `127.0.0.1:9222` (host/user-level MCP config, not in this
-  repo). If the endpoint is down, run `ensure-cdp` to start it; the MCP itself
-  loads only on a Claude Code restart. To reach the app, open
-  `http://127.0.0.1:<PORT>/` where `<PORT>` is **this** working dir's app port —
-  read it from this WD's `.env`/env (`PORT`, which defaults to `PORT_BASE + 0`;
-  see `tools/env.defaults.sh`). Do not assume a fixed port: each working
-  dir/worktree owns its own `PORT_BASE` block, and the shared CDP endpoint can
-  reach servers from other WDs too, so a hardcoded port may land you on a
-  different checkout's build. Then sign in as a dev user / open a fixture doc per
-  [docs/run-modes.md](docs/run-modes.md). If this flow fails or drifts, report it.
+- For DevTools checks, open `http://127.0.0.1:<PORT>/` using this working
+  directory's `PORT` (`PORT_BASE + 0` by default; see `tools/env.defaults.sh`),
+  then sign in and open a fixture document per
+  [docs/run-modes.md](docs/run-modes.md).
 - When presenting multiple options or a list of questions, format them as a
   numbered list.
 - When presenting options to choose between, mark one **(Recommended)** and give
