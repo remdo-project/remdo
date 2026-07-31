@@ -515,9 +515,11 @@ describe('read-only runner CLI', () => {
     expect(
       fs.readFileSync(path.join(stub, 'background-wait'), 'utf8'),
     ).toBe('0');
+    // The runner does not select a report shape, so a caller's value passes
+    // through untouched.
     expect(
       fs.readFileSync(path.join(stub, 'report-findings'), 'utf8'),
-    ).toBe('1');
+    ).toBe('0');
     const input = fs.readFileSync(path.join(stub, 'stdin'), 'utf8');
     expect(input).toBe(
       '/code-review "candidate.md" "deleted.md" "staged.md" '

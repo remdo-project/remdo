@@ -61,7 +61,6 @@ const REVIEW_INSTRUCTION = [
 
 const CLAUDE_REVIEW_COMMAND = '/code-review';
 const CLAUDE_REVIEW_BACKGROUND_WAIT_CEILING_MS = '0';
-const CLAUDE_REVIEW_REPORT_FINDINGS = '1';
 
 function parseCall(args: string[]): RunnerCall {
   const settings: RunnerCall['settings'] = {};
@@ -918,7 +917,6 @@ async function runClaude(
       ...sourceEnvironment,
       CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS:
         CLAUDE_REVIEW_BACKGROUND_WAIT_CEILING_MS,
-      CLAUDE_CODE_REPORT_FINDINGS: CLAUDE_REVIEW_REPORT_FINDINGS,
     }
     : sourceEnvironment;
   const outcome = await runProcess('claude', invocation.args, {
