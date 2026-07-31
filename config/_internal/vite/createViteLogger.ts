@@ -1,34 +1,30 @@
-// Vite's dev-server proxy logs routine WebSocket teardown (`EPIPE`) as an error
-// with a stack; this wrapper reclassifies only that disconnect.
+// Vite's dev-server proxy logs routine WebSocket disconnects as errors with
+// stacks; this wrapper keeps their signal while dropping the stack noise.
 import type { LogErrorOptions, Logger } from 'vite';
-
-const expectedWebSocketCloseCodes = new Set(['EPIPE']);
 
 function expectedWebSocketDisconnect(
   message: string,
   error: LogErrorOptions['error'],
-): string | null {
+): boolean {
   if (
     !message.includes('ws proxy error:')
     && !message.includes('ws proxy socket error:')
   ) {
-    return null;
+    return false;
   }
 
-  if (!error || !('code' in error)) return null;
+  if (!error || !('code' in error)) return false;
 
-  return typeof error.code === 'string' && expectedWebSocketCloseCodes.has(error.code)
-    ? error.message
-    : null;
+  return error.code === 'ECONNRESET' || error.code === 'EPIPE';
 }
 
 export function createViteLogger(logger: Logger): Logger {
   const logError = logger.error.bind(logger);
 
   logger.error = (message, options) => {
-    const disconnect = expectedWebSocketDisconnect(message, options?.error);
-    if (disconnect) {
-      logger.info(`[vite] WebSocket proxy disconnected: ${disconnect}`, options);
+    const error = options?.error;
+    if (error && expectedWebSocketDisconnect(message, error)) {
+      logger.info(`[vite] WebSocket proxy disconnected: ${error.message}`, options);
       return;
     }
 
