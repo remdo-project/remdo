@@ -8,5 +8,5 @@ runs:
       with:
         node-version: 24.18.x
         cache: pnpm
-    - run: pnpm install --frozen-lockfile
+    - run: pnpm install --frozen-lockfile --prefer-offline
       shell: bash
