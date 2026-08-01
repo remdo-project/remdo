@@ -1,8 +1,2 @@
 ruleDirs:
   - rules
-
-ignores:
-  - node_modules/**
-  - data/**
-  - dist/**
-  - coverage/**

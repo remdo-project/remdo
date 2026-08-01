@@ -121,3 +121,10 @@ Remove rejected or obsolete items and empty sections.
   or costly work, and concrete lessons. Add dedicated orchestration or
   instrumentation only if real retrospectives show that the existing evidence
   is insufficient.
+
+### Tooling
+
+- **Upstream ast-grep project-config validation.** Contribute upstream support
+  for rejecting unknown project-config keys or shipping version-matched schemas
+  with `@ast-grep/cli`, then replace the repository-owned config validator with
+  that upstream mechanism.
