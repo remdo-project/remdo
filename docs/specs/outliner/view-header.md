@@ -20,9 +20,9 @@ supports the content allowed by its kind.
 The header is visually distinct from editor-note rows and is not one of them.
 It cannot be folded, indented, outdented, reordered, structurally deleted, or
 selected structurally, and structural commands do not target it. Selection
-extension cannot cross between the header, its owned body, and the child
-outline; it remains in the
-[selection region](./selection.md#selection-states) where extension began.
+extension cannot cross from the header, its owned body, or the child outline
+into either of the other two; it stops at that boundary. Within the child
+outline, [whole-note snapping](./selection.md#whole-note-snapping) applies.
 
 ## Editing
 
