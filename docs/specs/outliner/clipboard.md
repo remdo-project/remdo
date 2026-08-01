@@ -14,8 +14,8 @@ note-link identity across clipboard and persistence boundaries.
 - Cut creates a **pending cut** from the
   [selected note range](./selection.md#note-ranges). Its notes stay in place
   until paste moves them.
-- If you edit anything inside the pending cut before pasting, the cut is
-  canceled so edits stay where they were made.
+- Any edit inside the pending cut before pasting, including a remote edit,
+  cancels the cut so edits stay where they were made.
 - After creating a pending cut, the caret moves to the start of the range's
   first note in [document order](./note-model.md#definitions).
 - Pasting while a [selected note range](./selection.md#note-ranges) is active

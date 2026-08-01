@@ -14,7 +14,8 @@ note's content and its body are separate selection regions.
 An **outline selection region** is an editor note's content in a note row or
 its body. A view-header selection region never supplies a target note or target
 note range to a command; [View header](./view-header.md#structural-boundary)
-owns the inputs available there.
+owns the inputs available there. A body displayed below a view header remains
+an outline selection region, not a view-header selection region.
 
 A selection is always exactly one of:
 
