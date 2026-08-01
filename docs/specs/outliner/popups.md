@@ -1,12 +1,10 @@
 # Editor popups
 
-## Purpose
-
-Define the shared contract for RemDo's transient editor popups — the inline
-trigger pickers (`@` for note [Links](./links.md), `!` for [Dates](./dates.md))
-and the [Quick Action Menu](./menu.md) — and the trigger-picker session built on
-it. Each per-popup spec defines only what differs: how it opens, the keys its
-popup owns, its focus model, and what confirming does.
+RemDo's transient editor popups include the inline trigger pickers (`@` for note
+[Links](./links.md), `!` for [Dates](./dates.md)) and the
+[Quick Action Menu](./menu.md). They share the behavior and trigger-picker
+session below. Each per-popup specification defines only what differs: its
+opening trigger, owned keys, focus model, and confirmation.
 
 ## Shared editor-popup contract
 
@@ -18,8 +16,7 @@ An editor popup is a transient surface anchored in the editor that, while open,
 2. **The popup owns the keyboard.** While open it has first decision over every
    key: it consumes its navigation, commit, and dismissal keys, and no keystroke
    reaches ordinary text editing — **except** keys that edit the popup's own
-   *pinned span* (see below). A popup with no pinned span owns every key; an
-   owned key with no binding is a no-op.
+   *pinned span* (see below). An owned key with no binding is a no-op.
 3. **Editable-span exception.** A type-to-filter popup pins a span of editor text
    as its query; while the selection is inside that span, ordinary text-editing
    keys (printable characters, `Backspace`) stay the editor's and edit the query.
@@ -46,15 +43,13 @@ An editor popup is a transient surface anchored in the editor that, while open,
 ## The trigger session (`@` and `!`)
 
 The `@` and `!` pickers are opened by typing a trigger character. Each is a
-**session anchored to the span of that keypress** — the trigger character and the
-text after it, fixed at open time. The session is never re-derived from where the
-caret later sits.
+**session anchored to the span of that keypress** — the trigger character and
+the text after it, fixed at open time.
 
 1. **Open.** A picker opens only on a fresh keypress of its trigger character at
    a boundary — the start of note text, after whitespace, after opening
    punctuation (`(`, `[`, `{`), or after an atomic inline token (a decorator
-   node such as a date). So `done!` and `a@b` stay plain text, and moving the
-   caret back beside an already-typed trigger never reopens the picker.
+   node such as a date).
 2. **Editable query (`@` only).** The `@` picker treats its span as a live query:
    per the editable-span exception, ordinary typing and `Backspace` edit the text
    after `@` and refilter. The `!` picker has no query — it opens its calendar
@@ -71,9 +66,6 @@ not part of this session and stays in the owning feature (see
 
 ## References
 
-1. WAI-ARIA Authoring Practices Guide, combobox pattern:
-   <https://www.w3.org/WAI/ARIA/apg/patterns/combobox/>
-2. WAI-ARIA Authoring Practices Guide, date picker dialog example:
-   <https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/>
-3. WAI-ARIA Authoring Practices Guide, menu button pattern:
-   <https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/>
+- [WAI-ARIA combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/)
+- [WAI-ARIA date picker dialog example](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/)
+- [WAI-ARIA menu button pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/)

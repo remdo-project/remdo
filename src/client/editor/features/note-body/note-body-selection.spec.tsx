@@ -13,7 +13,7 @@ import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getBodyWrapper } from '#client/editor/outline/list-structure';
 
-// Selection contract for note bodies (docs/outliner/body.md "Selection and
+// Selection contract for note bodies (docs/specs/outliner/body.md "Selection and
 // navigation"): a note's content and its body are two distinct regions. An
 // inline selection lives within exactly one region — one note's content, or one
 // body — never spanning the two. A selection spanning a note's content and its
@@ -31,7 +31,7 @@ async function addBody(remdo: RemdoTestApi, noteId: string, text: string) {
   await typeText(remdo, text);
 }
 
-describe('note body selection contract (docs/outliner/body.md)', () => {
+describe('note body selection contract (docs/specs/outliner/body.md)', () => {
   it('caret in a note, shift-click into its own body selects that whole note', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await addBody(remdo, 'note1', 'bodyone');
 

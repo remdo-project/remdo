@@ -23,7 +23,7 @@ import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
 // - Inline Backspace/Delete inside a note: jsdom doesn’t emulate native deletion
 //   events reliably, so these cases live in Playwright e2e.
 
-describe('deletion semantics (docs/outliner/deletion.md)', () => {
+describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
   describe('caret mode', () => {
     it('treats Backspace at the start of the first note as a no-op', meta({ fixture: 'flat' }), async ({ remdo }) => {
             await placeCaretAtNote(remdo, 'note1', 0);

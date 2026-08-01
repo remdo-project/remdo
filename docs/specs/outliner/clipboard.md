@@ -1,11 +1,8 @@
 # Clipboard
 
-## Purpose
-
-Define user-visible cut/copy/paste behavior for RemDo notes, including how
-paste placement depends on caret position. Note-id identity implications live in
-[Note IDs](./note-ids.md); note-link `docId` clipboard/persistence rules
-live in [Links](./links.md).
+Cut, copy, and paste operate on RemDo notes, including placement from a caret.
+[Note IDs](./note-ids.md) owns identity changes, and [Links](./links.md) owns
+note-link identity across clipboard and persistence boundaries.
 
 ## Structural selection
 
@@ -17,8 +14,7 @@ live in [Links](./links.md).
   paste them elsewhere.
 - If you edit anything inside the pending cut boundary before pasting, the cut
   is canceled so edits stay where they were made.
-- After a structural cut, the selection collapses to the visual start so you
-  can keep editing with a clear caret position.
+- After a structural cut, the selection collapses to the visual start.
 - Pasting while a selected note range is active replaces that selection with the
   pasted notes.
 - Pasting after a cut moves the cut notes to the new location. If the cut is no

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 // A touch device: its primary pointer is coarse and cannot hover. This is the
-// presence signal for the mobile action toolbar (docs/outliner/mobile-toolbar.md),
+// presence signal for the mobile action toolbar (docs/specs/outliner/mobile-toolbar.md),
 // independent of viewport width.
 const COARSE_POINTER_QUERY = '(hover: none) and (pointer: coarse)';
 

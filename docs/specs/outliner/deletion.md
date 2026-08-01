@@ -1,8 +1,9 @@
 # Deletion
 
-Defines how `Backspace` (Mac "Delete") and forward `Delete` behave. Selection
-semantics are defined in [Selection](./selection.md); when a merged note has a
-[body](./body.md), body resolution follows
+`Backspace` (Mac "Delete") and forward `Delete` act on text or notes according
+to the caret and selection. Selection semantics are defined in
+[Selection](./selection.md); when a merged note has a [body](./body.md), body
+resolution follows
 [Note merge](./body.md#note-merge).
 
 ## Caret mode (collapsed caret or inline range)
@@ -10,14 +11,11 @@ semantics are defined in [Selection](./selection.md); when a merged note has a
 1. Inline text range: `Backspace`/`Delete` remove only the highlighted
    characters.
 
-2. `Delete` at the end of a note matches `Backspace` at the start of the next
-   note (in document order), except when both boundary notes have children
-   (then forward `Delete` is a no-op).
-3. Backspace at start of note (caret at column 0):
+2. Backspace at start of note (caret at column 0):
    1. If the note is the first note in document order: **no-op**; caret stays
       put.
    2. Otherwise: use the previous note in document order.
-      1. If either note is an [empty leaf](./concepts.md#definitions): delete
+      1. If either note is an [empty leaf](./note-model.md#definitions): delete
          it; caret lands at the boundary of the surviving note (end of the
          previous note when deleting the current note, start of the current note
          when deleting the previous note). No surrounding text is altered.
@@ -30,7 +28,7 @@ semantics are defined in [Selection](./selection.md); when a merged note has a
             list.
          2. Otherwise, append the current note's children as the last children
             of the previous note.
-4. Forward `Delete` at end of note (caret at final character):
+3. Forward `Delete` at end of note (caret at final character):
    1. If the current note is an empty leaf: delete it; focus is resolved as in
       Note range → Focus after deletion.
    2. Otherwise, use the next note in document order. If no next note exists,
@@ -39,7 +37,7 @@ semantics are defined in [Selection](./selection.md); when a merged note has a
       is a **no-op**.
    4. Otherwise, apply the Backspace-at-start rules to the next note (including
       empty-leaf deletion and merge/reparent behavior).
-5. Middle of a note: `Backspace`/`Delete` behave like a plain text editor.
+4. Middle of a note: `Backspace`/`Delete` behave like a plain text editor.
 
 ## Zoom boundary behavior (caret selection)
 
@@ -61,18 +59,17 @@ keeps merges inside the zoom boundary:
 
 ## Spacing rule for merges
 
-1. When concatenating two notes' [content text](./concepts.md#definitions),
+1. When concatenating two notes' [content text](./note-model.md#definitions),
    insert exactly one space **iff**:
    1. the left text is non-empty and does not already end with whitespace; and
    2. the right text is non-empty and does not already start with whitespace.
 2. Otherwise concatenate as-is to preserve intentional spacing or punctuation.
 
-## Non-goals / explicit no-ops
+## Recovery
 
-1. Deletion does not create a "trash" bin or soft-delete layer; recovery is via
-   undo/redo.
+Deletion has no trash or soft-delete layer; undo and redo provide recovery.
 
 ## Future
 
-1. [Future] A brief affordance on collapsed parents when a no-op occurs, so
-   users understand why nothing happened.
+- A brief affordance on collapsed parents when a no-op occurs, so users
+  understand why nothing happened.

@@ -1,9 +1,8 @@
-# Insertion (Enter) Semantics
+# Insertion
 
-Defines how RemDo inserts new notes when `Enter` is pressed with a
-**caret selection** (selection states are defined in
-[Selection](./selection.md)).
-This spec assumes the caret is inside a single note and actions apply to the
+With a **caret selection**, `Enter` inserts new notes (selection states are
+defined in [Selection](./selection.md)).
+The caret is inside a single note and actions apply to the
 active note text. Unless stated otherwise, parent notes are expanded; folded and
 collapsed parent behavior is called out explicitly (see [Folding](./folding.md)).
 
@@ -23,7 +22,7 @@ collapsed parent behavior is called out explicitly (see [Folding](./folding.md))
 When [zoom](./zoom.md) is active, default insertion still applies to the outline
 children except where it would place the new note outside the zoom boundary; in
 those cases insertion stays inside the subtree. `Enter` from the
-[view header](./zoom.md#view-header) is defined with the view-header rules.
+[view header](./view-header.md) is defined by the view-header rules.
 
 ## Focus rules
 

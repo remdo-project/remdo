@@ -1,10 +1,10 @@
 # Mobile Action Toolbar
 
-Defines the touch action toolbar: a row of note-action buttons docked at the
-bottom of the editor on touch devices, giving pointer-only users the structural
-actions that otherwise need a keyboard. It reuses the same operations as their
-keyboard and [menu](./menu.md) entries; this doc defines only the toolbar
-surface and its behavior, not those operations.
+The touch action toolbar is a row of note-action buttons docked at the bottom of
+the editor on touch devices, giving pointer-only users the structural actions
+that otherwise need a keyboard. It reuses the same operations as their keyboard
+and [menu](./menu.md) entries while owning only the toolbar surface and its
+behavior.
 
 ## Presence
 
@@ -19,14 +19,16 @@ surface and its behavior, not those operations.
 1. The toolbar carries these actions: indent, outdent, move up, move down, toggle
    done, toggle fold, delete, undo, redo, open note menu.
 2. The structural actions target the current [selection](./selection.md): the
-   focused note for a caret selection, or every note in a selected note range. Their
-   contracts are:
+   editor note owning a caret or inline text selection, or every note in a
+   selected note range. [Body](./body.md#selection-and-structural-targeting)
+   owns the mapping from a body region to its editor note. The action contracts
+   are:
    - Indent / outdent, per
-     [Indentation](../specs/outliner/indentation.md).
+     [Indentation](./indentation.md).
    - Move up / move down, per
-     [Reordering](../specs/outliner/reordering.md).
+     [Reordering](./reordering.md).
    - Toggle done per
-     [List types](../specs/outliner/list-types.md#toggling).
+     [List types](./list-types.md#toggling).
    - Delete removes the targeted notes and their subtrees per
      [Deletion](./deletion.md), with no confirmation step. For a caret this
      removes the focused note (not the caret-mode merge that Backspace performs).
@@ -46,8 +48,8 @@ surface and its behavior, not those operations.
    the inner edge.
 4. The scrolling group starts at its leading edge, so its first action is
    visible without scrolling; it scrolls horizontally when its actions exceed the
-   available width and signals that it scrolls rather than presenting a static
-   edge.
+   available width and signals that it scrolls rather than presenting a
+   static edge.
 
 ## Capability
 

@@ -36,7 +36,7 @@ export function $resolveStructuralRangeFromLexicalSelection(
   let heads = $getContiguousSelectionHeads(selection);
   if (heads.length === 0 && selection.isCollapsed() && allowCollapsedSingleNote) {
     // A caret inside a body resolves to its owner note: the body travels with the
-    // note through indent/outdent and reorder (docs/outliner/body.md), so those
+    // note through indent/outdent and reorder (docs/specs/outliner/body.md), so those
     // note-level commands act on the owner when invoked from body text.
     const contentItem = $resolveNoteForSelectionPoint(selection.anchor.getNode());
     if (contentItem) {

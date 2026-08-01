@@ -1,26 +1,29 @@
 # Reordering
 
-This specification defines keyboard-driven reordering of target note ranges,
-including directional movement, order preservation, zoom boundaries, and no-op
-behavior. Selection kinds and note ranges are defined by
-[Selection](../../outliner/selection.md).
+Reordering moves target note ranges directionally while preserving their
+[document order](./note-model.md#definitions) and respecting zoom boundaries;
+inapplicable moves are no-ops. Selection kinds and note ranges are defined by
+[Selection](./selection.md).
 
-## Keyboard reordering
+## Input bindings
 
-`Ctrl+Shift+ArrowUp` and `Ctrl+Shift+ArrowDown` on macOS, and
-`Alt+Shift+ArrowUp` and `Alt+Shift+ArrowDown` on Windows and Linux, move the
-current target note range upward or downward.
+- **Move up:** `Ctrl+Shift+ArrowUp` on macOS;
+  `Alt+Shift+ArrowUp` on Windows and Linux.
+- **Move down:** `Ctrl+Shift+ArrowDown` on macOS;
+  `Alt+Shift+ArrowDown` on Windows and Linux.
+
+## Target resolution
 
 A caret or inline text selection targets the
-[editor note](../../outliner/concepts.md#note-kinds) that owns its region as a
-one-note target range. A structural selection targets its selected note range.
-
-Reordering preserves the notes' [document
-order](../../outliner/concepts.md#definitions).
+[editor note](./note-model.md#note-kinds) that owns its region as a one-note
+target range. [Body](./body.md#selection-and-structural-targeting) owns the
+mapping from a body region to its editor note. A structural selection targets
+its selected note range.
 
 ## Directional movement
 
-Each reordering command performs exactly the first valid step in this cascade:
+**Move up** and **Move down** each perform exactly the first valid step in this
+cascade:
 
 1. Swap the target note range with its adjacent sibling in the requested
    direction.
@@ -74,7 +77,7 @@ note3
 
 ## Zoom boundary
 
-When [zoom](../../outliner/zoom.md) is active, a reordering step is valid only
+When [zoom](./zoom.md) is active, a reordering step is valid only
 when the complete result remains inside the zoom boundary. An out-of-boundary
 step is skipped while the command continues through the directional cascade.
 When no in-boundary step is available, the document remains unchanged.
@@ -82,4 +85,4 @@ When no in-boundary step is available, the document remains unchanged.
 ## Future
 
 - Pointer drag-and-drop reordering: placement-driven indent and reparent
-  following the same structural rules as the keyboard cascade.
+  following the same structural rules as the directional cascade.

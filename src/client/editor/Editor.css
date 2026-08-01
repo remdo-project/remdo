@@ -520,7 +520,7 @@
   display: none;
 }
 
-/* Mobile action toolbar (docs/outliner/mobile-toolbar.md): a fixed row of
+/* Mobile action toolbar (docs/specs/outliner/mobile-toolbar.md): a fixed row of
    note-action buttons docked at the bottom of the visual viewport on touch
    devices. The component supplies an inline `top` at the visual viewport's
    lower edge and translates the bar above it, so iOS's layout-viewport fixed

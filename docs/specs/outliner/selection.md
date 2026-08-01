@@ -1,9 +1,7 @@
 # Selection
 
-This document defines the cursor-driven selection model used throughout RemDo
-and is the contract structural commands rely on.
-[Indentation](../specs/outliner/indentation.md) defines how its commands consume
-that selection.
+RemDo uses a cursor-driven selection model throughout the outliner, and
+structural commands rely on it.
 
 ## Selection states
 
@@ -15,6 +13,9 @@ A selection is always exactly one of:
    does not make a selection structural.
 3. **Structural selection** — one or more notes selected as structural units,
    each together with its entire subtree.
+
+[Body](./body.md#selection-and-structural-targeting) defines how a body region
+supplies its owning editor note to structural commands.
 
 **Mode switch.** Typing inserts characters only in states 1 and 2. In state 3,
 the editor is in structural mode: keystrokes that would type become no-ops and
@@ -56,7 +57,7 @@ The ladder is anchored and replayable:
 - **Rungs.** Each step is a semantic instruction, not a stored range, so the
   selection is the anchor plus the current rungs re-resolved against the live
   tree. The recurrence is:
-  1. the anchor note's own [content text](./concepts.md#definitions), selected
+  1. the anchor note's own [content text](./note-model.md#definitions), selected
      inline — a distinct first rung (skipped when that text is empty, so the
      first press lands on rung 2);
   2. the anchor note plus its subtree — the first structural rung,
@@ -100,7 +101,7 @@ in place where possible; the disturbance tiers are defined in
 | Long-press (touch) | Enters caret selection; dragging handles behaves like text selection until it crosses a boundary, then snaps to whole notes. |
 | `Esc` | Collapses any structural selection to a caret without changing the document. |
 | Unmodified Arrow / `Home` / `End` / `Page` keys | Collapse a structural selection and place the caret at the corresponding edge (start/end or top/bottom) so typing resumes there. |
-| `Tab` / `Shift+Tab` | Indent / outdent the selection — see [Indentation](../specs/outliner/indentation.md). |
+| `Tab` / `Shift+Tab` | Indent / outdent the selection — see [Indentation](./indentation.md). |
 | `Enter` | Caret mode: see [Insertion](./insertion.md). Structural mode: no-op. |
 
 ## Collaboration reshaping
@@ -128,7 +129,7 @@ selection.
 
 | Selection state | Allowed operations |
 | --------------- | ------------------ |
-| Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List types](../specs/outliner/list-types.md#toggling)); structural commands may resolve a one-note target range as defined by the command. |
+| Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List types](./list-types.md#toggling)); structural commands may resolve a one-note target range as defined by the command. |
 | Inline text selection | Inline formatting, inline delete/backspace, and toggle checked; structural commands define whether and how the selection resolves to a target note range. |
 | Structural selection | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste, toggle checked, and other structural commands operate on its selected note range in document order. |
 

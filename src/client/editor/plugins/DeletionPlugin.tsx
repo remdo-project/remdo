@@ -321,7 +321,7 @@ export function DeletionPlugin() {
         return true;
       }
 
-      // Body merge contract (docs/outliner/body.md "Note merge"): if both notes
+      // Body merge contract (docs/specs/outliner/body.md "Note merge"): if both notes
       // have a body the merge is a no-op so no body is lost. Otherwise the merge
       // proceeds and the surviving note keeps the single body, carrying it over
       // from the removed note when needed.

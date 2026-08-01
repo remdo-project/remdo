@@ -1,11 +1,9 @@
 # Search
 
-## Purpose
+The search input provides keyboard-first navigation by filtering notes and
+zooming to a result.
 
-Define keyboard-first navigation from the search input: filtering notes by query
-and zooming to a result.
-
-## Terms
+## Definitions
 
 - **Search Mode:** active while the search box has focus.
 - **Highlighted note:** the single note targeted by search navigation.
@@ -33,7 +31,7 @@ and zooming to a result.
 6. Typing in the search box filters flat results by query matching. The query is
    a plain-text field split on whitespace into tokens (order-independent; extra
    whitespace ignored). A note matches when every token is a case-insensitive
-   substring of some entry in the note's [note path](./concepts.md#definitions),
+   substring of some entry in the note's [note path](./note-model.md#definitions),
    and at least one token matches the note's own text. Results stay in document
    order. Matched tokens are highlighted wherever they occur — in the note label
    or an ancestor crumb.
@@ -67,10 +65,9 @@ same text. Every row uses the same layout regardless of highlight.
 1. Every result row shows the matched note as a primary label line, a dim
    ancestor-path subline beneath it, then a preview of the match's first two
    direct children.
-2. The matched note's text is the primary label: query tokens that occur in it
-   are highlighted, and the note's text formatting is preserved (for example a
-   checked note is struck through). The label shows no list marker — no bullet,
-   number, or checkbox.
+2. The matched note's text is the primary label, and its text formatting is
+   preserved (for example a checked note is struck through). The label shows no
+   list marker — no bullet, number, or checkbox.
 3. The subline lists the full ancestor chain (excluding the matched note),
    separated by `/`, including the top-level note for context. A match with no
    ancestors (itself top-level) shows no subline. The subline stays on a single
@@ -85,8 +82,7 @@ same text. Every row uses the same layout regardless of highlight.
      truncated by width exposes its full label as a tooltip.
 4. Ancestor crumbs are visually subordinate to the match — muted in colour and
    smaller, with an underline only on hover — so the matched note reads as the
-   row's subject. Query tokens that matched an ancestor are highlighted in its
-   crumb.
+   row's subject.
 5. Every ancestor crumb is activatable; activating it zooms that ancestor and
    ends Search Mode, exactly like accepting a result.
 6. The child preview shows the first two direct children of the match rendered
