@@ -39,6 +39,15 @@ Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
+- **Current-location presentation ownership.** Before implementing the
+  [view header](specs/outliner/view-header.md) alongside
+  [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name
+  and scope, including whether "location header" better identifies it and
+  whether editable current-location presentation remains separate from
+  ancestor breadcrumb navigation. Update both owners and their inbound links
+  together with the decision. Coordinate with the
+  [legacy view-header follow-ups](legacy-backlog.md#home-and-view-header-follow-ups).
+
 - **Body-local structural-command target.** Target behavior
   ([Body](specs/outliner/body.md#selection-and-structural-targeting),
   [Indentation](specs/outliner/indentation.md#keyboard-indentation),
