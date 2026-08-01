@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { config } from '../../config';
 import { resolveLoopbackHost } from '../../src/platform/net/loopback';
@@ -7,7 +8,8 @@ import { ensureCollabServer, resolveYSweetProbeHost } from '../../tools/lib/coll
 import { isPortOpen } from '../../tools/lib/net';
 import { startRemdoApiServer } from '../../tools/lib/remdo-api-server-helper';
 
-const COLLAB_TEST_DATA_DIR = path.resolve('data/collab-test-runtime');
+const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const COLLAB_TEST_DATA_DIR = path.join(ROOT_DIR, 'data/collab-test-runtime');
 
 interface RequiredPort {
   host: string;

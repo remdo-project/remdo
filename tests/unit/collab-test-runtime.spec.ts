@@ -54,6 +54,7 @@ describe('collaboration test runtime', () => {
 
     await prepareCollabTestRuntime({
       dataDir,
+      // Port 0 cannot host a remote listener, so it is deterministically free without a racy port handoff.
       requiredPorts: [{ host: '127.0.0.1', label: 'available test service', port: 0 }],
     });
 
