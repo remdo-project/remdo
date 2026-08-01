@@ -213,6 +213,9 @@ catalogs:
     y-sweet:
       specifier: ^0.9.1
       version: 0.9.1
+    yaml:
+      specifier: ^2.9.0
+      version: 2.9.0
     yjs:
       specifier: ^13.6.31
       version: 13.6.31
@@ -241,6 +244,9 @@ overrides:
   table>ajv: 8.18.0
 
 packageExtensionsChecksum: sha256-zl8DYLNKOFD2VSyV8Kqvl6CxA6aolU7BuOLdA+lIoaM=
+
+patchedDependencies:
+  '@lexical/yjs@0.45.0': 3d1e0bf6618539c7ad5fc3ac5f86621ac7e1fc08b24b7924c462f3d2c9076df9
 
 importers:
 
@@ -275,7 +281,7 @@ importers:
         version: 0.45.0
       '@lexical/yjs':
         specifier: 'catalog:'
-        version: 0.45.0(yjs@13.6.31)
+        version: 0.45.0(patch_hash=3d1e0bf6618539c7ad5fc3ac5f86621ac7e1fc08b24b7924c462f3d2c9076df9)(yjs@13.6.31)
       '@mantine/core':
         specifier: 'catalog:'
         version: 9.4.1(@mantine/hooks@9.4.1(react@19.2.7))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -463,6 +469,9 @@ importers:
       y-sweet:
         specifier: 'catalog:'
         version: 0.9.1
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.0
 
 packages:
 
@@ -7957,7 +7966,7 @@ snapshots:
       '@lexical/table': 0.45.0
       '@lexical/text': 0.45.0
       '@lexical/utils': 0.45.0
-      '@lexical/yjs': 0.45.0(yjs@13.6.31)
+      '@lexical/yjs': 0.45.0(patch_hash=3d1e0bf6618539c7ad5fc3ac5f86621ac7e1fc08b24b7924c462f3d2c9076df9)(yjs@13.6.31)
       lexical: 0.45.0
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
@@ -8000,7 +8009,7 @@ snapshots:
       '@lexical/selection': 0.45.0
       lexical: 0.45.0
 
-  '@lexical/yjs@0.45.0(yjs@13.6.31)':
+  '@lexical/yjs@0.45.0(patch_hash=3d1e0bf6618539c7ad5fc3ac5f86621ac7e1fc08b24b7924c462f3d2c9076df9)(yjs@13.6.31)':
     dependencies:
       '@lexical/internal': 0.45.0
       '@lexical/selection': 0.45.0

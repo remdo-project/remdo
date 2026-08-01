@@ -54,6 +54,11 @@ overrides:
   serialize-javascript: 7.0.5
   table>ajv: 8.18.0
 
+patchedDependencies:
+  # Lexical V2 must ignore remote cursors mapped only to deleted text nodes.
+  # Regression: tests/unit/collab/lexical-yjs-cursor-sync.collab.spec.ts.
+  '@lexical/yjs@0.45.0': patches/@lexical__yjs@0.45.0.patch
+
 catalog:
   '@antfu/eslint-config': 9.1.0
   '@ast-grep/cli': ^0.44.1
@@ -125,6 +130,7 @@ catalog:
   workbox-window: ^7.4.1
   ws: 8.21.0
   y-sweet: ^0.9.1
+  yaml: ^2.9.0
   yjs: ^13.6.31
   zod: ^4.4.3
 

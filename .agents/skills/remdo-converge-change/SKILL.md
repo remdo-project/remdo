@@ -6,7 +6,7 @@ description: Converge a default or explicitly selected RemDo uncommitted or Git-
 # RemDo Converge Change
 
 Converge one scope under the authoritative
-[`remdo-converge-change`](../../../docs/spec/skills/remdo-converge-change.md)
+[`remdo-converge-change`](../../../docs/specs/skills/remdo-converge-change.md)
 contract. Do not expand intended behavior.
 
 ## Fix the scope
@@ -36,7 +36,7 @@ For every verifier result:
 
 1. Wait for verification to finish.
 2. Collect every failed check and
-   [`confirmed` finding](../../../docs/spec/skills/remdo-verify-change.md#findings)
+   [`confirmed` finding](../../../docs/specs/skills/remdo-verify-change.md#findings)
    you can correct into one complete correction batch. Preserve the verifier's
    finding dispositions and record confirmed findings that cannot be corrected.
 3. If commit-range `HEAD` is detached, do not apply the correction batch;
@@ -54,7 +54,7 @@ For every verifier result:
 Do not amend, create an empty commit, or push.
 
 Determine convergence under the authoritative specification's
-[Convergence](../../../docs/spec/skills/remdo-converge-change.md#convergence)
+[Convergence](../../../docs/specs/skills/remdo-converge-change.md#convergence)
 contract.
 
 ## Commit authority
@@ -69,10 +69,10 @@ Resolved uncommitted scope does not authorize commits.
 ## Report
 
 Return the result defined by the authoritative specification's
-[Result](../../../docs/spec/skills/remdo-converge-change.md#result) section.
+[Result](../../../docs/specs/skills/remdo-converge-change.md#result) section.
 
 ## References
 
-- [Convergence contract](../../../docs/spec/skills/remdo-converge-change.md)
-- [Verification contract](../../../docs/spec/skills/remdo-verify-change.md)
+- [Convergence contract](../../../docs/specs/skills/remdo-converge-change.md)
+- [Verification contract](../../../docs/specs/skills/remdo-verify-change.md)
 - [Agent guidelines](../../../AGENTS.md)

@@ -34,7 +34,7 @@
   },
   "scripts": {
     "audit:all": "pnpm run audit:cleanup && pnpm run audit:stats:strict && pnpm run audit:policy && pnpm run audit:security",
-    "audit:ast-grep": "pnpm exec ast-grep scan --config config/ast-grep/sgconfig.yml --report-style short .",
+    "audit:ast-grep": "pnpm run lint:ast-grep-config && pnpm exec ast-grep scan --config config/ast-grep/sgconfig.yml --report-style short .",
     "audit:cleanup": "pnpm run audit:ast-grep && pnpm run audit:unused && pnpm run audit:unused:prod && pnpm run audit:dup:zero",
     "audit:dup": "jscpd --config .jscpd.json --threshold 3",
     "audit:dup:zero": "jscpd --config .jscpd.json --threshold 0",
@@ -61,7 +61,8 @@
     "dev:data-reset": "./tools/env.sh tsx ./tools/dev/data-reset.ts",
     "dev:users": "./tools/env.sh tsx ./tools/dev/provision-users.ts",
     "dev:web": "./tools/env.sh vite",
-    "lint": "cross-env CI=1 pnpm run typecheck && pnpm run lint:code && pnpm run lint:css && pnpm run lint:md",
+    "lint": "pnpm run lint:ast-grep-config && cross-env CI=1 pnpm run typecheck && pnpm run lint:code && pnpm run lint:css && pnpm run lint:md",
+    "lint:ast-grep-config": "timeout ${TEST_TIMEOUT:-120}s tsx ./tools/check-ast-grep-config.ts",
     "lint:code": "timeout ${TEST_TIMEOUT:-120}s cross-env CI=1 eslint --max-warnings=0 --cache --cache-location ${ESLINT_CACHE_LOCATION:-data/cache/lint-code}",
     "lint:code:watch": "sh -c \"rm -f data/cache/lint-code-watch && pnpm run lint:code:watch:raw\"",
     "lint:code:watch:raw": "chokidar \"**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}\" --initial -i \"**/{node_modules,data,.git}/**\" -d 200 -c \"cross-env ESLINT_CACHE_LOCATION=data/cache/lint-code-watch pnpm run lint:code && echo LINT_OK || { echo LINT_FAIL; exit 1; }\"",
@@ -171,6 +172,7 @@
     "typescript": "catalog:",
     "vitest": "catalog:",
     "vitest-preview": "catalog:",
-    "y-sweet": "catalog:"
+    "y-sweet": "catalog:",
+    "yaml": "catalog:"
   }
 }

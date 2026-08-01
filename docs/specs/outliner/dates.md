@@ -1,0 +1,61 @@
+# Dates
+
+RemDo-owned inline date tokens provide a picker and keyboard behavior in the
+outliner.
+
+## Core behavior
+
+1. Dates are non-text inline RemDo nodes with a stored ISO date (`YYYY-MM-DD`)
+   and a readable local label such as `Jun 10, 2026`.
+2. `!` is an inline trigger character; its open/dismiss/confirm lifecycle is the
+   shared one in [Editor popups](./popups.md).
+3. The `!` picker is a **modal calendar dialog**: opening it moves focus into a
+   month-grid calendar (the shared contract's per-widget trapping focus model),
+   with today (the user's local browser date) preselected.
+4. The calendar owns its keyboard while open: `ArrowLeft`/`Right` move by a day,
+   `ArrowUp`/`Down` by a week, `Home`/`End` to the start/end of the week,
+   `PageUp`/`PageDown` by a month, `Shift+PageUp`/`PageDown` by a year. The editor
+   caret does not move under the open grid.
+5. `Enter` or `Space` commits the focused day; a primary-button click commits the
+   clicked day. `Escape` — and `Tab` — cancel the calendar and restore the caret
+   to the editor. Committing inserts a date node plus a trailing space over the
+   pinned `!` span.
+6. Clicking, or `Enter`/`Space` on a selected date token, opens the same calendar
+   in *edit* mode over that node. It is opened from a committed token rather than
+   a trigger session, so the trigger lifecycle does not apply, but the in-calendar
+   keyboard contract is identical — except commit updates the existing token
+   rather than inserting a new one.
+
+## Atomic token keyboard behavior
+
+1. A date node behaves as one atomic inline token. The caret must not appear
+   inside the rendered date label.
+2. Arrow navigation across a date enters a whole-token selected/focused state
+   instead of placing the caret inside the label.
+3. `ArrowLeft` from immediately after a date selects the whole date token; the
+   next `ArrowLeft` moves the caret before it.
+4. `ArrowRight` from immediately before a date selects the whole date token; the
+   next `ArrowRight` moves the caret after it.
+5. `Enter` or `Space` on a selected/focused date token opens the date picker in
+   edit mode.
+6. `Escape` from a selected/focused date token clears the token focus and places
+   the caret after the date without changing it.
+7. `Backspace` immediately after a date selects the whole date token without
+   deleting it; pressing `Backspace` again deletes the selected date.
+8. `Delete` immediately before a date selects the whole date token without
+   deleting it; pressing `Delete` again deletes the selected date.
+9. `Backspace` or `Delete` on an already selected/focused date token deletes
+   the whole date node.
+
+## Future
+
+- Let users edit a date node as ordinary text while preserving date identity
+  when possible.
+- Support typed date queries or natural-language date parsing after `!`.
+- Give the calendar its own chrome and have `Tab` cycle its month and year
+  navigation controls within the dialog.
+
+## References
+
+- [WAI-ARIA date picker dialog example](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/)
+  — calendar grid focus and keyboard behavior.

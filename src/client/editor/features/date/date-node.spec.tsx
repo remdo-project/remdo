@@ -230,7 +230,7 @@ describe('date nodes', () => {
   });
 
   it('does not confirm the ! picker on Tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    // Tab no longer commits (docs/outliner/popups.md): it closes the picker and
+    // Tab no longer commits (docs/specs/outliner/popups.md): it closes the picker and
     // falls through to indent, leaving the typed `!` as text and inserting no
     // date. (When ! becomes the modal calendar, Tab will cycle its controls.)
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);

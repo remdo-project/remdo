@@ -23,7 +23,7 @@ export function $getContiguousSelectionHeads(selection: RangeSelection): ListIte
   }
 
   // A selection wholly inside one body is inline (the body is its own region, see
-  // docs/outliner/body.md), so it has no structural range heads. Resolving its ends
+  // docs/specs/outliner/body.md), so it has no structural range heads. Resolving its ends
   // would map both to the owner note and yield a spurious one-note structural
   // head, making structural callers (e.g. paste) act on the whole note.
   if ($isSelectionWithinOneBody(selection)) {

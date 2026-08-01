@@ -266,8 +266,8 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
 
 ## Home and view-header follow-ups
 
-Tracks the gaps between [Home](outliner/home.md) and the
-[view header](outliner/zoom.md#view-header) as specified and what ships.
+Tracks the gaps between [Home](specs/outliner/home.md) and the
+[view header](specs/outliner/view-header.md) as specified and what ships.
 
 - The document-source chevron combobox picker in `DocumentToolbar.tsx`
   (`NEW_DOCUMENT_VALUE` / `UPLOAD_DOCUMENT_VALUE` and the grouped document
@@ -278,7 +278,7 @@ Tracks the gaps between [Home](outliner/home.md) and the
   and the per-source document list; removing the picker resolves the duplication,
   so leave it rather than extracting a shared helper now. The two also differ on
   re-selecting the already-open document while zoomed: a Home row clears zoom to
-  the document root (per [Home](outliner/home.md) core behavior 3), the toolbar
+  the document root (per [Home](specs/outliner/home.md) core behavior 3), the toolbar
   picker keeps the zoom (its pre-existing switcher behavior). Removing the picker
   removes the inconsistency; decide the picker's behavior only if it outlives Home.
   Retirement is its own PR: delete the picker combobox and the `documentControl`
@@ -293,10 +293,10 @@ Tracks the gaps between [Home](outliner/home.md) and the
   with the view-header work (which owns the `/` relationship), rather than
   encoding a second ad-hoc route now.
 
-The [view header](outliner/zoom.md#view-header) (Model F) is specified but not
+The [view header](specs/outliner/view-header.md) (Model F) is specified but not
 yet built; the entries below track the gap. Suspends the view-header rules in
-`outliner/zoom.md` and the pure-nav breadcrumb claim in
-[Zoom breadcrumbs](outliner/zoom.md#breadcrumbs).
+`specs/outliner/view-header.md` and the pure-nav breadcrumb claim in
+[Zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs).
 
 - No view header is rendered: while zoomed the zoom root remains the editable
   top outline `ListItemNode`, and at the document root the document name remains
@@ -320,10 +320,12 @@ yet built; the entries below track the gap. Suspends the view-header rules in
   the heading role must stay on separate elements (a `textbox` role masks an
   inner heading from assistive tech). Close with the view-header work.
 - Fold semantics at the view header are unreconciled with the restricted kind.
-  [Zoom](outliner/zoom.md) items 7–8 describe the zoom root's *stored* fold state
+  [Zoom](specs/outliner/zoom.md) items 7–8 describe the zoom root's stored fold
+  state
   being preserved and not hiding its children while zoomed, but the
-  [view header](outliner/zoom.md#view-header) cannot be folded, and
-  [Folding](outliner/folding.md) item 8, [Menu](outliner/menu.md) (the `F`
+  [view header](specs/outliner/view-header.md) cannot be folded, and
+  [Folding](specs/outliner/folding.md) item 8,
+  [Menu](specs/outliner/menu.md) (the `F`
   fold shortcut "for the current zoom root"), and fold-to-level ("applies from
   the current zoom root") still describe the zoom root as a foldable outline
   target. Reconcile these — what a header's fold control and stored state mean
@@ -397,8 +399,8 @@ yet built; the entries below track the gap. Suspends the view-header rules in
      `create(...)` refactor, especially `createLexicalEditorNotes` and
      `place(...)`.
   7. Update the durable docs once the traversal/query contract stabilizes:
-     `docs/outliner/concepts.md`, `docs/architecture.md`,
-     `docs/outliner/search.md`, and `docs/outliner/links.md`.
+     `docs/specs/outliner/note-model.md`, `docs/architecture.md`,
+     `docs/specs/outliner/search.md`, and `docs/specs/outliner/links.md`.
 
 ## Run modes follow-ups
 
@@ -572,7 +574,8 @@ Durable fixes:
 
 ## Note body follow-ups
 
-Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
+Follow-ups to the spec in
+[docs/specs/outliner/body.md](specs/outliner/body.md):
 
 - Undo does not restore selection under collaboration (Lexical's `@lexical/yjs`
   V2 history only persists structure, not the caret). This is global, not
@@ -591,7 +594,8 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 - Coverage pass: product areas with no owning doc (candidates: collaboration
   internals, app bootstrap/routes; note-sdk docs are already deferred under
   "Note-first SDK follow-ups") — decide new doc vs a `Future` trigger each.
-- Parked escalations awaiting Piotr (six): concepts.md:76 kinds-sentence
+- Parked escalations awaiting Piotr (six):
+  specs/outliner/note-model.md:59 kinds-sentence
   (carries the selection.md link; reject / apply-with-link-relocation);
   documentation.md:33 split; search.md:66 split; selection.md:35 split;
   dependency-maintenance stage split (#5 of conv3); search.md:59 disambiguation
@@ -651,7 +655,7 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
   post-merge check; deps-refresh its matrix).
   Reconcile with AGENTS.md's declare-scope-in-situ rule via shared vocabulary +
   per-skill delta.
-- ESCALATE (docs-align): `docs/outliner/menu.md:40` — advocate
+- ESCALATE (docs-align): `docs/specs/outliner/menu.md:43` — advocate
   proposed deleting "it has no query span, so it owns every key;" as a
   restatement of the shared editor-popup contract. Dual adjudicators split:
   one APPLY (the contract's "a popup with no pinned span owns every key" already
@@ -762,13 +766,15 @@ Follow-ups to the spec in [docs/outliner/body.md](./outliner/body.md):
 Playground-driven design tuning for the mobile action toolbar (pinned Done+Undo
 with the anchor rule, hide-vs-grey disabled behavior, left-aligned scroll with
 peek + edge-fade, sizing, `aria-disabled`) is implemented; the durable contract
-lives in [docs/outliner/mobile-toolbar.md](outliner/mobile-toolbar.md), and the
+lives in
+[docs/specs/outliner/mobile-toolbar.md](specs/outliner/mobile-toolbar.md), and the
 open follow-ups it left are the mobile-toolbar entries under the plugin
 follow-ups above. Design rationale is in git history.
 
 ## Unify note actions across toolbar and menu (decided direction)
 
-The mobile action toolbar and the note [quick action menu](outliner/menu.md) are
+The mobile action toolbar and the note
+[quick action menu](specs/outliner/menu.md) are
 two ad-hoc renderings of the same context-sensitive note-action set. Decided
 (research-backed; git history for the rationale): build a shared note-action
 registry — `(id, icon, label, when-applicable predicate, dispatch)` — that both

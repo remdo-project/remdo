@@ -30,7 +30,7 @@ import { $normalizeNoteIdsOnLoad } from '#client/editor/plugins/note-id-normaliz
 import { getNoteBody, $skipBodyForVerticalNav } from './note-body-ops';
 import { $resolveLinkPickerOptions } from '#client/editor/plugins/note-link/options';
 
-describe('note body (docs/outliner/body.md)', () => {
+describe('note body (docs/specs/outliner/body.md)', () => {
   it('normalization merges a duplicate child-wrapper past a body-wrapper', meta({
     expectedConsoleIssues: ['runtime.invariant orphan-wrapper-merged-into-previous'],
   }), async ({ remdo }) => {
@@ -194,7 +194,7 @@ describe('note body (docs/outliner/body.md)', () => {
     // note2 gets a body, then its label is emptied. Pressing Delete at the end of
     // the empty label must not drop the note as an empty leaf (that would remove
     // the body-wrapper and lose the text). Instead it merges with the next note
-    // per the body merge contract (docs/outliner/body.md "Note merge", case 2):
+    // per the body merge contract (docs/specs/outliner/body.md "Note merge", case 2):
     // the survivor keeps the single body.
     await placeCaretAtNote(remdo, 'note2', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });
@@ -345,7 +345,7 @@ describe('note body (docs/outliner/body.md)', () => {
     ]);
   });
 
-  // Note-merge body contract (docs/outliner/body.md "Note merge"). Backspace at
+  // Note-merge body contract (docs/specs/outliner/body.md "Note merge"). Backspace at
   // note2's start merges note2 into note1.
   it('merging two notes with no bodies works as usual', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 0);
@@ -488,7 +488,7 @@ describe('note body (docs/outliner/body.md)', () => {
   });
 
   it('indent with the caret inside a body indents the owning note', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    // The body travels with its note through indent (docs/outliner/body.md), so a
+    // The body travels with its note through indent (docs/specs/outliner/body.md), so a
     // note-level command invoked from within the body acts on the owner note —
     // not a no-op just because the caret sits in the body.
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
@@ -793,7 +793,7 @@ describe('note body (docs/outliner/body.md)', () => {
   });
 
   it('tab does not confirm an @ note-link inside a body: closes and keeps the text', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    // Tab no longer commits (docs/outliner/popups.md); inside a body it closes the
+    // Tab no longer commits (docs/specs/outliner/popups.md); inside a body it closes the
     // picker and leaves the typed @query as text, inserting no link.
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });
@@ -848,7 +848,7 @@ describe('note body (docs/outliner/body.md)', () => {
 // the body were not there. jsdom does not move the caret on arrow keys, so these
 // exercise the model-level skip directly (placing the caret, then invoking the
 // redirect the arrow command performs).
-describe('note body vertical navigation (docs/outliner/body.md)', () => {
+describe('note body vertical navigation (docs/specs/outliner/body.md)', () => {
   async function addBodyTo(remdo: RemdoTestApi, noteId: string, text: string) {
     await placeCaretAtNote(remdo, noteId, Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter', shift: true });

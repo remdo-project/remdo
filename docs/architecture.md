@@ -1,11 +1,9 @@
 # Architecture Terms
 
-## Purpose
-
-Provide shared architecture vocabulary for RemDo platform delivery, routing,
+RemDo shares architecture vocabulary across platform delivery, routing,
 document identity, and collaboration runtime so implementation docs can
-reference one stable set of terms. It does not define outliner behavior or
-note/link identity boundaries; those remain in outliner docs.
+reference stable terms. It does not define outliner behavior or note/link
+identity boundaries; those remain in outliner docs.
 
 ## Delivery Surfaces
 

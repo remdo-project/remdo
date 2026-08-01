@@ -129,7 +129,7 @@ export function $computeOutlineSelectionSnapshot({
   // a note range or the ladder. Return a neutral snapshot so the body
   // owns its caret/range. A selection that crosses out of a body — into the
   // owning note's content or into another note — falls through to the structural
-  // snap below (see docs/outliner/body.md "Selection and navigation").
+  // snap below (see docs/specs/outliner/body.md "Selection and structural targeting").
   if ($isRangeSelection(selection) && $isSelectionWithinOneBody(selection)) {
     return {
       payload: null,

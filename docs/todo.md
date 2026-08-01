@@ -39,25 +39,33 @@ Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
-- **Body-local note-target ownership.** Move the rule that a body-local
-  selection supplies its owning editor note to [Body](outliner/body.md), then
-  align [Selection](outliner/selection.md), indentation, reordering,
-  checked-state targeting, toolbar actions, and other target-note-range
-  consumers that should share it. Remove action-local restatements only when
-  the shared owner exists.
+- **Current-location presentation ownership.** Before implementing the
+  [view header](specs/outliner/view-header.md) alongside
+  [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name
+  and scope, including whether "location header" better identifies it and
+  whether editable current-location presentation remains separate from
+  ancestor breadcrumb navigation. Update both owners and their inbound links
+  together with the decision. Coordinate with the
+  [legacy view-header follow-ups](legacy-backlog.md#home-and-view-header-follow-ups).
 
-- **Body-local structural-command target.** Target behavior
-  ([Indentation](spec/outliner/indentation.md#keyboard-indentation),
-  [Reordering](spec/outliner/reordering.md#keyboard-reordering)): a caret or
-  inline text selection targets the editor note owning its region. The
-  implementation resolves a body caret through
-  `$resolveStructuralRangeFromLexicalSelection`'s collapsed fallback, but
-  `$getContiguousSelectionHeads` returns no heads for a body-local inline
-  selection, so indentation and reordering are no-ops. Align the resolver and
-  add focused coverage for both commands.
+- **Body-local command targets.** Target behavior
+  ([Body](specs/outliner/body.md#selection-and-structural-targeting),
+  [Indentation](specs/outliner/indentation.md#target-resolution),
+  [Reordering](specs/outliner/reordering.md#target-resolution),
+  [List types](specs/outliner/list-types.md#toggling),
+  [Mobile toolbar](specs/outliner/mobile-toolbar.md#actions), and
+  [Menu](specs/outliner/menu.md#behavior)): a caret or inline text selection
+  inside a body targets its owning editor note for commands that act on a note.
+  The structural resolver handles a collapsed body caret, but a body-local
+  inline selection produces no range, leaving indentation, reordering, and
+  toolbar deletion as no-ops. `$resolveToggleTargets` and
+  `$resolveFocusNoteKey` use body-rejecting content resolution, leaving
+  checked-state toggles, focus-note toolbar actions, and the double-Shift menu
+  as no-ops. Align shared body-to-owner resolution and add focused coverage for
+  each affected command path.
 
 - **Tri-state checked rendering and toggle polarity.** Target behavior
-  ([List types](spec/outliner/list-types.md#checked-state)): a note whose
+  ([List types](specs/outliner/list-types.md#checked-state)): a note whose
   subtree is only partly checked displays as mixed, and toggling unchecks only
   when the whole target subtree is already checked. The implementation renders
   binary markers and computes toggle state from the targeted notes' own states
@@ -67,25 +75,25 @@ Remove rejected or obsolete items and empty sections.
   same change.
 
 - **Menu toggle inside a structural selection.** Target behavior
-  ([Menu](outliner/menu.md)): the note menu's toggle applies to the selected
+  ([Menu](specs/outliner/menu.md)): the note menu's toggle applies to the selected
   note range when the current note is inside it. The implementation always
   targets the menu's note (`noteItemKey` is resolved first in
   `CheckListPlugin.tsx`, asserted by `tests/unit/checklist-state.spec.ts`);
   adjust the resolution and tests.
 
 - **Check-marker click vs selection.** Target behavior
-  ([toggle targets](spec/outliner/list-types.md#toggling)): a marker
+  ([toggle targets](specs/outliner/list-types.md#toggling)): a marker
   click on a note inside a structural selection toggles the selected note
   range; the implementation always toggles only the clicked note (the marker
   click handler in `CheckListPlugin.tsx` sets state directly instead of
   dispatching `SET_NOTE_CHECKED_COMMAND`). Reroute it and cover with a test.
   The click's selection consequences stay with
-  [Selection](outliner/selection.md).
+  [Selection](specs/outliner/selection.md).
 
 - **Replace the date-picker calendar widget.** The Mantine `DatePicker` in
   `DatePickerPopover.tsx` does not move keyboard focus across month boundaries
   or implement the calendar's complete
-  [keyboard contract](outliner/dates.md#core-behavior). Its two
+  [keyboard contract](specs/outliner/dates.md#core-behavior). Its two
   keyboard-and-commit E2E cases in `tests/e2e/editor/date-picker.spec.ts` are
   skipped until a replacement restores that coverage. Research and compare
   current maintained options rather than selecting from the preliminary spike:
@@ -111,12 +119,12 @@ Remove rejected or obsolete items and empty sections.
   before using [empirical checks](documentation.md#empirical-checks).
 
 - **Agent specification structure.** Move the
-  [`remdo-verify-change`](spec/skills/remdo-verify-change.md) specification
-  under `docs/spec/agents/skills/` and update all inbound links in the same
+  [`remdo-verify-change`](specs/skills/remdo-verify-change.md) specification
+  under `docs/specs/agents/skills/` and update all inbound links in the same
   change.
 
 - **Development change workflow design.** Before implementing the initial
-  [workflow contract](spec/agents/development-change-workflow.md), validate its
+  [workflow contract](specs/agents/development-change-workflow.md), validate its
   phase boundaries through real changes and revise them when evidence requires.
   Define the active change record and approval baseline, how nested component
   results reach the user, which component owns deterministic checks, where fresh
@@ -135,3 +143,8 @@ Remove rejected or obsolete items and empty sections.
   replace `tools/e2e/docker-source-server.ts`, pnpm can replace
   `tools/dev-init.sh`, and Vite or direct tool commands can retire the remaining
   dev-boundary, collaboration-server, and single-command package wrappers.
+
+- **Upstream ast-grep project-config validation.** Contribute upstream support
+  for rejecting unknown project-config keys or shipping version-matched schemas
+  with `@ast-grep/cli`, then replace the repository-owned config validator with
+  that upstream mechanism.

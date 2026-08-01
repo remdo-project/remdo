@@ -31,7 +31,7 @@ tie-breaker, so preserve that structure when editing this skill.
 - Authoring new content is out of scope: write-time rules do not prevent
   redundancy (tested — they made it worse), so fresh text is aligned by
   running stages 3–4 over it after writing.
-- **Specification feedback cases**: [case content](../../../docs/spec/feedback-cases/README.md#case-shape)
+- **Specification feedback cases**: [case content](../../../docs/specs/feedback-cases/README.md#case-shape)
   is outside alignment.
 
 ## Pipeline

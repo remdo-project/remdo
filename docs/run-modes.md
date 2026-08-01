@@ -1,9 +1,7 @@
 # Run Modes
 
-## Purpose
-
-Define the supported ways RemDo is run. A run mode may be a user-facing app
-runtime, a test harness, CI, or an operational task such as backup.
+RemDo supports user-facing app runtimes, test harnesses, CI, and operational
+tasks such as backup as distinct run modes.
 
 Durable product constraints live in [docs/principles.md](./principles.md);
 supported access cases live in [docs/access-model.md](./access-model.md).

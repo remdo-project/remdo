@@ -292,7 +292,7 @@ export function $skipBodyForHorizontalNav(direction: 'left' | 'right', boundaryR
 /**
  * The content note that owns `body` — the content sibling before the body's
  * wrapper list item — or null. (The body lives in a body-wrapper adjacent to its
- * note; see `docs/outliner/body.md`.)
+ * note; see `docs/specs/outliner/body.md`.)
  */
 export function $getNoteForBody(body: NoteBodyNode): ListItemNode | null {
   const wrapper = body.getParent();
@@ -329,7 +329,7 @@ export function $getSelectionBody(selection: RangeSelection): NoteBodyNode | nul
  * True when the whole selection sits inside a single note body — an inline range
  * within one body, which the outline leaves alone. A selection with only one end
  * in a body, or ends in two different bodies, crosses a region boundary and is a
- * note range instead (see `docs/outliner/body.md`).
+ * note range instead (see `docs/specs/outliner/body.md`).
  */
 export function $isSelectionWithinOneBody(selection: RangeSelection): boolean {
   return $getSelectionBody(selection) !== null;

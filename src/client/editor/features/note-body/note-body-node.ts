@@ -7,7 +7,7 @@ export type SerializedNoteBodyNode = SerializedElementNode;
 
 /**
  * A note body is a rich-text region attached to a note (see
- * `docs/outliner/body.md`). It is a normal Lexical `ElementNode`, so it lives in
+ * `docs/specs/outliner/body.md`). It is a normal Lexical `ElementNode`, so it lives in
  * the document's own tree and syncs through collaboration like any other
  * content. It is held by a dedicated body-wrapper `ListItemNode` placed adjacent
  * to the note's content item, mirroring the children-wrapper pattern, so it is

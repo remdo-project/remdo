@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { isAnyPopupActive, isOtherPopupActive, setPopupActive } from './active-popup';
 
-// The single-open registry (docs/outliner/popups.md): at most one editor popup
+// The single-open registry (docs/specs/outliner/popups.md): at most one editor popup
 // open per editor. Pure module-level logic — no editor state needed, so a stub
 // editor identity is enough.
 // Stub editor identities — the registry only uses them as WeakMap keys.

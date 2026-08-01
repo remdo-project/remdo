@@ -32,6 +32,14 @@ loudly instead.
   `true` (trusted to build) or `false` (blocked) before the install can proceed.
   Keep `allowBuilds` limited to deps actually in the tree; drop stale entries.
 
+### Dependency patches
+
+Use `patchedDependencies` only for an upstream defect that requires a local
+runtime correction. Each patch uses an exact package version and has a focused
+regression test that fails against the unpatched package. Keep pnpm's default
+unused-patch failure enabled so an upgrade must either retire a fix already
+provided upstream or regenerate the patch for the new version.
+
 ### Dependabot version updates: deliberately off
 
 There is **no `.github/dependabot.yml`**, and Dependabot version-update PRs are

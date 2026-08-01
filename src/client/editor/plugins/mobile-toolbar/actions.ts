@@ -17,7 +17,7 @@ import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
 import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 import { noteHasChildren } from '#client/editor/outline/selection/tree';
 
-// The toolbar's action set, in display order (docs/outliner/mobile-toolbar.md).
+// The toolbar's action set, in display order (docs/specs/outliner/mobile-toolbar.md).
 // Icons and labels are the surface's own inventory; behavior reuses existing
 // operations via the dispatch below.
 export type MobileActionId =

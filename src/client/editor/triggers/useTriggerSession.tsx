@@ -64,7 +64,7 @@ function isTypingTrigger(event: KeyboardEvent, triggerChar: string): boolean {
 // The shared inline-trigger lifecycle. Owns open gating (fresh keypress at a
 // boundary, never on caret re-entry), query sync, dismissal, and command
 // wiring; the spec supplies option source, popup, and commit. See
-// docs/outliner/popups.md.
+// docs/specs/outliner/popups.md.
 export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNode {
   const [editor] = useLexicalComposerContext();
   const sessionToken = useRef(Symbol('trigger-session')).current;
