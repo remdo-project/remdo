@@ -69,7 +69,6 @@
     "lint:css": "timeout ${TEST_TIMEOUT:-120}s pnpm run lint:css:stylelint && timeout ${TEST_TIMEOUT:-120}s pnpm run lint:css:syntax",
     "lint:css:stylelint": "stylelint \"src/**/*.css\"",
     "lint:css:syntax": "csstree-validator src",
-    "lint:docker": "timeout ${TEST_TIMEOUT:-120}s hadolint docker/Dockerfile",
     "lint:fix": "eslint --max-warnings=0 --fix",
     "lint:md": "timeout ${TEST_TIMEOUT:-120}s pnpm run lint:md:raw",
     "lint:md:raw": "markdownlint-cli2",
