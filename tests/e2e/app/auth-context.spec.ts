@@ -31,7 +31,7 @@ test('reports the enrollment failure when an existing account cannot sign in', a
   await expect(createAuthenticatedContext(browser, contextOptions, {
     ...account,
     password: `${account.password}-wrong`,
-  })).rejects.toThrow('422 Unprocessable Entity');
+  })).rejects.toThrow(/^Failed to authenticate e2e user: 422\b/u);
 });
 
 test('preserves an authentication failure when context cleanup also fails', async () => {

@@ -19,7 +19,7 @@ export default defineConfig({
       url: collaborationReadyURL,
     },
     {
-      command: 'pnpm exec vite',
+      command: 'HMR_PORT="$PORT" pnpm exec vite',
       name: 'app',
       reuseExistingServer: false,
       url: apiHealthURL,
