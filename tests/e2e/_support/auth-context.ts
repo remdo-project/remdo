@@ -1,4 +1,3 @@
-import { request } from '@playwright/test';
 import type { Browser, BrowserContext, BrowserContextOptions } from '@playwright/test';
 import { config } from '#config';
 import { resolveAppOrigin } from '#platform/net/origins';
@@ -8,25 +7,24 @@ export async function createAuthenticatedContext(
   browser: Browser,
   contextOptions: BrowserContextOptions,
 ): Promise<BrowserContext> {
-  const apiContext = await request.newContext({
-    baseURL: resolveAppOrigin({ loopback: true }),
-  });
+  const context = await browser.newContext(contextOptions);
 
   try {
-    const response = await apiContext.post('/api/admin/enroll', {
-      data: {
-        ...createTestAuthAccount(),
-        adminSecret: config.env.ADMIN_SECRET,
+    const response = await context.request.post(
+      new URL('/api/admin/enroll', resolveAppOrigin({ loopback: true })).href,
+      {
+        data: {
+          ...createTestAuthAccount(),
+          adminSecret: config.env.ADMIN_SECRET,
+        },
       },
-    });
+    );
     if (!response.ok()) {
       throw new Error(`Failed to provision e2e user: ${response.status()} ${response.statusText()}`);
     }
-    return browser.newContext({
-      ...contextOptions,
-      storageState: await apiContext.storageState(),
-    });
-  } finally {
-    await apiContext.dispose();
+    return context;
+  } catch (error) {
+    await context.close();
+    throw error;
   }
 }

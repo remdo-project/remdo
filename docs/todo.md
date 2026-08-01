@@ -121,3 +121,10 @@ Remove rejected or obsolete items and empty sections.
   or costly work, and concrete lessons. Add dedicated orchestration or
   instrumentation only if real retrospectives show that the existing evidence
   is insufficient.
+
+### Tooling
+
+- **Upstream-owned launcher reassessment.** Reassess whether Playwright can
+  replace `tools/e2e/docker-source-server.ts`, pnpm can replace
+  `tools/dev-init.sh`, and Vite or direct tool commands can retire the remaining
+  dev-boundary, collaboration-server, and single-command package wrappers.

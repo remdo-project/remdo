@@ -3,6 +3,7 @@ import { expect, test as base } from '@playwright/test';
 import { HTTP_STATUS } from '#platform/http/status';
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
+import { createAuthenticatedContext } from './auth-context';
 
 interface EditorLike {
   getEditorState: () => Promise<unknown>;
@@ -156,17 +157,31 @@ export function attachPageGuards(page: Page): () => void {
   };
 }
 
-export const test = base.extend({
+const guardedTest = base.extend({
   page: async ({ page }, apply) => {
     const detach = attachPageGuards(page);
-    await apply(page);
-    detach();
+    try {
+      await apply(page);
+    } finally {
+      detach();
+    }
+  },
+});
+
+export const test = guardedTest.extend({
+  context: async ({ browser, contextOptions }, apply) => {
+    const context = await createAuthenticatedContext(browser, contextOptions);
+    try {
+      await apply(context);
+    } finally {
+      await context.close();
+    }
   },
 });
 
 // Signed-out context: no cookies or stored origin state, so the app resolves the
 // unauthenticated session gate.
-export const unauthenticatedTest = test.extend({
+export const unauthenticatedTest = guardedTest.extend({
   storageState: {
     cookies: [],
     origins: [],

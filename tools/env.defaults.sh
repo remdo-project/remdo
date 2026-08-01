@@ -6,6 +6,20 @@
 : "${NODE_ENV:=development}"
 : "${HOST:=localhost}"
 : "${PORT_BASE:=4000}"
+
+# Shift complete local stacks before deriving their ports. Derived values may
+# already be present when one env-managed command launches another, so discard
+# them rather than mixing endpoints from the original and shifted ranges.
+if [ -n "${_remdo_port_base_offset:-}" ]; then
+  PORT_BASE="$((PORT_BASE + _remdo_port_base_offset))"
+  unset \
+    PORT AUTH_URL \
+    HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT \
+    COLLAB_SERVER_PORT PREVIEW_PORT API_SERVER_PORT \
+    YSWEET_CONNECTION_STRING
+fi
+unset _remdo_port_base_offset
+
 : "${PORT:=$((PORT_BASE + 0))}"
 : "${COLLAB_ENABLED:=true}"
 : "${DEV_DOCUMENT_ID:=devDoc}"

@@ -1,7 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { expect, test } from '#editor/fixtures';
 import { readFixture } from '#tools/fixtures';
-import { cleanupCollabDoc } from '#tests-common/runtime-scope';
 import { createUserDocument } from '../_support/documents';
 import { ensureReady, load, waitForSynced } from './_support/bridge';
 import { editorLocator } from './_support/locators';
@@ -38,44 +37,40 @@ test.describe('Document switcher', () => {
 
   test('creates a listed document, switches to it, and switches back to the source document', async ({ page, captureCreatedDoc }) => {
     const sourceDocument = await createUserDocument(page, `Switcher Source ${Date.now()}`);
-    try {
-      await seedDocument(page, sourceDocument.id, 'tree-complex');
+    await seedDocument(page, sourceDocument.id, 'tree-complex');
 
-      await page.goto(createEditorDocumentPath(sourceDocument.id));
-      await editorLocator(page).locator('.editor-input').first().waitFor();
-      await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
+    await page.goto(createEditorDocumentPath(sourceDocument.id));
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
 
-      const createdDocId = await captureCreatedDoc(page, async () => {
-        const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
-        await switcherTrigger.click();
-        await page.getByRole('option', { name: 'New', exact: true }).click();
-      });
-      await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
-      await ensureReady(page);
-      await load(page, 'flat');
-      await waitForSynced(page);
-
+    const createdDocId = await captureCreatedDoc(page, async () => {
       const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
-      await expect(switcherTrigger).toBeVisible();
       await switcherTrigger.click();
-      await page.getByRole('option', { name: sourceDocument.title, exact: true }).click();
-      await expect(page).toHaveURL(createEditorDocumentPath(sourceDocument.id));
-      await editorLocator(page).locator('.editor-input').first().waitFor();
-      await ensureReady(page);
-      await waitForSynced(page);
-      await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
+      await page.getByRole('option', { name: 'New', exact: true }).click();
+    });
+    await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
+    await ensureReady(page);
+    await load(page, 'flat');
+    await waitForSynced(page);
 
-      await switcherTrigger.click();
-      await page.getByRole('option', { name: 'New Document', exact: true }).first().click();
-      await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
-      await editorLocator(page).locator('.editor-input').first().waitFor();
-      await ensureReady(page);
-      await waitForSynced(page);
-      await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' })).toHaveCount(0);
-      await expect(editorLocator(page).locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
-    } finally {
-      await cleanupCollabDoc(sourceDocument.id);
-    }
+    const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
+    await expect(switcherTrigger).toBeVisible();
+    await switcherTrigger.click();
+    await page.getByRole('option', { name: sourceDocument.title, exact: true }).click();
+    await expect(page).toHaveURL(createEditorDocumentPath(sourceDocument.id));
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await ensureReady(page);
+    await waitForSynced(page);
+    await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
+
+    await switcherTrigger.click();
+    await page.getByRole('option', { name: 'New Document', exact: true }).first().click();
+    await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await ensureReady(page);
+    await waitForSynced(page);
+    await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' })).toHaveCount(0);
+    await expect(editorLocator(page).locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
   });
 
   test('creates a new document from the switcher and lists it', async ({ page, captureCreatedDoc }) => {

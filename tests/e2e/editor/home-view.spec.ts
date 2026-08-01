@@ -28,7 +28,6 @@ test.describe('Home view', () => {
 
     // Activate any document row; Home is dismissed and the editor reappears.
     await home.locator('[data-home-document-ref]').first().click();
-    await waitForSynced(page);
 
     await expect(homeView(page)).toHaveCount(0);
     await expect(editorLocator(page)).toBeVisible();

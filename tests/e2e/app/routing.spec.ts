@@ -2,18 +2,6 @@ import { collectCurrentUserRequests, expect, test, unauthenticatedTest } from '#
 import type { Page } from '#e2e/fixtures';
 import type { CurrentUserBootstrap } from '#domain/documents/user-data';
 import { HTTP_STATUS } from '#platform/http/status';
-import { createAuthenticatedContext } from '../_support/auth-context';
-
-const freshAuthenticatedTest = test.extend({
-  context: async ({ browser, contextOptions }, applyFixture) => {
-    const context = await createAuthenticatedContext(browser, contextOptions);
-    try {
-      await applyFixture(context);
-    } finally {
-      await context.close();
-    }
-  },
-});
 
 async function expectPath(page: Page, pathname: string): Promise<void> {
   await expect.poll(() => new URL(page.url()).pathname).toBe(pathname);
@@ -40,7 +28,7 @@ async function hasIndexedDb(page: Page, dbName: string): Promise<boolean> {
 }
 
 test.describe('Routing', () => {
-  freshAuthenticatedTest('renders the authenticated Home document at the canonical root URL', async ({ page }) => {
+  test('renders the authenticated Home document at the canonical root URL', async ({ page }) => {
     const bootstrapResponse = await page.request.get('/api/current-user');
     expect(bootstrapResponse.ok()).toBe(true);
     const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
@@ -78,7 +66,7 @@ test.describe('Routing', () => {
     expect(userDataRequests).toEqual([]);
   });
 
-  freshAuthenticatedTest('normalizes the default landing target to the authenticated root', async ({ page }) => {
+  test('normalizes the default landing target to the authenticated root', async ({ page }) => {
     await page.goto('/?next=%2F');
 
     await expectPath(page, '/');
@@ -130,7 +118,7 @@ test.describe('Routing', () => {
     expect(userDataRequests).toEqual([]);
   });
 
-  freshAuthenticatedTest('logs out the active session from the app header', async ({ page }) => {
+  test('logs out the active session from the app header', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
     await createIndexedDb(page, 'y-sweet-logout-test');
