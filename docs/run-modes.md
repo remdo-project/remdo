@@ -131,8 +131,9 @@ file as the [document registry](./architecture.md#document-registry).
      `/api/*` routes, a collaboration server, and uniquely provisioned
      authenticated users.
   2. The stack uses the working directory's `PORT_BASE + 50` range, and one E2E
-     invocation may run in a working directory at a time. It replaces the
-     previous runtime at startup and refuses to reuse occupied reserved ports.
+     invocation may run in a working directory at a time. An invocation does
+     not terminate or recover an earlier process; occupied reserved ports
+     refuse startup.
   3. Full and filtered invocations use the same lifecycle and replace
      `data/e2e-runtime` at startup. The completed or interrupted run remains
      available for diagnosis until the next invocation.

@@ -14,8 +14,8 @@ while [ "$#" -gt 0 ]; do
         exit 1
       fi
       case "$2" in
-        '' | *[!0-9]*)
-          echo "env.sh: --port-base-offset requires a non-negative integer" >&2
+        '' | *[!0-9]* | 0[0-9]*)
+          echo "env.sh: --port-base-offset requires a non-negative decimal integer without leading zeros" >&2
           exit 1
           ;;
       esac

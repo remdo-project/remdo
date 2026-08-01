@@ -330,6 +330,14 @@ describe('config env resolve', () => {
     ]);
   });
 
+  it('rejects a port-base offset with a leading zero', () => {
+    expect(() => execFileSync(
+      './tools/env.sh',
+      ['--port-base-offset', '08', 'true'],
+      { encoding: 'utf8' },
+    )).toThrow();
+  });
+
   it('uses the un-prefixed ALLOW_SIGNUP key (no auth-prefixed variant)', () => {
     expect(envSchema).toHaveProperty('ALLOW_SIGNUP');
     expect(envSchema).not.toHaveProperty('AUTH_ALLOW_SIGNUP');

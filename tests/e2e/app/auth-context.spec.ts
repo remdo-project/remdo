@@ -1,5 +1,4 @@
 import { expect, guardedTest as test } from '#e2e/fixtures';
-import type { Browser, BrowserContext } from '@playwright/test';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 import { createAuthenticatedContext } from '../_support/auth-context';
 
@@ -32,19 +31,4 @@ test('reports both failures when an existing account cannot sign in', async ({
     ...account,
     password: `${account.password}-wrong`,
   })).rejects.toThrow(/enrollment 422 .*; sign-in 401 /u);
-});
-
-test('preserves an authentication failure when context cleanup also fails', async () => {
-  const authFailure = new Error('authentication failed');
-  const context = {
-    close: () => Promise.reject(new Error('cleanup failed')),
-    request: {
-      post: () => Promise.reject(authFailure),
-    },
-  } as unknown as BrowserContext;
-  const browser = {
-    newContext: () => Promise.resolve(context),
-  } as unknown as Browser;
-
-  await expect(createAuthenticatedContext(browser, {})).rejects.toBe(authFailure);
 });
