@@ -43,9 +43,12 @@ export async function createAuthenticatedContext(
           maxRetries: 1,
         },
       );
-      if (signInResponse.ok()) {
-        response = signInResponse;
+      if (!signInResponse.ok()) {
+        throw new Error(
+          `Failed to authenticate e2e user: enrollment ${response.status()} ${response.statusText()}; sign-in ${signInResponse.status()} ${signInResponse.statusText()}`,
+        );
       }
+      response = signInResponse;
     }
     if (!response.ok()) {
       throw new Error(`Failed to authenticate e2e user: ${response.status()} ${response.statusText()}`);

@@ -20,7 +20,7 @@ test('authenticates a context when its test account already exists', async ({
   }
 });
 
-test('reports the enrollment failure when an existing account cannot sign in', async ({
+test('reports both failures when an existing account cannot sign in', async ({
   browser,
   contextOptions,
 }) => {
@@ -31,7 +31,7 @@ test('reports the enrollment failure when an existing account cannot sign in', a
   await expect(createAuthenticatedContext(browser, contextOptions, {
     ...account,
     password: `${account.password}-wrong`,
-  })).rejects.toThrow(/^Failed to authenticate e2e user: 422\b/u);
+  })).rejects.toThrow(/enrollment 422 .*; sign-in 401 /u);
 });
 
 test('preserves an authentication failure when context cleanup also fails', async () => {
