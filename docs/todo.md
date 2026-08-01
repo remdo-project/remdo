@@ -39,6 +39,11 @@ Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
+- **Inline-selection Enter behavior.** Decide and specify what `Enter` does for
+  a non-collapsed [inline text selection](specs/outliner/selection.md#selection-states)
+  in [Insertion](specs/outliner/insertion.md), then align implementation and
+  automated coverage.
+
 - **Current-location presentation ownership.** Before implementing the
   [view header](specs/outliner/view-header.md) alongside
   [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name
