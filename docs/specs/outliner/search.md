@@ -9,9 +9,9 @@ zooming to a result.
 - **Highlighted note:** the single note targeted by search navigation.
 - **Result row:** the rendering for a single search result (see Result row
   context).
-- **No matches:** the active document has search candidates, but none match the
-  current query.
-- **No notes:** the active document has no search candidates.
+- **No matches:** a non-empty current query produces no flat results.
+- **No notes:** the current query is empty and the active document has no
+  search candidates.
 
 ## Scope and boundaries
 

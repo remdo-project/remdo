@@ -38,7 +38,7 @@ generic external links.
 7. Note-link clicks use native `href` navigation semantics and route handling.
 8. Pasting a RemDo-owned plain-text note URL inserts a
    note-link node. When the target is in the active document, inserted
-   link text copies the current target note title; otherwise it uses the pasted
+   link text copies the target note title; otherwise it uses the pasted
    URL string.
 9. Typing a URL — including a same-origin RemDo note URL — uses Lexical generic
    link behavior; the note-link upgrade applies only to paste.
