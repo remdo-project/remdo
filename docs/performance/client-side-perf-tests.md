@@ -1,7 +1,7 @@
 # Client-Side Performance Tests
 
-Defines the client-side editor performance benchmark suite: what it measures,
-its workloads and operations, and the runner surface.
+The client-side editor performance benchmark suite defines its measurements,
+workloads, operations, and runner surface below.
 
 1. Scope: client-side editor behavior only, benched without collaboration
    (`non-collab`).

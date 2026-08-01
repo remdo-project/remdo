@@ -1,9 +1,7 @@
 # Configuration
 
-## Purpose
-
-Define how RemDo resolves runtime configuration: which environment variables are
-real inputs, which values are derived, and how secrets are bootstrapped.
+RemDo resolves runtime configuration from declared environment inputs, derived
+values, and bootstrapped secrets.
 
 ## Resolution boundary
 
