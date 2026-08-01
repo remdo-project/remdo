@@ -19,7 +19,8 @@ supports the content allowed by its kind.
 
 The header is visually distinct from editor-note rows and is not one of them.
 It cannot be folded, indented, outdented, reordered, structurally deleted, or
-selected structurally, and structural commands do not target it.
+selected structurally, and structural commands do not target it. Selection
+extension between the header and its owned body stops at the boundary.
 
 ## Editing
 

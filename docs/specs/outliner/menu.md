@@ -1,9 +1,9 @@
 # Quick Action Menu
 
-RemDo has one quick action menu: an action popup opened from a note row or the
-keyboard for the current note or view. The menu is an
-[editor popup](./popups.md) and follows its shared contract; it owns only its
-entry, actions, and behavior.
+RemDo has one quick action menu: an action popup for a note row or the current
+[selection](./selection.md), with actions for the current note or view. The menu
+is an [editor popup](./popups.md) and follows its shared contract; it owns only
+its entry, actions, and behavior.
 
 ## Entry
 
@@ -53,7 +53,7 @@ entry, actions, and behavior.
    immediately (these accelerators replace the menu pattern's optional
    first-letter type-ahead).
 3. When opened from a row, the current note is that row's note. When opened
-   from double-Shift outside a view header, the current note is the focus note.
+   without a row and outside a view header, the current note is the focus note.
    A view-header menu has no current note.
 4. Selected note ranges never open multi-note menus; only the current note is
    used as note context, even when an action's target widens per its contract
