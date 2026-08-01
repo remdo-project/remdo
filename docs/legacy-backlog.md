@@ -655,7 +655,7 @@ Follow-ups to the spec in
   post-merge check; deps-refresh its matrix).
   Reconcile with AGENTS.md's declare-scope-in-situ rule via shared vocabulary +
   per-skill delta.
-- ESCALATE (docs-align): `docs/specs/outliner/menu.md:44` — advocate
+- ESCALATE (docs-align): `docs/specs/outliner/menu.md:43` — advocate
   proposed deleting "it has no query span, so it owns every key;" as a
   restatement of the shared editor-popup contract. Dual adjudicators split:
   one APPLY (the contract's "a popup with no pinned span owns every key" already
