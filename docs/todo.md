@@ -50,8 +50,8 @@ Remove rejected or obsolete items and empty sections.
 
 - **Body-local command targets.** Target behavior
   ([Body](specs/outliner/body.md#selection-and-structural-targeting),
-  [Indentation](specs/outliner/indentation.md#keyboard-indentation),
-  [Reordering](specs/outliner/reordering.md#keyboard-reordering),
+  [Indentation](specs/outliner/indentation.md#target-resolution),
+  [Reordering](specs/outliner/reordering.md#target-resolution),
   [List types](specs/outliner/list-types.md#toggling),
   [Mobile toolbar](specs/outliner/mobile-toolbar.md#actions), and
   [Menu](specs/outliner/menu.md#behavior)): a caret or inline text selection
