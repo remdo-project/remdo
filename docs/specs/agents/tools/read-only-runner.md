@@ -30,10 +30,8 @@ leaves absent values unset, so the agent applies its own default.
 **Prompt.** The runner passes the prompt to the agent's non-interactive session
 unchanged.
 
-**Review.** The runner gives each agent's native review the resolved scope:
-`uncommitted` covers every staged, unstaged, and untracked changed path and
-nothing from committed branch history, and `commit-range` covers `base` through
-the commit `HEAD` names when the invocation begins.
+**Review.** The runner gives each agent's native review the complete resolved
+scope.
 
 A review uses the native command's instructions and the repository guidance its
 session loads. The runner additionally instructs the reviewing agent and every

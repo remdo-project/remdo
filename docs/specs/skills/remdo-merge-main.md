@@ -5,6 +5,13 @@ result. Requested local work may be preserved; unrelated branch convergence
 and remote mutation are outside the capability. Concurrent repository mutation
 and recovery from an interrupted run are also outside the capability.
 
+## Authority
+
+The skill declares the [autonomous
+scope](../../../AGENTS.md#safety--process) for the branch update, merge and
+correction commits, and determined conflict resolutions. Preserve mode also
+covers saving and restoring local work.
+
 ## Target
 
 The run fetches remote `main` from `origin` and fixes the fetched commit as its
@@ -40,19 +47,12 @@ the Git merge state for manual recovery.
 ## Verification
 
 An up-to-date or fast-forward result requires no repository check. A merge
-commit requires `pnpm run check:full`.
+commit requires the [full repository check](../../../AGENTS.md#checks).
 
 When verification fails, the capability commits every determined correction
 caused by integrating the target, then runs complete verification again. An
 unrelated failure or one without a determined integration correction remains in
 the result without rolling back the merge.
-
-## Authority
-
-The skill declares the [autonomous
-scope](../../../AGENTS.md#safety--process) for the branch update, merge and
-correction commits, and determined conflict resolutions. Preserve mode also
-covers saving and restoring local work.
 
 ## Result
 

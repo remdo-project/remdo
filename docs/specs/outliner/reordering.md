@@ -1,7 +1,7 @@
 # Reordering
 
 This specification defines keyboard-driven reordering of target note ranges,
-including directional movement, subtree integrity, zoom boundaries, and no-op
+including directional movement, order preservation, zoom boundaries, and no-op
 behavior. Selection kinds and note ranges are defined by
 [Selection](../../outliner/selection.md).
 
@@ -15,8 +15,8 @@ A caret or inline text selection targets the
 [editor note](../../outliner/concepts.md#note-kinds) that owns its region as a
 one-note target range. A structural selection targets its selected note range.
 
-Reordering preserves the notes' document order and moves each note with its
-entire subtree.
+Reordering preserves the notes' [document
+order](../../outliner/concepts.md#definitions).
 
 ## Directional movement
 
