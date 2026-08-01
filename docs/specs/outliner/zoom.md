@@ -8,7 +8,7 @@ editing boundary, distinct from the editor's [selection](./selection.md).
 
 - **Zoom target:** The [`noteId`](./note-ids.md#definitions) identifying the
   current zoom root. The [document root](./note-model.md#definitions) represents
-  the full document view.
+  the document-root view.
 - **Zoom root:** The note whose subtree is displayed for the zoom target.
 - **Zoom boundary:** The zoom root and all its descendants.
 - **View actions:** Commands operating on the zoom boundary rather than one
@@ -18,9 +18,9 @@ editing boundary, distinct from the editor's [selection](./selection.md).
 
 ## Visibility and editing boundary
 
-1. The document-root view displays the full document tree. It is the default
+1. The **document-root view** displays the full document tree. It is the default
    and the fallback for a missing or invalid zoom target.
-2. A subtree view displays only the zoom root and its descendants. The zoom
+2. A **subtree view** displays only the zoom root and its descendants. The zoom
    root defines the current location, and descendants retain their relative
    indentation.
 3. Zoom does not add a note kind or structural level. Note identity and

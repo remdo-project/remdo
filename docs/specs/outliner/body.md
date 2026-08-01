@@ -15,18 +15,18 @@ navigation, lifecycle, and merge behavior.
    structural delete, and
    [clipboard](./clipboard.md) copy/cut/paste.
 3. **Visually distinct.** A body renders set apart from the note's content. If
-   its owning note is a checked task, the body text is crossed out with the note.
+   its owning note is checked, the body text is crossed out with the note.
 4. **Inline content.** Body text supports the same key-driven inline content as
    note content — inline formatting (no separate formatting UI) and `@` note
    links (see [Links](./links.md)).
 
 ## Selection and structural targeting
 
-For [selection](./selection.md), a note's content and its body are two distinct
-**regions**:
+For [selection](./selection.md), a note's content and its body are distinct
+[selection regions](./selection.md#selection-states):
 
-- An inline selection lives within exactly one region — one note's content, or
-  one body.
+- An inline text selection lives within exactly one selection region — one
+  note's content, or one body.
 - A selection spanning a note's content and its own body is structural, limited
   to that single note (a note is never selected structurally without its body).
 - Any selection crossing two notes — including one with an endpoint inside a

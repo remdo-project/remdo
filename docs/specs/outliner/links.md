@@ -3,7 +3,7 @@
 RemDo-owned note links preserve stable note identity and remain distinct from
 generic external links.
 
-## State boundary terms
+## Definitions
 
 1. **Runtime editor state:** the in-memory Lexical node state used by editor
    behavior and rendering.
@@ -12,12 +12,16 @@ generic external links.
 3. **Clipboard payload:** transient copy/cut payload (`application/x-lexical-editor`)
    exchanged between editor contexts.
 4. **Collaboration state:** shared runtime state (for example Yjs-backed) that
-   must behave like runtime/editor state while synced.
+   must behave like runtime editor state while synced.
+5. **`docId`:** the note-link field carrying the target document's
+   [documentId](./note-ids.md#definitions).
+6. **`noteId`:** the note-link field carrying the target note's
+   [noteId](./note-ids.md#definitions).
 
 ## Core behavior
 
-1. RemDo-owned links are note links targeting stable note identity
-   (`docId` + `noteId`), not the visible link text.
+1. RemDo-owned links target stable note identity (`docId` + `noteId`), not the
+   visible link text.
 2. Generic URL links do not use RemDo note-link semantics; they use normal
    Lexical link behavior, including generic URL autolinking.
 3. RemDo classification runs before generic link handling so RemDo-owned note
@@ -33,7 +37,7 @@ generic external links.
    title and then stored locally; later target renames do not update it.
 7. Note-link clicks use native `href` navigation semantics and route handling.
 8. Pasting a RemDo-owned plain-text note URL inserts a
-   note-link node. When the target is in the current document, inserted
+   note-link node. When the target is in the active document, inserted
    link text copies the current target note title; otherwise it uses the pasted
    URL string.
 9. Typing a URL — including a same-origin RemDo note URL — uses Lexical generic
@@ -48,7 +52,7 @@ generic external links.
 
 ## Identity Representation Boundaries
 
-1. Runtime/editor state keeps note links fully qualified (`docId` +
+1. Runtime editor state keeps note links fully qualified (`docId` +
    `noteId`).
 2. Persisted JSON state must omit `docId` when a link targets the active
    document. This keeps document identity host-owned rather than embedded as
@@ -62,11 +66,12 @@ generic external links.
 
 ## Query and ranking
 
-1. Search scope is the whole current document, including while zoomed into a
-   subtree.
+1. Search scope is the whole active document, including in a
+   [subtree view](./zoom.md#visibility-and-editing-boundary).
 2. Filtering uses the same path-token matching as document search (defined in
    [Search](./search.md#behavior)).
-3. The current note is excluded from results (self-links are out of scope).
+3. The [focus note](./selection.md#selection-states) is excluded from results
+   (self-links are out of scope).
 4. Picker rows show the minimal ancestor context needed to disambiguate duplicate
    titles in the current result set.
 5. If results are still visually identical after full ancestor context, they

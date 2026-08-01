@@ -23,7 +23,8 @@ behavior.
    [caret or inline text selection](./selection.md#selection-states), or every
    note in a [selected note range](./selection.md#note-ranges).
    [Body](./body.md#selection-and-structural-targeting) owns the mapping from a
-   body region to its editor note. The action contracts are:
+   body [selection region](./selection.md#selection-states) to its editor note.
+   The action contracts are:
    - Indent / outdent, per
      [Indentation](./indentation.md).
    - Move up / move down, per
@@ -32,7 +33,8 @@ behavior.
      [List types](./list-types.md#toggling).
    - Delete removes the targeted notes and their subtrees per
      [Deletion](./deletion.md), with no confirmation step. For a caret this
-     removes the focused note (not the caret-mode merge that Backspace performs).
+     removes the [focus note](./selection.md#selection-states), not the caret
+     merge that Backspace performs.
 3. Toggle fold acts on the focus note per [Folding](./folding.md).
 4. Undo and redo act on the document's edit history rather than the selection,
    reversing and reapplying the most recent edits.

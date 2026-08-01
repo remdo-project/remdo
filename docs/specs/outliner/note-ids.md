@@ -65,9 +65,9 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 
 ## Persisted JSON and normalization
 
-- Persisted JSON document state must include `noteId` for addressable notes.
-- Persisted JSON document state must not persist the active/current document ID
-  as document-level identity.
+- Persisted JSON state must include `noteId` for addressable notes.
+- Persisted JSON state must not persist the active document ID as document-level
+  identity.
 - On load, any missing or duplicate `noteId` values must be normalized before
   the document is exposed to the app: keep existing unique IDs and assign fresh
   IDs to missing or colliding notes (preserving

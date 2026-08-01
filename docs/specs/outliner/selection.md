@@ -5,18 +5,22 @@ structural commands rely on it.
 
 ## Selection states
 
+A **selection region** is one [editor note](./note-model.md#note-kinds)'s
+content or [body](./body.md). A note's content and its body are separate
+selection regions.
+
 A selection is always exactly one of:
 
-1. **Caret selection** — a collapsed caret inside one note region.
-2. **Inline text selection** — a non-collapsed text range inside one note
-   region. Selecting all text in that region remains inline; textual coverage
-   does not make a selection structural.
+1. **Caret selection** — a collapsed caret inside one selection region.
+2. **Inline text selection** — a non-collapsed text range inside one selection
+   region. Selecting all text in that region remains inline; textual
+   coverage does not make a selection structural.
 3. **Structural selection** — one or more notes selected as structural units,
    each together with its entire [subtree](./note-model.md#definitions).
 
-[Body](./body.md#selection-and-structural-targeting) defines how a body region
-supplies its owning [editor note](./note-model.md#note-kinds) to structural
-commands.
+The **focus note** is the editor note containing the selection's focus endpoint.
+[Body](./body.md#selection-and-structural-targeting) defines how a focus inside
+a body maps to its owning editor note.
 
 **Mode switch.** Typing inserts characters only in states 1 and 2. In state 3,
 the editor is in structural mode: keystrokes that would type become no-ops and
@@ -94,7 +98,7 @@ in place where possible; the disturbance tiers are defined in
 
 | Input | Effect |
 | ----- | ------ |
-| `Shift+Left/Right` | Inline-only text selection inside the active note; a no-op at the note boundary. |
+| `Shift+Left/Right` | Inline-only text selection inside the focus note; a no-op at the note boundary. |
 | `Shift+Up/Down` | Walk the selection ladder one note at a time in that direction (push the next rung, or pop on reversal). |
 | `Cmd/Ctrl+A` | Grow the same ladder outward one rung per press (direction-neutral), adding the whole sibling group of a sibling rung at once. |
 | `Shift+Click` | Extend to the clicked note, producing a structural selection with a contiguous selected note range; the anchor is the click origin and the resulting range seeds the ladder so later `Shift+Up/Down` can pop it. |
@@ -103,7 +107,7 @@ in place where possible; the disturbance tiers are defined in
 | `Esc` | Collapses any structural selection to a caret without changing the document. |
 | Unmodified Arrow / `Home` / `End` / `Page` keys | Collapse a structural selection and place the caret at the corresponding edge (start/end or top/bottom) so typing resumes there. |
 | `Tab` / `Shift+Tab` | Indent / outdent the selection — see [Indentation](./indentation.md). |
-| `Enter` | Caret mode: see [Insertion](./insertion.md). Structural mode: no-op. |
+| `Enter` | Caret selection: see [Insertion](./insertion.md). Structural selection: no-op. |
 
 ## Collaboration reshaping
 
@@ -130,7 +134,7 @@ selection.
 
 | Selection state | Allowed operations |
 | --------------- | ------------------ |
-| Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List types](./list-types.md#toggling)); structural commands may resolve a one-note target range as defined by the command. |
+| Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List types](./list-types.md#toggling)); structural commands may resolve a one-note target note range as defined by the command. |
 | Inline text selection | Inline formatting, inline delete/backspace, and toggle checked; structural commands define whether and how the selection resolves to a target note range. |
 | Structural selection | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste, toggle checked, and other structural commands operate on its selected note range in [document order](./note-model.md#definitions). |
 

@@ -29,16 +29,20 @@ only; it never changes the underlying outline structure or note identities.
    folding applies inside that view and zooming does not reset folding.
 8. Exception: when a folded note is the current
    [zoom root](./zoom.md#definitions), its own fold state does not hide its
-   direct children in the zoomed view. Those children remain visible there, and
-   deeper visibility is determined by each descendant's own fold state.
+   direct children in the
+   [subtree view](./zoom.md#visibility-and-editing-boundary). Those children
+   remain visible there, and deeper visibility is determined by each
+   descendant's own fold state.
 
 ## Fold To Level
 
 1. `Shift`, `Shift`, then `1` through `9` folds notes inside the current zoom
    boundary so that only notes up to that level remain visible.
 2. Level is counted from the current view root:
-   - in document-root view, level `1` leaves only top-level notes visible;
-   - in subtree zoom, level `1` leaves the zoom root and its direct children
+   - in the [document-root view](./zoom.md#visibility-and-editing-boundary),
+     level `1` leaves only top-level notes visible;
+   - in a [subtree view](./zoom.md#visibility-and-editing-boundary), level `1`
+     leaves the zoom root and its direct children
      visible.
 3. Pressing `0` fully unfolds the current
    [zoom boundary](./zoom.md#definitions).

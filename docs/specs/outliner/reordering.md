@@ -15,9 +15,10 @@ no-ops.
 ## Target resolution
 
 A [caret or inline text selection](./selection.md#selection-states) targets the
-[editor note](./note-model.md#note-kinds) that owns its region as a one-note
-target range. [Body](./body.md#selection-and-structural-targeting) owns the
-mapping from a body region to its editor note. A
+[editor note](./note-model.md#note-kinds) that owns its
+[selection region](./selection.md#selection-states) as a one-note target note
+range. [Body](./body.md#selection-and-structural-targeting) owns the mapping from
+a body selection region to its editor note. A
 [structural selection](./selection.md#selection-states) targets its
 [selected note range](./selection.md#note-ranges).
 
@@ -78,10 +79,11 @@ note3
 
 ## Zoom boundary
 
-When [zoom](./zoom.md) is active, a reordering step is valid only
-when the complete result remains inside the zoom boundary. An out-of-boundary
-step is skipped while the command continues through the directional cascade.
-When no in-boundary step is available, the document remains unchanged.
+In a [subtree view](./zoom.md#visibility-and-editing-boundary), a reordering
+step is valid only when the complete result remains inside the zoom boundary.
+An out-of-boundary step is skipped while the command continues through the
+directional cascade. When no in-boundary step is available, the document
+remains unchanged.
 
 ## Future
 

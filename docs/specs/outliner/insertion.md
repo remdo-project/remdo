@@ -3,7 +3,7 @@
 With a **[caret selection](./selection.md#selection-states)**, `Enter` inserts
 new notes.
 The caret is inside a single note and actions apply to the
-active note text. Unless stated otherwise, parent notes are expanded; folded and
+that note's text. Unless stated otherwise, parent notes are expanded; folded and
 collapsed parent behavior is called out explicitly (see [Folding](./folding.md)).
 
 ## Default behavior (caret selection)
@@ -19,11 +19,11 @@ collapsed parent behavior is called out explicitly (see [Folding](./folding.md))
 
 ## Zoom boundary behavior (caret selection)
 
-When zoom is active, default insertion still applies to the outline children
-except where it would place the new note outside the
-[zoom boundary](./zoom.md#definitions); in those cases insertion stays inside
-the [subtree](./note-model.md#definitions). `Enter` from the
-[view header](./view-header.md) is defined by the view-header rules.
+In a [subtree view](./zoom.md#visibility-and-editing-boundary), default
+insertion still applies to the outline children except where it would place the
+new note outside the [zoom boundary](./zoom.md#definitions); in those cases
+insertion stays inside the [subtree](./note-model.md#definitions). `Enter` from
+the [view header](./view-header.md) is defined by the view-header rules.
 
 ## Focus rules
 

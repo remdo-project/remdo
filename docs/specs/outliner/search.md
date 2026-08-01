@@ -9,13 +9,15 @@ zooming to a result.
 - **Highlighted note:** the single note targeted by search navigation.
 - **Result row:** the rendering for a single search result (see Result row
   context).
+- **No matches:** the active document has search candidates, but none match the
+  current query.
+- **No notes:** the active document has no search candidates.
 
 ## Scope and boundaries
 
-1. Search always runs against the current active document only.
-2. Search empty states (`No matches` / `No notes`) mean the current active
-   document has no matching/all candidates. They do not represent invalid
-   routes, unavailable documents, or offline loading states.
+1. Search always runs against the active document only.
+2. Search empty states do not represent invalid routes, unavailable documents,
+   or offline loading states.
 3. Runtime document-ID ownership and route/link identity are defined in
    [Note IDs](./note-ids.md) and [Links](./links.md), not in this search spec.
 
