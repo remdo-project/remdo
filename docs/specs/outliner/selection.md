@@ -5,9 +5,11 @@ structural commands rely on it.
 
 ## Selection states
 
-A **selection region** is one [editor note](./note-model.md#note-kinds)'s
-content or [body](./body.md). A note's content and its body are separate
-selection regions.
+A **selection region** is an independently selectable inline-editing surface:
+an [editor note](./note-model.md#note-kinds)'s content, its [body](./body.md),
+or the [document root](./note-model.md#definitions)'s editable
+[view header](./view-header.md). An editor note's content and its body are
+separate selection regions.
 
 A selection is always exactly one of:
 
@@ -20,7 +22,8 @@ A selection is always exactly one of:
 
 The **focus note** is the editor note containing the selection's focus endpoint.
 [Body](./body.md#selection-and-structural-targeting) defines how a focus inside
-a body maps to its owning editor note.
+a body maps to its owning editor note. A selection in the document root's view
+header has no focus note.
 
 **Mode switch.** Typing inserts characters only in states 1 and 2. In state 3,
 the editor is in structural mode: keystrokes that would type become no-ops and
@@ -98,7 +101,7 @@ in place where possible; the disturbance tiers are defined in
 
 | Input | Effect |
 | ----- | ------ |
-| `Shift+Left/Right` | Inline-only text selection inside the focus note; a no-op at the note boundary. |
+| `Shift+Left/Right` | Extends an inline text selection inside its selection region; a no-op at the region boundary. |
 | `Shift+Up/Down` | Walk the selection ladder one note at a time in that direction (push the next rung, or pop on reversal). |
 | `Cmd/Ctrl+A` | Grow the same ladder outward one rung per press (direction-neutral), adding the whole sibling group of a sibling rung at once. |
 | `Shift+Click` | Extend to the clicked note, producing a structural selection with a contiguous selected note range; the anchor is the click origin and the resulting range seeds the ladder so later `Shift+Up/Down` can pop it. |

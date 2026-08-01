@@ -52,10 +52,7 @@ shared contract; it owns only its entry, actions, and behavior.
    first-letter type-ahead).
 3. When opened from a row, the current note is that row's note. When opened
    from double-Shift, the current note is the
-   [editor note](./note-model.md#note-kinds) owning the
-   [selection region](./selection.md#selection-states);
-   [Body](./body.md#selection-and-structural-targeting) owns the mapping from a
-   body selection region to its editor note.
+   [focus note](./selection.md#selection-states).
 4. Selected note ranges never open multi-note menus; only the current note is
    used as note context, even when an action's target widens per its contract
    (as Toggle checked's does).
