@@ -1,8 +1,8 @@
-# Lexical note adapter
+# Lexical outline adapter
 
 This specification defines how the Lexical editor adapter represents the
-[note model](./note-model.md) and where canonical runtime assumptions give way
-to tolerant persistence handling.
+[note model](../outliner/note-model.md) and where canonical runtime assumptions
+give way to tolerant persistence handling.
 
 ## Representation
 
@@ -22,8 +22,8 @@ structural representation.
 ## Runtime and persistence boundaries
 
 Runtime editor logic receives the canonical representation, including
-addressable content items with [`noteId`](./note-ids.md). A violation is an
-implementation defect rather than an expected nullable case for editing
+addressable content items with [`noteId`](../outliner/note-ids.md). A violation
+is an implementation defect rather than an expected nullable case for editing
 helpers.
 
 Persisted-state load, import, save, and export boundaries own tolerant
@@ -31,4 +31,5 @@ normalization. They repair external representations before exposing them to
 runtime editing and serialize the canonical runtime model for persistence.
 
 Structural behavior remains owned by the capability performing it, including
-[indentation](./indentation.md) and [reordering](./reordering.md).
+[indentation](../outliner/indentation.md) and
+[reordering](../outliner/reordering.md).
