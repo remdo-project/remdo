@@ -48,16 +48,21 @@ Remove rejected or obsolete items and empty sections.
   together with the decision. Coordinate with the
   [legacy view-header follow-ups](legacy-backlog.md#home-and-view-header-follow-ups).
 
-- **Body-local structural-command target.** Target behavior
+- **Body-local command targets.** Target behavior
   ([Body](specs/outliner/body.md#selection-and-structural-targeting),
   [Indentation](specs/outliner/indentation.md#keyboard-indentation),
-  [Reordering](specs/outliner/reordering.md#keyboard-reordering)): a caret or
-  inline text selection targets the editor note owning its region. The
-  implementation resolves a body caret through
-  `$resolveStructuralRangeFromLexicalSelection`'s collapsed fallback, but
-  `$getContiguousSelectionHeads` returns no heads for a body-local inline
-  selection, so indentation and reordering are no-ops. Align the resolver and
-  add focused coverage for both commands.
+  [Reordering](specs/outliner/reordering.md#keyboard-reordering),
+  [List types](specs/outliner/list-types.md#toggling),
+  [Mobile toolbar](specs/outliner/mobile-toolbar.md#actions), and
+  [Menu](specs/outliner/menu.md#behavior)): a caret or inline text selection
+  inside a body targets its owning editor note for commands that act on a note.
+  The structural resolver handles a collapsed body caret, but a body-local
+  inline selection produces no range, leaving indentation, reordering, and
+  toolbar deletion as no-ops. `$resolveToggleTargets` and
+  `$resolveFocusNoteKey` use body-rejecting content resolution, leaving
+  checked-state toggles, focus-note toolbar actions, and the double-Shift menu
+  as no-ops. Align shared body-to-owner resolution and add focused coverage for
+  each affected command path.
 
 - **Tri-state checked rendering and toggle polarity.** Target behavior
   ([List types](specs/outliner/list-types.md#checked-state)): a note whose
