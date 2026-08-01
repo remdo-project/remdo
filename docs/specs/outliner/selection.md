@@ -20,10 +20,11 @@ A selection is always exactly one of:
 3. **Structural selection** — one or more notes selected as structural units,
    each together with its entire [subtree](./note-model.md#definitions).
 
-The **focus note** is the editor note containing the selection's focus endpoint.
-[Body](./body.md#selection-and-structural-targeting) defines how a focus inside
-a body maps to its owning editor note. A selection in the document root's view
-header has no focus note.
+The **focus note** is the editor note containing a caret or inline text
+selection's focus endpoint, or the editor note at a structural selection's
+focus edge. [Body](./body.md#selection-and-structural-targeting) defines how a
+focus inside a body maps to its owning editor note. A selection in the document
+root's view header has no focus note.
 
 **Mode switch.** Typing inserts characters only in states 1 and 2. In state 3,
 the editor is in structural mode: keystrokes that would type become no-ops and
@@ -49,6 +50,11 @@ selection extends beyond one note's content, it becomes a structural selection
 whose selected note range covers the crossed notes.
 
 ## The selection ladder
+
+The selection ladder applies only to a selection with a focus note. In the
+document root's view header, `Shift+Arrow` stays within the header's selection
+region and `Cmd/Ctrl+A` selects all header content; neither input creates a
+structural selection.
 
 The selection cannot grow by single rows; it grows and shrinks along a single
 ordered ladder whose every structural rung has a legal selected note range.
@@ -102,8 +108,8 @@ in place where possible; the disturbance tiers are defined in
 | Input | Effect |
 | ----- | ------ |
 | `Shift+Left/Right` | Extends an inline text selection inside its selection region; a no-op at the region boundary. |
-| `Shift+Up/Down` | Walk the selection ladder one note at a time in that direction (push the next rung, or pop on reversal). |
-| `Cmd/Ctrl+A` | Grow the same ladder outward one rung per press (direction-neutral), adding the whole sibling group of a sibling rung at once. |
+| `Shift+Up/Down` | With a focus note, walk the selection ladder one note at a time in that direction (push the next rung, or pop on reversal). |
+| `Cmd/Ctrl+A` | With a focus note, grow the same ladder outward one rung per press (direction-neutral), adding the whole sibling group of a sibling rung at once. |
 | `Shift+Click` | Extend to the clicked note, producing a structural selection with a contiguous selected note range; the anchor is the click origin and the resulting range seeds the ladder so later `Shift+Up/Down` can pop it. |
 | Drag | Highlights text until it crosses a note boundary, then snaps to whole notes. |
 | Long-press (touch) | Enters caret selection; dragging handles behaves like text selection until it crosses a boundary, then snaps to whole notes. |
