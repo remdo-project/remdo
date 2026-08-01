@@ -28,14 +28,12 @@ function resolveEditorDocIdFromUrl(url: string): string {
 export async function captureCreatedEditorDoc(
   page: Page,
   createDoc: () => Promise<void>,
-  trackDocId: (docId: string) => void,
 ): Promise<string> {
   const previousUrl = page.url();
   await createDoc();
   await expect(page).not.toHaveURL(previousUrl);
   await editorLocator(page).locator('.editor-input').first().waitFor();
   const docId = resolveEditorDocIdFromUrl(page.url());
-  trackDocId(docId);
   return docId;
 }
 

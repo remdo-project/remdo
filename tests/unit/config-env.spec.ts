@@ -295,6 +295,49 @@ describe('config env resolve', () => {
     expect(collabPort).toBe('4004');
   });
 
+  it('launches an entire local stack in an offset port range', () => {
+    const env = {
+      ...process.env,
+      NODE_ENV: 'development',
+      PORT_BASE: '4000',
+      PORT: '9000',
+      AUTH_URL: 'http://localhost:9000',
+      HMR_PORT: '9001',
+      COLLAB_SERVER_PORT: '9004',
+      API_SERVER_PORT: '9011',
+      YSWEET_CONNECTION_STRING: 'ys://127.0.0.1:9004',
+    };
+    const output = execFileSync(
+      './tools/env.sh',
+      [
+        '--port-base-offset',
+        '50',
+        'sh',
+        '-c',
+        'printf \'%s\\n\' "$PORT_BASE" "$PORT" "$HMR_PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT" "$YSWEET_CONNECTION_STRING"; printenv AUTH_URL || printf \'unset\\n\'',
+      ],
+      { env, encoding: 'utf8' },
+    );
+
+    expect(output.trim().split('\n')).toEqual([
+      '4050',
+      '4050',
+      '4051',
+      '4054',
+      '4061',
+      'ys://127.0.0.1:4054',
+      'unset',
+    ]);
+  });
+
+  it('rejects a port-base offset with a leading zero', () => {
+    expect(() => execFileSync(
+      './tools/env.sh',
+      ['--port-base-offset', '08', 'true'],
+      { encoding: 'utf8' },
+    )).toThrow();
+  });
+
   it('uses the un-prefixed ALLOW_SIGNUP key (no auth-prefixed variant)', () => {
     expect(envSchema).toHaveProperty('ALLOW_SIGNUP');
     expect(envSchema).not.toHaveProperty('AUTH_ALLOW_SIGNUP');

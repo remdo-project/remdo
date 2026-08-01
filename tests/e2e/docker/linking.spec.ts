@@ -1,4 +1,4 @@
-import { expect, setExpectedConsoleIssues, test } from '#e2e/fixtures';
+import { expect, guardedTest as test, setExpectedConsoleIssues } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { Buffer } from 'node:buffer';
 import process from 'node:process';

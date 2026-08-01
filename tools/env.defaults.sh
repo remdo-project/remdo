@@ -6,6 +6,20 @@
 : "${NODE_ENV:=development}"
 : "${HOST:=localhost}"
 : "${PORT_BASE:=4000}"
+
+# Shift complete local stacks before deriving their ports. Derived values may
+# already be present when one env-managed command launches another, so discard
+# them rather than mixing endpoints from the original and shifted ranges.
+if [ -n "${_remdo_port_base_offset:-}" ]; then
+  PORT_BASE="$((PORT_BASE + _remdo_port_base_offset))"
+  unset \
+    PORT AUTH_URL \
+    HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT \
+    COLLAB_SERVER_PORT PREVIEW_PORT API_SERVER_PORT \
+    YSWEET_CONNECTION_STRING
+fi
+unset _remdo_port_base_offset
+
 : "${PORT:=$((PORT_BASE + 0))}"
 : "${COLLAB_ENABLED:=true}"
 : "${DEV_DOCUMENT_ID:=devDoc}"
@@ -23,7 +37,6 @@
 : "${VITEST_PREVIEW_PORT:=$((PORT_BASE + 3))}"
 : "${COLLAB_SERVER_PORT:=$((PORT_BASE + 4))}"
 : "${PREVIEW_PORT:=$((PORT_BASE + 5))}"
-: "${PLAYWRIGHT_UI_PORT:=$((PORT_BASE + 6))}"
 : "${API_SERVER_PORT:=$((PORT_BASE + 11))}"
 : "${YSWEET_CONNECTION_STRING:=ys://127.0.0.1:${COLLAB_SERVER_PORT}}"
 
@@ -87,7 +100,6 @@ if [ "${NODE_ENV}" != "production" ]; then
     "${VITEST_PREVIEW_PORT}" \
     "${COLLAB_SERVER_PORT}" \
     "${PREVIEW_PORT}" \
-    "${PLAYWRIGHT_UI_PORT}" \
     "${API_SERVER_PORT}"
   do
     remdo_assert_browser_safe_port "${derived_port}"
@@ -96,5 +108,5 @@ fi
 
 export NODE_ENV HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI VITEST_PREVIEW TMPDIR
 export HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT API_SERVER_PORT YSWEET_CONNECTION_STRING
-export PREVIEW_PORT PLAYWRIGHT_UI_PORT
+export PREVIEW_PORT
 export AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_PUBLIC_URL ALLOW_SIGNUP

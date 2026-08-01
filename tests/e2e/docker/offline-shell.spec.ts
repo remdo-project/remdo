@@ -2,7 +2,7 @@ import {
   attachPageGuards,
   collectCurrentUserRequests,
   expect,
-  test,
+  guardedTest as test,
   unauthenticatedTest,
 } from '#e2e/fixtures';
 import { createUniqueNoteId } from '#domain/notes/ids';

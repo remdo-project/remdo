@@ -1,4 +1,4 @@
-import { expect, test } from '#e2e/fixtures';
+import { expect, guardedTest as test } from '#e2e/fixtures';
 import { config } from '#config';
 import type { CurrentUserBootstrap, UserDocument } from '#domain/documents/user-data';
 import type { ClientToken } from '@y-sweet/sdk';

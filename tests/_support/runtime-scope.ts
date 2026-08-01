@@ -3,6 +3,8 @@ import path from 'node:path';
 import { config } from '#config';
 import { createUniqueNoteId } from '#domain/notes/ids';
 
+// TODO: Give the collab suite a suite-owned server/data directory and remove
+// this per-document cleanup; a live Y-Sweet server can persist deleted files again.
 export async function cleanupCollabDoc(docId: string): Promise<void> {
   const docPath = path.join(config.env.DATA_DIR, 'collab', docId);
   await fs.rm(docPath, { recursive: true, force: true });

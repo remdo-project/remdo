@@ -123,11 +123,18 @@ file as the [document registry](./architecture.md#document-registry).
 - Purpose: browser-level verification against the local app stack.
 - User: developer.
 - Platform: local machine.
-- Data boundary: local runtime and test data.
-- Notes: local E2E tests run against the Vite app server with mounted `/api/*`
-  routes plus the collaboration server. They reuse already-running local
-  services on the configured ports, and create browser auth state through the
-  app origin.
+- Data boundary: fixed, resettable runtime data owned by the working directory.
+- Notes:
+  1. Each invocation owns a fresh loopback-only Vite app server with mounted
+     `/api/*` routes, a collaboration server, and uniquely provisioned
+     authenticated users.
+  2. The stack uses the working directory's `PORT_BASE + 50` range, and one E2E
+     invocation may run in a working directory at a time. An invocation does
+     not terminate or recover an earlier process; occupied reserved ports
+     refuse startup.
+  3. Full and filtered invocations use the same lifecycle and replace
+     `data/e2e-runtime` at startup. The completed or interrupted run remains
+     available for diagnosis until the next invocation.
 
 ### Docker E2E
 
@@ -145,8 +152,7 @@ file as the [document registry](./architecture.md#document-registry).
 - User: project automation.
 - Platform: CI runner.
 - Data boundary: runner-local temporary data.
-- Notes: local-stack E2E starts its required services and does not reuse
-  already-running ports.
+- Notes: local-stack E2E uses the same isolated lifecycle as local invocations.
 
 ## Operational modes
 

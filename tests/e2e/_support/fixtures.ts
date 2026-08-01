@@ -1,8 +1,9 @@
-import type { ConsoleMessage, Page, Response } from '@playwright/test';
+import type { ConsoleMessage, Page, Response, TestInfo } from '@playwright/test';
 import { expect, test as base } from '@playwright/test';
 import { HTTP_STATUS } from '#platform/http/status';
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
+import { createAuthenticatedContext } from './auth-context';
 
 interface EditorLike {
   getEditorState: () => Promise<unknown>;
@@ -102,7 +103,7 @@ function consumeExpectedIssue(expected: ConsoleIssueMatchers | undefined, issueM
   return false;
 }
 
-export function attachPageGuards(page: Page): () => void {
+export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) => void {
   const allowResponse = (response: Response) => {
     const url = response.url();
     if (url.startsWith('data:')) return true;
@@ -139,34 +140,54 @@ export function attachPageGuards(page: Page): () => void {
   page.on('pageerror', onPageError);
   page.on('response', onResponse);
 
-  return () => {
+  return (verifyExpectedIssues = true) => {
     const expected = issueExpectationsByPage.get(page);
     const outstandingExact = expected ? [...expected.exactCounts.entries()] : [];
     const outstandingContains = expected ? [...expected.containsCounts.entries()] : [];
     const outstanding = [...outstandingExact, ...outstandingContains];
-    if (outstanding.length > 0) {
-      const remaining = outstanding.flatMap(([message, count]) =>
-        Array.from({ length: count }).fill(message));
-      throw new Error(`Expected console issues not reported: ${remaining.join(', ')}`);
-    }
     issueExpectationsByPage.delete(page);
     page.off('console', onConsole);
     page.off('pageerror', onPageError);
     page.off('response', onResponse);
+    if (verifyExpectedIssues && outstanding.length > 0) {
+      const remaining = outstanding.flatMap(([message, count]) =>
+        Array.from({ length: count }).fill(message));
+      throw new Error(`Expected console issues not reported: ${remaining.join(', ')}`);
+    }
   };
 }
 
-export const test = base.extend({
-  page: async ({ page }, apply) => {
-    const detach = attachPageGuards(page);
+export async function withPageGuards(
+  page: Page,
+  apply: (guardedPage: Page) => Promise<void>,
+  testInfo: Pick<TestInfo, 'expectedStatus' | 'status'>,
+): Promise<void> {
+  const detach = attachPageGuards(page);
+  try {
     await apply(page);
-    detach();
+  } finally {
+    detach(testInfo.status === 'passed' && testInfo.expectedStatus === 'passed');
+  }
+}
+
+export const guardedTest = base.extend({
+  page: ({ page }, apply, testInfo) => withPageGuards(page, apply, testInfo),
+});
+
+export const test = guardedTest.extend({
+  context: async ({ browser, contextOptions }, apply) => {
+    const context = await createAuthenticatedContext(browser, contextOptions);
+    try {
+      await apply(context);
+    } finally {
+      await context.close();
+    }
   },
 });
 
 // Signed-out context: no cookies or stored origin state, so the app resolves the
 // unauthenticated session gate.
-export const unauthenticatedTest = test.extend({
+export const unauthenticatedTest = guardedTest.extend({
   storageState: {
     cookies: [],
     origins: [],

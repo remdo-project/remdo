@@ -24,7 +24,6 @@ describe('dev toolbar visibility', () => {
     renderDevToolbarLinks();
 
     expect(screen.queryByRole('link', { name: /vitest/i })).toBeNull();
-    expect(screen.queryByRole('link', { name: /playwright/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /lexical demo/i })).toBeNull();
     expect(screen.getByRole('button', { name: 'Show dev tools' })).toBeInTheDocument();
   });
