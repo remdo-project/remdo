@@ -27,6 +27,6 @@ selected structurally, and structural commands do not target it.
 2. When the location's kind can own a [body](./body.md), `Shift+Enter` focuses
    that body and creates it when absent.
 3. An owned body appears below the header and above the children. It follows
-   the body contract and is reached through `Shift+Enter` or a pointer click;
-   moving down from the header instead enters the first child.
+   the body contract; moving down from the header instead enters the first
+   child.
 4. `Backspace` at the start of the header is a no-op.
