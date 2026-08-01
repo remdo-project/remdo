@@ -1,26 +1,45 @@
 import type { Browser, BrowserContext, BrowserContextOptions } from '@playwright/test';
 import { config } from '#config';
+import { HTTP_STATUS } from '#platform/http/status';
 import { resolveAppOrigin } from '#platform/net/origins';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 
 export async function createAuthenticatedContext(
   browser: Browser,
   contextOptions: BrowserContextOptions,
+  account = createTestAuthAccount(),
 ): Promise<BrowserContext> {
   const context = await browser.newContext(contextOptions);
+  const appOrigin = resolveAppOrigin({ loopback: true });
 
   try {
-    const response = await context.request.post(
-      new URL('/api/admin/enroll', resolveAppOrigin({ loopback: true })).href,
+    // Authentication is harness control-plane setup, not behavior under test.
+    // Recover one ECONNRESET; a second exposes a persistent stack failure. Reuse
+    // the account so an enrollment committed before the reset can sign in below.
+    let response = await context.request.post(
+      new URL('/api/admin/enroll', appOrigin).href,
       {
         data: {
-          ...createTestAuthAccount(),
+          ...account,
           adminSecret: config.env.ADMIN_SECRET,
         },
+        maxRetries: 1,
       },
     );
+    if (response.status() === HTTP_STATUS.UNPROCESSABLE_ENTITY) {
+      response = await context.request.post(
+        new URL('/api/auth/sign-in/email', appOrigin).href,
+        {
+          data: {
+            email: account.email,
+            password: account.password,
+          },
+          maxRetries: 1,
+        },
+      );
+    }
     if (!response.ok()) {
-      throw new Error(`Failed to provision e2e user: ${response.status()} ${response.statusText()}`);
+      throw new Error(`Failed to authenticate e2e user: ${response.status()} ${response.statusText()}`);
     }
     return context;
   } catch (error) {

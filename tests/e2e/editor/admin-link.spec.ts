@@ -10,6 +10,7 @@ test.describe('Admin link in the top toolbar', () => {
     const document = await createUserDocument(page, `Admin Link ${Date.now()}`);
     await page.goto(createEditorDocumentPath(document.id));
     await editorLocator(page).locator('.editor-input').first().waitFor();
+    await expect(page.getByLabel(/Server connected/i)).toBeVisible();
 
     const adminLink = page.getByRole('link', { name: 'Admin' });
     await expect(adminLink).toBeVisible();
