@@ -1,4 +1,4 @@
-import type { ConsoleMessage, Page, Response } from '@playwright/test';
+import type { ConsoleMessage, Page, Response, TestInfo } from '@playwright/test';
 import { expect, test as base } from '@playwright/test';
 import { HTTP_STATUS } from '#platform/http/status';
 import type { Outline } from '#tests-common/outline';
@@ -160,19 +160,18 @@ export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) =
 export async function withPageGuards(
   page: Page,
   apply: (guardedPage: Page) => Promise<void>,
+  testInfo: Pick<TestInfo, 'expectedStatus' | 'status'>,
 ): Promise<void> {
   const detach = attachPageGuards(page);
   try {
     await apply(page);
-  } catch (error) {
-    detach(false);
-    throw error;
+  } finally {
+    detach(testInfo.status === 'passed' && testInfo.expectedStatus === 'passed');
   }
-  detach();
 }
 
 export const guardedTest = base.extend({
-  page: ({ page }, apply) => withPageGuards(page, apply),
+  page: ({ page }, apply, testInfo) => withPageGuards(page, apply, testInfo),
 });
 
 export const test = guardedTest.extend({

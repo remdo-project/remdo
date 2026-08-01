@@ -5,11 +5,11 @@ import {
   withPageGuards,
 } from '#e2e/fixtures';
 
-test('preserves a test failure when an expected console issue is not reported', async ({ page }) => {
-  const testFailure = new Error('test failed');
-
+test('does not add a guard failure when Playwright already reports a test failure', async ({ page }) => {
   await expect(withPageGuards(page, async guardedPage => {
     setExpectedConsoleIssues(guardedPage, ['expected warning']);
-    throw testFailure;
-  })).rejects.toBe(testFailure);
+  }, {
+    expectedStatus: 'passed',
+    status: 'failed',
+  })).resolves.toBeUndefined();
 });
