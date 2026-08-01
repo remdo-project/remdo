@@ -114,8 +114,8 @@ in place where possible; the disturbance tiers are defined in
 | Input | Effect |
 | ----- | ------ |
 | `Shift+Left/Right` | Extends an inline text selection inside its selection region; a no-op at the region boundary. |
-| `Shift+Up/Down` | With a focus note, walk the selection ladder one note at a time in that direction (push the next rung, or pop on reversal). |
-| `Cmd/Ctrl+A` | With a focus note, grow the same ladder outward one rung per press (direction-neutral), adding the whole sibling group of a sibling rung at once. |
+| `Shift+Up/Down` | With a focus note and the selection outside the view header, walk the selection ladder one note at a time in that direction (push the next rung, or pop on reversal). |
+| `Cmd/Ctrl+A` | Inside a body, selects that body's text per [Body](./body.md#navigation). Otherwise, with a focus note and the selection outside the view header, grow the same ladder outward one rung per press (direction-neutral), adding the whole sibling group of a sibling rung at once. |
 | `Shift+Click` | Extend to the clicked note, producing a structural selection with a contiguous selected note range; the anchor is the click origin and the resulting range seeds the ladder so later `Shift+Up/Down` can pop it. |
 | Drag | Highlights text until it crosses a note boundary, then snaps to whole notes. |
 | Long-press (touch) | Enters caret selection; dragging handles behaves like text selection until it crosses a boundary, then snaps to whole notes. |

@@ -10,9 +10,10 @@ shared contract; it owns only its entry, actions, and behavior.
    anchored to that row. The icon appears on hover or when the note is the
    caret/focus target.
 2. Double-Shift within 500ms opens the same quick action menu for the selection
-   context when the editor is focused. The gesture is a no-op when the selection
-   has no [focus note](./selection.md#selection-states). Any other key between
-   the two Shift presses cancels the gesture.
+   context when the editor is focused. The gesture is a no-op unless the
+   selection is in a [view header](./view-header.md#structural-boundary) or has
+   a [focus note](./selection.md#selection-states). Any other key between the two
+   Shift presses cancels the gesture.
 
 ## Actions
 
@@ -21,8 +22,8 @@ shared contract; it owns only its entry, actions, and behavior.
      target.
    - **Children:** acts on the current note's child list.
    - **View:** acts on the current [zoom boundary](./zoom.md#definitions).
-2. When opened from a [view header](./view-header.md#structural-boundary), Note
-   and Children actions are unavailable; View actions remain available.
+2. When opened from a view header, Note and Children actions are unavailable;
+   View actions remain available.
 3. Note actions:
    - Toggle checked per
      [List types](./list-types.md#toggling): targets the
@@ -44,7 +45,8 @@ shared contract; it owns only its entry, actions, and behavior.
 
 ## Behavior
 
-1. The menu anchors to the triggering note row near the icon.
+1. The menu anchors to the current note's row near the icon. When opened from a
+   view header, it anchors near the header content.
 2. The menu uses the WAI-ARIA menu pattern: it has no query span; focus moves
    into the menu (roving over the items). `ArrowUp`/`Down`
    move the active item, `Enter`/`Space` activate it, `Tab` closes the menu and
@@ -53,8 +55,8 @@ shared contract; it owns only its entry, actions, and behavior.
    immediately (these accelerators replace the menu pattern's optional
    first-letter type-ahead).
 3. When opened from a row, the current note is that row's note. When opened
-   from double-Shift, the current note is the
-   [focus note](./selection.md#selection-states).
+   from double-Shift outside a view header, the current note is the focus note.
+   A view-header menu has no current note.
 4. Selected note ranges never open multi-note menus; only the current note is
    used as note context, even when an action's target widens per its contract
    (as Toggle checked's does).
