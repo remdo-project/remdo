@@ -1,9 +1,8 @@
 import { config } from '#config';
-import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
+import { createUniqueNoteId, normalizeNoteIdOrThrow } from '#domain/notes/ids';
 import { afterEach, aroundEach } from 'vitest';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tools/fixtures';
-import { cleanupCollabDoc, createTestRuntimeScope } from '#tests-common/runtime-scope';
 import { installAuthenticatedApiFetch } from '../../../../collab/_support/auth';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
 import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
@@ -19,7 +18,6 @@ async function applyEditorFixture(
 }
 
 aroundEach<TestContext>(async (run, ctx) => {
-  const runtimeScope = createTestRuntimeScope();
   const cleanupFetch = config.env.COLLAB_ENABLED ? await installAuthenticatedApiFetch() : () => {};
   const meta = ctx.task.meta;
   const fixtureName = meta.fixture;
@@ -27,11 +25,9 @@ aroundEach<TestContext>(async (run, ctx) => {
   setExpectedConsoleIssues(meta.expectedConsoleIssues ?? null);
 
   const rawDocId = meta.collabDocId ?? config.env.DEV_DOCUMENT_ID;
-  let docId = normalizeNoteIdOrThrow(rawDocId, `Invalid collab doc id: ${rawDocId}`);
-  const explicitCollabDocId = config.env.COLLAB_ENABLED && meta.collabDocId != null ? docId : null;
-  if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {
-    docId = runtimeScope.allocateDocId();
-  }
+  const docId = config.env.COLLAB_ENABLED && meta.collabDocId == null
+    ? createUniqueNoteId()
+    : normalizeNoteIdOrThrow(rawDocId, `Invalid collab doc id: ${rawDocId}`);
 
   const seedFixtureBeforeMount = Boolean(config.env.COLLAB_ENABLED && fixtureName);
 
@@ -57,12 +53,6 @@ aroundEach<TestContext>(async (run, ctx) => {
     await run();
   } finally {
     cleanupFetch();
-    if (config.env.COLLAB_ENABLED && meta.preserveCollabState !== true) {
-      if (explicitCollabDocId) {
-        await cleanupCollabDoc(explicitCollabDocId);
-      }
-      await runtimeScope.cleanupOwnedDocs();
-    }
   }
 }, config.env.COLLAB_ENABLED ? 15_000 : undefined);
 

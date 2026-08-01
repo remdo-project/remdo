@@ -113,10 +113,16 @@ file as the [document registry](./architecture.md#document-registry).
 - User: developer.
 - Platform: local machine.
 - Data boundary: local resettable runtime/test data.
-- Notes: collab tests use the configured local stack. They start missing
-  services and reuse already-running services on those ports. Auth test users
-  use a RemDo-specific email prefix, and stale prefixed users/document rows are
-  cleaned at startup.
+- Notes:
+  1. Unit tests run without collaboration services. Collab tests run the same
+     editor behaviors with collaboration enabled, plus collab-specific cases.
+  2. Each full or filtered collab invocation owns fresh loopback-only Y-Sweet
+     and RemDo API services in the working directory's `PORT_BASE + 30` range.
+     One collab invocation may run in a working directory at a time; occupied
+     reserved ports refuse startup without replacing prior runtime data.
+  3. Every invocation replaces `data/collab-test-runtime` after confirming its
+     ports are free. The completed or interrupted runtime remains available for
+     diagnosis until the next invocation.
 
 ### Browser E2E
 

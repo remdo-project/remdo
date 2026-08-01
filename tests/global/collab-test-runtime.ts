@@ -1,0 +1,92 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+import { config } from '../../config';
+import { resolveLoopbackHost } from '../../src/platform/net/loopback';
+import { ensureCollabServer } from '../../tools/lib/collab-server-helper';
+import { isPortOpen } from '../../tools/lib/net';
+import { startRemdoApiServer } from '../../tools/lib/remdo-api-server-helper';
+
+const COLLAB_TEST_DATA_DIR = path.resolve('data/collab-test-runtime');
+
+interface RequiredPort {
+  label: string;
+  port: number;
+}
+
+interface PrepareCollabTestRuntimeOptions {
+  dataDir: string;
+  host: string;
+  requiredPorts: RequiredPort[];
+}
+
+export async function prepareCollabTestRuntime({
+  dataDir,
+  host,
+  requiredPorts,
+}: PrepareCollabTestRuntimeOptions): Promise<void> {
+  const portStates = await Promise.all(requiredPorts.map(async ({ label, port }) => ({
+    label,
+    port,
+    open: await isPortOpen(host, port),
+  })));
+  const occupied = portStates.filter(({ open }) => open);
+  if (occupied.length > 0) {
+    const ports = occupied.map(({ label, port }) => `${label} ${host}:${port}`).join(', ');
+    throw new Error(`Collaboration test runtime requires free ports: ${ports}`);
+  }
+
+  await fs.rm(dataDir, { recursive: true, force: true });
+  await fs.mkdir(dataDir, { recursive: true });
+}
+
+async function stopAll(stops: Array<() => Promise<void>>): Promise<void> {
+  const results = await Promise.allSettled(stops.map(async stop => stop()));
+  const errors = results.flatMap(result => result.status === 'rejected' ? [result.reason] : []);
+  if (errors.length > 0) {
+    throw new AggregateError(errors, 'Failed to stop collaboration test services');
+  }
+}
+
+export default async function collabTestRuntime() {
+  if (!config.env.COLLAB_ENABLED) {
+    return;
+  }
+
+  const dataDir = path.resolve(config.env.DATA_DIR);
+  if (dataDir !== COLLAB_TEST_DATA_DIR) {
+    throw new Error(
+      `Refusing to reset non-test DATA_DIR ${dataDir}; run collaboration tests through pnpm test:collab`,
+    );
+  }
+
+  const host = resolveLoopbackHost(config.env.HOST);
+  await prepareCollabTestRuntime({
+    dataDir,
+    host,
+    requiredPorts: [
+      { label: 'Y-Sweet', port: config.env.COLLAB_SERVER_PORT },
+      { label: 'RemDo API', port: config.env.API_SERVER_PORT },
+    ],
+  });
+
+  const stopCollab = await ensureCollabServer({
+    port: config.env.COLLAB_SERVER_PORT,
+    reuseExisting: false,
+  });
+
+  try {
+    const stopApi = await startRemdoApiServer({
+      port: config.env.API_SERVER_PORT,
+      ySweetConnectionString: config.env.YSWEET_CONNECTION_STRING,
+    });
+    return () => stopAll([stopApi, stopCollab]);
+  } catch (error) {
+    try {
+      await stopCollab();
+    } catch (stopError) {
+      throw new AggregateError([error, stopError], 'Collaboration test runtime startup failed');
+    }
+    throw error;
+  }
+}

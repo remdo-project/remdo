@@ -14,7 +14,7 @@ export default defineConfig({
   ...createViteSharedConfig(),
   test: {
     environment: 'jsdom',
-    globalSetup: isVitestList ? undefined : './tests/global/collab-server-setup.ts',
+    globalSetup: isVitestList ? undefined : './tests/global/collab-test-runtime.ts',
     setupFiles: ['./tests/unit/_support/setup/index.ts'],
     include: [
       ...configDefaults.include,

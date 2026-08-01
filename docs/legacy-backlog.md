@@ -569,8 +569,8 @@ Durable fixes:
 
 - Add `files.watcherExclude` for `**/data/**` and `**/node_modules/**` (editor
   config; `.gitignore` is not honored by watchers).
-- Cap/rotate the `data/collab/` store, or have the test harness clean its collab
-  docs after runs, so it can't grow unbounded again.
+- Cap or rotate the development `data/collab/` store so it cannot grow
+  unbounded; collab tests use their own resettable runtime.
 
 ## Note body follow-ups
 

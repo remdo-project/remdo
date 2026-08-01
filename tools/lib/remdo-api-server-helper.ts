@@ -12,7 +12,6 @@ const MAX_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'remdo-api-server.log');
-const reusedServerStop = () => Promise.resolve();
 
 async function waitForPort(host: string, port: number, child: ChildProcess): Promise<void> {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
@@ -37,7 +36,7 @@ interface RemdoApiServerOptions {
   ySweetConnectionString?: string;
 }
 
-export async function ensureRemdoApiServer({
+export async function startRemdoApiServer({
   port = config.env.API_SERVER_PORT,
   ySweetConnectionString = config.env.YSWEET_CONNECTION_STRING,
 }: RemdoApiServerOptions = {}): Promise<StopRemdoApiServer> {
@@ -46,7 +45,7 @@ export async function ensureRemdoApiServer({
   const probeHost = resolveLoopbackHost(resolvedHost);
 
   if (await isPortOpen(probeHost, resolvedPort)) {
-    return reusedServerStop;
+    throw new Error(`RemDo API server already running on http://${probeHost}:${resolvedPort}`);
   }
 
   prepareManagedProcessLog(LOG_PATH);
