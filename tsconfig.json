@@ -82,6 +82,15 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true
   },
+  "watchOptions": {
+    "excludeDirectories": [
+      "./data",
+      "./dist",
+      "./coverage",
+      "./.agent",
+      "./public/playground"
+    ]
+  },
   "include": [
     "./**/*",
     // TS globs skip dot-directories; skill-local tools/tests need an explicit
