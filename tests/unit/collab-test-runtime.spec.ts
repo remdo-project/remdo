@@ -5,6 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import type { Server } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
+import { config } from '#config';
+import { resolveLoopbackHost } from '#platform/net/loopback';
 import { ensureCollabServer } from '#tools/collab-server-helper';
 import { startRemdoApiServer } from '#tools/remdo-api-server-helper';
 import { prepareCollabTestRuntime } from '../global/collab-test-runtime';
@@ -23,9 +25,9 @@ async function closeServer(server: Server): Promise<void> {
   });
 }
 
-async function withOccupiedPort(run: (port: number) => Promise<void>): Promise<void> {
+async function withOccupiedPort(host: string, run: (port: number) => Promise<void>): Promise<void> {
   const server = createServer();
-  server.listen(0, '127.0.0.1');
+  server.listen(0, host);
   await once(server, 'listening');
   const address = server.address();
   if (!address || typeof address === 'string') {
@@ -50,7 +52,7 @@ describe('collaboration test runtime', () => {
     const staleDataPath = path.join(dataDir, 'stale-data.txt');
     await fs.writeFile(staleDataPath, 'remove me');
     let availablePort = 0;
-    await withOccupiedPort(async (port) => {
+    await withOccupiedPort('127.0.0.1', async (port) => {
       availablePort = port;
     });
 
@@ -70,7 +72,7 @@ describe('collaboration test runtime', () => {
     const sentinelPath = path.join(dataDir, 'failure-evidence.txt');
     await fs.writeFile(sentinelPath, 'preserve me');
 
-    await withOccupiedPort(async (port) => {
+    await withOccupiedPort('127.0.0.1', async (port) => {
       await expect(prepareCollabTestRuntime({
         dataDir,
         host: '127.0.0.1',
@@ -82,17 +84,19 @@ describe('collaboration test runtime', () => {
   });
 
   it('refuses to reuse an occupied Y-Sweet port', async () => {
-    await withOccupiedPort(async (port) => {
+    const probeHost = config.env.HOST === 'localhost' ? '127.0.0.1' : resolveLoopbackHost(config.env.HOST);
+    await withOccupiedPort(probeHost, async (port) => {
       await expect(ensureCollabServer({ port, reuseExisting: false })).rejects.toThrow(
-        `Collaboration websocket already running on ws://127.0.0.1:${port}`,
+        `Collaboration websocket already running on ws://${probeHost}:${port}`,
       );
     });
   });
 
   it('refuses to reuse an occupied RemDo API port', async () => {
-    await withOccupiedPort(async (port) => {
+    const probeHost = resolveLoopbackHost(config.env.HOST);
+    await withOccupiedPort(probeHost, async (port) => {
       await expect(startRemdoApiServer({ port })).rejects.toThrow(
-        `RemDo API server already running on http://127.0.0.1:${port}`,
+        `RemDo API server already running on http://${probeHost}:${port}`,
       );
     });
   });
