@@ -2,9 +2,9 @@
 
 With a **[caret selection](./selection.md#selection-states)**, `Enter` inserts
 new notes.
-The caret is inside a single note and actions apply to the
-that note's text. Unless stated otherwise, parent notes are expanded; folded and
-collapsed parent behavior is called out explicitly (see [Folding](./folding.md)).
+The caret is inside a single note, and actions apply to that note's text. Unless
+stated otherwise, parent notes are expanded; folded and collapsed parent
+behavior is called out explicitly (see [Folding](./folding.md)).
 
 ## Default behavior (caret selection)
 
