@@ -25,7 +25,7 @@ only; it never changes the underlying outline structure or note identities.
 6. If a child is inserted or moved under a folded parent, the parent
    auto-expands. If a note loses its last child, it is no longer folded.
 7. [Zoom](./zoom.md) defines the outer visible
-   [subtree](./note-model.md#definitions);
+   [zoom boundary](./zoom.md#definitions);
    folding applies inside that view and zooming does not reset folding.
 8. Exception: when a folded note is the current
    [zoom root](./zoom.md#definitions), its own fold state does not hide its
@@ -55,5 +55,5 @@ only; it never changes the underlying outline structure or note identities.
    `1`.
 6. If applying a fold level would hide the active caret or structural
    selection, focus collapses to the nearest still-visible ancestor note.
-7. Existing manual folds inside the scoped subtree may be overwritten by the
+7. Existing manual folds inside the zoom boundary may be overwritten by the
    command. The command does not preserve or later restore a prior fold layout.
