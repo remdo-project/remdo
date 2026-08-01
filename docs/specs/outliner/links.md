@@ -26,7 +26,8 @@ generic external links.
 4. Links are created inline through `@`, an inline trigger character; its
    open/close/confirm lifecycle is the shared one in
    [Editor popups](./popups.md). The note-link spec defines only what differs.
-5. The query is the text after `@` in the pinned span, length minimum 0, so
+5. The query is the text after `@` in the
+   [pinned span](./popups.md#shared-editor-popup-contract), length minimum 0, so
    results may appear immediately. Whitespace is allowed in the query.
 6. On insertion, note-link display text is copied once from the target note
    title and then stored locally; later target renames do not update it.
@@ -69,7 +70,8 @@ generic external links.
 4. Picker rows show the minimal ancestor context needed to disambiguate duplicate
    titles in the current result set.
 5. If results are still visually identical after full ancestor context, they
-   remain untied and are shown in document order.
+   remain untied and are shown in
+   [document order](./note-model.md#definitions).
 6. No-match state is a single non-selectable `No results...` row.
 7. Creating new notes from the picker is out of scope.
 

@@ -70,7 +70,8 @@ Behavioral clipboard rules (placement, move validation, focus) live in
   as document-level identity.
 - On load, any missing or duplicate `noteId` values must be normalized before
   the document is exposed to the app: keep existing unique IDs and assign fresh
-  IDs to missing or colliding notes (preserving document order).
+  IDs to missing or colliding notes (preserving
+  [document order](./note-model.md#definitions)).
 - Normalized IDs must be persisted on the next save.
 
 ## Runtime document ID ownership

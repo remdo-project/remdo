@@ -18,15 +18,18 @@ shared contract; it owns only its entry, actions, and behavior.
 1. Menu actions have three scopes:
    - **Note:** acts on the current note, unless the action defines a wider
      target.
-   - **Children:** acts on the current note's child subtree.
-   - **View:** acts on the current [zoom](./zoom.md) boundary.
+   - **Children:** acts on the current note's child
+     [subtree](./note-model.md#definitions).
+   - **View:** acts on the current [zoom boundary](./zoom.md#definitions).
 2. Note actions:
    - Toggle checked per
      [List types](./list-types.md#toggling): targets the
-     selected note range when the current note is inside a structural
-     selection, otherwise the current note; shortcut `Cmd/Ctrl+Enter`.
+     [selected note range](./selection.md#note-ranges) when the current note is
+     inside a [structural selection](./selection.md#selection-states), otherwise
+     the current note; shortcut `Cmd/Ctrl+Enter`.
    - Fold/Unfold per [Folding](./folding.md), hidden for leaf notes and for the
-     current zoom root, shortcut `F` when the menu is open.
+     current [zoom root](./zoom.md#definitions), shortcut `F` when the menu is
+     open.
    - Zoom per [Zoom](./zoom.md), shortcut `Z`.
 3. Children actions:
    - Child list type actions per
@@ -48,9 +51,10 @@ shared contract; it owns only its entry, actions, and behavior.
    immediately (these accelerators replace the menu pattern's optional
    first-letter type-ahead).
 3. When opened from a row, the current note is that row's note. When opened
-   from double-Shift, the current note is the editor note owning the caret
-   region; [Body](./body.md#selection-and-structural-targeting) owns the mapping
-   from a body region to its editor note.
+   from double-Shift, the current note is the
+   [editor note](./note-model.md#note-kinds) owning the caret region;
+   [Body](./body.md#selection-and-structural-targeting) owns the mapping from a
+   body region to its editor note.
 4. Selected note ranges never open multi-note menus; only the focus note is
    used as note context, even when an action's target widens per its contract
    (as Toggle checked's does).

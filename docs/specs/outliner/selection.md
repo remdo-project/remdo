@@ -12,10 +12,11 @@ A selection is always exactly one of:
    region. Selecting all text in that region remains inline; textual coverage
    does not make a selection structural.
 3. **Structural selection** — one or more notes selected as structural units,
-   each together with its entire subtree.
+   each together with its entire [subtree](./note-model.md#definitions).
 
 [Body](./body.md#selection-and-structural-targeting) defines how a body region
-supplies its owning editor note to structural commands.
+supplies its owning [editor note](./note-model.md#note-kinds) to structural
+commands.
 
 **Mode switch.** Typing inserts characters only in states 1 and 2. In state 3,
 the editor is in structural mode: keystrokes that would type become no-ops and
@@ -65,9 +66,9 @@ The ladder is anchored and replayable:
   3. one more contiguous sibling (with its subtree) in the sweep direction;
   4. when siblings in that direction are exhausted, the parent note (with its
      subtree), then resume sibling steps at the parent's level;
-  5. repeat to the document root (or the [zoom](./zoom.md) boundary). Hoisting
-     stops at the deepest note still inside the zoom root; the zoom root itself
-     is never a rung.
+  5. repeat to the [document root](./note-model.md#definitions) (or the
+     [zoom boundary](./zoom.md#definitions)). Hoisting stops at the deepest note
+     still inside the zoom root; the zoom root itself is never a rung.
 
 Direction and reversal:
 
@@ -131,7 +132,7 @@ selection.
 | --------------- | ------------------ |
 | Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List types](./list-types.md#toggling)); structural commands may resolve a one-note target range as defined by the command. |
 | Inline text selection | Inline formatting, inline delete/backspace, and toggle checked; structural commands define whether and how the selection resolves to a target note range. |
-| Structural selection | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste, toggle checked, and other structural commands operate on its selected note range in document order. |
+| Structural selection | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste, toggle checked, and other structural commands operate on its selected note range in [document order](./note-model.md#definitions). |
 
 Clipboard behavior for structural selections and inline text selections is
 defined in [Clipboard](./clipboard.md).

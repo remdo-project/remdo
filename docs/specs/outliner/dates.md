@@ -19,7 +19,7 @@ outliner.
 5. `Enter` or `Space` commits the focused day; a primary-button click commits the
    clicked day. `Escape` — and `Tab` — cancel the calendar and restore the caret
    to the editor. Committing inserts a date node plus a trailing space over the
-   pinned `!` span.
+   [pinned `!` span](./popups.md#shared-editor-popup-contract).
 6. Clicking, or `Enter`/`Space` on a selected date token, opens the same calendar
    in *edit* mode over that node. It is opened from a committed token rather than
    a trigger session, so the trigger lifecycle does not apply, but the in-calendar

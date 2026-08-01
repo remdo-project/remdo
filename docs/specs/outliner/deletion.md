@@ -12,9 +12,10 @@ resolution follows
    characters.
 
 2. Backspace at start of note (caret at column 0):
-   1. If the note is the first note in document order: **no-op**; caret stays
-      put.
-   2. Otherwise: use the previous note in document order.
+   1. If the note is the first note in
+      [document order](./note-model.md#definitions): **no-op**; caret stays put.
+   2. Otherwise: use the [previous note](./note-model.md#definitions) in
+      document order.
       1. If either note is an [empty leaf](./note-model.md#definitions): delete
          it; caret lands at the boundary of the surviving note (end of the
          previous note when deleting the current note, start of the current note
@@ -31,8 +32,8 @@ resolution follows
 3. Forward `Delete` at end of note (caret at final character):
    1. If the current note is an empty leaf: delete it; focus is resolved as in
       Note range → Focus after deletion.
-   2. Otherwise, use the next note in document order. If no next note exists,
-      forward `Delete` is a no-op.
+   2. Otherwise, use the [next note](./note-model.md#definitions) in document
+      order. If no next note exists, forward `Delete` is a no-op.
    3. If both the current note and the next note have children: forward `Delete`
       is a **no-op**.
    4. Otherwise, apply the Backspace-at-start rules to the next note (including
@@ -41,8 +42,8 @@ resolution follows
 
 ## Zoom boundary behavior (caret selection)
 
-When [zoom](./zoom.md) is active, caret-mode deletion from the outline children
-keeps merges inside the zoom boundary:
+When zoom is active, caret-mode deletion from the outline children keeps merges
+inside the [zoom boundary](./zoom.md#definitions):
 
 1. Forward `Delete` at the end of a child is a no-op when the next note in
    document order is outside the zoom boundary.

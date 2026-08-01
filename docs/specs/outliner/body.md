@@ -22,7 +22,8 @@ navigation, lifecycle, and merge behavior.
 
 ## Selection and structural targeting
 
-For selection, a note's content and its body are two distinct **regions**:
+For [selection](./selection.md), a note's content and its body are two distinct
+**regions**:
 
 - An inline selection lives within exactly one region — one note's content, or
   one body.
@@ -43,13 +44,14 @@ Within a body, keys behave as follows:
 
 1. **Arrows are one-way.** Caret arrow navigation never enters a body from
    outside: it is transparent to vertical movement, which lands exactly where it
-   would if the body were not there (the next or previous note in document
-   order). But once the caret is inside a body, any arrow that crosses a boundary
-   leaves it. The only ways into a body are the add/focus gesture and clicking.
+   would if the body were not there (the next or previous note in
+   [document order](./note-model.md#definitions)). But once the caret is inside
+   a body, any arrow that crosses a boundary leaves it. The only ways into a
+   body are the add/focus gesture and clicking.
 2. **`Enter` inserts a line break.** Inside a body, `Enter` adds a newline (the
    body is multi-line), rather than creating a note as it does in note content.
 3. **`Cmd/Ctrl+A` is local.** Inside a body it selects that body's text only and
-   never advances the selection ladder.
+   never advances the [selection ladder](./selection.md#the-selection-ladder).
 
 ## Lifecycle
 

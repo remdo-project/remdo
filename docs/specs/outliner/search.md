@@ -32,9 +32,9 @@ zooming to a result.
    a plain-text field split on whitespace into tokens (order-independent; extra
    whitespace ignored). A note matches when every token is a case-insensitive
    substring of some entry in the note's [note path](./note-model.md#definitions),
-   and at least one token matches the note's own text. Results stay in document
-   order. Matched tokens are highlighted wherever they occur — in the note label
-   or an ancestor crumb.
+   and at least one token matches the note's own text. Results stay in
+   [document order](./note-model.md#definitions). Matched tokens are highlighted
+   wherever they occur — in the note label or an ancestor crumb.
 7. Flat results are capped at the first ten matches in document order. When at
    least one match exists beyond the shown results, a non-interactive trailing
    row reports that more matches exist (the shown count, with no exact total) and

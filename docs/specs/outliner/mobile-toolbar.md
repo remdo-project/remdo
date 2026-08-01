@@ -18,11 +18,12 @@ behavior.
 
 1. The toolbar carries these actions: indent, outdent, move up, move down, toggle
    done, toggle fold, delete, undo, redo, open note menu.
-2. The structural actions target the current [selection](./selection.md): the
-   editor note owning a caret or inline text selection, or every note in a
-   selected note range. [Body](./body.md#selection-and-structural-targeting)
-   owns the mapping from a body region to its editor note. The action contracts
-   are:
+2. The structural actions target the current selection: the
+   [editor note](./note-model.md#note-kinds) owning a
+   [caret or inline text selection](./selection.md#selection-states), or every
+   note in a [selected note range](./selection.md#note-ranges).
+   [Body](./body.md#selection-and-structural-targeting) owns the mapping from a
+   body region to its editor note. The action contracts are:
    - Indent / outdent, per
      [Indentation](./indentation.md).
    - Move up / move down, per

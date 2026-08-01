@@ -23,8 +23,8 @@ notes:
 
 - Addressability is kind-specific. An editor note carries a unique
   [`noteId`](./note-ids.md) within its tree. A document carries its separate
-  `documentId`; a [body](./body.md) is identified through its owning editor
-  note rather than by its own identifier.
+  [`documentId`](./note-ids.md#definitions); a [body](./body.md) is identified
+  through its owning editor note rather than by its own identifier.
 - Every note except the document root has exactly one parent. Each parent owns
   an ordered list of children. An editor note's body is a separate owned region,
   not one of its children.

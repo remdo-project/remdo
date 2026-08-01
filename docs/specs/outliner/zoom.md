@@ -1,17 +1,18 @@
 # Zoom
 
-A document view can isolate a note and its subtree. Zoom is a presentation
-filter and editing boundary, distinct from the editor's
-[selection](./selection.md).
+A document view can isolate a note and its
+[subtree](./note-model.md#definitions). Zoom is a presentation filter and
+editing boundary, distinct from the editor's [selection](./selection.md).
 
 ## Definitions
 
-- **Zoom target:** The `noteId` identifying the current zoom root. The document
-  root represents the full document view.
+- **Zoom target:** The [`noteId`](./note-ids.md#definitions) identifying the
+  current zoom root. The [document root](./note-model.md#definitions) represents
+  the full document view.
 - **Zoom root:** The note whose subtree is displayed for the zoom target.
 - **Zoom boundary:** The zoom root and all its descendants.
 - **View actions:** Commands operating on the zoom boundary rather than one
-  editor note.
+  [editor note](./note-model.md#note-kinds).
 - **Zoom path:** The ordered ancestors from the document to the zoom root, used
   for breadcrumbs.
 

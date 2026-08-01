@@ -33,6 +33,6 @@ former parent. A top-level range remains unchanged.
 
 ## Zoom boundary
 
-When [zoom](./zoom.md) is active, indent and outdent apply only if
-the complete result remains inside the zoom boundary; otherwise, the outline
-remains unchanged.
+When zoom is active, indent and outdent apply only if the complete result
+remains inside the [zoom boundary](./zoom.md#definitions); otherwise, the
+outline remains unchanged.

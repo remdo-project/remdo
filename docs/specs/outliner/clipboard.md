@@ -6,8 +6,9 @@ note-link identity across clipboard and persistence boundaries.
 
 ## Structural selection
 
-- Copy duplicates the selected notes (including their subtrees and each note's
-  [body](./body.md)) and leaves the document unchanged.
+- Copy duplicates the selected notes (including their
+  [subtrees](./note-model.md#definitions) and each note's [body](./body.md)) and
+  leaves the document unchanged.
 - Copy captures the notes as they are at copy time; later edits to the
   originals do not change what gets pasted.
 - Cut prepares the selected notes to be moved; they stay in place until you
@@ -15,8 +16,8 @@ note-link identity across clipboard and persistence boundaries.
 - If you edit anything inside the pending cut boundary before pasting, the cut
   is canceled so edits stay where they were made.
 - After a structural cut, the selection collapses to the visual start.
-- Pasting while a selected note range is active replaces that selection with the
-  pasted notes.
+- Pasting while a [selected note range](./selection.md#note-ranges) is active
+  replaces that selection with the pasted notes.
 - Pasting after a cut moves the cut notes to the new location. If the cut is no
   longer valid, paste does nothing.
 - A cut can be pasted once; after a successful paste the cut is cleared.
