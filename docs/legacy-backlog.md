@@ -500,15 +500,7 @@ yet built; the entries below track the gap. Suspends the view-header rules in
 - Collab full-suite flakiness on high-core machines (CI unaffected): vitest
   forks scale to cores but the 5s timeout and single collab server don't. Cap
   `poolOptions.forks.maxForks` (~4 / `'50%'`) and raise the timeout on the
-  subprocess-spawning specs; verify with `test:collab:repeat`. (Distinct from
-  the e2e readiness flake below.)
-- e2e `TestBridgePlugin: collaboration readiness timed out` flake (CI, ~1/99,
-  different test each time; seen on `editor/deletion.spec.ts` `editor.load(...)`).
-  Preceded by a vite `/d` ws-proxy `ECONNRESET` — a dropped collab websocket
-  blows the 2000ms `waitForCollaborationReady` budget in `TestBridgePlugin.tsx`.
-  Repro odds: `pnpm run test:e2e:repeat`. Candidate fixes: retry/reconnect around
-  `collab.awaitSynced`, or raise/derive the readiness budget. Don't mask it by
-  blanket-bumping the timeout without confirming the ws drop is the cause.
+  subprocess-spawning specs; verify with `test:collab:repeat`.
 
 ## Testing guidance follow-ups
 

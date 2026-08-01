@@ -34,8 +34,9 @@ The verifier invokes the [read-only
 runner](../agents/tools/read-only-runner.md#call) independently for Codex and
 Claude with a `review` invocation, the resolved change scope, and `high` effort.
 For Claude, the verifier exercises the caller judgement required by the runner's
-[trusted-prompt level](../agents/tools/read-only-runner.md#trusted-prompt): its
-prompt is the vendor-owned native review command.
+[trusted-prompt level](../agents/tools/read-only-runner.md#trusted-prompt): it
+judges the runner-constructed vendor-owned native review command and its
+resolved-scope arguments to satisfy that level.
 
 Review [results](../agents/tools/read-only-runner.md#result) are independent:
 one never interrupts another. The verifier reports `unavailable` and `failed`
