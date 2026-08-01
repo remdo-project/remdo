@@ -205,11 +205,11 @@ sections to docs.
   tail line `Suppressed N finding(s) already tracked in a TODO` (omit when `N`
   is 0). Forward this rule to any finder/reviewer subagents you spawn.
 - Specification feedback cases: treat
-  `docs/spec/feedback-cases/cases/**` as frozen outside an explicit user request
+  `docs/specs/feedback-cases/cases/**` as frozen outside an explicit user request
   to create or refine a case. Routine work and code review do not edit case
   content, compare it with current sources, report findings about it, or propose
   refreshes. Explicitly requested research may analyze cases as read-only
-  evidence. Review `docs/spec/feedback-cases/README.md` normally.
+  evidence. Review `docs/specs/feedback-cases/README.md` normally.
 
 ## Skill authoring
 

@@ -6,7 +6,7 @@ description: Merge the latest fetched origin/main into the current attached bran
 # RemDo Merge Main
 
 Implement the authoritative
-[`remdo-merge-main`](../../../docs/spec/skills/remdo-merge-main.md) contract.
+[`remdo-merge-main`](../../../docs/specs/skills/remdo-merge-main.md) contract.
 Invocation declares the autonomous scope in [Authority](#authority).
 
 ## Start
@@ -83,4 +83,4 @@ authorize pull, rebase, push, force-push, or other remote mutation.
 ## Report
 
 Return the contract's
-[`Result`](../../../docs/spec/skills/remdo-merge-main.md#result).
+[`Result`](../../../docs/specs/skills/remdo-merge-main.md#result).

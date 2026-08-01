@@ -47,8 +47,8 @@ Remove rejected or obsolete items and empty sections.
   the shared owner exists.
 
 - **Body-local structural-command target.** Target behavior
-  ([Indentation](spec/outliner/indentation.md#keyboard-indentation),
-  [Reordering](spec/outliner/reordering.md#keyboard-reordering)): a caret or
+  ([Indentation](specs/outliner/indentation.md#keyboard-indentation),
+  [Reordering](specs/outliner/reordering.md#keyboard-reordering)): a caret or
   inline text selection targets the editor note owning its region. The
   implementation resolves a body caret through
   `$resolveStructuralRangeFromLexicalSelection`'s collapsed fallback, but
@@ -57,7 +57,7 @@ Remove rejected or obsolete items and empty sections.
   add focused coverage for both commands.
 
 - **Tri-state checked rendering and toggle polarity.** Target behavior
-  ([List types](spec/outliner/list-types.md#checked-state)): a note whose
+  ([List types](specs/outliner/list-types.md#checked-state)): a note whose
   subtree is only partly checked displays as mixed, and toggling unchecks only
   when the whole target subtree is already checked. The implementation renders
   binary markers and computes toggle state from the targeted notes' own states
@@ -74,7 +74,7 @@ Remove rejected or obsolete items and empty sections.
   adjust the resolution and tests.
 
 - **Check-marker click vs selection.** Target behavior
-  ([toggle targets](spec/outliner/list-types.md#toggling)): a marker
+  ([toggle targets](specs/outliner/list-types.md#toggling)): a marker
   click on a note inside a structural selection toggles the selected note
   range; the implementation always toggles only the clicked note (the marker
   click handler in `CheckListPlugin.tsx` sets state directly instead of
@@ -104,12 +104,12 @@ Remove rejected or obsolete items and empty sections.
   before using [empirical checks](documentation.md#empirical-checks).
 
 - **Agent specification structure.** Move the
-  [`remdo-verify-change`](spec/skills/remdo-verify-change.md) specification
-  under `docs/spec/agents/skills/` and update all inbound links in the same
+  [`remdo-verify-change`](specs/skills/remdo-verify-change.md) specification
+  under `docs/specs/agents/skills/` and update all inbound links in the same
   change.
 
 - **Development change workflow design.** Before implementing the initial
-  [workflow contract](spec/agents/development-change-workflow.md), validate its
+  [workflow contract](specs/agents/development-change-workflow.md), validate its
   phase boundaries through real changes and revise them when evidence requires.
   Define the active change record and approval baseline, how nested component
   results reach the user, which component owns deterministic checks, where fresh

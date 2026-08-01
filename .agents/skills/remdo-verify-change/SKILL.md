@@ -6,7 +6,7 @@ description: Verify a default or explicitly selected RemDo uncommitted or Git-ra
 # RemDo Verify Change
 
 Verify one scope under the authoritative
-[`remdo-verify-change`](../../../docs/spec/skills/remdo-verify-change.md)
+[`remdo-verify-change`](../../../docs/specs/skills/remdo-verify-change.md)
 contract.
 Remain read-only: do not edit, stage, commit, or run checks intended to change
 the selected scope.
@@ -59,7 +59,7 @@ Invoke the shared runner directly with high effort:
 Run these commands exactly. The
 [`read-only runner`](../_shared/tools/read-only-runner.ts) owns the fresh
 session, review scope mapping,
-[repository protection](../../../docs/spec/agents/tools/read-only-runner.md#repository-protection),
+[repository protection](../../../docs/specs/agents/tools/read-only-runner.md#repository-protection),
 cancellation, protocol completion, and final-response extraction.
 
 Reviewer runtime is unspecified. Wait for each managed call's completion
@@ -80,10 +80,10 @@ a fixed phrase list for this semantic judgment.
 
 After both review attempts finish, classify every finding under the
 authoritative specification's
-[Findings](../../../docs/spec/skills/remdo-verify-change.md#findings) contract.
+[Findings](../../../docs/specs/skills/remdo-verify-change.md#findings) contract.
 Keep verification read-only.
 
 ## Report
 
 Return the result exactly as defined by the authoritative specification's
-[Result](../../../docs/spec/skills/remdo-verify-change.md#result) section.
+[Result](../../../docs/specs/skills/remdo-verify-change.md#result) section.

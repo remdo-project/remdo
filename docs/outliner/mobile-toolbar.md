@@ -22,11 +22,11 @@ surface and its behavior, not those operations.
    focused note for a caret selection, or every note in a selected note range. Their
    contracts are:
    - Indent / outdent, per
-     [Indentation](../spec/outliner/indentation.md).
+     [Indentation](../specs/outliner/indentation.md).
    - Move up / move down, per
-     [Reordering](../spec/outliner/reordering.md).
+     [Reordering](../specs/outliner/reordering.md).
    - Toggle done per
-     [List types](../spec/outliner/list-types.md#toggling).
+     [List types](../specs/outliner/list-types.md#toggling).
    - Delete removes the targeted notes and their subtrees per
      [Deletion](./deletion.md), with no confirmation step. For a caret this
      removes the focused note (not the caret-mode merge that Backspace performs).
