@@ -7,7 +7,7 @@ import type { Server } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 import { config } from '#config';
 import { resolveLoopbackHost } from '#platform/net/loopback';
-import { ensureCollabServer } from '#tools/collab-server-helper';
+import { ensureCollabServer, resolveYSweetProbeHost } from '#tools/collab-server-helper';
 import { startRemdoApiServer } from '#tools/remdo-api-server-helper';
 import { prepareCollabTestRuntime } from '../global/collab-test-runtime';
 
@@ -54,8 +54,7 @@ describe('collaboration test runtime', () => {
 
     await prepareCollabTestRuntime({
       dataDir,
-      host: '127.0.0.1',
-      requiredPorts: [],
+      requiredPorts: [{ host: '127.0.0.1', label: 'available test service', port: 0 }],
     });
 
     await expect(fs.readFile(staleDataPath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
@@ -71,8 +70,7 @@ describe('collaboration test runtime', () => {
     await withOccupiedPort('127.0.0.1', async (port) => {
       await expect(prepareCollabTestRuntime({
         dataDir,
-        host: '127.0.0.1',
-        requiredPorts: [{ label: 'occupied test service', port }],
+        requiredPorts: [{ host: '127.0.0.1', label: 'occupied test service', port }],
       })).rejects.toThrow(`occupied test service 127.0.0.1:${port}`);
     });
 
@@ -80,7 +78,7 @@ describe('collaboration test runtime', () => {
   });
 
   it('refuses to reuse an occupied Y-Sweet port', async () => {
-    const probeHost = config.env.HOST === 'localhost' ? '127.0.0.1' : resolveLoopbackHost(config.env.HOST);
+    const probeHost = resolveYSweetProbeHost(config.env.HOST);
     await withOccupiedPort(probeHost, async (port) => {
       await expect(ensureCollabServer({ port, reuseExisting: false })).rejects.toThrow(
         `Collaboration websocket already running on ws://${probeHost}:${port}`,

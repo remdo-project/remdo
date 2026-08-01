@@ -3,36 +3,36 @@ import path from 'node:path';
 
 import { config } from '../../config';
 import { resolveLoopbackHost } from '../../src/platform/net/loopback';
-import { ensureCollabServer } from '../../tools/lib/collab-server-helper';
+import { ensureCollabServer, resolveYSweetProbeHost } from '../../tools/lib/collab-server-helper';
 import { isPortOpen } from '../../tools/lib/net';
 import { startRemdoApiServer } from '../../tools/lib/remdo-api-server-helper';
 
 const COLLAB_TEST_DATA_DIR = path.resolve('data/collab-test-runtime');
 
 interface RequiredPort {
+  host: string;
   label: string;
   port: number;
 }
 
 interface PrepareCollabTestRuntimeOptions {
   dataDir: string;
-  host: string;
   requiredPorts: RequiredPort[];
 }
 
 export async function prepareCollabTestRuntime({
   dataDir,
-  host,
   requiredPorts,
 }: PrepareCollabTestRuntimeOptions): Promise<void> {
-  const portStates = await Promise.all(requiredPorts.map(async ({ label, port }) => ({
+  const portStates = await Promise.all(requiredPorts.map(async ({ host, label, port }) => ({
+    host,
     label,
     port,
     open: await isPortOpen(host, port),
   })));
   const occupied = portStates.filter(({ open }) => open);
   if (occupied.length > 0) {
-    const ports = occupied.map(({ label, port }) => `${label} ${host}:${port}`).join(', ');
+    const ports = occupied.map(({ host, label, port }) => `${label} ${host}:${port}`).join(', ');
     throw new Error(`Collaboration test runtime requires free ports: ${ports}`);
   }
 
@@ -41,8 +41,14 @@ export async function prepareCollabTestRuntime({
 }
 
 async function stopAll(stops: Array<() => Promise<void>>): Promise<void> {
-  const results = await Promise.allSettled(stops.map(async stop => stop()));
-  const errors = results.flatMap(result => result.status === 'rejected' ? [result.reason] : []);
+  const errors: unknown[] = [];
+  for (const stop of stops) {
+    try {
+      await stop();
+    } catch (error) {
+      errors.push(error);
+    }
+  }
   if (errors.length > 0) {
     throw new AggregateError(errors, 'Failed to stop collaboration test services');
   }
@@ -60,13 +66,19 @@ export default async function collabTestRuntime() {
     );
   }
 
-  const host = resolveLoopbackHost(config.env.HOST);
   await prepareCollabTestRuntime({
     dataDir,
-    host,
     requiredPorts: [
-      { label: 'Y-Sweet', port: config.env.COLLAB_SERVER_PORT },
-      { label: 'RemDo API', port: config.env.API_SERVER_PORT },
+      {
+        host: resolveYSweetProbeHost(config.env.HOST),
+        label: 'Y-Sweet',
+        port: config.env.COLLAB_SERVER_PORT,
+      },
+      {
+        host: resolveLoopbackHost(config.env.HOST),
+        label: 'RemDo API',
+        port: config.env.API_SERVER_PORT,
+      },
     ],
   });
 

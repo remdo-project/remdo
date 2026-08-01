@@ -26,6 +26,10 @@ function resolveYSweetBindHost(host: string): string {
   return host === 'localhost' ? '127.0.0.1' : host;
 }
 
+export function resolveYSweetProbeHost(host: string): string {
+  return resolveLoopbackHost(resolveYSweetBindHost(host));
+}
+
 async function waitForPort(host: string, port: number, child: ChildProcess): Promise<void> {
   for (let i = 0; i < MAX_ATTEMPTS; i++) {
     if (await isPortOpen(host, port)) {
@@ -67,7 +71,7 @@ export async function ensureCollabServer({
   const resolvedHost = config.env.HOST;
   const bindHost = resolveYSweetBindHost(resolvedHost);
   const resolvedPort = port;
-  const probeHost = resolveLoopbackHost(bindHost);
+  const probeHost = resolveYSweetProbeHost(resolvedHost);
 
   if (await isPortOpen(probeHost, resolvedPort)) {
     if (reuseExisting) {
