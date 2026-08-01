@@ -108,11 +108,12 @@ COPY --from=builder /app/snapshot.mjs /app/snapshot.mjs
 COPY --from=builder /app/backup.mjs /app/backup.mjs
 COPY --from=builder /app/bootstrap-secrets.cjs /app/bootstrap-secrets.cjs
 
-RUN chmod +x /entrypoint.sh
-RUN chmod +x /app/remdo-api-server.cjs
-RUN chmod +x /app/snapshot.mjs
-RUN chmod +x /app/backup.mjs
-RUN chmod +x /app/bootstrap-secrets.cjs
+RUN chmod +x \
+  /entrypoint.sh \
+  /app/remdo-api-server.cjs \
+  /app/snapshot.mjs \
+  /app/backup.mjs \
+  /app/bootstrap-secrets.cjs
 
 EXPOSE 8080
 
