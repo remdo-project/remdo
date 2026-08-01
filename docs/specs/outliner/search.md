@@ -1,7 +1,7 @@
 # Search
 
-This specification defines keyboard-first navigation from the search input:
-filtering notes by query and zooming to a result.
+The search input provides keyboard-first navigation by filtering notes and
+zooming to a result.
 
 ## Definitions
 

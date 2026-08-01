@@ -1,7 +1,7 @@
 # Documentation
 
-This specification defines how RemDo's durable documentation is divided,
-written, structured, and maintained.
+RemDo's durable documentation follows the ownership, contract, structure, and
+maintenance rules below.
 
 ## Intent
 
@@ -71,8 +71,9 @@ difference. Check sufficiency before compressing.
 
 ## Document structure
 
-Every durable document begins with a title and a short paragraph stating what
-it covers, with any boundary needed to avoid confusion.
+Every durable document begins with a title and a short scope paragraph that
+opens with the subject and its behavior or boundary, not meta-prose about what
+the document defines. Include any boundary needed to avoid confusion.
 
 Establish triggers, inputs, scope, rules, and concepts before dependent
 behavior.

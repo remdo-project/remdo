@@ -1,7 +1,7 @@
 # Links
 
-This specification defines note-linking behavior for RemDo, including the
-boundary between RemDo-owned note links and generic external links.
+RemDo-owned note links preserve stable note identity and remain distinct from
+generic external links.
 
 ## State boundary terms
 

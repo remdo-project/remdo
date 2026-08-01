@@ -1,7 +1,7 @@
 # Selection
 
-This specification defines the cursor-driven selection model used throughout
-RemDo and is the contract structural commands rely on.
+RemDo uses a cursor-driven selection model throughout the outliner, and
+structural commands rely on it.
 
 ## Selection states
 

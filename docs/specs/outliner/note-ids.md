@@ -1,9 +1,8 @@
 # Note IDs
 
-This specification defines stable identity for addressable
-[editor notes](./note-model.md#note-kinds), its lifecycle inside a document,
-and the global `noteRef` composed from document and note identity. Note-link
-runtime and persistence boundaries are defined by [Links](./links.md).
+Addressable [editor notes](./note-model.md#note-kinds) have stable identity
+within a document; a global `noteRef` combines document and note identity.
+[Links](./links.md) defines note-link runtime and persistence boundaries.
 
 ## Definitions
 

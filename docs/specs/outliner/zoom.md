@@ -1,8 +1,8 @@
 # Zoom
 
-This specification defines how a document view isolates a note and its
-subtree. Zoom is a presentation filter and editing boundary, distinct from the
-editor's [selection](./selection.md).
+A document view can isolate a note and its subtree. Zoom is a presentation
+filter and editing boundary, distinct from the editor's
+[selection](./selection.md).
 
 ## Definitions
 

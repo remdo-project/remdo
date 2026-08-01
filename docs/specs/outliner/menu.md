@@ -1,9 +1,8 @@
 # Quick Action Menu
 
-This specification defines RemDo's single quick action menu: a per-note action
-popup opened from a note row or the keyboard. The menu is an
-[editor popup](./popups.md) and follows its shared contract; this specification
-owns only the menu's entry, actions, and behavior.
+RemDo has one quick action menu: a per-note action popup opened from a note row
+or the keyboard. The menu is an [editor popup](./popups.md) and follows its
+shared contract; it owns only its entry, actions, and behavior.
 
 ## Entry
 

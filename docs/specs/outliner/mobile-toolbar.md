@@ -1,10 +1,10 @@
 # Mobile Action Toolbar
 
-This specification defines the touch action toolbar: a row of note-action
-buttons docked at the bottom of the editor on touch devices, giving pointer-only
-users the structural actions that otherwise need a keyboard. It reuses the same
-operations as their keyboard and [menu](./menu.md) entries; this specification
-owns only the toolbar surface and its behavior.
+The touch action toolbar is a row of note-action buttons docked at the bottom of
+the editor on touch devices, giving pointer-only users the structural actions
+that otherwise need a keyboard. It reuses the same operations as their keyboard
+and [menu](./menu.md) entries while owning only the toolbar surface and its
+behavior.
 
 ## Presence
 

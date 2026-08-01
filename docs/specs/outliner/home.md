@@ -1,8 +1,7 @@
 # Home
 
-This specification defines the **Home** view: the top of the navigation
-hierarchy, above any single
-document. Home is where a user browses their documents and jumps between them.
+**Home** sits at the top of the navigation hierarchy, above any single document,
+and lets a user browse their documents and jump between them.
 It sits one level above the document-root [zoom](./zoom.md) view — the document
 is a [note](./note-model.md), and Home is the surface from which its documents are
 reached.

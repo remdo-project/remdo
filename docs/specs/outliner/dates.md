@@ -1,7 +1,7 @@
 # Dates
 
-This specification defines RemDo-owned inline date tokens, their picker, and
-their keyboard behavior in the outliner.
+RemDo-owned inline date tokens provide a picker and keyboard behavior in the
+outliner.
 
 ## Core behavior
 

@@ -1,8 +1,7 @@
 # Insertion
 
-This specification defines how RemDo inserts new notes when `Enter` is pressed
-with a **caret selection** (selection states are defined in
-[Selection](./selection.md)).
+With a **caret selection**, `Enter` inserts new notes (selection states are
+defined in [Selection](./selection.md)).
 The caret is inside a single note and actions apply to the
 active note text. Unless stated otherwise, parent notes are expanded; folded and
 collapsed parent behavior is called out explicitly (see [Folding](./folding.md)).

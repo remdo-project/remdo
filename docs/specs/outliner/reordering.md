@@ -1,8 +1,8 @@
 # Reordering
 
-This specification defines keyboard-driven reordering of target note ranges,
-including directional movement, order preservation, zoom boundaries, and no-op
-behavior. Selection kinds and note ranges are defined by
+Keyboard-driven reordering moves target note ranges directionally while
+preserving their order and respecting zoom boundaries; inapplicable moves are
+no-ops. Selection kinds and note ranges are defined by
 [Selection](./selection.md).
 
 ## Keyboard reordering

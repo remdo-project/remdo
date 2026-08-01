@@ -1,11 +1,10 @@
 # Editor popups
 
-This specification defines the shared behavior of RemDo's transient editor
-popups — the inline
-trigger pickers (`@` for note [Links](./links.md), `!` for [Dates](./dates.md))
-and the [Quick Action Menu](./menu.md) — and the trigger-picker session built on
-it. Each per-popup spec defines only what differs: how it opens, the keys its
-popup owns, its focus model, and what confirming does.
+RemDo's transient editor popups include the inline trigger pickers (`@` for note
+[Links](./links.md), `!` for [Dates](./dates.md)) and the
+[Quick Action Menu](./menu.md). They share the behavior and trigger-picker
+session below. Each per-popup specification defines only what differs: its
+opening trigger, owned keys, focus model, and confirmation.
 
 ## Shared editor-popup contract
 

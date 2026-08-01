@@ -1,9 +1,9 @@
 # Note body
 
-This specification defines the optional rich-text **body** owned by an
-[editor note](./note-model.md#note-kinds), including its content, selection,
-navigation, lifecycle, and merge behavior. A body appears below its owner's
-[content text](./note-model.md#definitions).
+A **body** is an optional rich-text region owned by an
+[editor note](./note-model.md#note-kinds) and displayed below its
+[content text](./note-model.md#definitions). It has its own content, selection,
+navigation, lifecycle, and merge behavior.
 
 ## Core behavior
 

@@ -1,9 +1,9 @@
 # Deletion
 
-This specification defines how `Backspace` (Mac "Delete") and forward
-`Delete` behave. Selection
-semantics are defined in [Selection](./selection.md); when a merged note has a
-[body](./body.md), body resolution follows
+`Backspace` (Mac "Delete") and forward `Delete` act on text or notes according
+to the caret and selection. Selection semantics are defined in
+[Selection](./selection.md); when a merged note has a [body](./body.md), body
+resolution follows
 [Note merge](./body.md#note-merge).
 
 ## Caret mode (collapsed caret or inline range)

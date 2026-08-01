@@ -1,10 +1,9 @@
 # List types
 
-This specification defines the outliner's supported list types, list-type
-conversion, and the checked state of
-[editor notes](./note-model.md#note-kinds), including how
-checked-state changes resolve their targets. Selection kinds and note ranges are
-defined by [Selection](./selection.md).
+[Editor notes](./note-model.md#note-kinds) support the outliner's list types,
+list-type conversion, and checked state, including target resolution for
+checked-state changes. Selection kinds and note ranges are defined by
+[Selection](./selection.md).
 
 ## Supported types
 

@@ -1,9 +1,8 @@
 # Clipboard
 
-This specification defines user-visible cut, copy, and paste behavior for
-RemDo notes, including placement from a caret. [Note IDs](./note-ids.md) owns
-identity changes, and [Links](./links.md) owns note-link identity across
-clipboard and persistence boundaries.
+Cut, copy, and paste operate on RemDo notes, including placement from a caret.
+[Note IDs](./note-ids.md) owns identity changes, and [Links](./links.md) owns
+note-link identity across clipboard and persistence boundaries.
 
 ## Structural selection
 

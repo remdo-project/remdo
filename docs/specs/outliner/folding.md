@@ -1,9 +1,7 @@
 # Folding (Collapse / Expand)
 
-This specification defines how RemDo hides or reveals a note's descendants.
-Folding is a
-presentation filter only; it never changes the underlying outline structure or
-note identities.
+Folding hides or reveals a note's descendants. It is a presentation filter
+only; it never changes the underlying outline structure or note identities.
 
 ## Definitions
 

@@ -1,8 +1,7 @@
 # Indentation
 
-This specification defines indent and outdent behavior for
-[target note ranges](./selection.md#note-ranges). Indent and
-outdent preserve the target note range's order.
+Indent and outdent change the nesting of
+[target note ranges](./selection.md#note-ranges) while preserving their order.
 
 ## Keyboard indentation
 

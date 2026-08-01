@@ -1,8 +1,8 @@
 # Lexical outline adapter
 
-This specification defines how the Lexical editor adapter represents the
-[note model](../outliner/note-model.md) and where canonical runtime assumptions
-give way to tolerant persistence handling.
+The Lexical editor adapter represents the
+[note model](../outliner/note-model.md) canonically at runtime and tolerates
+external representations only at persistence boundaries.
 
 ## Representation
 

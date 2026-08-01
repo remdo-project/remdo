@@ -1,8 +1,8 @@
 # View header
 
-This specification defines how a document view presents and edits its current
-location above the location's children. The view header is present in every
-document view and does not apply to [Home](./home.md), which has no outline.
+A document view presents and edits its current location in a header above the
+location's children. The view header is present in every document view and does
+not apply to [Home](./home.md), which has no outline.
 
 ## Content
 

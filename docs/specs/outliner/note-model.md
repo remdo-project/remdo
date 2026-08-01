@@ -1,8 +1,8 @@
 # Note model
 
-This specification defines RemDo's implementation-independent note model,
-including its structure, owned data, kinds, and shared structural terms.
-Editors and data sources are adapters that preserve this model.
+RemDo models notes independently of editors and data sources, with shared
+structure, owned data, kinds, and structural terms. Editors and data sources
+are adapters that preserve this model.
 
 ## Notes
 
