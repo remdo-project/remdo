@@ -32,7 +32,6 @@
     "tools/snapshot/{cli,backup}.ts!",
     "tools/bootstrap-secrets.ts!",
     "playwright.docker.config.ts",
-    "tests/e2e/setup/*.setup.ts",
     "tools/{check-pnpm-policy,collab-server,repo-stats}.ts",
     "tools/{dev,e2e}/**/*.ts",
     "tests/perf/**/*.bench.ts",
