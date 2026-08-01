@@ -15,6 +15,10 @@ payload. When that note has children, an adjacent wrapper `ListItemNode`
 follows it. The wrapper contains the nested `ListNode` whose items represent
 the note's children.
 
+When an editor note has a [body](../outliner/body.md), a body-wrapper
+`ListItemNode` follows the content item and precedes any children wrapper. It
+holds the body payload and is not itself an editor note.
+
 Wrapper adjacency is authoritative when resolving parent and child
 relationships. Lexical's `indent` field is metadata and agrees with that
 structural representation.

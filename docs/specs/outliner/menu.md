@@ -25,8 +25,8 @@ shared contract; it owns only its entry, actions, and behavior.
      [List types](./list-types.md#toggling): targets the
      selected note range when the current note is inside a structural
      selection, otherwise the current note; shortcut `Cmd/Ctrl+Enter`.
-   - Fold/Unfold per [Folding](./folding.md) (`toggle` state), hidden for leaf
-     notes and for the current zoom root, shortcut `F` when the menu is open.
+   - Fold/Unfold per [Folding](./folding.md), hidden for leaf notes and for the
+     current zoom root, shortcut `F` when the menu is open.
    - Zoom per [Zoom](./zoom.md), shortcut `Z`.
 3. Children actions:
    - Child list type actions per
