@@ -88,8 +88,8 @@ A result is encoded by the runner's exit status and output:
 
 - `responded`: exit `0` and write only the non-empty complete final text to
   stdout;
-- `unavailable`: exit `2` and write evidence that the agent CLI or requested
-  native capability is unavailable to stderr;
+- `unavailable`: exit `2` and write evidence that the agent CLI or a requested
+  native capability the runner can establish is unavailable to stderr;
 - `failed`: any other non-zero exit and failure evidence on stderr.
 
 Only `responded` writes stdout. It confirms transport and response integrity,
@@ -97,6 +97,16 @@ not that the response satisfies the caller's task; the caller owns that
 validation. When a provider process exits unsuccessfully, its failure evidence
 includes any non-empty provider stderr verbatim after the runner-owned summary;
 provider stdout is not failure evidence.
+
+A provider reports an unresolved native review command as a successful response
+saying the command is unknown, which the runner cannot distinguish from a review
+reporting that text. A `responded` review therefore does not establish that a
+review ran; the caller judges the report.
+
+When a provider exits successfully but its output does not yield a complete
+report, the failure evidence includes that output verbatim after the
+runner-owned summary, so the caller can diagnose an unrecognized protocol shape
+from the failure alone.
 
 ## Empirical checks
 
@@ -118,6 +128,14 @@ provider stdout is not failure evidence.
 
 - Enforce Claude invocations without adding host requirements to trusted review
   sessions.
+- Confirm the provider protocols the runner depends on against the installed
+  CLIs rather than against runner-authored stubs alone, so a provider change
+  fails a check instead of silently changing what callers receive. Weigh this
+  against a check that needs provider credentials and network access.
+- Establish that a Claude native review command is absent, so the runner reports
+  it as unavailable instead of leaving the caller to judge the report. The
+  session inventory is the only documented signal and requires a separate
+  session per review; weigh that cost against the caller's own judgement.
 
 ## References
 

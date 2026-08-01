@@ -210,6 +210,13 @@ function providerFailureEvidence(summary: string, stderr: string): string {
   return stderr.trim() === '' ? summary : `${summary}\n${stderr}`;
 }
 
+// Retains provider output exactly, so evidence still reproduces a failure
+// caused by bytes an emptiness test would otherwise strip. Only genuinely
+// absent output is omitted.
+function outputEvidence(summary: string, stdout: string): string {
+  return stdout === '' ? summary : `${summary}\n${stdout}`;
+}
+
 function providerFailure(
   provider: Agent,
   outcome: ProcessOutcome,
@@ -582,19 +589,29 @@ async function runCodex(
   if (failure !== undefined) {
     return failure;
   }
-  let response: string;
+  let response = '';
   try {
     response = await fs.readFile(reportPath, 'utf8');
-  } catch {
-    return {
-      status: 'failed',
-      evidence: 'Codex completed without a final response',
-    };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      return {
+        status: 'failed',
+        evidence: outputEvidence(
+          `could not read Codex final response: ${String(error)}`,
+          outcome.stdout,
+        ),
+      };
+    }
+    // The report is the response; its absence is reported below with whatever
+    // the invocation printed instead.
   }
   if (response.trim() === '') {
     return {
       status: 'failed',
-      evidence: 'Codex completed without a final response',
+      evidence: outputEvidence(
+        'Codex completed without a final response',
+        outcome.stdout,
+      ),
     };
   }
   return { status: 'responded', response };
@@ -728,11 +745,8 @@ function claudeInvocation(
     '--mcp-config',
     '{"mcpServers":{}}',
     '--output-format',
-    review ? 'stream-json' : 'json',
+    'json',
   );
-  if (review) {
-    args.push('--verbose');
-  }
   if (call.settings.model !== undefined) {
     args.push('--model', call.settings.model);
   }
@@ -778,97 +792,22 @@ function claudeResult(envelope: Record<string, unknown>): RunnerResult {
   return { status: 'responded', response: envelope.result };
 }
 
-function claudePromptResult(stdout: string): RunnerResult {
-  let envelope: Record<string, unknown>;
+function claudeOutputResult(stdout: string): RunnerResult {
+  const failed = (summary: string): RunnerResult => ({
+    status: 'failed',
+    evidence: outputEvidence(summary, stdout),
+  });
+  let envelope: unknown;
   try {
-    const parsed: unknown = JSON.parse(stdout);
-    if (!isObject(parsed)) {
-      return {
-        status: 'failed',
-        evidence: 'Claude output was not a JSON object',
-      };
-    }
-    envelope = parsed;
+    envelope = JSON.parse(stdout);
   } catch (error) {
-    return {
-      status: 'failed',
-      evidence: `could not parse Claude result: ${String(error)}`,
-    };
+    return failed(`could not parse Claude result: ${String(error)}`);
   }
-  return claudeResult(envelope);
-}
-
-function claudeReviewResult(stdout: string): RunnerResult {
-  const lines = stdout.split(/\r?\n/u).filter(line => line.trim() !== '');
-  let initEvent: Record<string, unknown> | undefined;
-  let finalEvent: Record<string, unknown> | undefined;
-  for (const [index, line] of lines.entries()) {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(line);
-    } catch (error) {
-      return {
-        status: 'failed',
-        evidence: `could not parse Claude stream line ${index + 1}: ${String(error)}`,
-      };
-    }
-    if (!isObject(parsed)) {
-      return {
-        status: 'failed',
-        evidence: `Claude stream line ${index + 1} was not a JSON object`,
-      };
-    }
-    if (
-      initEvent === undefined
-      && parsed.type === 'system'
-      && parsed.subtype === 'init'
-    ) {
-      initEvent = parsed;
-    }
-    finalEvent = parsed;
+  if (!isObject(envelope)) {
+    return failed('Claude output was not a JSON object');
   }
-
-  if (initEvent === undefined) {
-    return {
-      status: 'failed',
-      evidence: 'Claude review stream did not include an init event',
-    };
-  }
-  const slashCommands = initEvent.slash_commands;
-  if (
-    !Array.isArray(slashCommands)
-    || !slashCommands.every(command => typeof command === 'string')
-  ) {
-    return {
-      status: 'failed',
-      evidence: 'Claude init event did not include a valid slash command list',
-    };
-  }
-  if (
-    !slashCommands.some(command =>
-      command === CLAUDE_REVIEW_COMMAND
-      || command === CLAUDE_REVIEW_COMMAND.slice(1),
-    )
-  ) {
-    return {
-      status: 'unavailable',
-      evidence: `${CLAUDE_REVIEW_COMMAND} is unavailable in this Claude session`,
-    };
-  }
-
-  if (
-    finalEvent?.type !== 'result'
-    || (
-      finalEvent.parent_tool_use_id !== undefined
-      && finalEvent.parent_tool_use_id !== null
-    )
-  ) {
-    return {
-      status: 'failed',
-      evidence: 'Claude review stream did not end with a top-level result event',
-    };
-  }
-  return claudeResult(finalEvent);
+  const result = claudeResult(envelope);
+  return result.status === 'failed' ? failed(result.evidence) : result;
 }
 
 async function runClaude(
@@ -925,13 +864,8 @@ async function runClaude(
     input: invocation.input,
     signal,
   });
-  const failure = providerFailure('claude', outcome);
-  if (failure !== undefined) {
-    return failure;
-  }
-  return call.invocation.kind === 'review'
-    ? claudeReviewResult(outcome.stdout)
-    : claudePromptResult(outcome.stdout);
+  return providerFailure('claude', outcome)
+    ?? claudeOutputResult(outcome.stdout);
 }
 
 async function run(
