@@ -27,7 +27,7 @@ export async function createAuthenticatedContext(
       },
     );
     if (response.status() === HTTP_STATUS.UNPROCESSABLE_ENTITY) {
-      response = await context.request.post(
+      const signInResponse = await context.request.post(
         new URL('/api/auth/sign-in/email', appOrigin).href,
         {
           data: {
@@ -37,13 +37,20 @@ export async function createAuthenticatedContext(
           maxRetries: 1,
         },
       );
+      if (signInResponse.ok()) {
+        response = signInResponse;
+      }
     }
     if (!response.ok()) {
       throw new Error(`Failed to authenticate e2e user: ${response.status()} ${response.statusText()}`);
     }
     return context;
   } catch (error) {
-    await context.close();
+    try {
+      await context.close();
+    } catch {
+      // Preserve the authentication failure that made cleanup necessary.
+    }
     throw error;
   }
 }
