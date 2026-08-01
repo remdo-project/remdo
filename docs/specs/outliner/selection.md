@@ -11,6 +11,11 @@ an [editor note](./note-model.md#note-kinds)'s content in a note row or
 [document root](./note-model.md#definitions)'s editable view header. An editor
 note's content and its body are separate selection regions.
 
+An **outline selection region** is an editor note's content in a note row or
+its body. A view-header selection region never supplies a target note or target
+note range to a command; [View header](./view-header.md#structural-boundary)
+owns the inputs available there.
+
 A selection is always exactly one of:
 
 1. **Caret selection** — a collapsed caret inside one selection region.

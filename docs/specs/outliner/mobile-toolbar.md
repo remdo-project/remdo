@@ -18,8 +18,11 @@ behavior.
 
 1. The toolbar carries these actions: indent, outdent, move up, move down, toggle
    done, toggle fold, delete, undo, redo, open note menu.
-2. The structural actions target the current selection: the
-   [editor note](./note-model.md#note-kinds) owning a
+2. A selection in the [view header](./view-header.md#structural-boundary)
+   supplies no note target to the toolbar; note-targeted actions are disabled.
+   Otherwise, the structural actions target the current selection: the
+   [editor note](./note-model.md#note-kinds) owning the
+   [outline selection region](./selection.md#selection-states) of a
    [caret or inline text selection](./selection.md#selection-states), or every
    note in a [selected note range](./selection.md#note-ranges).
    [Body](./body.md#selection-and-structural-targeting) owns the mapping from a

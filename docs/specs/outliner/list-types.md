@@ -32,9 +32,9 @@ checked; when only some are, it displays as mixed.
 Toggling sets a target's notes and all their descendants to one state:
 unchecked when every one of them is already checked, otherwise checked.
 
-[A caret or inline text selection](./selection.md#selection-states) targets the
-editor note owning its
-[selection region](./selection.md#selection-states);
+[A caret or inline text selection](./selection.md#selection-states) in an
+[outline selection region](./selection.md#selection-states) targets the editor
+note owning the region;
 [Body](./body.md#selection-and-structural-targeting) owns the mapping from a
 body selection region to its editor note. The marker of a note in a check-type
 list targets the clicked note while that note is outside any

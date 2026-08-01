@@ -10,9 +10,10 @@ shared contract; it owns only its entry, actions, and behavior.
    anchored to that row. The icon appears on hover or when the note is the
    caret/focus target.
 2. Double-Shift within 500ms opens the same quick action menu for the selection
-   context when the editor is focused. If the selection has no
-   [focus note](./selection.md#selection-states), the gesture is a no-op. Any
-   other key between the two Shift presses cancels the gesture.
+   context when the editor is focused. The gesture is a no-op in the
+   [view header](./view-header.md#structural-boundary) or when the selection has
+   no [focus note](./selection.md#selection-states). Any other key between the
+   two Shift presses cancels the gesture.
 
 ## Actions
 
