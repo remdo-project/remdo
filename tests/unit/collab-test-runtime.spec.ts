@@ -44,6 +44,26 @@ afterEach(async () => {
 });
 
 describe('collaboration test runtime', () => {
+  it('replaces the previous runtime after its required ports are free', async () => {
+    const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'remdo-collab-runtime-'));
+    tempDirs.push(dataDir);
+    const staleDataPath = path.join(dataDir, 'stale-data.txt');
+    await fs.writeFile(staleDataPath, 'remove me');
+    let availablePort = 0;
+    await withOccupiedPort(async (port) => {
+      availablePort = port;
+    });
+
+    await prepareCollabTestRuntime({
+      dataDir,
+      host: '127.0.0.1',
+      requiredPorts: [{ label: 'available test service', port: availablePort }],
+    });
+
+    await expect(fs.readFile(staleDataPath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+    expect((await fs.stat(dataDir)).isDirectory()).toBe(true);
+  });
+
   it('preserves the previous runtime when a required port is occupied', async () => {
     const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'remdo-collab-runtime-'));
     tempDirs.push(dataDir);
