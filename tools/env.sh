@@ -22,10 +22,6 @@ while [ "$#" -gt 0 ]; do
       _remdo_port_base_offset="$2"
       shift 2
       ;;
-    --)
-      shift
-      break
-      ;;
     *)
       break
       ;;
