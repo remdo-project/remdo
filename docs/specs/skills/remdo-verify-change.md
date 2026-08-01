@@ -26,13 +26,15 @@ until verification finishes.
               └─> [Claude review] ─┴─> [finding validation] ─> [report]
 ```
 
-The verifier runs applicable deterministic repository checks in place.
+The verifier runs the [repository checks prescribed for the agent mode and
+scope](../../../AGENTS.md#checks) in place.
 
 ## Reviews
 
 The verifier invokes the [read-only
 runner](../agents/tools/read-only-runner.md#call) independently for Codex and
-Claude with a `review` invocation, the resolved change scope, and `high` effort.
+Claude with a `review` invocation and the resolved change scope. Their
+identities remain distinct in the result.
 For Claude, the verifier exercises the caller judgement required by the runner's
 [trusted-prompt level](../agents/tools/read-only-runner.md#trusted-prompt): it
 judges the runner-constructed vendor-owned native review command and its
@@ -75,6 +77,18 @@ expand the selected scope or decide what happens next.
 
 ## Result
 
+`clean` means checks passed, finding validation completed, and it produced only
+`rejected` dispositions or no findings. `findings` means completed validation
+produced a `confirmed`, `unresolved`, or `material out of scope` disposition.
+`no-change` means scope resolution found no diff, so checks and reviews were not
+run. `stopped` means scope resolution, checks, or finding validation prevented
+completion. `degraded` accompanies the status when an attempted reviewer was
+unavailable or failed; neither condition alone changes `clean` to `findings`.
+
+A failed step reports only evidence relevant to its failure, not its successful
+sub-results. Reviews intentionally not attempted are `not run`, not
+`unavailable`.
+
 The result follows this order:
 
 ```text
@@ -105,15 +119,3 @@ none
 or
 <disposition, finding, and reason>
 ```
-
-`clean` means checks passed, finding validation completed, and it produced only
-`rejected` dispositions or no findings. `findings` means completed validation
-produced a `confirmed`, `unresolved`, or `material out of scope` disposition.
-`no-change` means scope resolution found no diff, so checks and reviews were not
-run. `stopped` means scope resolution, checks, or finding validation prevented
-completion. `degraded` accompanies the status when an attempted reviewer was
-unavailable or failed; neither condition alone changes `clean` to `findings`.
-
-A failed step reports only evidence relevant to its failure, not its successful
-sub-results. Reviews intentionally not attempted are `not run`, not
-`unavailable`.

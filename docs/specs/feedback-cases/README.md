@@ -2,8 +2,8 @@
 
 This directory records non-normative feedback cases about how RemDo
 specifications are written. This README defines how that evidence is structured
-and maintained. The evidence does not define accepted behavior or documentation
-rules.
+and maintained. The evidence does not define accepted behavior or
+[documentation rules](../../documentation.md).
 
 A **feedback case** preserves evidence for later specification research and
 testing. `Post-change` is the version considered a better fit for the recorded

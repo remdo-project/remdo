@@ -1,9 +1,10 @@
 # List types
 
 This specification defines the outliner's supported list types, list-type
-conversion, and the checked state of notes, including how checked-state changes
-resolve their targets. Selection kinds and note ranges are defined by
-[Selection](../../outliner/selection.md).
+conversion, and the checked state of
+[notes](../../outliner/concepts.md#core-idea-note-concept), including how
+checked-state changes resolve their targets. Selection kinds and note ranges are
+defined by [Selection](../../outliner/selection.md).
 
 ## Supported types
 
