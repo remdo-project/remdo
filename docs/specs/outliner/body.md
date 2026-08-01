@@ -15,7 +15,8 @@ navigation, lifecycle, and merge behavior.
    structural delete, and
    [clipboard](./clipboard.md) copy/cut/paste.
 3. **Visually distinct.** A body renders set apart from the note's content. If
-   its owning note is checked, the body text is crossed out with the note.
+   its owning note is [checked](./list-types.md#checked-state), the body text is
+   crossed out with the note.
 4. **Inline content.** Body text supports the same key-driven inline content as
    note content — inline formatting (no separate formatting UI) and `@` note
    links (see [Links](./links.md)).

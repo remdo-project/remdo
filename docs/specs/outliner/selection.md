@@ -6,10 +6,10 @@ structural commands rely on it.
 ## Selection states
 
 A **selection region** is an independently selectable inline-editing surface:
-an [editor note](./note-model.md#note-kinds)'s content, its [body](./body.md),
-or the [document root](./note-model.md#definitions)'s editable
-[view header](./view-header.md). An editor note's content and its body are
-separate selection regions.
+an [editor note](./note-model.md#note-kinds)'s content in a note row or
+[view header](./view-header.md), its [body](./body.md), or the
+[document root](./note-model.md#definitions)'s editable view header. An editor
+note's content and its body are separate selection regions.
 
 A selection is always exactly one of:
 
@@ -51,8 +51,8 @@ whose selected note range covers the crossed notes.
 
 ## The selection ladder
 
-The selection ladder applies only to a selection with a focus note. In the
-document root's view header, `Shift+Arrow` stays within the header's selection
+The selection ladder applies only to a selection with a focus note outside the
+view header. In a view header, `Shift+Arrow` stays within the header's selection
 region and `Cmd/Ctrl+A` selects all header content; neither input creates a
 structural selection.
 

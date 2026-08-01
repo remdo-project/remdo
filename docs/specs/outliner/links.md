@@ -13,8 +13,8 @@ generic external links.
    exchanged between editor contexts.
 4. **Collaboration state:** shared runtime state (for example Yjs-backed) that
    must behave like runtime editor state while synced.
-5. **`docId`:** the note-link field carrying the target document's
-   [documentId](./note-ids.md#definitions).
+5. **`docId`:** the note-link field carrying the target document's canonical
+   [document identity](../../architecture.md#document-identity).
 6. **`noteId`:** the note-link field carrying the target note's
    [noteId](./note-ids.md#definitions).
 
@@ -70,8 +70,8 @@ generic external links.
    [subtree view](./zoom.md#visibility-and-editing-boundary).
 2. Filtering uses the same path-token matching as document search (defined in
    [Search](./search.md#behavior)).
-3. The [focus note](./selection.md#selection-states) is excluded from results
-   (self-links are out of scope).
+3. When present, the [focus note](./selection.md#selection-states) is excluded
+   from results (self-links are out of scope).
 4. Picker rows show the minimal ancestor context needed to disambiguate duplicate
    titles in the current result set.
 5. If results are still visually identical after full ancestor context, they
