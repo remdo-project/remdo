@@ -7,7 +7,7 @@ import {
 } from '#client/editor/plugins/mobile-toolbar/toolbar-layout';
 
 // The mobile toolbar splits its actions into a pinned group (always-reachable
-// primaries) and a scrolling group (docs/outliner/mobile-toolbar.md "Layout").
+// primaries) and a scrolling group (docs/specs/outliner/mobile-toolbar.md "Layout").
 // resolveToolbarLayout turns per-action disabled state into what each group
 // renders, encoding the spec's Capability 5: a disabled scrolling action stays
 // visible (greyed); a disabled pinned action is hidden.

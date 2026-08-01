@@ -1,9 +1,9 @@
 # Quick Action Menu
 
-Defines RemDo's single quick action menu: a per-note action popup opened from a
-note row or the keyboard. The menu is an [editor popup](./popups.md) and
-follows the shared editor-popup contract; this doc defines only the menu's own
-entry, actions, and behavior.
+This specification defines RemDo's single quick action menu: a per-note action
+popup opened from a note row or the keyboard. The menu is an
+[editor popup](./popups.md) and follows its shared contract; this specification
+owns only the menu's entry, actions, and behavior.
 
 ## Entry
 
@@ -23,7 +23,7 @@ entry, actions, and behavior.
    - **View:** acts on the current [zoom](./zoom.md) boundary.
 2. Note actions:
    - Toggle checked per
-     [List types](../specs/outliner/list-types.md#toggling): targets the
+     [List types](./list-types.md#toggling): targets the
      selected note range when the current note is inside a structural
      selection, otherwise the current note; shortcut `Cmd/Ctrl+Enter`.
    - Fold/Unfold per [Folding](./folding.md) (`toggle` state), hidden for leaf
@@ -31,7 +31,7 @@ entry, actions, and behavior.
    - Zoom per [Zoom](./zoom.md), shortcut `Z`.
 3. Children actions:
    - Child list type actions per
-     [List types](../specs/outliner/list-types.md#type-conversion), showing only
+     [List types](./list-types.md#type-conversion), showing only
      the two non-current options; hidden for leaf notes.
 4. View actions:
    - `Fold to level [0-9]` per [Folding](./folding.md), with digit shortcuts
@@ -49,14 +49,14 @@ entry, actions, and behavior.
    immediately (these accelerators replace the menu pattern's optional
    first-letter type-ahead).
 3. When opened from a row, the current note is that row's note. When opened
-   from double-Shift, the current note is the caret note.
+   from double-Shift, the current note is the editor note owning the caret
+   region; [Body](./body.md#selection-and-structural-targeting) owns the mapping
+   from a body region to its editor note.
 4. Selected note ranges never open multi-note menus; only the focus note is
    used as note context, even when an action's target widens per its contract
    (as Toggle checked's does).
-5. While the menu is open, `1`-`9` apply the chosen level and `0` fully
-   unfolds the current zoom boundary.
 
-## Non-goals
+## Action targets
 
-1. Recursive fold/unfold and multi-note menu surfaces are out of scope; what
-   an action targets is owned by that action's contract.
+The menu does not add recursive fold or unfold operations or a multi-note menu
+surface. Each action's specification owns what the action targets.

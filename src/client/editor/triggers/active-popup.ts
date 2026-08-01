@@ -1,6 +1,6 @@
 import type { LexicalEditor } from 'lexical';
 
-// The single-open rule for editor popups (docs/outliner/popups.md): at most one
+// The single-open rule for editor popups (docs/specs/outliner/popups.md): at most one
 // transient editor popup — a trigger picker (`@`, `!`) or the quick action menu —
 // is open at a time. Each popup instance holds a unique token and registers itself
 // while open; another instance consults this registry to refuse to open on top of

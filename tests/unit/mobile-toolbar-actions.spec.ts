@@ -13,7 +13,7 @@ import { $getNoteChecked } from '#client/editor/runtime/checklist-state';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { resolveSelectionCapability, runMobileAction } from '#client/editor/plugins/mobile-toolbar/actions';
 
-// Behavior coverage for the mobile action toolbar (docs/outliner/mobile-toolbar.md).
+// Behavior coverage for the mobile action toolbar (docs/specs/outliner/mobile-toolbar.md).
 // Every toolbar action is a command dispatch reusing existing wiring: these
 // tests exercise the new commands the toolbar adds (indent/outdent/delete)
 // behaviorally, verify runMobileAction maps all nine action ids to the right

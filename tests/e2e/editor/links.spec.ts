@@ -303,7 +303,7 @@ test.describe('note links', () => {
       await destinationPage.goto(createEditorDocumentPath(destinationDocId));
       await editorLocator(destinationPage).locator('.editor-input').first().waitFor();
       await ensureReady(destinationPage);
-      // Per docs/outliner/concepts.md, a fresh document starts with one empty note.
+      // Per docs/specs/outliner/note-model.md, a fresh document starts with one empty note.
       // Click the editor input to place the caret in that note without loading a fixture.
       await editorLocator(destinationPage).locator('.editor-input').first().click();
       const pasteCombo = process.platform === 'darwin' ? 'Meta+V' : 'Control+V';

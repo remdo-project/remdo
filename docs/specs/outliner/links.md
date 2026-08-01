@@ -1,9 +1,7 @@
 # Links
 
-## Purpose
-
-Define note-linking behavior for RemDo, including the boundary between
-RemDo-owned note links and generic external links.
+This specification defines note-linking behavior for RemDo, including the
+boundary between RemDo-owned note links and generic external links.
 
 ## State boundary terms
 
@@ -58,9 +56,7 @@ RemDo-owned note links and generic external links.
    same-document link `docId` values from the active `documentId` before
    parsing/applying state into the editor runtime.
 4. Cross-document links keep explicit `docId` values unchanged across save/load.
-5. At runtime->persisted boundaries (save/export), hosts must compact out
-   same-document `docId` values before writing persisted JSON output.
-6. Note/document identity ownership rules remain defined in
+5. Note/document identity ownership rules remain defined in
    [Note IDs](./note-ids.md).
 
 ## Query and ranking
@@ -80,8 +76,8 @@ RemDo-owned note links and generic external links.
 ## Picker interaction
 
 The `@` picker is the type-to-filter specialization of the shared
-[Editor popups](./popups.md) contract: it keeps DOM focus in the editor (the
-combobox focus model) and its typed query is the pinned span's editable text.
+[Editor popups](./popups.md) contract, and its typed query is the pinned span's
+editable text.
 Navigation, confirmation, and dismissal are the shared lifecycle; note-link
 specifics:
 
@@ -94,16 +90,13 @@ specifics:
 4. Confirming inserts a note-link node (`docId` + `noteId`) whose display text is
    the target note title, plus a trailing space.
 
-## Non-goals / future
+## Future
 
-1. [Future] Backlinks are expected as part of the note-link model.
-2. [Future] Cross-document discovery/insertion in the `@` picker.
-3. [Future] Fuzzy matching in picker search.
-4. [Future] Frecency-aware ranking. When this ships, zoom context should
-   influence ordering.
-5. [Future] Rename-aware display text modes (for example title-mirroring unless
-   user-customized).
-6. [Future] Ensure floating controls/overlays never block pointer hit-testing
-    for inline links, so plain user clicks and test `link.click()` are reliable.
-7. [Future] Improve cross-document link UX beyond identity correctness
-   (validation, richer previews, and authoring ergonomics).
+- Backlinks as part of the note-link model.
+- Cross-document discovery and insertion in the `@` picker.
+- Fuzzy picker matching and frecency-aware ranking influenced by zoom context.
+- Rename-aware display text, including title mirroring unless customized.
+- Floating controls and overlays that never block pointer hit-testing for
+  inline links.
+- Cross-document link validation, previews, and authoring ergonomics beyond
+  identity correctness.

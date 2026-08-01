@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { RangeSelection, TextNode } from 'lexical';
 
-// Shared by every inline trigger picker. See docs/outliner/popups.md.
+// Shared by every inline trigger picker. See docs/specs/outliner/popups.md.
 
 export interface PickerAnchor {
   left: number;
@@ -54,7 +54,7 @@ export interface TriggerSpec<TOption> {
   // The single character that opens this picker (e.g. '@', '!').
   triggerChar: string;
   // Where keyboard focus lives while the popup is open (see
-  // docs/outliner/popups.md, "Focus model is per-widget"):
+  // docs/specs/outliner/popups.md, "Focus model is per-widget"):
   // - 'editor' (default): DOM focus stays in the editor; the popup is a
   //   combobox navigated via aria-activedescendant (the `@` picker).
   // - 'trap': focus moves into the popup, which owns its own keyboard (the `!`

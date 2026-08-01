@@ -31,7 +31,7 @@ export interface EditorNote extends AddressableNote<'editor-note'> {
  * A note's optional rich-text region. A body is a kind of note owned by its
  * editor note, but a restricted one: it has no id, no children, and is reached
  * only from its owning note (never through that note's children). See
- * `docs/outliner/body.md`.
+ * `docs/specs/outliner/body.md`.
  */
 export interface BodyNote extends Note<'body'> {
   /** A body has no child notes. */

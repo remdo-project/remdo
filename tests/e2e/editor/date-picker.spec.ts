@@ -1,14 +1,14 @@
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
 
-// Regression guards for the `!` date picker (docs/outliner/dates.md and the
-// shared trigger lifecycle in docs/outliner/triggers.md). These need a real
+// Regression guards for the `!` date picker (docs/specs/outliner/dates.md and the
+// shared trigger lifecycle in docs/specs/outliner/popups.md). These need a real
 // browser: width depends on layout (jsdom has none), and the reopen guard
 // depends on caret navigation across rendered text.
 
 const anyDayButton = /^\d+ \w+ \d{4}$/;
 
-test.describe('date picker (docs/outliner/dates.md)', () => {
+test.describe('date picker (docs/specs/outliner/dates.md)', () => {
   test('the ! picker renders at full width, not collapsed', async ({ page, editor }) => {
     await editor.load('basic');
 

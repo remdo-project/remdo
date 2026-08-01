@@ -3,7 +3,7 @@
 This specification defines keyboard-driven reordering of target note ranges,
 including directional movement, order preservation, zoom boundaries, and no-op
 behavior. Selection kinds and note ranges are defined by
-[Selection](../../outliner/selection.md).
+[Selection](./selection.md).
 
 ## Keyboard reordering
 
@@ -12,11 +12,13 @@ behavior. Selection kinds and note ranges are defined by
 current target note range upward or downward.
 
 A caret or inline text selection targets the
-[editor note](../../outliner/concepts.md#note-kinds) that owns its region as a
-one-note target range. A structural selection targets its selected note range.
+[editor note](./note-model.md#note-kinds) that owns its region as a one-note
+target range. [Body](./body.md#selection-and-structural-targeting) owns the
+mapping from a body region to its editor note. A structural selection targets
+its selected note range.
 
 Reordering preserves the notes' [document
-order](../../outliner/concepts.md#definitions).
+order](./note-model.md#definitions).
 
 ## Directional movement
 
@@ -74,7 +76,7 @@ note3
 
 ## Zoom boundary
 
-When [zoom](../../outliner/zoom.md) is active, a reordering step is valid only
+When [zoom](./zoom.md) is active, a reordering step is valid only
 when the complete result remains inside the zoom boundary. An out-of-boundary
 step is skipped while the command continues through the directional cascade.
 When no in-boundary step is available, the document remains unchanged.

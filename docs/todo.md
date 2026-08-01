@@ -39,15 +39,9 @@ Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
-- **Body-local note-target ownership.** Move the rule that a body-local
-  selection supplies its owning editor note to [Body](outliner/body.md), then
-  align [Selection](outliner/selection.md), indentation, reordering,
-  checked-state targeting, toolbar actions, and other target-note-range
-  consumers that should share it. Remove action-local restatements only when
-  the shared owner exists.
-
 - **Body-local structural-command target.** Target behavior
-  ([Indentation](specs/outliner/indentation.md#keyboard-indentation),
+  ([Body](specs/outliner/body.md#selection-and-structural-targeting),
+  [Indentation](specs/outliner/indentation.md#keyboard-indentation),
   [Reordering](specs/outliner/reordering.md#keyboard-reordering)): a caret or
   inline text selection targets the editor note owning its region. The
   implementation resolves a body caret through
@@ -67,7 +61,7 @@ Remove rejected or obsolete items and empty sections.
   same change.
 
 - **Menu toggle inside a structural selection.** Target behavior
-  ([Menu](outliner/menu.md)): the note menu's toggle applies to the selected
+  ([Menu](specs/outliner/menu.md)): the note menu's toggle applies to the selected
   note range when the current note is inside it. The implementation always
   targets the menu's note (`noteItemKey` is resolved first in
   `CheckListPlugin.tsx`, asserted by `tests/unit/checklist-state.spec.ts`);
@@ -80,12 +74,12 @@ Remove rejected or obsolete items and empty sections.
   click handler in `CheckListPlugin.tsx` sets state directly instead of
   dispatching `SET_NOTE_CHECKED_COMMAND`). Reroute it and cover with a test.
   The click's selection consequences stay with
-  [Selection](outliner/selection.md).
+  [Selection](specs/outliner/selection.md).
 
 - **Replace the date-picker calendar widget.** The Mantine `DatePicker` in
   `DatePickerPopover.tsx` does not move keyboard focus across month boundaries
   or implement the calendar's complete
-  [keyboard contract](outliner/dates.md#core-behavior). Its two
+  [keyboard contract](specs/outliner/dates.md#core-behavior). Its two
   keyboard-and-commit E2E cases in `tests/e2e/editor/date-picker.spec.ts` are
   skipped until a replacement restores that coverage. Research and compare
   current maintained options rather than selecting from the preliminary spike:

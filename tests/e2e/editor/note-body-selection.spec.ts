@@ -2,7 +2,7 @@ import type { Page } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
 
-// Pointer selection contract for note bodies (docs/outliner/body.md "Selection
+// Pointer selection contract for note bodies (docs/specs/outliner/body.md "Selection
 // and navigation"): a note's content and its body are two distinct regions. A
 // shift-click within one region stays inline; a shift-click crossing regions —
 // content ↔ its own body, or into another note — is a note range.
@@ -31,7 +31,7 @@ function input(page: Page) {
   return editorLocator(page).locator('.editor-input').first();
 }
 
-test.describe('note body pointer selection contract (docs/outliner/body.md)', () => {
+test.describe('note body pointer selection contract (docs/specs/outliner/body.md)', () => {
   test('Shift+Click from a note into its own body is structural', async ({ page, editor }) => {
     await editor.load('flat');
     await addBody(page, 'note1', 'bodyone');

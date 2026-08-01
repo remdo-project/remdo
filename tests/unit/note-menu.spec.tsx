@@ -14,7 +14,7 @@ const createShortcutEvent = (key: string) => ({
   stopPropagation: vi.fn(),
 });
 
-describe('quick action menu (docs/outliner/menu.md)', () => {
+describe('quick action menu (docs/specs/outliner/menu.md)', () => {
   it('shows note, children, and view sections', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
     const noteKey = getNoteKey(remdo, 'note1');
     await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: noteKey });

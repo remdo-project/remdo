@@ -5,7 +5,7 @@ import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
 import { getNoteKey, meta, placeCaretAtNote, pressKey, readCaretNoteId } from '#tests';
 
-describe('folding (docs/outliner/folding.md)', () => {
+describe('folding (docs/specs/outliner/folding.md)', () => {
   it('stores folded only when true', meta({ fixture: 'basic' }), async ({ remdo }) => {
     const noteKey = getNoteKey(remdo, 'note1');
     await remdo.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: noteKey });

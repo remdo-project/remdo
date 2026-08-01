@@ -1,19 +1,9 @@
 # Note IDs
 
-## Purpose
-
-Define how RemDo assigns stable identities to notes and how those identities
-compose into global references.
-
-## Scope
-
-This specification covers addressable notes (content list items) inside a single
-RemDo document and the global reference (`noteRef`) derived from document +
-note identity. Note-link identity boundaries (`docId`/`noteId` in runtime,
-compaction rules at persistence boundaries) are defined in
-[Links](./links.md). The document root is modeled conceptually as a note (see
-`./concepts.md`), but document identity itself is runtime state owned by the
-environment, not persisted as a root `noteId`.
+This specification defines stable identity for addressable
+[editor notes](./note-model.md#note-kinds), its lifecycle inside a document,
+and the global `noteRef` composed from document and note identity. Note-link
+runtime and persistence boundaries are defined by [Links](./links.md).
 
 ## Definitions
 
@@ -22,12 +12,12 @@ environment, not persisted as a root `noteId`.
 - **documentId:** a runtime identifier for the active document, injected by the
   environment (for example browser routing or snapshot CLI). Document identity
   is globally unique as defined in
-  [Architecture Terms](../architecture.md#document-identity).
+  [Architecture Terms](../../architecture.md#document-identity).
 - **noteRef:** a globally unique reference composed from a document ID and a
   noteId.
 - **Addressable note:** any non-root note that appears as a content list item in
   the outline (the document root note, owned by
-  [Concepts](./concepts.md#definitions), is not addressable).
+  [Note model](./note-model.md#definitions), is not addressable).
 
 ## Invariants
 
@@ -62,8 +52,7 @@ environment, not persisted as a root `noteId`.
 
 ### Clipboard
 
-- Non-cut pastes insert copies with new `noteId` values.
-- Cut/paste moves preserve existing `noteId` values for the moved notes.
+Cut/paste moves preserve existing `noteId` values for the moved notes.
 
 Behavioral clipboard rules (placement, move validation, focus) live in
 [Clipboard](./clipboard.md).

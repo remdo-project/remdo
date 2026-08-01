@@ -5,7 +5,7 @@ import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { meta } from '#tests';
 import { $openTriggerSession, $resolvePinnedSession } from './session';
 
-// Pinned-session resolution (docs/outliner/popups.md): an open session is
+// Pinned-session resolution (docs/specs/outliner/popups.md): an open session is
 // re-resolved against its origin span only and never retargets onto a different
 // trigger. These exercise the resolver directly because the failure mode — the
 // caret moving back beside an earlier trigger while a picker is open — cannot be

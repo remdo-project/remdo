@@ -3,7 +3,7 @@ import { editorLocator, setCaretAtText } from '#editor/locators';
 import { captureEditorSnapshot } from '#editor/state';
 
 // Vertical arrow navigation is transparent to a note body (see
-// docs/outliner/body.md): it lands where it would if the body were not there,
+// docs/specs/outliner/body.md): it lands where it would if the body were not there,
 // and never stops in a body. These run in a real browser because native caret
 // movement (the thing under test) is not emulated by the unit-test environment.
 
@@ -22,7 +22,7 @@ async function caretInBody(page: Parameters<typeof setCaretAtText>[0]): Promise<
   });
 }
 
-test.describe('note body vertical navigation (docs/outliner/body.md)', () => {
+test.describe('note body vertical navigation (docs/specs/outliner/body.md)', () => {
   test('ArrowDown from a note with a body skips it to the next note', async ({ page, editor }) => {
     await editor.load('flat');
     await addBody(page, 'note1', 'thebody');
@@ -136,7 +136,7 @@ async function focusInBody(page: Parameters<typeof setCaretAtText>[0]): Promise<
   });
 }
 
-test.describe('note body shift-arrow selection boundary (docs/outliner/body.md)', () => {
+test.describe('note body shift-arrow selection boundary (docs/specs/outliner/body.md)', () => {
   test('Shift+ArrowLeft at the body start does not extend the selection out of the body', async ({ page, editor }) => {
     await editor.load('flat');
     await addBody(page, 'note1', 'thebody');

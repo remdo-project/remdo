@@ -4,7 +4,7 @@ import { meta, selectStructuralNotes } from '#tests';
 import { $deleteSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 
 // $deleteSelectedNotes is the structural-delete seam the keyboard Backspace/Delete
-// path reuses (docs/outliner/deletion.md), callable outside a KeyboardEvent.
+// path reuses (docs/specs/outliner/deletion.md), callable outside a KeyboardEvent.
 describe('deleteSelectedNotes helper', () => {
   it('deletes the note range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note2', 'note3');
