@@ -5,7 +5,7 @@ import { editorLocator } from '#editor/locators';
 // A body-wrapper is a dedicated `.note-body-wrapper` <li> (the BodyWrapperNode),
 // not a `.list-item`, so list markers (bullet, ordered counter, checkbox) — which
 // all target `li.list-item` — never apply to it, and it is never a checkbox in
-// the accessibility tree (see docs/outliner/body.md). These assert that computed
+// the accessibility tree (see docs/specs/outliner/body.md). These assert that computed
 // state in a real browser, where the marker rules actually apply.
 
 function bodyWrapperForText(page: Page, bodyText: string) {
@@ -66,7 +66,7 @@ async function bodyTextDecorationLine(
     .evaluate((el) => globalThis.getComputedStyle(el).textDecorationLine);
 }
 
-test.describe('note body list markers (docs/outliner/body.md)', () => {
+test.describe('note body list markers (docs/specs/outliner/body.md)', () => {
   test('a body in a numbered list shows no number and does not offset the count', async ({ page, editor }) => {
     await editor.load('editor-showcase');
 

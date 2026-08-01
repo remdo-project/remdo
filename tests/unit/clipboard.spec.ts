@@ -29,7 +29,7 @@ import {
 } from 'lexical';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 
-describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
+describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
   it('pastes single-line plain text inline', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 2);
     await pastePlainText(remdo, 'X');

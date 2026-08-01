@@ -1,9 +1,9 @@
 # Development change workflow
 
-This specification defines the lifecycle of an agent-assisted development
-change that uses coordinated planning, implementation, and verification. It
-owns phase transitions and user handoffs; participating capabilities retain
-ownership of their own behavior.
+An agent-assisted development change moves through coordinated planning,
+implementation, and verification. This workflow owns phase transitions and
+user handoffs; participating capabilities retain ownership of their own
+behavior.
 
 ## Coordination
 

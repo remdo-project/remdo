@@ -754,7 +754,7 @@ describe('note ids on paste', () => {
 
   it('pasting inside a cut note\'s own body is a no-op and leaves the cut pending', meta({ fixture: 'flat' }), async ({ remdo }) => {
     // Cut note2 (with a body), then paste with the caret inside note2's body.
-    // The body is inside the cut boundary, so per docs/outliner/clipboard.md the
+    // The body is inside the cut boundary, so per docs/specs/outliner/clipboard.md the
     // paste does nothing and the cut stays pending — no text is inserted into the
     // body and the note is not duplicated.
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);

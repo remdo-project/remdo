@@ -1,8 +1,7 @@
 # Dates
 
-## Purpose
-
-Define RemDo-owned inline date behavior in the outliner.
+RemDo-owned inline date tokens provide a picker and keyboard behavior in the
+outliner.
 
 ## Core behavior
 
@@ -48,17 +47,15 @@ Define RemDo-owned inline date behavior in the outliner.
 9. `Backspace` or `Delete` on an already selected/focused date token deletes
    the whole date node.
 
-## Non-goals / future
+## Future
 
-1. [Future] Let users edit a date node as ordinary text while preserving date
-   identity when possible.
-2. [Future] Support typed date queries or natural-language date parsing after
-   `!`.
-3. [Future] Give the calendar its own chrome (month/year navigation controls) and
-   have `Tab` cycle those controls within the dialog.
+- Let users edit a date node as ordinary text while preserving date identity
+  when possible.
+- Support typed date queries or natural-language date parsing after `!`.
+- Give the calendar its own chrome and have `Tab` cycle its month and year
+  navigation controls within the dialog.
 
 ## References
 
-1. WAI-ARIA Authoring Practices Guide, date picker dialog example (the calendar's
-   grid focus and keys):
-   <https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/>
+- [WAI-ARIA date picker dialog example](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/)
+  — calendar grid focus and keyboard behavior.

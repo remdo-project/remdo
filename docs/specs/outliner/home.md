@@ -1,11 +1,9 @@
 # Home
 
-## Purpose
-
-Define the **Home** view: the top of the navigation hierarchy, above any single
-document. Home is where a user browses their documents and jumps between them.
+**Home** sits at the top of the navigation hierarchy, above any single document,
+and lets a user browse their documents and jump between them.
 It sits one level above the document-root [zoom](./zoom.md) view — the document
-is a [note](./concepts.md), and Home is the surface from which its documents are
+is a [note](./note-model.md), and Home is the surface from which its documents are
 reached.
 
 ## Definitions
@@ -17,10 +15,9 @@ reached.
 ## Core behavior
 
 1. Home replaces the editor in the content region: while Home is shown, no
-   document outline is visible, the same way [Search](./search.md) mode takes
-   over the content region.
+   document outline is visible.
 2. Home lists the user's documents grouped by source: the local server and each
-   linked [source server](../access-model.md#cross-server-source-linking), under
+   linked [source server](../../access-model.md#cross-server-source-linking), under
    a heading per group.
 3. Each listed document shows its display name and opens that document when
    activated, landing on its document-root [zoom](./zoom.md) view.
@@ -47,8 +44,6 @@ reached.
 - **Entry-point groups need their own sources.** Replace the static placeholder
   Favorites, Tags, and Recents with real entries once favoriting, tagging, and
   visit-history exist — entries that may target a document or a note within one.
-  Build each with its subsystem, then define its own spec and point this doc's
-  entry-point groups at it.
 - **Home content in the sidebar.** Also surface Home's document, Favorites,
   Tags, and Recents groups in a persistent navigation sidebar; its division of
   responsibility with Home remains open.

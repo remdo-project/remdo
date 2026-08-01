@@ -1,10 +1,9 @@
-# Note Body
+# Note body
 
-## Purpose
-
-A **body** is an optional rich-text region attached to a single note, shown
-below the note's [content](./concepts.md). It is itself a restricted kind of note
-owned by its editor note (see [Concepts](./concepts.md#note-kinds)).
+A **body** is an optional rich-text region owned by an
+[editor note](./note-model.md#note-kinds) and displayed below its
+[content text](./note-model.md#definitions). It has its own content, selection,
+navigation, lifecycle, and merge behavior.
 
 ## Core behavior
 
@@ -12,8 +11,8 @@ owned by its editor note (see [Concepts](./concepts.md#note-kinds)).
    and moves the caret into it. If the note already has a body, the gesture moves
    the caret to the start of the existing body instead of adding another.
 2. **Ownership.** A note has at most one body, and a body belongs to that one
-   note. The body is content the note owns, so it travels with the note —
-   through indent/outdent, reorder, structural delete, and
+   note. The body travels with the note through indent/outdent, reorder,
+   structural delete, and
    [clipboard](./clipboard.md) copy/cut/paste.
 3. **Visually distinct.** A body renders set apart from the note's content. If
    its owning note is a checked task, the body text is crossed out with the note.
@@ -21,7 +20,7 @@ owned by its editor note (see [Concepts](./concepts.md#note-kinds)).
    note content — inline formatting (no separate formatting UI) and `@` note
    links (see [Links](./links.md)).
 
-## Selection and navigation
+## Selection and structural targeting
 
 For selection, a note's content and its body are two distinct **regions**:
 
@@ -32,6 +31,13 @@ For selection, a note's content and its body are two distinct **regions**:
 - Any selection crossing two notes — including one with an endpoint inside a
   body — is structural and snaps to whole notes (see [Selection](./selection.md)).
 - The ladder never selects a body's text by itself.
+
+For commands that act on a note, a caret or inline text selection inside a body
+targets its owning editor note. For example,
+[indent](./indentation.md#indent) targets the whole note, not the body text
+alone.
+
+## Navigation
 
 Within a body, keys behave as follows:
 

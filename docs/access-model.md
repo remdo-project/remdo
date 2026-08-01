@@ -1,9 +1,7 @@
 # Access Model
 
-## Purpose
-
-Define the access cases RemDo supports. Shared platform terms — tokens,
-routing, document identity — are owned by
+RemDo supports the document access cases below. Shared platform terms — tokens,
+routing, and document identity — are owned by
 [docs/architecture.md](./architecture.md).
 
 ## Document Access Model

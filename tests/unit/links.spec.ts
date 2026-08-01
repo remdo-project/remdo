@@ -48,7 +48,7 @@ async function typeAltGraphAt(remdo: RemdoTestApi) {
   await remdo.waitForSynced();
 }
 
-describe('note links (docs/outliner/links.md)', () => {
+describe('note links (docs/specs/outliner/links.md)', () => {
   it('inserts a link with Enter and keeps stable note identity in link state', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, ' @note2');
@@ -823,7 +823,7 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('closes link mode on Escape and keeps the typed @query', meta({ fixture: 'flat' }), async ({ remdo }) => {
     // Escape dismisses the popup without clearing editable text (shared trigger
-    // lifecycle, docs/outliner/triggers.md). The typed @query stays as text.
+    // lifecycle, docs/specs/outliner/popups.md). The typed @query stays as text.
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, ' @note2');
     await pressKey(remdo, { key: 'Escape' });

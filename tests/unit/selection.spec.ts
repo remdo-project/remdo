@@ -626,7 +626,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
-    // Stage 5+: walk root-level siblings one at a time (per docs/outliner/selection.md).
+    // Stage 5+: walk root-level siblings one at a time (per docs/specs/outliner/selection.md).
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
 
@@ -849,7 +849,7 @@ describe('selection plugin', () => {
   it('escalates Shift+Down from a nested leaf until the document is selected', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
         await placeCaretAtNote(remdo, 'note3');
 
-    // Stage 1 (docs/outliner/selection.md): inline body only.
+    // Stage 1 (docs/specs/outliner/selection.md): inline body only.
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note3' });
 
@@ -857,7 +857,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note3'] });
 
-    // Stage 3 would add siblings, but the ladder skips empty rungs per docs/outliner/selection.md and hoists to the parent subtree (Stage 4).
+    // Stage 3 would add siblings, but the ladder skips empty rungs per docs/specs/outliner/selection.md and hoists to the parent subtree (Stage 4).
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
@@ -869,7 +869,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
-    // Stage 7+: walk root-level siblings one at a time, per docs/outliner/selection.md.
+    // Stage 7+: walk root-level siblings one at a time, per docs/specs/outliner/selection.md.
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
 
