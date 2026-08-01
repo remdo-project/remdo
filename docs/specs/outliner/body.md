@@ -32,9 +32,9 @@ For selection, a note's content and its body are two distinct **regions**:
   body — is structural and snaps to whole notes (see [Selection](./selection.md)).
 - The ladder never selects a body's text by itself.
 
-For structural-command targeting, a caret or inline text selection inside a
-body supplies its owning editor note. A command that accepts a non-structural
-selection resolves that editor note as its one-note target.
+A caret or inline text selection inside a body targets its owning editor note
+for structural commands. For example, [indent](./indentation.md#indent) targets
+the whole note, not the body text alone.
 
 ## Navigation
 
