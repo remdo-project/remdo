@@ -103,7 +103,7 @@ function consumeExpectedIssue(expected: ConsoleIssueMatchers | undefined, issueM
   return false;
 }
 
-export function attachPageGuards(page: Page): () => void {
+export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) => void {
   const allowResponse = (response: Response) => {
     const url = response.url();
     if (url.startsWith('data:')) return true;
@@ -140,32 +140,39 @@ export function attachPageGuards(page: Page): () => void {
   page.on('pageerror', onPageError);
   page.on('response', onResponse);
 
-  return () => {
+  return (verifyExpectedIssues = true) => {
     const expected = issueExpectationsByPage.get(page);
     const outstandingExact = expected ? [...expected.exactCounts.entries()] : [];
     const outstandingContains = expected ? [...expected.containsCounts.entries()] : [];
     const outstanding = [...outstandingExact, ...outstandingContains];
-    if (outstanding.length > 0) {
-      const remaining = outstanding.flatMap(([message, count]) =>
-        Array.from({ length: count }).fill(message));
-      throw new Error(`Expected console issues not reported: ${remaining.join(', ')}`);
-    }
     issueExpectationsByPage.delete(page);
     page.off('console', onConsole);
     page.off('pageerror', onPageError);
     page.off('response', onResponse);
+    if (verifyExpectedIssues && outstanding.length > 0) {
+      const remaining = outstanding.flatMap(([message, count]) =>
+        Array.from({ length: count }).fill(message));
+      throw new Error(`Expected console issues not reported: ${remaining.join(', ')}`);
+    }
   };
 }
 
+export async function withPageGuards(
+  page: Page,
+  apply: (guardedPage: Page) => Promise<void>,
+): Promise<void> {
+  const detach = attachPageGuards(page);
+  try {
+    await apply(page);
+  } catch (error) {
+    detach(false);
+    throw error;
+  }
+  detach();
+}
+
 export const guardedTest = base.extend({
-  page: async ({ page }, apply) => {
-    const detach = attachPageGuards(page);
-    try {
-      await apply(page);
-    } finally {
-      detach();
-    }
-  },
+  page: ({ page }, apply) => withPageGuards(page, apply),
 });
 
 export const test = guardedTest.extend({
