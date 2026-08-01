@@ -32,7 +32,6 @@ export function DevToolbarLinks({ linkClassName }: { linkClassName?: string }) {
   const localhost = { protocol: 'http:', hostname: 'localhost', basePort: host.basePort };
   const pwaUrl = buildUrl(localhost, 20);
   const vitestUrl = buildUrl(host, 2, '/__vitest__/');
-  const playwrightUrl = buildUrl(localhost, 6);
   const lexicalUrl = `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`;
 
   return (
@@ -45,9 +44,6 @@ export function DevToolbarLinks({ linkClassName }: { linkClassName?: string }) {
         <Anchor className={linkClassName} href={vitestUrl}>
           <Icon icon={IconBrandVite} />
           Vitest
-        </Anchor>
-        <Anchor className={linkClassName} href={playwrightUrl}>
-          Playwright
         </Anchor>
         <Anchor className={linkClassName} href={lexicalUrl}>
           Lexical

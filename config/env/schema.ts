@@ -37,7 +37,6 @@ export const envSchema = {
   PREVIEW_PORT: port,
   VITEST_PORT: port,
   VITEST_PREVIEW_PORT: port,
-  PLAYWRIGHT_UI_PORT: port,
   CI: boolish,
   VITEST_PREVIEW: boolish,
 } as const;

@@ -18,7 +18,7 @@ ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)"
 exec "${ROOT_DIR}/tools/env.sh" sh -c '
   env \
     -u HMR_PORT -u VITEST_PORT -u VITEST_PREVIEW_PORT \
-    -u COLLAB_SERVER_PORT -u PREVIEW_PORT -u PLAYWRIGHT_UI_PORT -u API_SERVER_PORT \
+    -u COLLAB_SERVER_PORT -u PREVIEW_PORT -u API_SERVER_PORT \
     -u YSWEET_CONNECTION_STRING \
     PORT_BASE="$((PORT_BASE + 20))" \
     PORT="$((PORT_BASE + 20))" \

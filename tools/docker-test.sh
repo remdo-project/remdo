@@ -55,7 +55,7 @@ DOCKER_RUN_ARGS=()
 # tools/env.defaults.sh (PORT is passed explicitly per child, so it is not here).
 CLEAR_DERIVED_PORTS=(
   -u HMR_PORT -u VITEST_PORT -u VITEST_PREVIEW_PORT -u COLLAB_SERVER_PORT
-  -u PREVIEW_PORT -u PLAYWRIGHT_UI_PORT -u API_SERVER_PORT
+  -u PREVIEW_PORT -u API_SERVER_PORT
 )
 
 # Second scenario: a fresh, ADMIN_SECRET-only container that forces the
