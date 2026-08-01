@@ -1,19 +1,17 @@
 # Quick Action Menu
 
-RemDo has one quick action menu: a per-note action popup opened from a note row
-or the keyboard. The menu is an [editor popup](./popups.md) and follows its
-shared contract; it owns only its entry, actions, and behavior.
+RemDo has one quick action menu: an action popup opened from a note row or the
+keyboard for the current note or view. The menu is an
+[editor popup](./popups.md) and follows its shared contract; it owns only its
+entry, actions, and behavior.
 
 ## Entry
 
 1. Clicking the menu icon beside a note row opens the quick action menu
    anchored to that row. The icon appears on hover or when the note is the
    caret/focus target.
-2. Double-Shift within 500ms opens the same quick action menu for the selection
-   context when the editor is focused. The gesture is a no-op unless the
-   selection is in a [view header](./view-header.md#structural-boundary) or has
-   a [focus note](./selection.md#selection-states). Any other key between the two
-   Shift presses cancels the gesture.
+2. Double-Shift within 500ms opens the same quick action menu when the editor is
+   focused. Any other key between the two Shift presses cancels the gesture.
 
 ## Actions
 
@@ -22,8 +20,8 @@ shared contract; it owns only its entry, actions, and behavior.
      target.
    - **Children:** acts on the current note's child list.
    - **View:** acts on the current [zoom boundary](./zoom.md#definitions).
-2. When opened from a view header, Note and Children actions are unavailable;
-   View actions remain available.
+2. When opened from a [view header](./view-header.md#structural-boundary), Note
+   and Children actions are unavailable; View actions remain available.
 3. Note actions:
    - Toggle checked per
      [List types](./list-types.md#toggling): targets the

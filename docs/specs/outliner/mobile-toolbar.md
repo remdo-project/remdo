@@ -42,8 +42,7 @@ behavior.
    [Folding](./folding.md).
 4. Undo and redo act on the document's edit history rather than the selection,
    reversing and reapplying the most recent edits.
-5. Open note menu opens the [quick action menu](./menu.md) for the current
-   selection context.
+5. Open note menu opens the [quick action menu](./menu.md).
 
 ## Layout
 
