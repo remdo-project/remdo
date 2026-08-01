@@ -157,7 +157,7 @@ export function attachPageGuards(page: Page): () => void {
   };
 }
 
-const guardedTest = base.extend({
+export const guardedTest = base.extend({
   page: async ({ page }, apply) => {
     const detach = attachPageGuards(page);
     try {

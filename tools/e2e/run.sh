@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Run local-stack E2E in the working directory's reserved +50 port range.
+# Run loopback-only E2E in the working directory's reserved +50 port range.
 set -eu
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)"
@@ -10,6 +10,7 @@ fi
 
 # A short TMPDIR keeps tsx IPC socket paths valid in long worktrees.
 exec env -u NO_COLOR \
+  HOST=127.0.0.1 \
   DATA_DIR="${ROOT_DIR}/data/e2e-runtime" \
   TMPDIR=/tmp \
   "${ROOT_DIR}/tools/env.sh" --port-base-offset 50 \

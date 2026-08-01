@@ -127,8 +127,9 @@ file as the [document registry](./architecture.md#document-registry).
 - Platform: local machine.
 - Data boundary: fixed, resettable runtime data owned by the working directory.
 - Notes:
-  1. Each invocation owns a fresh Vite app server with mounted `/api/*` routes,
-     a collaboration server, and uniquely provisioned authenticated users.
+  1. Each invocation owns a fresh loopback-only Vite app server with mounted
+     `/api/*` routes, a collaboration server, and uniquely provisioned
+     authenticated users.
   2. The stack uses the working directory's `PORT_BASE + 50` range, and one E2E
      invocation may run in a working directory at a time. It replaces the
      previous runtime at startup and refuses to reuse occupied reserved ports.

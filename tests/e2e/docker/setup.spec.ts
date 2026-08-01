@@ -1,4 +1,4 @@
-import { expect, test } from '#e2e/fixtures';
+import { expect, guardedTest as test } from '#e2e/fixtures';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
