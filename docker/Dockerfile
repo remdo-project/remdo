@@ -19,6 +19,7 @@ COPY \
 
 COPY src ./src
 COPY config ./config
+COPY patches ./patches
 COPY public ./public
 COPY tools ./tools
 

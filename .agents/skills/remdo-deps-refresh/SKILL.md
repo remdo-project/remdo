@@ -74,19 +74,28 @@ Gate exit codes:
   gate run fails with `ERR_PNPM_UNEXPECTED_STORE` (node_modules was linked by the
   old major). Heal it with `CI=true pnpm install --no-frozen-lockfile` to rebuild
   the store, then re-run the gate.
+  A package upgrade can likewise make an exact `patchedDependencies` entry
+  unused or inapplicable. Reconcile it as part of that upgrade using the patch
+  procedure below; do not enable `allowUnusedPatches` to bypass the failure.
 
 Iterate:
 
 1. Run `pnpm run deps:next`.
 2. **Exit 3** — the gate names the changed item (e.g. `lockfile deps`,
    `pnpm pin`, `node pins`, `github actions`). Handle just that item:
-   1. Verify it green: `pnpm run check:full`, `pnpm run test:e2e`,
+   1. Reconcile each registered patch affected by the update. Remove its old
+      exact-version registration, install the upgraded package unpatched, and
+      run the focused regression named beside the registration. If the
+      regression passes, retire the patch; if it fails, regenerate the patch
+      for the new exact version with `pnpm patch` and `pnpm patch-commit`, then
+      rerun the regression.
+   2. Verify it green: `pnpm run check:full`, `pnpm run test:e2e`,
       `pnpm run audit:cleanup`, and
       `CI=true pnpm install --no-frozen-lockfile` as the consistency gate. For a
       **Node** change also run `pnpm run test:e2e:docker` (the only local surface
       that exercises the alpine base); other items lean on the docker-tests CI job
       when the refresh branch is pushed.
-   2. **If anything fails, heal it — this is the core job, not a hand-back.**
+   3. **If anything fails, heal it — this is the core job, not a hand-back.**
       Diagnose from the failure in hand and fix forward: adjust a workaround in
       [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md),
       pin a known-bad transitive, correct config, or make the minimal code/test
@@ -96,7 +105,7 @@ Iterate:
       catalog bumps in halves — running `CI=true pnpm install
       --no-frozen-lockfile` after each half so `node_modules` matches it — and
       re-run the failing check.
-   3. For a notable jump, skim the release notes — to inform the fix and to flag
+   4. For a notable jump, skim the release notes — to inform the fix and to flag
       a behavior-affecting change for the report. Opportunistically apply a
       simplification newly-provided functionality enables (upside, never a
       per-package chore).
@@ -144,14 +153,16 @@ self-contained. Sections (omit a section if empty):
 3. **Broke / fixed** — every check that failed, the root cause, and the fix
    applied to make it green. The point of the run: show the work, not just "all
    green".
-4. **Docs reviewed** — `dependency-maintenance.md` workarounds/held-backs dropped
+4. **Dependency patches** — each affected patch classified as retained,
+   regenerated, or removed, with its focused regression result.
+5. **Docs reviewed** — `dependency-maintenance.md` workarounds/held-backs dropped
    or moved.
-5. **Dependabot reconciliation** — each item classified (`covered here` /
+6. **Dependabot reconciliation** — each item classified (`covered here` /
    `already on default branch` / `unresolved` / `blocked intentionally`).
-6. **Dead-ends** — anything the skill could not safely resolve (a needed broad
+7. **Dead-ends** — anything the skill could not safely resolve (a needed broad
    migration, an ambiguous behavior change the tests cannot adjudicate), with what
    was tried. Omit if none. This is the only category that genuinely needs the
    user; everything else was handled.
-7. **Checks** — each final verification command with its pass/fail result, the
+8. **Checks** — each final verification command with its pass/fail result, the
    refresh branch and base, and the CI matrix leg marked pending until the user
    pushes that branch.
