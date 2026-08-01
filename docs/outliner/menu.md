@@ -23,7 +23,7 @@ entry, actions, and behavior.
    - **View:** acts on the current [zoom](./zoom.md) boundary.
 2. Note actions:
    - Toggle checked per
-     [List types](../spec/outliner/list-types.md#toggling): targets the
+     [List types](../specs/outliner/list-types.md#toggling): targets the
      selected note range when the current note is inside a structural
      selection, otherwise the current note; shortcut `Cmd/Ctrl+Enter`.
    - Fold/Unfold per [Folding](./folding.md) (`toggle` state), hidden for leaf
@@ -31,7 +31,7 @@ entry, actions, and behavior.
    - Zoom per [Zoom](./zoom.md), shortcut `Z`.
 3. Children actions:
    - Child list type actions per
-     [List types](../spec/outliner/list-types.md#type-conversion), showing only
+     [List types](../specs/outliner/list-types.md#type-conversion), showing only
      the two non-current options; hidden for leaf notes.
 4. View actions:
    - `Fold to level [0-9]` per [Folding](./folding.md), with digit shortcuts

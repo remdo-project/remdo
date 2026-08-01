@@ -212,7 +212,7 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 - [Scope resolution](../_shared/tools/resolve-scope.sh)
 - [Agent guidelines](../../../AGENTS.md)
 - [Doc/skill-prose convergence](../remdo-docs-align/SKILL.md)
-- [Change scope / branch base](../../../docs/spec/agents/change-scope.md)
+- [Change scope / branch base](../../../docs/specs/agents/change-scope.md)
 - [Runtime baseline](../../../docs/contributing.md#runtime-baseline)
 - [Compatibility policy](../../../docs/contributing.md#compatibility-policy-pre-10)
 - [Editor feature modules](../../../docs/contributing.md#editor-feature-modules)

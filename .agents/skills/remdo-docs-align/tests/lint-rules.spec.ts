@@ -165,26 +165,26 @@ describe('gate integration over a scratch fixture repo', () => {
   it('includes specifications and excludes specification feedback cases', () => {
     const dir = scratchDocs({
       'docs/x.md': '# X\n\nA maintained document.\n',
-      'docs/spec/current.md': '# Current\n\nThis is currently maintained.\n',
-      'docs/spec/feedback-cases/cases/frozen.md': '# Frozen\n\nThis is currently preserved evidence.\n',
+      'docs/specs/current.md': '# Current\n\nThis is currently maintained.\n',
+      'docs/specs/feedback-cases/cases/frozen.md': '# Frozen\n\nThis is currently preserved evidence.\n',
     });
     const skill = lintSkill(dir);
     const output = skill.stdout + skill.stderr;
     expect(skill.status).not.toBe(0);
-    expect(output).toContain('docs/spec/current.md');
-    expect(output).not.toContain('docs/spec/feedback-cases/cases/frozen.md');
+    expect(output).toContain('docs/specs/current.md');
+    expect(output).not.toContain('docs/specs/feedback-cases/cases/frozen.md');
   }, 30_000);
 
   it('product gate checks the feedback-case owner and excludes case payloads', () => {
     const dir = scratchDocs({
-      'docs/spec/feedback-cases/README.md': '# Feedback cases\n\n[Missing](missing.md)\n',
-      'docs/spec/feedback-cases/cases/frozen.md': '# Frozen\n\n[Historical](historical.md)\n',
+      'docs/specs/feedback-cases/README.md': '# Feedback cases\n\n[Missing](missing.md)\n',
+      'docs/specs/feedback-cases/cases/frozen.md': '# Frozen\n\n[Historical](historical.md)\n',
     });
     const product = lintProduct(dir);
     expect(product.status).not.toBe(0);
     const output = product.stdout + product.stderr;
-    expect(output).toContain('docs/spec/feedback-cases/README.md');
-    expect(output).not.toContain('docs/spec/feedback-cases/cases/frozen.md');
+    expect(output).toContain('docs/specs/feedback-cases/README.md');
+    expect(output).not.toContain('docs/specs/feedback-cases/cases/frozen.md');
   }, 30_000);
 
   it('each gate is red on its own violation class', () => {
