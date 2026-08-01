@@ -4,10 +4,16 @@ import { HTTP_STATUS } from '#platform/http/status';
 import { resolveAppOrigin } from '#platform/net/origins';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 
+interface AuthAccount {
+  email: string;
+  name: string;
+  password: string;
+}
+
 export async function createAuthenticatedContext(
   browser: Browser,
   contextOptions: BrowserContextOptions,
-  account = createTestAuthAccount(),
+  account: AuthAccount = createTestAuthAccount(),
 ): Promise<BrowserContext> {
   const context = await browser.newContext(contextOptions);
   const appOrigin = resolveAppOrigin({ loopback: true });
