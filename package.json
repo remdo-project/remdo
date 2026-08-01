@@ -92,6 +92,7 @@
     "test:preview": "./tools/env.sh sh -c 'PORT=\"$VITEST_PREVIEW_PORT\" VITEST_PREVIEW=true pnpm exec vitest-preview'",
     "test:unit": "cross-env NODE_ENV=test COLLAB_ENABLED=false ./tools/env.sh timeout ${TEST_TIMEOUT:-120}s pnpm exec vitest run --changed --passWithNoTests",
     "test:unit:full": "cross-env NODE_ENV=test COLLAB_ENABLED=false ./tools/env.sh timeout ${TEST_TIMEOUT:-120}s pnpm exec vitest run",
+    "test:unit:repeat": "sh -c 'for i in $(seq 1 20); do echo \"===== unit run $i/20 =====\"; pnpm run test:unit:full || exit 1; done'",
     "test:unit:coverage": "cross-env NODE_ENV=test COLLAB_ENABLED=false ./tools/env.sh timeout ${TEST_TIMEOUT:-120}s pnpm exec vitest run --coverage",
     "test:unit:watch": "cross-env NODE_ENV=test COLLAB_ENABLED=false ./tools/env.sh pnpm exec vitest --watch --ui",
     "typecheck": "timeout ${TEST_TIMEOUT:-120}s tsc",
