@@ -53,7 +53,9 @@ the common structure.
 
 A selection can never partially cross a note boundary. The moment a text
 selection extends beyond one note's content, it becomes a structural selection
-whose selected note range covers the crossed notes.
+whose selected note range covers the crossed notes. Extension between a view
+header, its owned body, and its child outline follows
+[View header](./view-header.md#structural-boundary) instead.
 
 ## The selection ladder
 
