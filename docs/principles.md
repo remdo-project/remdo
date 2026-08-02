@@ -17,10 +17,10 @@ details.
 2. The trust story should stay simple enough to verify.
 3. Delegate security-critical work when that improves confidence and preserves
    self-hosting simplicity.
-4. Production logs and diagnostic output MUST NOT disclose user content,
+4. Production logs and diagnostic output must not disclose user content,
    credentials, authentication tokens, or other confidential data. Development
-   and test output MAY include synthetic fixture data and dedicated
-   development/test credentials, but MUST NOT disclose real confidential data.
+   and test output may include synthetic fixture data and dedicated
+   development/test credentials, but must not disclose real confidential data.
 
 ## Deployment targets
 

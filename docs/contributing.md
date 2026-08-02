@@ -80,8 +80,8 @@ tests. Colocated `*.spec.ts` and `*.spec.tsx` files in these feature folders are
 part of the unit test inventory and should follow the same test rules as
 `tests/unit`.
 
-Dependencies point one way: a feature MAY import from the shared base
-(`runtime/`, `outline/`) and from other features, but the shared base MUST NOT
+Dependencies point one way: a feature may import from the shared base
+(`runtime/`, `outline/`) and from other features, but the shared base must not
 import a feature. A capability that is genuinely one feature's concern is owned
 by that feature and other modules ask it by name. Known exception to repay:
 several `outline/` modules still import note-body primitives from

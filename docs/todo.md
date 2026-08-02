@@ -27,11 +27,6 @@ Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Normative prose migration.** Remove RFC-style uppercase requirement
-  keywords from current contract owners and agent skills, preserving
-  distinctions expressed by `SHOULD` and `MAY` in ordinary prose. Leave retired
-  and archived evidence unchanged.
-
 - **Specification vocabulary review.** Make future specification-authoring and
   review workflows apply the [ownership](documentation.md#ownership) and
   [minimality](documentation.md#minimality) rules to every domain- or
