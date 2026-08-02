@@ -32,23 +32,20 @@ Remove rejected or obsolete items and empty sections.
   [minimality](documentation.md#minimality) rules to every domain- or
   component-specific term, including consistent actor and component identity.
 
-- **Documentation corpus roles.** Extend
-  [Documentation](documentation.md) before the next legacy-document
-  restructure to distinguish capability specifications, contributor policy,
-  human developer guides, and agent or tool procedure. Choose a visible home
-  for the guide corpus and define specification triggers around planned
-  semantic change, recurring ambiguity, safety boundaries, and cross-owner
-  contracts.
+- **Legacy documentation placement.** Apply the
+  [documentation layout](documentation.md#documentation-layout) to root and
+  developer documents that predate `docs/specs/`. Keep project-wide contracts
+  at the root, migrate coherent capability contracts into `docs/specs/`, and
+  update complete inbound ownership links with each move.
 
-- **Production development-surface owner.** After the corpus roles are defined,
-  move the production exclusion of development-only routes, UI, editor plugins,
-  and test bridges from `docs/run-modes.md` to a coherent architecture or
-  capability owner. Update the inbound references in
-  `tools/check-dev-boundary.sh` in the same change.
+- **Production development-surface owner.** Move the production exclusion of
+  development-only routes, UI, editor plugins, and test bridges from
+  `docs/run-modes.md` to a coherent architecture or capability owner. Update
+  the inbound references in `tools/check-dev-boundary.sh` in the same change.
 
 - **Run-mode corpus reduction.** After extracting the development-surface and
   test-harness contracts, move useful local-development procedure into the
-  developer guide corpus and reassess the remaining app, deployment, and
+  `docs/dev/guides/` corpus and reassess the remaining app, deployment, and
   operational modes as coherent capability owners. Include defining the
   currently unspecified hosted-production backup workflow.
 
