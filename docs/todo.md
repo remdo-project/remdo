@@ -42,6 +42,14 @@ Remove rejected or obsolete items and empty sections.
   mechanically. Document only architectural boundaries that remain non-obvious
   from the source tree and enforcement.
 
+### Testing
+
+- **Universal testing contract.** Establish `docs/dev/testing.md` as the owner of
+  contributor-wide test-quality policy currently held in `AGENTS.md`: observable
+  behavior or stable contracts, credible regressions, automated test-level
+  selection, empirical exceptions, and review coverage. Keep agent execution
+  procedures and check commands in `AGENTS.md`, then update their inbound links.
+
 ### Outliner
 
 - **Inline-selection Enter behavior.** Decide and specify what `Enter` does for

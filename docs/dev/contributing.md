@@ -23,6 +23,11 @@ identifies the branch's primary outcome:
   and tooling.
 - `docs/` changes documentation without changing implementation.
 
+Commit subjects use `<type>: <summary>` or `<type>(<scope>): <summary>`. The type
+describes that commit's change, the optional scope names the affected area, and
+the summary states the concrete result. A commit's type may differ from the
+branch prefix because the prefix describes the branch's combined outcome.
+
 ## Runtime Baseline
 
 RemDo's supported runtimes are declared in
