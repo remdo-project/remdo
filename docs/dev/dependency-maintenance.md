@@ -35,13 +35,13 @@ provided upstream or regenerate the patch for the new version.
 
 ### Security alerts
 
-Known-vulnerability response runs on GitHub's native, default mechanism — no
-custom config, no CI gate. Repo settings keep **Dependabot alerts** and
-**Dependabot security updates** enabled (Settings → Security & analysis); these
-work independently of any `dependabot.yml`, and advisories reach us as soon as
-GitHub knows.
+Dependabot compares the default branch's dependency graph with reviewed GitHub
+Advisory Database entries. Repository settings enable **Dependabot alerts** and
+**Dependabot security updates**, so a vulnerable dependency becomes a tracked
+alert and, when Dependabot can resolve it to a patched version, an update pull
+request. Alerts and security updates work without `.github/dependabot.yml`.
 
-The `audit:security` script remains a local/manual cross-check; it is
-intentionally **not** wired into CI — GitHub's alerts are the source of truth, and
-a CI audit gate would block unrelated work on an advisory that the refresh skill,
-not the failing PR, is responsible for.
+The [dependency refresh workflow](../../.agents/skills/remdo-deps-refresh/SKILL.md)
+owns response: it applies available upgrades and reconciles every open alert and
+Dependabot pull request. `audit:security` provides an on-demand registry
+cross-check whose failure signal covers high-severity production dependencies.
