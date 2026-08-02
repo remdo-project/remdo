@@ -1,8 +1,10 @@
 # Contributing
 
-RemDo contributions use topic branches from `origin/main`, the declared runtime
-baseline, pre-1.0 compatibility defaults, code-local follow-up markers, and
-one-way editor feature boundaries. Documentation changes follow
+RemDo's contribution contract gives contributors and reviewers the same
+baseline for judging a change's intent, supported environments, compatibility,
+and follow-up.
+
+Durable documentation has its own contract in
 [Documentation](../documentation.md).
 
 ## Git Workflow
