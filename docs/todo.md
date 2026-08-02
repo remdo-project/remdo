@@ -50,6 +50,14 @@ Remove rejected or obsolete items and empty sections.
   selection, empirical exceptions, and review coverage. Keep agent execution
   procedures and check commands in `AGENTS.md`, then update their inbound links.
 
+### Performance
+
+- **Client performance contract.** Define measurable user-facing performance
+  targets and the evidence used to assess them. Reassess the existing
+  non-collaboration Vitest benchmark's workloads, operations, metric, and runner
+  as part of that design, then establish a specification and align or replace
+  the harness.
+
 ### Outliner
 
 - **Inline-selection Enter behavior.** Decide and specify what `Enter` does for

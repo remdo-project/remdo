@@ -399,11 +399,10 @@ yet built; the entries below track the gap. Suspends the view-header rules in
 
 ## Client-side perf follow-ups
 
-- Typing-latency optimizations (moved from
-  `docs/dev/client-performance.md`): gate `SchemaValidationPlugin`
-  validation and `RootSchemaPlugin` repair scans on dirty-set contents so
-  leaf-only typing updates skip them; skip redundant structural-overlay and
-  outline-selection store writes in `SelectionPlugin` when nothing changed.
+- Typing-latency optimizations: gate `SchemaValidationPlugin` validation and
+  `RootSchemaPlugin` repair scans on dirty-set contents so leaf-only typing
+  updates skip them; skip redundant structural-overlay and outline-selection
+  store writes in `SelectionPlugin` when nothing changed.
 
 ## Frosted-glass material follow-ups
 
