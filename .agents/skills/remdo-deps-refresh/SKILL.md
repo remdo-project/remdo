@@ -128,12 +128,9 @@ the CI matrix stays a separate explicit ask by the user.
 
 Once the gate is green (exit 0):
 
-1. Run `pnpm run audit:stats:update` once to refresh the dependency-stats
-   baseline to whatever this run landed. Only its exit code matters — do not
-   inspect the delta (the strict check is intentionally not part of the loop).
-2. Review [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md)
+1. Review [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md)
    as a whole: drop workarounds whose reason is now gone; re-check held-backs.
-3. Reconcile open Dependabot PRs and alerts via `gh` — bookkeeping, not a second
+2. Reconcile open Dependabot PRs and alerts via `gh` — bookkeeping, not a second
    decision loop. Apply only genuine `unresolved` follow-ups. Classify each:
    `covered here`, `already on default branch`, `unresolved`, or
    `blocked intentionally`.
