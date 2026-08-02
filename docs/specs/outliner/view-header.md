@@ -10,15 +10,19 @@ The view header renders the current location's own content as an editable
 heading. Editing the heading changes that content in place.
 
 The location's [note kind](./note-model.md#note-kinds) determines the content it
-can carry. A zoomed editor note supports the same inline content as any editor
-note, including formatting and [note links](./links.md). The document root
+can carry. A zoomed [editor note](./note-model.md#note-kinds) supports the same
+inline content as any editor note, including formatting and
+[note links](./links.md). The [document root](./note-model.md#definitions)
 supports the content allowed by its kind.
 
 ## Structural boundary
 
 The header is visually distinct from editor-note rows and is not one of them.
 It cannot be folded, indented, outdented, reordered, structurally deleted, or
-selected structurally, and structural commands do not target it.
+selected structurally, and structural commands do not target it. Selection
+extension cannot cross from the header, its owned body, or the child outline
+into either of the other two; it stops at that boundary. Within the child
+outline, [whole-note snapping](./selection.md#whole-note-snapping) applies.
 
 ## Editing
 

@@ -18,11 +18,16 @@ behavior.
 
 1. The toolbar carries these actions: indent, outdent, move up, move down, toggle
    done, toggle fold, delete, undo, redo, open note menu.
-2. The structural actions target the current [selection](./selection.md): the
-   editor note owning a caret or inline text selection, or every note in a
-   selected note range. [Body](./body.md#selection-and-structural-targeting)
-   owns the mapping from a body region to its editor note. The action contracts
-   are:
+2. A selection in the [view header](./view-header.md#structural-boundary)
+   supplies no note target to the toolbar. Otherwise, the structural actions
+   target the current selection: the
+   [editor note](./note-model.md#note-kinds) owning the
+   [outline selection region](./selection.md#selection-states) of a
+   [caret or inline text selection](./selection.md#selection-states), or every
+   note in a [selected note range](./selection.md#note-ranges).
+   [Body](./body.md#selection-and-structural-targeting) owns the mapping from a
+   body [selection region](./selection.md#selection-states) to its editor note.
+   The action contracts are:
    - Indent / outdent, per
      [Indentation](./indentation.md).
    - Move up / move down, per
@@ -31,11 +36,14 @@ behavior.
      [List types](./list-types.md#toggling).
    - Delete removes the targeted notes and their subtrees per
      [Deletion](./deletion.md), with no confirmation step. For a caret this
-     removes the focused note (not the caret-mode merge that Backspace performs).
-3. Toggle fold acts on the focus note per [Folding](./folding.md).
+     removes the [focus note](./selection.md#selection-states), not the caret
+     merge that Backspace performs. The current
+     [zoom root](./zoom.md#definitions) supplies no delete target.
+3. Outside the view header, toggle fold acts on the focus note unless it is the
+   current zoom root, per [Folding](./folding.md).
 4. Undo and redo act on the document's edit history rather than the selection,
    reversing and reapplying the most recent edits.
-5. Open note menu opens the [quick action menu](./menu.md) for the focus note.
+5. Open note menu opens the [quick action menu](./menu.md).
 
 ## Layout
 
@@ -53,8 +61,8 @@ behavior.
 
 ## Capability
 
-1. Toggle fold is disabled when the selection has no foldable note, per
-   [Folding](./folding.md).
+1. Toggle fold is disabled in a view header, at the current zoom root, or when
+   the focus note has no children, per [Folding](./folding.md).
 2. Delete is disabled when the current selection has nothing deletable, per
    [Deletion](./deletion.md).
 3. Undo and redo are each disabled when the history has nothing to reverse or

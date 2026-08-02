@@ -23,11 +23,11 @@ notes:
 
 - Addressability is kind-specific. An editor note carries a unique
   [`noteId`](./note-ids.md) within its tree. A document carries its separate
-  `documentId`; a [body](./body.md) is identified through its owning editor
-  note rather than by its own identifier.
+  [`documentId`](./note-ids.md#definitions); a [body](./body.md) is identified
+  through its owning editor note rather than by its own identifier.
 - Every note except the document root has exactly one parent. Each parent owns
-  an ordered list of children. An editor note's body is a separate owned region,
-  not one of its children.
+  an ordered list of children. An editor note's body is separate from its
+  content and is not one of its children.
 - A document always contains at least one editor note. An operation that would
   remove the final editor note leaves an empty editor note instead.
 - A parent owns its children's order, so changing sibling order does not mutate
@@ -41,9 +41,9 @@ notes:
 - **Previous note / next note:** adjacent editor notes in document order. View
   filters such as [zoom](./zoom.md) and [folding](./folding.md) can hide notes
   without changing that order.
-- **Content text:** a note region's own text.
+- **Content text:** a note's own text.
 - **Empty note:** an editor note whose content text is empty after trimming
-  whitespace. Its body is a separate region and does not affect this state.
+  whitespace. Its body is separate and does not affect this state.
 - **Empty leaf note:** an empty note with no children.
 - **Document root note:** the root representing the document. It has no parent,
   is not directly selectable, and owns all top-level editor notes as children.

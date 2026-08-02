@@ -6,19 +6,20 @@ to the caret and selection. Selection semantics are defined in
 resolution follows
 [Note merge](./body.md#note-merge).
 
-## Caret mode (collapsed caret or inline range)
+## Caret and inline text selections
 
-1. Inline text range: `Backspace`/`Delete` remove only the highlighted
+1. Inline text selection: `Backspace`/`Delete` remove only the highlighted
    characters.
 
 2. Backspace at start of note (caret at column 0):
-   1. If the note is the first note in document order: **no-op**; caret stays
-      put.
-   2. Otherwise: use the previous note in document order.
-      1. If either note is an [empty leaf](./note-model.md#definitions): delete
-         it; caret lands at the boundary of the surviving note (end of the
-         previous note when deleting the current note, start of the current note
-         when deleting the previous note). No surrounding text is altered.
+   1. If the note is the first note in
+      [document order](./note-model.md#definitions): **no-op**; caret stays put.
+   2. Otherwise: use the [previous note](./note-model.md#definitions) in
+      document order.
+      1. If either note is an [empty leaf note](./note-model.md#definitions):
+         delete it; caret lands at the boundary of the surviving note (end of
+         the previous note when deleting the current note, start of the current
+         note when deleting the previous note). No surrounding text is altered.
       2. Otherwise: delete the current note and append its text to the end of
          the previous note (spacing rule). Caret lands at the join point in the
          previous note. If the current note has children, reparent them to the
@@ -29,25 +30,26 @@ resolution follows
          2. Otherwise, append the current note's children as the last children
             of the previous note.
 3. Forward `Delete` at end of note (caret at final character):
-   1. If the current note is an empty leaf: delete it; focus is resolved as in
-      Note range → Focus after deletion.
-   2. Otherwise, use the next note in document order. If no next note exists,
-      forward `Delete` is a no-op.
+   1. If the current note is an empty leaf note, delete it; focus follows the
+      [structural-selection focus order](#structural-selection) below.
+   2. Otherwise, use the [next note](./note-model.md#definitions) in document
+      order. If no next note exists, forward `Delete` is a no-op.
    3. If both the current note and the next note have children: forward `Delete`
       is a **no-op**.
    4. Otherwise, apply the Backspace-at-start rules to the next note (including
-      empty-leaf deletion and merge/reparent behavior).
+      deletion of an empty leaf note and merge/reparent behavior).
 4. Middle of a note: `Backspace`/`Delete` behave like a plain text editor.
 
 ## Zoom boundary behavior (caret selection)
 
-When [zoom](./zoom.md) is active, caret-mode deletion from the outline children
-keeps merges inside the zoom boundary:
+In a [subtree view](./zoom.md#visibility-and-editing-boundary), caret deletion
+from the outline children keeps merges inside the
+[zoom boundary](./zoom.md#definitions):
 
 1. Forward `Delete` at the end of a child is a no-op when the next note in
    document order is outside the zoom boundary.
-2. For all other notes inside the zoom boundary, caret-mode deletion uses the
-   default rules above.
+2. For all other notes inside the zoom boundary, caret deletion uses the default
+   rules above.
 
 ## Structural selection
 

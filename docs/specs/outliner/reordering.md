@@ -1,9 +1,9 @@
 # Reordering
 
-Reordering moves target note ranges directionally while preserving their
-[document order](./note-model.md#definitions) and respecting zoom boundaries;
-inapplicable moves are no-ops. Selection kinds and note ranges are defined by
-[Selection](./selection.md).
+Reordering moves [target note ranges](./selection.md#note-ranges) directionally
+while preserving their [document order](./note-model.md#definitions) and
+respecting [zoom boundaries](./zoom.md#definitions); inapplicable moves are
+no-ops.
 
 ## Input bindings
 
@@ -14,11 +14,13 @@ inapplicable moves are no-ops. Selection kinds and note ranges are defined by
 
 ## Target resolution
 
-A caret or inline text selection targets the
-[editor note](./note-model.md#note-kinds) that owns its region as a one-note
-target range. [Body](./body.md#selection-and-structural-targeting) owns the
-mapping from a body region to its editor note. A structural selection targets
-its selected note range.
+A [caret or inline text selection](./selection.md#selection-states) in an
+[outline selection region](./selection.md#selection-states) targets the
+[editor note](./note-model.md#note-kinds) that owns the region as a one-note
+target note range. [Body](./body.md#selection-and-structural-targeting) owns the
+mapping from a body selection region to its editor note. A
+[structural selection](./selection.md#selection-states) targets its
+[selected note range](./selection.md#note-ranges).
 
 ## Directional movement
 
@@ -77,10 +79,11 @@ note3
 
 ## Zoom boundary
 
-When [zoom](./zoom.md) is active, a reordering step is valid only
-when the complete result remains inside the zoom boundary. An out-of-boundary
-step is skipped while the command continues through the directional cascade.
-When no in-boundary step is available, the document remains unchanged.
+In a [subtree view](./zoom.md#visibility-and-editing-boundary), a reordering
+step is valid only when the complete result remains inside the zoom boundary.
+An out-of-boundary step is skipped while the command continues through the
+directional cascade. When no in-boundary step is available, the document
+remains unchanged.
 
 ## Future
 

@@ -6,9 +6,10 @@ external representations only at persistence boundaries.
 
 ## Representation
 
-The adapter maps the document root to Lexical's `RootNode`. The root contains
-one `ListNode`, whose `ListItemNode` children represent the document root's
-editor-note children.
+The adapter maps the [document root](../outliner/note-model.md#definitions) to
+Lexical's `RootNode`. The root contains one `ListNode`, whose `ListItemNode`
+children represent the document root's
+[editor-note](../outliner/note-model.md#note-kinds) children.
 
 Each editor note is a content `ListItemNode` whose children hold the note's
 payload. When that note has children, an adjacent wrapper `ListItemNode`

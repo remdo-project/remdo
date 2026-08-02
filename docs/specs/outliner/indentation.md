@@ -10,10 +10,11 @@ Indent and outdent change the nesting of
 
 ## Target resolution
 
-A [caret or inline text selection](./selection.md#selection-states) targets the
-[editor note](./note-model.md#note-kinds) that owns its region as a one-note
-target range. [Body](./body.md#selection-and-structural-targeting) owns the
-mapping from a body region to its editor note.
+A [caret or inline text selection](./selection.md#selection-states) in an
+[outline selection region](./selection.md#selection-states) targets the
+[editor note](./note-model.md#note-kinds) that owns the region as a one-note
+target note range. [Body](./body.md#selection-and-structural-targeting) owns the
+mapping from a body selection region to its editor note.
 
 ## Focus handling
 
@@ -33,6 +34,7 @@ former parent. A top-level range remains unchanged.
 
 ## Zoom boundary
 
-When [zoom](./zoom.md) is active, indent and outdent apply only if
-the complete result remains inside the zoom boundary; otherwise, the outline
-remains unchanged.
+In a [subtree view](./zoom.md#visibility-and-editing-boundary), indent and
+outdent apply only if the complete result remains inside the
+[zoom boundary](./zoom.md#definitions); otherwise, the outline remains
+unchanged.
