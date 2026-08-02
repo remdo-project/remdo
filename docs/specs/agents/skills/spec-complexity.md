@@ -12,7 +12,7 @@ The report answers:
 
 The skill assesses a specification named by the caller against its current
 implementation, tests, and Git history. The specification is the current
-[contract owner](../../documentation.md#ownership) for the behavior under
+[contract owner](../../../documentation.md#ownership) for the behavior under
 assessment.
 
 Each area caused by the specification identifies:

@@ -6,7 +6,7 @@ description: Assess a caller-named specification against its implementation, tes
 # Spec Complexity
 
 Assess one specification under the authoritative
-[`spec-complexity`](../../../docs/specs/skills/spec-complexity.md) contract.
+[`spec-complexity`](../../../docs/specs/agents/skills/spec-complexity.md) contract.
 Remain read-only.
 
 ## Assess the specification
@@ -36,4 +36,4 @@ requests them.
 ## Report
 
 Return the report defined by the specification's
-[Result](../../../docs/specs/skills/spec-complexity.md#result) section.
+[Result](../../../docs/specs/agents/skills/spec-complexity.md#result) section.

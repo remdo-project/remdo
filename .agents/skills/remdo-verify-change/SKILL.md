@@ -6,7 +6,7 @@ description: Verify a default or explicitly selected RemDo uncommitted or Git-ra
 # RemDo Verify Change
 
 Verify one scope under the authoritative
-[`remdo-verify-change`](../../../docs/specs/skills/remdo-verify-change.md)
+[`remdo-verify-change`](../../../docs/specs/agents/skills/remdo-verify-change.md)
 contract.
 Remain read-only: do not edit, stage, commit, or run checks intended to change
 the selected scope.
@@ -80,10 +80,10 @@ a fixed phrase list for this semantic judgment.
 
 After both review attempts finish, classify every finding under the
 authoritative specification's
-[Findings](../../../docs/specs/skills/remdo-verify-change.md#findings) contract.
+[Findings](../../../docs/specs/agents/skills/remdo-verify-change.md#findings) contract.
 Keep verification read-only.
 
 ## Report
 
 Return the result exactly as defined by the authoritative specification's
-[Result](../../../docs/specs/skills/remdo-verify-change.md#result) section.
+[Result](../../../docs/specs/agents/skills/remdo-verify-change.md#result) section.

@@ -2,7 +2,7 @@
 
 This skill verifies a repository change, applies every correction
 supported by the evidence, and repeats until no further correction can be
-determined. One [change scope](../agents/change-scope.md) bounds the run; the
+determined. One [change scope](../change-scope.md) bounds the run; the
 skill does not select or expand intended behavior.
 
 ## Convergence
