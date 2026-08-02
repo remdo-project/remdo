@@ -24,29 +24,36 @@ only; it never changes the underlying outline structure or note identities.
    (caret at end of its text). Hidden descendants are not selectable.
 6. If a child is inserted or moved under a folded parent, the parent
    auto-expands. If a note loses its last child, it is no longer folded.
-7. Zoom defines the outer visible subtree; folding applies inside that view and
-   zooming does not reset folding.
-8. Exception: when a folded note is the current zoom root, its own fold state
-   does not hide its direct children in the zoomed view. Those children remain
-   visible there, and deeper visibility is determined by each descendant's own
-   fold state.
+7. [Zoom](./zoom.md) defines the outer visible
+   [zoom boundary](./zoom.md#definitions);
+   folding applies inside that view and zooming does not reset folding.
+8. Exception: when a folded note is the current
+   [zoom root](./zoom.md#definitions), its own fold state does not hide its
+   direct children in the
+   [subtree view](./zoom.md#visibility-and-editing-boundary). Those children
+   remain visible there, and deeper visibility is determined by each
+   descendant's own fold state.
 
 ## Fold To Level
 
 1. `Shift`, `Shift`, then `1` through `9` folds notes inside the current zoom
    boundary so that only notes up to that level remain visible.
 2. Level is counted from the current view root:
-   - in document-root view, level `1` leaves only top-level notes visible;
-   - in subtree zoom, level `1` leaves the zoom root and its direct children
+   - in the [document-root view](./zoom.md#visibility-and-editing-boundary),
+     level `1` leaves only top-level notes visible;
+   - in a [subtree view](./zoom.md#visibility-and-editing-boundary), level `1`
+     leaves the zoom root and its direct children
      visible.
-3. Pressing `0` fully unfolds the current zoom boundary.
+3. Pressing `0` fully unfolds the current
+   [zoom boundary](./zoom.md#definitions).
 4. The command changes existing stored fold state for notes inside the current
    zoom boundary.
 5. The command appears as `Fold to level [0-9]` in the quick action menu's
-   `View` section and applies from the current zoom root (document root or
-   subtree root), regardless of which visible note opened the quick action
-   menu. Clicking it applies level `1`.
+   `View` section and applies from the current zoom root
+   ([document root](./note-model.md#definitions) or subtree root), regardless of
+   which visible note opened the quick action menu. Clicking it applies level
+   `1`.
 6. If applying a fold level would hide the active caret or structural
    selection, focus collapses to the nearest still-visible ancestor note.
-7. Existing manual folds inside the scoped subtree may be overwritten by the
+7. Existing manual folds inside the zoom boundary may be overwritten by the
    command. The command does not preserve or later restore a prior fold layout.

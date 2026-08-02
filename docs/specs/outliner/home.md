@@ -2,9 +2,10 @@
 
 **Home** sits at the top of the navigation hierarchy, above any single document,
 and lets a user browse their documents and jump between them.
-It sits one level above the document-root [zoom](./zoom.md) view — the document
-is a [note](./note-model.md), and Home is the surface from which its documents are
-reached.
+It sits one level above the
+[document-root view](./zoom.md#visibility-and-editing-boundary) — the document
+is a [note](./note-model.md), and Home is the surface from which its documents
+are reached.
 
 ## Definitions
 
@@ -20,7 +21,8 @@ reached.
    linked [source server](../../access-model.md#cross-server-source-linking), under
    a heading per group.
 3. Each listed document shows its display name and opens that document when
-   activated, landing on its document-root [zoom](./zoom.md) view.
+   activated, landing on its
+   [document-root view](./zoom.md#visibility-and-editing-boundary).
 4. Home presents three additional entry-point groups alongside the document
    list: **Favorites**, **Tags**, and **Recents**. Each is a list of document
    shortcuts, shown as static placeholder entries until the

@@ -2,8 +2,8 @@
 
 [Editor notes](./note-model.md#note-kinds) support the outliner's list types,
 list-type conversion, and checked state, including target resolution for
-checked-state changes. Selection kinds and note ranges are defined by
-[Selection](./selection.md).
+checked-state changes. [Selection states](./selection.md#selection-states) and
+[note ranges](./selection.md#note-ranges) are defined by Selection.
 
 ## Supported types
 
@@ -32,14 +32,17 @@ checked; when only some are, it displays as mixed.
 Toggling sets a target's notes and all their descendants to one state:
 unchecked when every one of them is already checked, otherwise checked.
 
-A caret or inline text range targets the editor note owning its region;
+[A caret or inline text selection](./selection.md#selection-states) in an
+[outline selection region](./selection.md#selection-states) targets the editor
+note owning the region;
 [Body](./body.md#selection-and-structural-targeting) owns the mapping from a
-body region to its editor note. The marker of a note in a check list targets the
-clicked note while that note is outside any structural selection. A structural
-selection — including a marker click on a note inside it — targets its selected
-[note range](./selection.md#note-ranges). Other surfaces — the
-[note menu](./menu.md) and the [mobile action toolbar](./mobile-toolbar.md) —
-supply their own targets, as their contracts define.
+body selection region to its editor note. The marker of a note in a check-type
+list targets the clicked note while that note is outside any
+[structural selection](./selection.md#selection-states). A structural selection
+— including a marker click on a note inside it — targets its
+[selected note range](./selection.md#note-ranges). Other surfaces — the [note
+menu](./menu.md) and the [mobile action toolbar](./mobile-toolbar.md) — supply
+their own targets, as their contracts define.
 
 ### Keyboard command
 

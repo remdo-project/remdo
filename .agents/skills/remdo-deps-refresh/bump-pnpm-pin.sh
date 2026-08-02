@@ -3,7 +3,7 @@
 # Update package.json's "packageManager" pnpm pin to the latest release, with the
 # exact corepack integrity hash. Idempotent: a no-op when already current.
 #
-# The hash MUST be exact (a wrong digest silently breaks every corepack install),
+# The hash must be exact (a wrong digest silently breaks every corepack install),
 # so it is derived deterministically from the npm tarball digest here rather than
 # typed or eyeballed. This is the one piece the loop keeps as a script for that
 # reason; everything else about the pin is a plain field edit.

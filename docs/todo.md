@@ -27,17 +27,17 @@ Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Normative prose migration.** Remove RFC-style uppercase requirement
-  keywords from current contract owners and agent skills, preserving
-  distinctions expressed by `SHOULD` and `MAY` in ordinary prose. Leave retired
-  and archived evidence unchanged.
-
 - **Specification vocabulary review.** Make future specification-authoring and
   review workflows apply the [ownership](documentation.md#ownership) and
   [minimality](documentation.md#minimality) rules to every domain- or
   component-specific term, including consistent actor and component identity.
 
 ### Outliner
+
+- **Inline-selection Enter behavior.** Decide and specify what `Enter` does for
+  a non-collapsed [inline text selection](specs/outliner/selection.md#selection-states)
+  in [Insertion](specs/outliner/insertion.md), then align implementation and
+  automated coverage.
 
 - **Current-location presentation ownership.** Before implementing the
   [view header](specs/outliner/view-header.md) alongside

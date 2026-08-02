@@ -6,29 +6,32 @@ note-link identity across clipboard and persistence boundaries.
 
 ## Structural selection
 
-- Copy duplicates the selected notes (including their subtrees and each note's
-  [body](./body.md)) and leaves the document unchanged.
+- Copy duplicates the selected notes (including their
+  [subtrees](./note-model.md#definitions) and each note's [body](./body.md)) and
+  leaves the document unchanged.
 - Copy captures the notes as they are at copy time; later edits to the
   originals do not change what gets pasted.
-- Cut prepares the selected notes to be moved; they stay in place until you
-  paste them elsewhere.
-- If you edit anything inside the pending cut boundary before pasting, the cut
-  is canceled so edits stay where they were made.
-- After a structural cut, the selection collapses to the visual start.
-- Pasting while a selected note range is active replaces that selection with the
-  pasted notes.
-- Pasting after a cut moves the cut notes to the new location. If the cut is no
+- Cut creates a **pending cut** from the
+  [selected note range](./selection.md#note-ranges). Its notes stay in place
+  until paste moves them.
+- Any edit inside the pending cut before pasting, including a remote edit,
+  cancels the cut so edits stay where they were made.
+- After creating a pending cut, the caret moves to the start of the range's
+  first note in [document order](./note-model.md#definitions).
+- Pasting while a [selected note range](./selection.md#note-ranges) is active
+  replaces that selection with the pasted notes.
+- Pasting a pending cut moves its notes to the new location. If the cut is no
   longer valid, paste does nothing.
-- A cut can be pasted once; after a successful paste the cut is cleared.
-- If you try to paste into the cut notes or their descendants, nothing happens
-  and the cut remains pending.
+- A pending cut can be pasted once; after a successful paste it is cleared.
+- If you try to paste inside the pending cut, nothing happens and the cut
+  remains pending.
 - Starting a new copy/cut, or pasting unrelated content, cancels the pending
   cut.
 - Pasting a copied note **outside** RemDo (plain text) includes each note's own
   text, then its body text on the following line(s), then its sub-notes — the
   order the note reads on screen.
 
-## Inline selection (single note)
+## Inline text selection (single note)
 
 - Single-line plain text replaces the selected text, as in a normal text editor.
 - Multi-line plain text always inserts notes, even when the selection is inline.

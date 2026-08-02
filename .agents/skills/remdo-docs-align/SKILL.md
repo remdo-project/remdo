@@ -59,7 +59,7 @@ they run in this order.
    ```
 
    Preserve `<scope-argument>` as one literal shell argument. Invoke the script
-   directly in exactly that form, in the foreground; MUST NOT wrap it in a
+   directly in exactly that form, in the foreground; do not wrap it in a
    helper script, background it, or re-implement its steps (a backgrounded run
    is orphaned when a headless session ends its turn). Use a repo-local
    `<output-file>` such as `.agent/tmp/advocate.txt` (headless editors cannot
@@ -76,13 +76,13 @@ they run in this order.
    boundary, or requiring a coherence repair outside the selection. It then
    drops table entries matching the standing-keeps ledger on BOTH keys — the
    proposal's file equals the entry's file, and the quoted text matches
-   (whitespace-normalized substring); the same words in a different doc are a
-   different proposal and MUST NOT be suppressed. (User-settled keeps; report
-   the count — removing a ledger entry is how a keep is reopened.) The ledger
-   lives in a machine-local checkout of the `remdo-docs-qa` bench repo — a
-   sibling of the RemDo checkout (same parent directory); if absent, suppression
-   is unavailable (degraded mode) and the run proceeds without it. If these
-   steps empty the table, skip the adjudicators and report it like
+   (whitespace-normalized substring); the same words in a different doc
+   constitute a different proposal and are not suppressed. (User-settled
+   keeps; report the count — removing a ledger entry is how a keep is reopened.)
+   The ledger lives in a machine-local checkout of the `remdo-docs-qa` bench
+   repo — a sibling of the RemDo checkout (same parent directory); if absent,
+   suppression is unavailable (degraded mode) and the run proceeds without it.
+   If these steps empty the table, skip the adjudicators and report it like
    `PROPOSALS=none` — there is nothing left to adjudicate.
    Otherwise two independent, fresh, contextless adjudicators
    — never the session that ran stages 1-3 — each produce verdict-only

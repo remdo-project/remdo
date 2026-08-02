@@ -9,13 +9,16 @@ zooming to a result.
 - **Highlighted note:** the single note targeted by search navigation.
 - **Result row:** the rendering for a single search result (see Result row
   context).
+- **`No matches`:** the empty-state label shown when a non-empty current query
+  produces no flat results.
+- **`No notes`:** the empty-state label shown when the current query is empty
+  and the active document has no search candidates.
 
 ## Scope and boundaries
 
-1. Search always runs against the current active document only.
-2. Search empty states (`No matches` / `No notes`) mean the current active
-   document has no matching/all candidates. They do not represent invalid
-   routes, unavailable documents, or offline loading states.
+1. Search always runs against the active document only.
+2. Search empty states do not represent invalid routes, unavailable documents,
+   or offline loading states.
 3. Runtime document-ID ownership and route/link identity are defined in
    [Note IDs](./note-ids.md) and [Links](./links.md), not in this search spec.
 
@@ -32,9 +35,9 @@ zooming to a result.
    a plain-text field split on whitespace into tokens (order-independent; extra
    whitespace ignored). A note matches when every token is a case-insensitive
    substring of some entry in the note's [note path](./note-model.md#definitions),
-   and at least one token matches the note's own text. Results stay in document
-   order. Matched tokens are highlighted wherever they occur — in the note label
-   or an ancestor crumb.
+   and at least one token matches the note's own text. Results stay in
+   [document order](./note-model.md#definitions). Matched tokens are highlighted
+   wherever they occur — in the note label or an ancestor crumb.
 7. Flat results are capped at the first ten matches in document order. When at
    least one match exists beyond the shown results, a non-interactive trailing
    row reports that more matches exist (the shown count, with no exact total) and

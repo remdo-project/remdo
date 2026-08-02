@@ -7,13 +7,13 @@ boundary it lives behind; runtime setup belongs in
 
 ## Boundary
 
-Dev tooling MUST NOT ship in the production bundle and MUST NOT shape production
+Dev tooling must not ship in the production bundle and must not shape production
 code around itself:
 
 - **Build-time gate.** Dev tooling is reachable only through
   `import.meta.env.DEV`-guarded branches — `true` under the dev server and test
   runner, statically `false` in the production build.
-- **Prefer neutral seams.** A production component SHOULD expose a neutral
+- **Prefer neutral seams.** A production component should expose a neutral
   extension point for dev tooling rather than reference it directly, but a simple
   direct import or call is acceptable where it keeps the boundary clear and the
   implementation materially simpler.

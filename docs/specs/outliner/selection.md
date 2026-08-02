@@ -5,17 +5,32 @@ structural commands rely on it.
 
 ## Selection states
 
+A **selection region** is an independently selectable inline-editing surface:
+an [editor note](./note-model.md#note-kinds)'s content in a note row or
+[view header](./view-header.md), its [body](./body.md), or the
+[document root](./note-model.md#definitions)'s editable view header. An editor
+note's content and its body are separate selection regions.
+
+An **outline selection region** is an editor note's content in a note row or
+its body. A view-header selection region never supplies a target note or target
+note range to a command; [View header](./view-header.md#structural-boundary)
+owns the inputs available there. A body displayed below a view header remains
+an outline selection region, not a view-header selection region.
+
 A selection is always exactly one of:
 
-1. **Caret selection** — a collapsed caret inside one note region.
-2. **Inline text selection** — a non-collapsed text range inside one note
-   region. Selecting all text in that region remains inline; textual coverage
-   does not make a selection structural.
+1. **Caret selection** — a collapsed caret inside one selection region.
+2. **Inline text selection** — a non-collapsed text range inside one selection
+   region. Selecting all text in that region remains inline; textual
+   coverage does not make a selection structural.
 3. **Structural selection** — one or more notes selected as structural units,
-   each together with its entire subtree.
+   each together with its entire [subtree](./note-model.md#definitions).
 
-[Body](./body.md#selection-and-structural-targeting) defines how a body region
-supplies its owning editor note to structural commands.
+The **focus note** is the editor note containing a caret or inline text
+selection's focus endpoint, or the editor note at a structural selection's
+focus edge. [Body](./body.md#selection-and-structural-targeting) defines how a
+focus inside a body maps to its owning editor note. A selection in the document
+root's view header has no focus note.
 
 **Mode switch.** Typing inserts characters only in states 1 and 2. In state 3,
 the editor is in structural mode: keystrokes that would type become no-ops and
@@ -38,9 +53,18 @@ the common structure.
 
 A selection can never partially cross a note boundary. The moment a text
 selection extends beyond one note's content, it becomes a structural selection
-whose selected note range covers the crossed notes.
+whose selected note range covers the crossed notes. Extension between a view
+header, its owned body, and its child outline follows
+[View header](./view-header.md#structural-boundary) instead.
 
 ## The selection ladder
+
+The selection ladder applies only when the selection has a focus note, is
+outside the view header, and that note is not the current
+[zoom root](./zoom.md#definitions). In a view header, `Shift+Arrow` stays within
+the header's selection region and `Cmd/Ctrl+A` selects all header content;
+neither input creates a structural selection. In the zoom root's body,
+`Shift+Up/Down` is a no-op.
 
 The selection cannot grow by single rows; it grows and shrinks along a single
 ordered ladder whose every structural rung has a legal selected note range.
@@ -65,9 +89,9 @@ The ladder is anchored and replayable:
   3. one more contiguous sibling (with its subtree) in the sweep direction;
   4. when siblings in that direction are exhausted, the parent note (with its
      subtree), then resume sibling steps at the parent's level;
-  5. repeat to the document root (or the [zoom](./zoom.md) boundary). Hoisting
-     stops at the deepest note still inside the zoom root; the zoom root itself
-     is never a rung.
+  5. repeat to the [document root](./note-model.md#definitions) (or the
+     [zoom boundary](./zoom.md#definitions)). Hoisting stops at the deepest note
+     still inside the zoom root; the zoom root itself is never a rung.
 
 Direction and reversal:
 
@@ -93,16 +117,16 @@ in place where possible; the disturbance tiers are defined in
 
 | Input | Effect |
 | ----- | ------ |
-| `Shift+Left/Right` | Inline-only text selection inside the active note; a no-op at the note boundary. |
-| `Shift+Up/Down` | Walk the selection ladder one note at a time in that direction (push the next rung, or pop on reversal). |
-| `Cmd/Ctrl+A` | Grow the same ladder outward one rung per press (direction-neutral), adding the whole sibling group of a sibling rung at once. |
-| `Shift+Click` | Extend to the clicked note, producing a structural selection with a contiguous selected note range; the anchor is the click origin and the resulting range seeds the ladder so later `Shift+Up/Down` can pop it. |
+| `Shift+Left/Right` | Extends an inline text selection inside its selection region; a no-op at the region boundary. |
+| `Shift+Up/Down` | When the selection ladder applies, walk it one note at a time in that direction (push the next rung, or pop on reversal). |
+| `Cmd/Ctrl+A` | Inside a body, selects that body's text per [Body](./body.md#navigation). Otherwise, when the selection ladder applies, grow it outward one rung per press (direction-neutral), adding the whole sibling group of a sibling rung at once. |
+| `Shift+Click` | With a focus note other than the current zoom root, extend to the clicked note, producing a structural selection with a contiguous selected note range; the anchor is the click origin and the resulting range seeds the ladder so later `Shift+Up/Down` can pop it. |
 | Drag | Highlights text until it crosses a note boundary, then snaps to whole notes. |
 | Long-press (touch) | Enters caret selection; dragging handles behaves like text selection until it crosses a boundary, then snaps to whole notes. |
 | `Esc` | Collapses any structural selection to a caret without changing the document. |
 | Unmodified Arrow / `Home` / `End` / `Page` keys | Collapse a structural selection and place the caret at the corresponding edge (start/end or top/bottom) so typing resumes there. |
 | `Tab` / `Shift+Tab` | Indent / outdent the selection — see [Indentation](./indentation.md). |
-| `Enter` | Caret mode: see [Insertion](./insertion.md). Structural mode: no-op. |
+| `Enter` | Caret selection: see [Insertion](./insertion.md). Structural selection: no-op. |
 
 ## Collaboration reshaping
 
@@ -129,9 +153,9 @@ selection.
 
 | Selection state | Allowed operations |
 | --------------- | ------------------ |
-| Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List types](./list-types.md#toggling)); structural commands may resolve a one-note target range as defined by the command. |
+| Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List types](./list-types.md#toggling)); structural commands may resolve a one-note target note range as defined by the command. |
 | Inline text selection | Inline formatting, inline delete/backspace, and toggle checked; structural commands define whether and how the selection resolves to a target note range. |
-| Structural selection | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste, toggle checked, and other structural commands operate on its selected note range in document order. |
+| Structural selection | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste, toggle checked, and other structural commands operate on its selected note range in [document order](./note-model.md#definitions). |
 
 Clipboard behavior for structural selections and inline text selections is
 defined in [Clipboard](./clipboard.md).

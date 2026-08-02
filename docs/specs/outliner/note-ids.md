@@ -65,12 +65,14 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 
 ## Persisted JSON and normalization
 
-- Persisted JSON document state must include `noteId` for addressable notes.
-- Persisted JSON document state must not persist the active/current document ID
-  as document-level identity.
+- [Persisted JSON state](./links.md#definitions) must include `noteId` for
+  addressable notes.
+- Persisted JSON state must not persist the active document ID as document-level
+  identity.
 - On load, any missing or duplicate `noteId` values must be normalized before
   the document is exposed to the app: keep existing unique IDs and assign fresh
-  IDs to missing or colliding notes (preserving document order).
+  IDs to missing or colliding notes (preserving
+  [document order](./note-model.md#definitions)).
 - Normalized IDs must be persisted on the next save.
 
 ## Runtime document ID ownership
@@ -88,8 +90,8 @@ Behavioral clipboard rules (placement, move validation, focus) live in
   created locally and synced as part of the note content.
 - Remote operations must not overwrite existing `noteId` values during normal
   application.
-- If a cut marker exists, any remote edit inside the marked boundary cancels
-  the marker to avoid ambiguous moves.
+- [Pending-cut cancellation](./clipboard.md#structural-selection) under remote
+  edits is defined by Clipboard.
 
 ## Global references
 
