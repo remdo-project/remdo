@@ -58,15 +58,3 @@ running the relevant suite. The code-local marker is the sole tracking record;
 the same work does not also appear in [`docs/todo.md`](../todo.md) or another
 documentation list. Its proximity to the code exposes it when the workaround is
 removed.
-
-## Editor Feature Modules
-
-Cohesive editor features live in `src/client/editor/features/<feature>/` and own
-their plugin entry points plus related nodes, helper modules, UI, and unit tests.
-Colocated `*.spec.ts` and `*.spec.tsx` files in these feature folders are part of
-the unit test inventory and follow the same test rules as `tests/unit`.
-
-Dependencies point one way: feature imports point to the shared base
-(`runtime/`, `outline/`) or another feature; the shared base does not import a
-feature. A capability specific to one feature remains owned by that feature, and
-other modules access it by name.

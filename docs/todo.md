@@ -32,6 +32,16 @@ Remove rejected or obsolete items and empty sections.
   [minimality](documentation.md#minimality) rules to every domain- or
   component-specific term, including consistent actor and component identity.
 
+### Editor
+
+- **Editor module ownership.** Editor capabilities are split across `features/`,
+  `plugins/`, `search/`, `links/`, `triggers/`, and `view/`, while `runtime/` and
+  `outline/` import capability-specific modules. Establish a coherent folder
+  taxonomy that makes ownership and shared foundations visible, migrate modules
+  without changing behavior, and enforce the resulting dependency boundaries
+  mechanically. Document only architectural boundaries that remain non-obvious
+  from the source tree and enforcement.
+
 ### Outliner
 
 - **Inline-selection Enter behavior.** Decide and specify what `Enter` does for

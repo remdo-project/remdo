@@ -123,9 +123,8 @@ Look for opportunities to:
   existing RemDo helper, Lexical primitive, or platform API.
 - Collapse duplicated branches, mirrored state, adapter layers, wrapper helpers,
   or parallel data shapes that no longer buy a real boundary.
-- Move behavior to the owning feature/module instead of leaking ownership through
-  call-site conditionals. For editor features, keep shared base modules from
-  importing feature-owned code.
+- Move behavior to the owning module instead of leaking ownership through
+  call-site conditionals.
 - Narrow APIs so callers pass the data the callee actually owns, rather than broad
   objects that force defensive checks or synchronization.
 - Prefer direct, behavior-named test setup over clever harness metadata; for
@@ -215,5 +214,4 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 - [Change scope / branch base](../../../docs/specs/agents/change-scope.md)
 - [Runtime baseline](../../../docs/dev/contributing.md#runtime-baseline)
 - [Compatibility policy](../../../docs/dev/contributing.md#compatibility-policy-pre-10)
-- [Editor feature modules](../../../docs/dev/contributing.md#editor-feature-modules)
 - [Project principles](../../../docs/principles.md)

@@ -96,19 +96,8 @@ Rules:
   matching is now shared (`#client/search/query-match`), but the link picker
   still has its own traversal/index pipeline distinct from the search SDK walk.
 
-## Editor feature module follow-ups
+## Editor popup follow-ups
 
-- [Future] Audit existing editor capabilities for migration into
-  `src/client/editor/features/<feature>/` when they own a cohesive plugin plus
-  related nodes, helpers, UI, and focused unit tests. Likely candidates include
-  note links and search, but keep migrations incremental and behavior-neutral.
-- Hoist the shared note-body primitives out of `features/note-body/` into the
-  shared layer: several `outline/` and `runtime/` modules import `isBodyWrapper`,
-  `$resolveNoteForSelectionPoint`, and body-selection helpers from
-  `note-body-node`/`note-body-ops`, violating the one-way feature→shared rule in
-  `docs/dev/contributing.md#editor-feature-modules`. Move the cross-cutting body
-  primitives (the note-kind predicates and selection resolvers many shared
-  modules consume) to `outline/`, leaving feature-specific logic behind.
 - Editor-popup UX redesign (spec: `popups.md`/`dates.md`/`links.md`/`menu.md`) —
   remaining follow-ups (spec ahead of code on these details):
   - Dedup the duplicated portal/anchor/dismissal plumbing between `NoteMenuPlugin`
