@@ -35,19 +35,12 @@
       "isBackground": true
     },
     {
-      "label": "preview:server",
-      "type": "shell",
-      "command": "pnpm test:preview",
-      "isBackground": true
-    },
-    {
       "label": "all",
       "dependsOn": [
         "typecheck:watch",
         "lint:watch",
         "test:unit:watch",
-        "web:dev",
-        "preview:server"
+        "web:dev"
       ],
       "dependsOrder": "parallel",
       "isBackground": true

@@ -302,7 +302,6 @@ describe('config env resolve', () => {
       PORT_BASE: '4000',
       PORT: '9000',
       AUTH_URL: 'http://localhost:9000',
-      HMR_PORT: '9001',
       COLLAB_SERVER_PORT: '9004',
       API_SERVER_PORT: '9011',
       YSWEET_CONNECTION_STRING: 'ys://127.0.0.1:9004',
@@ -314,7 +313,7 @@ describe('config env resolve', () => {
         '50',
         'sh',
         '-c',
-        'printf \'%s\\n\' "$PORT_BASE" "$PORT" "$HMR_PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT" "$YSWEET_CONNECTION_STRING"; printenv AUTH_URL || printf \'unset\\n\'',
+        'printf \'%s\\n\' "$PORT_BASE" "$PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT" "$YSWEET_CONNECTION_STRING"; printenv AUTH_URL || printf \'unset\\n\'',
       ],
       { env, encoding: 'utf8' },
     );
@@ -322,7 +321,6 @@ describe('config env resolve', () => {
     expect(output.trim().split('\n')).toEqual([
       '4050',
       '4050',
-      '4051',
       '4054',
       '4061',
       'ys://127.0.0.1:4054',
