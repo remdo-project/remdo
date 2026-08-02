@@ -11,15 +11,16 @@ Durable documentation has its own contract in
 
 `origin/main` is the review baseline for committed changes.
 
-Topic branch prefixes identify the kind of change:
+Topic branches use `<type>/<short-kebab-case-description>`. The prefix
+identifies the branch's primary outcome:
 
-- `feat/` for new user-facing capabilities.
-- `fix/` for bug patches.
-- `refactor/` for structural or technical debt cleanups that do not change
-  behavior.
-- `perf/` for performance-related work.
-- `chore/` for maintenance tasks such as dependency bumps or tooling tweaks.
-- `docs/` for documentation-only work.
+- `feat/` introduces a capability.
+- `fix/` corrects a defect.
+- `refactor/` restructures implementation while preserving accepted behavior.
+- `perf/` improves performance.
+- `chore/` handles repository maintenance, including dependencies, automation,
+  and tooling.
+- `docs/` changes documentation without changing implementation.
 
 ## Runtime Baseline
 
