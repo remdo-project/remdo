@@ -17,13 +17,13 @@ not when a version moves.
   governs *resolution*), so even `--frozen-lockfile` in CI hard-fails
   (`ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`) on a committed entry younger than the
   window.
-- Build-script approval uses the `allowBuilds` map in `pnpm-workspace.yaml`
-  (`onlyBuiltDependencies` was removed in pnpm 11). With `strictDepBuilds: true`
-  (enabled), an install fails (exit 1) when any in-tree dep has a build script
-  not listed in `allowBuilds`, instead of just warning. When that happens — e.g.
-  a refresh pulls in a new build-script dep — add the dep to `allowBuilds` with
-  `true` (trusted to build) or `false` (blocked) before the install can proceed.
-  Keep `allowBuilds` limited to deps actually in the tree; drop stale entries.
+- Build-script approval uses the `allowBuilds` map in `pnpm-workspace.yaml`.
+  With `strictDepBuilds: true` (enabled), an install fails (exit 1) when any
+  in-tree dep has a build script not listed in `allowBuilds`, instead of just
+  warning. When that happens — e.g. a refresh pulls in a new build-script dep —
+  add the dep to `allowBuilds` with `true` (trusted to build) or `false`
+  (blocked) before the install can proceed. Keep `allowBuilds` limited to deps
+  actually in the tree; drop stale entries.
 
 ### Dependency patches
 
@@ -33,36 +33,15 @@ regression test that fails against the unpatched package. Keep pnpm's default
 unused-patch failure enabled so an upgrade must either retire a fix already
 provided upstream or regenerate the patch for the new version.
 
-### Dependabot version updates: deliberately off
-
-There is **no `.github/dependabot.yml`**, and Dependabot version-update PRs are
-**not** used here. Dependabot supports pnpm only through v10 while this repo
-pins pnpm 11 (`packageManager` in `package.json`), so against this workspace its
-resolver reads stale versions from the lockfile graph and opens wrong PRs. Do
-**not** re-add a version-update config until Dependabot supports **pnpm 11**.
-
-Staleness is detected by the refresh itself, not by Dependabot: the
-`remdo-deps-refresh` skill runs `pnpm update --latest`, which resolves the catalog
-correctly, and its `next-update.sh` reports (by exit code) whether a step changed
-anything. The "am I behind?" signal is running that skill on a regular cadence —
-there is no automated nag.
-
 ### Security alerts
 
-Known-vulnerability response is **independent of the version-update story above**
-and runs on GitHub's native, default mechanism — no custom config, no CI gate.
-Repo settings keep **Dependabot alerts** and **Dependabot security updates**
-enabled (Settings → Security & analysis); these work independently of any
-`dependabot.yml`, and advisories reach us as soon as GitHub knows.
+Known-vulnerability response runs on GitHub's native, default mechanism — no
+custom config, no CI gate. Repo settings keep **Dependabot alerts** and
+**Dependabot security updates** enabled (Settings → Security & analysis); these
+work independently of any `dependabot.yml`, and advisories reach us as soon as
+GitHub knows.
 
 The `audit:security` script remains a local/manual cross-check; it is
 intentionally **not** wired into CI — GitHub's alerts are the source of truth, and
 a CI audit gate would block unrelated work on an advisory that the refresh skill,
 not the failing PR, is responsible for.
-
-## References
-
-- [Dependabot supported ecosystems](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
-  — the pnpm version ceiling behind the version-updates-off rule.
-- [Dependabot pnpm workspace-catalog support](https://github.blog/changelog/2025-02-04-dependabot-now-supports-pnpm-workspace-catalogs-ga/)
-  — catalog support is not the blocker.

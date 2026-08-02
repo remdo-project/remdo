@@ -50,6 +50,15 @@ Remove rejected or obsolete items and empty sections.
   selection, empirical exceptions, and review coverage. Keep agent execution
   procedures and check commands in `AGENTS.md`, then update their inbound links.
 
+### Dependencies
+
+- **Dependabot pnpm 11 version updates.** When GitHub's
+  [supported-ecosystems table](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
+  lists pnpm v11, add `.github/dependabot.yml` for the root pnpm workspace,
+  verify that its first update preserves workspace catalogs and passes a frozen
+  lockfile install, and narrow or retire `remdo-deps-refresh` so dependency
+  update discovery has one owner.
+
 ### Performance
 
 - **Client performance contract.** Define measurable user-facing performance
