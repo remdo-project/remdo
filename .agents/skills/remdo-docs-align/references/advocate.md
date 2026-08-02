@@ -37,7 +37,7 @@ Priority order for the sweep: (1) clauses implied by an adjacent exhaustive
 rule; (2) the same rule stated more than one way (rule + allowed/disallowed
 lists + examples + rationale variants); (3) restatements of content another
 doc owns that no local rule or tracked gap requires (link or silence instead);
-(4) inflated normative keywords (MUST on non-contract-breaking style points);
+(4) inflated normative wording (`must` on non-contract-breaking style points);
 (5) rationale beyond the sanctioned brief reason; (6) throat-clearing and
 inventory phrasing. Respect the rules doc's carve-outs: materially relevant
 boundary, failure, and no-op semantics are contract; clauses needed to prevent

@@ -22,11 +22,11 @@ outside-scope repair. Do not broaden that scope.
 
 The face-value tie-breaker, applied strictly: the corpus intent promises that
 a reader takes every rule at face value. An exhaustive rule ("only X",
-"never Y", "exactly one", "MUST NOT") already forecloses everything outside
-it, so a clause that restates what an adjacent rule already implies MUST be
-deleted. "A reader might rationalize around the rule", "it closes a gap",
-"it reinforces the point", or "extra safety for important data" are NEVER
-valid keep-reasons — they contradict the corpus's own trust model. A
+"never Y", "exactly one", "must not Y") already forecloses everything outside
+it, so delete a clause that restates what an adjacent rule already implies. "A
+reader might rationalize around the rule", "it closes a gap", "it reinforces
+the point", or "extra safety for important data" are never valid keep-reasons —
+they contradict the corpus's own trust model. A
 keep-reason is valid only if it names a concrete misuse that remains possible
 even when the adjacent rule is read at face value, or if the text falls under
 a rules-doc carve-out: materially relevant boundary, failure, and no-op
