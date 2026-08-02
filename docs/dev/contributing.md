@@ -1,15 +1,15 @@
 # Contributing
 
-The conventions RemDo changes must follow: Git workflow, runtime and
-compatibility baselines, and rules for comments and editor feature modules.
-How docs themselves are written lives in
+RemDo contributions use topic branches from `origin/main`, the declared runtime
+baseline, pre-1.0 compatibility defaults, code-local follow-up markers, and
+one-way editor feature boundaries. Documentation changes follow
 [Documentation](../documentation.md).
 
 ## Git Workflow
 
 `origin/main` is the review baseline for committed changes.
 
-Name topic branches with clear prefixes so intent is obvious:
+Topic branch prefixes identify the kind of change:
 
 - `feat/` for new user-facing capabilities.
 - `fix/` for bug patches.
@@ -27,72 +27,43 @@ RemDo only targets the runtimes declared in `package.json`:
 - **Browsers:** see `package.json#browserslist` (production + development
   targets).
 
-### Implications
-
-1. **No legacy shims.** Assume the DOM/JS APIs shipped in those engines are
-   available. Don’t add defensive checks that only make sense for older
-   browsers. Use the API directly or document a real compatibility issue
-   before adding guards.
-2. **Modern syntax is fine.** Stage-4 ECMAScript features supported by the
-   browserslist need no back-compat branches.
-3. **Tests should reflect the baseline.** When reproducing bugs, rely on jsdom +
-   the supported engines. Don’t introduce polyfills that mask incompatibilities
-   outside the supported set.
+Code uses the DOM and JavaScript APIs available in those runtimes directly.
+Stage-4 ECMAScript features supported by the browserslist run without
+compatibility branches. Compatibility guards correspond to documented issues
+within the supported set. Tests reproduce behavior in jsdom and the supported
+engines; shims and polyfills for runtimes outside the declared set are outside
+the project baseline.
 
 ## Compatibility Policy (Pre-1.0)
 
-Backward compatibility is not guaranteed unless a task or spec explicitly says
-otherwise.
-
-Default policy:
-
-1. Do not preserve legacy persisted-data formats by default.
-2. Do not preserve legacy ID, route, or internal-schema shapes by default.
-3. Do not plan migration paths or compatibility shims unless explicitly
-   requested.
-4. Review feedback should not raise backward-compatibility-only concerns unless
-   the task/spec explicitly requires compatibility.
-5. If a change intentionally includes backward-compatible behavior, call that
-   out in the task wrap-up message rather than as a review finding.
+Backward compatibility is outside the default target unless a task or
+specification defines it. The default excludes preservation of legacy
+persisted-data formats, IDs, routes, and internal schemas, along with migration
+paths and compatibility shims. Review feedback treats backward compatibility as
+required only when the task or specification does.
 
 ## Code Comments
 
-`TODO:` and `FIXME:` are the only tracked comment markers. Use `FIXME:` when the
-current state contains a defect and `TODO:` otherwise. Use either for work worth
-tracking, such as a workaround, deferred fix, or known gap. Follow the
-repository-wide
-[tracked follow-up convention](../todo.md#tracked-follow-up). State the
-rationale and, where one exists, the one-line probe that proves the comment
-obsolete (delete the shim / flip the flag / run the suite) right there in the
-comment.
+`TODO:` and `FIXME:` are the only tracked code-comment markers. `FIXME:` records
+a defect in the current state; `TODO:` records other code-local work worth
+tracking, such as a workaround, deferred fix, or known gap. Both follow the
+repository-wide [tracked follow-up convention](../todo.md#tracked-follow-up).
 
-Because these markers are scanned and tracked, trust them as the record:
-once a workaround is a tracked marker at its code site, do **not** add a second
-tracker for it elsewhere (a `docs/` list, a
-[`docs/todo.md`](../todo.md) entry). The comment travels with the code and is seen
-on deletion; a duplicate note only drifts.
+A tracked comment contains its rationale and, when available, the one-line probe
+that proves it obsolete, such as deleting the shim, flipping the flag, or
+running the relevant suite. The code-local marker is the sole tracking record;
+the same work does not also appear in [`docs/todo.md`](../todo.md) or another
+documentation list. Its proximity to the code exposes it when the workaround is
+removed.
 
 ## Editor Feature Modules
 
-Use `src/client/editor/features/<feature>/` for cohesive editor features that
-own their plugin entry points plus related nodes, helper modules, UI, and unit
-tests. Colocated `*.spec.ts` and `*.spec.tsx` files in these feature folders are
-part of the unit test inventory and should follow the same test rules as
-`tests/unit`.
+Cohesive editor features live in `src/client/editor/features/<feature>/` and own
+their plugin entry points plus related nodes, helper modules, UI, and unit tests.
+Colocated `*.spec.ts` and `*.spec.tsx` files in these feature folders are part of
+the unit test inventory and follow the same test rules as `tests/unit`.
 
-Dependencies point one way: a feature may import from the shared base
-(`runtime/`, `outline/`) and from other features, but the shared base must not
-import a feature. A capability that is genuinely one feature's concern is owned
-by that feature and other modules ask it by name. Known exception to repay:
-several `outline/` modules still import note-body primitives from
-`features/note-body/` (see
-[Editor feature module follow-ups](../legacy-backlog.md#editor-feature-module-follow-ups)).
-
-Use filenames and scope openers under `docs/` to find the current owner of
-durable product behavior. Source feature folders do not replace stable behavior
-specs.
-
-## Environment
-
-See `docs/run-modes.md` for the canonical environment setup across dev, tests,
-prod, backup machines, and CI.
+Dependencies point one way: feature imports point to the shared base
+(`runtime/`, `outline/`) or another feature; the shared base does not import a
+feature. A capability specific to one feature remains owned by that feature, and
+other modules access it by name.
