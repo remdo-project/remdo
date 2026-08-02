@@ -107,13 +107,6 @@ Remove rejected or obsolete items and empty sections.
 
 ### Agents
 
-- **Claude review stream completion.** The read-only runner assumes Claude's
-  `/code-review` stream ends with one authoritative top-level result, but Claude
-  Code 2.1.220 emitted multiple parentless results plus trailing task events:
-  one run rejected completed review output and another accepted an incremental
-  fragment. Identify the coordinator's complete report, retain raw stream
-  evidence on failure, and cover the observed stream shape.
-
 - **External dependency verification.** Define how implementation work checks
   current authoritative documentation or public APIs for external dependencies
   before using [empirical checks](documentation.md#empirical-checks).
