@@ -213,5 +213,5 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 - [Doc/skill-prose convergence](../remdo-docs-align/SKILL.md)
 - [Change scope / branch base](../../../docs/specs/agents/change-scope.md)
 - [Runtime baseline](../../../docs/dev/contributing.md#runtime-baseline)
-- [Compatibility policy](../../../docs/dev/contributing.md#compatibility-policy-pre-10)
+- [Backward compatibility](../../../docs/dev/contributing.md#backward-compatibility-pre-10)
 - [Project principles](../../../docs/principles.md)

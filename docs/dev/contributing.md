@@ -1,7 +1,7 @@
 # Contributing
 
 RemDo's contribution contract gives contributors and reviewers the same
-baseline for judging a change's intent, supported environments, compatibility,
+baseline for judging a change's intent, supported runtimes, compatibility,
 and follow-up.
 
 Durable documentation has its own contract in
@@ -16,7 +16,8 @@ identifies the branch's primary outcome:
 
 - `feat/` introduces a capability.
 - `fix/` corrects a defect.
-- `refactor/` restructures implementation while preserving accepted behavior.
+- `refactor/` restructures implementation while preserving
+  [accepted behavior](../documentation.md#target-behavior).
 - `perf/` improves performance.
 - `chore/` handles repository maintenance, including dependencies, automation,
   and tooling.
@@ -24,20 +25,17 @@ identifies the branch's primary outcome:
 
 ## Runtime Baseline
 
-RemDo only targets the runtimes declared in `package.json`:
+RemDo's supported runtimes are declared in
+[`package.json`](../../package.json):
 
-- **Node.js:** see `package.json#engines.node`.
-- **Browsers:** see `package.json#browserslist` (production + development
-  targets).
+- **Node.js:** `engines.node`.
+- **Browsers:** `browserslist.production`.
 
-Code uses the DOM and JavaScript APIs available in those runtimes directly.
-Stage-4 ECMAScript features supported by the browserslist run without
-compatibility branches. Compatibility guards correspond to documented issues
-within the supported set. Tests reproduce behavior in jsdom and the supported
-engines; shims and polyfills for runtimes outside the declared set are outside
-the project baseline.
+Code uses runtime APIs available throughout its declared range directly.
+Compatibility code addresses differences within a supported range; it does not
+extend support beyond the declared runtimes.
 
-## Compatibility Policy (Pre-1.0)
+## Backward Compatibility (Pre-1.0)
 
 Backward compatibility is outside the default target unless a task or
 specification defines it. The default excludes preservation of legacy
