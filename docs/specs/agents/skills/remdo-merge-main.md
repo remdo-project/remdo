@@ -8,7 +8,7 @@ and recovery from an interrupted run are also outside the capability.
 ## Authority
 
 The skill declares the [autonomous
-scope](../../../AGENTS.md#safety--process) for the branch update, merge and
+scope](../../../../AGENTS.md#safety--process) for the branch update, merge and
 correction commits, and determined conflict resolutions. Preserve mode also
 covers saving and restoring local work.
 
@@ -47,7 +47,7 @@ the Git merge state for manual recovery.
 ## Verification
 
 An up-to-date or fast-forward result requires no repository check. A merge
-commit requires the [full repository check](../../../AGENTS.md#checks).
+commit requires the [full repository check](../../../../AGENTS.md#checks).
 
 When verification fails, the capability commits every determined correction
 caused by integrating the target, then runs complete verification again. An

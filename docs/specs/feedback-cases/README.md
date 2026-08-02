@@ -5,6 +5,10 @@ specifications are written. This README defines how that evidence is structured
 and maintained. The evidence does not define accepted behavior or
 [documentation rules](../../documentation.md).
 
+The current contracts represented by this evidence are
+[`remdo-verify-change`](../agents/skills/remdo-verify-change.md) and the
+[read-only runner](../agents/tools/read-only-runner.md).
+
 A **feedback case** preserves evidence for later specification research and
 testing. `Post-change` is the version considered a better fit for the recorded
 change request. A case does not claim that version is canonical, generally

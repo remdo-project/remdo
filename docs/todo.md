@@ -111,11 +111,6 @@ Remove rejected or obsolete items and empty sections.
   current authoritative documentation or public APIs for external dependencies
   before using [empirical checks](documentation.md#empirical-checks).
 
-- **Agent specification structure.** Move the
-  [`remdo-verify-change`](specs/skills/remdo-verify-change.md) specification
-  under `docs/specs/agents/skills/` and update all inbound links in the same
-  change.
-
 - **Development change workflow design.** Before implementing the initial
   [workflow contract](specs/agents/development-change-workflow.md), validate its
   phase boundaries through real changes and revise them when evidence requires.
