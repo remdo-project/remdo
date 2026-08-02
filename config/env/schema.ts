@@ -14,7 +14,6 @@ export const envSchema = {
   HOST: str,
   PORT_BASE: port,
   PORT: port,
-  HMR_PORT: port,
   COLLAB_ENABLED: boolish,
   COLLAB_SERVER_PORT: port,
   API_SERVER_PORT: port,
@@ -38,7 +37,6 @@ export const envSchema = {
   VITEST_PORT: port,
   VITEST_PREVIEW_PORT: port,
   CI: boolish,
-  VITEST_PREVIEW: boolish,
 } as const;
 
 export type EnvKey = keyof typeof envSchema;

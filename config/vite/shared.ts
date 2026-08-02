@@ -9,7 +9,6 @@ import { remdoDevSpaRoutesPlugin } from './remdo-dev-spa-routes-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
-const isPreviewSession = config.env.VITEST_PREVIEW;
 const host = config.env.HOST;
 const apiServerTarget = resolveApiServerOrigin({ loopback: true });
 const collabServerTarget = resolveCollabServerOrigin({ loopback: true });
@@ -103,9 +102,6 @@ export function createViteSharedConfig() {
       },
       allowedHosts: true as const,
       proxy: devProxy,
-      hmr: isPreviewSession ? undefined : {
-        port: config.env.HMR_PORT,
-      },
     },
     preview: {
       host,

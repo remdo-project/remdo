@@ -14,7 +14,7 @@ if [ -n "${_remdo_port_base_offset:-}" ]; then
   PORT_BASE="$((PORT_BASE + _remdo_port_base_offset))"
   unset \
     PORT AUTH_URL \
-    HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT \
+    VITEST_PORT VITEST_PREVIEW_PORT \
     COLLAB_SERVER_PORT PREVIEW_PORT API_SERVER_PORT \
     YSWEET_CONNECTION_STRING
 fi
@@ -24,7 +24,6 @@ unset _remdo_port_base_offset
 : "${COLLAB_ENABLED:=true}"
 : "${DEV_DOCUMENT_ID:=devDoc}"
 : "${CI:=false}"
-: "${VITEST_PREVIEW:=false}"
 : "${TMPDIR:=${REMDO_ROOT%/}/node_modules/.cache/vitest-tmp}" # Keep Vitest temp files out of repo root and shared with vitest-preview.
 : "${DATA_DIR:=${REMDO_ROOT%/}/data}"
 
@@ -32,7 +31,6 @@ unset _remdo_port_base_offset
 # Offsets +7..+10 are intentionally reserved for the Docker E2E containers
 # (tools/docker-test.sh runs its gateway at +7 and bootstrap scenario at +8); do
 # not assign them to a derived service port here.
-: "${HMR_PORT:=$((PORT_BASE + 1))}"
 : "${VITEST_PORT:=$((PORT_BASE + 2))}"
 : "${VITEST_PREVIEW_PORT:=$((PORT_BASE + 3))}"
 : "${COLLAB_SERVER_PORT:=$((PORT_BASE + 4))}"
@@ -90,12 +88,11 @@ remdo_assert_browser_safe_port() {
 remdo_assert_browser_safe_port "${PORT}"
 
 # In dev/test there is no Caddy in front: the browser connects directly to the
-# Vite/HMR/preview/Playwright servers and (for collaboration) to the collab and
+# Vite/Vitest/preview servers and (for collaboration) to the collab and
 # API servers, so each derived port must be browser-safe too. The prod container
 # routes everything through Caddy, so only PORT above is browser-facing there.
 if [ "${NODE_ENV}" != "production" ]; then
   for derived_port in \
-    "${HMR_PORT}" \
     "${VITEST_PORT}" \
     "${VITEST_PREVIEW_PORT}" \
     "${COLLAB_SERVER_PORT}" \
@@ -106,7 +103,7 @@ if [ "${NODE_ENV}" != "production" ]; then
   done
 fi
 
-export NODE_ENV HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI VITEST_PREVIEW TMPDIR
-export HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT API_SERVER_PORT YSWEET_CONNECTION_STRING
+export NODE_ENV HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI TMPDIR
+export VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT API_SERVER_PORT YSWEET_CONNECTION_STRING
 export PREVIEW_PORT
 export AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_PUBLIC_URL ALLOW_SIGNUP

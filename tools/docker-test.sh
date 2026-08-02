@@ -54,7 +54,7 @@ DOCKER_RUN_ARGS=()
 # gateway-range values win. Keep this list in sync with the derived ports in
 # tools/env.defaults.sh (PORT is passed explicitly per child, so it is not here).
 CLEAR_DERIVED_PORTS=(
-  -u HMR_PORT -u VITEST_PORT -u VITEST_PREVIEW_PORT -u COLLAB_SERVER_PORT
+  -u VITEST_PORT -u VITEST_PREVIEW_PORT -u COLLAB_SERVER_PORT
   -u PREVIEW_PORT -u API_SERVER_PORT
 )
 
