@@ -128,15 +128,12 @@ the CI matrix stays a separate explicit ask by the user.
 
 Once the gate is green (exit 0):
 
-1. Run `pnpm run audit:stats:update` once to refresh the dependency-stats
-   baseline to whatever this run landed. Only its exit code matters — do not
-   inspect the delta (the strict check is intentionally not part of the loop).
-2. Scan dependency-related tracked comments under the
+1. Scan dependency-related tracked comments under the
    [code-comment convention](../../../docs/dev/contributing.md#code-comments).
    Run each available probe against the refreshed dependency graph. Remove the
    marker and its workaround when the probe passes; retain them when it does
    not.
-3. Reconcile open Dependabot PRs and alerts via `gh` — bookkeeping, not a second
+2. Reconcile open Dependabot PRs and alerts via `gh` — bookkeeping, not a second
    decision loop. Apply only genuine `unresolved` follow-ups. Classify each:
    `covered here`, `already on default branch`, `unresolved`, or
    `blocked intentionally`.

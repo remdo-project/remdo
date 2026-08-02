@@ -32,7 +32,7 @@
     "tools/snapshot/{cli,backup}.ts!",
     "tools/bootstrap-secrets.ts!",
     "playwright.docker.config.ts",
-    "tools/{check-pnpm-policy,collab-server,repo-stats}.ts",
+    "tools/{check-pnpm-policy,collab-server}.ts",
     "tools/{dev,e2e}/**/*.ts",
     "tests/perf/**/*.bench.ts",
     "tests/perf/generate-workload.ts",
