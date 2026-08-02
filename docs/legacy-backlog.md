@@ -391,12 +391,6 @@ yet built; the entries below track the gap. Suspends the view-header rules in
      `docs/specs/outliner/note-model.md`, `docs/architecture.md`,
      `docs/specs/outliner/search.md`, and `docs/specs/outliner/links.md`.
 
-## Run modes follow-ups
-
-- Backup workflow for hosted prod (managed cloud) is undefined —
-  `docs/run-modes.md` specifies only the backup/export mode surface; define the
-  hosted-prod workflow.
-
 ## Client-side perf follow-ups
 
 - Typing-latency optimizations: gate `SchemaValidationPlugin` validation and
