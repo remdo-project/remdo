@@ -47,8 +47,8 @@ Remove rejected or obsolete items and empty sections.
 - **Run-mode corpus reduction.** After extracting the development-surface and
   test-harness contracts, move useful local-development procedure into the
   `docs/dev/guides/` corpus and reassess the remaining app, deployment, and
-  operational modes as coherent capability owners. Include defining the
-  currently unspecified hosted-production backup workflow.
+  operational modes as coherent capability owners. Define the hosted-production
+  backup workflow in the resulting corpus.
 
 ### Editor
 
