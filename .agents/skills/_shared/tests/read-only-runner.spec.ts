@@ -662,6 +662,11 @@ describe('read-only runner CLI', () => {
       body: "printf '   \\n'",
       retained: '   \n',
     },
+    {
+      case: 'output without a final newline',
+      body: "printf %s 'not-json'",
+      retained: 'not-json',
+    },
   ])('retains $case verbatim in review failure evidence', ({ body, retained }) => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     writeFile(work, 'tracked.md', 'changed\n');
@@ -822,6 +827,30 @@ describe('read-only runner CLI', () => {
       + 'provider transcript\n',
     );
     expect(result.stderr).not.toContain('provider stdout');
+  });
+
+  it.each([
+    {
+      case: 'without a final newline',
+      body: 'printf %s "provider transcript" >&2',
+      retained: 'provider transcript',
+    },
+    {
+      case: 'when it is whitespace-only',
+      body: "printf '   \\n' >&2",
+      retained: '   \n',
+    },
+  ])('preserves provider stderr $case', ({ body, retained }) => {
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
+    const stub = claudeStub([body, 'exit 7']);
+
+    const result = runRunner(work, ['claude', 'prompt', 'Inspect.'], stub);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toBe(
+      `read-only-runner: Claude failed with status 7\n${retained}`,
+    );
   });
 
   it('captures stderr from a failed Codex invocation', () => {

@@ -23,9 +23,9 @@ interface RunnerCall {
 }
 
 type RunnerResult =
-  | { status: 'failed'; evidence: string }
+  | { status: 'failed'; evidence: string; preserveEvidenceEnd?: boolean }
   | { status: 'responded'; response: string }
-  | { status: 'unavailable'; evidence: string };
+  | { status: 'unavailable'; evidence: string; preserveEvidenceEnd?: boolean };
 
 interface ProcessOutcome {
   aborted: boolean;
@@ -206,15 +206,23 @@ function runProcess(
   });
 }
 
-function providerFailureEvidence(summary: string, stderr: string): string {
-  return stderr.trim() === '' ? summary : `${summary}\n${stderr}`;
+// Retains provider output exactly, including its final byte. Only genuinely
+// absent output is omitted.
+function outputEvidence(
+  summary: string,
+  output: string,
+): { evidence: string; preserveEvidenceEnd: boolean } {
+  return {
+    evidence: output === '' ? summary : `${summary}\n${output}`,
+    preserveEvidenceEnd: output !== '',
+  };
 }
 
-// Retains provider output exactly, so evidence still reproduces a failure
-// caused by bytes an emptiness test would otherwise strip. Only genuinely
-// absent output is omitted.
-function outputEvidence(summary: string, stdout: string): string {
-  return stdout === '' ? summary : `${summary}\n${stdout}`;
+function outputFailure(
+  summary: string,
+  stdout: string,
+): Extract<RunnerResult, { status: 'failed' }> {
+  return { status: 'failed', ...outputEvidence(summary, stdout) };
 }
 
 function providerFailure(
@@ -225,7 +233,7 @@ function providerFailure(
   if (outcome.spawnError?.code === 'ENOENT') {
     return {
       status: 'unavailable',
-      evidence: providerFailureEvidence(
+      ...outputEvidence(
         `${name} executable is unavailable`,
         outcome.stderr,
       ),
@@ -234,7 +242,7 @@ function providerFailure(
   if (outcome.spawnError !== undefined) {
     return {
       status: 'failed',
-      evidence: providerFailureEvidence(
+      ...outputEvidence(
         `${name} could not start: ${outcome.spawnError.message}`,
         outcome.stderr,
       ),
@@ -243,7 +251,7 @@ function providerFailure(
   if (outcome.aborted) {
     return {
       status: 'failed',
-      evidence: providerFailureEvidence(
+      ...outputEvidence(
         `${name} was cancelled`,
         outcome.stderr,
       ),
@@ -252,7 +260,7 @@ function providerFailure(
   if (outcome.exitCode !== 0) {
     return {
       status: 'failed',
-      evidence: providerFailureEvidence(
+      ...outputEvidence(
         `${name} failed with status ${
           outcome.exitCode ?? `signal ${outcome.signal ?? 'unknown'}`
         }`,
@@ -374,7 +382,7 @@ async function probeCodexReview(
   if (outcome.exitCode !== 0) {
     return {
       status: 'unavailable',
-      evidence: providerFailureEvidence(
+      ...outputEvidence(
         'Codex native review is unavailable',
         outcome.stderr,
       ),
@@ -594,25 +602,19 @@ async function runCodex(
     response = await fs.readFile(reportPath, 'utf8');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      return {
-        status: 'failed',
-        evidence: outputEvidence(
-          `could not read Codex final response: ${String(error)}`,
-          outcome.stdout,
-        ),
-      };
+      return outputFailure(
+        `could not read Codex final response: ${String(error)}`,
+        outcome.stdout,
+      );
     }
     // The report is the response; its absence is reported below with whatever
     // the invocation printed instead.
   }
   if (response.trim() === '') {
-    return {
-      status: 'failed',
-      evidence: outputEvidence(
-        'Codex completed without a final response',
-        outcome.stdout,
-      ),
-    };
+    return outputFailure(
+      'Codex completed without a final response',
+      outcome.stdout,
+    );
   }
   return { status: 'responded', response };
 }
@@ -793,10 +795,8 @@ function claudeResult(envelope: Record<string, unknown>): RunnerResult {
 }
 
 function claudeOutputResult(stdout: string): RunnerResult {
-  const failed = (summary: string): RunnerResult => ({
-    status: 'failed',
-    evidence: outputEvidence(summary, stdout),
-  });
+  const failed = (summary: string): RunnerResult =>
+    outputFailure(summary, stdout);
   let envelope: unknown;
   try {
     envelope = JSON.parse(stdout);
@@ -926,7 +926,10 @@ async function main(): Promise<void> {
       return;
     }
     process.stderr.write(`read-only-runner: ${result.evidence}`);
-    if (!result.evidence.endsWith('\n')) {
+    if (
+      result.preserveEvidenceEnd !== true
+      && !result.evidence.endsWith('\n')
+    ) {
       process.stderr.write('\n');
     }
     process.exitCode = result.status === 'unavailable' ? 2 : 1;
