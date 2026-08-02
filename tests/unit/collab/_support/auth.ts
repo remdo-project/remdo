@@ -42,7 +42,9 @@ async function createOrSignInTestUser(): Promise<string> {
     return extractSessionCookie(signInResponse);
   }
 
-  throw new Error(`Failed to provision collab test user: ${provisionResponse.status} ${provisionResponse.statusText}`);
+  throw new Error(
+    `Failed to authenticate collab test user: enrollment ${provisionResponse.status} ${provisionResponse.statusText}; sign-in ${signInResponse.status} ${signInResponse.statusText}`,
+  );
 }
 
 export async function getCollabTestSessionCookie(): Promise<string> {

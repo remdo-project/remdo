@@ -15,13 +15,11 @@ export default defineConfig({
     {
       command: 'pnpm exec y-sweet serve --host 127.0.0.1 --port "$COLLAB_SERVER_PORT" --auth "$YSWEET_AUTH_KEY" "$DATA_DIR/collab"',
       name: 'collaboration',
-      reuseExistingServer: false,
       url: collaborationReadyURL,
     },
     {
       command: 'HMR_PORT="$PORT" pnpm exec vite',
       name: 'app',
-      reuseExistingServer: false,
       url: apiHealthURL,
     },
   ],

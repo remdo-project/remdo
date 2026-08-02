@@ -46,7 +46,6 @@
         "typecheck:watch",
         "lint:watch",
         "test:unit:watch",
-        "test:unit:ui",
         "web:dev",
         "preview:server"
       ],
