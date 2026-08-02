@@ -97,14 +97,13 @@ Iterate:
       when the refresh branch is pushed.
    3. **If anything fails, heal it — this is the core job, not a hand-back.**
       Diagnose from the failure in hand and fix forward: adjust a workaround in
-      [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md),
-      pin a known-bad transitive, correct config, or make the minimal code/test
-      change the bump requires. Re-run until green. When the failure doesn't
-      name its culprit (the lockfile item moves many packages at once), bisect
-      it: restore `pnpm-workspace.yaml` + `pnpm-lock.yaml`, re-apply the
-      catalog bumps in halves — running `CI=true pnpm install
-      --no-frozen-lockfile` after each half so `node_modules` matches it — and
-      re-run the failing check.
+      its code or configuration site, pin a known-bad transitive, correct
+      config, or make the minimal code/test change the bump requires. Re-run
+      until green. When the failure doesn't name its culprit (the lockfile item
+      moves many packages at once), bisect it: restore `pnpm-workspace.yaml` +
+      `pnpm-lock.yaml`, re-apply the catalog bumps in halves — running `CI=true
+      pnpm install --no-frozen-lockfile` after each half so `node_modules`
+      matches it — and re-run the failing check.
    4. For a notable jump, skim the release notes — to inform the fix and to flag
       a behavior-affecting change for the report. Opportunistically apply a
       simplification newly-provided functionality enables (upside, never a
@@ -131,8 +130,11 @@ Once the gate is green (exit 0):
 1. Run `pnpm run audit:stats:update` once to refresh the dependency-stats
    baseline to whatever this run landed. Only its exit code matters — do not
    inspect the delta (the strict check is intentionally not part of the loop).
-2. Review [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md)
-   as a whole: drop workarounds whose reason is now gone; re-check held-backs.
+2. Scan dependency-related tracked comments under the
+   [code-comment convention](../../../docs/dev/contributing.md#code-comments).
+   Run each available probe against the refreshed dependency graph. Remove the
+   marker and its workaround when the probe passes; retain them when it does
+   not.
 3. Reconcile open Dependabot PRs and alerts via `gh` — bookkeeping, not a second
    decision loop. Apply only genuine `unresolved` follow-ups. Classify each:
    `covered here`, `already on default branch`, `unresolved`, or
@@ -155,8 +157,8 @@ self-contained. Sections (omit a section if empty):
    green".
 4. **Dependency patches** — each affected patch classified as retained,
    regenerated, or removed, with its focused regression result.
-5. **Docs reviewed** — `dependency-maintenance.md` workarounds/held-backs dropped
-   or moved.
+5. **Dependency follow-up** — dependency-related tracked comments removed,
+   updated, or retained after their probes.
 6. **Dependabot reconciliation** — each item classified (`covered here` /
    `already on default branch` / `unresolved` / `blocked intentionally`).
 7. **Dead-ends** — anything the skill could not safely resolve (a needed broad
