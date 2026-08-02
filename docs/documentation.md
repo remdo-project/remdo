@@ -75,9 +75,9 @@ difference. Check sufficiency before compressing.
 
 ## Document structure
 
-Every document begins with a title and a concise introduction that explains the
-contract's intent and establishes the subject's behavior or responsibility
-boundary.
+Every document begins with a title. A concise introduction supplies intent or
+responsibility boundaries beyond those already established by the title and
+opening structure.
 
 Establish triggers, inputs, scope, rules, and concepts before dependent
 behavior.

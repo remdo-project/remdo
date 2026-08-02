@@ -44,11 +44,11 @@ Remove rejected or obsolete items and empty sections.
 
 ### Testing
 
-- **Universal testing contract.** Establish `docs/dev/testing.md` as the owner of
-  contributor-wide test-quality policy currently held in `AGENTS.md`: observable
-  behavior or stable contracts, credible regressions, automated test-level
-  selection, empirical exceptions, and review coverage. Keep agent execution
-  procedures and check commands in `AGENTS.md`, then update their inbound links.
+- **Universal testing contract.** Move contributor-wide test-quality policy
+  from `AGENTS.md` to `docs/dev/testing.md`: observable behavior or stable
+  contracts, credible regressions, automated test-level selection, empirical
+  exceptions, and review coverage. Keep agent execution procedures and check
+  commands in `AGENTS.md`, then update their inbound links.
 
 ### Dependencies
 
