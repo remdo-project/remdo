@@ -13,7 +13,7 @@ until they are resolved or migrated.
 ## Tracked follow-up
 
 Record code-local follow-up in
-[tracked comments](contributing.md#code-comments), long-horizon
+[tracked comments](dev/contributing.md#code-comments), long-horizon
 follow-up in the owning specification's [`Future`](documentation.md#future)
 section, and other work intended to be done soon in this backlog. Together,
 these locations form the tracking record; do not duplicate an item between
@@ -31,6 +31,41 @@ Remove rejected or obsolete items and empty sections.
   review workflows apply the [ownership](documentation.md#ownership) and
   [minimality](documentation.md#minimality) rules to every domain- or
   component-specific term, including consistent actor and component identity.
+
+### Editor
+
+- **Editor module ownership.** Editor capabilities are split across `features/`,
+  `plugins/`, `search/`, `links/`, `triggers/`, and `view/`, while `runtime/` and
+  `outline/` import capability-specific modules. Establish a coherent folder
+  taxonomy that makes ownership and shared foundations visible, migrate modules
+  without changing behavior, and enforce the resulting dependency boundaries
+  mechanically. Document only architectural boundaries that remain non-obvious
+  from the source tree and enforcement.
+
+### Testing
+
+- **Universal testing contract.** Move contributor-wide test-quality policy
+  from `AGENTS.md` to `docs/dev/testing.md`: observable behavior or stable
+  contracts, credible regressions, automated test-level selection, empirical
+  exceptions, and review coverage. Keep agent execution procedures and check
+  commands in `AGENTS.md`, then update their inbound links.
+
+### Dependencies
+
+- **Dependabot pnpm 11 version updates.** When GitHub's
+  [supported-ecosystems table](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
+  lists pnpm v11, add `.github/dependabot.yml` for the root pnpm workspace,
+  verify that its first update preserves workspace catalogs and passes a frozen
+  lockfile install, and narrow or retire `remdo-deps-refresh` so dependency
+  update discovery has one owner.
+
+### Performance
+
+- **Client performance contract.** Define measurable user-facing performance
+  targets and the evidence used to assess them. Reassess the existing
+  non-collaboration Vitest benchmark's workloads, operations, metric, and runner
+  as part of that design, then establish a specification and align or replace
+  the harness.
 
 ### Outliner
 

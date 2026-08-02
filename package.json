@@ -22,16 +22,6 @@
       "last 1 Safari version"
     ]
   },
-  "remdoSupport": {
-    "tools": {
-      "pnpm": ">=10.18.0",
-      "git": ">=2.40.0"
-    },
-    "notes": [
-      "Browsers outside the Browserslist ranges are unsupported.",
-      "Node runtimes must satisfy engines.node."
-    ]
-  },
   "scripts": {
     "audit:all": "pnpm run audit:cleanup && pnpm run audit:policy && pnpm run audit:security",
     "audit:ast-grep": "pnpm run lint:ast-grep-config && pnpm exec ast-grep scan --config config/ast-grep/sgconfig.yml --report-style short .",

@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
-# Guards the dev/prod boundary (docs/dev/dev-tooling.md): dev-only tooling must
+# Guards the dev/prod boundary
+# (docs/run-modes.md#development-and-verification-modes): dev-only tooling must
 # not ship in the production bundle. Runs a real production build and fails if
 # any dev-tooling marker survives dead-code elimination.
 #
@@ -29,7 +30,7 @@ done
 
 if [ -n "$leaked" ]; then
   echo "check-dev-boundary: FAIL — dev-tooling markers found in the prod bundle:$leaked" >&2
-  echo "check-dev-boundary: a dev surface is reachable from production code — gate it behind import.meta.env.DEV (see docs/dev/dev-tooling.md)." >&2
+  echo "check-dev-boundary: a dev surface is reachable from production code — gate it behind import.meta.env.DEV (see docs/run-modes.md#development-and-verification-modes)." >&2
   exit 1
 fi
 

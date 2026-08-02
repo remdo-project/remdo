@@ -75,7 +75,7 @@ belong to the scope from the resolver's file list.
 Read these first:
 
 1. `AGENTS.md`
-2. `docs/contributing.md`
+2. `docs/dev/contributing.md`
 3. `docs/todo.md`
 
 Choose directly relevant product docs for the touched area by filename and
@@ -123,9 +123,8 @@ Look for opportunities to:
   existing RemDo helper, Lexical primitive, or platform API.
 - Collapse duplicated branches, mirrored state, adapter layers, wrapper helpers,
   or parallel data shapes that no longer buy a real boundary.
-- Move behavior to the owning feature/module instead of leaking ownership through
-  call-site conditionals. For editor features, keep shared base modules from
-  importing feature-owned code.
+- Move behavior to the owning module instead of leaking ownership through
+  call-site conditionals.
 - Narrow APIs so callers pass the data the callee actually owns, rather than broad
   objects that force defensive checks or synchronization.
 - Prefer direct, behavior-named test setup over clever harness metadata; for
@@ -213,7 +212,6 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 - [Agent guidelines](../../../AGENTS.md)
 - [Doc/skill-prose convergence](../remdo-docs-align/SKILL.md)
 - [Change scope / branch base](../../../docs/specs/agents/change-scope.md)
-- [Runtime baseline](../../../docs/contributing.md#runtime-baseline)
-- [Compatibility policy](../../../docs/contributing.md#compatibility-policy-pre-10)
-- [Editor feature modules](../../../docs/contributing.md#editor-feature-modules)
+- [Runtime baseline](../../../docs/dev/contributing.md#runtime-baseline)
+- [Backward compatibility](../../../docs/dev/contributing.md#backward-compatibility-pre-10)
 - [Project principles](../../../docs/principles.md)

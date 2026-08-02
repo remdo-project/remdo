@@ -5,7 +5,7 @@ import { Suspense, lazy } from 'react';
 // is dead and the lazy import into plugins/dev/ is never referenced — the dev
 // editor plugins (tree view, test bridge, schema validation) leave the prod
 // bundle. In dev/test they load lazily inside the editor's Lexical context.
-// See docs/dev/dev-tooling.md.
+// See docs/run-modes.md#development-and-verification-modes.
 
 const LazyDevPlugin = import.meta.env.DEV
   ? lazy(() => import('./plugins/dev/DevPlugin').then((m) => ({ default: m.DevPlugin })))

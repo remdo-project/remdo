@@ -47,6 +47,10 @@ Known gaps between target behavior and implementation are tracked in
 - **Misuse test.** Keep a clause only when its removal could permit an incorrect
   interpretation or implementation. Take surrounding rules at face value;
   anticipated rationalization does not justify restatement.
+- **Information value.** The declared reader, document title and location,
+  surrounding clauses, and linked owners all contribute to a contract's
+  meaning. Each clause adds information needed for faithful interpretation or
+  implementation.
 - **Excluded material.** Contract clauses exclude inventories, non-contract
   implementation details, how-to prose, and redundant restatement.
 - **Property over mechanism.** State the property a mechanism must have, not the
@@ -71,9 +75,9 @@ difference. Check sufficiency before compressing.
 
 ## Document structure
 
-Every durable document begins with a title and a short scope paragraph that
-opens with the subject and its behavior or boundary, not meta-prose about what
-the document defines. Include any boundary needed to avoid confusion.
+Every document begins with a title. A concise introduction supplies intent or
+responsibility boundaries beyond those already established by the title and
+opening structure.
 
 Establish triggers, inputs, scope, rules, and concepts before dependent
 behavior.

@@ -6,7 +6,7 @@ RemDo is a collaborative outliner for fast, structured note-taking. It’s
 keyboard-first and built on Lexical, emphasizing clarity, composability, and
 portability.
 
-Target runtimes and browser support are defined in `docs/contributing.md`. Rely
+Target runtimes and browser support are defined in `docs/dev/contributing.md`. Rely
 on those baselines—no legacy browser shims.
 
 AGENTS.md is the only doc you must read at the start of every session. Use
@@ -19,7 +19,7 @@ Changes that add or modify durable requirements update their current owner
 under `docs/`.
 
 When working, deep-link to the authoritative doc or spec (e.g.,
-`docs/contributing.md#git-workflow`) in discussions or PRs so others know the
+`docs/dev/contributing.md#git-workflow`) in discussions or PRs so others know the
 source of truth. When a change supersedes a contract or breaks an inbound link,
 fix it in the same change —
 not a follow-up. If nothing needs updating, say why. Do not add update-tracking

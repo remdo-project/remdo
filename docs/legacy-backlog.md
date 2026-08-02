@@ -96,19 +96,8 @@ Rules:
   matching is now shared (`#client/search/query-match`), but the link picker
   still has its own traversal/index pipeline distinct from the search SDK walk.
 
-## Editor feature module follow-ups
+## Editor popup follow-ups
 
-- [Future] Audit existing editor capabilities for migration into
-  `src/client/editor/features/<feature>/` when they own a cohesive plugin plus
-  related nodes, helpers, UI, and focused unit tests. Likely candidates include
-  note links and search, but keep migrations incremental and behavior-neutral.
-- Hoist the shared note-body primitives out of `features/note-body/` into the
-  shared layer: several `outline/` and `runtime/` modules import `isBodyWrapper`,
-  `$resolveNoteForSelectionPoint`, and body-selection helpers from
-  `note-body-node`/`note-body-ops`, violating the one-way feature→shared rule in
-  `docs/contributing.md#editor-feature-modules`. Move the cross-cutting body
-  primitives (the note-kind predicates and selection resolvers many shared
-  modules consume) to `outline/`, leaving feature-specific logic behind.
 - Editor-popup UX redesign (spec: `popups.md`/`dates.md`/`links.md`/`menu.md`) —
   remaining follow-ups (spec ahead of code on these details):
   - Dedup the duplicated portal/anchor/dismissal plumbing between `NoteMenuPlugin`
@@ -410,11 +399,10 @@ yet built; the entries below track the gap. Suspends the view-header rules in
 
 ## Client-side perf follow-ups
 
-- Typing-latency optimizations (moved from
-  `docs/performance/client-side-perf-tests.md`): gate `SchemaValidationPlugin`
-  validation and `RootSchemaPlugin` repair scans on dirty-set contents so
-  leaf-only typing updates skip them; skip redundant structural-overlay and
-  outline-selection store writes in `SelectionPlugin` when nothing changed.
+- Typing-latency optimizations: gate `SchemaValidationPlugin` validation and
+  `RootSchemaPlugin` repair scans on dirty-set contents so leaf-only typing
+  updates skip them; skip redundant structural-overlay and outline-selection
+  store writes in `SelectionPlugin` when nothing changed.
 
 ## Frosted-glass material follow-ups
 
@@ -536,7 +524,7 @@ yet built; the entries below track the gap. Suspends the view-header rules in
   3. Add `TODO:`/`FIXME:` scanning to the dependency-refresh skill: surface
      dependency-related markers, run each one's stated probe, and drop the
      workaround (and marker) when it passes — so workarounds self-heal instead of
-     accumulating. See `docs/contributing.md#code-comments`. While here, revisit
+     accumulating. See `docs/dev/contributing.md#code-comments`. While here, revisit
      the marker convention itself for ways to make it more reliable/self-healing
      (e.g. a more scannable shape for trackable workarounds, lint-enforced
      expiry, reconciling existing markers) — open-ended, not yet scoped.
