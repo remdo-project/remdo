@@ -35,7 +35,6 @@ export const envSchema = {
   ALLOW_SIGNUP: boolish,
   PREVIEW_PORT: port,
   VITEST_PORT: port,
-  VITEST_PREVIEW_PORT: port,
   CI: boolish,
 } as const;
 

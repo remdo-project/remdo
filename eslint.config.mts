@@ -315,10 +315,6 @@ export default antfu(
       'no-restricted-syntax': [
         'error',
         {
-          selector: "CallExpression[callee.type='Identifier'][callee.name='preview']",
-          message: 'preview() is for local debugging only; remove preview() calls before committing.',
-        },
-        {
           selector:
             "CallExpression[callee.type='MemberExpression'][callee.property.name='mutate'] CallExpression[callee.type='Identifier'][callee.name='expect']",
           message: 'Run expectations outside lexical.mutate(); use lexical.validate() after the mutation completes.',
@@ -343,10 +339,6 @@ export default antfu(
       ],
       'no-restricted-syntax': [
         'error',
-        {
-          selector: "CallExpression[callee.type='Identifier'][callee.name='preview']",
-          message: 'preview() is for local debugging only; remove preview() calls before committing.',
-        },
         {
           selector:
             "CallExpression[callee.type='MemberExpression'][callee.property.name='mutate'] CallExpression[callee.type='Identifier'][callee.name='expect']",

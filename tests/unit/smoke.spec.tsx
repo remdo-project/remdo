@@ -1,11 +1,6 @@
 import { expect, it } from 'vitest';
 import { meta } from '#tests';
 
-it('preview helper example (manual use only)', meta({ fixture: 'basic' }), async () => {
-  // Uncomment preview() when debugging locally to render the current outline.
-  // preview();
-});
-
 it('loads basic outline structure from JSON', meta({ fixture: 'basic' }), async ({ remdo }) => {
     expect(remdo).toMatchOutline([
     {

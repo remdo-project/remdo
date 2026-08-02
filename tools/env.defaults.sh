@@ -14,7 +14,7 @@ if [ -n "${_remdo_port_base_offset:-}" ]; then
   PORT_BASE="$((PORT_BASE + _remdo_port_base_offset))"
   unset \
     PORT AUTH_URL \
-    VITEST_PORT VITEST_PREVIEW_PORT \
+    VITEST_PORT \
     COLLAB_SERVER_PORT PREVIEW_PORT API_SERVER_PORT \
     YSWEET_CONNECTION_STRING
 fi
@@ -24,7 +24,7 @@ unset _remdo_port_base_offset
 : "${COLLAB_ENABLED:=true}"
 : "${DEV_DOCUMENT_ID:=devDoc}"
 : "${CI:=false}"
-: "${TMPDIR:=${REMDO_ROOT%/}/node_modules/.cache/vitest-tmp}" # Keep Vitest temp files out of repo root and shared with vitest-preview.
+: "${TMPDIR:=${REMDO_ROOT%/}/node_modules/.cache/vitest-tmp}" # Keep Vitest temp files out of the repo root.
 : "${DATA_DIR:=${REMDO_ROOT%/}/data}"
 
 # Derive service/tool ports directly from PORT_BASE to keep local runs predictable.
@@ -32,7 +32,6 @@ unset _remdo_port_base_offset
 # (tools/docker-test.sh runs its gateway at +7 and bootstrap scenario at +8); do
 # not assign them to a derived service port here.
 : "${VITEST_PORT:=$((PORT_BASE + 2))}"
-: "${VITEST_PREVIEW_PORT:=$((PORT_BASE + 3))}"
 : "${COLLAB_SERVER_PORT:=$((PORT_BASE + 4))}"
 : "${PREVIEW_PORT:=$((PORT_BASE + 5))}"
 : "${API_SERVER_PORT:=$((PORT_BASE + 11))}"
@@ -94,7 +93,6 @@ remdo_assert_browser_safe_port "${PORT}"
 if [ "${NODE_ENV}" != "production" ]; then
   for derived_port in \
     "${VITEST_PORT}" \
-    "${VITEST_PREVIEW_PORT}" \
     "${COLLAB_SERVER_PORT}" \
     "${PREVIEW_PORT}" \
     "${API_SERVER_PORT}"
@@ -104,6 +102,6 @@ if [ "${NODE_ENV}" != "production" ]; then
 fi
 
 export NODE_ENV HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI TMPDIR
-export VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT API_SERVER_PORT YSWEET_CONNECTION_STRING
+export VITEST_PORT COLLAB_SERVER_PORT API_SERVER_PORT YSWEET_CONNECTION_STRING
 export PREVIEW_PORT
 export AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_PUBLIC_URL ALLOW_SIGNUP
