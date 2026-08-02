@@ -24,7 +24,6 @@ export default defineConfig({
       // The source is public so it accepts home registration + open signup.
       command: `AUTH_URL=${sourceOrigin} ALLOW_SIGNUP=true pnpm exec tsx ./tools/e2e/docker-source-server.ts`,
       url: `${sourceOrigin}/api/health`,
-      reuseExistingServer: false,
       gracefulShutdown: { signal: 'SIGTERM', timeout: 5000 },
     },
   ],

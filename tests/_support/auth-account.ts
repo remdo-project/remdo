@@ -1,9 +1,7 @@
 import process from 'node:process';
 import { randomUUID } from 'node:crypto';
 
-export const TEST_AUTH_EMAIL_PREFIX = 'remdo-test-';
-
-const authAccountId = `${process.pid}-${Date.now()}-${randomUUID()}`;
+const TEST_AUTH_EMAIL_PREFIX = 'remdo-test-';
 
 export function createTestAuthAccount(id: string = `${process.pid}-${Date.now()}-${randomUUID()}`) {
   return {
@@ -13,4 +11,4 @@ export function createTestAuthAccount(id: string = `${process.pid}-${Date.now()}
   } as const;
 }
 
-export const TEST_AUTH_ACCOUNT = createTestAuthAccount(authAccountId);
+export const TEST_AUTH_ACCOUNT = createTestAuthAccount();

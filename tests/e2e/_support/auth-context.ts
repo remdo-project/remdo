@@ -4,11 +4,7 @@ import { HTTP_STATUS } from '#platform/http/status';
 import { resolveAppOrigin } from '#platform/net/origins';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 
-interface AuthAccount {
-  email: string;
-  name: string;
-  password: string;
-}
+type AuthAccount = Record<keyof ReturnType<typeof createTestAuthAccount>, string>;
 
 export async function createAuthenticatedContext(
   browser: Browser,
