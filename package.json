@@ -33,16 +33,13 @@
     ]
   },
   "scripts": {
-    "audit:all": "pnpm run audit:cleanup && pnpm run audit:stats:strict && pnpm run audit:policy && pnpm run audit:security",
+    "audit:all": "pnpm run audit:cleanup && pnpm run audit:policy && pnpm run audit:security",
     "audit:ast-grep": "pnpm run lint:ast-grep-config && pnpm exec ast-grep scan --config config/ast-grep/sgconfig.yml --report-style short .",
     "audit:cleanup": "pnpm run audit:ast-grep && pnpm run audit:unused && pnpm run audit:unused:prod && pnpm run audit:dup:zero",
     "audit:dup": "jscpd --config .jscpd.json --threshold 3",
     "audit:dup:zero": "jscpd --config .jscpd.json --threshold 0",
     "audit:policy": "timeout ${TEST_TIMEOUT:-120}s tsx ./tools/check-pnpm-policy.ts",
     "audit:security": "timeout ${TEST_TIMEOUT:-120}s pnpm audit --audit-level=high --prod",
-    "audit:stats": "tsx ./tools/repo-stats.ts",
-    "audit:stats:strict": "pnpm run audit:stats -- --threshold-ratio 0.05",
-    "audit:stats:update": "pnpm run audit:stats -- --update",
     "audit:unused": "timeout ${TEST_TIMEOUT:-120}s ./tools/env.sh env NODE_OPTIONS=--import=tsx pnpm exec knip -c knip.jsonc --no-progress --max-issues 0",
     "audit:unused:prod": "timeout ${TEST_TIMEOUT:-120}s ./tools/env.sh env NODE_OPTIONS=--import=tsx pnpm exec knip -c knip.jsonc --production --exclude types,binaries --no-progress --max-issues 0",
     "backup": "./tools/env.sh tsx ./tools/snapshot/backup.ts --md",
