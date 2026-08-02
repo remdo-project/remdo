@@ -4,7 +4,6 @@ import type { EditorViewBindings } from '#client/editor/view/EditorViewProvider'
 
 interface RemdoTaskMeta {
   collabDocId?: string;
-  preserveCollabState?: boolean;
   fixture?: string;
   fixtureSchemaBypass?: boolean;
   expectedConsoleIssues?: string[];
