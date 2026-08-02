@@ -75,7 +75,7 @@ belong to the scope from the resolver's file list.
 Read these first:
 
 1. `AGENTS.md`
-2. `docs/contributing.md`
+2. `docs/dev/contributing.md`
 3. `docs/todo.md`
 
 Choose directly relevant product docs for the touched area by filename and
@@ -213,7 +213,7 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 - [Agent guidelines](../../../AGENTS.md)
 - [Doc/skill-prose convergence](../remdo-docs-align/SKILL.md)
 - [Change scope / branch base](../../../docs/specs/agents/change-scope.md)
-- [Runtime baseline](../../../docs/contributing.md#runtime-baseline)
-- [Compatibility policy](../../../docs/contributing.md#compatibility-policy-pre-10)
-- [Editor feature modules](../../../docs/contributing.md#editor-feature-modules)
+- [Runtime baseline](../../../docs/dev/contributing.md#runtime-baseline)
+- [Compatibility policy](../../../docs/dev/contributing.md#compatibility-policy-pre-10)
+- [Editor feature modules](../../../docs/dev/contributing.md#editor-feature-modules)
 - [Project principles](../../../docs/principles.md)

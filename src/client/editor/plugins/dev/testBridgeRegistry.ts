@@ -1,7 +1,7 @@
 import type { LexicalEditor } from 'lexical';
 import type { RemdoTestApi } from './TestBridgePlugin';
 
-// Test-bridge registry (docs/dev/dev-tooling.md). The neutral seam tests use to
+// Test-bridge registry (docs/dev/tooling.md). The neutral seam tests use to
 // reach an editor's TestBridge without a prod-only Editor prop. It is per-mount:
 // each editor that mounts publishes its own bridge, so multiple editors in one
 // runtime (collab peers in a unit test, or an e2e page) never clobber a shared

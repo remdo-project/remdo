@@ -3,7 +3,7 @@
 The conventions RemDo changes must follow: Git workflow, runtime and
 compatibility baselines, and rules for comments and editor feature modules.
 How docs themselves are written lives in
-[Documentation](documentation.md).
+[Documentation](../documentation.md).
 
 ## Git Workflow
 
@@ -61,7 +61,7 @@ Default policy:
 current state contains a defect and `TODO:` otherwise. Use either for work worth
 tracking, such as a workaround, deferred fix, or known gap. Follow the
 repository-wide
-[tracked follow-up convention](todo.md#tracked-follow-up). State the
+[tracked follow-up convention](../todo.md#tracked-follow-up). State the
 rationale and, where one exists, the one-line probe that proves the comment
 obsolete (delete the shim / flip the flag / run the suite) right there in the
 comment.
@@ -69,7 +69,7 @@ comment.
 Because these markers are scanned and tracked, trust them as the record:
 once a workaround is a tracked marker at its code site, do **not** add a second
 tracker for it elsewhere (a `docs/` list, a
-[`docs/todo.md`](todo.md) entry). The comment travels with the code and is seen
+[`docs/todo.md`](../todo.md) entry). The comment travels with the code and is seen
 on deletion; a duplicate note only drifts.
 
 ## Editor Feature Modules
@@ -86,7 +86,7 @@ import a feature. A capability that is genuinely one feature's concern is owned
 by that feature and other modules ask it by name. Known exception to repay:
 several `outline/` modules still import note-body primitives from
 `features/note-body/` (see
-[Editor feature module follow-ups](legacy-backlog.md#editor-feature-module-follow-ups)).
+[Editor feature module follow-ups](../legacy-backlog.md#editor-feature-module-follow-ups)).
 
 Use filenames and scope openers under `docs/` to find the current owner of
 durable product behavior. Source feature folders do not replace stable behavior

@@ -13,7 +13,7 @@ until they are resolved or migrated.
 ## Tracked follow-up
 
 Record code-local follow-up in
-[tracked comments](contributing.md#code-comments), long-horizon
+[tracked comments](dev/contributing.md#code-comments), long-horizon
 follow-up in the owning specification's [`Future`](documentation.md#future)
 section, and other work intended to be done soon in this backlog. Together,
 these locations form the tracking record; do not duplicate an item between

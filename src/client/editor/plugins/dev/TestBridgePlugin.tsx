@@ -242,7 +242,7 @@ export function TestBridgePlugin() {
   const api = useMemo(() => createTestBridgeApi(editor, collab), [collab, editor]);
 
   useEffect(() => {
-    // Publish through the test-bridge registry (docs/dev/dev-tooling.md), keyed
+    // Publish through the test-bridge registry (docs/dev/tooling.md), keyed
     // by this editor. `api` rebuilds whenever collaboration status changes, so
     // this refreshes the editor's entry on every rebuild; keying by editor means
     // only the first publish hands off to a pending `waitForNext()`, and retract

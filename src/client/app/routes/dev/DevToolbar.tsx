@@ -58,7 +58,7 @@ export function DevToolbarLinks({ linkClassName }: { linkClassName?: string }) {
             `playground` skill overwrites public/playground/index.html). The exact
             file path is required: Vite dev serves public/ files by exact path and
             would fall the bare /playground/ through to the SPA. See
-            docs/dev/dev-tooling.md. */}
+            docs/dev/tooling.md. */}
         <Anchor className={linkClassName} href="/playground/index.html">
           Playground
         </Anchor>
