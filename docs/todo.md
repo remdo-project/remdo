@@ -41,7 +41,8 @@ Remove rejected or obsolete items and empty sections.
 - **Production development-surface owner.** Move the production exclusion of
   development-only routes, UI, editor plugins, and test bridges from
   `docs/run-modes.md` to a coherent architecture or capability owner. Update
-  the inbound references in `tools/check-dev-boundary.sh` in the same change.
+  every inbound reference, including `tools/check-dev-boundary.sh`, in the same
+  change.
 
 - **Run-mode corpus reduction.** After extracting the development-surface and
   test-harness contracts, move useful local-development procedure into the
