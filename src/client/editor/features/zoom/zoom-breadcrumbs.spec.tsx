@@ -125,6 +125,6 @@ describe('zoom breadcrumbs', () => {
     });
 
     expect(screen.getByRole('combobox', { name: 'Switch document' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'project' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'project' })).toBeNull();
   });
 });
