@@ -63,9 +63,6 @@ file as the [document registry](./architecture.md#document-registry).
 
 ## Development and verification modes
 
-Development-only routes, UI, editor plugins, and test bridges are available in
-development and verification modes and are absent from production builds.
-
 ### Local development
 
 - Purpose: interactive development of the app and supporting local services.

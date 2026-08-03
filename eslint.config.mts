@@ -8,7 +8,7 @@ import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
 const importMetaEnvRestriction = {
   // `import.meta.env.DEV` is exempt: it is a Vite build-time static that must
   // stay raw so the production build dead-code-eliminates dev-only branches (the
-  // dev/prod boundary — docs/run-modes.md#development-and-verification-modes).
+  // dev/prod boundary — docs/architecture.md#production-bundle-boundary).
   // All other `import.meta.env` access is a runtime value and belongs behind
   // #config.
   selector: "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']:not([parent.property.name='DEV'])",
@@ -55,12 +55,12 @@ const universalImportRestrictions = [
 // its production-side seam (which does the `import.meta.env.DEV`-gated dynamic
 // import). A production module importing a `dev/` module directly defeats that
 // gate and risks shipping dev code
-// (docs/run-modes.md#development-and-verification-modes). Matched by regex
+// (docs/architecture.md#production-bundle-boundary). Matched by regex
 // against the specifier so both the `#client/**/dev/**` alias and the `./dev/**`
 // relative forms are caught.
 const devImportRestriction = {
   regex: String.raw`(^|/)dev/`,
-  message: 'Production code must not import a dev/ module directly — reach dev tooling through its seam (docs/run-modes.md#development-and-verification-modes).',
+  message: 'Production code must not import a dev/ module directly — reach dev tooling through its seam (docs/architecture.md#production-bundle-boundary).',
 };
 
 // Build a complete `no-restricted-imports` config: the universal restrictions

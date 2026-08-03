@@ -5,7 +5,7 @@ import { Suspense, lazy } from 'react';
 // is dead and the lazy import into dev/ is never referenced — the dev toolbar
 // links leave the prod bundle. In dev/test they load lazily. The seam owns the
 // whole condition, so callers render it unconditionally.
-// See docs/run-modes.md#development-and-verification-modes.
+// See docs/architecture.md#production-bundle-boundary.
 
 const LazyDevToolbarLinks = import.meta.env.DEV
   ? lazy(() => import('./dev/DevToolbar').then((m) => ({ default: m.DevToolbarLinks })))

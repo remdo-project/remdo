@@ -38,16 +38,11 @@ Remove rejected or obsolete items and empty sections.
   at the root, migrate coherent capability contracts into `docs/specs/`, and
   update complete inbound ownership links with each move.
 
-- **Production development-surface owner.** Move the production exclusion of
-  development-only routes, UI, editor plugins, and test bridges from
-  `docs/run-modes.md` to a coherent architecture or capability owner. Update
-  the inbound references in `tools/check-dev-boundary.sh` in the same change.
-
-- **Run-mode corpus reduction.** After extracting the development-surface and
-  test-harness contracts, move useful local-development procedure into the
-  `docs/dev/guides/` corpus and reassess the remaining app, deployment, and
-  operational modes as coherent capability owners. Include defining the
-  currently unspecified hosted-production backup workflow.
+- **Run-mode corpus reduction.** After extracting the test-harness contract,
+  move useful local-development procedure into the `docs/dev/guides/` corpus
+  and reassess the remaining app, deployment, and operational modes as coherent
+  capability owners. Include defining the currently unspecified
+  hosted-production backup workflow.
 
 ### Editor
 
