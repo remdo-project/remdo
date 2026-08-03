@@ -1,20 +1,24 @@
 # Local Development
 
-The local development stack provides the authenticated collaborative app with
-stable users and fixture documents for interactive work. This guide covers the
-main stack and the adjacent PWA and source-linking workflows.
+Local development uses stable users and seeded fixture documents, making app
+behavior easy to explore and reproduce. This guide covers the main development
+workflow, PWA preview, Docker app, and source-linking setup.
 
 ## Prepare the Workspace
 
 Run `pnpm run dev:init` after a fresh clone or after removing `node_modules`.
 The command installs the locked dependencies.
 
-RemDo runs with repository defaults without a `.env` file. To override an
-environment [input](../../config.md#inputs), copy `.env.example` to `.env` and
-change only that input.
+Local development resolves configuration from three layers, listed from lowest
+to highest precedence:
+
+- Repository defaults work without a `.env` file.
+- `.env` holds working-directory overrides. Create it by copying `.env.example`
+  and change only the [inputs](../../config.md#inputs) you need.
+- Process environment values override `.env` for one invocation.
+
 [`PORT_BASE`](../../config.md#derivation-rules) selects the local stack's port
-range; a process environment value overrides the `.env` value for a one-off
-invocation.
+range.
 
 ## Run the App with Fixture Documents
 
@@ -48,14 +52,20 @@ Run `pnpm run dev:pwa`. It starts the production-built PWA, API, and
 collaboration services on a shifted port range, so it can run beside the main
 development stack. Open the preview URL printed by the command.
 
+## Run the Docker App
+
+Run `pnpm run dev:docker` to build and start the production-style Docker app at
+the home URL printed by the command. It requires a local rootless Docker daemon.
+Keep the command running while using the app.
+
 ## Exercise Source Linking
 
-This workflow runs a private Docker home server and links the local development
-server as its public source. It requires a local rootless Docker daemon.
+The Docker app can act as a private home server with the local development
+server linked as its public source. The `dev:docker` command prints the source
+command and source URL used by this workflow.
 
-1. Run `pnpm run dev:docker`. Keep it running and note the source command, home
-   URL, and source URL it prints.
-2. In another terminal, run the printed source command. Its `HOST` and
+1. Start the Docker app as described above.
+2. In another terminal, run its printed source command. The command's `HOST` and
    `AUTH_URL` make one host-IP origin reachable from both the browser and the
    container.
 3. Open the home server's Sharing page, choose **Link source**, and enter the
