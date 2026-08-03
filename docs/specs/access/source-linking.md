@@ -69,8 +69,9 @@ user can initiate the request to the supplied source origin.
 An unauthenticated caller cannot distinguish a cached source from an unknown
 one. On `/api/current-user/source-servers/:serverId/*`, a signed-in user receives
 403 for a cached but unlinked source and 404 for an unknown source. Source IDs
-derive from origins, so the distinction requires knowing the origin and reveals
-no user or document data.
+derive from origins, so the distinction requires knowing the origin. It reveals
+only that a home user caused the origin to enter the global cache, not the
+user's identity or any document data.
 
 ## Future
 
