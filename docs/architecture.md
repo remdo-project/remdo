@@ -22,8 +22,9 @@ Delivery surface choice does not alter outliner semantics.
 ## Production Bundle Boundary
 
 Development-only routes, UI, editor plugins, and test bridges are available in
-[development and verification modes](run-modes.md#development-and-verification-modes)
-and absent from production bundles.
+[local development](run-modes.md#local-development) and the
+[test harness](specs/testing/test-harness.md), and absent from production
+bundles.
 
 ## Routing and Origin Boundary
 

@@ -24,8 +24,8 @@ routing, and document identity — are owned by
 - Who: developer or CI runner.
 - Allowed by: host-local process access.
 - Scope: development and test runtimes.
-- Run modes: local development, unit and collab tests, browser E2E, Docker E2E,
-  CI.
+- Run modes: local development and the
+  [test harness](specs/testing/test-harness.md).
 
 ## Authenticated App Access
 

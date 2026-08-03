@@ -38,11 +38,10 @@ Remove rejected or obsolete items and empty sections.
   at the root, migrate coherent capability contracts into `docs/specs/`, and
   update complete inbound ownership links with each move.
 
-- **Run-mode corpus reduction.** After extracting the test-harness contract,
-  move useful local-development procedure into the `docs/dev/guides/` corpus
-  and reassess the remaining app, deployment, and operational modes as coherent
-  capability owners. Include defining the currently unspecified
-  hosted-production backup workflow.
+- **Run-mode corpus reduction.** Move useful local-development procedure into
+  the `docs/dev/guides/` corpus and reassess the remaining app, deployment, and
+  operational modes as coherent capability owners. Include defining the
+  currently unspecified hosted-production backup workflow.
 
 ### Editor
 
@@ -55,13 +54,6 @@ Remove rejected or obsolete items and empty sections.
   from the source tree and enforcement.
 
 ### Testing
-
-- **Test-harness specification.** Relocate the repository-owned lifecycle,
-  isolation, startup-failure, and diagnostic-data behavior for unit, collab,
-  browser E2E, Docker E2E, and CI from `docs/run-modes.md` into a coherent
-  specification under `docs/specs/testing/`. Keep feature-specific behavior
-  and its evidence with the owning feature specifications, and update all
-  inbound links.
 
 - **Contributor testing policy.** Move contributor-wide test-quality policy
   from `AGENTS.md` to `docs/dev/testing.md`: observable behavior or stable

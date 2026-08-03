@@ -1,6 +1,6 @@
 # Run Modes
 
-RemDo supports user-facing app runtimes, test harnesses, CI, and operational
+RemDo supports user-facing app runtimes, local development, and operational
 tasks such as backup as distinct run modes.
 
 Durable product constraints live in [docs/principles.md](./principles.md);
@@ -61,9 +61,7 @@ file as the [document registry](./architecture.md#document-registry).
   3. the service binds the Render-injected `PORT` and Render terminates public
      HTTPS
 
-## Development and verification modes
-
-### Local development
+## Local development
 
 - Purpose: interactive development of the app and supporting local services.
 - User: developer.
@@ -106,59 +104,6 @@ file as the [document registry](./architecture.md#document-registry).
   7. `pnpm run dev:users` provisions the stable users (Alice/Bob) and prints
      their credentials; it only seeds those users.
   8. Y-Sweet auth uses a matched development default key/server-token pair.
-
-### Unit and collab tests
-
-- Purpose: fast automated verification in the local test stack.
-- User: developer.
-- Platform: local machine.
-- Data boundary: local resettable runtime/test data.
-- Notes:
-  1. Unit tests run without collaboration services. Collab tests run the same
-     editor behaviors with collaboration enabled, plus collab-specific cases.
-  2. Each full or filtered collab invocation owns fresh loopback-only Y-Sweet
-     and RemDo API services in the working directory's `PORT_BASE + 30` range.
-     One collab invocation may run in a working directory at a time; occupied
-     reserved ports refuse startup without replacing prior runtime data.
-  3. Every invocation replaces `data/collab-test-runtime` after confirming its
-     ports are free. The completed or interrupted runtime remains available for
-     diagnosis until the next invocation.
-
-### Browser E2E
-
-- Purpose: browser-level verification against the local app stack.
-- User: developer.
-- Platform: local machine.
-- Data boundary: fixed, resettable runtime data owned by the working directory.
-- Notes:
-  1. Each invocation owns a fresh loopback-only Vite app server with mounted
-     `/api/*` routes, a collaboration server, and uniquely provisioned
-     authenticated users.
-  2. The stack uses the working directory's `PORT_BASE + 50` range, and one E2E
-     invocation may run in a working directory at a time. An invocation does
-     not terminate or recover an earlier process; occupied reserved ports
-     refuse startup.
-  3. Full and filtered invocations use the same lifecycle and replace
-     `data/e2e-runtime` at startup. The completed or interrupted run remains
-     available for diagnosis until the next invocation.
-
-### Docker E2E
-
-- Purpose: end-to-end verification against the production-style Docker stack.
-- User: developer.
-- Platform: local machine with Docker.
-- Data boundary: temporary Docker-managed test data.
-- Notes: requires a local Docker daemon. The Docker home server uses
-  `PORT_BASE + 7` for its public gateway port. OAuth source-linking coverage
-  starts a source dev server at `PORT_BASE + 70`.
-
-### CI
-
-- Purpose: automated verification in non-local infrastructure.
-- User: project automation.
-- Platform: CI runner.
-- Data boundary: runner-local temporary data.
-- Notes: local-stack E2E uses the same isolated lifecycle as local invocations.
 
 ## Operational modes
 
