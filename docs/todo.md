@@ -38,8 +38,7 @@ Remove rejected or obsolete items and empty sections.
   at the root, migrate coherent capability contracts into `docs/specs/`, and
   update complete inbound ownership links with each move.
 
-- **Run-mode corpus reduction.** Move useful local-development procedure into
-  the `docs/dev/guides/` corpus and reassess the remaining app, deployment, and
+- **Run-mode corpus reduction.** Reassess the remaining app, deployment, and
   operational modes as coherent capability owners. Include defining the
   currently unspecified hosted-production backup workflow.
 

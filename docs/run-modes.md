@@ -1,7 +1,7 @@
 # Run Modes
 
-RemDo supports user-facing app runtimes, local development, and operational
-tasks such as backup as distinct run modes.
+RemDo supports user-facing app runtimes and operational tasks such as backup as
+distinct run modes.
 
 Durable product constraints live in [docs/principles.md](./principles.md);
 supported access cases live in [docs/access-model.md](./access-model.md).
@@ -60,50 +60,6 @@ file as the [document registry](./architecture.md#document-registry).
   2. `ALLOW_SIGNUP` should stay `false`
   3. the service binds the Render-injected `PORT` and Render terminates public
      HTTPS
-
-## Local development
-
-- Purpose: interactive development of the app and supporting local services.
-- User: developer.
-- Platform: local machine.
-- Data boundary: local repo-owned development data.
-- Notes:
-  1. `.env` (copied from `.env.example`) holds overrides, and process
-     environment values override `.env`, so
-     one-off runs can use inline values such as `PORT_BASE=4800 ...` without
-     editing local defaults.
-  2. Dev mode runs the web app with the RemDo API mounted in the Vite dev
-     server, plus the Y-Sweet collaboration server. Authentication is enforced,
-     and private document access is limited to the registered document owner.
-  3. The app is served at `http://127.0.0.1:<PORT>/`, where `PORT` derives from
-     `PORT_BASE`. Stable dev users (Alice/Bob; credentials live in
-     `tools/lib/stable-auth-users.ts`) sign in at `/`; seeded fixtures
-     appear in the document chooser as documents titled `fixture: <name>` (for
-     example `fixture: tree-complex`).
-  4. `pnpm run dev:data-reset` provisions the stable Alice/Bob users and seeds
-     every `tests/fixtures/*.json` as a document owned by each user, so a fresh
-     login always shows browsable content. It is idempotent (ensure + top-up):
-     re-runs replace fixture content in place and never touch a user's other
-     documents; `--fresh` deletes the previously seeded fixture docs (and their
-     collab storage) before reseeding. It requires the dev collab + API stack
-     to be running.
-  5. `pnpm run dev:pwa` uses `PORT_BASE + 20` for its range and serves the PWA
-     preview on that shifted `PORT`, so it can run beside `pnpm run dev`.
-  6. `pnpm run dev:docker` starts a Docker home server at
-     `127.0.0.1:(PORT_BASE + 40)` for manual source linking against the dev
-     server, and redirects the matching `localhost` URL to that canonical
-     browser origin. The source is linked by its host-IP origin (shared by the
-     browser and the container), so the source dev server must advertise that
-     origin: `HOST=0.0.0.0 AUTH_URL=http://<host-ip>:<PORT> pnpm run dev` (the
-     `dev:docker` output prints the exact command; a plain `HOST=0.0.0.0` run
-     derives a `localhost` `AUTH_URL`, which Better Auth rejects for host-IP
-     requests). Link the source from the Sharing page ("Link source", entering
-     the source's URL); the home lazily self-registers a public OAuth client on
-     first link (see
-     [docs/access-model.md](./access-model.md#linking-a-source)).
-  7. `pnpm run dev:users` provisions the stable users (Alice/Bob) and prints
-     their credentials; it only seeds those users.
-  8. Y-Sweet auth uses a matched development default key/server-token pair.
 
 ## Operational modes
 
