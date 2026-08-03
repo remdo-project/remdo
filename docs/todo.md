@@ -1,10 +1,8 @@
 # RemDo TODO
 
-This ledger is RemDo's near-term backlog and single entry point for tracked
-follow-up. It lists known gaps from
-[accepted target behavior](documentation.md#target-behavior), cross-cutting
-temporary state, unresolved decisions, and follow-up without a better owner.
-Entries do not define accepted behavior.
+This ledger is RemDo's near-term backlog and single entry point for
+[tracked follow-up](documentation.md#target-behavior). It also holds
+cross-cutting temporary state.
 
 The closed [legacy backlog](legacy-backlog.md) holds earlier unresolved
 entries. Continue checking its entries for duplicates and review suppression

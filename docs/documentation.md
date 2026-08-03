@@ -60,8 +60,9 @@ Contracts are clear without consulting external sources.
 A durable specification states its target behavior as fact in timeless prose,
 regardless of implementation status.
 
-Known gaps between target behavior and implementation are tracked in
-[RemDo TODO](todo.md).
+[Tracked follow-up](todo.md#tracked-follow-up) records future work and known
+gaps. Entries range from decided changes to unresolved questions and preserve
+only the context useful for returning to the work.
 
 ### Minimality
 
@@ -137,7 +138,8 @@ by reasoning from those contracts alone.
 
 #### Future
 
-Use for brief triggers describing long-horizon, non-target direction.
+Use for brief triggers describing long-horizon work related to the owned
+behavior.
 
 #### References
 
