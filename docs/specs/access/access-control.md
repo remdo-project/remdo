@@ -28,10 +28,10 @@ that cache and local Yjs offline data.
 Every document has one owner. A new document has no direct grants, and its URL
 only locates it; ownership or a grant authorizes access.
 
-The owner can grant a normal document to another local user by entering an
-email address that matches the user's Better Auth account. A direct grant gives
-that user full document access. Home documents and user-data projections do not
-accept direct grants.
+Only the owner can grant a normal document to another local user, by entering
+an email address that matches the user's Better Auth account. A direct grant
+gives that user full document access. Home documents and user-data projections
+do not accept direct grants.
 
 The server issues Y-Sweet document client tokens according to the resulting
 access:
