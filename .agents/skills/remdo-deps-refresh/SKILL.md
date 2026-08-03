@@ -105,7 +105,10 @@ Iterate:
       `pnpm-lock.yaml`, re-apply the catalog bumps in halves — running `CI=true
       pnpm install --no-frozen-lockfile` after each half so `node_modules`
       matches it — and re-run the failing check.
-   4. For a notable jump, skim the release notes — to inform the fix and to flag
+   4. Record any dependency-specific follow-up you introduce or retain under
+      the [code-comment convention](../../../docs/dev/contributing.md#code-comments),
+      using the exact `TODO(deps):` or `FIXME(deps):` marker.
+   5. For a notable jump, skim the release notes — to inform the fix and to flag
       a behavior-affecting change for the report. Opportunistically apply a
       simplification newly-provided functionality enables (upside, never a
       per-package chore).
@@ -128,11 +131,10 @@ the CI matrix stays a separate explicit ask by the user.
 
 Once the gate is green (exit 0):
 
-1. Scan dependency-related tracked comments under the
-   [code-comment convention](../../../docs/dev/contributing.md#code-comments).
-   Run each available probe against the refreshed dependency graph. Remove the
-   marker and its workaround when the probe passes; retain them when it does
-   not.
+1. Run `pnpm run todo:list` and inspect only entries using the exact
+   `TODO(deps):` or `FIXME(deps):` marker. Run each available probe against the
+   refreshed dependency graph. Remove the marker and its workaround when the
+   probe passes; retain them when it does not.
 2. Reconcile open Dependabot PRs and alerts via `gh` — bookkeeping, not a second
    decision loop. Apply only genuine `unresolved` follow-ups. Classify each:
    `covered here`, `already on default branch`, `unresolved`, or

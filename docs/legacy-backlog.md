@@ -521,13 +521,6 @@ yet built; the entries below track the gap. Suspends the view-header rules in
   2. Add a plain `pnpm run build` validation surface to CI and/or the dependency
      refresh flow so build warnings are reviewed explicitly instead of only via
      Docker logs.
-  3. Add `TODO:`/`FIXME:` scanning to the dependency-refresh skill: surface
-     dependency-related markers, run each one's stated probe, and drop the
-     workaround (and marker) when it passes — so workarounds self-heal instead of
-     accumulating. See `docs/dev/contributing.md#code-comments`. While here, revisit
-     the marker convention itself for ways to make it more reliable/self-healing
-     (e.g. a more scannable shape for trackable workarounds, lint-enforced
-     expiry, reconciling existing markers) — open-ended, not yet scoped.
 
 - Warning policy / classify-or-suppress:
   1. Decide how to handle the Vite large-chunk warning: real size budget,
