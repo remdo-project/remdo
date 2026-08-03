@@ -74,12 +74,13 @@ Remove rejected or obsolete items and empty sections.
 
 ### Testing
 
-- **Docker E2E diagnostic runtime.** Keep removing Docker E2E containers on
-  exit, but retain runtime data and captured container logs in a stable,
-  permission-restricted location until the next invocation. Replace that state
-  only after startup preflight succeeds, preserve container-assisted cleanup
-  for root-owned files, and keep retained authentication and test-secret data
-  local rather than publishing it as a CI artifact.
+- **Docker E2E diagnostic runtime.** Reconsider the removal-on-exit lifecycle in
+  `docs/specs/testing/test-harness.md`. Evaluate retaining runtime data and
+  captured container logs in a stable, permission-restricted location until the
+  next invocation. If adopted, replace that state only after startup preflight,
+  preserve container-assisted cleanup for root-owned files, keep authentication
+  and test-secret data local, and update the specification and implementation
+  together.
 
 - **Contributor testing policy.** Move contributor-wide test-quality policy
   from `AGENTS.md` to `docs/dev/testing.md`: observable behavior or stable
