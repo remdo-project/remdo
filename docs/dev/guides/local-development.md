@@ -65,11 +65,15 @@ server linked as its public source. The `dev:docker` command prints the source
 command and source URL used by this workflow.
 
 1. Start the Docker app as described above.
-2. In another terminal, run its printed source command. The command's `HOST` and
+2. On a fresh Docker home, open `/admin` at the printed home URL and complete
+   [admin enrollment](../../access-model.md#admin-role) using the configured
+   `ADMIN_SECRET`.
+3. In another terminal, run the printed source command. The command's `HOST` and
    `AUTH_URL` make one host-IP origin reachable from both the browser and the
    container.
-3. Open the home server's Sharing page, choose **Link source**, and enter the
-   printed source URL. Complete sign-in as one of the stable users.
+4. Open the home server's Sharing page, choose **Link source**, and enter the
+   printed source URL. When redirected to the source, sign in as one of the
+   stable users.
 
 The [source-linking access model](../../access-model.md#cross-server-source-linking)
 owns the resulting authorization and delegation behavior.
