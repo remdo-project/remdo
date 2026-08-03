@@ -38,10 +38,6 @@ Remove rejected or obsolete items and empty sections.
   at the root, migrate coherent capability contracts into `docs/specs/`, and
   update complete inbound ownership links with each move.
 
-- **Run-mode corpus reduction.** Reassess the remaining app, deployment, and
-  operational modes as coherent capability owners. Include defining the
-  currently unspecified hosted-production backup workflow.
-
 ### Editor
 
 - **Editor module ownership.** Editor capabilities are split across `features/`,
@@ -76,6 +72,13 @@ Remove rejected or obsolete items and empty sections.
   non-collaboration Vitest benchmark's workloads, operations, metric, and runner
   as part of that design, then establish a specification and align or replace
   the harness.
+
+### Operations
+
+- **Hosted production backups.** Define the scheduled backup and recovery
+  workflow for hosted deployments, then align `docker/Dockerfile`,
+  `docker/backup.sh`, `tools/snapshot/backup.ts`, and
+  `tools/remote/make-backup.sh` with it.
 
 ### Outliner
 
