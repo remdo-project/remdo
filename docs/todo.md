@@ -38,6 +38,12 @@ Remove rejected or obsolete items and empty sections.
   at the root, migrate coherent capability contracts into `docs/specs/`, and
   update complete inbound ownership links with each move.
 
+- **Access specification ownership.** Split `docs/access-model.md` into
+  `docs/specs/access/access-control.md` and
+  `docs/specs/access/source-linking.md`. Assign each current contract, future
+  direction, and reference to its owner, align both specifications with
+  `docs/documentation.md`, and update every inbound link in the same change.
+
 ### Development
 
 - **Single-command local startup.** Make one local-development command start
@@ -57,6 +63,13 @@ Remove rejected or obsolete items and empty sections.
   from the source tree and enforcement.
 
 ### Testing
+
+- **Docker E2E diagnostic runtime.** Keep removing Docker E2E containers on
+  exit, but retain runtime data and captured container logs in a stable,
+  permission-restricted location until the next invocation. Replace that state
+  only after startup preflight succeeds, preserve container-assisted cleanup
+  for root-owned files, and keep retained authentication and test-secret data
+  local rather than publishing it as a CI artifact.
 
 - **Contributor testing policy.** Move contributor-wide test-quality policy
   from `AGENTS.md` to `docs/dev/testing.md`: observable behavior or stable

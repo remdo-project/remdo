@@ -3,9 +3,11 @@
 The test harness gives each working directory an isolated verification runtime
 and owns its startup, cleanup, and diagnostic-data lifecycle.
 
-## Unit and Collaboration Tests
+## Unit Tests
 
-Unit tests run without collaboration services.
+Unit tests run in-process without a service stack.
+
+## Collaboration Tests
 
 Each collaboration-test invocation starts fresh loopback-only Y-Sweet and RemDo
 API services. One collaboration-test invocation runs in a working directory at
