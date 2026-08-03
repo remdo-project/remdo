@@ -19,6 +19,11 @@ section, and other work intended to be done soon in this backlog. Together,
 these locations form the tracking record; do not duplicate an item between
 them.
 
+Run `pnpm run todo:list` when selecting maintenance work or auditing tracked
+follow-up. It lists candidate `TODO` and `FIXME` occurrences in tracked
+non-documentation files; inspect the results under the tracked-comment
+convention above.
+
 Reviewers suppress a finding only when it matches the same specific tracked
 behavior. Within this backlog, group related items under short topic headings.
 Remove rejected or obsolete items and empty sections.
