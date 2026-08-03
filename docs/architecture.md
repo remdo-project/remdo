@@ -95,7 +95,7 @@ document client tokens.
   user-data projections for browser-facing app-resource note APIs.
 - User bootstrap: `/api/current-user` provisions the signed-in user's personal
   app state, per
-  [Authenticated App Access](access-model.md#authenticated-app-access).
+  [Authenticated App Access](specs/access/access-control.md#authenticated-app-access).
 
 ### Token vocabulary
 

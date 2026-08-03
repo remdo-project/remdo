@@ -18,8 +18,9 @@ are reached.
 1. Home replaces the editor in the content region: while Home is shown, no
    document outline is visible.
 2. Home lists the user's documents grouped by source: the local server and each
-   linked [source server](../../access-model.md#cross-server-source-linking), under
-   a heading per group.
+   linked
+   [source server](../access/source-linking.md#cross-server-source-linking),
+   under a heading per group.
 3. Each listed document shows its display name and opens that document when
    activated, landing on its
    [document-root view](./zoom.md#visibility-and-editing-boundary).

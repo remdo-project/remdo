@@ -66,8 +66,8 @@ command and source URL used by this workflow.
 
 1. Start the Docker app as described above.
 2. On a fresh Docker home, open `/admin` at the printed home URL and complete
-   [admin enrollment](../../access-model.md#admin-role) using the configured
-   `ADMIN_SECRET`.
+   [admin enrollment](../../specs/access/access-control.md#admin-role) using the
+   configured `ADMIN_SECRET`.
 3. Stop a plain `pnpm run dev` process using the same port range, then run the
    printed source command in another terminal. It replaces the plain command
    for this workflow because its `HOST` and `AUTH_URL` make one host-IP origin
@@ -76,5 +76,6 @@ command and source URL used by this workflow.
    printed source URL. When redirected to the source, sign in as one of the
    stable users.
 
-The [source-linking access model](../../access-model.md#cross-server-source-linking)
+The
+[source-linking access model](../../specs/access/source-linking.md#cross-server-source-linking)
 owns the resulting authorization and delegation behavior.

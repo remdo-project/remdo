@@ -11,7 +11,8 @@ export function createAdminRoutes({
 
   // Self-enrollment: the one path to acquire the admin role. Gated by
   // ADMIN_SECRET, never by a session+role (this is how the role is acquired, so
-  // there is no admin session to check — see docs/access-model.md#admin-role).
+  // there is no admin session to check — see
+  // docs/specs/access/access-control.md#admin-role).
   // It always registers a new account and grants it the role (works even with
   // signup disabled, via the provisioning escape hatch), so any secret-holder
   // can create an admin account. Promoting an *existing* user is a later,

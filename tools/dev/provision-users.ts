@@ -9,7 +9,7 @@ import {
 
 // Provisions the stable dev users (Alice/Bob) on a server. Source-server OAuth
 // clients are no longer created out-of-band: a home lazily self-registers a
-// public client on first link (docs/access-model.md#linking-a-source), so this
+// public client on first link (docs/specs/access/source-linking.md#linking-a-source), so this
 // command only seeds the users the linking flows sign in as.
 async function main(): Promise<void> {
   if (process.argv.length > 2) {
