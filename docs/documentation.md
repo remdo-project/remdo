@@ -10,10 +10,31 @@ implementation.
 Smallness lowers review cost; sufficiency prevents agents from inventing product
 decisions. Readers take contracts at face value.
 
-This corpus answers "what is the accepted behavior of X?" for contributors and
-coding agents fluent in the stack. It covers behavior and policy, not tutorials
-or how-tos. Other audiences use separate corpora declaring their reader and
-question; content and structure rules apply, not this persona.
+RemDo's contracts answer "what is the accepted behavior of X?" for
+contributors and coding agents fluent in the stack. Human guides and agent
+instructions answer different questions through the owners below and follow
+the applicable ownership and structure rules.
+
+## Documentation layout
+
+Each durable statement lives with the owner of the question it answers.
+
+- **`docs/` root — Project-wide documents.** Root files own repository- or
+  corpus-wide contracts, current tracking, and archived follow-up.
+- **`docs/specs/` — [Specifications](#specification-structure).**
+- **`docs/specs/feedback-cases/` — Specification evidence.** Its
+  [README](specs/feedback-cases/README.md) owns the evidence structure and
+  maintenance rules.
+- **`docs/dev/` root — Contributor policy.** Root developer documents establish
+  standards and decision defaults for contributions.
+- **`docs/dev/guides/` — Developer guides.** Guides explain how a developer
+  accomplishes a task. Their steps derive from and link to the applicable
+  contract and mechanism owners.
+- **`AGENTS.md` and `CLAUDE.md` — Agent instructions.** They own repository-wide
+  and provider-specific rules for agent work and link to the contracts and
+  contributor policy governing their decisions.
+- **Executable owners — Tool implementation.** Non-contract execution details
+  stay with their scripts, configuration, or other executable owners.
 
 ## Ownership
 
@@ -124,9 +145,8 @@ Use for external sources and dependencies the document relies on.
 
 ## Specification structure
 
-Specifications live under `docs/specs/`.
-
-1. Each specification owns one coherent capability.
+1. Each specification defines the expected behavior or required structure of
+   one coherent repository capability or technical component.
 2. Each heading path identifies one cohesive responsibility worth locating or
    linking to. Place each section beneath the narrowest parent containing its
    responsibility, and all material at the narrowest level that owns it.

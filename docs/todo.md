@@ -32,6 +32,29 @@ Remove rejected or obsolete items and empty sections.
   [minimality](documentation.md#minimality) rules to every domain- or
   component-specific term, including consistent actor and component identity.
 
+- **Agent skill specifications.** Establish accepted-behavior owners under
+  `docs/specs/agents/skills/` for `playground`, `remdo-deps-refresh`,
+  `remdo-docs-align`, and `remdo-simplify`, then align each skill's execution
+  procedure and links with its specification.
+
+- **Legacy documentation placement.** Apply the
+  [documentation layout](documentation.md#documentation-layout) to root and
+  developer documents that predate `docs/specs/`. Keep project-wide contracts
+  at the root, migrate coherent capability contracts into `docs/specs/`, and
+  update complete inbound ownership links with each move.
+
+- **Production development-surface owner.** Move the production exclusion of
+  development-only routes, UI, editor plugins, and test bridges from
+  `docs/run-modes.md` to a coherent architecture or capability owner. Update
+  every inbound reference, including `tools/check-dev-boundary.sh`, in the same
+  change.
+
+- **Run-mode corpus reduction.** After extracting the development-surface and
+  test-harness contracts, move useful local-development procedure into the
+  `docs/dev/guides/` corpus and reassess the remaining app, deployment, and
+  operational modes as coherent capability owners. Define the hosted-production
+  backup workflow in the resulting corpus.
+
 ### Editor
 
 - **Editor module ownership.** Editor capabilities are split across `features/`,
@@ -44,7 +67,14 @@ Remove rejected or obsolete items and empty sections.
 
 ### Testing
 
-- **Universal testing contract.** Move contributor-wide test-quality policy
+- **Test-harness specification.** Relocate the repository-owned lifecycle,
+  isolation, startup-failure, and diagnostic-data behavior for unit, collab,
+  browser E2E, Docker E2E, and CI from `docs/run-modes.md` into a coherent
+  specification under `docs/specs/testing/`. Keep feature-specific behavior
+  and its evidence with the owning feature specifications, and update all
+  inbound links.
+
+- **Contributor testing policy.** Move contributor-wide test-quality policy
   from `AGENTS.md` to `docs/dev/testing.md`: observable behavior or stable
   contracts, credible regressions, automated test-level selection, empirical
   exceptions, and review coverage. Keep agent execution procedures and check
