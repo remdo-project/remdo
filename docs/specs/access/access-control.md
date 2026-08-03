@@ -25,6 +25,10 @@ that cache and local Yjs offline data.
 
 ## Document Access
 
+These rules apply to users identified by a local session and to source users
+delegated through
+[Cross-Server Source Linking](source-linking.md#cross-server-source-linking).
+
 Every document has one owner. A new document has no direct grants, and its URL
 only locates it; ownership or a grant authorizes access.
 

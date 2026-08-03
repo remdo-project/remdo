@@ -24,10 +24,8 @@ OAuth redirects travel through the user's browser.
 ## Cross-Server Source Linking
 
 A linked source OAuth token delegates the linking user's full source account to
-the home. The home can call authenticated RemDo APIs as that source user,
-subject to the same ownership and direct-grant checks as the user's source
-session. The delegation does not grant one source user access belonging to
-another.
+the home. The home can call authenticated RemDo APIs as that source user. The
+delegation does not grant one source user access belonging to another.
 
 Document sharing continues to target a local account on the document's source
 server under [Document Access](access-control.md#document-access). Once linked,
@@ -36,9 +34,9 @@ documents into the home document list.
 
 ## Linking a Source
 
-A signed-in home user enters an HTTP or HTTPS source URL on the Sharing page.
-The home reduces the URL to its origin; a bearer-authenticated caller cannot
-initiate linking.
+Source linking accepts an HTTP or HTTPS URL entered on the Sharing page and
+reduces it to its origin. Only a signed-in home session can initiate linking; a
+bearer-authenticated caller cannot.
 
 On the first link to an origin, the home registers a public OAuth client on the
 source. The client has no secret, uses PKCE, and accepts only the home's exact
