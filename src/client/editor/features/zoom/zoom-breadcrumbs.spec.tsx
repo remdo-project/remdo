@@ -111,7 +111,7 @@ describe('zoom breadcrumbs', () => {
     expect(screen.getByText(UNTITLED_LABEL)).toBeInTheDocument();
   });
 
-  it('renders a custom document control instead of the default document button', () => {
+  it('renders a custom document control beside the document button', () => {
     const onSelect = vi.fn();
     renderBreadcrumbs({
       docLabel: 'project',
@@ -125,6 +125,6 @@ describe('zoom breadcrumbs', () => {
     });
 
     expect(screen.getByRole('combobox', { name: 'Switch document' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'project' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'project' })).toBeInTheDocument();
   });
 });
