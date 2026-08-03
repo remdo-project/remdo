@@ -32,6 +32,11 @@ Remove rejected or obsolete items and empty sections.
   [minimality](documentation.md#minimality) rules to every domain- or
   component-specific term, including consistent actor and component identity.
 
+- **Agent skill specifications.** Establish accepted-behavior owners under
+  `docs/specs/agents/skills/` for `remdo-deps-refresh`, `remdo-docs-align`, and
+  `remdo-simplify`, then align each skill's execution procedure and links with
+  its specification.
+
 - **Legacy documentation placement.** Apply the
   [documentation layout](documentation.md#documentation-layout) to root and
   developer documents that predate `docs/specs/`. Keep project-wide contracts
