@@ -11,9 +11,9 @@ Smallness lowers review cost; sufficiency prevents agents from inventing product
 decisions. Readers take contracts at face value.
 
 RemDo's contracts answer "what is the accepted behavior of X?" for
-contributors and coding agents fluent in the stack. Human guides and execution
-procedures answer different questions through the owners below and follow the
-applicable ownership and structure rules.
+contributors and coding agents fluent in the stack. Human guides and agent
+instructions answer different questions through the owners below and follow
+the applicable ownership and structure rules.
 
 ## Documentation layout
 
@@ -30,11 +30,11 @@ Each durable statement lives with the owner of the question it answers.
 - **`docs/dev/guides/` — Developer guides.** Guides explain how a developer
   accomplishes a task. Their steps derive from and link to the applicable
   contract and mechanism owners.
-- **`AGENTS.md` and `.agents/skills/` — Agent procedures.** They direct agent
-  execution and link to the contracts and contributor policy governing their
-  decisions.
-- **Executable owners — Tool execution.** Invocation details stay with their
-  scripts, configuration, or other executable owners.
+- **`AGENTS.md` and `CLAUDE.md` — Agent instructions.** They own repository-wide
+  and provider-specific rules for agent work and link to the contracts and
+  contributor policy governing their decisions.
+- **Executable owners — Tool implementation.** Non-contract execution details
+  stay with their scripts, configuration, or other executable owners.
 
 ## Ownership
 

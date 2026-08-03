@@ -213,10 +213,8 @@ sections to docs.
 
 ## Skill authoring
 
-Agent skills are durable documentation and follow
-[Documentation](docs/documentation.md). A skill owns its execution procedure;
-the specification it implements owns accepted behavior. Required execution
-steps are procedural content, not explanatory how-to prose.
+A skill's specification owns accepted behavior. Keep its execution procedure in
+`SKILL.md`; required steps are procedural content, not explanatory how-to prose.
 
 When writing or editing an agent skill, assume every run is performed by a model
 **at least as capable as the current one**. Encode *intent* — what the skill is
