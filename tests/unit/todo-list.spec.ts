@@ -69,6 +69,8 @@ describe('todo:list', () => {
       ].join('\n'),
     });
     writeFile(root, 'src/untracked.ts', `${scopedTodo}\n`);
+    execFileSync('git', ['config', 'grep.column', 'true'], { cwd: root });
+    execFileSync('git', ['config', 'color.grep', 'always'], { cwd: root });
 
     const result = runTodoList(root);
 
