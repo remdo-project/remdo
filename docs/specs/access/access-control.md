@@ -7,6 +7,13 @@ collaboration credentials a user can receive.
 Shared token, routing, registry, and document-identity terms are defined in
 [Architecture Terms](../../architecture.md).
 
+## Access Scope
+
+User-facing document access is authenticated by a local session or a
+[delegated source account](source-linking.md#cross-server-source-linking).
+RemDo does not expose anonymous documents, public documents, document-access
+links carrying bearer credentials, or a local-only no-login mode.
+
 ## Authenticated App Access
 
 A Better Auth session identifies the signed-in user. The server supports
@@ -14,8 +21,9 @@ username/password, OAuth, and any other authentication method enabled by its
 configuration.
 
 The SQL-backed user role and document registry are the authorization sources of
-truth. Session UI and read-only Yjs user-data projections may expose their
-results but do not authorize a request.
+truth. Session UI and read-only Yjs
+[user-data projections](../../architecture.md#document-registry) may expose
+their results but do not authorize a request.
 
 The client user-data runtime starts inside the authenticated app. Login,
 enrollment, offline, logout, and OAuth consent surfaces render outside that
@@ -37,8 +45,9 @@ an email address that matches the user's Better Auth account. A direct grant
 gives that user full document access. Home documents and user-data projections
 do not accept direct grants.
 
-The server issues Y-Sweet document client tokens according to the resulting
-access:
+The server issues
+[Y-Sweet document client tokens](../../architecture.md#token-vocabulary)
+according to the resulting access:
 
 - A normal-document owner or direct grantee receives full access.
 - A home-document owner receives full access.
@@ -68,6 +77,10 @@ Session cookies use `SameSite=Lax`. App-owned mutation routes reject cross-site
 form submissions before their handlers run and require `application/json`.
 Better Auth owns CSRF and origin handling for `/api/auth/*`. This boundary covers
 same-origin credentialed app APIs with JSON mutation bodies.
+
+The CSRF boundary is re-evaluated when a change introduces a cross-origin
+credentialed app API, cross-subdomain mutation flow, non-JSON mutation body, or
+`SameSite=None` cookie.
 
 ## Future
 

@@ -93,8 +93,10 @@ document client tokens.
   access-critical metadata, and the current per-user document list. Yjs
   documents hold collaborative document content plus persisted, read-only
   user-data projections for browser-facing app-resource note APIs.
-- User bootstrap: `/api/current-user` provisions the signed-in user's personal
-  app state, per
+- User bootstrap: `/api/current-user` ensures the signed-in user's home and
+  user-data-projection registry rows, refreshes the read-only user-data
+  projection from the registry's current per-user document list, and returns
+  the bootstrap consumed under
   [Authenticated App Access](specs/access/access-control.md#authenticated-app-access).
 
 ### Token vocabulary
