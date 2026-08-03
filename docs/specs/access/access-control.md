@@ -33,17 +33,16 @@ that cache and local Yjs offline data.
 
 ## Document Access
 
-These rules apply to users identified by a local session and to source users
-delegated through
-[Cross-Server Source Linking](source-linking.md#cross-server-source-linking).
+These rules apply to each user authenticated by the server.
 
 Every document has one owner. A new document has no direct grants, and its URL
 only locates it; ownership or a grant authorizes access.
 
-Only the owner can grant a normal document to another local user, by entering
-an email address that matches the user's Better Auth account. A direct grant
-gives that user full document access. Home documents and user-data projections
-do not accept direct grants.
+Only the owner can grant a normal document to another local user. Sharing
+identifies the grantee by email; a grant is created only when that email matches
+a Better Auth account on the document's server. A direct grant gives that user
+full document access. Home documents and user-data projections do not accept
+direct grants.
 
 The server issues
 [Y-Sweet document client tokens](../../architecture.md#token-vocabulary)

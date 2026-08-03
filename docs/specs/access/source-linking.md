@@ -22,6 +22,9 @@ are within the operator's trust boundary. The home does not need to be
 internet-reachable: server-to-server requests travel from home to source, while
 OAuth redirects travel through the user's browser.
 
+This role split confines the home's outbound source-registration requests to
+operator-trusted users.
+
 This topology excludes Client ID Metadata Documents because the source would
 need to fetch a metadata URL from the private home.
 
@@ -29,11 +32,12 @@ need to fetch a metadata URL from the private home.
 
 A linked source OAuth token delegates the linking user's full source account to
 the home. The home can call authenticated RemDo APIs as that source user. The
+source applies its own [Document Access](access-control.md#document-access)
+rules to those calls just as it does to the user's source session. The
 delegation does not grant one source user access belonging to another.
 
 Document sharing continues to target a local account on the document's source
-server under [Document Access](access-control.md#document-access). Once linked,
-the browser subscribes to the source-owned
+server. Once linked, the browser subscribes to the source-owned
 [user-data projection](../../architecture.md#document-registry) and merges its
 documents into the home document list.
 
@@ -63,14 +67,15 @@ Outbound registration does not follow redirects. Only a private home's signed-in
 user can initiate the request to the supplied source origin.
 
 An unauthenticated caller cannot distinguish a cached source from an unknown
-one. On `/source-servers/:id/*`, a signed-in user receives 403 for a cached but
-unlinked source and 404 for an unknown source. Source IDs derive from origins,
-so the distinction requires knowing the origin and reveals no user or document
-data.
+one. On `/api/current-user/source-servers/:serverId/*`, a signed-in user receives
+403 for a cached but unlinked source and 404 for an unknown source. Source IDs
+derive from origins, so the distinction requires knowing the origin and reveals
+no user or document data.
 
 ## Future
 
-- Reject non-loopback HTTP sources after Docker E2E can expose its source over
+- Reject non-loopback HTTP sources during source derivation so source-issuer
+  normalization can be removed, after Docker E2E can expose its source over
   loopback.
 - Add destination-IP validation to outbound registration while preserving
   private-IP and loopback sources in development. The current exposure is
