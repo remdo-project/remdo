@@ -139,20 +139,34 @@ describe('development runtime launchers', () => {
     expect(result.stderr).toContain('requires Docker Engine 29.5 or newer');
   });
 
-  it('isolates the PWA stack data and shifts its complete port range', () => {
+  function runPwaLauncher({ curlStatus = 0 }: { curlStatus?: number } = {}) {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-pwa-runtime-'));
     tempDirs.push(tempDir);
     const binDir = path.join(tempDir, 'bin');
     const callLog = path.join(tempDir, 'calls.log');
     fs.mkdirSync(binDir);
-    for (const command of ['pnpm', 'concurrently']) {
-      const commandPath = path.join(binDir, command);
-      fs.writeFileSync(commandPath, `#!/usr/bin/env sh
+    const pnpmPath = path.join(binDir, 'pnpm');
+    fs.writeFileSync(pnpmPath, `#!/usr/bin/env sh
+set -eu
+printf '%s|%s|%s|%s\\n' "\${DATA_DIR}" "\${PORT_BASE}" "\${PORT}" "$*" >> "\${REMDO_FAKE_CALL_LOG:?}"
+if [ "$*" = "exec tsx ./tools/dev/print-app-public-url.ts" ]; then
+  printf 'http://localhost:%s' "\${PORT}"
+fi
+`);
+    fs.chmodSync(pnpmPath, 0o755);
+    const concurrentlyPath = path.join(binDir, 'concurrently');
+    fs.writeFileSync(concurrentlyPath, `#!/usr/bin/env sh
 set -eu
 printf '%s|%s|%s|%s\\n' "\${DATA_DIR}" "\${PORT_BASE}" "\${PORT}" "$*" >> "\${REMDO_FAKE_CALL_LOG:?}"
 `);
-      fs.chmodSync(commandPath, 0o755);
-    }
+    fs.chmodSync(concurrentlyPath, 0o755);
+    const curlPath = path.join(binDir, 'curl');
+    fs.writeFileSync(curlPath, `#!/usr/bin/env sh
+set -eu
+printf '%s|%s|%s|%s\n' "\${DATA_DIR}" "\${PORT_BASE}" "\${PORT}" "curl $*" >> "\${REMDO_FAKE_CALL_LOG:?}"
+exit "\${REMDO_FAKE_CURL_STATUS:-0}"
+`);
+    fs.chmodSync(curlPath, 0o755);
 
     const result = spawnSync('./tools/dev/pwa.sh', {
       cwd: process.cwd(),
@@ -165,14 +179,34 @@ printf '%s|%s|%s|%s\\n' "\${DATA_DIR}" "\${PORT_BASE}" "\${PORT}" "$*" >> "\${RE
         PATH: `${binDir}:${process.env.PATH}`,
         PORT_BASE: '4600',
         PUBLIC_HOST: 'localhost',
+        REMDO_FAKE_CURL_STATUS: String(curlStatus),
         REMDO_FAKE_CALL_LOG: callLog,
       },
     });
 
+    const calls = fs.existsSync(callLog) ? fs.readFileSync(callLog, 'utf8') : '';
+    return { calls, result, tempDir };
+  }
+
+  it('runs the PWA frontend against the main development gateway', () => {
+    const { calls, result, tempDir } = runPwaLauncher();
+
     expect(result.status).toBe(0);
-    expect(fs.readFileSync(callLog, 'utf8')).toContain(
-      `${path.join(tempDir, 'data', 'pwa-preview')}|4620|4620|run build`,
-    );
+    expect(calls).toContain(`${path.join(tempDir, 'data')}|4600|4600|curl -fsS http://localhost:4600/api/health`);
+    expect(calls).toContain(`${path.join(tempDir, 'data')}|4600|4600|run build`);
+    expect(calls).toContain('pnpm exec vite preview --port 4620');
+    expect(calls).not.toContain('dev:api');
+    expect(calls).not.toContain('dev:collab');
+    expect(calls).not.toContain('dev:data-reset');
+    expect(calls).not.toContain('dev:seed');
+  });
+
+  it('requires the main development gateway before starting the PWA frontend', () => {
+    const { calls, result } = runPwaLauncher({ curlStatus: 1 });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('run pnpm dev first');
+    expect(calls).not.toContain('run build');
   });
 });
 

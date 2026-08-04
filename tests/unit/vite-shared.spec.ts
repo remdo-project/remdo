@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { config as runtimeConfig } from '../../config';
 import { isApiRequestPath } from '../../config/vite/remdo-api-dev-plugin';
 import { createViteSharedConfig, pwaNavigationFallbackDenylist } from '../../config/vite/shared';
 
@@ -23,14 +24,20 @@ describe('vite shared config', () => {
 
     expect(previewProxy['/.well-known']).toMatchObject({
       changeOrigin: true,
+      headers: { origin: runtimeConfig.env.APP_PUBLIC_URL },
+      target: runtimeConfig.env.APP_PUBLIC_URL,
       xfwd: true,
     });
     expect(previewProxy['/api']).toMatchObject({
       changeOrigin: true,
+      headers: { origin: runtimeConfig.env.APP_PUBLIC_URL },
+      target: runtimeConfig.env.APP_PUBLIC_URL,
       xfwd: true,
     });
     expect(previewProxy['/d']).toMatchObject({
       changeOrigin: true,
+      headers: { origin: runtimeConfig.env.APP_PUBLIC_URL },
+      target: runtimeConfig.env.APP_PUBLIC_URL,
       ws: true,
     });
     expect(previewProxy).not.toHaveProperty('/doc');

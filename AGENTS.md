@@ -82,7 +82,8 @@ sections to docs.
 - If you cannot log in as a stable dev user (Alice/Bob), run
   `pnpm run dev:data-reset` to (re)provision them and seed the fixture
   documents. It is idempotent and dev-only; either of us may run it, but not
-  while the other is mid-task. Pass `--fresh` to reset the seeded fixture docs.
+  while the other is mid-task. The command restores the stable passwords and
+  current fixture contents without deleting other documents.
 - `.agent/` is per-working-dir agent scratch (plans, mid-task notes). It is
   gitignored and excluded from linting, so write throwaway working files here
   rather than under versioned paths like `docs/`. It is per-WD (not shared across

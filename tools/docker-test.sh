@@ -156,18 +156,6 @@ docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
 docker rm -f "${PROD_BRIDGE_CONTAINER_NAME}" >/dev/null 2>&1 || true
 
-echo "Provisioning source dev users for ${SOURCE_ORIGIN}..."
-# Seed the stable users the linking flow signs in as on the source. The home
-# registers on the source through the browser (no pre-provisioned OAuth client).
-# Provisioning reads the source's derived canonical URL and shifted service
-# ports from the same environment as the source process.
-env \
-  DATA_DIR="${SOURCE_DATA_DIR}" \
-  HOST=localhost \
-  PUBLIC_HOST=localhost \
-  PORT_BASE="${SOURCE_PORT_BASE}" \
-  pnpm run dev:users
-
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
 remdo_docker_run "${IMAGE_NAME}" "${DOCKER_HOME_DATA_DIR}" -d --name "${CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \

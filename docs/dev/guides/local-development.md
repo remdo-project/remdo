@@ -36,16 +36,18 @@ Open the URL printed by Vite, sign in with a credential from
 [`stable-auth-users.ts`](../../../tools/lib/stable-auth-users.ts), and choose a
 document named `fixture: <fixture-name>`.
 
-Run `pnpm run dev:data-reset` to update the seeded documents again without
-restarting the stack. Pass `--fresh` to delete the previously seeded fixture
-documents before recreating them; other documents remain unchanged.
+Run `pnpm run dev:data-reset` to restore the stable passwords and update the
+current fixture documents without restarting the stack. Existing document IDs,
+sharing, and other documents remain unchanged.
 
 ## Run the PWA Preview
 
-Run `pnpm run dev:pwa`. It starts the production-built PWA, API, and
-collaboration services on a shifted port range with separate runtime data, so
-it can run beside the main development stack. It provisions the same stable
-users and fixture documents. Open the preview URL printed by the command.
+With the main development stack running, run `pnpm run dev:pwa`. It builds the
+PWA and serves it on a shifted port while proxying server traffic to the main
+development gateway, so both frontends use the same accounts and documents.
+The preview origin retains its own service worker, caches, and browser storage.
+Open the URL printed by Vite. Authentication and source-linking flows that need
+the canonical app origin may return to the main development frontend.
 
 ## Run the Docker App
 

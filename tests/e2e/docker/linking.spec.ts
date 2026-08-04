@@ -1,21 +1,18 @@
 import { expect, guardedTest as test, setExpectedConsoleIssues } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { Buffer } from 'node:buffer';
-import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
-import { waitForEditableEditor } from './_support/helpers';
+import { DOCKER_TEST_AUTH, waitForEditableEditor } from './_support/helpers';
 import { homeOrigin, sourceOrigin } from './_support/origins';
 
 // The home derives a source's id from its origin (base64url), same as the server.
 const sourceServerId = Buffer.from(sourceOrigin, 'utf8').toString('base64url');
 const sourceHost = new URL(sourceOrigin).host;
 
-type StableUser = (typeof STABLE_AUTH_USERS)[keyof typeof STABLE_AUTH_USERS];
-
 function buildUrl(origin: string, path: string): string {
   return new URL(path, origin).toString();
 }
 
-async function signInWithVisibleForm(page: Page, user: StableUser): Promise<void> {
+async function signInWithVisibleForm(page: Page, user: typeof DOCKER_TEST_AUTH): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   await page.getByLabel('Email').fill(user.email);
   await page.getByRole('textbox', { name: 'Password' }).fill(user.password);
@@ -42,7 +39,7 @@ test('links a source by URL and opens its Home document', async ({ page }) => {
   const consentButton = page.getByRole('button', { name: /allow|authorize|approve|consent/iu });
   await loginHeading.or(consentButton).first().waitFor({ state: 'visible' });
   if (await loginHeading.isVisible()) {
-    await signInWithVisibleForm(page, STABLE_AUTH_USERS.bob);
+    await signInWithVisibleForm(page, DOCKER_TEST_AUTH);
   }
   await consentButton.waitFor({ state: 'visible' });
   await consentButton.click();
