@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
 import { config } from '../index';
 import { onRollupWarning } from '../_internal/vite/onRollupWarning';
-import { resolveAppOrigin, resolveCollabServerOrigin } from '../../src/platform/net/origins';
+import { resolveCollabServerOrigin, resolveLocalGatewayOrigin } from '../../src/platform/net/origins';
 import { remdoApiDevPlugin } from './remdo-api-dev-plugin';
 import { remdoDevSpaRoutesPlugin } from './remdo-dev-spa-routes-plugin';
 
@@ -11,7 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 const host = config.env.HOST;
 const collabServerTarget = resolveCollabServerOrigin();
-const mainGatewayTarget = config.env.APP_PUBLIC_URL || resolveAppOrigin();
+const mainGatewayTarget = resolveLocalGatewayOrigin();
 export const pwaNavigationFallbackDenylist = [
   /^\/\.well-known(?:\/|$)/u,
   /^\/api(?:\/|$)/u,
@@ -27,7 +27,7 @@ const devProxy = {
 const mainGatewayProxy = {
   target: mainGatewayTarget,
   changeOrigin: true,
-  headers: { origin: mainGatewayTarget },
+  headers: { origin: config.env.APP_PUBLIC_URL },
 } as const;
 const previewProxy = {
   '/.well-known': {

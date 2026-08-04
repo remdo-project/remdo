@@ -4,7 +4,7 @@ set -eu
 
 ROOT_DIR="$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)"
 PWA_PORT="$("${ROOT_DIR}/tools/env.sh" --port-base-offset 20 sh -c 'printf %s "${PORT}"')"
-MAIN_GATEWAY="$("${ROOT_DIR}/tools/env.sh" pnpm exec tsx ./tools/dev/print-app-public-url.ts)"
+MAIN_GATEWAY="$("${ROOT_DIR}/tools/env.sh" pnpm exec tsx ./tools/dev/print-local-gateway-origin.ts)"
 export MAIN_GATEWAY PWA_PORT
 
 # shellcheck disable=SC2016 # expanded after env.sh resolves the main development gateway.

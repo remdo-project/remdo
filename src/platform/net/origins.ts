@@ -7,7 +7,7 @@ function createHttpOrigin(host: string, port: number): string {
   return `http://${formatUrlHost(host)}:${port}`;
 }
 
-export function resolveAppOrigin(): string {
+export function resolveLocalGatewayOrigin(): string {
   return createHttpOrigin(resolveLoopbackHost(config.env.HOST), config.env.PORT);
 }
 

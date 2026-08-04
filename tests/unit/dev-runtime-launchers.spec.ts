@@ -149,8 +149,8 @@ describe('development runtime launchers', () => {
     fs.writeFileSync(pnpmPath, `#!/usr/bin/env sh
 set -eu
 printf '%s|%s|%s|%s\\n' "\${DATA_DIR}" "\${PORT_BASE}" "\${PORT}" "$*" >> "\${REMDO_FAKE_CALL_LOG:?}"
-if [ "$*" = "exec tsx ./tools/dev/print-app-public-url.ts" ]; then
-  printf 'http://localhost:%s' "\${PORT}"
+if [ "$*" = "exec tsx ./tools/dev/print-local-gateway-origin.ts" ]; then
+  printf 'http://127.0.0.1:%s' "\${PORT}"
 fi
 `);
     fs.chmodSync(pnpmPath, 0o755);
@@ -174,11 +174,11 @@ exit "\${REMDO_FAKE_CURL_STATUS:-0}"
       env: {
         ...process.env,
         DATA_DIR: path.join(tempDir, 'data'),
-        HOST: 'localhost',
+        HOST: '0.0.0.0',
         NODE_ENV: 'development',
         PATH: `${binDir}:${process.env.PATH}`,
         PORT_BASE: '4600',
-        PUBLIC_HOST: 'localhost',
+        PUBLIC_HOST: 'browser-visible.test',
         REMDO_FAKE_CURL_STATUS: String(curlStatus),
         REMDO_FAKE_CALL_LOG: callLog,
       },
@@ -192,7 +192,7 @@ exit "\${REMDO_FAKE_CURL_STATUS:-0}"
     const { calls, result, tempDir } = runPwaLauncher();
 
     expect(result.status).toBe(0);
-    expect(calls).toContain(`${path.join(tempDir, 'data')}|4600|4600|curl -fsS http://localhost:4600/api/health`);
+    expect(calls).toContain(`${path.join(tempDir, 'data')}|4600|4600|curl -fsS http://127.0.0.1:4600/api/health`);
     expect(calls).toContain(`${path.join(tempDir, 'data')}|4600|4600|run build`);
     expect(calls).toContain('pnpm exec vite preview --port 4620');
     expect(calls).not.toContain('dev:api');

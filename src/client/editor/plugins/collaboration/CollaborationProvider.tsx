@@ -4,7 +4,11 @@ import { config } from '#config';
 import { CollabSession } from '#collaboration/session';
 import { createSourceDocumentSyncTokenApiPath } from '#document-routes';
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
-import { resolveApiServerOrigin, resolveAppOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
+import {
+  resolveApiServerOrigin,
+  resolveCollabServerOrigin,
+  resolveLocalGatewayOrigin,
+} from '#platform/net/origins';
 
 function createCollaborationStatusValue(snapshot: ReturnType<CollabSession['snapshot']>, session: CollabSession) {
   return {
@@ -69,7 +73,7 @@ function useCollaborationRuntimeValue({
     if (location.origin && location.origin !== 'null') {
       return location.origin;
     }
-    return resolveAppOrigin();
+    return resolveLocalGatewayOrigin();
   }, []);
   const resolvedApiOrigin = useMemo(() => {
     if (config.env.NODE_ENV === 'test') {
@@ -78,7 +82,7 @@ function useCollaborationRuntimeValue({
     if (location.origin && location.origin !== 'null') {
       return location.origin;
     }
-    return resolveAppOrigin();
+    return resolveLocalGatewayOrigin();
   }, []);
 
   const session = useMemo(
