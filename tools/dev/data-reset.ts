@@ -58,16 +58,15 @@ async function seedUserFixtures(
   tokenManager: YSweetDocumentTokenManager,
   auth: ServerAuth,
   user: RestoredStableAuthUser,
-  fixtureNames: string[],
+  fixtures: ReadonlyMap<string, SerializedEditorState>,
 ): Promise<number> {
   const existing = await registry.listUserDocuments(user.account.id);
   const seededDocs = listSeededDocuments(existing, user.account.id);
   const seededByTitle = new Map(seededDocs.map((document) => [document.title, document]));
 
   let count = 0;
-  for (const name of fixtureNames) {
+  for (const [name, serialized] of fixtures) {
     const title = fixtureTitle(name);
-    const serialized = await readFixtureState(name);
     const reuse = seededByTitle.get(title);
     const docId = reuse
       ? reuse.id
@@ -92,7 +91,10 @@ async function main(): Promise<void> {
     );
   }
   const fixtureNames = await listFixtureNames();
-  console.info(`Found ${fixtureNames.length} fixtures.`);
+  const fixtures = new Map(await Promise.all(
+    fixtureNames.map(async (name) => [name, await readFixtureState(name)] as const),
+  ));
+  console.info(`Found ${fixtures.size} fixtures.`);
 
   const runtime = createServerRuntime();
   try {
@@ -105,7 +107,7 @@ async function main(): Promise<void> {
         runtime.tokenManager,
         runtime.auth,
         user,
-        fixtureNames,
+        fixtures,
       );
     }
     console.info(`Seeded ${total} documents across ${users.length} users.`);

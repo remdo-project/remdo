@@ -8,7 +8,8 @@ import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import process from 'node:process';
 import * as Y from 'yjs';
-import { DOCKER_TEST_AUTH, waitForEditableEditor } from './_support/helpers';
+import { DOCKER_TEST_AUTH } from '#tools/docker-test-auth';
+import { waitForEditableEditor } from './_support/helpers';
 
 const USER_DATA_ROOT_NOTE_ID = 'user-data';
 const DOCUMENTS_KEY = 'documents';

@@ -74,11 +74,7 @@ if [[ -n "${REMDO_DOCKER_CONTAINER_NAME:-}" ]]; then
 fi
 case "${REMDO_DOCKER_NETWORK:-bridge}" in
   bridge)
-    if [[ -n "${REMDO_DOCKER_PUBLISH_HOST:-}" ]]; then
-      DOCKER_RUN_ARGS+=(-p "${REMDO_DOCKER_PUBLISH_HOST}:${PORT}:${PORT}")
-    else
-      DOCKER_RUN_ARGS+=(-p "${PORT}:${PORT}")
-    fi
+    DOCKER_RUN_ARGS+=(-p "${PORT}:${PORT}")
     ;;
   host)
     DOCKER_RUN_ARGS+=(--network=host)

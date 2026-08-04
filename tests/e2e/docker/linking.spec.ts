@@ -1,7 +1,8 @@
 import { expect, guardedTest as test, setExpectedConsoleIssues } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { Buffer } from 'node:buffer';
-import { DOCKER_TEST_AUTH, waitForEditableEditor } from './_support/helpers';
+import { DOCKER_TEST_AUTH } from '#tools/docker-test-auth';
+import { waitForEditableEditor } from './_support/helpers';
 import { homeOrigin, sourceOrigin } from './_support/origins';
 
 // The home derives a source's id from its origin (base64url), same as the server.

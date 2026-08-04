@@ -33,6 +33,7 @@ async function main(): Promise<void> {
     throw new Error(`Development source config returned HTTP ${sourceConfigResponse.status} at ${sourceConfigUrl}.`);
   }
   assertPublicSourceConfig(await sourceConfigResponse.json() as { publicServer?: unknown });
+  console.info(`Source: ${config.env.APP_PUBLIC_URL}`);
 }
 
 void main().catch((error) => {

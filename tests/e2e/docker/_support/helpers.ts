@@ -2,9 +2,7 @@ import type { Page } from '#e2e/fixtures';
 import { attachPageGuards, expect, setExpectedConsoleIssues } from '#e2e/fixtures';
 import { config } from '#config';
 import type { BrowserContext } from '@playwright/test';
-import { DOCKER_TEST_AUTH } from '#tools/docker-test-auth';
 
-export { DOCKER_TEST_AUTH };
 export const DOCKER_TEST_ADMIN_SECRET = config.env.ADMIN_SECRET;
 
 export function allowTransientTokenFetchConsoleIssue(page: Page): void {

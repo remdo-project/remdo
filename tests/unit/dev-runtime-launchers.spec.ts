@@ -12,12 +12,10 @@ import {
   assertPublicSourceConfig,
 } from '../../tools/dev/linking-preflight-lib';
 import { waitForPortOpen } from '../../tools/lib/net';
+import { writeFakeBin } from './_support/fake-bins';
 
 function writeFakeDocker(binDir: string): void {
-  const dockerPath = path.join(binDir, 'docker');
-  fs.writeFileSync(dockerPath, `#!/usr/bin/env sh
-set -eu
-printf '%s\\n' "$*" >> "\${REMDO_FAKE_DOCKER_LOG:?}"
+  writeFakeBin(binDir, 'docker', `printf '%s\\n' "$*" >> "\${REMDO_FAKE_DOCKER_LOG:?}"
 case "$1" in
   info)
     printf '%s\\n' '["name=rootless"]'
@@ -33,7 +31,6 @@ case "$1" in
     ;;
 esac
 `);
-  fs.chmodSync(dockerPath, 0o755);
 }
 
 interface LauncherRun {
@@ -62,7 +59,9 @@ describe('development runtime launchers', () => {
     fs.mkdirSync(binDir);
     writeFakeDocker(binDir);
 
-    const result = spawnSync('pnpm', ['run', 'dev:docker'], {
+    // Invoke the dev:docker script's command directly (see package.json), like
+    // the prod launcher spec, to skip a per-case pnpm-run bootstrap.
+    const result = spawnSync('./tools/env.sh', ['--port-base-offset', '40', './tools/dev/docker.sh'], {
       cwd: process.cwd(),
       encoding: 'utf8',
       env: {
@@ -145,28 +144,16 @@ describe('development runtime launchers', () => {
     const binDir = path.join(tempDir, 'bin');
     const callLog = path.join(tempDir, 'calls.log');
     fs.mkdirSync(binDir);
-    const pnpmPath = path.join(binDir, 'pnpm');
-    fs.writeFileSync(pnpmPath, `#!/usr/bin/env sh
-set -eu
-printf '%s|%s|%s|%s\\n' "\${DATA_DIR}" "\${PORT_BASE}" "\${PORT}" "$*" >> "\${REMDO_FAKE_CALL_LOG:?}"
+    writeFakeBin(binDir, 'pnpm', `printf '%s|%s|%s|%s\\n' "\${DATA_DIR}" "\${PORT_BASE}" "\${PORT}" "$*" >> "\${REMDO_FAKE_CALL_LOG:?}"
 if [ "$*" = "exec tsx ./tools/dev/print-local-gateway-origin.ts" ]; then
   printf 'http://127.0.0.1:%s' "\${PORT}"
 fi
 `);
-    fs.chmodSync(pnpmPath, 0o755);
-    const concurrentlyPath = path.join(binDir, 'concurrently');
-    fs.writeFileSync(concurrentlyPath, `#!/usr/bin/env sh
-set -eu
-printf '%s|%s|%s|%s\\n' "\${DATA_DIR}" "\${PORT_BASE}" "\${PORT}" "$*" >> "\${REMDO_FAKE_CALL_LOG:?}"
+    writeFakeBin(binDir, 'concurrently', `printf '%s|%s|%s|%s\\n' "\${DATA_DIR}" "\${PORT_BASE}" "\${PORT}" "$*" >> "\${REMDO_FAKE_CALL_LOG:?}"
 `);
-    fs.chmodSync(concurrentlyPath, 0o755);
-    const curlPath = path.join(binDir, 'curl');
-    fs.writeFileSync(curlPath, `#!/usr/bin/env sh
-set -eu
-printf '%s|%s|%s|%s\n' "\${DATA_DIR}" "\${PORT_BASE}" "\${PORT}" "curl $*" >> "\${REMDO_FAKE_CALL_LOG:?}"
+    writeFakeBin(binDir, 'curl', `printf '%s|%s|%s|%s\\n' "\${DATA_DIR}" "\${PORT_BASE}" "\${PORT}" "curl $*" >> "\${REMDO_FAKE_CALL_LOG:?}"
 exit "\${REMDO_FAKE_CURL_STATUS:-0}"
 `);
-    fs.chmodSync(curlPath, 0o755);
 
     const result = spawnSync('./tools/dev/pwa.sh', {
       cwd: process.cwd(),

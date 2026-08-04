@@ -6,22 +6,15 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { writeFakeBin } from './_support/fake-bins';
 
 function writeFakeDocker(binDir: string): void {
-  const dockerPath = path.join(binDir, 'docker');
-  fs.writeFileSync(dockerPath, `#!/usr/bin/env sh
-set -eu
-printf '%s\\n' "$*" >> "\${REMDO_FAKE_DOCKER_LOG:?}"
+  writeFakeBin(binDir, 'docker', `printf '%s\\n' "$*" >> "\${REMDO_FAKE_DOCKER_LOG:?}"
 case "$1" in
-  build)
-    exit 0
+  build|run)
     ;;
   info)
     printf '%s\\n' '["name=rootless"]'
-    exit 0
-    ;;
-  run)
-    exit 0
     ;;
   *)
     echo "unexpected docker command: $1" >&2
@@ -29,7 +22,6 @@ case "$1" in
     ;;
 esac
 `);
-  fs.chmodSync(dockerPath, 0o755);
 }
 
 interface LauncherRun {

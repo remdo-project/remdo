@@ -111,7 +111,8 @@ export function createViteSharedConfig() {
     },
     preview: {
       host,
-      port: config.env.PORT,
+      // No port here: the PWA launcher (tools/dev/pwa.sh) owns the preview port
+      // via --port; deriving one from PORT would collide with the dev gateway.
       // Mirror the dev server: accept any Host header (e.g. http://hostname:PORT),
       // not just localhost, so the prod-build preview is reachable by hostname.
       allowedHosts: true as const,
