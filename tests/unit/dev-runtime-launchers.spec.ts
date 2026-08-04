@@ -54,10 +54,7 @@ describe('development runtime launchers', () => {
     }
   });
 
-  function runDockerLauncher(
-    args: string[],
-    overrides: Record<string, string> = {},
-  ): LauncherRun {
+  function runDockerLauncher(overrides: Record<string, string> = {}): LauncherRun {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-dev-runtime-'));
     tempDirs.push(tempDir);
     const binDir = path.join(tempDir, 'bin');
@@ -65,7 +62,7 @@ describe('development runtime launchers', () => {
     fs.mkdirSync(binDir);
     writeFakeDocker(binDir);
 
-    const result = spawnSync('./tools/dev/docker.sh', args, {
+    const result = spawnSync('pnpm', ['run', 'dev:docker'], {
       cwd: process.cwd(),
       encoding: 'utf8',
       env: {
@@ -86,28 +83,29 @@ describe('development runtime launchers', () => {
     return { result, dockerCalls };
   }
 
-  it('publishes the bridge-mode Docker gateway on loopback by default', () => {
-    const { result, dockerCalls } = runDockerLauncher([]);
+  it('runs the local Docker app on the host network', () => {
+    const { result, dockerCalls } = runDockerLauncher();
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Starting private Docker app: http://localhost:4640');
-    expect(dockerCalls).toContain('-p 127.0.0.1:4640:4640');
+    expect(dockerCalls).toContain('version --format {{.Server.Version}}');
+    expect(dockerCalls).toContain('--network=host');
+    expect(dockerCalls).not.toContain('-p 127.0.0.1:4640:4640');
     expect(dockerCalls).toContain('-e CADDY_SITE_ADDRESSES=http://:4640');
-    expect(dockerCalls).toContain('-e CADDY_BIND_DIRECTIVE=bind 0.0.0.0');
+    expect(dockerCalls).toContain('-e CADDY_BIND_DIRECTIVE=bind 127.0.0.1');
     expect(dockerCalls).toContain('-e PORT_BASE=4640');
   });
 
-  it('publishes only the gateway on all interfaces for a headless VM', () => {
-    const { result, dockerCalls } = runDockerLauncher([], {
+  it('binds the Docker gateway on all interfaces for a headless VM', () => {
+    const { result, dockerCalls } = runDockerLauncher({
       HOST: '0.0.0.0',
       PUBLIC_HOST: 'dev-vm',
     });
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Starting private Docker app: http://dev-vm:4640');
-    expect(dockerCalls).toContain('-p 0.0.0.0:4640:4640');
-    expect(dockerCalls).not.toContain('-p 0.0.0.0:4644:4644');
-    expect(dockerCalls).not.toContain('-p 0.0.0.0:4651:4651');
+    expect(dockerCalls).toContain('--network=host');
+    expect(dockerCalls).toContain('-e CADDY_BIND_DIRECTIVE=bind 0.0.0.0');
   });
 
   it.each([
@@ -115,41 +113,25 @@ describe('development runtime launchers', () => {
       label: 'concrete IPv4 address',
       env: { HOST: '192.0.2.10', PUBLIC_HOST: 'dev-vm' },
       origin: 'http://dev-vm:4640',
-      publish: '-p 192.0.2.10:4640:4640',
       bind: '-e CADDY_BIND_DIRECTIVE=bind 192.0.2.10',
     },
     {
       label: 'IPv6 loopback',
       env: { HOST: '::1', PUBLIC_HOST: '::1' },
       origin: 'http://[::1]:4640',
-      publish: '-p [::1]:4640:4640',
       bind: '-e CADDY_BIND_DIRECTIVE=bind ::1',
     },
-  ])('preserves a $label Docker gateway bind address', ({ env, origin, publish, bind }) => {
-    const bridge = runDockerLauncher([], env);
-    const host = runDockerLauncher(['--network=host'], env);
-
-    expect(bridge.result.status).toBe(0);
-    expect(bridge.result.stdout).toContain(`Starting private Docker app: ${origin}`);
-    expect(bridge.dockerCalls).toContain(publish);
-    expect(host.result.status).toBe(0);
-    expect(host.dockerCalls).toContain('--network=host');
-    expect(host.dockerCalls).toContain(bind);
-  });
-
-  it('uses host networking without port publication for source linking', () => {
-    const { result, dockerCalls } = runDockerLauncher(['--network=host']);
+  ])('preserves a $label Docker gateway bind address', ({ env, origin, bind }) => {
+    const { result, dockerCalls } = runDockerLauncher(env);
 
     expect(result.status).toBe(0);
-    expect(dockerCalls).toContain('version --format {{.Server.Version}}');
+    expect(result.stdout).toContain(`Starting private Docker app: ${origin}`);
     expect(dockerCalls).toContain('--network=host');
-    expect(dockerCalls).not.toContain('-p 127.0.0.1:4640:4640');
-    expect(dockerCalls).toContain('-e CADDY_SITE_ADDRESSES=http://:4640');
-    expect(dockerCalls).toContain('-e CADDY_BIND_DIRECTIVE=bind 127.0.0.1');
+    expect(dockerCalls).toContain(bind);
   });
 
   it('rejects rootless host networking before Docker Engine 29.5', () => {
-    const { result } = runDockerLauncher(['--network=host'], {
+    const { result } = runDockerLauncher({
       REMDO_FAKE_DOCKER_VERSION: '29.4.0',
     });
 

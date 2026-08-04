@@ -44,7 +44,7 @@
     "dev:collab": "./tools/env.sh tsx ./tools/collab-server.ts",
     "dev:init": "./tools/dev-init.sh",
     "dev:pwa": "./tools/dev/pwa.sh",
-    "dev:docker": "./tools/dev/docker.sh",
+    "dev:docker": "./tools/env.sh --port-base-offset 40 ./tools/dev/docker.sh",
     "dev:linking": "./tools/dev/linking.sh",
     "dev:seed": "./tools/env.sh tsx ./tools/dev/seed-after-ready.ts",
     "dev:data-reset": "./tools/env.sh tsx ./tools/dev/data-reset.ts",

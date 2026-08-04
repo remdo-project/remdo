@@ -12,4 +12,4 @@ echo "Source: ${SOURCE_ORIGIN}"
 echo "Private home: ${HOME_ORIGIN}"
 echo "After enrollment, link the source from ${HOME_ORIGIN}/sharing"
 
-exec "${ROOT_DIR}/tools/dev/docker.sh" --network=host
+exec pnpm run dev:docker

@@ -50,15 +50,15 @@ users and fixture documents. Open the preview URL printed by the command.
 ## Run the Docker App
 
 Run `pnpm run dev:docker` to build and start the production-style Docker app at
-the home URL printed by the command. It requires a local rootless Docker daemon.
-The app is private, uses separate runtime data, and runs through bridge
-networking. Keep the command running while using it.
+the home URL printed by the command. It requires rootless Docker Engine 29.5 or
+newer. The app is private, uses separate runtime data, and uses host networking
+within its shifted development port range. Keep the command running while using
+it.
 
 ## Exercise Source Linking
 
 The Docker app can act as a private home server with an already-running local
-development server linked as its public source. Rootless Docker Engine 29.5 or
-newer provides the host networking used by this workflow.
+development server linked as its public source.
 
 1. Start the source with `pnpm run dev`.
 2. In another terminal, run `pnpm run dev:linking`. It validates the source and
