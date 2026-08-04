@@ -9,62 +9,101 @@ workflow, PWA preview, Docker app, and source-linking setup.
 Run `pnpm run dev:init` after a fresh clone or after removing `node_modules`.
 The command installs the locked dependencies.
 
+### Configuration Overrides
+
 Local development resolves configuration from three layers, listed from lowest
 to highest precedence:
 
-- Repository defaults work without a `.env` file.
-- `.env` holds working-directory overrides. Create it by copying `.env.example`
-  and change only the [inputs](../../config.md#inputs) you need.
-- Process environment values override `.env` for one invocation.
+- Repository defaults work as-is.
+- To override defaults for this working directory, copy `.env.example` to
+  `.env` and change only the [inputs](../../config.md#inputs) you need.
+- To override a value for one invocation, set it in the process environment.
 
-[`PORT_BASE`](../../config.md#derivation-rules) selects the local stack's port
-range. The default gateway is available only on `localhost`. On a headless
-development machine, set `HOST=0.0.0.0`; browser URLs then use the machine
-hostname. Set `PUBLIC_HOST` only when the browser reaches that machine through a
-different hostname or IP.
+### Ports and Network Access
 
-## Run the App with Fixture Documents
+- [`PORT_BASE`](../../config.md#derivation-rules) selects the local stack's port
+  range.
+- `HOST` controls gateway exposure and defaults to `localhost`. On a headless
+  development machine, set `HOST=0.0.0.0`; browser URLs then use the machine
+  hostname.
+- Set `PUBLIC_HOST` only when the browser reaches the development machine
+  through a different hostname or IP.
 
-Start the app, collaboration server, stable Alice and Bob accounts, and seeded
-fixture documents:
+## Run the Main Development Stack
+
+Run:
 
 ```sh
 pnpm run dev
 ```
 
+- **Starts:** the web app and collaboration server.
+- **Prepares:** stable Alice and Bob accounts and seeded fixture documents.
+
 Open the URL printed by Vite, sign in with a credential from
 [`stable-auth-users.ts`](../../../tools/lib/stable-auth-users.ts), and choose a
 document named `fixture: <fixture-name>`.
 
-Run `pnpm run dev:data-reset` to restore the stable passwords and update the
-current fixture documents without restarting the stack. Existing document IDs,
-sharing, and other documents remain unchanged.
+### Reset Development Data
+
+`pnpm run dev:data-reset` is optional. Run it while the main stack is running
+when stable credentials or fixture documents need restoring.
+
+- **Restores:** the stable passwords and current fixture contents.
+- **Preserves:** existing document IDs, sharing, and documents not backed by a
+  current fixture.
 
 ## Run the PWA Preview
 
-With the main development stack running, run `pnpm run dev:pwa`. It builds the
-PWA and serves it on a shifted port while proxying server traffic to the main
-development gateway, so both frontends use the same accounts and documents.
-The preview origin retains its own service worker, caches, and browser storage.
+Run:
+
+```sh
+pnpm run dev:pwa
+```
+
+- **Starts:** a PWA build on a shifted port, with server traffic proxied to the
+  main development gateway.
+- **Uses:** the same accounts and documents as the main frontend.
+- **Keeps separate:** the preview origin's service worker, caches, and browser
+  storage.
+- **Requires:** the main development stack.
+
 Open the URL printed by Vite. Authentication and source-linking flows that need
 the canonical app origin may return to the main development frontend.
 
 ## Run the Docker App
 
-Run `pnpm run dev:docker` to build and start the production-style Docker app at
-the home URL printed by the command. It requires rootless Docker Engine 29.5 or
-newer. The app is private, uses separate runtime data, and uses host networking
-within its shifted development port range. Keep the command running while using
-it.
+Run:
+
+```sh
+pnpm run dev:docker
+```
+
+- **Starts:** a private, production-style Docker app at the printed home URL.
+- **Uses:** separate runtime data and host networking within a shifted
+  development port range.
+- **Requires:** rootless Docker Engine 29.5 or newer.
+
+Keep the command running while using the Docker app.
 
 ## Exercise Source Linking
 
-The Docker app can act as a private home server with an already-running local
-development server linked as its public source.
+Source linking connects the main development stack as a public source to a
+private Docker home. It requires rootless Docker Engine 29.5 or newer.
 
-1. Start the source with `pnpm run dev`.
-2. In another terminal, run `pnpm run dev:linking`. It validates the source and
-   starts the private Docker home.
+1. Start the public source:
+
+   ```sh
+   pnpm run dev
+   ```
+
+2. In another terminal, validate the source and start the private Docker home:
+
+   ```sh
+   pnpm run dev:linking
+   ```
+
+   The command prints the home and source URLs.
 3. On a fresh Docker home, open `/admin` at the printed home URL and complete
    [admin enrollment](../../access-model.md#admin-role) using the configured
    `ADMIN_SECRET`.

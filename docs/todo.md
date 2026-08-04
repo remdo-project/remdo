@@ -197,10 +197,15 @@ Remove rejected or obsolete items and empty sections.
 
 ### Tooling
 
+- **Standard workspace bootstrap.** Retire `pnpm run dev:init` and
+  `tools/dev-init.sh`. Document `pnpm install --frozen-lockfile` for local
+  setup, let E2E workflows invoke `pnpm exec playwright install chromium`
+  after shared workspace setup, and remove obsolete references.
+
 - **Upstream-owned launcher reassessment.** Reassess whether Playwright can
-  replace `tools/e2e/docker-source-server.ts`, pnpm can replace
-  `tools/dev-init.sh`, and Vite or direct tool commands can retire the remaining
-  dev-boundary, collaboration-server, and single-command package wrappers.
+  replace `tools/e2e/docker-source-server.ts`, and whether Vite or direct tool
+  commands can retire the remaining dev-boundary, collaboration-server, and
+  single-command package wrappers.
 
 - **Upstream ast-grep project-config validation.** Contribute upstream support
   for rejecting unknown project-config keys or shipping version-matched schemas
