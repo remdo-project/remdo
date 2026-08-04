@@ -99,6 +99,11 @@ cleanup_data_dir() {
 }
 
 stop_prod_bridge_launcher() {
+  if [[ -n "${PROD_BRIDGE_LAUNCH_PID}" ]]; then
+    kill -KILL -- "-${PROD_BRIDGE_LAUNCH_PID}" >/dev/null 2>&1 \
+      || kill -KILL "${PROD_BRIDGE_LAUNCH_PID}" >/dev/null 2>&1 \
+      || true
+  fi
   docker rm -f "${PROD_BRIDGE_CONTAINER_NAME}" >/dev/null 2>&1 || true
   if [[ -n "${PROD_BRIDGE_LAUNCH_PID}" ]]; then
     wait "${PROD_BRIDGE_LAUNCH_PID}" >/dev/null 2>&1 || true
@@ -478,7 +483,9 @@ echo "ADMIN_SECRET-only bootstrap scenario OK."
 # container through its published bridge port.
 echo "Running production bridge launcher smoke on ${PROD_BRIDGE_APP_PUBLIC_URL}..."
 
-env \
+# Keep the build and Docker launcher descendants terminable as one unit when
+# startup fails before the named container exists.
+setsid env \
   IMAGE_NAME="${IMAGE_NAME}" \
   REMDO_DOCKER_CONTAINER_NAME="${PROD_BRIDGE_CONTAINER_NAME}" \
   REMDO_DOCKER_NETWORK=bridge \
