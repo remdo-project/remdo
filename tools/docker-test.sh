@@ -51,6 +51,17 @@ BOOTSTRAP_APP_PUBLIC_URL="http://${DOCKER_TEST_BROWSER_HOST}:${BOOTSTRAP_PORT}"
 BOOTSTRAP_HEALTH_URL="${BOOTSTRAP_APP_PUBLIC_URL%/}/health"
 BOOTSTRAP_DATA_DIR="${TEST_DATA_DIR%/}/bootstrap-home"
 
+# Third scenario: the real production launcher with its bridge publication.
+# It uses the next reserved Docker E2E port and a separate container/data dir.
+PROD_BRIDGE_PORT="$((PORT_BASE + 9))"
+remdo_assert_browser_safe_port "${PROD_BRIDGE_PORT}"
+PROD_BRIDGE_CONTAINER_NAME="${IMAGE_NAME}-${PROD_BRIDGE_PORT}"
+PROD_BRIDGE_APP_PUBLIC_URL="http://${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}"
+PROD_BRIDGE_HEALTH_URL="${PROD_BRIDGE_APP_PUBLIC_URL%/}/health"
+PROD_BRIDGE_DATA_DIR="${TEST_DATA_DIR%/}/prod-bridge-home"
+PROD_BRIDGE_LAUNCH_LOG="${TEST_DATA_DIR%/}/prod-bridge-launcher.log"
+PROD_BRIDGE_LAUNCH_PID=""
+
 if remdo_docker_daemon_is_rootless; then
   remdo_require_rootless_host_network
   DOCKER_RUN_ARGS+=(--userns=host)
@@ -81,12 +92,22 @@ cleanup_data_dir() {
 
   wipe_container_data "${CONTAINER_NAME}" "${DOCKER_HOME_DATA_DIR}"
   wipe_container_data "${BOOTSTRAP_CONTAINER_NAME}" "${BOOTSTRAP_DATA_DIR}"
+  wipe_container_data "${PROD_BRIDGE_CONTAINER_NAME}" "${PROD_BRIDGE_DATA_DIR}"
 
   rm -rf "${TEST_DATA_DIR}" >/dev/null 2>&1 || true
   DATA_CLEANED="true"
 }
 
+stop_prod_bridge_launcher() {
+  docker rm -f "${PROD_BRIDGE_CONTAINER_NAME}" >/dev/null 2>&1 || true
+  if [[ -n "${PROD_BRIDGE_LAUNCH_PID}" ]]; then
+    wait "${PROD_BRIDGE_LAUNCH_PID}" >/dev/null 2>&1 || true
+    PROD_BRIDGE_LAUNCH_PID=""
+  fi
+}
+
 cleanup() {
+  stop_prod_bridge_launcher
   cleanup_data_dir
   docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
   docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
@@ -133,6 +154,7 @@ assert_loopback_gateway() {
 
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
+docker rm -f "${PROD_BRIDGE_CONTAINER_NAME}" >/dev/null 2>&1 || true
 
 echo "Provisioning source dev users for ${SOURCE_ORIGIN}..."
 # Seed the stable users the linking flow signs in as on the source. The home
@@ -463,5 +485,55 @@ echo "Bootstrap scenario admin provisioning OK (HTTP ${bootstrap_smoke_status}).
 
 docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
 echo "ADMIN_SECRET-only bootstrap scenario OK."
+
+# ---------------------------------------------------------------------------
+# Scenario 3: production launcher bridge publication.
+#
+# The scenarios above invoke remdo_docker_run directly with host networking.
+# This smoke invokes the operator-facing launcher itself and reaches the
+# container through its published bridge port.
+echo "Running production bridge launcher smoke on ${PROD_BRIDGE_APP_PUBLIC_URL}..."
+
+env \
+  IMAGE_NAME="${IMAGE_NAME}" \
+  REMDO_DOCKER_CONTAINER_NAME="${PROD_BRIDGE_CONTAINER_NAME}" \
+  REMDO_DOCKER_NETWORK=bridge \
+  REMDO_DOCKER_PUBLISH_HOST= \
+  DATA_DIR="${PROD_BRIDGE_DATA_DIR}" \
+  PORT_BASE="${PORT_BASE}" \
+  PORT="${PROD_BRIDGE_PORT}" \
+  APP_PUBLIC_URL="${PROD_BRIDGE_APP_PUBLIC_URL}" \
+  ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
+  AUTH_SECRET="${DOCKER_TEST_SECRET}" \
+  YSWEET_AUTH_KEY="${DOCKER_TEST_YSWEET_AUTH_KEY}" \
+  YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}" \
+  ALLOW_SIGNUP=false \
+  CADDY_SITE_ADDRESSES= \
+  CADDY_BIND_DIRECTIVE= \
+  "${ROOT_DIR}/tools/prod/docker.sh" >"${PROD_BRIDGE_LAUNCH_LOG}" 2>&1 &
+PROD_BRIDGE_LAUNCH_PID="$!"
+
+prod_bridge_ready="false"
+for _ in {1..40}; do
+  if curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}:127.0.0.1" \
+    -kfsS "${PROD_BRIDGE_HEALTH_URL}" >/dev/null 2>&1; then
+    prod_bridge_ready="true"
+    break
+  fi
+  if ! kill -0 "${PROD_BRIDGE_LAUNCH_PID}" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.5
+done
+
+if [[ "${prod_bridge_ready}" != "true" ]]; then
+  docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
+  tail -n 200 "${PROD_BRIDGE_LAUNCH_LOG}" >&2 || true
+  echo "Production bridge launcher smoke failed: ${PROD_BRIDGE_HEALTH_URL}" >&2
+  exit 1
+fi
+
+echo "Production bridge launcher smoke OK: ${PROD_BRIDGE_HEALTH_URL}"
+stop_prod_bridge_launcher
 
 cleanup_data_dir

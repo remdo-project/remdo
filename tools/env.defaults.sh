@@ -26,8 +26,8 @@ fi
 
 # Derive service/tool ports directly from PORT_BASE to keep local runs predictable.
 # Offsets +7..+10 are intentionally reserved for the Docker E2E containers
-# (tools/docker-test.sh runs its gateway at +7 and bootstrap scenario at +8); do
-# not assign them to a derived service port here.
+# (tools/docker-test.sh currently uses +7 through +9); do not assign them to a
+# derived service port here.
 VITEST_PORT="$((PORT_BASE + 2))"
 COLLAB_SERVER_PORT="$((PORT_BASE + 4))"
 API_SERVER_PORT="$((PORT_BASE + 11))"
