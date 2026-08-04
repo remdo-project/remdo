@@ -19,6 +19,13 @@ identity boundaries; those remain in outliner docs.
 
 Delivery surface choice does not alter outliner semantics.
 
+## Production Bundle Boundary
+
+Development-only routes, UI, editor plugins, and test bridges are gated by
+build type: they are available in non-production builds and absent from
+production bundles, including production bundles run by development and test
+workflows.
+
 ## Routing and Origin Boundary
 
 ### Gateway

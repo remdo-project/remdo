@@ -111,7 +111,7 @@ describe('zoom breadcrumbs', () => {
     expect(screen.getByText(UNTITLED_LABEL)).toBeInTheDocument();
   });
 
-  it('renders a custom document control instead of the default document button', () => {
+  it('renders a custom document control beside the document button', () => {
     const onSelect = vi.fn();
     renderBreadcrumbs({
       docLabel: 'project',

@@ -188,7 +188,7 @@ sections to docs.
 - For DevTools checks, open `http://127.0.0.1:<PORT>/` using this working
   directory's `PORT` (`PORT_BASE + 0` by default; see `tools/env.defaults.sh`),
   then sign in and open a fixture document per
-  [docs/run-modes.md](docs/run-modes.md).
+  [Local Development](docs/dev/guides/local-development.md).
 - When presenting multiple options or a list of questions, format them as a
   numbered list.
 - When presenting options to choose between, mark one **(Recommended)** and give

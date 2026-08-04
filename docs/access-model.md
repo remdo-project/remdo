@@ -17,15 +17,15 @@ routing, and document identity — are owned by
 - Who: person using a local RemDo app on the same machine.
 - Allowed by: local machine access.
 - Scope: the local app and its local documents.
-- Run modes: local self-hosted app, local development.
+- Applies to: an installed local app and
+  [local development](dev/guides/local-development.md).
 
 ## Host-Local Development and Test Access
 
 - Who: developer or CI runner.
 - Allowed by: host-local process access.
 - Scope: development and test runtimes.
-- Run modes: local development, unit and collab tests, browser E2E, Docker E2E,
-  CI.
+- Applies to: local development and the [test harness](specs/testing/test-harness.md).
 
 ## Authenticated App Access
 

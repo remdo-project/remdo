@@ -1,10 +1,8 @@
 # RemDo TODO
 
-This ledger is RemDo's near-term backlog and single entry point for tracked
-follow-up. It lists known gaps from
-[accepted target behavior](documentation.md#target-behavior), cross-cutting
-temporary state, unresolved decisions, and follow-up without a better owner.
-Entries do not define accepted behavior.
+This ledger is RemDo's near-term backlog and single entry point for
+[tracked follow-up](documentation.md#target-behavior). It also holds
+cross-cutting temporary state.
 
 The closed [legacy backlog](legacy-backlog.md) holds earlier unresolved
 entries. Continue checking its entries for duplicates and review suppression
@@ -48,17 +46,19 @@ Remove rejected or obsolete items and empty sections.
   at the root, migrate coherent capability contracts into `docs/specs/`, and
   update complete inbound ownership links with each move.
 
-- **Production development-surface owner.** Move the production exclusion of
-  development-only routes, UI, editor plugins, and test bridges from
-  `docs/run-modes.md` to a coherent architecture or capability owner. Update
-  every inbound reference, including `tools/check-dev-boundary.sh`, in the same
-  change.
+- **Access specification ownership.** Split `docs/access-model.md` into
+  `docs/specs/access/access-control.md` and
+  `docs/specs/access/source-linking.md`. Assign each current contract, future
+  direction, and reference to its owner, align both specifications with
+  `docs/documentation.md`, and update every inbound link in the same change.
 
-- **Run-mode corpus reduction.** After extracting the development-surface and
-  test-harness contracts, move useful local-development procedure into the
-  `docs/dev/guides/` corpus and reassess the remaining app, deployment, and
-  operational modes as coherent capability owners. Define the hosted-production
-  backup workflow in the resulting corpus.
+### Development
+
+- **Single-command local startup.** Make one local-development command start
+  the app and collaboration services, provision the stable users, and seed the
+  fixture documents after the services are ready. The local-development guide
+  then has one startup step. Reconsider whether `dev:users` and
+  `dev:data-reset` should remain separate commands as part of that change.
 
 ### Editor
 
@@ -72,12 +72,13 @@ Remove rejected or obsolete items and empty sections.
 
 ### Testing
 
-- **Test-harness specification.** Relocate the repository-owned lifecycle,
-  isolation, startup-failure, and diagnostic-data behavior for unit, collab,
-  browser E2E, Docker E2E, and CI from `docs/run-modes.md` into a coherent
-  specification under `docs/specs/testing/`. Keep feature-specific behavior
-  and its evidence with the owning feature specifications, and update all
-  inbound links.
+- **Docker E2E diagnostic runtime.** Reconsider the removal-on-exit lifecycle in
+  `docs/specs/testing/test-harness.md`. Evaluate retaining runtime data and
+  captured container logs in a stable, permission-restricted location until the
+  next invocation. If adopted, replace that state only after startup preflight,
+  preserve container-assisted cleanup for root-owned files, keep authentication
+  and test-secret data local, and update the specification and implementation
+  together.
 
 - **Contributor testing policy.** Move contributor-wide test-quality policy
   from `AGENTS.md` to `docs/dev/testing.md`: observable behavior or stable
@@ -101,6 +102,13 @@ Remove rejected or obsolete items and empty sections.
   non-collaboration Vitest benchmark's workloads, operations, metric, and runner
   as part of that design, then establish a specification and align or replace
   the harness.
+
+### Operations
+
+- **Hosted production backups.** Define the scheduled backup and recovery
+  workflow for hosted deployments, then align `docker/Dockerfile`,
+  `docker/backup.sh`, `tools/snapshot/backup.ts`, and
+  `tools/remote/make-backup.sh` with it.
 
 ### Outliner
 
