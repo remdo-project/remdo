@@ -10,41 +10,32 @@ HOME_DATA_DIR="${DATA_DIR%/}/docker-home"
 HOME_CONTAINER_NAME="remdo-dev-docker-${PORT}"
 NETWORK="${REMDO_DEV_DOCKER_NETWORK:-bridge}"
 
+# The gateway always listens on PORT inside the container; only the address it
+# binds to and whether the port is published differ per network mode.
+CADDY_SITE_ADDRESSES="http://:${PORT}"
+
+# `localhost` is a name, not an address: resolve it to the loopback address both
+# `docker -p` and Caddy's `bind` require.
+case "${HOST}" in
+  localhost) BIND_HOST="127.0.0.1" ;;
+  *) BIND_HOST="${HOST}" ;;
+esac
+
 case "${NETWORK}" in
   bridge)
+    # In bridge mode the container binds every interface and Docker restricts
+    # reachability by publishing on BIND_HOST. `docker -p` needs IPv6 bracketed.
     CADDY_BIND_DIRECTIVE="bind 0.0.0.0"
-    CADDY_SITE_ADDRESSES="http://:${PORT}"
-    case "${HOST}" in
-      localhost|127.0.0.1)
-        PUBLISH_HOST="127.0.0.1"
-        ;;
-      ::1)
-        PUBLISH_HOST="[::1]"
-        ;;
-      ::)
-        PUBLISH_HOST="[::]"
-        ;;
-      0.0.0.0)
-        PUBLISH_HOST="0.0.0.0"
-        ;;
-      *)
-        PUBLISH_HOST="${HOST}"
-        ;;
+    case "${BIND_HOST}" in
+      *:*) PUBLISH_HOST="[${BIND_HOST}]" ;;
+      *) PUBLISH_HOST="${BIND_HOST}" ;;
     esac
     ;;
   host)
+    # Host networking has no publish step, so Caddy itself must bind BIND_HOST.
     remdo_require_rootless_host_network
     PUBLISH_HOST=""
-    case "${HOST}" in
-      localhost|127.0.0.1)
-        CADDY_BIND_HOST="127.0.0.1"
-        ;;
-      *)
-        CADDY_BIND_HOST="${HOST}"
-        ;;
-    esac
-    CADDY_BIND_DIRECTIVE="bind ${CADDY_BIND_HOST}"
-    CADDY_SITE_ADDRESSES="http://:${PORT}"
+    CADDY_BIND_DIRECTIVE="bind ${BIND_HOST}"
     ;;
   *)
     echo "Unsupported Docker network: ${NETWORK}" >&2

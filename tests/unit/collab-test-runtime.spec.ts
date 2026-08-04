@@ -6,7 +6,7 @@ import path from 'node:path';
 import type { Server } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
-import { ensureCollabServer, resolveYSweetProbeHost } from '#tools/collab-server-helper';
+import { ensureCollabServer } from '#tools/collab-server-helper';
 import { startRemdoApiServer } from '#tools/remdo-api-server-helper';
 import { prepareCollabTestRuntime } from '../global/collab-test-runtime';
 
@@ -78,7 +78,7 @@ describe('collaboration test runtime', () => {
   });
 
   it('refuses to reuse an occupied Y-Sweet port', async () => {
-    const probeHost = resolveYSweetProbeHost();
+    const probeHost = INTERNAL_SERVICE_HOST;
     await withOccupiedPort(probeHost, async (port) => {
       await expect(ensureCollabServer({ port, reuseExisting: false })).rejects.toThrow(
         `Collaboration websocket already running on ws://${probeHost}:${port}`,

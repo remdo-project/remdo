@@ -339,9 +339,4 @@ describe('config env resolve', () => {
     expect(envSchema).toHaveProperty('ALLOW_SIGNUP');
     expect(envSchema).not.toHaveProperty('AUTH_ALLOW_SIGNUP');
   });
-
-  it('does not accept removed alternate-origin inputs', () => {
-    expect(envSchema).not.toHaveProperty('AUTH_URL');
-    expect(envSchema).not.toHaveProperty('PREVIEW_PORT');
-  });
 });

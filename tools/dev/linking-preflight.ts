@@ -2,14 +2,11 @@
 import process from 'node:process';
 
 import { config } from '#config';
+import type { AuthorizationServerMetadata } from './linking-preflight-lib';
 import {
   assertAuthorizationServerOrigin,
   assertPublicSourceConfig,
 } from './linking-preflight-lib';
-
-interface AuthorizationServerMetadata {
-  authorization_endpoint?: unknown;
-}
 
 async function main(): Promise<void> {
   if (!config.env.ALLOW_SIGNUP) {

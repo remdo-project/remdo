@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { config } from '../../config';
 import { INTERNAL_SERVICE_HOST } from '../../src/platform/net/origins';
-import { ensureCollabServer, resolveYSweetProbeHost } from '../../tools/lib/collab-server-helper';
+import { ensureCollabServer } from '../../tools/lib/collab-server-helper';
 import { isPortOpen } from '../../tools/lib/net';
 import { startRemdoApiServer } from '../../tools/lib/remdo-api-server-helper';
 
@@ -72,7 +72,7 @@ export default async function collabTestRuntime() {
     dataDir,
     requiredPorts: [
       {
-        host: resolveYSweetProbeHost(),
+        host: INTERNAL_SERVICE_HOST,
         label: 'Y-Sweet',
         port: config.env.COLLAB_SERVER_PORT,
       },

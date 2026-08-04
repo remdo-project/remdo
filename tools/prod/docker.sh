@@ -10,12 +10,8 @@ remdo_load_dotenv "${ROOT_DIR}"
 NODE_ENV=production
 export NODE_ENV
 
-# In prod the listen PORT is an independent input (platform-injected, else 8080),
-# never derived from APP_PUBLIC_URL. Default it before sourcing env defaults so the
-# ${PORT:=...} there respects this value instead of PORT_BASE.
-: "${PORT:=8080}"
-export PORT
-
+# In prod the listen PORT is an independent input (platform-injected, else the
+# 8080 default in env.defaults.sh), never derived from APP_PUBLIC_URL or PORT_BASE.
 remdo_load_env_defaults "${ROOT_DIR}"
 if [[ -z "${APP_PUBLIC_URL:-}" ]]; then
   remdo_configure_docker_runtime

@@ -1,25 +1,18 @@
 #!/usr/bin/env tsx
-import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 
 import { config } from '#config';
+import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
 import { isPortOpen } from '../lib/net';
+import { runPnpm } from '../lib/process';
 import { waitForDevelopmentCollaboration } from './seed-after-ready-lib';
 
 async function main(): Promise<void> {
   await waitForDevelopmentCollaboration({
-    collabReady: () => isPortOpen('127.0.0.1', config.env.COLLAB_SERVER_PORT),
+    collabReady: () => isPortOpen(INTERNAL_SERVICE_HOST, config.env.COLLAB_SERVER_PORT),
     port: config.env.COLLAB_SERVER_PORT,
   });
-  const result = spawnSync('pnpm', ['run', 'dev:data-reset'], {
-    stdio: 'inherit',
-  });
-  if (result.error) {
-    throw result.error;
-  }
-  if (result.status !== 0) {
-    throw new Error(`dev:data-reset exited with status ${String(result.status)}.`);
-  }
+  await runPnpm(['run', 'dev:data-reset']);
 }
 
 void main().catch((error) => {

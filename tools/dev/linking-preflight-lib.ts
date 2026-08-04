@@ -1,4 +1,4 @@
-interface AuthorizationServerMetadata {
+export interface AuthorizationServerMetadata {
   authorization_endpoint?: unknown;
 }
 

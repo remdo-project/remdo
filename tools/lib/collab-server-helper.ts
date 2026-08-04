@@ -22,10 +22,6 @@ const LOG_PATH = path.join(LOG_DIR, 'collab-server.log');
 const COLLAB_DATA_DIR = path.join(config.env.DATA_DIR, 'collab');
 const reusedServerStop = () => Promise.resolve();
 
-export function resolveYSweetProbeHost(): string {
-  return INTERNAL_SERVICE_HOST;
-}
-
 async function waitForPort(host: string, port: number, child: ChildProcess): Promise<void> {
   for (let i = 0; i < MAX_ATTEMPTS; i++) {
     if (await isPortOpen(host, port)) {
@@ -64,15 +60,11 @@ export async function ensureCollabServer({
   port = config.env.COLLAB_SERVER_PORT,
   reuseExisting = true,
 }: CollabServerOptions = {}): Promise<StopCollabServer> {
-  const bindHost = INTERNAL_SERVICE_HOST;
-  const resolvedPort = port;
-  const probeHost = resolveYSweetProbeHost();
-
-  if (await isPortOpen(probeHost, resolvedPort)) {
+  if (await isPortOpen(INTERNAL_SERVICE_HOST, port)) {
     if (reuseExisting) {
       return reusedServerStop;
     }
-    throw new Error(`Collaboration websocket already running on ws://${probeHost}:${resolvedPort}`);
+    throw new Error(`Collaboration websocket already running on ws://${INTERNAL_SERVICE_HOST}:${port}`);
   }
 
   fs.mkdirSync(COLLAB_DATA_DIR, { recursive: true });
@@ -82,9 +74,9 @@ export async function ensureCollabServer({
     'y-sweet',
     'serve',
     '--host',
-    bindHost,
+    INTERNAL_SERVICE_HOST,
     '--port',
-    String(resolvedPort),
+    String(port),
   ];
   if (config.env.YSWEET_AUTH_KEY) {
     args.push('--auth', config.env.YSWEET_AUTH_KEY);
@@ -95,7 +87,7 @@ export async function ensureCollabServer({
     args,
     {
       env: {
-        COLLAB_SERVER_PORT: String(resolvedPort),
+        COLLAB_SERVER_PORT: String(port),
         COLLAB_ENABLED: 'true',
         YSWEET_AUTH_KEY: config.env.YSWEET_AUTH_KEY,
         YSWEET_SERVER_TOKEN: config.env.YSWEET_SERVER_TOKEN,
@@ -108,14 +100,14 @@ export async function ensureCollabServer({
 
   const stopManagedProcess = attachManagedProcess(child, LOG_PATH);
   const stop = () => stopManagedProcess(async () => {
-    if (!(await waitForPortClosed(probeHost, resolvedPort))) {
+    if (!(await waitForPortClosed(INTERNAL_SERVICE_HOST, port))) {
       terminateProcessGroup(child, 'SIGKILL');
-      await waitForPortClosed(probeHost, resolvedPort);
+      await waitForPortClosed(INTERNAL_SERVICE_HOST, port);
     }
   });
 
   try {
-    await waitForPort(probeHost, resolvedPort, child);
+    await waitForPort(INTERNAL_SERVICE_HOST, port, child);
   } catch (error) {
     await stop();
     const recentLog = readRecentLog(LOG_PATH);
