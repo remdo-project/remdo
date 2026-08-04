@@ -76,7 +76,6 @@ describe('prod Docker launcher', () => {
         // Neutralize every port-related input so the run is hermetic against
         // the developer's shell and the repo .env (empty string counts as set).
         APP_PUBLIC_URL: '',
-        AUTH_URL: '',
         PORT: '',
         PORT_BASE: '',
         ...overrides,
@@ -156,7 +155,7 @@ describe('prod Docker launcher', () => {
     });
 
     expect(result.status).toBe(0);
-    expect(result.stderr).toContain('APP_PUBLIC_URL port (8443) differs from the published PORT (8080)');
+    expect(result.stderr).toContain('APP_PUBLIC_URL port (8443) differs from the gateway PORT (8080)');
   });
 
   it('does not warn for a default-port (proxy-fronted) APP_PUBLIC_URL', () => {
@@ -167,7 +166,7 @@ describe('prod Docker launcher', () => {
     });
 
     expect(result.status).toBe(0);
-    expect(result.stderr).not.toContain('differs from the published PORT');
+    expect(result.stderr).not.toContain('differs from the gateway PORT');
   });
 
   it('forwards AUTH_SECRET and the Y-Sweet pair to the container when set', () => {

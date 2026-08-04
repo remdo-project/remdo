@@ -429,7 +429,7 @@ describe('remdo api app', () => {
       headers: requestHeaders,
     });
     const token = await response.json();
-    const expectedOrigin = new URL(config.env.AUTH_URL).origin;
+    const expectedOrigin = new URL(config.env.APP_PUBLIC_URL).origin;
 
     expect(response.status).toBe(HTTP_STATUS.OK);
     expect(new URL(token.url).origin).toBe(expectedOrigin.replace(/^http/u, 'ws'));

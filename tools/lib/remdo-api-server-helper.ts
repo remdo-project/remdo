@@ -3,7 +3,7 @@ import path from 'node:path';
 import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
-import { resolveLoopbackHost } from '#platform/net/loopback';
+import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
 import { attachManagedProcess, prepareManagedProcessLog, readRecentLog } from './managed-process';
 import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
@@ -40,9 +40,9 @@ export async function startRemdoApiServer({
   port = config.env.API_SERVER_PORT,
   ySweetConnectionString = config.env.YSWEET_CONNECTION_STRING,
 }: RemdoApiServerOptions = {}): Promise<StopRemdoApiServer> {
-  const resolvedHost = config.env.HOST;
+  const resolvedHost = INTERNAL_SERVICE_HOST;
   const resolvedPort = port;
-  const probeHost = resolveLoopbackHost(resolvedHost);
+  const probeHost = resolvedHost;
 
   if (await isPortOpen(probeHost, resolvedPort)) {
     throw new Error(`RemDo API server already running on http://${probeHost}:${resolvedPort}`);

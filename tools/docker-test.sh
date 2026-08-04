@@ -18,6 +18,8 @@ DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH="${TEST_DATA_DIR%/}/docker-e2e-smoke-document-
 DOCKER_HOME_DATA_DIR="${TEST_DATA_DIR%/}/home"
 SOURCE_DATA_DIR="${TEST_DATA_DIR%/}/source"
 SOURCE_PORT_SHIFT=70
+HOME_INTERNAL_PORT_SHIFT=50
+BOOTSTRAP_INTERNAL_PORT_SHIFT=60
 
 remdo_load_env_defaults "${ROOT_DIR}"
 # The containerized gateway runs on PORT_BASE+7 and the standalone source dev
@@ -28,35 +30,12 @@ remdo_assert_browser_safe_port "${PORT}"
 APP_PUBLIC_URL="http://${DOCKER_TEST_BROWSER_HOST}:${PORT}"
 
 SOURCE_PORT="$((PORT_BASE + SOURCE_PORT_SHIFT))"
-SOURCE_COLLAB_SERVER_PORT="$((PORT_BASE + SOURCE_PORT_SHIFT + 4))"
-SOURCE_YSWEET_CONNECTION_STRING="ys://127.0.0.1:${SOURCE_COLLAB_SERVER_PORT}"
-# Source linking is URL-first at runtime, not env-configured. The source's single
-# origin uses the host's real network IP so it is identical AND reachable from
-# both the browser (on the host) and the containerized home — one origin, matching
-# the same-origin runtime model. The host IP (not localhost / host.docker.internal)
-# is required because rootless Docker containers reach host services only via the
-# host's network interface, not the docker bridge gateway.
-source_host_ip="$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9.]*\).*/\1/p')"
-if [[ -z "${source_host_ip}" ]]; then
-  echo "Failed to detect a host IP for the source origin." >&2
-  exit 1
-fi
-SOURCE_ORIGIN="http://${source_host_ip}:${SOURCE_PORT}"
+SOURCE_ORIGIN="http://localhost:${SOURCE_PORT}"
 
 CONTAINER_NAME="${IMAGE_NAME}-${PORT}"
 HEALTH_URL="${APP_PUBLIC_URL%/}/health"
 DATA_CLEANED="false"
 DOCKER_RUN_ARGS=()
-
-# Sourcing env.defaults.sh at the top exported the gateway PORT_BASE-derived
-# service ports into this process. Any child that re-derives from a shifted
-# PORT_BASE (the source dev server) must clear them first, or the inherited
-# gateway-range values win. Keep this list in sync with the derived ports in
-# tools/env.defaults.sh (PORT is passed explicitly per child, so it is not here).
-CLEAR_DERIVED_PORTS=(
-  -u VITEST_PORT -u COLLAB_SERVER_PORT
-  -u PREVIEW_PORT -u API_SERVER_PORT
-)
 
 # Second scenario: a fresh, ADMIN_SECRET-only container that forces the
 # in-container bootstrap-secrets.ts to GENERATE and PERSIST AUTH_SECRET and the
@@ -71,8 +50,10 @@ BOOTSTRAP_HEALTH_URL="${BOOTSTRAP_APP_PUBLIC_URL%/}/health"
 BOOTSTRAP_DATA_DIR="${TEST_DATA_DIR%/}/bootstrap-home"
 
 if remdo_docker_daemon_is_rootless; then
+  remdo_require_rootless_host_network
   DOCKER_RUN_ARGS+=(--userns=host)
 fi
+DOCKER_RUN_ARGS+=(--network=host)
 
 # Wipe a host-mounted data dir from inside the container so container-owned
 # (often root-owned, on a rootful daemon) files are removed by a process with the
@@ -110,18 +91,57 @@ cleanup() {
 }
 trap cleanup EXIT
 
+assert_loopback_gateway() {
+  local container_name="$1"
+  local port="$2"
+
+  # Validate the adapted gateway rather than only the Caddyfile template: the
+  # listener stays on loopback while the advertised hostname is a request
+  # matcher, not an accidental site-address listener constraint.
+  docker exec -e CADDY_CANONICAL_HOST="${DOCKER_TEST_BROWSER_HOST}" \
+    "${container_name}" caddy adapt \
+    --config /etc/caddy/Caddyfile --adapter caddyfile 2>/dev/null \
+    | node -e '
+        let input = "";
+        process.stdin.setEncoding("utf8");
+        process.stdin.on("data", (chunk) => { input += chunk; });
+        process.stdin.on("end", () => {
+          const config = JSON.parse(input);
+          const servers = Object.values(config.apps?.http?.servers ?? {});
+          const listeners = servers.flatMap((server) => server.listen ?? []);
+          const expectedListener = process.argv[1];
+          const expectedHost = process.argv[2];
+          const hosts = [];
+          const visit = (value) => {
+            if (Array.isArray(value)) {
+              value.forEach(visit);
+            } else if (value && typeof value === "object") {
+              if (Array.isArray(value.host)) hosts.push(...value.host);
+              Object.values(value).forEach(visit);
+            }
+          };
+          visit(config);
+          if (!listeners.includes(expectedListener) || !hosts.includes(expectedHost)) {
+            console.error({ expectedHost, expectedListener, hosts, listeners });
+            process.exit(1);
+          }
+        });
+      ' "127.0.0.1:${port}" "${DOCKER_TEST_BROWSER_HOST}"
+}
+
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
 
 echo "Provisioning source dev users for ${SOURCE_ORIGIN}..."
 # Seed the stable users the linking flow signs in as on the source. The home
 # registers on the source through the browser (no pre-provisioned OAuth client).
-# dev:users only reads AUTH_URL (not the derived service ports), so the gateway
-# port exports do not need clearing here.
+# Provisioning reads the source's derived canonical URL and shifted service
+# ports from the same environment as the source process.
 env \
-  AUTH_URL="${SOURCE_ORIGIN}" \
   DATA_DIR="${SOURCE_DATA_DIR}" \
-  PORT="${SOURCE_PORT}" \
+  HOST=localhost \
+  PUBLIC_HOST=localhost \
+  PORT_BASE="$((PORT_BASE + SOURCE_PORT_SHIFT))" \
   pnpm run dev:users
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
@@ -132,8 +152,10 @@ remdo_docker_run "${IMAGE_NAME}" "${DOCKER_HOME_DATA_DIR}" -d --name "${CONTAINE
   -e YSWEET_AUTH_KEY="${DOCKER_TEST_YSWEET_AUTH_KEY}" \
   -e YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}" \
   -e APP_PUBLIC_URL="${APP_PUBLIC_URL}" \
+  -e CADDY_SITE_ADDRESSES="http://:${PORT}" \
+  -e CADDY_BIND_DIRECTIVE="bind 127.0.0.1" \
   -e HOST=127.0.0.1 \
-  -e PORT_BASE="${PORT_BASE}" \
+  -e PORT_BASE="$((PORT_BASE + HOME_INTERNAL_PORT_SHIFT))" \
   -e PORT="${PORT}"
 
 health_ready="false"
@@ -152,6 +174,9 @@ if [[ "${health_ready}" != "true" ]]; then
 fi
 
 echo "Docker health check OK: ${HEALTH_URL}"
+
+assert_loopback_gateway "${CONTAINER_NAME}" "${PORT}"
+
 echo "Running Playwright Docker E2E suite..."
 
 PLAYWRIGHT_BROWSERS_DIR="${PLAYWRIGHT_BROWSERS_PATH:-}"
@@ -169,22 +194,18 @@ PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" pnpm exec playwright insta
 PLAYWRIGHT_ENV=(
   PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}"
   APP_PUBLIC_URL="${APP_PUBLIC_URL}"
+  REMDO_E2E_HOME_ORIGIN="${APP_PUBLIC_URL}"
   ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}"
   YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}"
   REMDO_E2E_SOURCE_ORIGIN="${SOURCE_ORIGIN}"
 )
 
-# The source dev server re-derives its range from a shifted PORT_BASE, so clear
-# the inherited gateway-range derived ports (see CLEAR_DERIVED_PORTS) and let
-# env.defaults.sh recompute them. PORT and YSWEET_CONNECTION_STRING stay explicit
-# as the source's pinned inputs.
-if ! env "${CLEAR_DERIVED_PORTS[@]}" \
+if ! env \
   "${PLAYWRIGHT_ENV[@]}" \
   DATA_DIR="${SOURCE_DATA_DIR}" \
-  HOST=0.0.0.0 \
+  HOST=localhost \
+  PUBLIC_HOST=localhost \
   PORT_BASE="$((PORT_BASE + SOURCE_PORT_SHIFT))" \
-  PORT="${SOURCE_PORT}" \
-  YSWEET_CONNECTION_STRING="${SOURCE_YSWEET_CONNECTION_STRING}" \
   E2E_WRITE_STORAGE_STATE="${DOCKER_E2E_AUTH_STATE_PATH}" \
   E2E_STORAGE_STATE="${DOCKER_E2E_AUTH_STATE_PATH}" \
   E2E_WRITE_SMOKE_DOCUMENT_ID="${DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH}" \
@@ -337,16 +358,18 @@ bootstrap_wait_healthy() {
   [[ "${ready}" == "true" ]]
 }
 
-# Override PORT so remdo_docker_run publishes the distinct bootstrap port. Pass
-# ONLY ADMIN_SECRET (+ APP_PUBLIC_URL, HOST, PORT_BASE, PORT). AUTH_SECRET and the
+# Set the distinct bootstrap gateway port. Pass ONLY ADMIN_SECRET
+# (+ APP_PUBLIC_URL, HOST, PORT_BASE, PORT). AUTH_SECRET and the
 # Y-Sweet pair are intentionally absent so the entrypoint bootstrap generates and
 # persists them under the mounted /data/secrets.
 PORT="${BOOTSTRAP_PORT}" remdo_docker_run "${IMAGE_NAME}" "${BOOTSTRAP_DATA_DIR}" \
   -d --name "${BOOTSTRAP_CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
   -e ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
   -e APP_PUBLIC_URL="${BOOTSTRAP_APP_PUBLIC_URL}" \
+  -e CADDY_SITE_ADDRESSES="http://:${BOOTSTRAP_PORT}" \
+  -e CADDY_BIND_DIRECTIVE="bind 127.0.0.1" \
   -e HOST=127.0.0.1 \
-  -e PORT_BASE="${PORT_BASE}" \
+  -e PORT_BASE="$((PORT_BASE + BOOTSTRAP_INTERNAL_PORT_SHIFT))" \
   -e PORT="${BOOTSTRAP_PORT}"
 
 # (a) The ADMIN_SECRET-only container boots healthy.
@@ -354,6 +377,7 @@ if ! bootstrap_wait_healthy; then
   bootstrap_fail "container did not become healthy at ${BOOTSTRAP_HEALTH_URL}"
 fi
 echo "Bootstrap scenario healthy: ${BOOTSTRAP_HEALTH_URL}"
+assert_loopback_gateway "${BOOTSTRAP_CONTAINER_NAME}" "${BOOTSTRAP_PORT}"
 
 # (b) The generated secret files exist with the expected restrictive modes. One
 # `docker exec stat` over all targets (modes only, no secret values logged)

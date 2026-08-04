@@ -1,21 +1,17 @@
 // Trusted origins for Better Auth (the URLs from which mutating auth requests
 // are accepted). This is a configuration concern — which URLs a deployment is
-// reachable at — so it is derived here alongside AUTH_URL rather than computed
+// reachable at — so it is derived here alongside APP_PUBLIC_URL rather than computed
 // inside the auth module.
 //
 // Production is restricted to the single configured public origin. Development
 // additionally trusts the local aliases a developer reaches the app through:
-// localhost / 127.0.0.1 / the machine hostname, for both the dev app port and
-// the `vite preview` port (the prod bundle preview serves from PREVIEW_PORT,
-// not the dev port the auth baseURL is derived from).
+// localhost / 127.0.0.1 / the machine hostname on the current stack's port.
 
 interface DeriveAuthTrustedOriginsInput {
   baseURL: string;
   isProduction: boolean;
   /** Machine hostname for dev aliases; omit/empty to skip the hostname alias. */
   hostname?: string;
-  /** `vite preview` app port; trusted in dev when it differs from the app port. */
-  previewPort?: number;
 }
 
 function appendOrigin(origins: string[], origin: string): void {
@@ -41,7 +37,6 @@ export function deriveAuthTrustedOrigins({
   baseURL,
   isProduction,
   hostname = '',
-  previewPort,
 }: DeriveAuthTrustedOriginsInput): string[] {
   if (baseURL.length === 0) {
     return [];
@@ -59,10 +54,5 @@ export function deriveAuthTrustedOrigins({
   }
 
   appendLocalDevAliases(origins, url.protocol, port, hostname);
-
-  const previewPortStr = previewPort ? String(previewPort) : '';
-  if (previewPortStr && previewPortStr !== port) {
-    appendLocalDevAliases(origins, url.protocol, previewPortStr, hostname);
-  }
   return origins;
 }

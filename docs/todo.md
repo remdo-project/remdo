@@ -52,14 +52,6 @@ Remove rejected or obsolete items and empty sections.
   direction, and reference to its owner, align both specifications with
   `docs/documentation.md`, and update every inbound link in the same change.
 
-### Development
-
-- **Single-command local startup.** Make one local-development command start
-  the app and collaboration services, provision the stable users, and seed the
-  fixture documents after the services are ready. The local-development guide
-  then has one startup step. Reconsider whether `dev:users` and
-  `dev:data-reset` should remain separate commands as part of that change.
-
 ### Editor
 
 - **Editor module ownership.** Editor capabilities are split across `features/`,

@@ -719,14 +719,14 @@ function resolveCollabOrigin(): string {
   if (typeof location !== 'undefined' && location.origin && location.origin !== 'null') {
     return location.origin;
   }
-  return resolveAppOrigin({ loopback: true });
+  return resolveAppOrigin();
 }
 
 function resolveCollabApiOrigin(): string {
   if (typeof location !== 'undefined' && location.origin && location.origin !== 'null') {
     return location.origin;
   }
-  return resolveApiServerOrigin({ loopback: true });
+  return resolveApiServerOrigin();
 }
 
 const store = new StoredUserDataStore();

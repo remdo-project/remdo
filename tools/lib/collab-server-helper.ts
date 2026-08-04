@@ -4,7 +4,7 @@ import path from 'node:path';
 import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
-import { resolveLoopbackHost } from '#platform/net/loopback';
+import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
 import {
   attachManagedProcess,
   prepareManagedProcessLog,
@@ -22,12 +22,8 @@ const LOG_PATH = path.join(LOG_DIR, 'collab-server.log');
 const COLLAB_DATA_DIR = path.join(config.env.DATA_DIR, 'collab');
 const reusedServerStop = () => Promise.resolve();
 
-function resolveYSweetBindHost(host: string): string {
-  return host === 'localhost' ? '127.0.0.1' : host;
-}
-
-export function resolveYSweetProbeHost(host: string): string {
-  return resolveLoopbackHost(resolveYSweetBindHost(host));
+export function resolveYSweetProbeHost(): string {
+  return INTERNAL_SERVICE_HOST;
 }
 
 async function waitForPort(host: string, port: number, child: ChildProcess): Promise<void> {
@@ -68,10 +64,9 @@ export async function ensureCollabServer({
   port = config.env.COLLAB_SERVER_PORT,
   reuseExisting = true,
 }: CollabServerOptions = {}): Promise<StopCollabServer> {
-  const resolvedHost = config.env.HOST;
-  const bindHost = resolveYSweetBindHost(resolvedHost);
+  const bindHost = INTERNAL_SERVICE_HOST;
   const resolvedPort = port;
-  const probeHost = resolveYSweetProbeHost(resolvedHost);
+  const probeHost = resolveYSweetProbeHost();
 
   if (await isPortOpen(probeHost, resolvedPort)) {
     if (reuseExisting) {
@@ -100,7 +95,6 @@ export async function ensureCollabServer({
     args,
     {
       env: {
-        HOST: resolvedHost,
         COLLAB_SERVER_PORT: String(resolvedPort),
         COLLAB_ENABLED: 'true',
         YSWEET_AUTH_KEY: config.env.YSWEET_AUTH_KEY,

@@ -1,4 +1,4 @@
-const SESSION_COOKIE_PATTERN = /((?:__Secure-)?better-auth\.session_token)=([^;]+)/u;
+const SESSION_COOKIE_PATTERN = /((?:__Secure-)?remdo-\d+\.session_token)=([^;]+)/u;
 
 /**
  * Extracts the Better Auth session cookie (name=value) from a sign-in

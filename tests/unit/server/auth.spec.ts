@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { resolveActor, resolveActorResolution } from '#server/auth/actor';
 import { normalizeSourceIssuer } from '#server/auth/auth';
+import { createServerAppHarness } from './_support/server-app-harness';
 import { createTestResource } from '../_support/test-resource';
-import { createServerAppHarness, TEST_PREVIEW_PORT } from './_support/server-app-harness';
 
 const createHarness = createTestResource(createServerAppHarness);
 
@@ -83,18 +83,39 @@ describe('server auth trusted origins', () => {
   // harness accepts ANY Origin and cannot exercise trusted-origin enforcement.
   // The derivation itself is covered behaviorally in config-env.spec.ts; here we
   // assert the wiring — that the harness builds the trusted-origin list from its
-  // own baseURL + preview port and hands it to auth, including the preview-port
-  // origin that lets a hostname-addressed `vite preview` sign in.
-  it('builds trusted origins from the harness baseURL and preview port', () => {
+  // own baseURL and hands it to auth.
+  it('builds trusted origins from the harness baseURL', () => {
     const harness = createHarness();
     expect(harness.trustedOrigins).toEqual([
       'http://127.0.0.1:4000',
       'http://localhost:4000',
       'http://test-host:4000',
-      `http://localhost:${TEST_PREVIEW_PORT}`,
-      `http://127.0.0.1:${TEST_PREVIEW_PORT}`,
-      `http://test-host:${TEST_PREVIEW_PORT}`,
     ]);
+  });
+});
+
+describe('server auth cookie isolation', () => {
+  it('keeps sessions for same-host stacks on different ports independent', async () => {
+    const source = createServerAppHarness({ baseURL: 'http://localhost:4000' });
+    const home = createServerAppHarness({ baseURL: 'http://localhost:4040' });
+
+    try {
+      const sourceCookie = (await source.createSessionHeaders()).get('cookie');
+      const homeCookie = (await home.createSessionHeaders()).get('cookie');
+
+      expect(sourceCookie).toMatch(/^remdo-4000\.session_token=/u);
+      expect(homeCookie).toMatch(/^remdo-4040\.session_token=/u);
+
+      const browserCookies = new Headers({ cookie: `${sourceCookie}; ${homeCookie}` });
+      await expect(source.auth.getSession(browserCookies)).resolves.toMatchObject({
+        user: { email: 'server@example.com' },
+      });
+      await expect(home.auth.getSession(browserCookies)).resolves.toMatchObject({
+        user: { email: 'server@example.com' },
+      });
+    } finally {
+      await Promise.all([source.cleanup(), home.cleanup()]);
+    }
   });
 });
 

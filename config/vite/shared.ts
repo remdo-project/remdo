@@ -10,8 +10,8 @@ import { remdoDevSpaRoutesPlugin } from './remdo-dev-spa-routes-plugin';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 const host = config.env.HOST;
-const apiServerTarget = resolveApiServerOrigin({ loopback: true });
-const collabServerTarget = resolveCollabServerOrigin({ loopback: true });
+const apiServerTarget = resolveApiServerOrigin();
+const collabServerTarget = resolveCollabServerOrigin();
 export const pwaNavigationFallbackDenylist = [
   /^\/\.well-known(?:\/|$)/u,
   /^\/api(?:\/|$)/u,
@@ -105,7 +105,7 @@ export function createViteSharedConfig() {
     },
     preview: {
       host,
-      port: config.env.PREVIEW_PORT,
+      port: config.env.PORT,
       // Mirror the dev server: accept any Host header (e.g. http://hostname:PORT),
       // not just localhost, so the prod-build preview is reachable by hostname.
       allowedHosts: true as const,

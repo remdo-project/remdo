@@ -10,7 +10,11 @@ import { waitForEditableEditor } from './_support/helpers';
 // playwright.docker.config.ts). The home derives the source id from it.
 // eslint-disable-next-line node/no-process-env -- the Docker runner sets the source origin.
 const sourceOrigin = process.env.REMDO_E2E_SOURCE_ORIGIN ?? `http://localhost:${config.env.PORT}`;
-const homeOrigin = config.env.APP_PUBLIC_URL;
+// eslint-disable-next-line node/no-process-env -- the Docker runner sets the home origin.
+const homeOrigin = process.env.REMDO_E2E_HOME_ORIGIN;
+if (!homeOrigin) {
+  throw new Error('REMDO_E2E_HOME_ORIGIN is required for Docker linking tests.');
+}
 // The home derives a source's id from its origin (base64url), same as the server.
 const sourceServerId = Buffer.from(sourceOrigin, 'utf8').toString('base64url');
 const sourceHost = new URL(sourceOrigin).host;

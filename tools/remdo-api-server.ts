@@ -1,6 +1,7 @@
 import process from 'node:process';
 import { serve } from '@hono/node-server';
 import { config } from '#config';
+import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
 import { createServerRuntime } from '#server/runtime';
 import { reportServerDiagnostic } from '#server/diagnostics';
 
@@ -13,7 +14,7 @@ async function main() {
   serve(
     {
       fetch: runtime.app.fetch,
-      hostname: config.env.HOST,
+      hostname: INTERNAL_SERVICE_HOST,
       port: config.env.API_SERVER_PORT,
     },
     (info) => {

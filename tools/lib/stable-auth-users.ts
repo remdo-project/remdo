@@ -41,7 +41,7 @@ export async function createStableAuthUserSessionHeaders(
   auth: ServerAuth,
   user: StableAuthUser,
 ): Promise<Headers> {
-  const response = await auth.auth.handler(new Request(new URL('/api/auth/sign-in/email', config.env.AUTH_URL), {
+  const response = await auth.auth.handler(new Request(new URL('/api/auth/sign-in/email', config.env.APP_PUBLIC_URL), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({

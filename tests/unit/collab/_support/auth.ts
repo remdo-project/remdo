@@ -7,7 +7,7 @@ import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
 let sessionCookiePromise: Promise<string> | null = null;
 
 function toApiUrl(pathname: string): string {
-  return `${resolveApiServerOrigin({ loopback: true })}${pathname}`;
+  return `${resolveApiServerOrigin()}${pathname}`;
 }
 
 async function createOrSignInTestUser(): Promise<string> {

@@ -24,17 +24,17 @@ fi
 # only derives APP_PUBLIC_URL from it (URL-from-PORT) and never changes it. When
 # APP_PUBLIC_URL is set, it is used as-is and PORT is left untouched.
 
-# The launcher publishes only -p ${PORT}:${PORT}. If APP_PUBLIC_URL advertises a
-# different explicit port, a directly-exposed (un-proxied) deploy is unreachable
-# at that URL. This is fine behind a TLS-terminating proxy (Render, Caddy) that
-# forwards :443 -> PORT, so warn rather than fail.
+# The container gateway listens on PORT. If APP_PUBLIC_URL advertises a different
+# explicit port, a directly exposed (un-proxied) deploy is unreachable at that
+# URL. This is fine behind a TLS-terminating proxy (Render, Caddy) that forwards
+# :443 -> PORT, so warn rather than fail.
 if [[ -n "${APP_PUBLIC_URL:-}" ]]; then
   app_public_url_port="$(node -e '
     const url = new URL(process.argv[1]);
     process.stdout.write(url.port);
   ' "${APP_PUBLIC_URL}" 2>/dev/null || true)"
   if [[ -n "${app_public_url_port}" && "${app_public_url_port}" != "${PORT}" ]]; then
-    echo "Warning: APP_PUBLIC_URL port (${app_public_url_port}) differs from the published PORT (${PORT})." >&2
+    echo "Warning: APP_PUBLIC_URL port (${app_public_url_port}) differs from the gateway PORT (${PORT})." >&2
     echo "         A directly-exposed container will not be reachable at ${APP_PUBLIC_URL};" >&2
     echo "         this is only correct behind a proxy that forwards to PORT ${PORT}." >&2
   fi
@@ -52,6 +52,7 @@ DOCKER_ENV_ARGS=(
   -e ADMIN_SECRET="${ADMIN_SECRET}"
   -e APP_PUBLIC_URL="${APP_PUBLIC_URL}"
   -e ALLOW_SIGNUP="${ALLOW_SIGNUP}"
+  -e CADDY_BIND_DIRECTIVE="${CADDY_BIND_DIRECTIVE:-}"
   -e CADDY_SITE_ADDRESSES="${CADDY_SITE_ADDRESSES:-}"
   -e HOST=127.0.0.1
   -e PORT_BASE="${PORT_BASE}"
@@ -75,4 +76,20 @@ DOCKER_RUN_ARGS=(--rm --userns=host)
 if [[ -n "${REMDO_DOCKER_CONTAINER_NAME:-}" ]]; then
   DOCKER_RUN_ARGS+=(--name "${REMDO_DOCKER_CONTAINER_NAME}")
 fi
+case "${REMDO_DOCKER_NETWORK:-bridge}" in
+  bridge)
+    if [[ -n "${REMDO_DOCKER_PUBLISH_HOST:-}" ]]; then
+      DOCKER_RUN_ARGS+=(-p "${REMDO_DOCKER_PUBLISH_HOST}:${PORT}:${PORT}")
+    else
+      DOCKER_RUN_ARGS+=(-p "${PORT}:${PORT}")
+    fi
+    ;;
+  host)
+    DOCKER_RUN_ARGS+=(--network=host)
+    ;;
+  *)
+    echo "Unsupported REMDO_DOCKER_NETWORK: ${REMDO_DOCKER_NETWORK}" >&2
+    exit 1
+    ;;
+esac
 remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" "${DOCKER_RUN_ARGS[@]}" "${DOCKER_ENV_ARGS[@]}"

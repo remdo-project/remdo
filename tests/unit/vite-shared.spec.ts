@@ -8,6 +8,8 @@ describe('vite shared config', () => {
     const serverProxy = config.server.proxy;
     const previewProxy = config.preview.proxy;
 
+    expect(config.preview.port).toBe(config.server.port);
+
     expect(config.plugins).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: 'remdo-api-dev' }),
       expect.objectContaining({ name: 'remdo-dev-spa-routes' }),

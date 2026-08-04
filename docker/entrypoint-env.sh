@@ -14,6 +14,7 @@ remdo_public_url_port() {
 
 remdo_configure_caddy_env() {
   : "${APP_PUBLIC_URL:?Set APP_PUBLIC_URL to the canonical public RemDo URL}"
+  : "${CADDY_BIND_DIRECTIVE:=}"
 
   app_public_protocol="$(remdo_url_field "${APP_PUBLIC_URL}" protocol)"
   app_public_port="$(remdo_public_url_port "${APP_PUBLIC_URL}")"
@@ -40,6 +41,7 @@ remdo_configure_caddy_env() {
   export APP_PUBLIC_URL
   export CADDY_SITE_ADDRESSES
   export CADDY_TLS_DIRECTIVE
+  export CADDY_BIND_DIRECTIVE
   export CADDY_CANONICAL_HOST
 }
 

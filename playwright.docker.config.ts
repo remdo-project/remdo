@@ -4,25 +4,27 @@ import { config } from './config';
 import { chromium, dockerBrowserUse, playwrightBaseConfig } from './config/playwright/base';
 
 // eslint-disable-next-line node/no-process-env
-const { E2E_STORAGE_STATE, REMDO_E2E_SOURCE_ORIGIN } = process.env;
-// The linked source's single origin (the host's network IP), set by
-// docker-test.sh — reachable and identical from both the browser (on the host)
-// and the containerized home, matching the same-origin model.
+const { E2E_STORAGE_STATE, REMDO_E2E_HOME_ORIGIN, REMDO_E2E_SOURCE_ORIGIN } = process.env;
+// Host networking lets both the browser and container reach the source through
+// the same localhost origin.
 const sourceOrigin = REMDO_E2E_SOURCE_ORIGIN ?? `http://localhost:${config.env.PORT}`;
+if (!REMDO_E2E_HOME_ORIGIN) {
+  throw new Error('REMDO_E2E_HOME_ORIGIN is required for Docker E2E.');
+}
 const setupTestMatch = /docker\/setup\.spec\.ts/u;
 
 export default defineConfig({
   ...playwrightBaseConfig,
   workers: 1,
   use: {
-    baseURL: config.env.APP_PUBLIC_URL,
+    baseURL: REMDO_E2E_HOME_ORIGIN,
     ...dockerBrowserUse,
   },
   webServer: [
     {
       name: 'source',
       // The source is public so it accepts home registration + open signup.
-      command: `AUTH_URL=${sourceOrigin} ALLOW_SIGNUP=true pnpm exec tsx ./tools/e2e/docker-source-server.ts`,
+      command: 'ALLOW_SIGNUP=true pnpm exec tsx ./tools/e2e/docker-source-server.ts',
       url: `${sourceOrigin}/api/health`,
       gracefulShutdown: { signal: 'SIGTERM', timeout: 5000 },
     },

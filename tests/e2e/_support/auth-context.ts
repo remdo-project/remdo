@@ -12,7 +12,7 @@ export async function createAuthenticatedContext(
   account: AuthAccount = createTestAuthAccount(),
 ): Promise<BrowserContext> {
   const context = await browser.newContext(contextOptions);
-  const appOrigin = resolveAppOrigin({ loopback: true });
+  const appOrigin = resolveAppOrigin();
 
   try {
     // Authentication is harness control-plane setup, not behavior under test.
