@@ -1,11 +1,10 @@
 import { config } from '#config';
-import { resolveLoopbackHost } from './loopback';
+import { formatUrlHost, resolveLoopbackHost } from './host';
 
 export const INTERNAL_SERVICE_HOST = '127.0.0.1';
 
 function createHttpOrigin(host: string, port: number): string {
-  const urlHost = host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
-  return `http://${urlHost}:${port}`;
+  return `http://${formatUrlHost(host)}:${port}`;
 }
 
 export function resolveAppOrigin(): string {

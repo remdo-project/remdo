@@ -2,6 +2,7 @@
 import { spawnSync } from 'node:child_process';
 import type { SpawnSyncReturns } from 'node:child_process';
 import fs from 'node:fs';
+import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -10,9 +11,7 @@ import {
   assertAuthorizationServerOrigin,
   assertPublicSourceConfig,
 } from '../../tools/dev/linking-preflight-lib';
-import {
-  waitForDevelopmentCollaboration,
-} from '../../tools/dev/seed-after-ready-lib';
+import { waitForPortOpen } from '../../tools/lib/net';
 
 function writeFakeDocker(binDir: string): void {
   const dockerPath = path.join(binDir, 'docker');
@@ -111,38 +110,31 @@ describe('development runtime launchers', () => {
     expect(dockerCalls).not.toContain('-p 0.0.0.0:4651:4651');
   });
 
-  it('preserves a concrete Docker gateway bind address', () => {
-    const bridge = runDockerLauncher([], {
-      HOST: '192.0.2.10',
-      PUBLIC_HOST: 'dev-vm',
-    });
-    const host = runDockerLauncher(['--network=host'], {
-      HOST: '192.0.2.10',
-      PUBLIC_HOST: 'dev-vm',
-    });
+  it.each([
+    {
+      label: 'concrete IPv4 address',
+      env: { HOST: '192.0.2.10', PUBLIC_HOST: 'dev-vm' },
+      origin: 'http://dev-vm:4640',
+      publish: '-p 192.0.2.10:4640:4640',
+      bind: '-e CADDY_BIND_DIRECTIVE=bind 192.0.2.10',
+    },
+    {
+      label: 'IPv6 loopback',
+      env: { HOST: '::1', PUBLIC_HOST: '::1' },
+      origin: 'http://[::1]:4640',
+      publish: '-p [::1]:4640:4640',
+      bind: '-e CADDY_BIND_DIRECTIVE=bind ::1',
+    },
+  ])('preserves a $label Docker gateway bind address', ({ env, origin, publish, bind }) => {
+    const bridge = runDockerLauncher([], env);
+    const host = runDockerLauncher(['--network=host'], env);
 
     expect(bridge.result.status).toBe(0);
-    expect(bridge.dockerCalls).toContain('-p 192.0.2.10:4640:4640');
-    expect(host.result.status).toBe(0);
-    expect(host.dockerCalls).toContain('-e CADDY_BIND_DIRECTIVE=bind 192.0.2.10');
-  });
-
-  it('preserves an IPv6-loopback Docker gateway', () => {
-    const bridge = runDockerLauncher([], {
-      HOST: '::1',
-      PUBLIC_HOST: '::1',
-    });
-    const host = runDockerLauncher(['--network=host'], {
-      HOST: '::1',
-      PUBLIC_HOST: '::1',
-    });
-
-    expect(bridge.result.status).toBe(0);
-    expect(bridge.result.stdout).toContain('Starting private Docker app: http://[::1]:4640');
-    expect(bridge.dockerCalls).toContain('-p [::1]:4640:4640');
+    expect(bridge.result.stdout).toContain(`Starting private Docker app: ${origin}`);
+    expect(bridge.dockerCalls).toContain(publish);
     expect(host.result.status).toBe(0);
     expect(host.dockerCalls).toContain('--network=host');
-    expect(host.dockerCalls).toContain('-e CADDY_BIND_DIRECTIVE=bind ::1');
+    expect(host.dockerCalls).toContain(bind);
   });
 
   it('uses host networking without port publication for source linking', () => {
@@ -203,26 +195,35 @@ printf '%s|%s|%s|%s\\n' "\${DATA_DIR}" "\${PORT_BASE}" "\${PORT}" "$*" >> "\${RE
 });
 
 describe('development startup readiness', () => {
-  it('waits until the collaboration service is ready', async () => {
-    const collabStates = [false, false, true];
+  async function listen(server: net.Server, port: number): Promise<number> {
+    await new Promise<void>((resolve) => server.listen(port, '127.0.0.1', resolve));
+    return (server.address() as net.AddressInfo).port;
+  }
 
-    await waitForDevelopmentCollaboration({
-      attempts: 3,
-      collabReady: async () => collabStates.shift() ?? true,
-      pollIntervalMs: 0,
-      port: 4004,
-    });
+  function close(server: net.Server): Promise<void> {
+    return new Promise((resolve) => server.close(() => resolve()));
+  }
 
-    expect(collabStates).toEqual([]);
+  it('waits until the port accepts connections', async () => {
+    // Reserve an ephemeral port, release it, then reopen it while the wait polls.
+    const probe = net.createServer();
+    const port = await listen(probe, 0);
+    await close(probe);
+
+    const pending = waitForPortOpen('127.0.0.1', port, { attempts: 50, pollIntervalMs: 10 });
+    const server = net.createServer();
+    await listen(server, port);
+    await expect(pending).resolves.toBe(true);
+    await close(server);
   });
 
-  it('fails startup when collaboration never becomes ready', async () => {
-    await expect(waitForDevelopmentCollaboration({
-      attempts: 1,
-      collabReady: async () => false,
-      pollIntervalMs: 0,
-      port: 4004,
-    })).rejects.toThrow('Development collaboration service did not become ready on port 4004');
+  it('gives up when the port never opens within the attempt budget', async () => {
+    const probe = net.createServer();
+    const port = await listen(probe, 0);
+    await close(probe);
+
+    await expect(waitForPortOpen('127.0.0.1', port, { attempts: 2, pollIntervalMs: 0 }))
+      .resolves.toBe(false);
   });
 });
 

@@ -29,8 +29,10 @@ PORT="$((PORT_BASE + 7))"
 remdo_assert_browser_safe_port "${PORT}"
 APP_PUBLIC_URL="http://${DOCKER_TEST_BROWSER_HOST}:${PORT}"
 
-SOURCE_PORT="$((PORT_BASE + SOURCE_PORT_SHIFT))"
-SOURCE_ORIGIN="http://localhost:${SOURCE_PORT}"
+# The source dev server binds PORT_BASE+0 of its shifted range, so its origin
+# port equals the shifted base.
+SOURCE_PORT_BASE="$((PORT_BASE + SOURCE_PORT_SHIFT))"
+SOURCE_ORIGIN="http://localhost:${SOURCE_PORT_BASE}"
 
 CONTAINER_NAME="${IMAGE_NAME}-${PORT}"
 HEALTH_URL="${APP_PUBLIC_URL%/}/health"
@@ -141,7 +143,7 @@ env \
   DATA_DIR="${SOURCE_DATA_DIR}" \
   HOST=localhost \
   PUBLIC_HOST=localhost \
-  PORT_BASE="$((PORT_BASE + SOURCE_PORT_SHIFT))" \
+  PORT_BASE="${SOURCE_PORT_BASE}" \
   pnpm run dev:users
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
@@ -205,7 +207,7 @@ if ! env \
   DATA_DIR="${SOURCE_DATA_DIR}" \
   HOST=localhost \
   PUBLIC_HOST=localhost \
-  PORT_BASE="$((PORT_BASE + SOURCE_PORT_SHIFT))" \
+  PORT_BASE="${SOURCE_PORT_BASE}" \
   E2E_WRITE_STORAGE_STATE="${DOCKER_E2E_AUTH_STATE_PATH}" \
   E2E_STORAGE_STATE="${DOCKER_E2E_AUTH_STATE_PATH}" \
   E2E_WRITE_SMOKE_DOCUMENT_ID="${DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH}" \

@@ -1,23 +1,17 @@
 import { defineConfig } from '@playwright/test';
 import process from 'node:process';
-import { config } from './config';
 import { chromium, dockerBrowserUse, playwrightBaseConfig } from './config/playwright/base';
+import { homeOrigin, sourceOrigin } from './tests/e2e/docker/_support/origins';
 
 // eslint-disable-next-line node/no-process-env
-const { E2E_STORAGE_STATE, REMDO_E2E_HOME_ORIGIN, REMDO_E2E_SOURCE_ORIGIN } = process.env;
-// Host networking lets both the browser and container reach the source through
-// the same localhost origin.
-const sourceOrigin = REMDO_E2E_SOURCE_ORIGIN ?? `http://localhost:${config.env.PORT}`;
-if (!REMDO_E2E_HOME_ORIGIN) {
-  throw new Error('REMDO_E2E_HOME_ORIGIN is required for Docker E2E.');
-}
+const { E2E_STORAGE_STATE } = process.env;
 const setupTestMatch = /docker\/setup\.spec\.ts/u;
 
 export default defineConfig({
   ...playwrightBaseConfig,
   workers: 1,
   use: {
-    baseURL: REMDO_E2E_HOME_ORIGIN,
+    baseURL: homeOrigin,
     ...dockerBrowserUse,
   },
   webServer: [

@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { formatUrlHost, isWildcardHost } from '../../src/platform/net/host';
 import { deriveAuthTrustedOrigins } from './auth-origins';
 import type { ClientKey, EnvKey } from './schema';
 import { CLIENT_KEY_LIST, envSchema } from './schema';
@@ -40,20 +41,9 @@ function parseEnv(getValue: EnvGetter): ParsedEnv {
   return Object.fromEntries(entries) as ParsedEnv;
 }
 
-function formatUrlHost(host: string): string {
-  const unwrapped = host.startsWith('[') && host.endsWith(']')
-    ? host.slice(1, -1)
-    : host;
-  if (!unwrapped || /[\s/?#@]/u.test(unwrapped) || unwrapped.includes('://')) {
-    throw new TypeError('PUBLIC_HOST must be a bare hostname or IP address.');
-  }
-  const formatted = unwrapped.includes(':') ? `[${unwrapped}]` : unwrapped;
-  try {
-    const parsedUrl = new URL(`http://${formatted}:1`);
-    if (!parsedUrl.hostname) {
-      throw new TypeError('Missing hostname');
-    }
-  } catch {
+function formatPublicHost(host: string): string {
+  const formatted = formatUrlHost(host);
+  if (!formatted || /[\s/?#@]/u.test(host) || !URL.canParse(`http://${formatted}:1`)) {
     throw new TypeError('PUBLIC_HOST must be a bare hostname or IP address.');
   }
   return formatted;
@@ -63,7 +53,7 @@ function resolveDevPublicHost(parsed: ParsedEnv, machineHostname: string): strin
   if (parsed.PUBLIC_HOST) {
     return parsed.PUBLIC_HOST;
   }
-  if (parsed.HOST !== '0.0.0.0' && parsed.HOST !== '::') {
+  if (!isWildcardHost(parsed.HOST)) {
     return parsed.HOST;
   }
   const normalizedHostname = machineHostname.trim().toLowerCase().replace(/\.$/u, '');
@@ -89,7 +79,7 @@ function resolveAppPublicUrl(
   if (!parsed.HOST || parsed.PORT === 0) {
     return '';
   }
-  return `http://${formatUrlHost(resolveDevPublicHost(parsed, machineHostname))}:${parsed.PORT}`;
+  return `http://${formatPublicHost(resolveDevPublicHost(parsed, machineHostname))}:${parsed.PORT}`;
 }
 
 function validateProdServer(parsed: ParsedEnv): void {
@@ -140,8 +130,7 @@ export function resolveConfig(
     throw new Error('NODE_ENV is required; run via tools/env.sh.');
   }
 
-  const isServer = options.server !== false;
-  if (isServer) {
+  if (options.server !== false) {
     validateProdServer(parsed);
   }
 

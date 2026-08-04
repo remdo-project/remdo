@@ -1,20 +1,10 @@
 import { expect, guardedTest as test, setExpectedConsoleIssues } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { Buffer } from 'node:buffer';
-import process from 'node:process';
-import { config } from '#config';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 import { waitForEditableEditor } from './_support/helpers';
+import { homeOrigin, sourceOrigin } from './_support/origins';
 
-// The source's single origin, shared by the container home and the browser (see
-// playwright.docker.config.ts). The home derives the source id from it.
-// eslint-disable-next-line node/no-process-env -- the Docker runner sets the source origin.
-const sourceOrigin = process.env.REMDO_E2E_SOURCE_ORIGIN ?? `http://localhost:${config.env.PORT}`;
-// eslint-disable-next-line node/no-process-env -- the Docker runner sets the home origin.
-const homeOrigin = process.env.REMDO_E2E_HOME_ORIGIN;
-if (!homeOrigin) {
-  throw new Error('REMDO_E2E_HOME_ORIGIN is required for Docker linking tests.');
-}
 // The home derives a source's id from its origin (base64url), same as the server.
 const sourceServerId = Buffer.from(sourceOrigin, 'utf8').toString('base64url');
 const sourceHost = new URL(sourceOrigin).host;

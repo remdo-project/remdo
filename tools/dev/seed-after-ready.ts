@@ -3,15 +3,14 @@ import process from 'node:process';
 
 import { config } from '#config';
 import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
-import { isPortOpen } from '../lib/net';
+import { waitForPortOpen } from '../lib/net';
 import { runPnpm } from '../lib/process';
-import { waitForDevelopmentCollaboration } from './seed-after-ready-lib';
 
 async function main(): Promise<void> {
-  await waitForDevelopmentCollaboration({
-    collabReady: () => isPortOpen(INTERNAL_SERVICE_HOST, config.env.COLLAB_SERVER_PORT),
-    port: config.env.COLLAB_SERVER_PORT,
-  });
+  const port = config.env.COLLAB_SERVER_PORT;
+  if (!(await waitForPortOpen(INTERNAL_SERVICE_HOST, port))) {
+    throw new Error(`Development collaboration service did not become ready on port ${port}.`);
+  }
   await runPnpm(['run', 'dev:data-reset']);
 }
 

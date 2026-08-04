@@ -40,12 +40,8 @@ export async function startRemdoApiServer({
   port = config.env.API_SERVER_PORT,
   ySweetConnectionString = config.env.YSWEET_CONNECTION_STRING,
 }: RemdoApiServerOptions = {}): Promise<StopRemdoApiServer> {
-  const resolvedHost = INTERNAL_SERVICE_HOST;
-  const resolvedPort = port;
-  const probeHost = resolvedHost;
-
-  if (await isPortOpen(probeHost, resolvedPort)) {
-    throw new Error(`RemDo API server already running on http://${probeHost}:${resolvedPort}`);
+  if (await isPortOpen(INTERNAL_SERVICE_HOST, port)) {
+    throw new Error(`RemDo API server already running on http://${INTERNAL_SERVICE_HOST}:${port}`);
   }
 
   prepareManagedProcessLog(LOG_PATH);
@@ -56,9 +52,9 @@ export async function startRemdoApiServer({
         AUTH_SECRET: config.env.AUTH_SECRET,
         ADMIN_SECRET: config.env.ADMIN_SECRET,
         APP_PUBLIC_URL: config.env.APP_PUBLIC_URL,
-        HOST: resolvedHost,
+        HOST: INTERNAL_SERVICE_HOST,
         ALLOW_SIGNUP: String(config.env.ALLOW_SIGNUP),
-        API_SERVER_PORT: String(resolvedPort),
+        API_SERVER_PORT: String(port),
         YSWEET_CONNECTION_STRING: ySweetConnectionString,
         YSWEET_AUTH_KEY: config.env.YSWEET_AUTH_KEY,
         YSWEET_SERVER_TOKEN: config.env.YSWEET_SERVER_TOKEN,
@@ -72,7 +68,7 @@ export async function startRemdoApiServer({
   const stop = attachManagedProcess(child, LOG_PATH);
 
   try {
-    await waitForPort(probeHost, resolvedPort, child);
+    await waitForPort(INTERNAL_SERVICE_HOST, port, child);
   } catch (error) {
     await stop();
     const recentLog = readRecentLog(LOG_PATH);
