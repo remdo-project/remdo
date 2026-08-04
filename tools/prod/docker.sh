@@ -42,7 +42,6 @@ fi
 : "${ADMIN_SECRET:?Set ADMIN_SECRET in .env}"
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
-remdo_require_rootless_docker
 
 DOCKER_ENV_ARGS=(
   -e ADMIN_SECRET="${ADMIN_SECRET}"

@@ -14,7 +14,8 @@ case "$1" in
   build|run)
     ;;
   info)
-    printf '%s\\n' '["name=rootless"]'
+    # GitHub's standard Docker daemon is rootful.
+    printf '%s\\n' '[]'
     ;;
   *)
     echo "unexpected docker command: $1" >&2
@@ -90,7 +91,6 @@ describe('prod Docker launcher', () => {
     expect(result.stdout).toContain('Docker target: https://remdo-test.shared:8080');
 
     expect(dockerCalls).toContain('build ');
-    expect(dockerCalls).toContain('info --format {{json .SecurityOptions}}');
     expect(dockerCalls).toContain('run ');
     expect(dockerCalls).toContain('-e PORT_BASE=4000');
     expect(dockerCalls).toContain('-e PORT=8080');
