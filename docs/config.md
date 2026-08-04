@@ -44,7 +44,8 @@ platform-injected value, else `8080`.
 **Development origin.** `HOST` controls only the gateway bind address.
 `PUBLIC_HOST` controls the hostname in browser-visible URLs and defaults to
 `HOST`. When `HOST` is `0.0.0.0` or `::`, `PUBLIC_HOST` instead defaults to the
-machine hostname. `APP_PUBLIC_URL` derives as
+machine hostname; an empty or localhost machine hostname requires an explicit
+`PUBLIC_HOST`. `APP_PUBLIC_URL` derives as
 `http://<PUBLIC_HOST>:<PORT>`.
 
 **Canonical origin.** `APP_PUBLIC_URL` is the single source for link generation,

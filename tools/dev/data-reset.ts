@@ -85,11 +85,7 @@ async function main(): Promise<void> {
   if (process.argv.length > 2) {
     throw new Error('Usage: pnpm run dev:data-reset');
   }
-  if (!(await waitForPortOpen(INTERNAL_SERVICE_HOST, config.env.COLLAB_SERVER_PORT))) {
-    throw new Error(
-      `Development collaboration service did not become ready on port ${config.env.COLLAB_SERVER_PORT}.`,
-    );
-  }
+  const collabReady = waitForPortOpen(INTERNAL_SERVICE_HOST, config.env.COLLAB_SERVER_PORT);
   const fixtureNames = await listFixtureNames();
   const fixtures = new Map(await Promise.all(
     fixtureNames.map(async (name) => [name, await readFixtureState(name)] as const),
@@ -100,6 +96,11 @@ async function main(): Promise<void> {
   try {
     await runtime.auth.ensureReady();
     const users = await restoreStableDevUsers(runtime.auth);
+    if (!(await collabReady)) {
+      throw new Error(
+        `Development collaboration service did not become ready on port ${config.env.COLLAB_SERVER_PORT}.`,
+      );
+    }
     let total = 0;
     for (const user of users) {
       total += await seedUserFixtures(

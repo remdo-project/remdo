@@ -114,6 +114,26 @@ cleanup() {
 }
 trap cleanup EXIT
 
+wait_healthy() {
+  local port="$1"
+  local url="$2"
+  local attempts="$3"
+  local process_id="${4:-}"
+  local attempt
+
+  for ((attempt = 0; attempt < attempts; attempt += 1)); do
+    if curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${port}:127.0.0.1" \
+      -kfsS "${url}" >/dev/null 2>&1; then
+      return 0
+    fi
+    if [[ -n "${process_id}" ]] && ! kill -0 "${process_id}" >/dev/null 2>&1; then
+      return 1
+    fi
+    sleep 0.5
+  done
+  return 1
+}
+
 assert_loopback_gateway() {
   local container_name="$1"
   local port="$2"
@@ -170,16 +190,7 @@ remdo_docker_run "${IMAGE_NAME}" "${DOCKER_HOME_DATA_DIR}" -d --name "${CONTAINE
   -e PORT_BASE="$((PORT_BASE + HOME_INTERNAL_PORT_SHIFT))" \
   -e PORT="${PORT}"
 
-health_ready="false"
-for _ in {1..20}; do
-  if curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PORT}:127.0.0.1" -kfsS "${HEALTH_URL}" >/dev/null 2>&1; then
-    health_ready="true"
-    break
-  fi
-  sleep 0.5
-done
-
-if [[ "${health_ready}" != "true" ]]; then
+if ! wait_healthy "${PORT}" "${HEALTH_URL}" 20; then
   docker logs "${CONTAINER_NAME}" || true
   echo "Smoke test failed: ${HEALTH_URL}" >&2
   exit 1
@@ -355,20 +366,6 @@ bootstrap_fail() {
   exit 1
 }
 
-bootstrap_wait_healthy() {
-  local ready="false"
-  local _
-  for _ in {1..20}; do
-    if curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${BOOTSTRAP_PORT}:127.0.0.1" \
-      -kfsS "${BOOTSTRAP_HEALTH_URL}" >/dev/null 2>&1; then
-      ready="true"
-      break
-    fi
-    sleep 0.5
-  done
-  [[ "${ready}" == "true" ]]
-}
-
 # Set the distinct bootstrap gateway port. Pass ONLY ADMIN_SECRET
 # (+ APP_PUBLIC_URL, HOST, PORT_BASE, PORT). AUTH_SECRET and the
 # Y-Sweet pair are intentionally absent so the entrypoint bootstrap generates and
@@ -384,7 +381,7 @@ PORT="${BOOTSTRAP_PORT}" remdo_docker_run "${IMAGE_NAME}" "${BOOTSTRAP_DATA_DIR}
   -e PORT="${BOOTSTRAP_PORT}"
 
 # (a) The ADMIN_SECRET-only container boots healthy.
-if ! bootstrap_wait_healthy; then
+if ! wait_healthy "${BOOTSTRAP_PORT}" "${BOOTSTRAP_HEALTH_URL}" 20; then
   bootstrap_fail "container did not become healthy at ${BOOTSTRAP_HEALTH_URL}"
 fi
 echo "Bootstrap scenario healthy: ${BOOTSTRAP_HEALTH_URL}"
@@ -435,7 +432,7 @@ fi
 docker restart "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 \
   || bootstrap_fail "docker restart failed"
 
-if ! bootstrap_wait_healthy; then
+if ! wait_healthy "${BOOTSTRAP_PORT}" "${BOOTSTRAP_HEALTH_URL}" 20; then
   bootstrap_fail "container did not become healthy after restart (persistence guard may have fired)"
 fi
 
@@ -499,20 +496,11 @@ env \
   "${ROOT_DIR}/tools/prod/docker.sh" >"${PROD_BRIDGE_LAUNCH_LOG}" 2>&1 &
 PROD_BRIDGE_LAUNCH_PID="$!"
 
-prod_bridge_ready="false"
-for _ in {1..40}; do
-  if curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}:127.0.0.1" \
-    -kfsS "${PROD_BRIDGE_HEALTH_URL}" >/dev/null 2>&1; then
-    prod_bridge_ready="true"
-    break
-  fi
-  if ! kill -0 "${PROD_BRIDGE_LAUNCH_PID}" >/dev/null 2>&1; then
-    break
-  fi
-  sleep 0.5
-done
-
-if [[ "${prod_bridge_ready}" != "true" ]]; then
+if ! wait_healthy \
+  "${PROD_BRIDGE_PORT}" \
+  "${PROD_BRIDGE_HEALTH_URL}" \
+  40 \
+  "${PROD_BRIDGE_LAUNCH_PID}"; then
   docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
   tail -n 200 "${PROD_BRIDGE_LAUNCH_LOG}" >&2 || true
   echo "Production bridge launcher smoke failed: ${PROD_BRIDGE_HEALTH_URL}" >&2

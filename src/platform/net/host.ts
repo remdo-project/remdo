@@ -4,11 +4,11 @@ export function isWildcardHost(host: string): boolean {
 }
 
 /**
- * Resolve a bind-all host to a concrete loopback/address.
- * Returns `fallback` when host is 0.0.0.0 or ::, otherwise returns host unchanged.
+ * Resolve a bind-all host to IPv4 loopback.
+ * Returns the host unchanged when it is already concrete.
  */
-export function resolveLoopbackHost(host: string, fallback = '127.0.0.1'): string {
-  return isWildcardHost(host) ? fallback : host;
+export function resolveLoopbackHost(host: string): string {
+  return isWildcardHost(host) ? '127.0.0.1' : host;
 }
 
 /** Format a bare host for use inside a URL: brackets an IPv6 literal (idempotently). */
