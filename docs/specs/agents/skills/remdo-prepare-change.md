@@ -60,8 +60,8 @@ Legend:
 - **Specification.** The coordinator identifies current
   [contract owners](../../../documentation.md#ownership), edits them only when
   their [target behavior](../../../documentation.md#target-behavior) must
-  change, and surfaces unresolved behavior and
-  [concerns](../results.md#concerns) before implementation.
+  change, and surfaces unresolved behavior, [concerns](../results.md#concerns),
+  and [tracked gaps](../../../todo.md#tracked-follow-up) before developer review.
 - **Approval.** Developer approval establishes target behavior, not exact
   wording or repository authority.
 - **Convergence.** [`remdo-converge-change`](remdo-converge-change.md) runs as a
@@ -70,9 +70,8 @@ Legend:
   latest simplification.
 - **Handoff.** The coordinator's [report](../results.md#reports) includes the
   exact scope, approved target behavior and its contract owners, verification
-  result, unhandled concerns,
-  [tracked gaps](../../../todo.md#tracked-follow-up), and specific manual review
-  needs. It implies neither acceptance nor authority for subsequent repository
-  or remote action.
+  result, unhandled concerns, tracked gaps, and specific manual review needs. It
+  implies neither acceptance nor authority for subsequent repository or remote
+  action.
 - **Feedback.** Returns to the earliest affected lifecycle step; repository
   changes invalidate all later quality results.
