@@ -100,11 +100,11 @@ concerns: # if any
     summary: <condition>
 degraded: true # if degraded
 scope: <requested and resolved scope, no-change, or resolution failure>
-checks:
+checks: # if scope is ready
   - command: <command> # if run
     status: <passed | failed | not-run>
     details: <failure evidence or reason not run> # if failed or not-run
-reviews:
+reviews: # if scope is ready
   - source: <codex | claude>
     status: <completed | unavailable | failed | not-run>
     details: <complete report, failure evidence, or reason not run>

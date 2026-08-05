@@ -61,6 +61,9 @@ The result uses this shape:
 
 ```yaml
 outcome: <up-to-date | fast-forwarded | merged | conflicted | verification-failed | restore-conflicted>
+concerns: # if any
+  - source: <originating capability or participant>
+    summary: <condition>
 destination: <branch>
 target: <fixed fetched origin/main commit>
 incoming_commits: <count>

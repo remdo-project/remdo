@@ -57,7 +57,9 @@ Legend:
   `origin/main`, name a
   [topic branch](../../../dev/contributing.md#git-workflow), create it at the
   fetched commit, and switch to it. Use another base only if the developer
-  specified one.
+  specified one. Existing repository changes enter the branch only when quick
+  dialogue identifies them as part of the change; otherwise they prevent branch
+  readiness.
 - **Specification.** The coordinator identifies current
   [contract owners](../../../documentation.md#ownership), edits them only when
   their [target behavior](../../../documentation.md#target-behavior) must

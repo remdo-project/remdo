@@ -54,7 +54,9 @@ areas: # if any
     tradeoff: <behavior lost or delegated> # if cause is specification
 ```
 
-Deduplicate overlapping estimates in the total.
+`complexity-found` means at least one reported area, regardless of cause;
+`no-material-complexity` means none. The top-level estimate covers all reported
+areas and deduplicates overlaps.
 
 The report normally stays within 350 words and conforms to the repository's
 Markdown lint rules. It favors fewer, broader areas and one short paragraph per

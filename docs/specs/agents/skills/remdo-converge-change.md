@@ -27,9 +27,10 @@ verification again. It does not apply commit-range corrections from a detached
 Before committing or re-verifying, the skill checks the correction batch
 against every applicable authoritative contract.
 
-After each correction batch, the skill runs complete verification again. It
-does not re-verify unchanged state and continues with available evidence when
-[verification is degraded](remdo-verify-change.md#result).
+After applying all determined corrections from one verification, the skill runs
+complete verification again. It does not re-verify unchanged state and
+continues with available evidence when [verification is
+degraded](remdo-verify-change.md#result).
 
 A `clean`, `findings`, or `no-change` verification is converged when no
 `confirmed` finding remains that the skill can correct, including when other
@@ -58,6 +59,7 @@ findings: # if any
   - summary: <finding>
     source: <codex | claude>
     disposition: <confirmed | rejected | unresolved | material out of scope>
+    reason: <disposition reason>
     resolution: <fixed | uncorrected> # if confirmed
 reason: <condition that prevented convergence> # if not converged
 ```
