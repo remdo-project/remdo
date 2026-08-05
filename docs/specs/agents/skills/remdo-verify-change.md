@@ -93,8 +93,7 @@ in `concerns`, but does not stop verification or alone change `clean` to
 `findings`. Every non-rejected finding also appears in `concerns`.
 
 A failed step reports only evidence relevant to its failure, not successful
-sub-results. Reviews intentionally not attempted are `not-run`, not
-`unavailable`.
+sub-results.
 
 The verifier's result uses this shape:
 
@@ -110,10 +109,10 @@ checks: # if run
   - command: <command>
     status: <passed | failed | not-run>
     details: <failure evidence or reason not run> # if failed or not-run
-reviews: # if checks ran
+reviews: # if run
   - source: <codex | claude>
-    status: <completed | unavailable | failed | not-run>
-    details: <complete report, failure evidence, or reason not run>
+    status: <completed | unavailable | failed>
+    details: <complete report or failure evidence>
 findings: # if any
   - summary: <finding>
     source: <codex | claude>

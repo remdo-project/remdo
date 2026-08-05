@@ -1,7 +1,8 @@
 # remdo-prepare-change
 
-The skill owns the lifecycle and developer handoff for a repository change;
-participating capabilities retain their contracts.
+The skill owns the lifecycle and developer handoff for a repository change and
+returns an [agent result](../results.md#results); participating capabilities
+retain their contracts.
 
 ## Lifecycle
 
@@ -33,7 +34,8 @@ participating capabilities retain their contracts.
 [developer: review]
     ├─ requirements feedback ─> ↩ quick dialogue
     ├─ spec feedback ─────────> ↩ prepare spec
-    └─ implementation feedback ─> ↩ implement spec
+    ├─ implementation feedback ─> ↩ implement spec
+    └─ accepted ────────────────> [complete]
 ```
 
 Legend:
@@ -84,3 +86,18 @@ Legend:
   repository or remote action.
 - **Feedback.** Returns to the earliest affected lifecycle step; repository
   changes invalidate all later quality results.
+
+## Result
+
+```yaml
+outcome: <completed | stopped>
+concerns: # if any
+  - source: <originating capability or participant>
+    summary: <condition>
+scope: <complete change scope> # if resolved
+verification: <complete remdo-converge-change result> # if run
+reason: <condition that stopped preparation> # if stopped
+```
+
+`completed` means the developer accepted the handoff. `stopped` means the
+workflow ended before acceptance.
