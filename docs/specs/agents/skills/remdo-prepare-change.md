@@ -60,11 +60,11 @@ Legend:
 - **Owning branch ready.** Before the first retained change, fetch `origin/main`
   and use its fetched commit as the base unless the developer specified another.
   The current [topic branch](../../../dev/contributing.md#git-workflow) is the
-  owning branch when it points at the base or its range from the base contains
-  only adopted committed work. Otherwise name one, create it at the base, and
-  switch to it. Existing uncommitted changes enter the branch only when quick
-  dialogue identifies them as part of the change; otherwise they prevent branch
-  readiness.
+  owning branch when it points at the base, or when the base is its ancestor and
+  the range from the base contains only adopted committed work. Otherwise name
+  one, create it at the base, and switch to it. Existing uncommitted changes
+  enter the branch only when quick dialogue identifies them as part of the
+  change; otherwise they prevent branch readiness.
 - **Specification.** The coordinator identifies current
   [contract owners](../../../documentation.md#ownership), edits them only when
   their [target behavior](../../../documentation.md#target-behavior) must
