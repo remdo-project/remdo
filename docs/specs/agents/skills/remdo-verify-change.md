@@ -101,6 +101,7 @@ concerns: # if any
     summary: <condition>
 degraded: true # if degraded
 scope: <requested and resolved scope, no-change, or resolution failure>
+reason: <condition that stopped verification> # if stopped
 checks:
   - command: <command>
     status: <passed | failed | not-run>

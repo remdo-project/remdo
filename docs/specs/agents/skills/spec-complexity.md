@@ -36,15 +36,16 @@ by the specification.
 The result uses this shape:
 
 ```yaml
-outcome: <complexity-found | no-material-complexity>
+outcome: <complexity-found | no-material-complexity | stopped>
 concerns: # if any
   - source: <originating capability or participant>
     summary: <condition>
 specification: <path>
+reason: <condition that prevented assessment> # if stopped
 estimated_cost: # if complexity-found
   implementation: <line range>
   tests: <line range>
-areas: # if any
+areas: # if complexity-found
   - name: <area>
     cause: <specification | implementation>
     complexity: <high | medium | low>
@@ -58,8 +59,8 @@ areas: # if any
 ```
 
 `complexity-found` means at least one reported area, regardless of cause;
-`no-material-complexity` means none. The top-level estimate covers all reported
-areas and deduplicates overlaps.
+`no-material-complexity` means a completed assessment found none. The top-level
+estimate covers all reported areas and deduplicates overlaps.
 
 The report normally stays within 350 words and conforms to the repository's
 Markdown lint rules. It favors fewer, broader areas and one short paragraph per
