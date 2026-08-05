@@ -35,7 +35,7 @@ degraded](remdo-verify-change.md#result).
 A `clean`, `findings`, or `no-change` verification is converged when no
 `confirmed` finding remains that the skill can correct, including when other
 dispositions remain or verification is degraded. A `stopped` verification is
-not converged.
+not converged. A scope-resolution failure stops the skill.
 
 ## Result
 
@@ -48,21 +48,21 @@ marks each confirmed finding as fixed or uncorrected.
 The result uses this shape:
 
 ```yaml
-outcome: <converged | not-converged>
+outcome: <converged | not-converged | stopped>
 concerns: # if any
   - source: <originating capability or participant>
     summary: <condition>
 scope: <resolved scope or resolution failure>
 corrections: # if any
   - summary: <applied correction>
-verification: <complete latest remdo-verify-change result>
+verification: <complete latest remdo-verify-change result> # if run
 findings: # if any
   - summary: <finding>
     source: <codex | claude>
     disposition: <confirmed | rejected | unresolved | material out of scope>
     reason: <disposition reason>
     resolution: <fixed | uncorrected> # if confirmed
-reason: <condition that prevented convergence> # if not converged
+reason: <condition that prevented or stopped convergence> # if not converged or stopped
 ```
 
 ## Future
