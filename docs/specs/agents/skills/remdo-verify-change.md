@@ -92,8 +92,8 @@ completion. An unavailable or failed reviewer sets `degraded: true` and appears
 in `concerns`, but does not stop verification or alone change `clean` to
 `findings`. Every non-rejected finding also appears in `concerns`.
 
-A failed step reports only evidence relevant to its failure, not successful
-sub-results.
+A stopped result includes the failed phase's evidence and completed preceding
+phases.
 
 The verifier's result uses this shape:
 

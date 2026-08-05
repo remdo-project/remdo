@@ -23,7 +23,7 @@ retain their contracts.
     ├─ approved behavior must change ─> ↩ prepare spec
     │ implemented
     v
-[agent: simplify the end state]                     {F}
+[agent: simplify the end state]                     {C+F}
     │
     v
 [agent: remdo-converge-change]                      {C+F}
@@ -63,11 +63,11 @@ Legend:
 - **Owning branch ready.** Before the first retained change, fetch `origin/main`
   and use its fetched commit as the base unless the developer specified another.
   The current [topic branch](../../../dev/contributing.md#git-workflow) is the
-  owning branch when the base is its ancestor and the range from the base
-  contains only adopted committed work. Otherwise name a replacement, create it
-  at the base, switch to it, and transfer only adopted work. Existing uncommitted
-  changes enter the branch only when quick dialogue identifies them as part of
-  the change; otherwise they prevent branch readiness.
+  owning branch when it points at the base, or when the base is its ancestor and
+  the range from the base contains only adopted committed work. Otherwise name a
+  replacement, create it at the base, switch to it, and transfer only adopted
+  work. Existing uncommitted changes enter the branch only when quick dialogue
+  identifies them as part of the change; otherwise they prevent branch readiness.
 - **Specification.** The coordinator identifies current
   [contract owners](../../../documentation.md#ownership), edits them only when
   their [target behavior](../../../documentation.md#target-behavior) must
@@ -81,7 +81,8 @@ Legend:
   representable as one supported scope. If that requires repository authority
   the coordinator does not hold, it surfaces a concern and does not start
   convergence. Developer review requires a `converged` result that applies no
-  corrections after the latest simplification.
+  corrections after the latest simplification. A repeated end state stops with
+  a concern.
 - **Handoff.** The coordinator's [report](../results.md#reports) includes the
   exact scope, approved target behavior and its contract owners, verification
   result, unhandled concerns, tracked gaps, and specific manual review needs. It
@@ -93,7 +94,7 @@ Legend:
 ## Result
 
 ```yaml
-outcome: <completed | stopped>
+outcome: <ready-for-review | completed | stopped>
 concerns: # if any
   - source: <originating capability or participant>
     summary: <condition>
@@ -102,5 +103,5 @@ verification: <complete remdo-converge-change result> # if run
 reason: <condition that stopped preparation> # if stopped
 ```
 
-`completed` means the developer accepted the handoff. `stopped` means the
-workflow ended before acceptance.
+`ready-for-review` presents the handoff for developer review. `completed` means
+the developer accepted it. `stopped` means the workflow ended before acceptance.
