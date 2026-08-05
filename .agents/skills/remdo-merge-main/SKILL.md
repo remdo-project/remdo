@@ -82,5 +82,7 @@ authorize pull, rebase, push, force-push, or other remote mutation.
 
 ## Report
 
-Return the contract's
-[`Result`](../../../docs/specs/agents/skills/remdo-merge-main.md#result).
+Return the authoritative specification's
+[`Result`](../../../docs/specs/agents/skills/remdo-merge-main.md#result). When
+addressing a human, render it under the shared
+[`Reports`](../../../docs/specs/agents/results.md#reports) contract.

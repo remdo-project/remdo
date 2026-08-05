@@ -181,16 +181,6 @@ Remove rejected or obsolete items and empty sections.
   current authoritative documentation or public APIs for external dependencies
   before using [empirical checks](documentation.md#empirical-checks).
 
-- **`remdo-prepare-change` skill.** Its
-  [contract](specs/agents/skills/remdo-prepare-change.md) has no
-  `.agents/skills/remdo-prepare-change/SKILL.md` implementation. Before adding
-  it, validate its phase boundaries through real changes and revise them when
-  evidence requires.
-  Define the active change record and approval baseline, how nested component
-  results reach the user, which component owns deterministic checks, where fresh
-  sessions begin, and whether recurring ambiguity justifies separate
-  specification- and implementation-readiness modes.
-
 - **Skill-spec ownership boundaries.** Verify ownership between agent skill
   specifications, starting with
   [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md), and
