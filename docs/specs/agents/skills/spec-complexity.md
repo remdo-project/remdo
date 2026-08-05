@@ -59,8 +59,8 @@ areas: # if complexity-found
 ```
 
 `complexity-found` means at least one reported area, regardless of cause;
-`no-material-complexity` means a completed assessment found none. The top-level
-estimate covers all reported areas and deduplicates overlaps.
+`no-material-complexity` means a completed assessment found no reportable area.
+The top-level estimate covers all reported areas and deduplicates overlaps.
 
 The report normally stays within 350 words and conforms to the repository's
 Markdown lint rules. It favors fewer, broader areas and one short paragraph per

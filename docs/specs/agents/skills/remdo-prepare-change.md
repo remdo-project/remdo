@@ -54,12 +54,12 @@ Legend:
   [repository authority](../../../../AGENTS.md#safety--process), expected result,
   and return point. Repository changes remain disposable unless adopted.
 - **Owning branch ready.** Before the first retained change, fetch `origin/main`.
-  An existing [topic branch](../../../dev/contributing.md#git-workflow)
-  containing adopted committed work is the owning branch. Otherwise name one,
-  create it at the fetched commit, and switch to it. Use another base only if
-  the developer specified one. Existing uncommitted changes enter the branch
-  only when quick dialogue identifies them as part of the change; otherwise
-  they prevent branch readiness.
+  The current [topic branch](../../../dev/contributing.md#git-workflow) is the
+  owning branch when it contains adopted committed work or points at the
+  fetched commit. Otherwise name one, create it at the fetched commit, and
+  switch to it. Use another base only if the developer specified one. Existing
+  uncommitted changes enter the branch only when quick dialogue identifies them
+  as part of the change; otherwise they prevent branch readiness.
 - **Specification.** The coordinator identifies current
   [contract owners](../../../documentation.md#ownership), edits them only when
   their [target behavior](../../../documentation.md#target-behavior) must

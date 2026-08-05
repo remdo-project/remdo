@@ -42,7 +42,7 @@ not converged. A scope-resolution failure stops the skill.
 The result carries every finding disposition across verification iterations and
 marks each confirmed finding as fixed or uncorrected.
 
-`verification` contains the complete latest
+When run, `verification` contains the complete latest
 [`remdo-verify-change` result](remdo-verify-change.md#result).
 
 The result uses this shape:

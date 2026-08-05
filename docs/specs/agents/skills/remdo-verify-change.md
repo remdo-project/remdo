@@ -13,17 +13,21 @@ until verification finishes.
 
 ```text
 [change-scope resolution]
-    ├─ no-change ─> [report]
-    ├─ failure ───> [report and stop]
-    └─ ready
-         │
-         v
-    [deterministic checks]
-         ├─ failure ─> [report and stop]
-         │
-         └─ pass
-              ├─> [Codex review] ──┐
-              └─> [Claude review] ─┴─> [finding validation] ─> [report]
+    ├─ no-change ─────────> [report]
+    ├─ failure ───────────> [report and stop]
+    │ ready
+    v
+[deterministic checks]
+    ├─ failure ───────────> [report and stop]
+    │ pass
+    v
+[Codex + Claude reviews]
+    │
+    v
+[finding validation]
+    │
+    v
+[report]
 ```
 
 The verifier runs the [repository checks prescribed for the agent mode and
@@ -102,11 +106,11 @@ concerns: # if any
 degraded: true # if degraded
 scope: <requested and resolved scope, no-change, or resolution failure>
 reason: <condition that stopped verification> # if stopped
-checks: # if outcome is not stopped or checks caused it
+checks: # if run
   - command: <command>
     status: <passed | failed | not-run>
     details: <failure evidence or reason not run> # if failed or not-run
-reviews: # if outcome is not stopped or a review caused it
+reviews: # if run
   - source: <codex | claude>
     status: <completed | unavailable | failed | not-run>
     details: <complete report, failure evidence, or reason not run>

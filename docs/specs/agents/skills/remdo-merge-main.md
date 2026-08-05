@@ -79,6 +79,8 @@ saved_work: <stash commit> # if retained
 reason: <stop or manual recovery condition> # if any
 ```
 
+`stopped` means repository state or setup failure prevented the merge from
+starting.
 `not-needed` means preserve mode found no local work. `untouched` means an
 unchanged branch left local work in place. `pending` means saved work awaits
 integration recovery before it can be restored.
