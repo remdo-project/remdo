@@ -39,7 +39,7 @@
     "check:dev-boundary": "sh ./tools/check-dev-boundary.sh",
     "check:full": "pnpm run lint && pnpm run test:unit:full && pnpm run test:collab:full && pnpm run check:dev-boundary",
     "deps:next": "sh ./.agents/skills/remdo-deps-refresh/next-update.sh",
-    "dev": "concurrently --kill-others-on-fail --names web,collab,data \"pnpm run dev:web\" \"pnpm run dev:collab\" \"pnpm run dev:data-reset\"",
+    "dev": "concurrently --kill-others-on-fail --names web,collab \"pnpm run dev:web\" \"pnpm run dev:collab\"",
     "dev:collab": "./tools/env.sh tsx ./tools/collab-server.ts",
     "dev:init": "./tools/dev-init.sh",
     "dev:pwa": "./tools/dev/pwa.sh",

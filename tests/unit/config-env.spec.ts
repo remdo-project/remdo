@@ -122,6 +122,15 @@ describe('config env resolve', () => {
     })).toThrow('HOST and PUBLIC_HOST must be a bare hostname or IPv4 address');
   });
 
+  it('rejects the IPv4 wildcard as a browser-visible PUBLIC_HOST', () => {
+    expect(() => resolveTestConfig({
+      NODE_ENV: 'development',
+      HOST: '127.0.0.1',
+      PUBLIC_HOST: '0.0.0.0',
+      PORT: '4000',
+    })).toThrow('PUBLIC_HOST must identify a browser-visible host');
+  });
+
   it.each([
     { HOST: '::1' },
     { HOST: '::1', PUBLIC_HOST: 'browser-visible.test' },
@@ -331,6 +340,21 @@ describe('config env resolve', () => {
       './tools/env.sh',
       ['--port-base-offset', '08', 'true'],
       { encoding: 'utf8' },
+    )).toThrow();
+  });
+
+  it('rejects a derived PWA preview port blocked by Chromium', () => {
+    expect(() => execFileSync(
+      './tools/env.sh',
+      ['true'],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          NODE_ENV: 'development',
+          PORT_BASE: '5980',
+        },
+      },
     )).toThrow();
   });
 

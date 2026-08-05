@@ -79,10 +79,12 @@ remdo_assert_browser_safe_port() {
 # The public PORT is browser-facing in every mode, so always validate it.
 remdo_assert_browser_safe_port "${PORT}"
 
-# In dev/test the Vitest UI is also browser-facing. API and collaboration ports
-# stay behind the gateway, so Chromium's port restrictions do not apply to them.
+# In dev/test the Vitest UI and PWA preview are also browser-facing. API and
+# collaboration ports stay behind the gateway, so Chromium's port restrictions
+# do not apply to them.
 if [ "${NODE_ENV}" != "production" ]; then
   remdo_assert_browser_safe_port "${VITEST_PORT}"
+  remdo_assert_browser_safe_port "${PREVIEW_PORT}"
 fi
 
 export NODE_ENV HOST PUBLIC_HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI TMPDIR

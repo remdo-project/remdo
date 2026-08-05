@@ -47,6 +47,14 @@ function validateDevHost(host: string): string {
   return host;
 }
 
+function validateDevPublicHost(host: string): string {
+  const validated = validateDevHost(host);
+  if (validated === '0.0.0.0') {
+    throw new TypeError('PUBLIC_HOST must identify a browser-visible host, not 0.0.0.0.');
+  }
+  return validated;
+}
+
 function resolveDevPublicHost(parsed: ParsedEnv, machineHostname: string): string {
   if (parsed.PUBLIC_HOST) {
     return parsed.PUBLIC_HOST;
@@ -79,7 +87,7 @@ function resolveAppPublicUrl(
     return '';
   }
   validateDevHost(parsed.HOST);
-  return `http://${validateDevHost(resolveDevPublicHost(parsed, machineHostname))}:${parsed.PORT}`;
+  return `http://${validateDevPublicHost(resolveDevPublicHost(parsed, machineHostname))}:${parsed.PORT}`;
 }
 
 function validateProdServer(parsed: ParsedEnv): void {

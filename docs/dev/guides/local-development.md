@@ -38,7 +38,9 @@ pnpm run dev
 ```
 
 - **Starts:** the web app and collaboration server.
-- **Prepares:** stable Alice and Bob accounts and seeded fixture documents.
+
+On a fresh data directory, [reset development data](#reset-development-data)
+before signing in.
 
 Open the canonical URL for the stack, sign in with a credential from
 [`stable-auth-users.ts`](../../../tools/lib/stable-auth-users.ts), and choose a
@@ -49,8 +51,9 @@ not one of Vite's interface-IP Network URLs.
 
 ### Reset Development Data
 
-`pnpm run dev:data-reset` is optional. Run it while the main stack is running
-when stable credentials or fixture documents need restoring.
+Run `pnpm run dev:data-reset` while the main stack is running when stable
+credentials or fixture documents need restoring. Coordinate before resetting
+shared working-directory data because the command replaces fixture contents.
 
 - **Restores:** the stable passwords and current fixture contents.
 - **Preserves:** existing document IDs, sharing, and documents not backed by a
