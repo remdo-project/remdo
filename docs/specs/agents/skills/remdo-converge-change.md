@@ -1,9 +1,10 @@
 # remdo-converge-change
 
-This skill verifies a repository change, applies every correction
-supported by the evidence, and repeats until no further correction can be
-determined. One [change scope](../change-scope.md) bounds the run; the
-skill does not select or expand intended behavior.
+This skill verifies a repository change, applies every correction supported by
+the evidence, and repeats until no further correction can be determined. It
+returns an [agent result](../results.md#results). One
+[change scope](../change-scope.md) bounds the run; the skill does not select or
+expand intended behavior.
 
 ## Convergence
 
@@ -26,9 +27,9 @@ verification again. It does not apply commit-range corrections from a detached
 Before committing or re-verifying, the skill checks the correction batch
 against every applicable authoritative contract.
 
-After applying all determined corrections from one verification, the skill runs
-complete verification again. It does not re-verify unchanged state and continues
-using available evidence when [verification is degraded](remdo-verify-change.md#result).
+After each correction batch, the skill runs complete verification again. It
+does not re-verify unchanged state and continues with available evidence when
+[verification is degraded](remdo-verify-change.md#result).
 
 A `clean`, `findings`, or `no-change` verification is converged when no
 `confirmed` finding remains that the skill can correct, including when other
@@ -36,9 +37,29 @@ dispositions remain or verification is degraded.
 
 ## Result
 
-The result reports whether the state converged, the scope, corrections applied,
-the verifier's finding dispositions, confirmed findings it could not correct,
-the latest verification result, and any condition that prevented convergence.
+The result carries every finding disposition from the latest verification and
+marks each confirmed finding as fixed or uncorrected.
+
+The result uses this shape:
+
+```yaml
+outcome: <converged | not-converged>
+concerns: # if any
+  - source: <originating capability or participant>
+    summary: <condition>
+scope: <resolved scope or resolution failure>
+corrections: # if any
+  - summary: <applied correction>
+verification:
+  outcome: <latest verification outcome>
+  degraded: true # if degraded
+findings: # if any
+  - summary: <finding>
+    source: <codex | claude>
+    disposition: <confirmed | rejected | unresolved | material out of scope>
+    resolution: <fixed | uncorrected> # if confirmed
+reason: <condition that prevented convergence> # if not converged
+```
 
 ## Future
 

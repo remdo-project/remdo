@@ -1,9 +1,10 @@
 # remdo-merge-main
 
-This capability merges `origin/main` into the current branch and verifies the
-result. Requested local work may be preserved; unrelated branch convergence
-and remote mutation are outside the capability. Concurrent repository mutation
-and recovery from an interrupted run are also outside the capability.
+This capability merges `origin/main` into the current branch, verifies the
+change, and returns an [agent result](../results.md#results). Requested local
+work may be preserved; unrelated branch convergence and remote mutation are
+outside the capability. Concurrent repository mutation and recovery from an
+interrupted run are also outside the capability.
 
 ## Authority
 
@@ -56,9 +57,21 @@ the result without rolling back the merge.
 
 ## Result
 
-The result is `up-to-date`, `fast-forwarded`, `merged`, `conflicted`,
-`verification-failed`, or `restore-conflicted`.
+The result uses this shape:
 
-It reports the destination branch, fixed target, incoming commit count, merge
-form, conflict dispositions, committed corrections, verification outcome,
-preservation outcome, and any manual recovery condition.
+```yaml
+outcome: <up-to-date | fast-forwarded | merged | conflicted | verification-failed | restore-conflicted>
+destination: <branch>
+target: <fixed fetched origin/main commit>
+conflicts: # if any
+  - path: <conflicted path>
+    status: <resolved | unresolved>
+corrections: # if any
+  - summary: <committed integration correction>
+verification: <not-run | passed | failed>
+preservation: <not-needed | pending | restored | restore-conflicted> # if requested
+reason: <manual recovery condition> # if any
+```
+
+`not-needed` means preserve mode found no local work. `pending` means saved work
+awaits integration recovery before it can be restored.

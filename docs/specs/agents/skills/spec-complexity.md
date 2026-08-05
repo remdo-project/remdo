@@ -1,12 +1,13 @@
 # spec-complexity
 
-This skill reports which decisions in one specification create material
-implementation complexity and what simpler specification alternatives exist.
-It remains read-only and does not select or apply an alternative.
+This read-only skill returns an [agent result](../results.md#results) showing
+which decisions in one specification create material implementation complexity
+and what simpler alternatives exist. It does not select or apply an
+alternative.
 
 ## Assessment
 
-The report answers:
+The [report](../results.md#reports) answers:
 
 > Which spec decisions create complexity, and what simpler alternatives exist?
 
@@ -15,69 +16,49 @@ implementation, tests, and Git history. The specification is the current
 [contract owner](../../../documentation.md#ownership) for the behavior under
 assessment.
 
-Each area caused by the specification identifies:
+For each specification-caused area, report the decision, resulting
+implementation mechanism, separate implementation and test estimates, simpler
+specification alternative, and main behavioral tradeoff.
 
-- the specification decision and resulting implementation mechanism;
-- separate implementation and test line estimates;
-- a simpler specification alternative; and
-- the alternative's main behavioral tradeoff.
+Classify areas as `high` when they dominate implementation or test complexity,
+`medium` when they remain substantial but contained, and `low` when they do not
+materially drive the design. Report `low` areas only when the caller requests
+them. Classifications are directional; estimates may overlap. Causal
+attribution matters more than precision: ranges need only show relative cost,
+but repository evidence must connect each mechanism to its assigned
+specification decision.
 
-Classify areas as High when they dominate implementation or test complexity,
-Medium when they remain substantial but contained, and Low when they do not
-materially drive the design. Report Low areas in either section only when the
-caller requests them. Classifications and estimates are directional, and
-estimates may overlap. Causal attribution takes priority over estimate
-precision: line ranges need only show relative cost, but repository evidence
-must connect each mechanism to the specification decision assigned to it.
-
-The report distinguishes substantial implementation complexity that no
-specification decision requires from complexity caused by the specification.
+The report also identifies substantial implementation complexity not required
+by the specification.
 
 ## Result
 
-The report normally stays within 350 words. It favors fewer, broader areas and
-one short paragraph per field. Causal accuracy may exceed this soft limit. It
-omits progress, next steps, verification results, exhaustive code inventories,
-and change narration.
+The result uses this shape:
 
-The report conforms to the repository's Markdown lint rules.
-
-The result uses this structure:
-
-```text
-# Spec complexity: <specification>
-
-## Summary
-
-**Total estimated cost:** <implementation range> implementation lines; <test range> test lines
-<dominant complexity and simplification opportunity>
-
-## Assessed areas
-
-### <area> — <complexity class>
-
-**Estimated cost:** <implementation range> implementation lines; <test range> test lines
-<optional estimate qualification or overlap note>
-
-<specification decision and resulting mechanism>
-
-Simpler alternative: <specification change>
-
-Tradeoff: <behavior lost or delegated>
-
-## Complexity not required by the specification
-
-### <area> — <complexity class>
-
-**Estimated cost:** <implementation range> implementation lines; <test range> test lines
-<optional estimate qualification or overlap note>
-
-<unrequired mechanism>
-
-Simpler boundary: <implementation complexity to remove>
+```yaml
+outcome: <complexity-found | no-material-complexity>
+specification: <path>
+estimated_cost:
+  implementation: <line range>
+  tests: <line range>
+areas: # if any
+  - name: <area>
+    cause: <specification | implementation>
+    complexity: <high | medium | low>
+    estimated_cost:
+      implementation: <line range>
+      tests: <line range>
+    estimate_note: <qualification or overlap> # if needed
+    assessment: <specification decision and mechanism or unrequired mechanism>
+    alternative: <simpler specification or implementation boundary>
+    tradeoff: <behavior lost or delegated> # if cause is specification
 ```
 
-Order areas by complexity class, then by estimated cost. Deduplicate
-overlapping estimates in the summary total. Use `None` when `Assessed areas` is
-empty and omit `Complexity not required by the specification` when it is empty.
-When both are empty, the summary states that no material area was found.
+Deduplicate overlapping estimates in the total.
+
+The report normally stays within 350 words and conforms to the repository's
+Markdown lint rules. It favors fewer, broader areas and one short paragraph per
+area. Causal accuracy may exceed the word limit. It presents
+specification-caused areas before implementation-caused areas and orders each
+group by complexity, then estimated cost. It omits progress, next steps,
+verification results, exhaustive code inventories, and change narration.

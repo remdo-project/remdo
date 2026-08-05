@@ -110,6 +110,39 @@ non-procedural contracts by responsibility in dependency order.
 State owned behavior positively. Retain a negation only when it prevents a
 credible misuse.
 
+### Diagrams
+
+Use a diagram only when it makes an important relationship materially clearer
+than prose. Keep the smallest diagram sufficient to answer its question and
+split views when secondary relationships obscure the primary one. Include only
+relevant states and transitions, but retain critical ownership, safety, and
+rollback boundaries regardless of duration. A diagram has the normative status
+of its surrounding content unless marked illustrative.
+
+When a diagram is primary, it owns the actors, relationships, order, and loops
+it shows; do not restate them. Label steps with activities and transitions with
+the conditions or results that redirect or advance the flow. Use short,
+familiar labels, define unfamiliar markers in an adjacent legend, and never rely
+on color or styling alone. Add bullets or prose only for essential information
+absent from the diagram, surrounding contract, and linked owners; prefer bullets
+when they are equally clear.
+
+For a primary-path flow, left-align its steps on one causal axis and place
+optional, exceptional, and feedback paths to the right. Avoid crossings and use
+return references when complete paths would reduce clarity. Fence plain-text
+diagrams as `text` and use a small, consistent grammar of familiar arrows and
+box-drawing characters.
+
+Draft from the diagram outward:
+
+1. Draw the smallest diagram that answers the document's visual question.
+2. Add an adjacent legend only for symbols that are not self-explanatory.
+3. Add brief run-in bullets only for required information absent from the
+   diagram and linked owners.
+4. Add prose only when neither the diagram, a label, a legend entry, nor a bullet
+   can express the information as clearly.
+5. Remove any text that merely walks through the diagram or mirrors its nodes.
+
 ### Common supporting sections
 
 Reserve these names for their stated responsibilities; name other
