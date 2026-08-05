@@ -25,7 +25,7 @@ truth. Session UI and read-only Yjs
 [user-data projections](../../architecture.md#document-registry) may expose
 their results but do not authorize a request.
 
-The client user-data runtime starts inside the authenticated app. Login,
+The client user-data runtime starts only inside the authenticated app. Login,
 enrollment, offline, logout, and OAuth consent surfaces render outside that
 runtime, including when the surface requires an authenticated session. A
 browser may cache its last validated bootstrap for offline reopen; logout clears
@@ -35,8 +35,9 @@ that cache and local Yjs offline data.
 
 These rules apply to each user authenticated by the server.
 
-Every document has one owner. A new document has no direct grants, and its URL
-only locates it; ownership or a grant authorizes access.
+Every document has one owner. A normal document may have zero or more direct
+grants; a new one has none. Its URL only locates it; ownership or a grant
+authorizes access.
 
 Only the owner can grant a normal document to another local user. Sharing
 identifies the grantee by email; a grant is created only when that email matches
