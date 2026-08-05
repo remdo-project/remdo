@@ -107,26 +107,16 @@ describe('development runtime launchers', () => {
     expect(dockerCalls).toContain('-e CADDY_BIND_DIRECTIVE=bind 0.0.0.0');
   });
 
-  it.each([
-    {
-      label: 'concrete IPv4 address',
-      env: { HOST: '192.0.2.10', PUBLIC_HOST: 'dev-vm' },
-      origin: 'http://dev-vm:4640',
-      bind: '-e CADDY_BIND_DIRECTIVE=bind 192.0.2.10',
-    },
-    {
-      label: 'IPv6 loopback',
-      env: { HOST: '::1', PUBLIC_HOST: '::1' },
-      origin: 'http://[::1]:4640',
-      bind: '-e CADDY_BIND_DIRECTIVE=bind ::1',
-    },
-  ])('preserves a $label Docker gateway bind address', ({ env, origin, bind }) => {
-    const { result, dockerCalls } = runDockerLauncher(env);
+  it('preserves a concrete IPv4 Docker gateway bind address', () => {
+    const { result, dockerCalls } = runDockerLauncher({
+      HOST: '192.0.2.10',
+      PUBLIC_HOST: 'dev-vm',
+    });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain(`Starting private Docker app: ${origin}`);
+    expect(result.stdout).toContain('Starting private Docker app: http://dev-vm:4640');
     expect(dockerCalls).toContain('--network=host');
-    expect(dockerCalls).toContain(bind);
+    expect(dockerCalls).toContain('-e CADDY_BIND_DIRECTIVE=bind 192.0.2.10');
   });
 
   it('rejects rootless host networking before Docker Engine 29.5', () => {

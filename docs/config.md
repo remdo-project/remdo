@@ -42,9 +42,11 @@ internal-only behind the gateway and `PORT` is an independent input: a
 platform-injected value, else `8080`.
 
 **Development origin.** `HOST` controls only the gateway bind address.
+Development host inputs support hostnames and IPv4 addresses; IPv6 literals
+and IPv6 wildcard binding are unsupported.
 `PUBLIC_HOST` controls the hostname in browser-visible URLs and defaults to
-`HOST`. When `HOST` is `0.0.0.0` or `::`, `PUBLIC_HOST` instead defaults to the
-machine hostname; an empty or localhost machine hostname requires an explicit
+`HOST`. When `HOST` is `0.0.0.0`, `PUBLIC_HOST` instead defaults to the machine
+hostname; an empty or localhost machine hostname requires an explicit
 `PUBLIC_HOST`. `APP_PUBLIC_URL` derives as
 `http://<PUBLIC_HOST>:<PORT>`.
 

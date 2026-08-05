@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import { formatUrlHost, isWildcardHost } from '../../src/platform/net/host';
+import { isWildcardHost } from '../../src/platform/net/host';
 import { deriveAuthTrustedOrigins } from './auth-origins';
 import type { ClientKey, EnvKey } from './schema';
 import { CLIENT_KEY_LIST, envSchema } from './schema';
@@ -41,12 +41,11 @@ function parseEnv(getValue: EnvGetter): ParsedEnv {
   return Object.fromEntries(entries) as ParsedEnv;
 }
 
-function formatPublicHost(host: string): string {
-  const formatted = formatUrlHost(host);
-  if (!formatted || /[\s/?#@]/u.test(host) || !URL.canParse(`http://${formatted}:1`)) {
-    throw new TypeError('PUBLIC_HOST must be a bare hostname or IP address.');
+function validateDevHost(host: string): string {
+  if (!host || /[\s:/?#@]/u.test(host) || !URL.canParse(`http://${host}:1`)) {
+    throw new TypeError('HOST and PUBLIC_HOST must be a bare hostname or IPv4 address.');
   }
-  return formatted;
+  return host;
 }
 
 function resolveDevPublicHost(parsed: ParsedEnv, machineHostname: string): string {
@@ -79,7 +78,7 @@ function resolveAppPublicUrl(
   if (!parsed.HOST || parsed.PORT === 0) {
     return '';
   }
-  return `http://${formatPublicHost(resolveDevPublicHost(parsed, machineHostname))}:${parsed.PORT}`;
+  return `http://${validateDevHost(resolveDevPublicHost(parsed, machineHostname))}:${parsed.PORT}`;
 }
 
 function validateProdServer(parsed: ParsedEnv): void {

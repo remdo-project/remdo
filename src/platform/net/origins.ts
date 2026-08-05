@@ -1,10 +1,10 @@
 import { config } from '#config';
-import { formatUrlHost, resolveLoopbackHost } from './host';
+import { resolveLoopbackHost } from './host';
 
 export const INTERNAL_SERVICE_HOST = '127.0.0.1';
 
 function createHttpOrigin(host: string, port: number): string {
-  return `http://${formatUrlHost(host)}:${port}`;
+  return `http://${host}:${port}`;
 }
 
 export function resolveLocalGatewayOrigin(): string {

@@ -62,16 +62,6 @@ describe('config env resolve', () => {
     expect(resolved.server.APP_PUBLIC_URL).toBe('http://dev-vm:4000');
   });
 
-  it('uses the machine hostname when local services bind all IPv6 interfaces', () => {
-    const resolved = resolveTestConfig({
-      NODE_ENV: 'development',
-      HOST: '::',
-      PORT: '4000',
-    }, { machineHostname: 'dev-vm' });
-
-    expect(resolved.server.APP_PUBLIC_URL).toBe('http://dev-vm:4000');
-  });
-
   it('uses PUBLIC_HOST outside production and ignores production APP_PUBLIC_URL input', () => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'test',
@@ -82,17 +72,6 @@ describe('config env resolve', () => {
     });
 
     expect(resolved.server.APP_PUBLIC_URL).toBe('http://browser-visible.test:4000');
-  });
-
-  it('formats an IPv6 PUBLIC_HOST for use in a URL', () => {
-    const resolved = resolveTestConfig({
-      NODE_ENV: 'development',
-      HOST: '::',
-      PUBLIC_HOST: '2001:db8::1',
-      PORT: '4000',
-    });
-
-    expect(resolved.server.APP_PUBLIC_URL).toBe('http://[2001:db8::1]:4000');
   });
 
   it('uses APP_PUBLIC_URL as the canonical production URL', () => {
@@ -134,7 +113,18 @@ describe('config env resolve', () => {
       HOST: '127.0.0.1',
       PUBLIC_HOST: 'https://dev.example.test',
       PORT: '4000',
-    })).toThrow('PUBLIC_HOST must be a bare hostname or IP address');
+    })).toThrow('HOST and PUBLIC_HOST must be a bare hostname or IPv4 address');
+  });
+
+  it.each([
+    { HOST: '::1' },
+    { HOST: '127.0.0.1', PUBLIC_HOST: '2001:db8::1' },
+  ])('rejects IPv6 development host inputs: %o', (hostInputs) => {
+    expect(() => resolveTestConfig({
+      NODE_ENV: 'development',
+      PORT: '4000',
+      ...hostInputs,
+    })).toThrow('HOST and PUBLIC_HOST must be a bare hostname or IPv4 address');
   });
 
   it('restricts auth trusted origins to the public origin in production', () => {
