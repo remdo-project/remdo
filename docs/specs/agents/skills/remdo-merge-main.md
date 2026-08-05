@@ -74,10 +74,11 @@ conflicts: # if any
 corrections: # if any
   - summary: <committed integration correction>
 verification: <not-run | passed | failed> # if merge form determined
-preservation: <not-needed | pending | restored | restore-conflicted> # if requested and known
+preservation: <not-needed | untouched | pending | restored | restore-conflicted> # if requested and known
 saved_work: <stash commit> # if retained
 reason: <stop or manual recovery condition> # if any
 ```
 
-`not-needed` means preserve mode found no local work. `pending` means saved work
-awaits integration recovery before it can be restored.
+`not-needed` means preserve mode found no local work. `untouched` means an
+unchanged branch left local work in place. `pending` means saved work awaits
+integration recovery before it can be restored.
