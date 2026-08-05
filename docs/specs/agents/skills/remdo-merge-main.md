@@ -60,23 +60,23 @@ the result without rolling back the merge.
 The result uses this shape:
 
 ```yaml
-outcome: <up-to-date | fast-forwarded | merged | conflicted | verification-failed | restore-conflicted>
+outcome: <up-to-date | fast-forwarded | merged | conflicted | verification-failed | restore-conflicted | stopped>
 concerns: # if any
   - source: <originating capability or participant>
     summary: <condition>
-destination: <branch>
-target: <fixed fetched origin/main commit>
-incoming_commits: <count>
-merge_form: <up-to-date | fast-forward | merge-commit>
+destination: <branch> # if resolved
+target: <fixed fetched origin/main commit> # if fetched
+incoming_commits: <count> # if target resolved
+merge_form: <up-to-date | fast-forward | merge-commit> # if determined
 conflicts: # if any
   - path: <conflicted path>
     status: <resolved | unresolved>
 corrections: # if any
   - summary: <committed integration correction>
-verification: <not-run | passed | failed>
-preservation: <not-needed | pending | restored | restore-conflicted> # if requested
+verification: <not-run | passed | failed> # if merge form determined
+preservation: <not-needed | pending | restored | restore-conflicted> # if requested and known
 saved_work: <stash commit> # if retained
-reason: <manual recovery condition> # if any
+reason: <stop or manual recovery condition> # if any
 ```
 
 `not-needed` means preserve mode found no local work. `pending` means saved work

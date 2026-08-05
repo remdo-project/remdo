@@ -102,11 +102,11 @@ concerns: # if any
 degraded: true # if degraded
 scope: <requested and resolved scope, no-change, or resolution failure>
 reason: <condition that stopped verification> # if stopped
-checks:
+checks: # if outcome is not stopped or checks caused it
   - command: <command>
     status: <passed | failed | not-run>
     details: <failure evidence or reason not run> # if failed or not-run
-reviews:
+reviews: # if outcome is not stopped or a review caused it
   - source: <codex | claude>
     status: <completed | unavailable | failed | not-run>
     details: <complete report, failure evidence, or reason not run>
