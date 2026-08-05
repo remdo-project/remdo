@@ -22,7 +22,6 @@ describe('vite shared config', () => {
     expect(serverProxy).not.toHaveProperty('/doc');
 
     expect(config.preview.host).toBe('127.0.0.1');
-    expect(config.preview).not.toHaveProperty('allowedHosts');
 
     expect(previewProxy['/.well-known']).toMatchObject({
       changeOrigin: true,

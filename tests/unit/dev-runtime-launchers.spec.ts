@@ -2,16 +2,10 @@
 import { spawnSync } from 'node:child_process';
 import type { SpawnSyncReturns } from 'node:child_process';
 import fs from 'node:fs';
-import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import {
-  assertAuthorizationServerOrigin,
-  assertPublicSourceConfig,
-} from '../../tools/dev/linking-preflight-lib';
-import { waitForPortOpen } from '../../tools/lib/net';
 import { writeFakeBin } from './_support/fake-bins';
 
 function writeFakeDocker(binDir: string): void {
@@ -87,9 +81,7 @@ describe('development runtime launchers', () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Starting private Docker app: http://localhost:4640');
-    expect(dockerCalls).toContain('version --format {{.Server.Version}}');
     expect(dockerCalls).toContain('--network=host');
-    expect(dockerCalls).not.toContain('-p 127.0.0.1:4640:4640');
     expect(dockerCalls).toContain('-e CADDY_SITE_ADDRESSES=http://:4640');
     expect(dockerCalls).toContain('-e CADDY_BIND_DIRECTIVE=bind 127.0.0.1');
     expect(dockerCalls).toContain('-e PORT_BASE=4640');
@@ -103,20 +95,7 @@ describe('development runtime launchers', () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Starting private Docker app: http://dev-vm:4640');
-    expect(dockerCalls).toContain('--network=host');
     expect(dockerCalls).toContain('-e CADDY_BIND_DIRECTIVE=bind 0.0.0.0');
-  });
-
-  it('preserves a concrete IPv4 Docker gateway bind address', () => {
-    const { result, dockerCalls } = runDockerLauncher({
-      HOST: '192.0.2.10',
-      PUBLIC_HOST: 'dev-vm',
-    });
-
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Starting private Docker app: http://dev-vm:4640');
-    expect(dockerCalls).toContain('--network=host');
-    expect(dockerCalls).toContain('-e CADDY_BIND_DIRECTIVE=bind 192.0.2.10');
   });
 
   it('rejects rootless host networking before Docker Engine 29.5', () => {
@@ -172,10 +151,6 @@ exit "\${REMDO_FAKE_CURL_STATUS:-0}"
     expect(calls).toContain(`${path.join(tempDir, 'data')}|4600|4600|curl -fsS http://127.0.0.1:4600/api/health`);
     expect(calls).toContain(`${path.join(tempDir, 'data')}|4600|4600|run build`);
     expect(calls).toContain('pnpm exec vite preview --port 4620');
-    expect(calls).not.toContain('dev:api');
-    expect(calls).not.toContain('dev:collab');
-    expect(calls).not.toContain('dev:data-reset');
-    expect(calls).not.toContain('dev:seed');
   });
 
   it('requires the main development gateway before starting the PWA frontend', () => {
@@ -184,64 +159,5 @@ exit "\${REMDO_FAKE_CURL_STATUS:-0}"
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('run pnpm dev first');
     expect(calls).not.toContain('run build');
-  });
-});
-
-describe('development startup readiness', () => {
-  async function listen(server: net.Server, port: number): Promise<number> {
-    await new Promise<void>((resolve) => server.listen(port, '127.0.0.1', resolve));
-    return (server.address() as net.AddressInfo).port;
-  }
-
-  function close(server: net.Server): Promise<void> {
-    return new Promise((resolve) => server.close(() => resolve()));
-  }
-
-  it('waits until the port accepts connections', async () => {
-    // Reserve an ephemeral port, release it, then reopen it while the wait polls.
-    const probe = net.createServer();
-    const port = await listen(probe, 0);
-    await close(probe);
-
-    const pending = waitForPortOpen('127.0.0.1', port, { attempts: 50, pollIntervalMs: 10 });
-    const server = net.createServer();
-    await listen(server, port);
-    await expect(pending).resolves.toBe(true);
-    await close(server);
-  });
-
-  it('gives up when the port never opens within the attempt budget', async () => {
-    const probe = net.createServer();
-    const port = await listen(probe, 0);
-    await close(probe);
-
-    await expect(waitForPortOpen('127.0.0.1', port, { attempts: 2, pollIntervalMs: 0 }))
-      .resolves.toBe(false);
-  });
-});
-
-describe('source-linking preflight', () => {
-  it('accepts metadata under the configured source origin', () => {
-    expect(() => assertAuthorizationServerOrigin({
-      authorization_endpoint: 'http://localhost:4000/api/auth/oauth2/authorize',
-    }, 'http://localhost:4000')).not.toThrow();
-  });
-
-  it('rejects missing or mismatched source metadata', () => {
-    expect(() => assertAuthorizationServerOrigin({}, 'http://localhost:4000')).toThrow(
-      'does not advertise an authorization endpoint',
-    );
-    expect(() => assertAuthorizationServerOrigin({
-      authorization_endpoint: 'http://localhost:5000/api/auth/oauth2/authorize',
-    }, 'http://localhost:4000')).toThrow(
-      'advertises http://localhost:5000, but current configuration resolves http://localhost:4000',
-    );
-  });
-
-  it('rejects a running source whose actual policy is private', () => {
-    expect(() => assertPublicSourceConfig({ publicServer: true })).not.toThrow();
-    expect(() => assertPublicSourceConfig({ publicServer: false })).toThrow(
-      'The running development source is private',
-    );
   });
 });

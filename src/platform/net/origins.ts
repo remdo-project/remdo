@@ -1,5 +1,4 @@
 import { config } from '#config';
-import { resolveLoopbackHost } from './host';
 
 export const INTERNAL_SERVICE_HOST = '127.0.0.1';
 
@@ -8,7 +7,8 @@ function createHttpOrigin(host: string, port: number): string {
 }
 
 export function resolveLocalGatewayOrigin(): string {
-  return createHttpOrigin(resolveLoopbackHost(config.env.HOST), config.env.PORT);
+  const host = config.env.HOST === '0.0.0.0' ? INTERNAL_SERVICE_HOST : config.env.HOST;
+  return createHttpOrigin(host, config.env.PORT);
 }
 
 export function resolveApiServerOrigin(): string {

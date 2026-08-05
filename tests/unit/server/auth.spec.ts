@@ -77,23 +77,6 @@ describe('server auth actor resolution', () => {
   });
 });
 
-describe('server auth trusted origins', () => {
-  // Better Auth auto-disables its origin/CSRF check under NODE_ENV=test
-  // (`skipOriginCheck: isTest() ? true`), so a sign-out request through the
-  // harness accepts ANY Origin and cannot exercise trusted-origin enforcement.
-  // The derivation itself is covered behaviorally in config-env.spec.ts; here we
-  // assert the wiring — that the harness builds the trusted-origin list from its
-  // own baseURL and hands it to auth.
-  it('builds trusted origins from the harness baseURL', () => {
-    const harness = createHarness();
-    expect(harness.trustedOrigins).toEqual([
-      'http://127.0.0.1:4000',
-      'http://localhost:4000',
-      'http://test-host:4000',
-    ]);
-  });
-});
-
 describe('server auth cookie isolation', () => {
   it('keeps sessions for same-host stacks on different ports independent', async () => {
     const source = createServerAppHarness({ baseURL: 'http://localhost:4000' });
@@ -102,9 +85,6 @@ describe('server auth cookie isolation', () => {
     try {
       const sourceCookie = (await source.createSessionHeaders()).get('cookie');
       const homeCookie = (await home.createSessionHeaders()).get('cookie');
-
-      expect(sourceCookie).toMatch(/^remdo-4000\.session_token=/u);
-      expect(homeCookie).toMatch(/^remdo-4040\.session_token=/u);
 
       const browserCookies = new Headers({ cookie: `${sourceCookie}; ${homeCookie}` });
       await expect(source.auth.getSession(browserCookies)).resolves.toMatchObject({

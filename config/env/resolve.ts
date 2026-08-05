@@ -1,5 +1,4 @@
 import type { z } from 'zod';
-import { isWildcardHost } from '../../src/platform/net/host';
 import { deriveAuthTrustedOrigins } from './auth-origins';
 import type { ClientKey, EnvKey } from './schema';
 import { CLIENT_KEY_LIST, envSchema } from './schema';
@@ -52,7 +51,7 @@ function resolveDevPublicHost(parsed: ParsedEnv, machineHostname: string): strin
   if (parsed.PUBLIC_HOST) {
     return parsed.PUBLIC_HOST;
   }
-  if (!isWildcardHost(parsed.HOST)) {
+  if (parsed.HOST !== '0.0.0.0') {
     return parsed.HOST;
   }
   const normalizedHostname = machineHostname.trim().toLowerCase().replace(/\.$/u, '');
