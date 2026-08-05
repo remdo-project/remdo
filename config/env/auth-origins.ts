@@ -4,14 +4,16 @@
 // inside the auth module.
 //
 // Production is restricted to the single configured public origin. Development
-// additionally trusts the local aliases a developer reaches the app through:
-// localhost / 127.0.0.1 / the machine hostname on the current stack's port.
+// additionally trusts the local aliases a developer reaches the app through,
+// plus the loopback-only PWA preview origin.
 
 interface DeriveAuthTrustedOriginsInput {
   baseURL: string;
   isProduction: boolean;
   /** Machine hostname for dev aliases; omit/empty to skip the hostname alias. */
   hostname?: string;
+  /** Loopback-only PWA preview port. */
+  previewPort?: number;
 }
 
 function appendOrigin(origins: string[], origin: string): void {
@@ -37,6 +39,7 @@ export function deriveAuthTrustedOrigins({
   baseURL,
   isProduction,
   hostname = '',
+  previewPort,
 }: DeriveAuthTrustedOriginsInput): string[] {
   if (baseURL.length === 0) {
     return [];
@@ -54,5 +57,10 @@ export function deriveAuthTrustedOrigins({
   }
 
   appendLocalDevAliases(origins, url.protocol, port, hostname);
+  const previewPortString = previewPort ? String(previewPort) : '';
+  if (previewPortString && previewPortString !== port) {
+    appendOrigin(origins, `${url.protocol}//localhost:${previewPortString}`);
+    appendOrigin(origins, `${url.protocol}//127.0.0.1:${previewPortString}`);
+  }
   return origins;
 }

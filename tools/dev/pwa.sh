@@ -3,7 +3,7 @@
 set -eu
 
 ROOT_DIR="$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)"
-PWA_PORT="$("${ROOT_DIR}/tools/env.sh" --port-base-offset 20 sh -c 'printf %s "${PORT}"')"
+PWA_PORT="$("${ROOT_DIR}/tools/env.sh" sh -c 'printf %s "${PREVIEW_PORT}"')"
 MAIN_GATEWAY="$("${ROOT_DIR}/tools/env.sh" pnpm exec tsx ./tools/dev/print-local-gateway-origin.ts)"
 export MAIN_GATEWAY PWA_PORT
 

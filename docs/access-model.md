@@ -85,6 +85,10 @@ secret affects existing admin accounts or only future enrollment.
   cross-origin credentialed app APIs, cross-subdomain mutation flows, non-JSON
   mutation bodies, or `SameSite=None` cookies requires re-auditing this
   boundary.
+- In development, Better Auth trusts the app's [canonical public origin and local
+  aliases](./config.md#derivation-rules) plus the loopback PWA preview origin.
+  Preview requests retain their browser-supplied `Origin`, so unrelated origins
+  remain rejected.
 - A server's canonical public port namespaces its Better Auth cookies. Local
   stacks on shifted port ranges can therefore keep independent sessions while
   sharing one browser hostname.

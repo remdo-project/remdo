@@ -40,9 +40,12 @@ pnpm run dev
 - **Starts:** the web app and collaboration server.
 - **Prepares:** stable Alice and Bob accounts and seeded fixture documents.
 
-Open the URL printed by Vite, sign in with a credential from
+Open the canonical URL for the stack, sign in with a credential from
 [`stable-auth-users.ts`](../../../tools/lib/stable-auth-users.ts), and choose a
-document named `fixture: <fixture-name>`.
+document named `fixture: <fixture-name>`. With the default `HOST`, use Vite's
+Local URL. With `HOST=0.0.0.0`, use the machine hostname or explicit
+`PUBLIC_HOST` from the [development origin](../../config.md#derivation-rules),
+not one of Vite's interface-IP Network URLs.
 
 ### Reset Development Data
 

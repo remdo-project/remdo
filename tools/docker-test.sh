@@ -371,11 +371,10 @@ bootstrap_fail() {
   exit 1
 }
 
-# Set the distinct bootstrap gateway port. Pass ONLY ADMIN_SECRET
-# (+ APP_PUBLIC_URL, HOST, PORT_BASE, PORT). AUTH_SECRET and the
+# Pass ONLY ADMIN_SECRET (+ APP_PUBLIC_URL, HOST, PORT_BASE, PORT). AUTH_SECRET and the
 # Y-Sweet pair are intentionally absent so the entrypoint bootstrap generates and
 # persists them under the mounted /data/secrets.
-PORT="${BOOTSTRAP_PORT}" remdo_docker_run "${IMAGE_NAME}" "${BOOTSTRAP_DATA_DIR}" \
+remdo_docker_run "${IMAGE_NAME}" "${BOOTSTRAP_DATA_DIR}" \
   -d --name "${BOOTSTRAP_CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
   -e ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
   -e APP_PUBLIC_URL="${BOOTSTRAP_APP_PUBLIC_URL}" \

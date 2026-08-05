@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import { config as runtimeConfig } from '../../config';
 import { isApiRequestPath } from '../../config/vite/remdo-api-dev-plugin';
 import { createViteSharedConfig, pwaNavigationFallbackDenylist } from '../../config/vite/shared';
 import { resolveLocalGatewayOrigin } from '../../src/platform/net/origins';
@@ -25,22 +24,22 @@ describe('vite shared config', () => {
 
     expect(previewProxy['/.well-known']).toMatchObject({
       changeOrigin: true,
-      headers: { origin: runtimeConfig.env.APP_PUBLIC_URL },
       target: resolveLocalGatewayOrigin(),
       xfwd: true,
     });
+    expect(previewProxy['/.well-known']).not.toHaveProperty('headers');
     expect(previewProxy['/api']).toMatchObject({
       changeOrigin: true,
-      headers: { origin: runtimeConfig.env.APP_PUBLIC_URL },
       target: resolveLocalGatewayOrigin(),
       xfwd: true,
     });
+    expect(previewProxy['/api']).not.toHaveProperty('headers');
     expect(previewProxy['/d']).toMatchObject({
       changeOrigin: true,
-      headers: { origin: runtimeConfig.env.APP_PUBLIC_URL },
       target: resolveLocalGatewayOrigin(),
       ws: true,
     });
+    expect(previewProxy['/d']).not.toHaveProperty('headers');
     expect(previewProxy).not.toHaveProperty('/doc');
   });
 
@@ -54,7 +53,7 @@ describe('vite shared config', () => {
     expect(isDenied('/documents')).toBe(false);
   });
 
-  it('routes preview traffic locally while preserving the canonical public origin', async () => {
+  it('routes preview traffic locally without replacing the browser origin', async () => {
     vi.stubEnv('HOST', '0.0.0.0');
     vi.stubEnv('PUBLIC_HOST', 'browser-visible.test');
     vi.resetModules();
@@ -68,9 +67,9 @@ describe('vite shared config', () => {
 
       expect(config.env.APP_PUBLIC_URL).toBe(`http://browser-visible.test:${config.env.PORT}`);
       expect(previewProxy['/api']).toMatchObject({
-        headers: { origin: config.env.APP_PUBLIC_URL },
         target: `http://127.0.0.1:${config.env.PORT}`,
       });
+      expect(previewProxy['/api']).not.toHaveProperty('headers');
     } finally {
       vi.unstubAllEnvs();
       vi.resetModules();

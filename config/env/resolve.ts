@@ -59,6 +59,7 @@ function resolveDevPublicHost(parsed: ParsedEnv, machineHostname: string): strin
     !normalizedHostname
     || normalizedHostname === 'localhost'
     || normalizedHostname === 'localhost.localdomain'
+    || normalizedHostname === 'localdomain'
   ) {
     throw new Error(
       'PUBLIC_HOST is required when HOST binds all interfaces and the machine hostname is not browser-visible.',
@@ -77,6 +78,7 @@ function resolveAppPublicUrl(
   if (!parsed.HOST || parsed.PORT === 0) {
     return '';
   }
+  validateDevHost(parsed.HOST);
   return `http://${validateDevHost(resolveDevPublicHost(parsed, machineHostname))}:${parsed.PORT}`;
 }
 
@@ -146,6 +148,7 @@ export function resolveConfig(
       baseURL: appPublicUrl,
       isProduction: parsed.NODE_ENV === 'production',
       hostname: machineHostname,
+      previewPort: parsed.PREVIEW_PORT,
     }),
   };
   const client = pickClientEnv(server);

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   assertAuthorizationServerOrigin,
   assertPublicSourceConfig,
+  fetchSourceJson,
 } from '../../tools/dev/linking-preflight-lib';
 
 describe('source-linking preflight', () => {
@@ -27,5 +28,21 @@ describe('source-linking preflight', () => {
     expect(() => assertPublicSourceConfig({ publicServer: false })).toThrow(
       'The running development source is private',
     );
+  });
+
+  it('reports the failing source endpoint for transport and JSON errors', async () => {
+    const sourceConfigUrl = new URL('http://localhost:4000/api/config');
+
+    await expect(fetchSourceJson(
+      sourceConfigUrl,
+      'Development source config',
+      () => Promise.reject(new Error('connection reset')),
+    )).rejects.toThrow(`Development source config is not reachable at ${sourceConfigUrl}`);
+
+    await expect(fetchSourceJson(
+      sourceConfigUrl,
+      'Development source config',
+      () => Promise.resolve(new Response('not json')),
+    )).rejects.toThrow(`Development source config returned invalid JSON at ${sourceConfigUrl}`);
   });
 });

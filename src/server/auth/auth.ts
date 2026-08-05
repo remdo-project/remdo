@@ -237,6 +237,7 @@ export function createServerAuth({
     baseURL,
     isProduction: config.isProd,
     hostname: config.server.MACHINE_HOSTNAME,
+    previewPort: config.env.PREVIEW_PORT,
   });
 
   const auth = createBetterAuthInstance({

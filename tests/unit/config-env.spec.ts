@@ -85,27 +85,33 @@ describe('config env resolve', () => {
     expect(resolved.server.APP_PUBLIC_URL).toBe('https://remdo.example.com');
   });
 
-  it('derives dev auth trusted origins for the current stack port', () => {
+  it('derives dev auth trusted origins for the gateway and loopback preview', () => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'development',
       HOST: '127.0.0.1',
       PORT: '4000',
+      PREVIEW_PORT: '4020',
     }, { machineHostname: 'dev-vm' });
 
     expect(resolved.server.AUTH_TRUSTED_ORIGINS).toEqual([
       'http://127.0.0.1:4000',
       'http://localhost:4000',
       'http://dev-vm:4000',
+      'http://localhost:4020',
+      'http://127.0.0.1:4020',
     ]);
   });
 
-  it('fails clearly when wildcard binding has no browser-visible hostname', () => {
-    expect(() => resolveTestConfig({
-      NODE_ENV: 'development',
-      HOST: '0.0.0.0',
-      PORT: '4000',
-    }, { machineHostname: 'localhost' })).toThrow('PUBLIC_HOST is required when HOST binds all interfaces');
-  });
+  it.each(['', 'localhost', 'localhost.localdomain', 'localdomain'])(
+    'fails clearly when wildcard binding has no browser-visible hostname: %s',
+    (machineHostname) => {
+      expect(() => resolveTestConfig({
+        NODE_ENV: 'development',
+        HOST: '0.0.0.0',
+        PORT: '4000',
+      }, { machineHostname })).toThrow('PUBLIC_HOST is required when HOST binds all interfaces');
+    },
+  );
 
   it('rejects a URL-shaped PUBLIC_HOST', () => {
     expect(() => resolveTestConfig({
@@ -118,6 +124,7 @@ describe('config env resolve', () => {
 
   it.each([
     { HOST: '::1' },
+    { HOST: '::1', PUBLIC_HOST: 'browser-visible.test' },
     { HOST: '127.0.0.1', PUBLIC_HOST: '2001:db8::1' },
   ])('rejects IPv6 development host inputs: %o', (hostInputs) => {
     expect(() => resolveTestConfig({
@@ -292,7 +299,7 @@ describe('config env resolve', () => {
   it('recomputes every derived dev port instead of inheriting stale values', () => {
     const output = execFileSync(
       './tools/env.sh',
-      ['sh', '-c', 'printf \'%s\\n\' "$PORT" "$VITEST_PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT" "$YSWEET_CONNECTION_STRING"'],
+      ['sh', '-c', 'printf \'%s\\n\' "$PORT" "$VITEST_PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT" "$PREVIEW_PORT" "$YSWEET_CONNECTION_STRING"'],
       {
         encoding: 'utf8',
         env: {
@@ -303,6 +310,7 @@ describe('config env resolve', () => {
           VITEST_PORT: '9002',
           COLLAB_SERVER_PORT: '9004',
           API_SERVER_PORT: '9011',
+          PREVIEW_PORT: '9020',
           YSWEET_CONNECTION_STRING: 'ys://127.0.0.1:9004',
         },
       },
@@ -313,6 +321,7 @@ describe('config env resolve', () => {
       '4302',
       '4304',
       '4311',
+      '4320',
       'ys://127.0.0.1:4304',
     ]);
   });

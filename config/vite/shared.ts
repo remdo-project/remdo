@@ -27,7 +27,6 @@ const devProxy = {
 const mainGatewayProxy = {
   target: mainGatewayTarget,
   changeOrigin: true,
-  headers: { origin: config.env.APP_PUBLIC_URL },
 } as const;
 const previewProxy = {
   '/.well-known': {

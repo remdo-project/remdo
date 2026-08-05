@@ -6,6 +6,7 @@ import type { AuthorizationServerMetadata } from './linking-preflight-lib';
 import {
   assertAuthorizationServerOrigin,
   assertPublicSourceConfig,
+  fetchSourceJson,
 } from './linking-preflight-lib';
 
 async function main(): Promise<void> {
@@ -14,25 +15,18 @@ async function main(): Promise<void> {
   }
 
   const metadataUrl = new URL('/.well-known/oauth-authorization-server', config.env.APP_PUBLIC_URL);
-  let response: Response;
-  try {
-    response = await fetch(metadataUrl, { signal: AbortSignal.timeout(5000) });
-  } catch {
-    throw new Error(`No development source is reachable at ${config.env.APP_PUBLIC_URL}. Start pnpm dev first.`);
-  }
-  if (!response.ok) {
-    throw new Error(`Development source metadata returned HTTP ${response.status} at ${metadataUrl}.`);
-  }
-
-  const metadata = await response.json() as AuthorizationServerMetadata;
+  const metadata = await fetchSourceJson<AuthorizationServerMetadata>(
+    metadataUrl,
+    'Development source metadata',
+  );
   assertAuthorizationServerOrigin(metadata, config.env.APP_PUBLIC_URL);
 
   const sourceConfigUrl = new URL('/api/config', config.env.APP_PUBLIC_URL);
-  const sourceConfigResponse = await fetch(sourceConfigUrl, { signal: AbortSignal.timeout(5000) });
-  if (!sourceConfigResponse.ok) {
-    throw new Error(`Development source config returned HTTP ${sourceConfigResponse.status} at ${sourceConfigUrl}.`);
-  }
-  assertPublicSourceConfig(await sourceConfigResponse.json() as { publicServer?: unknown });
+  const sourceConfig = await fetchSourceJson<{ publicServer?: unknown }>(
+    sourceConfigUrl,
+    'Development source config',
+  );
+  assertPublicSourceConfig(sourceConfig);
   console.info(`Source: ${config.env.APP_PUBLIC_URL}`);
 }
 
