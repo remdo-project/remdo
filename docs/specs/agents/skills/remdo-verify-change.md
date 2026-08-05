@@ -97,7 +97,7 @@ The verifier's result uses this shape:
 ```yaml
 outcome: <clean | findings | no-change | stopped>
 concerns: # if any
-  - source: <codex | claude>
+  - source: <originating capability or participant>
     summary: <condition>
 degraded: true # if degraded
 scope: <requested and resolved scope, no-change, or resolution failure>

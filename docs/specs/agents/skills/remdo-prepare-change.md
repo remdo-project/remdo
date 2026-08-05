@@ -70,8 +70,10 @@ Legend:
 - **Convergence.** [`remdo-converge-change`](remdo-converge-change.md) runs as a
   black box over the complete [change scope](../change-scope.md). Before it
   runs, the coordinator makes all adopted committed and uncommitted work
-  representable as one supported scope. Developer review requires a `converged`
-  result that applies no corrections after the latest simplification.
+  representable as one supported scope. If that requires repository authority
+  the coordinator does not hold, it surfaces a concern and does not start
+  convergence. Developer review requires a `converged` result that applies no
+  corrections after the latest simplification.
 - **Handoff.** The coordinator's [report](../results.md#reports) includes the
   exact scope, approved target behavior and its contract owners, verification
   result, unhandled concerns, tracked gaps, and specific manual review needs. It
