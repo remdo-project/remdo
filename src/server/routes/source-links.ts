@@ -17,7 +17,8 @@ export function createSourceLinkRoutes(dependencies: ServerRouteDependencies) {
 
   routes.post('/source-links', async (c) => {
     // A public server acts only as a source and refuses to initiate linking (see
-    // docs/access-model.md): this confines linking's outbound-fetch (SSRF) surface
+    // docs/specs/access/source-linking.md): this confines linking's outbound-fetch
+    // (SSRF) surface
     // to private homes, whose users are the operator's own.
     if (auth.allowSignup) {
       return c.json({ error: 'A public server does not link to sources.' }, HTTP_STATUS.FORBIDDEN);
