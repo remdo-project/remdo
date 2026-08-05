@@ -40,7 +40,7 @@ retain their contracts.
     ├─ requirements feedback ─> ↩ quick dialogue
     ├─ spec feedback ─────────> ↩ prepare spec
     ├─ implementation feedback ─> ↩ implement spec
-    └─ accepted ────────────────> [complete]
+    └─ accepted ────────────────> [completed]
 ```
 
 Legend:
@@ -102,7 +102,14 @@ concerns: # if any
   - source: <originating capability or participant>
     summary: <condition>
 scope: <complete change scope> # if resolved
-verification: <complete remdo-converge-change result> # if run
+target_behavior: # if approved
+  - summary: <approved behavior>
+    owner: <contract path>
+convergence: <complete remdo-converge-change result> # if run
+tracked_gaps: # if any
+  - <gap>
+manual_review: # if any
+  - <specific need>
 reason: <condition that stopped preparation> # if stopped
 ```
 

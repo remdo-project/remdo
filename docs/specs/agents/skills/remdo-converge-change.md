@@ -28,7 +28,8 @@ Before committing or re-verifying, the skill checks the correction batch
 against every applicable authoritative contract.
 
 After applying all determined corrections from one verification, the skill runs
-complete verification again. It does not re-verify unchanged state and
+complete verification again. It does not re-verify unchanged state and stops
+with a concern before revisiting a state verified in the current run. It
 continues with available evidence when [verification is
 degraded](remdo-verify-change.md#result).
 
@@ -67,9 +68,8 @@ findings: # if any
 reason: <condition that prevented or stopped convergence> # if not converged or stopped
 ```
 
-`not-converged` means completed verification left a determined correction that
-could not be applied. `stopped` means scope resolution or verification did not
-complete.
+`not-converged` means completed verification left a determined correction
+unapplied. `stopped` means scope resolution or verification did not complete.
 
 ## Future
 

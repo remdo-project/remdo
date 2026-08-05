@@ -93,7 +93,7 @@ in `concerns`, but does not stop verification or alone change `clean` to
 `findings`. Every non-rejected finding also appears in `concerns`.
 
 A stopped result includes the failed phase's evidence and completed preceding
-phases.
+phases. Reviews blocked by an earlier phase are omitted, not `unavailable`.
 
 The verifier's result uses this shape:
 
