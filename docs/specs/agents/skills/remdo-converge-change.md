@@ -69,7 +69,7 @@ reason: <condition that prevented or stopped convergence> # if not converged or 
 ```
 
 `not-converged` means completed verification left a determined correction
-unapplied. `stopped` means scope resolution or verification did not complete.
+unapplied. `stopped` means any other condition prevented convergence.
 
 ## Future
 
