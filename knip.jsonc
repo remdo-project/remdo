@@ -12,6 +12,7 @@
   "ignoreUnresolved": [
     // Shell scripts invoked at runtime via spawnSync/execFileSync from specs, not module imports.
     "./tools/env.sh",
+    "./tools/dev/pwa.sh",
     "./tools/prod/docker.sh"
   ],
   // Skill bodies live once under `.agents/skills`; the `.claude` skill dirs are

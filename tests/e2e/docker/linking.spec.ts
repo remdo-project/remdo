@@ -1,27 +1,19 @@
 import { expect, guardedTest as test, setExpectedConsoleIssues } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { Buffer } from 'node:buffer';
-import process from 'node:process';
-import { config } from '#config';
-import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
+import { DOCKER_TEST_AUTH } from '#tools/docker-test-auth';
 import { waitForEditableEditor } from './_support/helpers';
+import { homeOrigin, sourceOrigin } from './_support/origins';
 
-// The source's single origin, shared by the container home and the browser (see
-// playwright.docker.config.ts). The home derives the source id from it.
-// eslint-disable-next-line node/no-process-env -- the Docker runner sets the source origin.
-const sourceOrigin = process.env.REMDO_E2E_SOURCE_ORIGIN ?? `http://localhost:${config.env.PORT}`;
-const homeOrigin = config.env.APP_PUBLIC_URL;
 // The home derives a source's id from its origin (base64url), same as the server.
 const sourceServerId = Buffer.from(sourceOrigin, 'utf8').toString('base64url');
 const sourceHost = new URL(sourceOrigin).host;
-
-type StableUser = (typeof STABLE_AUTH_USERS)[keyof typeof STABLE_AUTH_USERS];
 
 function buildUrl(origin: string, path: string): string {
   return new URL(path, origin).toString();
 }
 
-async function signInWithVisibleForm(page: Page, user: StableUser): Promise<void> {
+async function signInWithVisibleForm(page: Page, user: typeof DOCKER_TEST_AUTH): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   await page.getByLabel('Email').fill(user.email);
   await page.getByRole('textbox', { name: 'Password' }).fill(user.password);
@@ -48,7 +40,7 @@ test('links a source by URL and opens its Home document', async ({ page }) => {
   const consentButton = page.getByRole('button', { name: /allow|authorize|approve|consent/iu });
   await loginHeading.or(consentButton).first().waitFor({ state: 'visible' });
   if (await loginHeading.isVisible()) {
-    await signInWithVisibleForm(page, STABLE_AUTH_USERS.bob);
+    await signInWithVisibleForm(page, DOCKER_TEST_AUTH);
   }
   await consentButton.waitFor({ state: 'visible' });
   await consentButton.click();

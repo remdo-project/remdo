@@ -4,6 +4,7 @@
 
 {$CADDY_SITE_ADDRESSES} {
 	{$CADDY_TLS_DIRECTIVE}
+	{$CADDY_BIND_DIRECTIVE}
 
 	route {
 		handle /health {

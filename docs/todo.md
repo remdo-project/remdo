@@ -52,14 +52,6 @@ Remove rejected or obsolete items and empty sections.
   direction, and reference to its owner, align both specifications with
   `docs/documentation.md`, and update every inbound link in the same change.
 
-### Development
-
-- **Single-command local startup.** Make one local-development command start
-  the app and collaboration services, provision the stable users, and seed the
-  fixture documents after the services are ready. The local-development guide
-  then has one startup step. Reconsider whether `dev:users` and
-  `dev:data-reset` should remain separate commands as part of that change.
-
 ### Editor
 
 - **Editor module ownership.** Editor capabilities are split across `features/`,
@@ -205,10 +197,15 @@ Remove rejected or obsolete items and empty sections.
 
 ### Tooling
 
+- **Standard workspace bootstrap.** Retire `pnpm run dev:init` and
+  `tools/dev-init.sh`. Document `pnpm install --frozen-lockfile` for local
+  setup, let E2E workflows invoke `pnpm exec playwright install chromium`
+  after shared workspace setup, and remove obsolete references.
+
 - **Upstream-owned launcher reassessment.** Reassess whether Playwright can
-  replace `tools/e2e/docker-source-server.ts`, pnpm can replace
-  `tools/dev-init.sh`, and Vite or direct tool commands can retire the remaining
-  dev-boundary, collaboration-server, and single-command package wrappers.
+  replace `tools/e2e/docker-source-server.ts`, and whether Vite or direct tool
+  commands can retire the remaining dev-boundary, collaboration-server, and
+  single-command package wrappers.
 
 - **Upstream ast-grep project-config validation.** Contribute upstream support
   for rejecting unknown project-config keys or shipping version-matched schemas

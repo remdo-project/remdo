@@ -13,13 +13,6 @@ function resolveTestConfig(values: EnvValues, options?: Parameters<typeof resolv
 
 function readEnvShValue(name: string, overrides: NodeJS.ProcessEnv): string {
   const env = { ...process.env, ...overrides };
-  delete env.AUTH_URL;
-  // The dev shell exports already-derived ports; drop them so env.sh re-derives
-  // from the overridden PORT_BASE instead of echoing the inherited value.
-  delete env.COLLAB_SERVER_PORT;
-  if (!('PORT' in overrides)) {
-    delete env.PORT;
-  }
 
   return execFileSync('./tools/env.sh', ['sh', '-c', `printf '%s' "$${name}"`], {
     env,
@@ -49,59 +42,39 @@ describe('config env resolve', () => {
     );
   });
 
-  it('derives AUTH_URL from HOST and PORT outside production', () => {
+  it('derives APP_PUBLIC_URL from HOST and PORT outside production', () => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'development',
       HOST: '127.0.0.1',
       PORT: '4000',
     });
 
-    expect(resolved.server.AUTH_URL).toBe('http://127.0.0.1:4000');
+    expect(resolved.server.APP_PUBLIC_URL).toBe('http://127.0.0.1:4000');
   });
 
-  it('localhostizes 0.0.0.0 when local services bind all interfaces', () => {
+  it('uses the machine hostname when local services bind all IPv4 interfaces', () => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'development',
       HOST: '0.0.0.0',
       PORT: '4000',
-    });
+    }, { machineHostname: 'dev-vm' });
 
-    expect(resolved.server.AUTH_URL).toBe('http://localhost:4000');
+    expect(resolved.server.APP_PUBLIC_URL).toBe('http://dev-vm:4000');
   });
 
-  it('localhostizes :: when local services bind all interfaces', () => {
-    const resolved = resolveTestConfig({
-      NODE_ENV: 'development',
-      HOST: '::',
-      PORT: '4000',
-    });
-
-    expect(resolved.server.AUTH_URL).toBe('http://localhost:4000');
-  });
-
-  it('prefers the local URL outside production when APP_PUBLIC_URL is set', () => {
+  it('uses PUBLIC_HOST outside production and ignores production APP_PUBLIC_URL input', () => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'test',
       HOST: '127.0.0.1',
+      PUBLIC_HOST: 'browser-visible.test',
       PORT: '4000',
       APP_PUBLIC_URL: 'https://remdo.example.com',
     });
 
-    expect(resolved.server.AUTH_URL).toBe('http://127.0.0.1:4000');
+    expect(resolved.server.APP_PUBLIC_URL).toBe('http://browser-visible.test:4000');
   });
 
-  it('uses an explicit absolute AUTH_URL when provided', () => {
-    const resolved = resolveTestConfig({
-      NODE_ENV: 'development',
-      AUTH_URL: 'https://remdo.example.test',
-      HOST: '0.0.0.0',
-      PORT: '4000',
-    });
-
-    expect(resolved.server.AUTH_URL).toBe('https://remdo.example.test');
-  });
-
-  it('uses APP_PUBLIC_URL for AUTH_URL in production server config', () => {
+  it('uses APP_PUBLIC_URL as the canonical production URL', () => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'production',
       AUTH_SECRET: 'production-auth-secret-0123456789',
@@ -109,59 +82,65 @@ describe('config env resolve', () => {
       APP_PUBLIC_URL: 'https://remdo.example.com',
     });
 
-    expect(resolved.server.AUTH_URL).toBe('https://remdo.example.com');
+    expect(resolved.server.APP_PUBLIC_URL).toBe('https://remdo.example.com');
   });
 
-  it('derives dev auth trusted origins for the app port and preview port', () => {
+  it('derives dev auth trusted origins for the gateway and loopback preview', () => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'development',
       HOST: '127.0.0.1',
       PORT: '4000',
-      PREVIEW_PORT: '4005',
+      PREVIEW_PORT: '4020',
     }, { machineHostname: 'dev-vm' });
 
     expect(resolved.server.AUTH_TRUSTED_ORIGINS).toEqual([
       'http://127.0.0.1:4000',
       'http://localhost:4000',
       'http://dev-vm:4000',
-      'http://localhost:4005',
-      'http://127.0.0.1:4005',
-      'http://dev-vm:4005',
+      'http://localhost:4020',
+      'http://127.0.0.1:4020',
     ]);
   });
 
-  it('derives trusted origins from an explicit AUTH_URL on a non-default port', () => {
-    // createServerAuth re-derives from its own baseURL, so an overridden
-    // AUTH_URL must drive the trusted-origin aliases (not the default port).
-    const resolved = resolveTestConfig({
-      NODE_ENV: 'development',
-      AUTH_URL: 'http://127.0.0.1:6100',
-      PREVIEW_PORT: '6105',
-    }, { machineHostname: 'dev-vm' });
+  it.each(['', 'localhost', 'localhost.localdomain', 'localdomain'])(
+    'fails clearly when wildcard binding has no browser-visible hostname: %s',
+    (machineHostname) => {
+      expect(() => resolveTestConfig({
+        NODE_ENV: 'development',
+        HOST: '0.0.0.0',
+        PORT: '4000',
+      }, { machineHostname })).toThrow('PUBLIC_HOST is required when HOST binds all interfaces');
+    },
+  );
 
-    expect(resolved.server.AUTH_TRUSTED_ORIGINS).toEqual([
-      'http://127.0.0.1:6100',
-      'http://localhost:6100',
-      'http://dev-vm:6100',
-      'http://localhost:6105',
-      'http://127.0.0.1:6105',
-      'http://dev-vm:6105',
-    ]);
-  });
-
-  it('omits preview-port aliases when it matches the app port', () => {
-    const resolved = resolveTestConfig({
+  it('rejects a URL-shaped PUBLIC_HOST', () => {
+    expect(() => resolveTestConfig({
       NODE_ENV: 'development',
       HOST: '127.0.0.1',
+      PUBLIC_HOST: 'https://dev.example.test',
       PORT: '4000',
-      PREVIEW_PORT: '4000',
-    }, { machineHostname: 'dev-vm' });
+    })).toThrow('HOST and PUBLIC_HOST must be a bare hostname or IPv4 address');
+  });
 
-    expect(resolved.server.AUTH_TRUSTED_ORIGINS).toEqual([
-      'http://127.0.0.1:4000',
-      'http://localhost:4000',
-      'http://dev-vm:4000',
-    ]);
+  it('rejects the IPv4 wildcard as a browser-visible PUBLIC_HOST', () => {
+    expect(() => resolveTestConfig({
+      NODE_ENV: 'development',
+      HOST: '127.0.0.1',
+      PUBLIC_HOST: '0.0.0.0',
+      PORT: '4000',
+    })).toThrow('PUBLIC_HOST must identify a browser-visible host');
+  });
+
+  it.each([
+    { HOST: '::1' },
+    { HOST: '::1', PUBLIC_HOST: 'browser-visible.test' },
+    { HOST: '127.0.0.1', PUBLIC_HOST: '2001:db8::1' },
+  ])('rejects IPv6 development host inputs: %o', (hostInputs) => {
+    expect(() => resolveTestConfig({
+      NODE_ENV: 'development',
+      PORT: '4000',
+      ...hostInputs,
+    })).toThrow('HOST and PUBLIC_HOST must be a bare hostname or IPv4 address');
   });
 
   it('restricts auth trusted origins to the public origin in production', () => {
@@ -224,7 +203,7 @@ describe('config env resolve', () => {
     expect(resolved.runtime.mode).toBe('production');
     expect(resolved.runtime.isProd).toBe(true);
     expect(resolved.runtime.isDev).toBe(false);
-    expect(resolved.server.AUTH_URL).toBe('');
+    expect(resolved.server.APP_PUBLIC_URL).toBe('');
   });
 
   it('skips server-only auth validation for browser config loading', () => {
@@ -301,7 +280,6 @@ describe('config env resolve', () => {
       NODE_ENV: 'development',
       PORT_BASE: '4000',
       PORT: '9000',
-      AUTH_URL: 'http://localhost:9000',
       COLLAB_SERVER_PORT: '9004',
       API_SERVER_PORT: '9011',
       YSWEET_CONNECTION_STRING: 'ys://127.0.0.1:9004',
@@ -313,7 +291,7 @@ describe('config env resolve', () => {
         '50',
         'sh',
         '-c',
-        'printf \'%s\\n\' "$PORT_BASE" "$PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT" "$YSWEET_CONNECTION_STRING"; printenv AUTH_URL || printf \'unset\\n\'',
+        'printf \'%s\\n\' "$PORT_BASE" "$PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT" "$YSWEET_CONNECTION_STRING"',
       ],
       { env, encoding: 'utf8' },
     );
@@ -324,7 +302,36 @@ describe('config env resolve', () => {
       '4054',
       '4061',
       'ys://127.0.0.1:4054',
-      'unset',
+    ]);
+  });
+
+  it('recomputes every derived dev port instead of inheriting stale values', () => {
+    const output = execFileSync(
+      './tools/env.sh',
+      ['sh', '-c', 'printf \'%s\\n\' "$PORT" "$VITEST_PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT" "$PREVIEW_PORT" "$YSWEET_CONNECTION_STRING"'],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          NODE_ENV: 'development',
+          PORT_BASE: '4300',
+          PORT: '9000',
+          VITEST_PORT: '9002',
+          COLLAB_SERVER_PORT: '9004',
+          API_SERVER_PORT: '9011',
+          PREVIEW_PORT: '9020',
+          YSWEET_CONNECTION_STRING: 'ys://127.0.0.1:9004',
+        },
+      },
+    );
+
+    expect(output.trim().split('\n')).toEqual([
+      '4300',
+      '4302',
+      '4304',
+      '4311',
+      '4320',
+      'ys://127.0.0.1:4304',
     ]);
   });
 
@@ -333,6 +340,21 @@ describe('config env resolve', () => {
       './tools/env.sh',
       ['--port-base-offset', '08', 'true'],
       { encoding: 'utf8' },
+    )).toThrow();
+  });
+
+  it('rejects a derived PWA preview port blocked by Chromium', () => {
+    expect(() => execFileSync(
+      './tools/env.sh',
+      ['true'],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          NODE_ENV: 'development',
+          PORT_BASE: '5980',
+        },
+      },
     )).toThrow();
   });
 

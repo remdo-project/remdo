@@ -135,8 +135,8 @@ export async function withHeadlessCollabSession<T>(
   const session = new CollabSession({
     enabled: true,
     docId,
-    origin: resolveCollabServerOrigin({ loopback: true }),
-    apiOrigin: resolveApiServerOrigin({ loopback: true }),
+    origin: resolveCollabServerOrigin(),
+    apiOrigin: resolveApiServerOrigin(),
     providerFactory: createInternalProviderFactory(),
   });
   session.attach(docMap);

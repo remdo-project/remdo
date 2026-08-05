@@ -7,20 +7,17 @@
 : "${HOST:=localhost}"
 : "${PORT_BASE:=4000}"
 
-# Shift complete local stacks before deriving their ports. Derived values may
-# already be present when one env-managed command launches another, so discard
-# them rather than mixing endpoints from the original and shifted ranges.
+# Shift complete local stacks before deriving their ports.
 if [ -n "${_remdo_port_base_offset:-}" ]; then
   PORT_BASE="$((PORT_BASE + _remdo_port_base_offset))"
-  unset \
-    PORT AUTH_URL \
-    VITEST_PORT \
-    COLLAB_SERVER_PORT PREVIEW_PORT API_SERVER_PORT \
-    YSWEET_CONNECTION_STRING
 fi
 unset _remdo_port_base_offset
 
-: "${PORT:=$((PORT_BASE + 0))}"
+if [ "${NODE_ENV}" = "production" ]; then
+  : "${PORT:=8080}"
+else
+  PORT="$((PORT_BASE + 0))"
+fi
 : "${COLLAB_ENABLED:=true}"
 : "${DEV_DOCUMENT_ID:=devDoc}"
 : "${CI:=false}"
@@ -29,13 +26,13 @@ unset _remdo_port_base_offset
 
 # Derive service/tool ports directly from PORT_BASE to keep local runs predictable.
 # Offsets +7..+10 are intentionally reserved for the Docker E2E containers
-# (tools/docker-test.sh runs its gateway at +7 and bootstrap scenario at +8); do
-# not assign them to a derived service port here.
-: "${VITEST_PORT:=$((PORT_BASE + 2))}"
-: "${COLLAB_SERVER_PORT:=$((PORT_BASE + 4))}"
-: "${PREVIEW_PORT:=$((PORT_BASE + 5))}"
-: "${API_SERVER_PORT:=$((PORT_BASE + 11))}"
-: "${YSWEET_CONNECTION_STRING:=ys://127.0.0.1:${COLLAB_SERVER_PORT}}"
+# (tools/docker-test.sh currently uses +7 through +9); do not assign them to a
+# derived service port here.
+VITEST_PORT="$((PORT_BASE + 2))"
+COLLAB_SERVER_PORT="$((PORT_BASE + 4))"
+API_SERVER_PORT="$((PORT_BASE + 11))"
+PREVIEW_PORT="$((PORT_BASE + 20))"
+YSWEET_CONNECTION_STRING="ys://127.0.0.1:${COLLAB_SERVER_PORT}"
 
 if [ -z "${AUTH_SECRET:-}" ] && [ "${NODE_ENV}" != "production" ]; then
   AUTH_SECRET="development-auth-secret-0123456789"
@@ -49,10 +46,6 @@ fi
 if [ -z "${YSWEET_SERVER_TOKEN:-}" ] && [ "${NODE_ENV}" != "production" ]; then
   YSWEET_SERVER_TOKEN="AAAgOkIiPro6W2lCzxyW6BDQkuOmTVSfs0MZh-4PGTM_st0"
 fi
-
-# AUTH_URL is not derived here: the TS config owner (config/env/resolve.ts)
-# computes the identical dev value (http://<host>:<PORT>) and is the single
-# source every consumer reads through config.env.AUTH_URL.
 
 case "${NODE_ENV}" in
   production)
@@ -86,22 +79,14 @@ remdo_assert_browser_safe_port() {
 # The public PORT is browser-facing in every mode, so always validate it.
 remdo_assert_browser_safe_port "${PORT}"
 
-# In dev/test there is no Caddy in front: the browser connects directly to the
-# Vite/Vitest/preview servers and (for collaboration) to the collab and
-# API servers, so each derived port must be browser-safe too. The prod container
-# routes everything through Caddy, so only PORT above is browser-facing there.
+# In dev/test the Vitest UI and PWA preview are also browser-facing. API and
+# collaboration ports stay behind the gateway, so Chromium's port restrictions
+# do not apply to them.
 if [ "${NODE_ENV}" != "production" ]; then
-  for derived_port in \
-    "${VITEST_PORT}" \
-    "${COLLAB_SERVER_PORT}" \
-    "${PREVIEW_PORT}" \
-    "${API_SERVER_PORT}"
-  do
-    remdo_assert_browser_safe_port "${derived_port}"
-  done
+  remdo_assert_browser_safe_port "${VITEST_PORT}"
+  remdo_assert_browser_safe_port "${PREVIEW_PORT}"
 fi
 
-export NODE_ENV HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI TMPDIR
-export VITEST_PORT COLLAB_SERVER_PORT API_SERVER_PORT YSWEET_CONNECTION_STRING
-export PREVIEW_PORT
+export NODE_ENV HOST PUBLIC_HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI TMPDIR
+export VITEST_PORT COLLAB_SERVER_PORT API_SERVER_PORT PREVIEW_PORT YSWEET_CONNECTION_STRING
 export AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_PUBLIC_URL ALLOW_SIGNUP

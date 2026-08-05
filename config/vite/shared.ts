@@ -3,15 +3,15 @@ import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
 import { config } from '../index';
 import { onRollupWarning } from '../_internal/vite/onRollupWarning';
-import { resolveApiServerOrigin, resolveCollabServerOrigin } from '../../src/platform/net/origins';
+import { resolveCollabServerOrigin, resolveLocalGatewayOrigin } from '../../src/platform/net/origins';
 import { remdoApiDevPlugin } from './remdo-api-dev-plugin';
 import { remdoDevSpaRoutesPlugin } from './remdo-dev-spa-routes-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 const host = config.env.HOST;
-const apiServerTarget = resolveApiServerOrigin({ loopback: true });
-const collabServerTarget = resolveCollabServerOrigin({ loopback: true });
+const collabServerTarget = resolveCollabServerOrigin();
+const mainGatewayTarget = resolveLocalGatewayOrigin();
 export const pwaNavigationFallbackDenylist = [
   /^\/\.well-known(?:\/|$)/u,
   /^\/api(?:\/|$)/u,
@@ -24,18 +24,23 @@ const devProxy = {
     ws: true,
   },
 } as const;
+const mainGatewayProxy = {
+  target: mainGatewayTarget,
+  changeOrigin: true,
+} as const;
 const previewProxy = {
   '/.well-known': {
-    target: apiServerTarget,
-    changeOrigin: true,
+    ...mainGatewayProxy,
     xfwd: true,
   },
   '/api': {
-    target: apiServerTarget,
-    changeOrigin: true,
+    ...mainGatewayProxy,
     xfwd: true,
   },
-  ...devProxy,
+  '/d': {
+    ...mainGatewayProxy,
+    ws: true,
+  },
 } as const;
 
 export function createViteSharedConfig() {
@@ -104,11 +109,11 @@ export function createViteSharedConfig() {
       proxy: devProxy,
     },
     preview: {
-      host,
-      port: config.env.PREVIEW_PORT,
-      // Mirror the dev server: accept any Host header (e.g. http://hostname:PORT),
-      // not just localhost, so the prod-build preview is reachable by hostname.
-      allowedHosts: true as const,
+      // Service workers require a trustworthy origin. Keep the manual PWA
+      // preview on IPv4 loopback; remote developers reach it through a tunnel.
+      host: '127.0.0.1',
+      // No port here: the PWA launcher (tools/dev/pwa.sh) owns the preview port
+      // via --port; deriving one from PORT would collide with the dev gateway.
       strictPort: true,
       proxy: previewProxy,
     },

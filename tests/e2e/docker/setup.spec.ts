@@ -3,9 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { createUserDocument } from '../_support/documents';
+import { DOCKER_TEST_AUTH } from '#tools/docker-test-auth';
 import {
   DOCKER_TEST_ADMIN_SECRET,
-  DOCKER_TEST_AUTH,
   allowTransientTokenFetchConsoleIssue,
   waitForEditableEditor,
   waitForServiceWorkerControl,

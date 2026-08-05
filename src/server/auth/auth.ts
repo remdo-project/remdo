@@ -71,13 +71,21 @@ function createBetterAuthInstance({
   secret: string;
   trustedOrigins: readonly string[];
 }) {
-  const serverOrigin = new URL(baseURL).origin;
+  const serverUrl = new URL(baseURL);
+  const serverOrigin = serverUrl.origin;
+  const publicPort = serverUrl.port || (serverUrl.protocol === 'https:' ? '443' : '80');
   return betterAuth({
     basePath: '/api/auth',
     baseURL,
     trustedOrigins: [...trustedOrigins],
     secret,
     logger: { disabled: config.isProd, level: 'error' },
+    advanced: {
+      // Cookies are scoped by hostname, not port. RemDo deliberately runs
+      // independent local stacks beside one another on shifted port ranges, so
+      // include the canonical public port in every Better Auth cookie name.
+      cookiePrefix: `remdo-${publicPort}`,
+    },
     database,
     account: {
       accountLinking: {
@@ -189,7 +197,7 @@ export interface ServerAuth {
   // The canonical public origin this auth instance was built with (may be a
   // per-instance override, not the config singleton). Routes that advertise this
   // home's own URL (e.g. cross-server registration) must use this, not
-  // config.env.AUTH_URL, or an overridden instance sends the wrong origin.
+  // config.env.APP_PUBLIC_URL, or an overridden instance sends the wrong origin.
   baseURL: string;
   sourceServers: readonly StoredSourceServer[];
   createUser: (user: CreateAuthUserInput, headers: Headers) => Promise<Response>;
@@ -208,7 +216,7 @@ export interface ServerAuth {
 
 export function createServerAuth({
   allowSignup = config.env.ALLOW_SIGNUP,
-  baseURL = config.env.AUTH_URL,
+  baseURL = config.env.APP_PUBLIC_URL,
   database,
   sourceServers = readSourceServersSync(database),
   oauthClientCredentials,

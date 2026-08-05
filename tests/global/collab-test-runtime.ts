@@ -3,8 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { config } from '../../config';
-import { resolveLoopbackHost } from '../../src/platform/net/loopback';
-import { ensureCollabServer, resolveYSweetProbeHost } from '../../tools/lib/collab-server-helper';
+import { INTERNAL_SERVICE_HOST } from '../../src/platform/net/origins';
+import { ensureCollabServer } from '../../tools/lib/collab-server-helper';
 import { isPortOpen } from '../../tools/lib/net';
 import { startRemdoApiServer } from '../../tools/lib/remdo-api-server-helper';
 
@@ -72,12 +72,12 @@ export default async function collabTestRuntime() {
     dataDir,
     requiredPorts: [
       {
-        host: resolveYSweetProbeHost(config.env.HOST),
+        host: INTERNAL_SERVICE_HOST,
         label: 'Y-Sweet',
         port: config.env.COLLAB_SERVER_PORT,
       },
       {
-        host: resolveLoopbackHost(config.env.HOST),
+        host: INTERNAL_SERVICE_HOST,
         label: 'RemDo API',
         port: config.env.API_SERVER_PORT,
       },

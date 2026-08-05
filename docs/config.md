@@ -22,10 +22,11 @@ path.
 | --- | --- | --- | --- |
 | `NODE_ENV` | optional | required | `development` / `test` / `production`. |
 | `DATA_DIR` | optional | optional | Persistence root for data and bootstrapped secrets (see Secret bootstrap guardrails). |
-| `PORT_BASE` | optional | — | Dev port base; `PORT` and all secondary ports derive from it. |
+| `PORT_BASE` | optional | — | Dev stack port base; `PORT` and all secondary ports derive from it. |
 | `PORT` | derived | optional | Listen/bind port only; the one prod knob, defaults to `8080`. |
-| `HOST` | optional | fixed in-container | Bind host. The container entrypoint pins it to `127.0.0.1` so the API listens on the IPv4 loopback Caddy proxies to (`localhost` can resolve to `::1`, leaving the API IPv6-only and unreachable). |
-| `APP_PUBLIC_URL` | — | required | Canonical public origin (see below). |
+| `HOST` | optional | fixed in-container | Development gateway bind host; defaults to `localhost`. |
+| `PUBLIC_HOST` | optional | — | Browser-visible development hostname or IP when it differs from `HOST`. |
+| `APP_PUBLIC_URL` | derived | required | Canonical public origin (see below). |
 | `ADMIN_SECRET` | optional | required | Admin enrollment gate (see below). |
 | `ALLOW_SIGNUP` | optional | optional | Signup and [source-linking](./access-model.md#linking-a-source) public-role policy: public sources allow signup and unauthenticated client registration; private homes refuse signup and can link sources. Defaults true outside production, false in it. |
 
@@ -35,16 +36,28 @@ Each fact has one owning input; everything else derives from it in one
 direction.
 
 **Ports.** In dev/test `PORT_BASE` is the only port input; `PORT` and every
-secondary service port derive from it by fixed offset. In server/prod the
-secondary ports are internal-only (behind the gateway) and `PORT` is an
-independent input: a platform-injected value, else `8080`.
+secondary service port derive from it by fixed offset. A shifted stack derives
+its complete port range again. In server/prod the secondary ports are
+internal-only behind the gateway and `PORT` is an independent input: a
+platform-injected value, else `8080`.
 
-**Public identity vs. bind port.** `APP_PUBLIC_URL` is the canonical public origin
-and the single source for link generation, `AUTH_URL`, cookies, and CORS. Its
-port is public-facing only and never drives binding.
+**Development origin.** `HOST` controls only the gateway bind address.
+Development host inputs support hostnames and IPv4 addresses; IPv6 literals
+and IPv6 wildcard binding are unsupported.
+`PUBLIC_HOST` controls the hostname in browser-visible URLs and defaults to
+`HOST`. When `HOST` is `0.0.0.0`, `PUBLIC_HOST` instead defaults to the machine
+hostname; an empty or localhost machine hostname requires an explicit
+`PUBLIC_HOST`. `APP_PUBLIC_URL` derives as
+`http://<PUBLIC_HOST>:<PORT>`.
 
-**Auth URL.** Always derived: from `APP_PUBLIC_URL` in server/prod, else
-`http://<host>:<PORT>`.
+**Canonical origin.** `APP_PUBLIC_URL` is the single source for link generation,
+auth, cookies, CORS, and browser-visible collaboration URLs. Its production port
+is public-facing only and never drives binding.
+
+**Gateway boundary.** Development exposes Vite through `HOST`. The RemDo API
+and collaboration server bind IPv4 loopback and are reached through the
+gateway. Production exposes Caddy while the API and collaboration server remain
+on container loopback.
 
 ## Secret bootstrap
 

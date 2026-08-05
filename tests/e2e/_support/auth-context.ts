@@ -1,7 +1,7 @@
 import type { Browser, BrowserContext, BrowserContextOptions } from '@playwright/test';
 import { config } from '#config';
 import { HTTP_STATUS } from '#platform/http/status';
-import { resolveAppOrigin } from '#platform/net/origins';
+import { resolveLocalGatewayOrigin } from '#platform/net/origins';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 
 type AuthAccount = Record<keyof ReturnType<typeof createTestAuthAccount>, string>;
@@ -12,7 +12,7 @@ export async function createAuthenticatedContext(
   account: AuthAccount = createTestAuthAccount(),
 ): Promise<BrowserContext> {
   const context = await browser.newContext(contextOptions);
-  const appOrigin = resolveAppOrigin({ loopback: true });
+  const appOrigin = resolveLocalGatewayOrigin();
 
   try {
     // Authentication is harness control-plane setup, not behavior under test.

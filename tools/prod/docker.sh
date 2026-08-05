@@ -10,12 +10,8 @@ remdo_load_dotenv "${ROOT_DIR}"
 NODE_ENV=production
 export NODE_ENV
 
-# In prod the listen PORT is an independent input (platform-injected, else 8080),
-# never derived from APP_PUBLIC_URL. Default it before sourcing env defaults so the
-# ${PORT:=...} there respects this value instead of PORT_BASE.
-: "${PORT:=8080}"
-export PORT
-
+# In prod the listen PORT is an independent input (platform-injected, else the
+# 8080 default in env.defaults.sh), never derived from APP_PUBLIC_URL or PORT_BASE.
 remdo_load_env_defaults "${ROOT_DIR}"
 if [[ -z "${APP_PUBLIC_URL:-}" ]]; then
   remdo_configure_docker_runtime
@@ -24,17 +20,17 @@ fi
 # only derives APP_PUBLIC_URL from it (URL-from-PORT) and never changes it. When
 # APP_PUBLIC_URL is set, it is used as-is and PORT is left untouched.
 
-# The launcher publishes only -p ${PORT}:${PORT}. If APP_PUBLIC_URL advertises a
-# different explicit port, a directly-exposed (un-proxied) deploy is unreachable
-# at that URL. This is fine behind a TLS-terminating proxy (Render, Caddy) that
-# forwards :443 -> PORT, so warn rather than fail.
+# The container gateway listens on PORT. If APP_PUBLIC_URL advertises a different
+# explicit port, a directly exposed (un-proxied) deploy is unreachable at that
+# URL. This is fine behind a TLS-terminating proxy (Render, Caddy) that forwards
+# :443 -> PORT, so warn rather than fail.
 if [[ -n "${APP_PUBLIC_URL:-}" ]]; then
   app_public_url_port="$(node -e '
     const url = new URL(process.argv[1]);
     process.stdout.write(url.port);
   ' "${APP_PUBLIC_URL}" 2>/dev/null || true)"
   if [[ -n "${app_public_url_port}" && "${app_public_url_port}" != "${PORT}" ]]; then
-    echo "Warning: APP_PUBLIC_URL port (${app_public_url_port}) differs from the published PORT (${PORT})." >&2
+    echo "Warning: APP_PUBLIC_URL port (${app_public_url_port}) differs from the gateway PORT (${PORT})." >&2
     echo "         A directly-exposed container will not be reachable at ${APP_PUBLIC_URL};" >&2
     echo "         this is only correct behind a proxy that forwards to PORT ${PORT}." >&2
   fi
@@ -46,12 +42,12 @@ fi
 : "${ADMIN_SECRET:?Set ADMIN_SECRET in .env}"
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
-remdo_require_rootless_docker
 
 DOCKER_ENV_ARGS=(
   -e ADMIN_SECRET="${ADMIN_SECRET}"
   -e APP_PUBLIC_URL="${APP_PUBLIC_URL}"
   -e ALLOW_SIGNUP="${ALLOW_SIGNUP}"
+  -e CADDY_BIND_DIRECTIVE="${CADDY_BIND_DIRECTIVE:-}"
   -e CADDY_SITE_ADDRESSES="${CADDY_SITE_ADDRESSES:-}"
   -e HOST=127.0.0.1
   -e PORT_BASE="${PORT_BASE}"
@@ -75,4 +71,16 @@ DOCKER_RUN_ARGS=(--rm --userns=host)
 if [[ -n "${REMDO_DOCKER_CONTAINER_NAME:-}" ]]; then
   DOCKER_RUN_ARGS+=(--name "${REMDO_DOCKER_CONTAINER_NAME}")
 fi
+case "${REMDO_DOCKER_NETWORK:-bridge}" in
+  bridge)
+    DOCKER_RUN_ARGS+=(-p "${PORT}:${PORT}")
+    ;;
+  host)
+    DOCKER_RUN_ARGS+=(--network=host)
+    ;;
+  *)
+    echo "Unsupported REMDO_DOCKER_NETWORK: ${REMDO_DOCKER_NETWORK}" >&2
+    exit 1
+    ;;
+esac
 remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" "${DOCKER_RUN_ARGS[@]}" "${DOCKER_ENV_ARGS[@]}"

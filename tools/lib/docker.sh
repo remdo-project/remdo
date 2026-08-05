@@ -39,6 +39,17 @@ remdo_require_rootless_docker() {
   return 1
 }
 
+remdo_require_rootless_host_network() {
+  remdo_require_rootless_docker || return 1
+
+  local server_version
+  server_version="$(docker version --format '{{.Server.Version}}')"
+  if [[ "$(printf '%s\n' '29.5.0' "${server_version}" | sort -V | head -n 1)" != "29.5.0" ]]; then
+    echo "Rootless host networking requires Docker Engine 29.5 or newer (found ${server_version})." >&2
+    return 1
+  fi
+}
+
 remdo_detect_docker_public_host() {
   local detected_host="${HOSTNAME:-}"
 
@@ -79,25 +90,9 @@ remdo_docker_run() {
   local image_name="$1"
   local data_dir="$2"
   shift 2
-  local docker_args=("$@")
-
   mkdir -p "${data_dir}"
 
-  # Host networking shares the host's network namespace (so the container reaches
-  # host services like a linked source at the same origin the browser uses) and
-  # is incompatible with `-p`; only publish the port when not on host networking.
-  local uses_host_network="false"
-  for arg in "${docker_args[@]}"; do
-    if [[ "${arg}" == "--network=host" || "${arg}" == "--net=host" ]]; then
-      uses_host_network="true"
-      break
-    fi
-  done
-  if [[ "${uses_host_network}" != "true" ]]; then
-    docker_args+=(-p "${PORT}:${PORT}")
-  fi
-
-  docker run "${docker_args[@]}" \
+  docker run "$@" \
     -v "${data_dir}:/data" \
     "${image_name}"
 }

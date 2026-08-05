@@ -6,22 +6,16 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { writeFakeBin } from './_support/fake-bins';
 
 function writeFakeDocker(binDir: string): void {
-  const dockerPath = path.join(binDir, 'docker');
-  fs.writeFileSync(dockerPath, `#!/usr/bin/env sh
-set -eu
-printf '%s\\n' "$*" >> "\${REMDO_FAKE_DOCKER_LOG:?}"
+  writeFakeBin(binDir, 'docker', `printf '%s\\n' "$*" >> "\${REMDO_FAKE_DOCKER_LOG:?}"
 case "$1" in
-  build)
-    exit 0
+  build|run)
     ;;
   info)
-    printf '%s\\n' '["name=rootless"]'
-    exit 0
-    ;;
-  run)
-    exit 0
+    # GitHub's standard Docker daemon is rootful.
+    printf '%s\\n' '[]'
     ;;
   *)
     echo "unexpected docker command: $1" >&2
@@ -29,7 +23,6 @@ case "$1" in
     ;;
 esac
 `);
-  fs.chmodSync(dockerPath, 0o755);
 }
 
 interface LauncherRun {
@@ -76,7 +69,6 @@ describe('prod Docker launcher', () => {
         // Neutralize every port-related input so the run is hermetic against
         // the developer's shell and the repo .env (empty string counts as set).
         APP_PUBLIC_URL: '',
-        AUTH_URL: '',
         PORT: '',
         PORT_BASE: '',
         ...overrides,
@@ -99,7 +91,6 @@ describe('prod Docker launcher', () => {
     expect(result.stdout).toContain('Docker target: https://remdo-test.shared:8080');
 
     expect(dockerCalls).toContain('build ');
-    expect(dockerCalls).toContain('info --format {{json .SecurityOptions}}');
     expect(dockerCalls).toContain('run ');
     expect(dockerCalls).toContain('-e PORT_BASE=4000');
     expect(dockerCalls).toContain('-e PORT=8080');
@@ -156,7 +147,7 @@ describe('prod Docker launcher', () => {
     });
 
     expect(result.status).toBe(0);
-    expect(result.stderr).toContain('APP_PUBLIC_URL port (8443) differs from the published PORT (8080)');
+    expect(result.stderr).toContain('APP_PUBLIC_URL port (8443) differs from the gateway PORT (8080)');
   });
 
   it('does not warn for a default-port (proxy-fronted) APP_PUBLIC_URL', () => {
@@ -167,7 +158,7 @@ describe('prod Docker launcher', () => {
     });
 
     expect(result.status).toBe(0);
-    expect(result.stderr).not.toContain('differs from the published PORT');
+    expect(result.stderr).not.toContain('differs from the gateway PORT');
   });
 
   it('forwards AUTH_SECRET and the Y-Sweet pair to the container when set', () => {

@@ -9,72 +9,118 @@ workflow, PWA preview, Docker app, and source-linking setup.
 Run `pnpm run dev:init` after a fresh clone or after removing `node_modules`.
 The command installs the locked dependencies.
 
+### Configuration Overrides
+
 Local development resolves configuration from three layers, listed from lowest
 to highest precedence:
 
-- Repository defaults work without a `.env` file.
-- `.env` holds working-directory overrides. Create it by copying `.env.example`
-  and change only the [inputs](../../config.md#inputs) you need.
-- Process environment values override `.env` for one invocation.
+- Repository defaults work as-is.
+- To override defaults for this working directory, copy `.env.example` to
+  `.env` and change only the [inputs](../../config.md#inputs) you need.
+- To override a value for one invocation, set it in the process environment.
 
-[`PORT_BASE`](../../config.md#derivation-rules) selects the local stack's port
-range.
+### Ports and Network Access
 
-## Run the App with Fixture Documents
+- [`PORT_BASE`](../../config.md#derivation-rules) selects the local stack's port
+  range.
+- `HOST` controls gateway exposure and defaults to `localhost`. On a headless
+  development machine, set `HOST=0.0.0.0`; browser URLs then use the machine
+  hostname.
+- Set `PUBLIC_HOST` only when the browser reaches the development machine
+  through a different hostname or IP.
 
-1. Start the app and collaboration server:
+## Run the Main Development Stack
+
+Run:
+
+```sh
+pnpm run dev
+```
+
+- **Starts:** the web app and collaboration server.
+
+On a fresh data directory, [reset development data](#reset-development-data)
+before signing in.
+
+Open the canonical URL for the stack, sign in with a credential from
+[`stable-auth-users.ts`](../../../tools/lib/stable-auth-users.ts), and choose a
+document named `fixture: <fixture-name>`. With the default `HOST`, use Vite's
+Local URL. With `HOST=0.0.0.0`, use the machine hostname or explicit
+`PUBLIC_HOST` from the [development origin](../../config.md#derivation-rules),
+not one of Vite's interface-IP Network URLs.
+
+### Reset Development Data
+
+Run `pnpm run dev:data-reset` while the main stack is running when stable
+credentials or fixture documents need restoring. Coordinate before resetting
+shared working-directory data because the command replaces fixture contents.
+
+- **Restores:** the stable passwords and current fixture contents.
+- **Preserves:** existing document IDs, sharing, and documents not backed by a
+  current fixture.
+
+## Run the PWA Preview
+
+Run:
+
+```sh
+pnpm run dev:pwa
+```
+
+- **Starts:** a PWA build on a shifted port, with server traffic proxied to the
+  main development gateway.
+- **Exposes:** an IPv4-loopback preview so its browser origin can register a
+  service worker.
+- **Uses:** the same accounts and documents as the main frontend.
+- **Keeps separate:** the preview origin's service worker, caches, and browser
+  storage.
+- **Requires:** the main development stack.
+
+Open the URL printed by Vite. From a headless development machine, forward the
+working directory's port range with
+[`open-remdo-tunnel.sh`](../../../tools/remote/open-remdo-tunnel.sh) and open the
+preview through `localhost`. Authentication and source-linking flows that need
+the canonical app origin may return to the main development frontend.
+
+## Run the Docker App
+
+Run:
+
+```sh
+pnpm run dev:docker
+```
+
+- **Starts:** a private, production-style Docker app at the printed home URL.
+- **Uses:** separate runtime data and host networking within a shifted
+  development port range.
+- **Requires:** rootless Docker Engine 29.5 or newer.
+
+Keep the command running while using the Docker app.
+
+## Exercise Source Linking
+
+Source linking connects the main development stack as a public source to a
+private Docker home. It requires rootless Docker Engine 29.5 or newer.
+
+1. Start the public source:
 
    ```sh
    pnpm run dev
    ```
 
-2. In another terminal, provision the stable Alice and Bob accounts and seed
-   every `tests/fixtures/*.json` document for both users:
+2. In another terminal, validate the source and start the private Docker home:
 
    ```sh
-   pnpm run dev:data-reset
+   pnpm run dev:linking
    ```
 
-   Re-running the command updates seeded fixture documents in place and leaves
-   other documents unchanged. Pass `--fresh` to delete the previously seeded
-   fixture documents before recreating them.
-
-3. Open `http://127.0.0.1:<PORT>/`, sign in with a credential from
-   [`stable-auth-users.ts`](../../../tools/lib/stable-auth-users.ts), and choose
-   a document named `fixture: <fixture-name>`.
-
-Run `pnpm run dev:users` instead when the stable accounts and their printed
-credentials are useful without fixture documents.
-
-## Run the PWA Preview
-
-Run `pnpm run dev:pwa`. It starts the production-built PWA, API, and
-collaboration services on a shifted port range, so it can run beside the main
-development stack. Open the preview URL printed by the command.
-
-## Run the Docker App
-
-Run `pnpm run dev:docker` to build and start the production-style Docker app at
-the home URL printed by the command. It requires a local rootless Docker daemon.
-Keep the command running while using the app.
-
-## Exercise Source Linking
-
-The Docker app can act as a private home server with the local development
-server linked as its public source. The `dev:docker` command prints the source
-command and source URL used by this workflow.
-
-1. Start the Docker app as described above.
-2. On a fresh Docker home, open `/admin` at the printed home URL and complete
+   The command prints the home and source URLs.
+3. On a fresh Docker home, open `/admin` at the printed home URL and complete
    [admin enrollment](../../access-model.md#admin-role) using the configured
    `ADMIN_SECRET`.
-3. Stop a plain `pnpm run dev` process using the same port range, then run the
-   printed source command in another terminal. It replaces the plain command
-   for this workflow because its `HOST` and `AUTH_URL` make one host-IP origin
-   reachable from both the browser and the container.
-4. Open the home server's Sharing page, choose **Link source**, and enter the
-   printed source URL. When redirected to the source, sign in as one of the
-   stable users.
+4. Open the home's Sharing page, choose **Link source**, and enter the printed
+   source URL. When redirected to the source, sign in as one of the stable
+   users.
 
 The [source-linking access model](../../access-model.md#cross-server-source-linking)
 owns the resulting authorization and delegation behavior.

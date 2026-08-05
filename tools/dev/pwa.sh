@@ -1,14 +1,21 @@
 #!/usr/bin/env sh
-# Serve the PWA preview beside `pnpm run dev` on a +20 port range.
+# Serve the production-built frontend beside `pnpm run dev` on its +20 port.
 set -eu
 
-ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)"
+ROOT_DIR="$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)"
+PWA_PORT="$("${ROOT_DIR}/tools/env.sh" sh -c 'printf %s "${PREVIEW_PORT}"')"
+MAIN_GATEWAY="$("${ROOT_DIR}/tools/env.sh" pnpm exec tsx ./tools/dev/print-local-gateway-origin.ts)"
+export MAIN_GATEWAY PWA_PORT
 
-exec "${ROOT_DIR}/tools/env.sh" --port-base-offset 20 sh -c '
-  PREVIEW_PORT="$PORT" pnpm run build \
-    && PREVIEW_PORT="$PORT" concurrently \
-      "pnpm run build:watch" \
-      "pnpm run dev:api" \
-      "pnpm run dev:collab" \
-      "pnpm run preview:web"
+# shellcheck disable=SC2016 # expanded after env.sh resolves the main development gateway.
+exec "${ROOT_DIR}/tools/env.sh" sh -c '
+  set -eu
+  if ! curl -fsS "${MAIN_GATEWAY%/}/api/health" >/dev/null; then
+    echo "PWA preview requires the main development gateway; run pnpm dev first." >&2
+    exit 1
+  fi
+  pnpm run build
+  exec concurrently --kill-others-on-fail --names build,preview \
+    "pnpm run build:watch" \
+    "pnpm exec vite preview --port ${PWA_PORT}"
 '

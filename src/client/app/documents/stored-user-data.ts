@@ -2,7 +2,7 @@ import type { SourceServer } from '#domain/source-servers';
 import * as Y from 'yjs';
 import { CollabSession } from '#collaboration/session';
 import { waitForSessionAttachment } from '#collaboration/wait-for-session-attachment';
-import { resolveApiServerOrigin, resolveAppOrigin } from '#platform/net/origins';
+import { resolveApiServerOrigin, resolveLocalGatewayOrigin } from '#platform/net/origins';
 import { shareDocumentWithUser } from '#client/app/documents/sharing-client';
 import { createSourceDocumentSyncTokenApiPath } from '#document-routes';
 import type { DocumentAccessView } from '#domain/documents/access';
@@ -719,14 +719,14 @@ function resolveCollabOrigin(): string {
   if (typeof location !== 'undefined' && location.origin && location.origin !== 'null') {
     return location.origin;
   }
-  return resolveAppOrigin({ loopback: true });
+  return resolveLocalGatewayOrigin();
 }
 
 function resolveCollabApiOrigin(): string {
   if (typeof location !== 'undefined' && location.origin && location.origin !== 'null') {
     return location.origin;
   }
-  return resolveApiServerOrigin({ loopback: true });
+  return resolveApiServerOrigin();
 }
 
 const store = new StoredUserDataStore();

@@ -1,5 +1,4 @@
 import type { z } from 'zod';
-import { resolveLoopbackHost } from '../../src/platform/net/loopback';
 import { deriveAuthTrustedOrigins } from './auth-origins';
 import type { ClientKey, EnvKey } from './schema';
 import { CLIENT_KEY_LIST, envSchema } from './schema';
@@ -11,7 +10,6 @@ type ParsedEnv = {
 };
 
 type ServerEnv = ParsedEnv & {
-  AUTH_URL: string;
   AUTH_TRUSTED_ORIGINS: string[];
   MACHINE_HOSTNAME: string;
 };
@@ -42,20 +40,54 @@ function parseEnv(getValue: EnvGetter): ParsedEnv {
   return Object.fromEntries(entries) as ParsedEnv;
 }
 
-function resolveAuthUrl(parsed: ParsedEnv): string {
-  if (isAbsoluteHttpUrl(parsed.AUTH_URL)) {
-    return parsed.AUTH_URL;
+function validateDevHost(host: string): string {
+  if (!host || /[\s:/?#@]/u.test(host) || !URL.canParse(`http://${host}:1`)) {
+    throw new TypeError('HOST and PUBLIC_HOST must be a bare hostname or IPv4 address.');
   }
+  return host;
+}
 
-  if (parsed.NODE_ENV !== 'production' && parsed.HOST && parsed.PORT > 0) {
-    return `http://${resolveLoopbackHost(parsed.HOST, 'localhost')}:${parsed.PORT}`;
+function validateDevPublicHost(host: string): string {
+  const validated = validateDevHost(host);
+  if (validated === '0.0.0.0') {
+    throw new TypeError('PUBLIC_HOST must identify a browser-visible host, not 0.0.0.0.');
   }
+  return validated;
+}
 
-  if (isAbsoluteHttpUrl(parsed.APP_PUBLIC_URL)) {
+function resolveDevPublicHost(parsed: ParsedEnv, machineHostname: string): string {
+  if (parsed.PUBLIC_HOST) {
+    return parsed.PUBLIC_HOST;
+  }
+  if (parsed.HOST !== '0.0.0.0') {
+    return parsed.HOST;
+  }
+  const normalizedHostname = machineHostname.trim().toLowerCase().replace(/\.$/u, '');
+  if (
+    !normalizedHostname
+    || normalizedHostname === 'localhost'
+    || normalizedHostname === 'localhost.localdomain'
+    || normalizedHostname === 'localdomain'
+  ) {
+    throw new Error(
+      'PUBLIC_HOST is required when HOST binds all interfaces and the machine hostname is not browser-visible.',
+    );
+  }
+  return normalizedHostname;
+}
+
+function resolveAppPublicUrl(
+  parsed: ParsedEnv,
+  machineHostname: string,
+): string {
+  if (parsed.NODE_ENV === 'production') {
     return parsed.APP_PUBLIC_URL;
   }
-
-  return '';
+  if (!parsed.HOST || parsed.PORT === 0) {
+    return '';
+  }
+  validateDevHost(parsed.HOST);
+  return `http://${validateDevPublicHost(resolveDevPublicHost(parsed, machineHostname))}:${parsed.PORT}`;
 }
 
 function validateProdServer(parsed: ParsedEnv): void {
@@ -110,18 +142,18 @@ export function resolveConfig(
     validateProdServer(parsed);
   }
 
-  const authUrl = resolveAuthUrl(parsed);
   // The machine hostname (a Node-only value) is injected by the caller so this
   // resolver stays runtime-agnostic; the browser passes none. It is also exposed
   // on the server env so auth can re-derive trusted origins for an overridden
   // baseURL without re-reading node:os.
   const machineHostname = options.machineHostname ?? '';
+  const appPublicUrl = resolveAppPublicUrl(parsed, machineHostname);
   const server: ServerEnv = {
     ...parsed,
-    AUTH_URL: authUrl,
+    APP_PUBLIC_URL: appPublicUrl,
     MACHINE_HOSTNAME: machineHostname,
     AUTH_TRUSTED_ORIGINS: deriveAuthTrustedOrigins({
-      baseURL: authUrl,
+      baseURL: appPublicUrl,
       isProduction: parsed.NODE_ENV === 'production',
       hostname: machineHostname,
       previewPort: parsed.PREVIEW_PORT,

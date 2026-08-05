@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { isApiRequestPath } from '../../config/vite/remdo-api-dev-plugin';
 import { createViteSharedConfig, pwaNavigationFallbackDenylist } from '../../config/vite/shared';
+import { resolveLocalGatewayOrigin } from '../../src/platform/net/origins';
 
 describe('vite shared config', () => {
   it('mounts the RemDo API in dev and proxies sync routes only', () => {
@@ -19,18 +20,26 @@ describe('vite shared config', () => {
     });
     expect(serverProxy).not.toHaveProperty('/doc');
 
+    expect(config.preview.host).toBe('127.0.0.1');
+
     expect(previewProxy['/.well-known']).toMatchObject({
       changeOrigin: true,
+      target: resolveLocalGatewayOrigin(),
       xfwd: true,
     });
+    expect(previewProxy['/.well-known']).not.toHaveProperty('headers');
     expect(previewProxy['/api']).toMatchObject({
       changeOrigin: true,
+      target: resolveLocalGatewayOrigin(),
       xfwd: true,
     });
+    expect(previewProxy['/api']).not.toHaveProperty('headers');
     expect(previewProxy['/d']).toMatchObject({
       changeOrigin: true,
+      target: resolveLocalGatewayOrigin(),
       ws: true,
     });
+    expect(previewProxy['/d']).not.toHaveProperty('headers');
     expect(previewProxy).not.toHaveProperty('/doc');
   });
 
@@ -42,6 +51,29 @@ describe('vite shared config', () => {
     expect(isDenied('/api/current-user')).toBe(true);
     expect(isDenied('/d/document-id')).toBe(true);
     expect(isDenied('/documents')).toBe(false);
+  });
+
+  it('routes preview traffic locally without replacing the browser origin', async () => {
+    vi.stubEnv('HOST', '0.0.0.0');
+    vi.stubEnv('PUBLIC_HOST', 'browser-visible.test');
+    vi.resetModules();
+
+    try {
+      const [{ config }, { createViteSharedConfig: createIsolatedConfig }] = await Promise.all([
+        import('../../config'),
+        import('../../config/vite/shared'),
+      ]);
+      const previewProxy = createIsolatedConfig().preview.proxy;
+
+      expect(config.env.APP_PUBLIC_URL).toBe(`http://browser-visible.test:${config.env.PORT}`);
+      expect(previewProxy['/api']).toMatchObject({
+        target: `http://127.0.0.1:${config.env.PORT}`,
+      });
+      expect(previewProxy['/api']).not.toHaveProperty('headers');
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
   });
 
   it('recognizes only API request paths for the dev API middleware', () => {

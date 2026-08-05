@@ -85,6 +85,13 @@ secret affects existing admin accounts or only future enrollment.
   cross-origin credentialed app APIs, cross-subdomain mutation flows, non-JSON
   mutation bodies, or `SameSite=None` cookies requires re-auditing this
   boundary.
+- In development, Better Auth trusts the app's [canonical public origin and local
+  aliases](./config.md#derivation-rules) plus the loopback PWA preview origin.
+  Preview requests retain their browser-supplied `Origin`, so unrelated origins
+  remain rejected.
+- A server's canonical public port namespaces its Better Auth cookies. Local
+  stacks on shifted port ranges can therefore keep independent sessions while
+  sharing one browser hostname.
 
 ## Owner Access
 
@@ -175,9 +182,9 @@ Long-horizon directions:
   not a one-off action.
 - **Reject non-loopback http sources** at add time (in `deriveSourceServer`), so
   every stored origin is one Better Auth's issuer normalization leaves alone and
-  the `normalizeSourceIssuer` mirror can be deleted. Blocked on the Docker E2E,
-  whose source is `http://<host-IP>` (rootless Docker can't reach a loopback
-  source) — the real work is making that source loopback-reachable.
+  the `normalizeSourceIssuer` mirror can be deleted. Docker E2E uses a loopback
+  source; direct headless development origins such as `http://athena` remain the
+  supported case to resolve before adopting this restriction.
 - **Destination-IP validation on the outbound registration fetch (defense in
   depth).** URL-first linking makes the home POST to a user-supplied origin
   (`registerPublicSourceClient` → `<url>/api/auth/oauth2/register`). The dangerous
@@ -187,8 +194,7 @@ Long-horizon directions:
   home's own signed-in user driving it at their own network — the operator's own
   infrastructure, a non-threat. For defense in depth, add a resolve-then-check
   destination-IP allowlist that permits loopback/RFC1918 only in dev (must not
-  break the private-IP/loopback source topology or the Docker E2E's
-  `http://<host-IP>` source).
+  break the private-IP/loopback source topology).
 - **Source-existence side-channel (accepted residual).** A signed-in user can
   distinguish a known-but-not-linked source (403) from an unknown one (404) on
   `/source-servers/:id/*`, and ids derive from origins — so they can detect that

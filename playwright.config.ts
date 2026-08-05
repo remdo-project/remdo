@@ -1,10 +1,10 @@
 import { defineConfig } from '@playwright/test';
 import path from 'node:path';
 import { config } from './config';
-import { resolveAppOrigin } from './src/platform/net/origins';
+import { resolveLocalGatewayOrigin } from './src/platform/net/origins';
 import { chromium, playwrightBaseConfig } from './config/playwright/base';
 
-const baseURL = resolveAppOrigin({ loopback: true });
+const baseURL = resolveLocalGatewayOrigin();
 const apiHealthURL = new URL('/api/health', baseURL).href;
 const collaborationReadyURL = `http://127.0.0.1:${config.env.COLLAB_SERVER_PORT}/ready`;
 

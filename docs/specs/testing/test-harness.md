@@ -33,8 +33,9 @@ the next invocation.
 ## Docker E2E Tests
 
 Docker E2E builds and verifies the production-style container stack against
-temporary runtime data. The invocation removes its containers and runtime data
-when it finishes or fails.
+temporary runtime data. It also reaches a production-launcher container through
+its bridge-published port. The invocation removes its containers and runtime
+data when it finishes or fails.
 
 ## CI
 
