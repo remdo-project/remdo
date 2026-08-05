@@ -114,3 +114,6 @@ rule, move it to [Documentation](../../documentation.md) and remove it here.
 - [Delegated responsibility restatement](cases/delegated-responsibility-restatement/README.md)
   — a verifier stopped summarizing behavior owned by its linked runner and
   provider-specific sections.
+- [Owner inventory before first use](cases/owner-inventory-before-first-use.md)
+  — an access specification replaced an up-front dependency inventory with
+  precise links where its clauses first used external terms.
