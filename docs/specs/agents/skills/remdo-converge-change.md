@@ -34,13 +34,13 @@ degraded](remdo-verify-change.md#result).
 
 A `clean`, `findings`, or `no-change` verification is converged when no
 `confirmed` finding remains that the skill can correct, including when other
-dispositions remain or verification is degraded.
+dispositions remain or verification is degraded. A `stopped` verification is
+not converged.
 
 ## Result
 
-The result carries every finding disposition across verification iterations,
-consolidates repeated findings without changing their meaning, and marks each
-confirmed finding as fixed or uncorrected.
+The result carries every finding disposition across verification iterations and
+marks each confirmed finding as fixed or uncorrected.
 
 `verification` contains the complete latest
 [`remdo-verify-change` result](remdo-verify-change.md#result).

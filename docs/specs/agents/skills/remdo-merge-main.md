@@ -75,6 +75,7 @@ corrections: # if any
   - summary: <committed integration correction>
 verification: <not-run | passed | failed>
 preservation: <not-needed | pending | restored | restore-conflicted> # if requested
+saved_work: <stash commit> # if retained
 reason: <manual recovery condition> # if any
 ```
 

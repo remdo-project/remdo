@@ -27,8 +27,8 @@ re-report, or change flow or outcome.
 
 ## Aggregation
 
-A caller preserves non-success statuses, unhandled concerns, and provenance in
-its result. It may consolidate them as its contract permits without changing
+A caller preserves unhandled non-success statuses and concerns with their
+provenance. It may consolidate them as its contract permits without changing
 their meaning.
 
 ## Reports
