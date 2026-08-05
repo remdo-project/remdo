@@ -63,12 +63,17 @@ pnpm run dev:pwa
 
 - **Starts:** a PWA build on a shifted port, with server traffic proxied to the
   main development gateway.
+- **Exposes:** an IPv4-loopback preview so its browser origin can register a
+  service worker.
 - **Uses:** the same accounts and documents as the main frontend.
 - **Keeps separate:** the preview origin's service worker, caches, and browser
   storage.
 - **Requires:** the main development stack.
 
-Open the URL printed by Vite. Authentication and source-linking flows that need
+Open the URL printed by Vite. From a headless development machine, forward the
+working directory's port range with
+[`open-remdo-tunnel.sh`](../../../tools/remote/open-remdo-tunnel.sh) and open the
+preview through `localhost`. Authentication and source-linking flows that need
 the canonical app origin may return to the main development frontend.
 
 ## Run the Docker App

@@ -78,18 +78,10 @@ remdo_assert_browser_safe_port() {
 # The public PORT is browser-facing in every mode, so always validate it.
 remdo_assert_browser_safe_port "${PORT}"
 
-# In dev/test there is no Caddy in front: the browser connects directly to the
-# Vite/Vitest servers. Internal collaboration and API ports are validated too
-# so shifted ranges never acquire surprising browser-blocked values. The prod container
-# routes everything through Caddy, so only PORT above is browser-facing there.
+# In dev/test the Vitest UI is also browser-facing. API and collaboration ports
+# stay behind the gateway, so Chromium's port restrictions do not apply to them.
 if [ "${NODE_ENV}" != "production" ]; then
-  for derived_port in \
-    "${VITEST_PORT}" \
-    "${COLLAB_SERVER_PORT}" \
-    "${API_SERVER_PORT}"
-  do
-    remdo_assert_browser_safe_port "${derived_port}"
-  done
+  remdo_assert_browser_safe_port "${VITEST_PORT}"
 fi
 
 export NODE_ENV HOST PUBLIC_HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI TMPDIR

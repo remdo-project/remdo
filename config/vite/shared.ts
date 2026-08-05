@@ -110,12 +110,11 @@ export function createViteSharedConfig() {
       proxy: devProxy,
     },
     preview: {
-      host,
+      // Service workers require a trustworthy origin. Keep the manual PWA
+      // preview on IPv4 loopback; remote developers reach it through a tunnel.
+      host: '127.0.0.1',
       // No port here: the PWA launcher (tools/dev/pwa.sh) owns the preview port
       // via --port; deriving one from PORT would collide with the dev gateway.
-      // Mirror the dev server: accept any Host header (e.g. http://hostname:PORT),
-      // not just localhost, so the prod-build preview is reachable by hostname.
-      allowedHosts: true as const,
       strictPort: true,
       proxy: previewProxy,
     },
