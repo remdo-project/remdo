@@ -19,6 +19,10 @@ Capability contracts define additional fields that add detail without replacing
 `concerns`. In examples, `# if ...` marks a conditional field. Results explain
 omitted work when its absence affects the caller's interpretation.
 
+YAML shapes define capability-to-caller data, not required literal output. A
+capability addressing a human renders that result as its report instead of also
+printing the YAML shape.
+
 ## Concerns
 
 A **concern** is a reported condition that may affect the caller's result or

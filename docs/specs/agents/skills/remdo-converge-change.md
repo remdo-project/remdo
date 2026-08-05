@@ -33,10 +33,10 @@ continues with available evidence when [verification is
 degraded](remdo-verify-change.md#result).
 
 A `clean`, `findings`, or `no-change` verification is converged when no
-`confirmed` finding remains that the skill can correct, including when other
-dispositions remain or verification is degraded. Any `stopped` verification
-stops convergence unless a failed check has a correction the skill can determine
-and apply. A scope-resolution failure stops the skill.
+determined correction remains unapplied, including when other dispositions
+remain or verification is degraded. Any `stopped` verification stops
+convergence unless the stop was caused by a failed check and the skill can
+determine and apply its correction. A scope-resolution failure stops the skill.
 
 ## Result
 

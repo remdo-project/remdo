@@ -33,6 +33,9 @@ retain their contracts.
     ├─ converged; corrections ────> ↩ simplify the end state
     │ converged; no corrections
     v
+[ready-for-review]
+    │ handoff
+    v
 [developer: review]
     ├─ requirements feedback ─> ↩ quick dialogue
     ├─ spec feedback ─────────> ↩ prepare spec

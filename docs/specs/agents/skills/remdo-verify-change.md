@@ -21,7 +21,7 @@ until verification finishes.
     ├─ failure ───────────> [report and stop]
     │ pass
     v
-[Codex + Claude reviews]
+[independent Codex + Claude reviews]
     │
     v
 [finding validation]
