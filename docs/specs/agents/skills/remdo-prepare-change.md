@@ -14,7 +14,8 @@ participating capabilities retain their contracts.
     │ ready for review
     v
 [developer: review spec]
-    ├─ revise ─> ↩ prepare spec
+    ├─ requirements feedback ─> ↩ quick dialogue
+    ├─ revise spec ────────────> ↩ prepare spec
     │ approved
     v
 [agent: implement spec]                             {C}
@@ -30,7 +31,8 @@ participating capabilities retain their contracts.
     │ no corrections
     v
 [developer: review]
-    ├─ spec feedback ─> ↩ prepare spec
+    ├─ requirements feedback ─> ↩ quick dialogue
+    ├─ spec feedback ─────────> ↩ prepare spec
     └─ implementation feedback ─> ↩ implement spec
 ```
 
@@ -53,13 +55,14 @@ Legend:
   scope, any required
   [repository authority](../../../../AGENTS.md#safety--process), expected result,
   and return point. Repository changes remain disposable unless adopted.
-- **Owning branch ready.** Before the first retained change, fetch `origin/main`.
+- **Owning branch ready.** Before the first retained change, fetch `origin/main`
+  and use its fetched commit as the base unless the developer specified another.
   The current [topic branch](../../../dev/contributing.md#git-workflow) is the
-  owning branch when it contains adopted committed work or points at the
-  fetched commit. Otherwise name one, create it at the fetched commit, and
-  switch to it. Use another base only if the developer specified one. Existing
-  uncommitted changes enter the branch only when quick dialogue identifies them
-  as part of the change; otherwise they prevent branch readiness.
+  owning branch when it points at the base or its range from the base contains
+  only adopted committed work. Otherwise name one, create it at the base, and
+  switch to it. Existing uncommitted changes enter the branch only when quick
+  dialogue identifies them as part of the change; otherwise they prevent branch
+  readiness.
 - **Specification.** The coordinator identifies current
   [contract owners](../../../documentation.md#ownership), edits them only when
   their [target behavior](../../../documentation.md#target-behavior) must
@@ -77,7 +80,7 @@ Legend:
 - **Handoff.** The coordinator's [report](../results.md#reports) includes the
   exact scope, approved target behavior and its contract owners, verification
   result, unhandled concerns, tracked gaps, and specific manual review needs. It
-  implies neither acceptance nor authority for subsequent repository or remote
-  action.
+  precedes any request for developer acceptance or authority for subsequent
+  repository or remote action.
 - **Feedback.** Returns to the earliest affected lifecycle step; repository
   changes invalidate all later quality results.

@@ -110,7 +110,7 @@ checks: # if run
   - command: <command>
     status: <passed | failed | not-run>
     details: <failure evidence or reason not run> # if failed or not-run
-reviews: # if run
+reviews: # if checks ran
   - source: <codex | claude>
     status: <completed | unavailable | failed | not-run>
     details: <complete report, failure evidence, or reason not run>

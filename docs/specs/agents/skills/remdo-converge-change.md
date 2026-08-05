@@ -39,8 +39,9 @@ not converged. A scope-resolution failure stops the skill.
 
 ## Result
 
-The result carries every finding disposition across verification iterations and
-marks each confirmed finding as fixed or uncorrected.
+`findings` carries every disposition across verification iterations and marks
+each confirmed finding as fixed or uncorrected. `verification.findings` is the
+latest iteration only.
 
 When run, `verification` contains the complete latest
 [`remdo-verify-change` result](remdo-verify-change.md#result).
@@ -64,6 +65,10 @@ findings: # if any
     resolution: <fixed | uncorrected> # if confirmed
 reason: <condition that prevented or stopped convergence> # if not converged or stopped
 ```
+
+`not-converged` means completed verification left a determined correction that
+could not be applied. `stopped` means scope resolution or verification did not
+complete.
 
 ## Future
 
