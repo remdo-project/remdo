@@ -42,6 +42,9 @@ The result carries every finding disposition across verification iterations,
 consolidates repeated findings without changing their meaning, and marks each
 confirmed finding as fixed or uncorrected.
 
+`verification` contains the complete latest
+[`remdo-verify-change` result](remdo-verify-change.md#result).
+
 The result uses this shape:
 
 ```yaml
@@ -52,9 +55,7 @@ concerns: # if any
 scope: <resolved scope or resolution failure>
 corrections: # if any
   - summary: <applied correction>
-verification:
-  outcome: <latest verification outcome>
-  degraded: true # if degraded
+verification: <complete latest remdo-verify-change result>
 findings: # if any
   - summary: <finding>
     source: <codex | claude>

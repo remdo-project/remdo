@@ -15,10 +15,9 @@ concerns: # if any
 # capability-specific fields
 ```
 
-Capability contracts define additional fields and may represent concerns there
-without duplicating them in `concerns`. In examples, `# if ...` marks a
-conditional field. Results explain omitted work when its absence affects the
-caller's interpretation.
+Capability contracts define additional fields that add detail without replacing
+`concerns`. In examples, `# if ...` marks a conditional field. Results explain
+omitted work when its absence affects the caller's interpretation.
 
 ## Concerns
 

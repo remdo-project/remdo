@@ -84,8 +84,9 @@ caller; a `rejected` finding is resolved.
 produced a `confirmed`, `unresolved`, or `material out of scope` disposition.
 `no-change` means scope resolution found no diff, so checks and reviews were not
 run. `stopped` means scope resolution, checks, or finding validation prevented
-completion. An unavailable or failed reviewer degrades but does not stop
-verification; neither concern alone changes `clean` to `findings`.
+completion. An unavailable or failed reviewer sets `degraded: true` and appears
+in `concerns`, but does not stop verification or alone change `clean` to
+`findings`. Every non-rejected finding also appears in `concerns`.
 
 A failed step reports only evidence relevant to its failure, not successful
 sub-results. Reviews intentionally not attempted are `not-run`, not
@@ -100,11 +101,11 @@ concerns: # if any
     summary: <condition>
 degraded: true # if degraded
 scope: <requested and resolved scope, no-change, or resolution failure>
-checks: # if scope is ready
-  - command: <command> # if run
+checks:
+  - command: <command>
     status: <passed | failed | not-run>
     details: <failure evidence or reason not run> # if failed or not-run
-reviews: # if scope is ready
+reviews:
   - source: <codex | claude>
     status: <completed | unavailable | failed | not-run>
     details: <complete report, failure evidence, or reason not run>
