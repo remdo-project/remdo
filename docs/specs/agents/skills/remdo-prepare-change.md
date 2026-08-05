@@ -27,9 +27,11 @@ retain their contracts.
     │
     v
 [agent: remdo-converge-change]                      {C+F}
-    ├─ corrections applied ─> ↩ simplify the end state
-    ├─ stopped or not converged ─> [developer: decide concern] ─> ↩ affected step
-    │ no corrections
+    ├─ stopped or not converged ─> [developer: decide concern]
+    │                                ├─ retry ─> ↩ affected step
+    │                                └─ stop ──> [stopped]
+    ├─ converged; corrections ────> ↩ simplify the end state
+    │ converged; no corrections
     v
 [developer: review]
     ├─ requirements feedback ─> ↩ quick dialogue
@@ -42,7 +44,8 @@ Legend:
 
 - `{C}` coordinator;
 - `{F}` fresh subagent;
-- `{C+F}` coordinator integrating fresh-subagent work.
+- `{C+F}` coordinator integrating fresh-subagent work;
+- `↩` returns to the named step.
 
 ## Lifecycle rules
 
@@ -60,11 +63,11 @@ Legend:
 - **Owning branch ready.** Before the first retained change, fetch `origin/main`
   and use its fetched commit as the base unless the developer specified another.
   The current [topic branch](../../../dev/contributing.md#git-workflow) is the
-  owning branch when it points at the base, or when the base is its ancestor and
-  the range from the base contains only adopted committed work. Otherwise name
-  one, create it at the base, and switch to it. Existing uncommitted changes
-  enter the branch only when quick dialogue identifies them as part of the
-  change; otherwise they prevent branch readiness.
+  owning branch when the base is its ancestor and the range from the base
+  contains only adopted committed work. Otherwise name a replacement, create it
+  at the base, switch to it, and transfer only adopted work. Existing uncommitted
+  changes enter the branch only when quick dialogue identifies them as part of
+  the change; otherwise they prevent branch readiness.
 - **Specification.** The coordinator identifies current
   [contract owners](../../../documentation.md#ownership), edits them only when
   their [target behavior](../../../documentation.md#target-behavior) must
