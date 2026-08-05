@@ -63,6 +63,8 @@ The result uses this shape:
 outcome: <up-to-date | fast-forwarded | merged | conflicted | verification-failed | restore-conflicted>
 destination: <branch>
 target: <fixed fetched origin/main commit>
+incoming_commits: <count>
+merge_form: <up-to-date | fast-forward | merge-commit>
 conflicts: # if any
   - path: <conflicted path>
     status: <resolved | unresolved>

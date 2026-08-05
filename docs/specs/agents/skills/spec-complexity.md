@@ -38,7 +38,7 @@ The result uses this shape:
 ```yaml
 outcome: <complexity-found | no-material-complexity>
 specification: <path>
-estimated_cost:
+estimated_cost: # if complexity-found
   implementation: <line range>
   tests: <line range>
 areas: # if any

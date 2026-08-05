@@ -26,6 +26,7 @@ participating capabilities retain their contracts.
     v
 [agent: remdo-converge-change]                      {C+F}
     ├─ corrections applied ─> ↩ simplify the end state
+    ├─ not converged ─> [developer: decide concern] ─> ↩ affected step
     │ converged
     v
 [developer: review]

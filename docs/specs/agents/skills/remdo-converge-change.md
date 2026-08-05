@@ -37,8 +37,9 @@ dispositions remain or verification is degraded.
 
 ## Result
 
-The result carries every finding disposition from the latest verification and
-marks each confirmed finding as fixed or uncorrected.
+The result carries every finding disposition across verification iterations,
+consolidates repeated findings without changing their meaning, and marks each
+confirmed finding as fixed or uncorrected.
 
 The result uses this shape:
 
