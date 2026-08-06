@@ -5,9 +5,9 @@ simplest permanent implementation consistent with its accepted contracts.
 
 ## Routes
 
-This is the only document agents read automatically at session start. Locate
-task-specific accepted behavior by filename and scope opener under `docs/`, then
-read only the current owner.
+This is the shared repository entry point. Locate task-specific accepted
+behavior by filename and scope opener under `docs/`, then read only the current
+owner. Provider-specific surfaces may load it alongside their own rules.
 
 - **Instruction design and direct-rule contracts:**
   [Agent instructions](docs/specs/agents/instructions.md).
@@ -111,9 +111,9 @@ change. Do not add update-tracking sections to durable documents.
   evidence; routine work and review do not analyze or update them.
 - Format multiple options or questions as a numbered list. Mark one option
   **(Recommended)** with its reason when evidence supports a preference.
-- When a repo-local skill runs, report one final `Local skills:` line only when
-  the run exposed a concrete skill issue or opportunity; otherwise report it as
-  clean. Do not run a separate skill audit.
+- When a repo-local skill runs, report exactly one final `Local skills:` line:
+  `clean` when no issue arose, otherwise concise issue or opportunity notes. Do
+  not run a separate skill audit.
 
 ## Skill authoring
 

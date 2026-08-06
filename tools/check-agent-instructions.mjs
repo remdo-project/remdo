@@ -4,21 +4,56 @@ import path from 'node:path';
 import process from 'node:process';
 
 const PROJECT_LIMIT_BYTES = 32 * 1024;
-const ROOT = process.cwd();
+let failed = false;
 
 function fail(message) {
   console.error(`agent-instructions: ${message}`);
-  process.exitCode = 1;
+  failed = true;
 }
 
+function gitOutput(args, cwd) {
+  try {
+    return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch {
+    fail('requires an accessible Git repository');
+    return '';
+  }
+}
+
+const ROOT = gitOutput(['rev-parse', '--show-toplevel'], process.cwd()).trim();
+
 function repositoryFiles() {
-  return execFileSync(
-    'git',
-    ['ls-files', '--cached', '--others', '--exclude-standard', '-z'],
-    { cwd: ROOT, encoding: 'utf8' },
-  )
+  if (!ROOT) return [];
+  return gitOutput(['ls-files', '--cached', '--others', '--exclude-standard', '-z'], ROOT)
     .split('\0')
     .filter(Boolean);
+}
+
+function readRepositoryFile(file) {
+  try {
+    return readFileSync(path.join(ROOT, file));
+  } catch {
+    fail(`${file} is selected by Git but missing from the working tree`);
+    return null;
+  }
+}
+
+function activeMarkdownLines(buffer) {
+  const lines = buffer.toString('utf8').split(/\r?\n/);
+  const active = [];
+  let fenceMarker = null;
+
+  for (const line of lines) {
+    const fence = line.match(/^\s{0,3}(`{3,}|~{3,})/u)?.[1];
+    if (fence) {
+      if (fenceMarker === null) fenceMarker = fence[0];
+      else if (fence[0] === fenceMarker) fenceMarker = null;
+      continue;
+    }
+    if (fenceMarker === null) active.push(line);
+  }
+
+  return active;
 }
 
 const files = new Set(repositoryFiles());
@@ -29,8 +64,11 @@ const instructionFiles = [...files].filter((file) => {
 
 if (!files.has('AGENTS.md')) {
   fail('the repository root must contain AGENTS.md');
-} else if (readFileSync(path.join(ROOT, 'AGENTS.md'), 'utf8').trim() === '') {
-  fail('the repository root AGENTS.md must not be empty');
+} else {
+  const agents = readRepositoryFile('AGENTS.md');
+  if (agents !== null && agents.toString('utf8').trim() === '') {
+    fail('the repository root AGENTS.md must not be empty');
+  }
 }
 
 if (files.has('AGENTS.override.md')) {
@@ -40,15 +78,18 @@ if (files.has('AGENTS.override.md')) {
 if (!files.has('CLAUDE.md')) {
   fail('CLAUDE.md is missing');
 } else {
-  const claudeLines = readFileSync(path.join(ROOT, 'CLAUDE.md'), 'utf8').split(/\r?\n/);
-  const meaningfulLines = claudeLines.filter((line) => line.trim() !== '');
-  const imports = claudeLines.filter((line) => line.trim() === '@AGENTS.md');
+  const claude = readRepositoryFile('CLAUDE.md');
+  if (claude !== null) {
+    const activeLines = activeMarkdownLines(claude);
+    const meaningfulLines = activeLines.filter((line) => line.trim() !== '');
+    const imports = activeLines.filter((line) => line.trim() === '@AGENTS.md');
 
-  if (meaningfulLines[0]?.trim() !== '@AGENTS.md') {
-    fail('CLAUDE.md must import AGENTS.md before Claude-specific rules');
-  }
-  if (imports.length !== 1) {
-    fail(`CLAUDE.md must import AGENTS.md exactly once (found ${imports.length})`);
+    if (meaningfulLines[0]?.trim() !== '@AGENTS.md') {
+      fail('CLAUDE.md must import AGENTS.md before Claude-specific rules');
+    }
+    if (imports.length !== 1) {
+      fail(`CLAUDE.md must import AGENTS.md exactly once (found ${imports.length})`);
+    }
   }
 }
 
@@ -73,10 +114,11 @@ for (const directory of [...candidateDirectories].sort()) {
     if (selected) chain.push(selected);
   }
 
-  const bytes = chain.reduce((total, file, index) => {
-    const separator = index === 0 ? 0 : 2;
-    return total + separator + readFileSync(path.join(ROOT, file)).byteLength;
-  }, 0);
+  let bytes = 0;
+  for (const [index, file] of chain.entries()) {
+    const contents = readRepositoryFile(file);
+    if (contents !== null) bytes += (index === 0 ? 0 : 2) + contents.byteLength;
+  }
 
   if (bytes > PROJECT_LIMIT_BYTES) {
     fail(
@@ -86,7 +128,9 @@ for (const directory of [...candidateDirectories].sort()) {
   }
 }
 
-if (process.exitCode === undefined) {
+if (failed) {
+  process.exitCode = 1;
+} else {
   console.info(
     `agent-instructions: OK (${instructionFiles.length} repository instruction ` +
       `file(s), ${PROJECT_LIMIT_BYTES}-byte Codex limit)`,
