@@ -3,7 +3,7 @@
 Inputs: `{RULES_DOC}` — the rules doc governing the corpus; `{SCOPE}` — the
 concrete fixed comparison or file selection under review. Run conditions:
 [SKILL.md](../SKILL.md), stage 3. Skill procedure is governed by
-[Skill authoring](../../../../AGENTS.md#skill-authoring).
+[Skill authoring](../../../../docs/specs/agents/instructions.md#skill-authoring).
 
 ---
 
@@ -44,7 +44,7 @@ boundary, failure, and no-op semantics are contract; clauses needed to prevent
 materially different behavior from reasonable implementations remain; brief
 rationale stays where dropping it would invite relitigating a settled choice.
 Separately, preserve procedural steps and sibling-link References under the
-repository's `AGENTS.md#skill-authoring` contract.
+repository's skill-authoring contract.
 
 For each proposal output these labelled lines, in order and with these exact
 labels — a downstream normalizer keys on them, so use them verbatim (write

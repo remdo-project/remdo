@@ -3,7 +3,7 @@
 Inputs: `{RULES_DOC}` — the rules doc; `{PROPOSALS}` — the advocate's
 numbered proposal file after the caller's fixed-scope filter. Run conditions:
 [SKILL.md](../SKILL.md), stage 4. Skill procedure is governed by
-[Skill authoring](../../../../AGENTS.md#skill-authoring).
+[Skill authoring](../../../../docs/specs/agents/instructions.md#skill-authoring).
 
 ---
 
@@ -34,7 +34,7 @@ semantics; clauses needed to prevent materially different behavior from
 reasonable implementations; brief rationale where dropping it would invite
 relitigating a settled choice. A skill's procedural steps and sibling-link
 References are also valid keep-reasons under the repository's
-`AGENTS.md#skill-authoring` contract. One decided precedent: a proposal
+skill-authoring contract. One decided precedent: a proposal
 targeting a navigation-only section whose links are load-bearing resolves as
 relocate-then-delete — move each link inline to its subject's first substantive
 mention, then delete the section; neither wholesale keep nor wholesale delete
