@@ -93,8 +93,8 @@ because agents need them before narrower owners can take over.
 - Agents may inspect and edit within the requested scope. Committing requires
   explicit user authority or an applicable skill-declared autonomous scope;
   that authority includes staging only the authorized commit. Other staging or
-  index rewrites require an explicit user request. A plain change request grants
-  neither commit nor push authority.
+  unstaging, stashing, resets, and index rewrites require an explicit user
+  request. A plain change request grants neither commit nor push authority.
 - Fetching remote-tracking state is allowed. Pulling, pushing, opening a pull
   request, and mutating fetches require explicit user authority.
 - Uncommitted work may be mid-transformation. A commit is coherent or tracks its
