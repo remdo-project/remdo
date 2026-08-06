@@ -24,16 +24,25 @@ const ROOT = gitOutput(['rev-parse', '--show-toplevel'], process.cwd()).trim();
 
 function repositoryFiles() {
   if (!ROOT) return [];
+  const deleted = new Set(
+    gitOutput(['ls-files', '--deleted', '-z'], ROOT).split('\0').filter(Boolean),
+  );
   return gitOutput(['ls-files', '--cached', '--others', '--exclude-standard', '-z'], ROOT)
     .split('\0')
-    .filter(Boolean);
+    .filter((file) => file && !deleted.has(file));
 }
 
+const contentsByFile = new Map();
+
 function readRepositoryFile(file) {
+  if (contentsByFile.has(file)) return contentsByFile.get(file);
   try {
-    return readFileSync(path.join(ROOT, file));
+    const contents = readFileSync(path.join(ROOT, file));
+    contentsByFile.set(file, contents);
+    return contents;
   } catch {
     fail(`${file} is selected by Git but missing from the working tree`);
+    contentsByFile.set(file, null);
     return null;
   }
 }
@@ -41,16 +50,21 @@ function readRepositoryFile(file) {
 function activeMarkdownLines(buffer) {
   const lines = buffer.toString('utf8').split(/\r?\n/);
   const active = [];
-  let fenceMarker = null;
+  let fence = null;
 
   for (const line of lines) {
-    const fence = line.match(/^\s{0,3}(`{3,}|~{3,})/u)?.[1];
-    if (fence) {
-      if (fenceMarker === null) fenceMarker = fence[0];
-      else if (fence[0] === fenceMarker) fenceMarker = null;
+    if (fence !== null) {
+      const closing = line.match(/^\s{0,3}(`{3,}|~{3,})\s*$/u)?.[1];
+      if (closing?.[0] === fence.marker && closing.length >= fence.length) fence = null;
       continue;
     }
-    if (fenceMarker === null) active.push(line);
+
+    const opening = line.match(/^\s{0,3}(`{3,}|~{3,})/u)?.[1];
+    if (opening) {
+      fence = { marker: opening[0], length: opening.length };
+      continue;
+    }
+    active.push(line);
   }
 
   return active;

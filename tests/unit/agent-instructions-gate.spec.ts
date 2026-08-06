@@ -36,10 +36,14 @@ afterEach(() => {
 });
 
 describe('agent instruction gate', () => {
-  it('accepts one active Claude import when a fenced example repeats it', () => {
+  it('accepts one active import around nested and alternate fenced examples', () => {
     const directory = repository();
     write(directory, 'AGENTS.md', '# Shared\n');
-    write(directory, 'CLAUDE.md', '@AGENTS.md\n\n```md\n@AGENTS.md\n```\n');
+    write(
+      directory,
+      'CLAUDE.md',
+      '@AGENTS.md\n\n````md\n```md\n@AGENTS.md\n```\n````\n\n~~~md\n@AGENTS.md\n~~~\n',
+    );
     write(directory, 'feature/AGENTS.md', '# Feature\n');
     track(directory);
 
@@ -49,7 +53,7 @@ describe('agent instruction gate', () => {
     expect(result.stdout).toContain('agent-instructions: OK');
   });
 
-  it('diagnoses a tracked instruction file missing from the working tree', () => {
+  it('ignores a tracked nested instruction deleted from the working tree', () => {
     const directory = repository();
     write(directory, 'AGENTS.md', '# Shared\n');
     write(directory, 'CLAUDE.md', '@AGENTS.md\n');
@@ -59,10 +63,8 @@ describe('agent instruction gate', () => {
 
     const result = run(directory);
 
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      'feature/AGENTS.md is selected by Git but missing from the working tree',
-    );
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('agent-instructions: OK');
   });
 
   it('rejects a root override that shadows the shared entry point', () => {
