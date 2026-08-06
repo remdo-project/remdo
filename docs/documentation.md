@@ -30,9 +30,9 @@ Each durable statement lives with the owner of the question it answers.
 - **`docs/dev/guides/` — Developer guides.** Guides explain how a developer
   accomplishes a task. Their steps derive from and link to the applicable
   contract and mechanism owners.
-- **`AGENTS.md` and `CLAUDE.md` — Agent instructions.** They own repository-wide
-  and provider-specific rules for agent work and link to the contracts and
-  contributor policy governing their decisions.
+- **Agent instruction surfaces.** [Agent instructions](specs/agents/instructions.md)
+  owns their target behavior. `AGENTS.md` is the shared repository entry point;
+  `CLAUDE.md` reuses it and adds provider-specific rules.
 - **Executable owners — Tool implementation.** Non-contract execution details
   stay with their scripts, configuration, or other executable owners.
 
@@ -88,6 +88,25 @@ only the context useful for returning to the work.
   different behavior, clarify the contract or surface the unresolved product
   decision.
 
+### Verification
+
+Prefer deterministic coverage: repository-owned automation that decides
+conformance with a repeatable machine-checkable result at a defined lifecycle
+point.
+
+- **Lifecycle.** During requirement design, a maintainer may add a marker,
+  including from an agent proposal grounded in research or repository evidence
+  of a durable, non-local coverage risk. Routine review enforces existing
+  markers and fixes other coverage gaps without adding or reconsidering markers;
+  reconsider them only while refining the owning contract.
+- **No admission value.** A marker never justifies adding or retaining a
+  requirement; the clause must already satisfy [Ownership](#ownership) and
+  [Minimality](#minimality).
+- **Marker scope.** Append **Deterministic.** to the clause it qualifies. The
+  marker identifies the required property, not the test, command, or
+  implementation that covers it, and does not claim exhaustive coverage of
+  surrounding behavior.
+
 ## Documentation changes
 
 A documentation change touches only regions needed for its intended semantic
@@ -109,6 +128,13 @@ non-procedural contracts by responsibility in dependency order.
 
 State owned behavior positively. Retain a negation only when it prevents a
 credible misuse.
+
+### Lists
+
+Use bullets when three or more peer items need to be located, compared, or
+assessed independently. Use nested bullets only for a meaningful parent-child
+relationship in which each child expands its parent's responsibility. Keep a
+compact sequence inline when separating its items would not improve scanning.
 
 ### Diagrams
 
@@ -202,6 +228,8 @@ Use for external sources and dependencies the document relies on.
   self-containment, scope-first, subject-affinity linking.
 - [Write the Docs: docs as code](https://www.writethedocs.org/guide/docs-as-code/)
   — docs reviewed and tested like code.
+- [NASA Systems Engineering Handbook](https://www.nasa.gov/wp-content/uploads/2018/09/nasa_systems_engineering_handbook_0.pdf)
+  — verification methods recorded with their requirements.
 - [Google style: timeless documentation](https://developers.google.com/style/timeless-documentation)
   — timeless prose.
 - [arc42](https://arc42.org/overview) — decision rationale as load-bearing.
