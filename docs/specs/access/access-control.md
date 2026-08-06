@@ -62,8 +62,8 @@ but every admin API authorizes from the caller's session and role.
 
 The self-enrollment endpoint is the exception: it registers a new admin account
 for a caller that supplies the configured
-[`ADMIN_SECRET`](../../config.md#admin-bootstrap-and-enrollment). Enrollment is
-independent of the public-signup policy.
+[`ADMIN_SECRET`](../runtime/configuration.md#admin-bootstrap-and-enrollment).
+Enrollment is independent of the public-signup policy.
 
 `/admin` is the admin entry route. An admin sees the admin panel; every other
 visitor sees the self-enrollment form. A signed-in admin sees an **Admin** link
@@ -83,7 +83,7 @@ credentialed app API, cross-subdomain mutation flow, non-JSON mutation body, or
 `SameSite=None` cookie.
 
 In development, Better Auth trusts the app's
-[canonical public origin and local aliases](../../config.md#derivation-rules)
+[canonical public origin and local aliases](../runtime/configuration.md#derivation-rules)
 plus the loopback PWA preview origin. Preview requests retain their
 browser-supplied `Origin`, so unrelated origins remain rejected.
 

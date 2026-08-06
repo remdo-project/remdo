@@ -16,13 +16,14 @@ to highest precedence:
 
 - Repository defaults work as-is.
 - To override defaults for this working directory, copy `.env.example` to
-  `.env` and change only the [inputs](../../config.md#inputs) you need.
+  `.env` and change only the
+  [inputs](../../specs/runtime/configuration.md#inputs) you need.
 - To override a value for one invocation, set it in the process environment.
 
 ### Ports and Network Access
 
-- [`PORT_BASE`](../../config.md#derivation-rules) selects the local stack's port
-  range.
+- [`PORT_BASE`](../../specs/runtime/configuration.md#derivation-rules)
+  selects the local stack's port range.
 - `HOST` controls gateway exposure and defaults to `localhost`. On a headless
   development machine, set `HOST=0.0.0.0`; browser URLs then use the machine
   hostname.
@@ -46,7 +47,8 @@ Open the canonical URL for the stack, sign in with a credential from
 [`stable-auth-users.ts`](../../../tools/lib/stable-auth-users.ts), and choose a
 document named `fixture: <fixture-name>`. With the default `HOST`, use Vite's
 Local URL. With `HOST=0.0.0.0`, use the machine hostname or explicit
-`PUBLIC_HOST` from the [development origin](../../config.md#derivation-rules),
+`PUBLIC_HOST` from the
+[development origin](../../specs/runtime/configuration.md#derivation-rules),
 not one of Vite's interface-IP Network URLs.
 
 ### Reset Development Data
