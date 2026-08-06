@@ -90,14 +90,17 @@ because agents need them before narrower owners can take over.
 
 #### Repository authority
 
-- Agents may inspect and edit within the requested scope. Staging and committing
-  require explicit user authority or an applicable skill-declared autonomous
-  scope; rewriting existing index state requires an explicit user request. A
-  plain change request grants neither commit nor push authority.
+- Agents may inspect and edit within the requested scope. Committing requires
+  explicit user authority or an applicable skill-declared autonomous scope;
+  that authority includes staging only the authorized commit. Other staging or
+  index rewrites require an explicit user request. A plain change request grants
+  neither commit nor push authority.
 - Fetching remote-tracking state is allowed. Pulling, pushing, opening a pull
   request, and mutating fetches require explicit user authority.
 - Uncommitted work may be mid-transformation. A commit is coherent or tracks its
-  precise remaining gap in [RemDo TODO](../../todo.md#tracked-follow-up).
+  precise remaining gap in [RemDo TODO](../../todo.md#tracked-follow-up). When
+  commit authority applies, the agent records that gap without seeking separate
+  approval.
 
 #### Isolation
 
@@ -115,8 +118,9 @@ because agents need them before narrower owners can take over.
   dependency, investigate repository evidence before asking, and ask before
   choosing between unresolved material tradeoffs.
 - `CODEX_CI=1` or `CI=true` selects cloud-agent verification; otherwise local
-  verification applies. Local uncommitted work finishes with `pnpm run check`;
-  cloud work and committed ranges finish with `pnpm run check:full`.
+  verification applies. A wholly uncommitted local scope finishes with
+  `pnpm run check`; cloud work and any scope containing committed changes finish
+  with `pnpm run check:full`.
 - Tests protect observable behavior or a stable contract. Use end-to-end
   coverage when a unit test is a poor fit; rely on an
   [empirical check](../../documentation.md#empirical-checks) only when its owner
