@@ -90,6 +90,7 @@ The shared entry point directly states RemDo-specific rules for:
 - repository authority and Git mutation boundaries;
 - shared-workspace, worktree, process, data, and port isolation;
 - agent-mode detection, verification selection, and required check commands;
+- agent skill contract ownership and skill-authoring constraints;
 - review, tracked-finding, and handoff boundaries.
 
 ## References
