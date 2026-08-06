@@ -33,8 +33,7 @@ a rules-doc carve-out: materially relevant boundary, failure, and no-op
 semantics; clauses needed to prevent materially different behavior from
 reasonable implementations; brief rationale where dropping it would invite
 relitigating a settled choice. A skill's procedural steps and sibling-link
-References are also valid keep-reasons under the repository's
-skill-authoring contract. One decided precedent: a proposal
+References are also valid keep-reasons. One decided precedent: a proposal
 targeting a navigation-only section whose links are load-bearing resolves as
 relocate-then-delete — move each link inline to its subject's first substantive
 mention, then delete the section; neither wholesale keep nor wholesale delete

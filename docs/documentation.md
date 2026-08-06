@@ -31,8 +31,7 @@ Each durable statement lives with the owner of the question it answers.
   accomplishes a task. Their steps derive from and link to the applicable
   contract and mechanism owners.
 - **Agent instruction surfaces.** [Agent instructions](specs/agents/instructions.md)
-  owns their target behavior. `AGENTS.md` is the shared repository entry point;
-  `CLAUDE.md` reuses it and adds provider-specific rules.
+  owns their target behavior.
 - **Executable owners — Tool implementation.** Non-contract execution details
   stay with their scripts, configuration, or other executable owners.
 

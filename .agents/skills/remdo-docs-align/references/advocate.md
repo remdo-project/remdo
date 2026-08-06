@@ -43,8 +43,7 @@ inventory phrasing. Respect the rules doc's carve-outs: materially relevant
 boundary, failure, and no-op semantics are contract; clauses needed to prevent
 materially different behavior from reasonable implementations remain; brief
 rationale stays where dropping it would invite relitigating a settled choice.
-Separately, preserve procedural steps and sibling-link References under the
-repository's skill-authoring contract.
+Separately, preserve procedural steps and sibling-link References.
 
 For each proposal output these labelled lines, in order and with these exact
 labels — a downstream normalizer keys on them, so use them verbatim (write
