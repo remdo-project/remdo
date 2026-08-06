@@ -18,7 +18,8 @@ authoritative guidance trigger their reassessment.
   repository root.
 - Provider-specific entry points reuse the shared instructions and add only
   provider-specific rules.
-- `CLAUDE.md` imports `AGENTS.md` before its Claude-specific rules.
+- `CLAUDE.md` imports `AGENTS.md` exactly once as its first nonblank active
+  content, before its Claude-specific rules.
   **Deterministic.**
 - Every repository-controlled Codex instruction chain fits within Codex's
   documented default project-instruction limit. **Deterministic.**

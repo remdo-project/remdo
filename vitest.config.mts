@@ -56,6 +56,7 @@ export default defineConfig({
       // or a spec added under `.claude` would false-pass changed-only.
       '**/.agents/skills/**/tests/**',
       '**/.claude/skills/**/tests/**',
+      '**/tools/check-agent-instructions.mjs',
       '**/.markdownlint-cli2.jsonc',
     ],
     exclude: [

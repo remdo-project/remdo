@@ -1,13 +1,25 @@
 # Local Development
 
 Local development uses stable users and seeded fixture documents, making app
-behavior easy to explore and reproduce. This guide covers the main development
-workflow, PWA preview, Docker app, and source-linking setup.
+behavior easy to explore and reproduce. This guide covers workspace and browser
+test setup, the main development workflow, PWA preview, Docker app, and
+source-linking setup.
 
 ## Prepare the Workspace
 
 Run `pnpm run dev:init` after a fresh clone or after removing `node_modules`.
 The command installs the locked dependencies.
+
+### Prepare Browser Tests
+
+Before the first `pnpm test:e2e` run, install Chromium with:
+
+```sh
+pnpm exec playwright install chromium
+```
+
+If `PLAYWRIGHT_BROWSERS_PATH` names a read-only or missing shared cache,
+override it with a writable cache path for both the install and the test run.
 
 ### Configuration Overrides
 
