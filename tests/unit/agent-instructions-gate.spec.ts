@@ -36,6 +36,19 @@ afterEach(() => {
 });
 
 describe('agent instruction gate', () => {
+  it('stops after one diagnostic outside an accessible Git repository', () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'remdo-agent-instructions-'));
+    repositories.push(directory);
+    write(directory, '.git', 'gitdir: missing\n');
+
+    const result = run(directory);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr.trim()).toBe(
+      'agent-instructions: requires an accessible Git repository',
+    );
+  });
+
   it('accepts one active import around nested and alternate fenced examples', () => {
     const directory = repository();
     write(directory, 'AGENTS.md', '# Shared\n');

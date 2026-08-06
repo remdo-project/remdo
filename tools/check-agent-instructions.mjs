@@ -15,8 +15,8 @@ function gitOutput(args, cwd) {
   try {
     return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   } catch {
-    fail('requires an accessible Git repository');
-    return '';
+    console.error('agent-instructions: requires an accessible Git repository');
+    process.exit(1);
   }
 }
 

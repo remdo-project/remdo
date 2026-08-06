@@ -31,7 +31,8 @@ Each durable statement lives with the owner of the question it answers.
   accomplishes a task. Their steps derive from and link to the applicable
   contract and mechanism owners.
 - **`AGENTS.md` and `CLAUDE.md` — Agent instruction surfaces.**
-  [Agent instructions](specs/agents/instructions.md) owns their target behavior.
+  The surfaces own their directly loaded rules; [Agent instructions](specs/agents/instructions.md)
+  owns their design, responsibilities, and deterministic structural contracts.
 - **Executable owners — Tool implementation.** Non-contract execution details
   stay with their scripts, configuration, or other executable owners.
 

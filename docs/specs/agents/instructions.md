@@ -88,8 +88,9 @@ not restate linked contracts.
 
 ### Direct rules
 
-The shared entry point directly states the following RemDo-specific outcomes
-because agents need them before narrower owners can take over.
+The shared entry point owns its directly loaded RemDo-specific rules. Those
+rules cover the following responsibilities because agents need them before
+narrower owners can take over.
 
 #### Repository authority
 

@@ -9,7 +9,7 @@ This is the shared repository entry point. Locate task-specific accepted
 behavior by filename and scope opener under `docs/`, then read only the current
 owner. Provider-specific surfaces may load it alongside their own rules.
 
-- **Instruction design and direct-rule contracts:**
+- **Instruction design and surface responsibilities:**
   [Agent instructions](docs/specs/agents/instructions.md).
 - **Durable documentation:** [Documentation](docs/documentation.md).
   - **Owner categories:**
