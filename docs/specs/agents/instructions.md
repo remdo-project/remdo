@@ -97,8 +97,9 @@ because agents need them before narrower owners can take over.
   request. A plain change request grants neither commit nor push authority.
 - Staged versus unstaged state does not signal completion, approval, protection,
   or task scope; agents edit files required by the task regardless of that state.
-- Fetching remote-tracking state is allowed. Pulling, pushing, opening a pull
-  request, and mutating fetches require explicit user authority.
+- Ordinary `git fetch` is allowed. Pulling, opening a pull request, and fetches
+  with caller-supplied mutating refspecs require explicit user authority.
+  Pushing always requires a separate explicit user request.
 - Uncommitted work may be mid-transformation. A commit is coherent or tracks its
   precise remaining gap in [RemDo TODO](../../todo.md#tracked-follow-up). When
   commit authority applies, the agent records that gap without seeking separate
