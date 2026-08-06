@@ -27,17 +27,13 @@ verification again. It does not apply commit-range corrections from a detached
 Before committing or re-verifying, the skill checks the correction batch
 against every applicable authoritative contract.
 
-After applying all determined corrections from one verification, the skill runs
-complete verification again. It does not re-verify unchanged state and stops
-with a concern before revisiting a state verified in the current run. It
-continues with available evidence when [verification is
-degraded](remdo-verify-change.md#result).
+After applying corrections, the skill runs complete verification again. It does
+not re-verify unchanged state; [degraded
+verification](remdo-verify-change.md#result) remains usable.
 
-A `clean`, `findings`, or `no-change` verification is converged when no
-determined correction remains unapplied, including when other dispositions
-remain or verification is degraded. Any `stopped` verification stops
-convergence unless the stop was caused by a failed check and the skill can
-determine and apply its correction. A scope-resolution failure stops the skill.
+The skill converges when no determined correction remains, even if
+[concerns](../results.md#concerns) remain. A `stopped` verification stops
+convergence unless the skill can correct its failed check.
 
 ## Result
 

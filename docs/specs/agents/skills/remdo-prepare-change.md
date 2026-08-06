@@ -63,14 +63,10 @@ Legend:
   scope, any required
   [repository authority](../../../../AGENTS.md#safety--process), expected result,
   and return point. Repository changes remain disposable unless adopted.
-- **Owning branch ready.** Before the first retained change, fetch `origin/main`
-  and use its fetched commit as the base unless the developer specified another.
-  The current [topic branch](../../../dev/contributing.md#git-workflow) is the
-  owning branch when it points at the base, or when the base is its ancestor and
-  the range from the base contains only adopted committed work. Otherwise name a
-  replacement, create it at the base, switch to it, and transfer only adopted
-  work. Existing uncommitted changes enter the branch only when quick dialogue
-  identifies them as part of the change; otherwise they prevent branch readiness.
+- **Owning branch ready.** Before retaining work, fetch `origin/main` and ensure
+  the current [topic branch](../../../dev/contributing.md#git-workflow) uses its
+  fetched commit as the base and contains only work adopted by the change. Use
+  another base only if the developer specified one.
 - **Specification.** The coordinator identifies current
   [contract owners](../../../documentation.md#ownership), edits them only when
   their [target behavior](../../../documentation.md#target-behavior) must
