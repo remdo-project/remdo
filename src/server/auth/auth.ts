@@ -37,7 +37,7 @@ export const REMDO_SERVER_OAUTH_SCOPES = [
 // Better Auth upgrades non-loopback HTTP issuers to HTTPS. The home's callback
 // issuer guard must normalize with the same exported host classifier or it can
 // reject a valid callback. Preferred long-term fix (see
-// docs/access-model.md#future):
+// docs/specs/access/source-linking.md#future):
 // reject non-loopback http sources at add time so every stored origin is one
 // upstream leaves alone, making this normalization deletable.
 
@@ -131,7 +131,8 @@ function createBetterAuthInstance({
         // flags gate on allowSignup: a private (non-public) source refuses
         // registration outright. (allowUnauthenticatedClientRegistration is the
         // supported option for this today; its eventual replacement is CIMD, which
-        // does not fit RemDo's private-home topology — see docs/access-model.md.)
+        // does not fit RemDo's private-home topology — see
+        // docs/specs/access/source-linking.md.)
         allowDynamicClientRegistration: allowSignup,
         allowUnauthenticatedClientRegistration: allowSignup,
         clientRegistrationDefaultScopes: [...REMDO_SERVER_OAUTH_SCOPES],

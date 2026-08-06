@@ -46,12 +46,6 @@ Remove rejected or obsolete items and empty sections.
   at the root, migrate coherent capability contracts into `docs/specs/`, and
   update complete inbound ownership links with each move.
 
-- **Access specification ownership.** Split `docs/access-model.md` into
-  `docs/specs/access/access-control.md` and
-  `docs/specs/access/source-linking.md`. Assign each current contract, future
-  direction, and reference to its owner, align both specifications with
-  `docs/documentation.md`, and update every inbound link in the same change.
-
 ### Editor
 
 - **Editor module ownership.** Editor capabilities are split across `features/`,

@@ -132,7 +132,9 @@ Rules:
 - Runtime public-policy toggle UI (see above) — this PR builds swappable-auth but
   not the toggle.
 
-Deferred hardening; long-horizon items live in `docs/access-model.md#future`.
+Deferred hardening; long-horizon items live in
+`docs/specs/access/access-control.md#future` and
+`docs/specs/access/source-linking.md#future`.
 
 - Public-source registration abuse: the home self-registers unauthenticatedly,
   so the deleted per-account (userId-keyed) register limit can't be ported —
