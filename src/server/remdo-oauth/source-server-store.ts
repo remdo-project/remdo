@@ -5,8 +5,7 @@ import type { SourceServersTable } from '#server/db/schema';
 
 // A home's linkable source servers are a self-filling cache keyed by origin. A
 // row is created on first link to a URL; its client_id is filled in once
-// self-registration completes
-// (docs/specs/access/source-linking.md#linking-a-source).
+// self-registration completes (docs/access-model.md#linking-a-source).
 
 // Source clients are always public (PKCE, no secret), so a credential is just a
 // client_id.

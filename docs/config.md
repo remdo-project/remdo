@@ -28,7 +28,7 @@ path.
 | `PUBLIC_HOST` | optional | — | Browser-visible development hostname or IP when it differs from `HOST`. |
 | `APP_PUBLIC_URL` | derived | required | Canonical public origin (see below). |
 | `ADMIN_SECRET` | optional | required | Admin enrollment gate (see below). |
-| `ALLOW_SIGNUP` | optional | optional | Signup and [source-linking](./specs/access/source-linking.md#linking-a-source) public-role policy: public sources allow signup and unauthenticated client registration; private homes refuse signup and can link sources. Defaults true outside production, false in it. |
+| `ALLOW_SIGNUP` | optional | optional | Signup and [source-linking](./access-model.md#linking-a-source) public-role policy: public sources allow signup and unauthenticated client registration; private homes refuse signup and can link sources. Defaults true outside production, false in it. |
 
 ## Derivation rules
 
@@ -78,8 +78,7 @@ Guardrails:
 ## Admin bootstrap and enrollment
 
 `ADMIN_SECRET` is the gate for acquiring the admin role; the self-enrollment
-flow it gates lives in
-[Access control](./specs/access/access-control.md#admin-role).
+flow it gates lives in [docs/access-model.md](./access-model.md#admin-role).
 
 ## Validation policy
 
