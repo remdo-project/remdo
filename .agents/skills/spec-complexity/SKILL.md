@@ -33,7 +33,9 @@ Do not turn the assessment into a correctness review, implementation-preserving
 refactor proposal, or exhaustive inventory. Omit Low areas unless the caller
 requests them.
 
-## Report
+## Return
 
-Return the report defined by the specification's
-[Result](../../../docs/specs/agents/skills/spec-complexity.md#result) section.
+Return the authoritative specification's
+[Result](../../../docs/specs/agents/skills/spec-complexity.md#result). When
+addressing a human, render it under the shared
+[Reports](../../../docs/specs/agents/results.md#reports) contract.

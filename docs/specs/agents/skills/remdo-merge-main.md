@@ -1,9 +1,10 @@
 # remdo-merge-main
 
-This capability merges `origin/main` into the current branch and verifies the
-result. Requested local work may be preserved; unrelated branch convergence
-and remote mutation are outside the capability. Concurrent repository mutation
-and recovery from an interrupted run are also outside the capability.
+This capability merges `origin/main` into the current branch, verifies the
+change, and returns an [agent result](../results.md#results). Requested local
+work may be preserved; unrelated branch convergence and remote mutation are
+outside the capability. Concurrent repository mutation and recovery from an
+interrupted run are also outside the capability.
 
 ## Authority
 
@@ -56,9 +57,29 @@ the result without rolling back the merge.
 
 ## Result
 
-The result is `up-to-date`, `fast-forwarded`, `merged`, `conflicted`,
-`verification-failed`, or `restore-conflicted`.
+The result uses this shape:
 
-It reports the destination branch, fixed target, incoming commit count, merge
-form, conflict dispositions, committed corrections, verification outcome,
-preservation outcome, and any manual recovery condition.
+```yaml
+outcome: <up-to-date | fast-forwarded | merged | conflicted | verification-failed | restore-conflicted | stopped>
+concerns: # if any
+  - source: <originating capability or participant>
+    summary: <condition>
+destination: <branch> # if resolved
+target: <fixed fetched origin/main commit> # if fetched
+incoming_commits: <count> # if target resolved
+merge_form: <up-to-date | fast-forward | merge-commit> # if determined
+conflicts: # if any
+  - path: <conflicted path>
+    status: <resolved | unresolved>
+corrections: # if any
+  - summary: <committed integration correction>
+verification: <not-run | passed | failed> # if merge form determined
+preservation: <not-needed | untouched | pending | restored | restore-conflicted> # if requested and known
+saved_work: <stash commit> # if retained
+reason: <stop or manual recovery condition> # if any
+```
+
+- `stopped` means an otherwise-unclassified failure ended the run.
+- `not-needed` means preserve mode found no local work.
+- `untouched` means an unchanged branch left local work in place.
+- `pending` means saved work remains in its stash for manual recovery.

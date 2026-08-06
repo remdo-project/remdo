@@ -1,9 +1,10 @@
 # remdo-converge-change
 
-This skill verifies a repository change, applies every correction
-supported by the evidence, and repeats until no further correction can be
-determined. One [change scope](../change-scope.md) bounds the run; the
-skill does not select or expand intended behavior.
+This skill verifies a repository change, applies every correction supported by
+the evidence, and repeats until no further correction can be determined. It
+returns an [agent result](../results.md#results). One
+[change scope](../change-scope.md) bounds the run; the skill does not select or
+expand intended behavior.
 
 ## Convergence
 
@@ -26,19 +27,45 @@ verification again. It does not apply commit-range corrections from a detached
 Before committing or re-verifying, the skill checks the correction batch
 against every applicable authoritative contract.
 
-After applying all determined corrections from one verification, the skill runs
-complete verification again. It does not re-verify unchanged state and continues
-using available evidence when [verification is degraded](remdo-verify-change.md#result).
+After applying corrections, the skill runs complete verification again. It does
+not re-verify unchanged state; [degraded
+verification](remdo-verify-change.md#result) remains usable.
 
-A `clean`, `findings`, or `no-change` verification is converged when no
-`confirmed` finding remains that the skill can correct, including when other
-dispositions remain or verification is degraded.
+The skill converges when no determined correction remains, even if
+[concerns](../results.md#concerns) remain. A `stopped` verification stops
+convergence unless the skill can correct its failed check.
 
 ## Result
 
-The result reports whether the state converged, the scope, corrections applied,
-the verifier's finding dispositions, confirmed findings it could not correct,
-the latest verification result, and any condition that prevented convergence.
+`findings` carries every disposition across verification iterations and marks
+each confirmed finding as fixed or uncorrected. `verification.findings` is the
+latest iteration only.
+
+When run, `verification` contains the complete latest
+[`remdo-verify-change` result](remdo-verify-change.md#result).
+
+The result uses this shape:
+
+```yaml
+outcome: <converged | not-converged | stopped>
+concerns: # if any
+  - source: <originating capability or participant>
+    summary: <condition>
+scope: <resolved scope or resolution failure>
+corrections: # if any
+  - summary: <applied correction>
+verification: <complete latest remdo-verify-change result> # if run
+findings: # if any
+  - summary: <finding>
+    source: <codex | claude>
+    disposition: <confirmed | rejected | unresolved | material out of scope>
+    reason: <disposition reason>
+    resolution: <fixed | uncorrected> # if confirmed
+reason: <condition that prevented or stopped convergence> # if not converged or stopped
+```
+
+`not-converged` means completed verification left a determined correction
+unapplied. `stopped` means any other condition prevented convergence.
 
 ## Future
 
