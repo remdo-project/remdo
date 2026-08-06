@@ -96,9 +96,10 @@ point.
 
 - **Lifecycle.** During requirement design, a maintainer may add a marker,
   including from an agent proposal grounded in research or repository evidence
-  of a durable, non-local coverage risk. Routine review enforces existing
-  markers and fixes other coverage gaps without adding or reconsidering markers;
-  reconsider them only while refining the owning contract.
+  of a durable, non-local coverage risk. Routine review treats existing markers
+  as accepted requirements and reports uncovered gaps without adding or
+  reconsidering markers; reconsider them only while refining the owning
+  contract.
 - **No admission value.** A marker never justifies adding or retaining a
   requirement; the clause must already satisfy [Ownership](#ownership) and
   [Minimality](#minimality).
