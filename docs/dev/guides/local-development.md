@@ -116,12 +116,11 @@ private Docker home. It requires rootless Docker Engine 29.5 or newer.
 
    The command prints the home and source URLs.
 3. On a fresh Docker home, open `/admin` at the printed home URL and complete
-   [admin enrollment](../../specs/access/access-control.md#admin-role) using the
-   configured `ADMIN_SECRET`.
+   [admin enrollment](../../access-model.md#admin-role) using the configured
+   `ADMIN_SECRET`.
 4. Open the home's Sharing page, choose **Link source**, and enter the printed
    source URL. When redirected to the source, sign in as one of the stable
    users.
 
-The
-[source-linking access model](../../specs/access/source-linking.md#cross-server-source-linking)
+The [source-linking access model](../../access-model.md#cross-server-source-linking)
 owns the resulting authorization and delegation behavior.

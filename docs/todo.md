@@ -46,6 +46,12 @@ Remove rejected or obsolete items and empty sections.
   at the root, migrate coherent capability contracts into `docs/specs/`, and
   update complete inbound ownership links with each move.
 
+- **Access specification ownership.** Split `docs/access-model.md` into
+  `docs/specs/access/access-control.md` and
+  `docs/specs/access/source-linking.md`. Assign each current contract, future
+  direction, and reference to its owner, align both specifications with
+  `docs/documentation.md`, and update every inbound link in the same change.
+
 ### Editor
 
 - **Editor module ownership.** Editor capabilities are split across `features/`,
@@ -175,13 +181,18 @@ Remove rejected or obsolete items and empty sections.
   current authoritative documentation or public APIs for external dependencies
   before using [empirical checks](documentation.md#empirical-checks).
 
-- **Development change workflow design.** Before implementing the initial
-  [workflow contract](specs/agents/development-change-workflow.md), validate its
-  phase boundaries through real changes and revise them when evidence requires.
-  Define the active change record and approval baseline, how nested component
-  results reach the user, which component owns deterministic checks, where fresh
-  sessions begin, and whether recurring ambiguity justifies separate
-  specification- and implementation-readiness modes.
+- **Skill-spec ownership boundaries.** Verify ownership between agent skill
+  specifications, starting with
+  [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md), and
+  repository-wide or contributor contracts such as
+  [Contributing](dev/contributing.md). Keep capability-specific behavior with
+  its skill and shared policy with the broader owner; update links and remove
+  restatements in the same change.
+
+- **Structured reviewer results.** Evaluate provider-supported structured
+  findings, such as JSON Schema output, without weakening native review or
+  evidence. If viable, define verifier normalization into the shared
+  [agent result](specs/agents/results.md#results).
 
 - **Post-skill retrospectives.** Make an on-demand retrospective available
   after skill runs, using saved session logs to explain elapsed time, repeated

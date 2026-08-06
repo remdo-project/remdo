@@ -32,6 +32,7 @@
     ".claude/skills/remdo-deps-refresh",
     ".claude/skills/remdo-docs-align",
     ".claude/skills/remdo-merge-main",
+    ".claude/skills/remdo-prepare-change",
     ".claude/skills/remdo-verify-change",
     ".claude/skills/spec-complexity"
   ],

@@ -18,8 +18,7 @@ test.describe('Admin link in the top toolbar', () => {
     await adminLink.click();
     await expect(page).toHaveURL(/\/admin$/u);
     // The admin panel is a placeholder now (source-server controls were removed
-    // with the URL-first linking redesign; see
-    // docs/specs/access/source-linking.md).
+    // with the URL-first linking redesign; see docs/access-model.md).
     await expect(page.getByRole('heading', { name: 'Admin', exact: true })).toBeVisible();
   });
 });

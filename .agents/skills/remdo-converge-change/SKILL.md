@@ -68,8 +68,10 @@ Resolved uncommitted scope does not authorize commits.
 
 ## Report
 
-Return the result defined by the authoritative specification's
-[Result](../../../docs/specs/agents/skills/remdo-converge-change.md#result) section.
+Return the authoritative specification's
+[Result](../../../docs/specs/agents/skills/remdo-converge-change.md#result). When
+addressing a human, render it under the shared
+[Reports](../../../docs/specs/agents/results.md#reports) contract.
 
 ## References
 

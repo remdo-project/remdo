@@ -92,6 +92,8 @@ A result is encoded by the runner's exit status and output:
   native capability the runner can establish is unavailable to stderr;
 - `failed`: any other non-zero exit and failure evidence on stderr.
 
+`unavailable` and `failed` are [concerns](../results.md#concerns).
+
 Only `responded` writes stdout. It confirms transport and response integrity,
 not that the response satisfies the caller's task; the caller owns that
 validation. When a provider process exits unsuccessfully, its failure evidence

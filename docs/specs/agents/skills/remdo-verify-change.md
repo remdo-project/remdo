@@ -1,7 +1,7 @@
 # remdo-verify-change
 
-The skill verifies one [change
-scope](../change-scope.md). It reports evidence and findings without
+The skill verifies one [change scope](../change-scope.md) and returns an
+[agent result](../results.md#results). It reports evidence and findings without
 changing repository state, approving the scope, or controlling its lifecycle.
 
 The verifier resolves its optional input under the change-scope contract. It
@@ -13,17 +13,21 @@ until verification finishes.
 
 ```text
 [change-scope resolution]
-    ├─ no-change ─> [report]
-    ├─ failure ───> [report and stop]
-    └─ ready
-         │
-         v
-    [deterministic checks]
-         ├─ failure ─> [report and stop]
-         │
-         └─ pass
-              ├─> [Codex review] ──┐
-              └─> [Claude review] ─┴─> [finding validation] ─> [report]
+    ├─ no-change ─────────> [report]
+    ├─ failure ───────────> [report and stop]
+    │ ready
+    v
+[deterministic checks]
+    ├─ failure ───────────> [report and stop]
+    │ pass
+    v
+[independent Codex + Claude reviews]
+    │
+    v
+[finding validation]
+    │
+    v
+[report]
 ```
 
 The verifier runs the [repository checks prescribed for the agent mode and
@@ -40,12 +44,12 @@ For Claude, the verifier exercises the caller judgement required by the runner's
 judges the runner-constructed vendor-owned native review command and its
 resolved-scope arguments to satisfy that level.
 
-Review [results](../tools/read-only-runner.md#result) are independent:
-one never interrupts another. The verifier reports `unavailable` and `failed`
-directly. It treats `responded` as `completed`, includes the complete report,
-and interprets its findings unless the report indicates that inspection of the
-complete change scope failed or remains uncertain; then it treats the review as
-`failed` and uses the report as evidence.
+Review [results](../tools/read-only-runner.md#result) are independent; one never
+interrupts another. The verifier re-reports `unavailable` and `failed` as
+[concerns](../results.md#concerns). It maps `responded` to `completed`, includes
+the complete [report](../results.md#reports), and interprets its findings. If
+the report says complete-scope inspection failed or remains uncertain, the
+verifier instead marks the review `failed` and uses the report as evidence.
 
 ## Findings
 
@@ -73,7 +77,9 @@ Each finding has one disposition:
   scope and it could materially affect the caller's decision.
 
 The result includes the reason for each disposition. Verification does not
-expand the selected scope or decide what happens next.
+expand the selected scope or decide what happens next. A `confirmed`,
+`unresolved`, or `material out of scope` finding remains a concern for the
+caller; a `rejected` finding is resolved.
 
 ## Result
 
@@ -82,40 +88,34 @@ expand the selected scope or decide what happens next.
 produced a `confirmed`, `unresolved`, or `material out of scope` disposition.
 `no-change` means scope resolution found no diff, so checks and reviews were not
 run. `stopped` means scope resolution, checks, or finding validation prevented
-completion. `degraded` accompanies the status when an attempted reviewer was
-unavailable or failed; neither condition alone changes `clean` to `findings`.
+completion. An unavailable or failed reviewer sets `degraded: true` and appears
+in `concerns`, but does not stop verification or alone change `clean` to
+`findings`. Every non-rejected finding also appears in `concerns`.
 
-A failed step reports only evidence relevant to its failure, not its successful
-sub-results. Reviews intentionally not attempted are `not run`, not
-`unavailable`.
+A stopped result includes the failed phase's evidence and completed preceding
+phases. Reviews blocked by an earlier phase are omitted, not `unavailable`.
 
-The result follows this order:
+The verifier's result uses this shape:
 
-```text
-Verification: <clean | findings | no-change | stopped> [(degraded)]
-
-Scope
-<requested and resolved change scope, no-change, or resolution failure>
-
-Checks
-<command>: <passed | failed>
-<failure evidence when failed>
-or
-not run: <reason>
-
-Reviews
-not run: <reason>
-or
-Codex: <completed | unavailable | failed>
-<final report or failure evidence>
-
-Claude: <completed | unavailable | failed>
-<final report or failure evidence>
-
-Findings
-not run: <reason>
-or
-none
-or
-<disposition, finding, and reason>
+```yaml
+outcome: <clean | findings | no-change | stopped>
+concerns: # if any
+  - source: <originating capability or participant>
+    summary: <condition>
+degraded: true # if degraded
+scope: <requested and resolved scope, no-change, or resolution failure>
+reason: <condition that stopped verification> # if stopped
+checks: # if run
+  - command: <command>
+    status: <passed | failed | not-run>
+    details: <failure evidence or reason not run> # if failed or not-run
+reviews: # if run
+  - source: <codex | claude>
+    status: <completed | unavailable | failed>
+    details: <complete report or failure evidence>
+findings: # if any
+  - summary: <finding>
+    source: <codex | claude>
+    disposition: <confirmed | rejected | unresolved | material out of scope>
+    reason: <disposition reason>
 ```

@@ -85,5 +85,7 @@ Keep verification read-only.
 
 ## Report
 
-Return the result exactly as defined by the authoritative specification's
-[Result](../../../docs/specs/agents/skills/remdo-verify-change.md#result) section.
+Return the authoritative specification's
+[Result](../../../docs/specs/agents/skills/remdo-verify-change.md#result). When
+addressing a human, render it under the shared
+[Reports](../../../docs/specs/agents/results.md#reports) contract.

@@ -1,0 +1,10 @@
+interface:
+  display_name: "RemDo Prepare Change"
+  short_description: "Prepare and deliver a complete RemDo change"
+  default_prompt: "Use $remdo-prepare-change to prepare this RemDo change through specification, implementation, convergence, and developer handoff."
+policy:
+  allow_implicit_invocation: false
+  subagents:
+    authorized: true
+    use_cases:
+      - "fresh-context exploration and simplification"
