@@ -85,13 +85,62 @@ not restate linked contracts.
 
 ### Direct rules
 
-The shared entry point directly states RemDo-specific rules for:
+The shared entry point directly states the following RemDo-specific outcomes
+because agents need them before narrower owners can take over.
 
-- repository authority and Git mutation boundaries;
-- shared-workspace, worktree, process, data, and port isolation;
-- agent-mode detection, verification selection, and required check commands;
-- agent skill contract ownership and skill-authoring constraints;
-- review, tracked-finding, and handoff boundaries.
+#### Repository authority
+
+- Agents may inspect and edit within the requested scope. Staging and committing
+  require explicit user authority or an applicable skill-declared autonomous
+  scope; rewriting existing index state requires an explicit user request. A
+  plain change request grants neither commit nor push authority.
+- Fetching remote-tracking state is allowed. Pulling, pushing, opening a pull
+  request, and mutating fetches require explicit user authority.
+- Uncommitted work may be mid-transformation. A commit is coherent or tracks its
+  precise remaining gap in [RemDo TODO](../../todo.md#tracked-follow-up).
+
+#### Isolation
+
+- The developer owns background processes in the shared root workdir. Agents
+  own the worktrees and worktree processes they create.
+- Parallel work that can mutate runtime state uses an isolated worktree, data
+  directory, and 100-port block. Read-only work may share the coordinating
+  agent's workdir.
+- Subagents require user or skill authorization and a material benefit; any
+  mutating subagent follows the same isolation boundary.
+
+#### Execution and verification
+
+- Prefer the simplest permanent implementation. Stop on a missing task
+  dependency, investigate repository evidence before asking, and ask before
+  choosing between unresolved material tradeoffs.
+- `CODEX_CI=1` or `CI=true` selects cloud-agent verification; otherwise local
+  verification applies. Local uncommitted work finishes with `pnpm run check`;
+  cloud work and committed ranges finish with `pnpm run check:full`.
+- Tests protect observable behavior or a stable contract. Use end-to-end
+  coverage when a unit test is a poor fit; rely on an
+  [empirical check](../../documentation.md#empirical-checks) only when its owner
+  classifies the behavior there, and perform it when the change can affect it.
+- Conclusions about UI behavior or rendering use live browser inspection as
+  their primary evidence.
+
+#### Skill authoring
+
+- A skill specification owns accepted behavior; `SKILL.md` owns its execution
+  procedure.
+- Skill procedures encode intent and the minimum necessary determinism for a
+  model at least as capable as the current one, without model-era scaffolding.
+- Procedures address the executing agent in second-person imperative and name
+  every other actor explicitly.
+
+#### Review and handoff
+
+- Review judges claimed behavior coverage and suppresses a finding only when
+  [RemDo TODO](../../todo.md#tracked-follow-up) tracks the same specific gap.
+- Artifacts intended for developer review land in the working directory for
+  inspection. Changes remain uncommitted unless commit authority applies.
+- [Specification feedback cases](../feedback-cases/README.md) remain frozen
+  evidence outside an explicit request to create or refine a case.
 
 ## References
 
