@@ -11,24 +11,22 @@ outside it re-derives configuration; the client sees only the subset marked for
 it. Config resolves and secrets bootstrap once per process — in production inside
 the Docker entrypoint, so the host needs nothing but Docker.
 
-## Inputs
+## Configuration ownership
 
-Cells read `required` (must be set),
-`optional` (has a default), `derived` (computed, not settable), or `—` (unused in
-that mode). Everything else is derived or bootstrapped, never set in the normal
-path.
+Copyable operator overrides for local development and repository-run production
+are catalogued in [`.env.example`](../../../.env.example). It is the curated
+operator surface, not an exhaustive list of process variables.
 
-| Variable | dev / test | server / prod | Role |
-| --- | --- | --- | --- |
-| `NODE_ENV` | optional | required | `development` / `test` / `production`. |
-| `DATA_DIR` | optional | optional | Persistence root for data and bootstrapped secrets (see Secret bootstrap guardrails). |
-| `PORT_BASE` | optional | — | Dev stack port base; `PORT` and all secondary ports derive from it. |
-| `PORT` | derived | optional | Listen/bind port only; the one prod knob, defaults to `8080`. |
-| `HOST` | optional | fixed in-container | Development gateway bind host; defaults to `localhost`. |
-| `PUBLIC_HOST` | optional | — | Browser-visible development hostname or IP when it differs from `HOST`. |
-| `APP_PUBLIC_URL` | derived | required | Canonical public origin (see below). |
-| `ADMIN_SECRET` | optional | required | Admin enrollment gate (see below). |
-| `ALLOW_SIGNUP` | optional | optional | Signup and [source-linking](../access/source-linking.md#linking-a-source) public-role policy: public sources allow signup and unauthenticated client registration; private homes refuse signup and can link sources. Defaults true outside production, false in it. |
+The executable owners define the exact mechanism:
+
+- [`schema.ts`](../../../config/env/schema.ts) declares accepted application
+  inputs and the browser projection; [`resolve.ts`](../../../config/env/resolve.ts)
+  validates and resolves them.
+- [`env.defaults.sh`](../../../tools/env.defaults.sh) owns mode defaults and
+  secondary derived values.
+- The [production launcher](../../../tools/prod/docker.sh) and
+  [container entrypoint](../../../docker/entrypoint.sh) own production launch
+  preparation and secret bootstrap.
 
 ## Derivation rules
 

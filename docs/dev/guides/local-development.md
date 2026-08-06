@@ -15,9 +15,9 @@ Local development resolves configuration from three layers, listed from lowest
 to highest precedence:
 
 - Repository defaults work as-is.
-- To override defaults for this working directory, copy `.env.example` to
-  `.env` and change only the
-  [inputs](../../specs/runtime/configuration.md#inputs) you need.
+- To override defaults for this working directory, copy
+  [`.env.example`](../../../.env.example) to `.env` and change only the entries
+  you need.
 - To override a value for one invocation, set it in the process environment.
 
 ### Ports and Network Access
