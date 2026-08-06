@@ -95,6 +95,8 @@ because agents need them before narrower owners can take over.
   that authority includes staging only the authorized commit. Other staging or
   unstaging, stashing, resets, and index rewrites require an explicit user
   request. A plain change request grants neither commit nor push authority.
+- Staged versus unstaged state does not signal completion, approval, protection,
+  or task scope; agents edit files required by the task regardless of that state.
 - Fetching remote-tracking state is allowed. Pulling, pushing, opening a pull
   request, and mutating fetches require explicit user authority.
 - Uncommitted work may be mid-transformation. A commit is coherent or tracks its
@@ -117,10 +119,10 @@ because agents need them before narrower owners can take over.
 - Prefer the simplest permanent implementation. Stop on a missing task
   dependency, investigate repository evidence before asking, and ask before
   choosing between unresolved material tradeoffs.
-- `CODEX_CI=1` or `CI=true` selects cloud-agent verification; otherwise local
-  verification applies. A wholly uncommitted local scope finishes with
-  `pnpm run check`; cloud work and any scope containing committed changes finish
-  with `pnpm run check:full`.
+- Unless a narrower capability owns verification, `CODEX_CI=1` or `CI=true`
+  selects cloud-agent verification; otherwise local verification applies. A
+  wholly uncommitted local scope finishes with `pnpm run check`; cloud work and
+  any scope containing committed changes finish with `pnpm run check:full`.
 - Tests protect observable behavior or a stable contract. Use end-to-end
   coverage when a unit test is a poor fit; rely on an
   [empirical check](../../documentation.md#empirical-checks) only when its owner
