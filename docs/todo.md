@@ -192,14 +192,6 @@ Remove rejected or obsolete items and empty sections.
   remaining implementation and remove it when implementation aligns. Do not
   create a tracker when the committed state is already coherent.
 
-- **Agent instruction implementation gap.**
-  [`Agent instructions`](specs/agents/instructions.md) defines the target
-  behavior of the repository and provider entry points, while `AGENTS.md` and
-  `CLAUDE.md` still implement their previous contract and the marked instruction
-  topology and load-budget requirements lack repository-owned gates. Align both
-  instruction surfaces and add the deterministic coverage, then remove this
-  entry.
-
 - **External dependency verification.** Define how implementation work checks
   current authoritative documentation or public APIs for external dependencies
   before using [empirical checks](documentation.md#empirical-checks).

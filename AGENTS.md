@@ -1,346 +1,138 @@
 # RemDo Agent Guidelines
 
-## General
+RemDo is a keyboard-first collaborative outliner built on Lexical. Prefer the
+simplest permanent implementation consistent with its accepted contracts.
 
-RemDo is a collaborative outliner for fast, structured note-taking. It’s
-keyboard-first and built on Lexical, emphasizing clarity, composability, and
-portability.
+## Routes
 
-Target runtimes and browser support are defined in `docs/dev/contributing.md`. Rely
-on those baselines—no legacy browser shims.
+This is the only document agents read automatically at session start. Locate
+task-specific accepted behavior by filename and scope opener under `docs/`, then
+read only the current owner.
 
-AGENTS.md is the only doc you must read at the start of every session. Use
-filenames and scope openers under `docs/` to locate accepted behavior, then read
-only the current owner. When creating or reviewing durable documentation, read
-[Documentation](docs/documentation.md) and verify the document against each
-applicable clause separately before finishing.
-
-Changes that add or modify durable requirements update their current owner
-under `docs/`.
-
-When working, deep-link to the authoritative doc or spec (e.g.,
-`docs/dev/contributing.md#git-workflow`) in discussions or PRs so others know the
-source of truth. When a change supersedes a contract or breaks an inbound link,
-fix it in the same change —
-not a follow-up. If nothing needs updating, say why. Do not add update-tracking
-sections to docs.
-
-## Safety & Process
-
-- Background processes started from the root workdir are controlled by the
-  developer; do not start or kill them.
-- Background processes started from worktrees (by their unique ports) can be
-  started or stopped by coding agents as needed without asking.
-- Git worktrees are the standard tool for isolating parallel work (separate
-  `data/`, separate `PORT_BASE` block) without colliding on the shared working
-  dir; a fresh worktree gets a clean empty `data/` automatically. Keep them
-  outside the main repo tree. The coordinating agent fully owns the worktrees it
-  creates for the current working dir — create, modify, and drop them freely as
-  useful. Their on-disk location and naming are machine-local agent config, not
-  repo content (a Claude Code session, for example, reads its own pool location
-  and naming scheme from `~/.claude`).
-- When to isolate: the coordinating agent works in the shared working dir, and
-  read-only parallel helpers (search, analysis, edits, typecheck) share it too.
-  Any parallel agent that does non-read-only work (tests, tools, anything that
-  writes `data/`) runs in its own disposable worktree — never sharing the working
-  dir. Setup is ~3s and a full unit run there matches the main dir, so isolation
-  is nearly free; keeping it the only mode means no shared-`data/` collisions to
-  guard against.
-- Codex subagents: do not spawn subagents for ordinary tasks unless the user
-  explicitly asks for subagents/parallel work, or a running skill authorizes
-  subagents for its own workflow. Prefer machine-readable authorization in the
-  skill's `agents/openai.yaml` as `policy.subagents.authorized: true`; prose in
-  `SKILL.md` may also declare it and should mirror the config. A skill's
-  authorization is enough when it says subagents are required or likely to
-  materially help a particular use case; do not ask again for that use case.
-  When authorized, use subagents only where they materially help: independent
-  exploration, fresh review, verification, Research spikes, or required
-  fresh-context reads. Keep mutating subagents isolated in worktrees per the
-  rules above.
-- When a user prompt causes a repo-local skill under `.agents/skills/` to run,
-  the coordinating interactive agent tracks one local-skills report for that
-  prompt across nested skill calls and subagents. Notice only skill bugs or
-  improvement opportunities hit while doing the requested work: ambiguous or
-  stale instructions, missing dependencies, repeated friction or loops,
-  misleading output, or avoidable runtime cost. Do not run a separate skill
-  audit, spawn monitoring-only subagents, or add timing probes. Ask any skill
-  subagents to include incidental skill-monitor notes in their final answer to
-  the coordinator; the coordinator dedupes them and owns the user-facing report.
-  At the very end of the final response, print at most one `Local skills:` line,
-  and only when a repo-local skill was actually used. Include skill names/counts,
-  timing only when it was already known cheaply from the run, and either `clean`
-  or concise issue/opportunity notes.
-- Assign a unique `PORT_BASE` per worktree (for example `5100`, `5200`) to
-  avoid collisions across dev servers, tests, and collab services.
-- Treat each repo/worktree as owning a 100-port block starting at its assigned
-  `PORT_BASE`. Do not run commands with `PORT_BASE` outside the current
-  repo/worktree's block unless the user explicitly approves.
-- If a check/debugging run appears to hit a stale RemDo service, identify the
-  process, command, port, and port block first. If it belongs to the current
-  workdir/worktree and blocks the task, restart it instead of adding workaround
-  wiring; report the restart and any follow-up tooling/HMR recommendation.
-- If you cannot log in as a stable dev user (Alice/Bob), run
-  `pnpm run dev:data-reset` to (re)provision them and seed the fixture
-  documents. It is idempotent and dev-only; either of us may run it, but not
-  while the other is mid-task. The command restores the stable passwords and
-  current fixture contents without deleting other documents.
-- `.agent/` is per-working-dir agent scratch (plans, mid-task notes). It is
-  gitignored and excluded from linting, so write throwaway working files here
-  rather than under versioned paths like `docs/`. It is per-WD (not shared across
-  worktrees); cross-WD agent state belongs under `~/.claude/` instead.
-- Never stage or commit unless you are operating under an **explicitly declared
-  autonomous scope**. When in doubt, assume the answer is “no”: make the changes,
-  leave them uncommitted, and point the user at them. A declared autonomous scope
-  comes from exactly one of:
-  1. The user explicitly authorizes a commit (literally says “commit”, or agrees
-     to your request to commit) — covers that one action.
-  2. The user explicitly hands you autonomous work (e.g. “work autonomously on
-     X”, “take this to done”) — covers commits made converging on that work.
-  3. A running skill declares an autonomous scope in its own SKILL.md. The
-     skill's declaration is the authorization and carries its own branch scope;
-     honour that scope rather than this default. (Self-authorizing skills today:
-     `remdo-converge-change`, `remdo-docs-align`, `remdo-merge-main`,
-     `remdo-deps-refresh` —
-     each states its scope where it lives, so this list is illustrative, not the
-     source of authority.)
-  Plain requests to update/change/fix/do X are **not** an autonomous-scope
-  declaration: produce the changes uncommitted and point at them. Authorization
-  covers commits only; pushing always needs an explicit, separate ask.
-- `git fetch` is always allowed (it only updates remote-tracking refs, never your
-  work or the remote). Push, pull, mutating fetch refspecs, and opening PRs are
-  not — they cross into the remote or rewrite your branch, and the user owns them.
-- Uncommitted state may be incoherent; commits should not be. The working tree
-  is scratch that is allowed to be mid-transformation (e.g. docs ahead of code)
-  — don't raise such incoherencies while they stay uncommitted. At commit time,
-  either the committed state is coherent or an ultra-short trigger in
-  `docs/todo.md` covers the gap (per
-  [target behavior](docs/documentation.md#target-behavior)); add that trigger
-  yourself and note it in the commit rather than asking.
-- The Git index may be used by the developer as private review bookkeeping.
-  Treat staged vs unstaged state as semantically invisible: it does not mark
-  files as done, final, approved, protected, or out of scope. When the agreed
-  task requires it, freely edit files regardless of whether their current
-  changes are staged, unstaged, or partially staged.
-- Never stage, unstage, stash, reset, or otherwise rewrite index state unless
-  explicitly asked. Do not mention that you preserved staging state unless the
-  user asks about Git state or an operation cannot proceed without changing it.
-- The project is in dev phase. Prefer the simplest permanent implementation
-  that meets the request. Do not add speculative abstractions, feature flags,
-  compatibility shims, or defensive guards unless the task, specs, or supported
-  runtime baseline require them; propose optional hardening as follow-ups.
-- For bug fixes, reproduce the issue with a focused test, command, or browser
-  check when practical, then verify the fix with that focused reproducer plus
-  the required final checks below.
-- Tests must protect observable behavior or a stable contract, not merely
-  restate the edited implementation. Each new test needs a credible regression
-  it would catch while its setup remains valid. An assertion that only mirrors
-  a literal, configuration entry, type, or branch from the same change does not
-  count unless that exact value is itself the contract; treat such a unit test
-  as a poor fit under the rule below.
-- When a unit test is a poor fit for a behavior, escalate rather than retreat:
-  don't contort it into an over-complex unit test, and don't fall back to a
-  manual/live check as the coverage of record — reach for an e2e test
-  (`pnpm test:e2e`). Live/DevTools checks are a development aid, not a substitute
-  for an automated test; behavior may rely on an
-  [empirical check](docs/documentation.md#empirical-checks) only when its current
-  owner lists it there.
-- When a change could affect a listed empirical check, perform it before
-  finishing and report the outcome. Reviewers judge whether the empirical
-  classification is valid without requiring a repository artifact.
-- Reviewing a change includes judging whether its tests give reasonable coverage
-  of the behavior it claims: each distinct behavior the change introduces or
-  fixes should have a test that would fail if that behavior broke or be
-  explicitly listed as empirical. This is a behavior check, not a line-coverage
-  target — name any behavior neither mechanism covers as a tradeoff.
-- When writing tests against known fixtures, assume the fixture shape; avoid
-  defensive assertions about expected structure unless the test is explicitly
-  about validation.
-- In fixture-based tests, do not add runtime guards (for example
-  `if (!node) throw`) for known fixture nodes; use non-null assertions instead.
-- A missing dependency of the current task — a referenced skill that is not
-  installed, an absent tool or binary — is a stop-and-report, not something to
-  emulate, substitute, or silently skip.
-- If you spot any tradeoffs or pros and cons of alternative solutions always ask
-  first before implementing one.
-- Don't assume that the request is always clear, if in doubt ask before
-  proceeding.
-- Investigate before asking. If a question could be answered by reading the code,
-  config, build, or docs in reasonable time, gather that data first and ask only
-  the genuine residual doubt (or proceed if none remains). Don't surface a choice
-  the codebase already settles. This refines—does not weaken—the "ask first on
-  tradeoffs / when in doubt" rules above: ask about real forks the code can't
-  answer, not ones you haven't yet checked.
-- Land artifacts for review; don't paste them. When something is meant for the
-  user to review—a doc, a spec, a config, a code change—edit it in the working
-  dir (uncommitted by default) and point at it, rather than reproducing it as a
-  long block in the chat. The user reviews changes directly in the repo with
-  their own tooling and should not read the same content twice. Treat editing as
-  cheap; the expensive thing is the user re-reading. "Ready for your review"
-  means the artifact is in the WD, not that it has been described well enough in
-  chat to approve. Chat carries decisions, questions, and pointers; the repo
-  carries content. This does not silence genuine questions or confirmations for
-  real forks—it changes the default from describe-then-maybe-write to
-  write-then-review.
-- For UI behavior or rendering questions, always use Chrome DevTools to verify the
-  live page before concluding on layout, interaction, or accessibility.
-- Use DevTools snapshots, screenshots, and in-page inspection as the primary source
-  of truth when checking “what this looks like” or confirming browser-side
-  changes.
-- For DevTools checks, open `http://127.0.0.1:<PORT>/` using this working
-  directory's `PORT` (`PORT_BASE + 0` by default; see `tools/env.defaults.sh`),
-  then sign in and open a fixture document per
+- **Instruction design and direct-rule contracts:**
+  [Agent instructions](docs/specs/agents/instructions.md).
+- **Durable documentation:** [Documentation](docs/documentation.md).
+  - **Owner categories:**
+    [Layout](docs/documentation.md#documentation-layout).
+  - **Current owners and dependencies:**
+    [Ownership](docs/documentation.md#ownership).
+  - **Accepted contracts and tracked gaps:**
+    [Target behavior](docs/documentation.md#target-behavior).
+  - **Deterministic coverage markers:**
+    [Verification](docs/documentation.md#verification).
+- **Contributor decisions:** [Contributing](docs/dev/contributing.md).
+  - **Branches and commits:**
+    [Git workflow](docs/dev/contributing.md#git-workflow).
+  - **Supported runtimes:**
+    [Runtime baseline](docs/dev/contributing.md#runtime-baseline).
+  - **Compatibility defaults:**
+    [Backward compatibility](docs/dev/contributing.md#backward-compatibility-pre-10).
+  - **Tracked code comments:**
+    [Code comments](docs/dev/contributing.md#code-comments).
+- **Long-term product constraints:** [Project principles](docs/principles.md).
+- **Runtime configuration:** [Configuration](docs/config.md).
+  - **Port and origin derivation:**
+    [Derivation rules](docs/config.md#derivation-rules).
+- **Verification runtime:** [Test Harness](docs/specs/testing/test-harness.md).
+- **Tracked repository follow-up:** [RemDo TODO](docs/todo.md#tracked-follow-up).
+- **Local runtime procedures:**
   [Local Development](docs/dev/guides/local-development.md).
-- When presenting multiple options or a list of questions, format them as a
-  numbered list.
-- When presenting options to choose between, mark one **(Recommended)** and give
-  the reasoning for it. Scale the pros/cons to the weight of the decision: full
-  pros/cons for real forks, a one-line "why" for trivial picks. When it is
-  genuinely a toss-up with no basis to prefer one, say so and name the single
-  deciding factor for the user rather than manufacturing a pick.
-- The shared test harness treats console warnings/errors as failures; if you
-  need temporary instrumentation during debugging, prefer `console.log` or
-  `console.info` and remove the statements before finishing a task.
-- Code review: use `docs/todo.md` as the tracking entry point and silently drop
-  any finding already tracked through it (match only when the entry names the
-  same file, symbol, or specific behavior, not just a topical overlap); add one
-  tail line `Suppressed N finding(s) already tracked in a TODO` (omit when `N`
-  is 0). Forward this rule to any finder/reviewer subagents you spawn.
-- Specification feedback cases: treat
-  `docs/specs/feedback-cases/cases/**` as frozen outside an explicit user request
-  to create or refine a case. Routine work and code review do not edit case
-  content, compare it with current sources, report findings about it, or propose
-  refreshes. Explicitly requested research may analyze cases as read-only
-  evidence. Review `docs/specs/feedback-cases/README.md` normally.
+- **Specification evidence boundaries:**
+  [Specification Feedback Cases](docs/specs/feedback-cases/README.md).
+- **Task behavior:** its current owner under `docs/`.
+
+Link current owners at first use when discussing repository work. A contract
+migration moves the complete contract and fixes inbound links in the same
+change. Do not add update-tracking sections to durable documents.
+
+## Repository authority
+
+- Inspect and edit within the requested scope without separate permission.
+- Commit only when the user explicitly authorizes it or an invoked skill grants
+  an autonomous commit scope. That authority includes staging only the
+  authorized commit. Other staging or unstaging, stashing, resets, and index
+  rewrites require an explicit user request. A plain change request grants
+  neither commit nor push authority.
+- Staged versus unstaged state does not signal completion, approval, protection,
+  or task scope; edit files required by the task regardless of that state.
+- Ordinary `git fetch` is allowed. Pulling, opening a pull request, and fetches
+  with caller-supplied mutating refspecs require explicit user authority.
+  Pushing always requires a separate explicit user request.
+- Uncommitted work may be mid-transformation. A commit is coherent or tracks its
+  precise remaining gap in [RemDo TODO](docs/todo.md#tracked-follow-up); when
+  commit authority applies, record that gap without seeking separate approval.
+
+## Isolation
+
+- The developer owns background processes in the shared root workdir. Agents
+  own the worktrees and worktree processes they create.
+- Parallel work that can mutate runtime state uses an isolated worktree, data
+  directory, and unique 100-port `PORT_BASE` block. Read-only work may share the
+  coordinating agent's workdir. Keep worktrees outside the repository.
+- Subagents require user or skill authorization and a material benefit. Any
+  mutating subagent follows the same worktree isolation boundary.
+- Diagnose a stale service by process, command, port, and port block before
+  restarting a process owned by the current workdir or worktree.
+- Use `.agent/` for per-workdir scratch rather than versioned paths.
+
+## Execution and evidence
+
+- Stop on a missing task dependency. Investigate repository evidence before
+  asking, and ask before choosing between unresolved material tradeoffs.
+- Avoid speculative abstractions, compatibility shims, feature flags, and
+  defensive guards that accepted behavior does not require.
+- For bugs, reproduce the problem when practical, then verify the fix with the
+  focused reproducer and applicable final checks.
+- Tests protect observable behavior or a stable contract. Use end-to-end tests
+  when unit coverage is a poor fit; do not substitute a manual check. Rely on an
+  [empirical check](docs/documentation.md#empirical-checks) only when its owner
+  classifies the behavior there, and perform it when the change can affect it.
+- Review whether each changed behavior has meaningful automated or accepted
+  empirical coverage, without treating line coverage as the target.
+- For known fixtures, assume their documented shape; use non-null assertions
+  rather than runtime guards unless validation is the behavior under test.
+- Use live browser inspection as the primary evidence for UI behavior,
+  rendering, interaction, and accessibility conclusions.
+- The shared harness treats console warnings and errors as failures. Temporary
+  instrumentation uses `console.log` or `console.info` and is removed before
+  finishing.
+
+## Review and handoff
+
+- Land artifacts intended for developer review in the working directory rather
+  than duplicating them in chat. Leave changes uncommitted unless commit
+  authority applies.
+- Code review suppresses a finding only when
+  [RemDo TODO](docs/todo.md#tracked-follow-up) tracks the same file, symbol, or
+  specific behavior. End with `Suppressed N finding(s) already tracked in a
+  TODO` when `N` is nonzero, and forward this rule to review subagents.
+- Treat `docs/specs/feedback-cases/cases/**` as frozen outside an explicit
+  request to create or refine a case. Explicit research may read them as
+  evidence; routine work and review do not analyze or update them.
+- Format multiple options or questions as a numbered list. Mark one option
+  **(Recommended)** with its reason when evidence supports a preference.
+- When a repo-local skill runs, report one final `Local skills:` line only when
+  the run exposed a concrete skill issue or opportunity; otherwise report it as
+  clean. Do not run a separate skill audit.
 
 ## Skill authoring
 
-A skill's specification owns accepted behavior. Keep its execution procedure in
-`SKILL.md`; required steps are procedural content, not explanatory how-to prose.
-
-When writing or editing an agent skill, assume every run is performed by a model
-**at least as capable as the current one**. Encode *intent* — what the skill is
-for and the policies that constrain it — and make a step deterministic only where
-the path is genuinely clear. Keep strictness to the reasonable minimum; do not
-bake in assumptions, caps, or defensive scaffolding tuned to today's model that
-would constrain a future run that may do it better. When unsure, state the intent
-and trust the running model to meet it (mirrors `docs/principles.md`: current
-code does not define the long-term shape).
-
-Voice: write procedure as second-person imperative addressed to the executing
-agent; state invariants, definitions, and permissions declaratively. The
-executing agent is the default "you" — the moment a second actor is in scope (a
-subagent, the user), name the actor of every instruction explicitly.
-
-## Agent mode
-
-Determine agent mode in this order:
-
-1. If `CODEX_CI=1`, use Cloud agents rules.
-2. Else if `CI=true`, use Cloud agents rules.
-3. Otherwise, use Local agents rules.
+- A skill specification owns accepted behavior; `SKILL.md` owns its execution
+  procedure.
+- Encode intent and the minimum necessary determinism for a model at least as
+  capable as the current one. Avoid model-era caps or defensive scaffolding.
+- Write procedure in second-person imperative to the executing agent. State
+  invariants declaratively and name every other actor explicitly.
 
 ## Checks
 
-- Current timings on this machine (rounded with headroom): `pnpm run lint` about
-  8–18s, `pnpm run test:unit:full` about 12–25s, `pnpm run test:collab:full`
-  about 22–35s. Recent healthy runs measured roughly: lint 8.3s, unit full
-  15.2s, collab full 31.8s. The default `test:unit` and `test:collab` scripts
-  are Git-aware changed-only shortcuts, so their runtime varies with the
-  working tree. If you ever hit the timeout guard, debug the failure (don’t
-  extend); only adjust ranges if healthy runs consistently land outside them.
-- E2E (Playwright): run `pnpm test:e2e`. In sandboxed environments, accessing
-  the local dev server (localhost) may require network escalation; without it,
-  Playwright can’t reach the server and will fail to start.
-  The dev bootstrap (`dev-init.sh`) does not install browsers by default, so
-  resolve them on demand before running `test:e2e:*`:
-  1. If `PLAYWRIGHT_BROWSERS_PATH` is set and already contains the required
-     chromium build, use it as-is—do nothing.
-  2. Otherwise, check the standard cache locations (`/opt/playwright-browsers`,
-     `$HOME/.cache/ms-playwright`); if a build is present, point
-     `PLAYWRIGHT_BROWSERS_PATH` at it.
-  3. If no browser is found anywhere, install into a writable cache. If
-     `PLAYWRIGHT_BROWSERS_PATH` points at a read-only or missing-cache location
-     such as `/opt/playwright-browsers`, unset it or override it with
-     `$HOME/.cache/ms-playwright` before running
-     `pnpm exec playwright install chromium`; then export
-     `PLAYWRIGHT_BROWSERS_PATH` to the cache that received the install.
+Unless a narrower capability owns verification, determine the final gate in
+this order:
 
-  `playwright install` is idempotent, so re-running it when a browser already
-  exists is a cheap no-op.
+1. `CODEX_CI=1` or `CI=true`: run `pnpm run check:full`.
+2. A scope containing committed changes: run `pnpm run check:full`.
+3. A wholly uncommitted local scope: run `pnpm run check`.
 
-### Scoped check runs (prefer these during iteration)
-
-1. Typecheck project: `pnpm run typecheck` (uses incremental cache from
-   `tsconfig.json`). Healthy run is usually ~1.8s in this workspace.
-2. Code lint per path: `pnpm run lint:code -- <path ...>` keeps scripted
-   `eslint` caching and is usually quick on a small set of files.
-3. Code lint for changed JS/TS files from git diff:
-
-   ```sh
-   git diff --name-only --diff-filter=ACMRTUXB HEAD \
-     | rg '\.(c|m)?(j|t)sx?$' | xargs -r pnpm run lint:code --
-   ```
-
-4. CSS lint for changed files from git diff:
-
-   ```sh
-   git diff --name-only --diff-filter=ACMRTUXB HEAD \
-     | rg '\.css$' | xargs -r pnpm exec stylelint
-   ```
-
-5. CSS syntax validation for changed files:
-
-   ```sh
-   git diff --name-only --diff-filter=ACMRTUXB HEAD \
-     | rg '\.css$' | xargs -r -n1 pnpm exec csstree-validator
-   ```
-
-   (`csstree-validator` accepts one file per invocation).
-6. Markdown lint: `pnpm run lint:md` (whole corpus, ~3s — small enough that no
-   per-file variant exists).
-7. Full unit test filter via script:
-   `pnpm run test:unit:full <file> -t "<full test name>"` (don’t add an extra
-   `--`, or Vitest will ignore the filter). Example:
-   `tests/unit/smoke.spec.tsx -t "loads basic outline structure from JSON"` ran
-   only that file in ~1.3s.
-8. Full collab test filter via script:
-   `pnpm run test:collab:full tests/unit/collab/<file> -t "<full test name>"`;
-   example
-   `smoke.collab.spec.tsx -t "lexical helpers operate in collaboration mode"`
-   passed in ~1.4s with collab server auto-started.
-
-### Local agents
-
-1. During iteration, prefer scoped checks from the section above on the files
-   you touched instead of repeatedly running full suites. The default
-   `test:unit` and `test:collab` scripts are also suitable as changed-only
-   smoke checks during iteration.
-2. Before handing the current task back, run `pnpm run check` — lint plus the
-   changed-only unit and collab suites. The test halves select against
-   **uncommitted** files only (bare vitest `--changed`), which fits the default
-   leave-uncommitted workflow; work that is already committed needs
-   `check:full` instead.
-3. Run a `:full` suite beyond that only when the user explicitly asks or
-   debugging requires full-suite confirmation.
-4. If a check fails because of your changes, either fix the regression or
-   clearly report the failure before handing the task back.
-
-### Cloud agents
-
-1. Run `pnpm run check:full` (lint + `test:unit:full` + `test:collab:full`)
-   before declaring a task done. It must pass at the end of every cloud-task
-   unless the user explicitly asks to skip a specific suite.
-
-2. When any of the required checks fail, fix the issue (or state why it cannot
-   be fixed) before finishing the task. Do not return success while a mandated
-   check is red.
-
-## Tools
-
-- `pnpm run dev:init` is the one-shot workspace bootstrap. It runs
-  `pnpm i --frozen-lockfile`. Use it when you clone RemDo for the first time—or
-  if you blow away `node_modules`. Skip it in workspaces that are already
-  initialized so you don’t clobber local caches.
-- To inspect Lexical sources, read `node_modules/lexical/src/` — the pinned
-  package ships readable TypeScript source (not just bundles).
-- Use the GitHub CLI (gh) to check repository and Actions status on GitHub.
+During iteration, prefer the narrowest applicable lint, typecheck, or test
+command. Fix failures caused by the change or report them before handoff. Run a
+full suite beyond the final gate only when requested or needed for diagnosis.
