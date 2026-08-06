@@ -75,7 +75,7 @@ describe('deriveSourceId', () => {
 
 // A source registered as a public client stores only a client_id (no secret);
 // the built genericOAuth provider must still exist and authenticate via PKCE
-// alone, per docs/access-model.md#linking-a-source.
+// alone, per docs/specs/access/source-linking.md#linking-a-source.
 describe('genericOAuth provider for a public-client source', () => {
   let database: SqliteServerDatabaseClient;
   let serverAuth: ReturnType<typeof createServerAuth>;
