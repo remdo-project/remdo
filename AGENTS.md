@@ -69,8 +69,6 @@ change. Do not add update-tracking sections to durable documents.
 - Parallel work that can mutate runtime state uses an isolated worktree, data
   directory, and unique 100-port `PORT_BASE` block. Read-only work may share the
   coordinating agent's workdir. Keep worktrees outside the repository.
-- Subagents require user or skill authorization and a material benefit. Any
-  mutating subagent follows the same worktree isolation boundary.
 - Diagnose a stale service by process, command, port, and port block before
   restarting a process owned by the current workdir or worktree.
 - Use `.agent/` for per-workdir scratch rather than versioned paths.
@@ -102,10 +100,10 @@ change. Do not add update-tracking sections to durable documents.
 - Land artifacts intended for developer review in the working directory rather
   than duplicating them in chat. Leave changes uncommitted unless commit
   authority applies.
-- Code review suppresses a finding only when
-  [RemDo TODO](docs/todo.md#tracked-follow-up) tracks the same file, symbol, or
-  specific behavior. End with `Suppressed N finding(s) already tracked in a
-  TODO` when `N` is nonzero, and forward this rule to review subagents.
+- Before reporting code-review findings, check the repository
+  [tracking record](docs/todo.md) and suppress findings it already covers. End
+  with `Suppressed N finding(s) already tracked` when `N` is nonzero, and
+  forward this rule to review subagents.
 - Treat `docs/specs/feedback-cases/cases/**` as frozen outside an explicit
   request to create or refine a case. Explicit research may read them as
   evidence; routine work and review do not analyze or update them.
@@ -114,15 +112,6 @@ change. Do not add update-tracking sections to durable documents.
 - When a repo-local skill runs, report exactly one final `Local skills:` line:
   `clean` when no issue arose, otherwise concise issue or opportunity notes. Do
   not run a separate skill audit.
-
-## Skill authoring
-
-- A skill specification owns accepted behavior; `SKILL.md` owns its execution
-  procedure.
-- Encode intent and the minimum necessary determinism for a model at least as
-  capable as the current one. Avoid model-era caps or defensive scaffolding.
-- Write procedure in second-person imperative to the executing agent. State
-  invariants declaratively and name every other actor explicitly.
 
 ## Checks
 

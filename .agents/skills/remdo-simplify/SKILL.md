@@ -196,7 +196,7 @@ Sources read: <key files/docs, not every grep>
 
 <Use only when no findings survived the bar. State the main areas inspected.>
 
-Suppressed N finding(s) already tracked in a TODO
+Suppressed N finding(s) already tracked
 ```
 
 Priority labels:

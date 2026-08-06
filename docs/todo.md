@@ -22,9 +22,9 @@ follow-up. It lists candidate `TODO` and `FIXME` occurrences in tracked
 non-documentation files; inspect the results under the tracked-comment
 convention above.
 
-Reviewers suppress a finding only when it matches the same specific tracked
-behavior. Within this backlog, group related items under short topic headings.
-Remove rejected or obsolete items and empty sections.
+A reviewer suppresses a finding as already tracked only when the tracking
+record covers the reported gap. Within this backlog, group related items under
+short topic headings. Remove rejected or obsolete items and empty sections.
 
 ## Backlog
 

@@ -116,8 +116,6 @@ narrower owners can take over.
 - Parallel work that can mutate runtime state uses an isolated worktree, data
   directory, and 100-port block. Read-only work may share the coordinating
   agent's workdir.
-- Subagents require user or skill authorization and a material benefit; any
-  mutating subagent follows the same isolation boundary.
 
 #### Execution and verification
 
@@ -135,19 +133,10 @@ narrower owners can take over.
 - Conclusions about UI behavior or rendering use live browser inspection as
   their primary evidence.
 
-#### Skill authoring
-
-- A skill specification owns accepted behavior; `SKILL.md` owns its execution
-  procedure.
-- Skill procedures encode intent and the minimum necessary determinism for a
-  model at least as capable as the current one, without model-era scaffolding.
-- Procedures address the executing agent in second-person imperative and name
-  every other actor explicitly.
-
 #### Review and handoff
 
-- Review judges claimed behavior coverage and suppresses a finding only when
-  [RemDo TODO](../../todo.md#tracked-follow-up) tracks the same specific gap.
+- Review checks the repository [tracking record](../../todo.md) before reporting
+  findings.
 - Artifacts intended for developer review land in the working directory for
   inspection. Changes remain uncommitted unless commit authority applies.
 - [Specification feedback cases](../feedback-cases/README.md) remain frozen

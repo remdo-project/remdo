@@ -2,8 +2,8 @@
 
 Inputs: `{RULES_DOC}` — the rules doc; `{PROPOSALS}` — the advocate's
 numbered proposal file after the caller's fixed-scope filter. Run conditions:
-[SKILL.md](../SKILL.md), stage 4. Skill procedure is governed by
-[Skill authoring](../../../../docs/specs/agents/instructions.md#skill-authoring).
+[SKILL.md](../SKILL.md), stage 4. The specification/procedure boundary follows
+[Documentation layout](../../../../docs/documentation.md#documentation-layout).
 
 ---
 

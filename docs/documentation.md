@@ -30,6 +30,9 @@ Each durable statement lives with the owner of the question it answers.
 - **`docs/dev/guides/` — Developer guides.** Guides explain how a developer
   accomplishes a task. Their steps derive from and link to the applicable
   contract and mechanism owners.
+- **Agent skills — Specifications and procedures.** Specifications under
+  `docs/specs/agents/skills/` own accepted behavior; each `SKILL.md` owns its
+  execution procedure.
 - **`AGENTS.md` and `CLAUDE.md` — Agent instruction surfaces.**
   The surfaces own their directly loaded rules; [Agent instructions](specs/agents/instructions.md)
   owns their design, responsibilities, and deterministic structural contracts.
