@@ -92,6 +92,22 @@ describe('agent instruction gate', () => {
     expect(result.stderr).toContain('root AGENTS.override.md shadows');
   });
 
+  it('rejects a root override even when Git ignores it', () => {
+    const directory = repository();
+    write(directory, 'AGENTS.md', '# Shared\n');
+    write(directory, 'CLAUDE.md', '@AGENTS.md\n');
+    write(directory, '.gitignore', 'AGENTS.override.md\n');
+    write(directory, 'AGENTS.override.md', '# Local override\n');
+    execFileSync('git', ['add', '--force', 'AGENTS.md', 'CLAUDE.md', '.gitignore'], {
+      cwd: directory,
+    });
+
+    const result = run(directory);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('root AGENTS.override.md shadows');
+  });
+
   it('rejects an oversized nested instruction chain', () => {
     const directory = repository();
     write(directory, 'AGENTS.md', 'a'.repeat(20_000));

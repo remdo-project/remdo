@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -98,7 +98,7 @@ if (!files.has('AGENTS.md')) {
   }
 }
 
-if (files.has('AGENTS.override.md')) {
+if (ROOT && existsSync(path.join(ROOT, 'AGENTS.override.md'))) {
   fail('root AGENTS.override.md shadows the shared AGENTS.md entry point');
 }
 
