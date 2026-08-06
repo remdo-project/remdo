@@ -53,6 +53,18 @@ describe('agent instruction gate', () => {
     expect(result.stdout).toContain('agent-instructions: OK');
   });
 
+  it('rejects an import that appears only in an indented code block', () => {
+    const directory = repository();
+    write(directory, 'AGENTS.md', '# Shared\n');
+    write(directory, 'CLAUDE.md', '    @AGENTS.md\n');
+    track(directory);
+
+    const result = run(directory);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('must import AGENTS.md before Claude-specific rules');
+  });
+
   it('ignores a tracked nested instruction deleted from the working tree', () => {
     const directory = repository();
     write(directory, 'AGENTS.md', '# Shared\n');

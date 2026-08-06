@@ -14,6 +14,8 @@ authoritative guidance trigger their reassessment.
 
 - `AGENTS.md` is the effective shared repository entry point.
   **Deterministic.**
+- `AGENTS.override.md` is reserved for directory-scoped Codex rules below the
+  repository root.
 - Provider-specific entry points reuse the shared instructions and add only
   provider-specific rules.
 - `CLAUDE.md` imports `AGENTS.md` before its Claude-specific rules.

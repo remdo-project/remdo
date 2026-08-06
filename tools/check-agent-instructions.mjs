@@ -27,7 +27,18 @@ function repositoryFiles() {
   const deleted = new Set(
     gitOutput(['ls-files', '--deleted', '-z'], ROOT).split('\0').filter(Boolean),
   );
-  return gitOutput(['ls-files', '--cached', '--others', '--exclude-standard', '-z'], ROOT)
+  return gitOutput(
+    [
+      '-c',
+      'core.excludesFile=/dev/null',
+      'ls-files',
+      '--cached',
+      '--others',
+      '--exclude-standard',
+      '-z',
+    ],
+    ROOT,
+  )
     .split('\0')
     .filter((file) => file && !deleted.has(file));
 }
@@ -41,7 +52,7 @@ function readRepositoryFile(file) {
     contentsByFile.set(file, contents);
     return contents;
   } catch {
-    fail(`${file} is selected by Git but missing from the working tree`);
+    fail(`${file} is selected by Git but cannot be read from the working tree`);
     contentsByFile.set(file, null);
     return null;
   }
@@ -58,6 +69,8 @@ function activeMarkdownLines(buffer) {
       if (closing?.[0] === fence.marker && closing.length >= fence.length) fence = null;
       continue;
     }
+
+    if (/^(?: {4}|\t)/u.test(line)) continue;
 
     const opening = line.match(/^\s{0,3}(`{3,}|~{3,})/u)?.[1];
     if (opening) {
