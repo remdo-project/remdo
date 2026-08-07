@@ -5,8 +5,7 @@ maintenance rules below.
 
 ## Intent
 
-**Governing principle:** Write the smallest contract sufficient for faithful
-implementation.
+**Governing principle:** Write the smallest contract sufficient for faithful implementation.
 Smallness lowers review cost; sufficiency prevents agents from inventing product
 decisions. Readers take contracts at face value.
 
@@ -23,8 +22,7 @@ Each durable statement lives with the owner of the question it answers.
   corpus-wide contracts, current tracking, and archived follow-up.
 - **`docs/specs/` — [Specifications](#specification-structure).**
 - **`docs/specs/feedback-cases/` — Specification evidence.** Its
-  [README](specs/feedback-cases/README.md) owns the evidence structure and
-  maintenance rules.
+  [README](specs/feedback-cases/README.md) owns the evidence structure and maintenance rules.
 - **`docs/dev/` root — Contributor policy.** Root developer documents establish
   standards and decision defaults for contributions.
 - **`docs/dev/guides/` — Developer guides.** Guides explain how a developer
@@ -49,8 +47,7 @@ Each durable statement lives with the owner of the question it answers.
 - **Internal owners.** A document links inline at first use of another owner's
   term or contract.
 - **Contract migration.** A migration moves the complete contract, updates
-  inbound links, and removes the former normative definition in the same
-  change.
+  inbound links, and removes the former normative definition in the same change.
 
 ## Contracts
 
@@ -74,38 +71,31 @@ only the context useful for returning to the work.
   anticipated rationalization does not justify restatement.
 - **Information value.** The declared reader, document title and location,
   surrounding clauses, and linked owners all contribute to a contract's
-  meaning. Each clause adds information needed for faithful interpretation or
-  implementation.
+  meaning. Each clause adds information needed for faithful interpretation or implementation.
 - **Excluded material.** Contract clauses exclude inventories, non-contract
   implementation details, how-to prose, and redundant restatement.
 - **Property over mechanism.** State the property a mechanism must have, not the
   mechanism. A detail belongs in the contract when choosing differently would
   break the promise; one that only determines how the promise is met belongs in
-  the implementation. Named external interfaces, flags, and settings are
-  mechanisms.
+  the implementation. Named external interfaces, flags, and settings are mechanisms.
 - **Rationale.** Keep brief rationale only when removing it could reopen a
   settled decision.
-- **Edge behavior.** Preserve materially relevant boundaries, failures, and
-  no-ops.
+- **Edge behavior.** Preserve materially relevant boundaries, failures, and no-ops.
 - **Sufficiency.** If two reasonable implementers could produce materially
-  different behavior, clarify the contract or surface the unresolved product
-  decision.
+  different behavior, clarify the contract or surface the unresolved product decision.
 
 ### Verification
 
 Prefer deterministic coverage: repository-owned automation that decides
-conformance with a repeatable machine-checkable result at a defined lifecycle
-point.
+conformance with a repeatable machine-checkable result at a defined lifecycle point.
 
 - **Lifecycle.** During requirement design, a maintainer may add a marker,
   including from an agent proposal grounded in research or repository evidence
   of a durable, non-local coverage risk. Routine review treats existing markers
   as accepted requirements and reports uncovered gaps without adding or
-  reconsidering markers; reconsider them only while refining the owning
-  contract.
+  reconsidering markers; reconsider them only while refining the owning contract.
 - **No admission value.** A marker never justifies adding or retaining a
-  requirement; the clause must already satisfy [Ownership](#ownership) and
-  [Minimality](#minimality).
+  requirement; the clause must already satisfy [Ownership](#ownership) and [Minimality](#minimality).
 - **Marker scope.** Append **Deterministic.** to the clause it qualifies. The
   marker identifies the required property, not the test, command, or
   implementation that covers it, and does not claim exhaustive coverage of
@@ -124,14 +114,16 @@ Every document begins with a title. A concise introduction supplies intent or
 responsibility boundaries beyond those already established by the title and
 opening structure.
 
-Establish triggers, inputs, scope, rules, and concepts before dependent
-behavior.
+Establish triggers, inputs, scope, rules, and concepts before dependent behavior.
 Describe actions in causal order, keep exceptions and no-ops beside what they
 modify, and state results after the behavior producing them. Organize
 non-procedural contracts by responsibility in dependency order.
 
 State owned behavior positively. Retain a negation only when it prevents a
 credible misuse.
+
+Markdown line-length lint counts each link or image by its label rather than
+its hidden destination syntax. **Deterministic.**
 
 ### Lists
 
@@ -201,8 +193,7 @@ by reasoning from those contracts alone.
 
 #### Future
 
-Use for brief triggers describing long-horizon work related to the owned
-behavior.
+Use for brief triggers describing long-horizon work related to the owned behavior.
 
 #### References
 
@@ -222,8 +213,7 @@ Use for external sources and dependencies the document relies on.
 3. When a parent naturally divides into parallel variants, stages, or
    components, its children use that division consistently.
 4. Keep examples and scenarios beneath their rules and only when they
-   distinguish behavior more efficiently than prose or prevent credible
-   misinterpretation.
+   distinguish behavior more efficiently than prose or prevent credible misinterpretation.
 5. A generic container or document-wide section exists only when it represents
    a real shared responsibility.
 
@@ -232,16 +222,11 @@ Use for external sources and dependencies the document relies on.
 
 - [Diátaxis: reference](https://diataxis.fr/reference/) — reference-writing
   discipline; structure mirrors the maintained system.
-- [Every Page Is Page One](https://everypageispageone.com/the-book/) —
-  self-containment, scope-first, subject-affinity linking.
-- [Write the Docs: docs as code](https://www.writethedocs.org/guide/docs-as-code/)
-  — docs reviewed and tested like code.
-- [NASA Systems Engineering Handbook](https://www.nasa.gov/wp-content/uploads/2018/09/nasa_systems_engineering_handbook_0.pdf)
-  — verification methods recorded with their requirements.
-- [Google style: timeless documentation](https://developers.google.com/style/timeless-documentation)
-  — timeless prose.
+- [Every Page Is Page One](https://everypageispageone.com/the-book/) — self-containment, scope-first, subject-affinity linking.
+- [Write the Docs: docs as code](https://www.writethedocs.org/guide/docs-as-code/) — docs reviewed and tested like code.
+- [NASA Systems Engineering Handbook](https://www.nasa.gov/wp-content/uploads/2018/09/nasa_systems_engineering_handbook_0.pdf) — verification methods recorded with their requirements.
+- [Google style: timeless documentation](https://developers.google.com/style/timeless-documentation) — timeless prose.
 - [arc42](https://arc42.org/overview) — decision rationale as load-bearing.
-- [Microsoft style: headings](https://learn.microsoft.com/en-us/style-guide/scannable-content/headings)
-  — heading granularity and run-in headings.
+- [Microsoft style: headings](https://learn.microsoft.com/en-us/style-guide/scannable-content/headings) — heading granularity and run-in headings.
 - [GitHub Copilot: effective review instructions](https://docs.github.com/en/copilot/tutorials/customize-code-review)
   — concise, focused instructions for coding agents.

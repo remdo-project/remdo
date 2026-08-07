@@ -1,8 +1,7 @@
 # remdo-prepare-change
 
 The skill owns the lifecycle and developer handoff for a repository change and
-returns an [agent result](../results.md#results); participating capabilities
-retain their contracts.
+returns an [agent result](../results.md#results); participating capabilities retain their contracts.
 
 ## Lifecycle
 
@@ -52,8 +51,7 @@ Legend:
 
 ## Lifecycle rules
 
-- **Coordinator.** Retains the approved spec — its
-  [target behavior](../../../documentation.md#target-behavior) and
+- **Coordinator.** Retains the approved spec — its [target behavior](../../../documentation.md#target-behavior) and
   [contract owners](../../../documentation.md#ownership) — and owns lifecycle
   state, integration decisions, and undelegated work. It
   [aggregates](../results.md#aggregation) participant results for handoff. Only
@@ -62,8 +60,7 @@ Legend:
   observable completion through focused developer decisions.
 - **Exploration.** Begins at the developer's request or accepted recommendation
   to investigate material uncertainty. Its transition establishes the question,
-  scope, any required
-  [repository authority](../instructions.md#repository-authority), expected result,
+  scope, any required [repository authority](../instructions.md#repository-authority), expected result,
   and return point. Repository changes remain disposable unless adopted.
 - **Owning branch ready.** Before retaining work, fetch `origin/main` and ensure
   the current [topic branch](../../../dev/contributing.md#git-workflow) uses its
@@ -71,11 +68,9 @@ Legend:
   another base only if the developer specified one.
 - **Specification.** The coordinator identifies current contract owners and
   prepares the spec by mapping proposed target behavior to the applicable
-  owners. It applies
-  [Specification structure](../../../documentation.md#specification-structure)
+  owners. It applies [Specification structure](../../../documentation.md#specification-structure)
   when creating or editing a durable specification, changes only owners whose
-  target behavior must change, and surfaces unresolved behavior,
-  [concerns](../results.md#concerns), and
+  target behavior must change, and surfaces unresolved behavior, [concerns](../results.md#concerns), and
   [tracked gaps](../../../todo.md#tracked-follow-up) before developer review.
 - **Approval.** Developer approval establishes target behavior, not exact
   wording or repository authority.

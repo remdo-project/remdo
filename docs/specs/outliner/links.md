@@ -15,8 +15,7 @@ generic external links.
    must behave like runtime editor state while synced.
 5. **`docId`:** the note-link field carrying the target document's canonical
    [document identity](../../architecture.md#document-identity).
-6. **`noteId`:** the note-link field carrying the target note's
-   [noteId](./note-ids.md#definitions).
+6. **`noteId`:** the note-link field carrying the target note's [noteId](./note-ids.md#definitions).
 
 ## Core behavior
 
@@ -30,16 +29,14 @@ generic external links.
 4. Links are created inline through `@`, an inline trigger character; its
    open/close/confirm lifecycle is the shared one in
    [Editor popups](./popups.md). The note-link spec defines only what differs.
-5. The query is the text after `@` in the
-   [pinned span](./popups.md#shared-editor-popup-contract), length minimum 0, so
+5. The query is the text after `@` in the [pinned span](./popups.md#shared-editor-popup-contract), length minimum 0, so
    results may appear immediately. Whitespace is allowed in the query.
 6. On insertion, note-link display text is copied once from the target note
    title and then stored locally; later target renames do not update it.
 7. Note-link clicks use native `href` navigation semantics and route handling.
 8. Pasting a RemDo-owned plain-text note URL inserts a
    note-link node. When the target is in the active document, inserted
-   link text copies the target note title; otherwise it uses the pasted
-   URL string.
+   link text copies the target note title; otherwise it uses the pasted URL string.
 9. Typing a URL — including a same-origin RemDo note URL — uses Lexical generic
    link behavior; the note-link upgrade applies only to paste.
 10. Generic URL links open in a new tab.
@@ -52,8 +49,7 @@ generic external links.
 
 ## Identity Representation Boundaries
 
-1. Runtime editor state keeps note links fully qualified (`docId` +
-   `noteId`).
+1. Runtime editor state keeps note links fully qualified (`docId` + `noteId`).
 2. Persisted JSON state must omit `docId` when a link targets the active
    document. This keeps document identity host-owned rather than embedded as
    canonical content state.
@@ -61,32 +57,26 @@ generic external links.
    same-document link `docId` values from the active `documentId` before
    parsing/applying state into the editor runtime.
 4. Cross-document links keep explicit `docId` values unchanged across save/load.
-5. Note/document identity ownership rules remain defined in
-   [Note IDs](./note-ids.md).
+5. Note/document identity ownership rules remain defined in [Note IDs](./note-ids.md).
 
 ## Query and ranking
 
-1. Search scope is the whole active document, including in a
-   [subtree view](./zoom.md#visibility-and-editing-boundary).
-2. Filtering uses the same path-token matching as document search (defined in
-   [Search](./search.md#behavior)).
+1. Search scope is the whole active document, including in a [subtree view](./zoom.md#visibility-and-editing-boundary).
+2. Filtering uses the same path-token matching as document search (defined in [Search](./search.md#behavior)).
 3. When present, the [focus note](./selection.md#selection-states) is excluded
    from results (self-links are out of scope).
 4. Picker rows show the minimal ancestor context needed to disambiguate duplicate
    titles in the current result set.
 5. If results are still visually identical after full ancestor context, they
-   remain untied and are shown in
-   [document order](./note-model.md#definitions).
+   remain untied and are shown in [document order](./note-model.md#definitions).
 6. No-match state is a single non-selectable `No results...` row.
 7. Creating new notes from the picker is out of scope.
 
 ## Picker interaction
 
 The `@` picker is the type-to-filter specialization of the shared
-[Editor popups](./popups.md) contract, and its typed query is the pinned span's
-editable text.
-Navigation, confirmation, and dismissal are the shared lifecycle; note-link
-specifics:
+[Editor popups](./popups.md) contract, and its typed query is the pinned span's editable text.
+Navigation, confirmation, and dismissal are the shared lifecycle; note-link specifics:
 
 1. The initial active option is the first result in document order.
 2. `Enter` or a primary-button click commits the active option; `Tab` does not

@@ -5,16 +5,14 @@ description: Coordinate an explicitly requested RemDo repository change from foc
 
 # RemDo Prepare Change
 
-Implement the authoritative
-[`remdo-prepare-change`](../../../docs/specs/agents/skills/remdo-prepare-change.md)
+Implement the authoritative [`remdo-prepare-change`](../../../docs/specs/agents/skills/remdo-prepare-change.md)
 contract. You are the developer-facing coordinator for the complete lifecycle.
 
 ## Coordinate the change
 
 Retain the approved spec, the complete change scope, participant results,
 concerns, and lifecycle state. Delegate only the fresh-context work identified
-below. Integrate participant results yourself; participants do not advance the
-lifecycle.
+below. Integrate participant results yourself; participants do not advance the lifecycle.
 
 Keep developer dialogue focused on decisions that affect the target. Recommend
 exploration when material uncertainty warrants it, but start a fresh exploration
@@ -25,8 +23,7 @@ question, scope, result, and return point without your proposed answer.
 
 Before the first retained edit, establish the repository authority required by
 the contract. Fetch `origin/main`, determine the base and adopted work, and make
-one topic branch own only that work. Use
-[`create-branch-from-base.sh`](../_shared/tools/create-branch-from-base.sh) when
+one topic branch own only that work. Use [`create-branch-from-base.sh`](../_shared/tools/create-branch-from-base.sh) when
 creating a branch directly from the base; transfer adopted work only when the
 contract requires a replacement branch and current authority permits it.
 
@@ -38,8 +35,7 @@ authority or an unsafe interpretation of existing work.
 
 Read [`Documentation`](../../../docs/documentation.md) before preparing the
 spec. Identify current contract owners, map proposed target behavior to the
-applicable owners, and apply
-[`Specification structure`](../../../docs/documentation.md#specification-structure)
+applicable owners, and apply [`Specification structure`](../../../docs/documentation.md#specification-structure)
 when creating or editing a durable specification. Change only owners whose
 target behavior must change, and retain each approved behavior with its owner in
 the active result. Before requesting approval, surface unresolved behavior,
@@ -64,8 +60,7 @@ only behavior-preserving findings, then repeat the relevant focused checks.
 ## Converge and hand off
 
 Before convergence, make every adopted committed and uncommitted change
-representable as one supported
-[`change scope`](../../../docs/specs/agents/change-scope.md). If that requires
+representable as one supported [`change scope`](../../../docs/specs/agents/change-scope.md). If that requires
 authority you do not hold, surface a concern and stop before convergence.
 
 Invoke `$remdo-converge-change` as a black box over that complete scope. When it
@@ -85,12 +80,9 @@ Return `completed` only after developer acceptance.
 
 This skill declares no autonomous repository scope. Retain the exact authority
 the developer grants during quick dialogue. Invocation or specification
-approval alone authorizes no branch creation, commit, push, merge, or pull
-request.
+approval alone authorizes no branch creation, commit, push, merge, or pull request.
 
 ## Return
 
-Return the authoritative specification's
-[`Result`](../../../docs/specs/agents/skills/remdo-prepare-change.md#result).
-When addressing the developer, render it under the shared
-[`Reports`](../../../docs/specs/agents/results.md#reports) contract.
+Return the authoritative specification's [`Result`](../../../docs/specs/agents/skills/remdo-prepare-change.md#result).
+When addressing the developer, render it under the shared [`Reports`](../../../docs/specs/agents/results.md#reports) contract.

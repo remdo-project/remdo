@@ -10,16 +10,14 @@ A **note** lives inside an ordered tree and exposes content to adapters. The
 document, an editor note, and a note's body are all note kinds with
 kind-specific capabilities.
 
-- **Structure** is the note's parent and its position among that parent's
-  children.
+- **Structure** is the note's parent and its position among that parent's children.
 - **Content** is the payload a note exposes to adapters; the model treats it as
   opaque data.
 - **Props** are additional attributes that do not affect structure.
 
 ## Invariants
 
-Adapters preserve these guarantees whenever they create, import, or export
-notes:
+Adapters preserve these guarantees whenever they create, import, or export notes:
 
 - Addressability is kind-specific. An editor note carries a unique
   [`noteId`](./note-ids.md) within its tree. A document carries its separate
@@ -39,8 +37,7 @@ notes:
 - **Document order:** the depth-first, pre-order traversal of editor notes in
   the structural tree.
 - **Previous note / next note:** adjacent editor notes in document order. View
-  filters such as [zoom](./zoom.md) and [folding](./folding.md) can hide notes
-  without changing that order.
+  filters such as [zoom](./zoom.md) and [folding](./folding.md) can hide notes without changing that order.
 - **Content text:** a note's own text.
 - **Empty note:** an editor note whose content text is empty after trimming
   whitespace. Its body is separate and does not affect this state.

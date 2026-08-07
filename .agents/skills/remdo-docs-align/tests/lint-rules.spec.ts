@@ -115,14 +115,15 @@ describe('remdo-references-shape', () => {
 // self-contained scratch repo, so the case is decoupled from the live working
 // tree — an untracked draft in the actual repo can no longer flip it red. cli2
 // resolves named rule deps (markdownlint-rule-relative-links) from its own
-// package location, and the two `.mjs` rules resolve relative to the copied
-// config, so a bare scratch dir with no node_modules is enough.
+// package location; the repository-owned rule is copied beside the config, so
+// a bare scratch dir with no node_modules is enough.
 const require = createRequire(import.meta.url);
 // The cli2 binary entry sits next to its resolved main module.
 const cli2Bin = path.join(path.dirname(require.resolve('markdownlint-cli2')), 'markdownlint-cli2-bin.mjs');
 const repoRoot = process.cwd();
 const skillToolsDir = path.join(repoRoot, '.agents/skills/remdo-docs-align/tools');
 const configFile = path.join(repoRoot, '.markdownlint-cli2.jsonc');
+const productLineLengthRule = path.join(repoRoot, 'tools/markdownlint-rules/link-aware-line-length.mjs');
 
 afterEach(cleanupTempDirs);
 
@@ -131,6 +132,9 @@ afterEach(cleanupTempDirs);
 function scratchDocs(docs: Record<string, string>) {
   const dir = makeDir('mdlint-scratch-');
   fs.copyFileSync(configFile, path.join(dir, '.markdownlint-cli2.jsonc'));
+  const copiedRule = path.join(dir, 'tools/markdownlint-rules/link-aware-line-length.mjs');
+  fs.mkdirSync(path.dirname(copiedRule), { recursive: true });
+  fs.copyFileSync(productLineLengthRule, copiedRule);
   for (const [rel, content] of Object.entries(docs)) {
     const abs = path.join(dir, rel);
     fs.mkdirSync(path.dirname(abs), { recursive: true });
@@ -154,7 +158,7 @@ function lintSkill(dir: string) {
 describe('gate integration over a scratch fixture repo', () => {
   it('both gates are green on a clean docs fixture', () => {
     const dir = scratchDocs({
-      'docs/x.md': '# X\n\nA timeless sentence with an [inline](https://x.y) link.\n\n## References\n\n- [ext](https://x.y)\n',
+      'docs/x.md': '# X\n\nRead the [configuration contract](https://example.com/specs/runtime/configuration#derivation-rules) for details.\n\n## References\n\n- [ext](https://x.y)\n',
     });
     const product = lintProduct(dir);
     expect(product.status, product.stdout + product.stderr).toBe(0);

@@ -19,11 +19,9 @@ tie-breaker, so preserve that structure when editing this skill.
   with equivalent carve-outs (the templates assume its carve-out structure).
 - **Scope**, fixed at invocation: uncommitted doc changes, a commit range
   (resolved via `.agents/skills/_shared/tools/resolve-scope.sh`, whose header
-  states the contract), or an explicit file set (e.g. the whole corpus for a
-  realignment).
+  states the contract), or an explicit file set (e.g. the whole corpus for a realignment).
   A diff scope selects touched files, read whole for context. It never adds
-  files. Within that selection, stages follow
-  [Documentation changes](../../../docs/documentation.md#documentation-changes).
+  files. Within that selection, stages follow [Documentation changes](../../../docs/documentation.md#documentation-changes).
   For stage 3, pass one scope argument describing a diff's resolved comparison,
   retained file list, and coherent earlier-stage edits, or an explicit file
   selection and its realignment intent.
@@ -31,8 +29,7 @@ tie-breaker, so preserve that structure when editing this skill.
 - Authoring new content is out of scope: write-time rules do not prevent
   redundancy (tested — they made it worse), so fresh text is aligned by
   running stages 3–4 over it after writing.
-- **Specification feedback cases**: [case content](../../../docs/specs/feedback-cases/README.md#case-shape)
-  is outside alignment.
+- **Specification feedback cases**: [case content](../../../docs/specs/feedback-cases/README.md#case-shape) is outside alignment.
 
 ## Pipeline
 
@@ -66,8 +63,7 @@ they run in this order.
    read `/tmp`); the script header states the full contract. It captures the
    numbered proposal table. On a non-zero exit (the retry also failed), surface
    it in the stage-5 report rather than proceeding to adjudicate an empty table.
-   On
-   `PROPOSALS=none` (the advocate emitted its `NO PROPOSALS` sentinel — a clean
+   On `PROPOSALS=none` (the advocate emitted its `NO PROPOSALS` sentinel — a clean
    no-op on an already-minimal scope), skip stage 4 and note the no-op in the
    report; there is nothing to adjudicate.
 4. **Adjudicate (dual).** First the coordinating session rejects and records

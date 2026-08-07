@@ -12,8 +12,7 @@ identity boundaries; those remain in outliner docs.
   entry. In production builds, the service worker caches shell/navigation
   assets so routes can open offline, but collaboration/auth HTTP endpoints stay
   network-only. Offline doc editing still works for previously cached docs via
-  collaboration local persistence (IndexedDB), not via service-worker endpoint
-  caching.
+  collaboration local persistence (IndexedDB), not via service-worker endpoint caching.
 - **Desktop Shell:** Native wrapper (for example Electron/Tauri) hosting the
   same SPA with OS integration.
 
@@ -23,13 +22,11 @@ Delivery surface choice does not alter outliner semantics.
 
 Development-only routes, UI, editor plugins, and test bridges are gated by
 build type: they are available in non-production builds and absent from
-production bundles, including production bundles run by development and test
-workflows.
+production bundles, including production bundles run by development and test workflows.
 
 ## Routing and Origin Boundary
 
-Browser-visible collaboration URLs derive from the
-[configured canonical public origin](specs/runtime/configuration.md#derivation-rules),
+Browser-visible collaboration URLs derive from the [configured canonical public origin](specs/runtime/configuration.md#derivation-rules),
 not from request forwarding headers.
 
 ### Gateway
@@ -81,16 +78,14 @@ Cross-server collision detection at source-link, import, or projection
 boundaries is an extra guard for malformed, legacy, or imported data; it is not
 the base namespacing mechanism.
 
-Collaboration and local-persistence layers may key document state by canonical
-`docId`.
+Collaboration and local-persistence layers may key document state by canonical `docId`.
 
 ### Document registry
 
 Server-owned document metadata store used by RemDo API before issuing Y-Sweet
 document client tokens.
 
-- Metadata: owner user id, document kind, title, and user-specific access
-  grants.
+- Metadata: owner user id, document kind, title, and user-specific access grants.
 - Storage: RemDo metadata queries use Kysely inside the server persistence
   boundary. Route, token, and bootstrap code depend on the `DocumentRegistry`
   interface, not on SQL or query-builder APIs.
@@ -101,8 +96,7 @@ document client tokens.
 - User bootstrap: `/api/current-user` ensures the signed-in user's home and
   user-data-projection registry rows, refreshes the read-only user-data
   projection from the registry's current per-user document list, and returns
-  the bootstrap consumed under
-  [Authenticated App Access](specs/access/access-control.md#authenticated-app-access).
+  the bootstrap consumed under [Authenticated App Access](specs/access/access-control.md#authenticated-app-access).
 
 ### Token vocabulary
 
@@ -124,8 +118,7 @@ document client tokens.
 
 ## Runtime Persistence Boundary
 
-A production instance keeps its dataset and
-[generated runtime secrets](specs/runtime/configuration.md#secret-bootstrap) in
+A production instance keeps its dataset and [generated runtime secrets](specs/runtime/configuration.md#secret-bootstrap) in
 one persistent storage root. The root belongs to one running instance and is
 not shared concurrently.
 
@@ -206,8 +199,7 @@ The terms below describe the target vocabulary for multi-hub document access.
 - **Home hub:** governance term for a document's primary hub; not canonical
   document identity.
 - **Replica:** copy of a document hosted on another hub.
-- **Replicator:** always-on process for hub-to-hub sync under explicit
-  authorization.
+- **Replicator:** always-on process for hub-to-hub sync under explicit authorization.
 - **Vault:** user-facing collection that may map to one hub or aggregate
   multiple hubs.
 

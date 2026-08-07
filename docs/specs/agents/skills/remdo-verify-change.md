@@ -35,8 +35,7 @@ scope](../instructions.md#execution-and-verification) in place.
 
 ## Reviews
 
-The verifier invokes the [read-only
-runner](../tools/read-only-runner.md#call) independently for Codex and
+The verifier invokes the [read-only runner](../tools/read-only-runner.md#call) independently for Codex and
 Claude with a `review` invocation and the resolved change scope. Their
 identities remain distinct in the result.
 For Claude, the verifier exercises the caller judgement required by the runner's
@@ -60,10 +59,8 @@ effects on content preservation, ownership, and links remain subject to review.
 
 Reviewer disagreement alone does not invalidate intended behavior established
 by the caller. When caller intent resolves an objection, the verifier still
-checks that the resulting behavior is represented as
-[target behavior](../../../documentation.md#target-behavior) by its current
-contract owner, including a brief
-[rationale](../../../documentation.md#minimality) only when its omission would
+checks that the resulting behavior is represented as [target behavior](../../../documentation.md#target-behavior) by its current
+contract owner, including a brief [rationale](../../../documentation.md#minimality) only when its omission would
 reopen the decision. Implementation and test choices that establish no durable
 behavior require no documentation.
 

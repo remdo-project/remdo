@@ -3,8 +3,7 @@
 The touch action toolbar is a row of note-action buttons docked at the bottom of
 the editor on touch devices, giving pointer-only users the structural actions
 that otherwise need a keyboard. It reuses the same operations as their keyboard
-and [menu](./menu.md) entries while owning only the toolbar surface and its
-behavior.
+and [menu](./menu.md) entries while owning only the toolbar surface and its behavior.
 
 ## Presence
 
@@ -20,24 +19,16 @@ behavior.
    done, toggle fold, delete, undo, redo, open note menu.
 2. A selection in the [view header](./view-header.md#structural-boundary)
    supplies no note target to the toolbar. Otherwise, the structural actions
-   target the current selection: the
-   [editor note](./note-model.md#note-kinds) owning the
-   [outline selection region](./selection.md#selection-states) of a
-   [caret or inline text selection](./selection.md#selection-states), or every
-   note in a [selected note range](./selection.md#note-ranges).
-   [Body](./body.md#selection-and-structural-targeting) owns the mapping from a
-   body [selection region](./selection.md#selection-states) to its editor note.
-   The action contracts are:
-   - Indent / outdent, per
-     [Indentation](./indentation.md).
-   - Move up / move down, per
-     [Reordering](./reordering.md).
-   - Toggle done per
-     [List types](./list-types.md#toggling).
+   target the current selection: the [editor note](./note-model.md#note-kinds) owning the
+   [outline selection region](./selection.md#selection-states) of a [caret or inline text selection](./selection.md#selection-states), or every
+   note in a [selected note range](./selection.md#note-ranges). [Body](./body.md#selection-and-structural-targeting) owns the mapping from a
+   body [selection region](./selection.md#selection-states) to its editor note. The action contracts are:
+   - Indent / outdent, per [Indentation](./indentation.md).
+   - Move up / move down, per [Reordering](./reordering.md).
+   - Toggle done per [List types](./list-types.md#toggling).
    - Delete removes the targeted notes and their subtrees per
      [Deletion](./deletion.md), with no confirmation step. For a caret this
-     removes the [focus note](./selection.md#selection-states), not the caret
-     merge that Backspace performs. The current
+     removes the [focus note](./selection.md#selection-states), not the caret merge that Backspace performs. The current
      [zoom root](./zoom.md#definitions) supplies no delete target.
 3. Outside the view header, toggle fold acts on the focus note unless it is the
    current zoom root, per [Folding](./folding.md).
@@ -56,21 +47,18 @@ behavior.
    the inner edge.
 4. The scrolling group starts at its leading edge, so its first action is
    visible without scrolling; it scrolls horizontally when its actions exceed the
-   available width and signals that it scrolls rather than presenting a
-   static edge.
+   available width and signals that it scrolls rather than presenting a static edge.
 
 ## Capability
 
 1. Toggle fold is disabled in a view header, at the current zoom root, or when
    the focus note has no children, per [Folding](./folding.md).
-2. Delete is disabled when the current selection has nothing deletable, per
-   [Deletion](./deletion.md).
+2. Delete is disabled when the current selection has nothing deletable, per [Deletion](./deletion.md).
 3. Undo and redo are each disabled when the history has nothing to reverse or
    reapply in that direction.
 4. Every other action stays enabled and no-ops when it cannot apply.
 5. A disabled action in the scrolling group stays visible (rendered disabled) so
-   its availability is discoverable; a disabled action in the pinned group is
-   hidden.
+   its availability is discoverable; a disabled action in the pinned group is hidden.
 6. A disabled action is exposed as disabled to assistive technology while
    remaining focusable (`aria-disabled`), not removed from the focus order.
 

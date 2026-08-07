@@ -1,7 +1,6 @@
 # Insertion
 
-With a **[caret selection](./selection.md#selection-states)**, `Enter` inserts
-new notes.
+With a **[caret selection](./selection.md#selection-states)**, `Enter` inserts new notes.
 The caret is inside a single note, and actions apply to that note's text. Unless
 stated otherwise, parent notes are expanded; folded and collapsed parent
 behavior is called out explicitly (see [Folding](./folding.md)).
@@ -38,5 +37,4 @@ the [view header](./view-header.md) is defined by the view-header rules.
 
 When a paste inserts multiple notes, its placement follows the same
 start/middle/end rules as `Enter`. Clipboard details (including how multi-line
-plain text is interpreted and focus after paste) live in
-[Clipboard](./clipboard.md).
+plain text is interpreted and focus after paste) live in [Clipboard](./clipboard.md).

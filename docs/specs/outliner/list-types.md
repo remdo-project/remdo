@@ -2,8 +2,7 @@
 
 [Editor notes](./note-model.md#note-kinds) support the outliner's list types,
 list-type conversion, and checked state, including target resolution for
-checked-state changes. [Selection states](./selection.md#selection-states) and
-[note ranges](./selection.md#note-ranges) are defined by Selection.
+checked-state changes. [Selection states](./selection.md#selection-states) and [note ranges](./selection.md#note-ranges) are defined by Selection.
 
 ## Supported types
 
@@ -18,8 +17,7 @@ types unless changed separately.
 ## Checked state
 
 A note's checked state is independent of its list type: the state remains
-visible in every list type and survives list-type changes, reload, and
-collaboration.
+visible in every list type and survives list-type changes, reload, and collaboration.
 
 Setting a note's checked state is recursive: the note and all of its
 descendants take the same state.
@@ -32,10 +30,8 @@ checked; when only some are, it displays as mixed.
 Toggling sets a target's notes and all their descendants to one state:
 unchecked when every one of them is already checked, otherwise checked.
 
-[A caret or inline text selection](./selection.md#selection-states) in an
-[outline selection region](./selection.md#selection-states) targets the editor
-note owning the region;
-[Body](./body.md#selection-and-structural-targeting) owns the mapping from a
+[A caret or inline text selection](./selection.md#selection-states) in an [outline selection region](./selection.md#selection-states) targets the editor
+note owning the region; [Body](./body.md#selection-and-structural-targeting) owns the mapping from a
 body selection region to its editor note. The marker of a note in a check-type
 list targets the clicked note while that note is outside any
 [structural selection](./selection.md#selection-states). A structural selection

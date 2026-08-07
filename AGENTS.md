@@ -9,37 +9,24 @@ This is the shared repository entry point. Locate task-specific accepted
 behavior by filename and scope opener under `docs/`, then read only the current
 owner. Provider-specific surfaces may load it alongside their own rules.
 
-- **Instruction design and surface responsibilities:**
-  [Agent instructions](docs/specs/agents/instructions.md).
+- **Instruction design and surface responsibilities:** [Agent instructions](docs/specs/agents/instructions.md).
 - **Durable documentation:** [Documentation](docs/documentation.md).
-  - **Owner categories:**
-    [Layout](docs/documentation.md#documentation-layout).
-  - **Current owners and dependencies:**
-    [Ownership](docs/documentation.md#ownership).
-  - **Accepted contracts and tracked gaps:**
-    [Target behavior](docs/documentation.md#target-behavior).
-  - **Deterministic coverage markers:**
-    [Verification](docs/documentation.md#verification).
+  - **Owner categories:** [Layout](docs/documentation.md#documentation-layout).
+  - **Current owners and dependencies:** [Ownership](docs/documentation.md#ownership).
+  - **Accepted contracts and tracked gaps:** [Target behavior](docs/documentation.md#target-behavior).
+  - **Deterministic coverage markers:** [Verification](docs/documentation.md#verification).
 - **Contributor decisions:** [Contributing](docs/dev/contributing.md).
-  - **Branches and commits:**
-    [Git workflow](docs/dev/contributing.md#git-workflow).
-  - **Supported runtimes:**
-    [Runtime baseline](docs/dev/contributing.md#runtime-baseline).
-  - **Compatibility defaults:**
-    [Backward compatibility](docs/dev/contributing.md#backward-compatibility-pre-10).
-  - **Tracked code comments:**
-    [Code comments](docs/dev/contributing.md#code-comments).
+  - **Branches and commits:** [Git workflow](docs/dev/contributing.md#git-workflow).
+  - **Supported runtimes:** [Runtime baseline](docs/dev/contributing.md#runtime-baseline).
+  - **Compatibility defaults:** [Backward compatibility](docs/dev/contributing.md#backward-compatibility-pre-10).
+  - **Tracked code comments:** [Code comments](docs/dev/contributing.md#code-comments).
 - **Long-term product constraints:** [Project principles](docs/principles.md).
-- **Runtime configuration:**
-  [Configuration](docs/specs/runtime/configuration.md).
-  - **Port and origin derivation:**
-    [Derivation rules](docs/specs/runtime/configuration.md#derivation-rules).
+- **Runtime configuration:** [Configuration](docs/specs/runtime/configuration.md).
+  - **Port and origin derivation:** [Derivation rules](docs/specs/runtime/configuration.md#derivation-rules).
 - **Verification runtime:** [Test Harness](docs/specs/testing/test-harness.md).
 - **Tracked repository follow-up:** [RemDo TODO](docs/todo.md#tracked-follow-up).
-- **Local runtime procedures:**
-  [Local Development](docs/dev/guides/local-development.md).
-- **Specification evidence boundaries:**
-  [Specification Feedback Cases](docs/specs/feedback-cases/README.md).
+- **Local runtime procedures:** [Local Development](docs/dev/guides/local-development.md).
+- **Specification evidence boundaries:** [Specification Feedback Cases](docs/specs/feedback-cases/README.md).
 - **Task behavior:** its current owner under `docs/`.
 
 Link current owners at first use when discussing repository work. A contract
@@ -93,8 +80,7 @@ change. Do not add update-tracking sections to durable documents.
 - Use live browser inspection as the primary evidence for UI behavior,
   rendering, interaction, and accessibility conclusions.
 - The shared harness treats console warnings and errors as failures. Temporary
-  instrumentation uses `console.log` or `console.info` and is removed before
-  finishing.
+  instrumentation uses `console.log` or `console.info` and is removed before finishing.
 
 ## Review and handoff
 

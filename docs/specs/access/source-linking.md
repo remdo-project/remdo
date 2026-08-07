@@ -7,11 +7,9 @@ authority for its account, access, and collaboration credentials.
 ## Server Roles
 
 A **source server** owns its documents, authenticates its users, stores local
-[document grants](access-control.md#document-access), and issues
-[Y-Sweet document client tokens](../../architecture.md#token-vocabulary).
+[document grants](access-control.md#document-access), and issues [Y-Sweet document client tokens](../../architecture.md#token-vocabulary).
 
-A **home server** stores the user's
-[OAuth account tokens](../../architecture.md#token-vocabulary) for linked
+A **home server** stores the user's [OAuth account tokens](../../architecture.md#token-vocabulary) for linked
 sources and presents source documents alongside its local documents. Home and
 source accounts are independent identities; their email addresses do not need
 to match.
@@ -41,8 +39,7 @@ delegation does not grant one source user access belonging to another.
 
 Document sharing continues to target a local account on the document's source
 server. Once linked, the browser subscribes to the source-owned
-[user-data projection](../../architecture.md#document-registry) and merges its
-documents into the home document list.
+[user-data projection](../../architecture.md#document-registry) and merges its documents into the home document list.
 
 ## Linking a Source
 
@@ -52,8 +49,7 @@ bearer-authenticated caller cannot.
 
 On the first link to an origin, the home registers a public OAuth client on the
 source. The client has no secret and uses PKCE. The home derives the registered
-callback URI from its
-[configured canonical public origin](../runtime/configuration.md#derivation-rules),
+callback URI from its [configured canonical public origin](../runtime/configuration.md#derivation-rules),
 not from request headers. The source's authorization and token endpoints accept
 only the home's exact registered callback URI. Registration becomes usable
 without restarting the home. Later links to the same origin reuse the cached

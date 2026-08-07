@@ -121,8 +121,7 @@ Rules:
 
 - Reconsider `/api/config` vs `/api/health` — maybe one `/api/status` covers both.
 - Admin panel: **promoting an existing user to admin** and per-admin revocation
-  — the only way today to gain admin is registering a new account via the
-  secret.
+  — the only way today to gain admin is registering a new account via the secret.
 - Runtime public-policy toggle (replace `ALLOW_SIGNUP` env with admin-managed,
   DB-backed state). Needs auth hot-swap (rebuild `betterAuth` to flip the
   construction-time `disableSignUp`).
@@ -133,8 +132,7 @@ Rules:
   not the toggle.
 
 Deferred hardening; long-horizon items live in
-`docs/specs/access/access-control.md#future` and
-`docs/specs/access/source-linking.md#future`.
+`docs/specs/access/access-control.md#future` and `docs/specs/access/source-linking.md#future`.
 
 - Public-source registration abuse: the home self-registers unauthenticatedly,
   so the deleted per-account (userId-keyed) register limit can't be ported —
@@ -225,13 +223,11 @@ Deferred hardening; long-horizon items live in
   is what forces the multi-port machinery. Splitting into separate containers
   (compose / managed multi-service) would let each service bind a fixed port and
   delete most of the config module (see the
-  [configuration specification](./specs/runtime/configuration.md)), but it is
-  a larger deployment/Dockerfile/Caddy change.
+  [configuration specification](./specs/runtime/configuration.md)), but it is a larger deployment/Dockerfile/Caddy change.
 
 ## Document import / upload follow-ups
 
-The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
-`pending-document-import.ts`).
+The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-document-import.ts`).
 
 - Silent failure: parseable-but-non-Lexical JSON (`{}`, `{"foo":1}`, `[]`)
   creates an empty doc with no alert in prod — `parseEditorState` routes the
@@ -258,8 +254,7 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
 
 ## Home and view-header follow-ups
 
-Tracks the gaps between [Home](specs/outliner/home.md) and the
-[view header](specs/outliner/view-header.md) as specified and what ships.
+Tracks the gaps between [Home](specs/outliner/home.md) and the [view header](specs/outliner/view-header.md) as specified and what ships.
 
 - The document-source chevron combobox picker in `DocumentToolbar.tsx`
   (`NEW_DOCUMENT_VALUE` / `UPLOAD_DOCUMENT_VALUE` and the grouped document
@@ -287,8 +282,7 @@ Tracks the gaps between [Home](specs/outliner/home.md) and the
 
 The [view header](specs/outliner/view-header.md) (Model F) is specified but not
 yet built; the entries below track the gap. Suspends the view-header rules in
-`specs/outliner/view-header.md` and the pure-nav breadcrumb claim in
-[Zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs).
+`specs/outliner/view-header.md` and the pure-nav breadcrumb claim in [Zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs).
 
 - No view header is rendered: while zoomed the zoom root remains the editable
   top outline `ListItemNode`, and at the document root the document name remains
@@ -312,12 +306,9 @@ yet built; the entries below track the gap. Suspends the view-header rules in
   the heading role must stay on separate elements (a `textbox` role masks an
   inner heading from assistive tech). Close with the view-header work.
 - Fold semantics at the view header are unreconciled with the restricted kind.
-  [Zoom](specs/outliner/zoom.md) items 7–8 describe the zoom root's stored fold
-  state
+  [Zoom](specs/outliner/zoom.md) items 7–8 describe the zoom root's stored fold state
   being preserved and not hiding its children while zoomed, but the
-  [view header](specs/outliner/view-header.md) cannot be folded, and
-  [Folding](specs/outliner/folding.md) item 8,
-  [Menu](specs/outliner/menu.md) (the `F`
+  [view header](specs/outliner/view-header.md) cannot be folded, and [Folding](specs/outliner/folding.md) item 8, [Menu](specs/outliner/menu.md) (the `F`
   fold shortcut "for the current zoom root"), and fold-to-level ("applies from
   the current zoom root") still describe the zoom root as a foldable outline
   target. Reconcile these — what a header's fold control and stored state mean
@@ -335,8 +326,7 @@ yet built; the entries below track the gap. Suspends the view-header rules in
   reads are in place, and account linking remains an HTTP command.
 - Current sharing/access slice status: document access reads are exposed as
   `document.access()` from the user-data projection, and `document.shareWith()`
-  remains an HTTP command. The duplicate document-access `GET` read route is
-  removed.
+  remains an HTTP command. The duplicate document-access `GET` read route is removed.
 - Projection/note mapping review follow-up: review server-side projection
   builders plus SDK-level mapping and helper logic so projected app resources
   expose well-shaped note kinds instead of flattened DTO-shaped records. Start
@@ -346,8 +336,7 @@ yet built; the entries below track the gap. Suspends the view-header rules in
   revisit whether app-resource projections should stay on Yjs. The likely
   target is a graph-shaped SDK backed by a simpler server-state graph/cache
   mechanism with live invalidation or patches, while keeping Yjs focused on
-  collaborative document content. Do not choose or introduce that tool in this
-  branch.
+  collaborative document content. Do not choose or introduce that tool in this branch.
 - Next note-resource cleanup:
   1. ✅ Done: introduce a generic collection-note role for ordered projected
      collections keyed by stable child note id.
@@ -388,8 +377,7 @@ yet built; the entries below track the gap. Suspends the view-header rules in
      command-result appends. Apply this to documents as one projected note
      collection kind before adding more projected app-state sections.
   6. Review the remaining top-level API naming after the note-owned
-     `create(...)` refactor, especially `createLexicalEditorNotes` and
-     `place(...)`.
+     `create(...)` refactor, especially `createLexicalEditorNotes` and `place(...)`.
   7. Update the durable docs once the traversal/query contract stabilizes:
      `docs/specs/outliner/note-model.md`, `docs/architecture.md`,
      `docs/specs/outliner/search.md`, and `docs/specs/outliner/links.md`.
@@ -475,8 +463,7 @@ yet built; the entries below track the gap. Suspends the view-header rules in
   node-specific identity such as date ISO values stays covered by focused
   feature tests.
 - Reduce repeated full-outline literals in tests by adding a generic helper
-  that patches a previously-read outline by `noteId`, then still asserts with
-  `toMatchOutline`.
+  that patches a previously-read outline by `noteId`, then still asserts with `toMatchOutline`.
 - Prefer this over property-specific helpers like `setFolded(...)`: tests stay
   focused on the changed notes while still verifying that untouched notes remain
   unchanged.
@@ -524,15 +511,13 @@ yet built; the entries below track the gap. Suspends the view-header rules in
      accepted warning, or follow-up chunking work.
   2. Decide whether to fix or explicitly accept the Docker esbuild
      `import.meta`/CJS warning from bundling Node tools that import
-     `config/index.ts`; the warning text includes `empty-import-meta` and
-     `import.meta.env.MODE`.
+     `config/index.ts`; the warning text includes `empty-import-meta` and `import.meta.env.MODE`.
   3. Decide how to handle the `snapshot.mjs` esbuild size warning in Docker:
      explicit budget, suppression, or accepted noise.
   4. Decide whether to suppress or just classify the `NO_COLOR` / `FORCE_COLOR`
      warnings seen during Docker Playwright runs.
   5. Decide whether to suppress, classify, or otherwise avoid Node's
-     `ExperimentalWarning` noise from Better Auth's SQLite path in dev/test
-     commands.
+     `ExperimentalWarning` noise from Better Auth's SQLite path in dev/test commands.
   6. Review current install-time warnings and classify each as `fix`, `track`,
      or `ignore`, especially:
      `glob@11.1.0`, `source-map@0.8.0-beta.0`, `sourcemap-codec@1.4.8`, and the
@@ -542,8 +527,7 @@ yet built; the entries below track the gap. Suspends the view-header rules in
 
 `data/collab/` grows unbounded (one dir per ephemeral dev/test doc), and editors
 watch it, exhausting `fs.inotify.max_user_watches` across worktrees so the Vite
-e2e dev server can't start (`ENOSPC`).
-Durable fixes:
+e2e dev server can't start (`ENOSPC`). Durable fixes:
 
 - Add `files.watcherExclude` for `**/data/**` and `**/node_modules/**` (editor
   config; `.gitignore` is not honored by watchers).
@@ -552,8 +536,7 @@ Durable fixes:
 
 ## Note body follow-ups
 
-Follow-ups to the spec in
-[docs/specs/outliner/body.md](specs/outliner/body.md):
+Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
 
 - Undo does not restore selection under collaboration (Lexical's `@lexical/yjs`
   V2 history only persists structure, not the caret). This is global, not
@@ -572,11 +555,13 @@ Follow-ups to the spec in
 - Coverage pass: product areas with no owning doc (candidates: collaboration
   internals, app bootstrap/routes; note-sdk docs are already deferred under
   "Note-first SDK follow-ups") — decide new doc vs a `Future` trigger each.
-- Parked escalations awaiting Piotr (six):
-  specs/outliner/note-model.md:59 kinds-sentence
-  (carries the selection.md link; reject / apply-with-link-relocation);
-  documentation.md:33 split; search.md:66 split; selection.md:35 split;
-  dependency-maintenance stage split (#5 of conv3); search.md:59 disambiguation
+- Parked escalations awaiting Piotr (six): [note-kind capabilities](specs/outliner/note-model.md#note-kinds)
+  sentence (carries the selection link; reject / apply-with-link-relocation);
+  [agent-skills layout](documentation.md#documentation-layout) split;
+  [result-row context](specs/outliner/search.md#result-row-context) split;
+  [selection mode-switch](specs/outliner/selection.md#selection-states) split;
+  [dependency-maintenance](dev/dependency-maintenance.md) stage split (#5 of
+  conv3); [search disambiguation](specs/outliner/search.md#behavior)
   parenthetical split.
 
 ## remdo-docs-align follow-ups
@@ -662,9 +647,7 @@ Follow-ups to the spec in
 - Widen the review lens for shared-state writes: change verification reviews a
   diff, so a bug where NEW code writes shared/global state and UNCHANGED code
   over-reads it sits outside scope (the PR#356 cross-user source-leak: new
-  `source-links.ts` wrote
-  a global `source_servers` row that the unchanged
-  `listCurrentUserSourceServers`
+  `source-links.ts` wrote a global `source_servers` row that the unchanged `listCurrentUserSourceServers`
   projected to every user). The GitHub Codex app caught it because it reviews the
   whole PR against the full repo, not the diff alone. Add a finder angle: when the
   diff writes to a shared cache/table/projection source, trace who *reads* that
@@ -744,15 +727,13 @@ Follow-ups to the spec in
 Playground-driven design tuning for the mobile action toolbar (pinned Done+Undo
 with the anchor rule, hide-vs-grey disabled behavior, left-aligned scroll with
 peek + edge-fade, sizing, `aria-disabled`) is implemented; the durable contract
-lives in
-[docs/specs/outliner/mobile-toolbar.md](specs/outliner/mobile-toolbar.md), and the
+lives in [docs/specs/outliner/mobile-toolbar.md](specs/outliner/mobile-toolbar.md), and the
 open follow-ups it left are the mobile-toolbar entries under the plugin
 follow-ups above. Design rationale is in git history.
 
 ## Unify note actions across toolbar and menu (decided direction)
 
-The mobile action toolbar and the note
-[quick action menu](specs/outliner/menu.md) are
+The mobile action toolbar and the note [quick action menu](specs/outliner/menu.md) are
 two ad-hoc renderings of the same context-sensitive note-action set. Decided
 (research-backed; git history for the rationale): build a shared note-action
 registry — `(id, icon, label, when-applicable predicate, dispatch)` — that both

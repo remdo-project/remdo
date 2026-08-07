@@ -18,8 +18,7 @@ and nothing is present purely for tone.
 - Prefer the shortest form that carries the same information: when two phrasings
   lose nothing relative to each other, choose the briefer one. This is a
   constraint, not a target — never shorten by dropping information, caveats, or
-  uncertainty (see the last bullet). The bullets below are instances of this
-  principle.
+  uncertainty (see the last bullet). The bullets below are instances of this principle.
 
 - Single-source every fact. Do not state the same point as a summary, then an
   expansion, then a bullet to choose from. Say each thing in the one place it
@@ -34,5 +33,4 @@ and nothing is present purely for tone.
   that the request will be done. Politeness that costs no extra sentence (neutral
   tone, an inline "thanks") is fine; spending a sentence or clause on tone is not.
 - Never trim for brevity at the cost of trust. Removing redundancy and tone is
-  the lever; caveats, uncertainty, and disagreement are never cut to look
-  concise.
+  the lever; caveats, uncertainty, and disagreement are never cut to look concise.

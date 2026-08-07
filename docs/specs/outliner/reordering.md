@@ -2,8 +2,7 @@
 
 Reordering moves [target note ranges](./selection.md#note-ranges) directionally
 while preserving their [document order](./note-model.md#definitions) and
-respecting [zoom boundaries](./zoom.md#definitions); inapplicable moves are
-no-ops.
+respecting [zoom boundaries](./zoom.md#definitions); inapplicable moves are no-ops.
 
 ## Input bindings
 
@@ -14,21 +13,17 @@ no-ops.
 
 ## Target resolution
 
-A [caret or inline text selection](./selection.md#selection-states) in an
-[outline selection region](./selection.md#selection-states) targets the
-[editor note](./note-model.md#note-kinds) that owns the region as a one-note
-target note range. [Body](./body.md#selection-and-structural-targeting) owns the
+A [caret or inline text selection](./selection.md#selection-states) in an [outline selection region](./selection.md#selection-states) targets the
+[editor note](./note-model.md#note-kinds) that owns the region as a one-note target note range. [Body](./body.md#selection-and-structural-targeting) owns the
 mapping from a body selection region to its editor note. A
-[structural selection](./selection.md#selection-states) targets its
-[selected note range](./selection.md#note-ranges).
+[structural selection](./selection.md#selection-states) targets its [selected note range](./selection.md#note-ranges).
 
 ## Directional movement
 
 **Move up** and **Move down** each perform exactly the first valid step in this
 cascade:
 
-1. Swap the target note range with its adjacent sibling in the requested
-   direction.
+1. Swap the target note range with its adjacent sibling in the requested direction.
 2. If there is no adjacent sibling, move the range through the parent's
    adjacent sibling: moving down places it as the next parent's first child;
    moving up places it as the previous parent's last child.

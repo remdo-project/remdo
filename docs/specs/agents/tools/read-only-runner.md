@@ -15,8 +15,7 @@ read-only-runner [options] <agent> <invocation>
 - `<invocation>`:
   - `prompt <prompt>`
   - `review <scope>`
-- `<scope>`: a resolved
-  [change scope](../change-scope.md), encoded as:
+- `<scope>`: a resolved [change scope](../change-scope.md), encoded as:
   - `uncommitted`
   - `commit-range <base>`
 - `--model <model>`: optional model value.
@@ -30,8 +29,7 @@ leaves absent values unset, so the agent applies its own default.
 **Prompt.** The runner passes the prompt to the agent's non-interactive session
 unchanged.
 
-**Review.** The runner gives each agent's native review the complete resolved
-scope.
+**Review.** The runner gives each agent's native review the complete resolved scope.
 
 A review uses the native command's instructions and the repository guidance its
 session loads. The runner additionally instructs the reviewing agent and every
@@ -71,8 +69,7 @@ an untrusted prompt does not.
 
 The invocation observes repository state present when it begins. A review
 caller keeps that state unchanged until completion to preserve the resolved
-scope; another caller does so when it requires consistency for the whole
-invocation.
+scope; another caller does so when it requires consistency for the whole invocation.
 
 Each invocation makes one attempt in a non-persistent session; retry belongs to
 the caller. The runner waits without a ceiling for background subagents and
@@ -86,8 +83,7 @@ invocation and returns a failed result without a response.
 
 A result is encoded by the runner's exit status and output:
 
-- `responded`: exit `0` and write only the non-empty complete final text to
-  stdout;
+- `responded`: exit `0` and write only the non-empty complete final text to stdout;
 - `unavailable`: exit `2` and write evidence that the agent CLI or a requested
   native capability the runner can establish is unavailable to stderr;
 - `failed`: any other non-zero exit and failure evidence on stderr.

@@ -6,8 +6,7 @@ and maintained. The evidence does not define accepted behavior or
 [documentation rules](../../documentation.md).
 
 The current contracts represented by this evidence are
-[`remdo-verify-change`](../agents/skills/remdo-verify-change.md) and the
-[read-only runner](../agents/tools/read-only-runner.md).
+[`remdo-verify-change`](../agents/skills/remdo-verify-change.md) and the [read-only runner](../agents/tools/read-only-runner.md).
 
 A **feedback case** preserves evidence for later specification research and
 testing. `Post-change` is the version considered a better fit for the recorded
@@ -20,8 +19,7 @@ historical-log searches as additional evidence.
 ## Provenance
 
 Every indexed case is provenance of its recorded feedback event. It does not
-establish that the challenge is correct or that `Post-change` became accepted
-policy.
+establish that the challenge is correct or that `Post-change` became accepted policy.
 
 A case identifies the affected activity and attributes the feedback to its
 origin: user feedback, an agent or subagent experiment, or self-review. Include

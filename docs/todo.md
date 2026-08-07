@@ -1,8 +1,7 @@
 # RemDo TODO
 
 This ledger is RemDo's near-term backlog and single entry point for
-[tracked follow-up](documentation.md#target-behavior). It also holds
-cross-cutting temporary state.
+[tracked follow-up](documentation.md#target-behavior). It also holds cross-cutting temporary state.
 
 The closed [legacy backlog](legacy-backlog.md) holds earlier unresolved
 entries. Continue checking its entries for duplicates and review suppression
@@ -10,12 +9,10 @@ until they are resolved or migrated.
 
 ## Tracked follow-up
 
-Record code-local follow-up in
-[tracked comments](dev/contributing.md#code-comments), long-horizon
+Record code-local follow-up in [tracked comments](dev/contributing.md#code-comments), long-horizon
 follow-up in the owning specification's [`Future`](documentation.md#future)
 section, and other work intended to be done soon in this backlog. Together,
-these locations form the tracking record; do not duplicate an item between
-them.
+these locations form the tracking record; do not duplicate an item between them.
 
 Run `pnpm run todo:list` when selecting maintenance work or auditing tracked
 follow-up. It lists candidate `TODO` and `FIXME` occurrences in tracked
@@ -30,16 +27,8 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Markdown authoring ergonomics.** Evaluate whether documentation lint should
-  treat inline link destinations and similar non-visible Markdown syntax
-  separately from rendered prose when enforcing line length. Compare the
-  current wrapping, a higher source limit, reference-style links, and a
-  rendered-text-aware rule; adopt only a simple repository-wide improvement
-  supported by corpus examples.
-
 - **Specification vocabulary review.** Make future specification-authoring and
-  review workflows apply the [ownership](documentation.md#ownership) and
-  [minimality](documentation.md#minimality) rules to every domain- or
+  review workflows apply the [ownership](documentation.md#ownership) and [minimality](documentation.md#minimality) rules to every domain- or
   component-specific term, including consistent actor and component identity.
 
 - **Agent skill specifications.** Establish accepted-behavior owners under
@@ -64,8 +53,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   captured container logs in a stable, permission-restricted location until the
   next invocation. If adopted, replace that state only after startup preflight,
   preserve container-assisted cleanup for root-owned files, keep authentication
-  and test-secret data local, and update the specification and implementation
-  together.
+  and test-secret data local, and update the specification and implementation together.
 
 - **Contributor testing policy.** Move contributor-wide test-quality policy
   from `AGENTS.md` to `docs/dev/testing.md`: observable behavior or stable
@@ -75,8 +63,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Dependencies
 
-- **Dependabot pnpm 11 version updates.** When GitHub's
-  [supported-ecosystems table](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
+- **Dependabot pnpm 11 version updates.** When GitHub's [supported-ecosystems table](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
   lists pnpm v11, add `.github/dependabot.yml` for the root pnpm workspace,
   verify that its first update preserves workspace catalogs and passes a frozen
   lockfile install, and narrow or retire `remdo-deps-refresh` so dependency
@@ -101,25 +88,17 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 - **Inline-selection Enter behavior.** Decide and specify what `Enter` does for
   a non-collapsed [inline text selection](specs/outliner/selection.md#selection-states)
-  in [Insertion](specs/outliner/insertion.md), then align implementation and
-  automated coverage.
+  in [Insertion](specs/outliner/insertion.md), then align implementation and automated coverage.
 
 - **Current-location presentation ownership.** Before implementing the
-  [view header](specs/outliner/view-header.md) alongside
-  [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name
+  [view header](specs/outliner/view-header.md) alongside [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name
   and scope, including whether "location header" better identifies it and
   whether editable current-location presentation remains separate from
   ancestor breadcrumb navigation. Update both owners and their inbound links
-  together with the decision. Coordinate with the
-  [legacy view-header follow-ups](legacy-backlog.md#home-and-view-header-follow-ups).
+  together with the decision. Coordinate with the [legacy view-header follow-ups](legacy-backlog.md#home-and-view-header-follow-ups).
 
-- **Body-local command targets.** Target behavior
-  ([Body](specs/outliner/body.md#selection-and-structural-targeting),
-  [Indentation](specs/outliner/indentation.md#target-resolution),
-  [Reordering](specs/outliner/reordering.md#target-resolution),
-  [List types](specs/outliner/list-types.md#toggling),
-  [Mobile toolbar](specs/outliner/mobile-toolbar.md#actions), and
-  [Menu](specs/outliner/menu.md#behavior)): a caret or inline text selection
+- **Body-local command targets.** Target behavior ([Body](specs/outliner/body.md#selection-and-structural-targeting), [Indentation](specs/outliner/indentation.md#target-resolution), [Reordering](specs/outliner/reordering.md#target-resolution),
+  [List types](specs/outliner/list-types.md#toggling), [Mobile toolbar](specs/outliner/mobile-toolbar.md#actions), and [Menu](specs/outliner/menu.md#behavior)): a caret or inline text selection
   inside a body targets its owning editor note for commands that act on a note.
   The structural resolver handles a collapsed body caret, but a body-local
   inline selection produces no range, leaving indentation, reordering, and
@@ -146,19 +125,16 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   `CheckListPlugin.tsx`, asserted by `tests/unit/checklist-state.spec.ts`);
   adjust the resolution and tests.
 
-- **Check-marker click vs selection.** Target behavior
-  ([toggle targets](specs/outliner/list-types.md#toggling)): a marker
+- **Check-marker click vs selection.** Target behavior ([toggle targets](specs/outliner/list-types.md#toggling)): a marker
   click on a note inside a structural selection toggles the selected note
   range; the implementation always toggles only the clicked note (the marker
   click handler in `CheckListPlugin.tsx` sets state directly instead of
   dispatching `SET_NOTE_CHECKED_COMMAND`). Reroute it and cover with a test.
-  The click's selection consequences stay with
-  [Selection](specs/outliner/selection.md).
+  The click's selection consequences stay with [Selection](specs/outliner/selection.md).
 
 - **Replace the date-picker calendar widget.** The Mantine `DatePicker` in
   `DatePickerPopover.tsx` does not move keyboard focus across month boundaries
-  or implement the calendar's complete
-  [keyboard contract](specs/outliner/dates.md#core-behavior). Its two
+  or implement the calendar's complete [keyboard contract](specs/outliner/dates.md#core-behavior). Its two
   keyboard-and-commit E2E cases in `tests/e2e/editor/date-picker.spec.ts` are
   skipped until a replacement restores that coverage. Research and compare
   current maintained options rather than selecting from the preliminary spike:
@@ -185,8 +161,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   before using [empirical checks](documentation.md#empirical-checks).
 
 - **Skill-spec ownership boundaries.** Verify ownership between agent skill
-  specifications, starting with
-  [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md), and
+  specifications, starting with [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md), and
   repository-wide or contributor contracts such as
   [Contributing](dev/contributing.md). Keep capability-specific behavior with
   its skill and shared policy with the broader owner; update links and remove
@@ -194,8 +169,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 - **Structured reviewer results.** Evaluate provider-supported structured
   findings, such as JSON Schema output, without weakening native review or
-  evidence. If viable, define verifier normalization into the shared
-  [agent result](specs/agents/results.md#results).
+  evidence. If viable, define verifier normalization into the shared [agent result](specs/agents/results.md#results).
 
 - **Post-skill retrospectives.** Make an on-demand retrospective available
   after skill runs, using saved session logs to explain elapsed time, repeated

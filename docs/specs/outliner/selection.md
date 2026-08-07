@@ -6,8 +6,7 @@ structural commands rely on it.
 ## Selection states
 
 A **selection region** is an independently selectable inline-editing surface:
-an [editor note](./note-model.md#note-kinds)'s content in a note row or
-[view header](./view-header.md), its [body](./body.md), or the
+an [editor note](./note-model.md#note-kinds)'s content in a note row or [view header](./view-header.md), its [body](./body.md), or the
 [document root](./note-model.md#definitions)'s editable view header. An editor
 note's content and its body are separate selection regions.
 
@@ -54,8 +53,7 @@ the common structure.
 A selection can never partially cross a note boundary. The moment a text
 selection extends beyond one note's content, it becomes a structural selection
 whose selected note range covers the crossed notes. Extension between a view
-header, its owned body, and its child outline follows
-[View header](./view-header.md#structural-boundary) instead.
+header, its owned body, and its child outline follows [View header](./view-header.md#structural-boundary) instead.
 
 ## The selection ladder
 
@@ -69,8 +67,7 @@ neither input creates a structural selection. In the zoom root's body,
 The selection cannot grow by single rows; it grows and shrinks along a single
 ordered ladder whose every structural rung has a legal selected note range.
 Its defining property is **symmetric
-grow/shrink**: pressing the opposite direction *exactly inverts* the previous
-step.
+grow/shrink**: pressing the opposite direction *exactly inverts* the previous step.
 
 The ladder is anchored and replayable:
 
@@ -84,8 +81,7 @@ The ladder is anchored and replayable:
   1. the anchor note's own [content text](./note-model.md#definitions), selected
      inline — a distinct first rung (skipped when that text is empty, so the
      first press lands on rung 2);
-  2. the anchor note plus its subtree — the first structural rung,
-     direction-neutral;
+  2. the anchor note plus its subtree — the first structural rung, direction-neutral;
   3. one more contiguous sibling (with its subtree) in the sweep direction;
   4. when siblings in that direction are exhausted, the parent note (with its
      subtree), then resume sibling steps at the parent's level;
@@ -110,8 +106,7 @@ Direction and reversal:
   a prior `Shift+Arrow` sweep direction and never biases the next `Shift+Arrow`.
 
 Because the selection is replayed from intent, a collaboration edit reshapes it
-in place where possible; the disturbance tiers are defined in
-[Collaboration reshaping](#collaboration-reshaping).
+in place where possible; the disturbance tiers are defined in [Collaboration reshaping](#collaboration-reshaping).
 
 ## Input bindings
 
@@ -146,8 +141,7 @@ it perturbs the replay, evaluated from the anchor outward:
    the former anchor. (An anchor that still exists but moved is not gone; the
    ladder re-replays from its new location.)
 
-[Folding](./folding.md) defines what happens when folding hides the active
-selection.
+[Folding](./folding.md) defines what happens when folding hides the active selection.
 
 ## Command compatibility
 

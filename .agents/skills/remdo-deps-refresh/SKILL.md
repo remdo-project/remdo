@@ -11,8 +11,7 @@ This skill is the batched, test-gated replacement for processing Dependabot npm
 PRs by hand. The user treats Dependabot PRs and security alerts as a single
 signal — "something to refresh" — and the first thing they do is run this skill,
 then switch to other work. So the skill owns the **whole loop**: apply
-everything, investigate any breakage, heal it, and leave a report of what
-happened.
+everything, investigate any breakage, heal it, and leave a report of what happened.
 
 Operating principle: **apply everything, then make it green.**
 
@@ -73,8 +72,7 @@ Gate exit codes:
   Known case: right after the `pnpm pin` item crosses a pnpm **major**, the next
   gate run fails with `ERR_PNPM_UNEXPECTED_STORE` (node_modules was linked by the
   old major). Heal it with `CI=true pnpm install --no-frozen-lockfile` to rebuild
-  the store, then re-run the gate.
-  A package upgrade can likewise make a registered
+  the store, then re-run the gate. A package upgrade can likewise make a registered
   [dependency patch](../../../docs/dev/dependency-maintenance.md#dependency-patches)
   unused or inapplicable. Reconcile it as part of that upgrade using the patch
   procedure below; do not enable `allowUnusedPatches` to bypass the failure.
@@ -137,8 +135,7 @@ Once the gate is green (exit 0):
    probe passes; retain them when it does not.
 2. Reconcile open Dependabot PRs and alerts via `gh` — bookkeeping, not a second
    decision loop. Apply only genuine `unresolved` follow-ups. Classify each:
-   `covered here`, `already on default branch`, `unresolved`, or
-   `blocked intentionally`.
+   `covered here`, `already on default branch`, `unresolved`, or `blocked intentionally`.
 
 ## Final Response
 

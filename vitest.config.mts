@@ -57,6 +57,9 @@ export default defineConfig({
       '**/.agents/skills/**/tests/**',
       '**/.claude/skills/**/tests/**',
       '**/tools/check-agent-instructions.mjs',
+      // The docs-align integration spec copies product markdownlint rules into
+      // a scratch repo at runtime, so changed-only runs need an explicit trigger.
+      '**/tools/markdownlint-rules/**',
       '**/.markdownlint-cli2.jsonc',
     ],
     exclude: [

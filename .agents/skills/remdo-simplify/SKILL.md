@@ -130,9 +130,7 @@ Look for opportunities to:
 - Prefer direct, behavior-named test setup over clever harness metadata; for
   known fixtures, avoid runtime guards that only defend the fixture itself.
 - Remove obsolete comments or tracked workaround text when the code no longer
-  needs it. Use the
-  [code-comment convention](../../../docs/dev/contributing.md#code-comments)
-  for newly tracked code-site follow-ups.
+  needs it. Use the [code-comment convention](../../../docs/dev/contributing.md#code-comments) for newly tracked code-site follow-ups.
 
 ## Finding bar
 
