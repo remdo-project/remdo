@@ -1,5 +1,6 @@
 // The remdo-docs-align skill's private gate: run ONLY the RemDo doc-invariant
-// rules (temporal wording, References shape) over docs/ prose. Deliberately
+// rules (temporal wording, References shape) over the root contribution
+// contract and docs/ prose. Deliberately
 // bypasses markdownlint-cli2 config discovery (the repo config is the product
 // gate and would shadow this one); style/link linting stays `pnpm run lint:md`.
 import fs from 'node:fs';
@@ -8,13 +9,14 @@ import { lint } from 'markdownlint-cli2/markdownlint/promise';
 import referencesShape from './lint-rules/references-shape.mjs';
 import temporalStatus from './lint-rules/temporal-status.mjs';
 
-const files = fs
+const docsFiles = fs
   .globSync('docs/**/*.md', { cwd: process.cwd() })
   .filter((file) => !file.replaceAll('\\', '/').startsWith('docs/specs/feedback-cases/cases/'));
-if (files.length === 0) {
+if (docsFiles.length === 0) {
   console.error('run-doc-rules: no in-scope docs/**/*.md found');
   process.exit(1);
 }
+const files = ['CONTRIBUTING.md', ...docsFiles];
 const results = await lint({
   files,
   customRules: [temporalStatus, referencesShape],

@@ -63,7 +63,7 @@ Legend:
   scope, any required [repository authority](../instructions.md#repository-authority), expected result,
   and return point. Repository changes remain disposable unless adopted.
 - **Owning branch ready.** Before retaining work, fetch `origin/main` and ensure
-  the current [topic branch](../../../dev/contributing.md#git-workflow) uses its
+  the current [topic branch](../../../../CONTRIBUTING.md#git-workflow) uses its
   fetched commit as the base and contains only work adopted by the change. Use
   another base only if the developer specified one.
 - **Specification.** The coordinator identifies current contract owners and

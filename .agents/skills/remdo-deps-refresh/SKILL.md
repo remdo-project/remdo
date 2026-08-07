@@ -104,7 +104,7 @@ Iterate:
       pnpm install --no-frozen-lockfile` after each half so `node_modules`
       matches it — and re-run the failing check.
    4. Record any dependency-specific follow-up you introduce or retain under
-      the [code-comment convention](../../../docs/dev/contributing.md#code-comments),
+      the [code-comment convention](../../../CONTRIBUTING.md#code-comments),
       using the exact `TODO(deps):` or `FIXME(deps):` marker.
    5. For a notable jump, skim the release notes — to inform the fix and to flag
       a behavior-affecting change for the report. Opportunistically apply a

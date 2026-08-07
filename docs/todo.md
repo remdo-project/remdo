@@ -9,7 +9,7 @@ until they are resolved or migrated.
 
 ## Tracked follow-up
 
-Record code-local follow-up in [tracked comments](dev/contributing.md#code-comments), long-horizon
+Record code-local follow-up in [tracked comments](../CONTRIBUTING.md#code-comments), long-horizon
 follow-up in the owning specification's [`Future`](documentation.md#future)
 section, and other work intended to be done soon in this backlog. Together,
 these locations form the tracking record; do not duplicate an item between them.
@@ -163,7 +163,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 - **Skill-spec ownership boundaries.** Verify ownership between agent skill
   specifications, starting with [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md), and
   repository-wide or contributor contracts such as
-  [Contributing](dev/contributing.md). Keep capability-specific behavior with
+  [Contributing](../CONTRIBUTING.md). Keep capability-specific behavior with
   its skill and shared policy with the broader owner; update links and remove
   restatements in the same change.
 
