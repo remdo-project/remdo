@@ -1,8 +1,7 @@
 # Editor popups
 
 RemDo's transient editor popups include the inline trigger pickers (`@` for note
-[Links](./links.md), `!` for [Dates](./dates.md)) and the
-[Quick Action Menu](./menu.md). They share the behavior and trigger-picker
+[Links](./links.md), `!` for [Dates](./dates.md)) and the [Quick Action Menu](./menu.md). They share the behavior and trigger-picker
 session below. Each per-popup specification defines only what differs: its
 opening trigger, owned keys, focus model, and confirmation.
 
@@ -11,8 +10,7 @@ opening trigger, owned keys, focus model, and confirmation.
 An editor popup is a transient surface anchored in the editor that, while open,
 **owns the keyboard** and is **light-dismissable**.
 
-1. **One at a time.** At most one editor popup is open; opening one closes any
-   other.
+1. **One at a time.** At most one editor popup is open; opening one closes any other.
 2. **The popup owns the keyboard.** While open it has first decision over every
    key: it consumes its navigation, commit, and dismissal keys, and no keystroke
    reaches ordinary text editing — **except** keys that edit the popup's own
@@ -26,8 +24,7 @@ An editor popup is a transient surface anchored in the editor that, while open,
    confirming applies the result and closes.
 5. **`Tab` behavior is declared per widget**, as one of: **close and fall
    through** to the editor's normal `Tab` action (the popup closes, then
-   deliberately routes the key onward), or
-   **cycle within** the popup's own controls.
+   deliberately routes the key onward), or **cycle within** the popup's own controls.
 6. **Validated commit, safe restore.** Because the editor selection stays live
    while a popup is open (and may move under collaboration), a commit re-resolves
    its pinned target and verifies it still holds before applying. On any close the

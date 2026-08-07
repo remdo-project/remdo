@@ -12,8 +12,7 @@ heading. Editing the heading changes that content in place.
 The location's [note kind](./note-model.md#note-kinds) determines the content it
 can carry. A zoomed [editor note](./note-model.md#note-kinds) supports the same
 inline content as any editor note, including formatting and
-[note links](./links.md). The [document root](./note-model.md#definitions)
-supports the content allowed by its kind.
+[note links](./links.md). The [document root](./note-model.md#definitions) supports the content allowed by its kind.
 
 ## Structural boundary
 
@@ -31,6 +30,5 @@ outline, [whole-note snapping](./selection.md#whole-note-snapping) applies.
 2. When the location's kind can own a [body](./body.md), `Shift+Enter` focuses
    that body and creates it when absent.
 3. An owned body appears below the header and above the children. It follows
-   the body contract; moving down from the header instead enters the first
-   child.
+   the body contract; moving down from the header instead enters the first child.
 4. `Backspace` at the start of the header is a no-op.

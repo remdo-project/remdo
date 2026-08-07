@@ -1,7 +1,6 @@
 # Project Principles
 
-RemDo's product principles are assumptions that outrank current implementation
-details.
+RemDo's product principles are assumptions that outrank current implementation details.
 
 ## Non-negotiables
 

@@ -14,14 +14,11 @@ links carrying bearer credentials, or a local-only no-login mode.
 ## Authenticated App Access
 
 A Better Auth session identifies the signed-in user. The server supports
-username/password, OAuth, and any other authentication method enabled by its
-configuration.
+username/password, OAuth, and any other authentication method enabled by its configuration.
 
-The SQL-backed user role and
-[document registry](../../architecture.md#document-registry) are the
+The SQL-backed user role and [document registry](../../architecture.md#document-registry) are the
 authorization sources of truth. Session UI and read-only Yjs
-[user-data projections](../../architecture.md#document-registry) may expose
-their results but do not authorize a request.
+[user-data projections](../../architecture.md#document-registry) may expose their results but do not authorize a request.
 
 The client user-data runtime starts only inside the authenticated app. Login,
 enrollment, offline, logout, and OAuth consent surfaces render outside that
@@ -43,9 +40,7 @@ a Better Auth account on the document's server. A direct grant gives that user
 full document access. Home documents and user-data projections do not accept
 direct grants.
 
-The server issues
-[Y-Sweet document client tokens](../../architecture.md#token-vocabulary)
-according to the resulting access:
+The server issues [Y-Sweet document client tokens](../../architecture.md#token-vocabulary) according to the resulting access:
 
 - A normal-document owner or direct grantee receives full access.
 - A home-document owner receives full access.
@@ -59,8 +54,7 @@ server administration. A Yjs user-data projection may expose the role for UI,
 but every admin API authorizes from the caller's session and role.
 
 The self-enrollment endpoint is the exception: it registers a new admin account
-for a caller that supplies the
-[configured admin-enrollment secret](../runtime/configuration.md#secret-bootstrap).
+for a caller that supplies the [configured admin-enrollment secret](../runtime/configuration.md#secret-bootstrap).
 Enrollment is independent of the public-signup policy.
 
 `/admin` is the admin entry route. An admin sees the admin panel; every other
@@ -97,8 +91,7 @@ sharing one browser hostname.
 - Add audit logging and rate limiting to self-enrollment and future public-policy
   changes.
 - Define anonymous access and public documents.
-- Define bearer-link access and its revocation, regeneration, and invalid-link
-  behavior.
+- Define bearer-link access and its revocation, regeneration, and invalid-link behavior.
 - Define a local-only no-login mode.
 
 ## References

@@ -5,15 +5,13 @@ description: Assess a caller-named specification against its implementation, tes
 
 # Spec Complexity
 
-Assess one specification under the authoritative
-[`spec-complexity`](../../../docs/specs/agents/skills/spec-complexity.md) contract.
+Assess one specification under the authoritative [`spec-complexity`](../../../docs/specs/agents/skills/spec-complexity.md) contract.
 Remain read-only.
 
 ## Assess the specification
 
 Require the caller to name the specification. Read it in full and confirm that
-it is the current
-[contract owner](../../../docs/documentation.md#ownership). Inspect its
+it is the current [contract owner](../../../docs/documentation.md#ownership). Inspect its
 implementation, tests, and relevant Git history. Follow linked contract owners
 as needed before classifying complexity as unrequired.
 
@@ -35,7 +33,5 @@ requests them.
 
 ## Return
 
-Return the authoritative specification's
-[Result](../../../docs/specs/agents/skills/spec-complexity.md#result). When
-addressing a human, render it under the shared
-[Reports](../../../docs/specs/agents/results.md#reports) contract.
+Return the authoritative specification's [Result](../../../docs/specs/agents/skills/spec-complexity.md#result). When
+addressing a human, render it under the shared [Reports](../../../docs/specs/agents/results.md#reports) contract.

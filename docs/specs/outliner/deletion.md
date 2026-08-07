@@ -2,20 +2,15 @@
 
 `Backspace` (Mac "Delete") and forward `Delete` act on text or notes according
 to the caret and selection. Selection semantics are defined in
-[Selection](./selection.md); when a merged note has a [body](./body.md), body
-resolution follows
-[Note merge](./body.md#note-merge).
+[Selection](./selection.md); when a merged note has a [body](./body.md), body resolution follows [Note merge](./body.md#note-merge).
 
 ## Caret and inline text selections
 
-1. Inline text selection: `Backspace`/`Delete` remove only the highlighted
-   characters.
+1. Inline text selection: `Backspace`/`Delete` remove only the highlighted characters.
 
 2. Backspace at start of note (caret at column 0):
-   1. If the note is the first note in
-      [document order](./note-model.md#definitions): **no-op**; caret stays put.
-   2. Otherwise: use the [previous note](./note-model.md#definitions) in
-      document order.
+   1. If the note is the first note in [document order](./note-model.md#definitions): **no-op**; caret stays put.
+   2. Otherwise: use the [previous note](./note-model.md#definitions) in document order.
       1. If either note is an [empty leaf note](./note-model.md#definitions):
          delete it; caret lands at the boundary of the surviving note (end of
          the previous note when deleting the current note, start of the current
@@ -25,8 +20,7 @@ resolution follows
          previous note. If the current note has children, reparent them to the
          surviving note:
          1. If the previous note is the parent of the current note, the current
-            note's children take the current note's position in that child
-            list.
+            note's children take the current note's position in that child list.
          2. Otherwise, append the current note's children as the last children
             of the previous note.
 3. Forward `Delete` at end of note (caret at final character):
@@ -43,8 +37,7 @@ resolution follows
 ## Zoom boundary behavior (caret selection)
 
 In a [subtree view](./zoom.md#visibility-and-editing-boundary), caret deletion
-from the outline children keeps merges inside the
-[zoom boundary](./zoom.md#definitions):
+from the outline children keeps merges inside the [zoom boundary](./zoom.md#definitions):
 
 1. Forward `Delete` at the end of a child is a no-op when the next note in
    document order is outside the zoom boundary.
@@ -61,8 +54,7 @@ from the outline children keeps merges inside the
 
 ## Spacing rule for merges
 
-1. When concatenating two notes' [content text](./note-model.md#definitions),
-   insert exactly one space **iff**:
+1. When concatenating two notes' [content text](./note-model.md#definitions), insert exactly one space **iff**:
    1. the left text is non-empty and does not already end with whitespace; and
    2. the right text is non-empty and does not already start with whitespace.
 2. Otherwise concatenate as-is to preserve intentional spacing or punctuation.

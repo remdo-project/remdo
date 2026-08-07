@@ -7,8 +7,7 @@ zooming to a result.
 
 - **Search Mode:** active while the search box has focus.
 - **Highlighted note:** the single note targeted by search navigation.
-- **Result row:** the rendering for a single search result (see Result row
-  context).
+- **Result row:** the rendering for a single search result (see Result row context).
 - **`No matches`:** the empty-state label shown when a non-empty current query
   produces no flat results.
 - **`No notes`:** the empty-state label shown when the current query is empty
@@ -54,8 +53,7 @@ zooming to a result.
 15. `Escape` moves focus to the editor.
 16. Search input exposes combobox semantics for assistive tech, including popup
     state and active descendant linkage.
-17. Search results expose listbox semantics and mark the highlighted result as
-    selected.
+17. Search results expose listbox semantics and mark the highlighted result as selected.
 18. Each result's accessible name includes its ancestor path context, so results
     that share the same note text are still distinguishable without sight (the
     same disambiguation the visible row provides).

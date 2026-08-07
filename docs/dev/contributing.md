@@ -1,11 +1,9 @@
 # Contributing
 
 RemDo's contribution contract gives contributors and reviewers the same
-baseline for judging a change's intent, supported runtimes, compatibility,
-and follow-up.
+baseline for judging a change's intent, supported runtimes, compatibility, and follow-up.
 
-Durable documentation has its own contract in
-[Documentation](../documentation.md).
+Durable documentation has its own contract in [Documentation](../documentation.md).
 
 ## Git Workflow
 
@@ -16,8 +14,7 @@ identifies the branch's primary outcome:
 
 - `feat/` introduces a capability.
 - `fix/` corrects a defect.
-- `refactor/` restructures implementation while preserving
-  [accepted behavior](../documentation.md#target-behavior).
+- `refactor/` restructures implementation while preserving [accepted behavior](../documentation.md#target-behavior).
 - `perf/` improves performance.
 - `chore/` handles repository maintenance, including dependencies, automation,
   and tooling.
@@ -30,8 +27,7 @@ branch prefix because the prefix describes the branch's combined outcome.
 
 ## Runtime Baseline
 
-RemDo's supported runtimes are declared in
-[`package.json`](../../package.json):
+RemDo's supported runtimes are declared in [`package.json`](../../package.json):
 
 - **Node.js:** `engines.node`.
 - **Browsers:** `browserslist.production`.

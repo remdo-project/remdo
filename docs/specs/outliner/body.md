@@ -1,8 +1,7 @@
 # Note body
 
 A **body** is an optional rich-text region owned by an
-[editor note](./note-model.md#note-kinds) and displayed below its
-[content text](./note-model.md#definitions). It has its own content, selection,
+[editor note](./note-model.md#note-kinds) and displayed below its [content text](./note-model.md#definitions). It has its own content, selection,
 navigation, lifecycle, and merge behavior.
 
 ## Core behavior
@@ -12,19 +11,16 @@ navigation, lifecycle, and merge behavior.
    the caret to the start of the existing body instead of adding another.
 2. **Ownership.** A note has at most one body, and a body belongs to that one
    note. The body travels with the note through indent/outdent, reorder,
-   structural delete, and
-   [clipboard](./clipboard.md) copy/cut/paste.
+   structural delete, and [clipboard](./clipboard.md) copy/cut/paste.
 3. **Visually distinct.** A body renders set apart from the note's content. If
-   its owning note is [checked](./list-types.md#checked-state), the body text is
-   crossed out with the note.
+   its owning note is [checked](./list-types.md#checked-state), the body text is crossed out with the note.
 4. **Inline content.** Body text supports the same key-driven inline content as
    note content — inline formatting (no separate formatting UI) and `@` note
    links (see [Links](./links.md)).
 
 ## Selection and structural targeting
 
-For [selection](./selection.md), a note's content and its body are distinct
-[selection regions](./selection.md#selection-states):
+For [selection](./selection.md), a note's content and its body are distinct [selection regions](./selection.md#selection-states):
 
 - An inline text selection lives within exactly one selection region — one
   note's content, or one body.
@@ -38,8 +34,7 @@ For [selection](./selection.md), a note's content and its body are distinct
 
 For commands that act on a note, a caret or inline text selection inside a body
 targets its owning editor note. For example,
-[indent](./indentation.md#indent) targets the whole note, not the body text
-alone.
+[indent](./indentation.md#indent) targets the whole note, not the body text alone.
 
 ## Navigation
 

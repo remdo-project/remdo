@@ -2,10 +2,8 @@
 
 **Home** sits at the top of the navigation hierarchy, above any single document,
 and lets a user browse their documents and jump between them.
-It sits one level above the
-[document-root view](./zoom.md#visibility-and-editing-boundary) — the document
-is a [note](./note-model.md), and Home is the surface from which its documents
-are reached.
+It sits one level above the [document-root view](./zoom.md#visibility-and-editing-boundary) — the document
+is a [note](./note-model.md), and Home is the surface from which its documents are reached.
 
 ## Definitions
 
@@ -18,16 +16,12 @@ are reached.
 1. Home replaces the editor in the content region: while Home is shown, no
    document outline is visible.
 2. Home lists the user's documents grouped by source: the local server and each
-   linked
-   [source server](../access/source-linking.md#server-roles),
-   under a heading per group.
+   linked [source server](../access/source-linking.md#server-roles), under a heading per group.
 3. Each listed document shows its display name and opens that document when
-   activated, landing on its
-   [document-root view](./zoom.md#visibility-and-editing-boundary).
+   activated, landing on its [document-root view](./zoom.md#visibility-and-editing-boundary).
 4. Home presents three additional entry-point groups alongside the document
    list: **Favorites**, **Tags**, and **Recents**. Each is a list of document
-   shortcuts, shown as static placeholder entries until the
-   [backing sources exist](#future).
+   shortcuts, shown as static placeholder entries until the [backing sources exist](#future).
 5. A group with no entries is omitted from Home entirely; Home never shows an
    empty group as a placeholder.
 
@@ -39,8 +33,7 @@ are reached.
 ## Entering and leaving Home
 
 1. On the local Home document, clearing zoom at the document root returns to
-   `/` (owned by [Zoom routing](./zoom.md#routing)); Home is the surface above
-   that root.
+   `/` (owned by [Zoom routing](./zoom.md#routing)); Home is the surface above that root.
 
 ## Future
 

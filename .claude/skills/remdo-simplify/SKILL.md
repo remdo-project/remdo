@@ -7,10 +7,8 @@ agent: Explore
 
 # RemDo Simplify (Claude Adapter)
 
-Read and follow the shared RemDo simplify skill at
-`../../../.agents/skills/remdo-simplify/SKILL.md`.
+Read and follow the shared RemDo simplify skill at `../../../.agents/skills/remdo-simplify/SKILL.md`.
 
 Claude Code runs this adapter in a fresh fork/explore context via the
 frontmatter above. Keep all behavior, scope, and output rules in the shared
-skill; this file exists only for Claude-specific discovery and isolation
-metadata.
+skill; this file exists only for Claude-specific discovery and isolation metadata.

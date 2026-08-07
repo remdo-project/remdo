@@ -5,14 +5,12 @@ description: Merge the latest fetched origin/main into the current attached bran
 
 # RemDo Merge Main
 
-Implement the authoritative
-[`remdo-merge-main`](../../../docs/specs/agents/skills/remdo-merge-main.md) contract.
+Implement the authoritative [`remdo-merge-main`](../../../docs/specs/agents/skills/remdo-merge-main.md) contract.
 Invocation declares the autonomous scope in [Authority](#authority).
 
 ## Start
 
-Set `runner` to
-`.agents/skills/remdo-merge-main/tools/merge-main.sh`. Run
+Set `runner` to `.agents/skills/remdo-merge-main/tools/merge-main.sh`. Run
 `sh "$runner" start`. Add `--preserve` only when the user explicitly asks to
 preserve local work.
 
@@ -82,7 +80,5 @@ authorize pull, rebase, push, force-push, or other remote mutation.
 
 ## Report
 
-Return the authoritative specification's
-[`Result`](../../../docs/specs/agents/skills/remdo-merge-main.md#result). When
-addressing a human, render it under the shared
-[`Reports`](../../../docs/specs/agents/results.md#reports) contract.
+Return the authoritative specification's [`Result`](../../../docs/specs/agents/skills/remdo-merge-main.md#result). When
+addressing a human, render it under the shared [`Reports`](../../../docs/specs/agents/results.md#reports) contract.

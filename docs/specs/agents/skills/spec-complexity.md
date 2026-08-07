@@ -2,8 +2,7 @@
 
 This read-only skill returns an [agent result](../results.md#results) showing
 which decisions in one specification create material implementation complexity
-and what simpler alternatives exist. It does not select or apply an
-alternative.
+and what simpler alternatives exist. It does not select or apply an alternative.
 
 ## Assessment
 
@@ -13,8 +12,7 @@ The [report](../results.md#reports) answers:
 
 The skill assesses a specification named by the caller against its current
 implementation, tests, and Git history. The specification is the current
-[contract owner](../../../documentation.md#ownership) for the behavior under
-assessment.
+[contract owner](../../../documentation.md#ownership) for the behavior under assessment.
 
 For each specification-caused area, report the decision, resulting
 implementation mechanism, separate implementation and test estimates, simpler

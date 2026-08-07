@@ -5,9 +5,7 @@ description: Verify a default or explicitly selected RemDo uncommitted or Git-ra
 
 # RemDo Verify Change
 
-Verify one scope under the authoritative
-[`remdo-verify-change`](../../../docs/specs/agents/skills/remdo-verify-change.md)
-contract.
+Verify one scope under the authoritative [`remdo-verify-change`](../../../docs/specs/agents/skills/remdo-verify-change.md) contract.
 Remain read-only: do not edit, stage, commit, or run checks intended to change
 the selected scope.
 
@@ -18,8 +16,7 @@ Accept an omitted scope, `uncommitted`, an explicit `<left>..HEAD` /
 them. Translate a supplied description before running the resolver; ask only
 when it is ambiguous.
 
-Run the [shared scope resolver](../_shared/tools/resolve-scope.sh) from the
-repository root:
+Run the [shared scope resolver](../_shared/tools/resolve-scope.sh) from the repository root:
 
 ```sh
 sh <shared-resolver-path> [scope]
@@ -50,16 +47,12 @@ do not abort the other review.
 Invoke the shared runner directly with high effort:
 
 - Codex: `node .agents/skills/_shared/tools/read-only-runner.ts --effort high
-  codex review uncommitted` or replace `uncommitted` with
-  `commit-range <BASE>`.
+  codex review uncommitted` or replace `uncommitted` with `commit-range <BASE>`.
 - Claude: `node .agents/skills/_shared/tools/read-only-runner.ts --effort high
-  claude review uncommitted` or replace `uncommitted` with
-  `commit-range <BASE>`.
+  claude review uncommitted` or replace `uncommitted` with `commit-range <BASE>`.
 
-Run these commands exactly. The
-[`read-only runner`](../_shared/tools/read-only-runner.ts) owns the fresh
-session, review scope mapping,
-[repository protection](../../../docs/specs/agents/tools/read-only-runner.md#repository-protection),
+Run these commands exactly. The [`read-only runner`](../_shared/tools/read-only-runner.ts) owns the fresh
+session, review scope mapping, [repository protection](../../../docs/specs/agents/tools/read-only-runner.md#repository-protection),
 cancellation, protocol completion, and final-response extraction.
 
 Reviewer runtime is unspecified. Wait for each managed call's completion
@@ -79,13 +72,9 @@ a fixed phrase list for this semantic judgment.
 ## Validate findings
 
 After both review attempts finish, classify every finding under the
-authoritative specification's
-[Findings](../../../docs/specs/agents/skills/remdo-verify-change.md#findings) contract.
-Keep verification read-only.
+authoritative specification's [Findings](../../../docs/specs/agents/skills/remdo-verify-change.md#findings) contract. Keep verification read-only.
 
 ## Report
 
-Return the authoritative specification's
-[Result](../../../docs/specs/agents/skills/remdo-verify-change.md#result). When
-addressing a human, render it under the shared
-[Reports](../../../docs/specs/agents/results.md#reports) contract.
+Return the authoritative specification's [Result](../../../docs/specs/agents/skills/remdo-verify-change.md#result). When
+addressing a human, render it under the shared [Reports](../../../docs/specs/agents/results.md#reports) contract.

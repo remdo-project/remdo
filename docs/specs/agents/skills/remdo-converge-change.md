@@ -3,8 +3,7 @@
 This skill verifies a repository change, applies every correction supported by
 the evidence, and repeats until no further correction can be determined. It
 returns an [agent result](../results.md#results). One
-[change scope](../change-scope.md) bounds the run; the skill does not select or
-expand intended behavior.
+[change scope](../change-scope.md) bounds the run; the skill does not select or expand intended behavior.
 
 ## Convergence
 
@@ -21,15 +20,13 @@ scope` findings or reinterpret dispositions.
 
 For `uncommitted`, corrections remain uncommitted. For a commit range, the
 resolved `BASE` remains fixed and the skill commits corrections before running
-verification again. It does not apply commit-range corrections from a detached
-`HEAD`.
+verification again. It does not apply commit-range corrections from a detached `HEAD`.
 
 Before committing or re-verifying, the skill checks the correction batch
 against every applicable authoritative contract.
 
 After applying corrections, the skill runs complete verification again. It does
-not re-verify unchanged state; [degraded
-verification](remdo-verify-change.md#result) remains usable.
+not re-verify unchanged state; [degraded verification](remdo-verify-change.md#result) remains usable.
 
 The skill converges when no determined correction remains, even if
 [concerns](../results.md#concerns) remain. A `stopped` verification stops
@@ -41,8 +38,7 @@ convergence unless the skill can correct its failed check.
 each confirmed finding as fixed or uncorrected. `verification.findings` is the
 latest iteration only.
 
-When run, `verification` contains the complete latest
-[`remdo-verify-change` result](remdo-verify-change.md#result).
+When run, `verification` contains the complete latest [`remdo-verify-change` result](remdo-verify-change.md#result).
 
 The result uses this shape:
 

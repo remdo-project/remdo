@@ -68,8 +68,7 @@ browser, not just on disk.
   it, or otherwise verify serving — hand the developer the URL and stop.
 - **Do not run `open`** (the plugin skill's step 4) — there is no display. After
   writing the file and updating the symlink, print the full
-  `/playground/index.html` URL so the developer can open it from their own
-  machine.
+  `/playground/index.html` URL so the developer can open it from their own machine.
 - **Always print the URL with the VM's hostname, never a loopback/local IP**
   (`127.0.0.1`/`localhost`/a LAN IP) — the developer reaches this box by name
   over the network. Take `PORT` from the running config.

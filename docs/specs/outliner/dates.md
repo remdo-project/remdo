@@ -1,7 +1,6 @@
 # Dates
 
-RemDo-owned inline date tokens provide a picker and keyboard behavior in the
-outliner.
+RemDo-owned inline date tokens provide a picker and keyboard behavior in the outliner.
 
 ## Core behavior
 
@@ -57,5 +56,4 @@ outliner.
 
 ## References
 
-- [WAI-ARIA date picker dialog example](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/)
-  — calendar grid focus and keyboard behavior.
+- [WAI-ARIA date picker dialog example](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/) — calendar grid focus and keyboard behavior.

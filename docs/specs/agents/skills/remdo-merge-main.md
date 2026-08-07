@@ -8,8 +8,7 @@ interrupted run are also outside the capability.
 
 ## Authority
 
-The skill declares the [autonomous
-scope](../instructions.md#repository-authority) for the branch update, merge and
+The skill declares the [autonomous scope](../instructions.md#repository-authority) for the branch update, merge and
 correction commits, and determined conflict resolutions. Preserve mode also
 covers saving and restoring local work.
 
@@ -32,8 +31,7 @@ restoration begins. The capability then reapplies the saved work and discards
 its saved copy only after restoration succeeds.
 
 The capability resolves a restoration conflict only when the correct result can
-be determined. Otherwise, it leaves the conflict and saved work for manual
-recovery.
+be determined. Otherwise, it leaves the conflict and saved work for manual recovery.
 
 ## Merge
 

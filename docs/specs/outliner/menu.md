@@ -17,25 +17,20 @@ its entry, actions, and behavior.
 ## Actions
 
 1. Menu actions have three scopes:
-   - **Note:** acts on the current note, unless the action defines a wider
-     target.
+   - **Note:** acts on the current note, unless the action defines a wider target.
    - **Children:** acts on the current note's child list.
    - **View:** acts on the current [zoom boundary](./zoom.md#definitions).
 2. When opened from a [view header](./view-header.md#structural-boundary), Note
    and Children actions are unavailable; View actions remain available.
 3. Note actions:
-   - Toggle checked per
-     [List types](./list-types.md#toggling): targets the
+   - Toggle checked per [List types](./list-types.md#toggling): targets the
      [selected note range](./selection.md#note-ranges) when the current note is
-     inside a [structural selection](./selection.md#selection-states), otherwise
-     the current note; shortcut `Cmd/Ctrl+Enter`.
+     inside a [structural selection](./selection.md#selection-states), otherwise the current note; shortcut `Cmd/Ctrl+Enter`.
    - Fold/Unfold per [Folding](./folding.md), hidden for leaf notes and for the
-     current [zoom root](./zoom.md#definitions), shortcut `F` when the menu is
-     open.
+     current [zoom root](./zoom.md#definitions), shortcut `F` when the menu is open.
    - Zoom per [Zoom](./zoom.md), shortcut `Z`.
 4. Children actions:
-   - Child list type actions per
-     [List types](./list-types.md#type-conversion), showing only
+   - Child list type actions per [List types](./list-types.md#type-conversion), showing only
      the two non-current options; hidden for leaf notes.
 5. View actions:
    - `Fold to level [0-9]` per [Folding](./folding.md), with digit shortcuts
@@ -55,8 +50,7 @@ its entry, actions, and behavior.
    first-letter type-ahead).
 3. When opened from a row, the current note is that row's note. When opened
    without a row and outside a view header, the current note is the
-   [focus note](./selection.md#selection-states). A view-header menu has no
-   current note.
+   [focus note](./selection.md#selection-states). A view-header menu has no current note.
 4. Selected note ranges never open multi-note menus; only the current note is
    used as note context, even when an action's target widens per its contract
    (as Toggle checked's does).

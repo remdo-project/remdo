@@ -12,15 +12,13 @@ authoritative guidance trigger their reassessment.
 
 ### Surfaces
 
-- `AGENTS.md` is the effective shared repository entry point.
-  **Deterministic.**
+- `AGENTS.md` is the effective shared repository entry point. **Deterministic.**
 - `AGENTS.override.md` is reserved for directory-scoped Codex rules below the
   repository root.
 - Provider-specific entry points reuse the shared instructions and add only
   provider-specific rules.
 - `CLAUDE.md` imports `AGENTS.md` exactly once as its first nonblank active
-  content, before its Claude-specific rules.
-  **Deterministic.**
+  content, before its Claude-specific rules. **Deterministic.**
 - Every repository-controlled Codex instruction chain fits within Codex's
   documented default project-instruction limit. **Deterministic.**
 
@@ -50,35 +48,22 @@ Agent instructions are a sparse router, not an index of repository
 documentation. Route agents by the question they need to answer:
 
 - **Durable documentation:** [Documentation](../../documentation.md).
-  - **Owner categories:**
-    [Layout](../../documentation.md#documentation-layout).
-  - **Current owners and dependencies:**
-    [Ownership](../../documentation.md#ownership).
-  - **Accepted contracts and tracked gaps:**
-    [Target behavior](../../documentation.md#target-behavior).
-  - **Deterministic coverage markers:**
-    [Verification](../../documentation.md#verification).
+  - **Owner categories:** [Layout](../../documentation.md#documentation-layout).
+  - **Current owners and dependencies:** [Ownership](../../documentation.md#ownership).
+  - **Accepted contracts and tracked gaps:** [Target behavior](../../documentation.md#target-behavior).
+  - **Deterministic coverage markers:** [Verification](../../documentation.md#verification).
 - **Contributor decisions:** [Contributing](../../dev/contributing.md).
-  - **Branches and commits:**
-    [Git workflow](../../dev/contributing.md#git-workflow).
-  - **Supported runtimes:**
-    [Runtime baseline](../../dev/contributing.md#runtime-baseline).
-  - **Compatibility defaults:**
-    [Backward compatibility](../../dev/contributing.md#backward-compatibility-pre-10).
-  - **Tracked code comments:**
-    [Code comments](../../dev/contributing.md#code-comments).
+  - **Branches and commits:** [Git workflow](../../dev/contributing.md#git-workflow).
+  - **Supported runtimes:** [Runtime baseline](../../dev/contributing.md#runtime-baseline).
+  - **Compatibility defaults:** [Backward compatibility](../../dev/contributing.md#backward-compatibility-pre-10).
+  - **Tracked code comments:** [Code comments](../../dev/contributing.md#code-comments).
 - **Long-term product constraints:** [Project principles](../../principles.md).
-- **Runtime configuration:**
-  [Configuration](../runtime/configuration.md).
-  - **Port and origin derivation:**
-    [Derivation rules](../runtime/configuration.md#derivation-rules).
+- **Runtime configuration:** [Configuration](../runtime/configuration.md).
+  - **Port and origin derivation:** [Derivation rules](../runtime/configuration.md#derivation-rules).
 - **Verification runtime:** [Test Harness](../testing/test-harness.md).
-- **Tracked repository follow-up:**
-  [RemDo TODO](../../todo.md#tracked-follow-up).
-- **Local runtime procedures:**
-  [Local Development](../../dev/guides/local-development.md).
-- **Specification evidence boundaries:**
-  [Specification Feedback Cases](../feedback-cases/README.md).
+- **Tracked repository follow-up:** [RemDo TODO](../../todo.md#tracked-follow-up).
+- **Local runtime procedures:** [Local Development](../../dev/guides/local-development.md).
+- **Specification evidence boundaries:** [Specification Feedback Cases](../feedback-cases/README.md).
 - **Task behavior:** its current owner, located by filename and scope opener
   under `docs/`.
 
@@ -136,8 +121,7 @@ narrower owners can take over.
 
 #### Review and handoff
 
-- Review checks the repository [tracking record](../../todo.md) before reporting
-  findings.
+- Review checks the repository [tracking record](../../todo.md) before reporting findings.
 - Artifacts intended for developer review land in the working directory for
   inspection. Changes remain uncommitted unless commit authority applies.
 - [Specification feedback cases](../feedback-cases/README.md) remain frozen
@@ -150,8 +134,7 @@ These sources inform instruction design; they do not override this contract.
 - [OpenAI Codex: Custom instructions with AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
   — instruction discovery, precedence, and project-document budget.
 - [OpenAI: Harness engineering](https://openai.com/index/harness-engineering/)
-  — sparse repository maps and the maintenance cost of exhaustive instruction
-  manuals.
+  — sparse repository maps and the maintenance cost of exhaustive instruction manuals.
 - [Anthropic: Claude Code memory](https://code.claude.com/docs/en/memory)
   — shared-file imports, instruction loading, and concise authoring guidance.
 - [GitHub Copilot: Response customization](https://docs.github.com/en/copilot/concepts/prompting/response-customization)

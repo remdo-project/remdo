@@ -7,13 +7,11 @@ note-link identity across clipboard and persistence boundaries.
 ## Structural selection
 
 - Copy duplicates the selected notes (including their
-  [subtrees](./note-model.md#definitions) and each note's [body](./body.md)) and
-  leaves the document unchanged.
+  [subtrees](./note-model.md#definitions) and each note's [body](./body.md)) and leaves the document unchanged.
 - Copy captures the notes as they are at copy time; later edits to the
   originals do not change what gets pasted.
 - Cut creates a **pending cut** from the
-  [selected note range](./selection.md#note-ranges). Its notes stay in place
-  until paste moves them.
+  [selected note range](./selection.md#note-ranges). Its notes stay in place until paste moves them.
 - Any edit inside the pending cut before pasting, including a remote edit,
   cancels the cut so edits stay where they were made.
 - After creating a pending cut, the caret moves to the start of the range's
@@ -25,8 +23,7 @@ note-link identity across clipboard and persistence boundaries.
 - A pending cut can be pasted once; after a successful paste it is cleared.
 - If you try to paste inside the pending cut, nothing happens and the cut
   remains pending.
-- Starting a new copy/cut, or pasting unrelated content, cancels the pending
-  cut.
+- Starting a new copy/cut, or pasting unrelated content, cancels the pending cut.
 - Pasting a copied note **outside** RemDo (plain text) includes each note's own
   text, then its body text on the following line(s), then its sub-notes — the
   order the note reads on screen.
