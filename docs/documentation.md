@@ -133,6 +133,9 @@ non-procedural contracts by responsibility in dependency order.
 State owned behavior positively. Retain a negation only when it prevents a
 credible misuse.
 
+Markdown line-length lint counts each link or image by its label rather than
+its hidden destination syntax. **Deterministic.**
+
 ### Lists
 
 Use bullets when three or more peer items need to be located, compared, or

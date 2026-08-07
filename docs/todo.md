@@ -30,13 +30,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Markdown authoring ergonomics.** Evaluate whether documentation lint should
-  treat inline link destinations and similar non-visible Markdown syntax
-  separately from rendered prose when enforcing line length. Compare the
-  current wrapping, a higher source limit, reference-style links, and a
-  rendered-text-aware rule; adopt only a simple repository-wide improvement
-  supported by corpus examples.
-
 - **Specification vocabulary review.** Make future specification-authoring and
   review workflows apply the [ownership](documentation.md#ownership) and
   [minimality](documentation.md#minimality) rules to every domain- or

@@ -43,15 +43,17 @@
   // they are the remdo-docs-align skill's private tools
   // (.agents/skills/remdo-docs-align/tools/check-doc-rules.sh).
   "customRules": [
-    "markdownlint-rule-relative-links"
+    "markdownlint-rule-relative-links",
+    "./tools/markdownlint-rules/link-aware-line-length.mjs"
   ],
   "config": {
     "default": true,
     "relative-links": { "root_path": "." }, // root-relative `/docs/...` links validate against the repo root
-    "MD013": {
-      "line_length": 80,
-      "code_blocks": false,
-      "tables": false
+    // MD013 counts hidden inline-link destinations. The RemDo rule instead
+    // measures link labels; docs/documentation.md owns that authoring rule.
+    "MD013": false,
+    "remdo-link-aware-line-length": {
+      "line_length": 80
     },
     // MD012: existing docs intentionally keep double-blank separators.
     "MD012": false,

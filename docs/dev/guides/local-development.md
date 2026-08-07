@@ -143,6 +143,5 @@ private Docker home. It requires rootless Docker Engine 29.5 or newer.
    source URL. When redirected to the source, sign in as one of the stable
    users.
 
-The
-[source-linking access model](../../specs/access/source-linking.md#cross-server-source-linking)
+The [source-linking access model](../../specs/access/source-linking.md#cross-server-source-linking)
 owns the resulting authorization and delegation behavior.

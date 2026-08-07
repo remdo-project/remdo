@@ -71,8 +71,7 @@ Legend:
   another base only if the developer specified one.
 - **Specification.** The coordinator identifies current contract owners and
   prepares the spec by mapping proposed target behavior to the applicable
-  owners. It applies
-  [Specification structure](../../../documentation.md#specification-structure)
+  owners. It applies [Specification structure](../../../documentation.md#specification-structure)
   when creating or editing a durable specification, changes only owners whose
   target behavior must change, and surfaces unresolved behavior,
   [concerns](../results.md#concerns), and

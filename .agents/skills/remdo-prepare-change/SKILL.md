@@ -38,8 +38,7 @@ authority or an unsafe interpretation of existing work.
 
 Read [`Documentation`](../../../docs/documentation.md) before preparing the
 spec. Identify current contract owners, map proposed target behavior to the
-applicable owners, and apply
-[`Specification structure`](../../../docs/documentation.md#specification-structure)
+applicable owners, and apply [`Specification structure`](../../../docs/documentation.md#specification-structure)
 when creating or editing a durable specification. Change only owners whose
 target behavior must change, and retain each approved behavior with its owner in
 the active result. Before requesting approval, surface unresolved behavior,
