@@ -39,12 +39,8 @@ export default defineConfig({
       '**/pnpm-lock.yaml',
       '**/tsconfig*.json',
       '**/.agents/skills/**/tools/**',
-      // Prompt/reference templates a skill tool reads at runtime (e.g.
-      // advocate-run.sh substitutes references/advocate.md; its spec asserts
-      // that coupling) are also never imported, so trigger their specs on edit.
-      '**/.agents/skills/**/references/**',
       // Skill agent metadata is read at runtime by the embedded skill guard, so
-      // changed-only runs need explicit triggers just like tools/references.
+      // changed-only runs need explicit triggers just like tools.
       '**/.agents/skills/**/agents/**',
       '**/.claude/skills/**/agents/**',
       // A newly added/renamed skill spec under hidden skill roots is not
@@ -57,9 +53,6 @@ export default defineConfig({
       '**/.agents/skills/**/tests/**',
       '**/.claude/skills/**/tests/**',
       '**/tools/check-agent-instructions.mjs',
-      // The docs-align integration spec copies product markdownlint rules into
-      // a scratch repo at runtime, so changed-only runs need an explicit trigger.
-      '**/tools/markdownlint-rules/**',
       '**/.markdownlint-cli2.jsonc',
     ],
     exclude: [

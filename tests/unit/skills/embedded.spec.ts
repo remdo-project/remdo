@@ -8,8 +8,6 @@ import path from 'node:path';
 import process from 'node:process';
 import { describe, expect, it } from 'vitest';
 
-import '../../../.agents/skills/remdo-docs-align/tests/advocate-run.spec';
-import '../../../.agents/skills/remdo-docs-align/tests/lint-rules.spec';
 import '../../../.agents/skills/_shared/tests/create-branch-from-base.spec';
 import '../../../.agents/skills/_shared/tests/read-only-runner.spec';
 import '../../../.agents/skills/remdo-deps-refresh/tests/bump-action-majors.spec';
@@ -42,7 +40,6 @@ describe('skill-local spec bridge', () => {
 
   it('keeps subagent authorization machine-readable for multiagent skills', () => {
     const configs = [
-      '.agents/skills/remdo-docs-align/agents/openai.yaml',
       '.agents/skills/remdo-prepare-change/agents/openai.yaml',
     ];
 
