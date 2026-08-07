@@ -1,9 +1,9 @@
-# Architecture Terms
+# Architecture
 
-RemDo shares architecture vocabulary across platform delivery, routing,
-document identity, and collaboration runtime so implementation docs can
-reference stable terms. It does not define outliner behavior or note/link
-identity boundaries; those remain in outliner docs.
+RemDo's cross-cutting architecture defines stable vocabulary, boundaries, and
+behavior across platform delivery, routing, document identity, persistence, and
+collaboration runtime. The [note model](specs/outliner/note-model.md), [note identity](specs/outliner/note-ids.md), and [link behavior](specs/outliner/links.md) remain
+with their outliner owners.
 
 ## Delivery Surfaces
 
@@ -49,12 +49,10 @@ API and collaboration server remain loopback-only and are reached through it.
 App-owned HTTP surface that sits in front of collaboration infrastructure.
 
 - Auth: Better Auth is mounted at `/api/auth/*`.
-- Y-Sweet document client token issuance: `POST /api/documents/:docId/sync-tokens`
-  evaluates ownership and direct user-specific access grants before issuing
-  browser credentials for Y-Sweet sync.
+- Y-Sweet document client token issuance follows [Document Access](specs/access/access-control.md#document-access).
 - Y-Sweet access: the API connects with the Y-Sweet server token and passes only
   RemDo-issued Y-Sweet document client tokens to browsers.
-- OAuth source linking: Better Auth stores OAuth account tokens for the source
+- [OAuth source linking](specs/access/source-linking.md#cross-server-source-linking): Better Auth stores OAuth account tokens for the source
   servers a user has linked.
 
 ### Session User
@@ -151,10 +149,11 @@ Client-side storage for collaboration state.
   server sync).
 - **Synced:** provider is connected and has no pending unsent local changes.
 
-### Offline application behavior
+## Offline Application Behavior
 
-- A remembered session and cached current-user bootstrap allow the application
-  to open without reaching its app server.
+- A remembered session and cached current-user bootstrap under
+  [Authenticated App Access](specs/access/access-control.md#authenticated-app-access) allow the application to open without reaching its
+  app server.
 - A locally cached document opens at its canonical URL, remains editable, and
   persists local edits for synchronization after reconnect. Document-local
   navigation and search remain available.
@@ -170,10 +169,8 @@ Client-side storage for collaboration state.
   indicates that synchronization is interrupted and local edits will sync after
   reconnection.
 
-### Offline cache recovery contract
+### Offline Cache Recovery
 
-- First-open offline with no local document cache shows an offline empty state;
-  editing stays unavailable until reconnect.
 - Local persistence is best-effort. If browser storage is cleared or evicted,
   the document behaves as uncached on the next offline open.
 - Reconnect rehydrates from the hub and returns the document to normal editing.
