@@ -1,6 +1,6 @@
 ---
 name: remdo-simplify
-description: A standalone read-only code/test simplification finder for an explicitly requested one-off simplify review (e.g. "run a simplify review", "what could be simpler here"). Reports opportunities to make a selected diff's end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Doc and skill-prose convergence belongs to `remdo-docs-align`. Does not edit files, stage, commit, or run mutating checks.
+description: A standalone read-only code/test simplification finder for an explicitly requested one-off simplify review (e.g. "run a simplify review", "what could be simpler here"). Reports opportunities to make a selected diff's end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Does not edit files, stage, commit, or run mutating checks.
 ---
 
 # RemDo Simplify
@@ -17,10 +17,9 @@ Prefer findings that let the author delete code, reuse an existing RemDo,
 Lexical, or platform primitive, move behavior to its owning layer, or reduce
 special cases. Avoid speculative architecture and personal style preferences.
 
-This pass reports on **code and tests only**. Doc and skill-prose convergence to
-the RemDo documentation invariants is `remdo-docs-align`'s job — do not report
-doc/prose findings here, even in passing. Docs are read only as *context* for
-judging whether a simpler code shape exists.
+This pass reports on **code and tests only**. Documentation and skill prose are
+read only as *context* for judging whether a simpler code shape exists; do not
+report findings about them.
 
 The pass is intentionally read-only and standalone so it can run before an
 editing pass or be composed by a future workflow. Run it with fresh context
@@ -159,9 +158,8 @@ Do not report:
   supported runtime baseline.
 - Deterministic cleanup already covered by a command the caller will run, unless
   the specific result changes the simplification recommendation.
-- Doc or skill-prose findings of any kind — invariant violations, restatement,
-  rehoming, wording. Those are `remdo-docs-align`'s domain, even when spotted in
-  passing.
+- Documentation or skill-prose findings, including invariant violations,
+  restatement, rehoming, or wording.
 
 ## Output
 
@@ -210,7 +208,6 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 
 - [Scope resolution](../_shared/tools/resolve-scope.sh)
 - [Agent guidelines](../../../AGENTS.md)
-- [Doc/skill-prose convergence](../remdo-docs-align/SKILL.md)
 - [Change scope / branch base](../../../docs/specs/agents/change-scope.md)
 - [Runtime baseline](../../../CONTRIBUTING.md#runtime-baseline)
 - [Backward compatibility](../../../CONTRIBUTING.md#backward-compatibility-pre-10)

@@ -564,26 +564,6 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
   conv3); [search disambiguation](specs/outliner/search.md#behavior)
   parenthetical split.
 
-## remdo-docs-align follow-ups
-
-- Consider borrowing from the Upkeep skill (wei18/Upkeep): its structured
-  finding schema and parallel specialist-reviewer layout could speed the align
-  pass on large scopes.
-- Consider borrowing superpowers `writing-skills` pressure-testing (adversarial
-  subagent trials) as an extra check for skill-file prose.
-- Consider publishing the skill to the open Agent Skills registry once it is
-  polished and battle-tested in this project (would need a bundled starter
-  rules-doc template).
-- Restore a cross-family advocate for Codex-run `remdo-docs-align`: the shared
-  pipeline uses the existing Codex advocate script for now, so when Codex is the
-  editor the advocate is same-family. Route the advocate stage to a non-Codex
-  reviewer once a reliable one is available.
-- Unresolved: negation clauses that restate an adjacent rule (the deps-refresh
-  "not human judgement" / "never lands on `main`" specimens) — the advocate
-  declined them in every experiment run and a negation-priority prompt line
-  failed validation; re-test at narrow scope, re-judge the specimens, or accept
-  the advocate's implicit keep.
-
 ## Skill architecture follow-ups
 
 - Re-run a focused cross-skill centralization pass: check shared executable
@@ -597,18 +577,6 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
   code-lint gate. Extend the ESLint config to the dot tree (deciding which rules
   apply to skill specs, e.g. the `node/no-process-env` disables), or accept
   typecheck+tests as their gate. A config decision, not a mechanical fix.
-- Accepted limitation (docs-align references-shape rule):
-  `references-shape.mjs` resolves a reference link's `[label]` to its definition
-  by exact (lowercased) match, so
-  CommonMark-equivalent labels differing only by internal whitespace
-  (`[foo bar]` vs `[foo   bar]:`) don't resolve — an internal link with such a
-  label could bypass the References-shape gate. Contrived on this corpus (no
-  multi-word reference labels); normalize label whitespace CommonMark-style if it
-  ever matters. The `has_proposal` validator is likewise a sanity guard against
-  truncated codex output, not an adversarial one: it requires at least one
-  canonical head line plus at least one `Replacement:` line, without checking
-  they belong to the same block — both are the terminal state of a fix-finding
-  chain deliberately stopped at the reasonable bound.
 - Define shared cross-skill contracts once (AGENTS.md or contributing.md) and
   have each skill state only its delta: one stop/escalation taxonomy (today
   six names: ESCALATE/Blocker/Stuck/stop/dead-end/callout), one
@@ -618,23 +586,8 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
   post-merge check; deps-refresh its matrix).
   Reconcile with AGENTS.md's declare-scope-in-situ rule via shared vocabulary +
   per-skill delta.
-- ESCALATE (docs-align): `docs/specs/outliner/menu.md:43` — advocate
-  proposed deleting "it has no query span, so it owns every key;" as a
-  restatement of the shared editor-popup contract. Dual adjudicators split:
-  one APPLY (the contract's "a popup with no pinned span owns every key" already
-  forecloses it), one REJECT (the premise "the menu has no query span" is a
-  menu-specific fact the shared contract does not assert of the menu, so a
-  wholesale delete loses information the reader needs). Left as-is pending your
-  call: keep, delete the "so it owns every key" restatement only (keeping the
-  no-query-span fact), or delete the whole clause.
 
 ## Skill test-infra follow-up
-
-- advocate-run.sh normalizer altitude: four consecutive external-review P2s
-  landed in its ~60-line awk (sentinel precedence, stale-msg reuse, bogus
-  location minting, blank-line duplication, cwd split, numbered-prose heads —
-  five and counting); replace
-  prose-label parsing with codex `--output-schema` JSON and a thin renderer.
 
 - Consider replacing the skill-spec bridge (`tests/unit/skills/embedded.spec.ts`)
   with a vitest `test.projects` entry rooted at the hidden skill roots (currently

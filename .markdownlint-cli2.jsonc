@@ -30,7 +30,6 @@
     // missing here).
     ".claude/skills/remdo-converge-change",
     ".claude/skills/remdo-deps-refresh",
-    ".claude/skills/remdo-docs-align",
     ".claude/skills/remdo-merge-main",
     ".claude/skills/remdo-prepare-change",
     ".claude/skills/remdo-verify-change",
@@ -38,10 +37,7 @@
   ],
   // Link/anchor validation rides markdownlint's own parser:
   // relative-link existence + `#fragment` heading match (MD051-style),
-  // external and absolute paths ignored. The RemDo doc-invariant rules
-  // (temporal-status, references-shape) are NOT part of this product gate —
-  // they are the remdo-docs-align skill's private tools
-  // (.agents/skills/remdo-docs-align/tools/check-doc-rules.sh).
+  // external and absolute paths ignored.
   "customRules": [
     "markdownlint-rule-relative-links",
     "./tools/markdownlint-rules/link-aware-line-length.mjs"
