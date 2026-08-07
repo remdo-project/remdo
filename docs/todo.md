@@ -22,13 +22,20 @@ follow-up. It lists candidate `TODO` and `FIXME` occurrences in tracked
 non-documentation files; inspect the results under the tracked-comment
 convention above.
 
-Reviewers suppress a finding only when it matches the same specific tracked
-behavior. Within this backlog, group related items under short topic headings.
-Remove rejected or obsolete items and empty sections.
+A reviewer suppresses a finding as already tracked only when the tracking
+record covers the reported gap. Within this backlog, group related items under
+short topic headings. Remove rejected or obsolete items and empty sections.
 
 ## Backlog
 
 ### Documentation
+
+- **Durable specification focus.** Clarify `docs/documentation.md` so each
+  specification describes the target behavior of one durable capability or
+  component and specification work improves that owner, rather than documenting
+  a set of changes or creating a change-scoped owner such as
+  `<subject>-change.md`. Align specification-authoring workflows with the
+  clarified boundary.
 
 - **Specification vocabulary review.** Make future specification-authoring and
   review workflows apply the [ownership](documentation.md#ownership) and
@@ -164,6 +171,14 @@ Remove rejected or obsolete items and empty sections.
   selected replacement and re-enable both tests.
 
 ### Agents
+
+- **Prepare-change implementation-gap tracking.** Update
+  [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md) so after
+  adding or changing a durable specification, it determines whether the
+  implementation conforms. Before any commit that would leave the specification
+  ahead of implementation, create or update a precise tracked follow-up for the
+  remaining implementation and remove it when implementation aligns. Do not
+  create a tracker when the committed state is already coherent.
 
 - **External dependency verification.** Define how implementation work checks
   current authoritative documentation or public APIs for external dependencies

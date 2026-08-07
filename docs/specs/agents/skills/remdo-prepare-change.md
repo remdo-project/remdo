@@ -61,7 +61,7 @@ Legend:
 - **Exploration.** Begins at the developer's request or accepted recommendation
   to investigate material uncertainty. Its transition establishes the question,
   scope, any required
-  [repository authority](../../../../AGENTS.md#safety--process), expected result,
+  [repository authority](../instructions.md#repository-authority), expected result,
   and return point. Repository changes remain disposable unless adopted.
 - **Owning branch ready.** Before retaining work, fetch `origin/main` and ensure
   the current [topic branch](../../../dev/contributing.md#git-workflow) uses its
