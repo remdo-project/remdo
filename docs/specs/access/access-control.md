@@ -61,8 +61,8 @@ server administration. A Yjs user-data projection may expose the role for UI,
 but every admin API authorizes from the caller's session and role.
 
 The self-enrollment endpoint is the exception: it registers a new admin account
-for a caller that supplies the configured
-[`ADMIN_SECRET`](../runtime/configuration.md#admin-bootstrap-and-enrollment).
+for a caller that supplies the operator-provided
+[`ADMIN_SECRET`](../runtime/configuration.md#secret-bootstrap).
 Enrollment is independent of the public-signup policy.
 
 `/admin` is the admin entry route. An admin sees the admin panel; every other
@@ -82,9 +82,10 @@ The CSRF boundary is re-evaluated when a change introduces a cross-origin
 credentialed app API, cross-subdomain mutation flow, non-JSON mutation body, or
 `SameSite=None` cookie.
 
-In development, Better Auth trusts the app's
-[canonical public origin and local aliases](../runtime/configuration.md#derivation-rules)
-plus the loopback PWA preview origin. Preview requests retain their
+Better Auth derives its trusted-origin set from the
+[configured canonical public origin](../runtime/configuration.md#derivation-rules).
+Production trusts only that origin. Development additionally trusts local
+aliases and the loopback PWA preview origin. Preview requests retain their
 browser-supplied `Origin`, so unrelated origins remain rejected.
 
 A server's canonical public port namespaces its Better Auth cookies. Local

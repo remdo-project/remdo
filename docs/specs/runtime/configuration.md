@@ -20,13 +20,11 @@ direction.
 
 **Development origin.** `HOST` controls only the gateway bind address.
 
-**Canonical origin.** `APP_PUBLIC_URL` is the single source for link generation,
-auth, cookies, CORS, and browser-visible collaboration URLs. Its production port
-is public-facing only and never drives binding.
-
-**Gateway boundary.** The RemDo API and collaboration server bind IPv4 loopback
-and are reached through the gateway. Production exposes Caddy while the API and
-collaboration server remain on container loopback.
+**Canonical origin.** `APP_PUBLIC_URL` is the single configured public origin.
+Its production port is public-facing only and never drives binding.
+[Routing and origin](../../architecture.md#routing-and-origin-boundary) owns its
+collaboration use; [access control](../access/access-control.md#csrf-protection)
+owns its authentication, trusted-origin, and cookie use.
 
 ## Secret bootstrap
 
@@ -35,15 +33,9 @@ auto-generated in production.
 
 Guardrails:
 
-- In production `DATA_DIR` must be a persistent mount; startup fails loudly
-  rather than regenerate secrets against an existing dataset. A persisted
-  `DATA_DIR` is single-instance.
-
-## Admin bootstrap and enrollment
-
-`ADMIN_SECRET` is the gate for acquiring the admin role; the self-enrollment
-flow it gates lives in
-[Access control](../access/access-control.md#admin-role).
+- Startup refuses to generate replacement secrets when the
+  [production persistence root](../../architecture.md#runtime-persistence-boundary)
+  already contains a dataset.
 
 ## Validation policy
 
