@@ -22,6 +22,9 @@ are within the operator's trust boundary. The home does not need to be
 internet-reachable: server-to-server requests travel from home to source, while
 OAuth redirects travel through the user's browser.
 
+Production defaults to the private home policy; development and test default to
+public signup.
+
 This role split confines the home's outbound source-registration requests to
 operator-trusted users.
 
@@ -48,10 +51,13 @@ reduces it to its origin. Only a signed-in home session can initiate linking; a
 bearer-authenticated caller cannot.
 
 On the first link to an origin, the home registers a public OAuth client on the
-source. The client has no secret and uses PKCE. The source's authorization and
-token endpoints accept only the home's exact registered callback URI.
-Registration becomes usable without restarting the home. Later links to the
-same origin reuse the cached client across home users.
+source. The client has no secret and uses PKCE. The home derives the registered
+callback URI from its
+[configured canonical public origin](../runtime/configuration.md#derivation-rules),
+not from request headers. The source's authorization and token endpoints accept
+only the home's exact registered callback URI. Registration becomes usable
+without restarting the home. Later links to the same origin reuse the cached
+client across home users.
 
 The source accepts unauthenticated dynamic client registration only while it is
 public. The client alone grants no document access: the source user signs in and

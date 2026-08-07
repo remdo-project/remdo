@@ -1,13 +1,32 @@
 # Local Development
 
 Local development uses stable users and seeded fixture documents, making app
-behavior easy to explore and reproduce. This guide covers the main development
-workflow, PWA preview, Docker app, and source-linking setup.
+behavior easy to explore and reproduce. This guide covers workspace and browser
+test setup, the main development workflow, PWA preview, Docker app, and
+source-linking setup.
 
 ## Prepare the Workspace
 
 Run `pnpm run dev:init` after a fresh clone or after removing `node_modules`.
 The command installs the locked dependencies.
+
+### Prepare Browser Tests
+
+Before the first `pnpm test:e2e` run, locate or install Chromium:
+
+1. If `PLAYWRIGHT_BROWSERS_PATH` contains the required Chromium build, use it
+   as-is, including when the cache is read-only.
+2. Otherwise, use an existing build from a standard Playwright cache when one
+   is available.
+3. If no build is available, select a writable cache and run:
+
+   ```sh
+   pnpm exec playwright install chromium
+   ```
+
+   Use that same cache for the test run. Override `PLAYWRIGHT_BROWSERS_PATH`
+   first when it names a read-only or missing cache that does not contain the
+   build.
 
 ### Configuration Overrides
 
@@ -15,14 +34,15 @@ Local development resolves configuration from three layers, listed from lowest
 to highest precedence:
 
 - Repository defaults work as-is.
-- To override defaults for this working directory, copy `.env.example` to
-  `.env` and change only the [inputs](../../config.md#inputs) you need.
+- To override defaults for this working directory, copy
+  [`.env.example`](../../../.env.example) to `.env` and change only the entries
+  you need.
 - To override a value for one invocation, set it in the process environment.
 
 ### Ports and Network Access
 
-- [`PORT_BASE`](../../config.md#derivation-rules) selects the local stack's port
-  range.
+- [`PORT_BASE`](../../specs/runtime/configuration.md#derivation-rules)
+  selects the local stack's port range.
 - `HOST` controls gateway exposure and defaults to `localhost`. On a headless
   development machine, set `HOST=0.0.0.0`; browser URLs then use the machine
   hostname.
@@ -46,7 +66,8 @@ Open the canonical URL for the stack, sign in with a credential from
 [`stable-auth-users.ts`](../../../tools/lib/stable-auth-users.ts), and choose a
 document named `fixture: <fixture-name>`. With the default `HOST`, use Vite's
 Local URL. With `HOST=0.0.0.0`, use the machine hostname or explicit
-`PUBLIC_HOST` from the [development origin](../../config.md#derivation-rules),
+`PUBLIC_HOST` from the
+[development origin](../../specs/runtime/configuration.md#derivation-rules),
 not one of Vite's interface-IP Network URLs.
 
 ### Reset Development Data

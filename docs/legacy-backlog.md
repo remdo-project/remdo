@@ -224,7 +224,8 @@ Deferred hardening; long-horizon items live in
   single image as a multiple-services-per-container anti-pattern, and that shape
   is what forces the multi-port machinery. Splitting into separate containers
   (compose / managed multi-service) would let each service bind a fixed port and
-  delete most of the config module (see [docs/config.md](./config.md)), but it is
+  delete most of the config module (see the
+  [configuration specification](./specs/runtime/configuration.md)), but it is
   a larger deployment/Dockerfile/Caddy change.
 
 ## Document import / upload follow-ups

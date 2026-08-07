@@ -31,7 +31,7 @@ until verification finishes.
 ```
 
 The verifier runs the [repository checks prescribed for the agent mode and
-scope](../../../../AGENTS.md#checks) in place.
+scope](../instructions.md#execution-and-verification) in place.
 
 ## Reviews
 
