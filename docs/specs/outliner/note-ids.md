@@ -10,7 +10,7 @@ within a document; a global `noteRef` combines document and note identity.
   single document.
 - **documentId:** a runtime identifier for the active document, injected by the
   environment (for example browser routing or snapshot CLI). Document identity
-  is globally unique as defined in [Architecture Terms](../../architecture.md#document-identity).
+  is globally unique as defined in [Architecture](../../architecture.md#document-identity).
 - **noteRef:** a globally unique reference composed from a document ID and a noteId.
 - **Addressable note:** any non-root note that appears as a content list item in
   the outline (the document root note, owned by [Note model](./note-model.md#definitions), is not addressable).
