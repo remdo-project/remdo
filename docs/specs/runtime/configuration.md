@@ -5,11 +5,10 @@ values, and bootstrapped secrets.
 
 ## Resolution boundary
 
-Configuration has one owner: it holds the schema, derives every secondary value,
-splits server vs. client config, validates, and bootstraps secrets. Nothing
-outside it re-derives configuration; the client sees only the subset marked for
-it. Config resolves and secrets bootstrap once per process — in production inside
-the Docker entrypoint, so the host needs nothing but Docker.
+Launch preparation supplies defaults and derived values before application
+configuration resolves. Runtime consumers use the resolved result rather than
+rereading or independently deriving configuration. The browser receives only an
+explicit projection; all other resolved values remain server-only.
 
 ## Configuration ownership
 
@@ -81,8 +80,9 @@ flow it gates lives in
 
 ## Validation policy
 
-- Validate the declared schema; fail fast on missing or invalid required values.
-- Ignore environment variables outside the schema.
+A resolution boundary rejects declared inputs that are invalid or required there
+but missing. Server-only requirements do not apply to browser configuration or
+production utilities.
 
 ## References
 
