@@ -36,6 +36,13 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   `remdo-simplify`, then align each skill's execution procedure and links with
   its specification.
 
+- **Large-scope documentation alignment.** Evaluate the structured finding
+  schema and parallel specialist-reviewer layout from the Upkeep skill
+  (wei18/Upkeep) as a way to speed alignment over large scopes.
+
+- **Skill-prose pressure testing.** Evaluate superpowers `writing-skills`
+  adversarial subagent trials as an additional check for skill-file prose.
+
 ### Editor
 
 - **Editor module ownership.** Editor capabilities are split across `features/`,
