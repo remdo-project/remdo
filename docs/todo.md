@@ -30,12 +30,12 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Durable specification focus.** Clarify `docs/documentation.md` so each
-  specification describes the target behavior of one durable capability or
-  component and specification work improves that owner, rather than documenting
-  a set of changes or creating a change-scoped owner such as
-  `<subject>-change.md`. Align specification-authoring workflows with the
-  clarified boundary.
+- **Markdown authoring ergonomics.** Evaluate whether documentation lint should
+  treat inline link destinations and similar non-visible Markdown syntax
+  separately from rendered prose when enforcing line length. Compare the
+  current wrapping, a higher source limit, reference-style links, and a
+  rendered-text-aware rule; adopt only a simple repository-wide improvement
+  supported by corpus examples.
 
 - **Specification vocabulary review.** Make future specification-authoring and
   review workflows apply the [ownership](documentation.md#ownership) and
