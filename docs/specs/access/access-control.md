@@ -4,9 +4,6 @@ Access control combines authenticated identity, administrative authority, and
 document ownership or grants. These boundaries determine which app state and
 collaboration credentials a user can receive.
 
-Shared token, routing, registry, and document-identity terms are defined in
-[Architecture Terms](../../architecture.md).
-
 ## Access Scope
 
 User-facing document access is authenticated by a local session or a
@@ -20,8 +17,9 @@ A Better Auth session identifies the signed-in user. The server supports
 username/password, OAuth, and any other authentication method enabled by its
 configuration.
 
-The SQL-backed user role and document registry are the authorization sources of
-truth. Session UI and read-only Yjs
+The SQL-backed user role and
+[document registry](../../architecture.md#document-registry) are the
+authorization sources of truth. Session UI and read-only Yjs
 [user-data projections](../../architecture.md#document-registry) may expose
 their results but do not authorize a request.
 
