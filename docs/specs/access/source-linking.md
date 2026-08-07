@@ -22,6 +22,9 @@ are within the operator's trust boundary. The home does not need to be
 internet-reachable: server-to-server requests travel from home to source, while
 OAuth redirects travel through the user's browser.
 
+Production defaults to the private home policy; development and test default to
+public signup.
+
 This role split confines the home's outbound source-registration requests to
 operator-trusted users.
 

@@ -36,7 +36,9 @@ owns its authentication use.
 Production [admin enrollment](../access/access-control.md#admin-role) requires
 an operator-supplied secret; startup never generates it.
 
-Generated runtime secrets persist across restarts and are accessible only to
-their owner. Startup refuses to generate replacements when the
+Production startup resolves the application authentication secret and matched
+Y-Sweet authentication pair from operator input, then persisted values,
+otherwise generates and persists them. Generated runtime secrets are accessible
+only to their owner. Startup refuses to generate replacements when the
 [production persistence root](../../architecture.md#runtime-persistence-boundary)
 already contains a dataset.
