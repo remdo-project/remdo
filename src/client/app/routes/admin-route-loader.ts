@@ -6,7 +6,8 @@ export type AdminRouteState =
   | { kind: 'admin'; sessionState: SessionGateState }
   | { kind: 'enroll'; sessionState: SessionGateState };
 
-// `/admin` is the single admin entry route (see docs/access-model.md#admin-role):
+// `/admin` is the single admin entry route (see
+// docs/specs/access/access-control.md#admin-role):
 //   - admin → the admin panel (placeholder until panel content exists);
 //   - anyone else (signed in or not) → the register-and-enroll form, which
 //     creates a new admin account. Promoting an existing user is a later,
