@@ -17,9 +17,18 @@ utilities.
 Each derived value has one authoritative input. Shifting a local stack shifts
 its complete port range as one unit.
 
-A server has one configured canonical public origin, independent of its bind
-address and port. [Routing and origin](../../architecture.md#routing-and-origin-boundary)
-owns its collaboration use; [access control](../access/access-control.md#csrf-protection)
+Development binding and browser addressing have separate owners. `HOST` selects
+the gateway bind address. `PUBLIC_HOST` selects the hostname used in public URLs
+and defaults to `HOST`; with `HOST=0.0.0.0`, it instead defaults to the machine
+hostname and must be supplied when that hostname is not browser-visible. The
+canonical development origin, `APP_PUBLIC_URL`, derives as
+`http://<PUBLIC_HOST>:<PORT>`.
+
+`APP_PUBLIC_URL` is a server's single canonical public origin. In production it
+does not drive the bind address or port. The repository Docker launcher derives
+it from the selected public host and `PORT` only when the operator omits it.
+[Routing and origin](../../architecture.md#routing-and-origin-boundary) owns its
+collaboration use; [access control](../access/access-control.md#csrf-protection)
 owns its authentication use.
 
 ## Secret bootstrap
