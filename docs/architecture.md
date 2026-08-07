@@ -28,6 +28,10 @@ workflows.
 
 ## Routing and Origin Boundary
 
+Browser-visible collaboration URLs derive from the
+[configured canonical public origin](specs/runtime/configuration.md#derivation-rules),
+not from request forwarding headers.
+
 ### Gateway
 
 Single HTTP entrypoint that can:
@@ -40,6 +44,9 @@ Single HTTP entrypoint that can:
 Using a gateway keeps origin/routing behavior simple and reduces CORS/auth
 drift between app and collab endpoints.
 
+Development and production server runtimes expose only the gateway. The RemDo
+API and collaboration server remain loopback-only and are reached through it.
+
 ### RemDo API boundary
 
 App-owned HTTP surface that sits in front of collaboration infrastructure.
@@ -50,8 +57,6 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
   browser credentials for Y-Sweet sync.
 - Y-Sweet access: the API connects with the Y-Sweet server token and passes only
   RemDo-issued Y-Sweet document client tokens to browsers.
-- Browser-visible collaboration URLs are derived from the server's configured
-  canonical public origin, not from request forwarding headers.
 - OAuth source linking: Better Auth stores OAuth account tokens for the source
   servers a user has linked.
 
@@ -116,6 +121,13 @@ document client tokens.
   client tokens; the Y-Sweet server enforces each client token's authorization.
 - Y-Sweet document-control routes such as `/doc*` are not routed through the
   app gateway.
+
+## Runtime Persistence Boundary
+
+A production instance keeps its dataset and
+[generated runtime secrets](specs/runtime/configuration.md#secret-bootstrap) in
+one persistent storage root. The root belongs to one running instance and is
+not shared concurrently.
 
 ## Collaboration Runtime Building Blocks
 

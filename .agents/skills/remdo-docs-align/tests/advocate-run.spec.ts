@@ -45,7 +45,7 @@ const PARSE_ARGS = [
 // The advocate's final-message payload for a normal run: a minimal valid
 // proposal block (Text: + Replacement:), which the normalizer renders as one
 // canonical numbered block.
-const PROPOSAL = '1. `docs/config.md:18`\nText: "settable variables"\nReplacement: DELETE';
+const PROPOSAL = '1. `docs/specs/runtime/configuration.md:18`\nText: "settable variables"\nReplacement: DELETE';
 
 // Stub body: echo the prompt (so raw-stream assertions can inspect substitution)
 // plus a reading-trace noise line to stdout, and write a minimal valid proposal
@@ -86,7 +86,7 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(msg).not.toContain('DELETION ADVOCATE');
     // The canonical table holds only the renumbered proposal block.
     const captured = fs.readFileSync(out, 'utf8');
-    expect(captured).toMatch(/^1\. file: docs\/config\.md:18/);
+    expect(captured).toMatch(/^1\. file: docs\/specs\/runtime\/configuration\.md:18/);
     expect(captured).not.toContain('DELETION ADVOCATE');
     expect(captured).toContain('Replacement: DELETE');
   });
@@ -141,13 +141,13 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     const answer = [
       'I read every doc. Proposals:',
       '',
-      '1. `docs/config.md:18`',
+      '1. `docs/specs/runtime/configuration.md:18`',
       'Quote: "These are the only settable variables."',
       'Replacement: DELETE',
       'Rule: adjacent exhaustive table already establishes the set.',
       'Risk test: an unlisted var is treated as settable; the table still forbids it.',
       '',
-      '2. `docs/config.md:58`',
+      '2. `docs/specs/runtime/configuration.md:58`',
       'Quote: "is normal, not a misconfiguration."',
       'Replacement: DELETE',
       'Rule: rationale beyond the rule.',
@@ -164,15 +164,15 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     // Each proposal (and its Replacement line) appears exactly once, in
     // canonical renumbered form (Quote: label canonicalized to Text:).
     expect(captured.match(/Replacement:/g)).toHaveLength(2);
-    expect(captured.match(/1\. file: docs\/config\.md:18/g)).toHaveLength(1);
-    expect(captured.match(/2\. file: docs\/config\.md:58/g)).toHaveLength(1);
+    expect(captured.match(/1\. file: docs\/specs\/runtime\/configuration\.md:18/g)).toHaveLength(1);
+    expect(captured.match(/2\. file: docs\/specs\/runtime\/configuration\.md:58/g)).toHaveLength(1);
     expect(captured.match(/Text: /g)).toHaveLength(2);
   });
 
   it('keeps a Borderline: label through normalization', () => {
     const out = tempOut();
     const answer = [
-      '1. `docs/config.md:18`',
+      '1. `docs/specs/runtime/configuration.md:18`',
       'Text: "settable variables"',
       'Replacement: DELETE',
       'Borderline: the adjacent table may not be exhaustive.',
@@ -191,7 +191,7 @@ describe('advocate-run.sh (skill-local tools/)', () => {
   it('fails loud when both attempts produce neither proposals nor the sentinel', () => {
     const out = tempOut();
     // Non-empty final message, but no proposal block and no sentinel — a truncated trace.
-    const stub = stubDir(`${PARSE_ARGS}\nprintf 'I am reading docs/config.md...\\nstill reading...\\n' > "$MSG"`);
+    const stub = stubDir(`${PARSE_ARGS}\nprintf 'I am reading docs/specs/runtime/configuration.md...\\nstill reading...\\n' > "$MSG"`);
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('neither proposals nor a NO PROPOSALS sentinel');
@@ -226,7 +226,7 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     const answer = [
       'NO PROPOSALS',
       '',
-      '1. `docs/config.md:18`',
+      '1. `docs/specs/runtime/configuration.md:18`',
       'Text: "settable variables"',
       'Replacement: DELETE',
     ].join('\n');
@@ -238,7 +238,7 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(result.stdout).toContain('PROPOSALS=some');
     expect(result.stderr).toContain('NO PROPOSALS sentinel appeared alongside');
     const captured = fs.readFileSync(out, 'utf8');
-    expect(captured).toMatch(/^1\. file: docs\/config\.md:18/m);
+    expect(captured).toMatch(/^1\. file: docs\/specs\/runtime\/configuration\.md:18/m);
     expect(captured).not.toMatch(/^NO PROPOSALS$/m);
   });
 
@@ -246,7 +246,7 @@ describe('advocate-run.sh (skill-local tools/)', () => {
   // proposal (needs both), so with no other block both attempts must fail non-zero.
   it('fails loud on a truncated block with Text: but no Replacement:', () => {
     const out = tempOut();
-    const answer = ['1. `docs/config.md:18`', 'Text: "settable variables"'].join('\n');
+    const answer = ['1. `docs/specs/runtime/configuration.md:18`', 'Text: "settable variables"'].join('\n');
     const stub = stubDir(`${PARSE_ARGS}\nprintf '%s\\n' '${answer}' > "$MSG"`);
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.status).not.toBe(0);
@@ -258,10 +258,10 @@ describe('advocate-run.sh (skill-local tools/)', () => {
   it('splits back-to-back proposal blocks with no blank separator', () => {
     const out = tempOut();
     const answer = [
-      '1. `docs/config.md:18`',
+      '1. `docs/specs/runtime/configuration.md:18`',
       'Text: "settable variables"',
       'Replacement: DELETE',
-      '2. `docs/config.md:58`',
+      '2. `docs/specs/runtime/configuration.md:58`',
       'Text: "is normal, not a misconfiguration."',
       'Replacement: DELETE',
     ].join('\n');
@@ -269,8 +269,8 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.status).toBe(0);
     const captured = fs.readFileSync(out, 'utf8');
-    expect(captured.match(/^1\. file: docs\/config\.md:18/m)).toHaveLength(1);
-    expect(captured.match(/^2\. file: docs\/config\.md:58/m)).toHaveLength(1);
+    expect(captured.match(/^1\. file: docs\/specs\/runtime\/configuration\.md:18/m)).toHaveLength(1);
+    expect(captured.match(/^2\. file: docs\/specs\/runtime\/configuration\.md:58/m)).toHaveLength(1);
     expect(captured).toContain('Text: "settable variables"');
     expect(captured).toContain('Text: "is normal, not a misconfiguration."');
     expect(captured.match(/Replacement:/g)).toHaveLength(2);
@@ -282,10 +282,10 @@ describe('advocate-run.sh (skill-local tools/)', () => {
   it('head-mints a missing-Text: block from its location line rather than dropping it', () => {
     const out = tempOut();
     const answer = [
-      '1. `docs/config.md:18`',
+      '1. `docs/specs/runtime/configuration.md:18`',
       'Replacement: DELETE',
       '',
-      '2. `docs/config.md:58`',
+      '2. `docs/specs/runtime/configuration.md:58`',
       'Text: "is normal, not a misconfiguration."',
       'Replacement: DELETE',
     ].join('\n');
@@ -294,8 +294,8 @@ describe('advocate-run.sh (skill-local tools/)', () => {
     expect(result.status).toBe(0);
     const captured = fs.readFileSync(out, 'utf8');
     // Both blocks present (the missing-Text one head-minted from its location).
-    expect(captured.match(/^1\. file: docs\/config\.md:18/m)).toHaveLength(1);
-    expect(captured.match(/^2\. file: docs\/config\.md:58/m)).toHaveLength(1);
+    expect(captured.match(/^1\. file: docs\/specs\/runtime\/configuration\.md:18/m)).toHaveLength(1);
+    expect(captured.match(/^2\. file: docs\/specs\/runtime\/configuration\.md:58/m)).toHaveLength(1);
     expect(captured.match(/Replacement:/g)).toHaveLength(2);
   });
 
@@ -393,7 +393,7 @@ describe('advocate-run.sh (skill-local tools/)', () => {
   it('a blank line between the location and Text: yields exactly one block', () => {
     const out = tempOut();
     const fixture = path.join(makeDir('advocate-blank-'), 'msg.txt');
-    fs.writeFileSync(fixture, '1. `docs/config.md:18`\n\nText: "settable variables"\nReplacement: DELETE\n');
+    fs.writeFileSync(fixture, '1. `docs/specs/runtime/configuration.md:18`\n\nText: "settable variables"\nReplacement: DELETE\n');
     const stub = stubDir(`${PARSE_ARGS}\ncat "${fixture}" > "$MSG"`);
     const result = run(['docs/documentation.md', 'scope', out], stub);
     expect(result.status, result.stdout + result.stderr).toBe(0);

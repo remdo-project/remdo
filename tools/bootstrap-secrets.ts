@@ -1,7 +1,7 @@
 /* eslint-disable node/no-process-env */
 /**
- * Secret bootstrap for PRODUCTION / server mode (see docs/config.md "Secret
- * bootstrap").
+ * Secret bootstrap for PRODUCTION / server mode (see
+ * docs/specs/runtime/configuration.md "Secret bootstrap").
  *
  * Operators set only ADMIN_SECRET. AUTH_SECRET and the Y-Sweet
  * auth_key / server_token pair resolve here on startup:

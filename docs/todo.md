@@ -40,12 +40,6 @@ Remove rejected or obsolete items and empty sections.
   `remdo-docs-align`, and `remdo-simplify`, then align each skill's execution
   procedure and links with its specification.
 
-- **Legacy documentation placement.** Apply the
-  [documentation layout](documentation.md#documentation-layout) to root and
-  developer documents that predate `docs/specs/`. Keep project-wide contracts
-  at the root, migrate coherent capability contracts into `docs/specs/`, and
-  update complete inbound ownership links with each move.
-
 ### Editor
 
 - **Editor module ownership.** Editor capabilities are split across `features/`,
