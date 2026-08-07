@@ -61,8 +61,8 @@ server administration. A Yjs user-data projection may expose the role for UI,
 but every admin API authorizes from the caller's session and role.
 
 The self-enrollment endpoint is the exception: it registers a new admin account
-for a caller that supplies the operator-provided
-[`ADMIN_SECRET`](../runtime/configuration.md#secret-bootstrap).
+for a caller that supplies the
+[configured admin-enrollment secret](../runtime/configuration.md#secret-bootstrap).
 Enrollment is independent of the public-signup policy.
 
 `/admin` is the admin entry route. An admin sees the admin panel; every other
@@ -94,8 +94,8 @@ sharing one browser hostname.
 
 ## Future
 
-- Define whether rotating `ADMIN_SECRET` affects existing admin accounts or
-  only future enrollment.
+- Define whether rotating the admin-enrollment secret affects existing admin
+  accounts or only future enrollment.
 - Add audit logging and rate limiting to self-enrollment and future public-policy
   changes.
 - Define anonymous access and public documents.

@@ -1,44 +1,33 @@
 # Configuration
 
-RemDo resolves runtime configuration from declared environment inputs, derived
-values, and bootstrapped secrets.
+RemDo resolves runtime configuration across server and browser boundaries.
 
 ## Resolution boundary
 
-Launch preparation supplies defaults and derived values before application
-configuration resolves. Runtime consumers use the resolved result rather than
-rereading or independently deriving configuration. The browser receives only an
-explicit projection; all other resolved values remain server-only.
+Runtime consumers obtain configuration only from the resolved result. Only
+explicitly projected values are available to the browser; all other values
+remain server-only.
+
+Missing or invalid configuration fails at the boundary that requires it.
+Server-only requirements do not apply to browser configuration or production
+utilities.
 
 ## Derivation rules
 
-Each fact has one owning input; everything else derives from it in one
-direction.
+Each derived value has one authoritative input. Shifting a local stack shifts
+its complete port range as one unit.
 
-**Ports.** A shifted stack derives its complete port range again. In server/prod
-`PORT` is an independent input.
-
-**Development origin.** `HOST` controls only the gateway bind address.
-
-**Canonical origin.** `APP_PUBLIC_URL` is the single configured public origin.
-Its production port is public-facing only and never drives binding.
-[Routing and origin](../../architecture.md#routing-and-origin-boundary) owns its
-collaboration use; [access control](../access/access-control.md#csrf-protection)
-owns its authentication, trusted-origin, and cookie use.
+A server has one configured canonical public origin, independent of its bind
+address and port. [Routing and origin](../../architecture.md#routing-and-origin-boundary)
+owns its collaboration use; [access control](../access/access-control.md#csrf-protection)
+owns its authentication use.
 
 ## Secret bootstrap
 
-Operators set one secret, `ADMIN_SECRET`. `ADMIN_SECRET` is never
-auto-generated in production.
+Production [admin enrollment](../access/access-control.md#admin-role) requires
+an operator-supplied secret; startup never generates it.
 
-Guardrails:
-
-- Startup refuses to generate replacement secrets when the
-  [production persistence root](../../architecture.md#runtime-persistence-boundary)
-  already contains a dataset.
-
-## Validation policy
-
-A resolution boundary rejects declared inputs that are invalid or required there
-but missing. Server-only requirements do not apply to browser configuration or
-production utilities.
+Generated runtime secrets persist across restarts and are accessible only to
+their owner. Startup refuses to generate replacements when the
+[production persistence root](../../architecture.md#runtime-persistence-boundary)
+already contains a dataset.
