@@ -27,10 +27,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Specification vocabulary review.** Make future specification-authoring and
-  review workflows apply the [ownership](documentation.md#ownership) and [minimality](documentation.md#minimality) rules to every domain- or
-  component-specific term, including consistent actor and component identity.
-
 - **Agent skill specifications.** Establish accepted-behavior owners under
   `docs/specs/agents/skills/` for `playground`, `remdo-deps-refresh`, and
   `remdo-simplify`, then align each skill's execution procedure and links with
