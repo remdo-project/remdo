@@ -131,6 +131,7 @@ export default {
         && !inCode
         && !inTable
         && !definitions.has(lineNumber)
+        && visible.length > lineLength
         && measured.length > lineLength) {
         onError({
           lineNumber,

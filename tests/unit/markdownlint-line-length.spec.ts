@@ -52,6 +52,11 @@ describe('remdo-link-aware-line-length', () => {
     expect(await violations(`Read ${'x'.repeat(100)}\n`)).toEqual([]);
   });
 
+  it('allows visible text at the limit when the line ends with whitespace', async () => {
+    expect(await violations(`${'a'.repeat(79)} \n`)).toEqual([]);
+    expect(await violations(`${'a'.repeat(80)} \n`)).toEqual([1]);
+  });
+
   it('counts a multi-line link continuation when its block also contains prose', async () => {
     const markdown = `Text [short label\n${'visible label '.repeat(10).trim()}](https://example.com)\n`;
     expect(await violations(markdown)).toEqual([2]);
