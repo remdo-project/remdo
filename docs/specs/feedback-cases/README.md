@@ -114,3 +114,6 @@ rule, move it to [Documentation](../../documentation.md) and remove it here.
 - [Delegated responsibility restatement](cases/delegated-responsibility-restatement/README.md)
   — a verifier stopped summarizing behavior owned by its linked runner and
   provider-specific sections.
+- [Appropriate list type](cases/appropriate-list-type.md) — an ordered
+  transformation was restored after prose made its causal sequence harder to
+  scan.
