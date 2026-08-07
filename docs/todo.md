@@ -171,6 +171,10 @@ Remove rejected or obsolete items and empty sections.
 
 ### Agents
 
+- **Document-improvement skill.** Implement
+  [`remdo-improve-document`](specs/agents/skills/remdo-improve-document.md) and
+  define its composition with `remdo-docs-align` without duplicating ownership.
+
 - **External dependency verification.** Define how implementation work checks
   current authoritative documentation or public APIs for external dependencies
   before using [empirical checks](documentation.md#empirical-checks).
