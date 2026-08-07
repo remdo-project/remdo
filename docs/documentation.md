@@ -210,8 +210,12 @@ Use for external sources and dependencies the document relies on.
 
 ## Specification structure
 
-1. Each specification defines the expected behavior or required structure of
-   one coherent repository capability or technical component.
+1. A durable specification owns the expected behavior or required structure of
+   one capability or technical component that remains meaningful independently
+   of the repository change. Its title, path, and scope opener identify that
+   subject. Create a durable specification only when no existing owner can
+   coherently own that subject; otherwise improve the applicable owners. A
+   repository change is not itself a durable specification subject.
 2. Each heading path identifies one cohesive responsibility worth locating or
    linking to. Place each section beneath the narrowest parent containing its
    responsibility, and all material at the narrowest level that owns it.

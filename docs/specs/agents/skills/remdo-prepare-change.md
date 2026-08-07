@@ -52,8 +52,10 @@ Legend:
 
 ## Lifecycle rules
 
-- **Coordinator.** Retains the approved specification and owns lifecycle state,
-  integration decisions, and undelegated work. It
+- **Coordinator.** Retains the approved spec — its
+  [target behavior](../../../documentation.md#target-behavior) and
+  [contract owners](../../../documentation.md#ownership) — and owns lifecycle
+  state, integration decisions, and undelegated work. It
   [aggregates](../results.md#aggregation) participant results for handoff. Only
   the coordinator advances the lifecycle; incomplete results leave it unchanged.
 - **Quick dialogue.** Establishes the outcome, constraints, non-goals, and
@@ -67,11 +69,14 @@ Legend:
   the current [topic branch](../../../dev/contributing.md#git-workflow) uses its
   fetched commit as the base and contains only work adopted by the change. Use
   another base only if the developer specified one.
-- **Specification.** The coordinator identifies current
-  [contract owners](../../../documentation.md#ownership), edits them only when
-  their [target behavior](../../../documentation.md#target-behavior) must
-  change, and surfaces unresolved behavior, [concerns](../results.md#concerns),
-  and [tracked gaps](../../../todo.md#tracked-follow-up) before developer review.
+- **Specification.** The coordinator identifies current contract owners and
+  prepares the spec by mapping proposed target behavior to the applicable
+  owners. It applies
+  [Specification structure](../../../documentation.md#specification-structure)
+  when creating or editing a durable specification, changes only owners whose
+  target behavior must change, and surfaces unresolved behavior,
+  [concerns](../results.md#concerns), and
+  [tracked gaps](../../../todo.md#tracked-follow-up) before developer review.
 - **Approval.** Developer approval establishes target behavior, not exact
   wording or repository authority.
 - **Convergence.** [`remdo-converge-change`](remdo-converge-change.md) runs as a

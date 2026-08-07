@@ -1,6 +1,6 @@
 ---
 name: remdo-prepare-change
-description: Coordinate an explicitly requested RemDo repository change from focused requirements dialogue through owning-branch setup, durable specification approval, implementation, simplification, convergence, and developer handoff. Use when the developer invokes $remdo-prepare-change or asks to run the prepare-change workflow for a new or existing change.
+description: Coordinate an explicitly requested RemDo repository change from focused requirements dialogue through owning-branch setup, specification approval, implementation, simplification, convergence, and developer handoff. Use when the developer invokes $remdo-prepare-change or asks to run the prepare-change workflow for a new or existing change.
 ---
 
 # RemDo Prepare Change
@@ -11,10 +11,10 @@ contract. You are the developer-facing coordinator for the complete lifecycle.
 
 ## Coordinate the change
 
-Retain the approved target behavior, its contract owners, the complete change
-scope, participant results, concerns, and lifecycle state. Delegate only the
-fresh-context work identified below. Integrate participant results yourself;
-participants do not advance the lifecycle.
+Retain the approved spec, the complete change scope, participant results,
+concerns, and lifecycle state. Delegate only the fresh-context work identified
+below. Integrate participant results yourself; participants do not advance the
+lifecycle.
 
 Keep developer dialogue focused on decisions that affect the target. Recommend
 exploration when material uncertainty warrants it, but start a fresh exploration
@@ -36,8 +36,11 @@ authority or an unsafe interpretation of existing work.
 
 ## Prepare and approve the specification
 
-Read [`Documentation`](../../../docs/documentation.md) before editing durable
-requirements. Identify the current contract owners, change only those whose
+Read [`Documentation`](../../../docs/documentation.md) before preparing the
+spec. Identify current contract owners, map proposed target behavior to the
+applicable owners, and apply
+[`Specification structure`](../../../docs/documentation.md#specification-structure)
+when creating or editing a durable specification. Change only owners whose
 target behavior must change, and retain each approved behavior with its owner in
 the active result. Before requesting approval, surface unresolved behavior,
 concerns, and tracked gaps.
