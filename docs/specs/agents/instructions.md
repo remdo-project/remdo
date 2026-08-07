@@ -68,9 +68,10 @@ documentation. Route agents by the question they need to answer:
   - **Tracked code comments:**
     [Code comments](../../dev/contributing.md#code-comments).
 - **Long-term product constraints:** [Project principles](../../principles.md).
-- **Runtime configuration:** [Configuration](../../config.md).
+- **Runtime configuration:**
+  [Configuration](../runtime/configuration.md).
   - **Port and origin derivation:**
-    [Derivation rules](../../config.md#derivation-rules).
+    [Derivation rules](../runtime/configuration.md#derivation-rules).
 - **Verification runtime:** [Test Harness](../testing/test-harness.md).
 - **Tracked repository follow-up:**
   [RemDo TODO](../../todo.md#tracked-follow-up).

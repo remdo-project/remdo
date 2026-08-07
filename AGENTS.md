@@ -30,9 +30,10 @@ owner. Provider-specific surfaces may load it alongside their own rules.
   - **Tracked code comments:**
     [Code comments](docs/dev/contributing.md#code-comments).
 - **Long-term product constraints:** [Project principles](docs/principles.md).
-- **Runtime configuration:** [Configuration](docs/config.md).
+- **Runtime configuration:**
+  [Configuration](docs/specs/runtime/configuration.md).
   - **Port and origin derivation:**
-    [Derivation rules](docs/config.md#derivation-rules).
+    [Derivation rules](docs/specs/runtime/configuration.md#derivation-rules).
 - **Verification runtime:** [Test Harness](docs/specs/testing/test-harness.md).
 - **Tracked repository follow-up:** [RemDo TODO](docs/todo.md#tracked-follow-up).
 - **Local runtime procedures:**
