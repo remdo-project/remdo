@@ -135,7 +135,7 @@ function scratchDocs(docs: Record<string, string>) {
   const copiedRule = path.join(dir, 'tools/markdownlint-rules/link-aware-line-length.mjs');
   fs.mkdirSync(path.dirname(copiedRule), { recursive: true });
   fs.copyFileSync(productLineLengthRule, copiedRule);
-  for (const [rel, content] of Object.entries(docs)) {
+  for (const [rel, content] of Object.entries({ 'CONTRIBUTING.md': '# Contributing\n', ...docs })) {
     const abs = path.join(dir, rel);
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, content);
@@ -156,6 +156,13 @@ function lintSkill(dir: string) {
 }
 
 describe('gate integration over a scratch fixture repo', () => {
+  it('fails loud when the docs corpus is absent', () => {
+    const dir = scratchDocs({});
+    const skill = lintSkill(dir);
+    expect(skill.status).not.toBe(0);
+    expect(skill.stderr).toContain('no in-scope docs/**/*.md found');
+  }, 30_000);
+
   it('both gates are green on a clean docs fixture', () => {
     const dir = scratchDocs({
       'docs/x.md': '# X\n\nRead the [configuration contract](https://example.com/specs/runtime/configuration#derivation-rules) for details.\n\n## References\n\n- [ext](https://x.y)\n',
@@ -166,8 +173,9 @@ describe('gate integration over a scratch fixture repo', () => {
     expect(skill.status, skill.stdout + skill.stderr).toBe(0);
   }, 30_000);
 
-  it('includes specifications and excludes specification feedback cases', () => {
+  it('includes the contribution contract and specifications and excludes specification feedback cases', () => {
     const dir = scratchDocs({
+      'CONTRIBUTING.md': '# Contributing\n\nThis is currently maintained.\n',
       'docs/x.md': '# X\n\nA maintained document.\n',
       'docs/specs/current.md': '# Current\n\nThis is currently maintained.\n',
       'docs/specs/feedback-cases/cases/frozen.md': '# Frozen\n\nThis is currently preserved evidence.\n',
@@ -175,6 +183,7 @@ describe('gate integration over a scratch fixture repo', () => {
     const skill = lintSkill(dir);
     const output = skill.stdout + skill.stderr;
     expect(skill.status).not.toBe(0);
+    expect(output).toContain('CONTRIBUTING.md');
     expect(output).toContain('docs/specs/current.md');
     expect(output).not.toContain('docs/specs/feedback-cases/cases/frozen.md');
   }, 30_000);

@@ -52,11 +52,11 @@ documentation. Route agents by the question they need to answer:
   - **Current owners and dependencies:** [Ownership](../../documentation.md#ownership).
   - **Accepted contracts and tracked gaps:** [Target behavior](../../documentation.md#target-behavior).
   - **Deterministic coverage markers:** [Verification](../../documentation.md#verification).
-- **Contributor decisions:** [Contributing](../../dev/contributing.md).
-  - **Branches and commits:** [Git workflow](../../dev/contributing.md#git-workflow).
-  - **Supported runtimes:** [Runtime baseline](../../dev/contributing.md#runtime-baseline).
-  - **Compatibility defaults:** [Backward compatibility](../../dev/contributing.md#backward-compatibility-pre-10).
-  - **Tracked code comments:** [Code comments](../../dev/contributing.md#code-comments).
+- **Contributor decisions:** [Contributing](../../../CONTRIBUTING.md).
+  - **Branches and commits:** [Git workflow](../../../CONTRIBUTING.md#git-workflow).
+  - **Supported runtimes:** [Runtime baseline](../../../CONTRIBUTING.md#runtime-baseline).
+  - **Compatibility defaults:** [Backward compatibility](../../../CONTRIBUTING.md#backward-compatibility-pre-10).
+  - **Tracked code comments:** [Code comments](../../../CONTRIBUTING.md#code-comments).
 - **Long-term product constraints:** [Project principles](../../principles.md).
 - **Runtime configuration:** [Configuration](../runtime/configuration.md).
   - **Port and origin derivation:** [Derivation rules](../runtime/configuration.md#derivation-rules).

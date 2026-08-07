@@ -15,11 +15,11 @@ owner. Provider-specific surfaces may load it alongside their own rules.
   - **Current owners and dependencies:** [Ownership](docs/documentation.md#ownership).
   - **Accepted contracts and tracked gaps:** [Target behavior](docs/documentation.md#target-behavior).
   - **Deterministic coverage markers:** [Verification](docs/documentation.md#verification).
-- **Contributor decisions:** [Contributing](docs/dev/contributing.md).
-  - **Branches and commits:** [Git workflow](docs/dev/contributing.md#git-workflow).
-  - **Supported runtimes:** [Runtime baseline](docs/dev/contributing.md#runtime-baseline).
-  - **Compatibility defaults:** [Backward compatibility](docs/dev/contributing.md#backward-compatibility-pre-10).
-  - **Tracked code comments:** [Code comments](docs/dev/contributing.md#code-comments).
+- **Contributor decisions:** [Contributing](CONTRIBUTING.md).
+  - **Branches and commits:** [Git workflow](CONTRIBUTING.md#git-workflow).
+  - **Supported runtimes:** [Runtime baseline](CONTRIBUTING.md#runtime-baseline).
+  - **Compatibility defaults:** [Backward compatibility](CONTRIBUTING.md#backward-compatibility-pre-10).
+  - **Tracked code comments:** [Code comments](CONTRIBUTING.md#code-comments).
 - **Long-term product constraints:** [Project principles](docs/principles.md).
 - **Runtime configuration:** [Configuration](docs/specs/runtime/configuration.md).
   - **Port and origin derivation:** [Derivation rules](docs/specs/runtime/configuration.md#derivation-rules).

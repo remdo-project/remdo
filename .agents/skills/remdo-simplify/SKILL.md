@@ -75,7 +75,7 @@ belong to the scope from the resolver's file list.
 Read these first:
 
 1. `AGENTS.md`
-2. `docs/dev/contributing.md`
+2. `CONTRIBUTING.md`
 3. `docs/todo.md`
 
 Choose directly relevant product docs for the touched area by filename and
@@ -130,7 +130,7 @@ Look for opportunities to:
 - Prefer direct, behavior-named test setup over clever harness metadata; for
   known fixtures, avoid runtime guards that only defend the fixture itself.
 - Remove obsolete comments or tracked workaround text when the code no longer
-  needs it. Use the [code-comment convention](../../../docs/dev/contributing.md#code-comments) for newly tracked code-site follow-ups.
+  needs it. Use the [code-comment convention](../../../CONTRIBUTING.md#code-comments) for newly tracked code-site follow-ups.
 
 ## Finding bar
 
@@ -212,6 +212,6 @@ Omit empty sections. Include the suppression tail only when `N` is non-zero.
 - [Agent guidelines](../../../AGENTS.md)
 - [Doc/skill-prose convergence](../remdo-docs-align/SKILL.md)
 - [Change scope / branch base](../../../docs/specs/agents/change-scope.md)
-- [Runtime baseline](../../../docs/dev/contributing.md#runtime-baseline)
-- [Backward compatibility](../../../docs/dev/contributing.md#backward-compatibility-pre-10)
+- [Runtime baseline](../../../CONTRIBUTING.md#runtime-baseline)
+- [Backward compatibility](../../../CONTRIBUTING.md#backward-compatibility-pre-10)
 - [Project principles](../../../docs/principles.md)

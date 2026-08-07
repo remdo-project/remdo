@@ -23,8 +23,10 @@ Each durable statement lives with the owner of the question it answers.
 - **`docs/specs/` — [Specifications](#specification-structure).**
 - **`docs/specs/feedback-cases/` — Specification evidence.** Its
   [README](specs/feedback-cases/README.md) owns the evidence structure and maintenance rules.
+- **[`CONTRIBUTING.md`](../CONTRIBUTING.md) — Contributor policy.** The root contribution contract
+  establishes repository-wide standards and decision defaults for contributions.
 - **`docs/dev/` root — Contributor policy.** Root developer documents establish
-  standards and decision defaults for contributions.
+  subject-specific standards and decision defaults for contributions.
 - **`docs/dev/guides/` — Developer guides.** Guides explain how a developer
   accomplishes a task. Their steps derive from and link to the applicable
   contract and mechanism owners.
