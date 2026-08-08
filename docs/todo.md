@@ -145,6 +145,14 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Agents
 
+- **Configured-upstream synchronization.** Design a capability separate from
+  [`remdo-merge-main`](specs/agents/skills/remdo-merge-main.md) that synchronizes
+  the current branch with its configured upstream. Classify fast-forward,
+  local-ahead, ordinary divergence, and likely rewritten upstream history before
+  choosing merge or explicitly authorized rebase, with conflict and recovery
+  behavior defined for each path. Keep `origin/main` integration owned by
+  `remdo-merge-main`.
+
 - **Prepare-change implementation-gap tracking.** Update
   [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md) so after
   adding or changing a durable specification, it determines whether the
