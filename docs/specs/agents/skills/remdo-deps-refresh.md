@@ -26,7 +26,7 @@ The run checks the following update categories:
 [fetch origin/main]
     │
     v
-[create branch]
+[create branch from fetched commit]
     │
     v
 [select next update]
@@ -37,11 +37,18 @@ The run checks the following update categories:
     │                  │
     │                  v
     │              [verify]
-    │                  │
-    │                  v
-    │              [commit]
-    │                  │
-    │                  └─> [select next update]
+    │                  ├─ pass ─> [commit] ─> [select next update]
+    │                  ├─ repairable failure ─> [repair] ─> [verify]
+    │                  └─ no safe correction ─> [restore previous state]
+    │                                               ├─ failure ─> [report failure]
+    │                                               │ restored
+    │                                               v
+    │                                           [record deferral]
+    │                                               │
+    │                                               v
+    │                                           [verify restored state]
+    │                                               ├─ pass ─> [commit] ─> [select next update]
+    │                                               └─ fail ─> [report failure]
     │ none
     v
 [inspect Dependabot]
@@ -53,11 +60,11 @@ The run checks the following update categories:
 The run applies every correction established by accepted behavior and
 verification evidence.
 
-If an update cannot be repaired to pass verification, the run restores and
-verifies the preceding dependency state and records the deferral under the
+If an update cannot be repaired to pass verification, the run restores the
+preceding dependency state, records the deferral under the
 [tracked-comment policy](../../../../CONTRIBUTING.md#code-comments), using the
-exact `TODO(deps):` marker. A later run retries the update; successful
-verification removes the marker, otherwise it remains.
+exact `TODO(deps):` marker, and verifies the resulting state. A later run retries
+the update; successful verification removes the marker, otherwise it remains.
 
 A dependency-specific workaround introduced or retained during repair uses the
 exact `TODO(deps):` or `FIXME(deps):` marker according to the tracked-comment

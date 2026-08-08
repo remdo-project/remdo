@@ -567,8 +567,8 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
 ## Skill architecture follow-ups
 
 - Re-run a focused cross-skill centralization pass: check shared executable
-  ownership, Git/scope guards, mutation/outcome/verification contracts, reviewer
-  transport, and report envelopes; decide only what needs one owner.
+  ownership, Git/scope guards, outcome contracts, reviewer transport, and report
+  envelopes; decide only what needs one owner.
 - Decide ESLint coverage for hidden skill roots (`.agents/skills/**/*.ts` and
   the remaining Claude-only `.claude/skills/**/*.ts`): the skill TS is now
   typechecked (tsconfig dot-include) and unit-run (embedded bridge), but ESLint
@@ -579,13 +579,8 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
   typecheck+tests as their gate. A config decision, not a mechanical fix.
 - Define shared cross-skill contracts once (AGENTS.md or contributing.md) and
   have each skill state only its delta: one stop/escalation taxonomy (today
-  six names: ESCALATE/Blocker/Stuck/stop/dead-end/callout), one
-  mutation-permission vocabulary (today five variants), one report skeleton,
-  and a one-line verification-ownership map for retained skills (verification
-  owns checks and reviews; convergence owns correction lifecycle; sync the
-  post-merge check; deps-refresh its matrix).
-  Reconcile with AGENTS.md's declare-scope-in-situ rule via shared vocabulary +
-  per-skill delta.
+  six names: ESCALATE/Blocker/Stuck/stop/dead-end/callout) and one report
+  skeleton.
 
 ## Skill test-infra follow-up
 
