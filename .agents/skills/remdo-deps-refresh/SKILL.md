@@ -34,7 +34,10 @@ deferral recorded under `updateConfig.ignoreDependencies`, in file order:
 2. Run `pnpm update --latest --workspace-root <selectors>` and normalize
    `pnpm-workspace.yaml` with `CI=1 pnpm exec eslint --fix
    pnpm-workspace.yaml`.
-3. Reconcile and verify this update as described below. If no package version
+3. Reject a resolved-version downgrade. Use the marker's rationale to add
+   applicable verification; run `pnpm run audit:security` for a
+   security-related deferral.
+4. Reconcile and verify this update as described below. If no package version
    changes, first confirm that no remaining pin prevented the retry; the removed
    deferral is then the selected change.
 
