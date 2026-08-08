@@ -26,7 +26,7 @@ The run checks the following update categories:
 [fetch origin/main]
     │
     v
-[create branch from fetched commit]
+[create refresh branch]
     │
     v
 [select next update]
@@ -39,17 +39,7 @@ The run checks the following update categories:
     │              [verify]
     │                  ├─ pass ─> [commit] ─> [select next update]
     │                  ├─ repairable failure ─> [repair] ─> [verify]
-    │                  └─ no safe correction ─> [restore previous state]
-    │                                               ├─ failure ─> [report failure]
-    │                                               │ restored
-    │                                               v
-    │                                           [record deferral]
-    │                                               │
-    │                                               v
-    │                                           [verify restored state]
-    │                                               ├─ pass, changed ─> [commit] ─> [select next update]
-    │                                               ├─ pass, unchanged ─> [select next update]
-    │                                               └─ fail ─> [report failure]
+    │                  └─ unrepairable failure ─> [defer] ─> [select next update]
     │ none
     v
 [inspect Dependabot]
@@ -58,25 +48,25 @@ The run checks the following update categories:
 [report]
 ```
 
-The run applies every correction established by accepted behavior and
-verification evidence.
+Notes:
 
-If an update cannot be repaired to pass verification, the run restores the
-preceding dependency state, records the deferral under the
-[tracked-comment policy](../../../../CONTRIBUTING.md#code-comments), using the
-exact `TODO(deps):` marker, and verifies the resulting state. The run skips that
-dependency for the remainder of the current run. A later run retries the update;
-successful verification removes the marker, otherwise it remains.
-
-A dependency-specific workaround introduced or retained during repair uses the
-exact `TODO(deps):` or `FIXME(deps):` marker according to the tracked-comment
-policy. Later runs reconsider it when an update affects it.
-
-After no update is selectable, the run inspects open Dependabot alerts and
-security-update pull requests. It reports each as covered by the refreshed graph,
-already on the default branch, unresolved, or blocked intentionally.
-
-Failure to restore and verify the preceding dependency state stops the run.
+- The refresh branch starts at the fetched `origin/main` commit.
+- Repair applies every correction established by accepted behavior and
+  verification evidence.
+- If an update cannot be repaired to pass verification, the run restores the
+  preceding dependency state and records the deferral under the
+  [tracked-comment policy](../../../../CONTRIBUTING.md#code-comments), using the
+  exact `TODO(deps):` marker. It verifies the restored state, commits it if it
+  changed, and skips that dependency for the remainder of the run. A later run
+  retries the update; successful verification removes the marker, otherwise it
+  remains. Failure to restore and verify the preceding state stops the run and
+  reports failure.
+- A dependency-specific workaround introduced or retained during repair uses
+  the exact `TODO(deps):` or `FIXME(deps):` marker according to the
+  tracked-comment policy. Later runs reconsider it when an update affects it.
+- Dependabot inspection reports each open alert and security-update pull request
+  as covered by the refreshed graph, already on the default branch, unresolved,
+  or blocked intentionally.
 
 ### Dependency patches
 
