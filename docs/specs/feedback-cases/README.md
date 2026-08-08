@@ -117,3 +117,6 @@ rule, move it to [Documentation](../../documentation.md) and remove it here.
 - [Workflow action presentation](cases/workflow-action-presentation.md) — a
   dependency-refresh draft mixed negative boundaries and out-of-order actions
   while its target presentation remained open.
+- [Run setup step granularity](cases/run-setup-step-granularity.md) — a
+  dependency-refresh run compressed three ordered setup actions into one list
+  item before splitting their responsibilities into separate steps.

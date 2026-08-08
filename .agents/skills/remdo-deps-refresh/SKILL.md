@@ -73,7 +73,7 @@ Gate exit codes:
   gate run fails with `ERR_PNPM_UNEXPECTED_STORE` (node_modules was linked by the
   old major). Heal it with `CI=true pnpm install --no-frozen-lockfile` to rebuild
   the store, then re-run the gate. A package upgrade can likewise make a registered
-  [dependency patch](../../../docs/dev/dependency-maintenance.md#dependency-patches)
+  [dependency patch](../../../docs/specs/agents/skills/remdo-deps-refresh.md#dependency-patches)
   unused or inapplicable. Reconcile it as part of that upgrade using the patch
   procedure below; do not enable `allowUnusedPatches` to bypass the failure.
 

@@ -40,6 +40,15 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   in [Agent instructions](specs/agents/instructions.md#repository-authority) and
   replace repeated per-skill permission prose with linked declarations.
 
+- **Specification condition ownership.** Form and name a generic concept for
+  how contracts assign each condition required by behavior to either an
+  explicit caller guarantee or the component boundary that establishes it
+  before dependent behavior. Define the concept's documentation form, including
+  whether it uses shared vocabulary, compact declarations, ordinary prose, or a
+  section. Decide how independently invocable and invalidation-prone boundaries
+  re-establish such conditions, then align applicable skill and product
+  specifications to avoid redundant checks.
+
 - **Large-scope documentation alignment.** Evaluate the structured finding
   schema and parallel specialist-reviewer layout from the Upkeep skill
   (wei18/Upkeep) as a way to speed alignment over large scopes.
@@ -58,6 +67,14 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   from the source tree and enforcement.
 
 ### Testing
+
+- **Verification ownership and lifecycle.** Assign repository checks, browser
+  and Docker E2E, cleanup and policy audits, dependency-install consistency,
+  and local versus CI evidence to clear durable and executable owners. Define
+  when each runs and which mutations invalidate its result, then revisit
+  [dependency-refresh verification](specs/agents/skills/remdo-deps-refresh.md#verification)
+  and other capability specifications so they reference those owners and run
+  each check at the correct lifecycle point.
 
 - **Docker E2E diagnostic runtime.** Reconsider the removal-on-exit lifecycle in
   `docs/specs/testing/test-harness.md`. Evaluate retaining runtime data and
