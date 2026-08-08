@@ -1,6 +1,6 @@
 interface:
   display_name: "RemDo Deps Refresh"
-  short_description: "Autonomous RemDo dependency refresh loop"
-  default_prompt: "Use $remdo-deps-refresh to apply every available RemDo dependency and tooling upgrade, heal breakage, and report the result."
+  short_description: "Autonomous RemDo dependency and tooling refresh"
+  default_prompt: "Use $remdo-deps-refresh to refresh every available dependency and tooling pin, repair breakage, defer unsafe updates, and report the result."
 policy:
   allow_implicit_invocation: false

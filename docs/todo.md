@@ -33,9 +33,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 - **Agent skill specifications.** Establish accepted-behavior owners under
   `docs/specs/agents/skills/` for `playground` and `remdo-simplify`, then align
-  their execution procedures and links. Align the `remdo-deps-refresh`
-  execution procedure and implementation with its
-  [specification](specs/agents/skills/remdo-deps-refresh.md).
+  their execution procedures and links.
 
 - **Agent repository-authority declarations.** Define compact authority modes
   in [Agent instructions](specs/agents/instructions.md#repository-authority) and

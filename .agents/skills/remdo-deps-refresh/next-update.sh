@@ -33,6 +33,7 @@ ROOT_DIR="$(CDPATH='' cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 cd "${ROOT_DIR}"
 
 CHANGED_EXIT=3
+SKIPPED_FILE="${ROOT_DIR}/.agent/remdo-deps-refresh/skipped"
 
 # digest_of <path...> : stable digest of the given paths' contents. Files are
 # hashed directly; a directory is hashed recursively (every file under it), so a
@@ -51,6 +52,11 @@ step() {
   label="$1"
   targets="$2"
   shift 2
+
+  if [ -f "${SKIPPED_FILE}" ] && grep -Fqx -- "${label}" "${SKIPPED_FILE}"; then
+    echo "next-update: '${label}' skipped for this run."
+    return
+  fi
 
   # shellcheck disable=SC2086 # targets is a space-separated path/glob list.
   before="$(digest_of $targets)"
