@@ -47,7 +47,8 @@ The run checks the following update categories:
     │                                               │
     │                                               v
     │                                           [verify restored state]
-    │                                               ├─ pass ─> [commit] ─> [select next update]
+    │                                               ├─ pass, changed ─> [commit] ─> [select next update]
+    │                                               ├─ pass, unchanged ─> [select next update]
     │                                               └─ fail ─> [report failure]
     │ none
     v
