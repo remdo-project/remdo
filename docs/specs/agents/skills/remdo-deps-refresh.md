@@ -63,8 +63,9 @@ verification evidence.
 If an update cannot be repaired to pass verification, the run restores the
 preceding dependency state, records the deferral under the
 [tracked-comment policy](../../../../CONTRIBUTING.md#code-comments), using the
-exact `TODO(deps):` marker, and verifies the resulting state. A later run retries
-the update; successful verification removes the marker, otherwise it remains.
+exact `TODO(deps):` marker, and verifies the resulting state. The run skips that
+dependency for the remainder of the current run. A later run retries the update;
+successful verification removes the marker, otherwise it remains.
 
 A dependency-specific workaround introduced or retained during repair uses the
 exact `TODO(deps):` or `FIXME(deps):` marker according to the tracked-comment
@@ -74,9 +75,7 @@ After no update is selectable, the run inspects open Dependabot alerts and
 security-update pull requests. It reports each as covered by the refreshed graph,
 already on the default branch, unresolved, or blocked intentionally.
 
-The run stops when a correction would require choosing new product behavior,
-its safety cannot be established, or the preceding verified state cannot be
-restored.
+Failure to restore and verify the preceding dependency state stops the run.
 
 ### Dependency patches
 
@@ -130,8 +129,8 @@ ci: <pending | not-applicable>
 reason: <condition that prevented completion> # if failed
 ```
 
-- `refreshed` means at least one refresh unit was committed, no actionable
-  update or dependency follow-up remains, and local verification passed.
+- `refreshed` means at least one change was committed, no update remains
+  selectable, and local verification passed.
 - `current` means the run found no repository mutation to make.
 - `failed` means a condition prevented the skill from determining or completing
   a safe refresh.
