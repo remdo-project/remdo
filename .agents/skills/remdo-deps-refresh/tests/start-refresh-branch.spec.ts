@@ -76,4 +76,16 @@ describe('start-refresh-branch.sh', () => {
     expect(result.stderr).toContain('working tree is dirty');
     expect(git(work, 'branch', '--show-current').stdout.trim()).toBe('main');
   });
+
+  it('does not create the branch when run-state initialization fails', () => {
+    const { work } = makeRepo();
+    fs.mkdirSync(path.join(work, '.agent/remdo-deps-refresh/skipped'), {
+      recursive: true,
+    });
+
+    const result = run(work);
+
+    expect(result.status).not.toBe(0);
+    expect(git(work, 'branch', '--show-current').stdout.trim()).toBe('main');
+  });
 });

@@ -22,7 +22,7 @@ updateConfig:
     - '@better-auth/core'
     - '@better-auth/oauth-provider'
     - better-auth
-    # TODO(deps): retry Kysely; 0.29 breaks the Better Auth adapter.
+    # TODO(deps): retry Kysely and remove its override; 0.29 breaks the Better Auth adapter.
     - kysely
     # TODO(deps): retry Lexical; 0.46 fails editor invariants.
     - '@lexical/*'

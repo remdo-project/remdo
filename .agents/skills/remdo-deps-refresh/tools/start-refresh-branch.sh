@@ -28,11 +28,9 @@ while git show-ref --verify --quiet "refs/heads/$name" \
   suffix=$((suffix + 1))
 done
 
-result=$(sh "$skill_dir/../_shared/tools/create-branch-from-base.sh" \
-  "$name" "$base")
-
 state_dir="$(git rev-parse --show-toplevel)/.agent/remdo-deps-refresh"
 mkdir -p "$state_dir"
 : > "$state_dir/skipped"
 
-printf '%s\n' "$result"
+exec sh "$skill_dir/../_shared/tools/create-branch-from-base.sh" \
+  "$name" "$base"
