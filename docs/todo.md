@@ -32,9 +32,10 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   component-specific term, including consistent actor and component identity.
 
 - **Agent skill specifications.** Establish accepted-behavior owners under
-  `docs/specs/agents/skills/` for `playground`, `remdo-deps-refresh`, and
-  `remdo-simplify`, then align each skill's execution procedure and links with
-  its specification.
+  `docs/specs/agents/skills/` for `playground` and `remdo-simplify`, then align
+  their execution procedures and links. Align the `remdo-deps-refresh`
+  execution procedure and implementation with its
+  [specification](specs/agents/skills/remdo-deps-refresh.md).
 
 - **Agent repository-authority declarations.** Define compact authority modes
   in [Agent instructions](specs/agents/instructions.md#repository-authority) and
