@@ -120,7 +120,7 @@ patches: # if affected
     disposition: <proposed | retained | regenerated | removed>
 follow_up: # if evaluated or changed
   - summary: <dependency-specific follow-up>
-    disposition: <removed | updated | retained>
+    disposition: <introduced | removed | updated | retained>
 dependabot: # if reconciled
   - item: <pull request or alert>
     disposition: <covered here | already on default branch | unresolved | blocked intentionally>
