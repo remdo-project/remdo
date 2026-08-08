@@ -27,10 +27,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Specification vocabulary review.** Make future specification-authoring and
-  review workflows apply the [ownership](documentation.md#ownership) and [minimality](documentation.md#minimality) rules to every domain- or
-  component-specific term, including consistent actor and component identity.
-
 - **Agent skill specifications.** Establish accepted-behavior owners under
   `docs/specs/agents/skills/` for `playground`, `remdo-deps-refresh`, and
   `remdo-simplify`, then align each skill's execution procedure and links with
@@ -61,12 +57,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   next invocation. If adopted, replace that state only after startup preflight,
   preserve container-assisted cleanup for root-owned files, keep authentication
   and test-secret data local, and update the specification and implementation together.
-
-- **Contributor testing policy.** Move contributor-wide test-quality policy
-  from `AGENTS.md` to `docs/dev/testing.md`: observable behavior or stable
-  contracts, credible regressions, automated test-level selection, empirical
-  exceptions, and review coverage. Keep agent execution procedures and check
-  commands in `AGENTS.md`, then update their inbound links.
 
 ### Dependencies
 
@@ -155,6 +145,14 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Agents
 
+- **Configured-upstream synchronization.** Design a capability separate from
+  [`remdo-merge-main`](specs/agents/skills/remdo-merge-main.md) that synchronizes
+  the current branch with its configured upstream. Classify fast-forward,
+  local-ahead, ordinary divergence, and likely rewritten upstream history before
+  choosing merge or explicitly authorized rebase, with conflict and recovery
+  behavior defined for each path. Keep `origin/main` integration owned by
+  `remdo-merge-main`.
+
 - **Prepare-change implementation-gap tracking.** Update
   [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md) so after
   adding or changing a durable specification, it determines whether the
@@ -165,7 +163,15 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 - **External dependency verification.** Define how implementation work checks
   current authoritative documentation or public APIs for external dependencies
-  before using [empirical checks](documentation.md#empirical-checks).
+  before using [empirical checks](dev/testing.md#empirical-checks).
+
+- **Repository annotation discovery.** Define a closed registry for searchable,
+  repository-owned annotations, initially verification classifications and
+  code-local `TODO`/`FIXME`, with each family owning its scope, trigger, required
+  response, discovery, and lifecycle. Evaluate namespaced Markdown syntax and a
+  simple typed discovery command that preserves `todo:list`, then make applicable
+  agent review workflows invoke the relevant view. Exclude external-tool
+  directives, and do not treat discovery as proof that an obligation is satisfied.
 
 - **Skill-spec ownership boundaries.** Verify ownership between agent skill
   specifications, starting with [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md), and

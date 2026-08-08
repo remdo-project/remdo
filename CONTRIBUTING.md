@@ -4,6 +4,7 @@ RemDo's contribution contract gives contributors and reviewers the same
 baseline for judging a change's intent, supported runtimes, compatibility, and follow-up.
 
 Durable documentation has its own contract in [Documentation](docs/documentation.md).
+Testing quality and coverage follow [Testing](docs/dev/testing.md).
 
 ## Git Workflow
 

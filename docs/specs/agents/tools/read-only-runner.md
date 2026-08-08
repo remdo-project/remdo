@@ -29,19 +29,28 @@ leaves absent values unset, so the agent applies its own default.
 **Prompt.** The runner passes the prompt to the agent's non-interactive session
 unchanged.
 
-**Review.** The runner gives each agent's native review the complete resolved scope.
+**Review.** Each agent's native review inspects the complete resolved scope,
+repository guidance, Git context, and referenced files, and reviews the scope
+the runner resolved rather than one the agent selects itself. **Empirical.** A
+review whose inspection access is incomplete can still report findings and
+success, so confirmation observes review reach rather than its result.
 
 A review uses the native command's instructions and the repository guidance its
-session loads. The runner additionally instructs the reviewing agent and every
-reviewer it delegates to not to run repository checks.
+session loads. The runner instructs the reviewing agent and every reviewer it
+delegates to not to run repository checks, and none runs them. **Empirical.**
+Forwarded instructions do not establish compliance, so confirmation observes
+the commands they run.
 
 ## Repository protection
 
 Repository protection has one target outcome: an invocation leaves the caller's
 Git repository unchanged and does not publish, schedule, or establish persistent
-monitoring, notification, or remote control outside it. Each invocation provides
-a protection level, fixed by its agent, that states the caller condition for
-that outcome.
+monitoring, notification, or remote control outside it. **Empirical.** Provider
+documentation defines each restriction in isolation, not whether the combination
+holds for a session that can reach mutation through an unrestricted path, so
+confirmation observes repository and external state. Each invocation provides a
+protection level, fixed by its agent, that states the caller condition for that
+outcome.
 
 An invocation retains the inspection access its task requires, including
 complete Git history and repository state.
@@ -105,22 +114,6 @@ When a provider exits successfully but its output does not yield a complete
 report, the failure evidence includes that output verbatim after the
 runner-owned summary, so the caller can diagnose an unrecognized protocol shape
 from the failure alone.
-
-## Empirical checks
-
-- Each agent's review inspects the complete resolved scope, repository
-  guidance, Git context, and referenced files, and reviews the scope the runner
-  resolved rather than one the agent selects itself. A review whose inspection
-  access is incomplete still reports findings and reports success, so this is
-  confirmed by observing the review's reach rather than its result.
-- Review invocations, including delegated reviewers, do not run repository
-  checks. Forwarded instructions do not establish that agents follow them, so
-  conformance is confirmed by observing the commands they run.
-- Invocations leave the repository unchanged and cause no outside effect.
-  Provider documentation defines each restriction in isolation, not whether the
-  combination holds for a session that can reach mutation through an
-  unrestricted path, so conformance is confirmed by observing repository and
-  external state.
 
 ## Future
 

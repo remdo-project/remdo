@@ -1,7 +1,9 @@
 # Test Harness
 
 The test harness gives each working directory an isolated verification runtime
-and owns its startup, cleanup, and diagnostic-data lifecycle.
+and owns its startup, cleanup, and diagnostic-data lifecycle. The contributor
+[testing policy](../../dev/testing.md) separately owns coverage obligations and
+automated test-level selection.
 
 ## Unit Tests
 
