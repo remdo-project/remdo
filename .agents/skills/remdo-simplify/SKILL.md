@@ -127,7 +127,7 @@ Look for opportunities to:
 - Narrow APIs so callers pass the data the callee actually owns, rather than broad
   objects that force defensive checks or synchronization.
 - Prefer direct, behavior-named test setup over clever harness metadata; for
-  known fixtures, avoid runtime guards that only defend the fixture itself.
+  known fixtures, follow the contributor [testing policy](../../../docs/dev/testing.md#fixture-assumptions).
 - Remove obsolete comments or tracked workaround text when the code no longer
   needs it. Use the [code-comment convention](../../../CONTRIBUTING.md#code-comments) for newly tracked code-site follow-ups.
 

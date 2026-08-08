@@ -58,12 +58,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   preserve container-assisted cleanup for root-owned files, keep authentication
   and test-secret data local, and update the specification and implementation together.
 
-- **Contributor testing policy.** Move contributor-wide test-quality policy
-  from `AGENTS.md` to `docs/dev/testing.md`: observable behavior or stable
-  contracts, credible regressions, automated test-level selection, empirical
-  exceptions, and review coverage. Keep agent execution procedures and check
-  commands in `AGENTS.md`, then update their inbound links.
-
 ### Dependencies
 
 - **Dependabot pnpm 11 version updates.** When GitHub's [supported-ecosystems table](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
@@ -161,7 +155,15 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 - **External dependency verification.** Define how implementation work checks
   current authoritative documentation or public APIs for external dependencies
-  before using [empirical checks](documentation.md#empirical-checks).
+  before using [empirical checks](dev/testing.md#empirical-checks).
+
+- **Repository annotation discovery.** Define a closed registry for searchable,
+  repository-owned annotations, initially verification classifications and
+  code-local `TODO`/`FIXME`, with each family owning its scope, trigger, required
+  response, discovery, and lifecycle. Evaluate namespaced Markdown syntax and a
+  simple typed discovery command that preserves `todo:list`, then make applicable
+  agent review workflows invoke the relevant view. Exclude external-tool
+  directives, and do not treat discovery as proof that an obligation is satisfied.
 
 - **Skill-spec ownership boundaries.** Verify ownership between agent skill
   specifications, starting with [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md), and
