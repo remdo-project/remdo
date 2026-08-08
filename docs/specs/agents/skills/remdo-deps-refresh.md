@@ -81,13 +81,14 @@ Failure to restore and verify the preceding dependency state stops the run.
 ### Dependency patches
 
 [The dependency-patch registry](../../../../pnpm-workspace.yaml) inventories
-exact-version patches and records each patch's rationale and focused regression.
-For each affected registered patch, the run retains it, regenerates it for the
-new exact version, or removes it when its focused regression passes without it.
-The result reports every disposition.
+exact-version patches. Each patch corrects an upstream runtime defect and
+records its rationale and a focused regression that fails without the
+correction. For each affected registered patch, the run retains it, regenerates
+it for the new exact version, or removes it when its focused regression passes
+without it. The result reports every disposition.
 
-A new dependency patch requires developer approval; the run defers the update
-and reports the proposal.
+A new dependency patch requires developer approval; the run follows the
+deferral path and reports the proposal.
 
 ## Verification
 
