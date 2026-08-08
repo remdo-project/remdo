@@ -132,6 +132,7 @@ reason: <condition that prevented completion> # if failed
 
 - `refreshed` means at least one change was committed, no update remains
   selectable, and local verification passed.
-- `current` means the run found no repository mutation to make.
+- `current` means the run completed without committing a refresh or follow-up
+  change.
 - `failed` means a condition prevented the skill from determining or completing
   a safe refresh.
