@@ -28,13 +28,15 @@ branch. The startup helper also clears the run-local skipped-update inventory.
 Before normal selection, run `pnpm run todo:list` and retry each package
 deferral recorded under `updateConfig.ignoreDependencies`, in file order:
 
-1. Record the package selectors, then remove their `TODO(deps):` marker and
-   ignore entries.
+1. Record the package selectors and associated constraints, then remove their
+   `TODO(deps):` marker, ignore entries, and any override or workaround that
+   keeps the dependency at its deferred version.
 2. Run `pnpm update --latest --workspace-root <selectors>` and normalize
    `pnpm-workspace.yaml` with `CI=1 pnpm exec eslint --fix
    pnpm-workspace.yaml`.
 3. Reconcile and verify this update as described below. If no package version
-   changes, the removed deferral is still the selected change.
+   changes, first confirm that no remaining pin prevented the retry; the removed
+   deferral is then the selected change.
 
 Reconsider other `TODO(deps):` and `FIXME(deps):` workarounds only when a
 selected update affects them.
@@ -60,22 +62,18 @@ Keep each selected update and its corrections as one refresh unit.
 1. Inspect the update and apply every correction established by accepted
    behavior and verification evidence. Use release notes when they help
    identify migration work or behavior worth reporting.
-2. Reconcile every affected registered
-   [dependency patch](../../../docs/specs/agents/skills/remdo-deps-refresh.md#dependency-patches):
-   remove its registration, install the upgraded dependency unpatched, and run
-   the focused regression named beside the registration. Remove the patch when
-   the regression passes; otherwise regenerate it for the new exact version and
-   rerun the regression. Report the disposition.
-3. Do not create a new patch without developer approval. Follow the deferral
-   procedure and report the patch as proposed instead of prompting during the
-   run.
-4. Record a dependency-specific workaround introduced or retained during repair
+2. Follow the specification's
+   [dependency-patch procedure](../../../docs/specs/agents/skills/remdo-deps-refresh.md#dependency-patches).
+   To test an upgraded dependency without its registered patch, remove the
+   registration, install, and run the focused regression named beside it. A
+   proposed new patch enters the deferral path without prompting during the run.
+3. Record a dependency-specific workaround introduced or retained during repair
    with the exact `TODO(deps):` or `FIXME(deps):` marker under the
    [tracked-comment policy](../../../CONTRIBUTING.md#code-comments).
-5. After the latest mutation, run `pnpm run check:full`, `pnpm run test:e2e`,
+4. After the latest mutation, run `pnpm run check:full`, `pnpm run test:e2e`,
    `pnpm run audit:cleanup`, and `CI=true pnpm install --no-frozen-lockfile`.
    For a Node-pin update, also run `pnpm run test:e2e:docker`.
-6. When verification passes, commit the complete refresh unit and select again.
+5. When verification passes, commit the complete refresh unit and select again.
 
 When a pnpm-major update leaves `node_modules` linked by the old store, run
 `CI=true pnpm install --no-frozen-lockfile` before retrying the selector. When a
@@ -84,23 +82,10 @@ smaller package groups from the preceding committed state.
 
 ## Defer an update
 
-If no safe repair passes verification:
-
-1. Restore the complete uncommitted refresh unit to its preceding commit,
-   including files introduced by that unit.
-2. Record the reason with an exact `TODO(deps):` marker. For a package update,
-   also add its package selectors to `updateConfig.ignoreDependencies`. For a
-   tooling category, append the exact selector label to
-   `.agent/remdo-deps-refresh/skipped`.
-3. Verify the restored state with the applicable checks above. Commit the
-   deferral when it changed the repository; otherwise leave the preceding commit
-   unchanged.
-4. Continue with the next selectable update.
-
-Stop and return a failed result if the preceding state cannot be restored and
-verified. A later invocation retries package deferrals before normal selection
-and tooling deferrals through the selector. Remove a deferral marker only after
-the retried update passes verification.
+When following the specification's deferral path, add package selectors to
+`updateConfig.ignoreDependencies`. For a tooling category, append its exact gate
+label to `.agent/remdo-deps-refresh/skipped`; the committed `TODO(deps):` reason
+remains beside a comment-capable selector or configuration owner.
 
 ## Finish
 
