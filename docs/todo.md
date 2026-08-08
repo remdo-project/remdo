@@ -36,6 +36,10 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   `remdo-simplify`, then align each skill's execution procedure and links with
   its specification.
 
+- **Agent repository-authority declarations.** Define compact authority modes
+  in [Agent instructions](specs/agents/instructions.md#repository-authority) and
+  replace repeated per-skill permission prose with linked declarations.
+
 - **Large-scope documentation alignment.** Evaluate the structured finding
   schema and parallel specialist-reviewer layout from the Upkeep skill
   (wei18/Upkeep) as a way to speed alignment over large scopes.
