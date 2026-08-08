@@ -478,11 +478,11 @@ yet built; the entries below track the gap. Suspends the view-header rules in
 
 ## Testing guidance follow-ups
 
-- Review existing tests against AGENTS.md's behavior-and-regression rule and
-  remove tests that merely mirror implementation without protecting behavior or
-  a stable contract.
+- Review existing tests against the contributor
+  [testing policy](dev/testing.md#coverage) and remove tests that merely mirror
+  implementation without protecting behavior relied on by a user or component.
 - Research further high-signal testing recommendations for coding agents, then
-  fold only durable, repo-relevant rules into AGENTS.md.
+  fold only durable, repo-relevant rules into the testing policy.
 
 ## Warning and drift detection follow-ups
 
