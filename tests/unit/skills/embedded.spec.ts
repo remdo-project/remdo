@@ -12,7 +12,6 @@ import '../../../.agents/skills/_shared/tests/create-branch-from-base.spec';
 import '../../../.agents/skills/_shared/tests/read-only-runner.spec';
 import '../../../.agents/skills/remdo-deps-refresh/tests/bump-action-majors.spec';
 import '../../../.agents/skills/remdo-deps-refresh/tests/next-update.spec';
-import '../../../.agents/skills/remdo-deps-refresh/tests/start-refresh-branch.spec';
 import '../../../.agents/skills/_shared/tests/resolve-scope.spec';
 import '../../../.agents/skills/remdo-merge-main/tests/merge-main.spec';
 

@@ -1,13 +1,17 @@
 # remdo-deps-refresh
 
-The skill refreshes RemDo's dependencies and repository-owned runtime and
+The capability refreshes RemDo's dependencies and repository-owned runtime and
 tooling pins, repairs resulting breakage, and returns an
-[agent result](../results.md#results). It runs unattended and stops when it
-cannot determine a safe resolution.
+[agent result](../results.md#results). Once started, it completes the resolved
+refresh without developer direction and fails when it cannot determine a safe
+resolution.
 
-## Authority
-
-[Repository authority](../instructions.md#repository-authority): autonomous.
+**Caller provides:** a clean
+[topic branch](../../../../CONTRIBUTING.md#git-workflow) containing only work
+adopted by this refresh, with
+[repository authority](../instructions.md#repository-authority) for refresh-unit
+commits. Refresh relies on that declaration instead of establishing those
+conditions; without it, Refresh fails before changing the repository.
 
 ## Run
 
@@ -20,15 +24,6 @@ The run checks the following update categories:
 4. Floating GitHub Actions major releases.
 
 ```text
-[confirm clean]
-    │
-    v
-[fetch origin/main]
-    │
-    v
-[create refresh branch]
-    │
-    v
 [select next update]
     ├─ selected ─> [apply update]
     │                  │
@@ -50,7 +45,6 @@ The run checks the following update categories:
 
 Notes:
 
-- The refresh branch starts at the fetched `origin/main` commit.
 - Repair applies every correction established by accepted behavior and
   verification evidence.
 - If an update cannot be repaired to pass verification, the run restores the
@@ -82,10 +76,9 @@ deferral path and reports the proposal.
 
 ## Verification
 
-Verification after the latest mutation includes the applicable full repository
-checks, end-to-end tests, cleanup audits, and install-consistency check. A
-runtime-pin change also includes the repository's container test. The local
-result records push-dependent CI coverage as pending.
+Each refresh unit is verified after its latest mutation with the applicable full
+repository checks, end-to-end tests, cleanup audits, and install-consistency
+check. A runtime-pin change also includes the repository's container test.
 
 ## Result
 
@@ -96,8 +89,6 @@ outcome: <refreshed | current | failed>
 concerns: # if any
   - source: <originating step or dependency>
     summary: <condition>
-branch: <refresh branch> # if created
-base: <fixed fetched origin/main commit> # if resolved
 updates: # if any
   - class: <workspace dependencies | package manager | runtime | GitHub Actions>
     summary: <versions or pins changed>
@@ -117,7 +108,6 @@ dependabot: # if reconciled
 verification: # if run
   - command: <command>
     status: <passed | failed>
-ci: <pending | not-applicable>
 reason: <condition that prevented completion> # if failed
 ```
 
@@ -125,5 +115,5 @@ reason: <condition that prevented completion> # if failed
   selectable, and local verification passed.
 - `current` means the run completed without committing a refresh or follow-up
   change.
-- `failed` means a condition prevented the skill from determining or completing
-  a safe refresh.
+- `failed` means a condition prevented the capability from determining or
+  completing a safe refresh.

@@ -1,6 +1,6 @@
 ---
 name: remdo-deps-refresh
-description: Refresh every available RemDo dependency and repository-owned runtime or tooling pin, repair resulting breakage, defer updates that cannot be made safe, and report the result. Use when the developer invokes $remdo-deps-refresh for an unattended dependency refresh.
+description: Refresh every available RemDo dependency and repository-owned runtime or tooling pin, repair resulting breakage, and defer unsafe updates as a participant in an approved repository change. Use when a caller declares a clean topic branch containing only adopted refresh work and authority for refresh-unit commits; do not use as the developer-facing change entry.
 ---
 
 # RemDo Dependency Refresh
@@ -10,20 +10,20 @@ Run the authoritative
 contract. Use the commands below for repository-specific execution; let the
 contract own behavior and the result shape.
 
-## Start the run
+## Accept the run
 
-1. Confirm the repository is clean.
-2. Run:
+Require the caller to declare both conditions owned by the authoritative
+contract: the current topic branch is clean and contains only adopted refresh
+work, and the caller's authority covers refresh-unit commits. Rely on that
+declaration; do not inspect, fetch, create, or switch branches. Without it,
+return a failed result before changing repository state.
 
-   ```sh
-   sh .agents/skills/remdo-deps-refresh/tools/start-refresh-branch.sh
-   ```
+Initialize the run-local skipped-update inventory:
 
-3. Record the reported branch and base. A non-zero exit produces a failed
-   result unless its condition can be resolved safely.
-
-Every invocation starts a new run and branch. Do not resume an earlier refresh
-branch. The startup helper also clears the run-local skipped-update inventory.
+```sh
+mkdir -p .agent/remdo-deps-refresh
+truncate -s 0 .agent/remdo-deps-refresh/skipped
+```
 
 Before normal selection, run `pnpm run todo:list` and retry each package
 deferral recorded under `updateConfig.ignoreDependencies`, in file order:
@@ -97,7 +97,7 @@ security-update pull requests with `gh`. Report each as `covered here`, `already
 on default branch`, `unresolved`, or `blocked intentionally`.
 
 Return the specification's
-[`Result`](../../../docs/specs/agents/skills/remdo-deps-refresh.md#result),
-including every update commit, correction, patch and follow-up disposition,
-Dependabot disposition, verification result, branch and base. Mark
-push-dependent CI as pending.
+[`Result`](../../../docs/specs/agents/skills/remdo-deps-refresh.md#result) to the
+caller, including every update commit, correction, patch and follow-up
+disposition, Dependabot disposition, and verification result. The caller owns
+the complete change scope and developer-facing report.
