@@ -114,6 +114,7 @@
     "tlds": "catalog:",
     "vite": "catalog:",
     "vite-plugin-pwa": "catalog:",
+    "workbox-build": "catalog:",
     "workbox-window": "catalog:",
     "ws": "catalog:",
     "yjs": "catalog:",

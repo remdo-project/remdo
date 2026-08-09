@@ -39,8 +39,9 @@ deferral recorded under `updateConfig.ignoreDependencies`, in file order:
    applicable verification; run `pnpm run audit:security` for a
    security-related deferral.
 4. Reconcile and verify this update as described below. If no package version
-   changes, first confirm that no remaining pin prevented the retry; the removed
-   deferral is then the selected change.
+   changes, first confirm that the resolved graph satisfies the deferred update
+   and no remaining pin prevented the retry; only then is the removed deferral
+   the selected change.
 
 Reconsider other `TODO(deps):` and `FIXME(deps):` workarounds only when a
 selected update affects them.
