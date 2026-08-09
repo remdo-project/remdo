@@ -108,6 +108,19 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Operations
 
+- **Docker gateway and process topology.** Retain Caddy as the gateway while the
+  production runtime remains a single container; replacing only the proxy does
+  not simplify that topology. Define supported direct-public, private
+  internal-CA, and externally terminated HTTPS modes, use Caddy's automatic
+  certificate management for the direct-public mode, enable compression for
+  eligible SPA assets, and simplify the resulting Caddy environment derivation
+  without weakening the [canonical-origin and loopback-only service boundaries](architecture.md#routing-and-origin-boundary).
+  Evaluate a one-process-per-container deployment separately: if adopted, give
+  each service a fixed internal port, move process lifecycle to the container
+  runtime, retain one browser-facing gateway, and remove obsolete shell
+  background-process launching, multi-port configuration, launcher, test, and
+  documentation machinery.
+
 - **Hosted production backups.** Define the scheduled backup and recovery
   workflow for hosted deployments, then align `docker/Dockerfile`,
   `docker/backup.sh`, `tools/snapshot/backup.ts`, and

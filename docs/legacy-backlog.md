@@ -216,15 +216,6 @@ Deferred hardening; long-horizon items live in
   "signed-in non-admin enrolls → sees the new admin's data, not the prior user's"
   (needs a non-admin session in the e2e setup, which today enrolls an admin).
 
-## One-service-per-container split
-
-- Docker treats running the client, API, and Y-Sweet collaboration server in a
-  single image as a multiple-services-per-container anti-pattern, and that shape
-  is what forces the multi-port machinery. Splitting into separate containers
-  (compose / managed multi-service) would let each service bind a fixed port and
-  delete most of the config module (see the
-  [configuration specification](./specs/runtime/configuration.md)), but it is a larger deployment/Dockerfile/Caddy change.
-
 ## Document import / upload follow-ups
 
 The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-document-import.ts`).
