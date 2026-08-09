@@ -102,6 +102,9 @@ conformance with a repeatable machine-checkable result at a defined lifecycle po
   marker identifies the required property, not the test, command, or
   implementation that covers it, and does not claim exhaustive coverage of
   surrounding behavior.
+- **Empirical marker.** When deterministic coverage is unavailable, use
+  **Empirical.** only under the contributor
+  [testing policy](dev/testing.md#empirical-checks).
 
 ## Documentation changes
 
@@ -176,22 +179,6 @@ responsibilities directly.
 
 Define each document-owned term once: here when readers need to find it
 independently, otherwise at first use.
-
-#### Empirical checks
-
-Use only when authoritative dependency contracts and repository-owned automated
-tests cannot establish implementation conformance with a meaningful
-machine-checkable result, a reliable signal, and acceptable cost at a defined
-lifecycle point. List only behavior requiring empirical confirmation;
-empirical checks do not replace deterministic coverage.
-
-An empirical check has no committed executable, scenario, or evidence artifact.
-When behavior becomes suitable for automated coverage, that coverage replaces
-its empirical classification.
-
-A check carries a brief rationale when the behavior it confirms is not derivable
-from its dependency contracts, so that a later reader does not retire the check
-by reasoning from those contracts alone.
 
 #### Future
 

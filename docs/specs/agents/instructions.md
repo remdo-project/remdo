@@ -51,12 +51,13 @@ documentation. Route agents by the question they need to answer:
   - **Owner categories:** [Layout](../../documentation.md#documentation-layout).
   - **Current owners and dependencies:** [Ownership](../../documentation.md#ownership).
   - **Accepted contracts and tracked gaps:** [Target behavior](../../documentation.md#target-behavior).
-  - **Deterministic coverage markers:** [Verification](../../documentation.md#verification).
+  - **Verification markers:** [Verification](../../documentation.md#verification).
 - **Contributor decisions:** [Contributing](../../../CONTRIBUTING.md).
   - **Branches and commits:** [Git workflow](../../../CONTRIBUTING.md#git-workflow).
   - **Supported runtimes:** [Runtime baseline](../../../CONTRIBUTING.md#runtime-baseline).
   - **Compatibility defaults:** [Backward compatibility](../../../CONTRIBUTING.md#backward-compatibility-pre-10).
   - **Tracked code comments:** [Code comments](../../../CONTRIBUTING.md#code-comments).
+  - **Testing quality and coverage:** [Testing](../../dev/testing.md).
 - **Long-term product constraints:** [Project principles](../../principles.md).
 - **Runtime configuration:** [Configuration](../runtime/configuration.md).
   - **Port and origin derivation:** [Derivation rules](../runtime/configuration.md#derivation-rules).
@@ -112,10 +113,10 @@ narrower owners can take over.
   selects cloud-agent verification; otherwise local verification applies. A
   wholly uncommitted local scope finishes with `pnpm run check`; cloud work and
   any scope containing committed changes finish with `pnpm run check:full`.
-- Tests protect observable behavior or a stable contract. Use end-to-end
-  coverage when a unit test is a poor fit; rely on an
-  [empirical check](../../documentation.md#empirical-checks) only when its owner
-  classifies the behavior there, and perform it when the change can affect it.
+- Agents apply the contributor [testing policy](../../dev/testing.md) when
+  selecting, writing, or reviewing coverage and perform each
+  [empirical check](../../dev/testing.md#empirical-checks) required by an
+  affected behavior's owner.
 - Conclusions about UI behavior or rendering use live browser inspection as
   their primary evidence.
 

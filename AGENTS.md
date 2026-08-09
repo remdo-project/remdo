@@ -14,12 +14,13 @@ owner. Provider-specific surfaces may load it alongside their own rules.
   - **Owner categories:** [Layout](docs/documentation.md#documentation-layout).
   - **Current owners and dependencies:** [Ownership](docs/documentation.md#ownership).
   - **Accepted contracts and tracked gaps:** [Target behavior](docs/documentation.md#target-behavior).
-  - **Deterministic coverage markers:** [Verification](docs/documentation.md#verification).
+  - **Verification markers:** [Verification](docs/documentation.md#verification).
 - **Contributor decisions:** [Contributing](CONTRIBUTING.md).
   - **Branches and commits:** [Git workflow](CONTRIBUTING.md#git-workflow).
   - **Supported runtimes:** [Runtime baseline](CONTRIBUTING.md#runtime-baseline).
   - **Compatibility defaults:** [Backward compatibility](CONTRIBUTING.md#backward-compatibility-pre-10).
   - **Tracked code comments:** [Code comments](CONTRIBUTING.md#code-comments).
+  - **Testing quality and coverage:** [Testing](docs/dev/testing.md).
 - **Long-term product constraints:** [Project principles](docs/principles.md).
 - **Runtime configuration:** [Configuration](docs/specs/runtime/configuration.md).
   - **Port and origin derivation:** [Derivation rules](docs/specs/runtime/configuration.md#derivation-rules).
@@ -69,14 +70,10 @@ change. Do not add update-tracking sections to durable documents.
   defensive guards that accepted behavior does not require.
 - For bugs, reproduce the problem when practical, then verify the fix with the
   focused reproducer and applicable final checks.
-- Tests protect observable behavior or a stable contract. Use end-to-end tests
-  when unit coverage is a poor fit; do not substitute a manual check. Rely on an
-  [empirical check](docs/documentation.md#empirical-checks) only when its owner
-  classifies the behavior there, and perform it when the change can affect it.
-- Review whether each changed behavior has meaningful automated or accepted
-  empirical coverage, without treating line coverage as the target.
-- For known fixtures, assume their documented shape; use non-null assertions
-  rather than runtime guards unless validation is the behavior under test.
+- Apply the contributor [testing policy](docs/dev/testing.md) when selecting,
+  writing, or reviewing coverage. Perform each
+  [empirical check](docs/dev/testing.md#empirical-checks) required by an
+  affected behavior's owner.
 - Use live browser inspection as the primary evidence for UI behavior,
   rendering, interaction, and accessibility conclusions.
 - The shared harness treats console warnings and errors as failures. Temporary
