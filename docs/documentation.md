@@ -49,13 +49,21 @@ Each durable statement lives with the owner of the question it answers.
 - **Internal owners.** A document links inline at first use of another owner's
   term or contract.
 - **Contract migration.** A migration moves the complete contract, updates
-  inbound links, and removes the former normative definition in the same change.
+  inbound links, and removes the definition from the former owner in the same change.
 
 ## Contracts
 
 Contracts are clear without consulting external sources.
 
-**Normative default.** Contract clauses are normative unless marked otherwise.
+**Authority and status.** A current owner is authoritative for the question it
+answers. Its accepted behavior, definitions, and rules are normative unless
+marked informative. Informative content may explain, justify, track, or
+preserve evidence, but cannot establish or change accepted behavior or rules.
+
+Examples, tables, and diagrams inherit the status of their surrounding content
+unless identified as informative. Status follows content's role, not
+capitalization, implementation status, or [verification](#verification)
+method.
 
 ### Target behavior
 
@@ -63,8 +71,9 @@ A durable specification states its target behavior as fact in timeless prose,
 regardless of implementation status.
 
 [Tracked follow-up](todo.md#tracked-follow-up) records future work and known
-gaps. Entries range from decided changes to unresolved questions and preserve
-only the context useful for returning to the work.
+gaps. Its entries are informative and may identify implementation that does not
+yet satisfy target behavior. Entries range from decided work to unresolved
+questions and preserve only the context useful for returning to the work.
 
 ### Minimality
 
@@ -82,8 +91,8 @@ only the context useful for returning to the work.
   mechanism. A detail belongs in the contract when choosing differently would
   break the promise; one that only determines how the promise is met belongs in
   the implementation. Named external interfaces, flags, and settings are mechanisms.
-- **Rationale.** Keep brief rationale only when removing it could reopen a
-  settled decision.
+- **Rationale.** Rationale is informative. Keep it only when removing it could
+  reopen a settled decision.
 - **Edge behavior.** Preserve materially relevant boundaries, failures, and no-ops.
 - **Sufficiency.** If two reasonable implementers could produce materially
   different behavior, clarify the contract or surface the unresolved product decision.
@@ -145,8 +154,7 @@ Use a diagram only when it makes an important relationship materially clearer
 than prose. Keep the smallest diagram sufficient to answer its question and
 split views when secondary relationships obscure the primary one. Include only
 relevant states and transitions, but retain critical ownership, safety, and
-rollback boundaries regardless of duration. A diagram has the normative status
-of its surrounding content unless marked illustrative.
+rollback boundaries regardless of duration.
 
 When a diagram is primary, it owns the actors, relationships, order, and loops
 it shows; do not restate them. Label steps with activities and transitions with
@@ -184,11 +192,13 @@ independently, otherwise at first use.
 
 #### Future
 
-Use for brief triggers describing long-horizon work related to the owned behavior.
+Future sections are informative. Use them for brief triggers describing
+long-horizon work related to the owned behavior.
 
 #### References
 
-Use for external sources and dependencies the document relies on.
+References are informative. Use them for external sources that informed the
+document and dependencies named by its contract.
 
 ## Specification structure
 
@@ -217,6 +227,10 @@ Use for external sources and dependencies the document relies on.
 - [Write the Docs: docs as code](https://www.writethedocs.org/guide/docs-as-code/) — docs reviewed and tested like code.
 - [NASA Systems Engineering Handbook](https://www.nasa.gov/wp-content/uploads/2018/09/nasa_systems_engineering_handbook_0.pdf) — verification methods recorded with their requirements.
 - [Google style: timeless documentation](https://developers.google.com/style/timeless-documentation) — timeless prose.
+- [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174.html) — normative prose and
+  requirement-keyword capitalization.
+- [W3C Manual of Style](https://www.w3.org/guide/manual-of-style/#normative-material)
+  — normative and informative status.
 - [arc42](https://arc42.org/overview) — decision rationale as load-bearing.
 - [Microsoft style: headings](https://learn.microsoft.com/en-us/style-guide/scannable-content/headings) — heading granularity and run-in headings.
 - [GitHub Copilot: effective review instructions](https://docs.github.com/en/copilot/tutorials/customize-code-review)

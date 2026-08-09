@@ -2,12 +2,12 @@
 
 This file retains unresolved work recorded before
 [`docs/todo.md`](todo.md) became RemDo's authoritative TODO and sole intake. It
-is closed to new entries; record new temporary work in `docs/todo.md`. This file
-does not define or override accepted target behavior.
+is closed to new entries; record new temporary work in `docs/todo.md`.
 
-Existing entries remain tracked until they are completed and deleted or moved
-to `docs/todo.md` or an owning spec's `Future` section. They remain part of
-duplicate and review-suppression checks while they are here.
+Existing entries are [informative](documentation.md#contracts) and remain
+tracked until they are completed and deleted or moved to `docs/todo.md` or an
+owning spec's `Future` section. They remain part of duplicate and
+review-suppression checks while they are here.
 
 Rules:
 
@@ -272,8 +272,8 @@ Tracks the gaps between [Home](specs/outliner/home.md) and the [view header](spe
   encoding a second ad-hoc route now.
 
 The [view header](specs/outliner/view-header.md) (Model F) is specified but not
-yet built; the entries below track the gap. Suspends the view-header rules in
-`specs/outliner/view-header.md` and the pure-nav breadcrumb claim in [Zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs).
+yet built; the entries below track implementation gaps against its rules and
+the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs).
 
 - No view header is rendered: while zoomed the zoom root remains the editable
   top outline `ListItemNode`, and at the document root the document name remains

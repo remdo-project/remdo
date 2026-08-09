@@ -1,9 +1,8 @@
 # Specification Feedback Cases
 
-This directory records non-normative feedback cases about how RemDo
-specifications are written. This README defines how that evidence is structured
-and maintained. The evidence does not define accepted behavior or
-[documentation rules](../../documentation.md).
+This directory records [informative](../../documentation.md#contracts) feedback
+cases about how RemDo specifications are written. This README owns their
+evidence structure and maintenance rules.
 
 The current contracts represented by this evidence are
 [`remdo-deps-refresh`](../agents/skills/remdo-deps-refresh.md),

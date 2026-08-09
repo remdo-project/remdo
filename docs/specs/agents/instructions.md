@@ -134,8 +134,6 @@ narrower owners can take over.
 
 ## References
 
-These sources inform instruction design; they do not override this contract.
-
 - [OpenAI Codex: Custom instructions with AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
   — instruction discovery, precedence, and project-document budget.
 - [OpenAI: Harness engineering](https://openai.com/index/harness-engineering/)
