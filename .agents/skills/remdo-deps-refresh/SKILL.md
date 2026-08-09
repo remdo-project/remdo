@@ -15,13 +15,9 @@ contract own behavior and the result shape.
 Require the authoritative contract's [`Call`](../../../docs/specs/agents/skills/remdo-deps-refresh.md#call)
 as literal YAML before starting the run.
 
-Initialize the run-local skipped-update inventory:
-
-```sh
-state_dir="$(git rev-parse --show-toplevel)/.agent/remdo-deps-refresh"
-mkdir -p "$state_dir"
-truncate -s 0 "$state_dir/skipped"
-```
+Keep an in-memory inventory of tooling categories deferred during this
+invocation. Do not persist that inventory; a later invocation retries every
+tooling category.
 
 Before normal selection, run `pnpm run todo:list` and retry each package
 deferral recorded under `updateConfig.ignoreDependencies`, in file order:
@@ -45,17 +41,36 @@ selected update affects them.
 
 ## Select updates
 
-Run `pnpm run deps:next`. Its ordered selector covers workspace packages, the
-pnpm pin and integrity, synchronized Node pins, and floating GitHub Actions
-majors. It stops after the first changed category.
+Walk the following categories in order, excluding tooling categories deferred
+during this invocation. Stop at the first category that changes the repository,
+reconcile that refresh unit, and restart at category 1 after committing it. A
+category that produces no diff advances to the next category.
 
-- Exit `3`: reconcile the named update, verify it, commit it, then select again.
-- Exit `0`: inspect Dependabot and report the result.
-- Any other exit: diagnose the selector failure. Repair and retry it when safe;
-  otherwise return a failed result.
+1. Refresh workspace packages with `pnpm update --latest --workspace-root`,
+   then normalize `pnpm-workspace.yaml` with `CI=1 pnpm exec eslint --fix
+   pnpm-workspace.yaml`.
+2. Refresh the package-manager release and Corepack integrity with `corepack use
+   pnpm@latest`.
+3. Inspect Node's official release index and the published official
+   `node:<major>.<minor>-alpine` Docker tags. Select the newest LTS release in
+   the newest LTS major that has an available image; try older releases within
+   that major when a tag is confirmed absent, but do not cross to an older
+   major. Apply the selected full or minor release, as appropriate, to
+   `package.json`, `pnpm-workspace.yaml`, `docker/Dockerfile`, and
+   `.github/actions/setup-pnpm/action.yml`. Verify that all four edits landed,
+   then run `pnpm run audit:policy`.
+4. Enumerate distinct bare `uses: owner/repository@vN` references under
+   `.github/`. Query each repository's latest stable release with `gh api`, and
+   update every occurrence when its major is newer. Leave local references and
+   more-specific version tags unchanged.
 
-The selector skips each exact gate label recorded in
-`.agent/remdo-deps-refresh/skipped`.
+Treat a confirmed absence of a latest GitHub release as a no-op for that
+reference. Treat a missing required tool, network or API failure, ambiguous or
+malformed version, unverifiable edit, or unavailable Node image throughout the
+newest LTS major as a failed run rather than a no-op.
+
+After a complete pass produces no update, run `pnpm run audit:policy`, then
+inspect Dependabot.
 
 ## Reconcile an update
 
@@ -84,10 +99,11 @@ smaller package groups from the preceding committed state.
 
 ## Defer an update
 
-When following the specification's deferral path, add package selectors to
-`updateConfig.ignoreDependencies`. For a tooling category, append its exact gate
-label to `.agent/remdo-deps-refresh/skipped`; the committed `TODO(deps):` reason
-remains beside a comment-capable selector or configuration owner.
+Follow the specification's deferral path, including restoring and verifying the
+preceding dependency state. Add package selectors to
+`updateConfig.ignoreDependencies`. For a tooling category, add the category to
+the in-memory inventory. Keep the committed `TODO(deps):` reason beside a
+comment-capable selector or configuration owner.
 
 ## Finish
 
