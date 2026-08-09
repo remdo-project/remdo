@@ -97,7 +97,8 @@ Local Docker home. It uses the [Local Docker prerequisites](#run-local-docker).
    ```
 
    The command prints the home and source URLs.
-3. On a fresh Docker home, complete [Local Docker first access](#run-local-docker).
+3. On a fresh Docker home, append `/admin` to the printed home URL and complete
+   [admin enrollment](../specs/access/access-control.md#admin-role) with the configured `ADMIN_SECRET`.
 4. Open the home's Sharing page, choose **Link source**, and enter the printed
    source URL. When redirected to the source, sign in as a stable user.
 
