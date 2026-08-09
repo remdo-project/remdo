@@ -12,8 +12,7 @@ Generate a unique random `ADMIN_SECRET` using the guidance in the
 
 ## Deploy with Self-Hosted Docker
 
-This procedure requires a running Docker daemon; rootless and rootful production
-daemons are supported.
+This procedure requires a running rootless Docker daemon.
 
 1. Copy [`.env.example`](../../.env.example) to `.env`.
 2. Set `ADMIN_SECRET` and set `DATA_DIR` to the instance's persistent host directory.

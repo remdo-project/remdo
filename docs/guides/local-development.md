@@ -67,14 +67,16 @@ canonical app origin may return to the main development frontend.
 
 ## Run Local Docker
 
-Local Docker requires rootless Docker Engine 29.5 or newer. Run:
+Local Docker requires rootless Docker Engine 29.5 or newer.
+The development `ADMIN_SECRET` defaults to `development-admin-secret-0123456789`.
+Run:
 
 ```sh
 pnpm run dev:docker
 ```
 
 Open the printed home URL. On a fresh Docker home, open `/admin` and complete
-[admin enrollment](../specs/access/access-control.md#admin-role) with the configured `ADMIN_SECRET`.
+[admin enrollment](../specs/access/access-control.md#admin-role) with `ADMIN_SECRET`.
 
 Keep the command running while using the app. Stopping it removes the container
 and retains its development-owned data.
@@ -98,7 +100,7 @@ Local Docker home. It uses the [Local Docker prerequisites](#run-local-docker).
 
    The command prints the home and source URLs.
 3. On a fresh Docker home, append `/admin` to the printed home URL and complete
-   [admin enrollment](../specs/access/access-control.md#admin-role) with the configured `ADMIN_SECRET`.
+   [admin enrollment](../specs/access/access-control.md#admin-role) with `ADMIN_SECRET`.
 4. Open the home's Sharing page, choose **Link source**, and enter the printed
    source URL. When redirected to the source, sign in as a stable user.
 
