@@ -2,7 +2,7 @@
 
 This skill verifies a repository change, applies every correction supported by
 the evidence, and repeats until no further correction can be determined. It
-returns an [agent result](../results.md#results). One
+returns an [agent result](../protocol.md#results). One
 [change scope](../change-scope.md) bounds the run; the skill does not select or expand intended behavior.
 
 ## Convergence
@@ -29,7 +29,7 @@ After applying corrections, the skill runs complete verification again. It does
 not re-verify unchanged state; [degraded verification](remdo-verify-change.md#result) remains usable.
 
 The skill converges when no determined correction remains, even if
-[concerns](../results.md#concerns) remain. A `stopped` verification stops
+[concerns](../protocol.md#concerns) remain. A `stopped` verification stops
 convergence unless the skill can correct its failed check.
 
 ## Result

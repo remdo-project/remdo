@@ -77,4 +77,4 @@ authoritative specification's [Findings](../../../docs/specs/agents/skills/remdo
 ## Report
 
 Return the authoritative specification's [Result](../../../docs/specs/agents/skills/remdo-verify-change.md#result). When
-addressing a human, render it under the shared [Reports](../../../docs/specs/agents/results.md#reports) contract.
+addressing a human, render it under the shared [Reports](../../../docs/specs/agents/protocol.md#reports) contract.

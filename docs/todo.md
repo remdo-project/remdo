@@ -39,14 +39,10 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   in [Agent instructions](specs/agents/instructions.md#repository-authority) and
   replace repeated per-skill permission prose with linked declarations.
 
-- **Specification condition ownership.** Form and name a generic concept for
-  how contracts assign each condition required by behavior to either an
-  explicit caller guarantee or the component boundary that establishes it
-  before dependent behavior. Define the concept's documentation form, including
-  whether it uses shared vocabulary, compact declarations, ordinary prose, or a
-  section. Decide how independently invocable and invalidation-prone boundaries
-  re-establish such conditions, then align applicable skill and product
-  specifications to avoid redundant checks.
+- **Condition ownership beyond capability calls.** Evaluate whether the
+  [capability protocol](specs/agents/protocol.md) should generalize to other
+  component boundaries. Define how independently invocable and
+  invalidation-prone boundaries establish conditions without redundant checks.
 
 - **Large-scope documentation alignment.** Evaluate the structured finding
   schema and parallel specialist-reviewer layout from the Upkeep skill
@@ -175,6 +171,12 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Agents
 
+- **Capability protocol adoption.** Identify agent capabilities used as
+  composable participants, give their specifications explicit `Call` and
+  `Result` sections conforming to the
+  [capability protocol](specs/agents/protocol.md), then align their execution
+  procedures. Do not invent calls for developer-facing entry points.
+
 - **Prepare-change implementation-gap tracking.** Update
   [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md) so after
   adding or changing a durable specification, it determines whether the
@@ -196,7 +198,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 - **Structured reviewer results.** Evaluate provider-supported structured
   findings, such as JSON Schema output, without weakening native review or
-  evidence. If viable, define verifier normalization into the shared [agent result](specs/agents/results.md#results).
+  evidence. If viable, define verifier normalization into the shared [agent result](specs/agents/protocol.md#results).
 
 - **Post-skill retrospectives.** Make an on-demand retrospective available
   after skill runs, using saved session logs to explain elapsed time, repeated

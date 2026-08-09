@@ -1,12 +1,12 @@
 # spec-complexity
 
-This read-only skill returns an [agent result](../results.md#results) showing
+This read-only skill returns an [agent result](../protocol.md#results) showing
 which decisions in one specification create material implementation complexity
 and what simpler alternatives exist. It does not select or apply an alternative.
 
 ## Assessment
 
-The [report](../results.md#reports) answers:
+The [report](../protocol.md#reports) answers:
 
 > Which spec decisions create complexity, and what simpler alternatives exist?
 

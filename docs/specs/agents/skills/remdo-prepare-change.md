@@ -1,7 +1,7 @@
 # remdo-prepare-change
 
 The skill is the developer-facing entry for a repository change. It owns the
-lifecycle and handoff and returns an [agent result](../results.md#results);
+lifecycle and handoff and returns an [agent result](../protocol.md#results);
 participating capabilities retain their contracts.
 
 ## Authority
@@ -62,7 +62,7 @@ Legend:
 - **Coordinator.** Retains the approved spec — its [target behavior](../../../documentation.md#target-behavior) and
   [contract owners](../../../documentation.md#ownership) — and owns lifecycle
   state, integration decisions, and undelegated work. It
-  [aggregates](../results.md#aggregation) participant results for handoff. Only
+  [aggregates](../protocol.md#aggregation) participant results for handoff. Only
   the coordinator advances the lifecycle; incomplete results leave it unchanged.
 - **Quick dialogue.** Establishes the outcome, constraints, non-goals, and
   observable completion through focused developer decisions.
@@ -78,14 +78,15 @@ Legend:
   prepares the spec by mapping proposed target behavior to the applicable
   owners. It applies [Specification structure](../../../documentation.md#specification-structure)
   when creating or editing a durable specification, changes only owners whose
-  target behavior must change, and surfaces unresolved behavior, [concerns](../results.md#concerns), and
+  target behavior must change, and surfaces unresolved behavior, [concerns](../protocol.md#concerns), and
   [tracked gaps](../../../todo.md#tracked-follow-up) before developer review.
 - **Approval.** Developer approval establishes target behavior, not exact
   wording.
 - **Execution.** The coordinator performs undelegated work and invokes
-  applicable capabilities with their declared calling conditions and required
-  authority. It retains their complete results; participants do not advance the
-  lifecycle or expand the approved behavior.
+  applicable capabilities with their declared [calls](../protocol.md#calls),
+  populated only from guarantees it has established and authority it holds. It
+  retains their complete results; participants do not advance the lifecycle or
+  expand the approved behavior.
 - **Convergence.** [`remdo-converge-change`](remdo-converge-change.md) runs as a
   black box over the complete [change scope](../change-scope.md). Before it
   runs, the coordinator makes all adopted committed and uncommitted work
@@ -95,7 +96,7 @@ Legend:
   result only when it changes the repository; otherwise the coordinator reuses
   it. Developer review requires a `converged` result for the latest repository
   state. A repeated end state stops with a concern.
-- **Handoff.** The coordinator's [report](../results.md#reports) includes the
+- **Handoff.** The coordinator's [report](../protocol.md#reports) includes the
   exact scope, approved target behavior and its contract owners, participant
   work, verification result, unhandled concerns, tracked gaps, and specific
   manual review needs. It precedes any request for developer acceptance or

@@ -2,16 +2,26 @@
 
 The capability refreshes RemDo's dependencies and repository-owned runtime and
 tooling pins, repairs resulting breakage, and returns an
-[agent result](../results.md#results). Once started, it completes the resolved
+[agent result](../protocol.md#results). Once started, it completes the resolved
 refresh without developer direction and fails when it cannot determine a safe
 resolution.
 
-**Caller provides:** a clean
-[topic branch](../../../../CONTRIBUTING.md#git-workflow) containing only work
-adopted by this refresh, with
-[repository authority](../instructions.md#repository-authority) for refresh-unit
-commits. Refresh relies on that declaration instead of establishing those
-conditions; without it, Refresh fails before changing the repository.
+## Call
+
+The [call](../protocol.md#calls) is:
+
+```yaml
+guarantees:
+  repository:
+    branch: topic
+    worktree: clean
+authority:
+  commits: allowed
+```
+
+`topic` means a [topic branch](../../../../CONTRIBUTING.md#git-workflow);
+`allowed` grants [repository authority](../instructions.md#repository-authority)
+to commit. An absent or incompatible call yields `failed`.
 
 ## Run
 

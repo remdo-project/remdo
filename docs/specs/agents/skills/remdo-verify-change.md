@@ -1,7 +1,7 @@
 # remdo-verify-change
 
 The skill verifies one [change scope](../change-scope.md) and returns an
-[agent result](../results.md#results). It reports evidence and findings without
+[agent result](../protocol.md#results). It reports evidence and findings without
 changing repository state, approving the scope, or controlling its lifecycle.
 
 The verifier resolves its optional input under the change-scope contract. It
@@ -45,8 +45,8 @@ resolved-scope arguments to satisfy that level.
 
 Review [results](../tools/read-only-runner.md#result) are independent; one never
 interrupts another. The verifier re-reports `unavailable` and `failed` as
-[concerns](../results.md#concerns). It maps `responded` to `completed`, includes
-the complete [report](../results.md#reports), and interprets its findings. If
+[concerns](../protocol.md#concerns). It maps `responded` to `completed`, includes
+the complete [report](../protocol.md#reports), and interprets its findings. If
 the report says complete-scope inspection failed or remains uncertain, the
 verifier instead marks the review `failed` and uses the report as evidence.
 

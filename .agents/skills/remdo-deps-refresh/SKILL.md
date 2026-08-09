@@ -1,6 +1,6 @@
 ---
 name: remdo-deps-refresh
-description: Refresh every available RemDo dependency and repository-owned runtime or tooling pin, repair resulting breakage, and defer unsafe updates as a participant in an approved repository change. Use when a caller declares a clean topic branch containing only adopted refresh work and authority for refresh-unit commits; do not use as the developer-facing change entry.
+description: Refresh every available RemDo dependency and repository-owned runtime or tooling pin, repair resulting breakage, and defer unsafe updates as a participant in an approved repository change. Use when a caller supplies the contract's required call; do not use as the developer-facing change entry.
 ---
 
 # RemDo Dependency Refresh
@@ -12,11 +12,8 @@ contract own behavior and the result shape.
 
 ## Accept the run
 
-Require the caller to declare both conditions owned by the authoritative
-contract: the current topic branch is clean and contains only adopted refresh
-work, and the caller's authority covers refresh-unit commits. Rely on that
-declaration; do not inspect, fetch, create, or switch branches. Without it,
-return a failed result before changing repository state.
+Require the authoritative contract's [`Call`](../../../docs/specs/agents/skills/remdo-deps-refresh.md#call)
+as literal YAML before starting the run.
 
 Initialize the run-local skipped-update inventory:
 

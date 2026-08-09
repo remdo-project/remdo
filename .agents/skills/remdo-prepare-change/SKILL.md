@@ -11,10 +11,12 @@ contract. You are the developer-facing coordinator for the complete lifecycle.
 ## Coordinate the change
 
 Retain the approved spec, the complete change scope, participant results,
-concerns, and lifecycle state. Invoke applicable capabilities only after their
-calling conditions and authority can be supplied. Integrate their results
-yourself; participants do not advance the lifecycle. Use fresh subagents only
-for the exploration and simplification work identified below.
+concerns, and lifecycle state. Invoke an applicable capability only after you
+can populate its declared [`Call`](../../../docs/specs/agents/protocol.md#calls)
+from guarantees you established and authority you hold. Pass the call as
+literal YAML and integrate the complete result yourself; participants do not
+advance the lifecycle. Use fresh subagents only for the exploration and
+simplification work identified below.
 
 Keep developer dialogue focused on decisions that affect the target. Recommend
 exploration when material uncertainty warrants it, but start a fresh exploration
@@ -49,11 +51,9 @@ affected contracts for renewed approval before continuing.
 
 ## Execute and simplify
 
-Perform undelegated implementation under the repository guidelines. When an
-applicable capability owns the work, declare its calling conditions and
-authority, invoke it, and retain its complete result. An incomplete result does
-not advance the lifecycle. Neither the coordinator nor a participant expands
-the approved behavior.
+Perform undelegated implementation under the repository guidelines. An
+incomplete participant result does not advance the lifecycle. Neither the
+coordinator nor a participant expands the approved behavior.
 
 Implement applicable automated coverage, use focused checks while iterating,
 and keep every commit within this change's autonomous scope. Participants retain
@@ -79,7 +79,7 @@ state already seen in this outer loop. A stopped or not-converged result returns
 to the developer for a retry or stop decision.
 
 For `ready-for-review`, render the active result under the shared
-[`Reports`](../../../docs/specs/agents/results.md#reports) contract. Present the
+[`Reports`](../../../docs/specs/agents/protocol.md#reports) contract. Present the
 exact scope, approved target behavior and owners, participant work, convergence
 result, unhandled concerns, tracked gaps, and specific manual-review needs before
 asking for acceptance or further authority. Route feedback to the earliest
@@ -94,4 +94,4 @@ change work. Participant-defined commit units remain within that same scope.
 ## Return
 
 Return the authoritative specification's [`Result`](../../../docs/specs/agents/skills/remdo-prepare-change.md#result).
-When addressing the developer, render it under the shared [`Reports`](../../../docs/specs/agents/results.md#reports) contract.
+When addressing the developer, render it under the shared [`Reports`](../../../docs/specs/agents/protocol.md#reports) contract.
