@@ -22,6 +22,8 @@ daemons are supported.
      The launcher derives the canonical URL from that hostname and `PORT`.
    - Otherwise, set `APP_PUBLIC_URL` to the exact direct HTTPS origin and set
      `PORT` to that origin's effective port.
+   - With rootless Docker, use port 1024 or higher unless the host allows the
+     daemon to publish lower ports.
 4. Run the [production Docker launcher](../../tools/prod/docker.sh):
 
    ```sh
