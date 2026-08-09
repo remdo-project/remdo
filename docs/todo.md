@@ -31,12 +31,11 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   `docs/specs/agents/skills/` for `playground` and `remdo-simplify`, then align
   their execution procedures and links.
 
-- **Agent skill complexity review.** Review every skill for custom scripts and
-  state machines that encode adaptive work without enough robustness to justify
-  their maintenance. Prefer concise intent plus deterministic checks of stable
-  repository invariants. Use `remdo-deps-refresh`'s walking gate and external
-  pin updaters as the first case, then align each affected specification,
-  procedure, implementation, and coverage.
+- **Agent skill complexity review.** Continue reviewing the remaining skills
+  for custom scripts and state machines that encode adaptive work without enough
+  robustness to justify their maintenance. Prefer concise intent plus
+  deterministic checks of stable repository invariants, then align each
+  affected specification, procedure, implementation, and coverage.
 
 - **Prepare-change lifecycle.** Reconsider its dialogue, specification,
   approval, and execution flow as a whole so it is simple, flexible, and clear.
