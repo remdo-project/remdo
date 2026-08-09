@@ -12,7 +12,8 @@ Generate a unique random `ADMIN_SECRET` using the guidance in the
 
 ## Deploy with Self-Hosted Docker
 
-This procedure requires a running rootless Docker daemon.
+This procedure requires a running Docker daemon; rootless and rootful production
+daemons are supported.
 
 1. Copy [`.env.example`](../../.env.example) to `.env`.
 2. Set `ADMIN_SECRET` and set `DATA_DIR` to the instance's persistent host directory.
@@ -31,7 +32,8 @@ This procedure requires a running rootless Docker daemon.
 
 5. Open the printed `Docker target`. The browser must trust or explicitly
    accept the container gateway's internal certificate.
-6. Keep the launcher running while using RemDo. Stopping it retains `DATA_DIR`.
+6. Keep the launcher running while using RemDo. Stopping it removes the
+   container and retains `DATA_DIR`.
 
 ## Deploy on Render
 
