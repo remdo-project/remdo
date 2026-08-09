@@ -1,7 +1,7 @@
 # remdo-merge-main
 
 This capability merges `origin/main` into the current branch, verifies the
-change, and returns an [agent result](../results.md#results). Requested local
+change, and returns an [agent result](../protocol.md#results). Requested local
 work may be preserved; unrelated branch convergence and remote mutation are
 outside the capability. Concurrent repository mutation and recovery from an
 interrupted run are also outside the capability.

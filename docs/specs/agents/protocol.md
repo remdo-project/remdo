@@ -1,11 +1,29 @@
-# Agent results and reports
+# Capability protocol
 
-Capabilities return structured results to callers and render human-readable
-reports. Each capability owns its outcomes and fields.
+Capabilities exchange structured calls and results. The capability addressing
+a human renders its result as a report. Each capability owns its call fields,
+outcomes, and result fields.
+
+## Calls
+
+Before invocation, a caller establishes the required guarantees, holds the
+declared authority, and passes the capability's call as literal YAML:
+
+```yaml
+guarantees:
+  <capability-owned guarantees>
+authority:
+  <capability-owned authority>
+```
+
+Each capability contract defines its exact call and rejection result. The
+capability validates the declaration, trusts its guarantees rather than
+re-establishing them, and rejects it before mutation when a required field is
+absent or incompatible.
 
 ## Results
 
-Results begin with:
+A capability returning to a caller returns literal YAML beginning with:
 
 ```yaml
 outcome: <capability-owned outcome>
@@ -17,11 +35,9 @@ concerns: # if any
 
 Capability contracts define additional fields that add detail without replacing
 `concerns`. In examples, `# if ...` marks a conditional field. Results explain
-omitted work when its absence affects the caller's interpretation.
-
-YAML shapes define capability-to-caller data, not required literal output. A
-capability addressing a human renders that result as its report instead of also
-printing the YAML shape.
+omitted work when its absence affects the caller's interpretation. A capability
+addressing a human renders the result as its report instead of also returning
+the YAML.
 
 ## Concerns
 

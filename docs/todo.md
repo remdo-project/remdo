@@ -28,9 +28,26 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 ### Documentation
 
 - **Agent skill specifications.** Establish accepted-behavior owners under
-  `docs/specs/agents/skills/` for `playground`, `remdo-deps-refresh`, and
-  `remdo-simplify`, then align each skill's execution procedure and links with
-  its specification.
+  `docs/specs/agents/skills/` for `playground` and `remdo-simplify`, then align
+  their execution procedures and links.
+
+- **Prepare-change lifecycle.** Reconsider its dialogue, specification,
+  approval, and execution flow as a whole so it is simple, flexible, and clear.
+  Cover both underdetermined changes that require developer decisions and
+  already-determined changes—such as an explicit dependency refresh request
+  after branch selection—that should not require redundant target confirmation.
+  Define how accepted contracts, explicit instructions, branch and adopted-work
+  decisions, and later evidence establish or reopen decisions, then align the
+  specification and skill.
+
+- **Agent repository-authority declarations.** Define compact authority modes
+  in [Agent instructions](specs/agents/instructions.md#repository-authority) and
+  replace repeated per-skill permission prose with linked declarations.
+
+- **Condition ownership beyond capability calls.** Evaluate whether the
+  [capability protocol](specs/agents/protocol.md) should generalize to other
+  component boundaries. Define how independently invocable and
+  invalidation-prone boundaries establish conditions without redundant checks.
 
 - **Large-scope documentation alignment.** Evaluate the structured finding
   schema and parallel specialist-reviewer layout from the Upkeep skill
@@ -50,6 +67,14 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   from the source tree and enforcement.
 
 ### Testing
+
+- **Verification ownership and lifecycle.** Assign repository checks, browser
+  and Docker E2E, cleanup and policy audits, dependency-install consistency,
+  and local versus CI evidence to clear durable and executable owners. Define
+  when each runs and which mutations invalidate its result, then revisit
+  [dependency-refresh verification](specs/agents/skills/remdo-deps-refresh.md#verification)
+  and other capability specifications so they reference those owners and run
+  each check at the correct lifecycle point.
 
 - **Docker E2E diagnostic runtime.** Reconsider the removal-on-exit lifecycle in
   `docs/specs/testing/test-harness.md`. Evaluate retaining runtime data and
@@ -145,6 +170,12 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Agents
 
+- **Capability protocol adoption.** Identify agent capabilities used as
+  composable participants, give their specifications explicit `Call` and
+  `Result` sections conforming to the
+  [capability protocol](specs/agents/protocol.md), then align their execution
+  procedures. Do not invent calls for developer-facing entry points.
+
 - **Configured-upstream synchronization.** Design a capability separate from
   [`remdo-merge-main`](specs/agents/skills/remdo-merge-main.md) that synchronizes
   the current branch with its configured upstream. Classify fast-forward,
@@ -182,7 +213,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 - **Structured reviewer results.** Evaluate provider-supported structured
   findings, such as JSON Schema output, without weakening native review or
-  evidence. If viable, define verifier normalization into the shared [agent result](specs/agents/results.md#results).
+  evidence. If viable, define verifier normalization into the shared [agent result](specs/agents/protocol.md#results).
 
 - **Post-skill retrospectives.** Make an on-demand retrospective available
   after skill runs, using saved session logs to explain elapsed time, repeated

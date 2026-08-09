@@ -1,6 +1,6 @@
 ---
 name: remdo-prepare-change
-description: Coordinate an explicitly requested RemDo repository change from focused requirements dialogue through owning-branch setup, specification approval, implementation, simplification, convergence, and developer handoff. Use when the developer invokes $remdo-prepare-change or asks to run the prepare-change workflow for a new or existing change.
+description: Act as the developer-facing entry for an explicitly requested RemDo repository change, coordinating focused requirements dialogue, owning-branch setup, specification approval, applicable capabilities or direct implementation, simplification, convergence, and handoff. Use when the developer invokes $remdo-prepare-change for a new or existing change.
 ---
 
 # RemDo Prepare Change
@@ -11,8 +11,12 @@ contract. You are the developer-facing coordinator for the complete lifecycle.
 ## Coordinate the change
 
 Retain the approved spec, the complete change scope, participant results,
-concerns, and lifecycle state. Delegate only the fresh-context work identified
-below. Integrate participant results yourself; participants do not advance the lifecycle.
+concerns, and lifecycle state. Invoke an applicable capability only after you
+can populate its declared [`Call`](../../../docs/specs/agents/protocol.md#calls)
+from guarantees you established and authority you hold. Pass the call as
+literal YAML and integrate the complete result yourself; participants do not
+advance the lifecycle. Use fresh subagents only for the exploration and
+simplification work identified below.
 
 Keep developer dialogue focused on decisions that affect the target. Recommend
 exploration when material uncertainty warrants it, but start a fresh exploration
@@ -21,15 +25,15 @@ question, scope, result, and return point without your proposed answer.
 
 ## Ready the owning branch
 
-Before the first retained edit, establish the repository authority required by
-the contract. Fetch `origin/main`, determine the base and adopted work, and make
-one topic branch own only that work. Use [`create-branch-from-base.sh`](../_shared/tools/create-branch-from-base.sh) when
-creating a branch directly from the base; transfer adopted work only when the
-contract requires a replacement branch and current authority permits it.
+After quick dialogue and before the first retained edit, fetch `origin/main`,
+determine the base and adopted work, and make one topic branch own only that
+work. Use [`create-branch-from-base.sh`](../_shared/tools/create-branch-from-base.sh)
+when creating a branch directly from the base; transfer only adopted work when
+the contract requires a replacement branch.
 
 Do not advance when unrelated work remains in the candidate range or working
-tree. Surface a concern when branch readiness cannot be established without
-authority or an unsafe interpretation of existing work.
+tree. Surface a concern when branch readiness requires an unsafe interpretation
+of existing work or a developer decision about the base or adopted scope.
 
 ## Prepare and approve the specification
 
@@ -42,14 +46,18 @@ the active result. Before requesting approval, surface unresolved behavior,
 concerns, and tracked gaps.
 
 Require explicit developer approval of the prepared target behavior before
-implementation. If later evidence requires different behavior, return the
+execution. If later evidence requires different behavior, return the
 affected contracts for renewed approval before continuing.
 
-## Implement and simplify
+## Execute and simplify
 
-Implement the approved behavior and its automated coverage under the repository
-guidelines. Use focused checks while iterating. Keep repository commits within
-the authority established for this run.
+Perform undelegated implementation under the repository guidelines. An
+incomplete participant result does not advance the lifecycle. Neither the
+coordinator nor a participant expands the approved behavior.
+
+Implement applicable automated coverage, use focused checks while iterating,
+and keep every commit within this change's autonomous scope. Participants retain
+their contract-defined commit units.
 
 Delegate a bounded, fresh-context simplification review of the complete current
 end state. Use `$remdo-simplify` for code and tests; use the applicable
@@ -64,25 +72,26 @@ representable as one supported [`change scope`](../../../docs/specs/agents/chang
 authority you do not hold, surface a concern and stop before convergence.
 
 Invoke `$remdo-converge-change` as a black box over that complete scope. When it
-applies corrections, simplify the changed end state again before reinvoking it.
-Stop with a concern rather than revisit an end state already seen in this outer
-loop. A stopped or not-converged result returns to the developer for a retry or
-stop decision.
+applies corrections, simplify the changed end state. Reinvoke convergence only
+when simplification changes the repository; otherwise retain the converged
+result for that unchanged state. Stop with a concern rather than revisit an end
+state already seen in this outer loop. A stopped or not-converged result returns
+to the developer for a retry or stop decision.
 
 For `ready-for-review`, render the active result under the shared
-[`Reports`](../../../docs/specs/agents/results.md#reports) contract. Present the
-exact scope, approved target behavior and owners, convergence result, unhandled
-concerns, tracked gaps, and specific manual-review needs before asking for
-acceptance or further authority. Route feedback to the earliest affected step.
-Return `completed` only after developer acceptance.
+[`Reports`](../../../docs/specs/agents/protocol.md#reports) contract. Present the
+exact scope, approved target behavior and owners, participant work, convergence
+result, unhandled concerns, tracked gaps, and specific manual-review needs before
+asking for acceptance or further authority. Route feedback to the earliest
+affected step. Return `completed` only after developer acceptance.
 
 ## Authority
 
-This skill declares no autonomous repository scope. Retain the exact authority
-the developer grants during quick dialogue. Invocation or specification
-approval alone authorizes no branch creation, commit, push, merge, or pull request.
+Invocation declares the authoritative specification's autonomous scope. Enter
+owning-branch preparation only after quick dialogue and execute only approved
+change work. Participant-defined commit units remain within that same scope.
 
 ## Return
 
 Return the authoritative specification's [`Result`](../../../docs/specs/agents/skills/remdo-prepare-change.md#result).
-When addressing the developer, render it under the shared [`Reports`](../../../docs/specs/agents/results.md#reports) contract.
+When addressing the developer, render it under the shared [`Reports`](../../../docs/specs/agents/protocol.md#reports) contract.

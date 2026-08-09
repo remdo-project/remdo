@@ -6,7 +6,9 @@ and maintained. The evidence does not define accepted behavior or
 [documentation rules](../../documentation.md).
 
 The current contracts represented by this evidence are
-[`remdo-verify-change`](../agents/skills/remdo-verify-change.md) and the [read-only runner](../agents/tools/read-only-runner.md).
+[`remdo-deps-refresh`](../agents/skills/remdo-deps-refresh.md),
+[`remdo-verify-change`](../agents/skills/remdo-verify-change.md), and the
+[read-only runner](../agents/tools/read-only-runner.md).
 
 A **feedback case** preserves evidence for later specification research and
 testing. `Post-change` is the version considered a better fit for the recorded
@@ -112,3 +114,9 @@ rule, move it to [Documentation](../../documentation.md) and remove it here.
 - [Delegated responsibility restatement](cases/delegated-responsibility-restatement/README.md)
   — a verifier stopped summarizing behavior owned by its linked runner and
   provider-specific sections.
+- [Workflow action presentation](cases/workflow-action-presentation.md) — a
+  dependency-refresh draft mixed negative boundaries and out-of-order actions
+  while its target presentation remained open.
+- [Run setup step granularity](cases/run-setup-step-granularity.md) — a
+  dependency-refresh run compressed three ordered setup actions into one list
+  item before splitting their responsibilities into separate steps.

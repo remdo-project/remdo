@@ -1,167 +1,102 @@
 ---
-name: "remdo-deps-refresh"
-description: "Use when refreshing RemDo dependencies. The batched, test-gated replacement for processing Dependabot npm PRs by hand: in one run, apply EVERY available upgrade (lockfile deps, pnpm/Node/GitHub-Actions pins, majors included), then investigate and autoheal any breakage and report what changed, broke, and was fixed. The user runs it and walks away; only genuine dead-ends come back."
+name: remdo-deps-refresh
+description: Refresh every available RemDo dependency and repository-owned runtime or tooling pin, repair resulting breakage, and defer unsafe updates as a participant in an approved repository change. Use when a caller supplies the contract's required call; do not use as the developer-facing change entry.
 ---
 
-# Dependency Refresh
+# RemDo Dependency Refresh
 
-## Intent
+Run the authoritative
+[`remdo-deps-refresh`](../../../docs/specs/agents/skills/remdo-deps-refresh.md)
+contract. Use the commands below for repository-specific execution; let the
+contract own behavior and the result shape.
 
-This skill is the batched, test-gated replacement for processing Dependabot npm
-PRs by hand. The user treats Dependabot PRs and security alerts as a single
-signal — "something to refresh" — and the first thing they do is run this skill,
-then switch to other work. So the skill owns the **whole loop**: apply
-everything, investigate any breakage, heal it, and leave a report of what happened.
+## Accept the run
 
-Operating principle: **apply everything, then make it green.**
+Require the authoritative contract's [`Call`](../../../docs/specs/agents/skills/remdo-deps-refresh.md#call)
+as literal YAML before starting the run.
 
-1. **Apply every available upgrade** — lockfile dependencies and the
-   out-of-lockfile tooling pins (pnpm, Node, GitHub Actions), **majors included.**
-   A deterministic gate surfaces one change at a time and the skill heals each
-   before the next (see "The loop"); there is no "stop and ask about this major"
-   step — pausing to ask just defers the same work and contradicts the
-   run-and-walk-away intent.
-2. **The checks are the gate**, not human judgement: the full local suites here,
-   plus the CI matrix when the refresh branch is pushed. The push itself stays
-   the user's — see Permissions — so report the CI leg as pending, not covered.
-   A regression that the suites catch is for the skill to diagnose and fix now,
-   from the failure in hand — the same investigation a "stop" would have produced,
-   just without the wait.
-3. **Report, don't prompt.** The user does not want "heads-up, Node has a new
-   major" or "heads-up, unit tests failed." They want, after the fact: what was
-   upgraded, what broke, what was done about it, and what (if anything) is a true
-   dead-end. Surface only genuine dead-ends — a break the skill could not safely
-   resolve, or a change whose correctness the tests cannot establish.
-
-## Start on a fresh branch
-
-At the start of each new run, before applying an update, run:
+Initialize the run-local skipped-update inventory:
 
 ```sh
-sh .agents/skills/remdo-deps-refresh/tools/start-refresh-branch.sh
+state_dir="$(git rev-parse --show-toplevel)/.agent/remdo-deps-refresh"
+mkdir -p "$state_dir"
+truncate -s 0 "$state_dir/skipped"
 ```
 
-The script refuses a dirty tree, fetches `origin`, and creates the next available
-`chore/deps-refresh-<date>` branch from the fetched `origin/main` without an
-upstream. Record the reported branch and base for the final response. On a
-non-zero exit, resolve the condition it names or report it as a dead-end; never
-apply refresh changes on the branch where the skill was invoked. When continuing
-the same run after an interruption, stay on its recorded refresh branch instead
-of starting another run.
+Before normal selection, run `pnpm run todo:list` and retry each package
+deferral recorded under `updateConfig.ignoreDependencies`, in file order:
 
-## The loop
+1. Record the package selectors and associated constraints, then remove their
+   `TODO(deps):` marker, ignore entries, and any override or workaround that
+   keeps the dependency at its deferred version.
+2. Run `pnpm update --latest --workspace-root <selectors>` and normalize
+   `pnpm-workspace.yaml` with `CI=1 pnpm exec eslint --fix
+   pnpm-workspace.yaml`.
+3. Reject a resolved-version downgrade. Use the marker's rationale to add
+   applicable verification; run `pnpm run audit:security` for a
+   security-related deferral.
+4. Reconcile and verify this update as described below. If no package version
+   changes, first confirm that the resolved graph satisfies the deferred update
+   and no remaining pin prevented the retry; only then is the removed deferral
+   the selected change.
 
-The work is a loop the skill drives — that is where the autohealing lives. The
-deterministic part is scripted: `pnpm run deps:next` (this skill's
-`next-update.sh`) runs an ordered list of update steps and **stops at the first
-one that changes the repo**, so the skill always handles exactly one change at a
-time. The gate itself only *detects* which step did work. Version-selection
-policy lives in the deterministic `bump-*.sh` helpers each step runs (latest
-pnpm release with its exact corepack hash, newest LTS Node whose alpine base is
-published, latest
-release major for floating action tags); the skill's own job is to run the gate
-and heal whatever the resulting change breaks — not to pick versions itself.
+Reconsider other `TODO(deps):` and `FIXME(deps):` workarounds only when a
+selected update affects them.
 
-Gate exit codes:
+## Select updates
 
-- **3** — a step changed the repo; the gate printed which one. Investigate that
-  one change, make it green, then run the gate again.
-- **0** — every step was a no-op. Nothing left to update; go to "Finish".
-- **other (1, 2, …)** — a step itself errored (network, a helper, or the
-  `audit:policy` pin guard). A real failure to debug, then re-run.
-  Known case: right after the `pnpm pin` item crosses a pnpm **major**, the next
-  gate run fails with `ERR_PNPM_UNEXPECTED_STORE` (node_modules was linked by the
-  old major). Heal it with `CI=true pnpm install --no-frozen-lockfile` to rebuild
-  the store, then re-run the gate. A package upgrade can likewise make a registered
-  [dependency patch](../../../docs/dev/dependency-maintenance.md#dependency-patches)
-  unused or inapplicable. Reconcile it as part of that upgrade using the patch
-  procedure below; do not enable `allowUnusedPatches` to bypass the failure.
+Run `pnpm run deps:next`. Its ordered selector covers workspace packages, the
+pnpm pin and integrity, synchronized Node pins, and floating GitHub Actions
+majors. It stops after the first changed category.
 
-Iterate:
+- Exit `3`: reconcile the named update, verify it, commit it, then select again.
+- Exit `0`: inspect Dependabot and report the result.
+- Any other exit: diagnose the selector failure. Repair and retry it when safe;
+  otherwise return a failed result.
 
-1. Run `pnpm run deps:next`.
-2. **Exit 3** — the gate names the changed item (e.g. `lockfile deps`,
-   `pnpm pin`, `node pins`, `github actions`). Handle just that item:
-   1. Reconcile each registered patch affected by the update. Remove its old
-      exact-version registration, install the upgraded package unpatched, and
-      run the focused regression named beside the registration. If the
-      regression passes, retire the patch; if it fails, regenerate the patch
-      for the new exact version with `pnpm patch` and `pnpm patch-commit`, then
-      rerun the regression.
-   2. Verify it green: `pnpm run check:full`, `pnpm run test:e2e`,
-      `pnpm run audit:cleanup`, and
-      `CI=true pnpm install --no-frozen-lockfile` as the consistency gate. For a
-      **Node** change also run `pnpm run test:e2e:docker` (the only local surface
-      that exercises the alpine base); other items lean on the docker-tests CI job
-      when the refresh branch is pushed.
-   3. **If anything fails, heal it — this is the core job, not a hand-back.**
-      Diagnose from the failure in hand and fix forward: adjust a workaround in
-      its code or configuration site, pin a known-bad transitive, correct
-      config, or make the minimal code/test change the bump requires. Re-run
-      until green. When the failure doesn't name its culprit (the lockfile item
-      moves many packages at once), bisect it: restore `pnpm-workspace.yaml` +
-      `pnpm-lock.yaml`, re-apply the catalog bumps in halves — running `CI=true
-      pnpm install --no-frozen-lockfile` after each half so `node_modules`
-      matches it — and re-run the failing check.
-   4. Record any dependency-specific follow-up you introduce or retain under
-      the [code-comment convention](../../../CONTRIBUTING.md#code-comments),
-      using the exact `TODO(deps):` or `FIXME(deps):` marker.
-   5. For a notable jump, skim the release notes — to inform the fix and to flag
-      a behavior-affecting change for the report. Opportunistically apply a
-      simplification newly-provided functionality enables (upside, never a
-      per-package chore).
-3. **Loop guard (detect a hang):** if the gate reports the **same item** twice in
-   a row with no forward progress — your handling didn't actually resolve it —
-   stop iterating on it and investigate why (a helper that keeps re-applying, a
-   fix that doesn't stick). Treat an unresolvable one as a dead-end (report), not
-   an infinite loop.
-4. Repeat until the gate exits 0.
+The selector skips each exact gate label recorded in
+`.agent/remdo-deps-refresh/skipped`.
 
-## Permissions
+## Reconcile an update
 
-Running this skill is an explicitly declared autonomous scope (per AGENTS.md):
-invoking it authorizes the initial fetch and topic-branch creation, then the loop
-commits each healed upgrade on the branch reported by the startup script. Never
-commit on `main` or `dev`, and never push. Pushing the refresh branch to trigger
-the CI matrix stays a separate explicit ask by the user.
+Keep each selected update and its corrections as one refresh unit.
+
+1. Inspect the update and apply every correction established by accepted
+   behavior and verification evidence. Use release notes when they help
+   identify migration work or behavior worth reporting.
+2. Follow the specification's
+   [dependency-patch procedure](../../../docs/specs/agents/skills/remdo-deps-refresh.md#dependency-patches).
+   To test an upgraded dependency without its registered patch, remove the
+   registration, install, and run the focused regression named beside it. A
+   proposed new patch enters the deferral path without prompting during the run.
+3. Record a dependency-specific workaround introduced or retained during repair
+   with the exact `TODO(deps):` or `FIXME(deps):` marker under the
+   [tracked-comment policy](../../../CONTRIBUTING.md#code-comments).
+4. After the latest mutation, run `pnpm run check:full`, `pnpm run test:e2e`,
+   `pnpm run audit:cleanup`, and `CI=true pnpm install --no-frozen-lockfile`.
+   For a Node-pin update, also run `pnpm run test:e2e:docker`.
+5. When verification passes, commit the complete refresh unit and select again.
+
+When a pnpm-major update leaves `node_modules` linked by the old store, run
+`CI=true pnpm install --no-frozen-lockfile` before retrying the selector. When a
+workspace update obscures the package causing a failure, isolate it by applying
+smaller package groups from the preceding committed state.
+
+## Defer an update
+
+When following the specification's deferral path, add package selectors to
+`updateConfig.ignoreDependencies`. For a tooling category, append its exact gate
+label to `.agent/remdo-deps-refresh/skipped`; the committed `TODO(deps):` reason
+remains beside a comment-capable selector or configuration owner.
 
 ## Finish
 
-Once the gate is green (exit 0):
+After no update remains selectable, inspect open Dependabot alerts and
+security-update pull requests with `gh`. Report each as `covered here`, `already
+on default branch`, `unresolved`, or `blocked intentionally`.
 
-1. Run `pnpm run todo:list` and inspect only entries using the exact
-   `TODO(deps):` or `FIXME(deps):` marker. Run each available probe against the
-   refreshed dependency graph. Remove the marker and its workaround when the
-   probe passes; retain them when it does not.
-2. Reconcile open Dependabot PRs and alerts via `gh` — bookkeeping, not a second
-   decision loop. Apply only genuine `unresolved` follow-ups. Classify each:
-   `covered here`, `already on default branch`, `unresolved`, or `blocked intentionally`.
-
-## Final Response
-
-A report of what happened — the user reads this after walking away, so make it
-self-contained. Sections (omit a section if empty):
-
-1. **Upgraded** — notable version bumps (lockfile deps) and the tooling pins
-   (pnpm, Node, GitHub Actions), with majors marked.
-2. **Majors crossed** — each major bump applied this run, with a
-   changelog/release-notes link and a one-line "behaviour to watch" note where the
-   notes flag something. This is the curated starting point for later
-   investigation if something feels off — the value the old "stop" gave, delivered
-   as a report.
-3. **Broke / fixed** — every check that failed, the root cause, and the fix
-   applied to make it green. The point of the run: show the work, not just "all
-   green".
-4. **Dependency patches** — each affected patch classified as retained,
-   regenerated, or removed, with its focused regression result.
-5. **Dependency follow-up** — dependency-related tracked comments removed,
-   updated, or retained after their probes.
-6. **Dependabot reconciliation** — each item classified (`covered here` /
-   `already on default branch` / `unresolved` / `blocked intentionally`).
-7. **Dead-ends** — anything the skill could not safely resolve (a needed broad
-   migration, an ambiguous behavior change the tests cannot adjudicate), with what
-   was tried. Omit if none. This is the only category that genuinely needs the
-   user; everything else was handled.
-8. **Checks** — each final verification command with its pass/fail result, the
-   refresh branch and base, and the CI matrix leg marked pending until the user
-   pushes that branch.
+Return the specification's
+[`Result`](../../../docs/specs/agents/skills/remdo-deps-refresh.md#result) to the
+caller, including every update commit, correction, patch and follow-up
+disposition, Dependabot disposition, and verification result. The caller owns
+the complete change scope and developer-facing report.
