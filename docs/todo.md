@@ -31,6 +31,13 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   `docs/specs/agents/skills/` for `playground` and `remdo-simplify`, then align
   their execution procedures and links.
 
+- **Agent skill complexity review.** Review every skill for custom scripts and
+  state machines that encode adaptive work without enough robustness to justify
+  their maintenance. Prefer concise intent plus deterministic checks of stable
+  repository invariants. Use `remdo-deps-refresh`'s walking gate and external
+  pin updaters as the first case, then align each affected specification,
+  procedure, implementation, and coverage.
+
 - **Prepare-change lifecycle.** Reconsider its dialogue, specification,
   approval, and execution flow as a whole so it is simple, flexible, and clear.
   Cover both underdetermined changes that require developer decisions and
@@ -55,6 +62,12 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 - **Skill-prose pressure testing.** Evaluate superpowers `writing-skills`
   adversarial subagent trials as an additional check for skill-file prose.
+
+- **Markdown link-aware wrapping.** Define rendered-width paragraph reflow that
+  preserves natural sentence and clause boundaries while ignoring hidden link
+  and image destinations. Clarify the authoring rule and its agent discovery,
+  determine which premature wraps can be rejected deterministically without
+  requiring mechanical greedy wrapping, and align affected maintained prose.
 
 ### Editor
 
@@ -100,6 +113,19 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   the harness.
 
 ### Operations
+
+- **Docker gateway and process topology.** Retain Caddy as the gateway while the
+  production runtime remains a single container; replacing only the proxy does
+  not simplify that topology. Define supported direct-public, private
+  internal-CA, and externally terminated HTTPS modes, use Caddy's automatic
+  certificate management for the direct-public mode, enable compression for
+  eligible SPA assets, and simplify the resulting Caddy environment derivation
+  without weakening the [canonical-origin and loopback-only service boundaries](architecture.md#routing-and-origin-boundary).
+  Evaluate a one-process-per-container deployment separately: if adopted, give
+  each service a fixed internal port, move process lifecycle to the container
+  runtime, retain one browser-facing gateway, and remove obsolete shell
+  background-process launching, multi-port configuration, launcher, test, and
+  documentation machinery.
 
 - **Hosted production backups.** Define the scheduled backup and recovery
   workflow for hosted deployments, then align `docker/Dockerfile`,

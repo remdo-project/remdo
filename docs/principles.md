@@ -23,6 +23,8 @@ RemDo's product principles are assumptions that outrank current implementation d
 
 ## Deployment targets
 
+These are long-term targets; [Run Modes](run-modes.md) owns the supported run modes.
+
 RemDo should support:
 
 1. Easy local development and testing.

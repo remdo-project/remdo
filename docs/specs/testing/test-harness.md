@@ -1,9 +1,11 @@
 # Test Harness
 
 The test harness gives each working directory an isolated verification runtime
-and owns its startup, cleanup, and diagnostic-data lifecycle. The contributor
-[testing policy](../../dev/testing.md) separately owns coverage obligations and
+and owns its startup, cleanup, and diagnostic-data lifecycle.
+[Running Tests](../../guides/testing.md) owns supported verification procedures, setup, and invocation.
+The contributor [testing policy](../../dev/testing.md) separately owns coverage obligations and
 automated test-level selection.
+[Run Modes](../../run-modes.md) owns the supported run-mode set.
 
 ## Unit Tests
 
@@ -34,12 +36,12 @@ the next invocation.
 
 ## Docker E2E Tests
 
-Docker E2E builds and verifies the production-style container stack against
+Docker E2E builds and verifies the production container against
 temporary runtime data. It also reaches a production-launcher container through
 its bridge-published port. The invocation removes its containers and runtime
 data when it finishes or fails.
 
-## CI
+## CI Environment
 
 CI runs the same full harness variants and lifecycles as local full runs. The CI
 runner provides their working-directory and runtime-data isolation.

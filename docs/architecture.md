@@ -7,6 +7,9 @@ with their outliner owners.
 
 ## Delivery Surfaces
 
+Delivery surfaces describe architectural forms; [Run Modes](run-modes.md) owns the supported
+Production, Development, and Verification run modes.
+
 - **Hosted Web:** SPA served from server/CDN and loaded by browser.
 - **PWA Shell:** Hosted web plus service worker/manifest for offline app-shell
   entry. In production builds, the service worker caches shell/navigation

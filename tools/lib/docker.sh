@@ -34,7 +34,7 @@ remdo_require_rootless_docker() {
     return 0
   fi
 
-  echo "Local Docker mode requires a rootless Docker daemon." >&2
+  echo "Local Docker requires a rootless Docker daemon." >&2
   echo "This launcher no longer supports rootful Docker because it cannot keep repo data user-owned without extra runtime complexity." >&2
   return 1
 }
