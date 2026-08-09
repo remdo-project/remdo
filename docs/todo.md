@@ -35,6 +35,15 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   `docs/specs/agents/skills/` for `playground` and `remdo-simplify`, then align
   their execution procedures and links.
 
+- **Prepare-change lifecycle.** Reconsider its dialogue, specification,
+  approval, and execution flow as a whole so it is simple, flexible, and clear.
+  Cover both underdetermined changes that require developer decisions and
+  already-determined changes—such as an explicit dependency refresh request
+  after branch selection—that should not require redundant target confirmation.
+  Define how accepted contracts, explicit instructions, branch and adopted-work
+  decisions, and later evidence establish or reopen decisions, then align the
+  specification and skill.
+
 - **Agent repository-authority declarations.** Define compact authority modes
   in [Agent instructions](specs/agents/instructions.md#repository-authority) and
   replace repeated per-skill permission prose with linked declarations.
