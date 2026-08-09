@@ -55,15 +55,19 @@ documentation. Route agents by the question they need to answer:
 - **Contributor decisions:** [Contributing](../../../CONTRIBUTING.md).
   - **Branches and commits:** [Git workflow](../../../CONTRIBUTING.md#git-workflow).
   - **Supported runtimes:** [Runtime baseline](../../../CONTRIBUTING.md#runtime-baseline).
+  - **Cross-mode change impact:** [Run-Mode Impact](../../../CONTRIBUTING.md#run-mode-impact).
   - **Compatibility defaults:** [Backward compatibility](../../../CONTRIBUTING.md#backward-compatibility-pre-10).
   - **Tracked code comments:** [Code comments](../../../CONTRIBUTING.md#code-comments).
   - **Testing quality and coverage:** [Testing](../../dev/testing.md).
 - **Long-term product constraints:** [Project principles](../../principles.md).
+- **Supported run modes:** [Run Modes](../../run-modes.md).
+  - **Production procedures:** [Production Deployment](../../guides/production-deployment.md).
+  - **Development procedures:** [Local Development](../../guides/local-development.md).
+  - **Verification procedures:** [Running Tests](../../guides/testing.md).
+  - **Verification lifecycle:** [Test Harness](../testing/test-harness.md).
 - **Runtime configuration:** [Configuration](../runtime/configuration.md).
   - **Port and origin derivation:** [Derivation rules](../runtime/configuration.md#derivation-rules).
-- **Verification runtime:** [Test Harness](../testing/test-harness.md).
 - **Tracked repository follow-up:** [RemDo TODO](../../todo.md#tracked-follow-up).
-- **Local runtime procedures:** [Local Development](../../dev/guides/local-development.md).
 - **Specification evidence boundaries:** [Specification Feedback Cases](../feedback-cases/README.md).
 - **Task behavior:** its current owner, located by filename and scope opener
   under `docs/`.

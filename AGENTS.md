@@ -18,15 +18,19 @@ owner. Provider-specific surfaces may load it alongside their own rules.
 - **Contributor decisions:** [Contributing](CONTRIBUTING.md).
   - **Branches and commits:** [Git workflow](CONTRIBUTING.md#git-workflow).
   - **Supported runtimes:** [Runtime baseline](CONTRIBUTING.md#runtime-baseline).
+  - **Cross-mode change impact:** [Run-Mode Impact](CONTRIBUTING.md#run-mode-impact).
   - **Compatibility defaults:** [Backward compatibility](CONTRIBUTING.md#backward-compatibility-pre-10).
   - **Tracked code comments:** [Code comments](CONTRIBUTING.md#code-comments).
   - **Testing quality and coverage:** [Testing](docs/dev/testing.md).
 - **Long-term product constraints:** [Project principles](docs/principles.md).
+- **Supported run modes:** [Run Modes](docs/run-modes.md).
+  - **Production procedures:** [Production Deployment](docs/guides/production-deployment.md).
+  - **Development procedures:** [Local Development](docs/guides/local-development.md).
+  - **Verification procedures:** [Running Tests](docs/guides/testing.md).
+  - **Verification lifecycle:** [Test Harness](docs/specs/testing/test-harness.md).
 - **Runtime configuration:** [Configuration](docs/specs/runtime/configuration.md).
   - **Port and origin derivation:** [Derivation rules](docs/specs/runtime/configuration.md#derivation-rules).
-- **Verification runtime:** [Test Harness](docs/specs/testing/test-harness.md).
 - **Tracked repository follow-up:** [RemDo TODO](docs/todo.md#tracked-follow-up).
-- **Local runtime procedures:** [Local Development](docs/dev/guides/local-development.md).
 - **Specification evidence boundaries:** [Specification Feedback Cases](docs/specs/feedback-cases/README.md).
 - **Task behavior:** its current owner under `docs/`.
 

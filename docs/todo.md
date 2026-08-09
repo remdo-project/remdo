@@ -63,6 +63,12 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 - **Skill-prose pressure testing.** Evaluate superpowers `writing-skills`
   adversarial subagent trials as an additional check for skill-file prose.
 
+- **Markdown link-aware wrapping.** Define rendered-width paragraph reflow that
+  preserves natural sentence and clause boundaries while ignoring hidden link
+  and image destinations. Clarify the authoring rule and its agent discovery,
+  determine which premature wraps can be rejected deterministically without
+  requiring mechanical greedy wrapping, and align affected maintained prose.
+
 ### Editor
 
 - **Editor module ownership.** Editor capabilities are split across `features/`,

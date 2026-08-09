@@ -10,7 +10,7 @@ Smallness lowers review cost; sufficiency prevents agents from inventing product
 decisions. Readers take contracts at face value.
 
 RemDo's contracts answer "what is the accepted behavior of X?" for
-contributors and coding agents fluent in the stack. Human guides and agent
+contributors and coding agents fluent in the stack. Task guides and agent
 instructions answer different questions through the owners below and follow
 the applicable ownership and structure rules.
 
@@ -27,9 +27,9 @@ Each durable statement lives with the owner of the question it answers.
   standards and decision defaults that apply across contribution topics.
 - **`docs/dev/` — Topic-specific contributor policy.** Each document owns
   standards and decision defaults for one contributor topic.
-- **`docs/dev/guides/` — Developer guides.** Guides explain how a developer
-  accomplishes a task. Their steps derive from and link to the applicable
-  contract and mechanism owners.
+- **`docs/guides/` — Task guides.** Each guide explains how to accomplish a
+  task. Its steps derive from and link to the applicable contract and mechanism
+  owners.
 - **Agent skills — Specifications and procedures.** Specifications under
   `docs/specs/agents/skills/` own accepted behavior; each `SKILL.md` owns its
   execution procedure.
@@ -74,8 +74,10 @@ only the context useful for returning to the work.
 - **Information value.** The declared reader, document title and location,
   surrounding clauses, and linked owners all contribute to a contract's
   meaning. Each clause adds information needed for faithful interpretation or implementation.
-- **Excluded material.** Contract clauses exclude inventories, non-contract
-  implementation details, how-to prose, and redundant restatement.
+- **Excluded material.** Contract clauses exclude incidental inventories,
+  non-contract implementation details, how-to prose, and redundant restatement.
+  A bounded set belongs in a contract when membership in the set is itself
+  accepted behavior.
 - **Property over mechanism.** State the property a mechanism must have, not the
   mechanism. A detail belongs in the contract when choosing differently would
   break the promise; one that only determines how the promise is met belongs in

@@ -1,7 +1,8 @@
 # Contributing to RemDo
 
 RemDo's contribution contract gives contributors and reviewers the same
-baseline for judging a change's intent, supported runtimes, compatibility, and follow-up.
+baseline for judging a change's intent, supported runtimes and run modes,
+compatibility, and follow-up.
 
 Durable documentation has its own contract in [Documentation](docs/documentation.md).
 Testing quality and coverage follow [Testing](docs/dev/testing.md).
@@ -36,6 +37,12 @@ RemDo's supported runtimes are declared in [`package.json`](package.json):
 Code uses runtime APIs available throughout its declared range directly.
 Compatibility code addresses differences within a supported range; it does not
 extend support beyond the declared runtimes.
+
+## Run-Mode Impact
+
+[Run Modes](docs/run-modes.md) owns RemDo's supported run modes. A change to a shared runtime
+boundary considers every applicable mode and verifies each materially distinct
+outcome it changes.
 
 ## Backward Compatibility (Pre-1.0)
 
