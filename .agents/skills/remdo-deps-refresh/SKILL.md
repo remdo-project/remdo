@@ -21,8 +21,9 @@ return a failed result before changing repository state.
 Initialize the run-local skipped-update inventory:
 
 ```sh
-mkdir -p .agent/remdo-deps-refresh
-truncate -s 0 .agent/remdo-deps-refresh/skipped
+state_dir="$(git rev-parse --show-toplevel)/.agent/remdo-deps-refresh"
+mkdir -p "$state_dir"
+truncate -s 0 "$state_dir/skipped"
 ```
 
 Before normal selection, run `pnpm run todo:list` and retry each package
