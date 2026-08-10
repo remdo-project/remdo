@@ -54,13 +54,26 @@ const GIT_REDIRECTION_KEYS = [
 ] as const;
 
 const REVIEW_INSTRUCTION = [
-  'Do not run repository checks.',
-  'When delegating review work, explicitly instruct every delegated',
-  'reviewer not to run repository checks.',
+  'Assume the repository\'s prescribed tests and checks have already passed;',
+  'treat that as existing evidence.',
+  'Do not rerun or manually reproduce them.',
+  'Review the implementation and test adequacy for issues that passing checks',
+  'may still miss.',
+  'When delegating review work, pass this assumption and instruction to every',
+  'delegated reviewer.',
+  'If fresh runtime evidence is essential to assess a potential finding,',
+  'report the exact check needed and why instead of running it.',
 ].join(' ');
 
 const CLAUDE_REVIEW_COMMAND = '/code-review';
 const CLAUDE_REVIEW_BACKGROUND_WAIT_CEILING_MS = '0';
+
+function claudeReviewRequest(command: string): string {
+  // The system-prompt copy guides the lead session; native /code-review does
+  // not propagate it reliably to delegated reviewers, so keep a labeled copy
+  // in the workflow request as well.
+  return `${command}\n\nReview constraint: ${REVIEW_INSTRUCTION}`;
+}
 
 function parseCall(args: string[]): RunnerCall {
   const settings: RunnerCall['settings'] = {};
@@ -831,7 +844,7 @@ async function runClaude(
           ?? 'could not resolve uncommitted review paths',
         };
       }
-      reviewCommand = resolved.target;
+      reviewCommand = claudeReviewRequest(resolved.target);
     } else {
       const resolved = await resolveHead(
         repository,
@@ -844,9 +857,9 @@ async function runClaude(
           evidence: resolved.evidence ?? 'could not resolve the current HEAD commit',
         };
       }
-      reviewCommand = `${CLAUDE_REVIEW_COMMAND} ${
+      reviewCommand = claudeReviewRequest(`${CLAUDE_REVIEW_COMMAND} ${
         call.invocation.scope.base
-      }..${resolved.head}`;
+      }..${resolved.head}`);
     }
   }
   const invocation = claudeInvocation(call, reviewCommand);
