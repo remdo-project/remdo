@@ -35,15 +35,15 @@ At the simplification step, dispatch the contract's independent assessments:
 - For all remaining changed artifacts together, invoke one bounded
   fresh-context review against their authoritative contracts. Require an
   `outcome`, the reviewed `target`, and any `findings`, `options`, or `reason`,
-  using the [`remdo-simplify` distinctions](../../../docs/specs/agents/skills/remdo-simplify.md#findings).
+  following the [`remdo-simplify` result](../../../docs/specs/agents/skills/remdo-simplify.md#result).
 
 Run independent assessments concurrently when possible and wait for every
 result before editing. Retain each complete result.
 
-At the cleanup-audit step, run `pnpm run audit:cleanup`. At the verification
-step, invoke `$remdo-verify-change` with the retained scope and wait for its
-complete result. Route all results and correction candidates through the
-authoritative flow; do not add another quality loop.
+When the contract requires a cleanup audit, run `pnpm run audit:cleanup`. At the
+verification step, invoke `$remdo-verify-change` with the retained scope and
+wait for its complete result. Route all results and correction candidates
+through the authoritative flow; do not add another quality loop.
 
 ## Apply corrections
 
