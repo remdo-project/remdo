@@ -1,6 +1,6 @@
 ---
 name: remdo-simplify
-description: A standalone read-only code/test simplification finder for an explicitly requested one-off simplify review (e.g. "run a simplify review", "what could be simpler here"). Reports opportunities to make a selected diff's end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Does not edit files, stage, commit, or run mutating checks.
+description: Assess a selected RemDo change or repository subject for concrete behavior-preserving code and test simplifications. Use only for an explicitly requested simplify assessment or as a fresh read-only participant composed by another capability. Supports assessment targets and reports findings and options without editing or choosing product behavior.
 context: fork
 agent: Explore
 ---

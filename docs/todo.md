@@ -27,10 +27,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Agent skill specifications.** Establish accepted-behavior owners under
-  `docs/specs/agents/skills/` for `playground` and `remdo-simplify`, then align
-  their execution procedures and links.
-
 - **Agent skill complexity review.** Continue reviewing the remaining skills
   for custom scripts and state machines that encode adaptive work without enough
   robustness to justify their maintenance. Prefer concise intent plus

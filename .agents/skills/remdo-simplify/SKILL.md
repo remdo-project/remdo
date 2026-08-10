@@ -1,214 +1,62 @@
 ---
 name: remdo-simplify
-description: A standalone read-only code/test simplification finder for an explicitly requested one-off simplify review (e.g. "run a simplify review", "what could be simpler here"). Reports opportunities to make a selected diff's end state shorter, simpler, and cleaner, including limited redesign of directly related existing code when that reduces net complexity. Does not edit files, stage, commit, or run mutating checks.
+description: Assess a selected RemDo change or repository subject for concrete behavior-preserving code and test simplifications. Use only for an explicitly requested simplify assessment or as a fresh read-only participant composed by another capability. Supports assessment targets and reports findings and options without editing or choosing product behavior.
 ---
 
 # RemDo Simplify
 
-## Intent
+Assess one
+[assessment target](../../../docs/specs/agents/assessment-target.md) under the
+authoritative
+[`remdo-simplify`](../../../docs/specs/agents/skills/remdo-simplify.md)
+contract. Remain read-only.
 
-Report simplification opportunities for a RemDo change. This is a review-style
-pass: do not edit files, stage, commit, or run checks that intentionally write
-repo state. Ask whether the changed end state could be shorter, simpler, or
-cleaner if the touched code, tests, or directly related supporting code were
-shaped differently.
+## Resolve the target
 
-Prefer findings that let the author delete code, reuse an existing RemDo,
-Lexical, or platform primitive, move behavior to its owning layer, or reduce
-special cases. Avoid speculative architecture and personal style preferences.
-
-This pass reports on **code and tests only**. Documentation and skill prose are
-read only as *context* for judging whether a simpler code shape exists; do not
-report findings about them.
-
-The pass is intentionally read-only and standalone so it can run before an
-editing pass or be composed by a future workflow. Run it with fresh context
-where the caller can provide that isolation (for example, a Claude Code
-fork/explore context or a Codex fresh subagent) so the review never inherits the
-caller's implementation memory.
-
-## Non-goals
-
-- Do not broaden feature scope or design new product behavior.
-- Do not run a general correctness, security, or performance review unless the
-  issue is also a simplification opportunity.
-
-## Select the scope
-
-Use the caller's scope when supplied; otherwise use the shared default. A
-composing caller should pass only the scope and this skill, not its suspected
-fixes or implementation context.
-
-Resolve it by running
-`sh .agents/skills/_shared/tools/resolve-scope.sh [scope]` (its header states
-the full contract). It prints `STATE=`/`SCOPE=`/`BASE=`/`HEAD_SHA=` plus the
-file list. On `no-change`, report no findings and stop. This pass is read-only
-and never loops, so it needs no anchoring of its own — reusing the resolver
-keeps one scope contract across the skills. On a non-zero exit, warn and stop
-rather than folding the other side's changes into the review.
-
-For a resolved commit range, run this read-only inspection:
+For a change target, run the shared resolver from the repository root with its
+optional scope:
 
 ```sh
-git diff --stat <base-sha>..<head-sha>
-git diff --name-status <base-sha>..<head-sha>
-git diff --check <base-sha>..<head-sha>
+sh .agents/skills/_shared/tools/resolve-scope.sh [scope]
 ```
 
-For a resolved uncommitted scope, inspect the staged and unstaged layers:
+Stop on a non-zero exit with a `stopped` result. Retain the emitted `STATE`,
+`SCOPE`, `BASE`, `HEAD_SHA`, and file list as the resolved target. When `STATE`
+is `no-change`, return the complete `no-change` result with that target. For a
+subject target, require one existing repository-relative file or directory;
+stop when it is missing, outside the repository, or ambiguous.
 
-```sh
-git diff --stat --cached HEAD
-git diff --name-status --cached HEAD
-git diff --check --cached
-git diff --stat
-git diff --name-status
-git diff --check
-```
+## Inspect the end state
 
-Read the diff per file when the total diff is large. Read untracked files that
-belong to the scope from the resolver's file list.
+For a change target, inspect the diff, its changed code and tests, and directly
+related implementation that determines the changed end state. For a subject
+target, inspect the named path, its implementation and tests, and direct
+boundaries that determine its shape.
 
-## Read RemDo guidance
+Read only enough surrounding material to judge a simpler end state: applicable
+current contract owners, behavior-defining tests and fixtures, existing helpers
+and platform primitives, and direct callers or callees. For editor work, inspect
+current RemDo and Lexical patterns before proposing custom machinery.
 
-Read these first:
+Keep accepted behavior fixed. Treat documentation and skill prose as evidence,
+not simplification subjects. Stop following references when their connection to
+the target becomes speculative.
 
-1. `AGENTS.md`
-2. `CONTRIBUTING.md`
-3. `docs/todo.md`
+## Identify simplifications
 
-Choose directly relevant product docs for the touched area by filename and
-scope opener. Do not reread unrelated docs.
+Look for deletable compatibility or defensive machinery, duplicated state or
+branches, replaceable custom plumbing, misplaced ownership, unnecessarily broad
+interfaces, and test setup that obscures known fixture behavior. Count every
+required companion edit when deciding whether the resulting end state is
+simpler.
 
-Forward the `AGENTS.md` findings-suppression rule into this pass.
+Apply the specification's finding bar. Use an option for a real tradeoff and
+recommend one only when repository evidence supports it. Do not turn the
+assessment into a general correctness review or choose new product behavior.
 
-For editor-related decisions, prefer RemDo's current Lexical patterns and, when
-the dependency tree is available, inspect `node_modules/lexical/src/` before
-suggesting a custom abstraction or workaround.
+## Return
 
-## Inspect related sources
-
-Start from the diff, then read enough surrounding code to judge whether a
-simpler end state exists:
-
-- Whole touched files when a hunk is not self-contained.
-- Tests and fixtures that define the changed behavior.
-- Existing helpers, adapters, hooks, commands, and feature modules the diff uses
-  or duplicates.
-- Direct callers/callees where the diff's API shape forces complexity on either
-  side.
-- Directly relevant docs for the touched area.
-
-This is not a broad repo sweep. Follow references as far as needed for a credible
-simplification finding, but stop when the connection to the reviewed diff becomes
-speculative.
-
-Potential redesign of untouched code is in scope only when all are true:
-
-1. The reviewed diff depends on that code, duplicates it, works around it, or
-   would become simpler if that existing boundary were reshaped.
-2. The redesign is behavior-preserving relative to the task/spec.
-3. The net end state is smaller or conceptually simpler after counting the
-   companion change.
-4. The recommendation can name the owning layer/file and the migration shape.
-
-## Simplification lenses
-
-Look for opportunities to:
-
-- Delete compatibility shims or defensive guards made unnecessary by RemDo's
-  supported runtime baseline.
-- Replace bespoke traversal, selection, persistence, or command plumbing with an
-  existing RemDo helper, Lexical primitive, or platform API.
-- Collapse duplicated branches, mirrored state, adapter layers, wrapper helpers,
-  or parallel data shapes that no longer buy a real boundary.
-- Move behavior to the owning module instead of leaking ownership through
-  call-site conditionals.
-- Narrow APIs so callers pass the data the callee actually owns, rather than broad
-  objects that force defensive checks or synchronization.
-- Prefer direct, behavior-named test setup over clever harness metadata; for
-  known fixtures, follow the contributor [testing policy](../../../docs/dev/testing.md#fixture-assumptions).
-- Remove obsolete comments or tracked workaround text when the code no longer
-  needs it. Use the [code-comment convention](../../../CONTRIBUTING.md#code-comments) for newly tracked code-site follow-ups.
-
-## Finding bar
-
-Report a finding only when it gives the author a clearer, simpler end state.
-Every finding should satisfy these checks:
-
-1. It is grounded in the reviewed diff and directly related sources.
-2. It has a concrete simpler shape, not just "consider refactoring".
-3. It is worth the churn: expected deletion, consolidation, or ownership clarity
-   outweighs the extra edit.
-4. It does not require choosing new product behavior.
-5. It is not already tracked in either TODO.
-
-When there is a real tradeoff, report an **Option** rather than a finding. Include
-brief pros/cons and mark one **Recommended** only when the code/docs give a reason
-to prefer it.
-
-Do not report:
-
-- Formatter, lint, naming, or organization preferences — unless they materially
-  shorten the end state or restore RemDo ownership boundaries.
-- Broad architecture ideas unrelated to making the reviewed diff simpler.
-- UI/layout conclusions that would require browser verification unless that
-  verification was actually performed.
-- Compatibility concerns contradicted by RemDo's pre-1.0 compatibility policy or
-  supported runtime baseline.
-- Deterministic cleanup already covered by a command the caller will run, unless
-  the specific result changes the simplification recommendation.
-- Documentation or skill-prose findings, including invariant violations,
-  restatement, rehoming, or wording.
-
-## Output
-
-Return a concise report. Sort findings by expected simplification value, not by
-file order. Do not cap the list artificially; omit weak findings instead.
-
-Use this shape:
-
-```md
-# RemDo simplify report
-
-Scope: <commit range or uncommitted changes>
-Sources read: <key files/docs, not every grep>
-
-## Findings
-
-- [S1|S2|S3] `<path>:<line>` — <short title>
-  - Current shape: <what makes the end state longer or more complex>
-  - Simpler end state: <the concrete shorter/cleaner design>
-  - Why this is RemDo-simpler: <doc/ownership/baseline reason>
-  - Suggested next edit: <small patch sketch or exact file/symbol to reshape>
-
-## Options
-
-- `<path>` — <decision>
-  - Option 1: <pros / cons>
-  - Option 2 **Recommended**: <pros / cons / reason>
-
-## No findings
-
-<Use only when no findings survived the bar. State the main areas inspected.>
-
-Suppressed N finding(s) already tracked
-```
-
-Priority labels:
-
-- **S1**: A design/ownership simplification likely to prevent substantial churn
-  in the reviewed change.
-- **S2**: A local code or test simplification that is clearly worth doing.
-- **S3**: A small cleanup hint that is concrete and low-risk.
-
-Omit empty sections. Include the suppression tail only when `N` is non-zero.
-
-## References
-
-- [Scope resolution](../_shared/tools/resolve-scope.sh)
-- [Agent guidelines](../../../AGENTS.md)
-- [Change scope / branch base](../../../docs/specs/agents/change-scope.md)
-- [Runtime baseline](../../../CONTRIBUTING.md#runtime-baseline)
-- [Backward compatibility](../../../CONTRIBUTING.md#backward-compatibility-pre-10)
-- [Project principles](../../../docs/principles.md)
+Return the authoritative specification's
+[Result](../../../docs/specs/agents/skills/remdo-simplify.md#result). When
+addressing a human, render it under the shared
+[Reports](../../../docs/specs/agents/protocol.md#reports) contract.
