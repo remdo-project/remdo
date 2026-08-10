@@ -1,44 +1,68 @@
 # remdo-converge-change
 
-This skill verifies a repository change, applies every correction supported by
-the evidence, and repeats until no further correction can be determined. It
+This skill simplifies a repository change once, then cleans up and verifies it,
+applies every correction supported by the evidence, and repeats the cleanup
+audit and verification until no further correction can be determined. It
 returns an [agent result](../protocol.md#results). One
-[change scope](../change-scope.md) bounds the run; the skill does not select or expand intended behavior.
+[change scope](../change-scope.md) bounds the run; the skill does not select or
+expand intended behavior.
+
+## Authority
+
+[Repository authority](../instructions.md#repository-authority): corrections
+remain uncommitted for `uncommitted`; for a commit range on an attached branch,
+the skill autonomously commits each coherent correction batch.
 
 ## Convergence
 
 The skill resolves its change scope before other repository work. Immediately
 after resolution, it reports the selected scope as a short, standalone
 `Scope:` line before continuing. It reports `uncommitted changes` or the
-caller-visible Git range, without internal commit IDs or other progress.
+caller-visible Git range, without internal commit IDs or other progress. For a
+commit range, `BASE` remains fixed while `HEAD` advances through correction
+commits; later stages assess `BASE..HEAD`.
 
-The skill invokes [`remdo-verify-change`](remdo-verify-change.md) against the
-current state. It applies every correction it can determine from a failed check
-or [`confirmed` finding](remdo-verify-change.md#findings) and carries every
-finding disposition into its result. It does not correct `material out of
-scope` findings or reinterpret dispositions.
+```text
+[resolve scope]
+    ├─ no change ─────────────────────────> [converged]
+    │ ready
+    v
+[simplify current state once]
+    │
+    v
+[cleanup audit]
+    ├─ corrections ─> [apply + validate] ─> ↩ cleanup audit
+    │ passed or scope has no code/tests
+    v
+[verify current state]
+    ├─ corrections ─> [apply + validate] ─> ↩ cleanup audit
+    ├─ correction left unapplied ─────────> [not-converged]
+    │ no determined correction
+    v
+[converged]
+```
 
-For `uncommitted`, corrections remain uncommitted. For a commit range, the
-resolved `BASE` remains fixed and the skill commits corrections before running
-verification again. It does not apply commit-range corrections from a detached `HEAD`.
+One or more independent simplification assessments collectively cover the
+resolved change once. Each receives only its target and applicable authoritative
+contracts. The skill applies determined behavior-preserving findings and
+retains options as [concerns](../protocol.md#concerns).
 
-Before committing or re-verifying, the skill checks the correction batch
-against every applicable authoritative contract.
+Verification invokes [`remdo-verify-change`](remdo-verify-change.md). The skill
+preserves its finding dispositions, applies corrections from failed checks and
+[`confirmed` findings](remdo-verify-change.md#findings), and leaves `material
+out of scope` findings unchanged.
 
-After applying corrections, the skill runs complete verification again. It does
-not re-verify unchanged state; [degraded verification](remdo-verify-change.md#result) remains usable.
+After each correction batch, the skill refreshes the retained scope. It
+converges without further quality steps if no selected diff remains.
 
-The skill converges when no determined correction remains, even if
-[concerns](../protocol.md#concerns) remain. A `stopped` verification stops
-convergence unless the skill can correct its failed check.
+A repeated repository state stops with a concern.
 
 ## Result
 
-`findings` carries every disposition across verification iterations and marks
-each confirmed finding as fixed or uncorrected. `verification.findings` is the
-latest iteration only.
-
-When run, `verification` contains the complete latest [`remdo-verify-change` result](remdo-verify-change.md#result).
+`findings` carries every verifier disposition across iterations and marks each
+confirmed finding as fixed or uncorrected. `verification.findings` is the
+latest iteration only. `simplification`, `cleanup`, and `verification` contain
+the complete latest results for the state they assessed.
 
 The result uses this shape:
 
@@ -49,7 +73,15 @@ concerns: # if any
     summary: <condition>
 scope: <resolved scope or resolution failure>
 corrections: # if any
-  - summary: <applied correction>
+  - source: <simplification | cleanup | verification>
+    summary: <applied correction>
+simplification: # if run
+  - source: <assessment capability or participant>
+    result: <complete result>
+cleanup: # if evaluated
+  command: <command>
+  status: <passed | failed | not-run>
+  details: <failure evidence or reason not run> # if failed or not-run
 verification: <complete latest remdo-verify-change result> # if run
 findings: # if any
   - summary: <finding>
@@ -60,10 +92,5 @@ findings: # if any
 reason: <condition that prevented or stopped convergence> # if not converged or stopped
 ```
 
-`not-converged` means completed verification left a determined correction
-unapplied. `stopped` means any other condition prevented convergence.
-
-## Future
-
-- Add a simplification step and its `audit:cleanup` backstop once the step's
-  scope and ownership are specified.
+`not-converged` means a completed quality step left a determined correction
+unapplied.

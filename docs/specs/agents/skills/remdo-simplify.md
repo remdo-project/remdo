@@ -66,8 +66,7 @@ reason: <condition that prevented assessment> # if stopped
 - `simplifications-found`: at least one finding;
 - `no-simplification`: a completed assessment found none and may include
   options;
-- `no-change`: change-target resolution found no diff;
-- `stopped`: target resolution or a required assessment could not complete.
+- `no-change`: change-target resolution found no diff.
 
 The report presents the target and key evidence, findings by priority, then
 options, omitting empty sections.

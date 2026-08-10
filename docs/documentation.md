@@ -32,7 +32,8 @@ Each durable statement lives with the owner of the question it answers.
   owners.
 - **Agent skills — Specifications and procedures.** Specifications under
   `docs/specs/agents/skills/` own accepted behavior; each `SKILL.md` owns its
-  execution procedure.
+  execution procedure. A specification is sufficient without its procedure;
+  the procedure links to it instead of restating accepted behavior.
 - **`AGENTS.md` and `CLAUDE.md` — Agent instruction surfaces.**
   The surfaces own their directly loaded rules; [Agent instructions](specs/agents/instructions.md)
   owns their design, responsibilities, and deterministic structural contracts.
