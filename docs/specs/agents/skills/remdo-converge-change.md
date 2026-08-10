@@ -36,7 +36,7 @@ commits; later stages assess `BASE..HEAD`.
 [verify current state]
     ├─ corrections ─> [apply + validate] ─> ↩ cleanup audit
     ├─ correction left unapplied ─────────> [not-converged]
-    │ no determined correction
+    │ completed; no determined correction
     v
 [converged]
 ```
