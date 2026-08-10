@@ -1,6 +1,6 @@
 interface:
   display_name: "Spec Complexity"
-  short_description: "Assess complexity caused by one specification"
-  default_prompt: "Use $spec-complexity to identify the specification decisions that create the most implementation complexity and their simpler alternatives."
+  short_description: "Assess complexity within a RemDo target"
+  default_prompt: "Use $spec-complexity to identify accepted-behavior decisions that create material complexity within the selected target and their simpler alternatives."
 policy:
   allow_implicit_invocation: true
