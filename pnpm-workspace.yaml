@@ -23,8 +23,8 @@ updateConfig:
     # TODO(deps): retry Lexical; 0.46 fails editor invariants.
     - '@lexical/*'
     - lexical
-    # TODO(deps): retry linkify-it; 6.x changes its API and limits URLs to 11 hostname labels.
-    - '@types/linkify-it'
+    # TODO(deps): retry linkify-it and remove @types/linkify-it.
+    # Version 6 changes its API and limits URLs to 11 hostname labels.
     - linkify-it
     # TODO(deps): retry TypeScript; version 7 is unsupported by @typescript-eslint.
     - typescript

@@ -136,9 +136,11 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
    label preserves its destination.
 4. Editing the text of an automatically recognized link updates its destination;
    when the complete text no longer matches, it becomes ordinary text.
-5. Removing a link preserves its visible text and does not immediately recreate
-   the link. Undo immediately after automatic recognition removes only the link
-   formatting and preserves the authored text.
+5. Removing a link or undoing automatic recognition preserves its visible text
+   and suppresses recognition for that occurrence across later editor updates,
+   collaboration, persistence, and reload. Suppression ends only when that
+   occurrence's text changes. The immediate Undo removes only the link formatting
+   and preserves the authored text.
 6. Link controls expose Open, Copy destination, Edit, and Remove link through
    both pointer and keyboard interaction.
 
