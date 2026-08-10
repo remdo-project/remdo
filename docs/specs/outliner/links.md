@@ -157,14 +157,18 @@ explicit [generic URL authoring](#generic-url-authoring).
    unaffected; it ends only when the occurrence's text changes. The immediate
    Undo removes only the link formatting and preserves the authored text.
 6. Link controls are a structured chooser under the shared
-   [Editor popups](./popups.md#shared-editor-popup-contract) contract: focus
-   moves into the controls, `Tab` cycles within them, and `Escape` cancels
-   without applying a change. Opening pins the current link occurrence when one
-   exists; every action re-resolves that target and closes without acting when it
-   no longer exists. `Enter` or a primary click activates the active Open, Copy
-   destination, or Remove link action and closes the controls; Remove is the only
-   one of those actions that changes the document. Edit exposes label and
-   destination fields; `Enter` applies both and closes. Closing restores the
+   [Editor popups](./popups.md#shared-editor-popup-contract) contract. Opening
+   pins a model-level authoring target: the existing link occurrence, selected
+   text range, or collapsed caret. Before acting, the controls re-resolve the
+   target and close without acting when it no longer exists. `Escape` cancels and
+   restores the anchored selection.
+7. In creation mode, focus moves into label and destination fields, `Tab` cycles
+   between them, and `Enter` creates the link and closes. In existing-link mode,
+   controls expose Open, Copy destination, Edit, and Remove link; focus moves to
+   Edit initially, `Tab` cycles through the actions, and `Enter` or a primary
+   click invokes the active action. Open and Copy perform their non-document
+   action and close. Edit exposes label and destination fields whose `Enter`
+   commits both; Remove commits immediately. A commit closes and restores the
    caret to the link occurrence or, after removal, its remaining text.
 
 ## Generic URL presentation and activation
