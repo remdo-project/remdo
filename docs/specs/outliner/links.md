@@ -1,7 +1,8 @@
 # Links
 
 RemDo-owned note links preserve stable note identity and remain distinct from
-generic external links.
+generic URL links. Generic links provide predictable, reversible URL authoring
+without interpreting ambiguous text as a destination.
 
 ## Definitions
 
@@ -21,31 +22,29 @@ generic external links.
 
 1. RemDo-owned links target stable note identity (`docId` + `noteId`), not the
    visible link text.
-2. Generic URL links do not use RemDo note-link semantics; they use normal
-   Lexical link behavior, including generic URL autolinking.
+2. Generic URL links do not use RemDo note-link semantics.
 3. RemDo classification runs before generic link handling so RemDo-owned note
    refs keep note-link identity/clipboard behavior instead of degrading into
    plain URL links.
-4. Links are created inline through `@`, an inline trigger character; its
+4. Note links are created inline through `@`, an inline trigger character; its
    open/close/confirm lifecycle is the shared one in
    [Editor popups](./popups.md). The note-link spec defines only what differs.
 5. The query is the text after `@` in the [pinned span](./popups.md#shared-editor-popup-contract), length minimum 0, so
    results may appear immediately. Whitespace is allowed in the query.
 6. On insertion, note-link display text is copied once from the target note
    title and then stored locally; later target renames do not update it.
-7. Note-link clicks use native `href` navigation semantics and route handling.
+7. Note links are operable as links and navigate to their RemDo route target.
 8. Pasting a RemDo-owned plain-text note URL inserts a
    note-link node. When the target is in the active document, inserted
    link text copies the target note title; otherwise it uses the pasted URL string.
-9. Typing a URL — including a same-origin RemDo note URL — uses Lexical generic
-   link behavior; the note-link upgrade applies only to paste.
-10. Generic URL links open in a new tab.
-11. URLs that merely resemble RemDo note routes but are not classified by
+9. Typing a URL — including a same-origin RemDo note URL — does not create
+   note-link identity; the note-link upgrade applies only to paste.
+10. URLs that merely resemble RemDo note routes but are not classified by
     RemDo as owned note refs remain generic external links.
-12. Clipboard payloads (copy/cut) must include explicit `docId` for every
-   note link so cross-context paste has complete target identity.
-13. Cross-document pastes preserve source-target link identity; note links
-   are not retargeted to the destination document.
+11. Clipboard payloads (copy/cut) must include explicit `docId` for every
+    note link so cross-context paste has complete target identity.
+12. Cross-document pastes preserve source-target link identity; note links
+    are not retargeted to the destination document.
 
 ## Identity Representation Boundaries
 
@@ -87,13 +86,71 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 4. Confirming inserts a note-link node (`docId` + `noteId`) whose display text is
    the target note title, plus a trailing space.
 
+## Generic URL recognition
+
+1. Automatic recognition runs after paste or after following input establishes
+   the end of a candidate. It preserves the authored text; normalization changes
+   only the destination.
+2. Automatic recognition creates generic links for:
+   - absolute `http://` and `https://` URLs
+   - `www.` addresses, with an `https://` destination
+   - email addresses, with a `mailto:` destination
+3. Automatic recognition leaves ambiguous or context-dependent forms as text,
+   including bare domains, bare IP or `localhost` addresses, relative URLs, and
+   protocol-relative (`//`) URLs.
+4. HTTP and HTTPS URLs containing a username or password remain text. Explicit
+   creation and imported content reject them rather than stripping credentials
+   or linking only part of the candidate.
+5. Recognition excludes trailing sentence punctuation and unmatched closing
+   punctuation from the destination. A rejected or unsupported candidate
+   remains entirely as text rather than becoming a partial link.
+6. Generic link destinations are limited to HTTP, HTTPS, and validated email.
+   Unsupported or invalid destinations in imported content retain their visible
+   text without an active link.
+
+## Generic URL authoring
+
+1. `Cmd/Ctrl+K` creates a generic link from selected text and edits the link at
+   the caret. Creation accepts an HTTP or HTTPS URL, an email address, or a bare
+   domain; bare domains receive an `https://` destination.
+2. Pasting a supported destination over selected text creates a generic link
+   whose visible label remains the selected text.
+3. Editing a labeled link's destination preserves its label, and editing its
+   label preserves its destination.
+4. Editing the text of an automatically recognized link updates its destination;
+   when the complete text no longer matches, it becomes ordinary text.
+5. Removing a link preserves its visible text and does not immediately recreate
+   the link. Undo immediately after automatic recognition removes only the link
+   formatting and preserves the authored text.
+6. Link controls expose Open, Copy destination, Edit, and Remove link through
+   both pointer and keyboard interaction.
+
+## Generic URL presentation and activation
+
+1. Generic links are identifiable and operable as links by assistive technology,
+   show visible keyboard focus, and use a non-color visual distinction. Long URL
+   text wraps without creating horizontal document scrolling.
+2. In editable content, an ordinary primary click places the caret in the link
+   and exposes its controls without navigating. Modifier-click, middle-click,
+   and the Open action activate it directly.
+3. HTTP and HTTPS links open in a new tab to preserve the active RemDo editing
+   context. Their presentation communicates that behavior visually and to
+   assistive technology, and the opened page receives no opener or referrer.
+4. RemDo does not fetch external content or metadata merely because a URL was
+   typed, pasted, displayed, or selected.
+
 ## Future
 
 - Backlinks as part of the note-link model.
 - Cross-document discovery and insertion in the `@` picker.
 - Fuzzy picker matching and frecency-aware ranking influenced by zoom context.
 - Rename-aware display text, including title mirroring unless customized.
-- Floating controls and overlays that never block pointer hit-testing for
-  inline links.
-- Cross-document link validation, previews, and authoring ergonomics beyond
-  identity correctness.
+- Cross-document link validation.
+- Explicit external-link previews and alternate representations.
+
+## References
+
+- [GitHub Flavored Markdown autolinks](https://github.github.com/gfm/#autolinks-extension-)
+- [RFC 9110 URI userinfo guidance](https://www.rfc-editor.org/rfc/rfc9110.html#section-4.2.4)
+- [W3C guidance for links that open new windows](https://www.w3.org/WAI/WCAG21/Techniques/general/G201)
+- [WHATWG guidance for secure URL handling](https://html.spec.whatwg.org/multipage/introduction.html#writing-secure-applications-with-html)
