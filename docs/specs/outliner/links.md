@@ -22,12 +22,10 @@ without interpreting ambiguous text as a destination.
    when WHATWG URL host parsing normalizes it to an ASCII domain that satisfies
    those rules. Unicode local parts, display names, headers, queries, and
    fragments are not linkable.
-8. **Linkable bare domain:** a non-IP hostname accepted by WHATWG URL host
-   parsing, containing at least two labels, ending in a suffix from the IANA root
-   zone, and containing no scheme, credentials, port, path, query, or fragment.
-9. **Linkable `www.` address:** `www.` followed by a linkable bare domain and,
-   optionally, a port, path, query, or fragment accepted by WHATWG URL parsing.
-   The `www.` prefix does not count toward the bare domain's two-label minimum.
+8. **Linkable scheme-less web address:** a URL with no scheme or credentials
+   whose non-IP hostname is accepted by WHATWG URL host parsing, contains at
+   least two labels, and ends in a suffix from the IANA root zone. It may include
+   a port, path, query, or fragment accepted by WHATWG URL parsing.
 
 ## Core behavior
 
@@ -99,6 +97,9 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 
 ## Generic URL recognition
 
+Automatic recognition deliberately accepts fewer scheme-less inputs than
+explicit [generic URL authoring](#generic-url-authoring).
+
 1. An automatic-recognition candidate starts at the beginning of inline text or
    after whitespace or an opening `(`, `[`, `{`, `<`, `"`, `'`, `“`, or `‘`.
    Recognition runs after paste or after following input establishes the end of
@@ -106,14 +107,16 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
    destination.
 2. Automatic recognition creates generic links for:
    - absolute `http://` and `https://` URLs
-   - linkable `www.` addresses, with an `https://` destination
+   - linkable scheme-less web addresses whose first hostname label is `www`,
+     with an `https://` destination
    - linkable email addresses, with a `mailto:` destination
 3. Automatic recognition leaves ambiguous or context-dependent forms as text,
    including other scheme-less domains, bare IP or `localhost` addresses,
    relative URLs, and protocol-relative (`//`) URLs.
 4. A candidate whose resulting HTTP or HTTPS destination contains a username or
-   password remains text. Explicit creation and imported content reject it
-   rather than stripping credentials or linking only part of the candidate.
+   password, or whose email destination contains headers, a query, or a fragment,
+   remains text. Explicit creation and imported content reject it rather than
+   stripping credentials or linking only part of the candidate.
 5. Recognition excludes trailing `.`, `,`, `;`, `:`, `!`, `?`, `*`, `_`, `~`,
    `"`, `'`, `“`, `”`, `‘`, `’`, and `>` from the destination. It excludes a
    trailing `)`, `]`, or `}` only when the corresponding opening character is
@@ -129,35 +132,38 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 ## Generic URL authoring
 
 1. `Cmd/Ctrl+K` creates a generic link from selected text and edits the link at
-   the caret. Creation accepts an HTTP or HTTPS URL, a linkable `www.` address,
-   a linkable email address, or a linkable bare domain; scheme-less web inputs
-   receive an `https://` destination.
-2. Pasting an HTTP or HTTPS URL, a linkable `www.` address, a linkable email
-   address, or a linkable bare domain over selected text creates a generic link
-   whose visible label remains the selected text.
+   the caret. Creation accepts an HTTP or HTTPS URL, a linkable email address,
+   or a linkable scheme-less web address; scheme-less web inputs receive an
+   `https://` destination.
+2. Pasting an HTTP or HTTPS URL, a linkable email address, or a linkable
+   scheme-less web address over selected text creates a generic link whose
+   visible label remains the selected text.
 3. Editing a labeled link's destination preserves its label, and editing its
    label preserves its destination.
 4. Editing the text of an automatically recognized link updates its destination;
    when the complete text no longer matches, it becomes ordinary text.
 5. Removing a link or undoing automatic recognition preserves its visible text
-   and suppresses recognition for that occurrence across later editor updates,
-   collaboration, persistence, and reload. Suppression ends only when that
-   occurrence's text changes. The immediate Undo removes only the link formatting
-   and preserves the authored text.
+   and suppresses recognition for that inline occurrence across later editor
+   updates, collaboration, persistence, and reload. Suppression belongs to the
+   occurrence rather than its URL string, so identical text elsewhere is
+   unaffected; it ends only when the occurrence's text changes. The immediate
+   Undo removes only the link formatting and preserves the authored text.
 6. Link controls are a structured chooser under the shared
    [Editor popups](./popups.md#shared-editor-popup-contract) contract: focus
    moves into the controls, `Tab` cycles within them, and `Escape` cancels
-   without applying a change. They expose Open, Copy destination, Edit, and
-   Remove link through both pointer and keyboard interaction.
+   without applying a change. `Enter` or a primary click activates Open, Copy
+   destination, or Remove link and closes the controls. Edit exposes label and
+   destination fields; `Enter` applies both and closes. Closing restores the
+   caret to the link occurrence or, after removal, its remaining text.
 
 ## Generic URL presentation and activation
 
 1. Generic links are identifiable and operable as links by assistive technology,
    show visible keyboard focus, and use a non-color visual distinction. Long URL
    text wraps without creating horizontal document scrolling.
-2. In editable content, an ordinary primary click places the caret in the link
-   and exposes its controls without navigating. Modifier-click, middle-click,
-   and the Open action activate it directly.
+2. In editable content, an ordinary primary click opens link controls without
+   navigating. Modifier-click, middle-click, and the Open action activate the
+   link directly.
 3. HTTP and HTTPS links open in a new tab to preserve the active RemDo editing
    context. Their presentation communicates that behavior visually and to
    assistive technology, and the opened page receives no opener or referrer.
