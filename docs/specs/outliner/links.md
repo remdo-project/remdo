@@ -115,10 +115,10 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
    password remains text. Explicit creation and imported content reject it
    rather than stripping credentials or linking only part of the candidate.
 5. Recognition excludes trailing `.`, `,`, `;`, `:`, `!`, `?`, `*`, `_`, `~`,
-   `"`, `'`, `“`, `”`, `‘`, and `’` from the destination. It excludes a trailing
-   `)`, `]`, or `}` only when the corresponding opening character is unmatched
-   within the candidate. A rejected or unsupported candidate remains entirely
-   as text rather than becoming a partial link.
+   `"`, `'`, `“`, `”`, `‘`, `’`, and `>` from the destination. It excludes a
+   trailing `)`, `]`, or `}` only when the corresponding opening character is
+   unmatched within the candidate. A rejected or unsupported candidate remains
+   entirely as text rather than becoming a partial link.
 6. Generic link destinations are limited to HTTP, HTTPS, and `mailto:` containing
    exactly one linkable email address. Unsupported or invalid destinations in
    imported content retain their visible text without an active link.
@@ -129,8 +129,9 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 ## Generic URL authoring
 
 1. `Cmd/Ctrl+K` creates a generic link from selected text and edits the link at
-   the caret. Creation accepts an HTTP or HTTPS URL, a linkable email address,
-   or a linkable bare domain; bare domains receive an `https://` destination.
+   the caret. Creation accepts an HTTP or HTTPS URL, a linkable `www.` address,
+   a linkable email address, or a linkable bare domain; scheme-less web inputs
+   receive an `https://` destination.
 2. Pasting an HTTP or HTTPS URL, a linkable `www.` address, a linkable email
    address, or a linkable bare domain over selected text creates a generic link
    whose visible label remains the selected text.
@@ -143,8 +144,11 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
    collaboration, persistence, and reload. Suppression ends only when that
    occurrence's text changes. The immediate Undo removes only the link formatting
    and preserves the authored text.
-6. Link controls expose Open, Copy destination, Edit, and Remove link through
-   both pointer and keyboard interaction.
+6. Link controls are a structured chooser under the shared
+   [Editor popups](./popups.md#shared-editor-popup-contract) contract: focus
+   moves into the controls, `Tab` cycles within them, and `Escape` cancels
+   without applying a change. They expose Open, Copy destination, Edit, and
+   Remove link through both pointer and keyboard interaction.
 
 ## Generic URL presentation and activation
 
