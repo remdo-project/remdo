@@ -1,6 +1,6 @@
 ---
 name: spec-complexity
-description: Assess a selected RemDo change or repository subject against applicable specifications, implementation, tests, and Git history to report accepted-behavior decisions that cause material complexity, simpler alternatives, and target complexity those specifications do not require. Use when the caller asks what makes a change, component, or specification complex or how its accepted behavior could be simplified. Remains read-only and does not choose or apply an alternative.
+description: Assess a selected RemDo change or repository subject against applicable contracts, implementation, tests, and Git history to report accepted-behavior decisions that cause material complexity, simpler alternatives, and target complexity those contracts do not require. Use when the caller asks what makes a change, component, or specification complex or how its accepted behavior could be simplified. Remains read-only and does not choose or apply an alternative.
 ---
 
 # Spec Complexity
@@ -19,10 +19,11 @@ optional scope:
 sh .agents/skills/_shared/tools/resolve-scope.sh [scope]
 ```
 
-Stop on a non-zero exit and return `no-change` immediately when reported.
-Otherwise retain its resolved target and file list. For a subject target,
-require one existing repository-relative file or directory; stop when it is
-missing, outside the repository, or ambiguous.
+Stop on a non-zero exit with a `stopped` result. Retain the emitted `STATE`,
+`SCOPE`, `BASE`, `HEAD_SHA`, and file list as the resolved target. When `STATE`
+is `no-change`, return the complete `no-change` result with that target. For a
+subject target, require one existing repository-relative file or directory;
+stop when it is missing, outside the repository, or ambiguous.
 
 ## Assess the target
 
@@ -31,7 +32,8 @@ related mechanisms. Exclude unrelated pre-existing complexity. For a subject
 target, inspect the named path, its current contracts, implementation, and
 tests. In either case, identify the applicable current
 [contract owners](../../../docs/documentation.md#ownership) and inspect relevant
-Git history.
+Git history. Follow linked contract owners before classifying complexity as
+unrequired.
 
 Identify the few decisions that materially drive complexity. For each:
 
@@ -40,12 +42,12 @@ Identify the few decisions that materially drive complexity. For each:
 2. Estimate target implementation and test lines separately with a directional
    range.
 3. Classify the area by the contract's complexity classes.
-4. Name a simpler specification alternative and its behavioral tradeoff.
+4. Name a simpler contract alternative and its behavioral tradeoff.
 
-Use history to distinguish specification cost from incidental implementation
+Use history to distinguish contract cost from incidental implementation
 choices. Report substantial target complexity not required by applicable
-specifications separately. Prefer causal accuracy over precise estimates: do
-not assign a mechanism to a decision unless repository evidence shows that the
+contracts separately. Prefer causal accuracy over precise estimates: do not
+assign a mechanism to a decision unless repository evidence shows that the
 decision requires it.
 
 Do not turn the assessment into a correctness review, implementation-preserving

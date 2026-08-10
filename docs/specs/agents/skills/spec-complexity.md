@@ -27,9 +27,9 @@ The skill assesses the target against its applicable current
 [contract owners](../../../documentation.md#ownership), implementation, tests,
 and Git history.
 
-For each specification-caused area, report the decision, resulting
+For each contract-caused area, report the decision, resulting
 implementation mechanism, owner, separate implementation and test estimates,
-simpler specification alternative, and main behavioral tradeoff.
+simpler contract alternative, and main behavioral tradeoff.
 
 Classify areas as `high` when they dominate implementation or test complexity,
 `medium` when they remain substantial but contained, and `low` when they do not
@@ -37,10 +37,10 @@ materially drive the design. Report `low` areas only when the caller requests
 them. Classifications are directional; estimates may overlap. Causal
 attribution matters more than precision: ranges need only show relative cost,
 but repository evidence must connect each mechanism to its assigned
-specification decision.
+contract decision.
 
 The report also identifies substantial target complexity not required by the
-applicable specifications.
+applicable contracts.
 
 ## Result
 
@@ -58,16 +58,16 @@ estimated_cost: # if complexity-found
   tests: <line range>
 areas: # if complexity-found
   - name: <area>
-    cause: <specification | implementation>
-    owner: <specification path> # if cause is specification
+    cause: <contract | implementation>
+    owner: <contract path> # if cause is contract
     complexity: <high | medium | low>
     estimated_cost:
       implementation: <line range>
       tests: <line range>
     estimate_note: <qualification or overlap> # if needed
-    assessment: <specification decision and mechanism or unrequired mechanism>
-    alternative: <simpler specification or implementation boundary>
-    tradeoff: <behavior lost or delegated> # if cause is specification
+    assessment: <contract decision and mechanism or unrequired mechanism>
+    alternative: <simpler contract or implementation boundary>
+    tradeoff: <behavior lost or delegated> # if cause is contract
 ```
 
 `complexity-found` means at least one reported area, regardless of cause;
@@ -78,6 +78,6 @@ covers all reported areas within the target and deduplicates overlaps.
 The report normally stays within 350 words and conforms to the repository's
 Markdown lint rules. It favors fewer, broader areas and one short paragraph per
 area. Causal accuracy may exceed the word limit. It presents
-specification-caused areas before implementation-caused areas and orders each
+contract-caused areas before implementation-caused areas and orders each
 group by complexity, then estimated cost. It omits progress, next steps,
 verification results, exhaustive code inventories, and change narration.
