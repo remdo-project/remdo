@@ -30,8 +30,7 @@ test.describe('Note menu', () => {
       .locator('li.list-item:not(.list-nested-item)')
       .filter({ hasText: 'note1' })
       .first();
-    const box = (await listItem.boundingBox())!;
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await listItem.locator('[data-lexical-text="true"]').first().hover();
     const menuButton = editorLocator(page).locator('.note-controls__button--menu');
     await expect(menuButton).toBeVisible();
     await menuButton.click();
