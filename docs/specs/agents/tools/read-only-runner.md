@@ -36,14 +36,16 @@ review whose inspection access is incomplete can still report findings and
 success, so confirmation observes review reach rather than its result.
 
 A review uses the native command's instructions and the repository guidance its
-session loads. The runner tells the reviewing agent that repository verification
-is caller-owned and outside the review, and instructs it and every reviewer it
-delegates to not to rerun repository checks. If fresh runtime evidence is
+session loads. The runner tells the reviewing agent to assume the prescribed
+tests and checks have passed, treat that as existing evidence, and neither rerun
+nor manually reproduce them. The reviewer still inspects implementation and
+test adequacy for issues that passing checks may miss and passes the assumption
+and instruction to every reviewer it delegates to. If fresh runtime evidence is
 essential to assess a potential finding, the reviewer reports the exact check
 needed and why instead of running it. This is cooperative guidance, not a tool
-restriction. **Empirical.** During validation, no reviewer process runs a
-repository check; forwarded instructions do not establish compliance, so
-confirmation observes the commands they run.
+restriction. **Empirical.** During validation, no reviewer process runs or
+manually reproduces a repository check; forwarded instructions do not establish
+compliance, so confirmation observes the commands they run.
 
 ## Repository protection
 

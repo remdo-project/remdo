@@ -17,12 +17,13 @@ import {
 
 const runner = path.join(__dirname, '../tools/read-only-runner.ts');
 const reviewInstruction = [
-  'Repository verification is caller-owned and outside this review.',
-  'Do not rerun tests, linters, typechecks, builds, package-manager scripts,',
-  'browsers, servers, or other repository checks during this review.',
-  'Inspect the code and existing evidence instead.',
-  'When delegating review work, pass this instruction to every delegated',
-  'reviewer.',
+  'Assume the repository\'s prescribed tests and checks have already passed;',
+  'treat that as existing evidence.',
+  'Do not rerun or manually reproduce them.',
+  'Review the implementation and test adequacy for issues that passing checks',
+  'may still miss.',
+  'When delegating review work, pass this assumption and instruction to every',
+  'delegated reviewer.',
   'If fresh runtime evidence is essential to assess a potential finding,',
   'report the exact check needed and why instead of running it.',
 ].join(' ');
@@ -492,10 +493,14 @@ describe('read-only runner CLI', () => {
     expect(settings).toEqual({ disableAllHooks: true });
     const instruction = argumentAfter(argv, '--append-system-prompt');
     expect(instruction).toContain(
-      'Repository verification is caller-owned and outside this review.',
+      'Assume the repository\'s prescribed tests and checks have already passed;',
+    );
+    expect(instruction).toContain('Do not rerun or manually reproduce them.');
+    expect(instruction).toContain(
+      'pass this assumption and instruction to every delegated reviewer.',
     );
     expect(instruction).toContain(
-      'When delegating review work, pass this instruction to every delegated reviewer.',
+      'report the exact check needed and why instead of running it.',
     );
     expect(argv).not.toContain('--append-subagent-system-prompt');
     expect(argumentAfter(argv, '--output-format')).toBe('json');
@@ -514,6 +519,14 @@ describe('read-only runner CLI', () => {
       '/code-review "candidate.md" "deleted.md" "staged.md" '
       + '"untracked file.md"',
     ));
+    const [reviewCommand, requestInstruction] = input.split(
+      '\n\nReview constraint: ',
+    );
+    expect(reviewCommand).toBe(
+      '/code-review "candidate.md" "deleted.md" "staged.md" '
+      + '"untracked file.md"',
+    );
+    expect(requestInstruction).toBe(instruction);
     expect(input).not.toContain('ahead.md');
     const gitEnv = fs.readFileSync(path.join(stub, 'git-env'), 'utf8')
       .trimEnd()
