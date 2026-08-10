@@ -73,11 +73,11 @@ catalog:
   '@lexical/react': ^0.45.0
   '@lexical/utils': ^0.45.0
   '@lexical/yjs': ^0.45.0
-  '@mantine/core': ^9.4.1
-  '@mantine/dates': 9.4.1
-  '@mantine/hooks': ^9.4.1
+  '@mantine/core': ^9.5.1
+  '@mantine/dates': 9.5.1
+  '@mantine/hooks': ^9.5.1
   '@playwright/test': ^1.61.1
-  '@tabler/icons-react': ^3.44.0
+  '@tabler/icons-react': ^3.46.0
   '@testing-library/jest-dom': ^6.9.1
   '@testing-library/react': ^16.3.2
   '@types/better-sqlite3': ^7.6.13
@@ -85,8 +85,8 @@ catalog:
   '@types/jsdom': ^30.0.0
   '@types/linkify-it': ^5.0.0
   '@types/node': ^26.1.1
-  '@types/react': ^19.2.17
-  '@types/react-dom': ^19.2.3
+  '@types/react': ^19.2.18
+  '@types/react-dom': ^19.2.4
   '@types/ws': ^8.18.1
   '@vitest/coverage-v8': 4.1.10
   '@vitest/ui': 4.1.10
@@ -112,10 +112,10 @@ catalog:
   linkify-it: ^5.0.2
   markdownlint-cli2: ^0.23.0
   markdownlint-rule-relative-links: ^5.1.1
-  nanoid: ^5.1.16
+  nanoid: ^6.0.1
   playwright: ^1.61.1
-  react: ^19.2.7
-  react-dom: ^19.2.7
+  react: ^19.2.8
+  react-dom: ^19.2.8
   react-router-dom: ^7.18.2
   stylelint: ^17.14.0
   stylelint-config-recommended: ^18.0.0
@@ -127,7 +127,7 @@ catalog:
   vitest: 4.1.10
   workbox-build: 7.4.0
   workbox-window: ^7.4.1
-  ws: 8.21.0
+  ws: 8.21.3
   y-sweet: ^0.9.1
   yaml: ^2.9.0
   yjs: ^13.6.31
