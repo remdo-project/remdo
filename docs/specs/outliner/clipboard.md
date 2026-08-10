@@ -2,7 +2,8 @@
 
 Cut, copy, and paste operate on RemDo notes, including placement from a caret.
 [Note IDs](./note-ids.md) owns identity changes, and [Links](./links.md) owns
-note-link identity across clipboard and persistence boundaries.
+note-link identity across clipboard and persistence boundaries plus generic-URL
+authoring from pasted text.
 
 ## Structural selection
 
@@ -30,7 +31,9 @@ note-link identity across clipboard and persistence boundaries.
 
 ## Inline text selection (single note)
 
-- Single-line plain text replaces the selected text, as in a normal text editor.
+- Single-line plain text replaces the selected text, except a supported generic
+  URL input creates a link whose label remains the selected text as defined in
+  [Links](./links.md#generic-url-authoring).
 - Multi-line plain text always inserts notes, even when the selection is inline.
   The first line replaces the selected text; remaining lines become new child
   notes inserted before existing children.

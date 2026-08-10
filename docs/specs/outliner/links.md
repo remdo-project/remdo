@@ -99,9 +99,11 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 
 ## Generic URL recognition
 
-1. Automatic recognition runs after paste or after following input establishes
-   the end of a candidate. It preserves the authored text; normalization changes
-   only the destination.
+1. An automatic-recognition candidate starts at the beginning of inline text or
+   after whitespace or an opening `(`, `[`, `{`, `<`, `"`, `'`, `“`, or `‘`.
+   Recognition runs after paste or after following input establishes the end of
+   the candidate. It preserves the authored text; normalization changes only the
+   destination.
 2. Automatic recognition creates generic links for:
    - absolute `http://` and `https://` URLs
    - linkable `www.` addresses, with an `https://` destination
