@@ -27,6 +27,7 @@ without interpreting ambiguous text as a destination.
    zone, and containing no scheme, credentials, port, path, query, or fragment.
 9. **Linkable `www.` address:** `www.` followed by a linkable bare domain and,
    optionally, a port, path, query, or fragment accepted by WHATWG URL parsing.
+   The `www.` prefix does not count toward the bare domain's two-label minimum.
 
 ## Core behavior
 
@@ -111,9 +112,11 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 4. A candidate whose resulting HTTP or HTTPS destination contains a username or
    password remains text. Explicit creation and imported content reject it
    rather than stripping credentials or linking only part of the candidate.
-5. Recognition excludes trailing sentence punctuation and unmatched closing
-   punctuation from the destination. A rejected or unsupported candidate
-   remains entirely as text rather than becoming a partial link.
+5. Recognition excludes trailing `.`, `,`, `;`, `:`, `!`, `?`, `*`, `_`, `~`,
+   `"`, `'`, `“`, `”`, `‘`, and `’` from the destination. It excludes a trailing
+   `)`, `]`, or `}` only when the corresponding opening character is unmatched
+   within the candidate. A rejected or unsupported candidate remains entirely
+   as text rather than becoming a partial link.
 6. Generic link destinations are limited to HTTP, HTTPS, and `mailto:` containing
    exactly one linkable email address. Unsupported or invalid destinations in
    imported content retain their visible text without an active link.
@@ -126,7 +129,8 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 1. `Cmd/Ctrl+K` creates a generic link from selected text and edits the link at
    the caret. Creation accepts an HTTP or HTTPS URL, a linkable email address,
    or a linkable bare domain; bare domains receive an `https://` destination.
-2. Pasting a supported destination over selected text creates a generic link
+2. Pasting an HTTP or HTTPS URL, a linkable `www.` address, a linkable email
+   address, or a linkable bare domain over selected text creates a generic link
    whose visible label remains the selected text.
 3. Editing a labeled link's destination preserves its label, and editing its
    label preserves its destination.
