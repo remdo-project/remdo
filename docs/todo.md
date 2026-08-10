@@ -228,6 +228,8 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   simple typed discovery command that preserves `todo:list`, then make applicable
   agent review workflows invoke the relevant view. Exclude external-tool
   directives, and do not treat discovery as proof that an obligation is satisfied.
+  Examples: Deterministic check, Empirical check, Deterministic/agentic?
+  implementation (for skills' specs)
 
 - **Skill-spec ownership boundaries.** Verify ownership between agent skill
   specifications, starting with [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md), and
