@@ -124,8 +124,8 @@ explicit [generic URL authoring](#generic-url-authoring).
    remains text. Explicit creation and imported content reject it rather than
    stripping credentials or linking only part of the candidate.
 5. Recognition excludes trailing `.`, `,`, `;`, `:`, `!`, `?`, `*`, `_`, `~`,
-   `"`, `'`, `“`, `”`, `‘`, `’`, and `>` from the destination. It excludes a
-   trailing `)`, `]`, or `}` only when it closes an unmatched corresponding
+   `"`, `'`, `“`, `”`, `‘`, `’`, and `>` from the destination. It retains a
+   trailing `)`, `]`, or `}` only when that closer balances a corresponding
    opening character earlier within the candidate; otherwise it excludes the
    closer. A rejected or unsupported candidate remains entirely as text rather
    than becoming a partial link.
