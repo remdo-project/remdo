@@ -51,7 +51,7 @@ outcome: <complexity-found | no-material-complexity | no-change | stopped>
 concerns: # if any
   - source: <originating capability or participant>
     summary: <condition>
-target: <resolved analysis target>
+target: <resolved analysis target> # if resolved
 reason: <condition that prevented assessment> # if stopped
 estimated_cost: # if complexity-found
   implementation: <line range>
