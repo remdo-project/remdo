@@ -1,22 +1,35 @@
 # spec-complexity
 
 This read-only skill returns an [agent result](../protocol.md#results) showing
-which decisions in one specification create material implementation complexity
-and what simpler alternatives exist. It does not select or apply an alternative.
+which accepted-behavior decisions create material implementation complexity
+within one [analysis target](../analysis-target.md), what simpler alternatives
+exist, and what target complexity those decisions do not require. It does not
+select or apply an alternative.
+
+## Target
+
+The capability accepts either analysis-target form:
+
+- `change`: the changed end state and directly related mechanisms, excluding
+  unrelated pre-existing complexity;
+- `subject`: the named current-tree subject, its implementation, and tests.
+
+All estimates are target-bounded.
 
 ## Assessment
 
 The [report](../protocol.md#reports) answers:
 
-> Which spec decisions create complexity, and what simpler alternatives exist?
+> Which accepted-behavior decisions create complexity within the target, and
+> what simpler alternatives exist?
 
-The skill assesses a specification named by the caller against its current
-implementation, tests, and Git history. The specification is the current
-[contract owner](../../../documentation.md#ownership) for the behavior under assessment.
+The skill assesses the target against its applicable current
+[contract owners](../../../documentation.md#ownership), implementation, tests,
+and Git history.
 
 For each specification-caused area, report the decision, resulting
-implementation mechanism, separate implementation and test estimates, simpler
-specification alternative, and main behavioral tradeoff.
+implementation mechanism, owner, separate implementation and test estimates,
+simpler specification alternative, and main behavioral tradeoff.
 
 Classify areas as `high` when they dominate implementation or test complexity,
 `medium` when they remain substantial but contained, and `low` when they do not
@@ -26,19 +39,19 @@ attribution matters more than precision: ranges need only show relative cost,
 but repository evidence must connect each mechanism to its assigned
 specification decision.
 
-The report also identifies substantial implementation complexity not required
-by the specification.
+The report also identifies substantial target complexity not required by the
+applicable specifications.
 
 ## Result
 
 The result uses this shape:
 
 ```yaml
-outcome: <complexity-found | no-material-complexity | stopped>
+outcome: <complexity-found | no-material-complexity | no-change | stopped>
 concerns: # if any
   - source: <originating capability or participant>
     summary: <condition>
-specification: <path>
+target: <resolved analysis target>
 reason: <condition that prevented assessment> # if stopped
 estimated_cost: # if complexity-found
   implementation: <line range>
@@ -46,6 +59,7 @@ estimated_cost: # if complexity-found
 areas: # if complexity-found
   - name: <area>
     cause: <specification | implementation>
+    owner: <specification path> # if cause is specification
     complexity: <high | medium | low>
     estimated_cost:
       implementation: <line range>
@@ -57,8 +71,9 @@ areas: # if complexity-found
 ```
 
 `complexity-found` means at least one reported area, regardless of cause;
-`no-material-complexity` means a completed assessment found no reportable area.
-The top-level estimate covers all reported areas and deduplicates overlaps.
+`no-material-complexity` means a completed assessment found no reportable area;
+`no-change` means change-target resolution found no diff. The top-level estimate
+covers all reported areas within the target and deduplicates overlaps.
 
 The report normally stays within 350 words and conforms to the repository's
 Markdown lint rules. It favors fewer, broader areas and one short paragraph per
