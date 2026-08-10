@@ -31,9 +31,9 @@ authoring from pasted text.
 
 ## Inline text selection (single note)
 
-- Single-line plain text replaces the selected text, except a supported generic
-  URL input creates a link whose label remains the selected text as defined in
-  [Links](./links.md#generic-url-authoring).
+- Single-line plain text replaces the selected text, except a URL input
+  classified by [Links](./links.md) creates the corresponding note or generic
+  link whose label remains the selected text.
 - Multi-line plain text always inserts notes, even when the selection is inline.
   The first line replaces the selected text; remaining lines become new child
   notes inserted before existing children.

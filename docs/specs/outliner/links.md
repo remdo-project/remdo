@@ -110,9 +110,9 @@ explicit [generic URL authoring](#generic-url-authoring).
    destination.
 2. Automatic recognition creates generic links for:
    - absolute `http://` and `https://` URLs
-   - scheme-less web address candidates whose hostname has at least three labels,
-     whose first label is `www`, and whose destination passes the rules below,
-     with an `https://` destination
+   - scheme-less web address candidates whose hostname has at least three total
+     labels including an initial `www` label, and whose destination passes the
+     rules below, with an `https://` destination
    - linkable email addresses, with a `mailto:` destination
 3. Automatic recognition leaves ambiguous or context-dependent forms as text,
    including other scheme-less domains, bare IP or `localhost` addresses,
@@ -137,9 +137,12 @@ explicit [generic URL authoring](#generic-url-authoring).
 
 1. `Cmd/Ctrl+K` opens link controls. With selected unlinked text, the controls
    create a generic link using that text as its label; at an existing link, Edit
-   is initially active. Creation accepts an HTTP or HTTPS URL, a linkable email
-   address, or a scheme-less web address candidate that passes the destination
-   rules; scheme-less web inputs receive an `https://` destination.
+   is initially active; at an unlinked collapsed caret, creation uses the entered
+   destination as the initial label. Creation accepts an HTTP or HTTPS URL, a
+   linkable email address, or a scheme-less web address candidate. It applies the
+   same credential and destination restrictions as automatic recognition and
+   imported content; email inputs receive a `mailto:` destination and scheme-less
+   web inputs receive an `https://` destination.
 2. After RemDo-owned URL classification, pasting over selected text a destination
    accepted by the `Cmd/Ctrl+K` creation rules creates a generic link whose
    visible label remains the selected text.
@@ -156,8 +159,11 @@ explicit [generic URL authoring](#generic-url-authoring).
 6. Link controls are a structured chooser under the shared
    [Editor popups](./popups.md#shared-editor-popup-contract) contract: focus
    moves into the controls, `Tab` cycles within them, and `Escape` cancels
-   without applying a change. `Enter` or a primary click activates Open, Copy
-   destination, or Remove link and closes the controls. Edit exposes label and
+   without applying a change. Opening pins the current link occurrence when one
+   exists; every action re-resolves that target and closes without acting when it
+   no longer exists. `Enter` or a primary click activates the active Open, Copy
+   destination, or Remove link action and closes the controls; Remove is the only
+   one of those actions that changes the document. Edit exposes label and
    destination fields; `Enter` applies both and closes. Closing restores the
    caret to the link occurrence or, after removal, its remaining text.
 
@@ -167,8 +173,9 @@ explicit [generic URL authoring](#generic-url-authoring).
    show visible keyboard focus, and use a non-color visual distinction. Long URL
    text wraps without creating horizontal document scrolling.
 2. In editable content, an ordinary primary click opens link controls without
-   navigating. Modifier-click, middle-click, and the Open action activate the
-   link directly.
+   navigating. `Cmd/Ctrl`-click, middle-click, and the Open action activate the
+   link directly; Shift-click retains its
+   [structural-selection behavior](./selection.md#input-bindings).
 3. HTTP and HTTPS links open in a new tab to preserve the active RemDo editing
    context. Their presentation communicates that behavior visually and to
    assistive technology, and the opened page receives no opener or referrer.
