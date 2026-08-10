@@ -1,9 +1,8 @@
 # remdo-converge-change
 
-This skill simplifies a repository change once, then cleans up and verifies it,
-applies every correction supported by the evidence, and repeats the cleanup
-audit and verification until no further correction can be determined. It
-returns an [agent result](../protocol.md#results). One
+This skill owns simplification, cleanup, verification, and evidence-supported
+correction for one repository change. It returns an
+[agent result](../protocol.md#results). One
 [change scope](../change-scope.md) bounds the run; the skill does not select or
 expand intended behavior.
 
