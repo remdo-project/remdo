@@ -23,8 +23,10 @@ without interpreting ambiguous text as a destination.
    those rules. Unicode local parts, display names, headers, queries, and
    fragments are not linkable.
 8. **Linkable bare domain:** a non-IP hostname accepted by WHATWG URL host
-   parsing, containing at least two labels and no scheme, credentials, port,
-   path, query, or fragment. It need not have a registered public suffix.
+   parsing, containing at least two labels, ending in a suffix from the IANA root
+   zone, and containing no scheme, credentials, port, path, query, or fragment.
+9. **Linkable `www.` address:** `www.` followed by a linkable bare domain and,
+   optionally, a port, path, query, or fragment accepted by WHATWG URL parsing.
 
 ## Core behavior
 
@@ -41,14 +43,14 @@ without interpreting ambiguous text as a destination.
    results may appear immediately. Whitespace is allowed in the query.
 6. On insertion, note-link display text is copied once from the target note
    title and then stored locally; later target renames do not update it.
-7. Note links are operable as links and navigate to their RemDo route target.
+7. Note-link clicks use native `href` navigation semantics and route handling.
 8. Pasting a RemDo-owned plain-text note URL inserts a
    note-link node. When the target is in the active document, inserted
    link text copies the target note title; otherwise it uses the pasted URL string.
 9. Typing a URL — including a same-origin RemDo note URL — does not create
    note-link identity; the note-link upgrade applies only to paste.
 10. URLs that merely resemble RemDo note routes but are not classified by
-    RemDo as owned note refs remain generic external links.
+    RemDo as owned note refs are handled as generic URL candidates.
 11. Clipboard payloads (copy/cut) must include explicit `docId` for every
     note link so cross-context paste has complete target identity.
 12. Cross-document pastes preserve source-target link identity; note links
@@ -101,20 +103,23 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
    only the destination.
 2. Automatic recognition creates generic links for:
    - absolute `http://` and `https://` URLs
-   - `www.` followed by a linkable bare domain, with an `https://` destination
+   - linkable `www.` addresses, with an `https://` destination
    - linkable email addresses, with a `mailto:` destination
 3. Automatic recognition leaves ambiguous or context-dependent forms as text,
-   including bare domains, bare IP or `localhost` addresses, relative URLs, and
-   protocol-relative (`//`) URLs.
-4. HTTP and HTTPS URLs containing a username or password remain text. Explicit
-   creation and imported content reject them rather than stripping credentials
-   or linking only part of the candidate.
+   including other scheme-less domains, bare IP or `localhost` addresses,
+   relative URLs, and protocol-relative (`//`) URLs.
+4. A candidate whose resulting HTTP or HTTPS destination contains a username or
+   password remains text. Explicit creation and imported content reject it
+   rather than stripping credentials or linking only part of the candidate.
 5. Recognition excludes trailing sentence punctuation and unmatched closing
    punctuation from the destination. A rejected or unsupported candidate
    remains entirely as text rather than becoming a partial link.
 6. Generic link destinations are limited to HTTP, HTTPS, and `mailto:` containing
    exactly one linkable email address. Unsupported or invalid destinations in
    imported content retain their visible text without an active link.
+7. Imported, persisted, and collaboration-state generic links are validated
+   against the same destination rules and otherwise preserve their label and
+   destination.
 
 ## Generic URL authoring
 
@@ -162,6 +167,7 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 - [GitHub Flavored Markdown autolinks](https://github.github.com/gfm/#autolinks-extension-)
 - [HTML email address syntax](https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address)
 - [WHATWG URL host parsing](https://url.spec.whatwg.org/#host-parsing)
+- [IANA root-zone database](https://www.iana.org/domains/root/db)
 - [RFC 9110 URI userinfo guidance](https://www.rfc-editor.org/rfc/rfc9110.html#section-4.2.4)
 - [W3C guidance for links that open new windows](https://www.w3.org/WAI/WCAG21/Techniques/general/G201)
 - [WHATWG guidance for secure URL handling](https://html.spec.whatwg.org/multipage/introduction.html#writing-secure-applications-with-html)
