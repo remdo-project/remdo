@@ -17,8 +17,6 @@
   // live implementation details, not dead production code.
   "ignoreExportsUsedInFile": true,
   "entry": [
-    // Public SDK barrel consumed by external callers.
-    "src/note-sdk/index.ts!",
     // Docker bundles these files as production executables; knip does not parse
     // docker/Dockerfile to discover them.
     "tools/remdo-api-server.ts!",
