@@ -12,11 +12,14 @@ trigger, owned keys, focus model, and confirmation.
 An editor popup is a transient surface anchored in the editor that, while open,
 **owns the keyboard** and is **light-dismissable**.
 
-1. **One at a time.** At most one editor popup is open; opening one closes any other.
+1. **One at a time.** At most one editor popup is open. An interaction that
+   opens one first cancels any existing popup, then opens the requested popup if
+   its target remains valid.
 2. **The popup owns the keyboard.** While open it has first decision over every
    key: it consumes its navigation, commit, and dismissal keys, and no keystroke
    reaches ordinary text editing — **except** keys that edit the popup's own
-   *pinned span* (see below). An owned key with no binding is a no-op.
+   *pinned span* (see below). A focused input inside the popup similarly receives
+   its ordinary text-editing keys. An owned key with no binding is a no-op.
 3. **Editable-span exception.** A type-to-filter popup pins a span of editor text
    as its query; while the selection is inside that span, ordinary text-editing
    keys (printable characters, `Backspace`) stay the editor's and edit the query.
@@ -34,7 +37,9 @@ An editor popup is a transient surface anchored in the editor that, while open,
    before acting. On any close the editor regains a valid selection restored from
    a model-level anchor whose caret or range endpoints are re-resolved at close,
    never a stale DOM range. Each widget declares its selection after a committed
-   result; cancel restores the original selection.
+   result; a commit that inserts inline content places the caret after that
+   content unless the widget declares otherwise. Cancel restores the original
+   selection.
 7. **Focus model is per-widget.** A type-to-filter popup keeps DOM focus in the
    editor and tracks its active item via `aria-activedescendant` (the WAI-ARIA
    combobox pattern); a structured chooser (calendar grid, menu) may instead move

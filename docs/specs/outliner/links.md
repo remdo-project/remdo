@@ -144,26 +144,28 @@ explicit [generic URL authoring](#generic-url-authoring).
    same credential and destination restrictions as automatic recognition and
    imported content; email inputs receive a `mailto:` destination and scheme-less
    web inputs receive an `https://` destination.
-2. After RemDo-owned URL classification, pasting over selected text a destination
+2. Submitting an unsupported or invalid destination leaves the controls open,
+   presents a validation error, and does not change the document.
+3. After RemDo-owned URL classification, pasting over selected text a destination
    accepted by the `Cmd/Ctrl+K` creation rules creates a generic link whose
    visible label remains the selected text.
-3. Editing a labeled link's destination preserves its label, and editing its
+4. Editing a labeled link's destination preserves its label, and editing its
    label preserves its destination.
-4. Editing the text of an automatically recognized link updates its destination;
+5. Editing the text of an automatically recognized link updates its destination;
    when the complete text no longer matches, it becomes ordinary text.
-5. Removing a link or undoing automatic recognition preserves its visible text
+6. Removing a link or undoing automatic recognition preserves its visible text
    and suppresses recognition for that inline occurrence across later editor
    updates, collaboration, persistence, and reload. Suppression belongs to the
    occurrence rather than its URL string, so identical text elsewhere is
    unaffected; it ends only when the occurrence's text changes. The immediate
    Undo removes only the link formatting and preserves the authored text.
-6. Link controls are a structured chooser under the shared
+7. Link controls are a structured chooser under the shared
    [Editor popups](./popups.md#shared-editor-popup-contract) contract. Opening
    pins a model-level authoring target: the existing link occurrence, selected
    text range, or collapsed caret. Before acting, the controls re-resolve the
    target and close without acting when it no longer exists. `Escape` cancels and
    restores the anchored selection.
-7. In creation mode, focus moves into label and destination fields, `Tab` cycles
+8. In creation mode, focus moves into label and destination fields, `Tab` cycles
    between them, and `Enter` creates the link and closes. In existing-link mode,
    controls expose Open, Copy destination, Edit, and Remove link; focus moves to
    Edit initially, `Tab` cycles through the actions, and `Enter` or a primary
