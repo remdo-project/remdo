@@ -23,6 +23,8 @@ updateConfig:
     # TODO(deps): retry Lexical; 0.46 fails editor invariants.
     - '@lexical/*'
     - lexical
+    # TODO(deps): retry linkify-it; 6.x fails generic URLs beyond 11 hostname labels.
+    - linkify-it
     # TODO(deps): retry TypeScript; version 7 is unsupported by @typescript-eslint.
     - typescript
     # TODO(deps): retry workbox-build; version 7.4.1 causes a provenance downgrade.
