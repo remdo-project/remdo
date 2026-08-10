@@ -143,11 +143,11 @@ explicit [generic URL authoring](#generic-url-authoring).
 
 1. `Cmd/Ctrl+K` opens link controls for an unlinked collapsed caret, a wholly
    unlinked inline selection within one note, or a caret or selection contained
-   in one existing link occurrence. It is a no-op for a
+   in one existing generic-link occurrence. It is a no-op for a
    [structural selection](./selection.md#selection-states) or an inline selection
    overlapping linked and unlinked text or multiple link occurrences. With
    selected unlinked text, the controls use that text as the initial label; at an
-   existing link, Edit is initially active; at an unlinked collapsed caret,
+   existing generic link, Edit is initially active; at an unlinked collapsed caret,
    generic-link creation uses the entered destination as the initial label. A
    RemDo-owned note URL instead creates a note link under the
    [core URL-insertion behavior](#core-behavior). For generic links, creation
@@ -158,7 +158,8 @@ explicit [generic URL authoring](#generic-url-authoring).
    and scheme-less web inputs receive an `https://` destination.
 2. Submitting a label with no non-whitespace character, or an unsupported or
    invalid destination, leaves the controls open, presents a validation error,
-   and does not change the document.
+   and does not change the document. Changing a generic link's destination to a
+   RemDo-owned note URL is invalid rather than converting the link's kind.
 3. After RemDo-owned URL classification, pasting over selected text containing a
    non-whitespace character a destination accepted by the `Cmd/Ctrl+K` creation
    rules creates a generic link whose visible label remains the selected text.
