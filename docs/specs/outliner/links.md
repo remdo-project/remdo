@@ -18,9 +18,13 @@ without interpreting ambiguous text as a destination.
    [document identity](../../architecture.md#document-identity).
 6. **`noteId`:** the note-link field carrying the target note's [noteId](./note-ids.md#definitions).
 7. **Linkable email address:** one address accepted by the HTML email address
-   syntax whose domain contains at least two labels. Before validation, a Unicode
-   domain is normalized through browser URL hostname rules. Unicode local parts,
-   display names, headers, queries, and fragments are not linkable.
+   syntax whose domain contains at least two labels. A Unicode domain is linkable
+   when WHATWG URL host parsing normalizes it to an ASCII domain that satisfies
+   those rules. Unicode local parts, display names, headers, queries, and
+   fragments are not linkable.
+8. **Linkable bare domain:** a non-IP hostname accepted by WHATWG URL host
+   parsing, containing at least two labels and no scheme, credentials, port,
+   path, query, or fragment. It need not have a registered public suffix.
 
 ## Core behavior
 
@@ -97,7 +101,7 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
    only the destination.
 2. Automatic recognition creates generic links for:
    - absolute `http://` and `https://` URLs
-   - `www.` addresses, with an `https://` destination
+   - `www.` followed by a linkable bare domain, with an `https://` destination
    - linkable email addresses, with a `mailto:` destination
 3. Automatic recognition leaves ambiguous or context-dependent forms as text,
    including bare domains, bare IP or `localhost` addresses, relative URLs, and
@@ -108,15 +112,15 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 5. Recognition excludes trailing sentence punctuation and unmatched closing
    punctuation from the destination. A rejected or unsupported candidate
    remains entirely as text rather than becoming a partial link.
-6. Generic link destinations are limited to HTTP, HTTPS, and linkable email.
-   Unsupported or invalid destinations in imported content retain their visible
-   text without an active link.
+6. Generic link destinations are limited to HTTP, HTTPS, and `mailto:` containing
+   exactly one linkable email address. Unsupported or invalid destinations in
+   imported content retain their visible text without an active link.
 
 ## Generic URL authoring
 
 1. `Cmd/Ctrl+K` creates a generic link from selected text and edits the link at
    the caret. Creation accepts an HTTP or HTTPS URL, a linkable email address,
-   or a bare domain; bare domains receive an `https://` destination.
+   or a linkable bare domain; bare domains receive an `https://` destination.
 2. Pasting a supported destination over selected text creates a generic link
    whose visible label remains the selected text.
 3. Editing a labeled link's destination preserves its label, and editing its
@@ -140,7 +144,8 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 3. HTTP and HTTPS links open in a new tab to preserve the active RemDo editing
    context. Their presentation communicates that behavior visually and to
    assistive technology, and the opened page receives no opener or referrer.
-4. RemDo does not fetch external content or metadata merely because a URL was
+4. Link controls do not obstruct pointer interaction with inline content.
+5. RemDo does not fetch external content or metadata merely because a URL was
    typed, pasted, displayed, or selected.
 
 ## Future
@@ -156,6 +161,7 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 
 - [GitHub Flavored Markdown autolinks](https://github.github.com/gfm/#autolinks-extension-)
 - [HTML email address syntax](https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address)
+- [WHATWG URL host parsing](https://url.spec.whatwg.org/#host-parsing)
 - [RFC 9110 URI userinfo guidance](https://www.rfc-editor.org/rfc/rfc9110.html#section-4.2.4)
 - [W3C guidance for links that open new windows](https://www.w3.org/WAI/WCAG21/Techniques/general/G201)
 - [WHATWG guidance for secure URL handling](https://html.spec.whatwg.org/multipage/introduction.html#writing-secure-applications-with-html)

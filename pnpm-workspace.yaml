@@ -24,6 +24,7 @@ updateConfig:
     - '@lexical/*'
     - lexical
     # TODO(deps): retry linkify-it; 6.x fails generic URLs beyond 11 hostname labels.
+    - '@types/linkify-it'
     - linkify-it
     # TODO(deps): retry TypeScript; version 7 is unsupported by @typescript-eslint.
     - typescript

@@ -132,10 +132,10 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 - **Generic URL link target.** Implement the accepted [generic URL recognition,
   authoring, presentation, and activation behavior](specs/outliner/links.md#generic-url-recognition).
   The current editor provides automatic web linking but still accepts
-  protocol-relative URLs and lacks email recognition, intentional link
-  creation and editing, persistent unlinking, link controls, and the specified
-  editing-safe activation behavior. Align implementation and automated coverage,
-  then remove this entry.
+  protocol-relative and credential-bearing URLs and lacks email recognition,
+  intentional link creation and editing, persistent unlinking, link controls,
+  and the specified editing-safe activation behavior. Align implementation and
+  automated coverage, then remove this entry.
 
 - **Inline-selection Enter behavior.** Decide and specify what `Enter` does for
   a non-collapsed [inline text selection](specs/outliner/selection.md#selection-states)
