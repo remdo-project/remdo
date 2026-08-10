@@ -22,10 +22,11 @@ without interpreting ambiguous text as a destination.
    when WHATWG URL host parsing normalizes it to an ASCII domain that satisfies
    those rules. Unicode local parts, display names, headers, queries, and
    fragments are not linkable.
-8. **Linkable scheme-less web address:** a URL with no scheme or credentials
-   whose non-IP hostname is accepted by WHATWG URL host parsing, contains at
-   least two labels, and ends in a suffix from the IANA root zone. It may include
-   a port, path, query, or fragment accepted by WHATWG URL parsing.
+8. **Scheme-less web address candidate:** a URL with no scheme whose non-IP
+   hostname is accepted by WHATWG URL host parsing, contains at least two labels,
+   and ends in a suffix from the IANA root zone. It may include credentials, a
+   port, path, query, or fragment accepted by WHATWG URL parsing; destination
+   rules determine whether those components are allowed.
 
 ## Core behavior
 
@@ -44,8 +45,10 @@ without interpreting ambiguous text as a destination.
    title and then stored locally; later target renames do not update it.
 7. Note-link clicks use native `href` navigation semantics and route handling.
 8. Pasting a RemDo-owned plain-text note URL inserts a
-   note-link node. When the target is in the active document, inserted
-   link text copies the target note title; otherwise it uses the pasted URL string.
+   note-link node. When pasted over selected text, the note link retains that
+   text as its label. Otherwise, when the target is in the active document,
+   inserted link text copies the target note title; for another document it uses
+   the pasted URL string.
 9. Typing a URL — including a same-origin RemDo note URL — does not create
    note-link identity; the note-link upgrade applies only to paste.
 10. URLs that merely resemble RemDo note routes but are not classified by
@@ -107,7 +110,8 @@ explicit [generic URL authoring](#generic-url-authoring).
    destination.
 2. Automatic recognition creates generic links for:
    - absolute `http://` and `https://` URLs
-   - linkable scheme-less web addresses whose first hostname label is `www`,
+   - scheme-less web address candidates whose hostname has at least three labels,
+     whose first label is `www`, and whose destination passes the rules below,
      with an `https://` destination
    - linkable email addresses, with a `mailto:` destination
 3. Automatic recognition leaves ambiguous or context-dependent forms as text,
@@ -131,12 +135,13 @@ explicit [generic URL authoring](#generic-url-authoring).
 
 ## Generic URL authoring
 
-1. `Cmd/Ctrl+K` creates a generic link from selected text and edits the link at
-   the caret. Creation accepts an HTTP or HTTPS URL, a linkable email address,
-   or a linkable scheme-less web address; scheme-less web inputs receive an
-   `https://` destination.
-2. Pasting an HTTP or HTTPS URL, a linkable email address, or a linkable
-   scheme-less web address over selected text creates a generic link whose
+1. `Cmd/Ctrl+K` opens link controls. With selected unlinked text, the controls
+   create a generic link using that text as its label; at an existing link, Edit
+   is initially active. Creation accepts an HTTP or HTTPS URL, a linkable email
+   address, or a scheme-less web address candidate that passes the destination
+   rules; scheme-less web inputs receive an `https://` destination.
+2. After RemDo-owned URL classification, pasting over selected text a destination
+   accepted by the `Cmd/Ctrl+K` creation rules creates a generic link whose
    visible label remains the selected text.
 3. Editing a labeled link's destination preserves its label, and editing its
    label preserves its destination.
