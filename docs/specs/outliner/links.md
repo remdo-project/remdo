@@ -108,8 +108,9 @@ explicit [generic URL authoring](#generic-url-authoring).
 1. An automatic-recognition candidate starts at the beginning of inline text or
    after whitespace or an opening `(`, `[`, `{`, `<`, `"`, `'`, `“`, or `‘`.
    Recognition runs after paste or after following input establishes the end of
-   the candidate. It preserves the authored text; normalization changes only the
-   destination.
+   the candidate, but does not reprocess content already handled by note-link or
+   explicit generic-link paste rules. It preserves the authored text;
+   normalization changes only the destination.
 2. Automatic recognition creates generic links for:
    - absolute `http://` and `https://` URLs
    - scheme-less web address candidates whose hostname has at least three total
@@ -124,11 +125,11 @@ explicit [generic URL authoring](#generic-url-authoring).
    remains text. Explicit creation and imported content reject it rather than
    stripping credentials or linking only part of the candidate.
 5. Recognition excludes trailing `.`, `,`, `;`, `:`, `!`, `?`, `*`, `_`, `~`,
-   `"`, `'`, `“`, `”`, `‘`, `’`, and `>` from the destination. It retains a
-   trailing `)`, `]`, or `}` only when that closer balances a corresponding
-   opening character earlier within the candidate; otherwise it excludes the
-   closer. A rejected or unsupported candidate remains entirely as text rather
-   than becoming a partial link.
+   `"`, `'`, `“`, `”`, `‘`, `’`, and `>` from the destination. Scanning the
+   candidate in order, it retains a trailing `)`, `]`, or `}` only when an
+   unclosed corresponding opener occurs earlier within the candidate; it excludes
+   an unmatched trailing closer. A rejected or unsupported candidate remains
+   entirely as text rather than becoming a partial link.
 6. Generic link destinations are limited to HTTP, HTTPS, and `mailto:` containing
    exactly one linkable email address. A `mailto:` destination encodes its
    address so URL syntax cannot reinterpret local-part characters as a query,
@@ -158,9 +159,9 @@ explicit [generic URL authoring](#generic-url-authoring).
 2. Submitting a label with no non-whitespace character, or an unsupported or
    invalid destination, leaves the controls open, presents a validation error,
    and does not change the document.
-3. After RemDo-owned URL classification, pasting over selected text a destination
-   accepted by the `Cmd/Ctrl+K` creation rules creates a generic link whose
-   visible label remains the selected text.
+3. After RemDo-owned URL classification, pasting over selected text containing a
+   non-whitespace character a destination accepted by the `Cmd/Ctrl+K` creation
+   rules creates a generic link whose visible label remains the selected text.
 4. Through link controls, editing a labeled link's destination preserves its
    label, and editing its label preserves its destination.
 5. Directly editing the inline text of an automatically recognized link updates
@@ -187,8 +188,9 @@ explicit [generic URL authoring](#generic-url-authoring).
    Open, Copy destination, Edit, and Remove link; focus moves to Edit initially,
    `Tab` cycles through the actions, and `Enter` or a primary click invokes the
    active action. Open and Copy perform their non-document action and close;
-   Remove commits immediately. A commit closes and restores the caret to the link
-   occurrence or, after removal, its remaining text.
+   Remove commits immediately. A creation commit places the caret after the new
+   link; an edit commit restores it to the link occurrence, and removal restores
+   it to the remaining text.
 
 ## Generic URL presentation and activation
 
