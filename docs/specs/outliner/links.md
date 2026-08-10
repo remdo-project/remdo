@@ -46,13 +46,10 @@ without interpreting ambiguous text as a destination.
    locally; later target renames do not update it.
 7. Note-link clicks use native `href` navigation semantics and route handling.
 8. Creating a note link from a RemDo-owned plain-text note URL, by paste or link
-   controls, inserts a note-link node. Its initial label is selected text when
-   present, the target note title for an unselected target in the active document,
-   or the entered URL string for another document. Paste commits that label
-   directly; link controls expose it for editing and retain the edited value.
-   Paste over a whitespace-only selection instead follows ordinary
-   [Clipboard](./clipboard.md#inline-text-selection-single-note) replacement and
-   subsequent automatic recognition.
+   controls, inserts a note-link node. Its initial label is selected text when it
+   contains a non-whitespace character, the target note title when available, or
+   otherwise the entered URL string. Paste commits that label directly; link
+   controls expose it for editing and retain the edited value.
 9. Typing a URL — including a same-origin RemDo note URL — does not create
    note-link identity; the note-link upgrade applies only to paste and link
    controls.
@@ -149,8 +146,8 @@ explicit [generic URL authoring](#generic-url-authoring).
 ## Generic URL authoring
 
 1. `Cmd/Ctrl+K` opens link controls for an unlinked collapsed caret, a wholly
-   unlinked inline selection within one note, or a caret or selection contained
-   in one existing generic-link occurrence. It is a no-op for a
+   unlinked inline selection within one selection region, or a caret or selection
+   contained in one existing generic-link occurrence. It is a no-op for a
    [structural selection](./selection.md#selection-states) or an inline selection
    overlapping linked and unlinked text or multiple link occurrences, and for a
    caret or selection in a note link. With selected unlinked text, the controls
@@ -209,9 +206,10 @@ explicit [generic URL authoring](#generic-url-authoring).
    show visible keyboard focus, and use a non-color visual distinction. Long URL
    text wraps without creating horizontal document scrolling.
 2. In editable content, an ordinary primary click opens link controls without
-   navigating. `Cmd/Ctrl`-click, middle-click, and the Open action activate the
-   link directly; Shift-click retains its
-   [structural-selection behavior](./selection.md#input-bindings).
+   navigating. Shift takes precedence over `Cmd/Ctrl` on a primary click and
+   retains its [structural-selection behavior](./selection.md#input-bindings)
+   without activating the link. Otherwise, `Cmd/Ctrl`-click, middle-click, and
+   the Open action activate the link directly.
 3. HTTP and HTTPS links open in a new tab to preserve the active RemDo editing
    context. Their presentation communicates that behavior visually and to
    assistive technology, and the opened page receives no opener or referrer.

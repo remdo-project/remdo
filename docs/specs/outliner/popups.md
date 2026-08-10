@@ -12,9 +12,9 @@ trigger, owned keys, focus model, and confirmation.
 An editor popup is a transient surface anchored in the editor that, while open,
 **owns the keyboard** and is **light-dismissable**.
 
-1. **One at a time.** At most one editor popup is open. An interaction that
-   opens one first cancels any existing popup, then opens the requested popup if
-   its target remains valid.
+1. **One at a time.** At most one editor popup is open. An interaction that opens
+   one captures its target, cancels any existing popup, then re-resolves the
+   captured target and opens the requested popup if it remains valid.
 2. **The popup owns the keyboard.** While open it has first decision over every
    key: it consumes its navigation, commit, and dismissal keys, and no keystroke
    reaches ordinary text editing — **except** keys that edit the popup's own
