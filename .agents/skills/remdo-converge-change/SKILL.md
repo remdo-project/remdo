@@ -47,14 +47,15 @@ through the authoritative flow; do not add another quality loop.
 
 ## Apply corrections
 
-Apply a complete correction batch only after the current step finishes. For a
-commit range, require an attached `HEAD`, stage only that batch, and create one
-normal nonempty commit. Leave uncommitted-scope corrections uncommitted.
+Apply a complete correction batch only after the current step finishes. Validate
+it against its applicable authoritative contracts and repair inconsistencies
+introduced by it.
 
-Before continuing, validate the batch against its applicable authoritative
-contracts and repair inconsistencies introduced by it. Record the selected diff
-after each batch and compare it with previously assessed states before routing
-the refreshed scope through the contract.
+For a commit range, require an attached `HEAD`, then stage only the validated
+batch and create one normal nonempty commit. Leave uncommitted-scope corrections
+uncommitted. Record the selected diff after the batch is committed or retained,
+compare it with previously assessed states, then route the refreshed scope
+through the contract.
 
 ## Report
 
