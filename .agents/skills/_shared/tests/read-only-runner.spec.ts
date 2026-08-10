@@ -16,6 +16,20 @@ import {
 } from '../test-support/git-scratch';
 
 const runner = path.join(__dirname, '../tools/read-only-runner.ts');
+const reviewInstruction = [
+  'Repository verification is caller-owned and outside this review.',
+  'Do not rerun tests, linters, typechecks, builds, package-manager scripts,',
+  'browsers, servers, or other repository checks during this review.',
+  'Inspect the code and existing evidence instead.',
+  'When delegating review work, pass this instruction to every delegated',
+  'reviewer.',
+  'If fresh runtime evidence is essential to assess a potential finding,',
+  'report the exact check needed and why instead of running it.',
+].join(' ');
+
+function expectedClaudeReview(command: string): string {
+  return `${command}\n\nReview constraint: ${reviewInstruction}`;
+}
 
 function executable(dir: string, name: string, lines: string[]): void {
   writeFile(dir, name, ['#!/bin/sh', 'set -eu', ...lines, ''].join('\n'));
@@ -317,11 +331,7 @@ describe('read-only runner CLI', () => {
     expect(args).toMatch(/review\n--uncommitted\n$/u);
     expect(args).not.toContain('--base\n');
     expect(args).toContain('developer_instructions=');
-    expect(args).toContain([
-      'Do not run repository checks.',
-      'When delegating review work, explicitly instruct every delegated',
-      'reviewer not to run repository checks.',
-    ].join(' '));
+    expect(args).toContain(reviewInstruction);
   });
 
   it('passes the immutable base to native Codex commit-range review', () => {
@@ -481,9 +491,11 @@ describe('read-only runner CLI', () => {
     const settings = JSON.parse(argumentAfter(argv, '--settings'));
     expect(settings).toEqual({ disableAllHooks: true });
     const instruction = argumentAfter(argv, '--append-system-prompt');
-    expect(instruction).toContain('Do not run repository checks.');
     expect(instruction).toContain(
-      'explicitly instruct every delegated reviewer not to run repository checks',
+      'Repository verification is caller-owned and outside this review.',
+    );
+    expect(instruction).toContain(
+      'When delegating review work, pass this instruction to every delegated reviewer.',
     );
     expect(argv).not.toContain('--append-subagent-system-prompt');
     expect(argumentAfter(argv, '--output-format')).toBe('json');
@@ -498,10 +510,10 @@ describe('read-only runner CLI', () => {
       fs.readFileSync(path.join(stub, 'report-findings'), 'utf8'),
     ).toBe('0');
     const input = fs.readFileSync(path.join(stub, 'stdin'), 'utf8');
-    expect(input).toBe(
+    expect(input).toBe(expectedClaudeReview(
       '/code-review "candidate.md" "deleted.md" "staged.md" '
       + '"untracked file.md"',
-    );
+    ));
     expect(input).not.toContain('ahead.md');
     const gitEnv = fs.readFileSync(path.join(stub, 'git-env'), 'utf8')
       .trimEnd()
@@ -531,9 +543,9 @@ describe('read-only runner CLI', () => {
     );
 
     expect(result.status).toBe(0);
-    expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(
+    expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(expectedClaudeReview(
       `/code-review "candidate.md" ${JSON.stringify('line\nbreak.md')}`,
-    );
+    ));
   });
 
   it('passes a large Claude uncommitted target through stdin', () => {
@@ -588,9 +600,9 @@ describe('read-only runner CLI', () => {
     );
 
     expect(result.status).toBe(0);
-    expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(
+    expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(expectedClaudeReview(
       '/code-review "candidate.md"',
-    );
+    ));
   });
 
   it('resolves the immutable current HEAD for Claude commit-range review', () => {
@@ -609,7 +621,7 @@ describe('read-only runner CLI', () => {
 
     expect(result.status).toBe(0);
     expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(
-      `/code-review base123..${head}`,
+      expectedClaudeReview(`/code-review base123..${head}`),
     );
   });
 
