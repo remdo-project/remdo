@@ -31,7 +31,7 @@ At the simplification step, dispatch the contract's independent assessments:
 
 - Invoke `$remdo-simplify` for changed code and tests. Pass a change
   [assessment target](../../../docs/specs/agents/assessment-target.md) with the
-  retained scope and its applicable contracts.
+  retained scope, and provide its applicable contracts separately.
 - For all remaining changed artifacts together, invoke one bounded
   fresh-context review against their authoritative contracts. Require an
   `outcome`, the reviewed `target`, and any `findings`, `options`, or `reason`,
