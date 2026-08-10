@@ -42,9 +42,10 @@ authoring from pasted text.
 
 ## Caret-position placement (collapsed selection)
 
-- Single-line plain text pastes into the note's text at the caret. Only an
-  automatic-recognition candidate becomes a generic link; other scheme-less
-  web input remains text, as defined in
+- Single-line plain text pastes into the note's text at the caret. A RemDo-owned
+  note URL becomes a note link; otherwise only an
+  automatic-recognition candidate becomes a generic link. All other text
+  remains text, as defined in
   [Links](./links.md#generic-url-recognition).
 - Pasting notes or multi-line plain text inserts multiple notes (one line per
   note for plain text).

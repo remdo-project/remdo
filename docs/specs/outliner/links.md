@@ -128,8 +128,10 @@ explicit [generic URL authoring](#generic-url-authoring).
    unmatched within the candidate. A rejected or unsupported candidate remains
    entirely as text rather than becoming a partial link.
 6. Generic link destinations are limited to HTTP, HTTPS, and `mailto:` containing
-   exactly one linkable email address. Unsupported or invalid destinations in
-   imported content retain their visible text without an active link.
+   exactly one linkable email address. A `mailto:` destination encodes its
+   address so URL syntax cannot reinterpret local-part characters as a query,
+   fragment, or other parameter. Unsupported or invalid destinations in imported
+   content retain their visible text without an active link.
 7. Imported, persisted, and collaboration-state generic links are validated
    against the same destination rules and otherwise preserve their label and
    destination.
@@ -139,13 +141,14 @@ explicit [generic URL authoring](#generic-url-authoring).
 1. `Cmd/Ctrl+K` opens link controls. With selected unlinked text, the controls
    create a generic link using that text as its label; at an existing link, Edit
    is initially active; at an unlinked collapsed caret, creation uses the entered
-   destination as the initial label. Creation accepts an HTTP or HTTPS URL, a
-   linkable email address, or a scheme-less web address candidate. It applies the
-   same credential and destination restrictions as automatic recognition and
-   imported content; email inputs receive a `mailto:` destination and scheme-less
-   web inputs receive an `https://` destination.
-2. Submitting an unsupported or invalid destination leaves the controls open,
-   presents a validation error, and does not change the document.
+   destination as the initial label. After RemDo-owned URL classification,
+   creation classifies a linkable email address before web inputs. It accepts an
+   HTTP or HTTPS URL, a linkable email address, or a scheme-less web address
+   candidate, applying the same credential and destination restrictions as
+   automatic recognition and imported content. Email inputs receive a `mailto:`
+   destination and scheme-less web inputs receive an `https://` destination.
+2. Submitting an empty label or an unsupported or invalid destination leaves the
+   controls open, presents a validation error, and does not change the document.
 3. After RemDo-owned URL classification, pasting over selected text a destination
    accepted by the `Cmd/Ctrl+K` creation rules creates a generic link whose
    visible label remains the selected text.
@@ -163,16 +166,17 @@ explicit [generic URL authoring](#generic-url-authoring).
    [Editor popups](./popups.md#shared-editor-popup-contract) contract. Opening
    pins a model-level authoring target: the existing link occurrence, selected
    text range, or collapsed caret. Before acting, the controls re-resolve the
-   target and close without acting when it no longer exists. `Escape` cancels and
-   restores the anchored selection.
-8. In creation mode, focus moves into label and destination fields, `Tab` cycles
-   between them, and `Enter` creates the link and closes. In existing-link mode,
-   controls expose Open, Copy destination, Edit, and Remove link; focus moves to
-   Edit initially, `Tab` cycles through the actions, and `Enter` or a primary
-   click invokes the active action. Open and Copy perform their non-document
-   action and close. Edit exposes label and destination fields whose `Enter`
-   commits both; Remove commits immediately. A commit closes and restores the
-   caret to the link occurrence or, after removal, its remaining text.
+   target and close without acting when it no longer exists. A pinned range or
+   link whose content changed while the controls were open is similarly no longer
+   valid. `Escape` cancels and restores the anchored selection.
+8. In creation mode, focus moves into label and destination fields. In either
+   creation or existing-link Edit fields, `Tab` cycles between the fields and
+   `Enter` commits both and closes. In existing-link action mode, controls expose
+   Open, Copy destination, Edit, and Remove link; focus moves to Edit initially,
+   `Tab` cycles through the actions, and `Enter` or a primary click invokes the
+   active action. Open and Copy perform their non-document action and close;
+   Remove commits immediately. A commit closes and restores the caret to the link
+   occurrence or, after removal, its remaining text.
 
 ## Generic URL presentation and activation
 
