@@ -193,15 +193,15 @@ explicit [generic URL authoring](#generic-url-authoring).
    valid. `Escape` cancels and restores the anchored selection. A pointer press
    elsewhere in the editor cancels the controls before applying the editor's
    ordinary pointer-selection behavior.
-8. In creation mode, focus moves into label and destination fields. In either
-   creation or existing-link Edit fields, `Tab` cycles between the fields and
-   `Enter` commits both and closes. In existing-link action mode, controls expose
-   Open, Copy destination, Edit, and Remove link; focus moves to Edit initially,
-   `Tab` cycles through the actions, and `Enter` or a primary click invokes the
-   active action. Open and Copy perform their non-document action and close;
-   Remove commits immediately. A creation commit places the caret after the new
-   link; an edit commit restores it to the link occurrence, and removal restores
-   it to the remaining text.
+8. In creation mode, focus moves to the destination field. Invoking Edit also
+   focuses the destination field. In either field mode, `Tab` cycles between the
+   label and destination, and `Enter` commits both and closes. In existing-link
+   action mode, controls expose Open, Copy destination, Edit, and Remove link;
+   focus moves to Edit initially, `Tab` cycles through the actions, and `Enter`
+   or a primary click invokes the active action. Open and Copy perform their
+   non-document action and close; Remove commits immediately. A creation commit
+   places the caret after the new link; an edit commit restores it to the link
+   occurrence, and removal restores it to the remaining text.
 
 ## Generic URL presentation and activation
 
