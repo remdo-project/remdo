@@ -148,6 +148,7 @@
     "jscpd": "catalog:",
     "jsdom": "catalog:",
     "knip": "catalog:",
+    "markdownlint": "catalog:",
     "markdownlint-cli2": "catalog:",
     "markdownlint-rule-relative-links": "catalog:",
     "playwright": "catalog:",

@@ -5,9 +5,7 @@
   "playwright": true,
   "ignoreDependencies": [
     // Invoked as a CLI binary from package scripts and tooling (`pnpm exec playwright ...`).
-    "playwright",
-    // Wired via the `customRules` array in .markdownlint-cli2.jsonc, which knip does not parse.
-    "markdownlint-rule-relative-links"
+    "playwright"
   ],
   "ignoreUnresolved": [
     // Shell scripts invoked at runtime via spawnSync/execFileSync from specs, not module imports.
@@ -15,18 +13,12 @@
     "./tools/dev/pwa.sh",
     "./tools/prod/docker.sh"
   ],
-  // Skill bodies live once under `.agents/skills`; the `.claude` skill dirs are
-  // symlink mirrors of them. knip follows those symlinks and would
-  // re-discover the same specs under a mirror path, where their
-  // `../../_shared/test-support/...` imports resolve against `.claude/skills`
-  // (which has no `_shared`) and report as unresolved. Ignore the
-  // mirrors so only the canonical `.agents` copy is scanned — the same
-  // no-symlink-traversal `.markdownlint-cli2.jsonc` enforces for the doc gate.
-  "ignore": [".claude/skills/**"],
   // Test-visible exports that are also used inside their production module are
   // live implementation details, not dead production code.
   "ignoreExportsUsedInFile": true,
   "entry": [
+    // Public SDK barrel consumed by external callers.
+    "src/note-sdk/index.ts!",
     // Docker bundles these files as production executables; knip does not parse
     // docker/Dockerfile to discover them.
     "tools/remdo-api-server.ts!",
