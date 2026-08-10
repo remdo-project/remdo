@@ -31,9 +31,11 @@ authoring from pasted text.
 
 ## Inline text selection (single note)
 
-- Single-line plain text replaces the selected text, except a RemDo-owned note
-  URL or a destination accepted by [generic URL authoring](./links.md#generic-url-authoring)
-  creates the corresponding link whose label remains the selected text.
+- Single-line plain text replaces the selected text, except [Links](./links.md)
+  first creates a note link for a RemDo-owned note URL and, only otherwise,
+  creates a generic link for a destination accepted by
+  [generic URL authoring](./links.md#generic-url-authoring). Either link retains
+  the selected text as its label.
 - Multi-line plain text always inserts notes, even when the selection is inline.
   The first line replaces the selected text; remaining lines become new child
   notes inserted before existing children.

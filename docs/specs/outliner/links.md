@@ -25,8 +25,9 @@ without interpreting ambiguous text as a destination.
 8. **Scheme-less web address candidate:** a URL with no scheme whose non-IP
    hostname is accepted by WHATWG URL host parsing, contains at least two labels,
    and ends in a suffix from the IANA root zone. It may include credentials, a
-   port, path, query, or fragment accepted by WHATWG URL parsing; destination
-   rules determine whether those components are allowed.
+   port, path, query, or fragment accepted by WHATWG URL parsing. These are
+   syntactic candidates only; destination rules reject credentials before
+   linking.
 
 ## Core behavior
 

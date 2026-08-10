@@ -23,16 +23,18 @@ An editor popup is a transient surface anchored in the editor that, while open,
 4. **Light-dismiss.** `Escape` and a pointer press outside the editor and popup
    both **cancel** — they close it and apply nothing. Commit happens only through
    an explicit per-widget commit action (each widget declares its commit keys);
-   confirming applies the result and closes.
+   confirming applies the result and closes. A non-document action is also
+   explicit and its owning widget declares whether it closes the popup.
 5. **`Tab` behavior is declared per widget**, as one of: **close and fall
    through** to the editor's normal `Tab` action (the popup closes, then
    deliberately routes the key onward), or **cycle within** the popup's own controls.
-6. **Validated commit, safe restore.** Because the editor selection stays live
-   while a popup is open (and may move under collaboration), a commit re-resolves
-   its pinned target and verifies it still holds before applying. On any close the
-   editor regains a valid selection restored from a model-level anchor (a node
-   key, re-resolved at close), never a stale DOM range — caret after the inserted
-   result on commit, back to the original caret on cancel.
+6. **Validated action, safe restore.** Because the editor selection stays live
+   while a popup is open (and may move under collaboration), any action tied to
+   editor content re-resolves its pinned target and verifies it still holds
+   before acting. On any close the editor regains a valid selection restored from
+   a model-level anchor whose caret or range endpoints are re-resolved at close,
+   never a stale DOM range. Each widget declares its selection after a committed
+   result; cancel restores the original selection.
 7. **Focus model is per-widget.** A type-to-filter popup keeps DOM focus in the
    editor and tracks its active item via `aria-activedescendant` (the WAI-ARIA
    combobox pattern); a structured chooser (calendar grid, menu) may instead move
