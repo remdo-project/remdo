@@ -50,6 +50,9 @@ without interpreting ambiguous text as a destination.
    present, the target note title for an unselected target in the active document,
    or the entered URL string for another document. Paste commits that label
    directly; link controls expose it for editing and retain the edited value.
+   Paste over a whitespace-only selection instead follows ordinary
+   [Clipboard](./clipboard.md#inline-text-selection-single-note) replacement and
+   subsequent automatic recognition.
 9. Typing a URL — including a same-origin RemDo note URL — does not create
    note-link identity; the note-link upgrade applies only to paste and link
    controls.
@@ -107,6 +110,8 @@ explicit [generic URL authoring](#generic-url-authoring).
 
 1. An automatic-recognition candidate starts at the beginning of inline text or
    after whitespace or an opening `(`, `[`, `{`, `<`, `"`, `'`, `“`, or `‘`.
+   It ends before whitespace, an inline-node boundary, or an unescaped `<`, `>`,
+   `"`, `“`, `”`, `‘`, or `’`.
    Recognition runs after paste or after following input establishes the end of
    the candidate, but does not reprocess content already handled by note-link or
    explicit generic-link paste rules. It preserves the authored text;
@@ -135,7 +140,9 @@ explicit [generic URL authoring](#generic-url-authoring).
    address so URL syntax cannot reinterpret local-part characters as a query,
    fragment, or other parameter. Unsupported or invalid destinations in imported
    content retain their visible text without an active link.
-7. Imported, persisted, and collaboration-state generic links are validated
+7. Destinations produced by recognition or authoring use WHATWG URL serialization
+   after any scheme inference; Copy destination returns that stored value.
+8. Imported, persisted, and collaboration-state generic links are validated
    against the same destination rules and otherwise preserve their label and
    destination.
 
@@ -145,11 +152,12 @@ explicit [generic URL authoring](#generic-url-authoring).
    unlinked inline selection within one note, or a caret or selection contained
    in one existing generic-link occurrence. It is a no-op for a
    [structural selection](./selection.md#selection-states) or an inline selection
-   overlapping linked and unlinked text or multiple link occurrences. With
-   selected unlinked text, the controls use that text as the initial label; at an
-   existing generic link, Edit is initially active; at an unlinked collapsed caret,
-   generic-link creation uses the entered destination as the initial label. A
-   RemDo-owned note URL instead creates a note link under the
+   overlapping linked and unlinked text or multiple link occurrences, and for a
+   caret or selection in a note link. With selected unlinked text, the controls
+   use that text as the initial label; at an existing generic link, Edit is
+   initially active; at an unlinked collapsed caret, generic-link creation uses
+   the entered destination as the initial label. A RemDo-owned note URL instead
+   creates a note link under the
    [core URL-insertion behavior](#core-behavior). For generic links, creation
    classifies a linkable email address before web inputs. It accepts an HTTP or
    HTTPS URL, a linkable email address, or a scheme-less web address candidate,
@@ -164,7 +172,9 @@ explicit [generic URL authoring](#generic-url-authoring).
    non-whitespace character a destination accepted by the `Cmd/Ctrl+K` creation
    rules creates a generic link whose visible label remains the selected text.
 4. Through link controls, editing a labeled link's destination preserves its
-   label, and editing its label preserves its destination.
+   label, and editing its label preserves its destination. Editing an
+   automatically recognized link through the controls converts it to a labeled
+   link and ends automatic text-to-destination synchronization.
 5. Directly editing the inline text of an automatically recognized link updates
    its destination; when the complete text no longer matches, it becomes ordinary
    text.
