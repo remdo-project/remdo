@@ -50,8 +50,6 @@ infer that a fixture value exists.
 
 ## References
 
-These sources directly inform the coverage policy; they do not override it.
-
 - [Software Engineering at Google: Unit Testing](https://abseil.io/resources/swe-book/html/ch12.html)
   — behavior through public APIs, independent outcomes, and resilience to
   behavior-preserving implementation changes.

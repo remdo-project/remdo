@@ -20,8 +20,9 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 3. Each listed document shows its display name and opens that document when
    activated, landing on its [document-root view](./zoom.md#visibility-and-editing-boundary).
 4. Home presents three additional entry-point groups alongside the document
-   list: **Favorites**, **Tags**, and **Recents**. Each is a list of document
-   shortcuts, shown as static placeholder entries until the [backing sources exist](#future).
+   list: **Favorites**, **Tags**, and **Recents**. Favorites lists entries from
+   favoriting, Tags from tagging, and Recents from visit history. An entry may
+   target a document or a note within one.
 5. A group with no entries is omitted from Home entirely; Home never shows an
    empty group as a placeholder.
 
@@ -37,9 +38,10 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 
 ## Future
 
-- **Entry-point groups need their own sources.** Replace the static placeholder
-  Favorites, Tags, and Recents with real entries once favoriting, tagging, and
-  visit-history exist — entries that may target a document or a note within one.
+- **Entry-point backing sources.** Implement favoriting, tagging, and
+  visit-history sources for the corresponding groups, replacing the current
+  Favorites and Recents document-list slices and empty Tags source, and support
+  document- and note-target entries.
 - **Home content in the sidebar.** Also surface Home's document, Favorites,
   Tags, and Recents groups in a persistent navigation sidebar; its division of
   responsibility with Home remains open.
