@@ -42,16 +42,17 @@ without interpreting ambiguous text as a destination.
    [Editor popups](./popups.md). The note-link spec defines only what differs.
 5. The query is the text after `@` in the [pinned span](./popups.md#shared-editor-popup-contract), length minimum 0, so
    results may appear immediately. Whitespace is allowed in the query.
-6. On insertion, note-link display text is copied once from the target note
-   title and then stored locally; later target renames do not update it.
+6. A note-link's insertion path chooses its display text, which is then stored
+   locally; later target renames do not update it.
 7. Note-link clicks use native `href` navigation semantics and route handling.
-8. Pasting a RemDo-owned plain-text note URL inserts a
-   note-link node. When pasted over selected text, the note link retains that
-   text as its label. Otherwise, when the target is in the active document,
+8. Creating a note link from a RemDo-owned plain-text note URL, by paste or link
+   controls, inserts a note-link node. With selected text, the note link retains
+   that text as its label. Otherwise, when the target is in the active document,
    inserted link text copies the target note title; for another document it uses
-   the pasted URL string.
+   the entered URL string.
 9. Typing a URL — including a same-origin RemDo note URL — does not create
-   note-link identity; the note-link upgrade applies only to paste.
+   note-link identity; the note-link upgrade applies only to paste and link
+   controls.
 10. URLs that merely resemble RemDo note routes but are not classified by
     RemDo as owned note refs are handled as generic URL candidates.
 11. Clipboard payloads (copy/cut) must include explicit `docId` for every
@@ -141,12 +142,13 @@ explicit [generic URL authoring](#generic-url-authoring).
 1. `Cmd/Ctrl+K` opens link controls. With selected unlinked text, the controls
    create a generic link using that text as its label; at an existing link, Edit
    is initially active; at an unlinked collapsed caret, creation uses the entered
-   destination as the initial label. After RemDo-owned URL classification,
-   creation classifies a linkable email address before web inputs. It accepts an
-   HTTP or HTTPS URL, a linkable email address, or a scheme-less web address
-   candidate, applying the same credential and destination restrictions as
-   automatic recognition and imported content. Email inputs receive a `mailto:`
-   destination and scheme-less web inputs receive an `https://` destination.
+   destination as the initial label. A RemDo-owned note URL instead creates a
+   note link under the [core URL-insertion behavior](#core-behavior). For generic links, creation
+   classifies a linkable email address before web inputs. It accepts an HTTP or
+   HTTPS URL, a linkable email address, or a scheme-less web address candidate,
+   applying the same credential and destination restrictions as automatic
+   recognition and imported content. Email inputs receive a `mailto:` destination
+   and scheme-less web inputs receive an `https://` destination.
 2. Submitting an empty label or an unsupported or invalid destination leaves the
    controls open, presents a validation error, and does not change the document.
 3. After RemDo-owned URL classification, pasting over selected text a destination
@@ -168,7 +170,9 @@ explicit [generic URL authoring](#generic-url-authoring).
    text range, or collapsed caret. Before acting, the controls re-resolve the
    target and close without acting when it no longer exists. A pinned range or
    link whose content changed while the controls were open is similarly no longer
-   valid. `Escape` cancels and restores the anchored selection.
+   valid. `Escape` cancels and restores the anchored selection. A pointer press
+   elsewhere in the editor cancels the controls before applying the editor's
+   ordinary pointer-selection behavior.
 8. In creation mode, focus moves into label and destination fields. In either
    creation or existing-link Edit fields, `Tab` cycles between the fields and
    `Enter` commits both and closes. In existing-link action mode, controls expose
