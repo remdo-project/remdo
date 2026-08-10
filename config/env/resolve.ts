@@ -1,7 +1,7 @@
 import type { z } from 'zod';
-import { deriveAuthTrustedOrigins } from './auth-origins';
-import type { ClientKey, EnvKey } from './schema';
-import { CLIENT_KEY_LIST, envSchema } from './schema';
+import { deriveAuthTrustedOrigins } from './auth-origins.ts';
+import type { ClientKey, EnvKey } from './schema.ts';
+import { CLIENT_KEY_LIST, envSchema } from './schema.ts';
 
 type EnvGetter = (key: EnvKey) => string | boolean | undefined;
 

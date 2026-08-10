@@ -1,11 +1,11 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
-import { config } from '../index';
-import { onRollupWarning } from '../_internal/vite/onRollupWarning';
-import { resolveCollabServerOrigin, resolveLocalGatewayOrigin } from '../../src/platform/net/origins';
-import { remdoApiDevPlugin } from './remdo-api-dev-plugin';
-import { remdoDevSpaRoutesPlugin } from './remdo-dev-spa-routes-plugin';
+import { config } from '../index.ts';
+import { onRollupWarning } from '../_internal/vite/onRollupWarning.ts';
+import { resolveCollabServerOrigin, resolveLocalGatewayOrigin } from '../../src/platform/net/origins.ts';
+import { remdoApiDevPlugin } from './remdo-api-dev-plugin.ts';
+import { remdoDevSpaRoutesPlugin } from './remdo-dev-spa-routes-plugin.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');

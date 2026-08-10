@@ -1,8 +1,8 @@
 import process from "node:process";
 import path from "node:path";
-import { config } from './config';
-import { VITEST_DEFAULT_TEST_TIMEOUT_MS } from './tests/unit/_support/timeouts';
-import { createViteSharedConfig } from './config/vite/shared';
+import { config } from './config/index.ts';
+import { VITEST_DEFAULT_TEST_TIMEOUT_MS } from './tests/unit/_support/timeouts.ts';
+import { createViteSharedConfig } from './config/vite/shared.ts';
 import { configDefaults, defineConfig } from 'vitest/config';
 
 const isVitestUi = process.argv.includes('--ui');
