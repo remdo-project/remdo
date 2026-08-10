@@ -1,6 +1,6 @@
-# Analysis target
+# Assessment target
 
-An analysis target selects repository material for read-only assessment. It
+An assessment target selects repository material for read-only assessment. It
 neither grants mutation authority nor defines the assessment.
 
 A change target uses [change scope](change-scope.md):

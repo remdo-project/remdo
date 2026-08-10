@@ -5,7 +5,7 @@ description: Assess a selected RemDo change or repository subject against applic
 
 # Spec Complexity
 
-Assess one [analysis target](../../../docs/specs/agents/analysis-target.md) under
+Assess one [assessment target](../../../docs/specs/agents/assessment-target.md) under
 the authoritative
 [`spec-complexity`](../../../docs/specs/agents/skills/spec-complexity.md)
 contract. Remain read-only.

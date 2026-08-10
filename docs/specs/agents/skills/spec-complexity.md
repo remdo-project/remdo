@@ -2,13 +2,13 @@
 
 This read-only skill returns an [agent result](../protocol.md#results) showing
 which accepted-behavior decisions create material implementation complexity
-within one [analysis target](../analysis-target.md), what simpler alternatives
+within one [assessment target](../assessment-target.md), what simpler alternatives
 exist, and what target complexity those decisions do not require. It does not
 select or apply an alternative.
 
 ## Target
 
-The capability accepts either analysis-target form:
+The capability accepts either assessment-target form:
 
 - `change`: the changed end state and directly related mechanisms, excluding
   unrelated pre-existing complexity;
@@ -51,7 +51,7 @@ outcome: <complexity-found | no-material-complexity | no-change | stopped>
 concerns: # if any
   - source: <originating capability or participant>
     summary: <condition>
-target: <resolved analysis target> # if resolved
+target: <resolved assessment target> # if resolved
 reason: <condition that prevented assessment> # if stopped
 estimated_cost: # if complexity-found
   implementation: <line range>
