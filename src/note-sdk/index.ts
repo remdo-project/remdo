@@ -1,20 +1,10 @@
+export type { NoteId } from './notes';
 export type {
-  CollectionNote,
-  Note,
-  NoteId,
-  NoteKind,
-} from './notes';
-export type {
-  DocumentAccessNote,
   DocumentSourceNote,
-  DocumentNote,
-  SourceServerNote,
   UserDataNote,
 } from './documents';
 export type { UserDocument } from '#domain/documents/user-data';
 export type {
-  BodyNote,
-  EditorNote,
   EditorNotes,
   EditorNotesAdapter,
   NoteListType,
