@@ -140,26 +140,32 @@ explicit [generic URL authoring](#generic-url-authoring).
 
 ## Generic URL authoring
 
-1. `Cmd/Ctrl+K` opens link controls. With selected unlinked text, the controls
-   create a generic link using that text as its label; at an existing link, Edit
-   is initially active; at an unlinked collapsed caret, generic-link creation
-   uses the entered destination as the initial label. A RemDo-owned note URL
-   instead creates a note link under the
+1. `Cmd/Ctrl+K` opens link controls for an unlinked collapsed caret, a wholly
+   unlinked inline selection within one note, or a caret or selection contained
+   in one existing link occurrence. It is a no-op for a
+   [structural selection](./selection.md#selection-states) or an inline selection
+   overlapping linked and unlinked text or multiple link occurrences. With
+   selected unlinked text, the controls use that text as the initial label; at an
+   existing link, Edit is initially active; at an unlinked collapsed caret,
+   generic-link creation uses the entered destination as the initial label. A
+   RemDo-owned note URL instead creates a note link under the
    [core URL-insertion behavior](#core-behavior). For generic links, creation
    classifies a linkable email address before web inputs. It accepts an HTTP or
    HTTPS URL, a linkable email address, or a scheme-less web address candidate,
    applying the same credential and destination restrictions as automatic
    recognition and imported content. Email inputs receive a `mailto:` destination
    and scheme-less web inputs receive an `https://` destination.
-2. Submitting an empty label or an unsupported or invalid destination leaves the
-   controls open, presents a validation error, and does not change the document.
+2. Submitting a label with no non-whitespace character, or an unsupported or
+   invalid destination, leaves the controls open, presents a validation error,
+   and does not change the document.
 3. After RemDo-owned URL classification, pasting over selected text a destination
    accepted by the `Cmd/Ctrl+K` creation rules creates a generic link whose
    visible label remains the selected text.
-4. Editing a labeled link's destination preserves its label, and editing its
-   label preserves its destination.
-5. Editing the text of an automatically recognized link updates its destination;
-   when the complete text no longer matches, it becomes ordinary text.
+4. Through link controls, editing a labeled link's destination preserves its
+   label, and editing its label preserves its destination.
+5. Directly editing the inline text of an automatically recognized link updates
+   its destination; when the complete text no longer matches, it becomes ordinary
+   text.
 6. Removing a link or undoing automatic recognition preserves its visible text
    and suppresses recognition for that inline occurrence across later editor
    updates, collaboration, persistence, and reload. Suppression belongs to the
