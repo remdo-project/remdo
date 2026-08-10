@@ -46,10 +46,10 @@ without interpreting ambiguous text as a destination.
    locally; later target renames do not update it.
 7. Note-link clicks use native `href` navigation semantics and route handling.
 8. Creating a note link from a RemDo-owned plain-text note URL, by paste or link
-   controls, inserts a note-link node. With selected text, the note link retains
-   that text as its label. Otherwise, when the target is in the active document,
-   inserted link text copies the target note title; for another document it uses
-   the entered URL string.
+   controls, inserts a note-link node. Its initial label is selected text when
+   present, the target note title for an unselected target in the active document,
+   or the entered URL string for another document. Paste commits that label
+   directly; link controls expose it for editing and retain the edited value.
 9. Typing a URL — including a same-origin RemDo note URL — does not create
    note-link identity; the note-link upgrade applies only to paste and link
    controls.
@@ -125,9 +125,10 @@ explicit [generic URL authoring](#generic-url-authoring).
    stripping credentials or linking only part of the candidate.
 5. Recognition excludes trailing `.`, `,`, `;`, `:`, `!`, `?`, `*`, `_`, `~`,
    `"`, `'`, `“`, `”`, `‘`, `’`, and `>` from the destination. It excludes a
-   trailing `)`, `]`, or `}` only when the corresponding opening character is
-   unmatched within the candidate. A rejected or unsupported candidate remains
-   entirely as text rather than becoming a partial link.
+   trailing `)`, `]`, or `}` only when it closes an unmatched corresponding
+   opening character earlier within the candidate; otherwise it excludes the
+   closer. A rejected or unsupported candidate remains entirely as text rather
+   than becoming a partial link.
 6. Generic link destinations are limited to HTTP, HTTPS, and `mailto:` containing
    exactly one linkable email address. A `mailto:` destination encodes its
    address so URL syntax cannot reinterpret local-part characters as a query,
@@ -141,9 +142,10 @@ explicit [generic URL authoring](#generic-url-authoring).
 
 1. `Cmd/Ctrl+K` opens link controls. With selected unlinked text, the controls
    create a generic link using that text as its label; at an existing link, Edit
-   is initially active; at an unlinked collapsed caret, creation uses the entered
-   destination as the initial label. A RemDo-owned note URL instead creates a
-   note link under the [core URL-insertion behavior](#core-behavior). For generic links, creation
+   is initially active; at an unlinked collapsed caret, generic-link creation
+   uses the entered destination as the initial label. A RemDo-owned note URL
+   instead creates a note link under the
+   [core URL-insertion behavior](#core-behavior). For generic links, creation
    classifies a linkable email address before web inputs. It accepts an HTTP or
    HTTPS URL, a linkable email address, or a scheme-less web address candidate,
    applying the same credential and destination restrictions as automatic
