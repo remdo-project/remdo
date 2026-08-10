@@ -1,6 +1,6 @@
 import { getRequestListener } from '@hono/node-server';
 import type { Plugin, ViteDevServer } from 'vite';
-import type { createServerRuntime } from '../../src/server/runtime';
+import type { createServerRuntime } from '../../src/server/runtime.ts';
 
 const API_MODULE_ID = '/src/server/runtime.ts';
 

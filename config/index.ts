@@ -1,7 +1,7 @@
 /* eslint-disable node/prefer-global/process */
 /* eslint-disable node/no-process-env */
 /* eslint-disable no-restricted-syntax */
-import { resolveConfig } from './env/resolve';
+import { resolveConfig } from './env/resolve.ts';
 
 // eslint-disable-next-line ts/no-unnecessary-condition -- in browser process is a stub with no versions
 const isNodeRuntime = Boolean(globalThis.process?.versions?.node);

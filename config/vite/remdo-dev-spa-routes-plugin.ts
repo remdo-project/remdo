@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Plugin } from 'vite';
 import { send } from 'vite';
-import { DEV_LEXICAL_DEMO_ROUTE } from '../../src/client/app/dev-route';
+import { DEV_LEXICAL_DEMO_ROUTE } from '../../src/client/app/dev-route.ts';
 
 export function remdoDevSpaRoutesPlugin(): Plugin {
   return {
