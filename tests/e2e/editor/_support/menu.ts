@@ -44,8 +44,7 @@ const findNoteItem = (page: Page, label: string): Locator =>
 
 const openMenuByHover = async (page: Page, listItem: Locator): Promise<void> => {
   await expect(listItem).toBeVisible();
-  const listItemBox = (await listItem.boundingBox())!;
-  await page.mouse.move(listItemBox.x + listItemBox.width / 2, listItemBox.y + listItemBox.height / 2);
+  await listItem.locator('[data-lexical-text="true"]').first().hover();
 
   const menuButton = editorLocator(page).locator('.note-controls__button--menu');
   await expect(menuButton).toBeVisible();
