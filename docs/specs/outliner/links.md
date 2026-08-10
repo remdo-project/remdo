@@ -17,6 +17,10 @@ without interpreting ambiguous text as a destination.
 5. **`docId`:** the note-link field carrying the target document's canonical
    [document identity](../../architecture.md#document-identity).
 6. **`noteId`:** the note-link field carrying the target note's [noteId](./note-ids.md#definitions).
+7. **Linkable email address:** one address accepted by the HTML email address
+   syntax whose domain contains at least two labels. Before validation, a Unicode
+   domain is normalized through browser URL hostname rules. Unicode local parts,
+   display names, headers, queries, and fragments are not linkable.
 
 ## Core behavior
 
@@ -94,7 +98,7 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 2. Automatic recognition creates generic links for:
    - absolute `http://` and `https://` URLs
    - `www.` addresses, with an `https://` destination
-   - email addresses, with a `mailto:` destination
+   - linkable email addresses, with a `mailto:` destination
 3. Automatic recognition leaves ambiguous or context-dependent forms as text,
    including bare domains, bare IP or `localhost` addresses, relative URLs, and
    protocol-relative (`//`) URLs.
@@ -104,15 +108,15 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 5. Recognition excludes trailing sentence punctuation and unmatched closing
    punctuation from the destination. A rejected or unsupported candidate
    remains entirely as text rather than becoming a partial link.
-6. Generic link destinations are limited to HTTP, HTTPS, and validated email.
+6. Generic link destinations are limited to HTTP, HTTPS, and linkable email.
    Unsupported or invalid destinations in imported content retain their visible
    text without an active link.
 
 ## Generic URL authoring
 
 1. `Cmd/Ctrl+K` creates a generic link from selected text and edits the link at
-   the caret. Creation accepts an HTTP or HTTPS URL, an email address, or a bare
-   domain; bare domains receive an `https://` destination.
+   the caret. Creation accepts an HTTP or HTTPS URL, a linkable email address,
+   or a bare domain; bare domains receive an `https://` destination.
 2. Pasting a supported destination over selected text creates a generic link
    whose visible label remains the selected text.
 3. Editing a labeled link's destination preserves its label, and editing its
@@ -151,6 +155,7 @@ Navigation, confirmation, and dismissal are the shared lifecycle; note-link spec
 ## References
 
 - [GitHub Flavored Markdown autolinks](https://github.github.com/gfm/#autolinks-extension-)
+- [HTML email address syntax](https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address)
 - [RFC 9110 URI userinfo guidance](https://www.rfc-editor.org/rfc/rfc9110.html#section-4.2.4)
 - [W3C guidance for links that open new windows](https://www.w3.org/WAI/WCAG21/Techniques/general/G201)
 - [WHATWG guidance for secure URL handling](https://html.spec.whatwg.org/multipage/introduction.html#writing-secure-applications-with-html)
