@@ -45,10 +45,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   decisions, and later evidence establish or reopen decisions, then align the
   specification and skill.
 
-- **Agent repository-authority declarations.** Define compact authority modes
-  in [Agent instructions](specs/agents/instructions.md#repository-authority) and
-  replace repeated per-skill permission prose with linked declarations.
-
 - **Condition ownership beyond capability calls.** Evaluate whether the
   [capability protocol](specs/agents/protocol.md) should generalize to other
   component boundaries. Define how independently invocable and
