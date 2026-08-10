@@ -29,16 +29,11 @@ including participant-defined commit units.
     ├─ approved behavior must change ─> ↩ prepare spec
     │ executed
     v
-[agent: simplify the end state]                     {C+F}
-    ├─ unchanged after converged corrections ─> [ready-for-review]
-    │ otherwise
-    v
 [agent: remdo-converge-change]                      {C+F}
     ├─ stopped or not converged ─> [developer: decide concern]
     │                                ├─ retry ─> ↩ affected step
     │                                └─ stop ──> [stopped]
-    ├─ converged; corrections ────> ↩ simplify the end state
-    │ converged; no corrections
+    │ converged
     v
 [ready-for-review]
     │ handoff
@@ -87,18 +82,17 @@ Legend:
   populated only from guarantees it has established and authority it holds. It
   retains their complete results; participants do not advance the lifecycle or
   expand the approved behavior.
-- **Convergence.** [`remdo-converge-change`](remdo-converge-change.md) runs as a
-  black box over the complete [change scope](../change-scope.md). Before it
-  runs, the coordinator makes all adopted committed and uncommitted work
+- **Convergence.** [`remdo-converge-change`](remdo-converge-change.md) runs once
+  as a black box over the complete [change scope](../change-scope.md) and owns
+  the quality loop. Before it runs, the coordinator makes all adopted committed
+  and uncommitted work
   representable as one supported scope. If that requires repository authority
   the coordinator does not hold, it surfaces a concern and does not start
-  convergence. After converged corrections, simplification invalidates that
-  result only when it changes the repository; otherwise the coordinator reuses
-  it. Developer review requires a `converged` result for the latest repository
-  state. A repeated end state stops with a concern.
+  convergence. Developer review requires a `converged` result for the latest
+  repository state.
 - **Handoff.** The coordinator's [report](../protocol.md#reports) includes the
   exact scope, approved target behavior and its contract owners, participant
-  work, verification result, unhandled concerns, tracked gaps, and specific
+  work, convergence result, unhandled concerns, tracked gaps, and specific
   manual review needs. It precedes any request for developer acceptance or
   authority for subsequent repository or remote action.
 - **Feedback.** Returns to the earliest affected lifecycle step; repository

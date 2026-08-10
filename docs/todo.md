@@ -28,10 +28,13 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 ### Documentation
 
 - **Agent skill complexity review.** Continue reviewing the remaining skills
-  for custom scripts and state machines that encode adaptive work without enough
-  robustness to justify their maintenance. Prefer concise intent plus
-  deterministic checks of stable repository invariants, then align each
-  affected specification, procedure, implementation, and coverage.
+  under the [specification/procedure boundary](documentation.md#documentation-layout).
+  Move accepted behavior owned only by a procedure to the applicable
+  specification, remove restated behavior from procedures, and reconsider custom
+  scripts and state machines that encode adaptive work without enough robustness
+  to justify their maintenance. Prefer concise intent plus deterministic checks
+  of stable repository invariants, then align each affected specification,
+  procedure, implementation, and coverage.
 
 - **Prepare-change lifecycle.** Reconsider its dialogue, specification,
   approval, and execution flow as a whole so it is simple, flexible, and clear.
