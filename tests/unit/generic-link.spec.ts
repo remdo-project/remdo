@@ -25,7 +25,9 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     '127.0.0.1',
     'https://user:password@example.com',
     'javascript:alert(1)',
+    'user@example.com?subject=hello',
     'mailto:user@example.com?subject=hello',
+    'mailto:user@example.com%3Fsubject=hello',
     'δοκιμή@example.com',
   ])('rejects explicitly authored %s', (input) => {
     expect(normalizeGenericDestination(input)).toBeNull();

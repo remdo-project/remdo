@@ -301,6 +301,16 @@ function activateDestination(url: string) {
   globalThis.open(url, isWeb ? '_blank' : '_self', isWeb ? 'noopener,noreferrer' : undefined);
 }
 
+function extendSelectionToLinkPointer(anchor: HTMLAnchorElement, event: MouseEvent) {
+  const selection = globalThis.getSelection();
+  const position = document.caretPositionFromPoint(event.clientX, event.clientY);
+  if (!selection || selection.rangeCount === 0 || !position || !anchor.contains(position.offsetNode)) {
+    return;
+  }
+  selection.extend(position.offsetNode, position.offset);
+  document.dispatchEvent(new Event('selectionchange'));
+}
+
 export function LinkControlsPlugin() {
   const [editor] = useLexicalComposerContext();
   const { docId } = useCollaborationStatus();
@@ -454,8 +464,17 @@ export function LinkControlsPlugin() {
       if (!linkKey) {
         return;
       }
+      const anchorElement = target instanceof Element
+        ? target.closest<HTMLAnchorElement>('a')
+        : target.parentElement?.closest<HTMLAnchorElement>('a');
+      if (!anchorElement) {
+        return;
+      }
 
       if (event.shiftKey) {
+        if (event.type === 'mousedown' && event.button === 0) {
+          extendSelectionToLinkPointer(anchorElement, event);
+        }
         event.preventDefault();
         event.stopPropagation();
         return;
@@ -477,10 +496,6 @@ export function LinkControlsPlugin() {
       }
 
       if (event.type !== 'click' || event.button !== 0) {
-        return;
-      }
-      const anchorElement = target instanceof Element ? target.closest<HTMLAnchorElement>('a') : target.parentElement?.closest<HTMLAnchorElement>('a');
-      if (!anchorElement) {
         return;
       }
       const captured = editor.getEditorState().read(() => $captureAuthoringTarget(linkKey), { editor });
@@ -505,6 +520,7 @@ export function LinkControlsPlugin() {
 
     root?.addEventListener('click', handleLinkPointer, true);
     root?.addEventListener('auxclick', handleLinkPointer, true);
+    root?.addEventListener('mousedown', handleLinkPointer, true);
     document.addEventListener('pointerdown', handleOutsidePointer, true);
     document.addEventListener('mousedown', handleOutsidePointer, true);
 
@@ -530,6 +546,20 @@ export function LinkControlsPlugin() {
           }
         });
       }),
+      editor.registerCommand(
+        KEY_ESCAPE_COMMAND,
+        () => {
+          const current = controlsRef.current;
+          if (!current) {
+            return false;
+          }
+          setControlsState(null);
+          $restoreTargetSelection(current.target);
+          queueMicrotask(() => editor.focus());
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
       editor.registerCommand(
         KEY_DOWN_COMMAND,
         (event) => {
@@ -581,6 +611,7 @@ export function LinkControlsPlugin() {
       () => {
         root?.removeEventListener('click', handleLinkPointer, true);
         root?.removeEventListener('auxclick', handleLinkPointer, true);
+        root?.removeEventListener('mousedown', handleLinkPointer, true);
         document.removeEventListener('pointerdown', handleOutsidePointer, true);
         document.removeEventListener('mousedown', handleOutsidePointer, true);
         setControlsState(null);
@@ -683,7 +714,7 @@ export function LinkControlsPlugin() {
             />
           </label>
           {controls.error ? <div className="link-controls__error" role="alert">{controls.error}</div> : null}
-          <button type="submit">{controls.mode === 'create' ? 'Create link' : 'Save link'}</button>
+          <button type="submit" tabIndex={-1}>{controls.mode === 'create' ? 'Create link' : 'Save link'}</button>
           </form>
         )}
       </div>

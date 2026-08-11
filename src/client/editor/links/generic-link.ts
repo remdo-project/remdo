@@ -42,6 +42,9 @@ interface LinkifyMatch {
 }
 
 function normalizeHostname(domain: string): string | null {
+  if (/[\s%/:?#@\\]/.test(domain) || domain.includes('[') || domain.includes(']')) {
+    return null;
+  }
   try {
     const hostname = new URL(`https://${domain}`).hostname.toLowerCase();
     const labels = hostname.split('.');

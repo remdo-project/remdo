@@ -1,6 +1,6 @@
 import { $createAutoLinkNode, $createLinkNode, $isAutoLinkNode, $isLinkNode } from '@lexical/link';
 import { act, fireEvent, waitFor } from '@testing-library/react';
-import { $createTextNode, $isTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND, UNDO_COMMAND } from 'lexical';
+import { $createTextNode, $getSelection, $isTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, UNDO_COMMAND } from 'lexical';
 import type { TextNode } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -374,6 +374,17 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1'] });
   });
 
+  it('closes link controls when another popup dispatches Escape', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    expect(document.querySelector('[data-link-controls]')).not.toBeNull();
+
+    await remdo.dispatchCommand(KEY_ESCAPE_COMMAND);
+    await waitFor(() => {
+      expect(document.querySelector('[data-link-controls]')).toBeNull();
+    });
+  });
+
   it('closes controls when their selected-text target changes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
@@ -458,7 +469,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
   it('removes an automatic link without relinking until its text changes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await act(async () => {
-      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'https://example.com/');
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'https://example.com/ ');
     });
     await remdo.waitForSynced();
 
@@ -515,16 +526,22 @@ describe('note links (docs/specs/outliner/links.md)', () => {
   it('immediate Undo removes automatic link formatting but preserves authored text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/';
-    await act(async () => {
-      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+    await typeText(remdo, url);
+    await typeText(remdo, ' ');
+
+    remdo.validate(() => {
+      expect($findNoteById('note1')!.getTextContent()).toBe(`${url} `);
     });
-    await remdo.waitForSynced();
 
     await remdo.dispatchCommand(UNDO_COMMAND);
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      expect(note.getTextContent()).toBe(url);
+      expect(note.getChildren().map(child => [child.getType(), child.getTextContent()])).toEqual([
+        ['autolink', url],
+        ['text', ' '],
+      ]);
+      expect(note.getTextContent()).toBe(`${url} `);
       const link = note.getChildren().find($isAutoLinkNode)!;
       expect(link.getIsUnlinked()).toBe(true);
     });
@@ -674,6 +691,29 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('lets Undo pass through after an imported-style automatic link is created', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = 'https://example.com/';
+    await remdo.mutate(() => {
+      const linkNode = $createAutoLinkNode(url, {
+        rel: 'noopener noreferrer',
+        target: '_blank',
+      });
+      const text = $createTextNode(url);
+      linkNode.append(text);
+      $getSelection()!.insertNodes([linkNode]);
+      text.select(url.length, url.length);
+    });
+
+    await remdo.dispatchCommand(UNDO_COMMAND);
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe('note1');
+      expect(note.getChildren().find($isAutoLinkNode)).toBeUndefined();
+    });
+  });
+
   it('unwraps imported-style LinkNodes with unsupported protocols', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await act(async () => {
@@ -730,11 +770,31 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('waits for following input before linking a character-by-character URL', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = 'https://example.com/path';
+    await typeText(remdo, url);
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe(url);
+      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
+    });
+
+    await typeText(remdo, ' ');
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isAutoLinkNode)!;
+      expect(link.getTextContent()).toBe(url);
+      expect(link.getURL()).toBe(url);
+    });
+  });
+
   it('typing an external URL creates a regular link that opens in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/';
     await act(async () => {
-      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, `${url} `);
     });
     await remdo.waitForSynced();
 
@@ -756,7 +816,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await selectEntireNote(remdo, 'note1');
     const address = 'team@example.com';
     await act(async () => {
-      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, address);
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, `${address} `);
     });
     await remdo.waitForSynced();
 
@@ -773,7 +833,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
   it('keeps an automatically recognized destination synchronized with direct text edits', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await act(async () => {
-      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'https://example.com/');
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'https://example.com/ ');
     });
     await remdo.waitForSynced();
 
@@ -794,7 +854,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
   it('turns directly edited automatic-link text into ordinary text when it no longer matches', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await act(async () => {
-      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'https://example.com/');
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'https://example.com/ ');
     });
     await remdo.waitForSynced();
 
@@ -808,7 +868,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      expect(note.getTextContent()).toBe('not a destination');
+      expect(note.getTextContent()).toBe('not a destination ');
       expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
   });
@@ -817,13 +877,13 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://user:password@example.com/path';
     await act(async () => {
-      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, `${url} `);
     });
     await remdo.waitForSynced();
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      expect(note.getTextContent()).toBe(url);
+      expect(note.getTextContent()).toBe(`${url} `);
       expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
   });
@@ -832,13 +892,13 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await selectEntireNote(remdo, 'note1');
     const url = '//example.com/path';
     await act(async () => {
-      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, `${url} `);
     });
     await remdo.waitForSynced();
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      expect(note.getTextContent()).toBe(url);
+      expect(note.getTextContent()).toBe(`${url} `);
       expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
   });
@@ -847,7 +907,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.technology/';
     await act(async () => {
-      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, `${url} `);
     });
     await remdo.waitForSynced();
 
@@ -866,7 +926,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await selectEntireNote(remdo, 'note1');
     const text = 'www.example.technology/';
     await act(async () => {
-      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, text);
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, `${text} `);
     });
     await remdo.waitForSynced();
 
@@ -915,7 +975,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await selectEntireNote(remdo, 'note1');
     const url = new URL(`/n/${remdo.getCollabDocId()}_note2`, globalThis.location.href).toString();
     await act(async () => {
-      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, `${url} `);
     });
     await remdo.waitForSynced();
 

@@ -5,7 +5,11 @@ import {
   $getSelection,
   $isElementNode,
   $isRangeSelection,
+  $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
+  CONTROLLED_TEXT_INSERTION_COMMAND,
+  KEY_DOWN_COMMAND,
+  PASTE_COMMAND,
   SELECTION_CHANGE_COMMAND,
   UNDO_COMMAND,
 } from 'lexical';
@@ -18,6 +22,9 @@ import {
   WEB_LINK_ATTRIBUTES,
 } from '#client/editor/links/generic-link';
 import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
+
+const TYPED_CANDIDATE_END = /[\s<>"“”‘’]/;
+const MODIFIER_KEYS = new Set(['Alt', 'Control', 'Meta', 'Shift']);
 
 function unwrapLinkNode(node: LinkNode | AutoLinkNode) {
   const parent = node.getParentOrThrow();
@@ -101,10 +108,46 @@ function $selectionTouchesLink(link: AutoLinkNode): boolean {
   if (link.is(anchorNode) || link.isParentOf(anchorNode)) {
     return true;
   }
+  if ($isTextNode(anchorNode) && anchorNode.getPreviousSibling()?.is(link)) {
+    const prefix = anchorNode.getTextContent().slice(0, selection.anchor.offset);
+    if (prefix.length > 0 && [...prefix].every(char => TYPED_CANDIDATE_END.test(char))) {
+      return true;
+    }
+  }
   if (selection.anchor.type !== 'element' || !$isElementNode(anchorNode)) {
     return false;
   }
   return anchorNode.getChildAtIndex(selection.anchor.offset - 1)?.is(link) ?? false;
+}
+
+function $selectionIsInsideAutomaticLink(): boolean {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection)) {
+    return false;
+  }
+  const anchor = selection.anchor.getNode();
+  const focus = selection.focus.getNode();
+  return [anchor, focus].every((node) => (
+    node instanceof AutoLinkNode || node.getParent() instanceof AutoLinkNode
+  ));
+}
+
+function $automaticLinkAtSelection(url: string): AutoLinkNode | null {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+    return null;
+  }
+  const anchor = selection.anchor.getNode();
+  const ancestor = anchor instanceof AutoLinkNode
+    ? anchor
+    : anchor.getParent() instanceof AutoLinkNode ? anchor.getParent() : null;
+  if (ancestor instanceof AutoLinkNode && ancestor.getURL() === url) {
+    return ancestor;
+  }
+  const previous = selection.anchor.type === 'element' && $isElementNode(anchor)
+    ? anchor.getChildAtIndex(selection.anchor.offset - 1)
+    : anchor.getPreviousSibling();
+  return previous instanceof AutoLinkNode && previous.getURL() === url ? previous : null;
 }
 
 function syncExternalLinkPresentation(root: HTMLElement | null) {
@@ -128,8 +171,25 @@ export function ExternalLinkPlugin() {
       throw new Error('ExternalLinkPlugin: AutoLinkNode not registered on editor');
     }
     const unlinkedTextByKey = new Map<string, string>();
+    const automaticCreationUrls = new Set<string>();
+    const createdAutomaticKeysByUrl = new Map<string, string[]>();
+    const createdKeyCleanupTimers = new Set<ReturnType<typeof setTimeout>>();
     let automaticUndoCandidate: { key: string; text: string; url: string } | null = null;
+    let deferCompleteTypedCandidate = false;
+    let pasteInProgress = false;
     let presentationQueued = false;
+    const armAutomaticUndo = (node: AutoLinkNode) => {
+      automaticUndoCandidate = {
+        key: node.getKey(),
+        text: node.getTextContent(),
+        url: node.getURL(),
+      };
+      const following = node.getNextSibling();
+      if ($isTextNode(following)) {
+        const offset = following.getTextContentSize();
+        following.select(offset, offset);
+      }
+    };
     const queuePresentationSync = () => {
       if (presentationQueued) {
         return;
@@ -144,21 +204,82 @@ export function ExternalLinkPlugin() {
     queuePresentationSync();
     return [
       registerAutoLink(editor, {
-        changeHandlers: [],
+        changeHandlers: [(url, previousUrl) => {
+          if (url && previousUrl === null) {
+            automaticCreationUrls.add(url);
+            const createdKey = createdAutomaticKeysByUrl.get(url)?.at(-1);
+            const created = createdKey ? $getNodeByKey(createdKey) : null;
+            const link = created instanceof AutoLinkNode ? created : $automaticLinkAtSelection(url);
+            if (link) {
+              armAutomaticUndo(link);
+              automaticCreationUrls.delete(url);
+              createdAutomaticKeysByUrl.delete(url);
+            }
+          }
+        }],
         excludeParents: [],
-        matchers: [automaticGenericLinkMatcher],
+        matchers: [(text) => {
+          const match = automaticGenericLinkMatcher(text);
+          return match && (
+            $selectionIsInsideAutomaticLink()
+            || automaticCreationUrls.has(match.url)
+            || !deferCompleteTypedCandidate
+          )
+            ? match
+            : null;
+        }],
         separatorRegex: GENERIC_LINK_SEPARATOR,
       }),
       editor.registerNodeTransform(LinkNode, normalizeExternalLinkNode),
       editor.registerNodeTransform(AutoLinkNode, normalizeExternalLinkNode),
       registerExternalLinkMutationListener(editor, LinkNode, unlinkedTextByKey),
       registerExternalLinkMutationListener(editor, AutoLinkNode, unlinkedTextByKey, (node) => {
-        automaticUndoCandidate = {
-          key: node.getKey(),
-          text: node.getTextContent(),
-          url: node.getURL(),
-        };
+        const url = node.getURL();
+        const keys = createdAutomaticKeysByUrl.get(url) ?? [];
+        keys.push(node.getKey());
+        createdAutomaticKeysByUrl.set(url, keys);
+        if (automaticCreationUrls.has(url) || automaticUndoCandidate?.key === node.getKey()) {
+          armAutomaticUndo(node);
+          automaticCreationUrls.delete(url);
+          createdAutomaticKeysByUrl.delete(url);
+          return;
+        }
+        const timeout = setTimeout(() => {
+          createdKeyCleanupTimers.delete(timeout);
+          const currentKeys = createdAutomaticKeysByUrl.get(url);
+          if (!currentKeys) {
+            return;
+          }
+          const remaining = currentKeys.filter(key => key !== node.getKey());
+          if (remaining.length === 0) {
+            createdAutomaticKeysByUrl.delete(url);
+          } else {
+            createdAutomaticKeysByUrl.set(url, remaining);
+          }
+        });
+        createdKeyCleanupTimers.add(timeout);
       }),
+      editor.registerCommand(
+        PASTE_COMMAND,
+        () => {
+          pasteInProgress = true;
+          deferCompleteTypedCandidate = false;
+          return false;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+      editor.registerCommand(
+        CONTROLLED_TEXT_INSERTION_COMMAND,
+        (insertion) => {
+          if (pasteInProgress || typeof insertion !== 'string' || insertion.length === 0) {
+            return false;
+          }
+          const endsAtBoundary = TYPED_CANDIDATE_END.test(insertion.at(-1)!);
+          deferCompleteTypedCandidate = !endsAtBoundary && !$selectionIsInsideAutomaticLink();
+          return false;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
       editor.registerCommand(
         UNDO_COMMAND,
         () => {
@@ -172,14 +293,46 @@ export function ExternalLinkPlugin() {
             || node.getIsUnlinked()
             || node.getTextContent() !== candidate.text
             || node.getURL() !== candidate.url
-            || !$selectionTouchesLink(node)
           ) {
             automaticUndoCandidate = null;
             return false;
           }
+          const following = node.getNextSibling();
           node.setIsUnlinked(true);
+          if ($isTextNode(following)) {
+            following.select(0, 0);
+          } else {
+            const text = node.getFirstChild();
+            if ($isTextNode(text)) {
+              text.select(text.getTextContentSize(), text.getTextContentSize());
+            }
+          }
           automaticUndoCandidate = null;
           return true;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+      editor.registerCommand(
+        KEY_DOWN_COMMAND,
+        (event) => {
+          if (
+            event.key.length === 1
+            && !event.isComposing
+            && !event.altKey
+            && !event.metaKey
+            && !event.ctrlKey
+          ) {
+            deferCompleteTypedCandidate = !TYPED_CANDIDATE_END.test(event.key)
+              && !$selectionIsInsideAutomaticLink();
+          }
+          if (
+            automaticUndoCandidate
+            && !MODIFIER_KEYS.has(event.key)
+            && !(event.key.toLowerCase() === 'z' && (event.metaKey || event.ctrlKey))
+          ) {
+            automaticUndoCandidate = null;
+          }
+          return false;
         },
         COMMAND_PRIORITY_CRITICAL,
       ),
@@ -197,8 +350,16 @@ export function ExternalLinkPlugin() {
         },
         COMMAND_PRIORITY_CRITICAL,
       ),
+      editor.registerUpdateListener(() => {
+        pasteInProgress = false;
+      }),
       editor.registerUpdateListener(queuePresentationSync),
       editor.registerRootListener(queuePresentationSync),
+      () => {
+        for (const timeout of createdKeyCleanupTimers) {
+          clearTimeout(timeout);
+        }
+      },
     ].reduceRight<() => void>(
       (cleanup, unregister) => () => {
         unregister();

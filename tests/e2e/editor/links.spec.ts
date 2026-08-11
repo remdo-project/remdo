@@ -1,6 +1,6 @@
 import { expect, test } from '#editor/fixtures';
 import { ensureReady, waitForSynced } from '#editor/bridge';
-import { editorLocator, setCaretAtText } from '#editor/locators';
+import { editorLocator, selectInlineRange, setCaretAtText } from '#editor/locators';
 import { createUserDocument } from '../_support/documents';
 import { createEditorDocumentPath } from './_support/routes';
 
@@ -330,6 +330,14 @@ test.describe('generic links', () => {
     const label = controls.getByRole('textbox', { name: 'Text' });
     const destination = controls.getByRole('textbox', { name: 'Destination' });
     await expect(destination).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(label).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(destination).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(label).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(destination).toBeFocused();
     await destination.fill('example.com');
     await expect(label).toHaveValue('example.com');
     await destination.press('Enter');
@@ -365,6 +373,45 @@ test.describe('generic links', () => {
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
+  });
+
+  test('waits for a typed URL boundary and Undo keeps the authored text', async ({ page, editor }) => {
+    await editor.load('flat');
+    await selectInlineRange(page, 'note1', 0, 'note1'.length);
+    const url = 'https://example.com/path';
+    await page.keyboard.type(url);
+
+    const links = editorLocator(page).locator('a[target="_blank"]');
+    await expect(links).toHaveCount(0);
+    await page.keyboard.type(' ');
+    await expect(links).toHaveText(url);
+
+    await page.keyboard.press('ControlOrMeta+Z');
+    await expect(links).toHaveCount(0);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: `${url} ` },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  test('Shift-clicking a link extends structural selection without activating it', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('ControlOrMeta+K');
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    await controls.getByRole('textbox', { name: 'Destination' }).fill('example.com');
+    await controls.getByRole('textbox', { name: 'Destination' }).press('Enter');
+
+    await setCaretAtText(page, 'note1', 0);
+    const link = editorLocator(page).locator('a[target="_blank"]');
+    const box = (await link.boundingBox())!;
+    await page.keyboard.down('Shift');
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await page.keyboard.up('Shift');
+
+    await expect(editorLocator(page).locator('.editor-input')).toHaveClass(/editor-input--structural/);
+    await expect(controls).toHaveCount(0);
   });
 
 });
