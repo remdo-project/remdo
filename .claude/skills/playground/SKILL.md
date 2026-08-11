@@ -33,8 +33,8 @@ Follow the official skill and template, applying the RemDo
 [explorer boundary](../../../docs/specs/agents/skills/playground.md#explorer).
 Inspect relevant RemDo UI source only when the requested subject requires it.
 Create `public/playground/` if needed, then generate the complete HTML at a
-run-owned temporary path under
-`public/playground/` whose name does not match `index-*.html`.
+new run-owned temporary path under `public/playground/` whose name is neither
+`index.html` nor a match for `index-*.html`.
 
 ## Publish
 
@@ -48,8 +48,8 @@ with these repository mechanics:
 4. Run `ln -sfn index-N.html public/playground/index.html` with the new filename.
 
 Track every path and move owned by the run. If publication stops, reverse its
-completed moves, restore the prior `index.html` state, and remove its temporary
-or numbered artifact.
+completed moves, restore the prior `index.html` state, and remove only the new
+run's temporary or numbered artifact. Never remove a preserved legacy artifact.
 
 ## Report
 
