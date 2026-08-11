@@ -113,10 +113,8 @@ function syncExternalLinkPresentation(root: HTMLElement | null) {
   }
   for (const anchor of root.querySelectorAll<HTMLAnchorElement>('a.text-link')) {
     if (anchor.target === '_blank') {
-      anchor.dataset.externalLinkNewTab = 'true';
       anchor.setAttribute('aria-label', `${anchor.textContent} (opens in new tab)`);
-    } else if (anchor.dataset.externalLinkNewTab === 'true') {
-      delete anchor.dataset.externalLinkNewTab;
+    } else {
       anchor.removeAttribute('aria-label');
     }
   }

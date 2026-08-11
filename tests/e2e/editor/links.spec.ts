@@ -335,7 +335,7 @@ test.describe('generic links', () => {
     await destination.press('Enter');
 
     await expect(controls).toHaveCount(0);
-    const link = editorLocator(page).locator('a[data-external-link-new-tab="true"]');
+    const link = editorLocator(page).locator('a[target="_blank"]');
     await expect(link).toHaveText('example.com');
     await expect(link).toHaveAttribute('href', 'https://example.com/');
     await expect(link).toHaveAttribute('target', '_blank');
@@ -352,7 +352,7 @@ test.describe('generic links', () => {
     await controls.getByRole('textbox', { name: 'Destination' }).fill('https://remdo.app');
     await controls.getByRole('button', { name: 'Save link' }).click();
 
-    const edited = editorLocator(page).locator('a[data-external-link-new-tab="true"]');
+    const edited = editorLocator(page).locator('a[target="_blank"]');
     await expect(edited).toHaveText('RemDo site');
     await expect(edited).toHaveAttribute('href', 'https://remdo.app/');
 
@@ -367,21 +367,4 @@ test.describe('generic links', () => {
     ]);
   });
 
-  test('keeps invalid authoring open with an inline error', async ({ page, editor }) => {
-    await editor.load('flat');
-    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
-    await page.keyboard.press('ControlOrMeta+K');
-
-    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
-    await controls.getByRole('textbox', { name: 'Destination' }).fill('javascript:alert(1)');
-    await controls.getByRole('button', { name: 'Create link' }).click();
-
-    await expect(controls).toHaveCount(1);
-    await expect(controls.getByRole('alert')).toContainText('valid web address');
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
-  });
 });

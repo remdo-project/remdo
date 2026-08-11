@@ -157,12 +157,7 @@ function hasAutomaticStartBoundary(text: string, index: number): boolean {
   return index === 0 || AUTOMATIC_START_PATTERN.test(text[index - 1] ?? '');
 }
 
-function normalizeAutomaticMatch(match: LinkifyMatch): GenericDestination | null {
-  const candidate = trimAutomaticCandidate(match.raw);
-  if (!candidate) {
-    return null;
-  }
-
+function normalizeAutomaticMatch(match: LinkifyMatch, candidate: string): GenericDestination | null {
   if (match.schema === 'mailto:') {
     const email = normalizeEmailAddress(candidate);
     return email ? { kind: 'email', url: `mailto:${email}` } : null;
@@ -194,8 +189,11 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
       continue;
     }
     const candidate = trimAutomaticCandidate(match.raw);
-    const destination = normalizeAutomaticMatch(match);
-    if (!destination || !candidate) {
+    if (!candidate) {
+      continue;
+    }
+    const destination = normalizeAutomaticMatch(match, candidate);
+    if (!destination) {
       continue;
     }
     return {

@@ -281,7 +281,9 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     const inputs = [...controls.querySelectorAll<HTMLInputElement>('input')];
     expect(inputs).toHaveLength(2);
     expect(inputs[0]!.value).toBe('note1');
-    expect(document.activeElement).toBe(inputs[1]);
+    await waitFor(() => {
+      expect(document.activeElement).toBe(inputs[1]);
+    });
 
     await act(async () => {
       fireEvent.change(inputs[1]!, { target: { value: 'example.com/path' } });
@@ -399,14 +401,18 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
     let controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
     const edit = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Edit')!;
-    expect(document.activeElement).toBe(edit);
+    await waitFor(() => {
+      expect(document.activeElement).toBe(edit);
+    });
 
     await act(async () => {
       fireEvent.click(edit);
     });
     controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
     const inputs = [...controls.querySelectorAll<HTMLInputElement>('input')];
-    expect(document.activeElement).toBe(inputs[1]);
+    await waitFor(() => {
+      expect(document.activeElement).toBe(inputs[1]);
+    });
     await act(async () => {
       fireEvent.change(inputs[0]!, { target: { value: 'Email us' } });
     });
@@ -743,7 +749,6 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
 
     const anchor = remdo.editor.getRootElement()!.querySelector<HTMLAnchorElement>('a')!;
-    expect(anchor.dataset.externalLinkNewTab).toBe('true');
     expect(anchor.getAttribute('aria-label')).toBe(`${url} (opens in new tab)`);
   });
 

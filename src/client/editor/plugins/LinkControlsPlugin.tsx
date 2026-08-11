@@ -5,6 +5,7 @@ import {
   AutoLinkNode,
   LinkNode,
 } from '@lexical/link';
+import { FocusTrap } from '@mantine/core';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $findMatchingParent, mergeRegister } from '@lexical/utils';
 import {
@@ -202,24 +203,6 @@ function $restoreTargetSelection(target: LinkAuthoringTarget): boolean {
   return true;
 }
 
-function $selectAfterNode(node: LexicalNode) {
-  const parent = node.getParent();
-  if (parent) {
-    const offset = node.getIndexWithinParent() + 1;
-    const selection = $createRangeSelection();
-    selection.anchor.set(parent.getKey(), offset, 'element');
-    selection.focus.set(parent.getKey(), offset, 'element');
-    $setSelection(selection);
-  }
-}
-
-function $selectNodeContents(node: LinkNode) {
-  const selection = $createRangeSelection();
-  selection.anchor.set(node.getKey(), 0, 'element');
-  selection.focus.set(node.getKey(), node.getChildrenSize(), 'element');
-  $setSelection(selection);
-}
-
 function getDestinationAttributes(destination: GenericDestination): { rel?: string; target?: string } {
   return destination.kind === 'web' ? WEB_LINK_ATTRIBUTES : {};
 }
@@ -229,7 +212,7 @@ function $insertGenericLink(selection: RangeSelection, label: string, destinatio
   link.append($createTextNode(label));
   $setSelection(selection);
   selection.insertNodes([link]);
-  $selectAfterNode(link);
+  link.selectNext();
   return link;
 }
 
@@ -242,7 +225,7 @@ function $insertNoteLink(
   link.append($createTextNode(label));
   $setSelection(selection);
   selection.insertNodes([link]);
-  $selectAfterNode(link);
+  link.selectNext();
 }
 
 function $replaceWithLabeledLink(node: LinkNode, label: string, destination: GenericDestination): LinkNode {
@@ -250,7 +233,7 @@ function $replaceWithLabeledLink(node: LinkNode, label: string, destination: Gen
   // Move the live selection off the link before replacing its children. The
   // controls retain their own model snapshot, but Lexical still requires the
   // committed selection not to point at nodes removed by clear/replace.
-  $selectAfterNode(node);
+  node.selectNext();
   if (!(node instanceof AutoLinkNode)) {
     node
       .setURL(destination.url)
@@ -288,7 +271,7 @@ function $removeGenericLink(node: LinkNode) {
   const recognized = recognizeCompleteAutomaticLink(text);
   if (node instanceof AutoLinkNode) {
     node.setIsUnlinked(true);
-    $selectNodeContents(node);
+    node.select(0, node.getChildrenSize());
     return;
   }
   if (recognized) {
@@ -298,7 +281,7 @@ function $removeGenericLink(node: LinkNode) {
     });
     replacement.append(...node.getChildren());
     node.replace(replacement);
-    $selectNodeContents(replacement);
+    replacement.select(0, replacement.getChildrenSize());
     return;
   }
 
@@ -318,28 +301,10 @@ function activateDestination(url: string) {
   globalThis.open(url, isWeb ? '_blank' : '_self', isWeb ? 'noopener,noreferrer' : undefined);
 }
 
-function handleTabCycle(event: ReactKeyboardEvent<HTMLElement>) {
-  if (event.key !== 'Tab') {
-    return;
-  }
-  const controls = event.currentTarget;
-  const focusable = [...controls.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])')];
-  if (focusable.length === 0) {
-    return;
-  }
-  const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
-  const delta = event.shiftKey ? -1 : 1;
-  const nextIndex = (currentIndex + delta + focusable.length) % focusable.length;
-  event.preventDefault();
-  focusable[nextIndex]?.focus();
-}
-
 export function LinkControlsPlugin() {
   const [editor] = useLexicalComposerContext();
   const { docId } = useCollaborationStatus();
   const popupToken = useRef(Symbol('link-controls')).current;
-  const destinationRef = useRef<HTMLInputElement>(null);
-  const editRef = useRef<HTMLButtonElement>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(() => {
     const root = editor.getRootElement();
     return root ? root.closest<HTMLElement>('.editor-container') : null;
@@ -447,7 +412,7 @@ export function LinkControlsPlugin() {
         return;
       }
       const edited = $replaceWithLabeledLink(link, label, generic);
-      $selectNodeContents(edited);
+      edited.select(0, edited.getChildrenSize());
     });
 
     setControlsState(null);
@@ -472,19 +437,6 @@ export function LinkControlsPlugin() {
     setControlsState(null);
     editor.focus();
   }, [editor, setControlsState]);
-
-  useEffect(() => {
-    if (!controls) {
-      return;
-    }
-    queueMicrotask(() => {
-      if (controls.mode === 'actions') {
-        editRef.current?.focus();
-      } else {
-        destinationRef.current?.focus();
-      }
-    });
-  }, [controls]);
 
   useEffect(() => {
     const root = editor.getRootElement();
@@ -646,24 +598,24 @@ export function LinkControlsPlugin() {
       event.preventDefault();
       event.stopPropagation();
       closeControls(true);
-      return;
     }
-    handleTabCycle(event);
   };
 
   return createPortal(
-    <div
-      className="link-controls"
-      data-link-controls
-      role="dialog"
-      aria-label="Link controls"
-      style={style}
-      onKeyDown={handleControlsKeyDown}
-      onPointerDown={(event) => event.stopPropagation()}
-      onMouseDown={(event) => event.stopPropagation()}
-    >
-      {controls.mode === 'actions' ? (
-        <div className="link-controls__actions">
+    <FocusTrap>
+      <div
+        key={controls.mode}
+        className="link-controls"
+        data-link-controls
+        role="dialog"
+        aria-label="Link controls"
+        style={style}
+        onKeyDown={handleControlsKeyDown}
+        onPointerDown={(event) => event.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        {controls.mode === 'actions' ? (
+          <div className="link-controls__actions">
           <button
             type="button"
             onClick={() => {
@@ -683,22 +635,22 @@ export function LinkControlsPlugin() {
             Copy destination
           </button>
           <button
-            ref={editRef}
+            data-autofocus
             type="button"
             onClick={() => setControlsState({ ...controls, error: null, mode: 'edit' })}
           >
             Edit
           </button>
           <button type="button" onClick={removeLink}>Remove link</button>
-        </div>
-      ) : (
-        <form
-          className="link-controls__fields"
-          onSubmit={(event) => {
-            event.preventDefault();
-            submitFields();
-          }}
-        >
+          </div>
+        ) : (
+          <form
+            className="link-controls__fields"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitFields();
+            }}
+          >
           <label>
             Text
             <input
@@ -714,7 +666,7 @@ export function LinkControlsPlugin() {
           <label>
             Destination
             <input
-              ref={destinationRef}
+              data-autofocus
               value={controls.destination}
               inputMode="url"
               onChange={(event) => {
@@ -732,9 +684,10 @@ export function LinkControlsPlugin() {
           </label>
           {controls.error ? <div className="link-controls__error" role="alert">{controls.error}</div> : null}
           <button type="submit">{controls.mode === 'create' ? 'Create link' : 'Save link'}</button>
-        </form>
-      )}
-    </div>,
+          </form>
+        )}
+      </div>
+    </FocusTrap>,
     portalRoot,
   );
 }

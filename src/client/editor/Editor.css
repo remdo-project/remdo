@@ -199,7 +199,7 @@
   outline-offset: 2px;
 }
 
-.text-link[data-external-link-new-tab='true']::after {
+.text-link[target='_blank']::after {
   content: '↗';
   display: inline-block;
   margin-inline-start: 0.15em;
