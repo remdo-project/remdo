@@ -55,7 +55,7 @@ export function DevToolbarLinks({ linkClassName }: { linkClassName?: string }) {
           Lexical Demo
         </Link>
         {/* Stable, same-origin URL of the most recently generated playground (the
-            `playground` skill overwrites public/playground/index.html). The exact
+            `playground` skill updates public/playground/index.html). The exact
             file path is required: Vite dev serves public/ files by exact path and
             would fall the bare /playground/ through to the SPA. */}
         <Anchor className={linkClassName} href="/playground/index.html">
