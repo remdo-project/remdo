@@ -1,6 +1,7 @@
 import { $createAutoLinkNode, AutoLinkNode, LinkNode, registerAutoLink } from '@lexical/link';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
+  $addUpdateTag,
   $getNodeByKey,
   $getSelection,
   $isElementNode,
@@ -12,6 +13,7 @@ import {
   PASTE_COMMAND,
   SELECTION_CHANGE_COMMAND,
   TextNode,
+  HISTORY_MERGE_TAG,
   UNDO_COMMAND,
 } from 'lexical';
 import { useEffect } from 'react';
@@ -31,10 +33,25 @@ import {
 
 const TYPED_CANDIDATE_END = /[\s<>"“”‘’]/;
 const MODIFIER_KEYS = new Set(['Alt', 'Control', 'Meta', 'Shift']);
+// RemDo validates the opening boundary with its matcher and accepts an inline
+// node boundary at the end. Letting Lexical apply its broader separator grammar
+// would also unwrap deliberately suppressed links when neighboring text changes.
+const LEXICAL_LINK_SEPARATOR = /[\s\S]/;
 
 function unwrapLinkNode(node: LinkNode | AutoLinkNode) {
   const parent = node.getParentOrThrow();
   parent.splice(node.getIndexWithinParent(), 1, node.getChildren());
+}
+
+function $hasValidAutomaticLinkStart(node: AutoLinkNode): boolean {
+  const previousNode = node.getPreviousSibling();
+  if (!$isTextNode(previousNode)) {
+    return true;
+  }
+  const previous = previousNode.getTextContent().at(-1) ?? '';
+  const text = node.getTextContent();
+  const match = automaticGenericLinkMatcher(`${previous}${text}`);
+  return match?.index === previous.length && match.length === text.length;
 }
 
 function $suppressRecognizableLinkText(node: LinkNode | AutoLinkNode) {
@@ -167,9 +184,12 @@ function $selectionIsInsideAutomaticLink(): boolean {
   }
   const anchor = selection.anchor.getNode();
   const focus = selection.focus.getNode();
-  return [anchor, focus].every((node) => (
-    node instanceof AutoLinkNode || node.getParent() instanceof AutoLinkNode
-  ));
+  return [anchor, focus].every((node) => {
+    const link = node instanceof AutoLinkNode
+      ? node
+      : node.getParent() instanceof AutoLinkNode ? node.getParent() : null;
+    return link instanceof AutoLinkNode && !link.getIsUnlinked();
+  });
 }
 
 function $automaticLinkAtSelection(url: string): AutoLinkNode | null {
@@ -241,6 +261,10 @@ export function ExternalLinkPlugin() {
       if (parent instanceof AutoLinkNode) {
         $syncAutomaticLinkSuppression(parent);
       }
+      const next = node.getNextSibling();
+      if (next instanceof AutoLinkNode && !next.getIsUnlinked() && !$hasValidAutomaticLinkStart(next)) {
+        unwrapLinkNode(next);
+      }
     });
     const $updateTypedCandidateDeferral = (defer: boolean) => {
       if (!defer) {
@@ -285,7 +309,7 @@ export function ExternalLinkPlugin() {
             ? match
             : null;
         }],
-        separatorRegex: GENERIC_LINK_SEPARATOR,
+        separatorRegex: LEXICAL_LINK_SEPARATOR,
       }),
       editor.registerNodeTransform(LinkNode, $normalizeExternalLinkNode),
       editor.registerNodeTransform(AutoLinkNode, $normalizeExternalLinkNode),
@@ -356,6 +380,7 @@ export function ExternalLinkPlugin() {
             return false;
           }
           $setAutomaticLinkUnlinkedText(node, node.getTextContent());
+          $addUpdateTag(HISTORY_MERGE_TAG);
           node.setIsUnlinked(true);
           automaticUndoCandidate = null;
           return true;

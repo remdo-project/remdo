@@ -2,6 +2,7 @@ import {
   $createAutoLinkNode,
   $createLinkNode,
   $isLinkNode,
+  $toggleLink,
   AutoLinkNode,
   LinkNode,
 } from '@lexical/link';
@@ -49,6 +50,7 @@ import { useCollaborationStatus } from './collaboration';
 interface ModelPoint {
   key: NodeKey;
   offset: number;
+  text?: string;
   type: 'element' | 'text';
 }
 
@@ -88,7 +90,13 @@ interface LinkControlsState {
 const LINK_CONTROL_SELECTOR = '[data-link-controls]';
 
 function snapshotPoint(point: RangeSelection['anchor']): ModelPoint {
-  return { key: point.key, offset: point.offset, type: point.type };
+  const node = point.getNode();
+  return {
+    key: point.key,
+    offset: point.offset,
+    text: $isTextNode(node) ? node.getTextContent() : undefined,
+    type: point.type,
+  };
 }
 
 function snapshotSelection(selection: RangeSelection): SelectionSnapshot {
@@ -104,7 +112,9 @@ function $isPointValid(point: ModelPoint): boolean {
     return false;
   }
   if (point.type === 'text') {
-    return $isTextNode(node) && point.offset <= node.getTextContentSize();
+    return $isTextNode(node)
+      && point.offset <= node.getTextContentSize()
+      && (point.text === undefined || point.text === node.getTextContent());
   }
   return $isElementNode(node) && point.offset <= node.getChildrenSize();
 }
@@ -211,6 +221,20 @@ function getDestinationAttributes(destination: GenericDestination): { rel?: stri
 }
 
 function $insertGenericLink(selection: RangeSelection, label: string, destination: GenericDestination): LinkNode {
+  if (!selection.isCollapsed() && selection.getTextContent() === label) {
+    $setSelection(selection);
+    $toggleLink({ url: destination.url, ...getDestinationAttributes(destination) });
+    const updatedSelection = $getSelection();
+    const link = $isRangeSelection(updatedSelection)
+      ? $findMatchingParent(updatedSelection.anchor.getNode(), $isLinkNode)
+      : null;
+    if (!(link instanceof LinkNode)) {
+      throw new TypeError('Expected generic link creation to wrap the selected text.');
+    }
+    link.selectNext();
+    return link;
+  }
+
   const link = $createLinkNode(destination.url, getDestinationAttributes(destination));
   link.append($createTextNode(label));
   $setSelection(selection);
@@ -326,11 +350,21 @@ function copyDestination(destination: string) {
 
 function extendSelectionToLinkPointer(anchor: HTMLAnchorElement, event: MouseEvent) {
   const selection = globalThis.getSelection();
-  const position = document.caretPositionFromPoint(event.clientX, event.clientY);
-  if (!selection || selection.rangeCount === 0 || !position || !anchor.contains(position.offsetNode)) {
+  const caretPositionFromPoint = Reflect.get(document, 'caretPositionFromPoint') as
+    | ((x: number, y: number) => CaretPosition | null)
+    | undefined;
+  const position = caretPositionFromPoint?.call(document, event.clientX, event.clientY);
+  // Safari exposes only the older Range-returning API in the supported baseline.
+  const caretRangeFromPoint = Reflect.get(document, 'caretRangeFromPoint') as
+    | ((x: number, y: number) => Range | null)
+    | undefined;
+  const range = position ? null : caretRangeFromPoint?.call(document, event.clientX, event.clientY);
+  const node = position?.offsetNode ?? range?.startContainer;
+  const offset = position?.offset ?? range?.startOffset;
+  if (!selection || selection.rangeCount === 0 || !node || offset === undefined || !anchor.contains(node)) {
     return;
   }
-  selection.extend(position.offsetNode, position.offset);
+  selection.extend(node, offset);
   document.dispatchEvent(new Event('selectionchange'));
 }
 

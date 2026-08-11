@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $setAutomaticLinkUnlinkedText } from '#client/editor/runtime/automatic-link-state';
-import { meta, placeCaretAtNote, selectEntireNote, typeText } from '#tests';
+import { meta, placeCaretAtNote, pressKey, selectEntireNote, typeText } from '#tests';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
@@ -20,6 +20,24 @@ function readAutomaticLink(remdo: RemdoTestApi) {
 }
 
 describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
+  it('closes pinned link controls when a peer changes the target text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const secondary = await createCollabPeer(remdo);
+    await placeCaretAtNote(remdo, 'note1', 2);
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    expect(document.querySelector('[data-link-controls]')).not.toBeNull();
+
+    secondary.editor.update(() => {
+      const text = $findNoteById('note1')!.getFirstChild();
+      if ($isTextNode(text)) {
+        text.setTextContent(`remote ${text.getTextContent()}`);
+      }
+    });
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-link-controls]')).toBeNull();
+    });
+  });
+
   it('ends occurrence suppression when another peer edits its text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const secondary = await createCollabPeer(remdo);
     const url = 'https://example.com/';

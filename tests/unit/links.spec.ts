@@ -1,6 +1,17 @@
 import { $createAutoLinkNode, $createLinkNode, $isAutoLinkNode, $isLinkNode } from '@lexical/link';
 import { act, fireEvent, waitFor } from '@testing-library/react';
-import { $createTextNode, $getSelection, $isTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, UNDO_COMMAND } from 'lexical';
+import {
+  $createRangeSelection,
+  $createTextNode,
+  $getSelection,
+  $isTextNode,
+  $setSelection,
+  CONTROLLED_TEXT_INSERTION_COMMAND,
+  KEY_ESCAPE_COMMAND,
+  PASTE_COMMAND,
+  REDO_COMMAND,
+  UNDO_COMMAND,
+} from 'lexical';
 import type { SerializedLexicalNode, TextNode } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -365,6 +376,36 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     expect(document.querySelector('[data-link-controls]')).toBeNull();
   });
 
+  it('preserves selected rich-text nodes when creating a link', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const bold = $createTextNode('bold').toggleFormat('bold');
+      const italic = $createTextNode('italic').toggleFormat('italic');
+      note.clear();
+      note.append(bold, italic);
+      const selection = $createRangeSelection();
+      selection.setTextNodeRange(bold, 0, italic, italic.getTextContentSize());
+      $setSelection(selection);
+    });
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const destination = controls.querySelectorAll<HTMLInputElement>('input')[1]!;
+    await act(async () => {
+      fireEvent.change(destination, { target: { value: 'example.com' } });
+      fireEvent.click(controls.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isLinkNode)!;
+      expect(link.getChildren().map((child) => [child.getTextContent(), $isTextNode(child) && child.getFormat()])).toEqual([
+        ['bold', 1],
+        ['italic', 2],
+      ]);
+    });
+  });
+
   it('uses an entered destination as the label at a collapsed caret', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
@@ -642,6 +683,31 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('keeps a suppressed automatic-link occurrence when only adjacent text changes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await selectEntireNote(remdo, 'note1');
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, `${url} `);
+    });
+    await remdo.waitForSynced();
+    await removeFirstGenericLink(remdo);
+
+    await remdo.mutate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
+      const next = link.getNextSibling();
+      if ($isTextNode(next)) {
+        next.setTextContent('adjacent');
+      }
+    });
+
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
+      expect(link.getTextContent()).toBe(url);
+      expect(link.getIsUnlinked()).toBe(true);
+    });
+    expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
+  });
+
   it('immediate Undo removes automatic link formatting but preserves authored text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/';
@@ -665,6 +731,44 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       expect(link.getIsUnlinked()).toBe(true);
     });
     expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
+
+    await remdo.dispatchCommand(UNDO_COMMAND);
+    remdo.validate(() => {
+      expect($findNoteById('note1')!.getTextContent()).not.toBe(`${url} `);
+      expect($findNoteById('note1')!.getChildren().find($isLinkNode)).toBeUndefined();
+    });
+
+    await remdo.dispatchCommand(REDO_COMMAND);
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe(`${url} `);
+      expect(note.getChildren().find($isAutoLinkNode)?.getIsUnlinked()).toBe(true);
+    });
+  });
+
+  it('unwraps an active automatic link when its opening boundary becomes invalid', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const before = $createTextNode(' ');
+      const link = $createAutoLinkNode(url);
+      link.append($createTextNode(url));
+      note.clear();
+      note.append(before, link, $createTextNode(' '));
+    });
+    remdo.validate(() => {
+      expect($findNoteById('note1')!.getChildren().find($isAutoLinkNode)).toBeDefined();
+    });
+
+    await remdo.mutate(() => {
+      const before = $findNoteById('note1')!.getFirstChild();
+      if ($isTextNode(before)) {
+        before.setTextContent(',');
+      }
+    });
+    remdo.validate(() => {
+      expect($findNoteById('note1')!.getChildren().find($isLinkNode)).toBeUndefined();
+    });
   });
 
   it('normalizes imported-style external LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
