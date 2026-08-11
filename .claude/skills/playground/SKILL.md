@@ -16,15 +16,15 @@ Resolve exactly one installed official skill at:
 ~/.claude/plugins/cache/claude-plugins-official/playground/*/skills/playground/SKILL.md
 ```
 
-Read it and the matching file under its `templates/` directory. Select the
-template from the requested explorer type; stop under the specification's
+Read it and the closest matching file under its `templates/` directory,
+adapting that template when no type fits cleanly. Stop under the specification's
 [dependency rule](../../../docs/specs/agents/skills/playground.md#dependency)
-if the skill or template cannot be resolved unambiguously.
+only if the installed skill or a required template file cannot be resolved.
 
 Before creating files, resolve the canonical origin:
 
 ```sh
-tools/env.sh pnpm exec tsx tools/dev/print-app-public-url.ts
+TMPDIR=/tmp tools/env.sh pnpm exec tsx tools/dev/print-app-public-url.ts
 ```
 
 ## Generate
@@ -33,8 +33,9 @@ Follow the official skill and template, applying the RemDo
 [explorer boundary](../../../docs/specs/agents/skills/playground.md#explorer).
 Inspect relevant RemDo UI source only when the requested subject requires it.
 Create `public/playground/` if needed, then generate the complete HTML at a
-new run-owned temporary path under `public/playground/` whose name is neither
-`index.html` nor a match for `index-*.html`.
+new, unused run-owned temporary path under `public/playground/` whose name is
+neither `index.html` nor a match for `index-*.html`. Do not run the official
+skill's `open` step; the publication contract owns delivery.
 
 ## Publish
 
