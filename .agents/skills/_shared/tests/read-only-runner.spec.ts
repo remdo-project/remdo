@@ -17,15 +17,11 @@ import {
 
 const runner = path.join(__dirname, '../tools/read-only-runner.ts');
 const reviewInstruction = [
-  'Assume the repository\'s prescribed tests and checks have already passed;',
-  'treat that as existing evidence.',
-  'Do not rerun or manually reproduce them.',
-  'Review the implementation and test adequacy for issues that passing checks',
-  'may still miss.',
-  'When delegating review work, pass this assumption and instruction to every',
-  'delegated reviewer.',
-  'If fresh runtime evidence is essential to assess a potential finding,',
-  'report the exact check needed and why instead of running it.',
+  'Repository tests and checks are handled outside this review.',
+  'Do not run or manually reproduce them.',
+  'Review the implementation and test adequacy using repository evidence.',
+  'Pass these instructions to every delegated reviewer.',
+  'Report any additional runtime check needed and why; do not run it.',
 ].join(' ');
 
 function expectedClaudeReview(command: string): string {
@@ -493,14 +489,14 @@ describe('read-only runner CLI', () => {
     expect(settings).toEqual({ disableAllHooks: true });
     const instruction = argumentAfter(argv, '--append-system-prompt');
     expect(instruction).toContain(
-      'Assume the repository\'s prescribed tests and checks have already passed;',
+      'Repository tests and checks are handled outside this review.',
     );
-    expect(instruction).toContain('Do not rerun or manually reproduce them.');
+    expect(instruction).toContain('Do not run or manually reproduce them.');
     expect(instruction).toContain(
-      'pass this assumption and instruction to every delegated reviewer.',
+      'Pass these instructions to every delegated reviewer.',
     );
     expect(instruction).toContain(
-      'report the exact check needed and why instead of running it.',
+      'Report any additional runtime check needed and why; do not run it.',
     );
     expect(argv).not.toContain('--append-subagent-system-prompt');
     expect(argumentAfter(argv, '--output-format')).toBe('json');

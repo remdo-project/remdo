@@ -4,6 +4,10 @@ permissions:
 
 on: push
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   e2e-tests:
     permissions:
@@ -28,7 +32,16 @@ jobs:
           PLAYWRIGHT_INSTALL: "true"
         run: pnpm run dev:init
 
-      - name: Run Playwright e2e suite
+      - name: Run Playwright E2E suite
         env:
           TEST_TIMEOUT: 360
         run: pnpm run test:e2e
+
+      - name: Upload Playwright failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: data/e2e-runtime/test-results/playwright
+          if-no-files-found: ignore
+          retention-days: 7

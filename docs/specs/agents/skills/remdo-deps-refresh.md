@@ -86,9 +86,10 @@ deferral path and reports the proposal.
 
 ## Verification
 
-Each refresh unit is verified after its latest mutation with the applicable full
-repository checks, end-to-end tests, cleanup audits, and install-consistency
-check. A runtime-pin change also includes the repository's container test.
+Each refresh unit follows the contributor
+[testing policy](../../../dev/testing.md#verification-lifecycle) before it is
+committed. The completed refresh passes dependency cleanup and
+install-consistency checks.
 
 ## Result
 

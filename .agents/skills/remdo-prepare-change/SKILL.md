@@ -55,9 +55,10 @@ Perform undelegated implementation under the repository guidelines. An
 incomplete participant result does not advance the lifecycle. Neither the
 coordinator nor a participant expands the approved behavior.
 
-Implement applicable automated coverage, use focused checks while iterating,
-and keep every commit within this change's autonomous scope. Participants retain
-their contract-defined commit units.
+Implement applicable automated coverage and follow the contributor
+[`Testing`](../../../docs/dev/testing.md#verification-lifecycle) policy. Keep
+every commit within this change's autonomous scope. Participants retain their
+contract-defined commit units.
 
 Delegate a bounded, fresh-context simplification review of the complete current
 end state. Use `$remdo-simplify` for code and tests; use the applicable

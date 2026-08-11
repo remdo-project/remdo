@@ -44,8 +44,9 @@ For every verifier result:
    applicable authoritative contract and fix inconsistencies introduced by the
    batch. For durable documentation, check each applicable
    [`Documentation`](../../../docs/documentation.md) clause separately.
-5. Keep uncommitted-scope corrections uncommitted. In commit-range scope, make
-   one coherent correction commit before running verification again.
+5. Keep uncommitted-scope corrections uncommitted. In commit-range scope, run
+   focused tests and applicable static checks for the correction batch, then
+   make one coherent correction commit.
 6. Run the complete verifier again only when the repository state changed. Use
    the retained scope, and repeat.
 

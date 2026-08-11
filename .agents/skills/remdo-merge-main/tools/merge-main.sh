@@ -218,14 +218,8 @@ start_run() {
       ;;
     merge-commit)
       merge_with_neutral_options \
-        --quiet --commit --no-edit --no-ff --no-squash "$run_target" \
+        --quiet --no-commit --no-edit --no-ff --no-squash "$run_target" \
         || true
-      if is_ancestor "$run_target" HEAD \
-        && is_ancestor "$run_start_head" HEAD \
-        && ! operation_in_progress; then
-        emit_run_state verification-needed
-        return
-      fi
       merge_head=$(git rev-parse --verify --quiet MERGE_HEAD || true)
       if [ "$merge_head" = "$run_target" ]; then
         read_unmerged_paths
@@ -277,7 +271,7 @@ continue_run() {
     || fail "branch no longer contains the fixed target"
   operation_in_progress \
     && fail "a Git operation remains after the merge commit"
-  printf 'STATE=verification-needed\n'
+  printf 'STATE=merged\n'
   printf 'TARGET=%s\n' "$expected_target"
 }
 

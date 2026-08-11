@@ -76,14 +76,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Testing
 
-- **Verification ownership and lifecycle.** Assign repository checks, browser
-  and Docker E2E, cleanup and policy audits, dependency-install consistency,
-  and local versus CI evidence to clear durable and executable owners. Define
-  when each runs and which mutations invalidate its result, then revisit
-  [dependency-refresh verification](specs/agents/skills/remdo-deps-refresh.md#verification)
-  and other capability specifications so they reference those owners and run
-  each check at the correct lifecycle point.
-
 - **Docker E2E diagnostic runtime.** Reconsider the removal-on-exit lifecycle in
   `docs/specs/testing/test-harness.md`. Evaluate retaining runtime data and
   captured container logs in a stable, permission-restricted location until the

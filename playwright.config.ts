@@ -35,6 +35,7 @@ export default defineConfig({
       ],
       use: {
         ...chromium,
+        trace: config.env.CI ? 'retain-on-failure' : 'off',
       },
     },
   ],

@@ -24,6 +24,16 @@ is a poor fit, use an integration or end-to-end test rather than an over-complex
 unit test or a manual check. Manual and live checks are development aids, not
 substitutes for automated coverage.
 
+## Verification lifecycle
+
+Before each commit or uncommitted handoff, run likely affected tests and
+applicable static checks.
+
+Local test selection intentionally optimizes feedback time rather than
+completeness. Also run explicitly selected tests for known relationships it
+cannot discover. CI runs complete repository verification and must pass before
+integration.
+
 ## Empirical checks
 
 Use an empirical check only when authoritative dependency contracts and
