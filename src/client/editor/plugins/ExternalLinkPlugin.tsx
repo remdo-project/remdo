@@ -359,7 +359,18 @@ export function ExternalLinkPlugin() {
         }],
         separatorRegex: LEXICAL_LINK_SEPARATOR,
       }),
-      editor.registerNodeTransform(LinkNode, $normalizeExternalLinkNode),
+      editor.registerNodeTransform(LinkNode, (node) => {
+        $normalizeExternalLinkNode(node);
+        if (node instanceof AutoLinkNode) {
+          return;
+        }
+        const previous = node.getPreviousSibling();
+        if ($isTextNode(previous) && previous.getKey() === deferredTextNodeKey) {
+          deferredTextNodeKey = null;
+          deferCurrentTextTransform = false;
+          previous.markDirty();
+        }
+      }),
       editor.registerNodeTransform(AutoLinkNode, $normalizeExternalLinkNode),
       unregisterTextTransform,
       registerExternalLinkMutationListener(editor, LinkNode),

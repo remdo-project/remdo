@@ -1245,6 +1245,29 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('finalizes a deferred URL when an explicit link creates its inline boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/path';
+    await selectEntireNote(remdo, 'note1');
+    await typeText(remdo, url);
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const destination = controls.querySelectorAll<HTMLInputElement>('input')[1]!;
+    await act(async () => {
+      fireEvent.change(destination, { target: { value: 'example.org' } });
+      fireEvent.click(controls.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const links = $findNoteById('note1')!.getChildren().filter($isLinkNode);
+      expect(links.map(link => [link.getTextContent(), link.getURL()])).toEqual([
+        [url, url],
+        ['example.org', 'https://example.org/'],
+      ]);
+      expect($isAutoLinkNode(links[0])).toBe(true);
+    });
+  });
+
   it('typing an external URL creates a regular link that opens in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/';

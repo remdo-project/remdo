@@ -25,6 +25,7 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     'localhost:3000',
     '127.0.0.1',
     'https://user:password@example.com',
+    'https://user:(foo@example.com',
     'javascript:alert(1)',
     'user@example.com?subject=hello',
     'mailto:user@example.com?subject=hello',

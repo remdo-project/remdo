@@ -223,7 +223,7 @@ function normalizeAutomaticMatch(match: LinkifyMatch, candidate: string): Generi
 }
 
 export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
-  const email = automaticEmailMatch(text);
+  let email = automaticEmailMatch(text);
   if (!linkify.pretest(text)) {
     return email;
   }
@@ -243,15 +243,24 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
     const containsAnotherMatch = matches.some(other => (
       other.index > match.index && other.index < candidateEnd
     ));
+    const containsEmail = email !== null
+      && match.index < email.index
+      && email.index < candidateEnd;
     if (
       !endedAtAutomaticBoundary
       && trimAutomaticCandidate(match.raw) !== candidate
       && containsAnotherMatch
     ) {
+      if (containsEmail) {
+        email = null;
+      }
       continue;
     }
     const destination = normalizeAutomaticMatch(match, candidate);
     if (!destination) {
+      if (containsEmail) {
+        email = null;
+      }
       continue;
     }
     const webOrLinkifyEmail = {

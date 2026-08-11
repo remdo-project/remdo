@@ -430,6 +430,25 @@ test.describe('generic links', () => {
     await expect(links).toHaveText(url);
   });
 
+  test('an inline link finalizes a deferred URL before it', async ({ page, editor }) => {
+    await editor.load('flat');
+    await selectInlineRange(page, 'note1', 0, 'note1'.length);
+    const url = 'https://example.com/path';
+    await page.keyboard.type(url);
+    await expect(editorLocator(page).locator('a')).toHaveCount(0);
+
+    await page.keyboard.press('ControlOrMeta+K');
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    const destination = controls.getByRole('textbox', { name: 'Destination' });
+    await destination.fill('example.org');
+    await destination.press('Enter');
+
+    const links = editorLocator(page).locator('a');
+    await expect(links).toHaveCount(2);
+    await expect(links.nth(0)).toHaveText(url);
+    await expect(links.nth(1)).toHaveText('example.org');
+  });
+
   test('Shift-clicking a link extends structural selection without activating it', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
