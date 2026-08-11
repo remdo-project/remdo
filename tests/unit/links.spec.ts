@@ -45,7 +45,7 @@ async function pastePlainText(remdo: RemdoTestApi, text: string) {
 
 async function removeFirstGenericLink(remdo: RemdoTestApi) {
   await act(async () => {
-    fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!);
+    fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!, { detail: 1 });
   });
   const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
   const remove = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Remove link')!;
@@ -300,6 +300,35 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('pasting a destination over part of an automatic link does not nest links', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const base = 'https://example.com/';
+    const path = 'path';
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const link = $createAutoLinkNode(`${base}${path}`, {
+        rel: 'noopener noreferrer',
+        target: '_blank',
+      });
+      const text = $createTextNode(`${base}${path}`);
+      link.append(text);
+      note.clear();
+      note.append(link);
+      text.select(base.length, base.length + path.length);
+    });
+
+    await pastePlainText(remdo, 'https://example.org/');
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const links = note.getChildren().filter($isLinkNode);
+      expect(links.map(link => [link.getTextContent(), link.getURL()])).toEqual([
+        [base, base],
+        [path, 'https://example.org/'],
+      ]);
+      expect(links.every(link => link.getChildren().every(child => !$isLinkNode(child)))).toBe(true);
+    });
+  });
+
   it('replaces selected note-link text with a generic link that preserves its label', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pastePlainText(remdo, `/n/${remdo.getCollabDocId()}_note2`);
@@ -365,13 +394,44 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     try {
       const anchor = remdo.editor.getRootElement()!.querySelector('a')!;
       await act(async () => {
-        anchor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+        anchor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
       });
 
       expect(openSpy).not.toHaveBeenCalled();
       expect(document.querySelector('[data-link-controls]')).not.toBeNull();
     } finally {
       openSpy.mockRestore();
+    }
+  });
+
+  it('leaves Shift+mousedown to the browser when point-to-caret APIs are unavailable', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await pastePlainText(remdo, 'https://example.com/');
+
+    const positionDescriptor = Object.getOwnPropertyDescriptor(document, 'caretPositionFromPoint');
+    const rangeDescriptor = Object.getOwnPropertyDescriptor(document, 'caretRangeFromPoint');
+    Object.defineProperty(document, 'caretPositionFromPoint', { configurable: true, value: undefined });
+    Object.defineProperty(document, 'caretRangeFromPoint', { configurable: true, value: undefined });
+    try {
+      const anchor = remdo.editor.getRootElement()!.querySelector('a')!;
+      const event = new MouseEvent('mousedown', {
+        bubbles: true,
+        button: 0,
+        cancelable: true,
+        detail: 1,
+        shiftKey: true,
+      });
+      await act(async () => {
+        anchor.dispatchEvent(event);
+      });
+
+      expect(event.defaultPrevented).toBe(false);
+      expect(document.querySelector('[data-link-controls]')).toBeNull();
+    } finally {
+      if (positionDescriptor) Object.defineProperty(document, 'caretPositionFromPoint', positionDescriptor);
+      else Reflect.deleteProperty(document, 'caretPositionFromPoint');
+      if (rangeDescriptor) Object.defineProperty(document, 'caretRangeFromPoint', rangeDescriptor);
+      else Reflect.deleteProperty(document, 'caretRangeFromPoint');
     }
   });
 
@@ -404,7 +464,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
     const openSpy = vi.spyOn(globalThis, 'open').mockImplementation(() => null);
     try {
-      await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!));
+      await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!, { detail: 1 }));
       const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
       const open = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Open')!;
       await act(async () => fireEvent.click(open));
@@ -428,7 +488,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     Object.defineProperty(document, 'execCommand', { configurable: true, value: execCommand });
     try {
       await act(async () => {
-        fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!);
+        fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!, { detail: 1 });
       });
       const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
       const copy = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Copy destination')!;
@@ -457,7 +517,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     Object.defineProperty(document, 'execCommand', { configurable: true, value: execCommand });
     try {
       await act(async () => {
-        fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!);
+        fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!, { detail: 1 });
       });
       const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
       const copy = [...controls.querySelectorAll('button')]
@@ -495,7 +555,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       }),
     });
     try {
-      await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!));
+      await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!, { detail: 1 }));
       const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
       const copy = [...controls.querySelectorAll('button')]
         .find((button) => button.textContent === 'Copy destination')!;
@@ -513,7 +573,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
   it('does not open a stale destination from link controls', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await pastePlainText(remdo, 'https://example.com/');
-    await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!));
+    await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!, { detail: 1 }));
     const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
     const open = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Open')!;
     const openSpy = vi.spyOn(globalThis, 'open').mockImplementation(() => null);
@@ -550,14 +610,14 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     try {
       const anchors = remdo.editor.getRootElement()!.querySelectorAll('a');
-      await act(async () => fireEvent.click(anchors[0]!));
+      await act(async () => fireEvent.click(anchors[0]!, { detail: 1 }));
       const firstControls = document.querySelector<HTMLElement>('[data-link-controls]')!;
       const copy = [...firstControls.querySelectorAll('button')]
         .find((button) => button.textContent === 'Copy destination')!;
       await act(async () => fireEvent.click(copy));
 
       await act(async () => fireEvent.keyDown(firstControls, { key: 'Escape' }));
-      await act(async () => fireEvent.click(anchors[1]!));
+      await act(async () => fireEvent.click(anchors[1]!, { detail: 1 }));
       const secondControls = document.querySelector<HTMLElement>('[data-link-controls]')!;
       expect(secondControls).not.toBe(firstControls);
 
@@ -599,7 +659,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       const link = replacementRoot.querySelector('a');
       expect(link).not.toBeNull();
       await act(async () => {
-        fireEvent.click(link!);
+        fireEvent.click(link!, { detail: 1 });
       });
       expect(document.querySelector('[data-link-controls]')).not.toBeNull();
     } finally {
@@ -713,6 +773,32 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       const link = note.getChildren().find($isLinkNode)!;
       expect(link.getTextContent()).toBe('example.com');
       expect(link.getURL()).toBe('https://example.com/');
+    });
+  });
+
+  it('places the caret at the start of following text after a mid-text link creation', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', 2);
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const destination = controls.querySelectorAll<HTMLInputElement>('input')[1]!;
+    await act(async () => {
+      fireEvent.change(destination, { target: { value: 'example.com' } });
+      fireEvent.click(controls.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isLinkNode)!;
+      const following = link.getNextSibling();
+      const selection = $getSelection();
+      expect($isTextNode(following) && following.getTextContent()).toBe('te1');
+      expect($isRangeSelection(selection) && selection.isCollapsed()).toBe(true);
+      if ($isRangeSelection(selection) && $isTextNode(following)) {
+        expect(selection.anchor.getNode().is(following)).toBe(true);
+        expect(selection.anchor.offset).toBe(0);
+      }
     });
   });
 
@@ -895,7 +981,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
     const anchor = remdo.editor.getRootElement()!.querySelector('a')!;
     await act(async () => {
-      fireEvent.click(anchor);
+      fireEvent.click(anchor, { detail: 1 });
     });
     let controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
     const edit = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Edit')!;
@@ -941,7 +1027,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
     await remdo.waitForSynced();
 
-    await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!));
+    await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!, { detail: 1 }));
     let controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
     const edit = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Edit')!;
     await act(async () => fireEvent.click(edit));
@@ -965,7 +1051,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     const url = 'https://example.com/';
     await selectEntireNote(remdo, 'note1');
     await pastePlainText(remdo, url);
-    await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!));
+    await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!, { detail: 1 }));
     let controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
     const edit = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Edit')!;
     await act(async () => fireEvent.click(edit));
@@ -1357,6 +1443,26 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
       expect(note.getTextContent()).toBe(`x${url} `);
+      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
+    });
+  });
+
+  it('does not create an automatic link across a formatted text-node boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const first = 'https://example.';
+    const second = 'com/path';
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const formatted = $createTextNode(first).toggleFormat('bold');
+      const remainder = $createTextNode(second);
+      note.clear();
+      note.append(formatted, remainder, $createTextNode(' '));
+      formatted.markDirty();
+      remainder.markDirty();
+    });
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe(`${first}${second} `);
       expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
   });

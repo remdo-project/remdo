@@ -658,6 +658,29 @@ test.describe('generic links', () => {
     await context.pages().at(-1)!.close();
   });
 
+  test('Enter on a focused generic link activates it instead of opening controls', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('ControlOrMeta+K');
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    const destination = new URL('/admin', page.url()).toString();
+    await controls.getByRole('textbox', { name: 'Destination' }).fill(destination);
+    await controls.getByRole('textbox', { name: 'Destination' }).press('Enter');
+
+    const link = editorLocator(page).locator('a[target="_blank"]');
+    const context = page.context();
+    const initialPages = context.pages().length;
+    await expect(link).toHaveAttribute('tabindex', '0');
+    await page.waitForTimeout(100);
+    await link.focus();
+    await expect(link).toBeFocused();
+    await page.keyboard.press('Enter');
+
+    await expect.poll(() => context.pages().length).toBe(initialPages + 1);
+    await expect(controls).toHaveCount(0);
+    await context.pages().at(-1)!.close();
+  });
+
   test('an in-editor click dismisses controls without restoring over the click', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);

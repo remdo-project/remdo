@@ -11,6 +11,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { $findMatchingParent, mergeRegister } from '@lexical/utils';
 import {
   $createRangeSelection,
+  $copyNode,
   $createTextNode,
   $getNearestNodeFromDOMNode,
   $getNodeByKey,
@@ -289,7 +290,7 @@ function $insertGenericLink(selection: RangeSelection, label: string, destinatio
     if (!(link instanceof LinkNode)) {
       throw new TypeError('Expected generic link creation to wrap the selected text.');
     }
-    link.selectNext();
+    link.selectNext(0, 0);
     return link;
   }
 
@@ -297,8 +298,52 @@ function $insertGenericLink(selection: RangeSelection, label: string, destinatio
   link.append($createTextNode(label));
   $setSelection(selection);
   selection.insertNodes([link]);
-  link.selectNext();
+  link.selectNext(0, 0);
   return link;
+}
+
+function $unwrapSelectedAutoLinks(selection: RangeSelection) {
+  const extracted = selection.extract();
+  const autoLinks = new Set<AutoLinkNode>();
+  for (const node of extracted) {
+    const link = $findMatchingParent(node, (parent): parent is AutoLinkNode => parent instanceof AutoLinkNode);
+    if (link) {
+      autoLinks.add(link);
+    }
+  }
+
+  for (const link of autoLinks) {
+    const children = link.getChildren();
+    const selectedChildren = children.filter((child) => (
+      extracted.some(node => child.is(node) || ($isElementNode(child) && child.isParentOf(node)))
+    ));
+    if (selectedChildren.length === 0) {
+      continue;
+    }
+    const firstIndex = children.indexOf(selectedChildren[0]!);
+    const lastIndex = children.indexOf(selectedChildren.at(-1)!);
+    if (firstIndex === 0 && lastIndex === children.length - 1) {
+      for (const child of selectedChildren) {
+        link.insertBefore(child);
+      }
+      link.remove();
+      continue;
+    }
+    if (firstIndex === 0) {
+      for (const child of selectedChildren) {
+        link.insertBefore(child);
+      }
+      continue;
+    }
+    for (let index = selectedChildren.length - 1; index >= 0; index -= 1) {
+      link.insertAfter(selectedChildren[index]!);
+    }
+    if (lastIndex < children.length - 1) {
+      const trailingLink = $copyNode(link);
+      selectedChildren.at(-1)!.insertAfter(trailingLink);
+      trailingLink.append(...children.slice(lastIndex + 1));
+    }
+  }
 }
 
 function $replaceSelectionWithGenericLink(
@@ -307,6 +352,7 @@ function $replaceSelectionWithGenericLink(
   destination: GenericDestination,
 ) {
   $setSelection(selection);
+  $unwrapSelectedAutoLinks(selection);
   $toggleLink(null);
   const unlinkedSelection = $getSelection();
   if (!$isRangeSelection(unlinkedSelection)) {
@@ -315,7 +361,7 @@ function $replaceSelectionWithGenericLink(
   const link = $createLinkNode(destination.url, getDestinationAttributes(destination));
   link.append($createTextNode(label));
   unlinkedSelection.insertNodes([link]);
-  link.selectNext();
+  link.selectNext(0, 0);
 }
 
 function $insertNoteLink(
@@ -328,7 +374,7 @@ function $insertNoteLink(
   link.append($createTextNode(label));
   $setSelection(selection);
   selection.insertNodes([link]);
-  link.selectNext();
+  link.selectNext(0, 0);
 }
 
 function $replaceWithLabeledLink(node: LinkNode, label: string, destination: GenericDestination): LinkNode {
@@ -459,7 +505,7 @@ function clampPopupPosition(anchor: PickerAnchor, popup: HTMLElement, container:
   };
 }
 
-function extendSelectionToLinkPointer(anchor: HTMLAnchorElement, event: MouseEvent) {
+function extendSelectionToLinkPointer(anchor: HTMLAnchorElement, event: MouseEvent): boolean {
   const selection = globalThis.getSelection();
   const caretPositionFromPoint = Reflect.get(document, 'caretPositionFromPoint') as
     | ((x: number, y: number) => CaretPosition | null)
@@ -473,10 +519,11 @@ function extendSelectionToLinkPointer(anchor: HTMLAnchorElement, event: MouseEve
   const node = position?.offsetNode ?? range?.startContainer;
   const offset = position?.offset ?? range?.startOffset;
   if (!selection || selection.rangeCount === 0 || !node || offset === undefined || !anchor.contains(node)) {
-    return;
+    return false;
   }
   selection.extend(node, offset);
   document.dispatchEvent(new Event('selectionchange'));
+  return true;
 }
 
 function addLinkPointerListeners(root: HTMLElement, listener: (event: MouseEvent) => void, signal: AbortSignal) {
@@ -688,9 +735,34 @@ export function LinkControlsPlugin() {
         return;
       }
 
+      if (
+        event.type === 'click'
+        && event.button === 0
+        && event.detail === 0
+        && !event.shiftKey
+        && !event.metaKey
+        && !event.ctrlKey
+      ) {
+        const url = editor.getEditorState().read(() => {
+          const link = $getNodeByKey(linkKey);
+          return link instanceof LinkNode ? link.getURL() : null;
+        }, { editor });
+        if (url) {
+          closeControls(false);
+          activateDestination(url);
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
       if (event.shiftKey && event.button === 0) {
         if (event.type === 'mousedown') {
-          extendSelectionToLinkPointer(anchorElement, event);
+          primaryLinkPointerDown = null;
+          primaryLinkPointerDragged = false;
+          if (!extendSelectionToLinkPointer(anchorElement, event)) {
+            return;
+          }
         }
         event.preventDefault();
         event.stopPropagation();
@@ -764,6 +836,38 @@ export function LinkControlsPlugin() {
       event.stopPropagation();
     };
 
+    const handleLinkKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key !== 'Enter'
+        || event.repeat
+        || event.altKey
+        || event.shiftKey
+        || event.metaKey
+        || event.ctrlKey
+      ) {
+        return;
+      }
+      const target = event.target;
+      const anchorElement = target instanceof Element
+        ? target.closest<HTMLAnchorElement>('a')
+        : null;
+      if (!anchorElement || !editor.getRootElement()?.contains(anchorElement)) {
+        return;
+      }
+      const url = editor.getEditorState().read(() => {
+        const node = $getNearestNodeFromDOMNode(anchorElement);
+        const link = node ? $findLinkAncestor(node) : null;
+        return link && !$isNoteLinkNode(link) ? link.getURL() : null;
+      }, { editor });
+      if (!url) {
+        return;
+      }
+      closeControls(false);
+      activateDestination(url);
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
     const handleOutsidePointer = (event: MouseEvent) => {
       if (!controlsRef.current) {
         return;
@@ -785,6 +889,10 @@ export function LinkControlsPlugin() {
       rootListeners = nextRoot ? new AbortController() : null;
       if (nextRoot && rootListeners) {
         addLinkPointerListeners(nextRoot, handleLinkPointer, rootListeners.signal);
+        nextRoot.addEventListener('keydown', handleLinkKeyDown, {
+          capture: true,
+          signal: rootListeners.signal,
+        });
       }
       setPortalRoot(nextRoot ? nextRoot.closest<HTMLElement>('.editor-container') : null);
     };

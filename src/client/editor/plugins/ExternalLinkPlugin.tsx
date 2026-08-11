@@ -235,6 +235,7 @@ function syncExternalLinkPresentation(root: HTMLElement | null) {
     return;
   }
   for (const anchor of root.querySelectorAll<HTMLAnchorElement>('a.text-link:not([data-note-link])')) {
+    anchor.tabIndex = 0;
     if (anchor.target === '_blank') {
       anchor.setAttribute('aria-label', `${anchor.textContent} (opens in new tab)`);
     } else {
@@ -257,6 +258,7 @@ export function ExternalLinkPlugin() {
     let automaticUndoReadyTimer: ReturnType<typeof setTimeout> | null = null;
     let automaticStartBlockedByInlineNode = false;
     let automaticStartPrefix = '';
+    const automaticMatchTextSegments = new Map<string, Array<{ end: number; start: number }>>();
     let deferredTextNodeKey: null | string = null;
     let deferredMatchOffset: number | null = null;
     let preservedInvalidAutomaticLink: {
@@ -348,6 +350,20 @@ export function ExternalLinkPlugin() {
       }
       deferredMatchOffset = $getDeferredMatchOffset(latest);
       const previous = latest.getPreviousSibling();
+      let matchText = latest.getTextContent();
+      const matchSegments = [{ end: matchText.length, start: 0 }];
+      let matchSibling = latest.getNextSibling();
+      while ($isTextNode(matchSibling) && matchSibling.isSimpleText()) {
+        const siblingText = matchSibling.getTextContent();
+        const start = matchText.length;
+        matchText += siblingText;
+        matchSegments.push({ end: matchText.length, start });
+        if (/\s/.test(siblingText)) {
+          break;
+        }
+        matchSibling = matchSibling.getNextSibling();
+      }
+      automaticMatchTextSegments.set(matchText, matchSegments);
       automaticStartBlockedByInlineNode = previous !== null
         && !$isTextNode(previous)
         && !$isLineBreakNode(previous);
@@ -426,6 +442,14 @@ export function ExternalLinkPlugin() {
             || deferredMatchOffset === null
             || match.index + match.length <= deferredMatchOffset
           )) {
+            return null;
+          }
+          const segments = automaticMatchTextSegments.get(text)
+            ?? [{ end: text.length, start: 0 }];
+          if (!segments.some(segment => (
+            match.index >= segment.start
+            && match.index + match.length <= segment.end
+          ))) {
             return null;
           }
           if (match.index === 0 && automaticStartBlockedByInlineNode) {
@@ -570,6 +594,7 @@ export function ExternalLinkPlugin() {
         COMMAND_PRIORITY_CRITICAL,
       ),
       editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, tags }) => {
+        automaticMatchTextSegments.clear();
         if (
           automaticUndoCandidate
           && automaticUndoReady
