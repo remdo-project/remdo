@@ -306,9 +306,15 @@ function $replaceSelectionWithGenericLink(
   label: string,
   destination: GenericDestination,
 ) {
+  $setSelection(selection);
+  $toggleLink(null);
+  const unlinkedSelection = $getSelection();
+  if (!$isRangeSelection(unlinkedSelection)) {
+    return;
+  }
   const link = $createLinkNode(destination.url, getDestinationAttributes(destination));
   link.append($createTextNode(label));
-  selection.insertNodes([link]);
+  unlinkedSelection.insertNodes([link]);
   link.selectNext();
 }
 
@@ -855,12 +861,6 @@ export function LinkControlsPlugin() {
           }
           const target = $captureAuthoringTarget();
           if (target?.kind === 'caret') {
-            return false;
-          }
-          if (!target && selected.getNodes().some((node) => {
-            const link = node instanceof LinkNode ? node : $findMatchingParent(node, $isLinkNode);
-            return $isNoteLinkNode(link);
-          })) {
             return false;
           }
           const pastedText = event.clipboardData.getData('text/plain');

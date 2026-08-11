@@ -300,7 +300,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it('does not nest a generic link inside a selected note-link label', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('replaces selected note-link text with a generic link that preserves its label', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pastePlainText(remdo, `/n/${remdo.getCollabDocId()}_note2`);
     await remdo.mutate(() => {
@@ -311,9 +311,11 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await pastePlainText(remdo, 'https://example.com/');
 
     remdo.validate(() => {
-      const noteLink = $findNoteById('note1')!.getChildren().find($isNoteLinkNode)!;
-      expect(noteLink.getChildren().some($isLinkNode)).toBe(false);
-      expect($findNoteById('note1')!.getChildren().filter($isLinkNode)).toEqual([noteLink]);
+      const links = $findNoteById('note1')!.getChildren().filter($isLinkNode);
+      expect(links.map(link => [link.getTextContent(), link.getURL(), $isNoteLinkNode(link)])).toEqual([
+        ['no', 'https://example.com/', false],
+        ['te2', `/n/${remdo.getCollabDocId()}_note2`, true],
+      ]);
     });
   });
 

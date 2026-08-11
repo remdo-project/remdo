@@ -444,6 +444,19 @@ test.describe('generic links', () => {
     ]);
   });
 
+  test('recognizes a typed URL after a body line break', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', 0);
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('first line');
+    await page.keyboard.press('Enter');
+    const url = 'https://example.com/path';
+
+    await page.keyboard.type(`${url} `);
+
+    await expect(editorLocator(page).locator('a[target="_blank"]')).toHaveText(url);
+  });
+
   test('keeps an escaped quote inside a typed URL candidate', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', 0);

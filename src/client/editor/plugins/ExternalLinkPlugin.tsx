@@ -6,6 +6,7 @@ import {
   $getSelection,
   $hasUpdateTag,
   $isElementNode,
+  $isLineBreakNode,
   $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
@@ -49,6 +50,9 @@ function unwrapLinkNode(node: LinkNode | AutoLinkNode) {
 function $hasValidAutomaticLinkStart(node: AutoLinkNode): boolean {
   const previousNode = node.getPreviousSibling();
   if (previousNode === null) {
+    return true;
+  }
+  if ($isLineBreakNode(previousNode)) {
     return true;
   }
   if (!$isTextNode(previousNode)) {
@@ -344,7 +348,9 @@ export function ExternalLinkPlugin() {
       }
       deferredMatchOffset = $getDeferredMatchOffset(latest);
       const previous = latest.getPreviousSibling();
-      automaticStartBlockedByInlineNode = previous !== null && !$isTextNode(previous);
+      automaticStartBlockedByInlineNode = previous !== null
+        && !$isTextNode(previous)
+        && !$isLineBreakNode(previous);
       automaticStartPrefix = $isTextNode(previous) ? previous.getTextContent().at(-1) ?? '' : '';
       const next = latest.getNextSibling();
       if (next instanceof AutoLinkNode && !next.getIsUnlinked() && !$hasValidAutomaticLinkStart(next)) {
