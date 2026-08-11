@@ -23,8 +23,9 @@ cleanly. Stop under the specification's [dependency rule](../../../docs/specs/ag
 only if the registry entry, installed skill, or required template cannot be
 resolved.
 
-Before creating files, resolve the canonical origin while keeping the wrapper's
-temporary storage outside the repository:
+Before creating repository files, resolve the canonical origin. Override
+`TMPDIR` only for this command so its runtime scratch stays outside the
+repository:
 
 ```sh
 TMPDIR=/tmp tools/env.sh pnpm exec tsx tools/dev/print-app-public-url.ts
@@ -36,9 +37,8 @@ Follow the official skill and template, applying the RemDo
 [explorer boundary](../../../docs/specs/agents/skills/playground.md#explorer).
 Inspect relevant RemDo UI source only when the requested subject requires it.
 Create `public/playground/` if needed, then generate the complete HTML at a
-new, unused run-owned temporary path under `public/playground/` other than
-`index.html`. Do not run the official skill's `open` step; the publication
-contract owns delivery.
+new, unused hidden temporary path under `public/playground/`. Do not run the
+official skill's `open` step; the publication contract owns delivery.
 
 ## Publish
 

@@ -44,7 +44,7 @@ concerns: # if any
 artifact: # if created
   path: public/playground/index.html
   url: <canonical latest URL>
-reason: <condition that prevented publication> # if stopped
+reason: <condition that stopped the run> # if stopped
 ```
 
 `created` requires the stable artifact to be complete. `stopped` reports why
