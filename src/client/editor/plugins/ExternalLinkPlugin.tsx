@@ -1,4 +1,4 @@
-import { AutoLinkNode, LinkNode, registerAutoLink } from '@lexical/link';
+import { $createAutoLinkNode, AutoLinkNode, LinkNode, registerAutoLink } from '@lexical/link';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $getNodeByKey,
@@ -37,6 +37,27 @@ function unwrapLinkNode(node: LinkNode | AutoLinkNode) {
   parent.splice(node.getIndexWithinParent(), 1, node.getChildren());
 }
 
+function $suppressRecognizableLinkText(node: LinkNode | AutoLinkNode) {
+  const text = node.getTextContent();
+  const destination = recognizeCompleteAutomaticLink(text);
+  if (!destination) {
+    unwrapLinkNode(node);
+    return;
+  }
+  const target = destination.kind === 'web' ? WEB_LINK_ATTRIBUTES.target : null;
+  const rel = destination.kind === 'web' ? WEB_LINK_ATTRIBUTES.rel : null;
+  if (node instanceof AutoLinkNode) {
+    node.setURL(destination.url).setTarget(target).setRel(rel);
+    $setAutomaticLinkUnlinkedText(node, text);
+    node.setIsUnlinked(true);
+    return;
+  }
+  const replacement = $createAutoLinkNode(destination.url, { isUnlinked: true, rel, target });
+  replacement.append(...node.getChildren());
+  $setAutomaticLinkUnlinkedText(replacement, text);
+  node.replace(replacement);
+}
+
 function $syncAutomaticLinkSuppression(node: AutoLinkNode): boolean {
   const baseline = $getAutomaticLinkUnlinkedText(node);
   if (!node.getIsUnlinked()) {
@@ -72,7 +93,7 @@ function $normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
   }
   const destination = normalizeGenericDestination(node.getURL());
   if (!destination) {
-    unwrapLinkNode(node);
+    $suppressRecognizableLinkText(node);
     return;
   }
   const target = destination.kind === 'web' ? WEB_LINK_ATTRIBUTES.target : null;
@@ -202,11 +223,6 @@ export function ExternalLinkPlugin() {
         text: node.getTextContent(),
         url: node.getURL(),
       };
-      const following = node.getNextSibling();
-      if ($isTextNode(following)) {
-        const offset = following.getTextContentSize();
-        following.select(offset, offset);
-      }
     };
     const queuePresentationSync = () => {
       if (presentationQueued) {
@@ -321,17 +337,8 @@ export function ExternalLinkPlugin() {
             automaticUndoCandidate = null;
             return false;
           }
-          const following = node.getNextSibling();
           $setAutomaticLinkUnlinkedText(node, node.getTextContent());
           node.setIsUnlinked(true);
-          if ($isTextNode(following)) {
-            following.select(0, 0);
-          } else {
-            const text = node.getFirstChild();
-            if ($isTextNode(text)) {
-              text.select(text.getTextContentSize(), text.getTextContentSize());
-            }
-          }
           automaticUndoCandidate = null;
           return true;
         },

@@ -530,7 +530,7 @@ export function LinkControlsPlugin() {
       if (target instanceof Element && target.closest(LINK_CONTROL_SELECTOR)) {
         return;
       }
-      closeControls(false);
+      closeControls(true);
     };
 
     root?.addEventListener('click', handleLinkPointer, true);
@@ -558,7 +558,7 @@ export function LinkControlsPlugin() {
           }
           const valid = editor.getEditorState().read(() => $resolveTargetSelection(latest.target) !== null, { editor });
           if (!valid) {
-            closeControls(false);
+            closeControls(true);
           }
         });
       }),
@@ -610,7 +610,15 @@ export function LinkControlsPlugin() {
           if (!target || target.kind !== 'range' || target.text.trim().length === 0) {
             return false;
           }
-          const destination = normalizeGenericDestination(event.clipboardData.getData('text/plain'));
+          const pastedText = event.clipboardData.getData('text/plain');
+          const noteRef = parseOwnedNoteLinkUrl(pastedText.trim(), {
+            currentDocId: docId,
+            currentOrigin: globalThis.location.origin,
+          });
+          if (noteRef) {
+            return false;
+          }
+          const destination = normalizeGenericDestination(pastedText);
           if (!destination) {
             return false;
           }
@@ -634,7 +642,7 @@ export function LinkControlsPlugin() {
         setControlsState(null);
       },
     );
-  }, [closeControls, editor, openControls, setControlsState]);
+  }, [closeControls, docId, editor, openControls, setControlsState]);
 
   if (!controls || !portalRoot) {
     return null;

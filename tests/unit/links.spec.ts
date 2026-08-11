@@ -403,6 +403,20 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('restores editor focus when an outside pointer closes link controls', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    expect(document.querySelector('[data-link-controls]')).not.toBeNull();
+
+    await act(async () => {
+      fireEvent.pointerDown(document.body);
+    });
+    await waitFor(() => {
+      expect(document.querySelector('[data-link-controls]')).toBeNull();
+      expect(document.activeElement).toBe(remdo.editor.getRootElement());
+    });
+  });
+
   it('closes controls when their selected-text target changes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
@@ -417,6 +431,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
     await waitFor(() => {
       expect(document.querySelector('[data-link-controls]')).toBeNull();
+      expect(document.activeElement).toBe(remdo.editor.getRootElement());
     });
   });
 
@@ -763,6 +778,24 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       expect(note.getTextContent()).toBe('Example');
       expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
+  });
+
+  it('keeps a recognizable label inactive when its imported destination is invalid', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const label = 'https://example.com/';
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      note.clear();
+      const linkNode = $createLinkNode('javascript:alert(1)');
+      linkNode.append($createTextNode(label));
+      note.append(linkNode);
+    });
+
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
+      expect(link.getTextContent()).toBe(label);
+      expect(link.getIsUnlinked()).toBe(true);
+    });
+    expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
   });
 
   it('unwraps imported-style AutoLinkNodes with unsupported protocols', meta({ fixture: 'flat' }), async ({ remdo }) => {

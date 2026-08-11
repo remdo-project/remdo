@@ -16,6 +16,7 @@ const SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
 const HTML_EMAIL_LOCAL_PATTERN = /^[\w.!#$%&'*+/=?^`{|}~-]+$/;
 const HOST_LABEL_PATTERN = /^[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?$/i;
 const IPV4_PATTERN = /^\d{1,3}(?:\.\d{1,3}){3}$/;
+const HOST_WITH_PORT_PATTERN = /^[^/?#]+:\d+(?:[/?#]|$)/;
 const AUTOMATIC_START_PATTERN = /[\s([{<"'“‘]/;
 const AUTOMATIC_END_PATTERN = /[\s<>"“”‘’]/;
 const AUTOMATIC_EMAIL_PATTERN = /[\w.!#$%&*+/=?^`{|}~-][\w.!#$%&'*+/=?^`{|}~-]*@[^\s<>"“”‘’]+/gu;
@@ -88,19 +89,20 @@ function normalizeWebDestination(input: string, allowSchemeLess: boolean): Gener
   }
 
   const hasScheme = SCHEME_PATTERN.test(input);
-  if (hasScheme && !/^https?:/i.test(input)) {
+  const hasHttpScheme = /^https?:/i.test(input);
+  if (hasScheme && !hasHttpScheme && !(allowSchemeLess && HOST_WITH_PORT_PATTERN.test(input))) {
     return null;
   }
-  if (!hasScheme && !allowSchemeLess) {
+  if (!hasHttpScheme && !allowSchemeLess) {
     return null;
   }
 
   try {
-    const parsed = new URL(hasScheme ? input : `https://${input}`);
+    const parsed = new URL(hasHttpScheme ? input : `https://${input}`);
     if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) {
       return null;
     }
-    if (!hasScheme && !isPublicSchemeLessHostname(parsed.hostname)) {
+    if (!hasHttpScheme && !isPublicSchemeLessHostname(parsed.hostname)) {
       return null;
     }
     return { kind: 'web', url: parsed.toString() };

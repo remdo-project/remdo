@@ -11,6 +11,7 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     ['http://localhost:3000/path', { kind: 'web', url: 'http://localhost:3000/path' }],
     ['example.com/path', { kind: 'web', url: 'https://example.com/path' }],
     ['www.example.com', { kind: 'web', url: 'https://www.example.com/' }],
+    ['www.example.com:8443/path', { kind: 'web', url: 'https://www.example.com:8443/path' }],
     ['user@example.com', { kind: 'email', url: 'mailto:user@example.com' }],
     ['a?b@example.com', { kind: 'email', url: 'mailto:a%3Fb@example.com' }],
     ['user@bücher.de', { kind: 'email', url: 'mailto:user@xn--bcher-kva.de' }],
@@ -36,6 +37,7 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
   it.each([
     ['https://example.com', 'https://example.com/'],
     ['www.example.com', 'https://www.example.com/'],
+    ['www.example.com:8443/path', 'https://www.example.com:8443/path'],
     ['user@example.com', 'mailto:user@example.com'],
     ["o'reilly@example.com", "mailto:o'reilly@example.com"],
     ['a?b@example.com', 'mailto:a%3Fb@example.com'],

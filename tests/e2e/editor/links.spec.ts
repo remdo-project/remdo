@@ -1,6 +1,6 @@
 import { expect, test } from '#editor/fixtures';
 import { ensureReady, waitForSynced } from '#editor/bridge';
-import { editorLocator, selectInlineRange, setCaretAtText } from '#editor/locators';
+import { editorLocator, setCaretAtText } from '#editor/locators';
 import { createUserDocument } from '../_support/documents';
 import { createEditorDocumentPath } from './_support/routes';
 
@@ -377,7 +377,7 @@ test.describe('generic links', () => {
 
   test('waits for a typed URL boundary and Undo keeps the authored text', async ({ page, editor }) => {
     await editor.load('flat');
-    await selectInlineRange(page, 'note1', 0, 'note1'.length);
+    await setCaretAtText(page, 'note1', 0);
     const url = 'https://example.com/path';
     await page.keyboard.type(url);
 
@@ -385,11 +385,17 @@ test.describe('generic links', () => {
     await expect(links).toHaveCount(0);
     await page.keyboard.type(' ');
     await expect(links).toHaveText(url);
+    const readCaret = () => page.evaluate(() => {
+      const selection = globalThis.getSelection();
+      return { offset: selection?.focusOffset, text: selection?.focusNode?.textContent };
+    });
+    expect(await readCaret()).toEqual({ offset: 1, text: ' note1' });
 
     await page.keyboard.press('ControlOrMeta+Z');
     await expect(links).toHaveCount(0);
+    expect(await readCaret()).toEqual({ offset: 1, text: ' note1' });
     await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: `${url} ` },
+      { noteId: 'note1', text: `${url} note1` },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
