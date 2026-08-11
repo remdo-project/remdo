@@ -84,6 +84,16 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     expect(automaticGenericLinkMatcher(input)).toBeNull();
   });
 
+  it('keeps a nested URL-looking segment in a valid absolute URL path', () => {
+    const input = 'https://example.com/path,https://other.com';
+    expect(automaticGenericLinkMatcher(`${input} `)).toMatchObject({
+      index: 0,
+      length: input.length,
+      text: input,
+      url: input,
+    });
+  });
+
   it.each([
     [String.raw`https://example.com/a\"b`, 'https://example.com/a/%22b'],
     [String.raw`https://example.com/a\<b`, 'https://example.com/a/%3Cb'],

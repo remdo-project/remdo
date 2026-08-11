@@ -109,6 +109,10 @@ function $normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
   if (node instanceof AutoLinkNode && !$syncAutomaticLinkSuppression(node)) {
     return;
   }
+  if (node instanceof AutoLinkNode && !node.getIsUnlinked() && !$hasValidAutomaticLinkStart(node)) {
+    unwrapLinkNode(node);
+    return;
+  }
   const destination = normalizeGenericDestination(node.getURL());
   if (!destination) {
     $suppressInvalidLink(node);
@@ -145,7 +149,7 @@ function registerExternalLinkMutationListener(
           const node = $getNodeByKey(key);
           if (node instanceof LinkNode || node instanceof AutoLinkNode) {
             $normalizeExternalLinkNode(node);
-            if (node instanceof AutoLinkNode) {
+            if (node instanceof AutoLinkNode && node.isAttached()) {
               if (mutations.get(key) === 'created' && !node.getIsUnlinked()) {
                 onAutomaticLinkCreated?.(node);
               }
@@ -237,6 +241,7 @@ export function ExternalLinkPlugin() {
     let automaticUndoCandidate: { key: string; text: string; url: string } | null = null;
     let automaticUndoReady = false;
     let automaticUndoReadyTimer: ReturnType<typeof setTimeout> | null = null;
+    let automaticStartPrefix = '';
     let deferredTextNodeKey: null | string = null;
     let deferCurrentTextTransform = false;
     let preservedInvalidAutomaticLink: {
@@ -273,6 +278,8 @@ export function ExternalLinkPlugin() {
     };
     const unregisterTextTransform = editor.registerNodeTransform(TextNode, (node) => {
       deferCurrentTextTransform = node.getKey() === deferredTextNodeKey;
+      const previous = node.getPreviousSibling();
+      automaticStartPrefix = $isTextNode(previous) ? previous.getTextContent().at(-1) ?? '' : '';
       preservedInvalidAutomaticLink = null;
       const parent = node.getParent();
       if (parent instanceof AutoLinkNode) {
@@ -350,13 +357,23 @@ export function ExternalLinkPlugin() {
                 url: preserved.url,
               }
             : automaticGenericLinkMatcher(text);
-          return match && (
+          if (!match || !(
             $selectionIsInsideAutomaticLink()
             || automaticCreationUrls.has(match.url)
             || !deferCurrentTextTransform
-          )
-            ? match
-            : null;
+          )) {
+            return null;
+          }
+          if (match.index === 0 && automaticStartPrefix) {
+            const contextual = automaticGenericLinkMatcher(`${automaticStartPrefix}${text}`);
+            if (
+              contextual?.index !== automaticStartPrefix.length
+              || contextual.length !== match.length
+            ) {
+              return null;
+            }
+          }
+          return match;
         }],
         separatorRegex: LEXICAL_LINK_SEPARATOR,
       }),

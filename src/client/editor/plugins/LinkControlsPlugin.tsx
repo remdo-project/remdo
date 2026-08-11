@@ -271,6 +271,17 @@ function $insertGenericLink(selection: RangeSelection, label: string, destinatio
   return link;
 }
 
+function $replaceSelectionWithGenericLink(
+  selection: RangeSelection,
+  label: string,
+  destination: GenericDestination,
+) {
+  const link = $createLinkNode(destination.url, getDestinationAttributes(destination));
+  link.append($createTextNode(label));
+  selection.insertNodes([link]);
+  link.selectNext();
+}
+
 function $insertNoteLink(
   selection: RangeSelection,
   label: string,
@@ -733,8 +744,16 @@ export function LinkControlsPlugin() {
           if (editor.selection.isStructural()) {
             return false;
           }
+          const selected = $getSelection();
+          if (!$isRangeSelection(selected) || selected.isCollapsed()) {
+            return false;
+          }
+          const selectedText = selected.getTextContent();
+          if (selectedText.trim().length === 0) {
+            return false;
+          }
           const target = $captureAuthoringTarget();
-          if (!target || target.kind === 'caret' || target.text.trim().length === 0) {
+          if (target?.kind === 'caret') {
             return false;
           }
           const pastedText = event.clipboardData.getData('text/plain');
@@ -749,11 +768,13 @@ export function LinkControlsPlugin() {
           if (!destination) {
             return false;
           }
-          const selection = $resolveTargetSelection(target);
+          const selection = target ? $resolveTargetSelection(target) : selected;
           if (!selection || selection.isCollapsed()) {
             return false;
           }
-          if (target.kind === 'range') {
+          if (!target) {
+            $replaceSelectionWithGenericLink(selection, selectedText, destination);
+          } else if (target.kind === 'range') {
             $insertGenericLink(selection, target.text, destination);
           } else {
             const link = $getNodeByKey(target.linkKey);

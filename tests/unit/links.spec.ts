@@ -273,6 +273,28 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('pasting a destination over mixed linked and unlinked text preserves the selected label', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const link = $createLinkNode('https://example.com/');
+      link.append($createTextNode('linked'));
+      note.clear();
+      note.append($createTextNode('before '), link, $createTextNode(' after'));
+      note.select(0, note.getChildrenSize());
+    });
+
+    await pastePlainText(remdo, 'https://example.org/');
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe('before linked after');
+      const links = note.getChildren().filter($isLinkNode);
+      expect(links).toHaveLength(1);
+      expect(links[0]!.getTextContent()).toBe('before linked after');
+      expect(links[0]!.getURL()).toBe('https://example.org/');
+    });
+  });
+
   it('clicking an external link opens link controls without navigating', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/';
@@ -998,6 +1020,24 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
     remdo.validate(() => {
       expect($findNoteById('note1')!.getChildren().find($isLinkNode)).toBeUndefined();
+    });
+  });
+
+  it('does not create an automatic link after a non-opening sibling boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const before = $createTextNode('x');
+      const candidate = $createTextNode(url).toggleFormat('bold');
+      note.clear();
+      note.append(before, candidate, $createTextNode(' '));
+      candidate.markDirty();
+    });
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe(`x${url} `);
+      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
   });
 

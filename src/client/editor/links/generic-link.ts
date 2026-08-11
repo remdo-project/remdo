@@ -257,14 +257,14 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
     const containsEmail = email !== null
       && match.index < email.index
       && email.index < candidateEnd;
-    if (containsAnotherMatch || containsEmail) {
+    const destination = normalizeAutomaticMatch(match, candidate);
+    if (!destination) {
+      continue;
+    }
+    if (containsEmail || (containsAnotherMatch && destination.url !== candidate)) {
       if (containsEmail) {
         email = null;
       }
-      continue;
-    }
-    const destination = normalizeAutomaticMatch(match, candidate);
-    if (!destination) {
       continue;
     }
     const webOrLinkifyEmail = {
