@@ -36,9 +36,9 @@ Follow the official skill and template, applying the RemDo
 [explorer boundary](../../../docs/specs/agents/skills/playground.md#explorer).
 Inspect relevant RemDo UI source only when the requested subject requires it.
 Create `public/playground/` if needed, then generate the complete HTML at a
-new, unused run-owned temporary path under `public/playground/` whose name is
-neither `index.html` nor a match for `index-*.html`. Do not run the official
-skill's `open` step; the publication contract owns delivery.
+new, unused run-owned temporary path under `public/playground/` other than
+`index.html`. Do not run the official skill's `open` step; the publication
+contract owns delivery.
 
 ## Publish
 
