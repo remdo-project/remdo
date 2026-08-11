@@ -545,6 +545,30 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('closes controls when a pinned element boundary moves between children', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const before = $createLinkNode('https://example.com/');
+      const after = $createLinkNode('https://example.org/');
+      before.append($createTextNode('before'));
+      after.append($createTextNode('after'));
+      note.clear();
+      note.append(before, after);
+      note.select(1, 1);
+    });
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    expect(document.querySelector('[data-link-controls]')).not.toBeNull();
+
+    await remdo.mutate(() => {
+      const inserted = $createLinkNode('https://example.net/');
+      inserted.append($createTextNode('inserted'));
+      $findNoteById('note1')!.splice(0, 0, [inserted]);
+    });
+    await waitFor(() => {
+      expect(document.querySelector('[data-link-controls]')).toBeNull();
+    });
+  });
+
   it('edits a generic link label and destination through the same controls', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await pastePlainText(remdo, 'https://example.com/');
@@ -827,6 +851,20 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     ]);
     remdo.validate(() => {
       expect($findNoteById('note2')!.getChildren().find($isAutoLinkNode)?.getIsUnlinked()).toBe(false);
+    });
+  });
+
+  it('does not suppress an automatic link after the selection moves away', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await selectEntireNote(remdo, 'note1');
+    await typeText(remdo, url);
+    await typeText(remdo, ' ');
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+
+    await remdo.dispatchCommand(UNDO_COMMAND);
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode);
+      expect(link?.getIsUnlinked()).not.toBe(true);
     });
   });
 
@@ -1135,6 +1173,39 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       const link = note.getChildren().find($isAutoLinkNode)!;
       expect(link.getTextContent()).toBe(url);
       expect(link.getURL()).toBe(url);
+    });
+  });
+
+  it('clears stale typed deferral before a collapsed-caret URL paste', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await selectEntireNote(remdo, 'note1');
+    await typeText(remdo, 'x');
+    await selectEntireNote(remdo, 'note2');
+    await pressKey(remdo, { key: 'Backspace' });
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pastePlainText(remdo, url);
+
+    remdo.validate(() => {
+      const link = $findNoteById('note2')!.getChildren().find($isAutoLinkNode)!;
+      expect(link.getTextContent()).toBe(url);
+      expect(link.getURL()).toBe(url);
+    });
+  });
+
+  it('defers a batched URL insertion until following boundary input', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await selectEntireNote(remdo, 'note1');
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+    });
+    await remdo.waitForSynced();
+    remdo.validate(() => {
+      expect($findNoteById('note1')!.getChildren().find($isLinkNode)).toBeUndefined();
+    });
+
+    await typeText(remdo, ' ');
+    remdo.validate(() => {
+      expect($findNoteById('note1')!.getChildren().find($isAutoLinkNode)?.getURL()).toBe(url);
     });
   });
 

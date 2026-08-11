@@ -234,7 +234,10 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
     if (!candidate) {
       continue;
     }
-    if (trimAutomaticCandidate(match.raw) !== candidate) {
+    const candidateEnd = match.index + candidate.length;
+    const endedAtAutomaticBoundary = candidateEnd < text.length
+      && AUTOMATIC_END_PATTERN.test(text[candidateEnd]!);
+    if (!endedAtAutomaticBoundary && trimAutomaticCandidate(match.raw) !== candidate) {
       continue;
     }
     const destination = normalizeAutomaticMatch(match, candidate);

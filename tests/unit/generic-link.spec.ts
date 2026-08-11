@@ -103,6 +103,37 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it.each([' ', '(', '[', '{', '<', '"', "'", '“', '‘'])(
+    'recognizes a candidate after the accepted %s opener',
+    (opener) => {
+      const url = 'https://example.com/path';
+      expect(automaticGenericLinkMatcher(`${opener}${url}`)).toMatchObject({
+        index: opener.length,
+        length: url.length,
+        text: url,
+      });
+    },
+  );
+
+  it.each(['x', '-', ',', ')'])(
+    'rejects a candidate after the non-opening %s character',
+    (prefix) => {
+      expect(automaticGenericLinkMatcher(`${prefix}https://example.com/path`)).toBeNull();
+    },
+  );
+
+  it.each([' ', '<', '>', '"', '“', '”', '‘', '’'])(
+    'ends a candidate before the %s delimiter',
+    (delimiter) => {
+      const url = 'https://example.com/path';
+      expect(automaticGenericLinkMatcher(`${url}${delimiter}rest`)).toMatchObject({
+        index: 0,
+        length: url.length,
+        text: url,
+      });
+    },
+  );
+
   it('keeps a balanced trailing closer', () => {
     const input = 'https://example.com/foo_(bar)';
     expect(automaticGenericLinkMatcher(input)).toMatchObject({

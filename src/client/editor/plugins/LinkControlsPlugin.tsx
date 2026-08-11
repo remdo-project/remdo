@@ -48,6 +48,8 @@ import type { PickerAnchor } from '#client/editor/triggers/types';
 import { useCollaborationStatus } from './collaboration';
 
 interface ModelPoint {
+  afterKey?: NodeKey | null;
+  beforeKey?: NodeKey | null;
   key: NodeKey;
   offset: number;
   text?: string;
@@ -91,7 +93,10 @@ const LINK_CONTROL_SELECTOR = '[data-link-controls]';
 
 function snapshotPoint(point: RangeSelection['anchor']): ModelPoint {
   const node = point.getNode();
+  const isElement = $isElementNode(node);
   return {
+    afterKey: isElement ? node.getChildAtIndex(point.offset)?.getKey() ?? null : undefined,
+    beforeKey: isElement ? node.getChildAtIndex(point.offset - 1)?.getKey() ?? null : undefined,
     key: point.key,
     offset: point.offset,
     text: $isTextNode(node) ? node.getTextContent() : undefined,
@@ -116,7 +121,12 @@ function $isPointValid(point: ModelPoint): boolean {
       && point.offset <= node.getTextContentSize()
       && (point.text === undefined || point.text === node.getTextContent());
   }
-  return $isElementNode(node) && point.offset <= node.getChildrenSize();
+  return $isElementNode(node)
+    && point.offset <= node.getChildrenSize()
+    && (point.beforeKey === undefined
+      || point.beforeKey === (node.getChildAtIndex(point.offset - 1)?.getKey() ?? null))
+    && (point.afterKey === undefined
+      || point.afterKey === (node.getChildAtIndex(point.offset)?.getKey() ?? null));
 }
 
 function $resolveSelectionSnapshot(snapshot: SelectionSnapshot): RangeSelection | null {
