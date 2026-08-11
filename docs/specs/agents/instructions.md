@@ -85,20 +85,9 @@ narrower owners can take over.
 
 #### Repository authority
 
-- Agents may inspect and edit within the requested scope. Committing requires
-  explicit user authority or an applicable skill-declared autonomous scope;
-  that authority includes staging only the authorized commit. Other staging or
-  unstaging, stashing, resets, and index rewrites require an explicit user
-  request. A plain change request grants neither commit nor push authority.
-- Staged versus unstaged state does not signal completion, approval, protection,
-  or task scope; agents edit files required by the task regardless of that state.
-- Ordinary `git fetch` is allowed. Pulling, opening a pull request, and fetches
-  with caller-supplied mutating refspecs require explicit user authority.
-  Pushing always requires a separate explicit user request.
-- Uncommitted work may be mid-transformation. A commit is coherent or tracks its
-  precise remaining gap in [RemDo TODO](../../todo.md#tracked-follow-up). When
-  commit authority applies, the agent records that gap without seeking separate
-  approval.
+The shared entry point owns [repository authority](../../../AGENTS.md#repository-authority),
+including default edit authority, skill-declared mutations, and operations that
+require explicit user authority.
 
 #### Isolation
 

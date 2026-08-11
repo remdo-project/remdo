@@ -6,7 +6,6 @@ description: Merge the latest fetched origin/main into the current attached bran
 # RemDo Merge Main
 
 Implement the authoritative [`remdo-merge-main`](../../../docs/specs/agents/skills/remdo-merge-main.md) contract.
-Invocation declares the autonomous scope in [Authority](#authority).
 
 ## Start
 
@@ -70,14 +69,6 @@ Only after all saved paths and their index intent are accounted for, run
 If restoration remains uncertain, leave both the conflict and stash unchanged
 and report `restore-conflicted` for manual recovery. Otherwise report the
 retained integration outcome and, when verification ran, its outcome.
-
-## Authority
-
-Invocation declares an autonomous scope on the current branch for the runner's
-branch update, one merge commit containing determined integration corrections,
-determined conflict resolutions, and explicitly requested preservation and
-restoration. It does not authorize pull, rebase, push, force-push, or other
-remote mutation.
 
 ## Report
 

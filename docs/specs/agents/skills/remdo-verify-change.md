@@ -81,18 +81,17 @@ caller; a `rejected` finding is resolved.
 
 ## Result
 
-`clean` means required local checks passed, finding validation completed, and
-it produced only `rejected` dispositions or no findings. `findings` means
-completed validation produced a `confirmed`, `unresolved`, or `material out of
-scope` disposition.
-`no-change` means scope resolution found no diff, so checks and reviews were not
-run. `stopped` means scope resolution, checks, or finding validation prevented
-completion. An unavailable or failed reviewer sets `degraded: true` and appears
-in `concerns`, but does not stop verification or alone change `clean` to
-`findings`. Every non-rejected finding also appears in `concerns`.
+`clean` means every local check required for the scope passed, finding validation
+completed, and it produced only `rejected` dispositions or no findings.
+`findings` means completed validation produced a `confirmed`, `unresolved`, or
+`material out of scope` disposition. `no-change` means scope resolution found no
+diff, so checks and reviews were not run. An unavailable or failed reviewer sets
+`degraded: true` and appears in `concerns`, but does not stop verification or
+alone change `clean` to `findings`. Every non-rejected finding also appears in
+`concerns`.
 
-A stopped result includes the failed phase's evidence and completed preceding
-phases. Reviews blocked by an earlier phase are omitted, not `unavailable`.
+A stopped result includes the failed phase's evidence. Reviews blocked by an
+earlier phase are omitted, not `unavailable`.
 
 The verifier's result uses this shape:
 

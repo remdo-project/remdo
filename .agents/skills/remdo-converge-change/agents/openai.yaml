@@ -1,6 +1,10 @@
 interface:
   display_name: "RemDo Converge Change"
-  short_description: "Fix and re-verify a RemDo change"
+  short_description: "Simplify, fix, and verify a RemDo change"
   default_prompt: "Use $remdo-converge-change to converge the current RemDo change."
 policy:
   allow_implicit_invocation: false
+  subagents:
+    authorized: true
+    use_cases:
+      - "fresh-context simplification of the selected change scope"

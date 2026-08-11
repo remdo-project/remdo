@@ -9,7 +9,7 @@ Assess one
 [assessment target](../../../docs/specs/agents/assessment-target.md) under the
 authoritative
 [`remdo-simplify`](../../../docs/specs/agents/skills/remdo-simplify.md)
-contract. Remain read-only.
+contract.
 
 ## Resolve the target
 

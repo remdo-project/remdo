@@ -7,4 +7,4 @@ policy:
   subagents:
     authorized: true
     use_cases:
-      - "fresh-context exploration and simplification"
+      - "fresh-context exploration"

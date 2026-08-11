@@ -8,9 +8,11 @@ interrupted run are also outside the capability.
 
 ## Authority
 
-The skill declares the [autonomous scope](../instructions.md#repository-authority) for the branch update, one merge
-commit containing determined integration corrections, and determined conflict
-resolutions. Preserve mode also covers saving and restoring local work.
+[Repository authority](../../../../AGENTS.md#repository-authority): invocation
+authorizes updating the local `origin/main` tracking ref to the fetched target,
+fast-forwarding or preparing and committing one merge of that target, staging
+determined conflict resolutions and integration corrections. Preserve mode also
+authorizes stashing and restoring requested local work.
 
 ## Target
 

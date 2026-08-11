@@ -39,6 +39,11 @@ omitted work when its absence affects the caller's interpretation. A capability
 addressing a human renders the result as its report instead of also returning
 the YAML.
 
+After an operation or participant reports failure, a capability advances only
+through handling defined by its contract. Otherwise it ends, preserves
+completed evidence, and reports the reason. When `stopped` is among its
+outcomes, it is the fallback unless another outcome applies.
+
 ## Concerns
 
 A **concern** is a reported condition that may affect the caller's result or

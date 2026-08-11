@@ -400,6 +400,18 @@ describe('merge-main.sh', () => {
     );
   });
 
+  it('does not fetch tags when remote configuration requests it', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    expect(git(origin, 'tag', 'release', 'main').status).toBe(0);
+    expect(git(work, 'tag', 'local-only').status).toBe(0);
+    expect(git(work, 'config', 'remote.origin.tagOpt', '--tags').status).toBe(0);
+
+    const result = run(work, 'start');
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(git(work, 'tag', '--list').stdout).toBe('local-only\n');
+  });
+
   it('does not reuse stale origin/main after remote main is deleted', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     expect(git(origin, 'update-ref', '-d', 'refs/heads/main').status).toBe(0);
@@ -652,15 +664,15 @@ describe('merge-main.sh', () => {
 
   it('refuses an unrelated target history', () => {
     const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
-    const previousTarget = git(work, 'rev-parse', 'origin/main').stdout;
     const other = makeBareMain({ 'other.md': '# other\n' });
+    const target = git(other, 'rev-parse', 'main').stdout;
     expect(git(work, 'remote', 'set-url', 'origin', other).status).toBe(0);
 
     const result = run(work, 'start');
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('unrelated histories');
-    expect(git(work, 'rev-parse', 'origin/main').stdout).toBe(previousTarget);
+    expect(git(work, 'rev-parse', 'origin/main').stdout).toBe(target);
   });
 
   it('refuses a detached destination', () => {

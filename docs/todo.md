@@ -28,10 +28,13 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 ### Documentation
 
 - **Agent skill complexity review.** Continue reviewing the remaining skills
-  for custom scripts and state machines that encode adaptive work without enough
-  robustness to justify their maintenance. Prefer concise intent plus
-  deterministic checks of stable repository invariants, then align each
-  affected specification, procedure, implementation, and coverage.
+  under the [specification/procedure boundary](documentation.md#documentation-layout).
+  Move accepted behavior owned only by a procedure to the applicable
+  specification, remove restated behavior from procedures, and reconsider custom
+  scripts and state machines that encode adaptive work without enough robustness
+  to justify their maintenance. Prefer concise intent plus deterministic checks
+  of stable repository invariants, then align each affected specification,
+  procedure, implementation, and coverage.
 
 - **Prepare-change lifecycle.** Reconsider its dialogue, specification,
   approval, and execution flow as a whole so it is simple, flexible, and clear.
@@ -41,10 +44,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   Define how accepted contracts, explicit instructions, branch and adopted-work
   decisions, and later evidence establish or reopen decisions, then align the
   specification and skill.
-
-- **Agent repository-authority declarations.** Define compact authority modes
-  in [Agent instructions](specs/agents/instructions.md#repository-authority) and
-  replace repeated per-skill permission prose with linked declarations.
 
 - **Condition ownership beyond capability calls.** Evaluate whether the
   [capability protocol](specs/agents/protocol.md) should generalize to other
