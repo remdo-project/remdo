@@ -174,7 +174,17 @@ function hasAutomaticStartBoundary(text: string, index: number): boolean {
 
 function automaticCandidateFrom(text: string, index: number): string {
   let end = index;
-  while (end < text.length && !AUTOMATIC_END_PATTERN.test(text[end]!)) {
+  while (end < text.length) {
+    const character = text[end]!;
+    if (AUTOMATIC_END_PATTERN.test(character)) {
+      let precedingBackslashes = 0;
+      for (let cursor = end - 1; cursor >= index && text[cursor] === '\\'; cursor -= 1) {
+        precedingBackslashes += 1;
+      }
+      if (precedingBackslashes % 2 === 0) {
+        break;
+      }
+    }
     end += 1;
   }
   return trimAutomaticCandidate(text.slice(index, end));
@@ -241,19 +251,13 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
       continue;
     }
     const candidateEnd = match.index + candidate.length;
-    const endedAtAutomaticBoundary = candidateEnd < text.length
-      && AUTOMATIC_END_PATTERN.test(text[candidateEnd]!);
     const containsAnotherMatch = matches.some(other => (
       other.index > match.index && other.index < candidateEnd
     ));
     const containsEmail = email !== null
       && match.index < email.index
       && email.index < candidateEnd;
-    if (
-      !endedAtAutomaticBoundary
-      && trimAutomaticCandidate(match.raw) !== candidate
-      && containsAnotherMatch
-    ) {
+    if (containsAnotherMatch || containsEmail) {
       if (containsEmail) {
         email = null;
       }
@@ -261,9 +265,6 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
     }
     const destination = normalizeAutomaticMatch(match, candidate);
     if (!destination) {
-      if (containsEmail) {
-        email = null;
-      }
       continue;
     }
     const webOrLinkifyEmail = {
@@ -273,7 +274,7 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
       text: candidate,
       url: destination.url,
     };
-    return !email || webOrLinkifyEmail.index < email.index ? webOrLinkifyEmail : email;
+    return !email || webOrLinkifyEmail.index <= email.index ? webOrLinkifyEmail : email;
   }
 
   return email;

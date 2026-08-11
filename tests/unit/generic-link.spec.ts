@@ -77,6 +77,35 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     expect(automaticGenericLinkMatcher(input)).toBeNull();
   });
 
+  it.each([
+    'http://example.com,https://other.com y',
+    'https://example.com\\evil.com x',
+  ])('rejects the complete unsafe candidate in %s after a following boundary', (input) => {
+    expect(automaticGenericLinkMatcher(input)).toBeNull();
+  });
+
+  it.each([
+    [String.raw`https://example.com/a\"b`, 'https://example.com/a/%22b'],
+    [String.raw`https://example.com/a\<b`, 'https://example.com/a/%3Cb'],
+  ])('keeps an escaped delimiter in %s', (input, expectedUrl) => {
+    expect(automaticGenericLinkMatcher(`${input} `)).toMatchObject({
+      index: 0,
+      length: input.length,
+      text: input,
+      url: expectedUrl,
+    });
+  });
+
+  it('prefers an initial www candidate over an email-shaped path', () => {
+    const input = 'www.github.com/user@example.com';
+    expect(automaticGenericLinkMatcher(`${input} `)).toMatchObject({
+      index: 0,
+      length: input.length,
+      text: input,
+      url: 'https://www.github.com/user@example.com',
+    });
+  });
+
   it('excludes trailing punctuation and an unmatched closer', () => {
     const input = 'https://example.com/path).';
     expect(automaticGenericLinkMatcher(input)).toMatchObject({

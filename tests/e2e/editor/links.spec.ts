@@ -421,6 +421,17 @@ test.describe('generic links', () => {
     ]);
   });
 
+  test('keeps an escaped quote inside a typed URL candidate', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', 0);
+    const url = String.raw`https://example.com/a\"b`;
+    await page.keyboard.type(`${url} `);
+
+    const link = editorLocator(page).locator('a[target="_blank"]');
+    await expect(link).toHaveText(url);
+    await expect(link).toHaveAttribute('href', 'https://example.com/a/%22b');
+  });
+
   test('immediate Undo survives stripped punctuation after an automatic link', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', 0);
