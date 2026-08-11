@@ -22,7 +22,8 @@ The [report](../protocol.md#reports) answers:
 
 The skill assesses the target against its applicable current
 [contract owners](../../../documentation.md#ownership), implementation, tests,
-and Git history.
+and Git history. Follow linked owners before classifying complexity as
+unrequired.
 
 For each area caused by an accepted-behavior decision, report the decision,
 resulting implementation mechanism, contract owner, separate implementation

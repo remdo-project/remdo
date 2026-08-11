@@ -22,8 +22,10 @@ its optional scope unchanged:
 sh .agents/skills/_shared/tools/resolve-scope.sh [scope]
 ```
 
-Use the emitted fields as the resolved change target. Do not introduce another
-scope resolver.
+Map a non-zero exit to `stopped`, using the resolver failure as its reason, and
+`STATE=no-change` to the specification's `no-change` result. Otherwise use the
+emitted fields as the resolved change target. Do not introduce another scope
+resolver.
 
 ## Assess the target
 
