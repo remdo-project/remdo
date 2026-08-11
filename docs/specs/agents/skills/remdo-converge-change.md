@@ -20,8 +20,9 @@ scope` findings or reinterpret dispositions.
 
 For `uncommitted`, corrections remain uncommitted. For a commit range, the
 resolved `BASE` remains fixed and the skill runs focused verification before
-committing corrections. It does not apply commit-range corrections from a
-detached `HEAD`.
+committing corrections. A failed focused check is corrected and repeated or
+stops convergence without a commit. The skill does not apply commit-range
+corrections from a detached `HEAD`.
 
 Before committing or re-verifying, the skill checks the correction batch
 against every applicable authoritative contract.

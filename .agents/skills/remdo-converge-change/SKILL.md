@@ -45,8 +45,10 @@ For every verifier result:
    batch. For durable documentation, check each applicable
    [`Documentation`](../../../docs/documentation.md) clause separately.
 5. Keep uncommitted-scope corrections uncommitted. In commit-range scope, run
-   focused tests and applicable static checks for the correction batch, then
-   make one coherent correction commit.
+   focused tests and applicable static checks for the correction batch. Correct
+   and repeat after a batch-caused failure; if no correction can be determined,
+   stop without committing. After checks pass, make one coherent correction
+   commit.
 6. Run the complete verifier again only when the repository state changed. Use
    the retained scope, and repeat.
 

@@ -265,7 +265,7 @@ continue_run() {
   [ -z "$untracked_paths" ] \
     || fail "untracked merge-resolution files remain"
 
-  GIT_EDITOR=true git merge --continue 1>&2 \
+  GIT_EDITOR=true git -c core.hooksPath=/dev/null merge --continue 1>&2 \
     || fail "merge commit could not be completed"
   is_ancestor "$expected_target" HEAD \
     || fail "branch no longer contains the fixed target"

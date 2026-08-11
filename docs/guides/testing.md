@@ -60,4 +60,4 @@ cannot discover; without one, it runs the complete group used by CI.
 - `pnpm run audit:policy` — check dependency-policy changes.
 - `pnpm run check:dev-boundary` — check production-boundary changes.
 
-CI runs the complete required static set.
+CI runs all static checks configured in its workflows.

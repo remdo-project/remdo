@@ -410,6 +410,35 @@ describe('merge-main.sh', () => {
     expect(result.stderr).toContain('could not fetch origin/main');
   });
 
+  it('does not run merge hooks after the pending tree is verified', () => {
+    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'local.md', '# local\n');
+    commitAll(work, 'local');
+    advanceOrigin(origin);
+    const hook = git(
+      work,
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-path',
+      'hooks/pre-merge-commit',
+    ).stdout.trim();
+    fs.writeFileSync(hook, [
+      '#!/usr/bin/env sh',
+      'printf hook > hook.md',
+      'git add hook.md',
+      'exit 1',
+      '',
+    ].join('\n'));
+    fs.chmodSync(hook, 0o755);
+
+    const started = run(work, 'start');
+    const continued = run(work, 'continue', value(started.stdout, 'TARGET')!);
+
+    expect(continued.status, continued.stderr).toBe(0);
+    expect(value(continued.stdout, 'STATE')).toBe('merged');
+    expect(fs.existsSync(path.join(work, 'hook.md'))).toBe(false);
+  });
+
   it('refuses to continue with unstaged or untracked resolution work', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'local\n');
