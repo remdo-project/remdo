@@ -259,9 +259,12 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
       && email.index < candidateEnd;
     const destination = normalizeAutomaticMatch(match, candidate);
     if (!destination) {
+      if (containsEmail) {
+        email = null;
+      }
       continue;
     }
-    if (containsEmail || (containsAnotherMatch && destination.url !== candidate)) {
+    if (containsAnotherMatch && destination.url !== candidate) {
       if (containsEmail) {
         email = null;
       }
