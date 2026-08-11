@@ -1,104 +1,33 @@
 # Links
 
-RemDo-owned note links preserve stable note identity and remain distinct from
-generic URL links. Generic links provide predictable, reversible URL authoring
-without interpreting ambiguous text as a destination.
+RemDo supports RemDo-owned [note links](./note-links.md) and generic URL links.
+This specification owns classification between those kinds and generic URL-link
+behavior. Generic links provide predictable, reversible URL authoring without
+interpreting ambiguous text as a destination.
 
 ## Definitions
 
-1. **Runtime editor state:** the in-memory Lexical node state used by editor
-   behavior and rendering.
-2. **Persisted JSON state:** the JSON document shape written to/read from
-   fixtures, snapshot files, and other long-lived storage boundaries.
-3. **Clipboard payload:** transient copy/cut payload (`application/x-lexical-editor`)
-   exchanged between editor contexts.
-4. **Collaboration state:** shared runtime state (for example Yjs-backed) that
-   must behave like runtime editor state while synced.
-5. **`docId`:** the note-link field carrying the target document's canonical
-   [document identity](../../architecture.md#document-identity).
-6. **`noteId`:** the note-link field carrying the target note's [noteId](./note-ids.md#definitions).
-7. **Linkable email address:** one address accepted by the HTML email address
+1. **Linkable email address:** one address accepted by the HTML email address
    syntax whose domain contains at least two labels. A Unicode domain is linkable
    when WHATWG URL host parsing normalizes it to an ASCII domain that satisfies
    those rules. Unicode local parts, display names, headers, queries, and
    fragments are not linkable.
-8. **Scheme-less web address candidate:** a URL with no scheme whose non-IP
+2. **Scheme-less web address candidate:** a URL with no scheme whose non-IP
    hostname is accepted by WHATWG URL host parsing, contains at least two labels,
    and ends in a suffix from the IANA root zone. It may include credentials, a
    port, path, query, or fragment accepted by WHATWG URL parsing. These are
    syntactic candidates only; destination rules reject credentials before
    linking.
 
-## Core behavior
+## Link kinds and classification
 
-1. RemDo-owned links target stable note identity (`docId` + `noteId`), not the
-   visible link text.
-2. Generic URL links do not use RemDo note-link semantics.
+1. [Note links](./note-links.md) own stable RemDo note identity and interaction.
+2. Generic URL links do not use note-link semantics.
 3. RemDo classification runs before generic link handling so RemDo-owned note
    refs keep note-link identity/clipboard behavior instead of degrading into
    plain URL links.
-4. Note links are created inline through `@`, an inline trigger character; its
-   open/close/confirm lifecycle is the shared one in
-   [Editor popups](./popups.md). The note-link spec defines only what differs.
-5. The query is the text after `@` in the [pinned span](./popups.md#shared-editor-popup-contract), length minimum 0, so
-   results may appear immediately. Whitespace is allowed in the query.
-6. A note-link's insertion path chooses its display text, which is then stored
-   locally; later target renames do not update it.
-7. Note-link clicks use native `href` navigation semantics and route handling.
-8. Creating a note link from a RemDo-owned plain-text note URL, by paste or link
-   controls, inserts a note-link node. Its initial label is selected text when it
-   contains a non-whitespace character, the target note title when available, or
-   otherwise the entered URL string. Paste commits that label directly; link
-   controls expose it for editing and retain the edited value.
-9. Typing a URL — including a same-origin RemDo note URL — does not create
-   note-link identity; the note-link upgrade applies only to paste and link
-   controls.
-10. URLs that merely resemble RemDo note routes but are not classified by
-    RemDo as owned note refs are handled as generic URL candidates.
-11. Clipboard payloads (copy/cut) must include explicit `docId` for every
-    note link so cross-context paste has complete target identity.
-12. Cross-document pastes preserve source-target link identity; note links
-    are not retargeted to the destination document.
-
-## Identity Representation Boundaries
-
-1. Runtime editor state keeps note links fully qualified (`docId` + `noteId`).
-2. Persisted JSON state must omit `docId` when a link targets the active
-   document. This keeps document identity host-owned rather than embedded as
-   canonical content state.
-3. At persisted->runtime boundaries (load/import), hosts must rehydrate missing
-   same-document link `docId` values from the active `documentId` before
-   parsing/applying state into the editor runtime.
-4. Cross-document links keep explicit `docId` values unchanged across save/load.
-5. Note/document identity ownership rules remain defined in [Note IDs](./note-ids.md).
-
-## Query and ranking
-
-1. Search scope is the whole active document, including in a [subtree view](./zoom.md#visibility-and-editing-boundary).
-2. Filtering uses the same path-token matching as document search (defined in [Search](./search.md#behavior)).
-3. When present, the [focus note](./selection.md#selection-states) is excluded
-   from results (self-links are out of scope).
-4. Picker rows show the minimal ancestor context needed to disambiguate duplicate
-   titles in the current result set.
-5. If results are still visually identical after full ancestor context, they
-   remain untied and are shown in [document order](./note-model.md#definitions).
-6. No-match state is a single non-selectable `No results...` row.
-7. Creating new notes from the picker is out of scope.
-
-## Picker interaction
-
-The `@` picker is the type-to-filter specialization of the shared
-[Editor popups](./popups.md) contract, and its typed query is the pinned span's editable text.
-Navigation, confirmation, and dismissal are the shared lifecycle; note-link specifics:
-
-1. The initial active option is the first result in document order.
-2. `Enter` or a primary-button click commits the active option; `Tab` does not
-   commit — it closes the picker and falls through to indent.
-3. On the no-match state (the `No results...` row, with no active option),
-   `Enter` closes the picker and leaves the typed `@query` as ordinary text — it
-   neither inserts a link nor a newline.
-4. Confirming inserts a note-link node (`docId` + `noteId`) whose display text is
-   the target note title, plus a trailing space.
+4. URLs that merely resemble RemDo note routes but are not classified by
+   RemDo as owned note refs are handled as generic URL candidates.
 
 ## Generic URL recognition
 
@@ -155,9 +84,10 @@ explicit [generic URL authoring](#generic-url-authoring).
    initially active; at an unlinked collapsed caret, generic-link creation uses
    the entered destination as the initial label. A RemDo-owned note URL instead
    creates a note link under the
-   [core URL-insertion behavior](#core-behavior). For generic links, creation
-   classifies a linkable email address before web inputs. It accepts an HTTP or
-   HTTPS URL, a linkable email address, or a scheme-less web address candidate,
+   [note-link insertion behavior](./note-links.md#core-behavior). For generic
+   links, creation classifies a linkable email address before web inputs. It
+   accepts an HTTP or HTTPS URL, a linkable email address, or a scheme-less web
+   address candidate,
    applying the same credential and destination restrictions as automatic
    recognition and imported content. Email inputs receive a `mailto:` destination
    and scheme-less web inputs receive an `https://` destination.
@@ -219,11 +149,6 @@ explicit [generic URL authoring](#generic-url-authoring).
 
 ## Future
 
-- Backlinks as part of the note-link model.
-- Cross-document discovery and insertion in the `@` picker.
-- Fuzzy picker matching and frecency-aware ranking influenced by zoom context.
-- Rename-aware display text, including title mirroring unless customized.
-- Cross-document link validation.
 - Explicit external-link previews and alternate representations.
 
 ## References

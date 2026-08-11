@@ -1,7 +1,7 @@
 # Editor popups
 
 RemDo's transient editor popups include the inline trigger pickers (`@` for note
-[Links](./links.md), `!` for [Dates](./dates.md)), generic
+[links](./note-links.md), `!` for [Dates](./dates.md)), generic
 [link controls](./links.md#generic-url-authoring), and the
 [Quick Action Menu](./menu.md). They share the behavior and trigger-picker session
 below. Each per-popup specification defines only what differs: its opening

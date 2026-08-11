@@ -98,7 +98,8 @@ Rules:
 
 ## Editor popup follow-ups
 
-- Editor-popup UX redesign (spec: `popups.md`/`dates.md`/`links.md`/`menu.md`) —
+- Editor-popup UX redesign (spec:
+  `popups.md`/`dates.md`/`links.md`/`note-links.md`/`menu.md`) —
   remaining follow-ups (spec ahead of code on these details):
   - Dedup the duplicated portal/anchor/dismissal plumbing between `NoteMenuPlugin`
     and the popup engine (they still each implement it).
@@ -371,7 +372,7 @@ the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#br
      `create(...)` refactor, especially `createLexicalEditorNotes` and `place(...)`.
   7. Update the durable docs once the traversal/query contract stabilizes:
      `docs/specs/outliner/note-model.md`, `docs/architecture.md`,
-     `docs/specs/outliner/search.md`, and `docs/specs/outliner/links.md`.
+     `docs/specs/outliner/search.md`, and `docs/specs/outliner/note-links.md`.
 
 ## Client-side perf follow-ups
 

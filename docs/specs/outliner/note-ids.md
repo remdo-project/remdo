@@ -2,7 +2,7 @@
 
 Addressable [editor notes](./note-model.md#note-kinds) have stable identity
 within a document; a global `noteRef` combines document and note identity.
-[Links](./links.md) defines note-link runtime and persistence boundaries.
+[Note links](./note-links.md) defines note-link runtime and persistence boundaries.
 
 ## Definitions
 
@@ -60,7 +60,7 @@ Behavioral clipboard rules (placement, move validation, focus) live in [Clipboar
 
 ## Persisted JSON and normalization
 
-- [Persisted JSON state](./links.md#definitions) must include `noteId` for addressable notes.
+- [Persisted JSON state](./note-links.md#definitions) must include `noteId` for addressable notes.
 - Persisted JSON state must not persist the active document ID as document-level
   identity.
 - On load, any missing or duplicate `noteId` values must be normalized before

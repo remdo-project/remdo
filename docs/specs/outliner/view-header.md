@@ -12,7 +12,7 @@ heading. Editing the heading changes that content in place.
 The location's [note kind](./note-model.md#note-kinds) determines the content it
 can carry. A zoomed [editor note](./note-model.md#note-kinds) supports the same
 inline content as any editor note, including formatting and
-[note links](./links.md). The [document root](./note-model.md#definitions) supports the content allowed by its kind.
+[note links](./note-links.md). The [document root](./note-model.md#definitions) supports the content allowed by its kind.
 
 ## Structural boundary
 

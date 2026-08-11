@@ -16,7 +16,7 @@ navigation, lifecycle, and merge behavior.
    its owning note is [checked](./list-types.md#checked-state), the body text is crossed out with the note.
 4. **Inline content.** Body text supports the same key-driven inline content as
    note content — inline formatting (no separate formatting UI) and `@` note
-   links plus generic URL links (see [Links](./links.md)).
+   [links](./note-links.md) plus [generic URL links](./links.md).
 
 ## Selection and structural targeting
 

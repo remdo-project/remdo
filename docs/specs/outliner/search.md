@@ -19,7 +19,7 @@ zooming to a result.
 2. Search empty states do not represent invalid routes, unavailable documents,
    or offline loading states.
 3. Runtime document-ID ownership and route/link identity are defined in
-   [Note IDs](./note-ids.md) and [Links](./links.md), not in this search spec.
+   [Note IDs](./note-ids.md) and [Note links](./note-links.md), not in this search spec.
 
 ## Behavior
 

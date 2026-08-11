@@ -129,7 +129,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
-- **Note-link selected-paste label.** Target [note-link paste behavior](specs/outliner/links.md#core-behavior)
+- **Note-link selected-paste label.** Target [note-link paste behavior](specs/outliner/note-links.md#core-behavior)
   retains selected text as the note-link label. `$insertInternalLinkFromPlainText`
   instead uses the target title for the active document and the pasted URL for
   another document. Preserve the selected label and add focused coverage, then

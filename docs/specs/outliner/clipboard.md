@@ -1,9 +1,9 @@
 # Clipboard
 
 Cut, copy, and paste operate on RemDo notes, including placement from a caret.
-[Note IDs](./note-ids.md) owns identity changes, and [Links](./links.md) owns
-note-link identity across clipboard and persistence boundaries plus generic-URL
-authoring from pasted text.
+[Note IDs](./note-ids.md) owns identity changes, [Note links](./note-links.md)
+owns note-link identity across clipboard and persistence boundaries, and
+[Links](./links.md) owns generic URL authoring from pasted text.
 
 ## Structural selection
 
@@ -31,10 +31,11 @@ authoring from pasted text.
 
 ## Inline text selection (single note)
 
-- Single-line plain text replaces the selected text, except [Links](./links.md)
-  first creates a note link for a RemDo-owned note URL. It retains the selected
-  label only when that label contains a non-whitespace character and otherwise
-  uses the note-link fallback label. Only when the selection contains a
+- Single-line plain text replaces the selected text, except
+  [Note links](./note-links.md#core-behavior) first creates a note link for a
+  RemDo-owned note URL. It retains the selected label only when that label
+  contains a non-whitespace character and otherwise uses the note-link fallback
+  label. Only when the selection contains a
   non-whitespace character does a non-owned destination accepted by
   [generic URL authoring](./links.md#generic-url-authoring) create a generic link
   retaining that selection as its label. Other whitespace-only selections follow
