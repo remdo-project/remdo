@@ -20,15 +20,15 @@ separate development-route change is required.
 
 ## Publication
 
-On an explicit request, the skill may change only ignored scratch under
-`public/playground/`: replace the stable artifact and remove files created by a
-stopped run. It does not change tracked files or manage a
+On an explicit request, the skill may create and remove temporary files under
+`.agent/playground/` and replace the ignored stable artifact under
+`public/playground/`. It does not change tracked files or manage a
 [developer-owned process](../../../../AGENTS.md#isolation).
 
-Generate at a hidden temporary path beside `public/playground/index.html`, then
-atomically replace that stable artifact only after generation is complete. A
-stopped run removes its temporary file and leaves the previous stable artifact
-unchanged. Other existing playground files remain untouched.
+Generate under `.agent/playground/`, then atomically replace
+`public/playground/index.html` only after generation is complete. A stopped run
+removes its temporary file and leaves the previous stable artifact unchanged.
+Other existing playground files remain untouched.
 
 The artifact's stable same-origin URL is `/playground/index.html`. The skill
 does not open that URL or verify the developer-owned server.
