@@ -1,0 +1,52 @@
+# playground
+
+This Claude-only skill adapts the installed official playground capability to
+create an interactive HTML explorer as ignored RemDo development scratch,
+without adding an application route.
+
+## Dependency
+
+Before repository effects, load the installed official playground skill and
+matching template. They own topic-specific construction; the RemDo rules below
+own effects and results and win on conflict. Stop when the dependency is missing
+or ambiguous.
+
+## Explorer
+
+An explorer representing RemDo UI matches the app's current visual conventions
+and relevant component styling without mounting live components. A request
+requiring live application behavior stops before effects and reports that a
+separate development-route change is required.
+
+## Publication
+
+On an explicit request, the skill may create and remove temporary files under
+`.agent/playground/` and replace the ignored stable artifact under
+`public/playground/`. It does not change tracked files or manage a
+[developer-owned process](../../../../AGENTS.md#isolation).
+
+Generate under `.agent/playground/`, then atomically replace
+`public/playground/index.html` only after generation is complete. A stopped run
+removes its temporary file and leaves the previous stable artifact unchanged.
+Other existing playground files remain untouched.
+
+The artifact's stable same-origin URL is `/playground/index.html`. The skill
+does not open that URL or verify the developer-owned server.
+
+## Result
+
+Return the shared [result](../protocol.md#results) envelope:
+
+```yaml
+outcome: <created | stopped>
+concerns: # if any
+  - source: <originating capability or participant>
+    summary: <condition>
+artifact: # if created
+  path: public/playground/index.html
+  url: /playground/index.html
+reason: <condition that stopped the run> # if stopped
+```
+
+`created` requires the stable artifact to be complete. `stopped` reports why
+the run ended without claiming a new artifact.
