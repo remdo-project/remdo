@@ -10,16 +10,18 @@ before acting. It owns the capability's behavior, repository effects, and result
 
 ## Load the dependency
 
-Resolve exactly one installed official skill at:
+Read `~/.claude/plugins/installed_plugins.json` and resolve exactly one
+`installPath` for:
 
 ```text
-~/.claude/plugins/cache/claude-plugins-official/playground/*/skills/playground/SKILL.md
+playground@claude-plugins-official
 ```
 
-Read it and the closest matching file under its `templates/` directory,
-adapting that template when no type fits cleanly. Stop under the specification's
-[dependency rule](../../../docs/specs/agents/skills/playground.md#dependency)
-only if the installed skill or a required template file cannot be resolved.
+Read `<installPath>/skills/playground/SKILL.md` and the closest matching file
+under its `templates/` directory, adapting that template when no type fits
+cleanly. Stop under the specification's [dependency rule](../../../docs/specs/agents/skills/playground.md#dependency)
+only if the registry entry, installed skill, or required template cannot be
+resolved.
 
 Before creating files, resolve the canonical origin while keeping the wrapper's
 temporary storage outside the repository:
@@ -41,20 +43,15 @@ skill's `open` step; the publication contract owns delivery.
 ## Publish
 
 Apply the specification's [publication contract](../../../docs/specs/agents/skills/playground.md#publication)
-with these repository mechanics:
+by renaming the completed temporary file:
 
-1. Let `N` be the smallest integer at least zero whose `index-N.html` path is
-   unused.
-2. If a regular `index.html` does not byte-match an existing numbered artifact,
-   copy it to that numbered path as the legacy artifact, then recompute `N` for
-   the new artifact.
-3. Move the completed temporary file to the new `index-N.html` path.
-4. Copy the new numbered artifact to a new, unused run-owned temporary path
-   beside `index.html`, then atomically rename that copy to `index.html`.
+```sh
+mv <temporary-artifact> public/playground/index.html
+```
 
-Do not replace `index.html` before the final rename. If generation or
-publication stops before it, remove every temporary, new numbered, or legacy
-copy created by the run, leaving prior history and `index.html` unchanged.
+Because both paths are in one directory, the rename replaces the previous
+artifact only when generation is complete. If generation or publication stops,
+remove the run's temporary file and leave other playground files untouched.
 
 ## Report
 
