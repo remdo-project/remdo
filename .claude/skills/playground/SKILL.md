@@ -47,9 +47,8 @@ with these repository mechanics:
 2. If `index.html` is a regular file rather than a symlink, copy it to that
    numbered path as the legacy artifact, then recompute `N` for the new artifact.
 3. Move the completed temporary file to the new `index-N.html` path.
-4. Create a run-owned temporary symlink beside `index.html` with a relative
-   target of the new filename, then atomically rename that symlink to
-   `index.html`.
+4. Copy the new numbered artifact to a new, unused run-owned temporary path
+   beside `index.html`, then atomically rename that copy to `index.html`.
 
 Do not replace `index.html` before the final rename. If generation or
 publication stops before it, remove every temporary, new numbered, or legacy
