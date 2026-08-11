@@ -34,7 +34,10 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   scripts and state machines that encode adaptive work without enough robustness
   to justify their maintenance. Prefer concise intent plus deterministic checks
   of stable repository invariants, then align each affected specification,
-  procedure, implementation, and coverage.
+  procedure, implementation, and coverage. For `remdo-merge-main`, simplify
+  target acquisition by fetching remote `main` directly into local
+  `origin/main`, pinning its OID, and leaving that fetch effect in place if a
+  later check refuses the merge.
 
 - **Prepare-change lifecycle.** Reconsider its dialogue, specification,
   approval, and execution flow as a whole so it is simple, flexible, and clear.
@@ -44,10 +47,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   Define how accepted contracts, explicit instructions, branch and adopted-work
   decisions, and later evidence establish or reopen decisions, then align the
   specification and skill.
-
-- **Agent repository-authority declarations.** Define compact authority modes
-  in [Agent instructions](specs/agents/instructions.md#repository-authority) and
-  replace repeated per-skill permission prose with linked declarations.
 
 - **Condition ownership beyond capability calls.** Evaluate whether the
   [capability protocol](specs/agents/protocol.md) should generalize to other

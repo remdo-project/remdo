@@ -20,7 +20,7 @@ authority:
 ```
 
 `topic` means a [topic branch](../../../../CONTRIBUTING.md#git-workflow);
-`allowed` grants [repository authority](../instructions.md#repository-authority)
+`allowed` grants [repository authority](../../../../AGENTS.md#repository-authority)
 to commit. An absent or incompatible call yields `failed`.
 
 ## Run

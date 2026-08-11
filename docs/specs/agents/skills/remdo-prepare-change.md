@@ -6,9 +6,10 @@ participating capabilities retain their contracts.
 
 ## Authority
 
-[Repository authority](../instructions.md#repository-authority): autonomous for
-owning-branch preparation after quick dialogue and for approved change work,
-including participant-defined commit units.
+[Repository authority](../../../../AGENTS.md#repository-authority): after quick
+dialogue, the skill may create or switch to the owning branch and transfer only
+work adopted by the change. After approval, it may edit and commit approved
+change work, including participant-defined commit units.
 
 ## Lifecycle
 
@@ -63,7 +64,7 @@ Legend:
   observable completion through focused developer decisions.
 - **Exploration.** Begins at the developer's request or accepted recommendation
   to investigate material uncertainty. Its transition establishes the question,
-  scope, any required [repository authority](../instructions.md#repository-authority), expected result,
+  scope, any required [repository authority](../../../../AGENTS.md#repository-authority), expected result,
   and return point. Repository changes remain disposable unless adopted.
 - **Owning branch ready.** Before retaining work, fetch `origin/main` and ensure
   the current [topic branch](../../../../CONTRIBUTING.md#git-workflow) uses its

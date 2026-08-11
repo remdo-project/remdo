@@ -8,9 +8,9 @@ expand intended behavior.
 
 ## Authority
 
-[Repository authority](../instructions.md#repository-authority): corrections
-remain uncommitted for `uncommitted`; for a commit range on an attached branch,
-the skill autonomously commits each coherent correction batch.
+[Repository authority](../../../../AGENTS.md#repository-authority): the skill edits
+`uncommitted` corrections without staging them. For a commit range on an
+attached branch, it stages and commits each coherent correction batch.
 
 ## Convergence
 
