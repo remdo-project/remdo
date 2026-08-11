@@ -13,9 +13,10 @@ or ambiguous.
 
 ## Explorer
 
-Adapt the explorer to the relevant RemDo UI without mounting live RemDo
-components. A request requiring live application behavior stops before effects
-and reports that a separate development-route change is required.
+An explorer representing RemDo UI matches the app's current visual conventions
+and relevant component styling without mounting live components. A request
+requiring live application behavior stops before effects and reports that a
+separate development-route change is required.
 
 ## Publication
 
