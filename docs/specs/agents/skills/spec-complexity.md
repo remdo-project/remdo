@@ -8,13 +8,9 @@ select or apply an alternative.
 
 ## Target
 
-The capability accepts either assessment-target form:
-
-- `change`: the changed end state and directly related mechanisms, excluding
-  unrelated pre-existing complexity;
-- `subject`: the named current-tree subject, its implementation, and tests.
-
-All estimates are target-bounded.
+The assessment and its estimates are target-bounded. For a change target, it
+excludes unrelated pre-existing complexity. For a subject target, it includes
+the named current-tree subject, its implementation, and tests.
 
 ## Assessment
 

@@ -33,7 +33,8 @@ Each durable statement lives with the owner of the question it answers.
 - **Agent skills — Specifications and procedures.** Specifications under
   `docs/specs/agents/skills/` own accepted behavior; each `SKILL.md` owns its
   execution procedure. A specification is sufficient without its procedure;
-  the procedure links to it instead of restating accepted behavior.
+  the procedure loads it before the governed work and delegates to its sections
+  instead of restating accepted behavior.
 - **`AGENTS.md` and `CLAUDE.md` — Agent instruction surfaces.**
   The surfaces own their directly loaded rules; [Agent instructions](specs/agents/instructions.md)
   owns their design, responsibilities, and deterministic structural contracts.
@@ -75,6 +76,17 @@ regardless of implementation status.
 gaps. Its entries are informative and may identify implementation that does not
 yet satisfy target behavior. Entries range from decided work to unresolved
 questions and preserve only the context useful for returning to the work.
+
+### Agent skill boundary
+
+A skill specification owns choices that change promised capability behavior.
+Its procedure owns replaceable execution details such as owner loading,
+commands, paths, tool calls, output decoding, and dispatch. It loads the complete
+capability specification before work and links each delegated step to its owning
+section; load a section alone only when its owner declares it self-contained.
+Delegate whole responsibilities without paraphrasing them. Establish any new
+behavioral choice in the applicable specification or shared owner before
+implementing it.
 
 ### Minimality
 
