@@ -9,8 +9,9 @@ select or apply an alternative.
 ## Target
 
 The assessment and its estimates are target-bounded. For a change target, it
-excludes unrelated pre-existing complexity. For a subject target, it includes
-the named current-tree subject, its implementation, and tests.
+includes the changed end state and directly related mechanisms while excluding
+unrelated pre-existing complexity. For a subject target, it includes the named
+current-tree subject, its implementation, and tests.
 
 ## Assessment
 
@@ -37,6 +38,9 @@ accepted-behavior decision.
 
 The report also identifies substantial target complexity not required by the
 applicable contracts.
+
+It remains a complexity assessment rather than a correctness review or general
+implementation-preserving refactor proposal.
 
 ## Result
 
