@@ -27,9 +27,7 @@ const CLOSER_TO_OPENER = new Map([
   ['}', '{'],
 ]);
 
-// Lexical uses this expression on both sides of a match. The matcher below
-// applies the narrower opening-boundary rule; this broader set also lets a link
-// end before punctuation that the accepted contract excludes from its URL.
+// Undo targeting accepts separator text after an automatically created link.
 export const GENERIC_LINK_SEPARATOR = /[\s()[\]{}<>"'“”‘’.,;:!?*_~]/;
 
 const tldSet = new Set(tlds.map((tld) => {
@@ -80,6 +78,16 @@ function normalizeEmailAddress(input: string): string | null {
   return `${encodeURIComponent(local)}@${domain}`;
 }
 
+function decodeMailtoAddress(input: string): string {
+  return input.replace(/(?:%[\da-f]{2})+/gi, (encoded) => {
+    try {
+      return decodeURIComponent(encoded);
+    } catch {
+      return encoded;
+    }
+  });
+}
+
 function isPublicSchemeLessHostname(hostname: string): boolean {
   if (hostname.includes(':') || IPV4_PATTERN.test(hostname)) {
     return false;
@@ -128,7 +136,7 @@ export function normalizeGenericDestination(input: string): GenericDestination |
       return null;
     }
     try {
-      const address = normalizeEmailAddress(decodeURIComponent(addressPart));
+      const address = normalizeEmailAddress(decodeMailtoAddress(addressPart));
       return address ? { kind: 'email', url: `mailto:${address}` } : null;
     } catch {
       return null;
@@ -147,7 +155,14 @@ function trimAutomaticCandidate(candidate: string): string {
   const trimTrailingPunctuation = (value: string) => {
     let trimmed = value;
     while (trimmed.length > 0 && TRAILING_PUNCTUATION.has(trimmed.at(-1)!)) {
-      trimmed = trimmed.slice(0, -1);
+      const punctuationIndex = trimmed.length - 1;
+      let precedingBackslashes = 0;
+      for (let cursor = punctuationIndex - 1; cursor >= 0 && trimmed[cursor] === '\\'; cursor -= 1) {
+        precedingBackslashes += 1;
+      }
+      const escapedDelimiter = AUTOMATIC_END_PATTERN.test(trimmed[punctuationIndex]!)
+        && precedingBackslashes % 2 === 1;
+      trimmed = trimmed.slice(0, escapedDelimiter ? -2 : -1);
     }
     return trimmed;
   };
@@ -224,8 +239,8 @@ function nestedMatchesAreInUrlSuffix(candidate: string, match: LinkifyMatch, mat
   if (nested.length === 0) {
     return true;
   }
-  const schemeOffset = candidate.search(/:\/\//);
-  const authorityStart = schemeOffset < 0 ? 0 : schemeOffset + 3;
+  const scheme = candidate.match(/^[a-z][a-z\d+.-]*:\/\//i)?.[0];
+  const authorityStart = scheme?.length ?? 0;
   const suffixOffset = candidate.slice(authorityStart).search(/[/?#]/);
   if (candidate.includes('\\') || suffixOffset < 0) {
     return false;

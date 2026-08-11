@@ -125,6 +125,7 @@ export class NoteLinkNode extends LinkNode {
 
   createDOM(config: EditorConfig): HTMLElement {
     const element = document.createElement('a');
+    element.dataset.noteLink = '';
     this.updateLinkDOM(null, element);
     addClassNamesToElement(element, config.theme.link);
     return element;

@@ -103,6 +103,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       }
       expect(note.getTextContent().endsWith(' ')).toBe(true);
     });
+    expect(remdo.editor.getRootElement()!.querySelector('a[data-note-link]')).not.toBeNull();
   });
 
   it('opens link-query mode when @ is entered with AltGr modifiers', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -1114,6 +1115,26 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('unwraps an automatic link after an inline-node boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const firstUrl = 'https://example.com/';
+    const secondUrl = 'https://example.org/';
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const first = $createAutoLinkNode(firstUrl);
+      first.append($createTextNode(firstUrl));
+      const second = $createAutoLinkNode(secondUrl);
+      second.append($createTextNode(secondUrl));
+      note.clear();
+      note.append(first, second);
+    });
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe(`${firstUrl}${secondUrl}`);
+      expect(note.getChildren().filter($isAutoLinkNode).map(link => link.getURL())).toEqual([firstUrl]);
+    });
+  });
+
   it('normalizes imported-style external LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/';
@@ -1421,6 +1442,38 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
     });
     await remdo.waitForSynced();
+    remdo.validate(() => {
+      expect($findNoteById('note1')!.getChildren().find($isLinkNode)).toBeUndefined();
+    });
+
+    await typeText(remdo, ' ');
+    remdo.validate(() => {
+      expect($findNoteById('note1')!.getChildren().find($isAutoLinkNode)?.getURL()).toBe(url);
+    });
+  });
+
+  it('keeps a deferred URL unlinked when a preceding text sibling becomes dirty', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const before = $createTextNode(' ').toggleFormat('bold');
+      const candidate = $createTextNode('seed');
+      note.clear();
+      note.append(before, candidate);
+      candidate.select(0, candidate.getTextContentSize());
+    });
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+    });
+    await remdo.waitForSynced();
+    remdo.validate(() => {
+      expect($findNoteById('note1')!.getChildren().find($isLinkNode)).toBeUndefined();
+    });
+
+    await remdo.mutate(() => {
+      const before = $findNoteById('note1')!.getFirstChild<TextNode>()!;
+      before.setTextContent('  ');
+    });
     remdo.validate(() => {
       expect($findNoteById('note1')!.getChildren().find($isLinkNode)).toBeUndefined();
     });

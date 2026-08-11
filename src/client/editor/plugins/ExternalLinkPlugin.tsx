@@ -4,6 +4,7 @@ import {
   $addUpdateTag,
   $getNodeByKey,
   $getSelection,
+  $hasUpdateTag,
   $isElementNode,
   $isRangeSelection,
   $isTextNode,
@@ -12,6 +13,7 @@ import {
   CONTROLLED_TEXT_INSERTION_COMMAND,
   KEY_DOWN_COMMAND,
   PASTE_COMMAND,
+  PASTE_TAG,
   SELECTION_CHANGE_COMMAND,
   TextNode,
   HISTORY_MERGE_TAG,
@@ -46,8 +48,11 @@ function unwrapLinkNode(node: LinkNode | AutoLinkNode) {
 
 function $hasValidAutomaticLinkStart(node: AutoLinkNode): boolean {
   const previousNode = node.getPreviousSibling();
-  if (!$isTextNode(previousNode)) {
+  if (previousNode === null) {
     return true;
+  }
+  if (!$isTextNode(previousNode)) {
+    return false;
   }
   const previous = previousNode.getTextContent().at(-1) ?? '';
   const text = node.getTextContent();
@@ -147,16 +152,16 @@ function registerExternalLinkMutationListener(
       editor.update(() => {
         for (const key of keys) {
           const node = $getNodeByKey(key);
-          if (node instanceof LinkNode || node instanceof AutoLinkNode) {
+          if ((node instanceof LinkNode || node instanceof AutoLinkNode) && node.isAttached()) {
             $normalizeExternalLinkNode(node);
-            if (node instanceof AutoLinkNode && node.isAttached()) {
+            if (node instanceof AutoLinkNode) {
               if (mutations.get(key) === 'created' && !node.getIsUnlinked()) {
                 onAutomaticLinkCreated?.(node);
               }
             }
           }
         }
-      });
+      }, { tag: HISTORY_MERGE_TAG });
     });
   });
 }
@@ -219,7 +224,7 @@ function syncExternalLinkPresentation(root: HTMLElement | null) {
   if (!root) {
     return;
   }
-  for (const anchor of root.querySelectorAll<HTMLAnchorElement>('a.text-link')) {
+  for (const anchor of root.querySelectorAll<HTMLAnchorElement>('a.text-link:not([data-note-link])')) {
     if (anchor.target === '_blank') {
       anchor.setAttribute('aria-label', `${anchor.textContent} (opens in new tab)`);
     } else {
@@ -236,20 +241,19 @@ export function ExternalLinkPlugin() {
       throw new Error('ExternalLinkPlugin: AutoLinkNode not registered on editor');
     }
     const automaticCreationUrls = new Set<string>();
-    const createdAutomaticKeysByUrl = new Map<string, string[]>();
-    const createdKeyCleanupTimers = new Set<ReturnType<typeof setTimeout>>();
+    const automaticCreationCleanupTimers = new Set<ReturnType<typeof setTimeout>>();
     let automaticUndoCandidate: { key: string; text: string; url: string } | null = null;
     let automaticUndoReady = false;
     let automaticUndoReadyTimer: ReturnType<typeof setTimeout> | null = null;
+    let automaticStartBlockedByInlineNode = false;
     let automaticStartPrefix = '';
     let deferredTextNodeKey: null | string = null;
-    let deferCurrentTextTransform = false;
+    let deferredMatchOffset: number | null = null;
     let preservedInvalidAutomaticLink: {
       attributes?: { rel?: string; target?: string };
       text: string;
       url: string;
     } | null = null;
-    let pasteInProgress = false;
     let presentationQueued = false;
     const armAutomaticUndo = (node: AutoLinkNode) => {
       automaticUndoCandidate = {
@@ -276,10 +280,33 @@ export function ExternalLinkPlugin() {
         syncExternalLinkPresentation(editor.getRootElement());
       });
     };
-    const unregisterTextTransform = editor.registerNodeTransform(TextNode, (node) => {
-      deferCurrentTextTransform = node.getKey() === deferredTextNodeKey;
+    const $getDeferredMatchOffset = (node: TextNode): number | null => {
+      if (node.getKey() === deferredTextNodeKey) {
+        return 0;
+      }
+      let offset = node.getTextContentSize();
+      let next = node.getNextSibling();
+      while ($isTextNode(next) && next.isSimpleText()) {
+        if (next.getKey() === deferredTextNodeKey) {
+          return offset;
+        }
+        offset += next.getTextContentSize();
+        if (/\s/.test(next.getTextContent())) {
+          break;
+        }
+        next = next.getNextSibling();
+      }
+      return null;
+    };
+    const $finalizeDeferredPredecessor = (node: LinkNode | AutoLinkNode) => {
       const previous = node.getPreviousSibling();
-      automaticStartPrefix = $isTextNode(previous) ? previous.getTextContent().at(-1) ?? '' : '';
+      if ($isTextNode(previous) && previous.getKey() === deferredTextNodeKey) {
+        deferredTextNodeKey = null;
+        deferredMatchOffset = null;
+        previous.markDirty();
+      }
+    };
+    const unregisterTextTransform = editor.registerNodeTransform(TextNode, (node) => {
       preservedInvalidAutomaticLink = null;
       const parent = node.getParent();
       if (parent instanceof AutoLinkNode) {
@@ -299,7 +326,12 @@ export function ExternalLinkPlugin() {
           };
         }
       }
-      const next = node.getNextSibling();
+      const latest = node.getLatest();
+      deferredMatchOffset = $getDeferredMatchOffset(latest);
+      const previous = latest.getPreviousSibling();
+      automaticStartBlockedByInlineNode = previous !== null && !$isTextNode(previous);
+      automaticStartPrefix = $isTextNode(previous) ? previous.getTextContent().at(-1) ?? '' : '';
+      const next = latest.getNextSibling();
       if (next instanceof AutoLinkNode && !next.getIsUnlinked() && !$hasValidAutomaticLinkStart(next)) {
         unwrapLinkNode(next);
       }
@@ -326,22 +358,17 @@ export function ExternalLinkPlugin() {
         changeHandlers: [(url, previousUrl) => {
           if (url && previousUrl === null) {
             automaticCreationUrls.add(url);
-            // The timer is retained in createdKeyCleanupTimers and cleared on effect teardown.
+            // The timer is retained and cleared on effect teardown.
             // eslint-disable-next-line react/web-api-no-leaked-timeout
             const cleanup = setTimeout(() => {
-              createdKeyCleanupTimers.delete(cleanup);
+              automaticCreationCleanupTimers.delete(cleanup);
               automaticCreationUrls.delete(url);
             });
-            createdKeyCleanupTimers.add(cleanup);
-            const createdKey = createdAutomaticKeysByUrl.get(url)?.at(-1);
-            const created = createdKey ? $getNodeByKey(createdKey) : null;
-            const link = created instanceof AutoLinkNode && $selectionTouchesLink(created)
-              ? created
-              : $automaticLinkAtSelection(url);
+            automaticCreationCleanupTimers.add(cleanup);
+            const link = $automaticLinkAtSelection(url);
             if (link) {
               armAutomaticUndo(link);
               automaticCreationUrls.delete(url);
-              createdAutomaticKeysByUrl.delete(url);
             }
           }
         }],
@@ -360,8 +387,12 @@ export function ExternalLinkPlugin() {
           if (!match || !(
             $selectionIsInsideAutomaticLink()
             || automaticCreationUrls.has(match.url)
-            || !deferCurrentTextTransform
+            || deferredMatchOffset === null
+            || match.index + match.length <= deferredMatchOffset
           )) {
+            return null;
+          }
+          if (match.index === 0 && automaticStartBlockedByInlineNode) {
             return null;
           }
           if (match.index === 0 && automaticStartPrefix) {
@@ -379,52 +410,32 @@ export function ExternalLinkPlugin() {
       }),
       editor.registerNodeTransform(LinkNode, (node) => {
         $normalizeExternalLinkNode(node);
-        if (node instanceof AutoLinkNode) {
-          return;
-        }
-        const previous = node.getPreviousSibling();
-        if ($isTextNode(previous) && previous.getKey() === deferredTextNodeKey) {
-          deferredTextNodeKey = null;
-          deferCurrentTextTransform = false;
-          previous.markDirty();
+        if (node.isAttached()) {
+          $finalizeDeferredPredecessor(node);
         }
       }),
-      editor.registerNodeTransform(AutoLinkNode, $normalizeExternalLinkNode),
+      editor.registerNodeTransform(AutoLinkNode, (node) => {
+        $normalizeExternalLinkNode(node);
+        if (node.isAttached()) {
+          $finalizeDeferredPredecessor(node);
+        }
+      }),
       unregisterTextTransform,
       registerExternalLinkMutationListener(editor, LinkNode),
       registerExternalLinkMutationListener(editor, AutoLinkNode, (node) => {
         const url = node.getURL();
-        const keys = createdAutomaticKeysByUrl.get(url) ?? [];
-        keys.push(node.getKey());
-        createdAutomaticKeysByUrl.set(url, keys);
         if (
           (automaticCreationUrls.has(url) || automaticUndoCandidate?.key === node.getKey())
           && $selectionTouchesLink(node)
         ) {
           armAutomaticUndo(node);
           automaticCreationUrls.delete(url);
-          createdAutomaticKeysByUrl.delete(url);
-          return;
         }
-        const timeout = setTimeout(() => {
-          createdKeyCleanupTimers.delete(timeout);
-          const currentKeys = createdAutomaticKeysByUrl.get(url);
-          if (!currentKeys) {
-            return;
-          }
-          const remaining = currentKeys.filter(key => key !== node.getKey());
-          if (remaining.length === 0) {
-            createdAutomaticKeysByUrl.delete(url);
-          } else {
-            createdAutomaticKeysByUrl.set(url, remaining);
-          }
-        });
-        createdKeyCleanupTimers.add(timeout);
       }),
       editor.registerCommand(
         PASTE_COMMAND,
         () => {
-          pasteInProgress = true;
+          $addUpdateTag(PASTE_TAG);
           $updateTypedCandidateDeferral(false);
           return false;
         },
@@ -433,7 +444,7 @@ export function ExternalLinkPlugin() {
       editor.registerCommand(
         CONTROLLED_TEXT_INSERTION_COMMAND,
         (insertion) => {
-          if (pasteInProgress || typeof insertion !== 'string' || insertion.length === 0) {
+          if ($hasUpdateTag(PASTE_TAG) || typeof insertion !== 'string' || insertion.length === 0) {
             return false;
           }
           const endsAtBoundary = TYPED_CANDIDATE_END.test(insertion.at(-1)!);
@@ -517,7 +528,6 @@ export function ExternalLinkPlugin() {
         COMMAND_PRIORITY_CRITICAL,
       ),
       editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, tags }) => {
-        pasteInProgress = false;
         if (
           automaticUndoCandidate
           && automaticUndoReady
@@ -534,7 +544,7 @@ export function ExternalLinkPlugin() {
         if (automaticUndoReadyTimer) {
           clearTimeout(automaticUndoReadyTimer);
         }
-        for (const timeout of createdKeyCleanupTimers) {
+        for (const timeout of automaticCreationCleanupTimers) {
           clearTimeout(timeout);
         }
       },

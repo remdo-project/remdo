@@ -243,8 +243,13 @@ function $restoreTargetSelection(target: LinkAuthoringTarget): boolean {
   return true;
 }
 
-function getDestinationAttributes(destination: GenericDestination): { rel?: string; target?: string } {
-  return destination.kind === 'web' ? WEB_LINK_ATTRIBUTES : {};
+function getDestinationAttributes(destination: GenericDestination): {
+  rel: null | string;
+  target: null | string;
+} {
+  return destination.kind === 'web'
+    ? WEB_LINK_ATTRIBUTES
+    : { rel: null, target: null };
 }
 
 function $insertGenericLink(selection: RangeSelection, label: string, destination: GenericDestination): LinkNode {
@@ -887,7 +892,9 @@ export function LinkControlsPlugin() {
     if (event.key === 'Tab') {
       return;
     }
-    if (!isFieldEditingKey(event)) {
+    const fieldEditing = event.target instanceof HTMLInputElement && isFieldEditingKey(event);
+    const buttonActivation = event.target instanceof HTMLButtonElement && event.key === 'Enter';
+    if (!fieldEditing && !buttonActivation) {
       event.preventDefault();
     }
     event.stopPropagation();

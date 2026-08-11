@@ -15,6 +15,9 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     ['例子.公司', { kind: 'web', url: 'https://xn--fsqu00a.xn--55qx5d/' }],
     ['user@example.com', { kind: 'email', url: 'mailto:user@example.com' }],
     ['a?b@example.com', { kind: 'email', url: 'mailto:a%3Fb@example.com' }],
+    ['mailto:100%off@example.com', { kind: 'email', url: 'mailto:100%25off@example.com' }],
+    ['mailto:100%ff@example.com', { kind: 'email', url: 'mailto:100%25ff@example.com' }],
+    ['mailto:user%2Btag@example.com', { kind: 'email', url: 'mailto:user%2Btag@example.com' }],
     ['user@bücher.de', { kind: 'email', url: 'mailto:user@xn--bcher-kva.de' }],
   ])('normalizes explicitly authored %s', (input, expected) => {
     expect(normalizeGenericDestination(input)).toEqual(expected);
@@ -125,6 +128,17 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
       length: input.length,
       text: input,
       url: expectedUrl,
+    });
+  });
+
+  it('excludes the escape together with a trailing escaped delimiter', () => {
+    const input = String.raw`https://example.com/a\"`;
+    const linkedText = 'https://example.com/a';
+    expect(automaticGenericLinkMatcher(`${input} `)).toMatchObject({
+      index: 0,
+      length: linkedText.length,
+      text: linkedText,
+      url: linkedText,
     });
   });
 

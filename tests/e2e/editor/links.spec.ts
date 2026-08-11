@@ -518,6 +518,29 @@ test.describe('generic links', () => {
     expect(await page.evaluate(() => globalThis.getSelection()?.isCollapsed)).toBe(false);
   });
 
+  test('action mode consumes unbound browser navigation keys', async ({ page, editor }) => {
+    await editor.load('flat');
+    await selectInlineRange(page, 'note2', 0, 'note2'.length);
+    await page.keyboard.press('ControlOrMeta+K');
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    await controls.getByRole('textbox', { name: 'Destination' }).fill('example.com');
+    await controls.getByRole('textbox', { name: 'Destination' }).press('Enter');
+
+    await editorLocator(page).locator('a[target="_blank"]').click();
+    const edit = controls.getByRole('button', { name: 'Edit' });
+    await expect(edit).toBeFocused();
+    const before = await page.evaluate(() => {
+      document.body.style.minHeight = '3000px';
+      globalThis.scrollTo(0, 600);
+      return { href: globalThis.location.href, scrollY: globalThis.scrollY };
+    });
+    expect(before.scrollY).toBeGreaterThan(0);
+
+    await edit.press('Home');
+
+    expect(await page.evaluate(() => ({ href: globalThis.location.href, scrollY: globalThis.scrollY }))).toEqual(before);
+  });
+
   test('direct pointer activation opens exactly one tab per gesture', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
