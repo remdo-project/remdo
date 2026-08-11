@@ -365,6 +365,16 @@ export function ExternalLinkPlugin() {
       editor.registerCommand(
         KEY_DOWN_COMMAND,
         (event) => {
+          if (event.key === 'Enter') {
+            $updateTypedCandidateDeferral(false);
+            const selection = $getSelection();
+            if ($isRangeSelection(selection)) {
+              const anchor = selection.anchor.getNode();
+              if ($isTextNode(anchor) && !(anchor.getParent() instanceof AutoLinkNode)) {
+                anchor.markDirty();
+              }
+            }
+          }
           if (
             event.key.length === 1
             && !event.isComposing

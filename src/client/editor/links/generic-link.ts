@@ -139,7 +139,14 @@ export function normalizeGenericDestination(input: string): GenericDestination |
 }
 
 function trimAutomaticCandidate(candidate: string): string {
-  let trimmed = candidate;
+  const trimTrailingPunctuation = (value: string) => {
+    let trimmed = value;
+    while (trimmed.length > 0 && TRAILING_PUNCTUATION.has(trimmed.at(-1)!)) {
+      trimmed = trimmed.slice(0, -1);
+    }
+    return trimmed;
+  };
+  const trimmed = candidate;
   const balance = new Map<string, number>();
   for (let index = 0; index < trimmed.length; index += 1) {
     const char = trimmed[index]!;
@@ -153,28 +160,11 @@ function trimAutomaticCandidate(candidate: string): string {
     }
     const count = balance.get(opener) ?? 0;
     if (count === 0) {
-      return trimmed.slice(0, index);
+      return trimTrailingPunctuation(trimmed.slice(0, index));
     }
     balance.set(opener, count - 1);
   }
-  while (trimmed.length > 0) {
-    const last = trimmed.at(-1)!;
-    if (TRAILING_PUNCTUATION.has(last)) {
-      trimmed = trimmed.slice(0, -1);
-      continue;
-    }
-    const opener = CLOSER_TO_OPENER.get(last);
-    if (!opener) {
-      break;
-    }
-    const openCount = [...trimmed].filter((char) => char === opener).length;
-    const closeCount = [...trimmed].filter((char) => char === last).length;
-    if (closeCount <= openCount) {
-      break;
-    }
-    trimmed = trimmed.slice(0, -1);
-  }
-  return trimmed;
+  return trimTrailingPunctuation(trimmed);
 }
 
 function hasAutomaticStartBoundary(text: string, index: number): boolean {

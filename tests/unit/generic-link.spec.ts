@@ -81,6 +81,15 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('strips punctuation before an unmatched closer followed by text', () => {
+    const input = 'https://example.com/path.)rest';
+    expect(automaticGenericLinkMatcher(input)).toMatchObject({
+      index: 0,
+      length: 'https://example.com/path'.length,
+      text: 'https://example.com/path',
+    });
+  });
+
   it('recognizes the earliest candidate when a later email is present', () => {
     const input = 'https://example.com user@example.com';
     expect(automaticGenericLinkMatcher(input)).toMatchObject({

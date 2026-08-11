@@ -38,6 +38,7 @@ import type { GenericDestination } from '#client/editor/links/generic-link';
 import { parseOwnedNoteLinkUrl } from '#client/editor/links/note-link-url';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { $isNoteLinkNode, $createNoteLinkNode } from '#client/editor/runtime/note-link-node';
 import { $setAutomaticLinkUnlinkedText } from '#client/editor/runtime/automatic-link-state';
 import { resolveCaretPickerAnchor, resolveElementPickerAnchor } from '#client/editor/triggers/anchor';
@@ -362,9 +363,10 @@ export function LinkControlsPlugin() {
     if (!noteRef) {
       return trimmed;
     }
-    return editor.getEditorState().read(() => (
-      noteRef.docId === docId ? $findNoteById(noteRef.noteId)?.getTextContent() ?? trimmed : trimmed
-    ), { editor });
+    return editor.getEditorState().read(() => {
+      const note = noteRef.docId === docId ? $findNoteById(noteRef.noteId) : null;
+      return note ? getNoteOwnText(note) : trimmed;
+    }, { editor });
   }, [docId, editor]);
 
   const openControls = useCallback((target: LinkAuthoringTarget, anchor: PickerAnchor) => {

@@ -367,7 +367,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it('creates a note link when link controls receive an owned note URL', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('creates a note link with the target own text when controls receive an owned note URL', meta({ fixture: 'tree' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
 
