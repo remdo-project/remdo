@@ -317,3 +317,71 @@ test.describe('note links', () => {
     }
   });
 });
+
+test.describe('generic links', () => {
+  test('creates, edits, and removes a link through keyboard-first controls', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+
+    await page.keyboard.press('ControlOrMeta+K');
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    await expect(controls).toHaveCount(1);
+
+    const label = controls.getByRole('textbox', { name: 'Text' });
+    const destination = controls.getByRole('textbox', { name: 'Destination' });
+    await expect(destination).toBeFocused();
+    await destination.fill('example.com');
+    await expect(label).toHaveValue('example.com');
+    await destination.press('Enter');
+
+    await expect(controls).toHaveCount(0);
+    const link = editorLocator(page).locator('a[data-external-link-new-tab="true"]');
+    await expect(link).toHaveText('example.com');
+    await expect(link).toHaveAttribute('href', 'https://example.com/');
+    await expect(link).toHaveAttribute('target', '_blank');
+    await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    await expect(link).toHaveAttribute('aria-label', 'example.com (opens in new tab)');
+
+    await link.click();
+    await expect(controls).toHaveCount(1);
+    const edit = controls.getByRole('button', { name: 'Edit' });
+    await expect(edit).toBeFocused();
+    await edit.click();
+    await expect(controls.getByRole('textbox', { name: 'Destination' })).toBeFocused();
+    await controls.getByRole('textbox', { name: 'Text' }).fill('RemDo site');
+    await controls.getByRole('textbox', { name: 'Destination' }).fill('https://remdo.app');
+    await controls.getByRole('button', { name: 'Save link' }).click();
+
+    const edited = editorLocator(page).locator('a[data-external-link-new-tab="true"]');
+    await expect(edited).toHaveText('RemDo site');
+    await expect(edited).toHaveAttribute('href', 'https://remdo.app/');
+
+    await edited.click();
+    await controls.getByRole('button', { name: 'Remove link' }).click();
+    await expect(controls).toHaveCount(0);
+    await expect(editorLocator(page).getByRole('link', { name: /RemDo site/ })).toHaveCount(0);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'note1RemDo site' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  test('keeps invalid authoring open with an inline error', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('ControlOrMeta+K');
+
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    await controls.getByRole('textbox', { name: 'Destination' }).fill('javascript:alert(1)');
+    await controls.getByRole('button', { name: 'Create link' }).click();
+
+    await expect(controls).toHaveCount(1);
+    await expect(controls.getByRole('alert')).toContainText('valid web address');
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+});

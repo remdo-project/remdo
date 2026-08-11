@@ -183,14 +183,29 @@
 .text-link {
   color: var(--remdo-accent);
   cursor: pointer;
+  overflow-wrap: anywhere;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.12em;
 }
 
-.text-link:hover,
+.text-link:hover {
+  color: var(--remdo-accent-hover);
+}
+
 .text-link:focus-visible {
   color: var(--remdo-accent-hover);
+  outline: 2px solid var(--remdo-accent-hover);
+  outline-offset: 2px;
+}
+
+.text-link[data-external-link-new-tab='true']::after {
+  content: '↗';
+  display: inline-block;
+  margin-inline-start: 0.15em;
+  font-size: 0.72em;
+  line-height: 1;
+  text-decoration: none;
 }
 
 .remdo-outline li.list-nested-item {
@@ -432,6 +447,70 @@
   position: absolute;
   transform: translateY(0);
   z-index: 4;
+}
+
+.link-controls {
+  position: absolute;
+  z-index: 5;
+  min-width: 18rem;
+  max-width: min(28rem, calc(100% - 1rem));
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-dark-7);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+  padding: 0.5rem;
+}
+
+.link-controls__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.link-controls button {
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: var(--mantine-radius-xs);
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-dark-0);
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+}
+
+.link-controls button:hover,
+.link-controls button:focus-visible {
+  border-color: var(--remdo-accent);
+  background: var(--mantine-color-dark-5);
+}
+
+.link-controls__fields {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.link-controls__fields label {
+  display: grid;
+  gap: 0.2rem;
+  color: var(--mantine-color-dark-1);
+  font-size: var(--mantine-font-size-xs);
+}
+
+.link-controls__fields input {
+  width: 100%;
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: var(--mantine-radius-xs);
+  background: var(--mantine-color-dark-8);
+  color: var(--mantine-color-dark-0);
+  padding: 0.35rem 0.45rem;
+}
+
+.link-controls__fields input:focus-visible {
+  border-color: var(--remdo-accent);
+  outline: 1px solid var(--remdo-accent);
+}
+
+.link-controls__error {
+  color: var(--mantine-color-red-4);
+  font-size: var(--mantine-font-size-xs);
 }
 
 .note-link-picker {

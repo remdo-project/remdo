@@ -420,9 +420,10 @@ function $insertInternalLinkFromPlainText(
     return false;
   }
 
+  const selectedLabel = selection.isCollapsed() ? '' : selection.getTextContent();
   const linkNode = $createNoteLinkNode(linkRef, {});
   const resolvedTitle = linkRef.docId === currentDocId ? $findNoteById(linkRef.noteId)?.getTextContent() ?? null : null;
-  linkNode.append($createTextNode(resolvedTitle ?? trimmed));
+  linkNode.append($createTextNode(selectedLabel.trim().length > 0 ? selectedLabel : resolvedTitle ?? trimmed));
   selection.insertNodes([linkNode]);
   return true;
 }

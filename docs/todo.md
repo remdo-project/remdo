@@ -120,20 +120,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
-- **Note-link selected-paste label.** Target [note-link paste behavior](specs/outliner/note-links.md#core-behavior)
-  retains selected text as the note-link label. `$insertInternalLinkFromPlainText`
-  instead uses the target title for the active document and the pasted URL for
-  another document. Preserve the selected label and add focused coverage, then
-  remove this entry.
-
-- **Generic URL link target.** Implement the accepted [generic URL recognition,
-  authoring, presentation, and activation behavior](specs/outliner/links.md#generic-url-recognition).
-  The current editor provides automatic web linking but still accepts
-  protocol-relative and credential-bearing URLs and lacks email recognition,
-  intentional link creation and editing, persistent unlinking, link controls,
-  and the specified editing-safe activation behavior. Align implementation and
-  automated coverage, then remove this entry.
-
 - **Inline-selection Enter behavior.** Decide and specify what `Enter` does for
   a non-collapsed [inline text selection](specs/outliner/selection.md#selection-states)
   in [Insertion](specs/outliner/insertion.md), then align implementation and automated coverage.

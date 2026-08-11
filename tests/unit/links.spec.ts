@@ -1,6 +1,7 @@
-import { $createAutoLinkNode, $createLinkNode, $isLinkNode } from '@lexical/link';
-import { act } from '@testing-library/react';
-import { $createTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
+import { $createAutoLinkNode, $createLinkNode, $isAutoLinkNode, $isLinkNode } from '@lexical/link';
+import { act, fireEvent, waitFor } from '@testing-library/react';
+import { $createTextNode, $isTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND, UNDO_COMMAND } from 'lexical';
+import type { TextNode } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 
 import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
@@ -15,6 +16,7 @@ import {
   placeCaretAtNote,
   pressKey,
   selectEntireNote,
+  selectStructuralNotes,
   typeText,
 } from '#tests';
 import { getNoteBody } from '#client/editor/features/note-body/note-body-ops';
@@ -156,6 +158,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       const body = getNoteBody($findNoteById('note1')!)!;
       const linkNode = body.getChildren().find($isLinkNode)!;
       expect($isNoteLinkNode(linkNode)).toBe(true);
+      expect(linkNode.getTextContent()).toBe('body');
       if ($isNoteLinkNode(linkNode)) {
         expect(linkNode.getNoteId()).toBe('note2');
       }
@@ -221,7 +224,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
       const linkNode = note.getChildren().find($isLinkNode)!;
-      expect(linkNode.getTextContent()).toBe(url);
+      expect(linkNode.getTextContent()).toBe('note1');
       expect($isNoteLinkNode(linkNode)).toBe(false);
       expect(linkNode.getURL()).toBe(url);
       expect(linkNode.getTarget()).toBe('_blank');
@@ -229,7 +232,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it('clicking an external link opens a new tab without opener access', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('clicking an external link opens link controls without navigating', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/';
     await pastePlainText(remdo, url);
@@ -241,10 +244,285 @@ describe('note links (docs/specs/outliner/links.md)', () => {
         anchor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
       });
 
+      expect(openSpy).not.toHaveBeenCalled();
+      expect(document.querySelector('[data-link-controls]')).not.toBeNull();
+    } finally {
+      openSpy.mockRestore();
+    }
+  });
+
+  it('cmd/ctrl-clicking an external link opens a new tab without opener access', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = 'https://example.com/';
+    await pastePlainText(remdo, url);
+
+    const openSpy = vi.spyOn(globalThis, 'open').mockImplementation(() => null);
+    try {
+      const anchor = remdo.editor.getRootElement()!.querySelector('a')!;
+      await act(async () => {
+        anchor.dispatchEvent(new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          ctrlKey: true,
+        }));
+      });
+
       expect(openSpy).toHaveBeenCalledWith(url, '_blank', 'noopener,noreferrer');
     } finally {
       openSpy.mockRestore();
     }
+  });
+
+  it('creates a labeled link from selected text with Cmd/Ctrl+K', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const inputs = [...controls.querySelectorAll<HTMLInputElement>('input')];
+    expect(inputs).toHaveLength(2);
+    expect(inputs[0]!.value).toBe('note1');
+    expect(document.activeElement).toBe(inputs[1]);
+
+    await act(async () => {
+      fireEvent.change(inputs[1]!, { target: { value: 'example.com/path' } });
+      fireEvent.click(controls.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isLinkNode)!;
+      expect(link.getTextContent()).toBe('note1');
+      expect(link.getURL()).toBe('https://example.com/path');
+    });
+    expect(document.querySelector('[data-link-controls]')).toBeNull();
+  });
+
+  it('uses an entered destination as the label at a collapsed caret', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const inputs = [...controls.querySelectorAll<HTMLInputElement>('input')];
+    await act(async () => {
+      fireEvent.change(inputs[1]!, { target: { value: 'example.com' } });
+    });
+    expect(inputs[0]!.value).toBe('example.com');
+
+    await act(async () => {
+      fireEvent.click(controls.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isLinkNode)!;
+      expect(link.getTextContent()).toBe('example.com');
+      expect(link.getURL()).toBe('https://example.com/');
+    });
+  });
+
+  it('creates a note link when link controls receive an owned note URL', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const inputs = [...controls.querySelectorAll<HTMLInputElement>('input')];
+    await act(async () => {
+      fireEvent.change(inputs[1]!, {
+        target: { value: `/n/${remdo.getCollabDocId()}_note2` },
+      });
+    });
+    expect(inputs[0]!.value).toBe('note2');
+
+    await act(async () => {
+      fireEvent.click(controls.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isNoteLinkNode)!;
+      expect(link.getTextContent()).toBe('note2');
+      expect(link.getNoteId()).toBe('note2');
+    });
+  });
+
+  it('does not open generic link controls inside a note link', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' @note2');
+    await pressKey(remdo, { key: 'Enter' });
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isNoteLinkNode)!;
+      const text = link.getFirstChild();
+      if ($isTextNode(text)) {
+        text.select(0, 0);
+      }
+    });
+
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    expect(document.querySelector('[data-link-controls]')).toBeNull();
+  });
+
+  it('does not open generic link controls for a structural selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note1');
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    expect(document.querySelector('[data-link-controls]')).toBeNull();
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1'] });
+  });
+
+  it('closes controls when their selected-text target changes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    expect(document.querySelector('[data-link-controls]')).not.toBeNull();
+
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const text = note.getFirstChild();
+      if ($isTextNode(text)) {
+        text.setTextContent('changed');
+      }
+    });
+    await waitFor(() => {
+      expect(document.querySelector('[data-link-controls]')).toBeNull();
+    });
+  });
+
+  it('edits a generic link label and destination through the same controls', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await pastePlainText(remdo, 'https://example.com/');
+
+    const anchor = remdo.editor.getRootElement()!.querySelector('a')!;
+    await act(async () => {
+      fireEvent.click(anchor);
+    });
+    let controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const edit = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Edit')!;
+    expect(document.activeElement).toBe(edit);
+
+    await act(async () => {
+      fireEvent.click(edit);
+    });
+    controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const inputs = [...controls.querySelectorAll<HTMLInputElement>('input')];
+    expect(document.activeElement).toBe(inputs[1]);
+    await act(async () => {
+      fireEvent.change(inputs[0]!, { target: { value: 'Email us' } });
+    });
+    await act(async () => {
+      fireEvent.change(inputs[1]!, { target: { value: 'team@example.com' } });
+    });
+    await act(async () => {
+      fireEvent.click(controls.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isLinkNode)!;
+      expect($isAutoLinkNode(link)).toBe(false);
+      expect(link.getTextContent()).toBe('Email us');
+      expect(link.getURL()).toBe('mailto:team@example.com');
+      expect(link.getTarget()).toBeNull();
+      expect(link.getRel()).toBeNull();
+    });
+  });
+
+  it('keeps controls open and leaves the document unchanged after invalid submission', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const destination = controls.querySelectorAll<HTMLInputElement>('input')[1]!;
+    await act(async () => {
+      fireEvent.change(destination, { target: { value: 'javascript:alert(1)' } });
+      fireEvent.click(controls.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    });
+
+    expect(document.querySelector('[data-link-controls]')).not.toBeNull();
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain('valid web address');
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('removes an automatic link without relinking until its text changes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'https://example.com/');
+    });
+    await remdo.waitForSynced();
+
+    await act(async () => {
+      fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!);
+    });
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const remove = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Remove link')!;
+    await act(async () => {
+      fireEvent.click(remove);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isAutoLinkNode)!;
+      expect(link.getIsUnlinked()).toBe(true);
+    });
+    expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
+
+    await act(async () => {
+      const restored = remdo.editor.parseEditorState(JSON.stringify(remdo.getEditorState()));
+      remdo.editor.setEditorState(restored);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isAutoLinkNode)!;
+      expect(link.getIsUnlinked()).toBe(true);
+    });
+    expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
+
+    await act(async () => {
+      remdo.editor.update(() => {
+        const note = $findNoteById('note1')!;
+        const link = note.getChildren().find($isAutoLinkNode)!;
+        const text = link.getFirstChild();
+        if ($isTextNode(text)) {
+          text.setTextContent('https://example.org/');
+        }
+      });
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isAutoLinkNode)!;
+      expect(link.getIsUnlinked()).toBe(false);
+      expect(link.getURL()).toBe('https://example.org/');
+    });
+  });
+
+  it('immediate Undo removes automatic link formatting but preserves authored text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = 'https://example.com/';
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+    });
+    await remdo.waitForSynced();
+
+    await remdo.dispatchCommand(UNDO_COMMAND);
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe(url);
+      const link = note.getChildren().find($isAutoLinkNode)!;
+      expect(link.getIsUnlinked()).toBe(true);
+    });
+    expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
   });
 
   it('normalizes imported-style external LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -272,7 +550,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it('normalizes imported-style protocol-relative LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('unwraps imported-style protocol-relative LinkNodes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = '//example.com/path';
     await act(async () => {
@@ -288,12 +566,8 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      const linkNode = note.getChildren().find($isLinkNode)!;
-      expect(linkNode.getTextContent()).toBe('Example');
-      expect($isNoteLinkNode(linkNode)).toBe(false);
-      expect(linkNode.getURL()).toBe(url);
-      expect(linkNode.getTarget()).toBe('_blank');
-      expect(linkNode.getRel()).toBe('noopener noreferrer');
+      expect(note.getTextContent()).toBe('Example');
+      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
   });
 
@@ -322,7 +596,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it('normalizes imported-style relative LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('unwraps imported-style relative LinkNodes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = '/n/main_note2';
     await act(async () => {
@@ -338,12 +612,8 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      const linkNode = note.getChildren().find($isLinkNode)!;
-      expect(linkNode.getTextContent()).toBe('Example');
-      expect($isNoteLinkNode(linkNode)).toBe(false);
-      expect(linkNode.getURL()).toBe(url);
-      expect(linkNode.getTarget()).toBe('_blank');
-      expect(linkNode.getRel()).toBe('noopener noreferrer');
+      expect(note.getTextContent()).toBe('Example');
+      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
   });
 
@@ -446,7 +716,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
       const linkNode = note.getChildren().find($isLinkNode)!;
-      expect(linkNode.getTextContent()).toBe(url);
+      expect(linkNode.getTextContent()).toBe('note1');
       expect($isNoteLinkNode(linkNode)).toBe(false);
       expect(linkNode.getURL()).toBe(url);
       expect(linkNode.getTarget()).toBe('_blank');
@@ -471,9 +741,89 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       expect(linkNode.getTarget()).toBe('_blank');
       expect(linkNode.getRel()).toBe('noopener noreferrer');
     });
+
+    const anchor = remdo.editor.getRootElement()!.querySelector<HTMLAnchorElement>('a')!;
+    expect(anchor.dataset.externalLinkNewTab).toBe('true');
+    expect(anchor.getAttribute('aria-label')).toBe(`${url} (opens in new tab)`);
   });
 
-  it('typing a protocol-relative URL creates a regular link that opens in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('typing an email address creates a mail link without web-link attributes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const address = 'team@example.com';
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, address);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isLinkNode)!;
+      expect(link.getTextContent()).toBe(address);
+      expect(link.getURL()).toBe(`mailto:${address}`);
+      expect(link.getTarget()).toBeNull();
+      expect(link.getRel()).toBeNull();
+    });
+  });
+
+  it('keeps an automatically recognized destination synchronized with direct text edits', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'https://example.com/');
+    });
+    await remdo.waitForSynced();
+
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isAutoLinkNode)!;
+      link.getFirstChild<TextNode>()!.setTextContent('https://example.org/path');
+    });
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isAutoLinkNode)!;
+      expect(link.getTextContent()).toBe('https://example.org/path');
+      expect(link.getURL()).toBe('https://example.org/path');
+    });
+  });
+
+  it('turns directly edited automatic-link text into ordinary text when it no longer matches', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'https://example.com/');
+    });
+    await remdo.waitForSynced();
+
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isAutoLinkNode)!;
+      const text = link.getFirstChild<TextNode>()!;
+      text.select(0, 0);
+      text.setTextContent('not a destination');
+    });
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe('not a destination');
+      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
+    });
+  });
+
+  it('typing a credential-bearing URL leaves the complete candidate as text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = 'https://user:password@example.com/path';
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe(url);
+      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
+    });
+  });
+
+  it('typing a protocol-relative URL leaves plain text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = '//example.com/path';
     await act(async () => {
@@ -483,12 +833,8 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      const linkNode = note.getChildren().find($isLinkNode)!;
-      expect(linkNode.getTextContent()).toBe(url);
-      expect($isNoteLinkNode(linkNode)).toBe(false);
-      expect(linkNode.getURL()).toBe(url);
-      expect(linkNode.getTarget()).toBe('_blank');
-      expect(linkNode.getRel()).toBe('noopener noreferrer');
+      expect(note.getTextContent()).toBe(url);
+      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
   });
 

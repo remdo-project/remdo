@@ -1,7 +1,7 @@
 import { ClickableLinkPlugin } from '@lexical/react/LexicalClickableLinkPlugin';
 
-import { BlankTargetLinkInterceptorPlugin } from './BlankTargetLinkInterceptorPlugin';
 import { ExternalLinkPlugin } from './ExternalLinkPlugin';
+import { LinkControlsPlugin } from './LinkControlsPlugin';
 import { NoteLinkPlugin } from './NoteLinkPlugin';
 
 export function LinksPlugin() {
@@ -10,7 +10,7 @@ export function LinksPlugin() {
     <>
       <NoteLinkPlugin />
       <ExternalLinkPlugin />
-      <BlankTargetLinkInterceptorPlugin />
+      <LinkControlsPlugin />
       <ClickableLinkPlugin newTab={false} />
     </>
   );
