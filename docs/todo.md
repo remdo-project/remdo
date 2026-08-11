@@ -30,8 +30,10 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 - **Remaining agent skill alignment.** Apply the adopted
   [specification/procedure boundary](documentation.md#agent-skill-boundary) to
   the remaining skills. Reconsider custom scripts and state machines that encode
-  adaptive work without enough robustness to justify their maintenance, then
-  align each affected specification, procedure, implementation, and coverage.
+  adaptive work without enough robustness to justify their maintenance. Prefer
+  concise intent plus deterministic checks of stable repository invariants,
+  then align each affected specification, procedure, implementation, and
+  coverage.
 
 - **Prepare-change lifecycle.** Reconsider its dialogue, specification,
   approval, and execution flow as a whole so it is simple, flexible, and clear.
