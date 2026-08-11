@@ -51,6 +51,12 @@ preserves its finding dispositions, applies corrections from failed checks and
 [`confirmed` findings](remdo-verify-change.md#findings), and leaves `material
 out of scope` findings unchanged.
 
+Before creating a commit-range correction commit, the skill runs the batch's
+likely affected tests and applicable static checks under the contributor
+[testing policy](../../../dev/testing.md#verification-lifecycle). If a check
+fails, it repairs and rechecks the batch when it can determine an in-scope
+correction; otherwise it stops without committing.
+
 After each correction batch, the skill refreshes the retained scope. It
 converges without further quality steps if no selected diff remains.
 

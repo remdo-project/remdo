@@ -16,8 +16,8 @@ preserve local work.
 Retain `TARGET` and `STASH` from the runner output for this run:
 
 - `up-to-date` and `fast-forwarded` are complete.
-- `conflicted` and `merge-ready` continue under [Merge conflicts](#merge-conflicts).
-- `verification-needed` continues under [Verification](#verification).
+- `conflicted` continues under [Merge conflicts](#merge-conflicts).
+- `merge-ready` continues under [Verification](#verification).
 - `restore-conflicted` continues under [Restoration](#restoration).
 - Any failure is terminal. Report its output and any retained stash.
 
@@ -31,25 +31,25 @@ Resolve a merge conflict only when intended behavior and repository evidence
 determine the result. Inspect both sides and their authoritative contracts.
 Stage every determined resolution.
 
-When no unmerged path remains, run
-`sh "$runner" continue "$TARGET"` and continue under [Verification](#verification).
+When no unmerged path remains, continue under [Verification](#verification).
 Otherwise leave the Git merge state and retained stash unchanged, and report
 `conflicted` for manual recovery.
 
 ## Verification
 
-Run `pnpm run check:full`.
+Run focused tests and applicable static checks for the pending integration.
 
 When it fails, wait for the complete result and correct only failures determined
 to have been caused by integrating `TARGET`. Check every correction against its
-authoritative contracts, commit one coherent correction batch, and run the full
-check again. Repeat only after a correction changes repository state.
+authoritative contracts, stage it, and repeat the applicable focused checks.
+Repeat only after a correction changes repository state.
 
 When no integration correction can be determined, retain the failure as the
-verification outcome without changing unrelated code.
+verification outcome without changing unrelated code. Leave the pending merge
+unchanged and report `verification-failed`; do not continue it.
 
-After verification, continue under [Restoration](#restoration) when `STASH` was
-reported. Otherwise report `merged` or `verification-failed`.
+After verification passes, run `sh "$runner" continue "$TARGET"`. Continue under
+[Restoration](#restoration) when `STASH` was reported. Otherwise report `merged`.
 
 ## Restoration
 

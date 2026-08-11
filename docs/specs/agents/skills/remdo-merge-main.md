@@ -9,10 +9,10 @@ interrupted run are also outside the capability.
 ## Authority
 
 [Repository authority](../../../../AGENTS.md#repository-authority): invocation
-authorizes updating the local `origin/main` tracking ref to the fetched
-target, fast-forwarding or merging that target into the current branch, staging
-determined conflict resolutions, and committing determined corrections.
-Preserve mode also authorizes stashing and restoring requested local work.
+authorizes updating the local `origin/main` tracking ref to the fetched target,
+fast-forwarding or preparing and committing one merge of that target, staging
+determined conflict resolutions and integration corrections. Preserve mode also
+authorizes stashing and restoring requested local work.
 
 ## Target
 
@@ -28,9 +28,9 @@ By default, the capability requires a clean repository. Explicit preserve mode
 saves staged, unstaged, and non-ignored untracked work, including staged versus
 unstaged distinctions, before changing the branch.
 
-Integration and verification finish against the clean committed state before
-restoration begins. The capability then reapplies the saved work and discards
-its saved copy only after restoration succeeds.
+Integration verification and the merge commit finish before restoration begins.
+The capability then reapplies the saved work and discards its saved copy only
+after restoration succeeds.
 
 The capability resolves a restoration conflict only when the correct result can
 be determined. Otherwise, it leaves the conflict and saved work for manual recovery.
@@ -47,13 +47,14 @@ the Git merge state for manual recovery.
 
 ## Verification
 
-An up-to-date or fast-forward result requires no repository check. A merge
-commit requires the [full repository check](../instructions.md#execution-and-verification).
+An up-to-date or fast-forward result requires no repository check. Before a
+merge commit, the capability runs focused tests and applicable static checks for
+the pending integration.
 
-When verification fails, the capability commits every determined correction
-caused by integrating the target, then runs complete verification again. An
-unrelated failure or one without a determined integration correction remains in
-the result without rolling back the merge.
+When verification fails, the capability includes every determined integration
+correction in the pending merge and repeats the applicable checks. An unrelated
+failure or one without a determined integration correction leaves the pending
+merge unchanged and produces `verification-failed`.
 
 ## Result
 
@@ -72,13 +73,14 @@ conflicts: # if any
   - path: <conflicted path>
     status: <resolved | unresolved>
 corrections: # if any
-  - summary: <committed integration correction>
+  - summary: <integration correction>
 verification: <not-run | passed | failed> # if merge form determined
 preservation: <not-needed | untouched | pending | restored | restore-conflicted> # if requested and known
 saved_work: <stash commit> # if retained
 reason: <stop or manual recovery condition> # if any
 ```
 
+- `stopped` means an otherwise-unclassified failure ended the run.
 - `not-needed` means preserve mode found no local work.
 - `untouched` means an unchanged branch left local work in place.
 - `pending` means saved work remains in its stash for manual recovery.

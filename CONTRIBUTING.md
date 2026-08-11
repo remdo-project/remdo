@@ -5,7 +5,7 @@ baseline for judging a change's intent, supported runtimes and run modes,
 compatibility, and follow-up.
 
 Durable documentation has its own contract in [Documentation](docs/documentation.md).
-Testing quality and coverage follow [Testing](docs/dev/testing.md).
+Testing follows the [contributor testing policy](docs/dev/testing.md).
 
 ## Git Workflow
 

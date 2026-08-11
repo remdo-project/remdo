@@ -51,11 +51,15 @@ Apply a complete correction batch only after the current step finishes. Validate
 it against its applicable authoritative contracts and repair inconsistencies
 introduced by it.
 
-For a commit range, require an attached `HEAD`, then stage only the validated
-batch and create one normal nonempty commit. Leave uncommitted-scope corrections
-uncommitted. Record the selected diff after the batch is committed or retained,
-compare it with previously assessed states, then route the refreshed scope
-through the contract.
+For a commit range, require an attached `HEAD`, then run the validated batch's
+likely affected tests and applicable static checks under the contributor
+[`Testing`](../../../docs/dev/testing.md#verification-lifecycle) policy. If a
+check fails, repair, revalidate, and recheck the batch when an in-scope
+correction can be determined; otherwise stop without committing. After checks
+pass, stage only the validated batch and create one normal nonempty commit.
+Leave uncommitted-scope corrections uncommitted. Record the selected diff after
+the batch is committed or retained, compare it with previously assessed states,
+then route the refreshed scope through the contract.
 
 ## Report
 

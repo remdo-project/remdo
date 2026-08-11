@@ -4,12 +4,16 @@ permissions:
 
 on: push
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   typecheck:
     permissions:
       contents: read
       actions: write
-    timeout-minutes: 5
+    timeout-minutes: 8
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -22,3 +26,4 @@ jobs:
       - run: pnpm run audit:policy
       - run: pnpm run audit:unused:prod
       - run: pnpm run lint
+      - run: pnpm run check:dev-boundary

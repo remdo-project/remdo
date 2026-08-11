@@ -24,11 +24,9 @@ read-only-runner [options] <agent> <invocation>
 The runner forwards supplied model and effort values to the agent unchanged and
 leaves absent values unset, so the agent applies its own default.
 
-A caller invokes `review` only after the repository check prescribed for the
-resolved scope has completed successfully against that scope. The caller keeps
-the scope unchanged from the start of that check until the review completes.
-The runner relies on this precondition rather than running or validating the
-check itself.
+A review caller owns repository verification separately and keeps the resolved
+scope unchanged until the review completes. The runner does not run or validate
+repository checks.
 
 ## Invocations
 
@@ -42,17 +40,13 @@ review whose inspection access is incomplete can still report findings and
 success, so confirmation observes review reach rather than its result.
 
 A review uses the native command's instructions and the repository guidance its
-session loads. Under the call precondition, the runner tells the reviewing agent
-to assume the prescribed tests and checks have passed, treat that as existing
-evidence, and neither rerun nor manually reproduce them. The reviewer still
-inspects implementation and test adequacy for issues that passing checks may
-miss and passes the assumption and instruction to every reviewer it delegates
-to. If fresh runtime evidence is essential to assess a potential finding, the
-reviewer reports the exact check needed and why instead of running it. This is
-cooperative guidance, not a tool restriction. **Empirical.** During validation,
-no reviewer process runs or manually reproduces a repository check; forwarded
-instructions do not establish compliance, so confirmation observes the commands
-they run.
+session loads. The runner tells the reviewing agent that repository checks are
+handled separately, to neither run nor manually reproduce them, and to pass the
+instructions to every reviewer it delegates to. The reviewer reports any needed
+runtime check and why without running it. This is cooperative guidance, not a
+tool restriction. **Empirical.** During validation, no reviewer process runs or
+manually reproduces a repository check; forwarded instructions do not establish
+compliance, so confirmation observes the commands they run.
 
 ## Repository protection
 

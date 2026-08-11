@@ -58,13 +58,13 @@ documentation. Route agents by the question they need to answer:
   - **Cross-mode change impact:** [Run-Mode Impact](../../../CONTRIBUTING.md#run-mode-impact).
   - **Compatibility defaults:** [Backward compatibility](../../../CONTRIBUTING.md#backward-compatibility-pre-10).
   - **Tracked code comments:** [Code comments](../../../CONTRIBUTING.md#code-comments).
-  - **Testing quality and coverage:** [Testing](../../dev/testing.md).
+  - **Testing policy:** [Testing](../../dev/testing.md).
 - **Long-term product constraints:** [Project principles](../../principles.md).
 - **Supported run modes:** [Run Modes](../../run-modes.md).
   - **Production procedures:** [Production Deployment](../../guides/production-deployment.md).
   - **Development procedures:** [Local Development](../../guides/local-development.md).
   - **Verification procedures:** [Running Tests](../../guides/testing.md).
-  - **Verification lifecycle:** [Test Harness](../testing/test-harness.md).
+  - **Test runtime:** [Test Harness](../testing/test-harness.md).
 - **Runtime configuration:** [Configuration](../runtime/configuration.md).
   - **Port and origin derivation:** [Derivation rules](../runtime/configuration.md#derivation-rules).
 - **Tracked repository follow-up:** [RemDo TODO](../../todo.md#tracked-follow-up).
@@ -102,12 +102,9 @@ require explicit user authority.
 - Prefer the simplest permanent implementation. Stop on a missing task
   dependency, investigate repository evidence before asking, and ask before
   choosing between unresolved material tradeoffs.
-- Unless a narrower capability owns verification, `CODEX_CI=1` or `CI=true`
-  selects cloud-agent verification; otherwise local verification applies. A
-  wholly uncommitted local scope finishes with `pnpm run check`; cloud work and
-  any scope containing committed changes finish with `pnpm run check:full`.
-- Agents apply the contributor [testing policy](../../dev/testing.md) when
-  selecting, writing, or reviewing coverage and perform each
+- Agents follow the contributor [testing policy](../../dev/testing.md) and
+  report CI as pending until it runs.
+- Agents perform each
   [empirical check](../../dev/testing.md#empirical-checks) required by an
   affected behavior's owner.
 - Conclusions about UI behavior or rendering use live browser inspection as

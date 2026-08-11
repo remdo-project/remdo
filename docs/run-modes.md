@@ -17,4 +17,5 @@ Work on the application locally.
 ## Verification
 
 Check application behavior. [Running Tests](guides/testing.md) owns setup and invocation.
-The [Test Harness](specs/testing/test-harness.md) owns lifecycle, isolation, diagnostics, and the [CI environment](specs/testing/test-harness.md#ci-environment).
+The [Test Harness](specs/testing/test-harness.md) owns runtime lifecycle,
+isolation, diagnostics, and the [CI environment](specs/testing/test-harness.md#ci-environment).

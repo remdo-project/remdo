@@ -69,17 +69,23 @@ describe('merge-main.sh', () => {
     );
   });
 
-  it('creates a merge commit and requests verification', () => {
+  it('prepares a merge and commits it only after continuation', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
     commitAll(work, 'local');
     advanceOrigin(origin);
+    const before = git(work, 'rev-parse', 'HEAD').stdout;
 
     const result = run(work, 'start');
+    const target = value(result.stdout, 'TARGET')!;
 
     expect(result.status).toBe(0);
-    expect(value(result.stdout, 'STATE')).toBe('verification-needed');
+    expect(value(result.stdout, 'STATE')).toBe('merge-ready');
     expect(value(result.stdout, 'FORM')).toBe('merge-commit');
+    expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(before);
+    expect(git(work, 'rev-parse', 'MERGE_HEAD').stdout.trim()).toBe(target);
+
+    expect(value(run(work, 'continue', target).stdout, 'STATE')).toBe('merged');
     expect(
       git(work, 'rev-list', '--parents', '-n', '1', 'HEAD').stdout.trim().split(' '),
     ).toHaveLength(3);
@@ -271,10 +277,13 @@ describe('merge-main.sh', () => {
     const started = run(work, 'start', '--preserve');
     const stash = value(started.stdout, 'STASH')!;
 
-    expect(value(started.stdout, 'STATE')).toBe('verification-needed');
+    expect(value(started.stdout, 'STATE')).toBe('merge-ready');
     expect(fs.existsSync(path.join(work, 'dirty.md'))).toBe(false);
     expect(git(work, 'stash', 'list', '--format=%H').stdout.trim()).toBe(stash);
 
+    expect(
+      value(run(work, 'continue', value(started.stdout, 'TARGET')!).stdout, 'STATE'),
+    ).toBe('merged');
     const restored = run(work, 'restore', stash);
     expect(value(restored.stdout, 'STATE')).toBe('restored');
     expect(fs.readFileSync(path.join(work, 'dirty.md'), 'utf8')).toBe(
@@ -302,7 +311,7 @@ describe('merge-main.sh', () => {
 
     const continued = run(work, 'continue', target);
     expect(continued.stdout.startsWith('STATE=')).toBe(true);
-    expect(value(continued.stdout, 'STATE')).toBe('verification-needed');
+    expect(value(continued.stdout, 'STATE')).toBe('merged');
     expect(value(run(work, 'restore', stash).stdout, 'STATE')).toBe('restored');
     expect(fs.readFileSync(path.join(work, 'dirty.md'), 'utf8')).toBe(
       'saved work\n',
@@ -413,7 +422,7 @@ describe('merge-main.sh', () => {
     expect(result.stderr).toContain('could not fetch origin/main');
   });
 
-  it('reports a hook-rejected merge commit as ready to continue', () => {
+  it('does not run merge hooks after the pending tree is verified', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
     commitAll(work, 'local');
@@ -425,17 +434,21 @@ describe('merge-main.sh', () => {
       '--git-path',
       'hooks/pre-merge-commit',
     ).stdout.trim();
-    fs.writeFileSync(hook, '#!/usr/bin/env sh\nexit 1\n');
+    fs.writeFileSync(hook, [
+      '#!/usr/bin/env sh',
+      'printf hook > hook.md',
+      'git add hook.md',
+      'exit 1',
+      '',
+    ].join('\n'));
     fs.chmodSync(hook, 0o755);
 
     const started = run(work, 'start');
-    const target = value(started.stdout, 'TARGET')!;
+    const continued = run(work, 'continue', value(started.stdout, 'TARGET')!);
 
-    expect(value(started.stdout, 'STATE')).toBe('merge-ready');
-    fs.rmSync(hook);
-    expect(value(run(work, 'continue', target).stdout, 'STATE')).toBe(
-      'verification-needed',
-    );
+    expect(continued.status, continued.stderr).toBe(0);
+    expect(value(continued.stdout, 'STATE')).toBe('merged');
+    expect(fs.existsSync(path.join(work, 'hook.md'))).toBe(false);
   });
 
   it('refuses to continue with unstaged or untracked resolution work', () => {
@@ -461,7 +474,7 @@ describe('merge-main.sh', () => {
 
     fs.rmSync(path.join(work, 'scratch.md'));
     expect(value(run(work, 'continue', target).stdout, 'STATE')).toBe(
-      'verification-needed',
+      'merged',
     );
   });
 
@@ -476,7 +489,10 @@ describe('merge-main.sh', () => {
 
     const result = run(work, 'start');
 
-    expect(value(result.stdout, 'STATE')).toBe('verification-needed');
+    expect(value(result.stdout, 'STATE')).toBe('merge-ready');
+    expect(
+      value(run(work, 'continue', value(result.stdout, 'TARGET')!).stdout, 'STATE'),
+    ).toBe('merged');
     expect(
       git(work, 'rev-list', '--parents', '-n', '1', 'HEAD').stdout.trim().split(' '),
     ).toHaveLength(3);
@@ -505,7 +521,7 @@ describe('merge-main.sh', () => {
     );
 
     expect(result.status, result.stderr).toBe(0);
-    expect(value(result.stdout, 'STATE')).toBe('verification-needed');
+    expect(value(result.stdout, 'STATE')).toBe('merge-ready');
     expect(fs.readFileSync(path.join(work, 'upstream.md'), 'utf8')).toBe(
       '# upstream\n',
     );
@@ -529,7 +545,7 @@ describe('merge-main.sh', () => {
     const result = run(work, 'start');
 
     expect(result.status, result.stderr).toBe(0);
-    expect(value(result.stdout, 'STATE')).toBe('verification-needed');
+    expect(value(result.stdout, 'STATE')).toBe('merge-ready');
     expect(fs.readFileSync(path.join(work, 'upstream.md'), 'utf8')).toBe(
       '# upstream\n',
     );
