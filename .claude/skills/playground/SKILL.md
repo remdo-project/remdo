@@ -42,15 +42,18 @@ skill's `open` step; the publication contract owns delivery.
 Apply the specification's [publication contract](../../../docs/specs/agents/skills/playground.md#publication)
 with these repository mechanics:
 
-1. Choose the lowest unused `index-N.html` path.
-2. If `index.html` is a regular file rather than a symlink, move it to that
-   path and choose the next unused path for the new artifact.
-3. Move the completed temporary file to the new numbered path.
-4. Run `ln -sfn index-N.html public/playground/index.html` with the new filename.
+1. Let `N` be the smallest integer at least zero whose `index-N.html` path is
+   unused.
+2. If `index.html` is a regular file rather than a symlink, copy it to that
+   numbered path as the legacy artifact, then recompute `N` for the new artifact.
+3. Move the completed temporary file to the new `index-N.html` path.
+4. Create a run-owned temporary symlink beside `index.html` with a relative
+   target of the new filename, then atomically rename that symlink to
+   `index.html`.
 
-Track every path and move owned by the run. If publication stops, reverse its
-completed moves, restore the prior `index.html` state, and remove only the new
-run's temporary or numbered artifact. Never remove a preserved legacy artifact.
+Do not replace `index.html` before the final rename. If generation or
+publication stops before it, remove every temporary, new numbered, or legacy
+copy created by the run, leaving prior history and `index.html` unchanged.
 
 ## Report
 
