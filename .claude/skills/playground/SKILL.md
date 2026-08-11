@@ -21,7 +21,8 @@ adapting that template when no type fits cleanly. Stop under the specification's
 [dependency rule](../../../docs/specs/agents/skills/playground.md#dependency)
 only if the installed skill or a required template file cannot be resolved.
 
-Before creating files, resolve the canonical origin:
+Before creating files, resolve the canonical origin while keeping the wrapper's
+temporary storage outside the repository:
 
 ```sh
 TMPDIR=/tmp tools/env.sh pnpm exec tsx tools/dev/print-app-public-url.ts
@@ -44,8 +45,9 @@ with these repository mechanics:
 
 1. Let `N` be the smallest integer at least zero whose `index-N.html` path is
    unused.
-2. If `index.html` is a regular file rather than a symlink, copy it to that
-   numbered path as the legacy artifact, then recompute `N` for the new artifact.
+2. If a regular `index.html` does not byte-match an existing numbered artifact,
+   copy it to that numbered path as the legacy artifact, then recompute `N` for
+   the new artifact.
 3. Move the completed temporary file to the new `index-N.html` path.
 4. Copy the new numbered artifact to a new, unused run-owned temporary path
    beside `index.html`, then atomically rename that copy to `index.html`.
