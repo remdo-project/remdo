@@ -40,6 +40,7 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     ['www.example.com:8443/path', 'https://www.example.com:8443/path'],
     ['user@example.com', 'mailto:user@example.com'],
     ["o'reilly@example.com", "mailto:o'reilly@example.com"],
+    ["'foo@example.com", "mailto:'foo@example.com"],
     ['a?b@example.com', 'mailto:a%3Fb@example.com'],
     ['http://127.0.0.1/path', 'http://127.0.0.1/path'],
   ])('automatically recognizes %s', (input, expectedUrl) => {
@@ -57,6 +58,7 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     'localhost:3000',
     '127.0.0.1',
     'https://user:password@example.com',
+    "https://'foo@example.com",
     'user@example.com?subject=hello',
     '.www.example.com',
   ])('leaves ambiguous or unsafe automatic candidate %s as text', (input) => {

@@ -136,16 +136,10 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it('pasting the same-document note URL creates a note link with docId', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('pasting a parent-note URL uses only the target own text as its label', meta({ fixture: 'tree' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     const url = `/n/${remdo.getCollabDocId()}_note2`;
     await pastePlainText(remdo, url);
-
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1note2' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
@@ -291,6 +285,34 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     }
   });
 
+  it('copies a destination when the Clipboard API is unavailable', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = 'https://example.com/';
+    await pastePlainText(remdo, url);
+
+    const clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    const execCommandDescriptor = Object.getOwnPropertyDescriptor(document, 'execCommand');
+    const execCommand = vi.fn(() => true);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined });
+    Object.defineProperty(document, 'execCommand', { configurable: true, value: execCommand });
+    try {
+      await act(async () => {
+        fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!);
+      });
+      const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+      const copy = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Copy destination')!;
+      await act(async () => {
+        fireEvent.click(copy);
+      });
+      expect(execCommand).toHaveBeenCalledWith('copy');
+    } finally {
+      if (clipboardDescriptor) Object.defineProperty(navigator, 'clipboard', clipboardDescriptor);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+      if (execCommandDescriptor) Object.defineProperty(document, 'execCommand', execCommandDescriptor);
+      else Reflect.deleteProperty(document, 'execCommand');
+    }
+  });
+
   it('rebinds link interactions when Lexical replaces the editor root', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await pastePlainText(remdo, 'https://example.com/');
@@ -391,6 +413,27 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       expect(link.getTextContent()).toBe('note2');
       expect(link.getNoteId()).toBe('note2');
     });
+  });
+
+  it('uses the note URL as fallback for a whitespace selection and empty target', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      for (const noteId of ['note1', 'note2']) {
+        const text = $findNoteById(noteId)!.getFirstChild();
+        if ($isTextNode(text)) {
+          text.setTextContent('   ');
+        }
+      }
+    });
+    await selectEntireNote(remdo, 'note1');
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const inputs = [...controls.querySelectorAll<HTMLInputElement>('input')];
+    const url = `/n/${remdo.getCollabDocId()}_note2`;
+    await act(async () => {
+      fireEvent.change(inputs[1]!, { target: { value: url } });
+    });
+    expect(inputs[0]!.value).toBe(url);
   });
 
   it('does not open generic link controls inside a note link', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -539,6 +582,11 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       expect(link.getIsUnlinked()).toBe(true);
     });
     expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
+
+    await placeCaretAtNote(remdo, 'note1', 1);
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    expect(document.querySelector('[data-link-controls] button[type="submit"]')).not.toBeNull();
+    await remdo.dispatchCommand(KEY_ESCAPE_COMMAND);
 
     await act(async () => {
       remdo.editor.update(() => {

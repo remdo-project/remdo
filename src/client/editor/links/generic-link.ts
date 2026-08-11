@@ -19,7 +19,7 @@ const IPV4_PATTERN = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 const HOST_WITH_PORT_PATTERN = /^[^/?#]+:\d+(?:[/?#]|$)/;
 const AUTOMATIC_START_PATTERN = /[\s([{<"'“‘]/;
 const AUTOMATIC_END_PATTERN = /[\s<>"“”‘’]/;
-const AUTOMATIC_EMAIL_PATTERN = /[\w.!#$%&*+/=?^`{|}~-][\w.!#$%&'*+/=?^`{|}~-]*@[^\s<>"“”‘’]+/gu;
+const AUTOMATIC_EMAIL_PATTERN = /[\w.!#$%&'*+/=?^`{|}~-]+@[^\s<>"“”‘’]+/gu;
 const TRAILING_PUNCTUATION = new Set(['.', ',', ';', ':', '!', '?', '*', '_', '~', '"', "'", '“', '”', '‘', '’', '>']);
 const CLOSER_TO_OPENER = new Map([
   [')', '('],

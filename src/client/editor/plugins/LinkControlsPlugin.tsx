@@ -121,9 +121,10 @@ function $resolveSelectionSnapshot(snapshot: SelectionSnapshot): RangeSelection 
 
 function $findLinkAncestor(node: LexicalNode): LinkNode | null {
   if ($isLinkNode(node)) {
-    return node;
+    return node instanceof AutoLinkNode && node.getIsUnlinked() ? null : node;
   }
-  return $findMatchingParent(node, $isLinkNode);
+  const link = $findMatchingParent(node, $isLinkNode);
+  return link instanceof AutoLinkNode && link.getIsUnlinked() ? null : link;
 }
 
 function $captureLinkTarget(link: LinkNode, selection: RangeSelection): LinkAuthoringTarget {
@@ -305,6 +306,24 @@ function activateDestination(url: string) {
   globalThis.open(url, isWeb ? '_blank' : '_self', isWeb ? 'noopener,noreferrer' : undefined);
 }
 
+function copyDestination(destination: string) {
+  const clipboard = Reflect.get(navigator, 'clipboard') as Clipboard | undefined;
+  if (clipboard) {
+    void clipboard.writeText(destination);
+    return;
+  }
+  const input = document.createElement('textarea');
+  input.value = destination;
+  input.style.position = 'fixed';
+  input.style.opacity = '0';
+  document.body.append(input);
+  input.select();
+  // Legacy fallback remains necessary on supported non-secure HTTP origins.
+  // eslint-disable-next-line ts/no-deprecated
+  document.execCommand('copy');
+  input.remove();
+}
+
 function extendSelectionToLinkPointer(anchor: HTMLAnchorElement, event: MouseEvent) {
   const selection = globalThis.getSelection();
   const position = document.caretPositionFromPoint(event.clientX, event.clientY);
@@ -352,8 +371,11 @@ export function LinkControlsPlugin() {
   }, [editor, setControlsState]);
 
   const defaultCreationLabel = useCallback((destination: string, target: LinkAuthoringTarget) => {
-    if (target.kind !== 'caret') {
-      return target.kind === 'range' ? target.text : '';
+    if (target.kind === 'link') {
+      return '';
+    }
+    if (target.kind === 'range' && target.text.trim().length > 0) {
+      return target.text;
     }
     const trimmed = destination.trim();
     const noteRef = parseOwnedNoteLinkUrl(trimmed, {
@@ -365,7 +387,8 @@ export function LinkControlsPlugin() {
     }
     return editor.getEditorState().read(() => {
       const note = noteRef.docId === docId ? $findNoteById(noteRef.noteId) : null;
-      return note ? getNoteOwnText(note) : trimmed;
+      const ownText = note ? getNoteOwnText(note) : '';
+      return ownText.trim().length > 0 ? ownText : trimmed;
     }, { editor });
   }, [docId, editor]);
 
@@ -381,7 +404,7 @@ export function LinkControlsPlugin() {
       destination: target.kind === 'link' ? target.url : '',
       error: null,
       label: target.kind === 'range' || target.kind === 'link' ? target.text : '',
-      labelAutomatic: target.kind === 'caret',
+      labelAutomatic: target.kind === 'caret' || (target.kind === 'range' && target.text.trim().length === 0),
       mode: target.kind === 'link' ? 'actions' : 'create',
       target,
     });
@@ -538,7 +561,8 @@ export function LinkControlsPlugin() {
       if (target instanceof Element && target.closest(LINK_CONTROL_SELECTOR)) {
         return;
       }
-      closeControls(true);
+      const insideEditor = target instanceof Node && editor.getRootElement()?.contains(target);
+      closeControls(!insideEditor);
     };
 
     document.addEventListener('pointerdown', handleOutsidePointer, true);
@@ -691,7 +715,7 @@ export function LinkControlsPlugin() {
           <button
             type="button"
             onClick={() => {
-              void navigator.clipboard.writeText(controls.destination);
+              copyDestination(controls.destination);
               closeControls(true);
             }}
           >

@@ -422,7 +422,9 @@ function $insertInternalLinkFromPlainText(
 
   const selectedLabel = selection.isCollapsed() ? '' : selection.getTextContent();
   const linkNode = $createNoteLinkNode(linkRef, {});
-  const resolvedTitle = linkRef.docId === currentDocId ? $findNoteById(linkRef.noteId)?.getTextContent() ?? null : null;
+  const target = linkRef.docId === currentDocId ? $findNoteById(linkRef.noteId) : null;
+  const ownText = target ? getNoteOwnText(target) : '';
+  const resolvedTitle = ownText.trim().length > 0 ? ownText : null;
   linkNode.append($createTextNode(selectedLabel.trim().length > 0 ? selectedLabel : resolvedTitle ?? trimmed));
   selection.insertNodes([linkNode]);
   return true;

@@ -485,4 +485,18 @@ test.describe('generic links', () => {
     await context.pages().at(-1)!.close();
   });
 
+  test('an in-editor click dismisses controls without restoring over the click', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('ControlOrMeta+K');
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    await expect(controls).toHaveCount(1);
+
+    await editorLocator(page).getByText('note2', { exact: true }).click();
+    await expect(controls).toHaveCount(0);
+    await page.keyboard.type('x');
+    await expect(editorLocator(page).locator('li').nth(0)).toHaveText('note1');
+    await expect(editorLocator(page).locator('li').nth(1)).toContainText('x');
+  });
+
 });
