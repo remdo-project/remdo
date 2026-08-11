@@ -54,22 +54,22 @@ function $hasValidAutomaticLinkStart(node: AutoLinkNode): boolean {
   return match?.index === previous.length && match.length === text.length;
 }
 
-function $suppressRecognizableLinkText(node: LinkNode | AutoLinkNode) {
+function $suppressInvalidLink(node: LinkNode | AutoLinkNode) {
   const text = node.getTextContent();
-  const destination = recognizeCompleteAutomaticLink(text);
-  if (!destination) {
-    unwrapLinkNode(node);
-    return;
-  }
-  const target = destination.kind === 'web' ? WEB_LINK_ATTRIBUTES.target : null;
-  const rel = destination.kind === 'web' ? WEB_LINK_ATTRIBUTES.rel : null;
   if (node instanceof AutoLinkNode) {
-    node.setURL(destination.url).setTarget(target).setRel(rel);
-    $setAutomaticLinkUnlinkedText(node, text);
-    node.setIsUnlinked(true);
+    if ($getAutomaticLinkUnlinkedText(node) !== text) {
+      $setAutomaticLinkUnlinkedText(node, text);
+    }
+    if (!node.getIsUnlinked()) {
+      node.setIsUnlinked(true);
+    }
     return;
   }
-  const replacement = $createAutoLinkNode(destination.url, { isUnlinked: true, rel, target });
+  const replacement = $createAutoLinkNode(node.getURL(), {
+    isUnlinked: true,
+    rel: node.getRel(),
+    target: node.getTarget(),
+  });
   replacement.append(...node.getChildren());
   $setAutomaticLinkUnlinkedText(replacement, text);
   node.replace(replacement);
@@ -110,7 +110,7 @@ function $normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
   }
   const destination = normalizeGenericDestination(node.getURL());
   if (!destination) {
-    $suppressRecognizableLinkText(node);
+    $suppressInvalidLink(node);
     return;
   }
   const target = destination.kind === 'web' ? WEB_LINK_ATTRIBUTES.target : null;
@@ -238,6 +238,11 @@ export function ExternalLinkPlugin() {
     let automaticUndoReadyTimer: ReturnType<typeof setTimeout> | null = null;
     let deferredTextNodeKey: null | string = null;
     let deferCurrentTextTransform = false;
+    let preservedInvalidAutomaticLink: {
+      attributes?: { rel?: string; target?: string };
+      text: string;
+      url: string;
+    } | null = null;
     let pasteInProgress = false;
     let presentationQueued = false;
     const armAutomaticUndo = (node: AutoLinkNode) => {
@@ -267,9 +272,24 @@ export function ExternalLinkPlugin() {
     };
     const unregisterTextTransform = editor.registerNodeTransform(TextNode, (node) => {
       deferCurrentTextTransform = node.getKey() === deferredTextNodeKey;
+      preservedInvalidAutomaticLink = null;
       const parent = node.getParent();
       if (parent instanceof AutoLinkNode) {
-        $syncAutomaticLinkSuppression(parent);
+        $normalizeExternalLinkNode(parent);
+        if (
+          parent.isAttached()
+          && parent.getIsUnlinked()
+          && normalizeGenericDestination(parent.getURL()) === null
+        ) {
+          preservedInvalidAutomaticLink = {
+            attributes: {
+              rel: parent.getRel() ?? undefined,
+              target: parent.getTarget() ?? undefined,
+            },
+            text: parent.getTextContent(),
+            url: parent.getURL(),
+          };
+        }
       }
       const next = node.getNextSibling();
       if (next instanceof AutoLinkNode && !next.getIsUnlinked() && !$hasValidAutomaticLinkStart(next)) {
@@ -319,7 +339,16 @@ export function ExternalLinkPlugin() {
         }],
         excludeParents: [],
         matchers: [(text) => {
-          const match = automaticGenericLinkMatcher(text);
+          const preserved = preservedInvalidAutomaticLink;
+          const match = preserved?.text === text
+            ? {
+                attributes: preserved.attributes,
+                index: 0,
+                length: text.length,
+                text,
+                url: preserved.url,
+              }
+            : automaticGenericLinkMatcher(text);
           return match && (
             $selectionIsInsideAutomaticLink()
             || automaticCreationUrls.has(match.url)

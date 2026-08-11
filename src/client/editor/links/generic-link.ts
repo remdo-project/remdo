@@ -145,25 +145,27 @@ function trimAutomaticCandidate(candidate: string): string {
     }
     return trimmed;
   };
-  const trimmed = candidate;
-  const balance = new Map<string, number>();
-  for (let index = 0; index < trimmed.length; index += 1) {
-    const char = trimmed[index]!;
-    if ([...CLOSER_TO_OPENER.values()].includes(char)) {
-      balance.set(char, (balance.get(char) ?? 0) + 1);
-      continue;
-    }
-    const opener = CLOSER_TO_OPENER.get(char);
+  let trimmed = trimTrailingPunctuation(candidate);
+  while (trimmed.length > 0) {
+    const closer = trimmed.at(-1)!;
+    const opener = CLOSER_TO_OPENER.get(closer);
     if (!opener) {
-      continue;
+      return trimmed;
     }
-    const count = balance.get(opener) ?? 0;
-    if (count === 0) {
-      return trimTrailingPunctuation(trimmed.slice(0, index));
+    let balance = 0;
+    for (const char of trimmed.slice(0, -1)) {
+      if (char === opener) {
+        balance += 1;
+      } else if (char === closer && balance > 0) {
+        balance -= 1;
+      }
     }
-    balance.set(opener, count - 1);
+    if (balance > 0) {
+      return trimmed;
+    }
+    trimmed = trimTrailingPunctuation(trimmed.slice(0, -1));
   }
-  return trimTrailingPunctuation(trimmed);
+  return trimmed;
 }
 
 function hasAutomaticStartBoundary(text: string, index: number): boolean {
@@ -226,7 +228,8 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
     return email;
   }
 
-  for (const match of linkify.match(text) ?? [] as LinkifyMatch[]) {
+  const matches = linkify.match(text) ?? [] as LinkifyMatch[];
+  for (const match of matches) {
     if (!hasAutomaticStartBoundary(text, match.index)) {
       continue;
     }
@@ -237,7 +240,14 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
     const candidateEnd = match.index + candidate.length;
     const endedAtAutomaticBoundary = candidateEnd < text.length
       && AUTOMATIC_END_PATTERN.test(text[candidateEnd]!);
-    if (!endedAtAutomaticBoundary && trimAutomaticCandidate(match.raw) !== candidate) {
+    const containsAnotherMatch = matches.some(other => (
+      other.index > match.index && other.index < candidateEnd
+    ));
+    if (
+      !endedAtAutomaticBoundary
+      && trimAutomaticCandidate(match.raw) !== candidate
+      && containsAnotherMatch
+    ) {
       continue;
     }
     const destination = normalizeAutomaticMatch(match, candidate);

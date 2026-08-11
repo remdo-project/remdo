@@ -76,21 +76,21 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it('stops before an unmatched closer followed by more text', () => {
+  it('keeps an unmatched closer that is internal to the candidate', () => {
     const input = 'https://example.com/a)b';
     expect(automaticGenericLinkMatcher(input)).toMatchObject({
       index: 0,
-      length: 'https://example.com/a'.length,
-      text: 'https://example.com/a',
+      length: input.length,
+      text: input,
     });
   });
 
-  it('strips punctuation before an unmatched closer followed by text', () => {
+  it('keeps punctuation and an unmatched closer that are internal to the candidate', () => {
     const input = 'https://example.com/path.)rest';
     expect(automaticGenericLinkMatcher(input)).toMatchObject({
       index: 0,
-      length: 'https://example.com/path'.length,
-      text: 'https://example.com/path',
+      length: input.length,
+      text: input,
     });
   });
 

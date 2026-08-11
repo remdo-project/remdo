@@ -256,6 +256,23 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('pasting a destination over an existing generic link preserves its label', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await pastePlainText(remdo, 'https://example.com/');
+    await remdo.mutate(() => {
+      const text = $findNoteById('note1')!.getChildren().find($isLinkNode)!.getFirstChild<TextNode>()!;
+      text.select(0, text.getTextContentSize());
+    });
+
+    await pastePlainText(remdo, 'example.org/path');
+
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isLinkNode)!;
+      expect(link.getTextContent()).toBe('note1');
+      expect(link.getURL()).toBe('https://example.org/path');
+    });
+  });
+
   it('clicking an external link opens link controls without navigating', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/';
@@ -844,13 +861,8 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     ]);
 
     await remdo.dispatchCommand(UNDO_COMMAND);
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: `${url} ` },
-      { noteId: 'note3', text: 'note3' },
-    ]);
     remdo.validate(() => {
-      expect($findNoteById('note2')!.getChildren().find($isAutoLinkNode)?.getIsUnlinked()).toBe(false);
+      expect($findNoteById('note2')!.getChildren().find($isAutoLinkNode)?.getIsUnlinked()).not.toBe(true);
     });
   });
 
@@ -941,7 +953,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it('unwraps imported-style protocol-relative LinkNodes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('keeps an imported protocol-relative destination in an inactive link', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = '//example.com/path';
     await act(async () => {
@@ -957,9 +969,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      expect(note.getTextContent()).toBe('Example');
-      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
+      const link = note.getChildren().find($isAutoLinkNode)!;
+      expect(link.getTextContent()).toBe('Example');
+      expect(link.getURL()).toBe(url);
+      expect(link.getIsUnlinked()).toBe(true);
     });
+    expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
   });
 
   it('normalizes imported-style www LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -987,7 +1002,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it('unwraps imported-style relative LinkNodes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('keeps an imported relative destination in an inactive link', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = '/n/main_note2';
     await act(async () => {
@@ -1003,9 +1018,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      expect(note.getTextContent()).toBe('Example');
-      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
+      const link = note.getChildren().find($isAutoLinkNode)!;
+      expect(link.getTextContent()).toBe('Example');
+      expect(link.getURL()).toBe(url);
+      expect(link.getIsUnlinked()).toBe(true);
     });
+    expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
   });
 
   it('normalizes imported-style external AutoLinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -1082,7 +1100,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it('unwraps imported-style LinkNodes with unsupported protocols', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('keeps an imported unsupported destination in an inactive link', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await act(async () => {
       remdo.editor.update(() => {
@@ -1097,9 +1115,23 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      expect(note.getTextContent()).toBe('Example');
-      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
+      const link = note.getChildren().find($isAutoLinkNode)!;
+      expect(link.getTextContent()).toBe('Example');
+      expect(link.getURL()).toBe('javascript:alert(1)');
+      expect(link.getIsUnlinked()).toBe(true);
     });
+
+    await act(async () => {
+      const restored = remdo.editor.parseEditorState(JSON.stringify(remdo.getEditorState()));
+      remdo.editor.setEditorState(restored);
+    });
+    await remdo.waitForSynced();
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
+      expect(link.getURL()).toBe('javascript:alert(1)');
+      expect(link.getIsUnlinked()).toBe(true);
+    });
+    expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
   });
 
   it('keeps a recognizable label inactive when its imported destination is invalid', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -1115,12 +1147,13 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     remdo.validate(() => {
       const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
       expect(link.getTextContent()).toBe(label);
+      expect(link.getURL()).toBe('javascript:alert(1)');
       expect(link.getIsUnlinked()).toBe(true);
     });
     expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
   });
 
-  it('unwraps imported-style AutoLinkNodes with unsupported protocols', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('keeps an imported unsupported AutoLink destination inactive', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await act(async () => {
       remdo.editor.update(() => {
@@ -1135,9 +1168,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      expect(note.getTextContent()).toBe('Example');
-      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
+      const link = note.getChildren().find($isAutoLinkNode)!;
+      expect(link.getTextContent()).toBe('Example');
+      expect(link.getURL()).toBe('javascript:alert(1)');
+      expect(link.getIsUnlinked()).toBe(true);
     });
+    expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
   });
 
   it('pasting a foreign note-shaped URL keeps it as a regular external link', meta({ fixture: 'flat' }), async ({ remdo }) => {

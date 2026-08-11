@@ -703,7 +703,7 @@ export function LinkControlsPlugin() {
             return false;
           }
           const target = $captureAuthoringTarget();
-          if (!target || target.kind !== 'range' || target.text.trim().length === 0) {
+          if (!target || target.kind === 'caret' || target.text.trim().length === 0) {
             return false;
           }
           const pastedText = event.clipboardData.getData('text/plain');
@@ -719,10 +719,19 @@ export function LinkControlsPlugin() {
             return false;
           }
           const selection = $resolveTargetSelection(target);
-          if (!selection) {
+          if (!selection || selection.isCollapsed()) {
             return false;
           }
-          $insertGenericLink(selection, target.text, destination);
+          if (target.kind === 'range') {
+            $insertGenericLink(selection, target.text, destination);
+          } else {
+            const link = $getNodeByKey(target.linkKey);
+            if (!(link instanceof LinkNode) || $isNoteLinkNode(link)) {
+              return false;
+            }
+            const edited = $replaceWithLabeledLink(link, target.text, destination);
+            edited.select(0, edited.getChildrenSize());
+          }
           event.preventDefault();
           return true;
         },
