@@ -61,6 +61,8 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     "https://'foo@example.com",
     'user@example.com?subject=hello',
     '.www.example.com',
+    'http://example.com,https://other.com',
+    'https://example.com\\evil.com',
   ])('leaves ambiguous or unsafe automatic candidate %s as text', (input) => {
     expect(automaticGenericLinkMatcher(input)).toBeNull();
   });

@@ -137,6 +137,23 @@ function $findLinkAncestor(node: LexicalNode): LinkNode | null {
   return link instanceof AutoLinkNode && link.getIsUnlinked() ? null : link;
 }
 
+function $unwrapSuppressedLinksAtSelection(selection: RangeSelection) {
+  const nodes = selection.isCollapsed() ? [selection.anchor.getNode()] : selection.getNodes();
+  const links = new Map<NodeKey, AutoLinkNode>();
+  for (const node of nodes) {
+    const link = node instanceof AutoLinkNode
+      ? node
+      : $findMatchingParent(node, (parent): parent is AutoLinkNode => parent instanceof AutoLinkNode);
+    if (link?.getIsUnlinked()) {
+      links.set(link.getKey(), link);
+    }
+  }
+  for (const link of links.values()) {
+    const parent = link.getParentOrThrow();
+    parent.splice(link.getIndexWithinParent(), 1, link.getChildren());
+  }
+}
+
 function $captureLinkTarget(link: LinkNode, selection: RangeSelection): LinkAuthoringTarget {
   return {
     kind: 'link',
@@ -221,6 +238,7 @@ function getDestinationAttributes(destination: GenericDestination): { rel?: stri
 }
 
 function $insertGenericLink(selection: RangeSelection, label: string, destination: GenericDestination): LinkNode {
+  $unwrapSuppressedLinksAtSelection(selection);
   if (!selection.isCollapsed() && selection.getTextContent() === label) {
     $setSelection(selection);
     $toggleLink({ url: destination.url, ...getDestinationAttributes(destination) });

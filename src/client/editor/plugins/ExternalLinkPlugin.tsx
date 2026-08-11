@@ -234,6 +234,8 @@ export function ExternalLinkPlugin() {
     const createdAutomaticKeysByUrl = new Map<string, string[]>();
     const createdKeyCleanupTimers = new Set<ReturnType<typeof setTimeout>>();
     let automaticUndoCandidate: { key: string; text: string; url: string } | null = null;
+    let automaticUndoReady = false;
+    let automaticUndoReadyTimer: ReturnType<typeof setTimeout> | null = null;
     let deferredTextNodeKey: null | string = null;
     let deferCurrentTextTransform = false;
     let pasteInProgress = false;
@@ -244,6 +246,14 @@ export function ExternalLinkPlugin() {
         text: node.getTextContent(),
         url: node.getURL(),
       };
+      automaticUndoReady = false;
+      if (automaticUndoReadyTimer) {
+        clearTimeout(automaticUndoReadyTimer);
+      }
+      automaticUndoReadyTimer = setTimeout(() => {
+        automaticUndoReady = true;
+        automaticUndoReadyTimer = null;
+      });
     };
     const queuePresentationSync = () => {
       if (presentationQueued) {
@@ -288,9 +298,18 @@ export function ExternalLinkPlugin() {
         changeHandlers: [(url, previousUrl) => {
           if (url && previousUrl === null) {
             automaticCreationUrls.add(url);
+            // The timer is retained in createdKeyCleanupTimers and cleared on effect teardown.
+            // eslint-disable-next-line react/web-api-no-leaked-timeout
+            const cleanup = setTimeout(() => {
+              createdKeyCleanupTimers.delete(cleanup);
+              automaticCreationUrls.delete(url);
+            });
+            createdKeyCleanupTimers.add(cleanup);
             const createdKey = createdAutomaticKeysByUrl.get(url)?.at(-1);
             const created = createdKey ? $getNodeByKey(createdKey) : null;
-            const link = created instanceof AutoLinkNode ? created : $automaticLinkAtSelection(url);
+            const link = created instanceof AutoLinkNode && $selectionTouchesLink(created)
+              ? created
+              : $automaticLinkAtSelection(url);
             if (link) {
               armAutomaticUndo(link);
               automaticCreationUrls.delete(url);
@@ -320,7 +339,10 @@ export function ExternalLinkPlugin() {
         const keys = createdAutomaticKeysByUrl.get(url) ?? [];
         keys.push(node.getKey());
         createdAutomaticKeysByUrl.set(url, keys);
-        if (automaticCreationUrls.has(url) || automaticUndoCandidate?.key === node.getKey()) {
+        if (
+          (automaticCreationUrls.has(url) || automaticUndoCandidate?.key === node.getKey())
+          && $selectionTouchesLink(node)
+        ) {
           armAutomaticUndo(node);
           automaticCreationUrls.delete(url);
           createdAutomaticKeysByUrl.delete(url);
@@ -436,12 +458,23 @@ export function ExternalLinkPlugin() {
         },
         COMMAND_PRIORITY_CRITICAL,
       ),
-      editor.registerUpdateListener(() => {
+      editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
         pasteInProgress = false;
+        if (
+          automaticUndoCandidate
+          && automaticUndoReady
+          && (dirtyElements.size > 0 || dirtyLeaves.size > 0)
+        ) {
+          automaticUndoCandidate = null;
+          automaticUndoReady = false;
+        }
       }),
       editor.registerUpdateListener(queuePresentationSync),
       editor.registerRootListener(queuePresentationSync),
       () => {
+        if (automaticUndoReadyTimer) {
+          clearTimeout(automaticUndoReadyTimer);
+        }
         for (const timeout of createdKeyCleanupTimers) {
           clearTimeout(timeout);
         }

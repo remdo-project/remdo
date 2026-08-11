@@ -1,6 +1,6 @@
 import { $isAutoLinkNode } from '@lexical/link';
 import { waitFor } from '@testing-library/react';
-import { $isTextNode } from 'lexical';
+import { $isTextNode, UNDO_COMMAND } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { $findNoteById } from '#client/editor/outline/note-traversal';
@@ -10,9 +10,9 @@ import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
-function readAutomaticLink(remdo: RemdoTestApi) {
+function readAutomaticLink(remdo: RemdoTestApi, noteId = 'note1') {
   return remdo.editor.getEditorState().read(() => {
-    const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode);
+    const link = $findNoteById(noteId)!.getChildren().find($isAutoLinkNode);
     return link
       ? { isUnlinked: link.getIsUnlinked(), text: link.getTextContent(), url: link.getURL() }
       : null;
@@ -91,6 +91,27 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
         url: 'https://example.com/',
       });
       expect(readAutomaticLink(secondary)).toEqual(readAutomaticLink(remdo));
+    });
+  });
+
+  it('keeps immediate Undo scoped to the local same-URL occurrence', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const secondary = await createCollabPeer(remdo);
+    const url = 'https://example.com/';
+    await selectEntireNote(remdo, 'note1');
+    await typeText(remdo, url);
+
+    await selectEntireNote(secondary, 'note2');
+    await typeText(secondary, url);
+    await typeText(secondary, ' ');
+    await waitFor(() => {
+      expect(readAutomaticLink(remdo, 'note2')).toMatchObject({ isUnlinked: false, text: url });
+    });
+
+    await typeText(remdo, ' ');
+    await remdo.dispatchCommand(UNDO_COMMAND);
+    await waitFor(() => {
+      expect(readAutomaticLink(remdo, 'note1')?.isUnlinked).toBe(true);
+      expect(readAutomaticLink(remdo, 'note2')?.isUnlinked).toBe(false);
     });
   });
 });

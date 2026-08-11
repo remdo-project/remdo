@@ -7,6 +7,7 @@ import {
   $isTextNode,
   $setSelection,
   CONTROLLED_TEXT_INSERTION_COMMAND,
+  INDENT_CONTENT_COMMAND,
   KEY_ESCAPE_COMMAND,
   PASTE_COMMAND,
   REDO_COMMAND,
@@ -708,6 +709,67 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
   });
 
+  it('creates an active explicit link over a selected suppressed occurrence', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await selectEntireNote(remdo, 'note1');
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, `${url} `);
+    });
+    await remdo.waitForSynced();
+    await removeFirstGenericLink(remdo);
+    await remdo.mutate(() => {
+      const text = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!.getFirstChild<TextNode>()!;
+      text.select(0, text.getTextContentSize());
+    });
+
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const destination = controls.querySelectorAll<HTMLInputElement>('input')[1]!;
+    await act(async () => {
+      fireEvent.change(destination, { target: { value: 'example.org' } });
+      fireEvent.click(controls.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isLinkNode)!;
+      expect($isAutoLinkNode(link)).toBe(false);
+      expect(link.getTextContent()).toBe(url);
+      expect(link.getURL()).toBe('https://example.org/');
+    });
+    expect(remdo.editor.getRootElement()!.querySelector('a')).not.toBeNull();
+  });
+
+  it('does not nest an explicit link created at a caret in suppressed text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await selectEntireNote(remdo, 'note1');
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, `${url} `);
+    });
+    await remdo.waitForSynced();
+    await removeFirstGenericLink(remdo);
+    await remdo.mutate(() => {
+      const text = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!.getFirstChild<TextNode>()!;
+      text.select(1, 1);
+    });
+
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const destination = controls.querySelectorAll<HTMLInputElement>('input')[1]!;
+    await act(async () => {
+      fireEvent.change(destination, { target: { value: 'example.org' } });
+      fireEvent.click(controls.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const links = $findNoteById('note1')!.getChildren().filter($isLinkNode);
+      expect(links).toHaveLength(1);
+      expect($isLinkNode(links[0]!.getParent())).toBe(false);
+      expect(links[0]!.getURL()).toBe('https://example.org/');
+    });
+  });
+
   it('immediate Undo removes automatic link formatting but preserves authored text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/';
@@ -743,6 +805,51 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       const note = $findNoteById('note1')!;
       expect(note.getTextContent()).toBe(`${url} `);
       expect(note.getChildren().find($isAutoLinkNode)?.getIsUnlinked()).toBe(true);
+    });
+  });
+
+  it('does not consume Undo after a later non-keyboard document mutation', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await selectEntireNote(remdo, 'note2');
+    await typeText(remdo, url);
+    await typeText(remdo, ' ');
+    await remdo.dispatchCommand(INDENT_CONTENT_COMMAND);
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', children: [{ noteId: 'note2', text: `${url} ` }] },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    await remdo.dispatchCommand(UNDO_COMMAND);
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: `${url} ` },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+    remdo.validate(() => {
+      expect($findNoteById('note2')!.getChildren().find($isAutoLinkNode)?.getIsUnlinked()).toBe(false);
+    });
+  });
+
+  it('immediate Undo suppresses the last of two equal automatic links', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await selectEntireNote(remdo, 'note1');
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, `${url} and ${url} `);
+    });
+    await remdo.waitForSynced();
+    remdo.validate(() => {
+      expect($findNoteById('note1')!.getChildren().filter($isAutoLinkNode).map(link => link.getIsUnlinked())).toEqual([
+        false,
+        false,
+      ]);
+    });
+
+    await remdo.dispatchCommand(UNDO_COMMAND);
+    remdo.validate(() => {
+      expect($findNoteById('note1')!.getChildren().filter($isAutoLinkNode).map(link => link.getIsUnlinked())).toEqual([
+        false,
+        true,
+      ]);
     });
   });
 

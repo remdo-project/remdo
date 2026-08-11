@@ -39,7 +39,6 @@ const linkify = new LinkifyIt()
 
 interface LinkifyMatch {
   index: number;
-  lastIndex: number;
   raw: string;
   schema: string;
 }
@@ -233,6 +232,9 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
     }
     const candidate = automaticCandidateFrom(text, match.index);
     if (!candidate) {
+      continue;
+    }
+    if (trimAutomaticCandidate(match.raw) !== candidate) {
       continue;
     }
     const destination = normalizeAutomaticMatch(match, candidate);
