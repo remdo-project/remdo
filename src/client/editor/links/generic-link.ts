@@ -17,6 +17,8 @@ const HTML_EMAIL_LOCAL_PATTERN = /^[\w.!#$%&'*+/=?^`{|}~-]+$/;
 const HOST_LABEL_PATTERN = /^[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?$/i;
 const IPV4_PATTERN = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 const AUTOMATIC_START_PATTERN = /[\s([{<"'“‘]/;
+const AUTOMATIC_END_PATTERN = /[\s<>"“”‘’]/;
+const AUTOMATIC_EMAIL_PATTERN = /[\w.!#$%&*+/=?^`{|}~-][\w.!#$%&'*+/=?^`{|}~-]*@[^\s<>"“”‘’]+/gu;
 const TRAILING_PUNCTUATION = new Set(['.', ',', ';', ':', '!', '?', '*', '_', '~', '"', "'", '“', '”', '‘', '’', '>']);
 const CLOSER_TO_OPENER = new Map([
   [')', '('],
@@ -160,6 +162,34 @@ function hasAutomaticStartBoundary(text: string, index: number): boolean {
   return index === 0 || AUTOMATIC_START_PATTERN.test(text[index - 1] ?? '');
 }
 
+function automaticCandidateFrom(text: string, index: number): string {
+  let end = index;
+  while (end < text.length && !AUTOMATIC_END_PATTERN.test(text[end]!)) {
+    end += 1;
+  }
+  return trimAutomaticCandidate(text.slice(index, end));
+}
+
+function automaticEmailMatch(text: string): ReturnType<LinkMatcher> {
+  for (const match of text.matchAll(AUTOMATIC_EMAIL_PATTERN)) {
+    const index = match.index;
+    if (!hasAutomaticStartBoundary(text, index)) {
+      continue;
+    }
+    const candidate = automaticCandidateFrom(text, index);
+    const email = normalizeEmailAddress(candidate);
+    if (email) {
+      return {
+        index,
+        length: candidate.length,
+        text: candidate,
+        url: `mailto:${email}`,
+      };
+    }
+  }
+  return null;
+}
+
 function normalizeAutomaticMatch(match: LinkifyMatch, candidate: string): GenericDestination | null {
   if (match.schema === 'mailto:') {
     const email = normalizeEmailAddress(candidate);
@@ -183,6 +213,10 @@ function normalizeAutomaticMatch(match: LinkifyMatch, candidate: string): Generi
 }
 
 export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
+  const email = automaticEmailMatch(text);
+  if (email) {
+    return email;
+  }
   if (!linkify.pretest(text)) {
     return null;
   }
@@ -191,7 +225,7 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
     if (!hasAutomaticStartBoundary(text, match.index)) {
       continue;
     }
-    const candidate = trimAutomaticCandidate(match.raw);
+    const candidate = automaticCandidateFrom(text, match.index);
     if (!candidate) {
       continue;
     }

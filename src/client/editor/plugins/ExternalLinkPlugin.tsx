@@ -11,6 +11,7 @@ import {
   KEY_DOWN_COMMAND,
   PASTE_COMMAND,
   SELECTION_CHANGE_COMMAND,
+  TextNode,
   UNDO_COMMAND,
 } from 'lexical';
 import { useEffect } from 'react';
@@ -19,9 +20,14 @@ import {
   automaticGenericLinkMatcher,
   GENERIC_LINK_SEPARATOR,
   normalizeGenericDestination,
+  recognizeCompleteAutomaticLink,
   WEB_LINK_ATTRIBUTES,
 } from '#client/editor/links/generic-link';
 import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
+import {
+  $getAutomaticLinkUnlinkedText,
+  $setAutomaticLinkUnlinkedText,
+} from '#client/editor/runtime/automatic-link-state';
 
 const TYPED_CANDIDATE_END = /[\s<>"“”‘’]/;
 const MODIFIER_KEYS = new Set(['Alt', 'Control', 'Meta', 'Shift']);
@@ -31,8 +37,37 @@ function unwrapLinkNode(node: LinkNode | AutoLinkNode) {
   parent.splice(node.getIndexWithinParent(), 1, node.getChildren());
 }
 
-function normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
+function $syncAutomaticLinkSuppression(node: AutoLinkNode): boolean {
+  const baseline = $getAutomaticLinkUnlinkedText(node);
+  if (!node.getIsUnlinked()) {
+    if (baseline !== null) {
+      $setAutomaticLinkUnlinkedText(node, null);
+    }
+    return true;
+  }
+  const text = node.getTextContent();
+  if (baseline === null) {
+    $setAutomaticLinkUnlinkedText(node, text);
+  } else if (baseline !== text) {
+    const destination = recognizeCompleteAutomaticLink(text);
+    if (!destination) {
+      unwrapLinkNode(node);
+      return false;
+    }
+    node.setURL(destination.url);
+    node.setTarget(destination.kind === 'web' ? WEB_LINK_ATTRIBUTES.target : null);
+    node.setRel(destination.kind === 'web' ? WEB_LINK_ATTRIBUTES.rel : null);
+    node.setIsUnlinked(false);
+    $setAutomaticLinkUnlinkedText(node, null);
+  }
+  return true;
+}
+
+function $normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
   if ($isNoteLinkNode(node)) {
+    return;
+  }
+  if (node instanceof AutoLinkNode && !$syncAutomaticLinkSuppression(node)) {
     return;
   }
   const destination = normalizeGenericDestination(node.getURL());
@@ -58,15 +93,9 @@ function normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
 function registerExternalLinkMutationListener(
   editor: ReturnType<typeof useLexicalComposerContext>[0],
   klass: typeof LinkNode | typeof AutoLinkNode,
-  unlinkedTextByKey: Map<string, string>,
   onAutomaticLinkCreated?: (node: AutoLinkNode) => void,
 ) {
   return editor.registerMutationListener(klass, (mutations) => {
-    for (const [key, mutation] of mutations) {
-      if (mutation === 'destroyed') {
-        unlinkedTextByKey.delete(key);
-      }
-    }
     const keys = [...mutations].flatMap(([key, mutation]) => (mutation === 'destroyed' ? [] : [key]));
     if (keys.length === 0) {
       return;
@@ -76,20 +105,10 @@ function registerExternalLinkMutationListener(
         for (const key of keys) {
           const node = $getNodeByKey(key);
           if (node instanceof LinkNode || node instanceof AutoLinkNode) {
-            normalizeExternalLinkNode(node);
+            $normalizeExternalLinkNode(node);
             if (node instanceof AutoLinkNode) {
               if (mutations.get(key) === 'created' && !node.getIsUnlinked()) {
                 onAutomaticLinkCreated?.(node);
-              }
-              const text = node.getTextContent();
-              const previousText = unlinkedTextByKey.get(key);
-              if (!node.getIsUnlinked()) {
-                unlinkedTextByKey.delete(key);
-              } else if (previousText === undefined) {
-                unlinkedTextByKey.set(key, text);
-              } else if (previousText !== text) {
-                node.setIsUnlinked(false);
-                unlinkedTextByKey.delete(key);
               }
             }
           }
@@ -170,7 +189,6 @@ export function ExternalLinkPlugin() {
     if (!editor.hasNodes([AutoLinkNode])) {
       throw new Error('ExternalLinkPlugin: AutoLinkNode not registered on editor');
     }
-    const unlinkedTextByKey = new Map<string, string>();
     const automaticCreationUrls = new Set<string>();
     const createdAutomaticKeysByUrl = new Map<string, string[]>();
     const createdKeyCleanupTimers = new Set<ReturnType<typeof setTimeout>>();
@@ -230,10 +248,16 @@ export function ExternalLinkPlugin() {
         }],
         separatorRegex: GENERIC_LINK_SEPARATOR,
       }),
-      editor.registerNodeTransform(LinkNode, normalizeExternalLinkNode),
-      editor.registerNodeTransform(AutoLinkNode, normalizeExternalLinkNode),
-      registerExternalLinkMutationListener(editor, LinkNode, unlinkedTextByKey),
-      registerExternalLinkMutationListener(editor, AutoLinkNode, unlinkedTextByKey, (node) => {
+      editor.registerNodeTransform(LinkNode, $normalizeExternalLinkNode),
+      editor.registerNodeTransform(AutoLinkNode, $normalizeExternalLinkNode),
+      editor.registerNodeTransform(TextNode, (node) => {
+        const parent = node.getParent();
+        if (parent instanceof AutoLinkNode) {
+          $syncAutomaticLinkSuppression(parent);
+        }
+      }),
+      registerExternalLinkMutationListener(editor, LinkNode),
+      registerExternalLinkMutationListener(editor, AutoLinkNode, (node) => {
         const url = node.getURL();
         const keys = createdAutomaticKeysByUrl.get(url) ?? [];
         keys.push(node.getKey());
@@ -298,6 +322,7 @@ export function ExternalLinkPlugin() {
             return false;
           }
           const following = node.getNextSibling();
+          $setAutomaticLinkUnlinkedText(node, node.getTextContent());
           node.setIsUnlinked(true);
           if ($isTextNode(following)) {
             following.select(0, 0);

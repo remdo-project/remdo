@@ -1,7 +1,7 @@
 import { $createAutoLinkNode, $createLinkNode, $isAutoLinkNode, $isLinkNode } from '@lexical/link';
 import { act, fireEvent, waitFor } from '@testing-library/react';
 import { $createTextNode, $getSelection, $isTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, UNDO_COMMAND } from 'lexical';
-import type { TextNode } from 'lexical';
+import type { SerializedLexicalNode, TextNode } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 
 import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
@@ -11,6 +11,7 @@ import {
   collapseDomSelectionAtNode,
   createDataTransfer,
   extendDomSelectionToNode,
+  findSerializedNode,
   getNoteBodyTextNode,
   meta,
   placeCaretAtNote,
@@ -26,6 +27,23 @@ async function pastePlainText(remdo: RemdoTestApi, text: string) {
   transfer.setData('text/plain', text);
   const event = new ClipboardEvent('paste', { clipboardData: transfer });
   await remdo.dispatchCommand(PASTE_COMMAND, event, { expect: 'any' });
+}
+
+async function removeFirstGenericLink(remdo: RemdoTestApi) {
+  await act(async () => {
+    fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!);
+  });
+  const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+  const remove = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Remove link')!;
+  await act(async () => {
+    fireEvent.click(remove);
+  });
+  await remdo.waitForSynced();
+}
+
+interface SerializedAutoLinkForTest extends SerializedLexicalNode {
+  children: SerializedLexicalNode[];
+  type: 'autolink';
 }
 
 async function typeAltGraphAt(remdo: RemdoTestApi) {
@@ -473,28 +491,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
     await remdo.waitForSynced();
 
-    await act(async () => {
-      fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!);
-    });
-    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
-    const remove = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Remove link')!;
-    await act(async () => {
-      fireEvent.click(remove);
-    });
-    await remdo.waitForSynced();
-
-    remdo.validate(() => {
-      const note = $findNoteById('note1')!;
-      const link = note.getChildren().find($isAutoLinkNode)!;
-      expect(link.getIsUnlinked()).toBe(true);
-    });
-    expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
-
-    await act(async () => {
-      const restored = remdo.editor.parseEditorState(JSON.stringify(remdo.getEditorState()));
-      remdo.editor.setEditorState(restored);
-    });
-    await remdo.waitForSynced();
+    await removeFirstGenericLink(remdo);
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
@@ -509,9 +506,43 @@ describe('note links (docs/specs/outliner/links.md)', () => {
         const link = note.getChildren().find($isAutoLinkNode)!;
         const text = link.getFirstChild();
         if ($isTextNode(text)) {
-          text.setTextContent('https://example.org/');
+          text.setTextContent('HTTPS://EXAMPLE.COM/');
         }
       });
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
+      expect(link.getIsUnlinked()).toBe(false);
+      expect(link.getURL()).toBe('https://example.com/');
+    });
+
+    await removeFirstGenericLink(remdo);
+
+    await act(async () => {
+      const restored = remdo.editor.parseEditorState(JSON.stringify(remdo.getEditorState()));
+      remdo.editor.setEditorState(restored);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const link = note.getChildren().find($isAutoLinkNode)!;
+      expect(link.getIsUnlinked()).toBe(true);
+    });
+    expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
+
+    const editedState = structuredClone(remdo.getEditorState());
+    const serializedLink = findSerializedNode(
+      [editedState.root],
+      (node): node is SerializedAutoLinkForTest => node.type === 'autolink' && 'children' in node,
+    )!;
+    const serializedText = serializedLink.children[0] as SerializedLexicalNode & { text: string };
+    serializedText.text = 'https://example.org/';
+    await act(async () => {
+      const restored = remdo.editor.parseEditorState(JSON.stringify(editedState));
+      remdo.editor.setEditorState(restored);
     });
     await remdo.waitForSynced();
 

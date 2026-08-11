@@ -39,6 +39,7 @@ import { parseOwnedNoteLinkUrl } from '#client/editor/links/note-link-url';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $isNoteLinkNode, $createNoteLinkNode } from '#client/editor/runtime/note-link-node';
+import { $setAutomaticLinkUnlinkedText } from '#client/editor/runtime/automatic-link-state';
 import { resolveCaretPickerAnchor, resolveElementPickerAnchor } from '#client/editor/triggers/anchor';
 import { isOtherPopupActive, setPopupActive } from '#client/editor/triggers/active-popup';
 import type { PickerAnchor } from '#client/editor/triggers/types';
@@ -270,6 +271,7 @@ function $removeGenericLink(node: LinkNode) {
   const text = node.getTextContent();
   const recognized = recognizeCompleteAutomaticLink(text);
   if (node instanceof AutoLinkNode) {
+    $setAutomaticLinkUnlinkedText(node, text);
     node.setIsUnlinked(true);
     node.select(0, node.getChildrenSize());
     return;
@@ -280,6 +282,7 @@ function $removeGenericLink(node: LinkNode) {
       isUnlinked: true,
     });
     replacement.append(...node.getChildren());
+    $setAutomaticLinkUnlinkedText(replacement, text);
     node.replace(replacement);
     replacement.select(0, replacement.getChildrenSize());
     return;
@@ -482,6 +485,18 @@ export function LinkControlsPlugin() {
 
       const directActivation = event.button === 1 || event.metaKey || event.ctrlKey;
       if (directActivation) {
+        const terminalActivation = (
+          event.type === 'click'
+          && event.button === 0
+          && (event.metaKey || event.ctrlKey)
+        ) || (event.type === 'auxclick' && event.button === 1);
+        if (!terminalActivation) {
+          if (event.type !== 'mousedown') {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          return;
+        }
         const url = editor.getEditorState().read(() => {
           const link = $getNodeByKey(linkKey);
           return link instanceof LinkNode ? link.getURL() : null;
@@ -521,6 +536,7 @@ export function LinkControlsPlugin() {
     root?.addEventListener('click', handleLinkPointer, true);
     root?.addEventListener('auxclick', handleLinkPointer, true);
     root?.addEventListener('mousedown', handleLinkPointer, true);
+    root?.addEventListener('mouseup', handleLinkPointer, true);
     document.addEventListener('pointerdown', handleOutsidePointer, true);
     document.addEventListener('mousedown', handleOutsidePointer, true);
 
@@ -612,6 +628,7 @@ export function LinkControlsPlugin() {
         root?.removeEventListener('click', handleLinkPointer, true);
         root?.removeEventListener('auxclick', handleLinkPointer, true);
         root?.removeEventListener('mousedown', handleLinkPointer, true);
+        root?.removeEventListener('mouseup', handleLinkPointer, true);
         document.removeEventListener('pointerdown', handleOutsidePointer, true);
         document.removeEventListener('mousedown', handleOutsidePointer, true);
         setControlsState(null);

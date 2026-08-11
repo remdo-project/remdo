@@ -414,4 +414,31 @@ test.describe('generic links', () => {
     await expect(controls).toHaveCount(0);
   });
 
+  test('direct pointer activation opens exactly one tab per gesture', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('ControlOrMeta+K');
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    const destination = new URL('/admin', page.url()).toString();
+    await controls.getByRole('textbox', { name: 'Destination' }).fill(destination);
+    await controls.getByRole('textbox', { name: 'Destination' }).press('Enter');
+
+    const link = editorLocator(page).locator('a[target="_blank"]');
+    const context = page.context();
+    const initialPages = context.pages().length;
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+    await page.keyboard.down(modifier);
+    try {
+      await link.click();
+    } finally {
+      await page.keyboard.up(modifier);
+    }
+    await expect.poll(() => context.pages().length).toBe(initialPages + 1);
+    await context.pages().at(-1)!.close();
+
+    await link.click({ button: 'middle' });
+    await expect.poll(() => context.pages().length).toBe(initialPages + 1);
+    await context.pages().at(-1)!.close();
+  });
+
 });

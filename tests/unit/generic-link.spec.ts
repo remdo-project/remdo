@@ -37,6 +37,8 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     ['https://example.com', 'https://example.com/'],
     ['www.example.com', 'https://www.example.com/'],
     ['user@example.com', 'mailto:user@example.com'],
+    ["o'reilly@example.com", "mailto:o'reilly@example.com"],
+    ['a?b@example.com', 'mailto:a%3Fb@example.com'],
     ['http://127.0.0.1/path', 'http://127.0.0.1/path'],
   ])('automatically recognizes %s', (input, expectedUrl) => {
     expect(automaticGenericLinkMatcher(input)).toMatchObject({
@@ -53,6 +55,7 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     'localhost:3000',
     '127.0.0.1',
     'https://user:password@example.com',
+    'user@example.com?subject=hello',
     '.www.example.com',
   ])('leaves ambiguous or unsafe automatic candidate %s as text', (input) => {
     expect(automaticGenericLinkMatcher(input)).toBeNull();
