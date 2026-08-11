@@ -219,6 +219,21 @@ function automaticEmailMatch(text: string): ReturnType<LinkMatcher> {
   return null;
 }
 
+function nestedMatchesAreInUrlSuffix(candidate: string, match: LinkifyMatch, matches: LinkifyMatch[]): boolean {
+  const nested = matches.filter(other => other.index > match.index && other.index < match.index + candidate.length);
+  if (nested.length === 0) {
+    return true;
+  }
+  const schemeOffset = candidate.search(/:\/\//);
+  const authorityStart = schemeOffset < 0 ? 0 : schemeOffset + 3;
+  const suffixOffset = candidate.slice(authorityStart).search(/[/?#]/);
+  if (candidate.includes('\\') || suffixOffset < 0) {
+    return false;
+  }
+  const suffixStart = authorityStart + suffixOffset;
+  return nested.every(other => other.index - match.index > suffixStart);
+}
+
 function normalizeAutomaticMatch(match: LinkifyMatch, candidate: string): GenericDestination | null {
   if (match.schema === 'mailto:') {
     const email = normalizeEmailAddress(candidate);
@@ -257,9 +272,7 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
       continue;
     }
     const candidateEnd = match.index + candidate.length;
-    const containsAnotherMatch = matches.some(other => (
-      other.index > match.index && other.index < candidateEnd
-    ));
+    const containsAnotherMatch = matches.some(other => other.index > match.index && other.index < candidateEnd);
     const containsEmail = email !== null
       && match.index < email.index
       && email.index < candidateEnd;
@@ -270,7 +283,7 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
       }
       continue;
     }
-    if (containsAnotherMatch && destination.url !== candidate) {
+    if (containsAnotherMatch && !nestedMatchesAreInUrlSuffix(candidate, match, matches)) {
       if (containsEmail) {
         email = null;
       }

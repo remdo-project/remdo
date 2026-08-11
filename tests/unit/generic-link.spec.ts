@@ -96,6 +96,16 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('normalizes a valid outer URL with a nested URL-looking path segment', () => {
+    const input = 'https://EXAMPLE.COM/path,https://other.com';
+    expect(automaticGenericLinkMatcher(`${input} `)).toMatchObject({
+      index: 0,
+      length: input.length,
+      text: input,
+      url: 'https://example.com/path,https://other.com',
+    });
+  });
+
   it('keeps nested email-shaped text in a valid absolute URL path', () => {
     const input = 'https://example.com/(foo@example.com';
     expect(automaticGenericLinkMatcher(`${input} `)).toMatchObject({

@@ -52,7 +52,7 @@ interface ModelPoint {
   beforeKey?: NodeKey | null;
   key: NodeKey;
   offset: number;
-  text?: string;
+  textBefore?: string;
   type: 'element' | 'text';
 }
 
@@ -99,7 +99,7 @@ function snapshotPoint(point: RangeSelection['anchor']): ModelPoint {
     beforeKey: isElement ? node.getChildAtIndex(point.offset - 1)?.getKey() ?? null : undefined,
     key: point.key,
     offset: point.offset,
-    text: $isTextNode(node) ? node.getTextContent() : undefined,
+    textBefore: $isTextNode(node) ? node.getTextContent().slice(0, point.offset) : undefined,
     type: point.type,
   };
 }
@@ -119,7 +119,7 @@ function $isPointValid(point: ModelPoint): boolean {
   if (point.type === 'text') {
     return $isTextNode(node)
       && point.offset <= node.getTextContentSize()
-      && (point.text === undefined || point.text === node.getTextContent());
+      && (point.textBefore === undefined || point.textBefore === node.getTextContent().slice(0, point.offset));
   }
   return $isElementNode(node)
     && point.offset <= node.getChildrenSize()
@@ -446,6 +446,35 @@ function addLinkPointerListeners(root: HTMLElement, listener: (event: MouseEvent
   root.addEventListener('mouseup', listener, options);
 }
 
+const FIELD_EDITING_KEYS = new Set([
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowUp',
+  'Backspace',
+  'Delete',
+  'End',
+  'Enter',
+  'Home',
+  'PageDown',
+  'PageUp',
+  'Tab',
+]);
+const FIELD_EDITING_SHORTCUTS = new Set(['a', 'c', 'v', 'x', 'y', 'z']);
+
+function isFieldEditingKey(event: ReactKeyboardEvent<HTMLDivElement>): boolean {
+  if (event.nativeEvent.isComposing || FIELD_EDITING_KEYS.has(event.key)) {
+    return true;
+  }
+  const key = event.key.toLowerCase();
+  if (event.metaKey || event.ctrlKey) {
+    return event.ctrlKey && event.altKey && !event.metaKey && event.key.length === 1
+      ? true
+      : FIELD_EDITING_SHORTCUTS.has(key);
+  }
+  return event.key.length === 1;
+}
+
 export function LinkControlsPlugin() {
   const [editor] = useLexicalComposerContext();
   const { docId } = useCollaborationStatus();
@@ -589,6 +618,9 @@ export function LinkControlsPlugin() {
   }, [editor, setControlsState]);
 
   useEffect(() => {
+    let primaryLinkPointerDown: { x: number; y: number } | null = null;
+    let primaryLinkPointerDragged = false;
+
     const handleLinkPointer = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Node)) {
@@ -620,6 +652,8 @@ export function LinkControlsPlugin() {
 
       const directActivation = event.button === 1 || event.metaKey || event.ctrlKey;
       if (directActivation) {
+        primaryLinkPointerDown = null;
+        primaryLinkPointerDragged = false;
         const terminalActivation = (
           event.type === 'click'
           && event.button === 0
@@ -645,7 +679,37 @@ export function LinkControlsPlugin() {
         return;
       }
 
+      if (event.type === 'mousedown' && event.button === 0) {
+        primaryLinkPointerDown = { x: event.clientX, y: event.clientY };
+        primaryLinkPointerDragged = false;
+        return;
+      }
+      if (event.type === 'mouseup' && event.button === 0) {
+        if (primaryLinkPointerDown) {
+          const deltaX = event.clientX - primaryLinkPointerDown.x;
+          const deltaY = event.clientY - primaryLinkPointerDown.y;
+          primaryLinkPointerDragged = deltaX * deltaX + deltaY * deltaY > 9;
+        }
+        return;
+      }
       if (event.type !== 'click' || event.button !== 0) {
+        return;
+      }
+      const wasDrag = primaryLinkPointerDragged;
+      primaryLinkPointerDown = null;
+      primaryLinkPointerDragged = false;
+      const domSelection = globalThis.getSelection();
+      const root = editor.getRootElement();
+      if (
+        wasDrag
+        &&
+        domSelection
+        && !domSelection.isCollapsed
+        && root?.contains(domSelection.anchorNode)
+        && root.contains(domSelection.focusNode)
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
         return;
       }
       const captured = editor.getEditorState().read(() => $captureAuthoringTarget(linkKey), { editor });
@@ -818,7 +882,15 @@ export function LinkControlsPlugin() {
       event.preventDefault();
       event.stopPropagation();
       closeControls(true);
+      return;
     }
+    if (event.key === 'Tab') {
+      return;
+    }
+    if (!isFieldEditingKey(event)) {
+      event.preventDefault();
+    }
+    event.stopPropagation();
   };
 
   return createPortal(
@@ -848,7 +920,12 @@ export function LinkControlsPlugin() {
           <button
             type="button"
             onClick={() => {
-              void copyDestination(controls.destination).then(() => closeControls(true));
+              const originatingControls = controls;
+              void copyDestination(controls.destination).then(() => {
+                if (controlsRef.current === originatingControls) {
+                  closeControls(true);
+                }
+              });
             }}
           >
             Copy destination

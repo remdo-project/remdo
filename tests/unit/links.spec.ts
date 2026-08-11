@@ -420,6 +420,55 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     }
   });
 
+  it('does not let a stale copy completion close newer link controls', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await pastePlainText(remdo, 'https://example.com/');
+    await selectEntireNote(remdo, 'note2');
+    await pastePlainText(remdo, 'https://example.org/');
+
+    const clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    let finishCopy!: () => void;
+    const writeText = vi.fn(() => new Promise<void>((resolve) => {
+      finishCopy = resolve;
+    }));
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    try {
+      const anchors = remdo.editor.getRootElement()!.querySelectorAll('a');
+      await act(async () => fireEvent.click(anchors[0]!));
+      const firstControls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+      const copy = [...firstControls.querySelectorAll('button')]
+        .find((button) => button.textContent === 'Copy destination')!;
+      await act(async () => fireEvent.click(copy));
+
+      await act(async () => fireEvent.keyDown(firstControls, { key: 'Escape' }));
+      await act(async () => fireEvent.click(anchors[1]!));
+      const secondControls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+      expect(secondControls).not.toBe(firstControls);
+
+      await act(async () => finishCopy());
+      expect(document.querySelector('[data-link-controls]')).toBe(secondControls);
+    } finally {
+      if (clipboardDescriptor) Object.defineProperty(navigator, 'clipboard', clipboardDescriptor);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+    }
+  });
+
+  it('consumes non-editing shortcuts inside link controls', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const destination = controls.querySelectorAll('input')[1]!;
+    const leaked = vi.fn();
+    document.addEventListener('keydown', leaked);
+    try {
+      const dispatched = fireEvent.keyDown(destination, { ctrlKey: true, key: 'f' });
+      expect(dispatched).toBe(false);
+      expect(leaked).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener('keydown', leaked);
+    }
+  });
+
   it('rebinds link interactions when Lexical replaces the editor root', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await pastePlainText(remdo, 'https://example.com/');

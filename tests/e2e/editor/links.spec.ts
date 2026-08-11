@@ -499,6 +499,25 @@ test.describe('generic links', () => {
     await expect(controls).toHaveCount(0);
   });
 
+  test('drag-selecting link text does not open link controls', async ({ page, editor }) => {
+    await editor.load('flat');
+    await selectInlineRange(page, 'note2', 0, 'note2'.length);
+    await page.keyboard.press('ControlOrMeta+K');
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    await controls.getByRole('textbox', { name: 'Destination' }).fill('example.com');
+    await controls.getByRole('textbox', { name: 'Destination' }).press('Enter');
+
+    const link = editorLocator(page).locator('a[target="_blank"]');
+    const box = (await link.boundingBox())!;
+    await page.mouse.move(box.x + 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2, { steps: 8 });
+    await page.mouse.up();
+
+    await expect(controls).toHaveCount(0);
+    expect(await page.evaluate(() => globalThis.getSelection()?.isCollapsed)).toBe(false);
+  });
+
   test('direct pointer activation opens exactly one tab per gesture', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);

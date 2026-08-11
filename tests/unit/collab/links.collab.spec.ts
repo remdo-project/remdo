@@ -38,6 +38,28 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
     });
   });
 
+  it('keeps caret controls open when a peer appends unrelated text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const secondary = await createCollabPeer(remdo);
+    await placeCaretAtNote(remdo, 'note1', 2);
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    expect(document.querySelector('[data-link-controls]')).not.toBeNull();
+
+    secondary.editor.update(() => {
+      const text = $findNoteById('note1')!.getFirstChild();
+      if ($isTextNode(text)) {
+        text.setTextContent(`${text.getTextContent()} remote`);
+      }
+    });
+
+    await waitFor(() => {
+      expect(remdo.editor.getEditorState().read(
+        () => $findNoteById('note1')!.getTextContent(),
+        { editor: remdo.editor },
+      )).toBe('note1 remote');
+    });
+    expect(document.querySelector('[data-link-controls]')).not.toBeNull();
+  });
+
   it('ends occurrence suppression when another peer edits its text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const secondary = await createCollabPeer(remdo);
     const url = 'https://example.com/';
