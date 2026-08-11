@@ -140,6 +140,23 @@ export function normalizeGenericDestination(input: string): GenericDestination |
 
 function trimAutomaticCandidate(candidate: string): string {
   let trimmed = candidate;
+  const balance = new Map<string, number>();
+  for (let index = 0; index < trimmed.length; index += 1) {
+    const char = trimmed[index]!;
+    if ([...CLOSER_TO_OPENER.values()].includes(char)) {
+      balance.set(char, (balance.get(char) ?? 0) + 1);
+      continue;
+    }
+    const opener = CLOSER_TO_OPENER.get(char);
+    if (!opener) {
+      continue;
+    }
+    const count = balance.get(opener) ?? 0;
+    if (count === 0) {
+      return trimmed.slice(0, index);
+    }
+    balance.set(opener, count - 1);
+  }
   while (trimmed.length > 0) {
     const last = trimmed.at(-1)!;
     if (TRAILING_PUNCTUATION.has(last)) {
@@ -216,11 +233,8 @@ function normalizeAutomaticMatch(match: LinkifyMatch, candidate: string): Generi
 
 export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
   const email = automaticEmailMatch(text);
-  if (email) {
-    return email;
-  }
   if (!linkify.pretest(text)) {
-    return null;
+    return email;
   }
 
   for (const match of linkify.match(text) ?? [] as LinkifyMatch[]) {
@@ -235,16 +249,17 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
     if (!destination) {
       continue;
     }
-    return {
+    const webOrLinkifyEmail = {
       attributes: destination.kind === 'web' ? WEB_LINK_ATTRIBUTES : undefined,
       index: match.index,
       length: candidate.length,
       text: candidate,
       url: destination.url,
     };
+    return !email || webOrLinkifyEmail.index < email.index ? webOrLinkifyEmail : email;
   }
 
-  return null;
+  return email;
 };
 
 export function recognizeCompleteAutomaticLink(text: string): GenericDestination | null {

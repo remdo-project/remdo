@@ -401,6 +401,23 @@ test.describe('generic links', () => {
     ]);
   });
 
+  test('immediate Undo survives stripped punctuation after an automatic link', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', 0);
+    const url = 'https://example.com/path';
+    await page.keyboard.type(`${url}, `);
+
+    const links = editorLocator(page).locator('a[target="_blank"]');
+    await expect(links).toHaveText(url);
+    await page.keyboard.press('ControlOrMeta+Z');
+    await expect(links).toHaveCount(0);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: `${url}, note1` },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
   test('Shift-clicking a link extends structural selection without activating it', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
@@ -443,6 +460,15 @@ test.describe('generic links', () => {
     await context.pages().at(-1)!.close();
 
     await link.click({ button: 'middle' });
+    await expect.poll(() => context.pages().length).toBe(initialPages + 1);
+    await context.pages().at(-1)!.close();
+
+    await page.keyboard.down('Shift');
+    try {
+      await link.click({ button: 'middle' });
+    } finally {
+      await page.keyboard.up('Shift');
+    }
     await expect.poll(() => context.pages().length).toBe(initialPages + 1);
     await context.pages().at(-1)!.close();
   });

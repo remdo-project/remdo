@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $setAutomaticLinkUnlinkedText } from '#client/editor/runtime/automatic-link-state';
-import { meta, selectEntireNote, typeText } from '#tests';
+import { meta, placeCaretAtNote, selectEntireNote, typeText } from '#tests';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
@@ -31,6 +31,22 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
       expect(readAutomaticLink(secondary)).toMatchObject({ isUnlinked: false, text: url });
     });
 
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await typeText(remdo, 'x');
+    secondary.editor.update(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
+      const text = link.getFirstChild();
+      if ($isTextNode(text)) {
+        text.setTextContent('HTTPS://EXAMPLE.COM/');
+      }
+    });
+    await waitFor(() => {
+      expect(readAutomaticLink(remdo)).toMatchObject({
+        isUnlinked: false,
+        text: 'HTTPS://EXAMPLE.COM/',
+      });
+    });
+
     secondary.editor.update(() => {
       const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
       $setAutomaticLinkUnlinkedText(link, link.getTextContent());
@@ -46,14 +62,14 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
       const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
       const text = link.getFirstChild();
       if ($isTextNode(text)) {
-        text.setTextContent('HTTPS://EXAMPLE.COM/');
+        text.setTextContent(url);
       }
     });
 
     await waitFor(() => {
       expect(readAutomaticLink(remdo)).toEqual({
         isUnlinked: false,
-        text: 'HTTPS://EXAMPLE.COM/',
+        text: url,
         url: 'https://example.com/',
       });
       expect(readAutomaticLink(secondary)).toEqual(readAutomaticLink(remdo));

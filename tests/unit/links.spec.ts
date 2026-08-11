@@ -291,6 +291,31 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     }
   });
 
+  it('rebinds link interactions when Lexical replaces the editor root', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await pastePlainText(remdo, 'https://example.com/');
+
+    const originalRoot = remdo.editor.getRootElement()!;
+    const replacementRoot = document.createElement('div');
+    originalRoot.parentElement!.append(replacementRoot);
+    try {
+      await act(async () => {
+        remdo.editor.setRootElement(replacementRoot);
+      });
+      const link = replacementRoot.querySelector('a');
+      expect(link).not.toBeNull();
+      await act(async () => {
+        fireEvent.click(link!);
+      });
+      expect(document.querySelector('[data-link-controls]')).not.toBeNull();
+    } finally {
+      await act(async () => {
+        remdo.editor.setRootElement(originalRoot);
+      });
+      replacementRoot.remove();
+    }
+  });
+
   it('creates a labeled link from selected text with Cmd/Ctrl+K', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await pressKey(remdo, { key: 'k', ctrlOrMeta: true });

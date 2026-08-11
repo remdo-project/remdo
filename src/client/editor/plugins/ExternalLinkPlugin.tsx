@@ -150,7 +150,7 @@ function $selectionTouchesLink(link: AutoLinkNode): boolean {
   }
   if ($isTextNode(anchorNode) && anchorNode.getPreviousSibling()?.is(link)) {
     const prefix = anchorNode.getTextContent().slice(0, selection.anchor.offset);
-    if (prefix.length > 0 && [...prefix].every(char => TYPED_CANDIDATE_END.test(char))) {
+    if (prefix.length > 0 && [...prefix].every(char => GENERIC_LINK_SEPARATOR.test(char))) {
       return true;
     }
   }
@@ -214,7 +214,8 @@ export function ExternalLinkPlugin() {
     const createdAutomaticKeysByUrl = new Map<string, string[]>();
     const createdKeyCleanupTimers = new Set<ReturnType<typeof setTimeout>>();
     let automaticUndoCandidate: { key: string; text: string; url: string } | null = null;
-    let deferCompleteTypedCandidate = false;
+    let deferredTextNodeKey: null | string = null;
+    let deferCurrentTextTransform = false;
     let pasteInProgress = false;
     let presentationQueued = false;
     const armAutomaticUndo = (node: AutoLinkNode) => {
@@ -233,6 +234,28 @@ export function ExternalLinkPlugin() {
         presentationQueued = false;
         syncExternalLinkPresentation(editor.getRootElement());
       });
+    };
+    const unregisterTextTransform = editor.registerNodeTransform(TextNode, (node) => {
+      deferCurrentTextTransform = node.getKey() === deferredTextNodeKey;
+      const parent = node.getParent();
+      if (parent instanceof AutoLinkNode) {
+        $syncAutomaticLinkSuppression(parent);
+      }
+    });
+    const $updateTypedCandidateDeferral = (defer: boolean) => {
+      if (!defer) {
+        deferredTextNodeKey = null;
+        return;
+      }
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) {
+        deferredTextNodeKey = null;
+        return;
+      }
+      const anchor = selection.anchor.getNode();
+      deferredTextNodeKey = $isTextNode(anchor) && !(anchor.getParent() instanceof AutoLinkNode)
+        ? anchor.getKey()
+        : null;
     };
 
     queuePresentationSync();
@@ -257,7 +280,7 @@ export function ExternalLinkPlugin() {
           return match && (
             $selectionIsInsideAutomaticLink()
             || automaticCreationUrls.has(match.url)
-            || !deferCompleteTypedCandidate
+            || !deferCurrentTextTransform
           )
             ? match
             : null;
@@ -266,12 +289,7 @@ export function ExternalLinkPlugin() {
       }),
       editor.registerNodeTransform(LinkNode, $normalizeExternalLinkNode),
       editor.registerNodeTransform(AutoLinkNode, $normalizeExternalLinkNode),
-      editor.registerNodeTransform(TextNode, (node) => {
-        const parent = node.getParent();
-        if (parent instanceof AutoLinkNode) {
-          $syncAutomaticLinkSuppression(parent);
-        }
-      }),
+      unregisterTextTransform,
       registerExternalLinkMutationListener(editor, LinkNode),
       registerExternalLinkMutationListener(editor, AutoLinkNode, (node) => {
         const url = node.getURL();
@@ -303,7 +321,7 @@ export function ExternalLinkPlugin() {
         PASTE_COMMAND,
         () => {
           pasteInProgress = true;
-          deferCompleteTypedCandidate = false;
+          $updateTypedCandidateDeferral(false);
           return false;
         },
         COMMAND_PRIORITY_CRITICAL,
@@ -315,7 +333,7 @@ export function ExternalLinkPlugin() {
             return false;
           }
           const endsAtBoundary = TYPED_CANDIDATE_END.test(insertion.at(-1)!);
-          deferCompleteTypedCandidate = !endsAtBoundary && !$selectionIsInsideAutomaticLink();
+          $updateTypedCandidateDeferral(!endsAtBoundary && !$selectionIsInsideAutomaticLink());
           return false;
         },
         COMMAND_PRIORITY_CRITICAL,
@@ -354,8 +372,9 @@ export function ExternalLinkPlugin() {
             && !event.metaKey
             && !event.ctrlKey
           ) {
-            deferCompleteTypedCandidate = !TYPED_CANDIDATE_END.test(event.key)
-              && !$selectionIsInsideAutomaticLink();
+            $updateTypedCandidateDeferral(
+              !TYPED_CANDIDATE_END.test(event.key) && !$selectionIsInsideAutomaticLink(),
+            );
           }
           if (
             automaticUndoCandidate

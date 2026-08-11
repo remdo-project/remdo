@@ -72,6 +72,24 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('stops before an unmatched closer followed by more text', () => {
+    const input = 'https://example.com/a)b';
+    expect(automaticGenericLinkMatcher(input)).toMatchObject({
+      index: 0,
+      length: 'https://example.com/a'.length,
+      text: 'https://example.com/a',
+    });
+  });
+
+  it('recognizes the earliest candidate when a later email is present', () => {
+    const input = 'https://example.com user@example.com';
+    expect(automaticGenericLinkMatcher(input)).toMatchObject({
+      index: 0,
+      text: 'https://example.com',
+      url: 'https://example.com/',
+    });
+  });
+
   it('keeps a balanced trailing closer', () => {
     const input = 'https://example.com/foo_(bar)';
     expect(automaticGenericLinkMatcher(input)).toMatchObject({

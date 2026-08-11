@@ -314,6 +314,14 @@ function extendSelectionToLinkPointer(anchor: HTMLAnchorElement, event: MouseEve
   document.dispatchEvent(new Event('selectionchange'));
 }
 
+function addLinkPointerListeners(root: HTMLElement, listener: (event: MouseEvent) => void, signal: AbortSignal) {
+  const options = { capture: true, signal };
+  root.addEventListener('click', listener, options);
+  root.addEventListener('auxclick', listener, options);
+  root.addEventListener('mousedown', listener, options);
+  root.addEventListener('mouseup', listener, options);
+}
+
 export function LinkControlsPlugin() {
   const [editor] = useLexicalComposerContext();
   const { docId } = useCollaborationStatus();
@@ -452,8 +460,6 @@ export function LinkControlsPlugin() {
   }, [editor, setControlsState]);
 
   useEffect(() => {
-    const root = editor.getRootElement();
-
     const handleLinkPointer = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Node)) {
@@ -474,8 +480,8 @@ export function LinkControlsPlugin() {
         return;
       }
 
-      if (event.shiftKey) {
-        if (event.type === 'mousedown' && event.button === 0) {
+      if (event.shiftKey && event.button === 0) {
+        if (event.type === 'mousedown') {
           extendSelectionToLinkPointer(anchorElement, event);
         }
         event.preventDefault();
@@ -533,19 +539,21 @@ export function LinkControlsPlugin() {
       closeControls(true);
     };
 
-    root?.addEventListener('click', handleLinkPointer, true);
-    root?.addEventListener('auxclick', handleLinkPointer, true);
-    root?.addEventListener('mousedown', handleLinkPointer, true);
-    root?.addEventListener('mouseup', handleLinkPointer, true);
     document.addEventListener('pointerdown', handleOutsidePointer, true);
     document.addEventListener('mousedown', handleOutsidePointer, true);
 
+    let rootListeners: AbortController | null = null;
+    const bindRoot = (nextRoot: HTMLElement | null) => {
+      rootListeners?.abort();
+      rootListeners = nextRoot ? new AbortController() : null;
+      if (nextRoot && rootListeners) {
+        addLinkPointerListeners(nextRoot, handleLinkPointer, rootListeners.signal);
+      }
+      setPortalRoot(nextRoot ? nextRoot.closest<HTMLElement>('.editor-container') : null);
+    };
+
     return mergeRegister(
-      editor.registerRootListener((nextRoot, previousRoot) => {
-        if (previousRoot !== nextRoot) {
-          setPortalRoot(nextRoot ? nextRoot.closest<HTMLElement>('.editor-container') : null);
-        }
-      }),
+      editor.registerRootListener(bindRoot),
       editor.registerUpdateListener(() => {
         const current = controlsRef.current;
         if (!current) {
@@ -633,10 +641,7 @@ export function LinkControlsPlugin() {
         COMMAND_PRIORITY_CRITICAL,
       ),
       () => {
-        root?.removeEventListener('click', handleLinkPointer, true);
-        root?.removeEventListener('auxclick', handleLinkPointer, true);
-        root?.removeEventListener('mousedown', handleLinkPointer, true);
-        root?.removeEventListener('mouseup', handleLinkPointer, true);
+        rootListeners?.abort();
         document.removeEventListener('pointerdown', handleOutsidePointer, true);
         document.removeEventListener('mousedown', handleOutsidePointer, true);
         setControlsState(null);
