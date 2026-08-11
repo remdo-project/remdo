@@ -24,13 +24,13 @@ On an explicit request, the skill may change only ignored scratch under
 stopped run. It does not change tracked files or manage a
 [developer-owned process](../../../../AGENTS.md#isolation).
 
-Generate at a temporary path, then atomically replace
-`public/playground/index.html` only after the artifact is complete. A stopped
-run removes its temporary file and leaves the previous stable artifact
+Generate at a hidden temporary path beside `public/playground/index.html`, then
+atomically replace that stable artifact only after generation is complete. A
+stopped run removes its temporary file and leaves the previous stable artifact
 unchanged. Other existing playground files remain untouched.
 
-Report the complete [development origin](../../runtime/configuration.md#derivation-rules)
-plus `/playground/index.html` as its canonical URL; do not open or verify it.
+The artifact's stable same-origin URL is `/playground/index.html`. The skill
+does not open that URL or verify the developer-owned server.
 
 ## Result
 
@@ -43,9 +43,9 @@ concerns: # if any
     summary: <condition>
 artifact: # if created
   path: public/playground/index.html
-  url: <canonical latest URL>
+  url: /playground/index.html
 reason: <condition that stopped the run> # if stopped
 ```
 
 `created` requires the stable artifact to be complete. `stopped` reports why
-publication failed without claiming a new artifact.
+the run ended without claiming a new artifact.

@@ -23,14 +23,6 @@ cleanly. Stop under the specification's [dependency rule](../../../docs/specs/ag
 only if the registry entry, installed skill, or required template cannot be
 resolved.
 
-Before creating repository files, resolve the canonical origin. Override
-`TMPDIR` only for this command so its runtime scratch stays outside the
-repository:
-
-```sh
-TMPDIR=/tmp tools/env.sh pnpm exec tsx tools/dev/print-app-public-url.ts
-```
-
 ## Generate
 
 Follow the official skill and template, applying the RemDo
@@ -49,13 +41,11 @@ by renaming the completed temporary file:
 mv <temporary-artifact> public/playground/index.html
 ```
 
-Because both paths are in one directory, the rename replaces the previous
-artifact only when generation is complete. If generation or publication stops,
-remove the run's temporary file and leave other playground files untouched.
+If the rename fails, remove the temporary file before returning `stopped`.
 
 ## Report
 
-Append `/playground/index.html` to the resolved origin and return the
-specification's [result](../../../docs/specs/agents/skills/playground.md#result).
-When addressing a human, render it under the shared
+Return the specification's
+[result](../../../docs/specs/agents/skills/playground.md#result). When addressing
+a human, render it under the shared
 [report contract](../../../docs/specs/agents/protocol.md#reports).
