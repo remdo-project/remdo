@@ -29,12 +29,9 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 - **Remaining agent skill alignment.** Apply the adopted
   [specification/procedure boundary](documentation.md#agent-skill-boundary) to
-  the remaining skills. Move procedure-owned behavior to its specification,
-  remove restatement, and make procedures load the complete specification and
-  delegate to its owning sections. Reconsider custom scripts and state machines
-  that encode adaptive work without enough robustness to justify their
-  maintenance, then align each affected specification, procedure,
-  implementation, and coverage.
+  the remaining skills. Reconsider custom scripts and state machines that encode
+  adaptive work without enough robustness to justify their maintenance, then
+  align each affected specification, procedure, implementation, and coverage.
 
 - **Prepare-change lifecycle.** Reconsider its dialogue, specification,
   approval, and execution flow as a whole so it is simple, flexible, and clear.
