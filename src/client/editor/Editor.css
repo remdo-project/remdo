@@ -452,8 +452,9 @@
 .link-controls {
   position: absolute;
   z-index: 5;
-  min-width: 18rem;
-  max-width: min(28rem, calc(100% - 1rem));
+  box-sizing: border-box;
+  min-width: min(18rem, calc(100% - 1rem), calc(100vw - 1rem));
+  max-width: min(28rem, calc(100% - 1rem), calc(100vw - 1rem));
   border: 1px solid var(--mantine-color-dark-4);
   border-radius: var(--mantine-radius-sm);
   background: var(--mantine-color-dark-7);

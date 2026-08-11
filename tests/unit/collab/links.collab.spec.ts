@@ -114,4 +114,30 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
       expect(readAutomaticLink(remdo, 'note2')?.isUnlinked).toBe(false);
     });
   });
+
+  it('keeps immediate Undo available across an unrelated remote edit', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const secondary = await createCollabPeer(remdo);
+    const url = 'https://example.com/';
+    await selectEntireNote(remdo, 'note1');
+    await typeText(remdo, url);
+    await typeText(remdo, ' ');
+    await waitFor(() => {
+      expect(readAutomaticLink(secondary)).toMatchObject({ isUnlinked: false, text: url });
+    });
+
+    await placeCaretAtNote(secondary, 'note2', Number.POSITIVE_INFINITY);
+    await typeText(secondary, ' remote');
+    await waitFor(() => {
+      expect(remdo.editor.getEditorState().read(
+        () => $findNoteById('note2')!.getTextContent(),
+        { editor: remdo.editor },
+      )).toBe('note2 remote');
+    });
+
+    await remdo.dispatchCommand(UNDO_COMMAND);
+    await waitFor(() => {
+      expect(readAutomaticLink(remdo)?.isUnlinked).toBe(true);
+      expect(readAutomaticLink(secondary)?.isUnlinked).toBe(true);
+    });
+  });
 });

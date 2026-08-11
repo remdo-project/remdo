@@ -26,7 +26,7 @@ import {
 } from 'lexical';
 import type { LexicalNode, NodeKey, RangeSelection } from 'lexical';
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { $getSelectionBody } from '#client/editor/features/note-body/note-body-ops';
@@ -358,22 +358,53 @@ function activateDestination(url: string) {
   globalThis.open(url, isWeb ? '_blank' : '_self', isWeb ? 'noopener,noreferrer' : undefined);
 }
 
-function copyDestination(destination: string) {
-  const clipboard = Reflect.get(navigator, 'clipboard') as Clipboard | undefined;
-  if (clipboard) {
-    void clipboard.writeText(destination);
-    return;
-  }
+function copyDestinationFallback(destination: string) {
   const input = document.createElement('textarea');
   input.value = destination;
   input.style.position = 'fixed';
   input.style.opacity = '0';
   document.body.append(input);
   input.select();
-  // Legacy fallback remains necessary on supported non-secure HTTP origins.
-  // eslint-disable-next-line ts/no-deprecated
-  document.execCommand('copy');
-  input.remove();
+  try {
+    // Legacy fallback remains necessary on supported non-secure HTTP origins.
+    // eslint-disable-next-line ts/no-deprecated
+    return document.execCommand('copy');
+  } finally {
+    input.remove();
+  }
+}
+
+async function copyDestination(destination: string) {
+  const clipboard = Reflect.get(navigator, 'clipboard') as Clipboard | undefined;
+  if (clipboard) {
+    try {
+      await clipboard.writeText(destination);
+      return true;
+    } catch {
+      // The async Clipboard API can be exposed while permission is denied.
+    }
+  }
+  return copyDestinationFallback(destination);
+}
+
+function clampPopupPosition(anchor: PickerAnchor, popup: HTMLElement, container: HTMLElement): PickerAnchor {
+  const margin = 8;
+  const popupRect = popup.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+  const minLeft = Math.max(margin, margin - containerRect.left);
+  const maxLeft = Math.max(minLeft, Math.min(
+    container.clientWidth - popupRect.width - margin,
+    globalThis.innerWidth - containerRect.left - popupRect.width - margin,
+  ));
+  const minTop = margin - containerRect.top;
+  const maxTop = Math.max(
+    minTop,
+    globalThis.innerHeight - containerRect.top - popupRect.height - margin,
+  );
+  return {
+    left: Math.min(Math.max(anchor.left, minLeft), maxLeft),
+    top: Math.min(Math.max(anchor.top, minTop), maxTop),
+  };
 }
 
 function extendSelectionToLinkPointer(anchor: HTMLAnchorElement, event: MouseEvent) {
@@ -445,7 +476,7 @@ export function LinkControlsPlugin() {
       currentOrigin: globalThis.location.origin,
     });
     if (!noteRef) {
-      return trimmed;
+      return target.kind === 'range' ? target.text : trimmed;
     }
     return editor.getEditorState().read(() => {
       const note = noteRef.docId === docId ? $findNoteById(noteRef.noteId) : null;
@@ -746,11 +777,21 @@ export function LinkControlsPlugin() {
     );
   }, [closeControls, docId, editor, openControls, setControlsState]);
 
+  useLayoutEffect(() => {
+    const popup = portalRoot?.querySelector<HTMLElement>(LINK_CONTROL_SELECTOR);
+    if (!controls || !portalRoot || !popup) {
+      return;
+    }
+    const position = clampPopupPosition(controls.anchor, popup, portalRoot);
+    popup.style.left = `${position.left}px`;
+    popup.style.top = `${position.top}px`;
+  }, [controls, portalRoot]);
+
   if (!controls || !portalRoot) {
     return null;
   }
 
-  const style: CSSProperties = { left: controls.anchor.left, top: controls.anchor.top };
+  const style: CSSProperties = controls.anchor;
   const handleControlsKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -786,8 +827,7 @@ export function LinkControlsPlugin() {
           <button
             type="button"
             onClick={() => {
-              copyDestination(controls.destination);
-              closeControls(true);
+              void copyDestination(controls.destination).then(() => closeControls(true));
             }}
           >
             Copy destination

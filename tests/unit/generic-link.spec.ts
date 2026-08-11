@@ -41,7 +41,6 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     ['www.example.com:8443/path', 'https://www.example.com:8443/path'],
     ['user@example.com', 'mailto:user@example.com'],
     ["o'reilly@example.com", "mailto:o'reilly@example.com"],
-    ["'foo@example.com", "mailto:'foo@example.com"],
     ['a?b@example.com', 'mailto:a%3Fb@example.com'],
     ['http://127.0.0.1/path', 'http://127.0.0.1/path'],
   ])('automatically recognizes %s', (input, expectedUrl) => {
@@ -50,6 +49,16 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
       length: input.length,
       text: input,
       url: expectedUrl,
+    });
+  });
+
+  it.each(["'", '"'])('treats a leading %s as an email opener', (opener) => {
+    const email = 'foo@example.com';
+    expect(automaticGenericLinkMatcher(`${opener}${email}`)).toMatchObject({
+      index: opener.length,
+      length: email.length,
+      text: email,
+      url: `mailto:${email}`,
     });
   });
 

@@ -375,6 +375,26 @@ test.describe('generic links', () => {
     ]);
   });
 
+  test('keeps link controls within a narrow viewport', async ({ page, editor }) => {
+    await page.setViewportSize({ width: 320, height: 240 });
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('ControlOrMeta+K');
+
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    await expect(controls).toHaveCount(1);
+    await expect.poll(async () => (await controls.boundingBox())!.x).toBeGreaterThanOrEqual(0);
+    await expect.poll(async () => (await controls.boundingBox())!.y).toBeGreaterThanOrEqual(0);
+    await expect.poll(async () => {
+      const box = (await controls.boundingBox())!;
+      return box.x + box.width;
+    }).toBeLessThanOrEqual(320);
+    await expect.poll(async () => {
+      const box = (await controls.boundingBox())!;
+      return box.y + box.height;
+    }).toBeLessThanOrEqual(240);
+  });
+
   test('waits for a typed URL boundary and Undo keeps the authored text', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', 0);

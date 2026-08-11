@@ -8,6 +8,7 @@ import {
   $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
+  COLLABORATION_TAG,
   CONTROLLED_TEXT_INSERTION_COMMAND,
   KEY_DOWN_COMMAND,
   PASTE_COMMAND,
@@ -498,11 +499,12 @@ export function ExternalLinkPlugin() {
         },
         COMMAND_PRIORITY_CRITICAL,
       ),
-      editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
+      editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, tags }) => {
         pasteInProgress = false;
         if (
           automaticUndoCandidate
           && automaticUndoReady
+          && !tags.has(COLLABORATION_TAG)
           && (dirtyElements.size > 0 || dirtyLeaves.size > 0)
         ) {
           automaticUndoCandidate = null;

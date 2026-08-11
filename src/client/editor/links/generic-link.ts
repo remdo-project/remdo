@@ -182,7 +182,10 @@ function automaticCandidateFrom(text: string, index: number): string {
 
 function automaticEmailMatch(text: string): ReturnType<LinkMatcher> {
   for (const match of text.matchAll(AUTOMATIC_EMAIL_PATTERN)) {
-    const index = match.index;
+    let index = match.index;
+    if (text[index] === "'" && hasAutomaticStartBoundary(text, index)) {
+      index += 1;
+    }
     if (!hasAutomaticStartBoundary(text, index)) {
       continue;
     }
