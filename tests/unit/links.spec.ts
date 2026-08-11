@@ -273,6 +273,30 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('pasting a destination over part of a generic link changes only the selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const link = $createLinkNode('https://example.com/');
+      const text = $createTextNode('linked');
+      link.append(text);
+      note.clear();
+      note.append(link);
+      text.select(0, 3);
+    });
+
+    await pastePlainText(remdo, 'https://example.org/');
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe('linked');
+      const links = note.getChildren().filter($isLinkNode);
+      expect(links.map(link => [link.getTextContent(), link.getURL()])).toEqual([
+        ['lin', 'https://example.org/'],
+        ['ked', 'https://example.com/'],
+      ]);
+    });
+  });
+
   it('pasting a destination over mixed linked and unlinked text preserves the selected label', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
       const note = $findNoteById('note1')!;

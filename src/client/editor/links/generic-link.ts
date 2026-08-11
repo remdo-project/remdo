@@ -32,7 +32,13 @@ const CLOSER_TO_OPENER = new Map([
 // end before punctuation that the accepted contract excludes from its URL.
 export const GENERIC_LINK_SEPARATOR = /[\s()[\]{}<>"'“”‘’.,;:!?*_~]/;
 
-const tldSet = new Set(tlds.map((tld) => tld.toLowerCase()));
+const tldSet = new Set(tlds.map((tld) => {
+  try {
+    return new URL(`https://example.${tld}`).hostname.split('.').at(-1)!;
+  } catch {
+    return tld.toLowerCase();
+  }
+}));
 const linkify = new LinkifyIt()
   .tlds(tlds)
   .set({ fuzzyEmail: true, fuzzyIP: false, fuzzyLink: true });

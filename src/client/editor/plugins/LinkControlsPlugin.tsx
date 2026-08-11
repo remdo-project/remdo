@@ -772,7 +772,7 @@ export function LinkControlsPlugin() {
           if (!selection || selection.isCollapsed()) {
             return false;
           }
-          if (!target) {
+          if (!target || (target.kind === 'link' && selectedText !== target.text)) {
             $replaceSelectionWithGenericLink(selection, selectedText, destination);
           } else if (target.kind === 'range') {
             $insertGenericLink(selection, target.text, destination);
