@@ -34,10 +34,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   scripts and state machines that encode adaptive work without enough robustness
   to justify their maintenance. Prefer concise intent plus deterministic checks
   of stable repository invariants, then align each affected specification,
-  procedure, implementation, and coverage. For `remdo-merge-main`, simplify
-  target acquisition by fetching remote `main` directly into local
-  `origin/main`, pinning its OID, and leaving that fetch effect in place if a
-  later check refuses the merge.
+  procedure, implementation, and coverage.
 
 - **Prepare-change lifecycle.** Reconsider its dialogue, specification,
   approval, and execution flow as a whole so it is simple, flexible, and clear.
