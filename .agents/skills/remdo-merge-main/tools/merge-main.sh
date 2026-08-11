@@ -145,23 +145,15 @@ start_run() {
     fail "working tree is dirty; use explicit preserve mode or clean it first"
   fi
 
-  git fetch --quiet --refmap= origin refs/heads/main \
+  git fetch --quiet --no-tags origin \
+    '+refs/heads/main:refs/remotes/origin/main' \
     || fail "could not fetch origin/main"
-  [ "$(current_branch)" = "$run_branch" ] \
-    || fail "destination branch changed during fetch"
-  [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
-    || fail "destination HEAD changed during fetch"
-  read_working_status
-  [ "$working_status" = "$initial_status" ] \
-    || fail "working tree changed during fetch"
 
-  run_target=$(git rev-parse --verify --quiet 'FETCH_HEAD^{commit}' || true)
-  [ -n "$run_target" ] \
+  run_target=$(git rev-parse --verify --quiet \
+    'refs/remotes/origin/main^{commit}') \
     || fail "origin/main not found after fetch"
   git merge-base "$run_start_head" "$run_target" >/dev/null 2>&1 \
     || fail "HEAD and origin/main have unrelated histories"
-  git update-ref refs/remotes/origin/main "$run_target" \
-    || fail "origin/main could not be updated"
   run_incoming=$(git rev-list --count "$run_start_head..$run_target")
   run_stash=
   run_preserved=no
