@@ -20,7 +20,7 @@ if (
 ) {
   // TODO: jsdom/Node `WebSocket` (undici) breaks collab tests with an `Event`
   // realm mismatch, so swap in `ws` for collab sockets. Obsolete when
-  // `pnpm run test:collab:full` stays green with
+  // `pnpm run test:collab` stays green with
   // REMDO_DISABLE_COLLAB_WEBSOCKET_SHIM=1 — then delete this shim.
   patchedGlobal.WebSocket = WebSocket as unknown as typeof globalThis.WebSocket;
   patchedGlobal[SHIM_FLAG] = true;

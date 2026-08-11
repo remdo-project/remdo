@@ -24,6 +24,10 @@ read-only-runner [options] <agent> <invocation>
 The runner forwards supplied model and effort values to the agent unchanged and
 leaves absent values unset, so the agent applies its own default.
 
+A review caller owns repository verification separately and keeps the resolved
+scope unchanged until the review completes. The runner does not run or validate
+repository checks.
+
 ## Invocations
 
 **Prompt.** The runner passes the prompt to the agent's non-interactive session
@@ -36,10 +40,13 @@ review whose inspection access is incomplete can still report findings and
 success, so confirmation observes review reach rather than its result.
 
 A review uses the native command's instructions and the repository guidance its
-session loads. The runner instructs the reviewing agent and every reviewer it
-delegates to not to run repository checks, and none runs them. **Empirical.**
-Forwarded instructions do not establish compliance, so confirmation observes
-the commands they run.
+session loads. The runner tells the reviewing agent that repository checks are
+handled separately, to neither run nor manually reproduce them, and to pass the
+instructions to every reviewer it delegates to. The reviewer reports any needed
+runtime check and why without running it. This is cooperative guidance, not a
+tool restriction. **Empirical.** During validation, no reviewer process runs or
+manually reproduces a repository check; forwarded instructions do not establish
+compliance, so confirmation observes the commands they run.
 
 ## Repository protection
 

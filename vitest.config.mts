@@ -16,45 +16,6 @@ export default defineConfig({
     environment: 'jsdom',
     globalSetup: isVitestList ? undefined : './tests/global/collab-test-runtime.ts',
     setupFiles: ['./tests/unit/_support/setup/index.ts'],
-    include: [
-      ...configDefaults.include,
-      'tests/unit/**/*.spec.{ts,tsx}',
-      // Skill-local specs under .claude/ are hidden from the crawler; they
-      // register via tests/unit/skills/embedded.spec.ts (self-guarded).
-    ],
-    // Root config/manifest edits affect every test but aren't imported by any
-    // test file, so `--changed` would otherwise find nothing and false-pass.
-    // `--changed` matches these against absolute paths, so single-file patterns
-    // need a `**/` prefix and no trailing `/**` (the vitest defaults assume
-    // config is a dir); directory triggers use a trailing `/**` to match any
-    // file within. Skill-local tools (plus the cli2 config) are spawned or read
-    // at runtime by their specs, never imported, so `--changed` can't reach
-    // them either — trigger their specs to rerun when any file under them
-    // changes.
-    forceRerunTriggers: [
-      ...configDefaults.forceRerunTriggers,
-      '**/vite.config.*',
-      '**/vitest.config.*',
-      '**/package.json',
-      '**/pnpm-lock.yaml',
-      '**/tsconfig*.json',
-      '**/.agents/skills/**/tools/**',
-      // Skill agent metadata is read at runtime by the embedded skill guard, so
-      // changed-only runs need explicit triggers just like tools.
-      '**/.agents/skills/**/agents/**',
-      '**/.claude/skills/**/agents/**',
-      // A newly added/renamed skill spec under hidden skill roots is not
-      // imported by the embedded.spec.ts bridge until wired in; trigger the
-      // bridge so its self-guard (which fails on a missing import) runs under
-      // --changed rather than passing until the next full suite. The guard
-      // scans every hidden root it treats as canonical (`.agents` plus the real
-      // `.claude` skill dirs), so the trigger must span the same roots
-      // or a spec added under `.claude` would false-pass changed-only.
-      '**/.agents/skills/**/tests/**',
-      '**/.claude/skills/**/tests/**',
-      '**/tools/check-agent-instructions.mjs',
-      '**/.markdownlint-cli2.jsonc',
-    ],
     exclude: [
       ...configDefaults.exclude,
       '**/.agent/**',

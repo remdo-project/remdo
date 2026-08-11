@@ -1,13 +1,11 @@
 ---
 name: remdo-verify-change
-description: Verify a default or explicitly selected RemDo uncommitted or Git-range scope with repository checks, fresh Codex and Claude reviews, and evidence-based finding dispositions. Use when the user or another workflow asks to verify, inspect, or independently review a completed repository change without editing, approving, committing, or advancing its lifecycle.
+description: Verify a default or explicitly selected RemDo uncommitted or Git-range scope with focused uncommitted checks, fresh Codex and Claude reviews, and evidence-based finding dispositions. Use when the user or another workflow asks to verify, inspect, or independently review a completed repository change without editing, approving, committing, or advancing its lifecycle.
 ---
 
 # RemDo Verify Change
 
 Verify one scope under the authoritative [`remdo-verify-change`](../../../docs/specs/agents/skills/remdo-verify-change.md) contract.
-Remain read-only: do not edit, stage, commit, or run checks intended to change
-the selected scope.
 
 ## Resolve the scope
 
@@ -27,22 +25,23 @@ and `HEAD_SHA`, and file list. Report `no-change` immediately when `STATE`
 equals it; do not run checks or reviews. Otherwise checks and reviewers must
 inspect the selected scope; the caller owns its stability.
 
-## Run deterministic checks
+## Run focused checks
 
-Run the final repository check prescribed for the agent mode and scope:
+For `uncommitted`, inspect the resolved files and run the focused tests and
+applicable static checks required by the contributor
+[`Testing`](../../../docs/dev/testing.md#verification-lifecycle) policy.
 
-- local `uncommitted`: `pnpm run check`
-- cloud agents or a commit range: `pnpm run check:full`
+For `commit-range`, proceed to reviews without local checks.
 
-If the command fails, report its command and outcome, then stop before invoking
-reviewers.
+If a focused command fails, report its command and outcome, then stop before
+invoking reviewers.
 
 ## Run fresh reviews
 
-After checks pass, attempt fresh Codex and Claude reviews concurrently through
-the runtime's managed parallel-call surface. Never shell-background either
-process. Do not substitute another reviewer when one is missing or fails, and
-do not abort the other review.
+Then attempt fresh Codex and Claude reviews concurrently through the runtime's
+managed parallel-call surface. Never shell-background either process. Do not
+substitute another reviewer when one is missing or fails, and do not abort the
+other review.
 
 Invoke the shared runner directly with high effort:
 
@@ -72,7 +71,7 @@ a fixed phrase list for this semantic judgment.
 ## Validate findings
 
 After both review attempts finish, classify every finding under the
-authoritative specification's [Findings](../../../docs/specs/agents/skills/remdo-verify-change.md#findings) contract. Keep verification read-only.
+authoritative specification's [Findings](../../../docs/specs/agents/skills/remdo-verify-change.md#findings) contract.
 
 ## Report
 

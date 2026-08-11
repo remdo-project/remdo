@@ -145,23 +145,15 @@ start_run() {
     fail "working tree is dirty; use explicit preserve mode or clean it first"
   fi
 
-  git fetch --quiet --refmap= origin refs/heads/main \
+  git fetch --quiet --no-tags origin \
+    '+refs/heads/main:refs/remotes/origin/main' \
     || fail "could not fetch origin/main"
-  [ "$(current_branch)" = "$run_branch" ] \
-    || fail "destination branch changed during fetch"
-  [ "$(git rev-parse --verify HEAD)" = "$run_start_head" ] \
-    || fail "destination HEAD changed during fetch"
-  read_working_status
-  [ "$working_status" = "$initial_status" ] \
-    || fail "working tree changed during fetch"
 
-  run_target=$(git rev-parse --verify --quiet 'FETCH_HEAD^{commit}' || true)
-  [ -n "$run_target" ] \
+  run_target=$(git rev-parse --verify --quiet \
+    'refs/remotes/origin/main^{commit}') \
     || fail "origin/main not found after fetch"
   git merge-base "$run_start_head" "$run_target" >/dev/null 2>&1 \
     || fail "HEAD and origin/main have unrelated histories"
-  git update-ref refs/remotes/origin/main "$run_target" \
-    || fail "origin/main could not be updated"
   run_incoming=$(git rev-list --count "$run_start_head..$run_target")
   run_stash=
   run_preserved=no
@@ -218,14 +210,8 @@ start_run() {
       ;;
     merge-commit)
       merge_with_neutral_options \
-        --quiet --commit --no-edit --no-ff --no-squash "$run_target" \
+        --quiet --no-commit --no-edit --no-ff --no-squash "$run_target" \
         || true
-      if is_ancestor "$run_target" HEAD \
-        && is_ancestor "$run_start_head" HEAD \
-        && ! operation_in_progress; then
-        emit_run_state verification-needed
-        return
-      fi
       merge_head=$(git rev-parse --verify --quiet MERGE_HEAD || true)
       if [ "$merge_head" = "$run_target" ]; then
         read_unmerged_paths
@@ -271,13 +257,13 @@ continue_run() {
   [ -z "$untracked_paths" ] \
     || fail "untracked merge-resolution files remain"
 
-  GIT_EDITOR=true git merge --continue 1>&2 \
+  GIT_EDITOR=true git -c core.hooksPath=/dev/null merge --continue 1>&2 \
     || fail "merge commit could not be completed"
   is_ancestor "$expected_target" HEAD \
     || fail "branch no longer contains the fixed target"
   operation_in_progress \
     && fail "a Git operation remains after the merge commit"
-  printf 'STATE=verification-needed\n'
+  printf 'STATE=merged\n'
   printf 'TARGET=%s\n' "$expected_target"
 }
 

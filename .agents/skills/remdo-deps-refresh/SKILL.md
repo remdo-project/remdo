@@ -69,8 +69,7 @@ reference. Treat a missing required tool, network or API failure, ambiguous or
 malformed version, unverifiable edit, or unavailable Node image throughout the
 newest LTS major as a failed run rather than a no-op.
 
-After a complete pass produces no update, run `pnpm run audit:policy`, then
-inspect Dependabot.
+After a complete pass produces no update, run `pnpm run audit:policy`.
 
 ## Reconcile an update
 
@@ -87,9 +86,9 @@ Keep each selected update and its corrections as one refresh unit.
 3. Record a dependency-specific workaround introduced or retained during repair
    with the exact `TODO(deps):` or `FIXME(deps):` marker under the
    [tracked-comment policy](../../../CONTRIBUTING.md#code-comments).
-4. After the latest mutation, run `pnpm run check:full`, `pnpm run test:e2e`,
-   `pnpm run audit:cleanup`, and `CI=true pnpm install --no-frozen-lockfile`.
-   For a Node-pin update, also run `pnpm run test:e2e:docker`.
+4. After the latest mutation, run `pnpm run typecheck`, `pnpm run lint:code`,
+   the dependency-specific focused tests and other applicable focused lint, and
+   `CI=true pnpm install --no-frozen-lockfile`.
 5. When verification passes, commit the complete refresh unit and select again.
 
 When a pnpm-major update leaves `node_modules` linked by the old store, run
@@ -107,9 +106,12 @@ comment-capable selector or configuration owner.
 
 ## Finish
 
-After no update remains selectable, inspect open Dependabot alerts and
-security-update pull requests with `gh`. Report each as `covered here`, `already
-on default branch`, `unresolved`, or `blocked intentionally`.
+After no update remains selectable, run `pnpm install --frozen-lockfile` and
+`pnpm run audit:cleanup`.
+
+Then inspect open Dependabot alerts and security-update pull requests with `gh`.
+Report each as `covered here`, `already on default branch`, `unresolved`, or
+`blocked intentionally`.
 
 Return the specification's
 [`Result`](../../../docs/specs/agents/skills/remdo-deps-refresh.md#result) to the

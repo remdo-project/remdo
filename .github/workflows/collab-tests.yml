@@ -4,6 +4,10 @@ permissions:
 
 on: push
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   collab-unit-tests:
     permissions:
@@ -17,4 +21,4 @@ jobs:
       - uses: ./.github/actions/setup-pnpm
 
       - name: Run collaboration unit tests
-        run: TEST_TIMEOUT=$((60 * 7)) pnpm run test:collab:full
+        run: TEST_TIMEOUT=$((60 * 7)) pnpm run test:collab

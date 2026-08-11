@@ -3,8 +3,8 @@
 The test harness gives each working directory an isolated verification runtime
 and owns its startup, cleanup, and diagnostic-data lifecycle.
 [Running Tests](../../guides/testing.md) owns supported verification procedures, setup, and invocation.
-The contributor [testing policy](../../dev/testing.md) separately owns coverage obligations and
-automated test-level selection.
+The contributor [testing policy](../../dev/testing.md) separately owns coverage,
+automated test-level selection, and verification lifecycle.
 [Run Modes](../../run-modes.md) owns the supported run-mode set.
 
 ## Unit Tests
@@ -43,5 +43,6 @@ data when it finishes or fails.
 
 ## CI Environment
 
-CI runs the same full harness variants and lifecycles as local full runs. The CI
-runner provides their working-directory and runtime-data isolation.
+CI runs the same full harness variants and runtime lifecycles as local full
+runs. The CI runner provides their working-directory and runtime-data isolation
+and additionally retains available browser failure traces as artifacts.

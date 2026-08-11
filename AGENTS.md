@@ -21,13 +21,13 @@ owner. Provider-specific surfaces may load it alongside their own rules.
   - **Cross-mode change impact:** [Run-Mode Impact](CONTRIBUTING.md#run-mode-impact).
   - **Compatibility defaults:** [Backward compatibility](CONTRIBUTING.md#backward-compatibility-pre-10).
   - **Tracked code comments:** [Code comments](CONTRIBUTING.md#code-comments).
-  - **Testing quality and coverage:** [Testing](docs/dev/testing.md).
+  - **Testing policy:** [Testing](docs/dev/testing.md).
 - **Long-term product constraints:** [Project principles](docs/principles.md).
 - **Supported run modes:** [Run Modes](docs/run-modes.md).
   - **Production procedures:** [Production Deployment](docs/guides/production-deployment.md).
   - **Development procedures:** [Local Development](docs/guides/local-development.md).
   - **Verification procedures:** [Running Tests](docs/guides/testing.md).
-  - **Verification lifecycle:** [Test Harness](docs/specs/testing/test-harness.md).
+  - **Test runtime:** [Test Harness](docs/specs/testing/test-harness.md).
 - **Runtime configuration:** [Configuration](docs/specs/runtime/configuration.md).
   - **Port and origin derivation:** [Derivation rules](docs/specs/runtime/configuration.md#derivation-rules).
 - **Tracked repository follow-up:** [RemDo TODO](docs/todo.md#tracked-follow-up).
@@ -42,15 +42,17 @@ change. Do not add update-tracking sections to durable documents.
 
 - Inspect and edit within the requested scope without separate permission.
 - Commit only when the user explicitly authorizes it or an invoked skill grants
-  an autonomous commit scope. That authority includes staging only the
-  authorized commit. Other staging or unstaging, stashing, resets, and index
-  rewrites require an explicit user request. A plain change request grants
-  neither commit nor push authority.
+  it in its specification; that authority includes staging only the authorized
+  commit. A plain change request grants neither commit nor push authority.
+- A skill specification may grant autonomous repository authority only by
+  declaring its permitted effects, scope, and lifecycle.
+  Undeclared staging or unstaging, branch or ref changes, stashing, resets, and
+  index rewrites require an explicit user request.
 - Staged versus unstaged state does not signal completion, approval, protection,
   or task scope; edit files required by the task regardless of that state.
-- Ordinary `git fetch` is allowed. Pulling, opening a pull request, and fetches
-  with caller-supplied mutating refspecs require explicit user authority.
-  Pushing always requires a separate explicit user request.
+- Ordinary `git fetch` is allowed. Pulling, rebasing, opening a pull request,
+  and fetches with caller-supplied mutating refspecs require explicit user
+  authority. Pushing always requires a separate explicit user request.
 - Uncommitted work may be mid-transformation. A commit is coherent or tracks its
   precise remaining gap in [RemDo TODO](docs/todo.md#tracked-follow-up); when
   commit authority applies, record that gap without seeking separate approval.
@@ -103,13 +105,7 @@ change. Do not add update-tracking sections to durable documents.
 
 ## Checks
 
-Unless a narrower capability owns verification, determine the final gate in
-this order:
+Follow the contributor [testing policy](docs/dev/testing.md) and report CI as
+pending until it runs.
 
-1. `CODEX_CI=1` or `CI=true`: run `pnpm run check:full`.
-2. A scope containing committed changes: run `pnpm run check:full`.
-3. A wholly uncommitted local scope: run `pnpm run check`.
-
-During iteration, prefer the narrowest applicable lint, typecheck, or test
-command. Fix failures caused by the change or report them before handoff. Run a
-full suite beyond the final gate only when requested or needed for diagnosis.
+Fix failures caused by the change or report them before handoff.

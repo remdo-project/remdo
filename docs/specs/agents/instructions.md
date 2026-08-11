@@ -58,13 +58,13 @@ documentation. Route agents by the question they need to answer:
   - **Cross-mode change impact:** [Run-Mode Impact](../../../CONTRIBUTING.md#run-mode-impact).
   - **Compatibility defaults:** [Backward compatibility](../../../CONTRIBUTING.md#backward-compatibility-pre-10).
   - **Tracked code comments:** [Code comments](../../../CONTRIBUTING.md#code-comments).
-  - **Testing quality and coverage:** [Testing](../../dev/testing.md).
+  - **Testing policy:** [Testing](../../dev/testing.md).
 - **Long-term product constraints:** [Project principles](../../principles.md).
 - **Supported run modes:** [Run Modes](../../run-modes.md).
   - **Production procedures:** [Production Deployment](../../guides/production-deployment.md).
   - **Development procedures:** [Local Development](../../guides/local-development.md).
   - **Verification procedures:** [Running Tests](../../guides/testing.md).
-  - **Verification lifecycle:** [Test Harness](../testing/test-harness.md).
+  - **Test runtime:** [Test Harness](../testing/test-harness.md).
 - **Runtime configuration:** [Configuration](../runtime/configuration.md).
   - **Port and origin derivation:** [Derivation rules](../runtime/configuration.md#derivation-rules).
 - **Tracked repository follow-up:** [RemDo TODO](../../todo.md#tracked-follow-up).
@@ -85,20 +85,9 @@ narrower owners can take over.
 
 #### Repository authority
 
-- Agents may inspect and edit within the requested scope. Committing requires
-  explicit user authority or an applicable skill-declared autonomous scope;
-  that authority includes staging only the authorized commit. Other staging or
-  unstaging, stashing, resets, and index rewrites require an explicit user
-  request. A plain change request grants neither commit nor push authority.
-- Staged versus unstaged state does not signal completion, approval, protection,
-  or task scope; agents edit files required by the task regardless of that state.
-- Ordinary `git fetch` is allowed. Pulling, opening a pull request, and fetches
-  with caller-supplied mutating refspecs require explicit user authority.
-  Pushing always requires a separate explicit user request.
-- Uncommitted work may be mid-transformation. A commit is coherent or tracks its
-  precise remaining gap in [RemDo TODO](../../todo.md#tracked-follow-up). When
-  commit authority applies, the agent records that gap without seeking separate
-  approval.
+The shared entry point owns [repository authority](../../../AGENTS.md#repository-authority),
+including default edit authority, skill-declared mutations, and operations that
+require explicit user authority.
 
 #### Isolation
 
@@ -113,12 +102,9 @@ narrower owners can take over.
 - Prefer the simplest permanent implementation. Stop on a missing task
   dependency, investigate repository evidence before asking, and ask before
   choosing between unresolved material tradeoffs.
-- Unless a narrower capability owns verification, `CODEX_CI=1` or `CI=true`
-  selects cloud-agent verification; otherwise local verification applies. A
-  wholly uncommitted local scope finishes with `pnpm run check`; cloud work and
-  any scope containing committed changes finish with `pnpm run check:full`.
-- Agents apply the contributor [testing policy](../../dev/testing.md) when
-  selecting, writing, or reviewing coverage and perform each
+- Agents follow the contributor [testing policy](../../dev/testing.md) and
+  report CI as pending until it runs.
+- Agents perform each
   [empirical check](../../dev/testing.md#empirical-checks) required by an
   affected behavior's owner.
 - Conclusions about UI behavior or rendering use live browser inspection as

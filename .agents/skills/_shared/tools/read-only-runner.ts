@@ -54,13 +54,22 @@ const GIT_REDIRECTION_KEYS = [
 ] as const;
 
 const REVIEW_INSTRUCTION = [
-  'Do not run repository checks.',
-  'When delegating review work, explicitly instruct every delegated',
-  'reviewer not to run repository checks.',
+  'Repository tests and checks are handled outside this review.',
+  'Do not run or manually reproduce them.',
+  'Review the implementation and test adequacy using repository evidence.',
+  'Pass these instructions to every delegated reviewer.',
+  'Report any additional runtime check needed and why; do not run it.',
 ].join(' ');
 
 const CLAUDE_REVIEW_COMMAND = '/code-review';
 const CLAUDE_REVIEW_BACKGROUND_WAIT_CEILING_MS = '0';
+
+function claudeReviewRequest(command: string): string {
+  // The system-prompt copy guides the lead session; native /code-review does
+  // not propagate it reliably to delegated reviewers, so keep a labeled copy
+  // in the workflow request as well.
+  return `${command}\n\nReview constraint: ${REVIEW_INSTRUCTION}`;
+}
 
 function parseCall(args: string[]): RunnerCall {
   const settings: RunnerCall['settings'] = {};
@@ -831,7 +840,7 @@ async function runClaude(
           ?? 'could not resolve uncommitted review paths',
         };
       }
-      reviewCommand = resolved.target;
+      reviewCommand = claudeReviewRequest(resolved.target);
     } else {
       const resolved = await resolveHead(
         repository,
@@ -844,9 +853,9 @@ async function runClaude(
           evidence: resolved.evidence ?? 'could not resolve the current HEAD commit',
         };
       }
-      reviewCommand = `${CLAUDE_REVIEW_COMMAND} ${
+      reviewCommand = claudeReviewRequest(`${CLAUDE_REVIEW_COMMAND} ${
         call.invocation.scope.base
-      }..${resolved.head}`;
+      }..${resolved.head}`);
     }
   }
   const invocation = claudeInvocation(call, reviewCommand);

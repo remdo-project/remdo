@@ -473,8 +473,6 @@ the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#br
 - Review existing tests against the contributor
   [testing policy](dev/testing.md#coverage) and remove tests that merely mirror
   implementation without protecting behavior relied on by a user or component.
-- Research further high-signal testing recommendations for coding agents, then
-  fold only durable, repo-relevant rules into the testing policy.
 
 ## Warning and drift detection follow-ups
 
