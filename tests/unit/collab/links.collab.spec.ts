@@ -4,7 +4,10 @@ import { $isTextNode, UNDO_COMMAND } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { $setAutomaticLinkUnlinkedText } from '#client/editor/runtime/automatic-link-state';
+import {
+  $getAutomaticLinkUnlinkedText,
+  $setAutomaticLinkUnlinkedText,
+} from '#client/editor/runtime/automatic-link-state';
 import { meta, placeCaretAtNote, pressKey, selectEntireNote, typeText } from '#tests';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { createCollabPeer } from './_support/remdo-peers';
@@ -26,7 +29,7 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
     await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
     expect(document.querySelector('[data-link-controls]')).not.toBeNull();
 
-    secondary.editor.update(() => {
+    await secondary.mutate(() => {
       const text = $findNoteById('note1')!.getFirstChild();
       if ($isTextNode(text)) {
         text.setTextContent(`remote ${text.getTextContent()}`);
@@ -44,7 +47,7 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
     await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
     expect(document.querySelector('[data-link-controls]')).not.toBeNull();
 
-    secondary.editor.update(() => {
+    await secondary.mutate(() => {
       const text = $findNoteById('note1')!.getFirstChild();
       if ($isTextNode(text)) {
         text.setTextContent(`${text.getTextContent()} remote`);
@@ -73,7 +76,7 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
 
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     await typeText(remdo, 'x');
-    secondary.editor.update(() => {
+    await secondary.mutate(() => {
       const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
       const text = link.getFirstChild();
       if ($isTextNode(text)) {
@@ -87,7 +90,7 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
       });
     });
 
-    secondary.editor.update(() => {
+    await secondary.mutate(() => {
       const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
       $setAutomaticLinkUnlinkedText(link, link.getTextContent());
       link.setIsUnlinked(true);
@@ -96,9 +99,13 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
     await waitFor(() => {
       expect(readAutomaticLink(remdo)?.isUnlinked).toBe(true);
       expect(readAutomaticLink(secondary)?.isUnlinked).toBe(true);
+      expect(secondary.editor.getEditorState().read(() => {
+        const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
+        return $getAutomaticLinkUnlinkedText(link);
+      }, { editor: secondary.editor })).toBe('HTTPS://EXAMPLE.COM/');
     });
 
-    remdo.editor.update(() => {
+    await remdo.mutate(() => {
       const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
       const text = link.getFirstChild();
       if ($isTextNode(text)) {
@@ -112,7 +119,11 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
         text: url,
         url: 'https://example.com/',
       });
-      expect(readAutomaticLink(secondary)).toEqual(readAutomaticLink(remdo));
+      expect(readAutomaticLink(secondary)).toEqual({
+        isUnlinked: false,
+        text: url,
+        url: 'https://example.com/',
+      });
     });
   });
 

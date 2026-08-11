@@ -14,7 +14,13 @@ import {
 } from '#client/editor/runtime/automatic-link-state';
 
 function update(editor: LexicalEditor, callback: () => void): Promise<void> {
-  return new Promise((resolve) => editor.update(callback, { onUpdate: resolve }));
+  return new Promise((resolve, reject) => editor.update(() => {
+    try {
+      callback();
+    } catch (error) {
+      reject(error);
+    }
+  }, { onUpdate: resolve }));
 }
 
 function $getOnlyAutoLink(): AutoLinkNode {
@@ -38,12 +44,16 @@ describe('automatic link suppression state', () => {
 
     const restored = createEditor({ nodes: [LinkNode, AutoLinkNode] });
     restored.setEditorState(restored.parseEditorState(JSON.stringify(source.getEditorState())));
+    let loadedBaseline: string | null = null;
+    let clearedBaseline: string | null = url;
     await update(restored, () => {
       const link = $getOnlyAutoLink();
-      expect($getAutomaticLinkUnlinkedText(link)).toBe(url);
+      loadedBaseline = $getAutomaticLinkUnlinkedText(link);
       $setAutomaticLinkUnlinkedText(link, null);
-      expect($getAutomaticLinkUnlinkedText(link)).toBeNull();
+      clearedBaseline = $getAutomaticLinkUnlinkedText(link);
     });
+    expect(loadedBaseline).toBe(url);
+    expect(clearedBaseline).toBeNull();
 
     restored.getEditorState().read(() => {
       expect($getAutomaticLinkUnlinkedText($getOnlyAutoLink())).toBeNull();

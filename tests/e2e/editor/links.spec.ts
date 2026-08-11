@@ -354,6 +354,11 @@ test.describe('generic links', () => {
     await expect(controls).toHaveCount(1);
     const edit = controls.getByRole('button', { name: 'Edit' });
     await expect(edit).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(controls.getByRole('button', { name: 'Remove link' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(controls.getByRole('button', { name: 'Open' })).toBeFocused();
+    await edit.focus();
     await edit.click();
     await expect(controls.getByRole('textbox', { name: 'Destination' })).toBeFocused();
     await controls.getByRole('textbox', { name: 'Text' }).fill('RemDo site');
@@ -378,7 +383,7 @@ test.describe('generic links', () => {
   test('keeps link controls within a narrow viewport', async ({ page, editor }) => {
     await page.setViewportSize({ width: 320, height: 240 });
     await editor.load('flat');
-    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await setCaretAtText(page, 'note3', Number.POSITIVE_INFINITY);
     await page.keyboard.press('ControlOrMeta+K');
 
     const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
@@ -409,11 +414,11 @@ test.describe('generic links', () => {
       const selection = globalThis.getSelection();
       return { offset: selection?.focusOffset, text: selection?.focusNode?.textContent };
     });
-    expect(await readCaret()).toEqual({ offset: 1, text: ' note1' });
+    await expect.poll(readCaret).toEqual({ offset: 1, text: ' note1' });
 
     await page.keyboard.press('ControlOrMeta+Z');
     await expect(links).toHaveCount(0);
-    expect(await readCaret()).toEqual({ offset: 1, text: ' note1' });
+    await expect.poll(readCaret).toEqual({ offset: 1, text: ' note1' });
     await expect(editor).toMatchOutline([
       { noteId: 'note1', text: `${url} note1` },
       { noteId: 'note2', text: 'note2' },
@@ -518,13 +523,43 @@ test.describe('generic links', () => {
     expect(await page.evaluate(() => globalThis.getSelection()?.isCollapsed)).toBe(false);
   });
 
+  test('drag-selecting from plain text into a link does not open link controls', async ({ page, editor }) => {
+    await editor.load('flat');
+    await selectInlineRange(page, 'note2', 2, 'note2'.length);
+    await page.keyboard.press('ControlOrMeta+K');
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    await controls.getByRole('textbox', { name: 'Destination' }).fill('example.com');
+    await controls.getByRole('textbox', { name: 'Destination' }).press('Enter');
+
+    const plain = editorLocator(page).locator('[data-lexical-text="true"]').filter({ hasText: 'no' }).first();
+    const link = editorLocator(page).locator('a[target="_blank"]');
+    const plainBox = (await plain.boundingBox())!;
+    const linkBox = (await link.boundingBox())!;
+    await page.mouse.move(plainBox.x + 2, plainBox.y + plainBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(linkBox.x + linkBox.width - 2, linkBox.y + linkBox.height / 2, { steps: 8 });
+    await page.mouse.up();
+
+    await expect(controls).toHaveCount(0);
+    expect(await page.evaluate(() => globalThis.getSelection()?.isCollapsed)).toBe(false);
+  });
+
   test('action mode consumes unbound browser navigation keys', async ({ page, editor }) => {
     await editor.load('flat');
     await selectInlineRange(page, 'note2', 0, 'note2'.length);
     await page.keyboard.press('ControlOrMeta+K');
     const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
-    await controls.getByRole('textbox', { name: 'Destination' }).fill('example.com');
-    await controls.getByRole('textbox', { name: 'Destination' }).press('Enter');
+    const destination = controls.getByRole('textbox', { name: 'Destination' });
+    const authoringUrl = await page.evaluate(() => {
+      globalThis.history.pushState({}, '', '#link-controls');
+      return globalThis.location.href;
+    });
+    await destination.press('Alt+ArrowLeft');
+    await page.waitForTimeout(100);
+    expect(page.url()).toBe(authoringUrl);
+
+    await destination.fill('example.com');
+    await destination.press('Enter');
 
     await editorLocator(page).locator('a[target="_blank"]').click();
     const edit = controls.getByRole('button', { name: 'Edit' });
@@ -561,10 +596,14 @@ test.describe('generic links', () => {
       await page.keyboard.up(modifier);
     }
     await expect.poll(() => context.pages().length).toBe(initialPages + 1);
+    await page.waitForTimeout(200);
+    expect(context.pages()).toHaveLength(initialPages + 1);
     await context.pages().at(-1)!.close();
 
     await link.click({ button: 'middle' });
     await expect.poll(() => context.pages().length).toBe(initialPages + 1);
+    await page.waitForTimeout(200);
+    expect(context.pages()).toHaveLength(initialPages + 1);
     await context.pages().at(-1)!.close();
 
     await page.keyboard.down('Shift');

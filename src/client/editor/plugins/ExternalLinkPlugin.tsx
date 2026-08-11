@@ -60,6 +60,12 @@ function $hasValidAutomaticLinkStart(node: AutoLinkNode): boolean {
   return match?.index === previous.length && match.length === text.length;
 }
 
+function $hasValidAutomaticLinkEnd(node: AutoLinkNode, next: TextNode): boolean {
+  const text = node.getTextContent();
+  const match = automaticGenericLinkMatcher(`${text}${next.getTextContent()}`);
+  return match?.index === 0 && match.length === text.length;
+}
+
 function $suppressInvalidLink(node: LinkNode | AutoLinkNode) {
   const text = node.getTextContent();
   if (node instanceof AutoLinkNode) {
@@ -326,7 +332,16 @@ export function ExternalLinkPlugin() {
           };
         }
       }
-      const latest = node.getLatest();
+      let latest = node.getLatest();
+      const previousAutomaticLink = latest.getPreviousSibling();
+      if (
+        previousAutomaticLink instanceof AutoLinkNode
+        && !previousAutomaticLink.getIsUnlinked()
+        && !$hasValidAutomaticLinkEnd(previousAutomaticLink, latest)
+      ) {
+        unwrapLinkNode(previousAutomaticLink);
+        latest = node.getLatest();
+      }
       deferredMatchOffset = $getDeferredMatchOffset(latest);
       const previous = latest.getPreviousSibling();
       automaticStartBlockedByInlineNode = previous !== null && !$isTextNode(previous);

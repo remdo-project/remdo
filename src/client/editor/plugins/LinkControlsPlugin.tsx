@@ -174,6 +174,12 @@ function $captureLinkTarget(link: LinkNode, selection: RangeSelection): LinkAuth
   };
 }
 
+function $selectionStaysInOneRegion(selection: RangeSelection): boolean {
+  const anchorItem = resolveContentItemFromNode(selection.anchor.getNode());
+  const focusItem = resolveContentItemFromNode(selection.focus.getNode());
+  return (anchorItem !== null && anchorItem === focusItem) || Boolean($getSelectionBody(selection));
+}
+
 function $captureAuthoringTarget(forcedLinkKey?: NodeKey): LinkAuthoringTarget | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
@@ -200,10 +206,7 @@ function $captureAuthoringTarget(forcedLinkKey?: NodeKey): LinkAuthoringTarget |
     return { kind: 'caret', selection: snapshotSelection(selection) };
   }
 
-  const anchorItem = resolveContentItemFromNode(selection.anchor.getNode());
-  const focusItem = resolveContentItemFromNode(selection.focus.getNode());
-  const staysInOneRegion = (anchorItem !== null && anchorItem === focusItem) || Boolean($getSelectionBody(selection));
-  if (!staysInOneRegion || selection.getNodes().some((node) => $findLinkAncestor(node) !== null)) {
+  if (!$selectionStaysInOneRegion(selection) || selection.getNodes().some((node) => $findLinkAncestor(node) !== null)) {
     return null;
   }
 
@@ -292,6 +295,7 @@ function $insertNoteLink(
   label: string,
   ref: { docId: string; noteId: string },
 ) {
+  $unwrapSuppressedLinksAtSelection(selection);
   const link = $createNoteLinkNode(ref, {});
   link.append($createTextNode(label));
   $setSelection(selection);
@@ -468,16 +472,18 @@ const FIELD_EDITING_KEYS = new Set([
 const FIELD_EDITING_SHORTCUTS = new Set(['a', 'c', 'v', 'x', 'y', 'z']);
 
 function isFieldEditingKey(event: ReactKeyboardEvent<HTMLDivElement>): boolean {
-  if (event.nativeEvent.isComposing || FIELD_EDITING_KEYS.has(event.key)) {
+  if (event.nativeEvent.isComposing) {
     return true;
   }
   const key = event.key.toLowerCase();
-  if (event.metaKey || event.ctrlKey) {
-    return event.ctrlKey && event.altKey && !event.metaKey && event.key.length === 1
-      ? true
-      : FIELD_EDITING_SHORTCUTS.has(key);
+  if (event.altKey) {
+    return event.ctrlKey && !event.metaKey && event.key.length === 1;
   }
-  return event.key.length === 1;
+  if (event.metaKey || event.ctrlKey) {
+    return FIELD_EDITING_SHORTCUTS.has(key)
+      || ['ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'Backspace', 'Delete', 'End', 'Home'].includes(event.key);
+  }
+  return FIELD_EDITING_KEYS.has(event.key) || event.key.length === 1;
 }
 
 export function LinkControlsPlugin() {
@@ -631,6 +637,10 @@ export function LinkControlsPlugin() {
       if (!(target instanceof Node)) {
         return;
       }
+      if (event.type === 'mousedown' && event.button === 0) {
+        primaryLinkPointerDown = { x: event.clientX, y: event.clientY };
+        primaryLinkPointerDragged = false;
+      }
       const linkKey = editor.getEditorState().read(() => {
         const node = $getNearestNodeFromDOMNode(target);
         const link = node ? $findLinkAncestor(node) : null;
@@ -685,8 +695,6 @@ export function LinkControlsPlugin() {
       }
 
       if (event.type === 'mousedown' && event.button === 0) {
-        primaryLinkPointerDown = { x: event.clientX, y: event.clientY };
-        primaryLinkPointerDragged = false;
         return;
       }
       if (event.type === 'mouseup' && event.button === 0) {
