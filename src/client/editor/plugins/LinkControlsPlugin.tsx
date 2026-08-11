@@ -180,6 +180,23 @@ function $selectionStaysInOneRegion(selection: RangeSelection): boolean {
   return (anchorItem !== null && anchorItem === focusItem) || Boolean($getSelectionBody(selection));
 }
 
+function $getWhollySelectedGenericLink(selection: RangeSelection): LinkNode | null {
+  const links = new Map<NodeKey, LinkNode>();
+  for (const node of selection.getNodes()) {
+    const link = node instanceof LinkNode ? node : $findMatchingParent(node, $isLinkNode);
+    if (
+      !(link instanceof LinkNode)
+      || $isNoteLinkNode(link)
+      || (link instanceof AutoLinkNode && link.getIsUnlinked())
+    ) {
+      return null;
+    }
+    links.set(link.getKey(), link);
+  }
+  const link = links.size === 1 ? [...links.values()][0]! : null;
+  return link && selection.getTextContent() === link.getTextContent() ? link : null;
+}
+
 function $captureAuthoringTarget(forcedLinkKey?: NodeKey): LinkAuthoringTarget | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
@@ -204,6 +221,11 @@ function $captureAuthoringTarget(forcedLinkKey?: NodeKey): LinkAuthoringTarget |
 
   if (selection.isCollapsed()) {
     return { kind: 'caret', selection: snapshotSelection(selection) };
+  }
+
+  const selectedLink = $getWhollySelectedGenericLink(selection);
+  if (selectedLink) {
+    return $captureLinkTarget(selectedLink, selection);
   }
 
   if (!$selectionStaysInOneRegion(selection) || selection.getNodes().some((node) => $findLinkAncestor(node) !== null)) {
@@ -404,7 +426,11 @@ async function copyDestination(destination: string) {
       // The async Clipboard API can be exposed while permission is denied.
     }
   }
-  return copyDestinationFallback(destination);
+  try {
+    return copyDestinationFallback(destination);
+  } catch {
+    return false;
+  }
 }
 
 function clampPopupPosition(anchor: PickerAnchor, popup: HTMLElement, container: HTMLElement): PickerAnchor {
@@ -675,10 +701,8 @@ export function LinkControlsPlugin() {
           && (event.metaKey || event.ctrlKey)
         ) || (event.type === 'auxclick' && event.button === 1);
         if (!terminalActivation) {
-          if (event.type !== 'mousedown') {
-            event.preventDefault();
-            event.stopPropagation();
-          }
+          event.preventDefault();
+          event.stopPropagation();
           return;
         }
         const url = editor.getEditorState().read(() => {
@@ -833,6 +857,12 @@ export function LinkControlsPlugin() {
           if (target?.kind === 'caret') {
             return false;
           }
+          if (!target && selected.getNodes().some((node) => {
+            const link = node instanceof LinkNode ? node : $findMatchingParent(node, $isLinkNode);
+            return $isNoteLinkNode(link);
+          })) {
+            return false;
+          }
           const pastedText = event.clipboardData.getData('text/plain');
           const noteRef = parseOwnedNoteLinkUrl(pastedText.trim(), {
             currentDocId: docId,
@@ -907,6 +937,13 @@ export function LinkControlsPlugin() {
     }
     event.stopPropagation();
   };
+  const resolveActionDestination = () => editor.getEditorState().read(() => {
+    if (controls.target.kind !== 'link' || !$resolveTargetSelection(controls.target)) {
+      return null;
+    }
+    const link = $getNodeByKey(controls.target.linkKey);
+    return link instanceof LinkNode && !$isNoteLinkNode(link) ? link.getURL() : null;
+  }, { editor });
 
   return createPortal(
     <FocusTrap>
@@ -926,7 +963,12 @@ export function LinkControlsPlugin() {
           <button
             type="button"
             onClick={() => {
-              activateDestination(controls.destination);
+              const destination = resolveActionDestination();
+              if (!destination) {
+                closeControls(false);
+                return;
+              }
+              activateDestination(destination);
               closeControls(true);
             }}
           >
@@ -935,8 +977,13 @@ export function LinkControlsPlugin() {
           <button
             type="button"
             onClick={() => {
+              const destination = resolveActionDestination();
+              if (!destination) {
+                closeControls(false);
+                return;
+              }
               const originatingControls = controls;
-              void copyDestination(controls.destination).then(() => {
+              void copyDestination(destination).then(() => {
                 if (controlsRef.current === originatingControls) {
                   closeControls(true);
                 }

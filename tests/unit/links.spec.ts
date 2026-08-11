@@ -300,6 +300,23 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('does not nest a generic link inside a selected note-link label', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pastePlainText(remdo, `/n/${remdo.getCollabDocId()}_note2`);
+    await remdo.mutate(() => {
+      const text = $findNoteById('note1')!.getChildren().find($isNoteLinkNode)!.getFirstChild<TextNode>()!;
+      text.select(0, 2);
+    });
+
+    await pastePlainText(remdo, 'https://example.com/');
+
+    remdo.validate(() => {
+      const noteLink = $findNoteById('note1')!.getChildren().find($isNoteLinkNode)!;
+      expect(noteLink.getChildren().some($isLinkNode)).toBe(false);
+      expect($findNoteById('note1')!.getChildren().filter($isLinkNode)).toEqual([noteLink]);
+    });
+  });
+
   it('pasting a destination over mixed linked and unlinked text preserves the selected label', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
       const note = $findNoteById('note1')!;
@@ -459,6 +476,64 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     }
   });
 
+  it('closes controls when every copy mechanism fails', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await pastePlainText(remdo, 'https://example.com/');
+
+    const clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    const execCommandDescriptor = Object.getOwnPropertyDescriptor(document, 'execCommand');
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockRejectedValue(new DOMException('Denied', 'NotAllowedError')) },
+    });
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: vi.fn(() => {
+        throw new TypeError('Copy unavailable');
+      }),
+    });
+    try {
+      await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!));
+      const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+      const copy = [...controls.querySelectorAll('button')]
+        .find((button) => button.textContent === 'Copy destination')!;
+      await act(async () => fireEvent.click(copy));
+
+      await waitFor(() => expect(document.querySelector('[data-link-controls]')).toBeNull());
+    } finally {
+      if (clipboardDescriptor) Object.defineProperty(navigator, 'clipboard', clipboardDescriptor);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+      if (execCommandDescriptor) Object.defineProperty(document, 'execCommand', execCommandDescriptor);
+      else Reflect.deleteProperty(document, 'execCommand');
+    }
+  });
+
+  it('does not open a stale destination from link controls', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await pastePlainText(remdo, 'https://example.com/');
+    await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!));
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const open = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Open')!;
+    const openSpy = vi.spyOn(globalThis, 'open').mockImplementation(() => null);
+    try {
+      await act(async () => new Promise<void>((resolve) => {
+        remdo.editor.update(() => {
+          $findNoteById('note1')!.getChildren().find($isLinkNode)!.setURL('https://example.org/');
+        }, {
+          onUpdate: () => {
+            fireEvent.click(open);
+            resolve();
+          },
+        });
+      }));
+
+      expect(openSpy).not.toHaveBeenCalled();
+      expect(document.querySelector('[data-link-controls]')).toBeNull();
+    } finally {
+      openSpy.mockRestore();
+    }
+  });
+
   it('does not let a stale copy completion close newer link controls', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     await pastePlainText(remdo, 'https://example.com/');
@@ -594,6 +669,25 @@ describe('note links (docs/specs/outliner/links.md)', () => {
         ['italic', 2],
       ]);
     });
+  });
+
+  it('opens actions for an element selection containing exactly one body link', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'body');
+    const bodyText = getNoteBodyTextNode(remdo, 'note1');
+    await collapseDomSelectionAtNode(bodyText, 0);
+    await extendDomSelectionToNode(bodyText, bodyText.textContent.length);
+    await pastePlainText(remdo, 'https://example.com/');
+    await remdo.mutate(() => {
+      const body = getNoteBody($findNoteById('note1')!)!;
+      body.select(0, body.getChildrenSize());
+    });
+
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    expect([...controls.querySelectorAll('button')].some(button => button.textContent === 'Edit')).toBe(true);
   });
 
   it('uses an entered destination as the label at a collapsed caret', meta({ fixture: 'flat' }), async ({ remdo }) => {

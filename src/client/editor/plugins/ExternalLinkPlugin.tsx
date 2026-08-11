@@ -366,6 +366,21 @@ export function ExternalLinkPlugin() {
         ? anchor.getKey()
         : null;
     };
+    const $selectionHasEstablishedCandidateEnd = () => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+        return false;
+      }
+      const anchor = selection.anchor.getNode();
+      if ($isTextNode(anchor)) {
+        const followingCharacter = anchor.getTextContent()[selection.anchor.offset];
+        return followingCharacter !== undefined
+          ? TYPED_CANDIDATE_END.test(followingCharacter)
+          : anchor.getNextSibling() !== null;
+      }
+      return selection.anchor.type === 'element'
+        && anchor.getChildAtIndex(selection.anchor.offset) !== null;
+    };
 
     queuePresentationSync();
     return [
@@ -463,7 +478,11 @@ export function ExternalLinkPlugin() {
             return false;
           }
           const endsAtBoundary = TYPED_CANDIDATE_END.test(insertion.at(-1)!);
-          $updateTypedCandidateDeferral(!endsAtBoundary && !$selectionIsInsideAutomaticLink());
+          $updateTypedCandidateDeferral(
+            !endsAtBoundary
+            && !$selectionHasEstablishedCandidateEnd()
+            && !$selectionIsInsideAutomaticLink(),
+          );
           return false;
         },
         COMMAND_PRIORITY_CRITICAL,
@@ -514,7 +533,9 @@ export function ExternalLinkPlugin() {
             && !event.ctrlKey
           ) {
             $updateTypedCandidateDeferral(
-              !TYPED_CANDIDATE_END.test(event.key) && !$selectionIsInsideAutomaticLink(),
+              !TYPED_CANDIDATE_END.test(event.key)
+              && !$selectionHasEstablishedCandidateEnd()
+              && !$selectionIsInsideAutomaticLink(),
             );
           }
           if (

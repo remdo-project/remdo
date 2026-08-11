@@ -426,6 +426,24 @@ test.describe('generic links', () => {
     ]);
   });
 
+  test('recognizes a typed URL before pre-existing whitespace', async ({ page, editor }) => {
+    await editor.load('flat');
+    await selectInlineRange(page, 'note1', 0, 'note1'.length);
+    await page.keyboard.type(' ');
+    await setCaretAtText(page, ' ', 0);
+    const url = 'https://example.com/path';
+
+    await page.keyboard.type(url);
+
+    const link = editorLocator(page).locator('a[target="_blank"]');
+    await expect(link).toHaveText(url);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: `${url} ` },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
   test('keeps an escaped quote inside a typed URL candidate', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', 0);
@@ -600,11 +618,22 @@ test.describe('generic links', () => {
     expect(context.pages()).toHaveLength(initialPages + 1);
     await context.pages().at(-1)!.close();
 
+    const scrollBeforeMiddleClick = await page.evaluate(() => {
+      document.body.style.minHeight = '3000px';
+      document.body.style.paddingTop = '500px';
+      globalThis.scrollTo(0, 400);
+      return globalThis.scrollY;
+    });
+    expect(scrollBeforeMiddleClick).toBeGreaterThan(0);
     await link.click({ button: 'middle' });
     await expect.poll(() => context.pages().length).toBe(initialPages + 1);
     await page.waitForTimeout(200);
     expect(context.pages()).toHaveLength(initialPages + 1);
     await context.pages().at(-1)!.close();
+    const linkBox = (await link.boundingBox())!;
+    await page.mouse.move(linkBox.x + linkBox.width / 2, linkBox.y + linkBox.height + 100);
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => globalThis.scrollY)).toBe(scrollBeforeMiddleClick);
 
     await page.keyboard.down('Shift');
     try {
