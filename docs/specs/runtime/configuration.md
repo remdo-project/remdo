@@ -16,11 +16,8 @@ Server-only requirements do not apply to browser configuration or production uti
 - `APP_PUBLIC_URL` is the server's canonical browser-visible origin.
   Development derives it as `http://<PUBLIC_HOST>:<PORT>`; production requires
   an explicit exact HTTPS origin. For self-hosted Docker, its effective port
-  selects the host-side published [gateway](../../architecture.md#gateway)
-  port. [Routing and
-  origin](../../architecture.md#routing-and-origin-boundary) owns its
-  collaboration use; [access control](../access/access-control.md#csrf-protection)
-  owns its authentication use.
+  selects the host-side published [gateway](../../architecture.md#gateway) port. [Routing and origin](../../architecture.md#routing-and-origin-boundary) owns
+  its collaboration use; [access control](../access/access-control.md#csrf-protection) owns its authentication use.
 - `HOST` selects the gateway bind address in development. For self-hosted
   Docker, it selects only the host-side publish address and defaults to
   `127.0.0.1`; `HOST=0.0.0.0` explicitly publishes on every IPv4 interface.

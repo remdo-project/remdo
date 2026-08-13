@@ -98,8 +98,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Operations
 
-- **Production Docker deployment contract.** Reassess the supported
-  [production deployments](guides/production-deployment.md),
+- **Production Docker deployment contract.** Reassess the supported [production deployments](guides/production-deployment.md),
   [runtime configuration](specs/runtime/configuration.md), gateway behavior,
   and container topology as one system. Start with host/container exposure
   ownership, then determine the smallest coherent and secure division among
