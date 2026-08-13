@@ -14,7 +14,6 @@ fi
 HOME_ORIGIN="$(pnpm exec tsx ./tools/dev/print-app-public-url.ts)"
 HOME_DATA_DIR="${DATA_DIR%/}/docker-home"
 HOME_CONTAINER_NAME="remdo-dev-docker-${PORT}"
-CADDY_SITE_ADDRESSES="http://:${PORT}"
 
 # Host networking has no publish step, so Caddy binds the configured host
 # directly. `localhost` is a name rather than an address.
@@ -22,7 +21,6 @@ case "${HOST}" in
   localhost) BIND_HOST="127.0.0.1" ;;
   *) BIND_HOST="${HOST}" ;;
 esac
-CADDY_BIND_DIRECTIVE="bind ${BIND_HOST}"
 
 remdo_require_rootless_host_network
 
@@ -42,8 +40,8 @@ remdo_docker_run "${IMAGE_NAME}" "${HOME_DATA_DIR}" \
   -e ADMIN_SECRET="${ADMIN_SECRET}" \
   -e APP_PUBLIC_URL="${HOME_ORIGIN}" \
   -e ALLOW_SIGNUP=false \
-  -e CADDY_BIND_DIRECTIVE="${CADDY_BIND_DIRECTIVE}" \
-  -e CADDY_SITE_ADDRESSES="${CADDY_SITE_ADDRESSES}" \
+  -e CADDY_BIND_DIRECTIVE="bind ${BIND_HOST}" \
+  -e CADDY_SITE_ADDRESSES="http://:${PORT}" \
   -e HOST=127.0.0.1 \
   -e PORT_BASE="${PORT_BASE}" \
   -e PORT="${PORT}" \

@@ -80,7 +80,7 @@ describe('development runtime launchers', () => {
 
   it('runs the local Docker app on the host network', () => {
     const { dataDir, result, dockerCalls } = runDockerLauncher();
-    const runCall = dockerCalls.split('\n').find((call) => call.startsWith('run ')) ?? '';
+    const runCall = dockerCalls.split('\n').find((call) => call.startsWith('run '))!;
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Starting private Docker app: http://localhost:4640');
