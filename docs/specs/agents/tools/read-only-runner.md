@@ -48,6 +48,10 @@ tool restriction. **Empirical.** During validation, no reviewer process runs or
 manually reproduces a repository check; forwarded instructions do not establish
 compliance, so confirmation observes the commands they run.
 
+Claude review requests completed stream events with verbose output because its
+CLI requires verbose mode for stream JSON. It does not request partial message
+chunks; only completed result events carry review-response evidence.
+
 ## Repository protection
 
 Repository protection has one target outcome: an invocation leaves the caller's
@@ -142,12 +146,12 @@ Review stdout is one JSON object with this versioned shape:
 }
 ```
 
-`provider` is `codex` or `claude`. `responses` contains every non-empty response
-the provider's supported output makes observable, in the order observed. Each
-has `completed` or `failed` status; a failed response includes provider failure
+`provider` is `codex` or `claude`. `responses` contains, in provider order,
+every supported result with non-empty text and every failed result. Each has
+`completed` or `failed` status; a failed response includes provider failure
 details—retaining the provider's `errors` field when present—and can omit
-`text`. Empty completed responses and blank stream lines carry no evidence and
-are omitted. The runner does not concatenate, summarize, deduplicate, or select
+`text`. Empty completed results and blank stream lines carry no evidence and are
+omitted. The runner does not concatenate, summarize, deduplicate, or select
 among responses, and does not expose other provider event traffic. An item can
 be a summary, finding, addendum, correction, withdrawal, or lifecycle
 notification; no item is guaranteed to be final, complete, exhaustive, or

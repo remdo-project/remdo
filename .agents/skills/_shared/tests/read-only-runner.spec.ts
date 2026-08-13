@@ -802,6 +802,43 @@ describe('read-only runner CLI', () => {
       .split('\n');
     expect(argumentAfter(argv, '--output-format')).toBe('stream-json');
     expect(argv).toContain('--verbose');
+    expect(argv).not.toContain('--include-partial-messages');
+  });
+
+  it.each([
+    {
+      case: 'malformed JSON',
+      event: 'not-json',
+      evidence: 'could not parse Claude result stream event 2',
+    },
+    {
+      case: 'a non-object event',
+      event: 'null',
+      evidence: 'Claude stream event 2 was not a JSON object',
+    },
+  ])('retains the raw stream when $case follows a response', ({
+    event,
+    evidence,
+  }) => {
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
+    writeFile(work, 'tracked.md', 'changed\n');
+    const response = JSON.stringify({
+      type: 'result',
+      subtype: 'success',
+      is_error: false,
+      result: 'Earlier finding.',
+    });
+    const stub = claudeStub([
+      `printf '%s\\n%s' ${shellLiteral(response)} ${shellLiteral(event)}`,
+    ]);
+
+    const result = runRunner(work, ['claude', 'review', 'uncommitted'], stub);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain(evidence);
+    expect(result.stderr).toContain(response);
+    expect(result.stderr.toString().endsWith(event)).toBe(true);
   });
 
   // Both invocation parsers retain the provider output that explains an
