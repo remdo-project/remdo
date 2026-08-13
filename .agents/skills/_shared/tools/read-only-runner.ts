@@ -29,7 +29,11 @@ interface ReviewEvidence {
 }
 
 interface ReviewResponse {
-  details?: string;
+  details?: {
+    errors?: unknown;
+    is_error: unknown;
+    subtype: unknown;
+  };
   sequence: number;
   status: 'completed' | 'failed';
   text?: string;
@@ -893,15 +897,17 @@ function claudeReviewOutputResult(stdout: string): RunnerResult {
       continue;
     }
     responses.push({
-      details: `subtype=${JSON.stringify(event.subtype ?? null)}, is_error=${
-        JSON.stringify(event.is_error ?? null)
-      }`,
+      details: {
+        subtype: event.subtype ?? null,
+        is_error: event.is_error ?? null,
+        ...(event.errors !== undefined ? { errors: event.errors } : {}),
+      },
       status: 'failed',
       ...(isNonEmptyString(event.result) ? { text: event.result } : {}),
     });
   }
   if (responses.length === 0) {
-    return failed('Claude completed without a result response');
+    return failed('Claude completed without a final text response');
   }
   return {
     status: 'responded',
