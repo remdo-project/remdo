@@ -99,6 +99,14 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Operations
 
+- **Production Docker networking and configuration.** Reassess production
+  Docker networking and its surrounding environment contract across the
+  supported [production deployments](guides/production-deployment.md). Start
+  from gateway exposure and internal service isolation, then evaluate whether
+  configuration responsibilities, defaults, derivations, and operator-facing
+  settings form the smallest coherent and secure surface. Align the resulting
+  contracts, runtime boundaries, verification, and deployment guidance.
+
 - **Docker gateway and process topology.** Retain Caddy as the gateway while the
   production runtime remains a single container; replacing only the proxy does
   not simplify that topology. Define supported direct-public, private
