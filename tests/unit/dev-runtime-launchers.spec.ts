@@ -28,6 +28,7 @@ esac
 }
 
 interface LauncherRun {
+  dataDir: string;
   result: SpawnSyncReturns<string>;
   dockerCalls: string;
 }
@@ -49,6 +50,7 @@ describe('development runtime launchers', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-dev-runtime-'));
     tempDirs.push(tempDir);
     const binDir = path.join(tempDir, 'bin');
+    const dataDir = path.join(tempDir, 'data');
     const dockerLog = path.join(tempDir, 'docker.log');
     fs.mkdirSync(binDir);
     writeFakeDocker(binDir);
@@ -62,7 +64,7 @@ describe('development runtime launchers', () => {
         ...process.env,
         NODE_ENV: 'development',
         APP_PUBLIC_URL: '',
-        DATA_DIR: path.join(tempDir, 'data'),
+        DATA_DIR: dataDir,
         HOST: 'localhost',
         PUBLIC_HOST: 'localhost',
         PORT_BASE: '4600',
@@ -73,18 +75,30 @@ describe('development runtime launchers', () => {
     });
 
     const dockerCalls = fs.existsSync(dockerLog) ? fs.readFileSync(dockerLog, 'utf8') : '';
-    return { result, dockerCalls };
+    return { dataDir, result, dockerCalls };
   }
 
   it('runs the local Docker app on the host network', () => {
-    const { result, dockerCalls } = runDockerLauncher();
+    const { dataDir, result, dockerCalls } = runDockerLauncher();
+    const runCall = dockerCalls.split('\n').find((call) => call.startsWith('run ')) ?? '';
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Starting private Docker app: http://localhost:4640');
-    expect(dockerCalls).toContain('--network=host');
-    expect(dockerCalls).toContain('-e CADDY_SITE_ADDRESSES=http://:4640');
-    expect(dockerCalls).toContain('-e CADDY_BIND_DIRECTIVE=bind 127.0.0.1');
-    expect(dockerCalls).toContain('-e PORT_BASE=4640');
+    expect(dockerCalls).toContain('build ');
+    expect(runCall).toContain('--rm --userns=host --name remdo-dev-docker-4640 --network=host');
+    expect(runCall).not.toContain(' -p ');
+    expect(runCall).toContain('-e APP_PUBLIC_URL=http://localhost:4640');
+    expect(runCall).toContain('-e ALLOW_SIGNUP=false');
+    expect(runCall).toContain('-e CADDY_SITE_ADDRESSES=http://:4640');
+    expect(runCall).toContain('-e CADDY_BIND_DIRECTIVE=bind 127.0.0.1');
+    expect(runCall).toContain('-e HOST=127.0.0.1');
+    expect(runCall).toContain('-e PORT_BASE=4640');
+    expect(runCall).toContain('-e PORT=4640');
+    expect(runCall).toContain('-e AUTH_SECRET=development-auth-secret-0123456789');
+    expect(runCall).toContain('-e ADMIN_SECRET=development-admin-secret-0123456789');
+    expect(runCall).toContain('-e YSWEET_AUTH_KEY=WLo8wx1G1lGKpIDaDjky9npTrV_fW8jCpRVtB8rd');
+    expect(runCall).toContain('-e YSWEET_SERVER_TOKEN=AAAgOkIiPro6W2lCzxyW6BDQkuOmTVSfs0MZh-4PGTM_st0');
+    expect(runCall).toContain(`-v ${dataDir}/docker-home:/data`);
   });
 
   it('binds the Docker gateway on all interfaces for a headless VM', () => {
