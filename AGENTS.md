@@ -29,7 +29,7 @@ owner. Provider-specific surfaces may load it alongside their own rules.
   - **Verification procedures:** [Running Tests](docs/guides/testing.md).
   - **Test runtime:** [Test Harness](docs/specs/testing/test-harness.md).
 - **Runtime configuration:** [Configuration](docs/specs/runtime/configuration.md).
-  - **Port and origin derivation:** [Derivation rules](docs/specs/runtime/configuration.md#derivation-rules).
+  - **Port and origin derivation:** [Network addressing](docs/specs/runtime/configuration.md#network-addressing).
 - **Tracked repository follow-up:** [RemDo TODO](docs/todo.md#tracked-follow-up).
 - **Specification evidence boundaries:** [Specification Feedback Cases](docs/specs/feedback-cases/README.md).
 - **Task behavior:** its current owner under `docs/`.
