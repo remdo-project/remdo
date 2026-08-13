@@ -76,8 +76,7 @@ Legend:
   when creating or editing a durable specification, changes only owners whose
   target behavior must change, and surfaces unresolved behavior, [concerns](../protocol.md#concerns), and
   [tracked gaps](../../../todo.md#tracked-follow-up) before developer review.
-- **Approval.** Developer approval establishes target behavior, not exact
-  wording.
+- **Approval.** Developer approval establishes target behavior, not exact wording.
 - **Execution.** The coordinator performs undelegated work and invokes
   applicable capabilities with their declared [calls](../protocol.md#calls),
   populated only from guarantees it has established and authority it holds. It

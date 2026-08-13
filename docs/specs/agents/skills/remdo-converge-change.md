@@ -1,10 +1,8 @@
 # remdo-converge-change
 
 This skill owns simplification, cleanup, verification, and evidence-supported
-correction for one repository change. It returns an
-[agent result](../protocol.md#results). One
-[change scope](../change-scope.md) bounds the run; the skill does not select or
-expand intended behavior.
+correction for one repository change. It returns an [agent result](../protocol.md#results). One
+[change scope](../change-scope.md) bounds the run; the skill does not select or expand intended behavior.
 
 ## Authority
 
@@ -48,8 +46,7 @@ retains options as [concerns](../protocol.md#concerns).
 
 Verification invokes [`remdo-verify-change`](remdo-verify-change.md). The skill
 preserves its finding dispositions, applies corrections from failed checks and
-[`confirmed` findings](remdo-verify-change.md#findings), and leaves `material
-out of scope` findings unchanged.
+[`confirmed` findings](remdo-verify-change.md#findings), and leaves `material out of scope` findings unchanged.
 
 Before creating a commit-range correction commit, the skill runs the batch's
 likely affected tests and applicable static checks under the contributor
@@ -97,5 +94,4 @@ findings: # if any
 reason: <condition that prevented or stopped convergence> # if not converged or stopped
 ```
 
-`not-converged` means a completed quality step left a determined correction
-unapplied.
+`not-converged` means a completed quality step left a determined correction unapplied.

@@ -20,13 +20,11 @@ playground@claude-plugins-official
 Read `<installPath>/skills/playground/SKILL.md` and the closest matching file
 under its `templates/` directory, adapting that template when no type fits
 cleanly. Stop under the specification's [dependency rule](../../../docs/specs/agents/skills/playground.md#dependency)
-only if the registry entry, installed skill, or required template cannot be
-resolved.
+only if the registry entry, installed skill, or required template cannot be resolved.
 
 ## Generate
 
-Follow the official skill and template, applying the RemDo
-[explorer boundary](../../../docs/specs/agents/skills/playground.md#explorer).
+Follow the official skill and template, applying the RemDo [explorer boundary](../../../docs/specs/agents/skills/playground.md#explorer).
 Inspect relevant RemDo UI source only when the requested subject requires it.
 Create `.agent/playground/` and `public/playground/` if needed, then generate the
 complete HTML at a new, unused temporary path under `.agent/playground/`. Do not
@@ -45,7 +43,5 @@ If the rename fails, remove the temporary file before returning `stopped`.
 
 ## Report
 
-Return the specification's
-[result](../../../docs/specs/agents/skills/playground.md#result). When addressing
-a human, render it under the shared
-[report contract](../../../docs/specs/agents/protocol.md#reports).
+Return the specification's [result](../../../docs/specs/agents/skills/playground.md#result). When addressing
+a human, render it under the shared [report contract](../../../docs/specs/agents/protocol.md#reports).

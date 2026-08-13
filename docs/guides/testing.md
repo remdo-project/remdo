@@ -2,10 +2,8 @@
 
 This guide owns setup and invocation for supported procedures in the
 [Verification run mode](../run-modes.md#verification). The contributor
-[testing policy](../dev/testing.md) owns coverage, test selection, and
-verification lifecycle; the
-[Test Harness](../specs/testing/test-harness.md) owns runtime lifecycle,
-isolation, and diagnostics. The
+[testing policy](../dev/testing.md) owns coverage, test selection, and verification lifecycle; the
+[Test Harness](../specs/testing/test-harness.md) owns runtime lifecycle, isolation, and diagnostics. The
 [package scripts](../../package.json) own executable commands and their variants.
 
 ## Prepare the Workspace
@@ -55,8 +53,7 @@ cannot discover; without one, it runs the complete group used by CI.
   and production-runtime changes.
 - `pnpm run test:e2e:all` — run browser and Docker E2E; use when complete E2E
   coverage is requested.
-- `pnpm run typecheck` and applicable `lint:*` scripts — check affected static
-  surfaces.
+- `pnpm run typecheck` and applicable `lint:*` scripts — check affected static surfaces.
 - `pnpm run audit:policy` — check dependency-policy changes.
 - `pnpm run check:dev-boundary` — check production-boundary changes.
 

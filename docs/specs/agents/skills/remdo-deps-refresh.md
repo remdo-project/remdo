@@ -3,8 +3,7 @@
 The capability refreshes RemDo's dependencies and repository-owned runtime and
 tooling pins, repairs resulting breakage, and returns an
 [agent result](../protocol.md#results). Once started, it completes the resolved
-refresh without developer direction and fails when it cannot determine a safe
-resolution.
+refresh without developer direction and fails when it cannot determine a safe resolution.
 
 ## Call
 
@@ -19,8 +18,7 @@ authority:
   commits: allowed
 ```
 
-`topic` means a [topic branch](../../../../CONTRIBUTING.md#git-workflow);
-`allowed` grants [repository authority](../../../../AGENTS.md#repository-authority)
+`topic` means a [topic branch](../../../../CONTRIBUTING.md#git-workflow); `allowed` grants [repository authority](../../../../AGENTS.md#repository-authority)
 to commit. An absent or incompatible call yields `failed`.
 
 ## Run
@@ -86,8 +84,7 @@ deferral path and reports the proposal.
 
 ## Verification
 
-Each refresh unit follows the contributor
-[testing policy](../../../dev/testing.md#verification-lifecycle) before it is
+Each refresh unit follows the contributor [testing policy](../../../dev/testing.md#verification-lifecycle) before it is
 committed. The completed refresh passes dependency cleanup and
 install-consistency checks.
 
@@ -124,7 +121,6 @@ reason: <condition that prevented completion> # if failed
 
 - `refreshed` means at least one change was committed, no update remains
   selectable, and local verification passed.
-- `current` means the run completed without committing a refresh or follow-up
-  change.
+- `current` means the run completed without committing a refresh or follow-up change.
 - `failed` means a condition prevented the capability from determining or
   completing a safe refresh.

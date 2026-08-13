@@ -5,16 +5,14 @@ description: Assess a selected RemDo change or repository subject against applic
 
 # Spec Complexity
 
-Read the authoritative
-[`spec-complexity`](../../../docs/specs/agents/skills/spec-complexity.md)
+Read the authoritative [`spec-complexity`](../../../docs/specs/agents/skills/spec-complexity.md)
 specification in full before resolving or assessing a target. Follow it for all
 assessment decisions, outcomes, and result contents, and load its linked owners
 when their rules apply.
 
 ## Resolve the target
 
-Resolve the input under the shared
-[assessment-target](../../../docs/specs/agents/assessment-target.md) contract.
+Resolve the input under the shared [assessment-target](../../../docs/specs/agents/assessment-target.md) contract.
 For a change target, run the shared resolver from the repository root, passing
 its optional scope unchanged:
 
@@ -24,18 +22,14 @@ sh .agents/skills/_shared/tools/resolve-scope.sh [scope]
 
 Map a non-zero exit to `stopped`, using the resolver failure as its reason, and
 `STATE=no-change` to the specification's `no-change` result. Otherwise use the
-emitted fields as the resolved change target. Do not introduce another scope
-resolver.
+emitted fields as the resolved change target. Do not introduce another scope resolver.
 
 ## Assess the target
 
-For a resolved target requiring assessment, execute the specification's
-[Assessment](../../../docs/specs/agents/skills/spec-complexity.md#assessment)
+For a resolved target requiring assessment, execute the specification's [Assessment](../../../docs/specs/agents/skills/spec-complexity.md#assessment)
 section.
 
 ## Return
 
-Return the specification's
-[Result](../../../docs/specs/agents/skills/spec-complexity.md#result). When
-addressing a human, render it under the shared
-[Reports](../../../docs/specs/agents/protocol.md#reports) contract.
+Return the specification's [Result](../../../docs/specs/agents/skills/spec-complexity.md#result). When
+addressing a human, render it under the shared [Reports](../../../docs/specs/agents/protocol.md#reports) contract.

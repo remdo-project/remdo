@@ -1,16 +1,14 @@
 # remdo-simplify
 
 This read-only skill reports concrete code and test simplifications within one
-[assessment target](../assessment-target.md) and returns an
-[agent result](../protocol.md#results). It neither chooses new accepted
+[assessment target](../assessment-target.md) and returns an [agent result](../protocol.md#results). It neither chooses new accepted
 behavior nor applies a change.
 
 ## Target
 
 The capability accepts either assessment-target form:
 
-- `change`: the changed end state and directly related implementation and
-  tests;
+- `change`: the changed end state and directly related implementation and tests;
 - `subject`: the named current-tree subject, its implementation and tests, and
   direct boundaries that determine its shape.
 
@@ -27,8 +25,7 @@ changes and justifies the churn.
 
 Findings are ordered by expected simplification value:
 
-- `S1`: a design or ownership simplification likely to prevent substantial
-  churn;
+- `S1`: a design or ownership simplification likely to prevent substantial churn;
 - `S2`: a clearly worthwhile local code or test simplification;
 - `S3`: a concrete, low-risk cleanup.
 
@@ -64,8 +61,7 @@ reason: <condition that prevented assessment> # if stopped
 ```
 
 - `simplifications-found`: at least one finding;
-- `no-simplification`: a completed assessment found none and may include
-  options;
+- `no-simplification`: a completed assessment found none and may include options;
 - `no-change`: change-target resolution found no diff.
 
 The report presents the target and key evidence, findings by priority, then

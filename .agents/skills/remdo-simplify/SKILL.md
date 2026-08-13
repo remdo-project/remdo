@@ -5,11 +5,7 @@ description: Assess a selected RemDo change or repository subject for concrete b
 
 # RemDo Simplify
 
-Assess one
-[assessment target](../../../docs/specs/agents/assessment-target.md) under the
-authoritative
-[`remdo-simplify`](../../../docs/specs/agents/skills/remdo-simplify.md)
-contract.
+Assess one [assessment target](../../../docs/specs/agents/assessment-target.md) under the authoritative [`remdo-simplify`](../../../docs/specs/agents/skills/remdo-simplify.md) contract.
 
 ## Resolve the target
 
@@ -47,8 +43,7 @@ the target becomes speculative.
 Look for deletable compatibility or defensive machinery, duplicated state or
 branches, replaceable custom plumbing, misplaced ownership, unnecessarily broad
 interfaces, and test setup that obscures known fixture behavior. Count every
-required companion edit when deciding whether the resulting end state is
-simpler.
+required companion edit when deciding whether the resulting end state is simpler.
 
 Apply the specification's finding bar. Use an option for a real tradeoff and
 recommend one only when repository evidence supports it. Do not turn the
@@ -56,7 +51,5 @@ assessment into a general correctness review or choose new product behavior.
 
 ## Return
 
-Return the authoritative specification's
-[Result](../../../docs/specs/agents/skills/remdo-simplify.md#result). When
-addressing a human, render it under the shared
-[Reports](../../../docs/specs/agents/protocol.md#reports) contract.
+Return the authoritative specification's [Result](../../../docs/specs/agents/skills/remdo-simplify.md#result). When
+addressing a human, render it under the shared [Reports](../../../docs/specs/agents/protocol.md#reports) contract.
