@@ -79,8 +79,10 @@ function expectReviewEvidence(
   responses: Array<{
     details?: {
       errors?: unknown;
-      is_error: unknown;
-      subtype: unknown;
+      is_error?: unknown;
+      reason?: string;
+      result?: unknown;
+      subtype?: unknown;
     };
     status: 'completed' | 'failed';
     text?: string;
@@ -765,6 +767,12 @@ describe('read-only runner CLI', () => {
       }) + "'",
       "printf '%s\\n' '" + JSON.stringify({
         type: 'result',
+        subtype: 'success',
+        is_error: false,
+        result: { unexpected: true },
+      }) + "'",
+      "printf '%s\\n' '" + JSON.stringify({
+        type: 'result',
         subtype: 'error_max_turns',
         is_error: true,
         result: 'Partial finding.',
@@ -790,6 +798,15 @@ describe('read-only runner CLI', () => {
     expect(result.status).toBe(0);
     expectReviewEvidence(result.stdout, 'claude', [
       { status: 'completed', text: 'Initial summary.' },
+      {
+        details: {
+          is_error: false,
+          reason: 'successful result did not contain text',
+          result: { unexpected: true },
+          subtype: 'success',
+        },
+        status: 'failed',
+      },
       {
         details: { is_error: true, subtype: 'error_max_turns' },
         status: 'failed',
@@ -880,8 +897,8 @@ describe('read-only runner CLI', () => {
     const stub = claudeStub([
       claudeResult('Partial finding.', {
         errors: ['maximum turns reached'],
-        subtype: 'error_during_execution',
         is_error: true,
+        subtype: undefined,
       }),
     ]);
 
@@ -892,7 +909,6 @@ describe('read-only runner CLI', () => {
       details: {
         errors: ['maximum turns reached'],
         is_error: true,
-        subtype: 'error_during_execution',
       },
       status: 'failed',
       text: 'Partial finding.',

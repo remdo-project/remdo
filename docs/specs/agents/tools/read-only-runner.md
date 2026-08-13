@@ -150,12 +150,14 @@ Review stdout is one JSON object with this versioned shape:
 every supported result with non-empty text and every failed result. Each has
 `completed` or `failed` status; a failed response includes provider failure
 details—retaining the provider's `errors` field when present—and can omit
-`text`. Empty completed results and blank stream lines carry no evidence and are
-omitted. The runner does not concatenate, summarize, deduplicate, or select
-among responses, and does not expose other provider event traffic. An item can
-be a summary, finding, addendum, correction, withdrawal, or lifecycle
-notification; no item is guaranteed to be final, complete, exhaustive, or
-authoritative. Those are semantic judgements for the review caller.
+`text`. A successful result with a malformed non-text value becomes a failed
+response whose details preserve that value and the reason. Empty completed
+results and blank stream lines carry no evidence and are omitted. The runner
+does not concatenate, summarize, deduplicate, or select among responses, and
+does not expose other provider event traffic. An item can be a summary, finding,
+addendum, correction, withdrawal, or lifecycle notification; no item is
+guaranteed to be final, complete, exhaustive, or authoritative. Those are
+semantic judgements for the review caller.
 
 When a provider exits successfully but its output does not yield a prompt
 response or valid review evidence, the failure evidence includes that output

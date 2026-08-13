@@ -31,8 +31,10 @@ interface ReviewEvidence {
 interface ReviewResponse {
   details?: {
     errors?: unknown;
-    is_error: unknown;
-    subtype: unknown;
+    is_error?: unknown;
+    reason?: string;
+    result?: unknown;
+    subtype?: unknown;
   };
   sequence: number;
   status: 'completed' | 'failed';
@@ -848,6 +850,21 @@ function serializeReviewEvidence(
   return JSON.stringify(evidence, null, 2);
 }
 
+function claudeFailureDetails(
+  event: Record<string, unknown>,
+  reason?: string,
+): NonNullable<ReviewResponse['details']> {
+  return {
+    ...(reason !== undefined ? { reason } : {}),
+    ...(Object.hasOwn(event, 'subtype') ? { subtype: event.subtype } : {}),
+    ...(Object.hasOwn(event, 'is_error') ? { is_error: event.is_error } : {}),
+    ...(Object.hasOwn(event, 'errors') ? { errors: event.errors } : {}),
+    ...(Object.hasOwn(event, 'result') && !isNonEmptyString(event.result)
+      ? { result: event.result }
+      : {}),
+  };
+}
+
 function claudePromptOutputResult(stdout: string): RunnerResult {
   const failed = (summary: string): RunnerResult =>
     outputFailure(summary, stdout);
@@ -891,17 +908,23 @@ function claudeReviewOutputResult(stdout: string): RunnerResult {
       event.subtype === 'success'
       && event.is_error === false
     ) {
-      if (isNonEmptyString(event.result)) {
-        responses.push({ status: 'completed', text: event.result });
+      if (typeof event.result === 'string') {
+        if (isNonEmptyString(event.result)) {
+          responses.push({ status: 'completed', text: event.result });
+        }
+      } else {
+        responses.push({
+          details: claudeFailureDetails(
+            event,
+            'successful result did not contain text',
+          ),
+          status: 'failed',
+        });
       }
       continue;
     }
     responses.push({
-      details: {
-        subtype: event.subtype ?? null,
-        is_error: event.is_error ?? null,
-        ...(event.errors !== undefined ? { errors: event.errors } : {}),
-      },
+      details: claudeFailureDetails(event),
       status: 'failed',
       ...(isNonEmptyString(event.result) ? { text: event.result } : {}),
     });
