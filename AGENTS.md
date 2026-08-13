@@ -74,6 +74,7 @@ change. Do not add update-tracking sections to durable documents.
   asking, and ask before choosing between unresolved material tradeoffs.
 - Avoid speculative abstractions, compatibility shims, feature flags, and
   defensive guards that accepted behavior does not require.
+- Do not add soft wraps to Markdown prose unless required by line-length lint.
 - For bugs, reproduce the problem when practical, then verify the fix with the
   focused reproducer and applicable final checks.
 - Apply the contributor [testing policy](docs/dev/testing.md) when selecting,
