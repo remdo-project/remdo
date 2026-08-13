@@ -32,8 +32,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   the remaining skills. Reconsider custom scripts and state machines that encode
   adaptive work without enough robustness to justify their maintenance. Prefer
   concise intent plus deterministic checks of stable repository invariants,
-  then align each affected specification, procedure, implementation, and
-  coverage.
+  then align each affected specification, procedure, implementation, and coverage.
 
 - **Prepare-change lifecycle.** Reconsider its dialogue, specification,
   approval, and execution flow as a whole so it is simple, flexible, and clear.
@@ -194,8 +193,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 - **Capability protocol adoption.** Identify agent capabilities used as
   composable participants, give their specifications explicit `Call` and
-  `Result` sections conforming to the
-  [capability protocol](specs/agents/protocol.md), then align their execution
+  `Result` sections conforming to the [capability protocol](specs/agents/protocol.md), then align their execution
   procedures. Do not invent calls for developer-facing entry points.
 
 - **Configured-upstream synchronization.** Design a capability separate from
@@ -203,8 +201,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   the current branch with its configured upstream. Classify fast-forward,
   local-ahead, ordinary divergence, and likely rewritten upstream history before
   choosing merge or explicitly authorized rebase, with conflict and recovery
-  behavior defined for each path. Keep `origin/main` integration owned by
-  `remdo-merge-main`.
+  behavior defined for each path. Keep `origin/main` integration owned by `remdo-merge-main`.
 
 - **Prepare-change implementation-gap tracking.** Update
   [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md) so after

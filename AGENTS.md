@@ -74,11 +74,11 @@ change. Do not add update-tracking sections to durable documents.
   asking, and ask before choosing between unresolved material tradeoffs.
 - Avoid speculative abstractions, compatibility shims, feature flags, and
   defensive guards that accepted behavior does not require.
+- Do not add soft wraps to Markdown prose unless required by line-length lint.
 - For bugs, reproduce the problem when practical, then verify the fix with the
   focused reproducer and applicable final checks.
 - Apply the contributor [testing policy](docs/dev/testing.md) when selecting,
-  writing, or reviewing coverage. Perform each
-  [empirical check](docs/dev/testing.md#empirical-checks) required by an
+  writing, or reviewing coverage. Perform each [empirical check](docs/dev/testing.md#empirical-checks) required by an
   affected behavior's owner.
 - Use live browser inspection as the primary evidence for UI behavior,
   rendering, interaction, and accessibility conclusions.
@@ -105,7 +105,6 @@ change. Do not add update-tracking sections to durable documents.
 
 ## Checks
 
-Follow the contributor [testing policy](docs/dev/testing.md) and report CI as
-pending until it runs.
+Follow the contributor [testing policy](docs/dev/testing.md) and report CI as pending until it runs.
 
 Fix failures caused by the change or report them before handoff.

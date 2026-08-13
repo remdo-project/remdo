@@ -7,8 +7,7 @@ Architecture owns the [gateway](../architecture.md#gateway) and [persistent stor
 
 ## Generate the Admin Secret
 
-Generate a unique random `ADMIN_SECRET` using the guidance in the
-[environment example](../../.env.example).
+Generate a unique random `ADMIN_SECRET` using the guidance in the [environment example](../../.env.example).
 
 ## Deploy with Self-Hosted Docker
 

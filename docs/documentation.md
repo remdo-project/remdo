@@ -62,8 +62,7 @@ preserve evidence, but cannot establish or change accepted behavior or rules.
 
 Examples, tables, and diagrams inherit the status of their surrounding content
 unless identified as informative. Status follows content's role, not
-capitalization, implementation status, or [verification](#verification)
-method.
+capitalization, implementation status, or [verification](#verification) method.
 
 ### Target behavior
 
@@ -125,8 +124,7 @@ conformance with a repeatable machine-checkable result at a defined lifecycle po
   implementation that covers it, and does not claim exhaustive coverage of
   surrounding behavior.
 - **Empirical marker.** When deterministic coverage is unavailable, use
-  **Empirical.** only under the contributor
-  [testing policy](dev/testing.md#empirical-checks).
+  **Empirical.** only under the contributor [testing policy](dev/testing.md#empirical-checks).
 
 ## Documentation changes
 
@@ -238,10 +236,8 @@ document and dependencies named by its contract.
 - [Write the Docs: docs as code](https://www.writethedocs.org/guide/docs-as-code/) — docs reviewed and tested like code.
 - [NASA Systems Engineering Handbook](https://www.nasa.gov/wp-content/uploads/2018/09/nasa_systems_engineering_handbook_0.pdf) — verification methods recorded with their requirements.
 - [Google style: timeless documentation](https://developers.google.com/style/timeless-documentation) — timeless prose.
-- [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174.html) — normative prose and
-  requirement-keyword capitalization.
-- [W3C Manual of Style](https://www.w3.org/guide/manual-of-style/#normative-material)
-  — normative and informative status.
+- [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174.html) — normative prose and requirement-keyword capitalization.
+- [W3C Manual of Style](https://www.w3.org/guide/manual-of-style/#normative-material) — normative and informative status.
 - [arc42](https://arc42.org/overview) — decision rationale as load-bearing.
 - [Microsoft style: headings](https://learn.microsoft.com/en-us/style-guide/scannable-content/headings) — heading granularity and run-in headings.
 - [GitHub Copilot: effective review instructions](https://docs.github.com/en/copilot/tutorials/customize-code-review)

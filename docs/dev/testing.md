@@ -31,8 +31,7 @@ applicable static checks.
 
 Local test selection intentionally optimizes feedback time rather than
 completeness. Also run explicitly selected tests for known relationships it
-cannot discover. CI runs complete repository verification and must pass before
-integration.
+cannot discover. CI runs complete repository verification and must pass before integration.
 
 ## Empirical checks
 

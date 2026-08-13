@@ -28,8 +28,7 @@ inspect the selected scope; the caller owns its stability.
 ## Run focused checks
 
 For `uncommitted`, inspect the resolved files and run the focused tests and
-applicable static checks required by the contributor
-[`Testing`](../../../docs/dev/testing.md#verification-lifecycle) policy.
+applicable static checks required by the contributor [`Testing`](../../../docs/dev/testing.md#verification-lifecycle) policy.
 
 For `commit-range`, proceed to reviews without local checks.
 

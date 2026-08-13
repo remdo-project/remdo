@@ -8,8 +8,7 @@ the [package scripts](../../package.json) own executable commands and their vari
 ## Prepare the Workspace
 
 Run `pnpm run dev:init` after a fresh clone or after removing `node_modules`.
-The command installs the locked dependencies.
-[Running Tests](testing.md) owns test-specific preparation.
+The command installs the locked dependencies. [Running Tests](testing.md) owns test-specific preparation.
 
 ## Configure Local Runs
 
