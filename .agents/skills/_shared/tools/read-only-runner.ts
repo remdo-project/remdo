@@ -23,9 +23,16 @@ interface RunnerCall {
 }
 
 interface ReviewEvidence {
+  failures?: ReviewStreamFailure[];
   schema: 'remdo.review-evidence.v1';
   provider: Agent;
   responses: ReviewResponse[];
+}
+
+interface ReviewStreamFailure {
+  event: number;
+  raw: string;
+  reason: string;
 }
 
 interface ReviewResponse {
@@ -838,6 +845,7 @@ function claudeResult(
 function serializeReviewEvidence(
   provider: Agent,
   responses: Array<Omit<ReviewResponse, 'sequence'>>,
+  failures: ReviewStreamFailure[] = [],
 ): string {
   const evidence: ReviewEvidence = {
     schema: 'remdo.review-evidence.v1',
@@ -846,6 +854,7 @@ function serializeReviewEvidence(
       ...response,
       sequence: index + 1,
     })),
+    ...(failures.length > 0 ? { failures } : {}),
   };
   return JSON.stringify(evidence, null, 2);
 }
@@ -888,18 +897,27 @@ function claudeReviewOutputResult(stdout: string): RunnerResult {
     return failed('Claude completed without a final text response');
   }
   const responses: Array<Omit<ReviewResponse, 'sequence'>> = [];
+  const failures: ReviewStreamFailure[] = [];
   const lines = stdout.split(/\r?\n/u).filter(line => line.trim() !== '');
   for (const [index, line] of lines.entries()) {
     let event: unknown;
     try {
       event = JSON.parse(line);
     } catch (error) {
-      return failed(
-        `could not parse Claude result stream event ${index + 1}: ${String(error)}`,
-      );
+      failures.push({
+        event: index + 1,
+        raw: line,
+        reason: `could not parse JSON: ${String(error)}`,
+      });
+      continue;
     }
     if (!isObject(event)) {
-      return failed(`Claude stream event ${index + 1} was not a JSON object`);
+      failures.push({
+        event: index + 1,
+        raw: line,
+        reason: 'event was not a JSON object',
+      });
+      continue;
     }
     if (event.type !== 'result') {
       continue;
@@ -924,17 +942,26 @@ function claudeReviewOutputResult(stdout: string): RunnerResult {
       continue;
     }
     responses.push({
-      details: claudeFailureDetails(event),
+      details: claudeFailureDetails(
+        event,
+        'result did not report successful completion',
+      ),
       status: 'failed',
       ...(isNonEmptyString(event.result) ? { text: event.result } : {}),
     });
   }
   if (responses.length === 0) {
-    return failed('Claude completed without a final text response');
+    return failed(
+      failures.length > 0
+        ? `Claude completed without a usable result response: ${
+          failures[0]!.reason
+        }`
+        : 'Claude completed without a final text response',
+    );
   }
   return {
     status: 'responded',
-    response: serializeReviewEvidence('claude', responses),
+    response: serializeReviewEvidence('claude', responses, failures),
   };
 }
 

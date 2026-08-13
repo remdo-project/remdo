@@ -112,11 +112,12 @@ A result is encoded by the runner's exit status and output:
 
 `unavailable` and `failed` are [concerns](../protocol.md#concerns).
 
-Only `responded` writes stdout. It confirms transport and response integrity,
-not that the response satisfies the caller's task; the caller owns that
-validation. When a provider process exits unsuccessfully, its failure evidence
-includes any non-empty provider stderr verbatim after the runner-owned summary;
-provider stdout is not failure evidence.
+Only `responded` writes stdout. It confirms that the runner produced a valid
+prompt response or review-evidence object, not that provider transport was
+complete or that the response satisfies the caller's task; the review evidence
+and caller own those judgements. When a provider process exits unsuccessfully,
+its failure evidence includes any non-empty provider stderr verbatim after the
+runner-owned summary; provider stdout is not failure evidence.
 
 A provider reports an unresolved native review command as a successful response
 saying the command is unknown, which the runner cannot distinguish from a review
@@ -142,6 +143,9 @@ Review stdout is one JSON object with this versioned shape:
       }
     },
     { "sequence": 3, "status": "completed", "text": "Later response" }
+  ],
+  "failures": [
+    { "event": 4, "reason": "event was not a JSON object", "raw": "null" }
   ]
 }
 ```
@@ -158,6 +162,13 @@ does not expose other provider event traffic. An item can be a summary, finding,
 addendum, correction, withdrawal, or lifecycle notification; no item is
 guaranteed to be final, complete, exhaustive, or authoritative. Those are
 semantic judgements for the review caller.
+
+`failures` is omitted when provider event transport is valid. When at least one
+response is usable, each malformed event is retained there with its nonblank
+event sequence, reason, and raw line. The runner still returns the valid
+responses, and the caller treats the review as failed while validating their
+candidate findings. When no response is usable, the runner instead returns a
+failed result with the complete raw output as failure evidence.
 
 When a provider exits successfully but its output does not yield a prompt
 response or valid review evidence, the failure evidence includes that output

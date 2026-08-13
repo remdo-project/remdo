@@ -64,13 +64,13 @@ unavailable. Any other non-zero result is
 failed; treat its output as failure evidence, not as findings. Exit status `0`
 carries one versioned JSON review-evidence object. Read every ordered response;
 none is guaranteed to be final, exhaustive, or authoritative. A failed response
-always makes the review failed but does not discard its or any other response's
-text. Otherwise, classify the review as completed only when the evidence
-collectively represents inspection of the full selected scope without an
-unresolved material inspection gap. Earlier lifecycle notifications can be
-resolved by later evidence. Use the complete review evidence as failure
-evidence for a failed review. Do not substitute a fixed phrase list for this
-semantic judgment.
+or transport failure always makes the review failed but does not discard any
+response text. Otherwise, classify the review as completed only when the
+evidence collectively represents inspection of the full selected scope without
+an unresolved material inspection gap. Earlier lifecycle notifications can be
+resolved by later evidence. Use the complete review evidence as failure evidence
+for a failed review. Do not substitute a fixed phrase list for this semantic
+judgment.
 
 ## Validate findings
 

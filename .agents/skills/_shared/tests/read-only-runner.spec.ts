@@ -87,6 +87,7 @@ function expectReviewEvidence(
     status: 'completed' | 'failed';
     text?: string;
   }>,
+  failures: Array<{ event: number; raw: string; reason: unknown }> = [],
 ): void {
   expect(JSON.parse(output.toString())).toEqual({
     schema: 'remdo.review-evidence.v1',
@@ -95,6 +96,7 @@ function expectReviewEvidence(
       ...response,
       sequence: index + 1,
     })),
+    ...(failures.length > 0 ? { failures } : {}),
   });
 }
 
@@ -711,7 +713,7 @@ describe('read-only runner CLI', () => {
     {
       case: 'a leading BOM',
       body: "printf '\\357\\273\\277%s\\n' '{}'",
-      evidence: 'could not parse Claude result',
+      evidence: 'could not parse',
       retained: '\u{FEFF}{}\n',
     },
     {
@@ -723,7 +725,7 @@ describe('read-only runner CLI', () => {
     {
       case: 'output without a final newline',
       body: "printf %s 'not-json'",
-      evidence: 'could not parse Claude result',
+      evidence: 'could not parse',
       retained: 'not-json',
     },
   ])('retains $case verbatim in review failure evidence', ({
@@ -808,7 +810,11 @@ describe('read-only runner CLI', () => {
         status: 'failed',
       },
       {
-        details: { is_error: true, subtype: 'error_max_turns' },
+        details: {
+          is_error: true,
+          reason: 'result did not report successful completion',
+          subtype: 'error_max_turns',
+        },
         status: 'failed',
         text: 'Partial finding.',
       },
@@ -826,14 +832,14 @@ describe('read-only runner CLI', () => {
     {
       case: 'malformed JSON',
       event: 'not-json',
-      evidence: 'could not parse Claude result stream event 2',
+      evidence: expect.stringContaining('could not parse JSON: SyntaxError'),
     },
     {
       case: 'a non-object event',
       event: 'null',
-      evidence: 'Claude stream event 2 was not a JSON object',
+      evidence: 'event was not a JSON object',
     },
-  ])('retains the raw stream when $case follows a response', ({
+  ])('retains $case as a failure when it follows a response', ({
     event,
     evidence,
   }) => {
@@ -846,16 +852,19 @@ describe('read-only runner CLI', () => {
       result: 'Earlier finding.',
     });
     const stub = claudeStub([
-      `printf '%s\\n%s' ${shellLiteral(response)} ${shellLiteral(event)}`,
+      `printf '%s\\n\\n%s' ${shellLiteral(response)} ${shellLiteral(event)}`,
     ]);
 
     const result = runRunner(work, ['claude', 'review', 'uncommitted'], stub);
 
-    expect(result.status).toBe(1);
-    expect(result.stdout).toBe('');
-    expect(result.stderr).toContain(evidence);
-    expect(result.stderr).toContain(response);
-    expect(result.stderr.toString().endsWith(event)).toBe(true);
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe('');
+    expectReviewEvidence(
+      result.stdout,
+      'claude',
+      [{ status: 'completed', text: 'Earlier finding.' }],
+      [{ event: 2, raw: event, reason: evidence }],
+    );
   });
 
   // Both invocation parsers retain the provider output that explains an
@@ -863,7 +872,7 @@ describe('read-only runner CLI', () => {
   it.each([
     {
       body: "printf '%s\\n' 'not-json'",
-      evidence: 'could not parse Claude result',
+      evidence: 'could not parse',
       retained: 'not-json',
     },
     {
@@ -909,6 +918,7 @@ describe('read-only runner CLI', () => {
       details: {
         errors: ['maximum turns reached'],
         is_error: true,
+        reason: 'result did not report successful completion',
       },
       status: 'failed',
       text: 'Partial finding.',

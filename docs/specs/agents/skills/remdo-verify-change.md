@@ -50,11 +50,12 @@ interrupts another. The verifier re-reports `unavailable` and `failed` as
 the review evidence and includes that evidence in its [report](../protocol.md#reports).
 It maps the review to `completed` only when the evidence collectively
 establishes inspection of the full selected scope without leaving a material
-inspection gap unresolved and every response has `completed` status. Earlier
-lifecycle notifications do not make a review failed when later evidence
-resolves them. A response with `failed` status always makes the review failed,
-but its text remains candidate-finding evidence. Otherwise, the verifier marks
-the review `failed` and uses the review evidence as failure evidence.
+inspection gap unresolved, every response has `completed` status, and the
+evidence has no transport failures. Earlier lifecycle notifications do not make
+a review failed when later evidence resolves them. A response with `failed`
+status or any transport failure always makes the review failed, but response
+text remains candidate-finding evidence. Otherwise, the verifier marks the
+review `failed` and uses the review evidence as failure evidence.
 
 ## Findings
 
