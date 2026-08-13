@@ -2,8 +2,8 @@
 
 The read-only runner maps one prompt or native review invocation to a fresh
 Codex or Claude CLI session rooted at the caller's current Git repository. It
-owns CLI invocation, repository protection, protocol completion, and
-final-response extraction; callers own the meaning of the response.
+owns CLI invocation, repository protection, protocol completion, and response
+extraction; callers own the meaning of the response.
 
 ## Call
 
@@ -89,17 +89,19 @@ scope; another caller does so when it requires consistency for the whole invocat
 
 Each invocation makes one attempt in a non-persistent session; retry belongs to
 the caller. The runner waits without a ceiling for background subagents and
-workflows the review delegates to, so their results remain part of the final
-response rather than a pending-task notification. The runner has no execution
-deadline, and neither silence nor elapsed time indicates failure. It runs until
-the agent completes or the caller cancels it. Cancellation ends the agent
-invocation and returns a failed result without a response.
+workflows the review delegates to. A provider can expose more than one response
+as that work completes; the runner retains each exposed response separately and
+in provider order. The runner has no execution deadline, and neither silence nor
+elapsed time indicates failure. It runs until the agent completes or the caller
+cancels it. Cancellation ends the agent invocation and returns a failed result
+without a response.
 
 ## Result
 
 A result is encoded by the runner's exit status and output:
 
-- `responded`: exit `0` and write only the non-empty complete final text to stdout;
+- `responded`: exit `0` and write only the non-empty prompt response or review
+  evidence to stdout;
 - `unavailable`: exit `2` and write evidence that the agent CLI or a requested
   native capability the runner can establish is unavailable to stderr;
 - `failed`: any other non-zero exit and failure evidence on stderr.
@@ -115,12 +117,34 @@ provider stdout is not failure evidence.
 A provider reports an unresolved native review command as a successful response
 saying the command is unknown, which the runner cannot distinguish from a review
 reporting that text. A `responded` review therefore does not establish that a
-review ran; the caller judges the report.
+review ran; the caller judges the evidence.
 
-When a provider exits successfully but its output does not yield a complete
-report, the failure evidence includes that output verbatim after the
-runner-owned summary, so the caller can diagnose an unrecognized protocol shape
-from the failure alone.
+Review stdout is one JSON object with this versioned shape:
+
+```json
+{
+  "schema": "remdo.review-evidence.v1",
+  "provider": "claude",
+  "responses": [
+    { "sequence": 1, "text": "First response" },
+    { "sequence": 2, "text": "Later response" }
+  ]
+}
+```
+
+`provider` is `codex` or `claude`. `responses` contains every non-empty
+completed response the provider's supported output makes observable, in the
+order observed. The runner does not concatenate, summarize, deduplicate, or
+select among them, and does not expose provider event traffic that is not a
+completed response. An item can be a summary, finding, addendum, correction,
+withdrawal, or lifecycle notification; no item is guaranteed to be final,
+complete, exhaustive, or authoritative. Those are semantic judgements for the
+review caller.
+
+When a provider exits successfully but its output does not yield a prompt
+response or valid review evidence, the failure evidence includes that output
+verbatim after the runner-owned summary, so the caller can diagnose an
+unrecognized protocol shape from the failure alone.
 
 ## Future
 

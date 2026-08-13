@@ -52,7 +52,7 @@ Invoke the shared runner directly with high effort:
 
 Run these commands exactly. The [`read-only runner`](../_shared/tools/read-only-runner.ts) owns the fresh
 session, review scope mapping, [repository protection](../../../docs/specs/agents/tools/read-only-runner.md#repository-protection),
-cancellation, protocol completion, and final-response extraction.
+cancellation, protocol completion, and response extraction.
 
 Reviewer runtime is unspecified. Wait for each managed call's completion
 notification; do not poll it or interpret silence or elapsed time as failure.
@@ -62,16 +62,23 @@ it.
 Exit status `2` means the provider or its declared native review capability is
 unavailable. Any other non-zero result is
 failed; treat its output as failure evidence, not as findings. Exit status `0`
-carries the final response. Interpret each whole report: classify it as
-completed only when it represents inspection of the full selected scope. If it
-states or leaves unresolved that full-scope inspection did not occur, classify
-that review as failed and use the report as failure evidence. Do not substitute
-a fixed phrase list for this semantic judgment.
+carries one versioned JSON review-evidence object. Read every ordered response;
+none is guaranteed to be final, exhaustive, or authoritative. Classify the
+review as completed only when the evidence collectively represents inspection
+of the full selected scope without an unresolved material inspection gap.
+Earlier lifecycle notifications can be resolved by later evidence. Otherwise,
+classify that review as failed and use the complete review evidence as failure
+evidence. Do not substitute a fixed phrase list for this semantic judgment.
 
 ## Validate findings
 
-After both review attempts finish, classify every finding under the
+After both review attempts finish, extract every concrete candidate finding
+from every response, including candidates omitted, refuted, or withdrawn by
+another response. Deduplicate equivalent candidates, then classify each one
+under the
 authoritative specification's [Findings](../../../docs/specs/agents/skills/remdo-verify-change.md#findings) contract.
+Treat lifecycle-only responses as having no candidate. Treat corrections and
+withdrawals as disposition evidence, not as automatic dispositions.
 
 ## Report
 

@@ -22,6 +22,12 @@ interface RunnerCall {
   settings: { effort?: string; model?: string };
 }
 
+interface ReviewEvidence {
+  schema: 'remdo.review-evidence.v1';
+  provider: Agent;
+  responses: Array<{ sequence: number; text: string }>;
+}
+
 type RunnerResult =
   | { status: 'failed'; evidence: string; preserveEvidenceEnd?: boolean }
   | { status: 'responded'; response: string }
@@ -625,7 +631,12 @@ async function runCodex(
       outcome.stdout,
     );
   }
-  return { status: 'responded', response };
+  return {
+    status: 'responded',
+    response: call.invocation.kind === 'review'
+      ? serializeReviewEvidence('codex', [response])
+      : response,
+  };
 }
 
 async function gitPathList(
@@ -756,8 +767,11 @@ function claudeInvocation(
     '--mcp-config',
     '{"mcpServers":{}}',
     '--output-format',
-    'json',
+    review ? 'stream-json' : 'json',
   );
+  if (review) {
+    args.push('--verbose');
+  }
   if (call.settings.model !== undefined) {
     args.push('--model', call.settings.model);
   }
@@ -783,7 +797,9 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '';
 }
 
-function claudeResult(envelope: Record<string, unknown>): RunnerResult {
+function claudeResult(
+  envelope: Record<string, unknown>,
+): Exclude<RunnerResult, { status: 'unavailable' }> {
   if (
     envelope.type !== 'result'
     || envelope.subtype !== 'success'
@@ -803,7 +819,22 @@ function claudeResult(envelope: Record<string, unknown>): RunnerResult {
   return { status: 'responded', response: envelope.result };
 }
 
-function claudeOutputResult(stdout: string): RunnerResult {
+function serializeReviewEvidence(
+  provider: Agent,
+  responses: string[],
+): string {
+  const evidence: ReviewEvidence = {
+    schema: 'remdo.review-evidence.v1',
+    provider,
+    responses: responses.map((text, index) => ({
+      sequence: index + 1,
+      text,
+    })),
+  };
+  return JSON.stringify(evidence, null, 2);
+}
+
+function claudePromptOutputResult(stdout: string): RunnerResult {
   const failed = (summary: string): RunnerResult =>
     outputFailure(summary, stdout);
   let envelope: unknown;
@@ -817,6 +848,47 @@ function claudeOutputResult(stdout: string): RunnerResult {
   }
   const result = claudeResult(envelope);
   return result.status === 'failed' ? failed(result.evidence) : result;
+}
+
+function claudeReviewOutputResult(stdout: string): RunnerResult {
+  const failed = (summary: string): RunnerResult =>
+    outputFailure(summary, stdout);
+  if (stdout.trim() === '') {
+    return failed('Claude completed without a final text response');
+  }
+  const responses: string[] = [];
+  const lines = stdout.split('\n');
+  if (lines.at(-1) === '') {
+    lines.pop();
+  }
+  for (const [index, line] of lines.entries()) {
+    let event: unknown;
+    try {
+      event = JSON.parse(line);
+    } catch (error) {
+      return failed(
+        `could not parse Claude result stream event ${index + 1}: ${String(error)}`,
+      );
+    }
+    if (!isObject(event)) {
+      return failed(`Claude stream event ${index + 1} was not a JSON object`);
+    }
+    if (event.type !== 'result') {
+      continue;
+    }
+    const result = claudeResult(event);
+    if (result.status === 'failed') {
+      return failed(result.evidence);
+    }
+    responses.push(result.response);
+  }
+  if (responses.length === 0) {
+    return failed('Claude completed without a result response');
+  }
+  return {
+    status: 'responded',
+    response: serializeReviewEvidence('claude', responses),
+  };
 }
 
 async function runClaude(
@@ -874,7 +946,9 @@ async function runClaude(
     signal,
   });
   return providerFailure('claude', outcome)
-    ?? claudeOutputResult(outcome.stdout);
+    ?? (call.invocation.kind === 'review'
+      ? claudeReviewOutputResult(outcome.stdout)
+      : claudePromptOutputResult(outcome.stdout));
 }
 
 async function run(

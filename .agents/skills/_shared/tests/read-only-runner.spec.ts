@@ -73,6 +73,21 @@ function claudeResult(result: unknown, overrides: Record<string, unknown> = {}):
   });
 }
 
+function expectReviewEvidence(
+  output: string | Buffer,
+  provider: 'claude' | 'codex',
+  responses: string[],
+): void {
+  expect(JSON.parse(output.toString())).toEqual({
+    schema: 'remdo.review-evidence.v1',
+    provider,
+    responses: responses.map((text, index) => ({
+      sequence: index + 1,
+      text,
+    })),
+  });
+}
+
 function providerEnvironment(
   stub: string,
   overrides: NodeJS.ProcessEnv = {},
@@ -322,7 +337,7 @@ describe('read-only runner CLI', () => {
     );
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe('No findings.');
+    expectReviewEvidence(result.stdout, 'codex', ['No findings.']);
     expect(fs.readFileSync(path.join(stub, 'probe'), 'utf8')).toBe('probed');
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
     expect(args).toMatch(/review\n--uncommitted\n$/u);
@@ -499,8 +514,8 @@ describe('read-only runner CLI', () => {
       'Report any additional runtime check needed and why; do not run it.',
     );
     expect(argv).not.toContain('--append-subagent-system-prompt');
-    expect(argumentAfter(argv, '--output-format')).toBe('json');
-    expect(argv).not.toContain('stream-json');
+    expect(argumentAfter(argv, '--output-format')).toBe('stream-json');
+    expect(argv).toContain('--verbose');
     expect(argv).not.toContain('--json-schema');
     expect(
       fs.readFileSync(path.join(stub, 'background-wait'), 'utf8'),
@@ -650,7 +665,9 @@ describe('read-only runner CLI', () => {
     );
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe('Unknown command: /code-review');
+    expectReviewEvidence(result.stdout, 'claude', [
+      'Unknown command: /code-review',
+    ]);
   });
 
   // A delegating review reports no turns of its own, so the turn count does
@@ -669,26 +686,33 @@ describe('read-only runner CLI', () => {
     );
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe('No findings.');
+    expectReviewEvidence(result.stdout, 'claude', ['No findings.']);
   });
 
   it.each([
     {
       case: 'a leading BOM',
       body: "printf '\\357\\273\\277%s\\n' '{}'",
+      evidence: 'could not parse Claude result',
       retained: '\u{FEFF}{}\n',
     },
     {
       case: 'whitespace-only output',
       body: "printf '   \\n'",
+      evidence: 'completed without a final text response',
       retained: '   \n',
     },
     {
       case: 'output without a final newline',
       body: "printf %s 'not-json'",
+      evidence: 'could not parse Claude result',
       retained: 'not-json',
     },
-  ])('retains $case verbatim in review failure evidence', ({ body, retained }) => {
+  ])('retains $case verbatim in review failure evidence', ({
+    body,
+    evidence,
+    retained,
+  }) => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     writeFile(work, 'tracked.md', 'changed\n');
     const stub = claudeStub([body]);
@@ -696,20 +720,36 @@ describe('read-only runner CLI', () => {
     const result = runRunner(work, ['claude', 'review', 'uncommitted'], stub);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('could not parse Claude result');
+    expect(result.stderr).toContain(evidence);
     // The bytes that explain the parse failure survive into the evidence.
     expect(result.stderr.toString().endsWith(`\n${retained}`)).toBe(true);
   });
 
-  it('takes the review report from the single-result output format', () => {
+  it('retains every completed review response in provider order', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     writeFile(work, 'tracked.md', 'changed\n');
-    // The delegating review emits several results across sessions plus
-    // trailing task events. The report comes from the provider's single-result
-    // format, so the runner never selects among stream events.
     const stub = claudeStub([
       'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
-      claudeResult('Final result.'),
+      "printf '%s\\n' '" + JSON.stringify({
+        type: 'system',
+        subtype: 'init',
+      }) + "'",
+      "printf '%s\\n' '" + JSON.stringify({
+        type: 'result',
+        subtype: 'success',
+        is_error: false,
+        result: 'Initial summary.',
+      }) + "'",
+      "printf '%s\\n' '" + JSON.stringify({
+        type: 'system',
+        subtype: 'task_notification',
+      }) + "'",
+      "printf '%s' '" + JSON.stringify({
+        type: 'result',
+        subtype: 'success',
+        is_error: false,
+        result: 'Late finding.',
+      }) + "'",
     ]);
 
     const result = runRunner(
@@ -719,16 +759,19 @@ describe('read-only runner CLI', () => {
     );
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe('Final result.');
+    expectReviewEvidence(result.stdout, 'claude', [
+      'Initial summary.',
+      'Late finding.',
+    ]);
     const argv = fs.readFileSync(path.join(stub, 'args'), 'utf8')
       .trimEnd()
       .split('\n');
-    expect(argumentAfter(argv, '--output-format')).toBe('json');
-    expect(argv).not.toContain('--verbose');
+    expect(argumentAfter(argv, '--output-format')).toBe('stream-json');
+    expect(argv).toContain('--verbose');
   });
 
-  // Every unusable report keeps the provider output that explains it, on both
-  // invocation kinds, which share one handler.
+  // Both invocation parsers retain the provider output that explains an
+  // unusable response.
   it.each([
     {
       body: "printf '%s\\n' 'not-json'",

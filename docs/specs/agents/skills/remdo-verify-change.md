@@ -46,12 +46,23 @@ resolved-scope arguments to satisfy that level.
 
 Review [results](../tools/read-only-runner.md#result) are independent; one never
 interrupts another. The verifier re-reports `unavailable` and `failed` as
-[concerns](../protocol.md#concerns). It maps `responded` to `completed`, includes
-the complete [report](../protocol.md#reports), and interprets its findings. If
-the report says complete-scope inspection failed or remains uncertain, the
-verifier instead marks the review `failed` and uses the report as evidence.
+[concerns](../protocol.md#concerns). For `responded`, it reads every response in
+the review evidence and includes that evidence in its [report](../protocol.md#reports).
+It maps the review to `completed` only when the evidence collectively
+establishes inspection of the full selected scope without leaving a material
+inspection gap unresolved. Earlier lifecycle notifications do not make a review
+failed when later evidence resolves them. Otherwise, the verifier marks the
+review `failed` and uses the review evidence as failure evidence.
 
 ## Findings
+
+The verifier treats every concrete candidate finding in every review response
+as evidence to validate, even when another response omits, summarizes, refutes,
+or withdraws it. It deduplicates equivalent candidates before reporting them.
+A response containing only lifecycle status contributes no candidate finding;
+a correction or withdrawal contributes evidence to the candidate's disposition
+rather than deciding it. When conflicting responses cannot be resolved from the
+repository and accepted intent, the finding is `unresolved`.
 
 The verifier judges each finding against the actual change, repository
 evidence, accepted behavior, and intended behavior established by the caller. A
@@ -110,7 +121,7 @@ checks: # if run
 reviews: # if run
   - source: <codex | claude>
     status: <completed | unavailable | failed>
-    details: <complete report or failure evidence>
+    details: <review evidence or failure evidence>
 findings: # if any
   - summary: <finding>
     source: <codex | claude>
