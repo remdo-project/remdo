@@ -78,8 +78,7 @@ change. Do not add update-tracking sections to durable documents.
 - For bugs, reproduce the problem when practical, then verify the fix with the
   focused reproducer and applicable final checks.
 - Apply the contributor [testing policy](docs/dev/testing.md) when selecting,
-  writing, or reviewing coverage. Perform each
-  [empirical check](docs/dev/testing.md#empirical-checks) required by an
+  writing, or reviewing coverage. Perform each [empirical check](docs/dev/testing.md#empirical-checks) required by an
   affected behavior's owner.
 - Use live browser inspection as the primary evidence for UI behavior,
   rendering, interaction, and accessibility conclusions.
@@ -106,7 +105,6 @@ change. Do not add update-tracking sections to durable documents.
 
 ## Checks
 
-Follow the contributor [testing policy](docs/dev/testing.md) and report CI as
-pending until it runs.
+Follow the contributor [testing policy](docs/dev/testing.md) and report CI as pending until it runs.
 
 Fix failures caused by the change or report them before handoff.

@@ -106,9 +106,7 @@ require explicit user authority.
   when required by line-length lint.
 - Agents follow the contributor [testing policy](../../dev/testing.md) and
   report CI as pending until it runs.
-- Agents perform each
-  [empirical check](../../dev/testing.md#empirical-checks) required by an
-  affected behavior's owner.
+- Agents perform each [empirical check](../../dev/testing.md#empirical-checks) required by an affected behavior's owner.
 - Conclusions about UI behavior or rendering use live browser inspection as
   their primary evidence.
 

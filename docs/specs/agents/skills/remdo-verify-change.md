@@ -31,8 +31,7 @@ until verification finishes.
 ```
 
 For uncommitted work, the verifier performs the contributor
-[testing policy's handoff verification](../../../dev/testing.md#verification-lifecycle).
-A commit range proceeds directly to reviews.
+[testing policy's handoff verification](../../../dev/testing.md#verification-lifecycle). A commit range proceeds directly to reviews.
 
 ## Reviews
 
@@ -87,8 +86,7 @@ completed, and it produced only `rejected` dispositions or no findings.
 `material out of scope` disposition. `no-change` means scope resolution found no
 diff, so checks and reviews were not run. An unavailable or failed reviewer sets
 `degraded: true` and appears in `concerns`, but does not stop verification or
-alone change `clean` to `findings`. Every non-rejected finding also appears in
-`concerns`.
+alone change `clean` to `findings`. Every non-rejected finding also appears in `concerns`.
 
 A stopped result includes the failed phase's evidence. Reviews blocked by an
 earlier phase are omitted, not `unavailable`.
