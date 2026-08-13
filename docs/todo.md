@@ -99,6 +99,15 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Operations
 
+- **Production Docker operator contract.** Reassess how the supported
+  [production deployments](guides/production-deployment.md) divide networking
+  and [runtime configuration](specs/runtime/configuration.md) among operator
+  inputs, launcher-derived values, and container-owned details. Start with
+  host/container exposure ownership, then evaluate whether the remaining
+  responsibilities, defaults, and derivations form the smallest coherent and
+  secure operator surface. Align the resulting contracts, runtime boundaries,
+  verification, and deployment guidance.
+
 - **Docker gateway and process topology.** Retain Caddy as the gateway while the
   production runtime remains a single container; replacing only the proxy does
   not simplify that topology. Define supported direct-public, private
