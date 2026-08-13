@@ -126,20 +126,28 @@ Review stdout is one JSON object with this versioned shape:
   "schema": "remdo.review-evidence.v1",
   "provider": "claude",
   "responses": [
-    { "sequence": 1, "text": "First response" },
-    { "sequence": 2, "text": "Later response" }
+    { "sequence": 1, "status": "completed", "text": "First response" },
+    {
+      "sequence": 2,
+      "status": "failed",
+      "text": "Partial response",
+      "details": "provider failure details"
+    },
+    { "sequence": 3, "status": "completed", "text": "Later response" }
   ]
 }
 ```
 
-`provider` is `codex` or `claude`. `responses` contains every non-empty
-completed response the provider's supported output makes observable, in the
-order observed. The runner does not concatenate, summarize, deduplicate, or
-select among them, and does not expose provider event traffic that is not a
-completed response. An item can be a summary, finding, addendum, correction,
-withdrawal, or lifecycle notification; no item is guaranteed to be final,
-complete, exhaustive, or authoritative. Those are semantic judgements for the
-review caller.
+`provider` is `codex` or `claude`. `responses` contains every non-empty response
+the provider's supported output makes observable, in the order observed. Each
+has `completed` or `failed` status; a failed response includes provider failure
+details and can omit `text`. Empty completed responses and blank stream lines
+carry no evidence and are omitted. The runner does not concatenate, summarize,
+deduplicate, or select among responses, and does not expose other provider event
+traffic. An item can be a summary, finding, addendum, correction, withdrawal, or
+lifecycle notification; no item is guaranteed to be final, complete,
+exhaustive, or authoritative. Those are semantic judgements for the review
+caller.
 
 When a provider exits successfully but its output does not yield a prompt
 response or valid review evidence, the failure evidence includes that output

@@ -25,7 +25,14 @@ interface RunnerCall {
 interface ReviewEvidence {
   schema: 'remdo.review-evidence.v1';
   provider: Agent;
-  responses: Array<{ sequence: number; text: string }>;
+  responses: ReviewResponse[];
+}
+
+interface ReviewResponse {
+  details?: string;
+  sequence: number;
+  status: 'completed' | 'failed';
+  text?: string;
 }
 
 type RunnerResult =
@@ -634,7 +641,10 @@ async function runCodex(
   return {
     status: 'responded',
     response: call.invocation.kind === 'review'
-      ? serializeReviewEvidence('codex', [response])
+      ? serializeReviewEvidence('codex', [{
+        status: 'completed',
+        text: response,
+      }])
       : response,
   };
 }
@@ -821,14 +831,14 @@ function claudeResult(
 
 function serializeReviewEvidence(
   provider: Agent,
-  responses: string[],
+  responses: Array<Omit<ReviewResponse, 'sequence'>>,
 ): string {
   const evidence: ReviewEvidence = {
     schema: 'remdo.review-evidence.v1',
     provider,
-    responses: responses.map((text, index) => ({
+    responses: responses.map((response, index) => ({
+      ...response,
       sequence: index + 1,
-      text,
     })),
   };
   return JSON.stringify(evidence, null, 2);
@@ -856,11 +866,8 @@ function claudeReviewOutputResult(stdout: string): RunnerResult {
   if (stdout.trim() === '') {
     return failed('Claude completed without a final text response');
   }
-  const responses: string[] = [];
-  const lines = stdout.split('\n');
-  if (lines.at(-1) === '') {
-    lines.pop();
-  }
+  const responses: Array<Omit<ReviewResponse, 'sequence'>> = [];
+  const lines = stdout.split(/\r?\n/u).filter(line => line.trim() !== '');
   for (const [index, line] of lines.entries()) {
     let event: unknown;
     try {
@@ -876,11 +883,22 @@ function claudeReviewOutputResult(stdout: string): RunnerResult {
     if (event.type !== 'result') {
       continue;
     }
-    const result = claudeResult(event);
-    if (result.status === 'failed') {
-      return failed(result.evidence);
+    if (
+      event.subtype === 'success'
+      && event.is_error === false
+    ) {
+      if (isNonEmptyString(event.result)) {
+        responses.push({ status: 'completed', text: event.result });
+      }
+      continue;
     }
-    responses.push(result.response);
+    responses.push({
+      details: `subtype=${JSON.stringify(event.subtype ?? null)}, is_error=${
+        JSON.stringify(event.is_error ?? null)
+      }`,
+      status: 'failed',
+      ...(isNonEmptyString(event.result) ? { text: event.result } : {}),
+    });
   }
   if (responses.length === 0) {
     return failed('Claude completed without a result response');
