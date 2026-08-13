@@ -113,8 +113,8 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   its security or operational tradeoff. Retain it only when a current scenario
   justifies that cost.
 
-  While production remains a single container, retain Caddy as the one
-  browser-facing gateway and keep internal services loopback-only. Evaluate
+  While production remains a single container, retain Caddy as the
+  [gateway](architecture.md#gateway) implementation. Evaluate
   direct-public, private internal-CA, and externally terminated HTTPS as
   candidate modes rather than assuming all must remain; for retained modes, use
   the simplest Caddy configuration and automatic certificate management where

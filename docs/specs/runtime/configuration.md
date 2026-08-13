@@ -16,7 +16,8 @@ Server-only requirements do not apply to browser configuration or production uti
 - `APP_PUBLIC_URL` is the server's canonical browser-visible origin.
   Development derives it as `http://<PUBLIC_HOST>:<PORT>`; production requires
   an explicit exact HTTPS origin. For self-hosted Docker, its effective port
-  selects the host-side published gateway port. [Routing and
+  selects the host-side published [gateway](../../architecture.md#gateway)
+  port. [Routing and
   origin](../../architecture.md#routing-and-origin-boundary) owns its
   collaboration use; [access control](../access/access-control.md#csrf-protection)
   owns its authentication use.
@@ -34,8 +35,7 @@ Server-only requirements do not apply to browser configuration or production uti
   and must be set explicitly when that hostname is not browser-visible. It has
   no production role.
 
-Self-hosted Docker makes only the [gateway](../../architecture.md#gateway)
-host-reachable. Docker network mode and container addresses and ports are not
+For self-hosted Docker, network mode and container addresses and ports are not
 operator settings.
 
 ## Secret bootstrap
