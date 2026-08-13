@@ -27,6 +27,10 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
+- **Read-only runner complexity.** Review, simplify, and split the shared
+  read-only runner so its responsibilities are easier to understand and
+  maintain without changing accepted behavior.
+
 - **Remaining agent skill alignment.** Apply the adopted
   [specification/procedure boundary](documentation.md#agent-skill-boundary) to
   the remaining skills. Reconsider custom scripts and state machines that encode
