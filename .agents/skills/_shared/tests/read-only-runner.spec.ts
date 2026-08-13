@@ -1,6 +1,5 @@
 /* eslint-disable node/no-process-env */
 import { spawn, spawnSync } from 'node:child_process';
-import type { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -79,7 +78,7 @@ function claudeResult(result: unknown, overrides: Record<string, unknown> = {}):
 }
 
 function expectReviewEvidence(
-  output: string | Buffer,
+  output: string,
   responses: string[],
   diagnostic?: string,
 ): void {
@@ -109,7 +108,7 @@ function runRunner(
   args: string[],
   stub?: string,
   overrides: NodeJS.ProcessEnv = {},
-): ReturnType<typeof spawnSync> {
+) {
   return spawnSync(process.execPath, [runner, ...args], {
     cwd,
     encoding: 'utf8',

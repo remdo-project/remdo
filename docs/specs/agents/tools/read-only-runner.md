@@ -89,12 +89,10 @@ scope; another caller does so when it requires consistency for the whole invocat
 
 Each invocation makes one attempt in a non-persistent session; retry belongs to
 the caller. The runner waits without a ceiling for background subagents and
-workflows the review delegates to. A provider can expose more than one response
-as that work completes; the runner retains each exposed response separately and
-in provider order. The runner has no execution deadline, and neither silence nor
-elapsed time indicates failure. It runs until the agent completes or the caller
-cancels it. Cancellation ends the agent invocation and returns a failed result
-without a response.
+workflows the review delegates to. The runner has no execution deadline, and
+neither silence nor elapsed time indicates failure. It runs until the agent
+completes or the caller cancels it. Cancellation ends the agent invocation and
+returns a failed result without a response.
 
 ## Result
 
