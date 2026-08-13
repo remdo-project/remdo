@@ -98,27 +98,28 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Operations
 
-- **Production Docker operator contract.** Reassess how the supported
-  [production deployments](guides/production-deployment.md) divide networking
-  and [runtime configuration](specs/runtime/configuration.md) among operator
-  inputs, launcher-derived values, and container-owned details. Start with
-  host/container exposure ownership, then evaluate whether the remaining
-  responsibilities, defaults, and derivations form the smallest coherent and
-  secure operator surface. Align the resulting contracts, runtime boundaries,
-  verification, and deployment guidance.
+- **Production Docker deployment contract.** Reassess the supported [production deployments](guides/production-deployment.md),
+  [runtime configuration](specs/runtime/configuration.md), gateway behavior,
+  and container topology as one system. Start with host/container exposure
+  ownership, then determine the smallest coherent and secure division among
+  operator inputs, launcher-derived values, and container-owned details.
+  Treat existing support as evidence, not a retention requirement under the
+  [pre-1.0 compatibility policy](../CONTRIBUTING.md#backward-compatibility-pre-10).
+  For every setting, default, derivation, deployment mode, or topology whose
+  removal or internalization would simplify the operator surface,
+  implementation, or verification, explicitly present the capability lost and
+  its security or operational tradeoff. Retain it only when a current scenario
+  justifies that cost.
 
-- **Docker gateway and process topology.** Retain Caddy as the gateway while the
-  production runtime remains a single container; replacing only the proxy does
-  not simplify that topology. Define supported direct-public, private
-  internal-CA, and externally terminated HTTPS modes, use Caddy's automatic
-  certificate management for the direct-public mode, enable compression for
-  eligible SPA assets, and simplify the resulting Caddy environment derivation
-  without weakening the [canonical-origin and loopback-only service boundaries](architecture.md#routing-and-origin-boundary).
-  Evaluate a one-process-per-container deployment separately: if adopted, give
-  each service a fixed internal port, move process lifecycle to the container
-  runtime, retain one browser-facing gateway, and remove obsolete shell
-  background-process launching, multi-port configuration, launcher, test, and
-  documentation machinery.
+  While production remains a single container, retain Caddy as the
+  [gateway](architecture.md#gateway) implementation. Evaluate
+  direct-public, private internal-CA, and externally terminated HTTPS as
+  candidate modes rather than assuming all must remain; for retained modes, use
+  the simplest Caddy configuration and automatic certificate management where
+  applicable. Evaluate a one-process-per-container deployment separately and
+  remove obsolete configuration, launch, lifecycle, test, and documentation
+  machinery when its responsibilities move elsewhere. Align the resulting
+  contracts, runtime boundaries, verification, and deployment guidance.
 
 - **Hosted production backups.** Define the scheduled backup and recovery
   workflow for hosted deployments, then align `docker/Dockerfile`,

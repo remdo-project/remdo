@@ -66,7 +66,7 @@ documentation. Route agents by the question they need to answer:
   - **Verification procedures:** [Running Tests](../../guides/testing.md).
   - **Test runtime:** [Test Harness](../testing/test-harness.md).
 - **Runtime configuration:** [Configuration](../runtime/configuration.md).
-  - **Port and origin derivation:** [Derivation rules](../runtime/configuration.md#derivation-rules).
+  - **Port and origin derivation:** [Network addressing](../runtime/configuration.md#network-addressing).
 - **Tracked repository follow-up:** [RemDo TODO](../../todo.md#tracked-follow-up).
 - **Specification evidence boundaries:** [Specification Feedback Cases](../feedback-cases/README.md).
 - **Task behavior:** its current owner, located by filename and scope opener
