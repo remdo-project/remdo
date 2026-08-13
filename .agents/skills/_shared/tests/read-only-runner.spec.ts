@@ -1,5 +1,6 @@
 /* eslint-disable node/no-process-env */
 import { spawn, spawnSync } from 'node:child_process';
+import type { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -60,11 +61,15 @@ function claudeStub(lines: string[]): string {
 }
 
 function shellJson(data: unknown): string {
-  return `printf '%s' '${JSON.stringify(data).replace(/'/g, `'\\''`)}'`;
+  return `printf '%s' ${shellLiteral(JSON.stringify(data))}`;
+}
+
+function shellJsonLine(data: unknown): string {
+  return `printf '%s\\n' ${shellLiteral(JSON.stringify(data))}`;
 }
 
 function claudeResult(result: unknown, overrides: Record<string, unknown> = {}): string {
-  return shellJson({
+  return shellJsonLine({
     type: 'result',
     subtype: 'success',
     is_error: false,
@@ -75,28 +80,13 @@ function claudeResult(result: unknown, overrides: Record<string, unknown> = {}):
 
 function expectReviewEvidence(
   output: string | Buffer,
-  provider: 'claude' | 'codex',
-  responses: Array<{
-    details?: {
-      errors?: unknown;
-      is_error?: unknown;
-      reason?: string;
-      result?: unknown;
-      subtype?: unknown;
-    };
-    status: 'completed' | 'failed';
-    text?: string;
-  }>,
-  failures: Array<{ event: number; raw: string; reason: unknown }> = [],
+  responses: string[],
+  diagnostic?: string,
 ): void {
   expect(JSON.parse(output.toString())).toEqual({
-    schema: 'remdo.review-evidence.v1',
-    provider,
-    responses: responses.map((response, index) => ({
-      ...response,
-      sequence: index + 1,
-    })),
-    ...(failures.length > 0 ? { failures } : {}),
+    complete: diagnostic === undefined,
+    responses,
+    ...(diagnostic !== undefined ? { diagnostic } : {}),
   });
 }
 
@@ -349,10 +339,7 @@ describe('read-only runner CLI', () => {
     );
 
     expect(result.status).toBe(0);
-    expectReviewEvidence(result.stdout, 'codex', [{
-      status: 'completed',
-      text: 'No findings.',
-    }]);
+    expectReviewEvidence(result.stdout, ['No findings.']);
     expect(fs.readFileSync(path.join(stub, 'probe'), 'utf8')).toBe('probed');
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
     expect(args).toMatch(/review\n--uncommitted\n$/u);
@@ -681,10 +668,7 @@ describe('read-only runner CLI', () => {
     );
 
     expect(result.status).toBe(0);
-    expectReviewEvidence(result.stdout, 'claude', [{
-      status: 'completed',
-      text: 'Unknown command: /code-review',
-    }]);
+    expectReviewEvidence(result.stdout, ['Unknown command: /code-review']);
   });
 
   // A delegating review reports no turns of its own, so the turn count does
@@ -703,10 +687,7 @@ describe('read-only runner CLI', () => {
     );
 
     expect(result.status).toBe(0);
-    expectReviewEvidence(result.stdout, 'claude', [{
-      status: 'completed',
-      text: 'No findings.',
-    }]);
+    expectReviewEvidence(result.stdout, ['No findings.']);
   });
 
   it.each([
@@ -750,45 +731,23 @@ describe('read-only runner CLI', () => {
     writeFile(work, 'tracked.md', 'changed\n');
     const stub = claudeStub([
       'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
-      "printf '%s\\n' '" + JSON.stringify({
+      shellJsonLine({
         type: 'system',
         subtype: 'init',
-      }) + "'",
-      "printf '%s\\n' '" + JSON.stringify({
-        type: 'result',
-        subtype: 'success',
-        is_error: false,
-        result: 'Initial summary.',
-      }) + "'",
+      }),
+      claudeResult('Initial summary.'),
+      claudeResult(''),
       "printf '\\n'",
-      "printf '%s\\n' '" + JSON.stringify({
-        type: 'result',
-        subtype: 'success',
-        is_error: false,
-        result: '',
-      }) + "'",
-      "printf '%s\\n' '" + JSON.stringify({
-        type: 'result',
-        subtype: 'success',
-        is_error: false,
-        result: { unexpected: true },
-      }) + "'",
-      "printf '%s\\n' '" + JSON.stringify({
-        type: 'result',
-        subtype: 'error_max_turns',
-        is_error: true,
-        result: 'Partial finding.',
-      }) + "'",
-      "printf '%s\\n' '" + JSON.stringify({
+      shellJsonLine({
         type: 'system',
         subtype: 'task_notification',
-      }) + "'",
-      "printf '%s' '" + JSON.stringify({
+      }),
+      shellJson({
         type: 'result',
         subtype: 'success',
         is_error: false,
         result: 'Late finding.',
-      }) + "'",
+      }),
     ]);
 
     const result = runRunner(
@@ -798,28 +757,7 @@ describe('read-only runner CLI', () => {
     );
 
     expect(result.status).toBe(0);
-    expectReviewEvidence(result.stdout, 'claude', [
-      { status: 'completed', text: 'Initial summary.' },
-      {
-        details: {
-          is_error: false,
-          reason: 'successful result did not contain text',
-          result: { unexpected: true },
-          subtype: 'success',
-        },
-        status: 'failed',
-      },
-      {
-        details: {
-          is_error: true,
-          reason: 'result did not report successful completion',
-          subtype: 'error_max_turns',
-        },
-        status: 'failed',
-        text: 'Partial finding.',
-      },
-      { status: 'completed', text: 'Late finding.' },
-    ]);
+    expectReviewEvidence(result.stdout, ['Initial summary.', 'Late finding.']);
     const argv = fs.readFileSync(path.join(stub, 'args'), 'utf8')
       .trimEnd()
       .split('\n');
@@ -830,29 +768,40 @@ describe('read-only runner CLI', () => {
 
   it.each([
     {
+      case: 'an unsuccessful result',
+      event: claudeResult('Partial finding.', {
+        subtype: 'error_max_turns',
+        is_error: true,
+      }),
+      middleResponse: 'Partial finding.',
+      diagnostic: 'Claude reported incomplete review execution',
+    },
+    {
       case: 'malformed JSON',
-      event: 'not-json',
-      evidence: expect.stringContaining('could not parse JSON: SyntaxError'),
+      event: "printf '%s\\n' 'not-json'",
+      diagnostic: 'could not parse Claude review stream output',
     },
     {
       case: 'a non-object event',
-      event: 'null',
-      evidence: 'event was not a JSON object',
+      event: "printf '%s\\n' 'null'",
+      diagnostic: 'could not parse Claude review stream output',
     },
-  ])('retains $case as a failure when it follows a response', ({
+    {
+      case: 'a result without text',
+      event: claudeResult({ unexpected: true }),
+      diagnostic: 'Claude emitted a review result without text',
+    },
+  ])('marks $case incomplete without losing response text', ({
     event,
-    evidence,
+    middleResponse,
+    diagnostic,
   }) => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     writeFile(work, 'tracked.md', 'changed\n');
-    const response = JSON.stringify({
-      type: 'result',
-      subtype: 'success',
-      is_error: false,
-      result: 'Earlier finding.',
-    });
     const stub = claudeStub([
-      `printf '%s\\n\\n%s' ${shellLiteral(response)} ${shellLiteral(event)}`,
+      claudeResult('Initial summary.'),
+      event,
+      claudeResult('Late finding.'),
     ]);
 
     const result = runRunner(work, ['claude', 'review', 'uncommitted'], stub);
@@ -861,9 +810,12 @@ describe('read-only runner CLI', () => {
     expect(result.stderr).toBe('');
     expectReviewEvidence(
       result.stdout,
-      'claude',
-      [{ status: 'completed', text: 'Earlier finding.' }],
-      [{ event: 2, raw: event, reason: evidence }],
+      [
+        'Initial summary.',
+        ...(middleResponse === undefined ? [] : [middleResponse]),
+        'Late finding.',
+      ],
+      diagnostic,
     );
   });
 
@@ -877,7 +829,7 @@ describe('read-only runner CLI', () => {
     },
     {
       body: claudeResult(' \n\t'),
-      evidence: 'completed without a final text response',
+      evidence: 'without',
       retained: '"type":"result"',
     },
   ])(
@@ -899,31 +851,6 @@ describe('read-only runner CLI', () => {
       }
     },
   );
-
-  it('retains an unsuccessful review result as failed evidence', () => {
-    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
-    writeFile(work, 'tracked.md', 'changed\n');
-    const stub = claudeStub([
-      claudeResult('Partial finding.', {
-        errors: ['maximum turns reached'],
-        is_error: true,
-        subtype: undefined,
-      }),
-    ]);
-
-    const result = runRunner(work, ['claude', 'review', 'uncommitted'], stub);
-
-    expect(result.status).toBe(0);
-    expectReviewEvidence(result.stdout, 'claude', [{
-      details: {
-        errors: ['maximum turns reached'],
-        is_error: true,
-        reason: 'result did not report successful completion',
-      },
-      status: 'failed',
-      text: 'Partial finding.',
-    }]);
-  });
 
   it.each([
     {

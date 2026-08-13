@@ -50,20 +50,19 @@ interrupts another. The verifier re-reports `unavailable` and `failed` as
 the review evidence and includes that evidence in its [report](../protocol.md#reports).
 It maps the review to `completed` only when the evidence collectively
 establishes inspection of the full selected scope without leaving a material
-inspection gap unresolved, every response has `completed` status, and the
-evidence has no transport failures. Earlier lifecycle notifications do not make
-a review failed when later evidence resolves them. A response with `failed`
-status or any transport failure always makes the review failed, but response
-text remains candidate-finding evidence. Otherwise, the verifier marks the
+inspection gap unresolved and the evidence has `complete: true`. Earlier
+lifecycle notifications do not make a review failed when later evidence
+resolves them. `complete: false` always makes the review failed, but its response
+texts remain candidate-finding evidence. Otherwise, the verifier marks the
 review `failed` and uses the review evidence as failure evidence.
 
 ## Findings
 
-The verifier treats every concrete candidate finding in every non-empty review
-response text as evidence to validate regardless of response status, even when
-another response omits, summarizes, refutes, or withdraws it. It deduplicates
-equivalent candidates before reporting them. A response containing only
-lifecycle status contributes no candidate finding; a correction or withdrawal
+The verifier treats every concrete candidate finding in every review response
+as evidence to validate, even when another response omits, summarizes, refutes,
+or withdraws it. It deduplicates equivalent candidates before reporting them. A
+response containing only lifecycle status contributes no candidate finding; a
+correction or withdrawal
 contributes evidence to the candidate's disposition rather than deciding it.
 When conflicting responses cannot be resolved from the repository and accepted
 intent, the finding is `unresolved`.

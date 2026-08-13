@@ -23,29 +23,9 @@ interface RunnerCall {
 }
 
 interface ReviewEvidence {
-  failures?: ReviewStreamFailure[];
-  schema: 'remdo.review-evidence.v1';
-  provider: Agent;
-  responses: ReviewResponse[];
-}
-
-interface ReviewStreamFailure {
-  event: number;
-  raw: string;
-  reason: string;
-}
-
-interface ReviewResponse {
-  details?: {
-    errors?: unknown;
-    is_error?: unknown;
-    reason?: string;
-    result?: unknown;
-    subtype?: unknown;
-  };
-  sequence: number;
-  status: 'completed' | 'failed';
-  text?: string;
+  complete: boolean;
+  diagnostic?: string;
+  responses: string[];
 }
 
 type RunnerResult =
@@ -654,10 +634,7 @@ async function runCodex(
   return {
     status: 'responded',
     response: call.invocation.kind === 'review'
-      ? serializeReviewEvidence('codex', [{
-        status: 'completed',
-        text: response,
-      }])
+      ? serializeReviewEvidence([response])
       : response,
   };
 }
@@ -843,35 +820,15 @@ function claudeResult(
 }
 
 function serializeReviewEvidence(
-  provider: Agent,
-  responses: Array<Omit<ReviewResponse, 'sequence'>>,
-  failures: ReviewStreamFailure[] = [],
+  responses: string[],
+  diagnostic?: string,
 ): string {
   const evidence: ReviewEvidence = {
-    schema: 'remdo.review-evidence.v1',
-    provider,
-    responses: responses.map((response, index) => ({
-      ...response,
-      sequence: index + 1,
-    })),
-    ...(failures.length > 0 ? { failures } : {}),
+    complete: diagnostic === undefined,
+    responses,
+    ...(diagnostic !== undefined ? { diagnostic } : {}),
   };
   return JSON.stringify(evidence, null, 2);
-}
-
-function claudeFailureDetails(
-  event: Record<string, unknown>,
-  reason?: string,
-): NonNullable<ReviewResponse['details']> {
-  return {
-    ...(reason !== undefined ? { reason } : {}),
-    ...(Object.hasOwn(event, 'subtype') ? { subtype: event.subtype } : {}),
-    ...(Object.hasOwn(event, 'is_error') ? { is_error: event.is_error } : {}),
-    ...(Object.hasOwn(event, 'errors') ? { errors: event.errors } : {}),
-    ...(Object.hasOwn(event, 'result') && !isNonEmptyString(event.result)
-      ? { result: event.result }
-      : {}),
-  };
 }
 
 function claudePromptOutputResult(stdout: string): RunnerResult {
@@ -891,77 +848,42 @@ function claudePromptOutputResult(stdout: string): RunnerResult {
 }
 
 function claudeReviewOutputResult(stdout: string): RunnerResult {
-  const failed = (summary: string): RunnerResult =>
-    outputFailure(summary, stdout);
-  if (stdout.trim() === '') {
-    return failed('Claude completed without a final text response');
-  }
-  const responses: Array<Omit<ReviewResponse, 'sequence'>> = [];
-  const failures: ReviewStreamFailure[] = [];
+  const responses: string[] = [];
+  let diagnostic: string | undefined;
   const lines = stdout.split(/\r?\n/u).filter(line => line.trim() !== '');
-  for (const [index, line] of lines.entries()) {
+  for (const line of lines) {
     let event: unknown;
     try {
       event = JSON.parse(line);
-    } catch (error) {
-      failures.push({
-        event: index + 1,
-        raw: line,
-        reason: `could not parse JSON: ${String(error)}`,
-      });
+    } catch {
+      diagnostic ??= 'could not parse Claude review stream output';
       continue;
     }
     if (!isObject(event)) {
-      failures.push({
-        event: index + 1,
-        raw: line,
-        reason: 'event was not a JSON object',
-      });
+      diagnostic ??= 'could not parse Claude review stream output';
       continue;
     }
     if (event.type !== 'result') {
       continue;
     }
-    if (
-      event.subtype === 'success'
-      && event.is_error === false
-    ) {
-      if (typeof event.result === 'string') {
-        if (isNonEmptyString(event.result)) {
-          responses.push({ status: 'completed', text: event.result });
-        }
-      } else {
-        responses.push({
-          details: claudeFailureDetails(
-            event,
-            'successful result did not contain text',
-          ),
-          status: 'failed',
-        });
-      }
-      continue;
+    if (event.subtype !== 'success' || event.is_error !== false) {
+      diagnostic ??= 'Claude reported incomplete review execution';
     }
-    responses.push({
-      details: claudeFailureDetails(
-        event,
-        'result did not report successful completion',
-      ),
-      status: 'failed',
-      ...(isNonEmptyString(event.result) ? { text: event.result } : {}),
-    });
+    if (isNonEmptyString(event.result)) {
+      responses.push(event.result);
+    } else if (typeof event.result !== 'string') {
+      diagnostic ??= 'Claude emitted a review result without text';
+    }
   }
   if (responses.length === 0) {
-    return failed(
-      failures.length > 0
-        ? `Claude completed without a usable result response: ${
-          failures[0]!.reason
-        }`
-        : 'Claude completed without a final text response',
+    return outputFailure(
+      diagnostic ?? 'Claude completed without a final text response',
+      stdout,
     );
   }
   return {
     status: 'responded',
-    response: serializeReviewEvidence('claude', responses, failures),
+    response: serializeReviewEvidence(responses, diagnostic),
   };
 }
 

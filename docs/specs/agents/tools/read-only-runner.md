@@ -48,10 +48,6 @@ tool restriction. **Empirical.** During validation, no reviewer process runs or
 manually reproduces a repository check; forwarded instructions do not establish
 compliance, so confirmation observes the commands they run.
 
-Claude review requests completed stream events with verbose output because its
-CLI requires verbose mode for stream JSON. It does not request partial message
-chunks; only completed result events carry review-response evidence.
-
 ## Repository protection
 
 Repository protection has one target outcome: an invocation leaves the caller's
@@ -124,51 +120,34 @@ saying the command is unknown, which the runner cannot distinguish from a review
 reporting that text. A `responded` review therefore does not establish that a
 review ran; the caller judges the evidence.
 
-Review stdout is one JSON object with this versioned shape:
+Review stdout is one JSON object with this shape:
 
 ```json
 {
-  "schema": "remdo.review-evidence.v1",
-  "provider": "claude",
+  "complete": false,
   "responses": [
-    { "sequence": 1, "status": "completed", "text": "First response" },
-    {
-      "sequence": 2,
-      "status": "failed",
-      "text": "Partial response",
-      "details": {
-        "subtype": "error_max_turns",
-        "is_error": true,
-        "errors": ["provider diagnostic"]
-      }
-    },
-    { "sequence": 3, "status": "completed", "text": "Later response" }
+    "First response",
+    "Partial response",
+    "Later response"
   ],
-  "failures": [
-    { "event": 4, "reason": "event was not a JSON object", "raw": "null" }
-  ]
+  "diagnostic": "provider reported incomplete review execution"
 }
 ```
 
-`provider` is `codex` or `claude`. `responses` contains, in provider order,
-every supported result with non-empty text and every failed result. Each has
-`completed` or `failed` status; a failed response includes provider failure
-details—retaining the provider's `errors` field when present—and can omit
-`text`. A successful result with a malformed non-text value becomes a failed
-response whose details preserve that value and the reason. Empty completed
-results and blank stream lines carry no evidence and are omitted. The runner
-does not concatenate, summarize, deduplicate, or select among responses, and
-does not expose other provider event traffic. An item can be a summary, finding,
-addendum, correction, withdrawal, or lifecycle notification; no item is
-guaranteed to be final, complete, exhaustive, or authoritative. Those are
-semantic judgements for the review caller.
+`responses` contains every non-empty review response the provider exposes, in
+provider order. The runner does not concatenate, summarize, deduplicate, or
+select among them, and does not expose other provider event traffic. A response
+can be a summary, finding, addendum, correction, withdrawal, or lifecycle
+notification; none is guaranteed to be final, complete, exhaustive, or
+authoritative. Those are semantic judgements for the review caller.
 
-`failures` is omitted when provider event transport is valid. When at least one
-response is usable, each malformed event is retained there with its nonblank
-event sequence, reason, and raw line. The runner still returns the valid
-responses, and the caller treats the review as failed while validating their
-candidate findings. When no response is usable, the runner instead returns a
-failed result with the complete raw output as failure evidence.
+`complete` is `true` when every provider result the runner observed was
+well-formed and successful. Empty successful results carry no evidence and are
+omitted. It does not establish that the responses semantically cover the full
+review scope. When `complete` is `false`, `diagnostic` gives a coarse reason and
+any response text remains usable as candidate-finding evidence. When no response
+text is usable, the runner instead returns a failed result with the complete raw
+output as failure evidence.
 
 When a provider exits successfully but its output does not yield a prompt
 response or valid review evidence, the failure evidence includes that output
