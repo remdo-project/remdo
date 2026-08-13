@@ -9,8 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { writeFakeBin } from './_support/fake-bins';
 
 function writeFakeDocker(binDir: string): void {
-  writeFakeBin(binDir, 'docker', `printf '%s\\0' "$@" >> "\${REMDO_FAKE_DOCKER_LOG:?}"
-printf '\\0' >> "\${REMDO_FAKE_DOCKER_LOG:?}"
+  writeFakeBin(binDir, 'docker', `printf '%s\\0' "$#" "$@" >> "\${REMDO_FAKE_DOCKER_LOG:?}"
 case "$1" in
   info)
     printf '%s\\n' '["name=rootless"]'
@@ -35,10 +34,18 @@ interface LauncherRun {
 }
 
 function parseDockerCalls(log: string): string[][] {
-  return log
-    .split('\0\0')
-    .filter(Boolean)
-    .map((call) => call.split('\0'));
+  const fields = log.split('\0');
+  const calls: string[][] = [];
+  let offset = 0;
+
+  while (offset < fields.length - 1) {
+    const argumentCount = Number(fields[offset]);
+    offset += 1;
+    calls.push(fields.slice(offset, offset + argumentCount));
+    offset += argumentCount;
+  }
+
+  return calls;
 }
 
 function findDockerCall(calls: string[][], command: string): string[] {
@@ -152,7 +159,10 @@ describe('development runtime launchers', () => {
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain('Starting private Docker app: http://dev-vm:4640');
     const runArgs = findDockerCall(dockerCalls, 'run');
-    expect(dockerEnvironment(runArgs).CADDY_BIND_DIRECTIVE).toBe('bind 0.0.0.0');
+    expect(dockerEnvironment(runArgs)).toMatchObject({
+      CADDY_BIND_DIRECTIVE: 'bind 0.0.0.0',
+      HOST: '127.0.0.1',
+    });
   });
 
   it('rejects rootless host networking before Docker Engine 29.5', () => {
