@@ -7,6 +7,7 @@ import {
   $isRangeSelection,
   $isTextNode,
   $setSelection,
+  COMMAND_PRIORITY_CRITICAL,
   CONTROLLED_TEXT_INSERTION_COMMAND,
   INDENT_CONTENT_COMMAND,
   KEY_ESCAPE_COMMAND,
@@ -37,6 +38,7 @@ import {
   typeText,
 } from '#tests';
 import { getNoteBody } from '#client/editor/features/note-body/note-body-ops';
+import { setPopupActive } from '#client/editor/triggers/active-popup';
 
 async function pastePlainText(remdo: RemdoTestApi, text: string) {
   const transfer = createDataTransfer();
@@ -920,6 +922,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     const destination = document.querySelectorAll<HTMLInputElement>('[data-link-controls] input')[1]!;
 
     expect(fireEvent.keyDown(destination, { altKey: true, key: '•' })).toBe(true);
+    expect(fireEvent.keyDown(destination, { altKey: true, key: 'Dead' })).toBe(true);
   });
 
   it('opens actions for an element selection containing exactly one body link', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -1106,6 +1109,34 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await waitFor(() => {
       expect(document.querySelector('[data-link-controls]')).toBeNull();
     });
+  });
+
+  it('revalidates a captured link after canceling another popup', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await pastePlainText(remdo, 'https://example.com/');
+    const competingPopup = Symbol('competing-popup');
+    const unregister = remdo.editor.registerCommand(
+      KEY_ESCAPE_COMMAND,
+      () => {
+        setPopupActive(remdo.editor, competingPopup, false);
+        const text = $findNoteById('note1')!.getChildren().find($isLinkNode)?.getFirstChild();
+        if ($isTextNode(text)) {
+          text.setTextContent('changed');
+        }
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL,
+    );
+    setPopupActive(remdo.editor, competingPopup, true);
+
+    try {
+      await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!, { detail: 1 }));
+
+      expect(document.querySelector('[data-link-controls]')).toBeNull();
+    } finally {
+      unregister();
+      setPopupActive(remdo.editor, competingPopup, false);
+    }
   });
 
   it('restores editor focus when an outside pointer closes link controls', meta({ fixture: 'flat' }), async ({ remdo }) => {

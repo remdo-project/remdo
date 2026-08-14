@@ -568,7 +568,7 @@ const FIELD_EDITING_KEYS = new Set([
 const FIELD_EDITING_SHORTCUTS = new Set(['a', 'c', 'v', 'x', 'y', 'z']);
 
 function isFieldEditingKey(event: ReactKeyboardEvent<HTMLDivElement>): boolean {
-  if (event.nativeEvent.isComposing) {
+  if (event.nativeEvent.isComposing || event.key === 'Dead') {
     return true;
   }
   const key = event.key.toLowerCase();
@@ -637,6 +637,13 @@ export function LinkControlsPlugin() {
       editor.dispatchCommand(KEY_ESCAPE_COMMAND, new KeyboardEvent('keydown', { key: 'Escape' }));
     }
     if (isOtherPopupActive(editor, popupToken)) {
+      return;
+    }
+    const targetStillValid = editor.getEditorState().read(
+      () => $resolveTargetSelection(target) !== null,
+      { editor },
+    );
+    if (!targetStillValid) {
       return;
     }
     setControlsState({

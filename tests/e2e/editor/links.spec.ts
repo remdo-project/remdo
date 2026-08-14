@@ -666,6 +666,12 @@ test.describe('generic links', () => {
       globalThis.history.pushState({}, '', '#link-controls');
       return globalThis.location.href;
     });
+    expect(await destination.evaluate(element => element.dispatchEvent(new KeyboardEvent('keydown', {
+      altKey: true,
+      bubbles: true,
+      cancelable: true,
+      key: 'Dead',
+    })))).toBe(true);
     await destination.press('Alt+ArrowLeft');
     await page.waitForTimeout(100);
     expect(page.url()).toBe(authoringUrl);
