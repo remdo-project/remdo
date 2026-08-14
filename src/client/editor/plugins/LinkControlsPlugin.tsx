@@ -566,7 +566,7 @@ function isFieldEditingKey(event: ReactKeyboardEvent<HTMLDivElement>): boolean {
   }
   const key = event.key.toLowerCase();
   if (event.altKey) {
-    return event.ctrlKey && !event.metaKey && event.key.length === 1;
+    return !event.metaKey && event.key.length === 1;
   }
   if (event.metaKey || event.ctrlKey) {
     return FIELD_EDITING_SHORTCUTS.has(key)
@@ -1055,7 +1055,8 @@ export function LinkControlsPlugin() {
       return;
     }
     const fieldEditing = event.target instanceof HTMLInputElement && isFieldEditingKey(event);
-    const buttonActivation = event.target instanceof HTMLButtonElement && event.key === 'Enter';
+    const buttonActivation = event.target instanceof HTMLButtonElement
+      && (event.key === 'Enter' || event.key === ' ');
     if (!fieldEditing && !buttonActivation) {
       event.preventDefault();
     }

@@ -359,7 +359,7 @@ test.describe('generic links', () => {
     await page.keyboard.press('Tab');
     await expect(controls.getByRole('button', { name: 'Open' })).toBeFocused();
     await edit.focus();
-    await edit.click();
+    await edit.press('Enter');
     await expect(controls.getByRole('textbox', { name: 'Destination' })).toBeFocused();
     await controls.getByRole('textbox', { name: 'Text' }).fill('RemDo site');
     await controls.getByRole('textbox', { name: 'Destination' }).fill('https://remdo.app');
@@ -370,7 +370,7 @@ test.describe('generic links', () => {
     await expect(edited).toHaveAttribute('href', 'https://remdo.app/');
 
     await edited.click();
-    await controls.getByRole('button', { name: 'Remove link' }).click();
+    await controls.getByRole('button', { name: 'Remove link' }).press('Space');
     await expect(controls).toHaveCount(0);
     await expect(editorLocator(page).getByRole('link', { name: /RemDo site/ })).toHaveCount(0);
     await expect(editor).toMatchOutline([
@@ -398,6 +398,29 @@ test.describe('generic links', () => {
       const box = (await controls.boundingBox())!;
       return box.y + box.height;
     }).toBeLessThanOrEqual(240);
+  });
+
+  test('distinguishes and wraps a long generic link without horizontal overflow', async ({ page, editor }) => {
+    await page.setViewportSize({ width: 320, height: 480 });
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('ControlOrMeta+K');
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    const destination = `https://example.com/${'segment'.repeat(40)}`;
+    await controls.getByRole('textbox', { name: 'Destination' }).fill(destination);
+    await controls.getByRole('textbox', { name: 'Destination' }).press('Enter');
+
+    const link = editorLocator(page).locator('a[target="_blank"]');
+    await expect(link).toHaveText(destination);
+    const presentation = await link.evaluate((element) => ({
+      decoration: getComputedStyle(element).textDecorationLine,
+      documentScrollWidth: document.documentElement.scrollWidth,
+      lineCount: element.getClientRects().length,
+      viewportWidth: globalThis.innerWidth,
+    }));
+    expect(presentation.decoration).toContain('underline');
+    expect(presentation.lineCount).toBeGreaterThan(1);
+    expect(presentation.documentScrollWidth).toBeLessThanOrEqual(presentation.viewportWidth);
   });
 
   test('waits for a typed URL boundary and Undo keeps the authored text', async ({ page, editor }) => {
@@ -686,7 +709,6 @@ test.describe('generic links', () => {
     const context = page.context();
     const initialPages = context.pages().length;
     await expect(link).toHaveAttribute('tabindex', '0');
-    await page.waitForTimeout(100);
     await link.focus();
     await expect(link).toBeFocused();
     await page.keyboard.press('Enter');

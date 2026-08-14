@@ -51,6 +51,10 @@ function normalizeHostname(domain: string): string | null {
   if (/[\s%/:?#@\\]/.test(domain) || domain.includes('[') || domain.includes(']')) {
     return null;
   }
+  const isAscii = [...domain].every(character => character.codePointAt(0)! <= 0x7F);
+  if (isAscii && domain.split('.').length < 2) {
+    return null;
+  }
   try {
     const hostname = new URL(`https://${domain}`).hostname.toLowerCase();
     const labels = hostname.split('.');
@@ -221,6 +225,12 @@ function automaticEmailMatch(text: string): ReturnType<LinkMatcher> {
       continue;
     }
     const candidate = automaticCandidateFrom(text, index);
+    const local = candidate.slice(0, candidate.indexOf('@'));
+    const pathSeparator = local.search(/[\\/]/);
+    const pathPrefix = pathSeparator < 0 ? '' : local.slice(0, pathSeparator);
+    if (pathSeparator === 0 || (pathSeparator > 0 && pathPrefix.includes('.'))) {
+      continue;
+    }
     const email = normalizeEmailAddress(candidate);
     if (email) {
       return {
@@ -250,6 +260,11 @@ function nestedMatchesAreInUrlSuffix(candidate: string, match: LinkifyMatch, mat
 }
 
 function normalizeAutomaticMatch(match: LinkifyMatch, candidate: string): GenericDestination | null {
+  for (let index = candidate.indexOf('\\'); index >= 0; index = candidate.indexOf('\\', index + 1)) {
+    if (!AUTOMATIC_END_PATTERN.test(candidate[index + 1] ?? '')) {
+      return null;
+    }
+  }
   if (match.schema === 'mailto:') {
     const email = normalizeEmailAddress(candidate);
     return email ? { kind: 'email', url: `mailto:${email}` } : null;

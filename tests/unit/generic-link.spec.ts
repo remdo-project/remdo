@@ -83,8 +83,15 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     "https://'foo@example.com",
     'user@example.com?subject=hello',
     '.www.example.com',
+    'blog.example.com',
+    'www.com',
     'http://example.com,https://other.com',
     'https://example.com\\evil.com',
+    String.raw`https://example.com/a\\evil.com`,
+    String.raw`https://example.com/a\\.`,
+    '//example.com/a@b.com',
+    '/rel/path@v1.com',
+    'example.com/a@b.com',
   ])('leaves ambiguous or unsafe automatic candidate %s as text', (input) => {
     expect(automaticGenericLinkMatcher(input)).toBeNull();
   });
@@ -165,6 +172,7 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
       index: 0,
       length: 'https://example.com/path'.length,
       text: 'https://example.com/path',
+      url: 'https://example.com/path',
     });
   });
 
@@ -174,6 +182,7 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
       index: 0,
       length: input.length,
       text: input,
+      url: input,
     });
   });
 
@@ -183,6 +192,7 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
       index: 0,
       length: input.length,
       text: input,
+      url: input,
     });
   });
 
@@ -203,6 +213,7 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
         index: opener.length,
         length: url.length,
         text: url,
+        url,
       });
     },
   );
@@ -222,6 +233,7 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
         index: 0,
         length: url.length,
         text: url,
+        url,
       });
     },
   );
@@ -232,6 +244,11 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
       index: 0,
       length: input.length,
       text: input,
+      url: input,
     });
+  });
+
+  it('rejects a single-label email domain before URL host normalization', () => {
+    expect(normalizeGenericDestination('user@2130706433')).toBeNull();
   });
 });

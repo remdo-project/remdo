@@ -1,12 +1,11 @@
 import { $isAutoLinkNode } from '@lexical/link';
-import { waitFor } from '@testing-library/react';
+import { act, fireEvent, waitFor } from '@testing-library/react';
 import { $isTextNode, UNDO_COMMAND } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import {
   $getAutomaticLinkUnlinkedText,
-  $setAutomaticLinkUnlinkedText,
 } from '#client/editor/runtime/automatic-link-state';
 import { meta, placeCaretAtNote, pressKey, selectEntireNote, typeText } from '#tests';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
@@ -22,6 +21,17 @@ function readAutomaticLink(remdo: RemdoTestApi, noteId = 'note1') {
   }, { editor: remdo.editor });
 }
 
+async function removeFirstGenericLink(remdo: RemdoTestApi) {
+  await act(async () => {
+    fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!, { detail: 1 });
+  });
+  const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+  const remove = [...controls.querySelectorAll('button')]
+    .find(button => button.textContent === 'Remove link')!;
+  await act(async () => fireEvent.click(remove));
+  await remdo.waitForSynced();
+}
+
 describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('waits for a remote typing boundary before recognizing a URL', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const secondary = await createCollabPeer(remdo);
@@ -35,6 +45,8 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
         { editor: remdo.editor },
       )).toBe(url);
     });
+    await remdo.waitForSynced();
+    await secondary.waitForSynced();
     expect(readAutomaticLink(remdo)).toBeNull();
     expect(readAutomaticLink(secondary)).toBeNull();
 
@@ -113,11 +125,7 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
       });
     });
 
-    await secondary.mutate(() => {
-      const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
-      $setAutomaticLinkUnlinkedText(link, link.getTextContent());
-      link.setIsUnlinked(true);
-    });
+    await removeFirstGenericLink(remdo);
 
     await waitFor(() => {
       expect(readAutomaticLink(remdo)?.isUnlinked).toBe(true);

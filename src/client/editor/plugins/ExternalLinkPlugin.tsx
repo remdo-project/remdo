@@ -83,6 +83,22 @@ function $hasValidAutomaticLinkEnd(node: AutoLinkNode, next: TextNode): boolean 
   return match?.index === 0 && match.length === text.length;
 }
 
+function $hasValidAutomaticMatchStart(node: TextNode, matchIndex: number, matchText: string): boolean {
+  if (matchIndex > 0) {
+    return true;
+  }
+  const previous = node.getPreviousSibling();
+  if (previous === null || $isLineBreakNode(previous)) {
+    return true;
+  }
+  if (!$isTextNode(previous)) {
+    return false;
+  }
+  const prefix = previous.getTextContent().at(-1) ?? '';
+  const contextual = automaticGenericLinkMatcher(`${prefix}${matchText}`);
+  return contextual?.index === prefix.length && contextual.length === matchText.length;
+}
+
 function $createAutomaticLinkBeforeInlineBoundary(node: TextNode): AutoLinkNode | null {
   if (node.getParent() instanceof LinkNode) {
     return null;
@@ -98,7 +114,11 @@ function $createAutomaticLinkBeforeInlineBoundary(node: TextNode): AutoLinkNode 
   }
   const text = node.getTextContent();
   const match = automaticGenericLinkMatcher(text);
-  if (!match || match.index + match.length !== text.length) {
+  if (
+    !match
+    || match.index + match.length !== text.length
+    || !$hasValidAutomaticMatchStart(node, match.index, match.text)
+  ) {
     return null;
   }
   const matchingNode = match.index === 0 ? node : node.splitText(match.index)[1]!;
@@ -108,10 +128,6 @@ function $createAutomaticLinkBeforeInlineBoundary(node: TextNode): AutoLinkNode 
   // Lexical only keeps automatic links before text or line-break boundaries.
   // Preserve RemDo's inline-node boundary with an empty, non-merging text node.
   link.insertAfter($createTextNode('').toggleUnmergeable());
-  if (!$hasValidAutomaticLinkStart(link)) {
-    unwrapLinkNode(link);
-    return null;
-  }
   return link;
 }
 

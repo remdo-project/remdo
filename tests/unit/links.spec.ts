@@ -890,6 +890,38 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('creates a link for an inline selection beginning with a date token', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      note.clear();
+      note.append($createDateNode('2026-08-14'), $createTextNode(' schedule'));
+      note.select(0, note.getChildrenSize());
+    });
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const destination = controls.querySelectorAll<HTMLInputElement>('input')[1]!;
+    await act(async () => {
+      fireEvent.change(destination, { target: { value: 'example.com' } });
+      fireEvent.click(controls.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isLinkNode)!;
+      expect(link.getTextContent()).toBe('Aug 14, 2026 schedule');
+      expect(link.getURL()).toBe('https://example.com/');
+    });
+  });
+
+  it('allows Option-produced characters in link fields', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    const destination = document.querySelectorAll<HTMLInputElement>('[data-link-controls] input')[1]!;
+
+    expect(fireEvent.keyDown(destination, { altKey: true, key: '•' })).toBe(true);
+  });
+
   it('opens actions for an element selection containing exactly one body link', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });
@@ -1173,6 +1205,14 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       expect(link.getURL()).toBe('mailto:team@example.com');
       expect(link.getTarget()).toBeNull();
       expect(link.getRel()).toBeNull();
+      const selection = $getSelection();
+      expect($isRangeSelection(selection) && !selection.isCollapsed()).toBe(true);
+      if ($isRangeSelection(selection)) {
+        expect(link.isParentOf(selection.anchor.getNode())).toBe(true);
+        expect(selection.anchor.offset).toBe(0);
+        expect(link.isParentOf(selection.focus.getNode())).toBe(true);
+        expect(selection.focus.offset).toBe(link.getTextContentSize());
+      }
     });
   });
 
@@ -1366,6 +1406,14 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
       expect(link.getTextContent()).toBe(url);
       expect(link.getIsUnlinked()).toBe(true);
+      const selection = $getSelection();
+      expect($isRangeSelection(selection) && !selection.isCollapsed()).toBe(true);
+      if ($isRangeSelection(selection)) {
+        expect(link.isParentOf(selection.anchor.getNode())).toBe(true);
+        expect(selection.anchor.offset).toBe(0);
+        expect(link.isParentOf(selection.focus.getNode())).toBe(true);
+        expect(selection.focus.offset).toBe(link.getTextContentSize());
+      }
     });
     expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
   });
@@ -1698,6 +1746,22 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
       expect(link.getTextContent()).toBe(url);
       expect(link.getURL()).toBe(url);
+    });
+  });
+
+  it('does not retain an empty boundary node when automatic recognition is rejected', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const candidate = $createTextNode('https://example.com/');
+      note.clear();
+      note.append($createDateNode('2026-08-13'), candidate, $createDateNode('2026-08-14'));
+      candidate.markDirty();
+    });
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getChildren().find($isAutoLinkNode)).toBeUndefined();
+      expect(note.getChildren().filter(node => $isTextNode(node) && node.getTextContent() === '')).toHaveLength(0);
     });
   });
 
