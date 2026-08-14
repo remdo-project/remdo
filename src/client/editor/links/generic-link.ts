@@ -102,7 +102,7 @@ function normalizeWebDestination(input: string, allowSchemeLess: boolean): Gener
   }
 
   const hasScheme = SCHEME_PATTERN.test(input);
-  const hasHttpScheme = /^https?:/i.test(input);
+  const hasHttpScheme = /^https?:\/\//i.test(input);
   if (hasScheme && !hasHttpScheme && !(allowSchemeLess && HOST_WITH_PORT_PATTERN.test(input))) {
     return null;
   }

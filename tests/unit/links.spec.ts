@@ -22,6 +22,7 @@ import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import {
+  buildClipboardPayload,
   collapseDomSelectionAtNode,
   createDataTransfer,
   extendDomSelectionToNode,
@@ -276,6 +277,32 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('preserves a structured clipboard payload whose plain-text fallback is a URL', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await remdo.mutate(() => {
+      const note = $findNoteById('note2')!;
+      note.clear();
+      note.append($createTextNode(url));
+    });
+    const payload = buildClipboardPayload(remdo, ['note2']);
+    await selectEntireNote(remdo, 'note1');
+    const transfer = createDataTransfer(payload);
+    transfer.setData('text/plain', url);
+    const event = new ClipboardEvent('paste', { clipboardData: transfer });
+
+    await remdo.dispatchCommand(PASTE_COMMAND, event, { expect: 'any' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: url },
+      { noteId: 'note2', text: url },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isLinkNode);
+      expect(link?.getTextContent()).toBe(url);
+    });
+  });
+
   it('pasting a destination over part of a generic link changes only the selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
       const note = $findNoteById('note1')!;
@@ -360,6 +387,35 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('places the caret between a created link and an adjacent link', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const selected = $createTextNode('first');
+      const adjacent = $createLinkNode('https://example.net/');
+      adjacent.append($createTextNode('second'));
+      note.clear();
+      note.append(selected, adjacent);
+      selected.select(0, selected.getTextContentSize());
+    });
+
+    await pastePlainText(remdo, 'https://example.org/');
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const selection = $getSelection();
+      expect($isRangeSelection(selection)).toBe(true);
+      if ($isRangeSelection(selection)) {
+        expect(selection.isCollapsed()).toBe(true);
+        expect(selection.anchor.getNode().is(note)).toBe(true);
+        expect(selection.anchor.offset).toBe(1);
+      }
+      expect(note.getChildren().filter($isLinkNode).map(link => link.getTextContent())).toEqual([
+        'first',
+        'second',
+      ]);
+    });
+  });
+
   it('routes URL paste across note regions through ordinary structural paste', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
       const first = $findNoteById('note1')!.getFirstChild<TextNode>()!;
@@ -430,6 +486,23 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       link.append($createTextNode('linked'));
       note.clear();
       note.append($createTextNode('before '), link, $createTextNode(' after'));
+      note.select(0, note.getChildrenSize());
+    });
+
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+
+    expect(document.querySelector('[data-link-controls]')).toBeNull();
+  });
+
+  it('keeps Cmd/Ctrl+K closed for a selection spanning multiple links', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const first = $createLinkNode('https://example.com/');
+      const second = $createLinkNode('https://example.org/');
+      first.append($createTextNode('first'));
+      second.append($createTextNode('second'));
+      note.clear();
+      note.append(first, second);
       note.select(0, note.getChildrenSize());
     });
 
@@ -529,6 +602,30 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     }
   });
 
+  it('uses native anchor activation for an email destination', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await pastePlainText(remdo, 'team@example.com');
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function nativeEmailClick(
+      this: HTMLAnchorElement,
+    ) {
+      expect(this.href).toBe('mailto:team@example.com');
+    });
+    const open = vi.spyOn(globalThis, 'open').mockImplementation(() => null);
+    try {
+      await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!, { detail: 1 }));
+      const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+      const openAction = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Open')!;
+      await act(async () => fireEvent.click(openAction));
+
+      expect(click).toHaveBeenCalledOnce();
+      expect(open).not.toHaveBeenCalled();
+      expect(document.querySelector('[data-link-controls]')).toBeNull();
+    } finally {
+      click.mockRestore();
+      open.mockRestore();
+    }
+  });
+
   it('copies a destination when the Clipboard API is unavailable', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/';
@@ -536,7 +633,10 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
     const clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
     const execCommandDescriptor = Object.getOwnPropertyDescriptor(document, 'execCommand');
-    const execCommand = vi.fn(() => true);
+    const execCommand = vi.fn(() => {
+      expect(document.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe(url);
+      return true;
+    });
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined });
     Object.defineProperty(document, 'execCommand', { configurable: true, value: execCommand });
     try {
@@ -565,7 +665,10 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     const clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
     const execCommandDescriptor = Object.getOwnPropertyDescriptor(document, 'execCommand');
     const writeText = vi.fn().mockRejectedValue(new DOMException('Denied', 'NotAllowedError'));
-    const execCommand = vi.fn(() => true);
+    const execCommand = vi.fn(() => {
+      expect(document.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('https://example.com/');
+      return true;
+    });
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     Object.defineProperty(document, 'execCommand', { configurable: true, value: execCommand });
     try {
@@ -1100,6 +1203,28 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('preserves a labeled link text when editing only its destination', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await pastePlainText(remdo, 'https://example.com/');
+    await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!, { detail: 1 }));
+    let controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const edit = [...controls.querySelectorAll('button')].find((button) => button.textContent === 'Edit')!;
+    await act(async () => fireEvent.click(edit));
+    controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const inputs = controls.querySelectorAll<HTMLInputElement>('input');
+    await act(async () => {
+      fireEvent.change(inputs[1]!, { target: { value: 'https://example.org/' } });
+      fireEvent.click(controls.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isLinkNode)!;
+      expect(link.getTextContent()).toBe('note1');
+      expect(link.getURL()).toBe('https://example.org/');
+    });
+  });
+
   it('does not replace an existing generic link with a note URL', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const url = 'https://example.com/';
     await selectEntireNote(remdo, 'note1');
@@ -1415,6 +1540,21 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('does not preserve the automatic-link Undo candidate through Redo', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await selectEntireNote(remdo, 'note1');
+    await typeText(remdo, url);
+    await typeText(remdo, ' ');
+
+    await pressKey(remdo, { key: 'z', ctrlOrMeta: true, shift: true });
+    await remdo.dispatchCommand(UNDO_COMMAND);
+
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode);
+      expect(link?.getIsUnlinked()).not.toBe(true);
+    });
+  });
+
   it('does not consume Undo after a later non-keyboard document mutation', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const url = 'https://example.com/';
     await selectEntireNote(remdo, 'note2');
@@ -1578,6 +1718,28 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       const note = $findNoteById('note1')!;
       expect(note.getTextContent()).toBe(`${first}${second} `);
       expect(note.getChildren().find($isLinkNode)).toBeUndefined();
+    });
+  });
+
+  it('does not create a later automatic link across a formatted text-node boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const first = 'https://first.example/ ';
+    const secondPrefix = 'https://second.exam';
+    const secondSuffix = 'ple/';
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const leading = $createTextNode(`${first}${secondPrefix}`);
+      const formatted = $createTextNode(secondSuffix).toggleFormat('bold');
+      note.clear();
+      note.append(leading, formatted, $createTextNode(' '));
+      leading.markDirty();
+      formatted.markDirty();
+    });
+
+    remdo.validate(() => {
+      const links = $findNoteById('note1')!.getChildren().filter($isAutoLinkNode);
+      expect(links.map(link => [link.getTextContent(), link.getURL()])).toEqual([
+        ['https://first.example/', 'https://first.example/'],
+      ]);
     });
   });
 

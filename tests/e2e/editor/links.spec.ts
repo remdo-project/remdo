@@ -430,7 +430,19 @@ test.describe('generic links', () => {
     await editor.load('flat');
     await selectInlineRange(page, 'note1', 0, 'note1'.length);
     await page.keyboard.type(' ');
-    await setCaretAtText(page, ' ', 0);
+    const blank = editorLocator(page).locator('.editor-input').first().locator('[data-lexical-text="true"]').first();
+    await blank.evaluate((element) => {
+      const target = element.firstChild;
+      if (!(target instanceof Text)) throw new TypeError('Expected blank text node.');
+      const selection = globalThis.getSelection();
+      if (!selection) throw new TypeError('Expected document selection.');
+      const range = document.createRange();
+      range.setStart(target, 0);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      document.dispatchEvent(new Event('selectionchange'));
+    });
     const url = 'https://example.com/path';
 
     await page.keyboard.type(url);
@@ -562,7 +574,10 @@ test.describe('generic links', () => {
     await controls.getByRole('textbox', { name: 'Destination' }).fill('example.com');
     await controls.getByRole('textbox', { name: 'Destination' }).press('Enter');
 
-    const plain = editorLocator(page).locator('[data-lexical-text="true"]').filter({ hasText: 'no' }).first();
+    const plain = editorLocator(page)
+      .locator('li:has(a[target="_blank"])')
+      .locator('[data-lexical-text="true"]')
+      .filter({ hasText: /^no$/ });
     const link = editorLocator(page).locator('a[target="_blank"]');
     const plainBox = (await plain.boundingBox())!;
     const linkBox = (await link.boundingBox())!;

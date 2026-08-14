@@ -583,7 +583,12 @@ export function ExternalLinkPlugin() {
           if (
             automaticUndoCandidate
             && !MODIFIER_KEYS.has(event.key)
-            && !(event.key.toLowerCase() === 'z' && (event.metaKey || event.ctrlKey))
+            && !(
+              event.key.toLowerCase() === 'z'
+              && (event.metaKey || event.ctrlKey)
+              && !event.altKey
+              && !event.shiftKey
+            )
           ) {
             automaticUndoCandidate = null;
           }

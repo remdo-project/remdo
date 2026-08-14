@@ -26,6 +26,8 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
   it.each([
     '//example.com',
     '/relative/path',
+    'https:0177.0.0.1',
+    'https:8080',
     'localhost:3000',
     '127.0.0.1',
     'https://user:password@example.com',

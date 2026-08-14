@@ -276,6 +276,12 @@ function getDestinationAttributes(destination: GenericDestination): {
     : { rel: null, target: null };
 }
 
+function $selectAfterInlineNode(node: LexicalNode): void {
+  const parent = node.getParentOrThrow();
+  const offset = node.getIndexWithinParent() + 1;
+  parent.select(offset, offset);
+}
+
 function $insertGenericLink(selection: RangeSelection, label: string, destination: GenericDestination): LinkNode {
   $unwrapSuppressedLinksAtSelection(selection);
   if (!selection.isCollapsed() && selection.getTextContent() === label) {
@@ -288,7 +294,7 @@ function $insertGenericLink(selection: RangeSelection, label: string, destinatio
     if (!(link instanceof LinkNode)) {
       throw new TypeError('Expected generic link creation to wrap the selected text.');
     }
-    link.selectNext(0, 0);
+    $selectAfterInlineNode(link);
     return link;
   }
 
@@ -296,7 +302,7 @@ function $insertGenericLink(selection: RangeSelection, label: string, destinatio
   link.append($createTextNode(label));
   $setSelection(selection);
   selection.insertNodes([link]);
-  link.selectNext(0, 0);
+  $selectAfterInlineNode(link);
   return link;
 }
 
@@ -359,7 +365,7 @@ function $replaceSelectionWithGenericLink(
   const link = $createLinkNode(destination.url, getDestinationAttributes(destination));
   link.append($createTextNode(label));
   unlinkedSelection.insertNodes([link]);
-  link.selectNext(0, 0);
+  $selectAfterInlineNode(link);
 }
 
 function $insertNoteLink(
@@ -372,7 +378,7 @@ function $insertNoteLink(
   link.append($createTextNode(label));
   $setSelection(selection);
   selection.insertNodes([link]);
-  link.selectNext(0, 0);
+  $selectAfterInlineNode(link);
 }
 
 function $replaceWithLabeledLink(node: LinkNode, label: string, destination: GenericDestination): LinkNode {
@@ -447,7 +453,13 @@ function isClipboardEvent(event: unknown): event is ClipboardEvent {
 
 function activateDestination(url: string) {
   const isWeb = /^https?:/i.test(url);
-  globalThis.open(url, isWeb ? '_blank' : '_self', isWeb ? 'noopener,noreferrer' : undefined);
+  if (isWeb) {
+    globalThis.open(url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.click();
 }
 
 function copyDestinationFallback(destination: string): void {
@@ -952,6 +964,9 @@ export function LinkControlsPlugin() {
         PASTE_COMMAND,
         (event) => {
           if (!isClipboardEvent(event) || !event.clipboardData) {
+            return false;
+          }
+          if (event.clipboardData.getData('application/x-lexical-editor')) {
             return false;
           }
           if (editor.selection.isStructural()) {
