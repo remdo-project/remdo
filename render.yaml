@@ -11,14 +11,14 @@ services:
   dockerfilePath: ./docker/Dockerfile
   autoDeployTrigger: commit
   envVars:
-    # Render injects PORT; the container binds it (else 8080). Do not pin it.
+    # Render injects the container's internal PORT. Do not pin it.
     # AUTH_SECRET and the Y-Sweet auth_key/server_token pair are bootstrapped
     # onto the persistent disk on first run, so they are not set here.
     - key: DATA_DIR
       value: /data
     - key: ADMIN_SECRET
       sync: false
-    - key: APP_PUBLIC_URL
+    - key: APP_ORIGIN
       sync: false
     - key: ALLOW_SIGNUP
       value: "false"

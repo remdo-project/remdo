@@ -1,51 +1,58 @@
 #!/usr/bin/env sh
 # Shared Docker entrypoint environment derivation. Source from entrypoint/tests.
 
-remdo_url_field() {
-  node -e "const url = new URL(process.argv[1]); console.log(url[process.argv[2]]);" "$1" "$2"
+remdo_origin_field() {
+  node -e '
+    try {
+      const url = new URL(process.argv[1]);
+      if (!["http:", "https:"].includes(url.protocol) || url.origin !== process.argv[1]) throw new Error();
+      console.log(url[process.argv[2]]);
+    } catch {
+      console.error("APP_ORIGIN must be an exact HTTP(S) origin.");
+      process.exit(1);
+    }
+  ' "$1" "$2"
 }
 
-remdo_public_url_port() {
-  node -e '
-    const url = new URL(process.argv[1]);
-    console.log(url.port || (url.protocol === "https:" ? "443" : url.protocol === "http:" ? "80" : ""));
-  ' "$1"
+remdo_configure_internal_services() {
+  if [ "${REMDO_DEV_CONTAINER:-false}" != "true" ]; then
+    API_SERVER_PORT=4011
+    COLLAB_SERVER_PORT=4004
+  fi
+  YSWEET_CONNECTION_STRING="ys://127.0.0.1:${COLLAB_SERVER_PORT}"
+
+  export API_SERVER_PORT COLLAB_SERVER_PORT YSWEET_CONNECTION_STRING
 }
 
 remdo_configure_caddy_env() {
-  : "${APP_PUBLIC_URL:?Set APP_PUBLIC_URL to the canonical public RemDo URL}"
-  : "${CADDY_BIND_DIRECTIVE:=}"
+  : "${APP_ORIGIN:?Set APP_ORIGIN to the canonical public RemDo origin}"
+  app_origin_protocol="$(remdo_origin_field "${APP_ORIGIN}" protocol)" || return 1
 
-  app_public_protocol="$(remdo_url_field "${APP_PUBLIC_URL}" protocol)"
-  app_public_port="$(remdo_public_url_port "${APP_PUBLIC_URL}")"
-  canonical_url="${APP_PUBLIC_URL}"
-
-  if [ -z "${CADDY_SITE_ADDRESSES:-}" ]; then
-    if [ "${app_public_protocol}" = "https:" ] && [ -n "${PORT:-}" ] && [ "${PORT}" != "${app_public_port}" ]; then
-      CADDY_SITE_ADDRESSES=":${PORT}"
+  if [ "${REMDO_DEV_CONTAINER:-false}" = "true" ]; then
+    : "${REMDO_GATEWAY_BIND_ADDRESS:?Set REMDO_GATEWAY_BIND_ADDRESS for the development container}"
+    CADDY_SITE_ADDRESS="${APP_ORIGIN}"
+  else
+    if [ "${app_origin_protocol}" != "https:" ]; then
+      echo "APP_ORIGIN must use HTTPS outside the development container." >&2
+      return 1
+    fi
+    unset REMDO_GATEWAY_BIND_ADDRESS
+    if [ -n "${PORT:-}" ]; then
+      CADDY_SITE_ADDRESS="http://$(remdo_origin_field "${APP_ORIGIN}" hostname):${PORT}"
     else
-      CADDY_SITE_ADDRESSES="${APP_PUBLIC_URL}"
+      CADDY_SITE_ADDRESS="${APP_ORIGIN}"
     fi
   fi
 
-  if [ -z "${CADDY_TLS_DIRECTIVE+x}" ]; then
-    if [ "${app_public_protocol}" = "https:" ] && [ "${CADDY_SITE_ADDRESSES}" = "${APP_PUBLIC_URL}" ]; then
-      CADDY_TLS_DIRECTIVE="tls internal"
-    else
-      CADDY_TLS_DIRECTIVE=""
-    fi
-  fi
-
-  CADDY_CANONICAL_HOST="$(remdo_url_field "${canonical_url}" hostname)"
-
-  export APP_PUBLIC_URL
-  export CADDY_SITE_ADDRESSES
-  export CADDY_TLS_DIRECTIVE
-  export CADDY_BIND_DIRECTIVE
-  export CADDY_CANONICAL_HOST
+  export APP_ORIGIN CADDY_SITE_ADDRESS
 }
 
 remdo_require_api_secrets() {
   : "${AUTH_SECRET:?Set AUTH_SECRET}"
   : "${ADMIN_SECRET:?Set ADMIN_SECRET}"
+  if [ "${REMDO_DEV_CONTAINER:-false}" = "true" ]; then
+    return
+  fi
+  [ "${#AUTH_SECRET}" -ge 32 ] || { echo "AUTH_SECRET must be at least 32 characters." >&2; return 1; }
+  [ "${#ADMIN_SECRET}" -ge 32 ] || { echo "ADMIN_SECRET must be at least 32 characters." >&2; return 1; }
 }

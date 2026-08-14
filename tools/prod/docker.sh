@@ -10,48 +10,68 @@ remdo_load_dotenv "${ROOT_DIR}"
 NODE_ENV=production
 export NODE_ENV
 
-# In prod the listen PORT is an independent input (platform-injected, else the
-# 8080 default in env.defaults.sh), never derived from APP_PUBLIC_URL or PORT_BASE.
+: "${APP_ORIGIN:?Set APP_ORIGIN to the exact public HTTPS origin}"
+: "${DATA_DIR:?Set DATA_DIR to the persistent host directory}"
+PORT="$(remdo_https_origin_port "${APP_ORIGIN}")"
+CONTAINER_NAME="remdo-${PORT}"
+case "${PORT}" in
+  4004|4011)
+    echo "APP_ORIGIN cannot use container-reserved port ${PORT}." >&2
+    exit 1
+    ;;
+esac
+HOST="${HOST:-127.0.0.1}"
+case "${HOST}" in
+  127.0.0.1|0.0.0.0)
+    ;;
+  *)
+    echo "HOST must be 127.0.0.1 or 0.0.0.0 in production." >&2
+    exit 1
+    ;;
+esac
+if [[ "${HOST}" == "0.0.0.0" && "${PORT}" != "443" ]]; then
+  echo "HOST=0.0.0.0 requires APP_ORIGIN to use the default HTTPS port 443." >&2
+  exit 1
+fi
 remdo_load_env_defaults "${ROOT_DIR}"
-if [[ -z "${APP_PUBLIC_URL:-}" ]]; then
-  remdo_configure_docker_runtime
-fi
-# PORT is already validated by remdo_load_env_defaults above; remdo_configure_docker_runtime
-# only derives APP_PUBLIC_URL from it (URL-from-PORT) and never changes it. When
-# APP_PUBLIC_URL is set, it is used as-is and PORT is left untouched.
-
-# The container gateway listens on PORT. If APP_PUBLIC_URL advertises a different
-# explicit port, a directly exposed (un-proxied) deploy is unreachable at that
-# URL. This is fine behind a TLS-terminating proxy (Render, Caddy) that forwards
-# :443 -> PORT, so warn rather than fail.
-if [[ -n "${APP_PUBLIC_URL:-}" ]]; then
-  app_public_url_port="$(node -e '
-    const url = new URL(process.argv[1]);
-    process.stdout.write(url.port);
-  ' "${APP_PUBLIC_URL}" 2>/dev/null || true)"
-  if [[ -n "${app_public_url_port}" && "${app_public_url_port}" != "${PORT}" ]]; then
-    echo "Warning: APP_PUBLIC_URL port (${app_public_url_port}) differs from the gateway PORT (${PORT})." >&2
-    echo "         A directly-exposed container will not be reachable at ${APP_PUBLIC_URL};" >&2
-    echo "         this is only correct behind a proxy that forwards to PORT ${PORT}." >&2
-  fi
-fi
+remdo_assert_browser_safe_port "${PORT}"
 
 # Operators set only ADMIN_SECRET (never auto-generated). AUTH_SECRET and the
 # Y-Sweet auth_key/server_token pair are bootstrapped inside the container from
 # the persistent DATA_DIR mount; pass them through only when explicitly provided.
 : "${ADMIN_SECRET:?Set ADMIN_SECRET in .env}"
+if [[ "${#ADMIN_SECRET}" -lt 32 ]]; then
+  echo "ADMIN_SECRET must be at least 32 characters." >&2
+  exit 1
+fi
+if [[ -n "${AUTH_SECRET:-}" && "${#AUTH_SECRET}" -lt 32 ]]; then
+  echo "AUTH_SECRET must be at least 32 characters when set." >&2
+  exit 1
+fi
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
+if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
+  docker stop "${CONTAINER_NAME}"
+  docker rm "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+  container_removed=false
+  for _ in {1..100}; do
+    if ! docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
+      container_removed=true
+      break
+    fi
+    sleep 0.1
+  done
+  if [[ "${container_removed}" != "true" ]]; then
+    echo "Timed out waiting for container ${CONTAINER_NAME} to be removed." >&2
+    exit 1
+  fi
+fi
+
 DOCKER_ENV_ARGS=(
   -e ADMIN_SECRET="${ADMIN_SECRET}"
-  -e APP_PUBLIC_URL="${APP_PUBLIC_URL}"
+  -e APP_ORIGIN="${APP_ORIGIN}"
   -e ALLOW_SIGNUP="${ALLOW_SIGNUP}"
-  -e CADDY_BIND_DIRECTIVE="${CADDY_BIND_DIRECTIVE:-}"
-  -e CADDY_SITE_ADDRESSES="${CADDY_SITE_ADDRESSES:-}"
-  -e HOST=127.0.0.1
-  -e PORT_BASE="${PORT_BASE}"
-  -e PORT="${PORT}"
 )
 
 # Forward bootstrap-managed secrets only when the operator set them explicitly,
@@ -66,21 +86,7 @@ if [[ -n "${YSWEET_SERVER_TOKEN:-}" ]]; then
   DOCKER_ENV_ARGS+=(-e YSWEET_SERVER_TOKEN="${YSWEET_SERVER_TOKEN}")
 fi
 
-echo "Docker target: ${APP_PUBLIC_URL}"
-DOCKER_RUN_ARGS=(--rm --userns=host)
-if [[ -n "${REMDO_DOCKER_CONTAINER_NAME:-}" ]]; then
-  DOCKER_RUN_ARGS+=(--name "${REMDO_DOCKER_CONTAINER_NAME}")
-fi
-case "${REMDO_DOCKER_NETWORK:-bridge}" in
-  bridge)
-    DOCKER_RUN_ARGS+=(-p "${PORT}:${PORT}")
-    ;;
-  host)
-    DOCKER_RUN_ARGS+=(--network=host)
-    ;;
-  *)
-    echo "Unsupported REMDO_DOCKER_NETWORK: ${REMDO_DOCKER_NETWORK}" >&2
-    exit 1
-    ;;
-esac
+echo "Docker target: ${APP_ORIGIN}"
+DOCKER_RUN_ARGS=(--rm --userns=host --name "${CONTAINER_NAME}")
+DOCKER_RUN_ARGS+=(-p "${HOST}:${PORT}:${PORT}")
 remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" "${DOCKER_RUN_ARGS[@]}" "${DOCKER_ENV_ARGS[@]}"

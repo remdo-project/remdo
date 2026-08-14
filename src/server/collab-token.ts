@@ -43,10 +43,10 @@ export function createYSweetDocumentTokenManager(): YSweetDocumentTokenManager {
 }
 
 function resolveBrowserVisibleOrigin(): URL {
-  if (!config.env.APP_PUBLIC_URL) {
-    throw new Error('APP_PUBLIC_URL is required to issue browser-visible Y-Sweet document client tokens.');
+  if (!config.env.APP_ORIGIN) {
+    throw new Error('APP_ORIGIN is required to issue browser-visible Y-Sweet document client tokens.');
   }
-  return new URL(config.env.APP_PUBLIC_URL);
+  return new URL(config.env.APP_ORIGIN);
 }
 
 export function resolveYSweetConnectionString({

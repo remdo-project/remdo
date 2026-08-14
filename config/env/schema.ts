@@ -30,7 +30,7 @@ export const envSchema = {
   // Operator secret for admin provisioning actions.
   ADMIN_SECRET: str,
   // Canonical public app URL. Derived in development; required in production.
-  APP_PUBLIC_URL: str,
+  APP_ORIGIN: str,
   // Product signup policy. tools/env.defaults.sh sets true outside production.
   ALLOW_SIGNUP: boolish,
   VITEST_PORT: port,

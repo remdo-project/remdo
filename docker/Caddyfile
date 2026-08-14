@@ -1,10 +1,10 @@
 {
 	admin off
+	auto_https disable_redirects
 }
 
-{$CADDY_SITE_ADDRESSES} {
-	{$CADDY_TLS_DIRECTIVE}
-	{$CADDY_BIND_DIRECTIVE}
+{$CADDY_SITE_ADDRESS} {
+	bind {$REMDO_GATEWAY_BIND_ADDRESS:0.0.0.0}
 
 	route {
 		handle /health {
@@ -12,52 +12,37 @@
 			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
 		}
 
-		# HTTPS clients on the default port may omit :443 from Host.
-		@canonical_host {
-			host {$CADDY_CANONICAL_HOST}
+		@app_favicon path /favicon.ico /favicon.png
+		handle @app_favicon {
+			root * /srv/remdo
+			rewrite * /favicon.png
+			file_server
 		}
-		handle @canonical_host {
-			@app_favicon path /favicon.ico /favicon.png
-			handle @app_favicon {
+
+		@options method OPTIONS
+		handle @options {
+			respond 204
+		}
+
+		@api path /api /api/* /.well-known /.well-known/*
+		handle @api {
+			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
+		}
+
+		@collab path /d /d/*
+		handle @collab {
+			reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
+		}
+
+		@app_routes not path /api /api/* /.well-known /.well-known/* /d /d/* /doc*
+		handle @app_routes {
+			route {
 				root * /srv/remdo
-				rewrite * /favicon.png
+				try_files {path} {path}/ /index.html
 				file_server
 			}
-
-			@options method OPTIONS
-			handle @options {
-				respond 204
-			}
-
-			@api path /api /api/*
-			handle @api {
-				reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
-			}
-
-			@well_known path /.well-known /.well-known/*
-			handle @well_known {
-				reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
-			}
-
-			@collab path /d /d/*
-			handle @collab {
-				reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
-			}
-
-			@app_routes not path /api /api/* /.well-known /.well-known/* /d /d/* /doc*
-			handle @app_routes {
-				route {
-					root * /srv/remdo
-					try_files {path} {path}/ /index.html
-					file_server
-				}
-			}
-
-			respond 404
 		}
 
-		handle {
-			redir {$APP_PUBLIC_URL}{uri}
-		}
+		respond 404
 	}
 }

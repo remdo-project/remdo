@@ -14,20 +14,20 @@ async function main(): Promise<void> {
     throw new Error('Source linking requires ALLOW_SIGNUP=true on the development source.');
   }
 
-  const metadataUrl = new URL('/.well-known/oauth-authorization-server', config.env.APP_PUBLIC_URL);
+  const metadataUrl = new URL('/.well-known/oauth-authorization-server', config.env.APP_ORIGIN);
   const metadata = await fetchSourceJson<AuthorizationServerMetadata>(
     metadataUrl,
     'Development source metadata',
   );
-  assertAuthorizationServerOrigin(metadata, config.env.APP_PUBLIC_URL);
+  assertAuthorizationServerOrigin(metadata, config.env.APP_ORIGIN);
 
-  const sourceConfigUrl = new URL('/api/config', config.env.APP_PUBLIC_URL);
+  const sourceConfigUrl = new URL('/api/config', config.env.APP_ORIGIN);
   const sourceConfig = await fetchSourceJson<{ publicServer?: unknown }>(
     sourceConfigUrl,
     'Development source config',
   );
   assertPublicSourceConfig(sourceConfig);
-  console.info(`Source: ${config.env.APP_PUBLIC_URL}`);
+  console.info(`Source: ${config.env.APP_ORIGIN}`);
 }
 
 void main().catch((error) => {

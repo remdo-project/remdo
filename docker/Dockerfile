@@ -115,6 +115,4 @@ RUN chmod +x \
   /app/backup.mjs \
   /app/bootstrap-secrets.cjs
 
-EXPOSE 8080
-
 CMD ["/entrypoint.sh"]

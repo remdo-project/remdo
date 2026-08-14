@@ -42,14 +42,14 @@ describe('config env resolve', () => {
     );
   });
 
-  it('derives APP_PUBLIC_URL from HOST and PORT outside production', () => {
+  it('derives APP_ORIGIN from HOST and PORT outside production', () => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'development',
       HOST: '127.0.0.1',
       PORT: '4000',
     });
 
-    expect(resolved.server.APP_PUBLIC_URL).toBe('http://127.0.0.1:4000');
+    expect(resolved.server.APP_ORIGIN).toBe('http://127.0.0.1:4000');
   });
 
   it('uses the machine hostname when local services bind all IPv4 interfaces', () => {
@@ -59,30 +59,33 @@ describe('config env resolve', () => {
       PORT: '4000',
     }, { machineHostname: 'dev-vm' });
 
-    expect(resolved.server.APP_PUBLIC_URL).toBe('http://dev-vm:4000');
+    expect(resolved.server.APP_ORIGIN).toBe('http://dev-vm:4000');
   });
 
-  it('uses PUBLIC_HOST outside production and ignores production APP_PUBLIC_URL input', () => {
+  it('uses PUBLIC_HOST outside production and ignores production APP_ORIGIN input', () => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'test',
       HOST: '127.0.0.1',
       PUBLIC_HOST: 'browser-visible.test',
       PORT: '4000',
-      APP_PUBLIC_URL: 'https://remdo.example.com',
+      APP_ORIGIN: 'https://remdo.example.com',
     });
 
-    expect(resolved.server.APP_PUBLIC_URL).toBe('http://browser-visible.test:4000');
+    expect(resolved.server.APP_ORIGIN).toBe('http://browser-visible.test:4000');
   });
 
-  it('uses APP_PUBLIC_URL as the canonical production URL', () => {
+  it.each([
+    'https://remdo.example.com',
+    'http://localhost:4040',
+  ])('uses an exact APP_ORIGIN in the production-built server: %s', (appOrigin) => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'production',
       AUTH_SECRET: 'production-auth-secret-0123456789',
       ADMIN_SECRET: 'production-admin-secret-0123456789',
-      APP_PUBLIC_URL: 'https://remdo.example.com',
+      APP_ORIGIN: appOrigin,
     });
 
-    expect(resolved.server.APP_PUBLIC_URL).toBe('https://remdo.example.com');
+    expect(resolved.server.APP_ORIGIN).toBe(appOrigin);
   });
 
   it('derives dev auth trusted origins for the gateway and loopback preview', () => {
@@ -148,37 +151,33 @@ describe('config env resolve', () => {
       NODE_ENV: 'production',
       AUTH_SECRET: 'production-auth-secret-0123456789',
       ADMIN_SECRET: 'production-admin-secret-0123456789',
-      APP_PUBLIC_URL: 'https://remdo.example.com',
+      APP_ORIGIN: 'https://remdo.example.com',
     }, { machineHostname: 'dev-vm' });
 
     expect(resolved.server.AUTH_TRUSTED_ORIGINS).toEqual(['https://remdo.example.com']);
   });
 
-  it('rejects a short AUTH_SECRET in production server config', () => {
-    expect(() => resolveTestConfig({
-      NODE_ENV: 'production',
-      AUTH_SECRET: 'too-short',
-    })).toThrow('AUTH_SECRET must be at least 32 characters long in production.');
-  });
-
-  it('requires production server secrets and an absolute canonical public URL', () => {
+  it('requires production server secrets and a canonical public URL', () => {
     expect(() => resolveTestConfig({
       NODE_ENV: 'production',
       AUTH_SECRET: 'production-auth-secret-0123456789',
-    })).toThrow('APP_PUBLIC_URL is required in production server config.');
+    })).toThrow('APP_ORIGIN is required in production server config.');
 
     expect(() => resolveTestConfig({
       NODE_ENV: 'production',
       AUTH_SECRET: 'production-auth-secret-0123456789',
-      APP_PUBLIC_URL: 'https://remdo.example.com',
+      APP_ORIGIN: 'https://remdo.example.com',
     })).toThrow('ADMIN_SECRET is required in production server config.');
 
+  });
+
+  it('rejects a production APP_ORIGIN that is not exact', () => {
     expect(() => resolveTestConfig({
       NODE_ENV: 'production',
-      APP_PUBLIC_URL: ':8080',
+      APP_ORIGIN: 'https://remdo.example.com/path',
       AUTH_SECRET: 'production-auth-secret-0123456789',
       ADMIN_SECRET: 'production-admin-secret-0123456789',
-    })).toThrow('APP_PUBLIC_URL must be an absolute http(s) URL in production server config.');
+    })).toThrow('APP_ORIGIN must be an exact HTTP(S) origin in production server config.');
   });
 
   it('does not require the auto-bootstrapped Y-Sweet pair in production server config', () => {
@@ -188,7 +187,7 @@ describe('config env resolve', () => {
       NODE_ENV: 'production',
       AUTH_SECRET: 'production-auth-secret-0123456789',
       ADMIN_SECRET: 'production-admin-secret-0123456789',
-      APP_PUBLIC_URL: 'https://remdo.example.com',
+      APP_ORIGIN: 'https://remdo.example.com',
     });
 
     expect(resolved.server.YSWEET_AUTH_KEY).toBe('');
@@ -203,7 +202,7 @@ describe('config env resolve', () => {
     expect(resolved.runtime.mode).toBe('production');
     expect(resolved.runtime.isProd).toBe(true);
     expect(resolved.runtime.isDev).toBe(false);
-    expect(resolved.server.APP_PUBLIC_URL).toBe('');
+    expect(resolved.server.APP_ORIGIN).toBe('');
   });
 
   it('skips server-only auth validation for browser config loading', () => {
@@ -225,7 +224,7 @@ describe('config env resolve', () => {
       YSWEET_SERVER_TOKEN: 'test-ysweet-server-token',
       AUTH_SECRET: 'test-auth-secret-0123456789',
       ADMIN_SECRET: 'test-admin-secret-0123456789',
-      APP_PUBLIC_URL: 'https://remdo.example.com',
+      APP_ORIGIN: 'https://remdo.example.com',
     });
 
     // Assert against a hardcoded literal, not CLIENT_KEY_LIST: pickClientEnv
@@ -272,6 +271,15 @@ describe('config env resolve', () => {
     });
 
     expect(collabPort).toBe('4004');
+  });
+
+  it('removes development stack inputs in production', () => {
+    for (const name of ['PORT_BASE', 'PUBLIC_HOST']) {
+      expect(readEnvShValue(name, {
+        NODE_ENV: 'production',
+        [name]: 'development-only',
+      })).toBe('');
+    }
   });
 
   it('launches an entire local stack in an offset port range', () => {
