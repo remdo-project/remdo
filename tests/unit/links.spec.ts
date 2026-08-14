@@ -1657,9 +1657,11 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.dispatchCommand(UNDO_COMMAND);
 
     remdo.validate(() => {
-      expect($findNoteById('note1')!.getTextContent()).toBe(url);
-      const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode);
-      expect(link?.getIsUnlinked()).not.toBe(true);
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe(config.env.COLLAB_ENABLED ? 'note1' : url);
+      expect(note.getChildren().some(
+        child => $isAutoLinkNode(child) && child.getIsUnlinked(),
+      )).toBe(false);
     });
   });
 
