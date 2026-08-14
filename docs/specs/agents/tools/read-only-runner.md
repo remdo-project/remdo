@@ -21,9 +21,8 @@ read-only-runner [options] <agent> review <scope>
 The runner forwards supplied model and effort values to the agent unchanged and
 leaves absent values unset, so the agent applies its own default.
 
-A review caller owns repository verification separately and keeps the resolved
-scope unchanged until the review completes. The runner does not run or validate
-repository checks.
+A review caller owns repository verification separately. The runner does not
+run or validate repository checks.
 
 ## Review
 
@@ -76,12 +75,12 @@ A result is encoded by the runner's exit status and output:
 
 `unavailable` and `failed` are [concerns](../protocol.md#concerns).
 
-Only `responded` writes stdout. It confirms only that the runner produced a valid
+A `responded` result confirms only that the runner produced a valid
 review-evidence object, not provider transport completion, native-review
 execution, or coverage of the selected scope; the caller judges the evidence.
-When a provider process exits unsuccessfully,
-its failure evidence includes any non-empty provider stderr verbatim after the
-runner-owned summary; provider stdout is not failure evidence.
+When a provider process exits unsuccessfully, its failure evidence includes any
+non-empty provider stderr verbatim after the runner-owned summary; provider
+stdout is not failure evidence.
 
 Review stdout is one JSON object with this shape:
 

@@ -59,26 +59,15 @@ notification; do not poll it or interpret silence or elapsed time as failure.
 Cancel a review only when the caller or enclosing lifecycle explicitly abandons
 it.
 
-Exit status `2` means the provider is unavailable. Any other non-zero result is
-failed; treat its output as failure evidence, not as findings. Exit status `0`
-carries one JSON review-evidence object. Read every ordered response; none is
-guaranteed to be final, exhaustive, or authoritative. `complete: false` always
-makes the review failed but does not discard any response text. Otherwise,
-classify the review as completed only when the evidence collectively represents
-inspection of the full selected scope without an unresolved material inspection
-gap. Earlier lifecycle notifications can be resolved by later evidence. Use the
-complete review evidence as failure evidence for a failed review. Do not
-substitute a fixed phrase list for this semantic judgment.
+Classify each runner result under the authoritative specification's
+[`Reviews`](../../../docs/specs/agents/skills/remdo-verify-change.md#reviews)
+contract and retain its complete evidence.
 
 ## Validate findings
 
-After both review attempts finish, extract every concrete candidate finding
-from every response, including candidates omitted, refuted, or withdrawn by
-another response. Deduplicate equivalent candidates, then classify each one
-under the
-authoritative specification's [Findings](../../../docs/specs/agents/skills/remdo-verify-change.md#findings) contract.
-Treat lifecycle-only responses as having no candidate. Treat corrections and
-withdrawals as disposition evidence, not as automatic dispositions.
+After both review attempts finish, apply the authoritative specification's
+[`Findings`](../../../docs/specs/agents/skills/remdo-verify-change.md#findings)
+contract to their complete evidence.
 
 ## Report
 

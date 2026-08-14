@@ -44,13 +44,10 @@ Review [results](../tools/read-only-runner.md#result) are independent; one never
 interrupts another. The verifier re-reports `unavailable` and `failed` as
 [concerns](../protocol.md#concerns). For `responded`, it reads every response in
 the review evidence and includes that evidence in its [report](../protocol.md#reports).
-It maps the review to `completed` only when the evidence collectively
-establishes inspection of the full selected scope without leaving a material
-inspection gap unresolved and the evidence has `complete: true`. Earlier
-lifecycle notifications do not make a review failed when later evidence
-resolves them. `complete: false` always makes the review failed, but its response
-texts remain candidate-finding evidence. Otherwise, the verifier marks the
-review `failed` and uses the review evidence as failure evidence.
+It maps the review to `completed` exactly when the evidence has `complete: true`
+and collectively establishes inspection of the full selected scope without an
+unresolved material inspection gap. Otherwise, the verifier marks the review
+`failed` and uses the review evidence as failure evidence.
 
 ## Findings
 
