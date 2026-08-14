@@ -184,6 +184,18 @@ function reviewOutput(stdout: string): RunnerResult {
       diagnostic ??= 'could not parse Claude review stream output';
       continue;
     }
+    if (
+      event.type === 'system'
+      && event.subtype === 'task_notification'
+    ) {
+      if (event.status !== 'completed') {
+        diagnostic ??= 'Claude reported incomplete delegated review execution';
+      }
+      if (isNonEmptyString(event.summary)) {
+        responses.push(event.summary);
+      }
+      continue;
+    }
     if (event.type !== 'result') {
       continue;
     }

@@ -573,6 +573,8 @@ describe('read-only runner CLI', () => {
       shellJsonLine({
         type: 'system',
         subtype: 'task_notification',
+        status: 'completed',
+        summary: 'Delegated finding.',
       }),
       shellJson({
         type: 'result',
@@ -589,13 +591,18 @@ describe('read-only runner CLI', () => {
     );
 
     expect(result.status).toBe(0);
-    expectReviewEvidence(result.stdout, ['Initial summary.', 'Late finding.']);
+    expectReviewEvidence(result.stdout, [
+      'Initial summary.',
+      'Delegated finding.',
+      'Late finding.',
+    ]);
     const argv = fs.readFileSync(path.join(stub, 'args'), 'utf8')
       .trimEnd()
       .split('\n');
     expect(argumentAfter(argv, '--output-format')).toBe('stream-json');
     expect(argv).toContain('--verbose');
     expect(argv).not.toContain('--include-partial-messages');
+    expect(argv).not.toContain('--forward-subagent-text');
   });
 
   it.each([
@@ -607,6 +614,17 @@ describe('read-only runner CLI', () => {
       }),
       middleResponse: 'Partial finding.',
       diagnostic: 'Claude reported incomplete review execution',
+    },
+    {
+      case: 'an unsuccessful delegated task',
+      event: shellJsonLine({
+        type: 'system',
+        subtype: 'task_notification',
+        status: 'failed',
+        summary: 'Delegated partial finding.',
+      }),
+      middleResponse: 'Delegated partial finding.',
+      diagnostic: 'Claude reported incomplete delegated review execution',
     },
     {
       case: 'malformed JSON',
