@@ -55,11 +55,12 @@ explicit [generic URL authoring](#generic-url-authoring).
    password, or whose email destination contains headers, a query, or a fragment,
    remains text. Explicit creation and imported content reject it rather than
    stripping credentials or linking only part of the candidate.
-5. Recognition excludes trailing `.`, `,`, `;`, `:`, `!`, `?`, `*`, `_`, `~`,
-   `"`, `'`, `“`, `”`, `‘`, `’`, and `>` from the destination. Scanning the
-   candidate in order, it retains a trailing `)`, `]`, or `}` only when an
-   unclosed corresponding opener occurs earlier within the candidate; it excludes
-   an unmatched trailing closer. A rejected or unsupported candidate remains
+5. Recognition excludes trailing `.`, `,`, `;`, `:`, `!`, `?`, `*`, `_`, and
+   `~` from the destination. When an escaped candidate-ending delimiter is
+   trailing, recognition also excludes its escape. Scanning the candidate in
+   order, it retains a trailing `)`, `]`, or `}` only when an unclosed
+   corresponding opener occurs earlier within the candidate; it excludes an
+   unmatched trailing closer. A rejected or unsupported candidate remains
    entirely as text rather than becoming a partial link.
 6. Generic link destinations are limited to HTTP, HTTPS, and `mailto:` containing
    exactly one linkable email address. A `mailto:` destination encodes its

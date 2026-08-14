@@ -59,6 +59,20 @@ async function removeFirstGenericLink(remdo: RemdoTestApi) {
   await remdo.waitForSynced();
 }
 
+async function setImportedLink(
+  remdo: RemdoTestApi,
+  url: string,
+  options: { automatic?: boolean; label?: string } = {},
+) {
+  await remdo.mutate(() => {
+    const note = $findNoteById('note1')!;
+    note.clear();
+    const linkNode = options.automatic ? $createAutoLinkNode(url) : $createLinkNode(url);
+    linkNode.append($createTextNode(options.label ?? 'Example'));
+    note.append(linkNode);
+  });
+}
+
 interface SerializedAutoLinkForTest extends SerializedLexicalNode {
   children: SerializedLexicalNode[];
   type: 'autolink';
@@ -1975,18 +1989,8 @@ describe('note links (docs/specs/outliner/links.md)', () => {
   });
 
   it('normalizes imported-style external LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/';
-    await act(async () => {
-      remdo.editor.update(() => {
-        const note = $findNoteById('note1')!;
-        note.clear();
-        const linkNode = $createLinkNode(url);
-        linkNode.append($createTextNode('Example'));
-        note.append(linkNode);
-      });
-    });
-    await remdo.waitForSynced();
+    await setImportedLink(remdo, url);
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
@@ -2000,18 +2004,8 @@ describe('note links (docs/specs/outliner/links.md)', () => {
   });
 
   it('keeps an imported protocol-relative destination in an inactive link', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await selectEntireNote(remdo, 'note1');
     const url = '//example.com/path';
-    await act(async () => {
-      remdo.editor.update(() => {
-        const note = $findNoteById('note1')!;
-        note.clear();
-        const linkNode = $createLinkNode(url);
-        linkNode.append($createTextNode('Example'));
-        note.append(linkNode);
-      });
-    });
-    await remdo.waitForSynced();
+    await setImportedLink(remdo, url);
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
@@ -2024,18 +2018,8 @@ describe('note links (docs/specs/outliner/links.md)', () => {
   });
 
   it('normalizes imported-style www LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await selectEntireNote(remdo, 'note1');
     const text = 'www.example.com/path';
-    await act(async () => {
-      remdo.editor.update(() => {
-        const note = $findNoteById('note1')!;
-        note.clear();
-        const linkNode = $createLinkNode(text);
-        linkNode.append($createTextNode('Example'));
-        note.append(linkNode);
-      });
-    });
-    await remdo.waitForSynced();
+    await setImportedLink(remdo, text);
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
@@ -2049,18 +2033,8 @@ describe('note links (docs/specs/outliner/links.md)', () => {
   });
 
   it('keeps an imported relative destination in an inactive link', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await selectEntireNote(remdo, 'note1');
     const url = '/n/main_note2';
-    await act(async () => {
-      remdo.editor.update(() => {
-        const note = $findNoteById('note1')!;
-        note.clear();
-        const linkNode = $createLinkNode(url);
-        linkNode.append($createTextNode('Example'));
-        note.append(linkNode);
-      });
-    });
-    await remdo.waitForSynced();
+    await setImportedLink(remdo, url);
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
@@ -2147,17 +2121,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
   });
 
   it('keeps an imported unsupported destination in an inactive link', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await selectEntireNote(remdo, 'note1');
-    await act(async () => {
-      remdo.editor.update(() => {
-        const note = $findNoteById('note1')!;
-        note.clear();
-        const linkNode = $createLinkNode('javascript:alert(1)');
-        linkNode.append($createTextNode('Example'));
-        note.append(linkNode);
-      });
-    });
-    await remdo.waitForSynced();
+    await setImportedLink(remdo, 'javascript:alert(1)');
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
@@ -2182,13 +2146,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
   it('keeps a recognizable label inactive when its imported destination is invalid', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const label = 'https://example.com/';
-    await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
-      note.clear();
-      const linkNode = $createLinkNode('javascript:alert(1)');
-      linkNode.append($createTextNode(label));
-      note.append(linkNode);
-    });
+    await setImportedLink(remdo, 'javascript:alert(1)', { label });
 
     remdo.validate(() => {
       const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
@@ -2200,17 +2158,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
   });
 
   it('keeps an imported unsupported AutoLink destination inactive', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await selectEntireNote(remdo, 'note1');
-    await act(async () => {
-      remdo.editor.update(() => {
-        const note = $findNoteById('note1')!;
-        note.clear();
-        const linkNode = $createAutoLinkNode('javascript:alert(1)');
-        linkNode.append($createTextNode('Example'));
-        note.append(linkNode);
-      });
-    });
-    await remdo.waitForSynced();
+    await setImportedLink(remdo, 'javascript:alert(1)', { automatic: true });
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;

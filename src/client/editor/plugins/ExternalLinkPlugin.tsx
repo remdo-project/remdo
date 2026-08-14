@@ -1,5 +1,6 @@
 import { $createAutoLinkNode, AutoLinkNode, LinkNode, registerAutoLink } from '@lexical/link';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { mergeRegister } from '@lexical/utils';
 import {
   $addUpdateTag,
   $getNodeByKey,
@@ -42,7 +43,7 @@ const MODIFIER_KEYS = new Set(['Alt', 'Control', 'Meta', 'Shift']);
 // would also unwrap deliberately suppressed links when neighboring text changes.
 const LEXICAL_LINK_SEPARATOR = /[\s\S]/;
 
-function unwrapLinkNode(node: LinkNode | AutoLinkNode) {
+function unwrapLinkNode(node: LinkNode) {
   const parent = node.getParentOrThrow();
   parent.splice(node.getIndexWithinParent(), 1, node.getChildren());
 }
@@ -82,7 +83,7 @@ function $hasValidAutomaticLinkEnd(node: AutoLinkNode, next: TextNode): boolean 
   return match?.index === 0 && match.length === text.length;
 }
 
-function $suppressInvalidLink(node: LinkNode | AutoLinkNode) {
+function $suppressInvalidLink(node: LinkNode) {
   const text = node.getTextContent();
   if (node instanceof AutoLinkNode) {
     if ($getAutomaticLinkUnlinkedText(node) !== text) {
@@ -129,7 +130,7 @@ function $syncAutomaticLinkSuppression(node: AutoLinkNode): boolean {
   return true;
 }
 
-function $normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
+function $normalizeExternalLinkNode(node: LinkNode) {
   if ($isNoteLinkNode(node)) {
     return;
   }
@@ -162,7 +163,7 @@ function $normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
 
 function registerExternalLinkMutationListener(
   editor: ReturnType<typeof useLexicalComposerContext>[0],
-  klass: typeof LinkNode | typeof AutoLinkNode,
+  klass: typeof LinkNode,
   onAutomaticLinkCreated?: (node: AutoLinkNode) => void,
 ) {
   return editor.registerMutationListener(klass, (mutations) => {
@@ -174,7 +175,7 @@ function registerExternalLinkMutationListener(
       editor.update(() => {
         for (const key of keys) {
           const node = $getNodeByKey(key);
-          if ((node instanceof LinkNode || node instanceof AutoLinkNode) && node.isAttached()) {
+          if (node instanceof LinkNode && node.isAttached()) {
             $normalizeExternalLinkNode(node);
             if (node instanceof AutoLinkNode && node.isAttached()) {
               if (mutations.get(key) === 'created' && !node.getIsUnlinked()) {
@@ -322,7 +323,7 @@ export function ExternalLinkPlugin() {
       }
       return null;
     };
-    const $finalizeDeferredPredecessor = (node: LinkNode | AutoLinkNode) => {
+    const $finalizeDeferredPredecessor = (node: LinkNode) => {
       const previous = node.getPreviousSibling();
       if ($isTextNode(previous) && previous.getKey() === deferredTextNodeKey) {
         deferredTextNodeKey = null;
@@ -417,7 +418,7 @@ export function ExternalLinkPlugin() {
     };
 
     queuePresentationSync();
-    return [
+    return mergeRegister(
       registerAutoLink(editor, {
         changeHandlers: [(url, previousUrl) => {
           if (url && previousUrl === null && normalizeGenericDestination(url)?.url === url) {
@@ -632,12 +633,6 @@ export function ExternalLinkPlugin() {
           clearTimeout(timeout);
         }
       },
-    ].reduceRight<() => void>(
-      (cleanup, unregister) => () => {
-        unregister();
-        cleanup();
-      },
-      () => {},
     );
   }, [editor]);
 

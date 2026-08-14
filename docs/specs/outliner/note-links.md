@@ -12,11 +12,9 @@ and generic URL-link behavior.
    fixtures, snapshot files, and other long-lived storage boundaries.
 3. **Clipboard payload:** transient copy/cut payload (`application/x-lexical-editor`)
    exchanged between editor contexts.
-4. **Collaboration state:** shared runtime state (for example Yjs-backed) that
-   must behave like runtime editor state while synced.
-5. **`docId`:** the note-link field carrying the target document's canonical
+4. **`docId`:** the note-link field carrying the target document's canonical
    [document identity](../../architecture.md#document-identity).
-6. **`noteId`:** the note-link field carrying the target note's [noteId](./note-ids.md#definitions).
+5. **`noteId`:** the note-link field carrying the target note's [noteId](./note-ids.md#definitions).
 
 ## Core behavior
 
@@ -54,7 +52,9 @@ and generic URL-link behavior.
    same-document link `docId` values from the active `documentId` before
    parsing/applying state into the editor runtime.
 4. Cross-document links keep explicit `docId` values unchanged across save/load.
-5. Note/document identity ownership rules remain defined in [Note IDs](./note-ids.md).
+5. Collaboration state uses the runtime editor-state representation while synced,
+   including fully qualified note-link identity.
+6. Note/document identity ownership rules remain defined in [Note IDs](./note-ids.md).
 
 ## Query and ranking
 
