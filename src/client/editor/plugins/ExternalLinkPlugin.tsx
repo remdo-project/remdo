@@ -65,6 +65,18 @@ function $hasValidAutomaticLinkStart(node: AutoLinkNode): boolean {
 }
 
 function $hasValidAutomaticLinkEnd(node: AutoLinkNode, next: TextNode): boolean {
+  const last = node.getLastChild();
+  if (
+    !$isTextNode(last)
+    || !last.isSimpleText()
+    || !next.isSimpleText()
+    || last.isUnmergeable()
+    || next.isUnmergeable()
+    || last.getFormat() !== next.getFormat()
+    || last.getStyle() !== next.getStyle()
+  ) {
+    return true;
+  }
   const text = node.getTextContent();
   const match = automaticGenericLinkMatcher(`${text}${next.getTextContent()}`);
   return match?.index === 0 && match.length === text.length;
@@ -164,7 +176,7 @@ function registerExternalLinkMutationListener(
           const node = $getNodeByKey(key);
           if ((node instanceof LinkNode || node instanceof AutoLinkNode) && node.isAttached()) {
             $normalizeExternalLinkNode(node);
-            if (node instanceof AutoLinkNode) {
+            if (node instanceof AutoLinkNode && node.isAttached()) {
               if (mutations.get(key) === 'created' && !node.getIsUnlinked()) {
                 onAutomaticLinkCreated?.(node);
               }
@@ -408,7 +420,7 @@ export function ExternalLinkPlugin() {
     return [
       registerAutoLink(editor, {
         changeHandlers: [(url, previousUrl) => {
-          if (url && previousUrl === null) {
+          if (url && previousUrl === null && normalizeGenericDestination(url)?.url === url) {
             automaticCreationUrls.add(url);
             // The timer is retained and cleared on effect teardown.
             // eslint-disable-next-line react/web-api-no-leaked-timeout

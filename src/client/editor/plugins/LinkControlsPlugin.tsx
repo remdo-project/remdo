@@ -961,6 +961,9 @@ export function LinkControlsPlugin() {
           if (!$isRangeSelection(selected) || selected.isCollapsed()) {
             return false;
           }
+          if (!$selectionStaysInOneRegion(selected)) {
+            return false;
+          }
           const selectedText = selected.getTextContent();
           if (selectedText.trim().length === 0) {
             return false;
