@@ -5,8 +5,7 @@ description: Refresh every available RemDo dependency and repository-owned runti
 
 # RemDo Dependency Refresh
 
-Run the authoritative
-[`remdo-deps-refresh`](../../../docs/specs/agents/skills/remdo-deps-refresh.md)
+Run the authoritative [`remdo-deps-refresh`](../../../docs/specs/agents/skills/remdo-deps-refresh.md)
 contract. Use the commands below for repository-specific execution; let the
 contract own behavior and the result shape.
 
@@ -26,8 +25,7 @@ deferral recorded under `updateConfig.ignoreDependencies`, in file order:
    `TODO(deps):` marker, ignore entries, and any override or workaround that
    keeps the dependency at its deferred version.
 2. Run `pnpm update --latest --workspace-root <selectors>` and normalize
-   `pnpm-workspace.yaml` with `CI=1 pnpm exec eslint --fix
-   pnpm-workspace.yaml`.
+   `pnpm-workspace.yaml` with `CI=1 pnpm exec eslint --fix pnpm-workspace.yaml`.
 3. Reject a resolved-version downgrade. Use the marker's rationale to add
    applicable verification; run `pnpm run audit:security` for a
    security-related deferral.
@@ -47,8 +45,7 @@ reconcile that refresh unit, and restart at category 1 after committing it. A
 category that produces no diff advances to the next category.
 
 1. Refresh workspace packages with `pnpm update --latest --workspace-root`,
-   then normalize `pnpm-workspace.yaml` with `CI=1 pnpm exec eslint --fix
-   pnpm-workspace.yaml`.
+   then normalize `pnpm-workspace.yaml` with `CI=1 pnpm exec eslint --fix pnpm-workspace.yaml`.
 2. Refresh the package-manager release and Corepack integrity with `corepack use
    pnpm@latest`.
 3. Inspect Node's official release index and the published official
@@ -78,8 +75,7 @@ Keep each selected update and its corrections as one refresh unit.
 1. Inspect the update and apply every correction established by accepted
    behavior and verification evidence. Use release notes when they help
    identify migration work or behavior worth reporting.
-2. Follow the specification's
-   [dependency-patch procedure](../../../docs/specs/agents/skills/remdo-deps-refresh.md#dependency-patches).
+2. Follow the specification's [dependency-patch procedure](../../../docs/specs/agents/skills/remdo-deps-refresh.md#dependency-patches).
    To test an upgraded dependency without its registered patch, remove the
    registration, install, and run the focused regression named beside it. A
    proposed new patch enters the deferral path without prompting during the run.
@@ -113,8 +109,7 @@ Then inspect open Dependabot alerts and security-update pull requests with `gh`.
 Report each as `covered here`, `already on default branch`, `unresolved`, or
 `blocked intentionally`.
 
-Return the specification's
-[`Result`](../../../docs/specs/agents/skills/remdo-deps-refresh.md#result) to the
+Return the specification's [`Result`](../../../docs/specs/agents/skills/remdo-deps-refresh.md#result) to the
 caller, including every update commit, correction, patch and follow-up
 disposition, Dependabot disposition, and verification result. The caller owns
 the complete change scope and developer-facing report.

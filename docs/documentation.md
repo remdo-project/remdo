@@ -30,10 +30,9 @@ Each durable statement lives with the owner of the question it answers.
 - **`docs/guides/` — Task guides.** Each guide explains how to accomplish a
   task. Its steps derive from and link to the applicable contract and mechanism
   owners.
-- **Agent skills — Specifications and procedures.** Specifications under
-  `docs/specs/agents/skills/` own accepted behavior; each `SKILL.md` owns its
-  execution procedure. A specification is sufficient without its procedure;
-  the procedure links to it instead of restating accepted behavior.
+- **Agent skills — [Specifications and procedures](#agent-skill-boundary).**
+  Accepted behavior lives under `docs/specs/agents/skills/`; execution
+  procedures live in each `SKILL.md`.
 - **`AGENTS.md` and `CLAUDE.md` — Agent instruction surfaces.**
   The surfaces own their directly loaded rules; [Agent instructions](specs/agents/instructions.md)
   owns their design, responsibilities, and deterministic structural contracts.
@@ -63,8 +62,7 @@ preserve evidence, but cannot establish or change accepted behavior or rules.
 
 Examples, tables, and diagrams inherit the status of their surrounding content
 unless identified as informative. Status follows content's role, not
-capitalization, implementation status, or [verification](#verification)
-method.
+capitalization, implementation status, or [verification](#verification) method.
 
 ### Target behavior
 
@@ -75,6 +73,17 @@ regardless of implementation status.
 gaps. Its entries are informative and may identify implementation that does not
 yet satisfy target behavior. Entries range from decided work to unresolved
 questions and preserve only the context useful for returning to the work.
+
+### Agent skill boundary
+
+A skill specification is sufficient without its procedure and owns choices that
+change promised capability behavior. Its procedure owns replaceable execution
+details such as owner loading, commands, paths, tool calls, output decoding, and
+dispatch. It loads the complete capability specification before work and links
+each delegated step to its owning section; load a section alone only when its
+owner declares it self-contained. Delegate whole responsibilities without
+paraphrasing them. Establish any new behavioral choice in the applicable
+specification or shared owner before implementing it.
 
 ### Minimality
 
@@ -115,8 +124,7 @@ conformance with a repeatable machine-checkable result at a defined lifecycle po
   implementation that covers it, and does not claim exhaustive coverage of
   surrounding behavior.
 - **Empirical marker.** When deterministic coverage is unavailable, use
-  **Empirical.** only under the contributor
-  [testing policy](dev/testing.md#empirical-checks).
+  **Empirical.** only under the contributor [testing policy](dev/testing.md#empirical-checks).
 
 ## Documentation changes
 
@@ -228,10 +236,8 @@ document and dependencies named by its contract.
 - [Write the Docs: docs as code](https://www.writethedocs.org/guide/docs-as-code/) — docs reviewed and tested like code.
 - [NASA Systems Engineering Handbook](https://www.nasa.gov/wp-content/uploads/2018/09/nasa_systems_engineering_handbook_0.pdf) — verification methods recorded with their requirements.
 - [Google style: timeless documentation](https://developers.google.com/style/timeless-documentation) — timeless prose.
-- [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174.html) — normative prose and
-  requirement-keyword capitalization.
-- [W3C Manual of Style](https://www.w3.org/guide/manual-of-style/#normative-material)
-  — normative and informative status.
+- [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174.html) — normative prose and requirement-keyword capitalization.
+- [W3C Manual of Style](https://www.w3.org/guide/manual-of-style/#normative-material) — normative and informative status.
 - [arc42](https://arc42.org/overview) — decision rationale as load-bearing.
 - [Microsoft style: headings](https://learn.microsoft.com/en-us/style-guide/scannable-content/headings) — heading granularity and run-in headings.
 - [GitHub Copilot: effective review instructions](https://docs.github.com/en/copilot/tutorials/customize-code-review)

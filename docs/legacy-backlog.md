@@ -545,13 +545,10 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
 - Coverage pass: product areas with no owning doc (candidates: collaboration
   internals, app bootstrap/routes; note-sdk docs are already deferred under
   "Note-first SDK follow-ups") — decide new doc vs a `Future` trigger each.
-- Parked escalations awaiting Piotr (six): [note-kind capabilities](specs/outliner/note-model.md#note-kinds)
+- Parked escalations awaiting Piotr (five): [note-kind capabilities](specs/outliner/note-model.md#note-kinds)
   sentence (carries the selection link; reject / apply-with-link-relocation);
-  [agent-skills layout](documentation.md#documentation-layout) split;
-  [result-row context](specs/outliner/search.md#result-row-context) split;
-  [selection mode-switch](specs/outliner/selection.md#selection-states) split;
-  [dependency patches](specs/agents/skills/remdo-deps-refresh.md#dependency-patches) stage split (#5 of
-  conv3); [search disambiguation](specs/outliner/search.md#behavior)
+  [result-row context](specs/outliner/search.md#result-row-context) split; [selection mode-switch](specs/outliner/selection.md#selection-states) split;
+  [dependency patches](specs/agents/skills/remdo-deps-refresh.md#dependency-patches) stage split (#5 of conv3); [search disambiguation](specs/outliner/search.md#behavior)
   parenthetical split.
 
 ## Skill architecture follow-ups
@@ -569,8 +566,7 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
   typecheck+tests as their gate. A config decision, not a mechanical fix.
 - Define shared cross-skill contracts once (AGENTS.md or contributing.md) and
   have each skill state only its delta: one stop/escalation taxonomy (today
-  six names: ESCALATE/Blocker/Stuck/stop/dead-end/callout) and one report
-  skeleton.
+  six names: ESCALATE/Blocker/Stuck/stop/dead-end/callout) and one report skeleton.
 
 ## Skill test-infra follow-up
 

@@ -27,14 +27,12 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Agent skill complexity review.** Continue reviewing the remaining skills
-  under the [specification/procedure boundary](documentation.md#documentation-layout).
-  Move accepted behavior owned only by a procedure to the applicable
-  specification, remove restated behavior from procedures, and reconsider custom
-  scripts and state machines that encode adaptive work without enough robustness
-  to justify their maintenance. Prefer concise intent plus deterministic checks
-  of stable repository invariants, then align each affected specification,
-  procedure, implementation, and coverage.
+- **Remaining agent skill alignment.** Apply the adopted
+  [specification/procedure boundary](documentation.md#agent-skill-boundary) to
+  the remaining skills. Reconsider custom scripts and state machines that encode
+  adaptive work without enough robustness to justify their maintenance. Prefer
+  concise intent plus deterministic checks of stable repository invariants,
+  then align each affected specification, procedure, implementation, and coverage.
 
 - **Prepare-change lifecycle.** Reconsider its dialogue, specification,
   approval, and execution flow as a whole so it is simple, flexible, and clear.
@@ -100,18 +98,28 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Operations
 
-- **Docker gateway and process topology.** Retain Caddy as the gateway while the
-  production runtime remains a single container; replacing only the proxy does
-  not simplify that topology. Define supported direct-public, private
-  internal-CA, and externally terminated HTTPS modes, use Caddy's automatic
-  certificate management for the direct-public mode, enable compression for
-  eligible SPA assets, and simplify the resulting Caddy environment derivation
-  without weakening the [canonical-origin and loopback-only service boundaries](architecture.md#routing-and-origin-boundary).
-  Evaluate a one-process-per-container deployment separately: if adopted, give
-  each service a fixed internal port, move process lifecycle to the container
-  runtime, retain one browser-facing gateway, and remove obsolete shell
-  background-process launching, multi-port configuration, launcher, test, and
-  documentation machinery.
+- **Production Docker deployment contract.** Reassess the supported [production deployments](guides/production-deployment.md),
+  [runtime configuration](specs/runtime/configuration.md), gateway behavior,
+  and container topology as one system. Start with host/container exposure
+  ownership, then determine the smallest coherent and secure division among
+  operator inputs, launcher-derived values, and container-owned details.
+  Treat existing support as evidence, not a retention requirement under the
+  [pre-1.0 compatibility policy](../CONTRIBUTING.md#backward-compatibility-pre-10).
+  For every setting, default, derivation, deployment mode, or topology whose
+  removal or internalization would simplify the operator surface,
+  implementation, or verification, explicitly present the capability lost and
+  its security or operational tradeoff. Retain it only when a current scenario
+  justifies that cost.
+
+  While production remains a single container, retain Caddy as the
+  [gateway](architecture.md#gateway) implementation. Evaluate
+  direct-public, private internal-CA, and externally terminated HTTPS as
+  candidate modes rather than assuming all must remain; for retained modes, use
+  the simplest Caddy configuration and automatic certificate management where
+  applicable. Evaluate a one-process-per-container deployment separately and
+  remove obsolete configuration, launch, lifecycle, test, and documentation
+  machinery when its responsibilities move elsewhere. Align the resulting
+  contracts, runtime boundaries, verification, and deployment guidance.
 
 - **Hosted production backups.** Define the scheduled backup and recovery
   workflow for hosted deployments, then align `docker/Dockerfile`,
@@ -184,8 +192,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 - **Capability protocol adoption.** Identify agent capabilities used as
   composable participants, give their specifications explicit `Call` and
-  `Result` sections conforming to the
-  [capability protocol](specs/agents/protocol.md), then align their execution
+  `Result` sections conforming to the [capability protocol](specs/agents/protocol.md), then align their execution
   procedures. Do not invent calls for developer-facing entry points.
 
 - **Configured-upstream synchronization.** Design a capability separate from
@@ -193,8 +200,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   the current branch with its configured upstream. Classify fast-forward,
   local-ahead, ordinary divergence, and likely rewritten upstream history before
   choosing merge or explicitly authorized rebase, with conflict and recovery
-  behavior defined for each path. Keep `origin/main` integration owned by
-  `remdo-merge-main`.
+  behavior defined for each path. Keep `origin/main` integration owned by `remdo-merge-main`.
 
 - **Prepare-change implementation-gap tracking.** Update
   [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md) so after

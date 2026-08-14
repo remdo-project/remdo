@@ -29,7 +29,7 @@ owner. Provider-specific surfaces may load it alongside their own rules.
   - **Verification procedures:** [Running Tests](docs/guides/testing.md).
   - **Test runtime:** [Test Harness](docs/specs/testing/test-harness.md).
 - **Runtime configuration:** [Configuration](docs/specs/runtime/configuration.md).
-  - **Port and origin derivation:** [Derivation rules](docs/specs/runtime/configuration.md#derivation-rules).
+  - **Port and origin derivation:** [Network addressing](docs/specs/runtime/configuration.md#network-addressing).
 - **Tracked repository follow-up:** [RemDo TODO](docs/todo.md#tracked-follow-up).
 - **Specification evidence boundaries:** [Specification Feedback Cases](docs/specs/feedback-cases/README.md).
 - **Task behavior:** its current owner under `docs/`.
@@ -74,11 +74,11 @@ change. Do not add update-tracking sections to durable documents.
   asking, and ask before choosing between unresolved material tradeoffs.
 - Avoid speculative abstractions, compatibility shims, feature flags, and
   defensive guards that accepted behavior does not require.
+- Do not add soft wraps to Markdown prose unless required by line-length lint.
 - For bugs, reproduce the problem when practical, then verify the fix with the
   focused reproducer and applicable final checks.
 - Apply the contributor [testing policy](docs/dev/testing.md) when selecting,
-  writing, or reviewing coverage. Perform each
-  [empirical check](docs/dev/testing.md#empirical-checks) required by an
+  writing, or reviewing coverage. Perform each [empirical check](docs/dev/testing.md#empirical-checks) required by an
   affected behavior's owner.
 - Use live browser inspection as the primary evidence for UI behavior,
   rendering, interaction, and accessibility conclusions.
@@ -105,7 +105,6 @@ change. Do not add update-tracking sections to durable documents.
 
 ## Checks
 
-Follow the contributor [testing policy](docs/dev/testing.md) and report CI as
-pending until it runs.
+Follow the contributor [testing policy](docs/dev/testing.md) and report CI as pending until it runs.
 
 Fix failures caused by the change or report them before handoff.

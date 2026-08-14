@@ -8,8 +8,7 @@ the [package scripts](../../package.json) own executable commands and their vari
 ## Prepare the Workspace
 
 Run `pnpm run dev:init` after a fresh clone or after removing `node_modules`.
-The command installs the locked dependencies.
-[Running Tests](testing.md) owns test-specific preparation.
+The command installs the locked dependencies. [Running Tests](testing.md) owns test-specific preparation.
 
 ## Configure Local Runs
 
@@ -20,7 +19,7 @@ Local configuration resolves three layers, from lowest to highest precedence:
   [`.env.example`](../../.env.example) to `.env` and change only the entries you need.
 - To override a value for one invocation, set it in the process environment.
 
-[`PORT_BASE`](../specs/runtime/configuration.md#derivation-rules) selects the local stack's port range. `HOST` controls gateway
+[`PORT_BASE`](../specs/runtime/configuration.md#network-addressing) selects the local stack's port range. `HOST` controls gateway
 exposure and defaults to `localhost`. On a headless development machine, set
 `HOST=0.0.0.0`; browser URLs then use the machine hostname. Set `PUBLIC_HOST`
 only when the browser reaches the machine through a different hostname or IP.
@@ -39,7 +38,7 @@ directory, [reset development data](#reset-development-data) before signing in.
 Open the canonical URL for the stack, sign in with a credential from
 [`stable-auth-users.ts`](../../tools/lib/stable-auth-users.ts), and choose a document named `fixture: <fixture-name>`.
 With the default `HOST`, use Vite's Local URL. With `HOST=0.0.0.0`, use the
-machine hostname or explicit `PUBLIC_HOST` from the [development origin](../specs/runtime/configuration.md#derivation-rules), not one
+machine hostname or explicit `PUBLIC_HOST` from the [development origin](../specs/runtime/configuration.md#network-addressing), not one
 of Vite's interface-IP Network URLs.
 
 ### Reset Development Data

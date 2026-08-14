@@ -11,22 +11,29 @@ remain server-only.
 Missing or invalid configuration fails at the boundary that requires it.
 Server-only requirements do not apply to browser configuration or production utilities.
 
-## Derivation rules
+## Network addressing
 
-Each derived value has one authoritative input. Shifting a local stack shifts
-its complete port range as one unit.
+- `APP_PUBLIC_URL` is the server's canonical browser-visible origin.
+  Development derives it as `http://<PUBLIC_HOST>:<PORT>`; production requires
+  an explicit exact HTTPS origin. For self-hosted Docker, its effective port
+  selects the host-side published [gateway](../../architecture.md#gateway) port. [Routing and origin](../../architecture.md#routing-and-origin-boundary) owns
+  its collaboration use; [access control](../access/access-control.md#csrf-protection) owns its authentication use.
+- `HOST` selects the gateway bind address in development. For self-hosted
+  Docker, it selects only the host-side publish address and defaults to
+  `127.0.0.1`; `HOST=0.0.0.0` explicitly publishes on every IPv4 interface.
+- `PORT` is the gateway port derived from `PORT_BASE` in development and
+  verification. In externally terminated production, the hosting platform
+  supplies it as the internal gateway listen port; it may differ from the
+  effective port of `APP_PUBLIC_URL`. It is not a self-hosted Docker input.
+- `PORT_BASE` selects the development or verification stack's port range.
+  Shifting it shifts every derived port as one unit. It has no production role.
+- `PUBLIC_HOST` selects the browser-visible hostname in development. It
+  defaults to `HOST`; with `HOST=0.0.0.0`, it defaults to the machine hostname
+  and must be set explicitly when that hostname is not browser-visible. It has
+  no production role.
 
-Development binding and browser addressing have separate owners. `HOST` selects
-the gateway bind address. `PUBLIC_HOST` selects the hostname used in public URLs
-and defaults to `HOST`; with `HOST=0.0.0.0`, it instead defaults to the machine
-hostname and must be supplied when that hostname is not browser-visible. The
-canonical development origin, `APP_PUBLIC_URL`, derives as `http://<PUBLIC_HOST>:<PORT>`.
-
-`APP_PUBLIC_URL` is a server's single canonical public origin. In production it
-does not drive the bind address or port. The repository Docker launcher derives
-it from the selected public host and `PORT` only when the operator omits it.
-[Routing and origin](../../architecture.md#routing-and-origin-boundary) owns its collaboration use; [access control](../access/access-control.md#csrf-protection)
-owns its authentication use.
+For self-hosted Docker, network mode and container addresses and ports are not
+operator settings.
 
 ## Secret bootstrap
 

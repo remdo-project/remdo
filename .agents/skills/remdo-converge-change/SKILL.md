@@ -5,9 +5,7 @@ description: Converge a default or explicitly selected RemDo uncommitted or Git-
 
 # RemDo Converge Change
 
-Execute the authoritative
-[`remdo-converge-change`](../../../docs/specs/agents/skills/remdo-converge-change.md)
-contract.
+Execute the authoritative [`remdo-converge-change`](../../../docs/specs/agents/skills/remdo-converge-change.md) contract.
 
 ## Resolve the scope
 
@@ -63,7 +61,5 @@ then route the refreshed scope through the contract.
 
 ## Report
 
-Return the specification's
-[Result](../../../docs/specs/agents/skills/remdo-converge-change.md#result). When
-addressing a human, render it under the shared
-[Reports](../../../docs/specs/agents/protocol.md#reports) contract.
+Return the specification's [Result](../../../docs/specs/agents/skills/remdo-converge-change.md#result). When
+addressing a human, render it under the shared [Reports](../../../docs/specs/agents/protocol.md#reports) contract.

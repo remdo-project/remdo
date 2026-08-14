@@ -29,7 +29,7 @@ production bundles, including production bundles run by development and test wor
 
 ## Routing and Origin Boundary
 
-Browser-visible collaboration URLs derive from the [configured canonical public origin](specs/runtime/configuration.md#derivation-rules),
+Browser-visible collaboration URLs derive from the [configured canonical public origin](specs/runtime/configuration.md#network-addressing),
 not from request forwarding headers.
 
 ### Gateway

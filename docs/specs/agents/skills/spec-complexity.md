@@ -8,13 +8,10 @@ select or apply an alternative.
 
 ## Target
 
-The capability accepts either assessment-target form:
-
-- `change`: the changed end state and directly related mechanisms, excluding
-  unrelated pre-existing complexity;
-- `subject`: the named current-tree subject, its implementation, and tests.
-
-All estimates are target-bounded.
+The assessment and its estimates are target-bounded. For a change target, it
+includes the changed end state and directly related mechanisms while excluding
+unrelated pre-existing complexity. For a subject target, it includes the named
+current-tree subject, its implementation, and tests.
 
 ## Assessment
 
@@ -25,7 +22,8 @@ The [report](../protocol.md#reports) answers:
 
 The skill assesses the target against its applicable current
 [contract owners](../../../documentation.md#ownership), implementation, tests,
-and Git history.
+and Git history. Use history to distinguish contract-driven cost from incidental
+implementation choices. Follow linked owners before classifying complexity as unrequired.
 
 For each area caused by an accepted-behavior decision, report the decision,
 resulting implementation mechanism, contract owner, separate implementation
@@ -41,6 +39,9 @@ accepted-behavior decision.
 
 The report also identifies substantial target complexity not required by the
 applicable contracts.
+
+It remains a complexity assessment rather than a correctness review or general
+implementation-preserving refactor proposal.
 
 ## Result
 

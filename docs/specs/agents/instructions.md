@@ -66,7 +66,7 @@ documentation. Route agents by the question they need to answer:
   - **Verification procedures:** [Running Tests](../../guides/testing.md).
   - **Test runtime:** [Test Harness](../testing/test-harness.md).
 - **Runtime configuration:** [Configuration](../runtime/configuration.md).
-  - **Port and origin derivation:** [Derivation rules](../runtime/configuration.md#derivation-rules).
+  - **Port and origin derivation:** [Network addressing](../runtime/configuration.md#network-addressing).
 - **Tracked repository follow-up:** [RemDo TODO](../../todo.md#tracked-follow-up).
 - **Specification evidence boundaries:** [Specification Feedback Cases](../feedback-cases/README.md).
 - **Task behavior:** its current owner, located by filename and scope opener
@@ -102,11 +102,11 @@ require explicit user authority.
 - Prefer the simplest permanent implementation. Stop on a missing task
   dependency, investigate repository evidence before asking, and ask before
   choosing between unresolved material tradeoffs.
+- The shared entry point directs agents to add Markdown prose soft wraps only
+  when required by line-length lint.
 - Agents follow the contributor [testing policy](../../dev/testing.md) and
   report CI as pending until it runs.
-- Agents perform each
-  [empirical check](../../dev/testing.md#empirical-checks) required by an
-  affected behavior's owner.
+- Agents perform each [empirical check](../../dev/testing.md#empirical-checks) required by an affected behavior's owner.
 - Conclusions about UI behavior or rendering use live browser inspection as
   their primary evidence.
 

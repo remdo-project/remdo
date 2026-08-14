@@ -75,7 +75,7 @@ credentialed app API, cross-subdomain mutation flow, non-JSON mutation body, or
 `SameSite=None` cookie.
 
 Better Auth derives its trusted-origin set from the
-[configured canonical public origin](../runtime/configuration.md#derivation-rules).
+[configured canonical public origin](../runtime/configuration.md#network-addressing).
 Production trusts only that origin. Development additionally trusts local
 aliases and the loopback PWA preview origin. Preview requests retain their
 browser-supplied `Origin`, so unrelated origins remain rejected.
