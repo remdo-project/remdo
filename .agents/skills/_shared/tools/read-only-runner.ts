@@ -87,9 +87,6 @@ async function run(
   call: ReviewCall,
   signal: AbortSignal,
 ): Promise<RunnerResult> {
-  if (signal.aborted) {
-    return { status: 'failed', evidence: 'agent invocation was cancelled' };
-  }
   const environment = normalizedEnvironment();
   const resolved = await repositoryRoot(
     path.resolve(process.cwd()),

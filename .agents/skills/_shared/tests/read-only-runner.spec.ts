@@ -113,7 +113,6 @@ function reportWritingCodex(
 ): string {
   return codexStub([
     'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
-    'cat > "$RUNNER_STUB_CAPTURE/stdin"',
     'report=',
     'while [ "$#" -gt 0 ]; do',
     '  if [ "$1" = "--output-last-message" ]; then',
@@ -338,10 +337,7 @@ describe('read-only runner CLI', () => {
     git(work, 'add', 'candidate.md');
     writeFile(work, 'candidate.md', 'changed again\n');
     writeFile(work, 'line\nbreak.md', 'untracked\n');
-    const stub = claudeStub([
-      'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
-      claudeResult('No findings.'),
-    ]);
+    const stub = claudeStub([claudeResult('No findings.')]);
 
     const result = runRunner(
       work,
@@ -390,7 +386,7 @@ describe('read-only runner CLI', () => {
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
     expect(result.stderr).toContain('uncommitted review has no changed paths');
-    expect(fs.existsSync(path.join(stub, 'args'))).toBe(false);
+    expect(fs.existsSync(path.join(stub, 'stdin'))).toBe(false);
   });
 
   it('includes index-only paths in Claude uncommitted review', () => {
@@ -415,10 +411,7 @@ describe('read-only runner CLI', () => {
   it('resolves the immutable current HEAD for Claude commit-range review', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const head = git(work, 'rev-parse', 'HEAD').stdout.trim();
-    const stub = claudeStub([
-      'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
-      claudeResult('Range clean.'),
-    ]);
+    const stub = claudeStub([claudeResult('Range clean.')]);
 
     const result = runRunner(
       work,
@@ -478,10 +471,27 @@ describe('read-only runner CLI', () => {
       retained: '\u{FEFF}{}\n',
     },
     {
+      case: 'malformed JSON',
+      body: "printf '%s\\n' 'not-json'",
+      evidence: 'could not parse',
+      retained: 'not-json\n',
+    },
+    {
       case: 'whitespace-only output',
       body: "printf '   \\n'",
       evidence: 'completed without a final text response',
       retained: '   \n',
+    },
+    {
+      case: 'a whitespace-only result',
+      body: claudeResult(' \n\t'),
+      evidence: 'completed without a final text response',
+      retained: `${JSON.stringify({
+        type: 'result',
+        subtype: 'success',
+        is_error: false,
+        result: ' \n\t',
+      })}\n`,
     },
     {
       case: 'output without a final newline',
@@ -599,38 +609,6 @@ describe('read-only runner CLI', () => {
     );
   });
 
-  // Both invocation parsers retain the provider output that explains an
-  // unusable response.
-  it.each([
-    {
-      body: "printf '%s\\n' 'not-json'",
-      evidence: 'could not parse',
-      retained: 'not-json',
-    },
-    {
-      body: claudeResult(' \n\t'),
-      evidence: 'without',
-      retained: '"type":"result"',
-    },
-  ])(
-    'rejects an unusable Claude report retaining its output: $evidence',
-    ({ body, evidence, retained }) => {
-      const work = makeBareMain({ 'tracked.md': 'tracked\n' });
-      writeFile(work, 'tracked.md', 'changed\n');
-
-      const result = runRunner(
-        work,
-        ['claude', 'review', 'uncommitted'],
-        claudeStub([body]),
-      );
-
-      expect(result.status).toBe(1);
-      expect(result.stdout).toBe('');
-      expect(result.stderr).toContain(evidence);
-      expect(result.stderr).toContain(retained);
-    },
-  );
-
   it('classifies missing provider executables as unavailable', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = makeDir('runner-missing-provider-');
@@ -658,43 +636,28 @@ describe('read-only runner CLI', () => {
     expect(claude.stderr).toContain('Claude executable is unavailable');
   });
 
-  it('preserves provider stderr but not stdout on failure', () => {
-    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
-    const stub = claudeStub([
-      'printf "provider transcript\\n" >&2',
-      'printf "provider stdout\\n"',
-      'exit 7',
-    ]);
-
-    const result = runRunner(
-      work,
-      ['claude', 'review', 'commit-range', 'base123'],
-      stub,
-    );
-
-    expect(result.status).toBe(1);
-    expect(result.stdout).toBe('');
-    expect(result.stderr).toBe(
-      'read-only-runner: Claude failed with status 7\n'
-      + 'provider transcript\n',
-    );
-    expect(result.stderr).not.toContain('provider stdout');
-  });
-
   it.each([
     {
+      case: 'with a final newline',
+      lines: [
+        'printf "provider transcript\\n" >&2',
+        'printf "provider stdout\\n"',
+      ],
+      retained: 'provider transcript\n',
+    },
+    {
       case: 'without a final newline',
-      body: 'printf %s "provider transcript" >&2',
+      lines: ['printf %s "provider transcript" >&2'],
       retained: 'provider transcript',
     },
     {
       case: 'when it is whitespace-only',
-      body: "printf '   \\n' >&2",
+      lines: ["printf '   \\n' >&2"],
       retained: '   \n',
     },
-  ])('preserves provider stderr $case', ({ body, retained }) => {
+  ])('preserves provider stderr $case', ({ lines, retained }) => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
-    const stub = claudeStub([body, 'exit 7']);
+    const stub = claudeStub([...lines, 'exit 7']);
 
     const result = runRunner(
       work,
@@ -707,6 +670,7 @@ describe('read-only runner CLI', () => {
     expect(result.stderr).toBe(
       `read-only-runner: Claude failed with status 7\n${retained}`,
     );
+    expect(result.stderr).not.toContain('provider stdout');
   });
 
   it('captures stderr from a failed Codex invocation', () => {

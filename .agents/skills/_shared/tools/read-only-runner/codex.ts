@@ -1,20 +1,15 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { serializeReviewEvidence } from './evidence.ts';
+import {
+  REVIEW_INSTRUCTION,
+  serializeReviewEvidence,
+} from './review.ts';
 import {
   outputFailure,
   providerFailure,
   runProcess,
 } from './process.ts';
 import type { ReviewCall, RunnerResult } from './types.ts';
-
-const REVIEW_INSTRUCTION = [
-  'Repository tests and checks are handled outside this review.',
-  'Do not run or manually reproduce them.',
-  'Review the implementation and test adequacy using repository evidence.',
-  'Pass these instructions to every delegated reviewer.',
-  'Report any additional runtime check needed and why; do not run it.',
-].join(' ');
 
 function tomlString(value: string): string {
   return JSON.stringify(value).replaceAll('\u007F', '\\u007F');

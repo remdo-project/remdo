@@ -44,29 +44,11 @@ compliance, so confirmation observes the commands they run.
 
 ## Repository protection
 
-The runner itself writes no repository state. It requests non-persistent review
-and the provider-native safeguards available to each invocation, but does not
-establish a boundary against effects from every provider integration or
-unrestricted shell command.
-
-The review retains the inspection access its task requires, including complete
-Git history and repository state. Its provider fixes the protection level.
-
-The caller chooses an agent whose level suits the review request it supplies.
-
-### Enforced
-
-Codex review uses the native read-only sandbox as its protection level.
-
-### Trusted prompt
-
-Claude review is trusted-prompt: shell access remains available so the review
-can inspect Git completely, and a shell reaches any effect a restriction on
-other tools would prevent.
-
-The caller supplies a review request it trusts not to seek mutation or outside
-action and owns that judgement. The runner's vendor-owned native review command
-meets this condition.
+The runner itself writes no repository state and requests non-persistent review.
+Codex requests its native read-only sandbox. Claude retains unrestricted shell
+access so its native review can inspect complete Git history and repository
+state. The runner does not establish a boundary against effects from every
+provider integration or unrestricted shell command.
 
 ## Lifecycle
 
@@ -91,17 +73,12 @@ A result is encoded by the runner's exit status and output:
 
 `unavailable` and `failed` are [concerns](../protocol.md#concerns).
 
-Only `responded` writes stdout. It confirms that the runner produced a valid
-review-evidence object, not that provider transport was complete or that the
-responses satisfy the caller's task; the review evidence and caller own those
-judgements. When a provider process exits unsuccessfully,
+Only `responded` writes stdout. It confirms only that the runner produced a valid
+review-evidence object, not provider transport completion, native-review
+execution, or coverage of the selected scope; the caller judges the evidence.
+When a provider process exits unsuccessfully,
 its failure evidence includes any non-empty provider stderr verbatim after the
 runner-owned summary; provider stdout is not failure evidence.
-
-A provider reports an unresolved native review command as a successful response
-saying the command is unknown, which the runner cannot distinguish from a review
-reporting that text. A `responded` review therefore does not establish that a
-review ran; the caller judges the evidence.
 
 Review stdout is one JSON object with this shape:
 
