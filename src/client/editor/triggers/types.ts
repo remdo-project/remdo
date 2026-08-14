@@ -5,6 +5,7 @@ import type { RangeSelection, TextNode } from 'lexical';
 
 export interface PickerAnchor {
   left: number;
+  targetTop?: number;
   top: number;
 }
 

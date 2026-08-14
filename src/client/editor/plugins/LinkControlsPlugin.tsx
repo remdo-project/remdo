@@ -509,9 +509,13 @@ function clampPopupPosition(anchor: PickerAnchor, popup: HTMLElement, container:
     minTop,
     globalThis.innerHeight - containerRect.top - popupRect.height - margin,
   );
+  const preferredTop = anchor.top > maxTop && anchor.targetTop !== undefined
+    ? anchor.targetTop - popupRect.height - 6
+    : anchor.top;
   return {
     left: Math.min(Math.max(anchor.left, minLeft), maxLeft),
-    top: Math.min(Math.max(anchor.top, minTop), maxTop),
+    targetTop: anchor.targetTop,
+    top: Math.min(Math.max(preferredTop, minTop), maxTop),
   };
 }
 
@@ -730,14 +734,27 @@ export function LinkControlsPlugin() {
         primaryLinkPointerDown = { x: event.clientX, y: event.clientY };
         primaryLinkPointerDragged = false;
       }
-      const linkKey = editor.getEditorState().read(() => {
+      const linkTarget = editor.getEditorState().read(() => {
         const node = $getNearestNodeFromDOMNode(target);
+        const rawLink = node ? $findMatchingParent(node, $isLinkNode) : null;
+        if (rawLink instanceof AutoLinkNode && rawLink.getIsUnlinked()) {
+          return { kind: 'suppressed' as const };
+        }
         const link = node ? $findLinkAncestor(node) : null;
-        return link && !$isNoteLinkNode(link) ? link.getKey() : null;
+        return link && !$isNoteLinkNode(link)
+          ? { key: link.getKey(), kind: 'active' as const }
+          : null;
       }, { editor });
-      if (!linkKey) {
+      if (linkTarget?.kind === 'suppressed') {
+        if (event.type === 'click' || (event.type === 'mouseup' && event.button === 1)) {
+          event.stopPropagation();
+        }
         return;
       }
+      if (!linkTarget) {
+        return;
+      }
+      const linkKey = linkTarget.key;
       const anchorElement = target instanceof Element
         ? target.closest<HTMLAnchorElement>('a')
         : target.parentElement?.closest<HTMLAnchorElement>('a');
@@ -1043,7 +1060,7 @@ export function LinkControlsPlugin() {
     return null;
   }
 
-  const style: CSSProperties = controls.anchor;
+  const style: CSSProperties = { left: controls.anchor.left, top: controls.anchor.top };
   const handleControlsKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape') {
       event.preventDefault();

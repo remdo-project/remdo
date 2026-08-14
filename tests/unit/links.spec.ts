@@ -1418,6 +1418,33 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     expect(remdo.editor.getRootElement()!.querySelector('a')).toBeNull();
   });
 
+  it('creates a new link from selected text inside a suppressed automatic occurrence', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await selectEntireNote(remdo, 'note1');
+    await typeText(remdo, url);
+    await typeText(remdo, ' ');
+    await removeFirstGenericLink(remdo);
+    await remdo.mutate(() => {
+      const text = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!.getFirstChild<TextNode>()!;
+      text.select(0, text.getTextContentSize());
+    });
+    await pressKey(remdo, { key: 'k', ctrlOrMeta: true });
+    const controls = document.querySelector<HTMLElement>('[data-link-controls]')!;
+    const destination = controls.querySelectorAll<HTMLInputElement>('input')[1]!;
+    await act(async () => {
+      fireEvent.change(destination, { target: { value: 'example.org' } });
+      fireEvent.click(controls.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isLinkNode)!;
+      expect($isAutoLinkNode(link)).toBe(false);
+      expect(link.getTextContent()).toBe(url);
+      expect(link.getURL()).toBe('https://example.org/');
+    });
+  });
+
   it('keeps a suppressed automatic-link occurrence when only adjacent text changes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const url = 'https://example.com/';
     await selectEntireNote(remdo, 'note1');
@@ -1599,6 +1626,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.dispatchCommand(UNDO_COMMAND);
 
     remdo.validate(() => {
+      expect($findNoteById('note1')!.getTextContent()).toBe(url);
       const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode);
       expect(link?.getIsUnlinked()).not.toBe(true);
     });
@@ -1749,6 +1777,50 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('recognizes a complete URL before an existing link boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const text = $createTextNode(url);
+      const following = $createLinkNode('https://example.org/');
+      following.append($createTextNode('following'));
+      note.clear();
+      note.append(text, following);
+      text.markDirty();
+    });
+
+    remdo.validate(() => {
+      const links = $findNoteById('note1')!.getChildren().filter($isLinkNode);
+      expect(links.map(link => [link.getTextContent(), link.getURL()])).toEqual([
+        [url, url],
+        ['following', 'https://example.org/'],
+      ]);
+      expect($isAutoLinkNode(links[0])).toBe(true);
+    });
+  });
+
+  it('removes an automatic boundary node when its inline boundary disappears', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const text = $createTextNode(url);
+      note.clear();
+      note.append(text, $createDateNode('2026-08-14'), $createTextNode('path'));
+      text.markDirty();
+    });
+    await remdo.mutate(() => {
+      $findNoteById('note1')!.getChildren().find(node => node.getType() === 'date')!.remove();
+    });
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getChildren().filter(node => $isTextNode(node) && node.getTextContent() === '')).toHaveLength(0);
+      expect(note.getChildren().filter($isAutoLinkNode).map(link => [link.getTextContent(), link.getURL()])).toEqual([
+        [`${url}path`, `${url}path`],
+      ]);
+    });
+  });
+
   it('does not retain an empty boundary node when automatic recognition is rejected', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
       const note = $findNoteById('note1')!;
@@ -1822,6 +1894,30 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       expect(links.map(link => [link.getTextContent(), link.getURL()])).toEqual([
         ['https://first.example/', 'https://first.example/'],
       ]);
+    });
+  });
+
+  it('keeps automatic-link segment boundaries independent for equal text in one update', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await remdo.mutate(() => {
+      const firstNote = $findNoteById('note1')!;
+      const first = $createTextNode(url);
+      firstNote.clear();
+      firstNote.append(first, $createTextNode(' '));
+
+      const secondNote = $findNoteById('note2')!;
+      const prefix = $createTextNode('https://example.');
+      const suffix = $createTextNode('com/').toggleFormat('bold');
+      secondNote.clear();
+      secondNote.append(prefix, suffix, $createTextNode(' '));
+      first.markDirty();
+      prefix.markDirty();
+      suffix.markDirty();
+    });
+
+    remdo.validate(() => {
+      expect($findNoteById('note1')!.getChildren().filter($isAutoLinkNode).map(link => link.getURL())).toEqual([url]);
+      expect($findNoteById('note2')!.getChildren().find($isLinkNode)).toBeUndefined();
     });
   });
 

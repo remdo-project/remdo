@@ -358,6 +358,8 @@ test.describe('generic links', () => {
     await expect(controls.getByRole('button', { name: 'Remove link' })).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(controls.getByRole('button', { name: 'Open' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(controls.getByRole('button', { name: 'Copy destination' })).toBeFocused();
     await edit.focus();
     await edit.press('Enter');
     await expect(controls.getByRole('textbox', { name: 'Destination' })).toBeFocused();
@@ -400,6 +402,43 @@ test.describe('generic links', () => {
     }).toBeLessThanOrEqual(240);
   });
 
+  test('places bottom-edge link controls clear of their inline target', async ({ page, editor }) => {
+    await page.setViewportSize({ width: 480, height: 240 });
+    await editor.load('flat');
+    await setCaretAtText(page, 'note3', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('ControlOrMeta+K');
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    await controls.getByRole('textbox', { name: 'Destination' }).fill('example.com');
+    await controls.getByRole('textbox', { name: 'Destination' }).press('Enter');
+    const link = editorLocator(page).locator('a[target="_blank"]');
+    await link.evaluate(element => element.scrollIntoView({ block: 'end' }));
+    await link.click();
+
+    const linkBox = (await link.boundingBox())!;
+    const controlsBox = (await controls.boundingBox())!;
+    expect(controlsBox.y + controlsBox.height <= linkBox.y || controlsBox.y >= linkBox.y + linkBox.height).toBe(true);
+  });
+
+  test('clicking suppressed automatic-link text neither activates nor opens controls', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    const url = 'https://example.com/';
+    await page.keyboard.press('ControlOrMeta+K');
+    const controls = editorLocator(page).getByRole('dialog', { name: 'Link controls' });
+    await controls.getByRole('textbox', { name: 'Destination' }).fill(url);
+    await controls.getByRole('textbox', { name: 'Destination' }).press('Enter');
+    const link = editorLocator(page).locator('a[target="_blank"]');
+    await link.click();
+    await controls.getByRole('button', { name: 'Remove link' }).press('Space');
+
+    const pageCount = page.context().pages().length;
+    const currentUrl = page.url();
+    await editorLocator(page).getByText(url, { exact: true }).click();
+    expect(page.context().pages()).toHaveLength(pageCount);
+    expect(page.url()).toBe(currentUrl);
+    await expect(controls).toHaveCount(0);
+  });
+
   test('distinguishes and wraps a long generic link without horizontal overflow', async ({ page, editor }) => {
     await page.setViewportSize({ width: 320, height: 480 });
     await editor.load('flat');
@@ -415,10 +454,12 @@ test.describe('generic links', () => {
     const presentation = await link.evaluate((element) => ({
       decoration: getComputedStyle(element).textDecorationLine,
       documentScrollWidth: document.documentElement.scrollWidth,
+      externalIndicator: getComputedStyle(element, '::after').content,
       lineCount: element.getClientRects().length,
       viewportWidth: globalThis.innerWidth,
     }));
     expect(presentation.decoration).toContain('underline');
+    expect(presentation.externalIndicator).toContain('↗');
     expect(presentation.lineCount).toBeGreaterThan(1);
     expect(presentation.documentScrollWidth).toBeLessThanOrEqual(presentation.viewportWidth);
   });
@@ -562,12 +603,14 @@ test.describe('generic links', () => {
     await setCaretAtText(page, 'note1', 0);
     const link = editorLocator(page).locator('a[target="_blank"]');
     const box = (await link.boundingBox())!;
+    const pageCount = page.context().pages().length;
     await page.keyboard.down('Shift');
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     await page.keyboard.up('Shift');
 
     await expect(editorLocator(page).locator('.editor-input')).toHaveClass(/editor-input--structural/);
     await expect(controls).toHaveCount(0);
+    expect(page.context().pages()).toHaveLength(pageCount);
   });
 
   test('drag-selecting link text does not open link controls', async ({ page, editor }) => {
@@ -665,9 +708,15 @@ test.describe('generic links', () => {
       await page.keyboard.up(modifier);
     }
     await expect.poll(() => context.pages().length).toBe(initialPages + 1);
+    const opened = context.pages().at(-1)!;
+    await opened.waitForLoadState('domcontentloaded');
+    expect(await opened.evaluate(() => ({
+      hasOpener: globalThis.opener !== null,
+      referrer: document.referrer,
+    }))).toEqual({ hasOpener: false, referrer: '' });
     await page.waitForTimeout(200);
     expect(context.pages()).toHaveLength(initialPages + 1);
-    await context.pages().at(-1)!.close();
+    await opened.close();
 
     const scrollBeforeMiddleClick = await page.evaluate(() => {
       document.body.style.minHeight = '3000px';
@@ -711,6 +760,7 @@ test.describe('generic links', () => {
     await expect(link).toHaveAttribute('tabindex', '0');
     await link.focus();
     await expect(link).toBeFocused();
+    expect(await link.evaluate(element => getComputedStyle(element).outlineStyle)).not.toBe('none');
     await page.keyboard.press('Enter');
 
     await expect.poll(() => context.pages().length).toBe(initialPages + 1);

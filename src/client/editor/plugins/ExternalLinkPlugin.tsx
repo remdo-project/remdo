@@ -44,8 +44,17 @@ const MODIFIER_KEYS = new Set(['Alt', 'Control', 'Meta', 'Shift']);
 const LEXICAL_LINK_SEPARATOR = /[\s\S]/;
 
 function unwrapLinkNode(node: LinkNode | AutoLinkNode) {
+  const next = node.getNextSibling();
   const parent = node.getParentOrThrow();
   parent.splice(node.getIndexWithinParent(), 1, node.getChildren());
+  if (
+    node instanceof AutoLinkNode
+    && $isTextNode(next)
+    && next.isUnmergeable()
+    && next.getTextContent() === ''
+  ) {
+    next.remove();
+  }
 }
 
 function $hasValidAutomaticLinkStart(node: AutoLinkNode): boolean {
@@ -99,7 +108,10 @@ function $hasValidAutomaticMatchStart(node: TextNode, matchIndex: number, matchT
   return contextual?.index === prefix.length && contextual.length === matchText.length;
 }
 
-function $createAutomaticLinkBeforeInlineBoundary(node: TextNode): AutoLinkNode | null {
+function $createAutomaticLinkBeforeInlineBoundary(
+  node: TextNode,
+  allowLinkBoundary: boolean,
+): AutoLinkNode | null {
   if (node.getParent() instanceof LinkNode) {
     return null;
   }
@@ -108,7 +120,7 @@ function $createAutomaticLinkBeforeInlineBoundary(node: TextNode): AutoLinkNode 
     next === null
     || $isTextNode(next)
     || $isLineBreakNode(next)
-    || next instanceof LinkNode
+    || (!allowLinkBoundary && next instanceof LinkNode)
   ) {
     return null;
   }
@@ -380,6 +392,19 @@ export function ExternalLinkPlugin() {
       }
     };
     const unregisterTextTransform = editor.registerNodeTransform(TextNode, (node) => {
+      const previousBoundaryLink = node.getPreviousSibling();
+      if (
+        node.isUnmergeable()
+        && node.getTextContent() === ''
+        && previousBoundaryLink instanceof AutoLinkNode
+      ) {
+        const boundary = node.getNextSibling();
+        if (boundary === null || $isTextNode(boundary) || $isLineBreakNode(boundary)) {
+          node.remove();
+          previousBoundaryLink.markDirty();
+        }
+        return;
+      }
       preservedInvalidAutomaticLink = null;
       const parent = node.getParent();
       if (parent instanceof AutoLinkNode) {
@@ -433,7 +458,10 @@ export function ExternalLinkPlugin() {
       if (next instanceof AutoLinkNode && !next.getIsUnlinked() && !$hasValidAutomaticLinkStart(next)) {
         unwrapLinkNode(next);
       }
-      const boundaryLink = $createAutomaticLinkBeforeInlineBoundary(latest);
+      const boundaryLink = $createAutomaticLinkBeforeInlineBoundary(
+        latest,
+        deferredMatchOffset === null,
+      );
       if (boundaryLink && $selectionTouchesLink(boundaryLink)) {
         armAutomaticUndo(boundaryLink);
       }

@@ -17,6 +17,7 @@ function toContainerAnchor(container: HTMLElement, root: HTMLElement, targetRect
   const containerRect = container.getBoundingClientRect();
   return {
     left: targetRect.left - containerRect.left + root.scrollLeft,
+    targetTop: targetRect.top - containerRect.top + root.scrollTop,
     top: targetRect.bottom - containerRect.top + root.scrollTop + PICKER_OFFSET_Y,
   };
 }
