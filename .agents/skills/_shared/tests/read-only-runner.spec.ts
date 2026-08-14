@@ -289,9 +289,9 @@ describe('read-only runner CLI', () => {
       'bypassPermissions',
     );
     expect(argv).toContain('--no-session-persistence');
-    // Trusted-prompt level: review keeps every tool, including shell, so it
-    // can inspect Git completely. Restricting tools here would suggest a
-    // boundary the shell defeats anyway.
+    // Claude review keeps every tool, including shell, so it can inspect Git
+    // completely. Restricting tools here would suggest a boundary the shell
+    // defeats anyway.
     expect(argv).not.toContain('--tools');
     expect(argv).not.toContain('--allowedTools');
     expect(argv).not.toContain('--disallowedTools');
@@ -614,17 +614,6 @@ describe('read-only runner CLI', () => {
       }),
       middleResponse: 'Partial finding.',
       diagnostic: 'Claude reported incomplete review execution',
-    },
-    {
-      case: 'an unsuccessful delegated task',
-      event: shellJsonLine({
-        type: 'system',
-        subtype: 'task_notification',
-        status: 'failed',
-        summary: 'Delegated partial finding.',
-      }),
-      middleResponse: 'Delegated partial finding.',
-      diagnostic: 'Claude reported incomplete delegated review execution',
     },
     {
       case: 'malformed JSON',

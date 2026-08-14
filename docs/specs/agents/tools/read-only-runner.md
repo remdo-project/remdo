@@ -105,13 +105,13 @@ authoritative. For Claude, a delegated task's completed notification summary is
 a response; its intermediate assistant and user events are other provider
 traffic. Those are semantic judgements for the review caller.
 
-`complete` is `true` when every provider result and delegated-task notification
-the runner observed was well-formed and successful. Empty successful results
-carry no evidence and are omitted. It does not establish that the responses
-semantically cover the full review scope. When `complete` is `false`,
-`diagnostic` gives a coarse reason and any response text remains usable as
-candidate-finding evidence. When no response text is usable, the runner instead
-returns a failed result with the complete raw output as failure evidence.
+`complete` is `true` when every provider result the runner observed was
+well-formed and successful. Empty successful results carry no evidence and are
+omitted. It does not establish that the responses semantically cover the full
+review scope. When `complete` is `false`, `diagnostic` gives a coarse reason and
+any response text remains usable as candidate-finding evidence. When no response
+text is usable, the runner instead returns a failed result with the complete raw
+output as failure evidence.
 
 When a provider exits successfully but its output does not yield valid review
 evidence, the failure evidence includes that output verbatim after the

@@ -188,10 +188,10 @@ function reviewOutput(stdout: string): RunnerResult {
       event.type === 'system'
       && event.subtype === 'task_notification'
     ) {
-      if (event.status !== 'completed') {
-        diagnostic ??= 'Claude reported incomplete delegated review execution';
-      }
-      if (isNonEmptyString(event.summary)) {
+      if (
+        event.status === 'completed'
+        && isNonEmptyString(event.summary)
+      ) {
         responses.push(event.summary);
       }
       continue;
