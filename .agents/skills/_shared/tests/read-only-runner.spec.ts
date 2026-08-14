@@ -18,7 +18,8 @@ import {
 const runner = path.join(__dirname, '../tools/read-only-runner.ts');
 const reviewInstruction = [
   'Repository tests and checks are handled outside this review.',
-  'Do not run or manually reproduce them.',
+  'Do not run or manually reproduce repository tests or checks, including through ad hoc commands.',
+  'Inspect the complete requested scope and report any material inspection gap.',
   'Review the implementation and test adequacy using repository evidence.',
   'Pass these instructions to every delegated reviewer.',
   'Report any additional runtime check needed and why; do not run it.',
@@ -301,7 +302,12 @@ describe('read-only runner CLI', () => {
     expect(instruction).toContain(
       'Repository tests and checks are handled outside this review.',
     );
-    expect(instruction).toContain('Do not run or manually reproduce them.');
+    expect(instruction).toContain(
+      'Do not run or manually reproduce repository tests or checks, including through ad hoc commands.',
+    );
+    expect(instruction).toContain(
+      'Inspect the complete requested scope and report any material inspection gap.',
+    );
     expect(instruction).toContain(
       'Pass these instructions to every delegated reviewer.',
     );
