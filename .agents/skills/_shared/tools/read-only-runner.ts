@@ -76,7 +76,9 @@ async function repositoryRoot(
   if (outcome.spawnError !== undefined || outcome.exitCode !== 0) {
     return { evidence: 'could not resolve repository root' };
   }
-  const repository = outcome.stdout.trim();
+  const repository = outcome.stdout.endsWith('\n')
+    ? outcome.stdout.slice(0, -1)
+    : outcome.stdout;
   if (repository === '') {
     return { evidence: 'git returned an empty repository root' };
   }

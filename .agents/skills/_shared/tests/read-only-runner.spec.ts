@@ -227,9 +227,12 @@ describe('read-only runner CLI', () => {
     );
 
     expect(result.status).toBe(0);
-    expect(fs.readFileSync(path.join(stub, 'args'), 'utf8')).toMatch(
+    const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
+    expect(args).toMatch(
       /review\n--base\nbase123\n$/u,
     );
+    expect(args).not.toContain('--model\n');
+    expect(args).not.toContain('model_reasoning_effort');
   });
 
   it('maps Claude uncommitted review to literal changed-path targets', () => {
@@ -256,7 +259,15 @@ describe('read-only runner CLI', () => {
 
     const result = runRunner(
       work,
-      ['--effort', 'high', 'claude', 'review', 'uncommitted'],
+      [
+        '--model',
+        'exact model',
+        '--effort',
+        'high',
+        'claude',
+        'review',
+        'uncommitted',
+      ],
       stub,
       {
         GIT_CONFIG_COUNT: '001',
@@ -271,11 +282,13 @@ describe('read-only runner CLI', () => {
 
     expect(result.status).toBe(0);
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
+    expect(args).toContain('--model\nexact model\n');
     expect(args).toContain('--effort\nhigh\n');
     const argv = args.trimEnd().split('\n');
     expect(argumentAfter(argv, '--permission-mode')).toBe(
       'bypassPermissions',
     );
+    expect(argv).toContain('--no-session-persistence');
     // Trusted-prompt level: review keeps every tool, including shell, so it
     // can inspect Git completely. Restricting tools here would suggest a
     // boundary the shell defeats anyway.
@@ -411,7 +424,10 @@ describe('read-only runner CLI', () => {
   it('resolves the immutable current HEAD for Claude commit-range review', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const head = git(work, 'rev-parse', 'HEAD').stdout.trim();
-    const stub = claudeStub([claudeResult('Range clean.')]);
+    const stub = claudeStub([
+      'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
+      claudeResult('Range clean.'),
+    ]);
 
     const result = runRunner(
       work,
@@ -423,6 +439,32 @@ describe('read-only runner CLI', () => {
     expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(
       expectedClaudeReview(`/code-review base123..${head}`),
     );
+    const args = fs.readFileSync(path.join(stub, 'args'), 'utf8')
+      .trimEnd()
+      .split('\n');
+    expect(args).not.toContain('--model');
+    expect(args).not.toContain('--effort');
+  });
+
+  it('preserves repository-root trailing whitespace', () => {
+    const parent = makeDir('runner-whitespace-root-');
+    const work = path.join(parent, 'repository ');
+    fs.mkdirSync(work);
+    git(work, 'init', '--quiet', '--initial-branch=main');
+    writeFile(work, 'tracked.md', 'tracked\n');
+    commitAll(work, 'initial');
+    const stub = reportWritingCodex('Range clean.', [
+      'pwd > "$RUNNER_STUB_CAPTURE/cwd"',
+    ]);
+
+    const result = runRunner(
+      work,
+      ['codex', 'review', 'commit-range', 'base123'],
+      stub,
+    );
+
+    expect(result.status).toBe(0);
+    expect(fs.readFileSync(path.join(stub, 'cwd'), 'utf8')).toBe(`${work}\n`);
   });
 
   // A review reporting the command name is the review's own finding: the

@@ -44,11 +44,14 @@ compliance, so confirmation observes the commands they run.
 
 ## Repository protection
 
-The runner itself writes no repository state and requests non-persistent review.
-Codex requests its native read-only sandbox. Claude retains unrestricted shell
-access so its native review can inspect complete Git history and repository
-state. The runner does not establish a boundary against effects from every
-provider integration or unrestricted shell command.
+The runner writes only Codex's disposable response file under the standard OS
+temporary location and removes its temporary directory before returning. An
+environment-configured temporary location can be inside the repository. The
+runner requests non-persistent review, and Codex requests its native read-only
+sandbox. Claude retains unrestricted shell access so its native review can
+inspect complete Git history and repository state. The runner does not establish
+a boundary against effects from every provider integration or unrestricted
+shell command.
 
 ## Lifecycle
 
