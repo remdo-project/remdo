@@ -171,6 +171,7 @@ function invocationArgs(call: ReviewCall): string[] {
 function reviewOutput(stdout: string): RunnerResult {
   const responses: string[] = [];
   let diagnostic: string | undefined;
+  let sawResult = false;
   const lines = stdout.split(/\r?\n/u).filter(line => line.trim() !== '');
   for (const line of lines) {
     let event: unknown;
@@ -188,10 +189,7 @@ function reviewOutput(stdout: string): RunnerResult {
       event.type === 'system'
       && event.subtype === 'task_notification'
     ) {
-      if (
-        event.status === 'completed'
-        && isNonEmptyString(event.summary)
-      ) {
+      if (isNonEmptyString(event.summary)) {
         responses.push(event.summary);
       }
       continue;
@@ -199,6 +197,7 @@ function reviewOutput(stdout: string): RunnerResult {
     if (event.type !== 'result') {
       continue;
     }
+    sawResult = true;
     if (event.subtype !== 'success' || event.is_error !== false) {
       diagnostic ??= 'Claude reported incomplete review execution';
     }
@@ -207,6 +206,9 @@ function reviewOutput(stdout: string): RunnerResult {
     } else if (typeof event.result !== 'string') {
       diagnostic ??= 'Claude emitted a review result without text';
     }
+  }
+  if (!sawResult) {
+    diagnostic ??= 'Claude completed without a result event';
   }
   if (responses.length === 0) {
     return outputFailure(

@@ -101,17 +101,18 @@ provider order. The runner does not concatenate, summarize, deduplicate, or
 select among them, and does not expose other provider event traffic. A response
 can be a summary, finding, addendum, correction, withdrawal, or lifecycle
 notification; none is guaranteed to be final, complete, exhaustive, or
-authoritative. For Claude, a delegated task's completed notification summary is
-a response; its intermediate assistant and user events are other provider
-traffic. Those are semantic judgements for the review caller.
+authoritative. For Claude, a delegated task's non-empty terminal notification
+summary is a response; its intermediate assistant and user events are other
+provider traffic. The task's status does not determine overall review
+completion. Those are semantic judgements for the review caller.
 
-`complete` is `true` when every provider result the runner observed was
-well-formed and successful. Empty successful results carry no evidence and are
-omitted. It does not establish that the responses semantically cover the full
-review scope. When `complete` is `false`, `diagnostic` gives a coarse reason and
-any response text remains usable as candidate-finding evidence. When no response
-text is usable, the runner instead returns a failed result with the complete raw
-output as failure evidence.
+`complete` is `true` when the runner observed at least one provider result and
+every observed provider result was well-formed and successful. Empty successful
+results carry no evidence and are omitted. It does not establish that the
+responses semantically cover the full review scope. When `complete` is `false`,
+`diagnostic` gives a coarse reason and any response text remains usable as
+candidate-finding evidence. When no response text is usable, the runner instead
+returns a failed result with the complete raw output as failure evidence.
 
 When a provider exits successfully but its output does not yield valid review
 evidence, the failure evidence includes that output verbatim after the

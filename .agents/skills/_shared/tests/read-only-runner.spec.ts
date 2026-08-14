@@ -527,7 +527,7 @@ describe('read-only runner CLI', () => {
     {
       case: 'whitespace-only output',
       body: "printf '   \\n'",
-      evidence: 'completed without a final text response',
+      evidence: 'completed without a result event',
       retained: '   \n',
     },
     {
@@ -582,6 +582,12 @@ describe('read-only runner CLI', () => {
         status: 'completed',
         summary: 'Delegated finding.',
       }),
+      shellJsonLine({
+        type: 'system',
+        subtype: 'task_notification',
+        status: 'failed',
+        summary: 'Delegated partial finding.',
+      }),
       shellJson({
         type: 'result',
         subtype: 'success',
@@ -600,6 +606,7 @@ describe('read-only runner CLI', () => {
     expectReviewEvidence(result.stdout, [
       'Initial summary.',
       'Delegated finding.',
+      'Delegated partial finding.',
       'Late finding.',
     ]);
     const argv = fs.readFileSync(path.join(stub, 'args'), 'utf8')
@@ -609,6 +616,28 @@ describe('read-only runner CLI', () => {
     expect(argv).toContain('--verbose');
     expect(argv).not.toContain('--include-partial-messages');
     expect(argv).not.toContain('--forward-subagent-text');
+  });
+
+  it('marks delegated evidence incomplete without a provider result', () => {
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
+    writeFile(work, 'tracked.md', 'changed\n');
+    const stub = claudeStub([
+      shellJsonLine({
+        type: 'system',
+        subtype: 'task_notification',
+        status: 'completed',
+        summary: 'Delegated finding.',
+      }),
+    ]);
+
+    const result = runRunner(work, ['claude', 'review', 'uncommitted'], stub);
+
+    expect(result.status).toBe(0);
+    expectReviewEvidence(
+      result.stdout,
+      ['Delegated finding.'],
+      'Claude completed without a result event',
+    );
   });
 
   it.each([
