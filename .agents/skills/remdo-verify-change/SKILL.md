@@ -51,26 +51,22 @@ Invoke the shared runner directly with high effort:
 
 Run these commands exactly. The [`read-only runner`](../_shared/tools/read-only-runner.ts) owns the fresh
 session, review scope mapping, [repository protection](../../../docs/specs/agents/tools/read-only-runner.md#repository-protection),
-cancellation, protocol completion, and final-response extraction.
+cancellation, protocol completion, and response extraction.
 
 Reviewer runtime is unspecified. Wait for each managed call's completion
 notification; do not poll it or interpret silence or elapsed time as failure.
 Cancel a review only when the caller or enclosing lifecycle explicitly abandons
 it.
 
-Exit status `2` means the provider or its declared native review capability is
-unavailable. Any other non-zero result is
-failed; treat its output as failure evidence, not as findings. Exit status `0`
-carries the final response. Interpret each whole report: classify it as
-completed only when it represents inspection of the full selected scope. If it
-states or leaves unresolved that full-scope inspection did not occur, classify
-that review as failed and use the report as failure evidence. Do not substitute
-a fixed phrase list for this semantic judgment.
+Classify each runner result under the authoritative specification's
+[`Reviews`](../../../docs/specs/agents/skills/remdo-verify-change.md#reviews)
+contract and retain its complete evidence.
 
 ## Validate findings
 
-After both review attempts finish, classify every finding under the
-authoritative specification's [Findings](../../../docs/specs/agents/skills/remdo-verify-change.md#findings) contract.
+After both review attempts finish, apply the authoritative specification's
+[`Findings`](../../../docs/specs/agents/skills/remdo-verify-change.md#findings)
+contract to their complete evidence.
 
 ## Report
 

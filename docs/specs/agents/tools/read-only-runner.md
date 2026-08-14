@@ -1,20 +1,17 @@
 # Read-only runner
 
-The read-only runner maps one prompt or native review invocation to a fresh
-Codex or Claude CLI session rooted at the caller's current Git repository. It
-owns CLI invocation, repository protection, protocol completion, and
-final-response extraction; callers own the meaning of the response.
+The read-only runner maps one native review invocation to a fresh Codex or
+Claude CLI session rooted at the caller's current Git repository. It owns CLI
+invocation, repository behavior, protocol completion, and response extraction;
+callers own the meaning of the response.
 
 ## Call
 
 ```text
-read-only-runner [options] <agent> <invocation>
+read-only-runner [options] <agent> review <scope>
 ```
 
 - `<agent>`: `codex` or `claude`.
-- `<invocation>`:
-  - `prompt <prompt>`
-  - `review <scope>`
 - `<scope>`: a resolved [change scope](../change-scope.md), encoded as:
   - `uncommitted`
   - `commit-range <base>`
@@ -24,16 +21,12 @@ read-only-runner [options] <agent> <invocation>
 The runner forwards supplied model and effort values to the agent unchanged and
 leaves absent values unset, so the agent applies its own default.
 
-A review caller owns repository verification separately and keeps the resolved
-scope unchanged until the review completes. The runner does not run or validate
-repository checks.
+A review caller owns repository verification separately. The runner does not
+run or validate repository checks.
 
-## Invocations
+## Review
 
-**Prompt.** The runner passes the prompt to the agent's non-interactive session
-unchanged.
-
-**Review.** Each agent's native review inspects the complete resolved scope,
+Each agent's native review inspects the complete resolved scope,
 repository guidance, Git context, and referenced files, and reviews the scope
 the runner resolved rather than one the agent selects itself. **Empirical.** A
 review whose inspection access is incomplete can still report findings and
@@ -50,75 +43,79 @@ compliance, so confirmation observes the commands they run.
 
 ## Repository protection
 
-Repository protection has one target outcome: an invocation leaves the caller's
-Git repository unchanged and does not publish, schedule, or establish persistent
-monitoring, notification, or remote control outside it. **Empirical.** Provider
-documentation defines each restriction in isolation, not whether the combination
-holds for a session that can reach mutation through an unrestricted path, so
-confirmation observes repository and external state. Each invocation provides a
-protection level, fixed by its agent, that states the caller condition for that
-outcome.
-
-An invocation retains the inspection access its task requires, including
-complete Git history and repository state.
-
-The caller chooses an agent whose level suits the prompt it supplies.
-
-### Enforced
-
-Codex invocations are enforced: the invocation cannot change the repository,
-whatever the prompt asks, and the session cannot lift the restriction.
-
-### Trusted prompt
-
-Claude invocations are trusted-prompt: the runner provides the target outcome
-when the prompt does not seek mutation or outside action. Shell access remains
-available so the invocation can inspect Git completely, and a shell reaches any
-effect a restriction on other tools would prevent, so this level offers no
-protection from a prompt that seeks those effects.
-
-The caller supplies a prompt it trusts not to seek those effects and owns that
-judgement. A vendor-owned command documented to inspect and report meets this;
-an untrusted prompt does not.
+The runner writes only Codex's disposable response file under the standard OS
+temporary location and removes its temporary directory before returning. An
+environment-configured temporary location can be inside the repository. The
+runner requests non-persistent review, and Codex requests its native read-only
+sandbox. Claude retains unrestricted shell access so its native review can
+inspect complete Git history and repository state. The runner does not establish
+a boundary against effects from every provider integration or unrestricted
+shell command.
 
 ## Lifecycle
 
-The invocation observes repository state present when it begins. A review
-caller keeps that state unchanged until completion to preserve the resolved
-scope; another caller does so when it requires consistency for the whole invocation.
+The review observes repository state present when it begins. Its caller keeps
+that state unchanged until completion to preserve the resolved scope.
 
 Each invocation makes one attempt in a non-persistent session; retry belongs to
 the caller. The runner waits without a ceiling for background subagents and
-workflows the review delegates to, so their results remain part of the final
-response rather than a pending-task notification. The runner has no execution
-deadline, and neither silence nor elapsed time indicates failure. It runs until
-the agent completes or the caller cancels it. Cancellation ends the agent
-invocation and returns a failed result without a response.
+workflows the review delegates to. The runner has no execution deadline, and
+neither silence nor elapsed time indicates failure. It runs until the agent
+completes or the caller cancels it. Cancellation ends the agent invocation and
+returns a failed result without a response.
 
 ## Result
 
 A result is encoded by the runner's exit status and output:
 
-- `responded`: exit `0` and write only the non-empty complete final text to stdout;
-- `unavailable`: exit `2` and write evidence that the agent CLI or a requested
-  native capability the runner can establish is unavailable to stderr;
+- `responded`: exit `0` and write only the review evidence to stdout;
+- `unavailable`: exit `2` and write evidence that the agent CLI is unavailable
+  to stderr;
 - `failed`: any other non-zero exit and failure evidence on stderr.
 
 `unavailable` and `failed` are [concerns](../protocol.md#concerns).
 
-Only `responded` writes stdout. It confirms transport and response integrity,
-not that the response satisfies the caller's task; the caller owns that
-validation. When a provider process exits unsuccessfully, its failure evidence
-includes any non-empty provider stderr verbatim after the runner-owned summary;
-provider stdout is not failure evidence.
+A `responded` result confirms only that the runner produced a valid
+review-evidence object, not provider transport completion, native-review
+execution, or coverage of the selected scope; the caller judges the evidence.
+When a provider process exits unsuccessfully, its failure evidence includes any
+non-empty provider stderr verbatim after the runner-owned summary; provider
+stdout is not failure evidence.
 
-A provider reports an unresolved native review command as a successful response
-saying the command is unknown, which the runner cannot distinguish from a review
-reporting that text. A `responded` review therefore does not establish that a
-review ran; the caller judges the report.
+Review stdout is one JSON object with this shape:
 
-When a provider exits successfully but its output does not yield a complete
-report, the failure evidence includes that output verbatim after the
+```json
+{
+  "complete": false,
+  "responses": [
+    "First response",
+    "Partial response",
+    "Later response"
+  ],
+  "diagnostic": "provider reported incomplete review execution"
+}
+```
+
+`responses` contains every non-empty review response the provider exposes, in
+provider order. The runner does not concatenate, summarize, deduplicate, or
+select among them, and does not expose other provider event traffic. A response
+can be a summary, finding, addendum, correction, withdrawal, or lifecycle
+notification; none is guaranteed to be final, complete, exhaustive, or
+authoritative. For Claude, a delegated task's non-empty terminal notification
+summary is a response; its intermediate assistant and user events are other
+provider traffic. The task's status does not determine overall review
+completion. Those are semantic judgements for the review caller.
+
+`complete` is `true` when the runner observed at least one provider result and
+every observed provider result was well-formed and successful. Empty successful
+results carry no evidence and are omitted. It does not establish that the
+responses semantically cover the full review scope. When `complete` is `false`,
+`diagnostic` gives a coarse reason and any response text remains usable as
+candidate-finding evidence. When no response text is usable, the runner instead
+returns a failed result with the complete raw output as failure evidence.
+
+When a provider exits successfully but its output does not yield valid review
+evidence, the failure evidence includes that output verbatim after the
 runner-owned summary, so the caller can diagnose an unrecognized protocol shape
 from the failure alone.
 
