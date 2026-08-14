@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { isExactHttpOrigin } from '../../src/platform/net/http-origin.ts';
 import { deriveAuthTrustedOrigins } from './auth-origins.ts';
 import type { ClientKey, EnvKey } from './schema.ts';
 import { CLIENT_KEY_LIST, envSchema } from './schema.ts';
@@ -14,12 +15,6 @@ type ServerEnv = ParsedEnv & {
   MACHINE_HOSTNAME: string;
 };
 type ClientEnv = Pick<ParsedEnv, ClientKey>;
-
-const MIN_AUTH_SECRET_LENGTH = 32;
-
-function isAbsoluteHttpUrl(value: string): boolean {
-  return value.startsWith('http://') || value.startsWith('https://');
-}
 
 function parseValue(key: EnvKey, raw: string | boolean | undefined) {
   // Empty (or whitespace-only) strings fall back to the schema default, so a
@@ -76,12 +71,12 @@ function resolveDevPublicHost(parsed: ParsedEnv, machineHostname: string): strin
   return normalizedHostname;
 }
 
-function resolveAppPublicUrl(
+function resolveAppOrigin(
   parsed: ParsedEnv,
   machineHostname: string,
 ): string {
   if (parsed.NODE_ENV === 'production') {
-    return parsed.APP_PUBLIC_URL;
+    return parsed.APP_ORIGIN;
   }
   if (!parsed.HOST || parsed.PORT === 0) {
     return '';
@@ -100,12 +95,8 @@ function validateProdServer(parsed: ParsedEnv): void {
     return;
   }
 
-  if (parsed.AUTH_SECRET.length < MIN_AUTH_SECRET_LENGTH) {
-    throw new Error(`AUTH_SECRET must be at least ${MIN_AUTH_SECRET_LENGTH} characters long in production.`);
-  }
-
-  if (!parsed.APP_PUBLIC_URL) {
-    throw new Error('APP_PUBLIC_URL is required in production server config.');
+  if (!parsed.APP_ORIGIN) {
+    throw new Error('APP_ORIGIN is required in production server config.');
   }
 
   if (!parsed.ADMIN_SECRET) {
@@ -118,8 +109,8 @@ function validateProdServer(parsed: ParsedEnv): void {
   // process is deliberately started without YSWEET_AUTH_KEY (it only needs the
   // server token), so requiring either key at this boundary would be wrong.
 
-  if (!isAbsoluteHttpUrl(parsed.APP_PUBLIC_URL)) {
-    throw new Error('APP_PUBLIC_URL must be an absolute http(s) URL in production server config.');
+  if (!isExactHttpOrigin(parsed.APP_ORIGIN)) {
+    throw new Error('APP_ORIGIN must be an exact HTTP(S) origin in production server config.');
   }
 }
 
@@ -147,13 +138,13 @@ export function resolveConfig(
   // on the server env so auth can re-derive trusted origins for an overridden
   // baseURL without re-reading node:os.
   const machineHostname = options.machineHostname ?? '';
-  const appPublicUrl = resolveAppPublicUrl(parsed, machineHostname);
+  const appOrigin = resolveAppOrigin(parsed, machineHostname);
   const server: ServerEnv = {
     ...parsed,
-    APP_PUBLIC_URL: appPublicUrl,
+    APP_ORIGIN: appOrigin,
     MACHINE_HOSTNAME: machineHostname,
     AUTH_TRUSTED_ORIGINS: deriveAuthTrustedOrigins({
-      baseURL: appPublicUrl,
+      baseURL: appOrigin,
       isProduction: parsed.NODE_ENV === 'production',
       hostname: machineHostname,
       previewPort: parsed.PREVIEW_PORT,

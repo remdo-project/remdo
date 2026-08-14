@@ -6,16 +6,31 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+  dockerEnvironment,
+  dockerOptionValues,
+  findDockerCall,
+  parseDockerCalls,
+} from './_support/docker-calls';
 import { writeFakeBin } from './_support/fake-bins';
 
 function writeFakeDocker(binDir: string): void {
-  writeFakeBin(binDir, 'docker', `printf '%s\\n' "$*" >> "\${REMDO_FAKE_DOCKER_LOG:?}"
+  writeFakeBin(binDir, 'docker', `printf '%s\\0' "$#" "$@" >> "\${REMDO_FAKE_DOCKER_LOG:?}"
 case "$1" in
-  build|run)
+  build)
+    exit "\${REMDO_FAKE_DOCKER_BUILD_STATUS:-0}"
     ;;
-  info)
-    # GitHub's standard Docker daemon is rootful.
-    printf '%s\\n' '[]'
+  container)
+    [ "$2" = inspect ]
+    [ "\${REMDO_FAKE_CONTAINER_EXISTS:-false}" = true ]
+    [ ! -e "\${REMDO_FAKE_DOCKER_STOPPED:?}" ]
+    ;;
+  stop)
+    : > "\${REMDO_FAKE_DOCKER_STOPPED:?}"
+    ;;
+  rm)
+    ;;
+  run)
     ;;
   *)
     echo "unexpected docker command: $1" >&2
@@ -28,7 +43,7 @@ esac
 interface LauncherRun {
   dataDir: string;
   result: SpawnSyncReturns<string>;
-  dockerCalls: string;
+  dockerCalls: string[][];
 }
 
 describe('prod Docker launcher', () => {
@@ -44,12 +59,13 @@ describe('prod Docker launcher', () => {
     }
   });
 
-  function runLauncher(overrides: Record<string, string>): LauncherRun {
+  function runLauncher(overrides: Record<string, string> = {}): LauncherRun {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-prod-docker-launcher-'));
     tempDirs.push(tempDir);
     const binDir = path.join(tempDir, 'bin');
     const dataDir = path.join(tempDir, 'data');
     const dockerLog = path.join(tempDir, 'docker.log');
+    const dockerStopped = path.join(tempDir, 'docker.stopped');
     fs.mkdirSync(binDir);
     writeFakeDocker(binDir);
 
@@ -59,147 +75,178 @@ describe('prod Docker launcher', () => {
       env: {
         ...process.env,
         ADMIN_SECRET: 'production-admin-secret-0123456789',
+        ALLOW_SIGNUP: '',
+        APP_ORIGIN: 'https://remdo.localhost:8443',
         AUTH_SECRET: 'production-auth-secret-0123456789',
+        CADDY_BIND_DIRECTIVE: 'bind 0.0.0.0',
+        CADDY_SITE_ADDRESS: 'http://:9998',
         DATA_DIR: dataDir,
-        HOSTNAME: 'remdo-test',
+        HOST: '',
         PATH: `${binDir}:${process.env.PATH}`,
+        PORT: '9999',
+        PORT_BASE: '9000',
+        REMDO_DOCKER_NETWORK: 'host',
         REMDO_FAKE_DOCKER_LOG: dockerLog,
+        REMDO_FAKE_DOCKER_STOPPED: dockerStopped,
+        REMDO_GATEWAY_BIND_ADDRESS: '127.0.0.1',
         YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
         YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
-        // Neutralize every port-related input so the run is hermetic against
-        // the developer's shell and the repo .env (empty string counts as set).
-        APP_PUBLIC_URL: '',
-        PORT: '',
-        PORT_BASE: '',
         ...overrides,
       },
     });
 
-    const dockerCalls = result.status === 0 ? fs.readFileSync(dockerLog, 'utf8') : '';
+    const dockerCalls = fs.existsSync(dockerLog) ? parseDockerCalls(fs.readFileSync(dockerLog, 'utf8')) : [];
     return { dataDir, result, dockerCalls };
   }
 
-  it('defaults the listen PORT to 8080 and derives the target from it', () => {
-    // No PORT and no APP_PUBLIC_URL: PORT is an independent prod input that
-    // defaults to 8080, and the launcher derives APP_PUBLIC_URL = https://<host>:<PORT>.
-    const { dataDir, result, dockerCalls } = runLauncher({
-      PORT_BASE: '4000',
+  it('publishes only the canonical gateway port on loopback by default', () => {
+    const { dataDir, result, dockerCalls } = runLauncher();
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain('Docker target: https://remdo.localhost:8443');
+    expect(dockerCalls.some(([command]) => command === 'build')).toBe(true);
+    const runArgs = findDockerCall(dockerCalls, 'run');
+
+    expect(dockerOptionValues(runArgs, '--name')).toEqual(['remdo-8443']);
+    expect(dockerOptionValues(runArgs, '-p')).toEqual(['127.0.0.1:8443:8443']);
+    expect(dockerOptionValues(runArgs, '-v')).toEqual([`${dataDir}:/data`]);
+    expect(runArgs).not.toContain('--network=host');
+    expect(dockerEnvironment(runArgs)).toEqual({
+      ADMIN_SECRET: 'production-admin-secret-0123456789',
+      APP_ORIGIN: 'https://remdo.localhost:8443',
+      ALLOW_SIGNUP: 'false',
+      AUTH_SECRET: 'production-auth-secret-0123456789',
+      YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
+      YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
     });
-
-    expect(result.status).toBe(0);
-    expect(result.stderr).not.toContain('blocked by Chromium');
-    expect(result.stdout).toContain('Docker target: https://remdo-test.shared:8080');
-
-    expect(dockerCalls).toContain('build ');
-    expect(dockerCalls).toContain('run ');
-    expect(dockerCalls).toContain('-e PORT_BASE=4000');
-    expect(dockerCalls).toContain('-e PORT=8080');
-    expect(dockerCalls).toContain('-p 8080:8080');
-    expect(dockerCalls).toContain(`-v ${dataDir}:/data`);
   });
 
-  it('honors an explicit PORT and derives the target from it', () => {
+  it('starts cleanly without stopping a container that does not exist', () => {
+    const { result, dockerCalls } = runLauncher();
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerCalls.map(([command]) => command)).toEqual(['build', 'container', 'run']);
+    expect(dockerCalls[1]).toEqual(['container', 'inspect', 'remdo-8443']);
+  });
+
+  it('replaces only the port-derived container after a successful build', () => {
+    const { result, dockerCalls } = runLauncher({ REMDO_FAKE_CONTAINER_EXISTS: 'true' });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerCalls.map(([command]) => command)).toEqual([
+      'build',
+      'container',
+      'stop',
+      'rm',
+      'container',
+      'run',
+    ]);
+    expect(findDockerCall(dockerCalls, 'stop')).toEqual(['stop', 'remdo-8443']);
+    expect(findDockerCall(dockerCalls, 'rm')).toEqual(['rm', 'remdo-8443']);
+    expect(dockerOptionValues(findDockerCall(dockerCalls, 'run'), '--name')).toEqual(['remdo-8443']);
+  });
+
+  it('leaves the existing container running when the image build fails', () => {
     const { result, dockerCalls } = runLauncher({
-      PORT_BASE: '4000',
-      PORT: '9090',
+      REMDO_FAKE_CONTAINER_EXISTS: 'true',
+      REMDO_FAKE_DOCKER_BUILD_STATUS: '23',
     });
 
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Docker target: https://remdo-test.shared:9090');
-    expect(dockerCalls).toContain('-e PORT=9090');
-    expect(dockerCalls).toContain('-p 9090:9090');
+    expect(result.status).toBe(23);
+    expect(dockerCalls).toHaveLength(1);
+    expect(dockerCalls[0]?.[0]).toBe('build');
   });
 
-  it('does not derive PORT from APP_PUBLIC_URL', () => {
-    // APP_PUBLIC_URL is the public identity only; its :443 must not change the
-    // browser-facing bind PORT, which stays at the independent default 8080.
+  it('publishes the canonical default HTTPS port on every IPv4 interface when requested', () => {
     const { result, dockerCalls } = runLauncher({
-      PORT_BASE: '4000',
-      APP_PUBLIC_URL: 'https://remdo-test.example:443',
+      APP_ORIGIN: 'https://remdo.example.com',
+      HOST: '0.0.0.0',
     });
 
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Docker target: https://remdo-test.example:443');
-    expect(dockerCalls).toContain('-e APP_PUBLIC_URL=https://remdo-test.example:443');
-    expect(dockerCalls).toContain('-e PORT=8080');
-    expect(dockerCalls).toContain('-p 8080:8080');
+    expect(result.status, result.stderr).toBe(0);
+    const runArgs = findDockerCall(dockerCalls, 'run');
+    expect(dockerOptionValues(runArgs, '-p')).toEqual(['0.0.0.0:443:443']);
   });
 
-  it('uses an explicit APP_PUBLIC_URL as-is while PORT stays independent', () => {
+  it('rejects a missing or non-canonical HTTPS public origin before building', () => {
+    for (const appOrigin of [
+      '',
+      'http://remdo.example.com',
+      'https://remdo.example.com/path',
+    ]) {
+      const { result, dockerCalls } = runLauncher({ APP_ORIGIN: appOrigin });
+
+      expect(result.status).not.toBe(0);
+      expect(dockerCalls).toEqual([]);
+    }
+  });
+
+  it('requires persistent data and strong operator secrets before building', () => {
+    for (const [name, value, message] of [
+      ['DATA_DIR', '', 'Set DATA_DIR'],
+      ['ADMIN_SECRET', 'short', 'ADMIN_SECRET must be at least 32 characters'],
+      ['AUTH_SECRET', 'short', 'AUTH_SECRET must be at least 32 characters'],
+    ] as const) {
+      const { result, dockerCalls } = runLauncher({ [name]: value });
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(message);
+      expect(dockerCalls).toEqual([]);
+    }
+  });
+
+  it('rejects every production HOST except loopback and the IPv4 wildcard', () => {
+    for (const host of ['localhost', '192.0.2.10', '::1']) {
+      const { result, dockerCalls } = runLauncher({ HOST: host });
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain('HOST must be 127.0.0.1 or 0.0.0.0 in production');
+      expect(dockerCalls).toEqual([]);
+    }
+  });
+
+  it('rejects direct exposure on a nonstandard HTTPS port', () => {
+    const { result, dockerCalls } = runLauncher({ HOST: '0.0.0.0' });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('requires APP_ORIGIN to use the default HTTPS port 443');
+    expect(dockerCalls).toEqual([]);
+  });
+
+  it('rejects ports reserved for container-internal services', () => {
+    for (const port of ['4004', '4011']) {
+      const { result, dockerCalls } = runLauncher({
+        APP_ORIGIN: `https://remdo.localhost:${port}`,
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(`container-reserved port ${port}`);
+      expect(dockerCalls).toEqual([]);
+    }
+  });
+
+  it('omits bootstrap-managed secrets when unset', () => {
     const { result, dockerCalls } = runLauncher({
-      PORT_BASE: '4000',
-      PORT: '8080',
-      APP_PUBLIC_URL: 'https://remdo.example.com',
-    });
-
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Docker target: https://remdo.example.com');
-    expect(dockerCalls).toContain('-e APP_PUBLIC_URL=https://remdo.example.com');
-    expect(dockerCalls).toContain('-e PORT=8080');
-    expect(dockerCalls).toContain('-p 8080:8080');
-  });
-
-  it('warns (without failing) when APP_PUBLIC_URL advertises a port != the bind PORT', () => {
-    const { result } = runLauncher({
-      PORT_BASE: '4000',
-      PORT: '8080',
-      APP_PUBLIC_URL: 'https://remdo.example.com:8443',
-    });
-
-    expect(result.status).toBe(0);
-    expect(result.stderr).toContain('APP_PUBLIC_URL port (8443) differs from the gateway PORT (8080)');
-  });
-
-  it('does not warn for a default-port (proxy-fronted) APP_PUBLIC_URL', () => {
-    const { result } = runLauncher({
-      PORT_BASE: '4000',
-      PORT: '8080',
-      APP_PUBLIC_URL: 'https://remdo.example.com',
-    });
-
-    expect(result.status).toBe(0);
-    expect(result.stderr).not.toContain('differs from the gateway PORT');
-  });
-
-  it('forwards AUTH_SECRET and the Y-Sweet pair to the container when set', () => {
-    // runLauncher passes all three secrets by default; assert they reach docker.
-    const { result, dockerCalls } = runLauncher({
-      PORT_BASE: '4000',
-    });
-
-    expect(result.status).toBe(0);
-    expect(dockerCalls).toContain('-e ADMIN_SECRET=production-admin-secret-0123456789');
-    expect(dockerCalls).toContain('-e AUTH_SECRET=production-auth-secret-0123456789');
-    expect(dockerCalls).toContain('-e YSWEET_AUTH_KEY=production-ysweet-auth-key');
-    expect(dockerCalls).toContain('-e YSWEET_SERVER_TOKEN=production-ysweet-server-token');
-  });
-
-  it('omits the bootstrap-managed secrets when unset, so the in-container bootstrap runs', () => {
-    // Empty values count as unset; only ADMIN_SECRET (required) is forwarded, the
-    // rest are left for the container to bootstrap from its persistent DATA_DIR.
-    const { result, dockerCalls } = runLauncher({
-      PORT_BASE: '4000',
       AUTH_SECRET: '',
       YSWEET_AUTH_KEY: '',
       YSWEET_SERVER_TOKEN: '',
     });
 
-    expect(result.status).toBe(0);
-    expect(dockerCalls).toContain('-e ADMIN_SECRET=production-admin-secret-0123456789');
-    expect(dockerCalls).not.toContain('-e AUTH_SECRET=');
-    expect(dockerCalls).not.toContain('-e YSWEET_AUTH_KEY=');
-    expect(dockerCalls).not.toContain('-e YSWEET_SERVER_TOKEN=');
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toEqual({
+      ADMIN_SECRET: 'production-admin-secret-0123456789',
+      APP_ORIGIN: 'https://remdo.localhost:8443',
+      ALLOW_SIGNUP: 'false',
+    });
   });
 
-  it('aborts when the browser-facing PORT is a Chromium-blocked port', () => {
-    // 6666 is on Chromium's blocked list; serving the public site there would
-    // give real users ERR_UNSAFE_PORT, so the launcher must refuse to start.
-    const { result } = runLauncher({
-      PORT_BASE: '4000',
-      PORT: '6666',
+  it('rejects a browser-blocked port derived from the public origin', () => {
+    const { result, dockerCalls } = runLauncher({
+      APP_ORIGIN: 'https://remdo.localhost:6666',
     });
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('Port 6666 is blocked by Chromium');
+    expect(dockerCalls).toEqual([]);
   });
 });

@@ -20,7 +20,7 @@ const TEST_USER = {
 } as const;
 export const TEST_ADMIN_SECRET = 'test-admin-secret-0123456789';
 // The harness's own canonical origin — an explicit override, deliberately not the
-// env APP_PUBLIC_URL, so tests exercise instance-scoped baseURL wiring.
+// env APP_ORIGIN, so tests exercise instance-scoped baseURL wiring.
 const TEST_BASE_URL = 'http://127.0.0.1:4000';
 
 export function createServerAppHarness({

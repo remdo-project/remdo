@@ -50,40 +50,18 @@ remdo_require_rootless_host_network() {
   fi
 }
 
-remdo_detect_docker_public_host() {
-  local detected_host="${HOSTNAME:-}"
-
-  if [[ -z "${detected_host}" ]] && command -v hostname >/dev/null 2>&1; then
-    detected_host="$(hostname 2>/dev/null || true)"
-  fi
-
-  detected_host="$(printf '%s' "${detected_host}" | tr '[:upper:]' '[:lower:]')"
-  detected_host="${detected_host%.}"
-
-  case "${detected_host}" in
-    ""|localhost|localhost.localdomain|localdomain)
-      echo "Failed to detect a Docker public hostname. Set the VM hostname first." >&2
-      return 1
-      ;;
-    *.*)
-      printf '%s\n' "${detected_host}"
-      return 0
-      ;;
-    *)
-      printf '%s.shared\n' "${detected_host}"
-      return 0
-      ;;
-  esac
-}
-
-remdo_configure_docker_runtime() {
-  local public_host="${1:-}"
-
-  if [[ -z "${public_host}" ]]; then
-    public_host="$(remdo_detect_docker_public_host)"
-  fi
-
-  export APP_PUBLIC_URL="https://${public_host}:${PORT}"
+remdo_https_origin_port() {
+  node -e '
+    const value = process.argv[1];
+    try {
+      const url = new URL(value);
+      if (url.protocol !== "https:" || url.origin !== value) throw new Error();
+      process.stdout.write(url.port || "443");
+    } catch {
+      console.error("APP_ORIGIN must be an exact HTTPS origin.");
+      process.exit(1);
+    }
+  ' "$1"
 }
 
 remdo_docker_run() {

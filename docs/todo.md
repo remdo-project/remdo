@@ -98,28 +98,14 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Operations
 
-- **Production Docker deployment contract.** Reassess the supported [production deployments](guides/production-deployment.md),
-  [runtime configuration](specs/runtime/configuration.md), gateway behavior,
-  and container topology as one system. Start with host/container exposure
-  ownership, then determine the smallest coherent and secure division among
-  operator inputs, launcher-derived values, and container-owned details.
-  Treat existing support as evidence, not a retention requirement under the
+- **Production container topology.** Evaluate moving from the current
+  single-container production bundle to one process per container. Favor the
+  simplest end state consistent with current scenarios; existing support is
+  evidence, not a retention requirement under the
   [pre-1.0 compatibility policy](../CONTRIBUTING.md#backward-compatibility-pre-10).
-  For every setting, default, derivation, deployment mode, or topology whose
-  removal or internalization would simplify the operator surface,
-  implementation, or verification, explicitly present the capability lost and
-  its security or operational tradeoff. Retain it only when a current scenario
-  justifies that cost.
-
-  While production remains a single container, retain Caddy as the
-  [gateway](architecture.md#gateway) implementation. Evaluate
-  direct-public, private internal-CA, and externally terminated HTTPS as
-  candidate modes rather than assuming all must remain; for retained modes, use
-  the simplest Caddy configuration and automatic certificate management where
-  applicable. Evaluate a one-process-per-container deployment separately and
-  remove obsolete configuration, launch, lifecycle, test, and documentation
-  machinery when its responsibilities move elsewhere. Align the resulting
-  contracts, runtime boundaries, verification, and deployment guidance.
+  Explicitly raise capability, security, and operational tradeoffs before
+  retaining or dropping machinery, then align settings, runtime boundaries,
+  verification, and deployment guidance with the selected topology.
 
 - **Hosted production backups.** Define the scheduled backup and recovery
   workflow for hosted deployments, then align `docker/Dockerfile`,
