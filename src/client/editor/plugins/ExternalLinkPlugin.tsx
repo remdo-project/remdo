@@ -2,7 +2,6 @@ import { $createAutoLinkNode, AutoLinkNode, LinkNode, registerAutoLink } from '@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $addUpdateTag,
-  $createTextNode,
   $getNodeByKey,
   $getSelection,
   $hasUpdateTag,
@@ -44,17 +43,8 @@ const MODIFIER_KEYS = new Set(['Alt', 'Control', 'Meta', 'Shift']);
 const LEXICAL_LINK_SEPARATOR = /[\s\S]/;
 
 function unwrapLinkNode(node: LinkNode | AutoLinkNode) {
-  const next = node.getNextSibling();
   const parent = node.getParentOrThrow();
   parent.splice(node.getIndexWithinParent(), 1, node.getChildren());
-  if (
-    node instanceof AutoLinkNode
-    && $isTextNode(next)
-    && next.isUnmergeable()
-    && next.getTextContent() === ''
-  ) {
-    next.remove();
-  }
 }
 
 function $hasValidAutomaticLinkStart(node: AutoLinkNode): boolean {
@@ -90,57 +80,6 @@ function $hasValidAutomaticLinkEnd(node: AutoLinkNode, next: TextNode): boolean 
   const text = node.getTextContent();
   const match = automaticGenericLinkMatcher(`${text}${next.getTextContent()}`);
   return match?.index === 0 && match.length === text.length;
-}
-
-function $hasValidAutomaticMatchStart(node: TextNode, matchIndex: number, matchText: string): boolean {
-  if (matchIndex > 0) {
-    return true;
-  }
-  const previous = node.getPreviousSibling();
-  if (previous === null || $isLineBreakNode(previous)) {
-    return true;
-  }
-  if (!$isTextNode(previous)) {
-    return false;
-  }
-  const prefix = previous.getTextContent().at(-1) ?? '';
-  const contextual = automaticGenericLinkMatcher(`${prefix}${matchText}`);
-  return contextual?.index === prefix.length && contextual.length === matchText.length;
-}
-
-function $createAutomaticLinkBeforeInlineBoundary(
-  node: TextNode,
-  allowLinkBoundary: boolean,
-): AutoLinkNode | null {
-  if (node.getParent() instanceof LinkNode) {
-    return null;
-  }
-  const next = node.getNextSibling();
-  if (
-    next === null
-    || $isTextNode(next)
-    || $isLineBreakNode(next)
-    || (!allowLinkBoundary && next instanceof LinkNode)
-  ) {
-    return null;
-  }
-  const text = node.getTextContent();
-  const match = automaticGenericLinkMatcher(text);
-  if (
-    !match
-    || match.index + match.length !== text.length
-    || !$hasValidAutomaticMatchStart(node, match.index, match.text)
-  ) {
-    return null;
-  }
-  const matchingNode = match.index === 0 ? node : node.splitText(match.index)[1]!;
-  const link = $createAutoLinkNode(match.url, match.attributes);
-  matchingNode.replace(link);
-  link.append(matchingNode);
-  // Lexical only keeps automatic links before text or line-break boundaries.
-  // Preserve RemDo's inline-node boundary with an empty, non-merging text node.
-  link.insertAfter($createTextNode('').toggleUnmergeable());
-  return link;
 }
 
 function $suppressInvalidLink(node: LinkNode | AutoLinkNode) {
@@ -392,19 +331,6 @@ export function ExternalLinkPlugin() {
       }
     };
     const unregisterTextTransform = editor.registerNodeTransform(TextNode, (node) => {
-      const previousBoundaryLink = node.getPreviousSibling();
-      if (
-        node.isUnmergeable()
-        && node.getTextContent() === ''
-        && previousBoundaryLink instanceof AutoLinkNode
-      ) {
-        const boundary = node.getNextSibling();
-        if (boundary === null || $isTextNode(boundary) || $isLineBreakNode(boundary)) {
-          node.remove();
-          previousBoundaryLink.markDirty();
-        }
-        return;
-      }
       preservedInvalidAutomaticLink = null;
       const parent = node.getParent();
       if (parent instanceof AutoLinkNode) {
@@ -457,13 +383,6 @@ export function ExternalLinkPlugin() {
       const next = latest.getNextSibling();
       if (next instanceof AutoLinkNode && !next.getIsUnlinked() && !$hasValidAutomaticLinkStart(next)) {
         unwrapLinkNode(next);
-      }
-      const boundaryLink = $createAutomaticLinkBeforeInlineBoundary(
-        latest,
-        deferredMatchOffset === null,
-      );
-      if (boundaryLink && $selectionTouchesLink(boundaryLink)) {
-        armAutomaticUndo(boundaryLink);
       }
     });
     const $updateTypedCandidateDeferral = (defer: boolean) => {

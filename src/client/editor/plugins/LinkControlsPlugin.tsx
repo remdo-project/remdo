@@ -251,6 +251,9 @@ function $resolveTargetSelection(target: LinkAuthoringTarget): RangeSelection | 
     if (!(link instanceof LinkNode) || $isNoteLinkNode(link)) {
       return null;
     }
+    if (link instanceof AutoLinkNode && link.getIsUnlinked()) {
+      return null;
+    }
     if (link.getTextContent() !== target.text || link.getURL() !== target.url) {
       return null;
     }

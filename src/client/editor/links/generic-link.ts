@@ -293,8 +293,9 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
   }
 
   const matches = linkify.match(text) ?? [] as LinkifyMatch[];
+  let rejectedCandidateEnd = 0;
   for (const match of matches) {
-    if (!hasAutomaticStartBoundary(text, match.index)) {
+    if (match.index < rejectedCandidateEnd || !hasAutomaticStartBoundary(text, match.index)) {
       continue;
     }
     const candidate = automaticCandidateFrom(text, match.index);
@@ -308,12 +309,14 @@ export const automaticGenericLinkMatcher: LinkMatcher = (text) => {
       && email.index < candidateEnd;
     const destination = normalizeAutomaticMatch(match, candidate);
     if (!destination) {
+      rejectedCandidateEnd = Math.max(rejectedCandidateEnd, candidateEnd);
       if (containsEmail) {
         email = null;
       }
       continue;
     }
     if (containsAnotherMatch && !nestedMatchesAreInUrlSuffix(candidate, match, matches)) {
+      rejectedCandidateEnd = Math.max(rejectedCandidateEnd, candidateEnd);
       if (containsEmail) {
         email = null;
       }

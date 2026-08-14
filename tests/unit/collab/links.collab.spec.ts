@@ -1,8 +1,9 @@
 import { $isAutoLinkNode } from '@lexical/link';
 import { act, fireEvent, waitFor } from '@testing-library/react';
-import { $isTextNode, UNDO_COMMAND } from 'lexical';
+import { $createTextNode, $isTextNode, UNDO_COMMAND } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
+import { $createDateNode } from '#client/editor/features/date/date-node';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import {
   $getAutomaticLinkUnlinkedText,
@@ -73,6 +74,45 @@ describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
 
     await waitFor(() => {
       expect(document.querySelector('[data-link-controls]')).toBeNull();
+    });
+  });
+
+  it('closes pinned controls when a peer suppresses the automatic link', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const secondary = await createCollabPeer(remdo);
+    const url = 'https://example.com/';
+    await selectEntireNote(remdo, 'note1');
+    await typeText(remdo, url);
+    await typeText(remdo, ' ');
+    await waitFor(() => {
+      expect(readAutomaticLink(secondary)).toMatchObject({ isUnlinked: false, text: url });
+    });
+    await act(async () => fireEvent.click(remdo.editor.getRootElement()!.querySelector('a')!, { detail: 1 }));
+    expect(document.querySelector('[data-link-controls]')).not.toBeNull();
+
+    await secondary.mutate(() => {
+      $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!.setIsUnlinked(true);
+    });
+
+    await waitFor(() => {
+      expect(readAutomaticLink(remdo)?.isUnlinked).toBe(true);
+      expect(document.querySelector('[data-link-controls]')).toBeNull();
+    });
+  });
+
+  it('synchronizes an automatic link before an inline date boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const secondary = await createCollabPeer(remdo);
+    const url = 'https://example.com/';
+    await secondary.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const text = $createTextNode(url);
+      note.clear();
+      note.append(text, $createDateNode('2026-08-14'));
+      text.markDirty();
+    });
+
+    await waitFor(() => {
+      expect(readAutomaticLink(remdo)).toMatchObject({ isUnlinked: false, text: url, url });
+      expect(readAutomaticLink(secondary)).toMatchObject({ isUnlinked: false, text: url, url });
     });
   });
 

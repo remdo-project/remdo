@@ -255,6 +255,7 @@ overrides:
 packageExtensionsChecksum: sha256-zl8DYLNKOFD2VSyV8Kqvl6CxA6aolU7BuOLdA+lIoaM=
 
 patchedDependencies:
+  '@lexical/link@0.45.0': 3eeed690e7f31dcc16cd37655bb1c532d6f0c0e42bbf6ccbe23e3fa0a2cb74df
   '@lexical/yjs@0.45.0': 3d1e0bf6618539c7ad5fc3ac5f86621ac7e1fc08b24b7924c462f3d2c9076df9
 
 importers:
@@ -275,7 +276,7 @@ importers:
         version: 0.45.0
       '@lexical/link':
         specifier: 'catalog:'
-        version: 0.45.0
+        version: 0.45.0(patch_hash=3eeed690e7f31dcc16cd37655bb1c532d6f0c0e42bbf6ccbe23e3fa0a2cb74df)
       '@lexical/list':
         specifier: 'catalog:'
         version: 0.45.0
@@ -7154,7 +7155,7 @@ snapshots:
   '@lexical/devtools-core@0.45.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@lexical/html': 0.45.0
-      '@lexical/link': 0.45.0
+      '@lexical/link': 0.45.0(patch_hash=3eeed690e7f31dcc16cd37655bb1c532d6f0c0e42bbf6ccbe23e3fa0a2cb74df)
       '@lexical/mark': 0.45.0
       '@lexical/table': 0.45.0
       '@lexical/utils': 0.45.0
@@ -7200,7 +7201,7 @@ snapshots:
 
   '@lexical/internal@0.45.0': {}
 
-  '@lexical/link@0.45.0':
+  '@lexical/link@0.45.0(patch_hash=3eeed690e7f31dcc16cd37655bb1c532d6f0c0e42bbf6ccbe23e3fa0a2cb74df)':
     dependencies:
       '@lexical/extension': 0.45.0
       '@lexical/html': 0.45.0
@@ -7225,7 +7226,7 @@ snapshots:
     dependencies:
       '@lexical/code-core': 0.45.0
       '@lexical/internal': 0.45.0
-      '@lexical/link': 0.45.0
+      '@lexical/link': 0.45.0(patch_hash=3eeed690e7f31dcc16cd37655bb1c532d6f0c0e42bbf6ccbe23e3fa0a2cb74df)
       '@lexical/list': 0.45.0
       '@lexical/rich-text': 0.45.0
       '@lexical/selection': 0.45.0
@@ -7255,7 +7256,7 @@ snapshots:
       '@lexical/hashtag': 0.45.0
       '@lexical/history': 0.45.0
       '@lexical/internal': 0.45.0
-      '@lexical/link': 0.45.0
+      '@lexical/link': 0.45.0(patch_hash=3eeed690e7f31dcc16cd37655bb1c532d6f0c0e42bbf6ccbe23e3fa0a2cb74df)
       '@lexical/list': 0.45.0
       '@lexical/mark': 0.45.0
       '@lexical/markdown': 0.45.0

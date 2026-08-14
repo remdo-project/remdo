@@ -58,6 +58,9 @@ overrides:
   undici: '>=7.29.0'
 
 patchedDependencies:
+  # Automatic links may end at an inline decorator or inline element.
+  # Regression: tests/unit/links.spec.ts.
+  '@lexical/link@0.45.0': patches/@lexical__link@0.45.0.patch
   # Lexical V2 must ignore remote cursors mapped only to deleted text nodes.
   # Regression: tests/unit/collab/lexical-yjs-cursor-sync.collab.spec.ts.
   '@lexical/yjs@0.45.0': patches/@lexical__yjs@0.45.0.patch

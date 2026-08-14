@@ -1799,7 +1799,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it('removes an automatic boundary node when its inline boundary disappears', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('re-evaluates an automatic link when its inline boundary disappears', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const url = 'https://example.com/';
     await remdo.mutate(() => {
       const note = $findNoteById('note1')!;
@@ -1821,7 +1821,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it('does not retain an empty boundary node when automatic recognition is rejected', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('does not recognize a candidate between inline boundaries', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
       const note = $findNoteById('note1')!;
       const candidate = $createTextNode('https://example.com/');
@@ -2407,6 +2407,21 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
       expect(note.getTextContent()).toBe(`${url} `);
+      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
+    });
+  });
+
+  it('leaves a rejected composite candidate entirely as text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const candidate = 'user@example.com(https://other.com)';
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, `${candidate} `);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe(`${candidate} `);
       expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
   });
