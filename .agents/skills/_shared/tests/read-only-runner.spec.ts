@@ -1,6 +1,7 @@
 /* eslint-disable node/no-process-env */
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -10,7 +11,6 @@ import {
   git,
   makeBareMain,
   makeDir,
-  makeExternalBareMain,
   waitForPath,
   writeFile,
 } from '../test-support/git-scratch';
@@ -35,18 +35,7 @@ function executable(dir: string, name: string, lines: string[]): void {
 
 function codexStub(lines: string[]): string {
   const dir = makeDir('runner-codex-stub-');
-  executable(dir, 'codex', [
-    'if [ "$*" = "exec review --help" ]; then',
-    '  printf probed > "$RUNNER_STUB_CAPTURE/probe"',
-    '  exit 0',
-    'fi',
-    'if [ "$1" = "mcp" ] && [ "$2" = "list" ]; then',
-    '  printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/mcp-args"',
-    '  printf \'%s\' "$' + '{RUNNER_STUB_MCP_LIST:-[]}"',
-    '  exit "$' + '{RUNNER_STUB_MCP_STATUS:-0}"',
-    'fi',
-    ...lines,
-  ]);
+  executable(dir, 'codex', lines);
   return dir;
 }
 
@@ -82,7 +71,7 @@ function expectReviewEvidence(
   responses: string[],
   diagnostic?: string,
 ): void {
-  expect(JSON.parse(output.toString())).toEqual({
+  expect(JSON.parse(output)).toEqual({
     complete: diagnostic === undefined,
     responses,
     ...(diagnostic !== undefined ? { diagnostic } : {}),
@@ -155,15 +144,14 @@ afterEach(cleanupTempDirs);
 describe('read-only runner CLI', () => {
   const invalidCalls: string[][] = [
     [],
-    ['--unknown', 'value', 'codex', 'prompt', 'inspect'],
-    ['--model', 'one', '--model', 'two', 'codex', 'prompt', 'inspect'],
-    ['--effort', 'one', '--effort', 'two', 'codex', 'prompt', 'inspect'],
+    ['--unknown', 'value', 'codex', 'review', 'uncommitted'],
+    ['--model', 'one', '--model', 'two', 'codex', 'review', 'uncommitted'],
+    ['--effort', 'one', '--effort', 'two', 'codex', 'review', 'uncommitted'],
     ['--model'],
-    ['other', 'prompt', 'inspect'],
+    ['other', 'review', 'uncommitted'],
     ['codex'],
-    ['codex', '--model', 'other', 'prompt', 'inspect'],
-    ['codex', 'prompt'],
-    ['codex', 'prompt', 'one', 'two'],
+    ['codex', '--model', 'other', 'review', 'uncommitted'],
+    ['codex', 'prompt', 'inspect'],
     ['claude', 'review'],
     ['claude', 'review', 'other'],
     ['claude', 'review', 'uncommitted', 'extra'],
@@ -182,28 +170,27 @@ describe('read-only runner CLI', () => {
     },
   );
 
-  it('forwards a Codex prompt and exact settings through fixed safety arguments', () => {
+  it('uses native Codex uncommitted review with fixed safeguards and settings', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
-    const stub = reportWritingCodex(' \nFinal response without newline');
-    const model = 'model value';
-    const effort = 'high"value\nline\u007F';
+    writeFile(work, 'tracked.md', 'changed\n');
+    const stub = reportWritingCodex('No findings.');
 
-    const result = runRunner(work, [
-      '--model',
-      model,
-      '--effort',
-      effort,
-      'codex',
-      'prompt',
-      'Inspect exactly this.',
-    ], stub);
+    const result = runRunner(
+      work,
+      [
+        '--model',
+        'model value',
+        '--effort',
+        'high"value\nline\u007F',
+        'codex',
+        'review',
+        'uncommitted',
+      ],
+      stub,
+    );
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe(' \nFinal response without newline');
-    expect(result.stderr).toBe('');
-    expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(
-      'Inspect exactly this.',
-    );
+    expectReviewEvidence(result.stdout, ['No findings.']);
     const args = fs.readFileSync(path.join(stub, 'args'), 'utf8')
       .trimEnd()
       .split('\n');
@@ -219,132 +206,15 @@ describe('read-only runner CLI', () => {
       'notify=[]',
       '--ephemeral',
       '--model',
-      model,
+      'model value',
       'model_reasoning_effort="high\\"value\\nline\\u007F"',
       '--output-last-message',
     ]));
+    expect(args.join('\n')).toContain('developer_instructions=');
+    expect(args.join('\n')).toContain(reviewInstruction);
     expect(args).not.toContain('--ignore-user-config');
     expect(args).not.toContain('--output-schema');
-    expect(args[args.length - 1]).toBe('-');
-  });
-
-  it('disables every enabled Codex MCP server without suppressing user defaults', () => {
-    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
-    const stub = reportWritingCodex('OK');
-
-    const result = runRunner(
-      work,
-      ['codex', 'prompt', 'Inspect.'],
-      stub,
-      {
-        RUNNER_STUB_MCP_LIST: JSON.stringify([
-          {
-            name: 'local.tools',
-            enabled: true,
-            transport: { type: 'stdio', command: 'local-tools' },
-          },
-          {
-            name: 'remote tools',
-            enabled: true,
-            transport: {
-              type: 'streamable_http',
-              url: 'https://example.test/mcp',
-            },
-          },
-          { name: 'already_disabled', enabled: false },
-        ]),
-      },
-    );
-
-    expect(result.status).toBe(0);
-    const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
-    expect(args).toContain(
-      'mcp_servers={"local.tools"={enabled=false,'
-      + 'command="local-tools"},"remote tools"={enabled=false,'
-      + 'url="https://example.test/mcp"}}\n',
-    );
-    expect(args).not.toContain('mcp_servers.already_disabled.enabled=false');
-    expect(args).not.toContain('--ignore-user-config');
-    expect(fs.readFileSync(path.join(stub, 'mcp-args'), 'utf8')).toBe([
-      'mcp',
-      'list',
-      '--json',
-      '-c',
-      'notify=[]',
-      '--disable',
-      'hooks',
-      '--disable',
-      'apps',
-      '--disable',
-      'plugins',
-      '',
-    ].join('\n'));
-  });
-
-  it.each([
-    {
-      inventory: 'not-json',
-      evidence: 'could not parse Codex MCP inventory',
-    },
-    {
-      inventory: '{}',
-      evidence: 'Codex MCP inventory was not a JSON array',
-    },
-    {
-      inventory: '[{"name":"broken","enabled":true,"transport":{}}]',
-      evidence: 'Codex MCP server has an unsupported transport',
-    },
-  ])('rejects an unsafe Codex MCP inventory: $evidence', ({
-    evidence,
-    inventory,
-  }) => {
-    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
-    const stub = reportWritingCodex('should not run');
-
-    const result = runRunner(
-      work,
-      ['codex', 'prompt', 'Inspect.'],
-      stub,
-      { RUNNER_STUB_MCP_LIST: inventory },
-    );
-
-    expect(result.status).toBe(1);
-    expect(result.stdout).toBe('');
-    expect(result.stderr).toContain(evidence);
-    expect(fs.existsSync(path.join(stub, 'args'))).toBe(false);
-  });
-
-  it('omits absent Codex model and effort settings completely', () => {
-    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
-    const stub = reportWritingCodex('OK');
-
-    const result = runRunner(work, ['codex', 'prompt', 'Inspect.'], stub);
-
-    expect(result.status).toBe(0);
-    const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
-    expect(args).not.toContain('--model');
-    expect(args).not.toContain('model_reasoning_effort');
-  });
-
-  it('uses native Codex uncommitted review after a capability probe', () => {
-    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
-    writeFile(work, 'tracked.md', 'changed\n');
-    const stub = reportWritingCodex('No findings.');
-
-    const result = runRunner(
-      work,
-      ['--effort', 'high', 'codex', 'review', 'uncommitted'],
-      stub,
-    );
-
-    expect(result.status).toBe(0);
-    expectReviewEvidence(result.stdout, ['No findings.']);
-    expect(fs.readFileSync(path.join(stub, 'probe'), 'utf8')).toBe('probed');
-    const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
-    expect(args).toMatch(/review\n--uncommitted\n$/u);
-    expect(args).not.toContain('--base\n');
-    expect(args).toContain('developer_instructions=');
-    expect(args).toContain(reviewInstruction);
+    expect(args.slice(-2)).toEqual(['review', '--uncommitted']);
   });
 
   it('passes the immutable base to native Codex commit-range review', () => {
@@ -361,95 +231,6 @@ describe('read-only runner CLI', () => {
     expect(fs.readFileSync(path.join(stub, 'args'), 'utf8')).toMatch(
       /review\n--base\nbase123\n$/u,
     );
-  });
-
-  it('classifies a failed Codex review help probe as unavailable', () => {
-    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
-    const stub = makeDir('runner-codex-capability-stub-');
-    executable(stub, 'codex', [
-      'if [ "$*" = "exec review --help" ]; then',
-      '  printf "review help failed\\n" >&2',
-      '  exit 7',
-      'fi',
-      'exit 99',
-    ]);
-
-    const result = runRunner(work, ['codex', 'review', 'uncommitted'], stub);
-
-    expect(result.status).toBe(2);
-    expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('Codex native review is unavailable');
-    expect(result.stderr).toContain('review help failed');
-  });
-
-  it('forwards a Claude prompt and exact settings through the generic read-only profile', () => {
-    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
-    const response = '\nClaude response without trailing newline';
-    const stub = claudeStub([
-      'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
-      claudeResult(response),
-    ]);
-
-    const result = runRunner(work, [
-      '--model',
-      'exact model',
-      '--effort',
-      'custom effort',
-      'claude',
-      'prompt',
-      'Inspect this prompt.',
-    ], stub);
-
-    expect(result.status).toBe(0);
-    expect(result.stdout).toBe(response);
-    expect(result.stderr).toBe('');
-    const args = fs.readFileSync(path.join(stub, 'args'), 'utf8')
-      .trimEnd()
-      .split('\n');
-    expect(args).toEqual(expect.arrayContaining([
-      '--permission-mode',
-      'dontAsk',
-      '--no-session-persistence',
-      '--no-chrome',
-      '--strict-mcp-config',
-      '{"mcpServers":{}}',
-      '--output-format',
-      'json',
-      '--model',
-      'exact model',
-      '--effort',
-      'custom effort',
-    ]));
-    expect(fs.readFileSync(path.join(stub, 'stdin'), 'utf8')).toBe(
-      'Inspect this prompt.',
-    );
-    expect(argumentAfter(args, '--tools')).toBe('Bash,Read,Grep,Glob');
-    expect(argumentAfter(args, '--allowedTools')).toBe(
-      'Bash,Read,Grep,Glob',
-    );
-    expect(args).not.toContain('--verbose');
-    expect(args).not.toContain('--disallowedTools');
-    expect(args).not.toContain('--json-schema');
-    expect(argumentAfter(args, '--settings')).toBe(
-      '{"disableAllHooks":true}',
-    );
-    // The fixed tool set is the prompt profile, not an enforcement boundary.
-    expect(args).not.toContain('--append-system-prompt');
-  });
-
-  it('omits absent Claude model and effort settings completely', () => {
-    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
-    const stub = claudeStub([
-      'printf \'%s\\n\' "$@" > "$RUNNER_STUB_CAPTURE/args"',
-      claudeResult('OK'),
-    ]);
-
-    const result = runRunner(work, ['claude', 'prompt', 'Inspect.'], stub);
-
-    expect(result.status).toBe(0);
-    const args = fs.readFileSync(path.join(stub, 'args'), 'utf8');
-    expect(args).not.toContain('--model\n');
-    expect(args).not.toContain('--effort\n');
   });
 
   it('maps Claude uncommitted review to literal changed-path targets', () => {
@@ -722,7 +503,7 @@ describe('read-only runner CLI', () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(evidence);
     // The bytes that explain the parse failure survive into the evidence.
-    expect(result.stderr.toString().endsWith(`\n${retained}`)).toBe(true);
+    expect(result.stderr.endsWith(`\n${retained}`)).toBe(true);
   });
 
   it('retains every non-empty review response in provider order', () => {
@@ -837,55 +618,18 @@ describe('read-only runner CLI', () => {
       const work = makeBareMain({ 'tracked.md': 'tracked\n' });
       writeFile(work, 'tracked.md', 'changed\n');
 
-      for (const args of [
+      const result = runRunner(
+        work,
         ['claude', 'review', 'uncommitted'],
-        ['claude', 'prompt', 'Inspect.'],
-      ]) {
-        const result = runRunner(work, args, claudeStub([body]));
+        claudeStub([body]),
+      );
 
-        expect(result.status).toBe(1);
-        expect(result.stdout).toBe('');
-        expect(result.stderr).toContain(evidence);
-        expect(result.stderr).toContain(retained);
-      }
+      expect(result.status).toBe(1);
+      expect(result.stdout).toBe('');
+      expect(result.stderr).toContain(evidence);
+      expect(result.stderr).toContain(retained);
     },
   );
-
-  it.each([
-    {
-      body: "printf '%s' 'not-json'",
-      evidence: 'could not parse Claude result',
-    },
-    {
-      body: "printf '%s' 'null'",
-      evidence: 'Claude output was not a JSON object',
-    },
-    {
-      body: shellJson({
-        type: 'result',
-        subtype: 'error_during_execution',
-        is_error: true,
-      }),
-      evidence: 'Claude did not return a successful result envelope',
-    },
-    {
-      body: claudeResult({ unexpected: true }),
-      evidence: 'Claude completed without a final text response',
-    },
-    {
-      body: claudeResult(' \n\t'),
-      evidence: 'Claude completed without a final text response',
-    },
-  ])('rejects malformed or empty Claude completion: $evidence', ({ body, evidence }) => {
-    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
-    const stub = claudeStub([body]);
-
-    const result = runRunner(work, ['claude', 'prompt', 'Inspect.'], stub);
-
-    expect(result.status).toBe(1);
-    expect(result.stdout).toBe('');
-    expect(result.stderr).toContain(evidence);
-  });
 
   it('classifies missing provider executables as unavailable', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
@@ -895,13 +639,13 @@ describe('read-only runner CLI', () => {
 
     const codex = runRunner(
       work,
-      ['codex', 'prompt', 'Inspect.'],
+      ['codex', 'review', 'commit-range', 'base123'],
       undefined,
       environment,
     );
     const claude = runRunner(
       work,
-      ['claude', 'prompt', 'Inspect.'],
+      ['claude', 'review', 'commit-range', 'base123'],
       undefined,
       environment,
     );
@@ -922,7 +666,11 @@ describe('read-only runner CLI', () => {
       'exit 7',
     ]);
 
-    const result = runRunner(work, ['claude', 'prompt', 'Inspect.'], stub);
+    const result = runRunner(
+      work,
+      ['claude', 'review', 'commit-range', 'base123'],
+      stub,
+    );
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
@@ -948,7 +696,11 @@ describe('read-only runner CLI', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = claudeStub([body, 'exit 7']);
 
-    const result = runRunner(work, ['claude', 'prompt', 'Inspect.'], stub);
+    const result = runRunner(
+      work,
+      ['claude', 'review', 'commit-range', 'base123'],
+      stub,
+    );
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
@@ -965,7 +717,11 @@ describe('read-only runner CLI', () => {
       'exit 9',
     ]);
 
-    const result = runRunner(work, ['codex', 'prompt', 'Inspect.'], stub);
+    const result = runRunner(
+      work,
+      ['codex', 'review', 'commit-range', 'base123'],
+      stub,
+    );
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
@@ -982,10 +738,14 @@ describe('read-only runner CLI', () => {
       claudeResult('Review complete.'),
     ]);
 
-    const result = runRunner(work, ['claude', 'prompt', 'Inspect.'], stub);
+    const result = runRunner(
+      work,
+      ['claude', 'review', 'commit-range', 'base123'],
+      stub,
+    );
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe('Review complete.');
+    expectReviewEvidence(result.stdout, ['Review complete.']);
     expect(result.stderr).toBe('');
   });
 
@@ -996,12 +756,12 @@ describe('read-only runner CLI', () => {
 
     const missingResult = runRunner(
       work,
-      ['codex', 'prompt', 'Inspect.'],
+      ['codex', 'review', 'commit-range', 'base123'],
       missing,
     );
     const whitespaceResult = runRunner(
       work,
-      ['codex', 'prompt', 'Inspect.'],
+      ['codex', 'review', 'commit-range', 'base123'],
       whitespace,
     );
 
@@ -1021,7 +781,11 @@ describe('read-only runner CLI', () => {
     const work = makeBareMain({ 'tracked.md': 'tracked\n' });
     const stub = codexStub(["printf '%s\\n' 'diagnostic explaining the failure'"]);
 
-    const result = runRunner(work, ['codex', 'prompt', 'Inspect.'], stub);
+    const result = runRunner(
+      work,
+      ['codex', 'review', 'commit-range', 'base123'],
+      stub,
+    );
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
@@ -1037,7 +801,11 @@ describe('read-only runner CLI', () => {
       'exit 0',
     ]);
 
-    const result = runRunner(work, ['codex', 'prompt', 'Inspect.'], stub);
+    const result = runRunner(
+      work,
+      ['codex', 'review', 'commit-range', 'base123'],
+      stub,
+    );
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
@@ -1046,28 +814,27 @@ describe('read-only runner CLI', () => {
     expect(result.stderr).toContain('diagnostic explaining the read failure');
   });
 
-  it('loads its runtime and allocates private output outside an external repository', () => {
-    const work = makeExternalBareMain({ 'tracked.md': 'tracked\n' });
-    const repositoryTemp = path.join(work, 'repo-temp');
-    fs.mkdirSync(repositoryTemp);
-    const stub = reportWritingCodex('External clean.', [
+  it('uses and disposes standard temporary output', () => {
+    const work = makeBareMain({ 'tracked.md': 'tracked\n' });
+    const stub = reportWritingCodex('Range clean.', [
       'printf %s "$report" > "$RUNNER_STUB_CAPTURE/report-path"',
     ]);
 
     const result = runRunner(
       work,
-      ['codex', 'prompt', 'Inspect.'],
+      ['codex', 'review', 'commit-range', 'base123'],
       stub,
-      { TMPDIR: repositoryTemp },
     );
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe('External clean.');
+    expectReviewEvidence(result.stdout, ['Range clean.']);
     const reportPath = fs.readFileSync(
       path.join(stub, 'report-path'),
       'utf8',
     );
-    expect(reportPath).not.toContain(work);
+    expect(reportPath.startsWith(
+      path.join(os.tmpdir(), 'remdo-read-only-runner.'),
+    )).toBe(true);
     expect(fs.existsSync(path.dirname(reportPath))).toBe(false);
   });
 
@@ -1080,7 +847,7 @@ describe('read-only runner CLI', () => {
     const ready = path.join(stub, 'ready');
     const child = spawn(
       process.execPath,
-      [runner, 'claude', 'prompt', 'Inspect.'],
+      [runner, 'claude', 'review', 'commit-range', 'base123'],
       {
         cwd: work,
         env: providerEnvironment(stub, { RUNNER_STUB_READY: ready }),
@@ -1127,7 +894,7 @@ describe('read-only runner CLI', () => {
     ]);
     const child = spawn(
       process.execPath,
-      [runner, 'claude', 'prompt', 'Inspect.'],
+      [runner, 'claude', 'review', 'commit-range', 'base123'],
       {
         cwd: work,
         env: providerEnvironment(stub, {
@@ -1149,17 +916,17 @@ describe('read-only runner CLI', () => {
     expect(fs.existsSync(marker)).toBe(false);
   });
 
-  it('fails when repository paths cannot be resolved', () => {
+  it('fails when the repository root cannot be resolved', () => {
     const stub = makeDir('runner-git-missing-');
     const result = runRunner(
       makeDir('runner-not-repo-'),
-      ['claude', 'prompt', 'Inspect.'],
+      ['claude', 'review', 'uncommitted'],
       undefined,
       { PATH: stub },
     );
 
     expect(result.status).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('could not resolve repository paths');
+    expect(result.stderr).toContain('could not resolve repository root');
   });
 });

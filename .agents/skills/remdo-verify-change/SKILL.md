@@ -59,8 +59,7 @@ notification; do not poll it or interpret silence or elapsed time as failure.
 Cancel a review only when the caller or enclosing lifecycle explicitly abandons
 it.
 
-Exit status `2` means the provider or its declared native review capability is
-unavailable. Any other non-zero result is
+Exit status `2` means the provider is unavailable. Any other non-zero result is
 failed; treat its output as failure evidence, not as findings. Exit status `0`
 carries one JSON review-evidence object. Read every ordered response; none is
 guaranteed to be final, exhaustive, or authoritative. `complete: false` always

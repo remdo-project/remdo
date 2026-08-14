@@ -37,8 +37,8 @@ A commit range proceeds directly to reviews.
 ## Reviews
 
 The verifier invokes the [read-only runner](../tools/read-only-runner.md#call) independently for Codex and
-Claude with a `review` invocation and the resolved change scope. Their
-identities remain distinct in the result.
+Claude with the resolved change scope. Their identities remain distinct in the
+result.
 For Claude, the verifier exercises the caller judgement required by the runner's
 [trusted-prompt level](../tools/read-only-runner.md#trusted-prompt): it
 judges the runner-constructed vendor-owned native review command and its
