@@ -31,15 +31,10 @@ owns note-link identity across clipboard and persistence boundaries, and
 
 ## Inline text selection (single note)
 
-- Single-line plain text replaces the selected text, except
-  [Note links](./note-links.md#core-behavior) first creates a note link for a
-  RemDo-owned note URL. It retains the selected label only when that label
-  contains a non-whitespace character and otherwise uses the note-link fallback
-  label. Only when the selection contains a
-  non-whitespace character does a non-owned destination accepted by
-  [generic URL authoring](./links.md#generic-url-authoring) create a generic link
-  retaining that selection as its label. Other whitespace-only selections follow
-  ordinary replacement and subsequent automatic recognition.
+- Single-line plain text replaces the selected text, applying the URL-paste
+  routing and label behavior defined by
+  [Links](./links.md#generic-url-authoring). Other whitespace-only selections
+  follow ordinary replacement and subsequent automatic recognition.
 - Multi-line plain text always inserts notes, even when the selection is inline.
   The first line replaces the selected text; remaining lines become new child
   notes inserted before existing children.

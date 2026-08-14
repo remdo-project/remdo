@@ -141,9 +141,6 @@ function $resolveSelectionSnapshot(snapshot: SelectionSnapshot): RangeSelection 
 }
 
 function $findLinkAncestor(node: LexicalNode): LinkNode | null {
-  if ($isLinkNode(node)) {
-    return node instanceof AutoLinkNode && node.getIsUnlinked() ? null : node;
-  }
   const link = $findMatchingParent(node, $isLinkNode);
   return link instanceof AutoLinkNode && link.getIsUnlinked() ? null : link;
 }
@@ -152,9 +149,10 @@ function $unwrapSuppressedLinksAtSelection(selection: RangeSelection) {
   const nodes = selection.isCollapsed() ? [selection.anchor.getNode()] : selection.getNodes();
   const links = new Map<NodeKey, AutoLinkNode>();
   for (const node of nodes) {
-    const link = node instanceof AutoLinkNode
-      ? node
-      : $findMatchingParent(node, (parent): parent is AutoLinkNode => parent instanceof AutoLinkNode);
+    const link = $findMatchingParent(
+      node,
+      (parent): parent is AutoLinkNode => parent instanceof AutoLinkNode,
+    );
     if (link?.getIsUnlinked()) {
       links.set(link.getKey(), link);
     }
@@ -452,7 +450,7 @@ function activateDestination(url: string) {
   globalThis.open(url, isWeb ? '_blank' : '_self', isWeb ? 'noopener,noreferrer' : undefined);
 }
 
-function copyDestinationFallback(destination: string) {
+function copyDestinationFallback(destination: string): void {
   const input = document.createElement('textarea');
   input.value = destination;
   input.style.position = 'fixed';
@@ -462,26 +460,26 @@ function copyDestinationFallback(destination: string) {
   try {
     // Legacy fallback remains necessary on supported non-secure HTTP origins.
     // eslint-disable-next-line ts/no-deprecated
-    return document.execCommand('copy');
+    document.execCommand('copy');
   } finally {
     input.remove();
   }
 }
 
-async function copyDestination(destination: string) {
+async function copyDestination(destination: string): Promise<void> {
   const clipboard = Reflect.get(navigator, 'clipboard') as Clipboard | undefined;
   if (clipboard) {
     try {
       await clipboard.writeText(destination);
-      return true;
+      return;
     } catch {
       // The async Clipboard API can be exposed while permission is denied.
     }
   }
   try {
-    return copyDestinationFallback(destination);
+    copyDestinationFallback(destination);
   } catch {
-    return false;
+    // Copy failure leaves the document unchanged.
   }
 }
 

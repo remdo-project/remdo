@@ -114,12 +114,10 @@ explicit [generic URL authoring](#generic-url-authoring).
 7. Link controls are a structured chooser under the shared
    [Editor popups](./popups.md#shared-editor-popup-contract) contract. Opening
    pins a model-level authoring target: the existing link occurrence, selected
-   text range, or collapsed caret. Before acting, the controls re-resolve the
-   target and close without acting when it no longer exists. A pinned range or
-   link whose content changed while the controls were open is similarly no longer
-   valid. `Escape` cancels and restores the anchored selection. A pointer press
-   elsewhere in the editor cancels the controls before applying the editor's
-   ordinary pointer-selection behavior.
+   text range, or collapsed caret. A pinned range or link whose content changed
+   while the controls were open is no longer valid. A pointer press elsewhere in
+   the editor cancels the controls before applying the editor's ordinary
+   pointer-selection behavior.
 8. In creation mode, focus moves to the destination field. Invoking Edit also
    focuses the destination field. In either field mode, `Tab` cycles between the
    label and destination, and `Enter` commits both and closes. In existing-link
