@@ -23,6 +23,29 @@ function readAutomaticLink(remdo: RemdoTestApi, noteId = 'note1') {
 }
 
 describe('generic link collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
+  it('waits for a remote typing boundary before recognizing a URL', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const secondary = await createCollabPeer(remdo);
+    const url = 'https://example.com/';
+    await selectEntireNote(secondary, 'note1');
+    await typeText(secondary, url);
+
+    await waitFor(() => {
+      expect(remdo.editor.getEditorState().read(
+        () => $findNoteById('note1')!.getTextContent(),
+        { editor: remdo.editor },
+      )).toBe(url);
+    });
+    expect(readAutomaticLink(remdo)).toBeNull();
+    expect(readAutomaticLink(secondary)).toBeNull();
+
+    await typeText(secondary, ' ');
+
+    await waitFor(() => {
+      expect(readAutomaticLink(remdo)).toMatchObject({ text: url, url });
+      expect(readAutomaticLink(secondary)).toMatchObject({ text: url, url });
+    });
+  });
+
   it('closes pinned link controls when a peer changes the target text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const secondary = await createCollabPeer(remdo);
     await placeCaretAtNote(remdo, 'note1', 2);

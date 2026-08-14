@@ -97,7 +97,7 @@ function isPublicSchemeLessHostname(hostname: string): boolean {
 }
 
 function normalizeWebDestination(input: string, allowSchemeLess: boolean): GenericDestination | null {
-  if (input.startsWith('//')) {
+  if (/^[\\/]/.test(input)) {
     return null;
   }
 
@@ -214,7 +214,7 @@ function automaticCandidateFrom(text: string, index: number): string {
 function automaticEmailMatch(text: string): ReturnType<LinkMatcher> {
   for (const match of text.matchAll(AUTOMATIC_EMAIL_PATTERN)) {
     let index = match.index;
-    if (text[index] === "'" && hasAutomaticStartBoundary(text, index)) {
+    if ((text[index] === "'" || text[index] === '{') && hasAutomaticStartBoundary(text, index)) {
       index += 1;
     }
     if (!hasAutomaticStartBoundary(text, index)) {

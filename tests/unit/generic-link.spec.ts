@@ -25,7 +25,11 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
 
   it.each([
     '//example.com',
+    '/example.com',
     '/relative/path',
+    String.raw`\example.com`,
+    String.raw`/\example.com`,
+    String.raw`\/example.com`,
     'https:0177.0.0.1',
     'https:8080',
     'localhost:3000',
@@ -59,7 +63,7 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it.each(["'", '"'])('treats a leading %s as an email opener', (opener) => {
+  it.each(["'", '"', '{'])('treats a leading %s as an email opener', (opener) => {
     const email = 'foo@example.com';
     expect(automaticGenericLinkMatcher(`${opener}${email}`)).toMatchObject({
       index: opener.length,
@@ -72,6 +76,7 @@ describe('generic link classification (docs/specs/outliner/links.md)', () => {
   it.each([
     'example.com',
     '//example.com',
+    String.raw`\example.com`,
     'localhost:3000',
     '127.0.0.1',
     'https://user:password@example.com',

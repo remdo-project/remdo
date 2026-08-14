@@ -2,6 +2,7 @@ import { $createAutoLinkNode, AutoLinkNode, LinkNode, registerAutoLink } from '@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $addUpdateTag,
+  $createTextNode,
   $getNodeByKey,
   $getSelection,
   $hasUpdateTag,
@@ -80,6 +81,38 @@ function $hasValidAutomaticLinkEnd(node: AutoLinkNode, next: TextNode): boolean 
   const text = node.getTextContent();
   const match = automaticGenericLinkMatcher(`${text}${next.getTextContent()}`);
   return match?.index === 0 && match.length === text.length;
+}
+
+function $createAutomaticLinkBeforeInlineBoundary(node: TextNode): AutoLinkNode | null {
+  if (node.getParent() instanceof LinkNode) {
+    return null;
+  }
+  const next = node.getNextSibling();
+  if (
+    next === null
+    || $isTextNode(next)
+    || $isLineBreakNode(next)
+    || next instanceof LinkNode
+  ) {
+    return null;
+  }
+  const text = node.getTextContent();
+  const match = automaticGenericLinkMatcher(text);
+  if (!match || match.index + match.length !== text.length) {
+    return null;
+  }
+  const matchingNode = match.index === 0 ? node : node.splitText(match.index)[1]!;
+  const link = $createAutoLinkNode(match.url, match.attributes);
+  matchingNode.replace(link);
+  link.append(matchingNode);
+  // Lexical only keeps automatic links before text or line-break boundaries.
+  // Preserve RemDo's inline-node boundary with an empty, non-merging text node.
+  link.insertAfter($createTextNode('').toggleUnmergeable());
+  if (!$hasValidAutomaticLinkStart(link)) {
+    unwrapLinkNode(link);
+    return null;
+  }
+  return link;
 }
 
 function $suppressInvalidLink(node: LinkNode | AutoLinkNode) {
@@ -383,6 +416,10 @@ export function ExternalLinkPlugin() {
       const next = latest.getNextSibling();
       if (next instanceof AutoLinkNode && !next.getIsUnlinked() && !$hasValidAutomaticLinkStart(next)) {
         unwrapLinkNode(next);
+      }
+      const boundaryLink = $createAutomaticLinkBeforeInlineBoundary(latest);
+      if (boundaryLink && $selectionTouchesLink(boundaryLink)) {
+        armAutomaticUndo(boundaryLink);
       }
     });
     const $updateTypedCandidateDeferral = (defer: boolean) => {

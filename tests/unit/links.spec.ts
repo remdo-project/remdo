@@ -20,6 +20,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { config } from '#config';
 import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import { $createDateNode } from '#client/editor/features/date/date-node';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import {
   buildClipboardPayload,
@@ -1680,6 +1681,23 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       expect(note.getTextContent()).toBe(`${url}/path`);
       expect(link.getTextContent()).toBe(url);
       expect(link.getURL()).toBe(`${url}/`);
+    });
+  });
+
+  it('recognizes a complete URL before a date-token boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      const text = $createTextNode(url);
+      note.clear();
+      note.append(text, $createDateNode('2026-08-14'));
+      text.markDirty();
+    });
+
+    remdo.validate(() => {
+      const link = $findNoteById('note1')!.getChildren().find($isAutoLinkNode)!;
+      expect(link.getTextContent()).toBe(url);
+      expect(link.getURL()).toBe(url);
     });
   });
 
