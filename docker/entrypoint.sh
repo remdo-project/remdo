@@ -42,6 +42,7 @@ mkdir -p "$COLLAB_DATA_DIR"
 : "${YSWEET_SERVER_TOKEN:?Set YSWEET_SERVER_TOKEN}"
 
 child_pids=""
+ysweet_pid=""
 
 start_child() {
   (
@@ -57,7 +58,12 @@ stop_children() {
   trap - INT TERM
 
   for child_pid in $child_pids; do
-    kill "-${child_signal}" "$child_pid" 2>/dev/null || true
+    signal="$child_signal"
+    # Y-Sweet flushes persistent state through its SIGINT shutdown path.
+    if [ "$child_pid" = "$ysweet_pid" ]; then
+      signal="INT"
+    fi
+    kill "-${signal}" "$child_pid" 2>/dev/null || true
   done
   for child_pid in $child_pids; do
     wait "$child_pid" 2>/dev/null || true
@@ -77,6 +83,7 @@ fi
 start_child env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_SERVER_TOKEN \
   RUST_LOG=error Y_SWEET_AUTH="${YSWEET_AUTH_KEY}" y-sweet serve --host 127.0.0.1 \
   --port "${COLLAB_SERVER_PORT}" --prod "$COLLAB_DATA_DIR"
+ysweet_pid="$child_pid"
 start_child env -u YSWEET_AUTH_KEY node /app/remdo-api-server.cjs
 
 start_child env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY -u YSWEET_SERVER_TOKEN \

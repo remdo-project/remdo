@@ -179,16 +179,6 @@ try {
     }
   }
 
-  const workspaceCatalog = mapEntries(workspace, 'catalog');
-  const workspaceYSweet = workspaceCatalog.get('y-sweet');
-  if (!workspaceYSweet) {
-    throw new Error('missing pnpm-workspace.yaml catalog y-sweet entry');
-  }
-  const dockerYSweet = capture(dockerfile, /^ENV YSWEET_VERSION=(.+)$/mu, 'docker YSWEET_VERSION');
-  if (dockerYSweet !== workspaceYSweet) {
-    throw new Error(`y-sweet version drift: docker uses ${dockerYSweet}, pnpm-workspace.yaml expects ${workspaceYSweet}`);
-  }
-
   process.stdout.write('pnpm policy entries are active\n');
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);

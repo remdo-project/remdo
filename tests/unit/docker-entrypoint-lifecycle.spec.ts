@@ -57,7 +57,7 @@ function killIfRunning(pid: number): void {
 it.each([
   ['SIGINT', 'INT', 130],
   ['SIGTERM', 'TERM', 143],
-] as const)('forwards %s to every service and waits for them to exit', async (signal, signalName, exitCode) => {
+] as const)('handles %s, stops y-sweet with SIGINT, and waits for every service', async (signal, signalName, exitCode) => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-entrypoint-lifecycle-'));
   const binDir = path.join(tempDir, 'bin');
   const dataDir = path.join(tempDir, 'data');
@@ -124,7 +124,9 @@ exec "\${REMDO_FAKE_CHILD:?}" api
 
     expect(child.kill(signal)).toBe(true);
     await expect.poll(() => readEvents(eventsPath), { timeout: 3_000 })
-      .toEqual(expect.arrayContaining(services.map(name => `${name} signal ${signalName}`)));
+      .toEqual(expect.arrayContaining(services.map(name =>
+        `${name} signal ${name === 'y-sweet' ? 'INT' : signalName}`,
+      )));
 
     // Every child has received the signal but deliberately remains alive. The
     // entrypoint must therefore still be waiting rather than exiting early.

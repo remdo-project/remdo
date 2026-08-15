@@ -479,18 +479,13 @@ the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#br
   1. Decide whether to replace `pnpm dlx esbuild` in `docker/Dockerfile` with a
      lockfile-backed tool path or at least an exact version; Docker currently
      pulls a different `esbuild` than the workspace.
-  2. Decide whether `docker/Dockerfile` should keep `y-sweet@^0.9.1` or pin an
-     exact version for deterministic image builds; the production error-output
-     audit is valid for `v0.9.1` and must not silently drift with the installed
-     binary.
-  3. Decide whether to update the pinned `packageManager` version in
+  2. Decide whether to update the pinned `packageManager` version in
      `package.json` or intentionally keep the current pnpm line and suppress the
      resulting upgrade notices elsewhere.
 
 - Add more deterministic detection:
-  1. Extend `tools/check-pnpm-policy.ts` to flag floating install surfaces such
-     as committed `pnpm dlx` usage and ranged `npm install -g` in Dockerfiles or
-     scripts.
+  1. Extend `tools/check-pnpm-policy.ts` to flag committed `pnpm dlx` usage so
+     lockfile-bypassing tool installs cannot be added silently.
   2. Add a plain `pnpm run build` validation surface to CI and/or the dependency
      refresh flow so build warnings are reviewed explicitly instead of only via
      Docker logs.

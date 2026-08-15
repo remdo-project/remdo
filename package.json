@@ -112,6 +112,7 @@
     "workbox-build": "catalog:",
     "workbox-window": "catalog:",
     "ws": "catalog:",
+    "y-sweet": "catalog:",
     "yjs": "catalog:",
     "zod": "catalog:"
   },
@@ -153,7 +154,6 @@
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "y-sweet": "catalog:",
     "yaml": "catalog:"
   }
 }
