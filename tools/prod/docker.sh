@@ -11,8 +11,7 @@ NODE_ENV=production
 export NODE_ENV
 
 : "${APP_ORIGIN:=https://remdo.localhost:8443}"
-: "${REMDO_ROOT:=${ROOT_DIR}}"
-: "${DATA_DIR:=${REMDO_ROOT%/}/data/production}"
+: "${DATA_DIR:=${ROOT_DIR%/}/data/production}"
 PORT="$(remdo_https_origin_port "${APP_ORIGIN}")"
 CONTAINER_NAME="remdo-${PORT}"
 case "${PORT}" in

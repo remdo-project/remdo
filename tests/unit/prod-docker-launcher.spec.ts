@@ -68,6 +68,7 @@ describe('prod Docker launcher', () => {
     const dockerStopped = path.join(tempDir, 'docker.stopped');
     fs.mkdirSync(binDir);
     writeFakeDocker(binDir);
+    writeFakeBin(binDir, 'mkdir', ':\n');
 
     const result = spawnSync('./tools/prod/docker.sh', {
       cwd: process.cwd(),
@@ -85,7 +86,6 @@ describe('prod Docker launcher', () => {
         PATH: `${binDir}:${process.env.PATH}`,
         PORT: '9999',
         PORT_BASE: '9000',
-        REMDO_ROOT: tempDir,
         REMDO_DOCKER_NETWORK: 'host',
         REMDO_FAKE_DOCKER_LOG: dockerLog,
         REMDO_FAKE_DOCKER_STOPPED: dockerStopped,
@@ -123,11 +123,11 @@ describe('prod Docker launcher', () => {
   });
 
   it('defaults persistent data to the repository production directory', () => {
-    const { dataDir, result, dockerCalls } = runLauncher({ DATA_DIR: '' });
+    const { result, dockerCalls } = runLauncher({ DATA_DIR: '' });
 
     expect(result.status, result.stderr).toBe(0);
     const runArgs = findDockerCall(dockerCalls, 'run');
-    expect(dockerOptionValues(runArgs, '-v')).toEqual([`${path.join(dataDir, 'production')}:/data`]);
+    expect(dockerOptionValues(runArgs, '-v')).toEqual([`${path.resolve('data/production')}:/data`]);
   });
 
   it('starts cleanly without stopping a container that does not exist', () => {
