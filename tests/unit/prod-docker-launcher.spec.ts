@@ -54,6 +54,7 @@ interface LauncherRun {
   result: SpawnSyncReturns<string>;
   dockerCalls: string[][];
   mkdirCalls: string[][];
+  sleepCalls: string[][];
 }
 
 describe('prod Docker launcher', () => {
@@ -77,11 +78,12 @@ describe('prod Docker launcher', () => {
     const dockerLog = path.join(tempDir, 'docker.log');
     const dockerStopped = path.join(tempDir, 'docker.stopped');
     const mkdirLog = path.join(tempDir, 'mkdir.log');
+    const sleepLog = path.join(tempDir, 'sleep.log');
     fs.mkdirSync(binDir);
     writeFakeDocker(binDir);
     writeFakeBin(binDir, 'mkdir', `printf '%s\\0' "$#" "$@" >> "\${REMDO_FAKE_MKDIR_LOG:?}"\n`);
     writeFakeBin(binDir, 'node', 'echo "production launcher unexpectedly called host Node" >&2\nexit 97\n');
-    writeFakeBin(binDir, 'sleep', ':\n');
+    writeFakeBin(binDir, 'sleep', `printf '%s\\0' "$#" "$@" >> "\${REMDO_FAKE_SLEEP_LOG:?}"\n`);
 
     const result = spawnSync('./tools/prod/docker.sh', {
       cwd: process.cwd(),
@@ -103,6 +105,7 @@ describe('prod Docker launcher', () => {
         REMDO_FAKE_DOCKER_LOG: dockerLog,
         REMDO_FAKE_DOCKER_STOPPED: dockerStopped,
         REMDO_FAKE_MKDIR_LOG: mkdirLog,
+        REMDO_FAKE_SLEEP_LOG: sleepLog,
         REMDO_GATEWAY_BIND_ADDRESS: '127.0.0.1',
         YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
         YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
@@ -112,11 +115,12 @@ describe('prod Docker launcher', () => {
 
     const dockerCalls = fs.existsSync(dockerLog) ? parseDockerCalls(fs.readFileSync(dockerLog, 'utf8')) : [];
     const mkdirCalls = fs.existsSync(mkdirLog) ? parseDockerCalls(fs.readFileSync(mkdirLog, 'utf8')) : [];
-    return { dataDir, result, dockerCalls, mkdirCalls };
+    const sleepCalls = fs.existsSync(sleepLog) ? parseDockerCalls(fs.readFileSync(sleepLog, 'utf8')) : [];
+    return { dataDir, result, dockerCalls, mkdirCalls, sleepCalls };
   }
 
   it('defaults to the canonical loopback origin without requiring host Node', () => {
-    const { dataDir, result, dockerCalls } = runLauncher();
+    const { dataDir, result, dockerCalls, sleepCalls } = runLauncher();
 
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain('Docker target: https://remdo.localhost:8443');
@@ -141,6 +145,7 @@ describe('prod Docker launcher', () => {
     expect(result.stdout).toContain('Verify health: https://remdo.localhost:8443/health');
     expect(result.stdout).toContain('Follow logs: docker logs -f remdo-8443');
     expect(result.stdout).toContain('Stop RemDo: docker stop remdo-8443');
+    expect(sleepCalls).toEqual([['10']]);
   });
 
   it('defaults persistent data to the repository production directory', () => {

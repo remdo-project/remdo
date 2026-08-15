@@ -574,9 +574,6 @@ echo "Production bridge launcher is loopback-only."
 
 first_prod_bridge_id="$(docker inspect --format '{{.Id}}' "${PROD_BRIDGE_CONTAINER_NAME}")"
 
-# Give Docker a sustained healthy run before forcing a required process to
-# fail, so the check exercises steady-state recovery rather than initial boot.
-sleep 10
 initial_restart_count="$(docker inspect --format '{{.RestartCount}}' \
   "${PROD_BRIDGE_CONTAINER_NAME}")"
 if ! docker exec "${PROD_BRIDGE_CONTAINER_NAME}" sh -c 'kill -KILL "$(pidof y-sweet)"'; then
