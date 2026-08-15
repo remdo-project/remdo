@@ -45,8 +45,9 @@ operator settings.
 
 `DATA_DIR` selects the
 [persistent runtime data root](../../architecture.md#runtime-persistence-boundary).
-Development defaults it inside the repository, production containers default
-it to `/data`, and the self-hosted production launcher requires it explicitly.
+Development defaults it to `data` inside the repository. The self-hosted
+production launcher defaults its host directory to `data/production` inside
+the repository; production containers use `/data` for the mounted root.
 
 ## Secret bootstrap
 

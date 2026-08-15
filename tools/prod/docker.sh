@@ -11,7 +11,8 @@ NODE_ENV=production
 export NODE_ENV
 
 : "${APP_ORIGIN:?Set APP_ORIGIN to the exact public HTTPS origin}"
-: "${DATA_DIR:?Set DATA_DIR to the persistent host directory}"
+: "${REMDO_ROOT:=${ROOT_DIR}}"
+: "${DATA_DIR:=${REMDO_ROOT%/}/data/production}"
 PORT="$(remdo_https_origin_port "${APP_ORIGIN}")"
 CONTAINER_NAME="remdo-${PORT}"
 case "${PORT}" in

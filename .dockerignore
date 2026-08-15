@@ -1,0 +1,14 @@
+# Repository metadata and local configuration
+.*
+**/*.local
+**/*.log
+**/.DS_Store
+**/Thumbs.db
+
+# Dependencies and generated output
+/node_modules/
+/package-lock.json
+/dist/
+/data/
+/coverage/
+/public/playground/

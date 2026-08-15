@@ -20,8 +20,9 @@ daemons are supported.
    cp .env.example .env
    ```
 
-2. In `.env`, set `ADMIN_SECRET` and `DATA_DIR`, then select one self-hosted
-   production exposure example.
+2. In `.env`, set `ADMIN_SECRET`, optionally override
+   [`DATA_DIR`](../specs/runtime/configuration.md#persistence), then select one
+   self-hosted production exposure example.
 
    For access only through the Docker host, select the loopback example. Its
    gateway is reachable only through that host's loopback interface.
@@ -43,10 +44,11 @@ daemons are supported.
 
 5. Open the printed `Docker target`. Caddy uses its internal CA for `.localhost`
    and manages a publicly trusted certificate for a public DNS name. For the
-   loopback deployment, trust
-   `${DATA_DIR}/caddy/pki/authorities/local/root.crt` on each browser client.
+   loopback deployment, trust the Caddy root certificate beneath the persistent
+   data root on each browser client. At the default location, it is
+   `data/production/caddy/pki/authorities/local/root.crt`.
 6. Keep the launcher running while using RemDo. Stopping it removes the
-   container and retains `DATA_DIR`.
+   container and retains its persistent data root.
 
 ## Deploy on Render
 

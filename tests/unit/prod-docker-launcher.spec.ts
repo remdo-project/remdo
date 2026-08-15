@@ -85,6 +85,7 @@ describe('prod Docker launcher', () => {
         PATH: `${binDir}:${process.env.PATH}`,
         PORT: '9999',
         PORT_BASE: '9000',
+        REMDO_ROOT: tempDir,
         REMDO_DOCKER_NETWORK: 'host',
         REMDO_FAKE_DOCKER_LOG: dockerLog,
         REMDO_FAKE_DOCKER_STOPPED: dockerStopped,
@@ -119,6 +120,14 @@ describe('prod Docker launcher', () => {
       YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
       YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
     });
+  });
+
+  it('defaults persistent data to the repository production directory', () => {
+    const { dataDir, result, dockerCalls } = runLauncher({ DATA_DIR: '' });
+
+    expect(result.status, result.stderr).toBe(0);
+    const runArgs = findDockerCall(dockerCalls, 'run');
+    expect(dockerOptionValues(runArgs, '-v')).toEqual([`${path.join(dataDir, 'production')}:/data`]);
   });
 
   it('starts cleanly without stopping a container that does not exist', () => {
@@ -181,9 +190,8 @@ describe('prod Docker launcher', () => {
     }
   });
 
-  it('requires persistent data and strong operator secrets before building', () => {
+  it('requires strong operator secrets before building', () => {
     for (const [name, value, message] of [
-      ['DATA_DIR', '', 'Set DATA_DIR'],
       ['ADMIN_SECRET', 'short', 'ADMIN_SECRET must be at least 32 characters'],
       ['AUTH_SECRET', 'short', 'AUTH_SECRET must be at least 32 characters'],
     ] as const) {
