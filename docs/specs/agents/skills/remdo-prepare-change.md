@@ -100,12 +100,15 @@ Legend:
 
 ## Result
 
+The result uses this complete shape with the shared
+[`Concern`](../protocol.md#concerns) and
+[`ChangeScopeResult`](../change-scope.md#result-type) types:
+
 ```yaml
 outcome: <ready-for-review | completed | stopped>
-concerns: # if any
-  - source: <originating capability or participant>
-    summary: <condition>
-scope: <complete change scope> # if resolved
+reason: <condition that stopped preparation> # if stopped
+concerns: <Concern[]> # if any
+scope: <ChangeScopeResult> # if resolved
 target_behavior: # if approved
   - summary: <approved behavior>
     owner: <contract path>
@@ -117,7 +120,6 @@ tracked_gaps: # if any
   - <gap>
 manual_review: # if any
   - <specific need>
-reason: <condition that stopped preparation> # if stopped
 ```
 
 `ready-for-review` presents the handoff for developer review. `completed` means

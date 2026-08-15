@@ -20,3 +20,8 @@ ancestor of `HEAD` and becomes `BASE`; for three dots, their merge base becomes
 
 Resolution returns `no-change` when the selected diff is empty. It refuses an
 invalid input or a commit range combined with uncommitted work.
+
+## Result type
+
+`ChangeScopeResult` is the caller-visible change scope, `no-change`, or a
+resolution failure.

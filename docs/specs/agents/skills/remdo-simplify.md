@@ -37,14 +37,15 @@ unrelated cleanup.
 
 ## Result
 
-The result uses this shape:
+The result uses this complete shape with the shared
+[`Concern`](../protocol.md#concerns) and
+[`AssessmentTarget`](../assessment-target.md#result-type) types:
 
 ```yaml
 outcome: <simplifications-found | no-simplification | no-change | stopped>
-concerns: # if any
-  - source: <originating capability or participant>
-    summary: <condition>
-target: <resolved assessment target> # if resolved
+reason: <condition that prevented assessment> # if stopped
+concerns: <Concern[]> # if any
+target: <AssessmentTarget> # if resolved
 findings: # if simplifications-found
   - priority: <S1 | S2 | S3>
     location: <path and line>
@@ -57,7 +58,6 @@ options: # if any
     alternatives:
       - <alternative with material advantages and costs>
     recommendation: <preferred alternative and evidence> # if supported
-reason: <condition that prevented assessment> # if stopped
 ```
 
 - `simplifications-found`: at least one finding;

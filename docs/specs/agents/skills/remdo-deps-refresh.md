@@ -90,13 +90,13 @@ install-consistency checks.
 
 ## Result
 
-The result uses this shape:
+The result uses this complete shape with the shared
+[`Concern`](../protocol.md#concerns) type:
 
 ```yaml
 outcome: <refreshed | current | failed>
-concerns: # if any
-  - source: <originating step or dependency>
-    summary: <condition>
+reason: <condition that prevented completion> # if failed
+concerns: <Concern[]> # if any
 updates: # if any
   - class: <workspace dependencies | package manager | runtime | GitHub Actions>
     summary: <versions or pins changed>
@@ -116,7 +116,6 @@ dependabot: # if reconciled
 verification: # if run
   - command: <command>
     status: <passed | failed>
-reason: <condition that prevented completion> # if failed
 ```
 
 - `refreshed` means at least one change was committed, no update remains

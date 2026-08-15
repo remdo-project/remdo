@@ -25,3 +25,7 @@ target:
 Natural-language input must identify one valid target unambiguously.
 Resolution stops on invalid or ambiguous input and does not perform assessment
 or advance another capability's lifecycle.
+
+## Result type
+
+`AssessmentTarget` is the successfully resolved change or subject target.

@@ -107,16 +107,16 @@ alone change `clean` to `findings`. Every non-rejected finding also appears in `
 A stopped result includes the failed phase's evidence. Reviews blocked by an
 earlier phase are omitted, not `unavailable`.
 
-The verifier's result uses this shape:
+The verifier's result uses this complete shape with the shared
+[`Concern`](../protocol.md#concerns) and
+[`ChangeScopeResult`](../change-scope.md#result-type) types:
 
 ```yaml
 outcome: <clean | findings | no-change | stopped>
-concerns: # if any
-  - source: <originating capability or participant>
-    summary: <condition>
-degraded: true # if degraded
-scope: <requested and resolved scope, no-change, or resolution failure>
 reason: <condition that stopped verification> # if stopped
+concerns: <Concern[]> # if any
+scope: <ChangeScopeResult>
+degraded: true # if degraded
 checks: # if run
   - command: <command>
     status: <passed | failed | not-run>

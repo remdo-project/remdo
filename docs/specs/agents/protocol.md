@@ -27,14 +27,15 @@ A capability returning to a caller returns literal YAML beginning with:
 
 ```yaml
 outcome: <capability-owned outcome>
-concerns: # if any
-  - source: <originating capability or participant>
-    summary: <condition>
+reason: <condition explaining a non-success outcome> # if needed
+concerns: <Concern[]> # if any
 # capability-specific fields
 ```
 
-Capability contracts define additional fields that add detail without replacing
-`concerns`. In examples, `# if ...` marks a conditional field. Results explain
+Capability contracts repeat this envelope with their allowed `outcome` values,
+local inclusion conditions, and additional fields so each result template is
+complete. Angle-bracket names refer to linked shared types; `Type[]` is a list
+of that type. In examples, `# if ...` marks a conditional field. Results explain
 omitted work when its absence affects the caller's interpretation. A capability
 addressing a human renders the result as its report instead of also returning
 the YAML.
@@ -49,6 +50,13 @@ outcomes, it is the fallback unless another outcome applies.
 A **concern** is a reported condition that may affect the caller's result or
 decision. The caller's contract determines whether to resolve, omit, aggregate,
 re-report, or change flow or outcome.
+
+A `Concern` has this shape:
+
+```yaml
+source: <originating capability or participant>
+summary: <condition>
+```
 
 ## Aggregation
 

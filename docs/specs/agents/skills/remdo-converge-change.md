@@ -66,14 +66,15 @@ confirmed finding as fixed or uncorrected. `verification.findings` is the
 latest iteration only. `simplification`, `cleanup`, and `verification` contain
 the complete latest results for the state they assessed.
 
-The result uses this shape:
+The result uses this complete shape with the shared
+[`Concern`](../protocol.md#concerns) and
+[`ChangeScopeResult`](../change-scope.md#result-type) types:
 
 ```yaml
 outcome: <converged | not-converged | stopped>
-concerns: # if any
-  - source: <originating capability or participant>
-    summary: <condition>
-scope: <resolved scope or resolution failure>
+reason: <condition that prevented or stopped convergence> # if not converged or stopped
+concerns: <Concern[]> # if any
+scope: <ChangeScopeResult>
 corrections: # if any
   - source: <simplification | cleanup | verification>
     summary: <applied correction>
@@ -91,7 +92,6 @@ findings: # if any
     disposition: <confirmed | rejected | unresolved | material out of scope>
     reason: <disposition reason>
     resolution: <fixed | uncorrected> # if confirmed
-reason: <condition that prevented or stopped convergence> # if not converged or stopped
 ```
 
 `not-converged` means a completed quality step left a determined correction unapplied.
