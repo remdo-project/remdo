@@ -53,20 +53,18 @@ Use this review constraint for both providers:
 > Pass these instructions to every delegated reviewer. Report any additional
 > runtime check needed and why.
 
-Invoke each native reviewer directly with high effort and a fresh,
-non-persistent session:
+Invoke each native reviewer directly with high effort in a fresh session:
 
-- Codex: run `codex exec -s read-only --ephemeral` with `--disable hooks`,
+- Codex: run `codex exec -s read-only --ignore-rules` with `--disable hooks`,
   `approval_policy="never"`, `notify=[]`, `model_reasoning_effort="high"`, and
   the review constraint as `developer_instructions`; then pass `review
   --uncommitted` or `review --base <BASE>`.
 - Claude: set `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`, then run `claude -p
-  --effort high --permission-mode plan
-  --setting-sources user,project --settings '{"disableAllHooks":true}'
-  --no-session-persistence`. Start its prompt with `/code-review`, followed by
-  every resolved changed path as a quoted argument for `uncommitted`, or the
-  exact `<BASE>..<HEAD_SHA>` range for a commit range, then append the review
-  constraint.
+  --effort high --permission-mode auto --setting-sources user,project
+  --settings '{"disableAllHooks":true}'`. Start its prompt with `/code-review`,
+  followed by every resolved changed path as a quoted argument for
+  `uncommitted`, or the exact `<BASE>..<HEAD_SHA>` range for a commit range,
+  then append the review constraint.
 
 For an uncommitted Claude review, derive the changed paths again from
 NUL-delimited staged, unstaged, and untracked Git output. Deduplicate the exact
