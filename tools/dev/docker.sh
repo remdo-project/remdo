@@ -11,7 +11,7 @@ if [[ "$#" -ne 0 ]]; then
   exit 1
 fi
 
-HOME_ORIGIN="$(pnpm exec tsx ./tools/dev/print-app-public-url.ts)"
+HOME_ORIGIN="$(pnpm exec tsx ./tools/dev/print-app-origin.ts)"
 HOME_DATA_DIR="${DATA_DIR%/}/docker-home"
 HOME_CONTAINER_NAME="remdo-dev-docker-${PORT}"
 
@@ -38,13 +38,12 @@ remdo_docker_run "${IMAGE_NAME}" "${HOME_DATA_DIR}" \
   --name "${HOME_CONTAINER_NAME}" \
   --network=host \
   -e ADMIN_SECRET="${ADMIN_SECRET}" \
-  -e APP_PUBLIC_URL="${HOME_ORIGIN}" \
+  -e APP_ORIGIN="${HOME_ORIGIN}" \
   -e ALLOW_SIGNUP=false \
-  -e CADDY_BIND_DIRECTIVE="bind ${BIND_HOST}" \
-  -e CADDY_SITE_ADDRESSES="http://:${PORT}" \
-  -e HOST=127.0.0.1 \
-  -e PORT_BASE="${PORT_BASE}" \
-  -e PORT="${PORT}" \
+  -e REMDO_GATEWAY_BIND_ADDRESS="${BIND_HOST}" \
+  -e API_SERVER_PORT="${API_SERVER_PORT}" \
+  -e COLLAB_SERVER_PORT="${COLLAB_SERVER_PORT}" \
+  -e REMDO_DEV_CONTAINER=true \
   -e AUTH_SECRET="${AUTH_SECRET}" \
   -e YSWEET_AUTH_KEY="${YSWEET_AUTH_KEY}" \
   -e YSWEET_SERVER_TOKEN="${YSWEET_SERVER_TOKEN}"

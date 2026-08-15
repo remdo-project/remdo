@@ -23,7 +23,15 @@ COPY patches ./patches
 COPY public ./public
 COPY tools ./tools
 
-RUN pnpm install --frozen-lockfile --prod \
+RUN attempt=1 \
+  && until pnpm install --frozen-lockfile --prod; do \
+    [ "$attempt" -ge 3 ] && exit 1; \
+    rm -rf node_modules; \
+    delay=$((attempt * 5)); \
+    echo "pnpm install failed; retrying in ${delay}s"; \
+    sleep "$delay"; \
+    attempt=$((attempt + 1)); \
+  done \
   && NODE_ENV=production ./tools/env.sh pnpm run build
 
 # Bundle server tools for runtime use (no pnpm dependency in runner).
@@ -70,7 +78,6 @@ RUN mkdir -p /usr/local/bin \
 ############################
 FROM node:24.19-alpine AS runner
 
-ENV YSWEET_VERSION=^0.9.1
 ENV NODE_ENV=production
 ENV DATA_DIR=/data
 
@@ -80,14 +87,6 @@ ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
 
 # hadolint ignore=DL3018
 RUN apk add --no-cache caddy \
-  && attempt=1 \
-  && until npm install -g "y-sweet@${YSWEET_VERSION}"; do \
-    [ "$attempt" -ge 3 ] && exit 1; \
-    delay=$((attempt * 5)); \
-    echo "y-sweet install failed; retrying in ${delay}s"; \
-    sleep "$delay"; \
-    attempt=$((attempt + 1)); \
-  done \
   && mkdir -p /data /etc/caddy /srv/remdo /var/log /usr/local/share/remdo
 
 # Install backup script and cron schedule (runs every minute).
@@ -99,6 +98,10 @@ RUN chmod +x /usr/local/bin/backup.sh \
 
 COPY --from=builder /app/dist /srv/remdo
 COPY --from=builder /app/node_modules /app/node_modules
+# The package's JavaScript launcher does not forward shutdown signals. Expose
+# the downloaded native server at the stable command path used by RemDo.
+RUN ln -s /app/node_modules/y-sweet/bin/y-sweet /usr/local/bin/y-sweet \
+  && test -x /usr/local/bin/y-sweet
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh
@@ -114,7 +117,5 @@ RUN chmod +x \
   /app/snapshot.mjs \
   /app/backup.mjs \
   /app/bootstrap-secrets.cjs
-
-EXPOSE 8080
 
 CMD ["/entrypoint.sh"]

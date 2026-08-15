@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC3040 # BusyBox ash supports pipefail in the production image.
 set -euo pipefail
 
 # Default to the writable runtime root inside the container. DATA_DIR needs no
@@ -6,15 +7,6 @@ set -euo pipefail
 # process (and thus into the sourced env.defaults.sh and every child).
 : "${REMDO_ROOT:=/app}"
 export REMDO_ROOT
-
-# Bind loopback services on IPv4. Caddy proxies to 127.0.0.1 upstreams, but
-# `localhost` (the env.defaults.sh default) can resolve to ::1 first, so the API
-# server would listen IPv6-only and Caddy's IPv4 dial gets connection-refused.
-# Pin HOST to the IPv4 loopback the Caddyfile uses. This must run before
-# env.defaults.sh, which itself defaults HOST to `localhost`; setting it here
-# makes that default a no-op while still allowing an explicit operator value.
-: "${HOST:=127.0.0.1}"
-export HOST
 
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/env.defaults.sh
@@ -25,11 +17,12 @@ export HOST
 : "${XDG_CONFIG_HOME:=${DATA_DIR%/}/.config}"
 export XDG_DATA_HOME XDG_CONFIG_HOME
 
+remdo_configure_internal_services
 remdo_configure_caddy_env
 
 # Bootstrap secrets (production only). Resolves AUTH_SECRET and the Y-Sweet
 # auth_key/server_token pair from env -> persisted DATA_DIR/secrets -> generate,
-# so operators only set ADMIN_SECRET (+ APP_PUBLIC_URL). The tool emits
+# so operators only set ADMIN_SECRET (+ APP_ORIGIN). The tool emits
 # `export VAR='...'` lines on stdout only; we eval them so secrets never reach a
 # log. ADMIN_SECRET is never generated and is still asserted below.
 if [ "${NODE_ENV}" = "production" ]; then
@@ -48,13 +41,59 @@ mkdir -p "$COLLAB_DATA_DIR"
 : "${YSWEET_AUTH_KEY:?Set YSWEET_AUTH_KEY}"
 : "${YSWEET_SERVER_TOKEN:?Set YSWEET_SERVER_TOKEN}"
 
-# Start cron for periodic backups. Backup needs the Y-Sweet server token, not
-# app auth secrets or the Y-Sweet private auth key.
-env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY crond -l 2 -L /var/log/cron.log
+child_pids=""
+ysweet_pid=""
 
-env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_SERVER_TOKEN RUST_LOG=error Y_SWEET_AUTH="${YSWEET_AUTH_KEY}" \
-  y-sweet serve --host 127.0.0.1 --port "${COLLAB_SERVER_PORT}" --prod "$COLLAB_DATA_DIR" &
-env -u YSWEET_AUTH_KEY node /app/remdo-api-server.cjs &
+start_child() {
+  (
+    trap - INT TERM
+    exec "$@"
+  ) &
+  child_pid="$!"
+  child_pids="${child_pids} ${child_pid}"
+}
 
-exec env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY -u YSWEET_SERVER_TOKEN \
+stop_children() {
+  child_signal="$1"
+  trap - INT TERM
+
+  for child_pid in $child_pids; do
+    signal="$child_signal"
+    # Y-Sweet flushes persistent state through its SIGINT shutdown path.
+    if [ "$child_pid" = "$ysweet_pid" ]; then
+      signal="INT"
+    fi
+    kill "-${signal}" "$child_pid" 2>/dev/null || true
+  done
+  for child_pid in $child_pids; do
+    wait "$child_pid" 2>/dev/null || true
+  done
+}
+
+trap 'stop_children INT; exit 130' INT
+trap 'stop_children TERM; exit 143' TERM
+
+# Start production cron for periodic backups. Backup needs the Y-Sweet server
+# token, not app auth secrets or the Y-Sweet private auth key.
+if [ "${REMDO_DEV_CONTAINER:-false}" != "true" ]; then
+  start_child env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY \
+    crond -f -l 2 -L /var/log/cron.log
+fi
+
+start_child env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_SERVER_TOKEN \
+  RUST_LOG=error Y_SWEET_AUTH="${YSWEET_AUTH_KEY}" y-sweet serve --host 127.0.0.1 \
+  --port "${COLLAB_SERVER_PORT}" --prod "$COLLAB_DATA_DIR"
+ysweet_pid="$child_pid"
+start_child env -u YSWEET_AUTH_KEY node /app/remdo-api-server.cjs
+
+start_child env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY -u YSWEET_SERVER_TOKEN \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+caddy_pid="$child_pid"
+
+if wait "$caddy_pid"; then
+  caddy_status=0
+else
+  caddy_status="$?"
+fi
+stop_children TERM
+exit "$caddy_status"

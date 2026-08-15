@@ -51,7 +51,7 @@ export async function startRemdoApiServer({
       env: {
         AUTH_SECRET: config.env.AUTH_SECRET,
         ADMIN_SECRET: config.env.ADMIN_SECRET,
-        APP_PUBLIC_URL: config.env.APP_PUBLIC_URL,
+        APP_ORIGIN: config.env.APP_ORIGIN,
         HOST: INTERNAL_SERVICE_HOST,
         ALLOW_SIGNUP: String(config.env.ALLOW_SIGNUP),
         API_SERVER_PORT: String(port),

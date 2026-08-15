@@ -65,7 +65,7 @@ describe('vite shared config', () => {
       ]);
       const previewProxy = createIsolatedConfig().preview.proxy;
 
-      expect(config.env.APP_PUBLIC_URL).toBe(`http://browser-visible.test:${config.env.PORT}`);
+      expect(config.env.APP_ORIGIN).toBe(`http://browser-visible.test:${config.env.PORT}`);
       expect(previewProxy['/api']).toMatchObject({
         target: `http://127.0.0.1:${config.env.PORT}`,
       });

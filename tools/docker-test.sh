@@ -8,7 +8,9 @@ remdo_load_dotenv "${ROOT_DIR}"
 : "${DOCKER_TEST_BROWSER_HOST:=remdo.localhost}"
 : "${IMAGE_NAME:=remdo-test}"
 DOCKER_TEST_SECRET="ci-better-auth-secret-0123456789"
-DOCKER_TEST_ADMIN_SECRET="ci-admin-secret-0123456789"
+DOCKER_TEST_ADMIN_SECRET="ci-admin-secret-0123456789abcdef"
+DOCKER_DEV_TEST_SECRET="ci-auth"
+DOCKER_DEV_TEST_ADMIN_SECRET="ci-admin"
 DOCKER_TEST_YSWEET_AUTH_KEY="WLo8wx1G1lGKpIDaDjky9npTrV_fW8jCpRVtB8rd"
 DOCKER_TEST_YSWEET_SERVER_TOKEN="AAAgOkIiPro6W2lCzxyW6BDQkuOmTVSfs0MZh-4PGTM_st0"
 
@@ -27,7 +29,7 @@ remdo_load_env_defaults "${ROOT_DIR}"
 # pin the gateway port directly and re-validate it as browser-facing.
 PORT="$((PORT_BASE + 7))"
 remdo_assert_browser_safe_port "${PORT}"
-APP_PUBLIC_URL="http://${DOCKER_TEST_BROWSER_HOST}:${PORT}"
+APP_ORIGIN="https://${DOCKER_TEST_BROWSER_HOST}:${PORT}"
 
 # The source dev server binds PORT_BASE+0 of its shifted range, so its origin
 # port equals the shifted base.
@@ -35,7 +37,7 @@ SOURCE_PORT_BASE="$((PORT_BASE + SOURCE_PORT_SHIFT))"
 SOURCE_ORIGIN="http://localhost:${SOURCE_PORT_BASE}"
 
 CONTAINER_NAME="${IMAGE_NAME}-${PORT}"
-HEALTH_URL="${APP_PUBLIC_URL%/}/health"
+HEALTH_URL="${APP_ORIGIN%/}/health"
 DATA_CLEANED="false"
 DOCKER_RUN_ARGS=()
 
@@ -47,20 +49,27 @@ DOCKER_RUN_ARGS=()
 BOOTSTRAP_PORT="$((PORT_BASE + 8))"
 remdo_assert_browser_safe_port "${BOOTSTRAP_PORT}"
 BOOTSTRAP_CONTAINER_NAME="${IMAGE_NAME}-${BOOTSTRAP_PORT}"
-BOOTSTRAP_APP_PUBLIC_URL="http://${DOCKER_TEST_BROWSER_HOST}:${BOOTSTRAP_PORT}"
-BOOTSTRAP_HEALTH_URL="${BOOTSTRAP_APP_PUBLIC_URL%/}/health"
+BOOTSTRAP_APP_ORIGIN="http://${DOCKER_TEST_BROWSER_HOST}:${BOOTSTRAP_PORT}"
+BOOTSTRAP_HEALTH_URL="${BOOTSTRAP_APP_ORIGIN%/}/health"
 BOOTSTRAP_DATA_DIR="${TEST_DATA_DIR%/}/bootstrap-home"
 
 # Third scenario: the real production launcher with its bridge publication.
 # It uses the next reserved Docker E2E port and a separate container/data dir.
 PROD_BRIDGE_PORT="$((PORT_BASE + 9))"
 remdo_assert_browser_safe_port "${PROD_BRIDGE_PORT}"
-PROD_BRIDGE_CONTAINER_NAME="${IMAGE_NAME}-${PROD_BRIDGE_PORT}"
-PROD_BRIDGE_APP_PUBLIC_URL="http://${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}"
-PROD_BRIDGE_HEALTH_URL="${PROD_BRIDGE_APP_PUBLIC_URL%/}/health"
+PROD_BRIDGE_CONTAINER_NAME="remdo-${PROD_BRIDGE_PORT}"
+PROD_BRIDGE_APP_ORIGIN="https://${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}"
+PROD_BRIDGE_HEALTH_URL="${PROD_BRIDGE_APP_ORIGIN%/}/health"
 PROD_BRIDGE_DATA_DIR="${TEST_DATA_DIR%/}/prod-bridge-home"
 PROD_BRIDGE_LAUNCH_LOG="${TEST_DATA_DIR%/}/prod-bridge-launcher.log"
 PROD_BRIDGE_LAUNCH_PID=""
+PROD_BRIDGE_LAUNCH_PIDS=()
+
+# Fourth scenario: hosted production behind external TLS termination.
+HOSTED_PORT="$((PORT_BASE + 10))"
+HOSTED_CONTAINER_NAME="${IMAGE_NAME}-${HOSTED_PORT}"
+HOSTED_APP_ORIGIN="https://remdo.onrender.com"
+HOSTED_DATA_DIR="${TEST_DATA_DIR%/}/hosted-home"
 
 if remdo_docker_daemon_is_rootless; then
   remdo_require_rootless_host_network
@@ -93,22 +102,44 @@ cleanup_data_dir() {
   wipe_container_data "${CONTAINER_NAME}" "${DOCKER_HOME_DATA_DIR}"
   wipe_container_data "${BOOTSTRAP_CONTAINER_NAME}" "${BOOTSTRAP_DATA_DIR}"
   wipe_container_data "${PROD_BRIDGE_CONTAINER_NAME}" "${PROD_BRIDGE_DATA_DIR}"
+  wipe_container_data "${HOSTED_CONTAINER_NAME}" "${HOSTED_DATA_DIR}"
 
   rm -rf "${TEST_DATA_DIR}" >/dev/null 2>&1 || true
   DATA_CLEANED="true"
 }
 
+start_prod_bridge_launcher() {
+  # Keep the build and Docker launcher descendants terminable as one unit when
+  # startup fails before the named container exists.
+  setsid env \
+    IMAGE_NAME="${IMAGE_NAME}" \
+    DATA_DIR="${PROD_BRIDGE_DATA_DIR}" \
+    HOST= \
+    PORT= \
+    PORT_BASE= \
+    APP_ORIGIN="${PROD_BRIDGE_APP_ORIGIN}" \
+    ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
+    AUTH_SECRET="${DOCKER_TEST_SECRET}" \
+    YSWEET_AUTH_KEY="${DOCKER_TEST_YSWEET_AUTH_KEY}" \
+    YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}" \
+    ALLOW_SIGNUP=false \
+    "${ROOT_DIR}/tools/prod/docker.sh" >>"${PROD_BRIDGE_LAUNCH_LOG}" 2>&1 &
+  PROD_BRIDGE_LAUNCH_PID="$!"
+  PROD_BRIDGE_LAUNCH_PIDS+=("${PROD_BRIDGE_LAUNCH_PID}")
+}
+
 stop_prod_bridge_launcher() {
-  if [[ -n "${PROD_BRIDGE_LAUNCH_PID}" ]]; then
-    kill -KILL -- "-${PROD_BRIDGE_LAUNCH_PID}" >/dev/null 2>&1 \
-      || kill -KILL "${PROD_BRIDGE_LAUNCH_PID}" >/dev/null 2>&1 \
+  for launcher_pid in "${PROD_BRIDGE_LAUNCH_PIDS[@]}"; do
+    kill -KILL -- "-${launcher_pid}" >/dev/null 2>&1 \
+      || kill -KILL "${launcher_pid}" >/dev/null 2>&1 \
       || true
-  fi
+  done
   docker rm -f "${PROD_BRIDGE_CONTAINER_NAME}" >/dev/null 2>&1 || true
-  if [[ -n "${PROD_BRIDGE_LAUNCH_PID}" ]]; then
-    wait "${PROD_BRIDGE_LAUNCH_PID}" >/dev/null 2>&1 || true
-    PROD_BRIDGE_LAUNCH_PID=""
-  fi
+  for launcher_pid in "${PROD_BRIDGE_LAUNCH_PIDS[@]}"; do
+    wait "${launcher_pid}" >/dev/null 2>&1 || true
+  done
+  PROD_BRIDGE_LAUNCH_PID=""
+  PROD_BRIDGE_LAUNCH_PIDS=()
 }
 
 cleanup() {
@@ -116,6 +147,7 @@ cleanup() {
   cleanup_data_dir
   docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
   docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
+  docker rm -f "${HOSTED_CONTAINER_NAME}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -146,9 +178,9 @@ assert_loopback_gateway() {
   # Validate the adapted gateway rather than only the Caddyfile template: the
   # listener stays on loopback while the advertised hostname is a request
   # matcher, not an accidental site-address listener constraint.
-  docker exec -e CADDY_CANONICAL_HOST="${DOCKER_TEST_BROWSER_HOST}" \
-    "${container_name}" caddy adapt \
-    --config /etc/caddy/Caddyfile --adapter caddyfile 2>/dev/null \
+  docker exec "${container_name}" sh -c \
+    '. /usr/local/share/remdo/entrypoint-env.sh; remdo_configure_caddy_env; caddy adapt --config /etc/caddy/Caddyfile --adapter caddyfile' \
+    2>/dev/null \
     | node -e '
         let input = "";
         process.stdin.setEncoding("utf8");
@@ -180,20 +212,21 @@ assert_loopback_gateway() {
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
 docker rm -f "${PROD_BRIDGE_CONTAINER_NAME}" >/dev/null 2>&1 || true
+docker rm -f "${HOSTED_CONTAINER_NAME}" >/dev/null 2>&1 || true
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
 remdo_docker_run "${IMAGE_NAME}" "${DOCKER_HOME_DATA_DIR}" -d --name "${CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
-  -e AUTH_SECRET="${DOCKER_TEST_SECRET}" \
-  -e ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
+  -e AUTH_SECRET="${DOCKER_DEV_TEST_SECRET}" \
+  -e ADMIN_SECRET="${DOCKER_DEV_TEST_ADMIN_SECRET}" \
   -e YSWEET_AUTH_KEY="${DOCKER_TEST_YSWEET_AUTH_KEY}" \
   -e YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}" \
-  -e APP_PUBLIC_URL="${APP_PUBLIC_URL}" \
-  -e CADDY_SITE_ADDRESSES="http://:${PORT}" \
-  -e CADDY_BIND_DIRECTIVE="bind 127.0.0.1" \
-  -e HOST=127.0.0.1 \
-  -e PORT_BASE="$((PORT_BASE + HOME_INTERNAL_PORT_SHIFT))" \
-  -e PORT="${PORT}"
+  -e APP_ORIGIN="${APP_ORIGIN}" \
+  -e API_SERVER_PORT="$((PORT_BASE + HOME_INTERNAL_PORT_SHIFT + 11))" \
+  -e COLLAB_SERVER_PORT="$((PORT_BASE + HOME_INTERNAL_PORT_SHIFT + 4))" \
+  -e PORT="${PORT}" \
+  -e REMDO_GATEWAY_BIND_ADDRESS="127.0.0.1" \
+  -e REMDO_DEV_CONTAINER=true
 
 if ! wait_healthy "${PORT}" "${HEALTH_URL}" 20; then
   docker logs "${CONTAINER_NAME}" || true
@@ -202,6 +235,11 @@ if ! wait_healthy "${PORT}" "${HEALTH_URL}" 20; then
 fi
 
 echo "Docker health check OK: ${HEALTH_URL}"
+
+if docker exec "${CONTAINER_NAME}" pidof crond >/dev/null; then
+  echo "Development container unexpectedly started production backup cron." >&2
+  exit 1
+fi
 
 assert_loopback_gateway "${CONTAINER_NAME}" "${PORT}"
 
@@ -221,8 +259,8 @@ PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" pnpm exec playwright insta
 
 PLAYWRIGHT_ENV=(
   PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}"
-  REMDO_E2E_HOME_ORIGIN="${APP_PUBLIC_URL}"
-  ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}"
+  REMDO_E2E_HOME_ORIGIN="${APP_ORIGIN}"
+  ADMIN_SECRET="${DOCKER_DEV_TEST_ADMIN_SECRET}"
   YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}"
   REMDO_E2E_SOURCE_ORIGIN="${SOURCE_ORIGIN}"
 )
@@ -271,6 +309,14 @@ done
 if [[ "${collab_ready}" != "true" ]]; then
   docker logs "${CONTAINER_NAME}" || true
   echo "Collab data missing: ${COLLAB_DATA_PATH}" >&2
+  exit 1
+fi
+
+echo "Restarting Docker app to verify graceful persistence..."
+docker restart "${CONTAINER_NAME}" >/dev/null
+if ! wait_healthy "${PORT}" "${HEALTH_URL}" 40; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Docker app did not become healthy after graceful restart: ${HEALTH_URL}" >&2
   exit 1
 fi
 
@@ -353,6 +399,30 @@ done
 
 echo "Docker backup OK: ${BACKUP_DIR}"
 
+echo "Verifying gateway health follows the API process..."
+if ! docker exec "${CONTAINER_NAME}" sh -c 'kill "$(pidof node)"'; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Could not stop the API process for the health-boundary check." >&2
+  exit 1
+fi
+
+api_unhealthy=false
+for _ in {1..20}; do
+  health_status="$(curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PORT}:127.0.0.1" \
+    -ksS -o /dev/null -w '%{http_code}' "${HEALTH_URL}" 2>/dev/null || true)"
+  if [[ -n "${health_status}" && "${health_status}" != "000" && "${health_status}" != 2?? ]]; then
+    api_unhealthy=true
+    break
+  fi
+  sleep 0.25
+done
+if [[ "${api_unhealthy}" != "true" ]]; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Gateway health remained successful after the API process stopped." >&2
+  exit 1
+fi
+echo "Gateway health reports the stopped API process."
+
 # ---------------------------------------------------------------------------
 # Scenario 2: ADMIN_SECRET-only bootstrap (secret generation + persistence).
 #
@@ -363,7 +433,7 @@ echo "Docker backup OK: ${BACKUP_DIR}"
 # bootstrap GENERATES and PERSISTS AUTH_SECRET and the Y-Sweet pair, then proves
 # a restart reuses them without rotation and that the self-generated AUTH_SECRET
 # drives a working app.
-echo "Running ADMIN_SECRET-only bootstrap scenario on ${BOOTSTRAP_APP_PUBLIC_URL}..."
+echo "Running ADMIN_SECRET-only bootstrap scenario on ${BOOTSTRAP_APP_ORIGIN}..."
 
 bootstrap_fail() {
   docker logs "${BOOTSTRAP_CONTAINER_NAME}" || true
@@ -371,18 +441,18 @@ bootstrap_fail() {
   exit 1
 }
 
-# Pass ONLY ADMIN_SECRET (+ APP_PUBLIC_URL, HOST, PORT_BASE, PORT). AUTH_SECRET and the
-# Y-Sweet pair are intentionally absent so the entrypoint bootstrap generates and
+# Pass only ADMIN_SECRET plus runtime addressing. AUTH_SECRET and the Y-Sweet
+# pair are intentionally absent so the entrypoint bootstrap generates and
 # persists them under the mounted /data/secrets.
 remdo_docker_run "${IMAGE_NAME}" "${BOOTSTRAP_DATA_DIR}" \
   -d --name "${BOOTSTRAP_CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
   -e ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
-  -e APP_PUBLIC_URL="${BOOTSTRAP_APP_PUBLIC_URL}" \
-  -e CADDY_SITE_ADDRESSES="http://:${BOOTSTRAP_PORT}" \
-  -e CADDY_BIND_DIRECTIVE="bind 127.0.0.1" \
-  -e HOST=127.0.0.1 \
-  -e PORT_BASE="$((PORT_BASE + BOOTSTRAP_INTERNAL_PORT_SHIFT))" \
-  -e PORT="${BOOTSTRAP_PORT}"
+  -e APP_ORIGIN="${BOOTSTRAP_APP_ORIGIN}" \
+  -e API_SERVER_PORT="$((PORT_BASE + BOOTSTRAP_INTERNAL_PORT_SHIFT + 11))" \
+  -e COLLAB_SERVER_PORT="$((PORT_BASE + BOOTSTRAP_INTERNAL_PORT_SHIFT + 4))" \
+  -e PORT="${BOOTSTRAP_PORT}" \
+  -e REMDO_GATEWAY_BIND_ADDRESS="127.0.0.1" \
+  -e REMDO_DEV_CONTAINER=true
 
 # (a) The ADMIN_SECRET-only container boots healthy.
 if ! wait_healthy "${BOOTSTRAP_PORT}" "${BOOTSTRAP_HEALTH_URL}" 20; then
@@ -461,7 +531,7 @@ echo "Bootstrap scenario reused persisted secrets across restart (no rotation)."
 # users.
 bootstrap_smoke_status="$(curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${BOOTSTRAP_PORT}:127.0.0.1" \
   -ksS -o /dev/null -w '%{http_code}' \
-  -X POST "${BOOTSTRAP_APP_PUBLIC_URL%/}/api/admin/enroll" \
+  -X POST "${BOOTSTRAP_APP_ORIGIN%/}/api/admin/enroll" \
   -H 'content-type: application/json' \
   --data '{"adminSecret":"'"${DOCKER_TEST_ADMIN_SECRET}"'","name":"Bootstrap Smoke","email":"bootstrap-smoke@example.com","password":"bootstrap-smoke-password"}' \
   2>/dev/null || true)"
@@ -475,32 +545,52 @@ docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
 echo "ADMIN_SECRET-only bootstrap scenario OK."
 
 # ---------------------------------------------------------------------------
-# Scenario 3: production launcher bridge publication.
+# Scenario 3: hosted production behind a platform TLS terminator.
+echo "Running hosted production smoke on port ${HOSTED_PORT}..."
+remdo_docker_run "${IMAGE_NAME}" "${HOSTED_DATA_DIR}" \
+  -d --name "${HOSTED_CONTAINER_NAME}" --userns=host \
+  -p "127.0.0.1:${HOSTED_PORT}:${HOSTED_PORT}" \
+  -e ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
+  -e APP_ORIGIN="${HOSTED_APP_ORIGIN}" \
+  -e AUTH_SECRET="${DOCKER_TEST_SECRET}" \
+  -e PORT="${HOSTED_PORT}" \
+  -e YSWEET_AUTH_KEY="${DOCKER_TEST_YSWEET_AUTH_KEY}" \
+  -e YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}"
+
+hosted_healthy="false"
+for _ in {1..40}; do
+  if curl -fsS -H 'Host: remdo.onrender.com' \
+    "http://127.0.0.1:${HOSTED_PORT}/health" >/dev/null 2>&1; then
+    hosted_healthy="true"
+    break
+  fi
+  sleep 0.5
+done
+if [[ "${hosted_healthy}" != "true" ]]; then
+  docker logs "${HOSTED_CONTAINER_NAME}" || true
+  echo "Hosted production health smoke failed." >&2
+  exit 1
+fi
+
+if ! docker exec "${HOSTED_CONTAINER_NAME}" env -i \
+  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+  /usr/local/bin/backup.sh; then
+  docker logs "${HOSTED_CONTAINER_NAME}" || true
+  echo "Hosted production backup smoke failed." >&2
+  exit 1
+fi
+echo "Hosted production gateway and backup smoke OK."
+docker rm -f "${HOSTED_CONTAINER_NAME}" >/dev/null 2>&1 || true
+
+# ---------------------------------------------------------------------------
+# Scenario 4: production launcher bridge publication.
 #
 # The scenarios above invoke remdo_docker_run directly with host networking.
 # This smoke invokes the operator-facing launcher itself and reaches the
 # container through its published bridge port.
-echo "Running production bridge launcher smoke on ${PROD_BRIDGE_APP_PUBLIC_URL}..."
+echo "Running production bridge launcher smoke on ${PROD_BRIDGE_APP_ORIGIN}..."
 
-# Keep the build and Docker launcher descendants terminable as one unit when
-# startup fails before the named container exists.
-setsid env \
-  IMAGE_NAME="${IMAGE_NAME}" \
-  REMDO_DOCKER_CONTAINER_NAME="${PROD_BRIDGE_CONTAINER_NAME}" \
-  REMDO_DOCKER_NETWORK=bridge \
-  DATA_DIR="${PROD_BRIDGE_DATA_DIR}" \
-  PORT_BASE="${PORT_BASE}" \
-  PORT="${PROD_BRIDGE_PORT}" \
-  APP_PUBLIC_URL="${PROD_BRIDGE_APP_PUBLIC_URL}" \
-  ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
-  AUTH_SECRET="${DOCKER_TEST_SECRET}" \
-  YSWEET_AUTH_KEY="${DOCKER_TEST_YSWEET_AUTH_KEY}" \
-  YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}" \
-  ALLOW_SIGNUP=false \
-  CADDY_SITE_ADDRESSES= \
-  CADDY_BIND_DIRECTIVE= \
-  "${ROOT_DIR}/tools/prod/docker.sh" >"${PROD_BRIDGE_LAUNCH_LOG}" 2>&1 &
-PROD_BRIDGE_LAUNCH_PID="$!"
+start_prod_bridge_launcher
 
 if ! wait_healthy \
   "${PROD_BRIDGE_PORT}" \
@@ -514,6 +604,40 @@ if ! wait_healthy \
 fi
 
 echo "Production bridge launcher smoke OK: ${PROD_BRIDGE_HEALTH_URL}"
+prod_bridge_host_ip="$(docker inspect --format \
+  "{{(index (index .NetworkSettings.Ports \"${PROD_BRIDGE_PORT}/tcp\") 0).HostIp}}" \
+  "${PROD_BRIDGE_CONTAINER_NAME}")"
+if [[ "${prod_bridge_host_ip}" != "127.0.0.1" ]]; then
+  echo "Production bridge launcher published on ${prod_bridge_host_ip}, expected 127.0.0.1" >&2
+  exit 1
+fi
+echo "Production bridge launcher is loopback-only."
+
+first_prod_bridge_id="$(docker inspect --format '{{.Id}}' "${PROD_BRIDGE_CONTAINER_NAME}")"
+start_prod_bridge_launcher
+
+replacement_ready="false"
+for _ in {1..80}; do
+  replacement_id="$(docker inspect --format '{{.Id}}' "${PROD_BRIDGE_CONTAINER_NAME}" 2>/dev/null || true)"
+  if [[ -n "${replacement_id}" && "${replacement_id}" != "${first_prod_bridge_id}" ]] \
+    && curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}:127.0.0.1" \
+      -kfsS "${PROD_BRIDGE_HEALTH_URL}" >/dev/null 2>&1; then
+    replacement_ready="true"
+    break
+  fi
+  if ! kill -0 "${PROD_BRIDGE_LAUNCH_PID}" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.5
+done
+
+if [[ "${replacement_ready}" != "true" ]]; then
+  docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
+  tail -n 200 "${PROD_BRIDGE_LAUNCH_LOG}" >&2 || true
+  echo "Production bridge launcher did not replace its existing container." >&2
+  exit 1
+fi
+echo "Production bridge launcher replaced its existing container."
 stop_prod_bridge_launcher
 
 cleanup_data_dir

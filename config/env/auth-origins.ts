@@ -1,6 +1,6 @@
 // Trusted origins for Better Auth (the URLs from which mutating auth requests
 // are accepted). This is a configuration concern — which URLs a deployment is
-// reachable at — so it is derived here alongside APP_PUBLIC_URL rather than computed
+// reachable at — so it is derived here alongside APP_ORIGIN rather than computed
 // inside the auth module.
 //
 // Production is restricted to the single configured public origin. Development

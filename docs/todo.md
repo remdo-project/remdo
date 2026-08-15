@@ -98,28 +98,11 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Operations
 
-- **Production Docker deployment contract.** Reassess the supported [production deployments](guides/production-deployment.md),
-  [runtime configuration](specs/runtime/configuration.md), gateway behavior,
-  and container topology as one system. Start with host/container exposure
-  ownership, then determine the smallest coherent and secure division among
-  operator inputs, launcher-derived values, and container-owned details.
-  Treat existing support as evidence, not a retention requirement under the
-  [pre-1.0 compatibility policy](../CONTRIBUTING.md#backward-compatibility-pre-10).
-  For every setting, default, derivation, deployment mode, or topology whose
-  removal or internalization would simplify the operator surface,
-  implementation, or verification, explicitly present the capability lost and
-  its security or operational tradeoff. Retain it only when a current scenario
-  justifies that cost.
-
-  While production remains a single container, retain Caddy as the
-  [gateway](architecture.md#gateway) implementation. Evaluate
-  direct-public, private internal-CA, and externally terminated HTTPS as
-  candidate modes rather than assuming all must remain; for retained modes, use
-  the simplest Caddy configuration and automatic certificate management where
-  applicable. Evaluate a one-process-per-container deployment separately and
-  remove obsolete configuration, launch, lifecycle, test, and documentation
-  machinery when its responsibilities move elsewhere. Align the resulting
-  contracts, runtime boundaries, verification, and deployment guidance.
+- **Production child lifecycle.** The production entrypoint waits only for
+  Caddy, so Y-Sweet or scheduled backups can stop without changing container
+  liveness. Define how unexpected child-process exits affect instance health,
+  shutdown or restart ownership, diagnostics, and verification so collaboration
+  or backups cannot fail silently while the instance appears healthy.
 
 - **Hosted production backups.** Define the scheduled backup and recovery
   workflow for hosted deployments, then align `docker/Dockerfile`,

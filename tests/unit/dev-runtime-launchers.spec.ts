@@ -6,6 +6,12 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+  dockerEnvironment,
+  dockerOptionValues,
+  findDockerCall,
+  parseDockerCalls,
+} from './_support/docker-calls';
 import { writeFakeBin } from './_support/fake-bins';
 
 function writeFakeDocker(binDir: string): void {
@@ -31,41 +37,6 @@ interface LauncherRun {
   dataDir: string;
   result: SpawnSyncReturns<string>;
   dockerCalls: string[][];
-}
-
-function parseDockerCalls(log: string): string[][] {
-  const fields = log.split('\0');
-  const calls: string[][] = [];
-  let offset = 0;
-
-  while (offset < fields.length - 1) {
-    const argumentCount = Number(fields[offset]);
-    offset += 1;
-    calls.push(fields.slice(offset, offset + argumentCount));
-    offset += argumentCount;
-  }
-
-  return calls;
-}
-
-function findDockerCall(calls: string[][], command: string): string[] {
-  const call = calls.find(([actualCommand]) => actualCommand === command);
-  if (call === undefined) throw new Error(`Expected docker ${command} to be called`);
-  return call;
-}
-
-function dockerOptionValues(args: string[], option: string): string[] {
-  return args.flatMap((arg, index) => {
-    const value = args[index + 1];
-    return arg === option && value !== undefined ? [value] : [];
-  });
-}
-
-function dockerEnvironment(args: string[]): Record<string, string> {
-  return Object.fromEntries(dockerOptionValues(args, '-e').map((entry) => {
-    const separator = entry.indexOf('=');
-    return [entry.slice(0, separator), entry.slice(separator + 1)];
-  }));
 }
 
 describe('development runtime launchers', () => {
@@ -98,7 +69,7 @@ describe('development runtime launchers', () => {
       env: {
         ...process.env,
         NODE_ENV: 'development',
-        APP_PUBLIC_URL: '',
+        APP_ORIGIN: '',
         DATA_DIR: dataDir,
         HOST: 'localhost',
         PUBLIC_HOST: 'localhost',
@@ -137,13 +108,12 @@ describe('development runtime launchers', () => {
     expect(runArgs).not.toContain('-p');
     expect(dockerEnvironment(runArgs)).toEqual({
       ADMIN_SECRET: 'launcher-admin-secret',
-      APP_PUBLIC_URL: 'http://localhost:4640',
+      APP_ORIGIN: 'http://localhost:4640',
       ALLOW_SIGNUP: 'false',
-      CADDY_BIND_DIRECTIVE: 'bind 127.0.0.1',
-      CADDY_SITE_ADDRESSES: 'http://:4640',
-      HOST: '127.0.0.1',
-      PORT_BASE: '4640',
-      PORT: '4640',
+      API_SERVER_PORT: '4651',
+      COLLAB_SERVER_PORT: '4644',
+      REMDO_GATEWAY_BIND_ADDRESS: '127.0.0.1',
+      REMDO_DEV_CONTAINER: 'true',
       AUTH_SECRET: 'launcher-auth-secret',
       YSWEET_AUTH_KEY: 'launcher-ysweet-auth-key',
       YSWEET_SERVER_TOKEN: 'launcher-ysweet-server-token',
@@ -160,8 +130,7 @@ describe('development runtime launchers', () => {
     expect(result.stdout).toContain('Starting private Docker app: http://dev-vm:4640');
     const runArgs = findDockerCall(dockerCalls, 'run');
     expect(dockerEnvironment(runArgs)).toMatchObject({
-      CADDY_BIND_DIRECTIVE: 'bind 0.0.0.0',
-      HOST: '127.0.0.1',
+      REMDO_GATEWAY_BIND_ADDRESS: '0.0.0.0',
     });
   });
 

@@ -15,34 +15,49 @@ This procedure requires a running Docker daemon; rootless and rootful production
 daemons are supported.
 
 1. Copy [`.env.example`](../../.env.example) to `.env`.
-2. Set `ADMIN_SECRET` and set `DATA_DIR` to the instance's persistent host directory.
-3. Configure direct HTTPS exposure:
-   - Omit `APP_PUBLIC_URL` when the detected hostname is correct and reachable.
-     The launcher derives the canonical URL from that hostname and `PORT`.
-   - Otherwise, set `APP_PUBLIC_URL` to the exact direct HTTPS origin and set
-     `PORT` to that origin's effective port.
-   - With rootless Docker, use port 1024 or higher unless the host allows the
-     daemon to publish lower ports.
+
+   ```sh
+   cp .env.example .env
+   ```
+
+2. In `.env`, set `ADMIN_SECRET` and optionally override
+   [`DATA_DIR`](../specs/runtime/configuration.md#persistence). By default, the
+   gateway is available at `https://remdo.localhost:8443` only through the
+   Docker host's loopback interface.
+
+   For direct host exposure, set `APP_ORIGIN` to its exact public HTTPS origin
+   and set `HOST=0.0.0.0`.
+
+3. For direct exposure, point the origin hostname's DNS A record at the host
+   and allow inbound port 443. Rootless Docker requires the host to permit its
+   daemon to publish that privileged port. The loopback example instead uses
+   unprivileged port 8443.
 4. Run the [production Docker launcher](../../tools/prod/docker.sh):
 
    ```sh
    ./tools/prod/docker.sh
    ```
 
-5. Open the printed `Docker target`. The browser must trust or explicitly
-   accept the container gateway's internal certificate.
+   Rerunning the launcher builds successfully before gracefully replacing the
+   container serving the same origin port.
+
+5. Open the printed `Docker target`. Caddy uses its internal CA for `.localhost`
+   and manages a publicly trusted certificate for a public DNS name. For the
+   loopback deployment, trust the Caddy root certificate beneath the persistent
+   data root on each browser client. At the default location, it is
+   `data/production/caddy/pki/authorities/local/root.crt`.
 6. Keep the launcher running while using RemDo. Stopping it removes the
-   container and retains `DATA_DIR`.
+   container and retains its persistent data root.
 
 ## Deploy on Render
 
 1. Create a Render Blueprint deployment from [the repository blueprint](../../render.yaml).
-2. In the Render Dashboard, set `ADMIN_SECRET` and set `APP_PUBLIC_URL` to the
+2. In the Render Dashboard, set `ADMIN_SECRET` and set `APP_ORIGIN` to the
    service's exact public origin.
 3. Keep the blueprint's persistent disk mounted at `/data` and its
    `ALLOW_SIGNUP=false` setting. Render supplies the container `PORT` and
    terminates public HTTPS.
-4. Deploy the service and open its `APP_PUBLIC_URL`.
+4. Deploy the service and open its `APP_ORIGIN`.
 
 ## Verify and Complete First Access
 
