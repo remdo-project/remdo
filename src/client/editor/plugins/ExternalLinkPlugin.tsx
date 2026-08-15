@@ -1,5 +1,7 @@
-import { AutoLinkNode, LinkNode, registerAutoLink } from '@lexical/link';
+import { AutoLinkNode, LinkNode } from '@lexical/link';
+import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { mergeRegister } from '@lexical/utils';
 import type { LinkMatcher } from '@lexical/link';
 import LinkifyIt from 'linkify-it';
 import { $getNodeByKey } from 'lexical';
@@ -133,23 +135,13 @@ export function ExternalLinkPlugin() {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    if (!editor.hasNodes([AutoLinkNode])) {
-      throw new Error('ExternalLinkPlugin: AutoLinkNode not registered on editor');
-    }
-    return [
-      registerAutoLink(editor, { changeHandlers: [], excludeParents: [], matchers: MATCHERS }),
+    return mergeRegister(
       editor.registerNodeTransform(LinkNode, normalizeExternalLinkNode),
       editor.registerNodeTransform(AutoLinkNode, normalizeExternalLinkNode),
       registerExternalLinkMutationListener(editor, LinkNode),
       registerExternalLinkMutationListener(editor, AutoLinkNode),
-    ].reduceRight<() => void>(
-      (cleanup, unregister) => () => {
-        unregister();
-        cleanup();
-      },
-      () => {},
     );
   }, [editor]);
 
-  return null;
+  return <AutoLinkPlugin matchers={MATCHERS} />;
 }
