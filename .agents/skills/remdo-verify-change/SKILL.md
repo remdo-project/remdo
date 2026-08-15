@@ -44,8 +44,8 @@ other review.
 
 Use this review constraint for both providers:
 
-> Repository verification is handled outside this review. Focus on semantic
-> review rather than running repository test or check suites. Inspect the
+> Repository verification is handled outside this review. Do not run or
+> manually reproduce repository tests or checks. Inspect the
 > complete requested scope; in the final response, reproduce the complete
 > consolidated findings report,
 > explicitly state whether inspection was complete and identify any material

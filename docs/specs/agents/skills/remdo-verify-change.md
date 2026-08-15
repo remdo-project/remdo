@@ -43,9 +43,9 @@ lifecycle notification cannot replace that evidence.
 
 Each review inspects the complete resolved scope, repository guidance, Git
 context, and referenced files. **Empirical.** The verifier tells reviewers that
-repository verification is handled separately, to focus on semantic review
-rather than repository test or check suites, to pass the constraint to
-delegated reviewers, and to report any needed runtime check and why.
+repository verification is handled separately, to neither run nor manually
+reproduce repository tests or checks, to pass the constraint to delegated
+reviewers, and to report any needed runtime check and why.
 
 A review is `completed` when its invocation succeeds and its final report
 establishes inspection of the complete selected scope without an unresolved
