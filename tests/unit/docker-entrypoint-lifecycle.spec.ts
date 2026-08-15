@@ -79,7 +79,8 @@ const lifecycleCases = [
     exitCode: 1,
     failedService: 'api',
     failedStatus: 0,
-    title: 'fails the instance when api exits unexpectedly',
+    forceSurvivors: true,
+    title: 'forces surviving services to stop when api exits unexpectedly',
     type: 'exit',
   },
   {
@@ -106,6 +107,7 @@ const lifecycleCases = [
 ] as const;
 
 it.each(lifecycleCases)('$title', async (lifecycleCase) => {
+  const forceSurvivors = 'forceSurvivors' in lifecycleCase;
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-entrypoint-lifecycle-'));
   const binDir = path.join(tempDir, 'bin');
   const dataDir = path.join(tempDir, 'data');
@@ -132,7 +134,8 @@ exec "\${REMDO_FAKE_CHILD:?}" api
   // only those installation paths so the real entrypoint can run on the host.
   const entrypoint = fs.readFileSync('docker/entrypoint.sh', 'utf8')
     .replace('/usr/local/share/remdo/env.defaults.sh', path.resolve('tools/env.defaults.sh'))
-    .replace('/usr/local/share/remdo/entrypoint-env.sh', path.resolve('docker/entrypoint-env.sh'));
+    .replace('/usr/local/share/remdo/entrypoint-env.sh', path.resolve('docker/entrypoint-env.sh'))
+    .replace('shutdown_attempts=100', 'shutdown_attempts=10');
   fs.writeFileSync(entrypointPath, entrypoint);
 
   const child = spawn('/usr/bin/env', ['--default-signal=INT', 'bash', entrypointPath], {
@@ -195,7 +198,9 @@ exec "\${REMDO_FAKE_CHILD:?}" api
     // alive. The entrypoint must therefore still be waiting rather than
     // exiting early.
     expect(child.exitCode, stderr).toBeNull();
-    fs.writeFileSync(releasePath, '');
+    if (!forceSurvivors) {
+      fs.writeFileSync(releasePath, '');
+    }
 
     await expect.poll(() => child.exitCode, { timeout: 3_000 }).toBe(lifecycleCase.exitCode);
     if (lifecycleCase.type === 'signal') {
@@ -205,10 +210,11 @@ exec "\${REMDO_FAKE_CHILD:?}" api
     }
     else {
       const survivingServices = services.filter(name => name !== lifecycleCase.failedService);
-      expect(readEvents(eventsPath)).toEqual(expect.arrayContaining([
-        `${lifecycleCase.failedService} unexpected ${lifecycleCase.failedStatus}`,
-        ...survivingServices.map(name => `${name} exit`),
-      ]));
+      const expectedEvents = [`${lifecycleCase.failedService} unexpected ${lifecycleCase.failedStatus}`];
+      if (!forceSurvivors) {
+        expectedEvents.push(...survivingServices.map(name => `${name} exit`));
+      }
+      expect(readEvents(eventsPath)).toEqual(expect.arrayContaining(expectedEvents));
     }
   }
   finally {

@@ -32,6 +32,15 @@ case "$1" in
     ;;
   run)
     ;;
+  exec)
+    exit "\${REMDO_FAKE_HEALTH_STATUS:-0}"
+    ;;
+  inspect)
+    printf '%s\n' "\${REMDO_FAKE_CONTAINER_STATE:-true 0}"
+    ;;
+  logs)
+    echo "\${REMDO_FAKE_CONTAINER_LOGS:-}"
+    ;;
   *)
     echo "unexpected docker command: $1" >&2
     exit 1
@@ -146,7 +155,7 @@ describe('prod Docker launcher', () => {
     const { result, dockerCalls } = runLauncher();
 
     expect(result.status, result.stderr).toBe(0);
-    expect(dockerCalls.map(([command]) => command)).toEqual(['build', 'container', 'run']);
+    expect(dockerCalls.map(([command]) => command)).toEqual(['build', 'container', 'run', 'exec']);
     expect(dockerCalls[1]).toEqual(['container', 'inspect', 'remdo-8443']);
   });
 
@@ -161,6 +170,7 @@ describe('prod Docker launcher', () => {
       'rm',
       'container',
       'run',
+      'exec',
     ]);
     expect(findDockerCall(dockerCalls, 'stop')).toEqual(['stop', 'remdo-8443']);
     expect(findDockerCall(dockerCalls, 'rm')).toEqual(['rm', 'remdo-8443']);
@@ -199,6 +209,28 @@ describe('prod Docker launcher', () => {
     expect(dockerOptionValues(runArgs, '--name')).toEqual(['remdo-9443']);
     expect(dockerOptionValues(runArgs, '-p')).toEqual(['127.0.0.1:9443:9443']);
     expect(dockerEnvironment(runArgs).APP_ORIGIN).toBe('http://remdo.example.com:9443');
+  });
+
+  it('stops a container that fails initial health before reporting success', () => {
+    const { result, dockerCalls } = runLauncher({
+      REMDO_FAKE_CONTAINER_LOGS: 'APP_ORIGIN must use HTTPS outside the development container.',
+      REMDO_FAKE_CONTAINER_STATE: 'true 1',
+      REMDO_FAKE_HEALTH_STATUS: '1',
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).not.toContain('Docker target:');
+    expect(result.stderr).toContain('APP_ORIGIN must use HTTPS outside the development container.');
+    expect(result.stderr).toContain('RemDo failed to become healthy; container remdo-8443 was stopped.');
+    expect(dockerCalls.map(([command]) => command)).toEqual([
+      'build',
+      'container',
+      'run',
+      'exec',
+      'inspect',
+      'logs',
+      'stop',
+    ]);
   });
 
   it('requires strong operator secrets before building', () => {

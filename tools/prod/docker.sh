@@ -93,6 +93,32 @@ DOCKER_RUN_ARGS=(-d --restart unless-stopped --userns=host --name "${CONTAINER_N
 DOCKER_RUN_ARGS+=(-p "${HOST}:${PORT}:${PORT}")
 remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" "${DOCKER_RUN_ARGS[@]}" "${DOCKER_ENV_ARGS[@]}"
 
+startup_ready=false
+for _ in {1..60}; do
+  if docker exec "${CONTAINER_NAME}" node -e '
+    fetch("http://127.0.0.1:4011/health")
+      .then(response => process.exit(response.ok ? 0 : 1))
+      .catch(() => process.exit(1));
+  ' >/dev/null 2>&1; then
+    startup_ready=true
+    break
+  fi
+
+  container_state="$(docker inspect --format '{{.State.Running}} {{.RestartCount}}' \
+    "${CONTAINER_NAME}" 2>/dev/null || true)"
+  if [[ "${container_state}" != "true 0" ]]; then
+    break
+  fi
+  sleep 0.5
+done
+
+if [[ "${startup_ready}" != "true" ]]; then
+  docker logs "${CONTAINER_NAME}" >&2 || true
+  docker stop "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+  echo "RemDo failed to become healthy; container ${CONTAINER_NAME} was stopped." >&2
+  exit 1
+fi
+
 echo "Docker target: ${APP_ORIGIN}"
 echo "Verify health: ${APP_ORIGIN%/}/health"
 echo "Follow logs: docker logs -f ${CONTAINER_NAME}"

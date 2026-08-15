@@ -68,6 +68,30 @@ stop_children() {
     fi
     kill "-${signal}" "$child_pid" 2>/dev/null || true
   done
+
+  shutdown_attempts=100
+  while [ "$shutdown_attempts" -gt 0 ]; do
+    children_running=false
+    for managed_child in $managed_children; do
+      child_pid="${managed_child#*:}"
+      if kill -0 "$child_pid" 2>/dev/null; then
+        children_running=true
+        break
+      fi
+    done
+    if [ "$children_running" = "false" ]; then
+      break
+    fi
+    sleep 0.1
+    shutdown_attempts="$((shutdown_attempts - 1))"
+  done
+
+  for managed_child in $managed_children; do
+    child_pid="${managed_child#*:}"
+    if kill -0 "$child_pid" 2>/dev/null; then
+      kill -KILL "$child_pid" 2>/dev/null || true
+    fi
+  done
   for managed_child in $managed_children; do
     child_pid="${managed_child#*:}"
     wait "$child_pid" 2>/dev/null || true
