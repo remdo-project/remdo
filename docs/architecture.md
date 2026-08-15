@@ -27,6 +27,13 @@ Development-only routes, UI, editor plugins, and test bridges are gated by
 build type: they are available in non-production builds and absent from
 production bundles, including production bundles run by development and test workflows.
 
+## Production Instance Boundary
+
+A production instance treats its gateway, API, collaboration server, and backup
+scheduler as one failure domain. An unexpected process exit identifies the
+failed service, stops the remaining processes, and ends the instance
+unsuccessfully so its environment can restart the complete instance.
+
 ## Routing and Origin Boundary
 
 Browser-visible collaboration URLs derive from the [configured canonical public origin](specs/runtime/configuration.md#network-addressing),

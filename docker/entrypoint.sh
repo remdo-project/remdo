@@ -41,31 +41,59 @@ mkdir -p "$COLLAB_DATA_DIR"
 : "${YSWEET_AUTH_KEY:?Set YSWEET_AUTH_KEY}"
 : "${YSWEET_SERVER_TOKEN:?Set YSWEET_SERVER_TOKEN}"
 
-child_pids=""
-ysweet_pid=""
+managed_children=""
 
 start_child() {
+  child_name="$1"
+  shift
   (
     trap - INT TERM
     exec "$@"
   ) &
   child_pid="$!"
-  child_pids="${child_pids} ${child_pid}"
+  managed_children="${managed_children} ${child_name}:${child_pid}"
 }
 
 stop_children() {
   child_signal="$1"
   trap - INT TERM
 
-  for child_pid in $child_pids; do
+  for managed_child in $managed_children; do
+    child_name="${managed_child%%:*}"
+    child_pid="${managed_child#*:}"
     signal="$child_signal"
     # Y-Sweet flushes persistent state through its SIGINT shutdown path.
-    if [ "$child_pid" = "$ysweet_pid" ]; then
+    if [ "$child_name" = "y-sweet" ]; then
       signal="INT"
     fi
     kill "-${signal}" "$child_pid" 2>/dev/null || true
   done
-  for child_pid in $child_pids; do
+
+  shutdown_attempts=100
+  while [ "$shutdown_attempts" -gt 0 ]; do
+    children_running=false
+    for managed_child in $managed_children; do
+      child_pid="${managed_child#*:}"
+      if kill -0 "$child_pid" 2>/dev/null; then
+        children_running=true
+        break
+      fi
+    done
+    if [ "$children_running" = "false" ]; then
+      break
+    fi
+    sleep 0.1
+    shutdown_attempts="$((shutdown_attempts - 1))"
+  done
+
+  for managed_child in $managed_children; do
+    child_pid="${managed_child#*:}"
+    if kill -0 "$child_pid" 2>/dev/null; then
+      kill -KILL "$child_pid" 2>/dev/null || true
+    fi
+  done
+  for managed_child in $managed_children; do
+    child_pid="${managed_child#*:}"
     wait "$child_pid" 2>/dev/null || true
   done
 }
@@ -76,24 +104,35 @@ trap 'stop_children TERM; exit 143' TERM
 # Start production cron for periodic backups. Backup needs the Y-Sweet server
 # token, not app auth secrets or the Y-Sweet private auth key.
 if [ "${REMDO_DEV_CONTAINER:-false}" != "true" ]; then
-  start_child env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY \
+  start_child crond env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY \
     crond -f -l 2 -L /var/log/cron.log
 fi
 
-start_child env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_SERVER_TOKEN \
+start_child y-sweet env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_SERVER_TOKEN \
   RUST_LOG=error Y_SWEET_AUTH="${YSWEET_AUTH_KEY}" y-sweet serve --host 127.0.0.1 \
   --port "${COLLAB_SERVER_PORT}" --prod "$COLLAB_DATA_DIR"
-ysweet_pid="$child_pid"
-start_child env -u YSWEET_AUTH_KEY node /app/remdo-api-server.cjs
+start_child api env -u YSWEET_AUTH_KEY node /app/remdo-api-server.cjs
 
-start_child env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY -u YSWEET_SERVER_TOKEN \
+start_child caddy env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY -u YSWEET_SERVER_TOKEN \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
-caddy_pid="$child_pid"
 
-if wait "$caddy_pid"; then
-  caddy_status=0
-else
-  caddy_status="$?"
-fi
-stop_children TERM
-exit "$caddy_status"
+while :; do
+  for managed_child in $managed_children; do
+    child_name="${managed_child%%:*}"
+    child_pid="${managed_child#*:}"
+    if ! kill -0 "$child_pid" 2>/dev/null; then
+      if wait "$child_pid"; then
+        child_status=0
+      else
+        child_status="$?"
+      fi
+      echo "Production service ${child_name} exited unexpectedly with status ${child_status}." >&2
+      stop_children TERM
+      if [ "$child_status" -eq 0 ]; then
+        child_status=1
+      fi
+      exit "$child_status"
+    fi
+  done
+  sleep 1
+done

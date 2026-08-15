@@ -37,6 +37,11 @@ trap 'finish INT' INT
 trap 'finish TERM' TERM
 printf '%s start\\n' "$child_name" >> "$events"
 while :; do
+  if [ "\${REMDO_FAKE_EXIT_CHILD:-}" = "$child_name" ] && [ -e "\${REMDO_FAKE_EXIT_TRIGGER:-}" ]; then
+    exit_status="\${REMDO_FAKE_EXIT_STATUS:-0}"
+    echo "$child_name unexpected $exit_status" >> "$events"
+    exit "$exit_status"
+  fi
   sleep 0.02
 done
 `);
@@ -54,16 +59,62 @@ function killIfRunning(pid: number): void {
   }
 }
 
-it.each([
-  ['SIGINT', 'INT', 130],
-  ['SIGTERM', 'TERM', 143],
-] as const)('handles %s, stops y-sweet with SIGINT, and waits for every service', async (signal, signalName, exitCode) => {
+const services = ['api', 'caddy', 'crond', 'y-sweet'] as const;
+const lifecycleCases = [
+  {
+    exitCode: 130,
+    signal: 'SIGINT',
+    signalName: 'INT',
+    title: 'handles SIGINT, stops y-sweet with SIGINT, and waits for every service',
+    type: 'signal',
+  },
+  {
+    exitCode: 143,
+    signal: 'SIGTERM',
+    signalName: 'TERM',
+    title: 'handles SIGTERM, stops y-sweet with SIGINT, and waits for every service',
+    type: 'signal',
+  },
+  {
+    exitCode: 1,
+    failedService: 'api',
+    failedStatus: 0,
+    forceSurvivors: true,
+    title: 'forces surviving services to stop when api exits unexpectedly',
+    type: 'exit',
+  },
+  {
+    exitCode: 17,
+    failedService: 'caddy',
+    failedStatus: 17,
+    title: 'fails the instance when caddy exits unexpectedly',
+    type: 'exit',
+  },
+  {
+    exitCode: 23,
+    failedService: 'crond',
+    failedStatus: 23,
+    title: 'fails the instance when crond exits unexpectedly',
+    type: 'exit',
+  },
+  {
+    exitCode: 42,
+    failedService: 'y-sweet',
+    failedStatus: 42,
+    title: 'fails the instance when y-sweet exits unexpectedly',
+    type: 'exit',
+  },
+] as const;
+
+it.each(lifecycleCases)('$title', async (lifecycleCase) => {
+  const forceSurvivors = 'forceSurvivors' in lifecycleCase;
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-entrypoint-lifecycle-'));
   const binDir = path.join(tempDir, 'bin');
   const dataDir = path.join(tempDir, 'data');
   const eventsPath = path.join(tempDir, 'events');
   const pidDir = path.join(tempDir, 'pids');
   const releasePath = path.join(tempDir, 'release');
+  const exitTriggerPath = path.join(tempDir, 'exit-trigger');
   const childPath = path.join(tempDir, 'managed-child');
   const entrypointPath = path.join(tempDir, 'entrypoint.sh');
   fs.mkdirSync(binDir);
@@ -83,7 +134,8 @@ exec "\${REMDO_FAKE_CHILD:?}" api
   // only those installation paths so the real entrypoint can run on the host.
   const entrypoint = fs.readFileSync('docker/entrypoint.sh', 'utf8')
     .replace('/usr/local/share/remdo/env.defaults.sh', path.resolve('tools/env.defaults.sh'))
-    .replace('/usr/local/share/remdo/entrypoint-env.sh', path.resolve('docker/entrypoint-env.sh'));
+    .replace('/usr/local/share/remdo/entrypoint-env.sh', path.resolve('docker/entrypoint-env.sh'))
+    .replace('shutdown_attempts=100', 'shutdown_attempts=10');
   fs.writeFileSync(entrypointPath, entrypoint);
 
   const child = spawn('/usr/bin/env', ['--default-signal=INT', 'bash', entrypointPath], {
@@ -99,6 +151,9 @@ exec "\${REMDO_FAKE_CHILD:?}" api
       PORT_BASE: '4100',
       REMDO_FAKE_CHILD: childPath,
       REMDO_FAKE_EVENTS: eventsPath,
+      REMDO_FAKE_EXIT_CHILD: lifecycleCase.type === 'exit' ? lifecycleCase.failedService : '',
+      REMDO_FAKE_EXIT_STATUS: lifecycleCase.type === 'exit' ? String(lifecycleCase.failedStatus) : '0',
+      REMDO_FAKE_EXIT_TRIGGER: exitTriggerPath,
       REMDO_FAKE_PID_DIR: pidDir,
       REMDO_FAKE_RELEASE: releasePath,
       REMDO_REAL_NODE: process.execPath,
@@ -114,7 +169,6 @@ exec "\${REMDO_FAKE_CHILD:?}" api
   child.stderr.on('data', chunk => stderr += String(chunk));
 
   try {
-    const services = ['api', 'caddy', 'crond', 'y-sweet'];
     await new Promise(resolve => setTimeout(resolve, 100));
     expect(child.exitCode, stderr).toBeNull();
     expect(stderr).toBe('');
@@ -122,29 +176,54 @@ exec "\${REMDO_FAKE_CHILD:?}" api
       .toEqual(expect.arrayContaining(services.map(name => `${name} start`)));
     expect(child.exitCode, stderr).toBeNull();
 
-    expect(child.kill(signal)).toBe(true);
-    await expect.poll(() => readEvents(eventsPath), { timeout: 3_000 })
-      .toEqual(expect.arrayContaining(services.map(name =>
-        `${name} signal ${name === 'y-sweet' ? 'INT' : signalName}`,
-      )));
+    if (lifecycleCase.type === 'signal') {
+      expect(child.kill(lifecycleCase.signal)).toBe(true);
+      await expect.poll(() => readEvents(eventsPath), { timeout: 3_000 })
+        .toEqual(expect.arrayContaining(services.map(name =>
+          `${name} signal ${name === 'y-sweet' ? 'INT' : lifecycleCase.signalName}`,
+        )));
+    }
+    else {
+      fs.writeFileSync(exitTriggerPath, '');
+      await expect.poll(() => stderr, { timeout: 3_000 })
+        .toContain(`Production service ${lifecycleCase.failedService} exited unexpectedly with status ${lifecycleCase.failedStatus}.`);
+      const survivingServices = services.filter(name => name !== lifecycleCase.failedService);
+      await expect.poll(() => readEvents(eventsPath), { timeout: 3_000 })
+        .toEqual(expect.arrayContaining(survivingServices.map(name =>
+          `${name} signal ${name === 'y-sweet' ? 'INT' : 'TERM'}`,
+        )));
+    }
 
-    // Every child has received the signal but deliberately remains alive. The
-    // entrypoint must therefore still be waiting rather than exiting early.
+    // Every surviving child has received its signal but deliberately remains
+    // alive. The entrypoint must therefore still be waiting rather than
+    // exiting early.
     expect(child.exitCode, stderr).toBeNull();
-    fs.writeFileSync(releasePath, '');
+    if (!forceSurvivors) {
+      fs.writeFileSync(releasePath, '');
+    }
 
-    await expect.poll(() => child.exitCode, { timeout: 3_000 }).toBe(exitCode);
-    expect(readEvents(eventsPath)).toEqual(expect.arrayContaining(
-      services.map(name => `${name} exit`),
-    ));
+    await expect.poll(() => child.exitCode, { timeout: 3_000 }).toBe(lifecycleCase.exitCode);
+    if (lifecycleCase.type === 'signal') {
+      expect(readEvents(eventsPath)).toEqual(expect.arrayContaining(
+        services.map(name => `${name} exit`),
+      ));
+    }
+    else {
+      const survivingServices = services.filter(name => name !== lifecycleCase.failedService);
+      const expectedEvents = [`${lifecycleCase.failedService} unexpected ${lifecycleCase.failedStatus}`];
+      if (!forceSurvivors) {
+        expectedEvents.push(...survivingServices.map(name => `${name} exit`));
+      }
+      expect(readEvents(eventsPath)).toEqual(expect.arrayContaining(expectedEvents));
+    }
   }
   finally {
     fs.writeFileSync(releasePath, '');
     if (child.exitCode === null) {
       child.kill('SIGKILL');
-      for (const name of fs.readdirSync(pidDir)) {
-        killIfRunning(Number(fs.readFileSync(path.join(pidDir, name), 'utf8')));
-      }
+    }
+    for (const name of fs.readdirSync(pidDir)) {
+      killIfRunning(Number(fs.readFileSync(path.join(pidDir, name), 'utf8')));
     }
     fs.rmSync(tempDir, { force: true, recursive: true });
   }

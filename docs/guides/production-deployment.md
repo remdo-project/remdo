@@ -3,7 +3,8 @@
 This guide owns the supported deployment and first-access procedures for the
 [Production run mode](../run-modes.md#production): self-hosted Docker and Render. The
 [configuration specification](../specs/runtime/configuration.md) owns runtime inputs and secret bootstrap;
-Architecture owns the [gateway](../architecture.md#gateway) and [persistent storage root](../architecture.md#runtime-persistence-boundary).
+Architecture owns the [production instance](../architecture.md#production-instance-boundary),
+[gateway](../architecture.md#gateway), and [persistent storage root](../architecture.md#runtime-persistence-boundary).
 
 ## Generate the Admin Secret
 
@@ -46,8 +47,11 @@ daemons are supported.
    loopback deployment, trust the Caddy root certificate beneath the persistent
    data root on each browser client. At the default location, it is
    `data/production/caddy/pki/authorities/local/root.crt`.
-6. Keep the launcher running while using RemDo. Stopping it removes the
-   container and retains its persistent data root.
+6. The launcher returns after starting RemDo. Docker keeps the container
+   running and restarts the complete instance after an unexpected failure. Use
+   the printed commands to follow its logs or stop it explicitly; an explicit
+   stop remains stopped until the launcher runs again. The persistent data root
+   is retained across either operation.
 
 ## Deploy on Render
 

@@ -32,6 +32,15 @@ case "$1" in
     ;;
   run)
     ;;
+  exec)
+    exit "\${REMDO_FAKE_HEALTH_STATUS:-0}"
+    ;;
+  inspect)
+    printf '%s\n' "\${REMDO_FAKE_CONTAINER_STATE:-true 0}"
+    ;;
+  logs)
+    echo "\${REMDO_FAKE_CONTAINER_LOGS:-}"
+    ;;
   *)
     echo "unexpected docker command: $1" >&2
     exit 1
@@ -45,6 +54,7 @@ interface LauncherRun {
   result: SpawnSyncReturns<string>;
   dockerCalls: string[][];
   mkdirCalls: string[][];
+  sleepCalls: string[][];
 }
 
 describe('prod Docker launcher', () => {
@@ -68,9 +78,12 @@ describe('prod Docker launcher', () => {
     const dockerLog = path.join(tempDir, 'docker.log');
     const dockerStopped = path.join(tempDir, 'docker.stopped');
     const mkdirLog = path.join(tempDir, 'mkdir.log');
+    const sleepLog = path.join(tempDir, 'sleep.log');
     fs.mkdirSync(binDir);
     writeFakeDocker(binDir);
     writeFakeBin(binDir, 'mkdir', `printf '%s\\0' "$#" "$@" >> "\${REMDO_FAKE_MKDIR_LOG:?}"\n`);
+    writeFakeBin(binDir, 'node', 'echo "production launcher unexpectedly called host Node" >&2\nexit 97\n');
+    writeFakeBin(binDir, 'sleep', `printf '%s\\0' "$#" "$@" >> "\${REMDO_FAKE_SLEEP_LOG:?}"\n`);
 
     const result = spawnSync('./tools/prod/docker.sh', {
       cwd: process.cwd(),
@@ -92,6 +105,7 @@ describe('prod Docker launcher', () => {
         REMDO_FAKE_DOCKER_LOG: dockerLog,
         REMDO_FAKE_DOCKER_STOPPED: dockerStopped,
         REMDO_FAKE_MKDIR_LOG: mkdirLog,
+        REMDO_FAKE_SLEEP_LOG: sleepLog,
         REMDO_GATEWAY_BIND_ADDRESS: '127.0.0.1',
         YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
         YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
@@ -101,11 +115,12 @@ describe('prod Docker launcher', () => {
 
     const dockerCalls = fs.existsSync(dockerLog) ? parseDockerCalls(fs.readFileSync(dockerLog, 'utf8')) : [];
     const mkdirCalls = fs.existsSync(mkdirLog) ? parseDockerCalls(fs.readFileSync(mkdirLog, 'utf8')) : [];
-    return { dataDir, result, dockerCalls, mkdirCalls };
+    const sleepCalls = fs.existsSync(sleepLog) ? parseDockerCalls(fs.readFileSync(sleepLog, 'utf8')) : [];
+    return { dataDir, result, dockerCalls, mkdirCalls, sleepCalls };
   }
 
-  it('defaults to the canonical loopback origin and publishes only its gateway port', () => {
-    const { dataDir, result, dockerCalls } = runLauncher();
+  it('defaults to the canonical loopback origin without requiring host Node', () => {
+    const { dataDir, result, dockerCalls, sleepCalls } = runLauncher();
 
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain('Docker target: https://remdo.localhost:8443');
@@ -113,9 +128,13 @@ describe('prod Docker launcher', () => {
     const runArgs = findDockerCall(dockerCalls, 'run');
 
     expect(dockerOptionValues(runArgs, '--name')).toEqual(['remdo-8443']);
+    expect(dockerOptionValues(runArgs, '--restart')).toEqual(['unless-stopped']);
     expect(dockerOptionValues(runArgs, '-p')).toEqual(['127.0.0.1:8443:8443']);
     expect(dockerOptionValues(runArgs, '-v')).toEqual([`${dataDir}:/data`]);
+    expect(runArgs).toContain('-d');
+    expect(runArgs).not.toContain('--rm');
     expect(runArgs).not.toContain('--network=host');
+    expect(findDockerCall(dockerCalls, 'exec').join(' ')).toContain('AbortSignal.timeout(500)');
     expect(dockerEnvironment(runArgs)).toEqual({
       ADMIN_SECRET: 'production-admin-secret-0123456789',
       APP_ORIGIN: 'https://remdo.localhost:8443',
@@ -124,6 +143,10 @@ describe('prod Docker launcher', () => {
       YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
       YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
     });
+    expect(result.stdout).toContain('Verify health: https://remdo.localhost:8443/health');
+    expect(result.stdout).toContain('Follow logs: docker logs -f remdo-8443');
+    expect(result.stdout).toContain('Stop RemDo: docker stop remdo-8443');
+    expect(sleepCalls).toEqual([['10']]);
   });
 
   it('defaults persistent data to the repository production directory', () => {
@@ -139,7 +162,14 @@ describe('prod Docker launcher', () => {
     const { result, dockerCalls } = runLauncher();
 
     expect(result.status, result.stderr).toBe(0);
-    expect(dockerCalls.map(([command]) => command)).toEqual(['build', 'container', 'run']);
+    expect(dockerCalls.map(([command]) => command)).toEqual([
+      'build',
+      'container',
+      'run',
+      'exec',
+      'inspect',
+      'exec',
+    ]);
     expect(dockerCalls[1]).toEqual(['container', 'inspect', 'remdo-8443']);
   });
 
@@ -154,6 +184,9 @@ describe('prod Docker launcher', () => {
       'rm',
       'container',
       'run',
+      'exec',
+      'inspect',
+      'exec',
     ]);
     expect(findDockerCall(dockerCalls, 'stop')).toEqual(['stop', 'remdo-8443']);
     expect(findDockerCall(dockerCalls, 'rm')).toEqual(['rm', 'remdo-8443']);
@@ -182,13 +215,59 @@ describe('prod Docker launcher', () => {
     expect(dockerOptionValues(runArgs, '-p')).toEqual(['0.0.0.0:443:443']);
   });
 
-  it('rejects a non-canonical HTTPS public origin before building', () => {
-    for (const appOrigin of ['http://remdo.example.com', 'https://remdo.example.com/path']) {
-      const { result, dockerCalls } = runLauncher({ APP_ORIGIN: appOrigin });
+  it('defers exact origin validation to the container while deriving its explicit port', () => {
+    const { result, dockerCalls } = runLauncher({
+      APP_ORIGIN: 'http://remdo.example.com:9443',
+    });
 
-      expect(result.status).not.toBe(0);
-      expect(dockerCalls).toEqual([]);
-    }
+    expect(result.status, result.stderr).toBe(0);
+    const runArgs = findDockerCall(dockerCalls, 'run');
+    expect(dockerOptionValues(runArgs, '--name')).toEqual(['remdo-9443']);
+    expect(dockerOptionValues(runArgs, '-p')).toEqual(['127.0.0.1:9443:9443']);
+    expect(dockerEnvironment(runArgs).APP_ORIGIN).toBe('http://remdo.example.com:9443');
+  });
+
+  it('stops a container that fails initial health before reporting success', () => {
+    const { result, dockerCalls } = runLauncher({
+      REMDO_FAKE_CONTAINER_LOGS: 'APP_ORIGIN must use HTTPS outside the development container.',
+      REMDO_FAKE_CONTAINER_STATE: 'true 1',
+      REMDO_FAKE_HEALTH_STATUS: '1',
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).not.toContain('Docker target:');
+    expect(result.stderr).toContain('APP_ORIGIN must use HTTPS outside the development container.');
+    expect(result.stderr).toContain('RemDo failed to become healthy; container remdo-8443 was stopped.');
+    expect(dockerCalls.map(([command]) => command)).toEqual([
+      'build',
+      'container',
+      'run',
+      'exec',
+      'inspect',
+      'logs',
+      'stop',
+    ]);
+  });
+
+  it('stops an instance that fails before the restart policy activates', () => {
+    const { result, dockerCalls } = runLauncher({
+      REMDO_FAKE_CONTAINER_LOGS: 'Production service y-sweet exited unexpectedly with status 42.',
+      REMDO_FAKE_CONTAINER_STATE: 'false 0',
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).not.toContain('Docker target:');
+    expect(result.stderr).toContain('Production service y-sweet exited unexpectedly with status 42.');
+    expect(result.stderr).toContain('RemDo failed to become healthy; container remdo-8443 was stopped.');
+    expect(dockerCalls.map(([command]) => command)).toEqual([
+      'build',
+      'container',
+      'run',
+      'exec',
+      'inspect',
+      'logs',
+      'stop',
+    ]);
   });
 
   it('requires strong operator secrets before building', () => {

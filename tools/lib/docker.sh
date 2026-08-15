@@ -50,20 +50,6 @@ remdo_require_rootless_host_network() {
   fi
 }
 
-remdo_https_origin_port() {
-  node -e '
-    const value = process.argv[1];
-    try {
-      const url = new URL(value);
-      if (url.protocol !== "https:" || url.origin !== value) throw new Error();
-      process.stdout.write(url.port || "443");
-    } catch {
-      console.error("APP_ORIGIN must be an exact HTTPS origin.");
-      process.exit(1);
-    }
-  ' "$1"
-}
-
 remdo_docker_run() {
   local image_name="$1"
   local data_dir="$2"

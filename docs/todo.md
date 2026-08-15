@@ -98,12 +98,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Operations
 
-- **Production child lifecycle.** The production entrypoint waits only for
-  Caddy, so Y-Sweet or scheduled backups can stop without changing container
-  liveness. Define how unexpected child-process exits affect instance health,
-  shutdown or restart ownership, diagnostics, and verification so collaboration
-  or backups cannot fail silently while the instance appears healthy.
-
 - **Hosted production backups.** Define the scheduled backup and recovery
   workflow for hosted deployments, then align `docker/Dockerfile`,
   `docker/backup.sh`, `tools/snapshot/backup.ts`, and

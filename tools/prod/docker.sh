@@ -12,7 +12,10 @@ export NODE_ENV
 
 : "${APP_ORIGIN:=https://remdo.localhost:8443}"
 : "${DATA_DIR:=${ROOT_DIR%/}/data/production}"
-PORT="$(remdo_https_origin_port "${APP_ORIGIN}")"
+PORT=443
+if [[ "${APP_ORIGIN}" =~ :([0-9]+)$ ]]; then
+  PORT="${BASH_REMATCH[1]}"
+fi
 CONTAINER_NAME="remdo-${PORT}"
 case "${PORT}" in
   4004|4011)
@@ -86,7 +89,52 @@ if [[ -n "${YSWEET_SERVER_TOKEN:-}" ]]; then
   DOCKER_ENV_ARGS+=(-e YSWEET_SERVER_TOKEN="${YSWEET_SERVER_TOKEN}")
 fi
 
-echo "Docker target: ${APP_ORIGIN}"
-DOCKER_RUN_ARGS=(--rm --userns=host --name "${CONTAINER_NAME}")
+DOCKER_RUN_ARGS=(-d --restart unless-stopped --userns=host --name "${CONTAINER_NAME}")
 DOCKER_RUN_ARGS+=(-p "${HOST}:${PORT}:${PORT}")
 remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" "${DOCKER_RUN_ARGS[@]}" "${DOCKER_ENV_ARGS[@]}"
+
+container_is_healthy() {
+  docker exec "${CONTAINER_NAME}" node -e '
+    fetch("http://127.0.0.1:4011/api/health", { signal: AbortSignal.timeout(500) })
+      .then(response => process.exit(response.ok ? 0 : 1))
+      .catch(() => process.exit(1));
+  ' >/dev/null 2>&1
+}
+
+startup_ready=false
+for _ in {1..60}; do
+  if container_is_healthy; then
+    startup_ready=true
+    break
+  fi
+
+  container_state="$(docker inspect --format '{{.State.Running}} {{.RestartCount}}' \
+    "${CONTAINER_NAME}" 2>/dev/null || true)"
+  if [[ "${container_state}" != "true 0" ]]; then
+    break
+  fi
+  sleep 0.5
+done
+
+if [[ "${startup_ready}" == "true" ]]; then
+  # Docker activates restart policies only after a container has remained up
+  # for ten seconds. Do not promise automatic recovery before that boundary.
+  sleep 10
+  container_state="$(docker inspect --format '{{.State.Running}} {{.RestartCount}}' \
+    "${CONTAINER_NAME}" 2>/dev/null || true)"
+  if [[ "${container_state}" != "true 0" ]] || ! container_is_healthy; then
+    startup_ready=false
+  fi
+fi
+
+if [[ "${startup_ready}" != "true" ]]; then
+  docker logs "${CONTAINER_NAME}" >&2 || true
+  docker stop "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+  echo "RemDo failed to become healthy; container ${CONTAINER_NAME} was stopped." >&2
+  exit 1
+fi
+
+echo "Docker target: ${APP_ORIGIN}"
+echo "Verify health: ${APP_ORIGIN%/}/health"
+echo "Follow logs: docker logs -f ${CONTAINER_NAME}"
+echo "Stop RemDo: docker stop ${CONTAINER_NAME}"
