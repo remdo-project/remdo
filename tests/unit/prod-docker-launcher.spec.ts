@@ -44,6 +44,7 @@ interface LauncherRun {
   dataDir: string;
   result: SpawnSyncReturns<string>;
   dockerCalls: string[][];
+  mkdirCalls: string[][];
 }
 
 describe('prod Docker launcher', () => {
@@ -66,8 +67,10 @@ describe('prod Docker launcher', () => {
     const dataDir = path.join(tempDir, 'data');
     const dockerLog = path.join(tempDir, 'docker.log');
     const dockerStopped = path.join(tempDir, 'docker.stopped');
+    const mkdirLog = path.join(tempDir, 'mkdir.log');
     fs.mkdirSync(binDir);
     writeFakeDocker(binDir);
+    writeFakeBin(binDir, 'mkdir', `printf '%s\\0' "$#" "$@" >> "\${REMDO_FAKE_MKDIR_LOG:?}"\n`);
 
     const result = spawnSync('./tools/prod/docker.sh', {
       cwd: process.cwd(),
@@ -76,7 +79,7 @@ describe('prod Docker launcher', () => {
         ...process.env,
         ADMIN_SECRET: 'production-admin-secret-0123456789',
         ALLOW_SIGNUP: '',
-        APP_ORIGIN: 'https://remdo.localhost:8443',
+        APP_ORIGIN: '',
         AUTH_SECRET: 'production-auth-secret-0123456789',
         CADDY_BIND_DIRECTIVE: 'bind 0.0.0.0',
         CADDY_SITE_ADDRESS: 'http://:9998',
@@ -88,6 +91,7 @@ describe('prod Docker launcher', () => {
         REMDO_DOCKER_NETWORK: 'host',
         REMDO_FAKE_DOCKER_LOG: dockerLog,
         REMDO_FAKE_DOCKER_STOPPED: dockerStopped,
+        REMDO_FAKE_MKDIR_LOG: mkdirLog,
         REMDO_GATEWAY_BIND_ADDRESS: '127.0.0.1',
         YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
         YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
@@ -96,10 +100,11 @@ describe('prod Docker launcher', () => {
     });
 
     const dockerCalls = fs.existsSync(dockerLog) ? parseDockerCalls(fs.readFileSync(dockerLog, 'utf8')) : [];
-    return { dataDir, result, dockerCalls };
+    const mkdirCalls = fs.existsSync(mkdirLog) ? parseDockerCalls(fs.readFileSync(mkdirLog, 'utf8')) : [];
+    return { dataDir, result, dockerCalls, mkdirCalls };
   }
 
-  it('publishes only the canonical gateway port on loopback by default', () => {
+  it('defaults to the canonical loopback origin and publishes only its gateway port', () => {
     const { dataDir, result, dockerCalls } = runLauncher();
 
     expect(result.status, result.stderr).toBe(0);
@@ -119,6 +124,15 @@ describe('prod Docker launcher', () => {
       YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
       YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
     });
+  });
+
+  it('defaults persistent data to the repository production directory', () => {
+    const { result, dockerCalls, mkdirCalls } = runLauncher({ DATA_DIR: '' });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(mkdirCalls).toEqual([['-p', path.resolve('data/production')]]);
+    const runArgs = findDockerCall(dockerCalls, 'run');
+    expect(dockerOptionValues(runArgs, '-v')).toEqual([`${path.resolve('data/production')}:/data`]);
   });
 
   it('starts cleanly without stopping a container that does not exist', () => {
@@ -168,12 +182,8 @@ describe('prod Docker launcher', () => {
     expect(dockerOptionValues(runArgs, '-p')).toEqual(['0.0.0.0:443:443']);
   });
 
-  it('rejects a missing or non-canonical HTTPS public origin before building', () => {
-    for (const appOrigin of [
-      '',
-      'http://remdo.example.com',
-      'https://remdo.example.com/path',
-    ]) {
+  it('rejects a non-canonical HTTPS public origin before building', () => {
+    for (const appOrigin of ['http://remdo.example.com', 'https://remdo.example.com/path']) {
       const { result, dockerCalls } = runLauncher({ APP_ORIGIN: appOrigin });
 
       expect(result.status).not.toBe(0);
@@ -181,9 +191,8 @@ describe('prod Docker launcher', () => {
     }
   });
 
-  it('requires persistent data and strong operator secrets before building', () => {
+  it('requires strong operator secrets before building', () => {
     for (const [name, value, message] of [
-      ['DATA_DIR', '', 'Set DATA_DIR'],
       ['ADMIN_SECRET', 'short', 'ADMIN_SECRET must be at least 32 characters'],
       ['AUTH_SECRET', 'short', 'AUTH_SECRET must be at least 32 characters'],
     ] as const) {

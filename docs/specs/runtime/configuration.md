@@ -14,8 +14,10 @@ Server-only requirements do not apply to browser configuration or production uti
 ## Network addressing
 
 - `APP_ORIGIN` is the server's canonical browser-visible origin.
-  Development derives it as `http://<PUBLIC_HOST>:<PORT>`. Production launch
-  boundaries require an explicit exact HTTPS origin; the application server
+  Development derives it as `http://<PUBLIC_HOST>:<PORT>`. The self-hosted
+  production launcher defaults it to `https://remdo.localhost:8443` for
+  loopback-only access; direct self-hosted exposure and externally hosted
+  production require an explicit exact HTTPS origin. The application server
   also accepts the development container's derived HTTP origin. For self-hosted
   Docker, its effective port selects the host-side published
   [gateway](../../architecture.md#gateway) port; ports reserved for
@@ -45,8 +47,9 @@ operator settings.
 
 `DATA_DIR` selects the
 [persistent runtime data root](../../architecture.md#runtime-persistence-boundary).
-Development defaults it inside the repository, production containers default
-it to `/data`, and the self-hosted production launcher requires it explicitly.
+Development defaults it to `data` inside the repository. The self-hosted
+production launcher defaults its host directory to `data/production` inside
+the repository; production containers use `/data` for the mounted root.
 
 ## Secret bootstrap
 

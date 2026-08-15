@@ -10,8 +10,8 @@ remdo_load_dotenv "${ROOT_DIR}"
 NODE_ENV=production
 export NODE_ENV
 
-: "${APP_ORIGIN:?Set APP_ORIGIN to the exact public HTTPS origin}"
-: "${DATA_DIR:?Set DATA_DIR to the persistent host directory}"
+: "${APP_ORIGIN:=https://remdo.localhost:8443}"
+: "${DATA_DIR:=${ROOT_DIR%/}/data/production}"
 PORT="$(remdo_https_origin_port "${APP_ORIGIN}")"
 CONTAINER_NAME="remdo-${PORT}"
 case "${PORT}" in

@@ -98,14 +98,11 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Operations
 
-- **Production container topology.** Evaluate moving from the current
-  single-container production bundle to one process per container. Favor the
-  simplest end state consistent with current scenarios; existing support is
-  evidence, not a retention requirement under the
-  [pre-1.0 compatibility policy](../CONTRIBUTING.md#backward-compatibility-pre-10).
-  Explicitly raise capability, security, and operational tradeoffs before
-  retaining or dropping machinery, then align settings, runtime boundaries,
-  verification, and deployment guidance with the selected topology.
+- **Production child lifecycle.** The production entrypoint waits only for
+  Caddy, so Y-Sweet or scheduled backups can stop without changing container
+  liveness. Define how unexpected child-process exits affect instance health,
+  shutdown or restart ownership, diagnostics, and verification so collaboration
+  or backups cannot fail silently while the instance appears healthy.
 
 - **Hosted production backups.** Define the scheduled backup and recovery
   workflow for hosted deployments, then align `docker/Dockerfile`,
