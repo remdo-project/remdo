@@ -81,6 +81,7 @@ describe('prod Docker launcher', () => {
     writeFakeDocker(binDir);
     writeFakeBin(binDir, 'mkdir', `printf '%s\\0' "$#" "$@" >> "\${REMDO_FAKE_MKDIR_LOG:?}"\n`);
     writeFakeBin(binDir, 'node', 'echo "production launcher unexpectedly called host Node" >&2\nexit 97\n');
+    writeFakeBin(binDir, 'sleep', ':\n');
 
     const result = spawnSync('./tools/prod/docker.sh', {
       cwd: process.cwd(),
@@ -155,7 +156,14 @@ describe('prod Docker launcher', () => {
     const { result, dockerCalls } = runLauncher();
 
     expect(result.status, result.stderr).toBe(0);
-    expect(dockerCalls.map(([command]) => command)).toEqual(['build', 'container', 'run', 'exec']);
+    expect(dockerCalls.map(([command]) => command)).toEqual([
+      'build',
+      'container',
+      'run',
+      'exec',
+      'inspect',
+      'exec',
+    ]);
     expect(dockerCalls[1]).toEqual(['container', 'inspect', 'remdo-8443']);
   });
 
@@ -170,6 +178,8 @@ describe('prod Docker launcher', () => {
       'rm',
       'container',
       'run',
+      'exec',
+      'inspect',
       'exec',
     ]);
     expect(findDockerCall(dockerCalls, 'stop')).toEqual(['stop', 'remdo-8443']);
@@ -221,6 +231,27 @@ describe('prod Docker launcher', () => {
     expect(result.status).not.toBe(0);
     expect(result.stdout).not.toContain('Docker target:');
     expect(result.stderr).toContain('APP_ORIGIN must use HTTPS outside the development container.');
+    expect(result.stderr).toContain('RemDo failed to become healthy; container remdo-8443 was stopped.');
+    expect(dockerCalls.map(([command]) => command)).toEqual([
+      'build',
+      'container',
+      'run',
+      'exec',
+      'inspect',
+      'logs',
+      'stop',
+    ]);
+  });
+
+  it('stops an instance that fails before the restart policy activates', () => {
+    const { result, dockerCalls } = runLauncher({
+      REMDO_FAKE_CONTAINER_LOGS: 'Production service y-sweet exited unexpectedly with status 42.',
+      REMDO_FAKE_CONTAINER_STATE: 'false 0',
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).not.toContain('Docker target:');
+    expect(result.stderr).toContain('Production service y-sweet exited unexpectedly with status 42.');
     expect(result.stderr).toContain('RemDo failed to become healthy; container remdo-8443 was stopped.');
     expect(dockerCalls.map(([command]) => command)).toEqual([
       'build',
