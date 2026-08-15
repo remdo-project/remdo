@@ -50,13 +50,14 @@ Validation confirms from reviewer commands that neither reviewer ran nor
 manually reproduced a repository check, because forwarded guidance alone does
 not establish compliance. **Empirical.**
 
-A review is `completed` when its invocation succeeds and its final report
-establishes inspection of the complete selected scope without an unresolved
-material gap. The verifier includes that report in its
+A review is `completed` when its invocation and empirical command validation
+succeed and its final report establishes inspection of the complete selected
+scope without an unresolved material gap. The verifier includes that report in its
 [report](../protocol.md#reports). It marks a missing reviewer `unavailable`; an
-unsuccessful invocation, missing usable final report, or
-incomplete inspection is `failed`. The verifier re-reports `unavailable` and
-`failed` as [concerns](../protocol.md#concerns) with their failure evidence.
+unsuccessful invocation, failed or unavailable empirical command validation,
+missing usable final report, or incomplete inspection is `failed`. The verifier
+re-reports `unavailable` and `failed` as [concerns](../protocol.md#concerns)
+with their failure evidence.
 
 ## Findings
 

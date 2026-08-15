@@ -81,7 +81,8 @@ Retain the generated Claude `SESSION_ID` and the Codex-reported session ID with
 their results. After each review finishes, use that ID to inspect its persisted
 native session and every delegated-review history to perform the specification's
 empirical command validation. A final report's description of its own activity
-is not command evidence; an unavailable history makes that review `failed`.
+is not command evidence; unavailable history or command evidence that violates
+the review constraint makes that review `failed`.
 
 Reviewer runtime is unspecified. Wait for each managed call's completion
 notification; do not poll it or interpret silence or elapsed time as failure.
