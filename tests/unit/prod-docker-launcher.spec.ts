@@ -44,6 +44,7 @@ interface LauncherRun {
   dataDir: string;
   result: SpawnSyncReturns<string>;
   dockerCalls: string[][];
+  mkdirCalls: string[][];
 }
 
 describe('prod Docker launcher', () => {
@@ -66,9 +67,10 @@ describe('prod Docker launcher', () => {
     const dataDir = path.join(tempDir, 'data');
     const dockerLog = path.join(tempDir, 'docker.log');
     const dockerStopped = path.join(tempDir, 'docker.stopped');
+    const mkdirLog = path.join(tempDir, 'mkdir.log');
     fs.mkdirSync(binDir);
     writeFakeDocker(binDir);
-    writeFakeBin(binDir, 'mkdir', ':\n');
+    writeFakeBin(binDir, 'mkdir', `printf '%s\\0' "$#" "$@" >> "\${REMDO_FAKE_MKDIR_LOG:?}"\n`);
 
     const result = spawnSync('./tools/prod/docker.sh', {
       cwd: process.cwd(),
@@ -89,6 +91,7 @@ describe('prod Docker launcher', () => {
         REMDO_DOCKER_NETWORK: 'host',
         REMDO_FAKE_DOCKER_LOG: dockerLog,
         REMDO_FAKE_DOCKER_STOPPED: dockerStopped,
+        REMDO_FAKE_MKDIR_LOG: mkdirLog,
         REMDO_GATEWAY_BIND_ADDRESS: '127.0.0.1',
         YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
         YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
@@ -97,7 +100,8 @@ describe('prod Docker launcher', () => {
     });
 
     const dockerCalls = fs.existsSync(dockerLog) ? parseDockerCalls(fs.readFileSync(dockerLog, 'utf8')) : [];
-    return { dataDir, result, dockerCalls };
+    const mkdirCalls = fs.existsSync(mkdirLog) ? parseDockerCalls(fs.readFileSync(mkdirLog, 'utf8')) : [];
+    return { dataDir, result, dockerCalls, mkdirCalls };
   }
 
   it('defaults to the canonical loopback origin and publishes only its gateway port', () => {
@@ -123,9 +127,10 @@ describe('prod Docker launcher', () => {
   });
 
   it('defaults persistent data to the repository production directory', () => {
-    const { result, dockerCalls } = runLauncher({ DATA_DIR: '' });
+    const { result, dockerCalls, mkdirCalls } = runLauncher({ DATA_DIR: '' });
 
     expect(result.status, result.stderr).toBe(0);
+    expect(mkdirCalls).toEqual([['-p', path.resolve('data/production')]]);
     const runArgs = findDockerCall(dockerCalls, 'run');
     expect(dockerOptionValues(runArgs, '-v')).toEqual([`${path.resolve('data/production')}:/data`]);
   });
