@@ -61,8 +61,8 @@ transport and native session persistence when launching the managed call:
   `approval_policy="never"`, `notify=[]`, `model_reasoning_effort="high"`, and
   the review constraint as `developer_instructions`; then pass `review
   --uncommitted` or `review --base <BASE>`.
-- Claude: generate and retain a fresh UUID as `SESSION_ID`, set
-  `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`, then run `claude -p --effort high
+- Claude: generate and retain a fresh UUID as `SESSION_ID`, then run `/usr/bin/env
+  CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1 claude -p --effort high
   --permission-mode auto --session-id <SESSION_ID> --setting-sources
   user,project --settings '{"disableAllHooks":true}'`. Start its prompt with
   `/code-review`, followed by every resolved changed path as a quoted argument
