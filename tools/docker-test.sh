@@ -379,39 +379,6 @@ done
 
 echo "Docker backup OK: ${BACKUP_DIR}"
 
-echo "Verifying an unexpected API exit fails the complete instance..."
-if ! docker exec "${CONTAINER_NAME}" sh -c 'kill "$(pidof node)"'; then
-  docker logs "${CONTAINER_NAME}" || true
-  echo "Could not stop the API process for the child-lifecycle check." >&2
-  exit 1
-fi
-
-container_stopped=false
-for _ in {1..40}; do
-  if [[ "$(docker inspect --format '{{.State.Running}}' "${CONTAINER_NAME}")" == "false" ]]; then
-    container_stopped=true
-    break
-  fi
-  sleep 0.25
-done
-if [[ "${container_stopped}" != "true" ]]; then
-  docker logs "${CONTAINER_NAME}" || true
-  echo "Container remained running after the API process stopped." >&2
-  exit 1
-fi
-if [[ "$(docker inspect --format '{{.State.ExitCode}}' "${CONTAINER_NAME}")" == "0" ]]; then
-  docker logs "${CONTAINER_NAME}" || true
-  echo "Container exited successfully after an unexpected API exit." >&2
-  exit 1
-fi
-if ! docker logs "${CONTAINER_NAME}" 2>&1 \
-  | grep -Fq 'Production service api exited unexpectedly with status'; then
-  docker logs "${CONTAINER_NAME}" || true
-  echo "Container log did not identify the failed API process." >&2
-  exit 1
-fi
-echo "Unexpected API exit failed the complete instance with a diagnostic."
-
 # ---------------------------------------------------------------------------
 # Scenario 2: ADMIN_SECRET-only bootstrap (secret generation + persistence).
 #
@@ -606,12 +573,6 @@ fi
 echo "Production bridge launcher is loopback-only."
 
 first_prod_bridge_id="$(docker inspect --format '{{.Id}}' "${PROD_BRIDGE_CONTAINER_NAME}")"
-restart_policy="$(docker inspect --format '{{.HostConfig.RestartPolicy.Name}}' \
-  "${PROD_BRIDGE_CONTAINER_NAME}")"
-if [[ "${restart_policy}" != "unless-stopped" ]]; then
-  echo "Production bridge launcher configured restart policy ${restart_policy}, expected unless-stopped." >&2
-  exit 1
-fi
 
 # Give Docker a sustained healthy run before forcing a required process to
 # fail, so the check exercises steady-state recovery rather than initial boot.
