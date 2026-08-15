@@ -35,18 +35,23 @@ For uncommitted work, the verifier performs the contributor
 
 ## Reviews
 
-The verifier invokes the [read-only runner](../tools/read-only-runner.md#call) independently for Codex and
-Claude with the resolved change scope. Their identities remain distinct in the
-result.
+The verifier starts independent fresh native Codex and Claude reviews against
+the resolved change scope. Their identities remain distinct in the result, and
+one review never interrupts the other.
 
-Review [results](../tools/read-only-runner.md#result) are independent; one never
-interrupts another. The verifier re-reports `unavailable` and `failed` as
-[concerns](../protocol.md#concerns). For `responded`, it reads every response in
-the review evidence and includes that evidence in its [report](../protocol.md#reports).
-It maps the review to `completed` exactly when the evidence has `complete: true`
-and collectively establishes inspection of the full selected scope without an
-unresolved material inspection gap. Otherwise, the verifier marks the review
-`failed` and uses the review evidence as failure evidence.
+Each review inspects the complete resolved scope, repository guidance, Git
+context, and referenced files. **Empirical.** The verifier tells reviewers that
+repository checks are handled separately, to neither run nor manually reproduce
+them, to pass the constraint to delegated reviewers, and to report any needed
+runtime check and why. **Empirical.**
+
+A review is `completed` when its native command exits successfully and its final
+report establishes inspection of the complete selected scope without an
+unresolved material gap. The verifier includes that report in its
+[report](../protocol.md#reports). It marks a missing native reviewer
+`unavailable`; an unsuccessful command, missing usable final report, or
+incomplete inspection is `failed`. The verifier re-reports `unavailable` and
+`failed` as [concerns](../protocol.md#concerns) with their failure evidence.
 
 ## Findings
 
