@@ -23,6 +23,9 @@ case "$1" in
   version)
     printf '%s\n' "\${REMDO_FAKE_DOCKER_VERSION:-29.5.0}"
     ;;
+  info)
+    printf '%s\n' "\${REMDO_FAKE_DOCKER_SECURITY_OPTIONS:-[\\"name=rootless\\"]}"
+    ;;
   container)
     [ "$2" = inspect ]
     [ "\${REMDO_FAKE_CONTAINER_EXISTS:-false}" = true ]
@@ -106,6 +109,7 @@ describe('prod Docker launcher', () => {
         PORT_BASE: '9000',
         REMDO_DOCKER_NETWORK: 'host',
         REMDO_FAKE_DOCKER_LOG: dockerLog,
+        REMDO_FAKE_DOCKER_SECURITY_OPTIONS: '["name=rootless"]',
         REMDO_FAKE_DOCKER_STOPPED: dockerStopped,
         REMDO_FAKE_MKDIR_LOG: mkdirLog,
         REMDO_FAKE_SLEEP_LOG: sleepLog,
@@ -224,7 +228,10 @@ describe('prod Docker launcher', () => {
     });
 
     expect(result.status, result.stderr).toBe(0);
-    expect(dockerCalls[0]).toEqual(['version', '--format', '{{.Server.Version}}']);
+    expect(dockerCalls.slice(0, 2)).toEqual([
+      ['info', '--format', '{{json .SecurityOptions}}'],
+      ['version', '--format', '{{.Server.Version}}'],
+    ]);
     const runArgs = findDockerCall(dockerCalls, 'run');
     expect(dockerOptionValues(runArgs, '-p')).toEqual(['127.0.0.1:8443:8443']);
     expect(dockerEnvironment(runArgs)).toMatchObject({
@@ -257,7 +264,21 @@ describe('prod Docker launcher', () => {
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('Loopback HTTP requires Docker Engine 28.0 or newer');
-    expect(dockerCalls).toEqual([['version', '--format', '{{.Server.Version}}']]);
+    expect(dockerCalls).toEqual([
+      ['info', '--format', '{{json .SecurityOptions}}'],
+      ['version', '--format', '{{.Server.Version}}'],
+    ]);
+  });
+
+  it('rejects loopback HTTP on a rootful Docker daemon', () => {
+    const { result, dockerCalls } = runLauncher({
+      APP_ORIGIN: 'http://remdo-8443.localhost:8443',
+      REMDO_FAKE_DOCKER_SECURITY_OPTIONS: '["name=seccomp"]',
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('Loopback HTTP requires a rootless Docker daemon.');
+    expect(dockerCalls).toEqual([['info', '--format', '{{json .SecurityOptions}}']]);
   });
 
   it('stops a container that fails initial health before reporting success', () => {

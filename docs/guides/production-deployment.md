@@ -32,9 +32,9 @@ daemons are supported.
    For access through an SSH loopback tunnel without installing Caddy's local
    CA, set `APP_ORIGIN` to a dedicated origin such as
    `http://remdo-8443.localhost:8443` and keep `HOST=127.0.0.1`. This mode
-   requires Docker Engine 28 or newer. Bind both ends of the SSH forward to
-   `127.0.0.1`; SSH encrypts the connection between the browser and Docker
-   hosts while HTTP remains confined to their loopback interfaces.
+   requires a rootless Docker Engine 28 or newer. Bind both ends of the SSH
+   forward to `127.0.0.1`; SSH encrypts the connection between the browser and
+   Docker hosts while HTTP remains confined to their loopback interfaces.
 
    ```sh
    ssh -N -o ExitOnForwardFailure=yes \

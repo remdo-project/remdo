@@ -52,6 +52,10 @@ remdo_load_env_defaults "${ROOT_DIR}"
 remdo_assert_browser_safe_port "${PORT}"
 
 if [[ "${LOOPBACK_HTTP}" == "true" ]]; then
+  if ! remdo_docker_daemon_is_rootless; then
+    echo "Loopback HTTP requires a rootless Docker daemon." >&2
+    exit 1
+  fi
   docker_server_version="$(docker version --format '{{.Server.Version}}')"
   docker_server_major="${docker_server_version%%.*}"
   if (( docker_server_major < 28 )); then

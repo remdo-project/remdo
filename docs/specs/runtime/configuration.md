@@ -19,11 +19,14 @@ Server-only requirements do not apply to browser configuration or production uti
   loopback-only access; direct self-hosted exposure and externally hosted
   production require an explicit exact HTTPS origin. The self-hosted launcher
   also accepts an exact `http://*.localhost:<port>` origin only with
-  `HOST=127.0.0.1` and Docker Engine 28 or newer. Older Docker releases can
-  expose localhost-published ports to hosts on the same L2 network. The
-  application server also accepts the development container's derived HTTP
-  origin. For self-hosted Docker, its effective port selects the host-side
-  published [gateway](../../architecture.md#gateway) port; ports reserved for
+  `HOST=127.0.0.1` and a rootless Docker Engine 28 or newer. Rootless Docker
+  keeps container addresses inside its network namespace; rootful Docker can
+  permit direct routing to the container port despite a loopback-only host
+  publication. Older Docker releases can expose localhost-published ports to
+  hosts on the same L2 network. The application server also accepts the
+  development container's derived HTTP origin. For self-hosted Docker, its
+  effective port selects the host-side published
+  [gateway](../../architecture.md#gateway) port; ports reserved for
   container-internal services are rejected.
   [Routing and origin](../../architecture.md#routing-and-origin-boundary) owns its collaboration use;
   [access control](../access/access-control.md#csrf-protection) owns its authentication use.

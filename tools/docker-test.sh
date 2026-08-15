@@ -57,10 +57,7 @@ BOOTSTRAP_DATA_DIR="${TEST_DATA_DIR%/}/bootstrap-home"
 # It uses the next reserved Docker E2E port and a separate container/data dir.
 PROD_BRIDGE_PORT="$((PORT_BASE + 9))"
 remdo_assert_browser_safe_port "${PROD_BRIDGE_PORT}"
-PROD_BRIDGE_BROWSER_HOST="remdo-${PROD_BRIDGE_PORT}.localhost"
 PROD_BRIDGE_CONTAINER_NAME="remdo-${PROD_BRIDGE_PORT}"
-PROD_BRIDGE_APP_ORIGIN="http://${PROD_BRIDGE_BROWSER_HOST}:${PROD_BRIDGE_PORT}"
-PROD_BRIDGE_HEALTH_URL="${PROD_BRIDGE_APP_ORIGIN%/}/health"
 PROD_BRIDGE_DATA_DIR="${TEST_DATA_DIR%/}/prod-bridge-home"
 PROD_BRIDGE_SOURCE_DATA_DIR="${TEST_DATA_DIR%/}/prod-bridge-source"
 PROD_BRIDGE_LAUNCH_LOG="${TEST_DATA_DIR%/}/prod-bridge-launcher.log"
@@ -73,11 +70,21 @@ HOSTED_CONTAINER_NAME="${IMAGE_NAME}-${HOSTED_PORT}"
 HOSTED_APP_ORIGIN="https://remdo.onrender.com"
 HOSTED_DATA_DIR="${TEST_DATA_DIR%/}/hosted-home"
 
+DOCKER_DAEMON_ROOTLESS=false
 if remdo_docker_daemon_is_rootless; then
+  DOCKER_DAEMON_ROOTLESS=true
   remdo_require_rootless_host_network
   DOCKER_RUN_ARGS+=(--userns=host)
 fi
 DOCKER_RUN_ARGS+=(--network=host)
+
+PROD_BRIDGE_BROWSER_HOST="${DOCKER_TEST_BROWSER_HOST}"
+PROD_BRIDGE_APP_ORIGIN="https://${PROD_BRIDGE_BROWSER_HOST}:${PROD_BRIDGE_PORT}"
+if [[ "${DOCKER_DAEMON_ROOTLESS}" == "true" ]]; then
+  PROD_BRIDGE_BROWSER_HOST="remdo-${PROD_BRIDGE_PORT}.localhost"
+  PROD_BRIDGE_APP_ORIGIN="http://${PROD_BRIDGE_BROWSER_HOST}:${PROD_BRIDGE_PORT}"
+fi
+PROD_BRIDGE_HEALTH_URL="${PROD_BRIDGE_APP_ORIGIN%/}/health"
 
 # Wipe a host-mounted data dir from inside the container so container-owned
 # (often root-owned, on a rootful daemon) files are removed by a process with the
@@ -578,29 +585,31 @@ if [[ "${prod_bridge_host_ip}" != "127.0.0.1" ]]; then
 fi
 echo "Production bridge launcher is loopback-only."
 
-echo "Running loopback HTTP browser smoke..."
-if ! env \
-  PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" \
-  REMDO_E2E_HOME_ORIGIN="${PROD_BRIDGE_APP_ORIGIN}" \
-  REMDO_E2E_SOURCE_ORIGIN="${SOURCE_ORIGIN}" \
-  ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
-  YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}" \
-  DATA_DIR="${PROD_BRIDGE_SOURCE_DATA_DIR}" \
-  HOST=localhost \
-  PUBLIC_HOST=localhost \
-  PORT_BASE="${SOURCE_PORT_BASE}" \
-  E2E_WRITE_STORAGE_STATE="${PROD_BRIDGE_AUTH_STATE_PATH}" \
-  E2E_STORAGE_STATE="${PROD_BRIDGE_AUTH_STATE_PATH}" \
-  E2E_WRITE_SMOKE_DOCUMENT_ID="${PROD_BRIDGE_DOCUMENT_ID_PATH}" \
-  E2E_SMOKE_DOCUMENT_ID="${PROD_BRIDGE_DOCUMENT_ID_PATH}" \
-  "${ROOT_DIR}/tools/env.sh" timeout "${TEST_TIMEOUT:-300}s" \
-  pnpm exec playwright test --config playwright.docker.config.ts \
-    tests/e2e/docker/setup.spec.ts; then
-  docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
-  echo "Loopback HTTP browser smoke failed: ${PROD_BRIDGE_APP_ORIGIN}" >&2
-  exit 1
+if [[ "${DOCKER_DAEMON_ROOTLESS}" == "true" ]]; then
+  echo "Running loopback HTTP browser smoke..."
+  if ! env \
+    PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" \
+    REMDO_E2E_HOME_ORIGIN="${PROD_BRIDGE_APP_ORIGIN}" \
+    REMDO_E2E_SOURCE_ORIGIN="${SOURCE_ORIGIN}" \
+    ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
+    YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}" \
+    DATA_DIR="${PROD_BRIDGE_SOURCE_DATA_DIR}" \
+    HOST=localhost \
+    PUBLIC_HOST=localhost \
+    PORT_BASE="${SOURCE_PORT_BASE}" \
+    E2E_WRITE_STORAGE_STATE="${PROD_BRIDGE_AUTH_STATE_PATH}" \
+    E2E_STORAGE_STATE="${PROD_BRIDGE_AUTH_STATE_PATH}" \
+    E2E_WRITE_SMOKE_DOCUMENT_ID="${PROD_BRIDGE_DOCUMENT_ID_PATH}" \
+    E2E_SMOKE_DOCUMENT_ID="${PROD_BRIDGE_DOCUMENT_ID_PATH}" \
+    "${ROOT_DIR}/tools/env.sh" timeout "${TEST_TIMEOUT:-300}s" \
+    pnpm exec playwright test --config playwright.docker.config.ts \
+      tests/e2e/docker/setup.spec.ts; then
+    docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
+    echo "Loopback HTTP browser smoke failed: ${PROD_BRIDGE_APP_ORIGIN}" >&2
+    exit 1
+  fi
+  echo "Loopback HTTP browser smoke OK: ${PROD_BRIDGE_APP_ORIGIN}"
 fi
-echo "Loopback HTTP browser smoke OK: ${PROD_BRIDGE_APP_ORIGIN}"
 
 first_prod_bridge_id="$(docker inspect --format '{{.Id}}' "${PROD_BRIDGE_CONTAINER_NAME}")"
 
