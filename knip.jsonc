@@ -27,10 +27,7 @@
     "tools/{dev,e2e}/**/*.ts",
     "tests/perf/**/*.bench.ts",
     "tests/perf/generate-workload.ts",
-    "vitest.bench.perf.config.mts",
-    // Standalone skill tools launched from shell; knip cannot discover their
-    // TypeScript entry points from those callers.
-    ".agents/skills/_shared/tools/read-only-runner.ts"
+    "vitest.bench.perf.config.mts"
   ],
   "project": [
     // `!` marks the production graph used by `knip --production`.

@@ -4,8 +4,8 @@ This directory records [informative](../../documentation.md#contracts) feedback
 cases about how RemDo specifications are written. This README owns their
 evidence structure and maintenance rules.
 
-The current contracts represented by this evidence are [`remdo-deps-refresh`](../agents/skills/remdo-deps-refresh.md),
-[`remdo-verify-change`](../agents/skills/remdo-verify-change.md), and the [read-only runner](../agents/tools/read-only-runner.md).
+The current contracts represented by this evidence are [`remdo-deps-refresh`](../agents/skills/remdo-deps-refresh.md)
+and [`remdo-verify-change`](../agents/skills/remdo-verify-change.md).
 
 A **feedback case** preserves evidence for later specification research and
 testing. `Post-change` is the version considered a better fit for the recorded
