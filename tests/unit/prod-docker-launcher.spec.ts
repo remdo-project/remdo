@@ -76,7 +76,7 @@ describe('prod Docker launcher', () => {
         ...process.env,
         ADMIN_SECRET: 'production-admin-secret-0123456789',
         ALLOW_SIGNUP: '',
-        APP_ORIGIN: 'https://remdo.localhost:8443',
+        APP_ORIGIN: '',
         AUTH_SECRET: 'production-auth-secret-0123456789',
         CADDY_BIND_DIRECTIVE: 'bind 0.0.0.0',
         CADDY_SITE_ADDRESS: 'http://:9998',
@@ -100,7 +100,7 @@ describe('prod Docker launcher', () => {
     return { dataDir, result, dockerCalls };
   }
 
-  it('publishes only the canonical gateway port on loopback by default', () => {
+  it('defaults to the canonical loopback origin and publishes only its gateway port', () => {
     const { dataDir, result, dockerCalls } = runLauncher();
 
     expect(result.status, result.stderr).toBe(0);
@@ -177,12 +177,8 @@ describe('prod Docker launcher', () => {
     expect(dockerOptionValues(runArgs, '-p')).toEqual(['0.0.0.0:443:443']);
   });
 
-  it('rejects a missing or non-canonical HTTPS public origin before building', () => {
-    for (const appOrigin of [
-      '',
-      'http://remdo.example.com',
-      'https://remdo.example.com/path',
-    ]) {
+  it('rejects a non-canonical HTTPS public origin before building', () => {
+    for (const appOrigin of ['http://remdo.example.com', 'https://remdo.example.com/path']) {
       const { result, dockerCalls } = runLauncher({ APP_ORIGIN: appOrigin });
 
       expect(result.status).not.toBe(0);

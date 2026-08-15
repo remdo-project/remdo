@@ -20,14 +20,13 @@ daemons are supported.
    cp .env.example .env
    ```
 
-2. In `.env`, set `ADMIN_SECRET`, optionally override
-   [`DATA_DIR`](../specs/runtime/configuration.md#persistence), then select one
-   self-hosted production exposure example.
+2. In `.env`, set `ADMIN_SECRET` and optionally override
+   [`DATA_DIR`](../specs/runtime/configuration.md#persistence). By default, the
+   gateway is available at `https://remdo.localhost:8443` only through the
+   Docker host's loopback interface.
 
-   For access only through the Docker host, select the loopback example. Its
-   gateway is reachable only through that host's loopback interface.
-
-   For direct host exposure, select the direct HTTPS example.
+   For direct host exposure, set `APP_ORIGIN` to its exact public HTTPS origin
+   and set `HOST=0.0.0.0`.
 
 3. For direct exposure, point the origin hostname's DNS A record at the host
    and allow inbound port 443. Rootless Docker requires the host to permit its
