@@ -41,9 +41,9 @@ one review never interrupts the other.
 
 Each review inspects the complete resolved scope, repository guidance, Git
 context, and referenced files. **Empirical.** The verifier tells reviewers that
-repository checks are handled separately, to neither run nor manually reproduce
-them, to pass the constraint to delegated reviewers, and to report any needed
-runtime check and why. **Empirical.**
+repository verification is handled separately, to focus on semantic review
+rather than repository test or check suites, to pass the constraint to
+delegated reviewers, and to report any needed runtime check and why.
 
 A review is `completed` when its native command exits successfully and its final
 report establishes inspection of the complete selected scope without an
@@ -55,14 +55,12 @@ incomplete inspection is `failed`. The verifier re-reports `unavailable` and
 
 ## Findings
 
-The verifier treats every concrete candidate finding in every review response
-as evidence to validate, even when another response omits, summarizes, refutes,
-or withdraws it. It deduplicates equivalent candidates before reporting them. A
-response containing only lifecycle status contributes no candidate finding; a
-correction or withdrawal
-contributes evidence to the candidate's disposition rather than deciding it.
-When conflicting responses cannot be resolved from the repository and accepted
-intent, the finding is `unresolved`.
+The verifier treats every concrete candidate finding in each final review
+report as evidence to validate and deduplicates equivalent candidates before
+reporting them. A report's correction or withdrawal contributes evidence to
+the candidate's disposition rather than deciding it. When conflicting reports
+cannot be resolved from the repository and accepted intent, the finding is
+`unresolved`.
 
 The verifier judges each finding against the actual change, repository
 evidence, accepted behavior, and intended behavior established by the caller. A

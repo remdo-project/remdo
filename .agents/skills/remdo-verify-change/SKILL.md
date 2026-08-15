@@ -44,27 +44,33 @@ other review.
 
 Use this review constraint for both providers:
 
-> Repository tests and checks are handled outside this review. Do not run or
-> manually reproduce repository tests or checks, including through ad hoc
-> commands. Inspect the complete requested scope; in the final response,
+> Repository verification is handled outside this review. Focus on semantic
+> review rather than running repository test or check suites. Inspect the
+> complete requested scope; in the final response,
 > explicitly state whether inspection was complete and identify any material
 > gap. Review the implementation and test adequacy using repository evidence.
 > Pass these instructions to every delegated reviewer. Report any additional
-> runtime check needed and why; do not run it.
+> runtime check needed and why.
 
 Invoke each native reviewer directly with high effort and a fresh,
 non-persistent session:
 
-- Codex: run `codex exec -s read-only --ephemeral` with
-  `approval_policy="never"`, `model_reasoning_effort="high"`, and the review
-  constraint as `developer_instructions`; then pass `review --uncommitted` or
-  `review --base <BASE>`.
-- Claude: run `claude -p --effort high --permission-mode dontAsk
+- Codex: run `codex exec -s read-only --ephemeral` with `--disable hooks`,
+  `approval_policy="never"`, `notify=[]`, `model_reasoning_effort="high"`, and
+  the review constraint as `developer_instructions`; then pass `review
+  --uncommitted` or `review --base <BASE>`.
+- Claude: set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`, then run `claude -p
+  --effort high --permission-mode plan
   --setting-sources user,project --settings '{"disableAllHooks":true}'
   --no-session-persistence`. Start its prompt with `/code-review`, followed by
   every resolved changed path as a quoted argument for `uncommitted`, or the
   exact `<BASE>..<HEAD_SHA>` range for a commit range, then append the review
   constraint.
+
+For an uncommitted Claude review, derive the changed paths again from
+NUL-delimited staged, unstaged, and untracked Git output. Deduplicate the exact
+path strings and append each with JSON string quoting; do not parse the
+resolver's display-oriented `FILES` lines.
 
 Construct the Claude prompt without evaluating path text as shell syntax.
 Capture each command's ordinary final stdout, stderr, and exit status through
@@ -80,7 +86,8 @@ Classify each native result under the authoritative specification's
 contract. Retain successful final stdout as review evidence; for an
 unsuccessful command, retain its exit status and non-empty stderr as failure
 evidence. Judge complete scope inspection from the final report rather than
-provider progress events.
+provider progress events. Classify a missing executable, including shell exit
+status `127` with command-not-found evidence, as `unavailable`.
 
 ## Validate findings
 
