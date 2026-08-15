@@ -20,6 +20,9 @@ case "$1" in
   build)
     exit "\${REMDO_FAKE_DOCKER_BUILD_STATUS:-0}"
     ;;
+  version)
+    printf '%s\n' "\${REMDO_FAKE_DOCKER_VERSION:-29.5.0}"
+    ;;
   container)
     [ "$2" = inspect ]
     [ "\${REMDO_FAKE_CONTAINER_EXISTS:-false}" = true ]
@@ -215,16 +218,46 @@ describe('prod Docker launcher', () => {
     expect(dockerOptionValues(runArgs, '-p')).toEqual(['0.0.0.0:443:443']);
   });
 
-  it('defers exact origin validation to the container while deriving its explicit port', () => {
+  it('publishes an explicit HTTP localhost origin only on loopback', () => {
     const { result, dockerCalls } = runLauncher({
-      APP_ORIGIN: 'http://remdo.example.com:9443',
+      APP_ORIGIN: 'http://remdo-8443.localhost:8443',
     });
 
     expect(result.status, result.stderr).toBe(0);
+    expect(dockerCalls[0]).toEqual(['version', '--format', '{{.Server.Version}}']);
     const runArgs = findDockerCall(dockerCalls, 'run');
-    expect(dockerOptionValues(runArgs, '--name')).toEqual(['remdo-9443']);
-    expect(dockerOptionValues(runArgs, '-p')).toEqual(['127.0.0.1:9443:9443']);
-    expect(dockerEnvironment(runArgs).APP_ORIGIN).toBe('http://remdo.example.com:9443');
+    expect(dockerOptionValues(runArgs, '-p')).toEqual(['127.0.0.1:8443:8443']);
+    expect(dockerEnvironment(runArgs)).toMatchObject({
+      APP_ORIGIN: 'http://remdo-8443.localhost:8443',
+      REMDO_LAUNCHER_LOOPBACK_HTTP: 'true',
+    });
+  });
+
+  it('rejects HTTP when it is not an explicit loopback-only localhost origin', () => {
+    const unsafeOrigins: Record<string, string>[] = [
+      { APP_ORIGIN: 'http://remdo.example.com:8443' },
+      { APP_ORIGIN: 'http://localhost:8443' },
+      { APP_ORIGIN: 'http://remdo.localhost:8443/path' },
+      { APP_ORIGIN: 'http://remdo.localhost:8443', HOST: '0.0.0.0' },
+    ];
+    for (const overrides of unsafeOrigins) {
+      const { result, dockerCalls } = runLauncher(overrides);
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toMatch(/HTTP APP_ORIGIN|requires HOST=127\.0\.0\.1/);
+      expect(dockerCalls).toEqual([]);
+    }
+  });
+
+  it('rejects loopback HTTP on Docker engines with unsafe localhost publishing', () => {
+    const { result, dockerCalls } = runLauncher({
+      APP_ORIGIN: 'http://remdo-8443.localhost:8443',
+      REMDO_FAKE_DOCKER_VERSION: '27.5.1',
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('Loopback HTTP requires Docker Engine 28.0 or newer');
+    expect(dockerCalls).toEqual([['version', '--format', '{{.Server.Version}}']]);
   });
 
   it('stops a container that fails initial health before reporting success', () => {
