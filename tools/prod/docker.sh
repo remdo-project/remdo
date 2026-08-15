@@ -95,7 +95,7 @@ remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" "${DOCKER_RUN_ARGS[@]}" "${DOCKER
 
 container_is_healthy() {
   docker exec "${CONTAINER_NAME}" node -e '
-    fetch("http://127.0.0.1:4011/api/health")
+    fetch("http://127.0.0.1:4011/api/health", { signal: AbortSignal.timeout(500) })
       .then(response => process.exit(response.ok ? 0 : 1))
       .catch(() => process.exit(1));
   ' >/dev/null 2>&1

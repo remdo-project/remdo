@@ -134,6 +134,7 @@ describe('prod Docker launcher', () => {
     expect(runArgs).toContain('-d');
     expect(runArgs).not.toContain('--rm');
     expect(runArgs).not.toContain('--network=host');
+    expect(findDockerCall(dockerCalls, 'exec').join(' ')).toContain('AbortSignal.timeout(500)');
     expect(dockerEnvironment(runArgs)).toEqual({
       ADMIN_SECRET: 'production-admin-secret-0123456789',
       APP_ORIGIN: 'https://remdo.localhost:8443',
