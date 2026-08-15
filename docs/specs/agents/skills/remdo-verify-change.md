@@ -35,10 +35,10 @@ For uncommitted work, the verifier performs the contributor
 
 ## Reviews
 
-The verifier starts independent fresh native Codex and Claude reviews against
+The verifier starts independent fresh Codex and Claude reviews against
 the resolved change scope. Their identities remain distinct in the result, and
 one review never interrupts the other. Each provider returns one consolidated
-final report; delegated review work completes in the foreground so a later
+final report containing all completed delegated review work, so a later
 lifecycle notification cannot replace that evidence.
 
 Each review inspects the complete resolved scope, repository guidance, Git
@@ -47,11 +47,11 @@ repository verification is handled separately, to focus on semantic review
 rather than repository test or check suites, to pass the constraint to
 delegated reviewers, and to report any needed runtime check and why.
 
-A review is `completed` when its native command exits successfully and its final
-report establishes inspection of the complete selected scope without an
-unresolved material gap. The verifier includes that report in its
-[report](../protocol.md#reports). It marks a missing native reviewer
-`unavailable`; an unsuccessful command, missing usable final report, or
+A review is `completed` when its invocation succeeds and its final report
+establishes inspection of the complete selected scope without an unresolved
+material gap. The verifier includes that report in its
+[report](../protocol.md#reports). It marks a missing reviewer `unavailable`; an
+unsuccessful invocation, missing usable final report, or
 incomplete inspection is `failed`. The verifier re-reports `unavailable` and
 `failed` as [concerns](../protocol.md#concerns) with their failure evidence.
 
