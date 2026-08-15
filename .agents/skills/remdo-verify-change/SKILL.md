@@ -60,10 +60,11 @@ non-persistent session:
   constraint as `developer_instructions`; then pass `review --uncommitted` or
   `review --base <BASE>`.
 - Claude: run `claude -p --effort high --permission-mode dontAsk
-  --setting-sources user,project --no-session-persistence`. Start its prompt
-  with `/code-review`, followed by every resolved changed path as a quoted
-  argument for `uncommitted`, or the exact `<BASE>..<HEAD_SHA>` range for a
-  commit range, then append the review constraint.
+  --setting-sources user,project --settings '{"disableAllHooks":true}'
+  --no-session-persistence`. Start its prompt with `/code-review`, followed by
+  every resolved changed path as a quoted argument for `uncommitted`, or the
+  exact `<BASE>..<HEAD_SHA>` range for a commit range, then append the review
+  constraint.
 
 Construct the Claude prompt without evaluating path text as shell syntax.
 Capture each command's ordinary final stdout, stderr, and exit status through
