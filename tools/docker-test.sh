@@ -61,8 +61,6 @@ PROD_BRIDGE_CONTAINER_NAME="remdo-${PROD_BRIDGE_PORT}"
 PROD_BRIDGE_DATA_DIR="${TEST_DATA_DIR%/}/prod-bridge-home"
 PROD_BRIDGE_SOURCE_DATA_DIR="${TEST_DATA_DIR%/}/prod-bridge-source"
 PROD_BRIDGE_LAUNCH_LOG="${TEST_DATA_DIR%/}/prod-bridge-launcher.log"
-PROD_BRIDGE_AUTH_STATE_PATH="${TEST_DATA_DIR%/}/prod-bridge-auth-state.json"
-PROD_BRIDGE_DOCUMENT_ID_PATH="${TEST_DATA_DIR%/}/prod-bridge-document-id.txt"
 
 # Fourth scenario: hosted production behind external TLS termination.
 HOSTED_PORT="$((PORT_BASE + 10))"
@@ -597,10 +595,6 @@ if [[ "${DOCKER_DAEMON_ROOTLESS}" == "true" ]]; then
     HOST=localhost \
     PUBLIC_HOST=localhost \
     PORT_BASE="${SOURCE_PORT_BASE}" \
-    E2E_WRITE_STORAGE_STATE="${PROD_BRIDGE_AUTH_STATE_PATH}" \
-    E2E_STORAGE_STATE="${PROD_BRIDGE_AUTH_STATE_PATH}" \
-    E2E_WRITE_SMOKE_DOCUMENT_ID="${PROD_BRIDGE_DOCUMENT_ID_PATH}" \
-    E2E_SMOKE_DOCUMENT_ID="${PROD_BRIDGE_DOCUMENT_ID_PATH}" \
     "${ROOT_DIR}/tools/env.sh" timeout "${TEST_TIMEOUT:-300}s" \
     pnpm exec playwright test --config playwright.docker.config.ts \
       tests/e2e/docker/setup.spec.ts; then
