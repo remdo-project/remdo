@@ -26,6 +26,7 @@ COPY tools ./tools
 RUN attempt=1 \
   && until pnpm install --frozen-lockfile --prod; do \
     [ "$attempt" -ge 3 ] && exit 1; \
+    rm -rf node_modules; \
     delay=$((attempt * 5)); \
     echo "pnpm install failed; retrying in ${delay}s"; \
     sleep "$delay"; \
