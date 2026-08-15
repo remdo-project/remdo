@@ -42,6 +42,7 @@ mkdir -p "$COLLAB_DATA_DIR"
 : "${YSWEET_SERVER_TOKEN:?Set YSWEET_SERVER_TOKEN}"
 
 child_pids=""
+ysweet_pid=""
 
 start_child() {
   (
@@ -53,19 +54,24 @@ start_child() {
 }
 
 stop_children() {
+  child_signal="$1"
   trap - INT TERM
 
   for child_pid in $child_pids; do
+    signal="$child_signal"
     # Y-Sweet flushes persistent state through its SIGINT shutdown path.
-    kill -INT "$child_pid" 2>/dev/null || true
+    if [ "$child_pid" = "$ysweet_pid" ]; then
+      signal="INT"
+    fi
+    kill "-${signal}" "$child_pid" 2>/dev/null || true
   done
   for child_pid in $child_pids; do
     wait "$child_pid" 2>/dev/null || true
   done
 }
 
-trap 'stop_children; exit 130' INT
-trap 'stop_children; exit 143' TERM
+trap 'stop_children INT; exit 130' INT
+trap 'stop_children TERM; exit 143' TERM
 
 # Start production cron for periodic backups. Backup needs the Y-Sweet server
 # token, not app auth secrets or the Y-Sweet private auth key.
@@ -77,6 +83,7 @@ fi
 start_child env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_SERVER_TOKEN \
   RUST_LOG=error Y_SWEET_AUTH="${YSWEET_AUTH_KEY}" y-sweet serve --host 127.0.0.1 \
   --port "${COLLAB_SERVER_PORT}" --prod "$COLLAB_DATA_DIR"
+ysweet_pid="$child_pid"
 start_child env -u YSWEET_AUTH_KEY node /app/remdo-api-server.cjs
 
 start_child env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY -u YSWEET_SERVER_TOKEN \
@@ -88,5 +95,5 @@ if wait "$caddy_pid"; then
 else
   caddy_status="$?"
 fi
-stop_children
+stop_children TERM
 exit "$caddy_status"
