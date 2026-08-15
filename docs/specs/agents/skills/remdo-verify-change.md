@@ -35,29 +35,38 @@ For uncommitted work, the verifier performs the contributor
 
 ## Reviews
 
-The verifier invokes the [read-only runner](../tools/read-only-runner.md#call) independently for Codex and
-Claude with the resolved change scope. Their identities remain distinct in the
-result.
+The verifier starts independent fresh Codex and Claude reviews against
+the resolved change scope. Their identities remain distinct in the result, and
+one review never interrupts the other. Each provider returns one consolidated
+final report containing all completed delegated review work, so a later
+lifecycle notification cannot replace that evidence.
 
-Review [results](../tools/read-only-runner.md#result) are independent; one never
-interrupts another. The verifier re-reports `unavailable` and `failed` as
-[concerns](../protocol.md#concerns). For `responded`, it reads every response in
-the review evidence and includes that evidence in its [report](../protocol.md#reports).
-It maps the review to `completed` exactly when the evidence has `complete: true`
-and collectively establishes inspection of the full selected scope without an
-unresolved material inspection gap. Otherwise, the verifier marks the review
-`failed` and uses the review evidence as failure evidence.
+Each review inspects the complete resolved scope, repository guidance, Git
+context, and referenced files. **Empirical.** The verifier tells reviewers that
+repository verification is handled separately, to neither run nor manually
+reproduce repository tests or checks, to pass the constraint to delegated
+reviewers, and to report any needed runtime check and why without running it.
+Validation confirms from reviewer commands that neither reviewer ran nor
+manually reproduced a repository check, because forwarded guidance alone does
+not establish compliance. **Empirical.**
+
+A review is `completed` when its invocation and empirical command validation
+succeed and its final report establishes inspection of the complete selected
+scope without an unresolved material gap. The verifier includes that report in its
+[report](../protocol.md#reports). It marks a missing reviewer `unavailable`; an
+unsuccessful invocation, failed or unavailable empirical command validation,
+missing usable final report, or incomplete inspection is `failed`. The verifier
+re-reports `unavailable` and `failed` as [concerns](../protocol.md#concerns)
+with their failure evidence.
 
 ## Findings
 
-The verifier treats every concrete candidate finding in every review response
-as evidence to validate, even when another response omits, summarizes, refutes,
-or withdraws it. It deduplicates equivalent candidates before reporting them. A
-response containing only lifecycle status contributes no candidate finding; a
-correction or withdrawal
-contributes evidence to the candidate's disposition rather than deciding it.
-When conflicting responses cannot be resolved from the repository and accepted
-intent, the finding is `unresolved`.
+The verifier treats every concrete candidate finding in each final review
+report as evidence to validate and deduplicates equivalent candidates before
+reporting them. A report's correction or withdrawal contributes evidence to
+the candidate's disposition rather than deciding it. When conflicting reports
+cannot be resolved from the repository and accepted intent, the finding is
+`unresolved`.
 
 The verifier judges each finding against the actual change, repository
 evidence, accepted behavior, and intended behavior established by the caller. A
