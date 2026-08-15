@@ -46,6 +46,9 @@ context, and referenced files. **Empirical.** The verifier tells reviewers that
 repository verification is handled separately, to neither run nor manually
 reproduce repository tests or checks, to pass the constraint to delegated
 reviewers, and to report any needed runtime check and why.
+Validation confirms from reviewer commands that neither reviewer ran nor
+manually reproduced a repository check, because forwarded guidance alone does
+not establish compliance. **Empirical.**
 
 A review is `completed` when its invocation succeeds and its final report
 establishes inspection of the complete selected scope without an unresolved
