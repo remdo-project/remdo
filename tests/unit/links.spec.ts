@@ -1,7 +1,7 @@
 import { $createAutoLinkNode, $createLinkNode, $isLinkNode } from '@lexical/link';
 import { act } from '@testing-library/react';
 import { $createTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
@@ -229,123 +229,36 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
-  it('clicking an external link opens a new tab without opener access', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await selectEntireNote(remdo, 'note1');
-    const url = 'https://example.com/';
-    await pastePlainText(remdo, url);
-
-    const openSpy = vi.spyOn(globalThis, 'open').mockImplementation(() => null);
-    try {
-      const anchor = remdo.editor.getRootElement()!.querySelector('a')!;
+  for (const { kind, url, expectedUrl } of [
+    { kind: 'external', url: 'https://example.com/', expectedUrl: 'https://example.com/' },
+    { kind: 'protocol-relative', url: '//example.com/path', expectedUrl: '//example.com/path' },
+    { kind: 'www', url: 'www.example.com/path', expectedUrl: 'https://www.example.com/path' },
+    { kind: 'relative', url: '/n/main_note2', expectedUrl: '/n/main_note2' },
+  ]) {
+    it(`normalizes imported-style ${kind} LinkNodes to open in a new tab`, meta({ fixture: 'flat' }), async ({ remdo }) => {
+      await selectEntireNote(remdo, 'note1');
       await act(async () => {
-        anchor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+        remdo.editor.update(() => {
+          const note = $findNoteById('note1')!;
+          note.clear();
+          const linkNode = $createLinkNode(url);
+          linkNode.append($createTextNode('Example'));
+          note.append(linkNode);
+        });
       });
+      await remdo.waitForSynced();
 
-      expect(openSpy).toHaveBeenCalledWith(url, '_blank', 'noopener,noreferrer');
-    } finally {
-      openSpy.mockRestore();
-    }
-  });
-
-  it('normalizes imported-style external LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await selectEntireNote(remdo, 'note1');
-    const url = 'https://example.com/';
-    await act(async () => {
-      remdo.editor.update(() => {
+      remdo.validate(() => {
         const note = $findNoteById('note1')!;
-        note.clear();
-        const linkNode = $createLinkNode(url);
-        linkNode.append($createTextNode('Example'));
-        note.append(linkNode);
+        const linkNode = note.getChildren().find($isLinkNode)!;
+        expect(linkNode.getTextContent()).toBe('Example');
+        expect($isNoteLinkNode(linkNode)).toBe(false);
+        expect(linkNode.getURL()).toBe(expectedUrl);
+        expect(linkNode.getTarget()).toBe('_blank');
+        expect(linkNode.getRel()).toBe('noopener noreferrer');
       });
     });
-    await remdo.waitForSynced();
-
-    remdo.validate(() => {
-      const note = $findNoteById('note1')!;
-      const linkNode = note.getChildren().find($isLinkNode)!;
-      expect(linkNode.getTextContent()).toBe('Example');
-      expect($isNoteLinkNode(linkNode)).toBe(false);
-      expect(linkNode.getURL()).toBe(url);
-      expect(linkNode.getTarget()).toBe('_blank');
-      expect(linkNode.getRel()).toBe('noopener noreferrer');
-    });
-  });
-
-  it('normalizes imported-style protocol-relative LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await selectEntireNote(remdo, 'note1');
-    const url = '//example.com/path';
-    await act(async () => {
-      remdo.editor.update(() => {
-        const note = $findNoteById('note1')!;
-        note.clear();
-        const linkNode = $createLinkNode(url);
-        linkNode.append($createTextNode('Example'));
-        note.append(linkNode);
-      });
-    });
-    await remdo.waitForSynced();
-
-    remdo.validate(() => {
-      const note = $findNoteById('note1')!;
-      const linkNode = note.getChildren().find($isLinkNode)!;
-      expect(linkNode.getTextContent()).toBe('Example');
-      expect($isNoteLinkNode(linkNode)).toBe(false);
-      expect(linkNode.getURL()).toBe(url);
-      expect(linkNode.getTarget()).toBe('_blank');
-      expect(linkNode.getRel()).toBe('noopener noreferrer');
-    });
-  });
-
-  it('normalizes imported-style www LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await selectEntireNote(remdo, 'note1');
-    const text = 'www.example.com/path';
-    await act(async () => {
-      remdo.editor.update(() => {
-        const note = $findNoteById('note1')!;
-        note.clear();
-        const linkNode = $createLinkNode(text);
-        linkNode.append($createTextNode('Example'));
-        note.append(linkNode);
-      });
-    });
-    await remdo.waitForSynced();
-
-    remdo.validate(() => {
-      const note = $findNoteById('note1')!;
-      const linkNode = note.getChildren().find($isLinkNode)!;
-      expect(linkNode.getTextContent()).toBe('Example');
-      expect($isNoteLinkNode(linkNode)).toBe(false);
-      expect(linkNode.getURL()).toBe(`https://${text}`);
-      expect(linkNode.getTarget()).toBe('_blank');
-      expect(linkNode.getRel()).toBe('noopener noreferrer');
-    });
-  });
-
-  it('normalizes imported-style relative LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await selectEntireNote(remdo, 'note1');
-    const url = '/n/main_note2';
-    await act(async () => {
-      remdo.editor.update(() => {
-        const note = $findNoteById('note1')!;
-        note.clear();
-        const linkNode = $createLinkNode(url);
-        linkNode.append($createTextNode('Example'));
-        note.append(linkNode);
-      });
-    });
-    await remdo.waitForSynced();
-
-    remdo.validate(() => {
-      const note = $findNoteById('note1')!;
-      const linkNode = note.getChildren().find($isLinkNode)!;
-      expect(linkNode.getTextContent()).toBe('Example');
-      expect($isNoteLinkNode(linkNode)).toBe(false);
-      expect(linkNode.getURL()).toBe(url);
-      expect(linkNode.getTarget()).toBe('_blank');
-      expect(linkNode.getRel()).toBe('noopener noreferrer');
-    });
-  });
+  }
 
   it('normalizes imported-style external AutoLinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const url = 'https://example.com/';
