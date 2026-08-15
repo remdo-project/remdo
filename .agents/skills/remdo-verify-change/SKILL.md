@@ -53,7 +53,9 @@ Use this review constraint for both providers:
 > Pass these instructions to every delegated reviewer. Report any additional
 > runtime check needed and why; do not run it.
 
-Invoke each native reviewer directly with high effort in a fresh session:
+Invoke each native reviewer directly with high effort in a fresh session,
+requesting any required enclosing runtime escalation for normal provider
+transport and native session persistence when launching the managed call:
 
 - Codex: run `codex exec -s read-only --ignore-rules` with `--disable hooks`,
   `approval_policy="never"`, `notify=[]`, `model_reasoning_effort="high"`, and
@@ -89,12 +91,13 @@ it.
 Classify each native result under the authoritative specification's
 [`Reviews`](../../../docs/specs/agents/skills/remdo-verify-change.md#reviews)
 contract. For a successful command, retain a usable consolidated final report
-found in the combined output as review evidence; progress or diagnostics alone
-do not satisfy completion. For an unsuccessful command, retain its exit status
-and non-empty combined output as failure evidence. Judge complete scope
-inspection from the final report rather than provider progress events. Classify
-a missing executable, including shell exit status `127` with command-not-found
-evidence, as `unavailable`.
+from the combined output or its identified persisted native session as review
+evidence, together with any available combined-output diagnostics; progress or
+diagnostics alone do not satisfy completion. For an unsuccessful command,
+retain its exit status and non-empty combined output as failure evidence. Judge
+complete scope inspection from the final report rather than provider progress
+events. Classify a missing executable, including shell exit status `127` with
+command-not-found evidence, as `unavailable`.
 
 ## Validate findings
 
