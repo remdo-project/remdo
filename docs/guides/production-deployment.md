@@ -3,12 +3,8 @@
 This guide owns the supported deployment and first-access procedures for the
 [Production run mode](../run-modes.md#production): self-hosted Docker and Render. The
 [configuration specification](../specs/runtime/configuration.md) owns runtime inputs and secret bootstrap;
-Architecture owns the [gateway](../architecture.md#gateway) and [persistent storage root](../architecture.md#runtime-persistence-boundary).
-
-A production instance treats its gateway, API, collaboration server, and backup
-scheduler as required processes. If one exits unexpectedly, the entrypoint logs
-its name and status, stops the remaining processes, and exits unsuccessfully so
-the deployment environment can restart the complete instance.
+Architecture owns the [production instance](../architecture.md#production-instance-boundary),
+[gateway](../architecture.md#gateway), and [persistent storage root](../architecture.md#runtime-persistence-boundary).
 
 ## Generate the Admin Secret
 
