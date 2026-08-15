@@ -59,11 +59,12 @@ Invoke each native reviewer directly with high effort in a fresh session:
   `approval_policy="never"`, `notify=[]`, `model_reasoning_effort="high"`, and
   the review constraint as `developer_instructions`; then pass `review
   --uncommitted` or `review --base <BASE>`.
-- Claude: set `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`, then run `claude -p
-  --effort high --permission-mode auto --setting-sources user,project
-  --settings '{"disableAllHooks":true}'`. Start its prompt with `/code-review`,
-  followed by every resolved changed path as a quoted argument for
-  `uncommitted`, or the exact `<BASE>..<HEAD_SHA>` range for a commit range,
+- Claude: generate and retain a fresh UUID as `SESSION_ID`, set
+  `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`, then run `claude -p --effort high
+  --permission-mode auto --session-id <SESSION_ID> --setting-sources
+  user,project --settings '{"disableAllHooks":true}'`. Start its prompt with
+  `/code-review`, followed by every resolved changed path as a quoted argument
+  for `uncommitted`, or the exact `<BASE>..<HEAD_SHA>` range for a commit range,
   then append the review constraint.
 
 For an uncommitted Claude review, derive the changed paths again from
@@ -74,10 +75,11 @@ resolver's display-oriented `FILES` lines.
 Construct the Claude prompt without evaluating path text as shell syntax.
 Capture each command's combined ordinary output and exit status through the
 runtime's managed call rather than a repository wrapper or response file.
-After each review finishes, inspect its persisted native session and every
-delegated-review history to perform the specification's empirical command
-validation. A final report's description of its own activity is not command
-evidence; an unavailable history makes that review `failed`.
+Retain the generated Claude `SESSION_ID` and the Codex-reported session ID with
+their results. After each review finishes, use that ID to inspect its persisted
+native session and every delegated-review history to perform the specification's
+empirical command validation. A final report's description of its own activity
+is not command evidence; an unavailable history makes that review `failed`.
 
 Reviewer runtime is unspecified. Wait for each managed call's completion
 notification; do not poll it or interpret silence or elapsed time as failure.
