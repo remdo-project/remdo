@@ -45,13 +45,13 @@ other review.
 Use this review constraint for both providers:
 
 > Repository verification is handled outside this review. Do not run or
-> manually reproduce repository tests or checks. Inspect the
-> complete requested scope; in the final response, reproduce the complete
-> consolidated findings report,
+> manually reproduce repository tests or checks, including through ad hoc
+> commands. Inspect the complete requested scope; in the final response,
+> reproduce the complete consolidated findings report,
 > explicitly state whether inspection was complete and identify any material
 > gap. Review the implementation and test adequacy using repository evidence.
 > Pass these instructions to every delegated reviewer. Report any additional
-> runtime check needed and why.
+> runtime check needed and why; do not run it.
 
 Invoke each native reviewer directly with high effort in a fresh session:
 
@@ -74,6 +74,10 @@ resolver's display-oriented `FILES` lines.
 Construct the Claude prompt without evaluating path text as shell syntax.
 Capture each command's combined ordinary output and exit status through the
 runtime's managed call rather than a repository wrapper or response file.
+After each review finishes, inspect its persisted native session and every
+delegated-review history to perform the specification's empirical command
+validation. A final report's description of its own activity is not command
+evidence; an unavailable history makes that review `failed`.
 
 Reviewer runtime is unspecified. Wait for each managed call's completion
 notification; do not poll it or interpret silence or elapsed time as failure.
