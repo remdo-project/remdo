@@ -62,8 +62,6 @@ PROD_BRIDGE_APP_ORIGIN="https://${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}"
 PROD_BRIDGE_HEALTH_URL="${PROD_BRIDGE_APP_ORIGIN%/}/health"
 PROD_BRIDGE_DATA_DIR="${TEST_DATA_DIR%/}/prod-bridge-home"
 PROD_BRIDGE_LAUNCH_LOG="${TEST_DATA_DIR%/}/prod-bridge-launcher.log"
-PROD_BRIDGE_LAUNCH_PID=""
-PROD_BRIDGE_LAUNCH_PIDS=()
 
 # Fourth scenario: hosted production behind external TLS termination.
 HOSTED_PORT="$((PORT_BASE + 10))"
@@ -108,10 +106,8 @@ cleanup_data_dir() {
   DATA_CLEANED="true"
 }
 
-start_prod_bridge_launcher() {
-  # Keep the build and Docker launcher descendants terminable as one unit when
-  # startup fails before the named container exists.
-  setsid env \
+run_prod_bridge_launcher() {
+  env \
     IMAGE_NAME="${IMAGE_NAME}" \
     DATA_DIR="${PROD_BRIDGE_DATA_DIR}" \
     HOST= \
@@ -123,27 +119,15 @@ start_prod_bridge_launcher() {
     YSWEET_AUTH_KEY="${DOCKER_TEST_YSWEET_AUTH_KEY}" \
     YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}" \
     ALLOW_SIGNUP=false \
-    "${ROOT_DIR}/tools/prod/docker.sh" >>"${PROD_BRIDGE_LAUNCH_LOG}" 2>&1 &
-  PROD_BRIDGE_LAUNCH_PID="$!"
-  PROD_BRIDGE_LAUNCH_PIDS+=("${PROD_BRIDGE_LAUNCH_PID}")
+    "${ROOT_DIR}/tools/prod/docker.sh" >>"${PROD_BRIDGE_LAUNCH_LOG}" 2>&1
 }
 
-stop_prod_bridge_launcher() {
-  for launcher_pid in "${PROD_BRIDGE_LAUNCH_PIDS[@]}"; do
-    kill -KILL -- "-${launcher_pid}" >/dev/null 2>&1 \
-      || kill -KILL "${launcher_pid}" >/dev/null 2>&1 \
-      || true
-  done
+remove_prod_bridge_container() {
   docker rm -f "${PROD_BRIDGE_CONTAINER_NAME}" >/dev/null 2>&1 || true
-  for launcher_pid in "${PROD_BRIDGE_LAUNCH_PIDS[@]}"; do
-    wait "${launcher_pid}" >/dev/null 2>&1 || true
-  done
-  PROD_BRIDGE_LAUNCH_PID=""
-  PROD_BRIDGE_LAUNCH_PIDS=()
 }
 
 cleanup() {
-  stop_prod_bridge_launcher
+  remove_prod_bridge_container
   cleanup_data_dir
   docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
   docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
@@ -155,16 +139,12 @@ wait_healthy() {
   local port="$1"
   local url="$2"
   local attempts="$3"
-  local process_id="${4:-}"
   local attempt
 
   for ((attempt = 0; attempt < attempts; attempt += 1)); do
     if curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${port}:127.0.0.1" \
       -kfsS "${url}" >/dev/null 2>&1; then
       return 0
-    fi
-    if [[ -n "${process_id}" ]] && ! kill -0 "${process_id}" >/dev/null 2>&1; then
-      return 1
     fi
     sleep 0.5
   done
@@ -399,29 +379,38 @@ done
 
 echo "Docker backup OK: ${BACKUP_DIR}"
 
-echo "Verifying gateway health follows the API process..."
+echo "Verifying an unexpected API exit fails the complete instance..."
 if ! docker exec "${CONTAINER_NAME}" sh -c 'kill "$(pidof node)"'; then
   docker logs "${CONTAINER_NAME}" || true
-  echo "Could not stop the API process for the health-boundary check." >&2
+  echo "Could not stop the API process for the child-lifecycle check." >&2
   exit 1
 fi
 
-api_unhealthy=false
-for _ in {1..20}; do
-  health_status="$(curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PORT}:127.0.0.1" \
-    -ksS -o /dev/null -w '%{http_code}' "${HEALTH_URL}" 2>/dev/null || true)"
-  if [[ -n "${health_status}" && "${health_status}" != "000" && "${health_status}" != 2?? ]]; then
-    api_unhealthy=true
+container_stopped=false
+for _ in {1..40}; do
+  if [[ "$(docker inspect --format '{{.State.Running}}' "${CONTAINER_NAME}")" == "false" ]]; then
+    container_stopped=true
     break
   fi
   sleep 0.25
 done
-if [[ "${api_unhealthy}" != "true" ]]; then
+if [[ "${container_stopped}" != "true" ]]; then
   docker logs "${CONTAINER_NAME}" || true
-  echo "Gateway health remained successful after the API process stopped." >&2
+  echo "Container remained running after the API process stopped." >&2
   exit 1
 fi
-echo "Gateway health reports the stopped API process."
+if [[ "$(docker inspect --format '{{.State.ExitCode}}' "${CONTAINER_NAME}")" == "0" ]]; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Container exited successfully after an unexpected API exit." >&2
+  exit 1
+fi
+if ! docker logs "${CONTAINER_NAME}" 2>&1 \
+  | grep -Fq 'Production service api exited unexpectedly with status'; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Container log did not identify the failed API process." >&2
+  exit 1
+fi
+echo "Unexpected API exit failed the complete instance with a diagnostic."
 
 # ---------------------------------------------------------------------------
 # Scenario 2: ADMIN_SECRET-only bootstrap (secret generation + persistence).
@@ -590,13 +579,16 @@ docker rm -f "${HOSTED_CONTAINER_NAME}" >/dev/null 2>&1 || true
 # container through its published bridge port.
 echo "Running production bridge launcher smoke on ${PROD_BRIDGE_APP_ORIGIN}..."
 
-start_prod_bridge_launcher
+if ! run_prod_bridge_launcher; then
+  tail -n 200 "${PROD_BRIDGE_LAUNCH_LOG}" >&2 || true
+  echo "Production bridge launcher failed to start." >&2
+  exit 1
+fi
 
 if ! wait_healthy \
   "${PROD_BRIDGE_PORT}" \
   "${PROD_BRIDGE_HEALTH_URL}" \
-  40 \
-  "${PROD_BRIDGE_LAUNCH_PID}"; then
+  40; then
   docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
   tail -n 200 "${PROD_BRIDGE_LAUNCH_LOG}" >&2 || true
   echo "Production bridge launcher smoke failed: ${PROD_BRIDGE_HEALTH_URL}" >&2
@@ -614,7 +606,59 @@ fi
 echo "Production bridge launcher is loopback-only."
 
 first_prod_bridge_id="$(docker inspect --format '{{.Id}}' "${PROD_BRIDGE_CONTAINER_NAME}")"
-start_prod_bridge_launcher
+restart_policy="$(docker inspect --format '{{.HostConfig.RestartPolicy.Name}}' \
+  "${PROD_BRIDGE_CONTAINER_NAME}")"
+if [[ "${restart_policy}" != "unless-stopped" ]]; then
+  echo "Production bridge launcher configured restart policy ${restart_policy}, expected unless-stopped." >&2
+  exit 1
+fi
+
+# Give Docker a sustained healthy run before forcing a required process to
+# fail, so the check exercises steady-state recovery rather than initial boot.
+sleep 10
+initial_restart_count="$(docker inspect --format '{{.RestartCount}}' \
+  "${PROD_BRIDGE_CONTAINER_NAME}")"
+if ! docker exec "${PROD_BRIDGE_CONTAINER_NAME}" sh -c 'kill -KILL "$(pidof y-sweet)"'; then
+  docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
+  echo "Could not stop Y-Sweet for the production autoheal check." >&2
+  exit 1
+fi
+
+autoheal_ready=false
+for _ in {1..80}; do
+  current_prod_bridge_id="$(docker inspect --format '{{.Id}}' \
+    "${PROD_BRIDGE_CONTAINER_NAME}" 2>/dev/null || true)"
+  current_restart_count="$(docker inspect --format '{{.RestartCount}}' \
+    "${PROD_BRIDGE_CONTAINER_NAME}" 2>/dev/null || true)"
+  if [[ "${current_prod_bridge_id}" == "${first_prod_bridge_id}" \
+    && "${current_restart_count}" =~ ^[0-9]+$ \
+    && "${current_restart_count}" -gt "${initial_restart_count}" ]] \
+    && curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}:127.0.0.1" \
+      -kfsS "${PROD_BRIDGE_HEALTH_URL}" >/dev/null 2>&1; then
+    autoheal_ready=true
+    break
+  fi
+  sleep 0.5
+done
+
+if [[ "${autoheal_ready}" != "true" ]]; then
+  docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
+  echo "Production instance did not recover after Y-Sweet exited." >&2
+  exit 1
+fi
+if ! docker logs "${PROD_BRIDGE_CONTAINER_NAME}" 2>&1 \
+  | grep -Fq 'Production service y-sweet exited unexpectedly with status'; then
+  docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
+  echo "Production instance log did not identify the failed Y-Sweet process." >&2
+  exit 1
+fi
+echo "Docker restarted the complete production instance after Y-Sweet exited."
+
+if ! run_prod_bridge_launcher; then
+  tail -n 200 "${PROD_BRIDGE_LAUNCH_LOG}" >&2 || true
+  echo "Production bridge launcher failed while replacing its container." >&2
+  exit 1
+fi
 
 replacement_ready="false"
 for _ in {1..80}; do
@@ -623,9 +667,6 @@ for _ in {1..80}; do
     && curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}:127.0.0.1" \
       -kfsS "${PROD_BRIDGE_HEALTH_URL}" >/dev/null 2>&1; then
     replacement_ready="true"
-    break
-  fi
-  if ! kill -0 "${PROD_BRIDGE_LAUNCH_PID}" >/dev/null 2>&1; then
     break
   fi
   sleep 0.5
@@ -638,6 +679,16 @@ if [[ "${replacement_ready}" != "true" ]]; then
   exit 1
 fi
 echo "Production bridge launcher replaced its existing container."
-stop_prod_bridge_launcher
+
+docker stop "${PROD_BRIDGE_CONTAINER_NAME}" >/dev/null
+sleep 2
+if [[ "$(docker inspect --format '{{.State.Running}}' \
+  "${PROD_BRIDGE_CONTAINER_NAME}")" != "false" ]]; then
+  docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
+  echo "Explicitly stopped production container restarted unexpectedly." >&2
+  exit 1
+fi
+echo "Explicitly stopped production container remained stopped."
+remove_prod_bridge_container
 
 cleanup_data_dir

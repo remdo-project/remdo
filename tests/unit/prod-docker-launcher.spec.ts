@@ -71,6 +71,7 @@ describe('prod Docker launcher', () => {
     fs.mkdirSync(binDir);
     writeFakeDocker(binDir);
     writeFakeBin(binDir, 'mkdir', `printf '%s\\0' "$#" "$@" >> "\${REMDO_FAKE_MKDIR_LOG:?}"\n`);
+    writeFakeBin(binDir, 'node', 'echo "production launcher unexpectedly called host Node" >&2\nexit 97\n');
 
     const result = spawnSync('./tools/prod/docker.sh', {
       cwd: process.cwd(),
@@ -104,7 +105,7 @@ describe('prod Docker launcher', () => {
     return { dataDir, result, dockerCalls, mkdirCalls };
   }
 
-  it('defaults to the canonical loopback origin and publishes only its gateway port', () => {
+  it('defaults to the canonical loopback origin without requiring host Node', () => {
     const { dataDir, result, dockerCalls } = runLauncher();
 
     expect(result.status, result.stderr).toBe(0);
@@ -113,8 +114,11 @@ describe('prod Docker launcher', () => {
     const runArgs = findDockerCall(dockerCalls, 'run');
 
     expect(dockerOptionValues(runArgs, '--name')).toEqual(['remdo-8443']);
+    expect(dockerOptionValues(runArgs, '--restart')).toEqual(['unless-stopped']);
     expect(dockerOptionValues(runArgs, '-p')).toEqual(['127.0.0.1:8443:8443']);
     expect(dockerOptionValues(runArgs, '-v')).toEqual([`${dataDir}:/data`]);
+    expect(runArgs).toContain('-d');
+    expect(runArgs).not.toContain('--rm');
     expect(runArgs).not.toContain('--network=host');
     expect(dockerEnvironment(runArgs)).toEqual({
       ADMIN_SECRET: 'production-admin-secret-0123456789',
@@ -124,6 +128,9 @@ describe('prod Docker launcher', () => {
       YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
       YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
     });
+    expect(result.stdout).toContain('Verify health: https://remdo.localhost:8443/health');
+    expect(result.stdout).toContain('Follow logs: docker logs -f remdo-8443');
+    expect(result.stdout).toContain('Stop RemDo: docker stop remdo-8443');
   });
 
   it('defaults persistent data to the repository production directory', () => {
@@ -182,13 +189,16 @@ describe('prod Docker launcher', () => {
     expect(dockerOptionValues(runArgs, '-p')).toEqual(['0.0.0.0:443:443']);
   });
 
-  it('rejects a non-canonical HTTPS public origin before building', () => {
-    for (const appOrigin of ['http://remdo.example.com', 'https://remdo.example.com/path']) {
-      const { result, dockerCalls } = runLauncher({ APP_ORIGIN: appOrigin });
+  it('defers exact origin validation to the container while deriving its explicit port', () => {
+    const { result, dockerCalls } = runLauncher({
+      APP_ORIGIN: 'http://remdo.example.com:9443',
+    });
 
-      expect(result.status).not.toBe(0);
-      expect(dockerCalls).toEqual([]);
-    }
+    expect(result.status, result.stderr).toBe(0);
+    const runArgs = findDockerCall(dockerCalls, 'run');
+    expect(dockerOptionValues(runArgs, '--name')).toEqual(['remdo-9443']);
+    expect(dockerOptionValues(runArgs, '-p')).toEqual(['127.0.0.1:9443:9443']);
+    expect(dockerEnvironment(runArgs).APP_ORIGIN).toBe('http://remdo.example.com:9443');
   });
 
   it('requires strong operator secrets before building', () => {

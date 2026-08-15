@@ -5,6 +5,11 @@ This guide owns the supported deployment and first-access procedures for the
 [configuration specification](../specs/runtime/configuration.md) owns runtime inputs and secret bootstrap;
 Architecture owns the [gateway](../architecture.md#gateway) and [persistent storage root](../architecture.md#runtime-persistence-boundary).
 
+A production instance treats its gateway, API, collaboration server, and backup
+scheduler as required processes. If one exits unexpectedly, the entrypoint logs
+its name and status, stops the remaining processes, and exits unsuccessfully so
+the deployment environment can restart the complete instance.
+
 ## Generate the Admin Secret
 
 Generate a unique random `ADMIN_SECRET` using the guidance in the [environment example](../../.env.example).
@@ -46,8 +51,11 @@ daemons are supported.
    loopback deployment, trust the Caddy root certificate beneath the persistent
    data root on each browser client. At the default location, it is
    `data/production/caddy/pki/authorities/local/root.crt`.
-6. Keep the launcher running while using RemDo. Stopping it removes the
-   container and retains its persistent data root.
+6. The launcher returns after starting RemDo. Docker keeps the container
+   running and restarts the complete instance after an unexpected failure. Use
+   the printed commands to follow its logs or stop it explicitly; an explicit
+   stop remains stopped until the launcher runs again. The persistent data root
+   is retained across either operation.
 
 ## Deploy on Render
 

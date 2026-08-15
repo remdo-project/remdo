@@ -12,7 +12,10 @@ export NODE_ENV
 
 : "${APP_ORIGIN:=https://remdo.localhost:8443}"
 : "${DATA_DIR:=${ROOT_DIR%/}/data/production}"
-PORT="$(remdo_https_origin_port "${APP_ORIGIN}")"
+PORT=443
+if [[ "${APP_ORIGIN}" =~ :([0-9]+)$ ]]; then
+  PORT="${BASH_REMATCH[1]}"
+fi
 CONTAINER_NAME="remdo-${PORT}"
 case "${PORT}" in
   4004|4011)
@@ -86,7 +89,11 @@ if [[ -n "${YSWEET_SERVER_TOKEN:-}" ]]; then
   DOCKER_ENV_ARGS+=(-e YSWEET_SERVER_TOKEN="${YSWEET_SERVER_TOKEN}")
 fi
 
-echo "Docker target: ${APP_ORIGIN}"
-DOCKER_RUN_ARGS=(--rm --userns=host --name "${CONTAINER_NAME}")
+DOCKER_RUN_ARGS=(-d --restart unless-stopped --userns=host --name "${CONTAINER_NAME}")
 DOCKER_RUN_ARGS+=(-p "${HOST}:${PORT}:${PORT}")
 remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" "${DOCKER_RUN_ARGS[@]}" "${DOCKER_ENV_ARGS[@]}"
+
+echo "Docker target: ${APP_ORIGIN}"
+echo "Verify health: ${APP_ORIGIN%/}/health"
+echo "Follow logs: docker logs -f ${CONTAINER_NAME}"
+echo "Stop RemDo: docker stop ${CONTAINER_NAME}"
