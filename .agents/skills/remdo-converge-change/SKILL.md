@@ -55,6 +55,10 @@ likely affected tests and applicable static checks under the contributor
 check fails, repair, revalidate, and recheck the batch when an in-scope
 correction can be determined; otherwise stop without committing. After checks
 pass, stage only the validated batch and create one normal nonempty commit.
+The invoked skill already grants that commit-range authority. If updating Git
+metadata requires runtime escalation, request it through the runtime approval
+mechanism and continue. Do not ask the caller to authorize staging or
+committing again; stop only if the required escalation is denied or unavailable.
 Leave uncommitted-scope corrections uncommitted. Record the selected diff after
 the batch is committed or retained, compare it with previously assessed states,
 then route the refreshed scope through the contract.
