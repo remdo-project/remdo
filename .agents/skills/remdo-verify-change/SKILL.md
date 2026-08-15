@@ -74,8 +74,8 @@ path strings and append each with JSON string quoting; do not parse the
 resolver's display-oriented `FILES` lines.
 
 Construct the Claude prompt without evaluating path text as shell syntax.
-Capture each command's ordinary final stdout, stderr, and exit status through
-the runtime's managed call rather than a repository wrapper or response file.
+Capture each command's combined ordinary output and exit status through the
+runtime's managed call rather than a repository wrapper or response file.
 
 Reviewer runtime is unspecified. Wait for each managed call's completion
 notification; do not poll it or interpret silence or elapsed time as failure.
@@ -84,11 +84,13 @@ it.
 
 Classify each native result under the authoritative specification's
 [`Reviews`](../../../docs/specs/agents/skills/remdo-verify-change.md#reviews)
-contract. Retain successful final stdout as review evidence; for an
-unsuccessful command, retain its exit status and non-empty stderr as failure
-evidence. Judge complete scope inspection from the final report rather than
-provider progress events. Classify a missing executable, including shell exit
-status `127` with command-not-found evidence, as `unavailable`.
+contract. For a successful command, retain a usable consolidated final report
+found in the combined output as review evidence; progress or diagnostics alone
+do not satisfy completion. For an unsuccessful command, retain its exit status
+and non-empty combined output as failure evidence. Judge complete scope
+inspection from the final report rather than provider progress events. Classify
+a missing executable, including shell exit status `127` with command-not-found
+evidence, as `unavailable`.
 
 ## Validate findings
 
