@@ -37,7 +37,9 @@ For uncommitted work, the verifier performs the contributor
 
 The verifier starts independent fresh native Codex and Claude reviews against
 the resolved change scope. Their identities remain distinct in the result, and
-one review never interrupts the other.
+one review never interrupts the other. Each provider returns one consolidated
+final report; delegated review work completes in the foreground so a later
+lifecycle notification cannot replace that evidence.
 
 Each review inspects the complete resolved scope, repository guidance, Git
 context, and referenced files. **Empirical.** The verifier tells reviewers that

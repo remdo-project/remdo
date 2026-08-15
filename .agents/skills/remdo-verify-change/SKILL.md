@@ -46,7 +46,8 @@ Use this review constraint for both providers:
 
 > Repository verification is handled outside this review. Focus on semantic
 > review rather than running repository test or check suites. Inspect the
-> complete requested scope; in the final response,
+> complete requested scope; in the final response, reproduce the complete
+> consolidated findings report,
 > explicitly state whether inspection was complete and identify any material
 > gap. Review the implementation and test adequacy using repository evidence.
 > Pass these instructions to every delegated reviewer. Report any additional
@@ -59,7 +60,7 @@ non-persistent session:
   `approval_policy="never"`, `notify=[]`, `model_reasoning_effort="high"`, and
   the review constraint as `developer_instructions`; then pass `review
   --uncommitted` or `review --base <BASE>`.
-- Claude: set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`, then run `claude -p
+- Claude: set `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`, then run `claude -p
   --effort high --permission-mode plan
   --setting-sources user,project --settings '{"disableAllHooks":true}'
   --no-session-persistence`. Start its prompt with `/code-review`, followed by
