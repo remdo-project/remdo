@@ -37,9 +37,11 @@ input: <supplied scope input> # if failed and supplied
 reason: <resolution failure> # if failed
 ```
 
-`ready` has one or more files; `no-change` has an empty file list. The immutable
-fields identify the selected repository state independently of later ref
-movement. A failed result retains the supplied input when one exists.
+`ready` has one or more files; `no-change` has an empty file list. For a commit
+range, `base` and `head` identify the selected repository state independently of
+later ref movement. An uncommitted result describes the selected paths at
+resolution; its caller owns their stability. A failed result retains the
+supplied input when one exists.
 
 ### Caller-visible display
 
