@@ -102,9 +102,7 @@ require explicit user authority.
 - Prefer the simplest permanent implementation. Stop on a missing task
   dependency and investigate repository evidence before asking.
 - The shared entry point owns its
-  [decision rule](../../../AGENTS.md#execution-and-evidence). Agents retain its
-  [decisions](protocol.md#decisions) for handoff and return unresolved choices
-  as [concerns](protocol.md#concerns) when acting as a capability.
+  [decision rule](../../../AGENTS.md#execution-and-evidence).
 - The shared entry point directs agents to add Markdown prose soft wraps only
   when required by line-length lint.
 - Agents follow the contributor [testing policy](../../dev/testing.md) and
