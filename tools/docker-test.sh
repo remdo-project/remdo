@@ -58,9 +58,8 @@ BOOTSTRAP_DATA_DIR="${TEST_DATA_DIR%/}/bootstrap-home"
 PROD_BRIDGE_PORT="$((PORT_BASE + 9))"
 remdo_assert_browser_safe_port "${PROD_BRIDGE_PORT}"
 PROD_BRIDGE_CONTAINER_NAME="remdo-${PROD_BRIDGE_PORT}"
-PROD_BRIDGE_APP_ORIGIN="https://${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}"
-PROD_BRIDGE_HEALTH_URL="${PROD_BRIDGE_APP_ORIGIN%/}/health"
 PROD_BRIDGE_DATA_DIR="${TEST_DATA_DIR%/}/prod-bridge-home"
+PROD_BRIDGE_SOURCE_DATA_DIR="${TEST_DATA_DIR%/}/prod-bridge-source"
 PROD_BRIDGE_LAUNCH_LOG="${TEST_DATA_DIR%/}/prod-bridge-launcher.log"
 
 # Fourth scenario: hosted production behind external TLS termination.
@@ -69,11 +68,21 @@ HOSTED_CONTAINER_NAME="${IMAGE_NAME}-${HOSTED_PORT}"
 HOSTED_APP_ORIGIN="https://remdo.onrender.com"
 HOSTED_DATA_DIR="${TEST_DATA_DIR%/}/hosted-home"
 
+DOCKER_DAEMON_ROOTLESS=false
 if remdo_docker_daemon_is_rootless; then
+  DOCKER_DAEMON_ROOTLESS=true
   remdo_require_rootless_host_network
   DOCKER_RUN_ARGS+=(--userns=host)
 fi
 DOCKER_RUN_ARGS+=(--network=host)
+
+PROD_BRIDGE_BROWSER_HOST="${DOCKER_TEST_BROWSER_HOST}"
+PROD_BRIDGE_APP_ORIGIN="https://${PROD_BRIDGE_BROWSER_HOST}:${PROD_BRIDGE_PORT}"
+if [[ "${DOCKER_DAEMON_ROOTLESS}" == "true" ]]; then
+  PROD_BRIDGE_BROWSER_HOST="remdo-${PROD_BRIDGE_PORT}.localhost"
+  PROD_BRIDGE_APP_ORIGIN="http://${PROD_BRIDGE_BROWSER_HOST}:${PROD_BRIDGE_PORT}"
+fi
+PROD_BRIDGE_HEALTH_URL="${PROD_BRIDGE_APP_ORIGIN%/}/health"
 
 # Wipe a host-mounted data dir from inside the container so container-owned
 # (often root-owned, on a rootful daemon) files are removed by a process with the
@@ -139,10 +148,11 @@ wait_healthy() {
   local port="$1"
   local url="$2"
   local attempts="$3"
+  local browser_host="${4:-${DOCKER_TEST_BROWSER_HOST}}"
   local attempt
 
   for ((attempt = 0; attempt < attempts; attempt += 1)); do
-    if curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${port}:127.0.0.1" \
+    if curl --resolve "${browser_host}:${port}:127.0.0.1" \
       -kfsS "${url}" >/dev/null 2>&1; then
       return 0
     fi
@@ -555,7 +565,8 @@ fi
 if ! wait_healthy \
   "${PROD_BRIDGE_PORT}" \
   "${PROD_BRIDGE_HEALTH_URL}" \
-  40; then
+  40 \
+  "${PROD_BRIDGE_BROWSER_HOST}"; then
   docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
   tail -n 200 "${PROD_BRIDGE_LAUNCH_LOG}" >&2 || true
   echo "Production bridge launcher smoke failed: ${PROD_BRIDGE_HEALTH_URL}" >&2
@@ -571,6 +582,28 @@ if [[ "${prod_bridge_host_ip}" != "127.0.0.1" ]]; then
   exit 1
 fi
 echo "Production bridge launcher is loopback-only."
+
+if [[ "${DOCKER_DAEMON_ROOTLESS}" == "true" ]]; then
+  echo "Running loopback HTTP browser smoke..."
+  if ! env \
+    PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" \
+    REMDO_E2E_HOME_ORIGIN="${PROD_BRIDGE_APP_ORIGIN}" \
+    REMDO_E2E_SOURCE_ORIGIN="${SOURCE_ORIGIN}" \
+    ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
+    YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}" \
+    DATA_DIR="${PROD_BRIDGE_SOURCE_DATA_DIR}" \
+    HOST=localhost \
+    PUBLIC_HOST=localhost \
+    PORT_BASE="${SOURCE_PORT_BASE}" \
+    "${ROOT_DIR}/tools/env.sh" timeout "${TEST_TIMEOUT:-300}s" \
+    pnpm exec playwright test --config playwright.docker.config.ts \
+      tests/e2e/docker/setup.spec.ts; then
+    docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
+    echo "Loopback HTTP browser smoke failed: ${PROD_BRIDGE_APP_ORIGIN}" >&2
+    exit 1
+  fi
+  echo "Loopback HTTP browser smoke OK: ${PROD_BRIDGE_APP_ORIGIN}"
+fi
 
 first_prod_bridge_id="$(docker inspect --format '{{.Id}}' "${PROD_BRIDGE_CONTAINER_NAME}")"
 
@@ -591,7 +624,7 @@ for _ in {1..80}; do
   if [[ "${current_prod_bridge_id}" == "${first_prod_bridge_id}" \
     && "${current_restart_count}" =~ ^[0-9]+$ \
     && "${current_restart_count}" -gt "${initial_restart_count}" ]] \
-    && curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}:127.0.0.1" \
+    && curl --resolve "${PROD_BRIDGE_BROWSER_HOST}:${PROD_BRIDGE_PORT}:127.0.0.1" \
       -kfsS "${PROD_BRIDGE_HEALTH_URL}" >/dev/null 2>&1; then
     autoheal_ready=true
     break
@@ -622,7 +655,7 @@ replacement_ready="false"
 for _ in {1..80}; do
   replacement_id="$(docker inspect --format '{{.Id}}' "${PROD_BRIDGE_CONTAINER_NAME}" 2>/dev/null || true)"
   if [[ -n "${replacement_id}" && "${replacement_id}" != "${first_prod_bridge_id}" ]] \
-    && curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}:127.0.0.1" \
+    && curl --resolve "${PROD_BRIDGE_BROWSER_HOST}:${PROD_BRIDGE_PORT}:127.0.0.1" \
       -kfsS "${PROD_BRIDGE_HEALTH_URL}" >/dev/null 2>&1; then
     replacement_ready="true"
     break

@@ -81,13 +81,34 @@ describe('docker entrypoint Caddy environment', () => {
     });
   });
 
-  it('rejects HTTP outside the development container', () => {
+  it('serves an explicit localhost production origin without TLS', () => {
+    expect(readCaddyEnv({
+      APP_ORIGIN: 'http://remdo-8443.localhost:8443',
+      REMDO_LAUNCHER_LOOPBACK_HTTP: 'true',
+    })).toEqual({
+      bindAddress: '',
+      siteAddress: 'http://remdo-8443.localhost:8443',
+    });
+  });
+
+  it('rejects localhost HTTP when the production launcher did not select it', () => {
     const result = runEntryPointEnv('remdo_configure_caddy_env', {
-      APP_ORIGIN: 'http://localhost:8080',
+      APP_ORIGIN: 'http://remdo-8443.localhost:8443',
     });
 
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('APP_ORIGIN must use HTTPS');
+    expect(result.stderr).toContain('requires the self-hosted loopback launcher');
+  });
+
+  it('rejects HTTP outside a dedicated localhost subdomain', () => {
+    for (const appOrigin of ['http://localhost:8080', 'http://remdo.example.test:8080']) {
+      const result = runEntryPointEnv('remdo_configure_caddy_env', {
+        APP_ORIGIN: appOrigin,
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain('APP_ORIGIN must use HTTPS unless');
+    }
   });
 
   it('rejects an invalid development-container origin', () => {
