@@ -10,7 +10,7 @@ import { $getNoteChecked, $isNoteSubtreeChecked, $setNoteCheckedRaw, NoteChecked
 import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
 import type { SetNoteCheckedPayload } from '#client/editor/commands';
 import { isBulletHit, isCheckboxHit } from '#client/editor/outline/bullet-hit-test';
-import { isContentItem } from '#client/editor/outline/list-structure';
+import { getPreviousContentSibling, isChildrenWrapper, isContentItem } from '#client/editor/outline/list-structure';
 import { $resolveNoteIdFromDOMNode } from '#client/editor/outline/note-context';
 import { $resolveStructuralItemsFromRange } from '#client/editor/outline/selection/range';
 import { requireContentItemFromNode, resolveContentItemFromNode } from '#client/editor/outline/schema';
@@ -21,6 +21,20 @@ import { installOutlineSelectionHelpers } from '#client/editor/outline/selection
 // is naturally excluded here — no body-specific guard needed.
 const isChecklistItem = (element: HTMLElement): boolean =>
   element.classList.contains('list-item-checked') || element.classList.contains('list-item-unchecked');
+
+// The mutation listener observes whatever tree a batch leaves behind, including
+// the transiently malformed shapes that normalization is still repairing (an
+// orphan children-wrapper has no preceding note). Resolving the parent without
+// asserting keeps the listener from reporting invariants for states that the
+// repair pass is about to fix; command paths keep using the asserting resolver.
+const $findParentContentItem = (item: ListItemNode): ListItemNode | null => {
+  const parentList = item.getParent();
+  if (!$isListNode(parentList)) {
+    return null;
+  }
+  const parentWrapper = parentList.getParent();
+  return isChildrenWrapper(parentWrapper) ? getPreviousContentSibling(parentWrapper) : null;
+};
 
 const ARIA_CHECKED_BY_DISPLAY: Record<NoteCheckedDisplay, string> = {
   checked: 'true',
@@ -333,7 +347,7 @@ export function CheckListPlugin() {
 
             const pending = new Map<string, ListItemNode>();
             for (const node of mutated) {
-              for (let item: ListItemNode | null = node; item; item = getParentContentItem(item)) {
+              for (let item: ListItemNode | null = node; item; item = $findParentContentItem(item)) {
                 pending.set(item.getKey(), item);
               }
             }
