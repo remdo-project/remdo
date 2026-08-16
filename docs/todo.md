@@ -132,6 +132,24 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   dispatching `SET_NOTE_CHECKED_COMMAND`). Reroute it and cover with a test.
   The click's selection consequences stay with [Selection](specs/outliner/selection.md).
 
+- **Report the Lexical `updateEditorSync` warning upstream.** A commit that
+  moves the DOM selection emits a Lexical dev warning through an entirely
+  internal chain: `$commitPendingUpdates` → `$updateDOMSelection` →
+  `setDOMSelectionBaseAndExtent` → the browser's native `selectionchange` →
+  Lexical's `eventHandler` → `dispatchCommand(SELECTION_CHANGE_COMMAND)`, whose
+  `triggerCommandListeners` wraps the listener pump in `updateEditorSync`
+  whenever a listener set is non-empty — regardless of whether any listener
+  mutates. No repository-side change suppresses it; Lexical's own rich-text
+  listeners are enough to trigger it. The warning arrived in v0.49.0 with
+  [facebook/lexical#8863](https://github.com/facebook/lexical/pull/8863), whose
+  thread does not discuss this internal path, and no upstream issue reports it.
+  The [registered `lexical` patch](../pnpm-workspace.yaml) gates the warning on
+  `isCommittingPendingUpdates` meanwhile. That flag spans the whole commit, so
+  the patch also silences genuine repository-side mistakes — a mutation or
+  update listener dispatching a mutating command would now defer silently
+  instead of warning. File the upstream report, then drop the patch once a
+  release fixes it.
+
 - **Replace the date-picker calendar widget.** The Mantine `DatePicker` in
   `DatePickerPopover.tsx` does not move keyboard focus across month boundaries
   or implement the calendar's complete [keyboard contract](specs/outliner/dates.md#core-behavior). Its two
