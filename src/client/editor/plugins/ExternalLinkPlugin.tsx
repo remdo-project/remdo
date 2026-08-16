@@ -1,10 +1,10 @@
-import { AutoLinkNode, LinkNode } from '@lexical/link';
+import { $createLinkNode, AutoLinkNode, LinkNode } from '@lexical/link';
 import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { mergeRegister } from '@lexical/utils';
 import type { LinkMatcher } from '@lexical/link';
 import LinkifyIt from 'linkify-it';
-import { $getNodeByKey } from 'lexical';
+import { $getNodeByKey, TextNode } from 'lexical';
 import { useEffect } from 'react';
 import tlds from 'tlds';
 
@@ -87,7 +87,7 @@ function unwrapLinkNode(node: LinkNode | AutoLinkNode) {
   parent.splice(node.getIndexWithinParent(), 1, node.getChildren());
 }
 
-function normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
+function $normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
   if ($isNoteLinkNode(node)) {
     return;
   }
@@ -95,6 +95,20 @@ function normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
   if (!normalizedUrl) {
     unwrapLinkNode(node);
     return;
+  }
+  if (node instanceof AutoLinkNode) {
+    const match = externalUrlMatcher(node.getTextContent());
+    const matchedUrl = match ? normalizeExternalUrl(match.url) : null;
+    if (matchedUrl !== normalizedUrl) {
+      const replacement = $createLinkNode(normalizedUrl, {
+        rel: EXTERNAL_LINK_ATTRIBUTES.rel,
+        target: EXTERNAL_LINK_ATTRIBUTES.target,
+        title: node.getTitle(),
+      });
+      replacement.append(...node.getChildren());
+      node.replace(replacement);
+      return;
+    }
   }
   if (
     node.getURL() === normalizedUrl
@@ -123,7 +137,7 @@ function registerExternalLinkMutationListener(
         for (const key of keys) {
           const node = $getNodeByKey(key);
           if (node instanceof LinkNode || node instanceof AutoLinkNode) {
-            normalizeExternalLinkNode(node);
+            $normalizeExternalLinkNode(node);
           }
         }
       });
@@ -131,17 +145,32 @@ function registerExternalLinkMutationListener(
   });
 }
 
-export function ExternalLinkPlugin() {
+function ExternalLinkNormalizationPlugin() {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
     return mergeRegister(
-      editor.registerNodeTransform(LinkNode, normalizeExternalLinkNode),
-      editor.registerNodeTransform(AutoLinkNode, normalizeExternalLinkNode),
+      editor.registerNodeTransform(TextNode, (node) => {
+        const parent = node.getParent();
+        if (parent instanceof AutoLinkNode) {
+          $normalizeExternalLinkNode(parent);
+        }
+      }),
+      editor.registerNodeTransform(LinkNode, $normalizeExternalLinkNode),
+      editor.registerNodeTransform(AutoLinkNode, $normalizeExternalLinkNode),
       registerExternalLinkMutationListener(editor, LinkNode),
       registerExternalLinkMutationListener(editor, AutoLinkNode),
     );
   }, [editor]);
 
-  return <AutoLinkPlugin matchers={MATCHERS} />;
+  return null;
+}
+
+export function ExternalLinkPlugin() {
+  return (
+    <>
+      <ExternalLinkNormalizationPlugin />
+      <AutoLinkPlugin matchers={MATCHERS} />
+    </>
+  );
 }

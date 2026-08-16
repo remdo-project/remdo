@@ -2,16 +2,26 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
+import { $getNodeByKey } from 'lexical';
 import { $autoExpandIfFolded } from '#client/editor/runtime/fold-state';
 import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
 import { reportInvariant } from '#client/editor/invariant';
 
-type ChildListItemNode = ListItemNode & { getFirstChild: () => ListNode };
-
 // Treat wrapper nodes strictly: a wrapper must contain exactly one list child and nothing else.
 // Lexical's isNestedListNode only checks that the first child is a list, but we avoid that looseness
 // because destructive operations (remove/move/merge) could drop extra content if we misclassify.
-export const isChildrenWrapper = (node: LexicalNode | null | undefined): node is ChildListItemNode => {
+// The brand keeps the predicate genuinely narrowing: an unbranded intersection is structurally
+// satisfied by plain ListItemNode, so ts/no-unnecessary-condition reads every call on an
+// already-ListItemNode value as unfalsifiable. Lexical brands $isNestedListNode the same way.
+declare const ChildrenWrapperBrand: unique symbol;
+type ChildListItemNode = ListItemNode & {
+  getFirstChild: () => ListNode;
+  [ChildrenWrapperBrand]: never;
+};
+
+export const isChildrenWrapper = (
+  node: LexicalNode | null | undefined
+): node is ChildListItemNode => {
   if (!$isListItemNode(node)) {
     return false;
   }
@@ -30,6 +40,13 @@ export const isChildrenWrapper = (node: LexicalNode | null | undefined): node is
   }
 
   return true;
+};
+
+// Resolve a node key to a list item. Lexical 0.49 dropped the type parameter from $getNodeByKey,
+// so the shape has to be checked rather than asserted; this keeps that check in one place.
+export const $getListItemByKey = (key: string): ListItemNode | null => {
+  const node = $getNodeByKey(key);
+  return $isListItemNode(node) ? node : null;
 };
 
 export const findNearestListItem = (node: LexicalNode | null): ListItemNode | null => {

@@ -161,13 +161,14 @@ export async function withHeadlessCollabSession<T>(
   };
   sharedRoot.observeDeep(observer);
   const removeUpdateListener = editor.registerUpdateListener((payload) => {
-    const { prevEditorState, editorState, dirtyElements, normalizedNodes, tags } = payload;
+    const { prevEditorState, editorState, dirtyElements, dirtyLeaves, normalizedNodes, tags } = payload;
     syncLexicalUpdateToYjsV2__EXPERIMENTAL(
       binding,
       provider,
       prevEditorState,
       editorState,
       dirtyElements,
+      dirtyLeaves,
       normalizedNodes,
       tags,
     );

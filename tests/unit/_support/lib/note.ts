@@ -1,10 +1,12 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
+import { $isListItemNode } from '@lexical/list';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { waitFor } from '@testing-library/react';
 import type { TextNode } from 'lexical';
 import {
   $createRangeSelection,
   $createTextNode,
+  $getNodeByKey,
   $getRoot,
   $getSelection,
   $isRangeSelection,
@@ -33,11 +35,19 @@ export function $getNoteIdOrThrow(item: ListItemNode, message = 'Expected list i
   return noteId;
 }
 
+export function $getListItemByKeyOrThrow(key: string, label = key): ListItemNode {
+  const node = $getNodeByKey(key);
+  if (!$isListItemNode(node)) {
+    throw new TypeError(`Expected ${label} to resolve to a list item`);
+  }
+  return node;
+}
+
 function $findItemByNoteId(noteId: string): ListItemNode {
   const root = $getRoot();
   const list = root.getFirstChild() as ListNode;
   const $search = (listNode: ListNode): ListItemNode | null => {
-    const items = listNode.getChildren<ListItemNode>();
+    const items = listNode.getChildren().filter($isListItemNode);
     for (const item of items) {
       if ($getNoteId(item) === noteId) {
         return item;
@@ -76,13 +86,19 @@ function placeCaretAtListItem(item: ListItemNode, offset: number) {
   item.selectEnd();
 }
 
-export async function placeCaretAtNote(remdo: RemdoTestApi, noteId: string, offset = 0) {
-  // Places a collapsed caret in the note, using text content when available.
-  // Limitations: if the note has no text node, selection snaps to list item boundaries; selection may be promoted later by the app.
+// Lexical 0.49 requires the editor root to hold DOM focus before a programmatic selection
+// mutation, or the selection is discarded before it reaches the editor state.
+function focusEditorRootElement(remdo: RemdoTestApi): void {
   const rootElement = getRootElementOrThrow(remdo.editor);
   if (document.activeElement !== rootElement) {
     rootElement.focus();
   }
+}
+
+export async function placeCaretAtNote(remdo: RemdoTestApi, noteId: string, offset = 0) {
+  // Places a collapsed caret in the note, using text content when available.
+  // Limitations: if the note has no text node, selection snaps to list item boundaries; selection may be promoted later by the app.
+  focusEditorRootElement(remdo);
 
   await remdo.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'anchor' }, { expect: 'any' });
 
@@ -105,10 +121,7 @@ export async function placeCaretAtNoteTextNode(
   offset: number
 ) {
   // Places a collapsed caret inside a specific text node (for multi-format notes).
-  const rootElement = getRootElementOrThrow(remdo.editor);
-  if (document.activeElement !== rootElement) {
-    rootElement.focus();
-  }
+  focusEditorRootElement(remdo);
 
   await remdo.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'anchor' }, { expect: 'any' });
 
@@ -264,6 +277,8 @@ export async function selectNoteRange(
     await selectEntireNote(remdo, startNoteId);
     return;
   }
+
+  focusEditorRootElement(remdo);
 
   await remdo.mutate(() => {
     const startItem = $findItemByNoteId(startNoteId);

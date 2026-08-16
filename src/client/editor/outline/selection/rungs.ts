@@ -1,7 +1,6 @@
 import type { ListItemNode } from '@lexical/list';
-import { $getNodeByKey } from 'lexical';
 
-import { getPreviousContentSibling } from '#client/editor/outline/list-structure';
+import { $getListItemByKey, getPreviousContentSibling } from '#client/editor/outline/list-structure';
 
 import type { BoundaryMode } from './apply';
 import { resolveContentBoundaryPoint } from './caret';
@@ -125,7 +124,7 @@ export function $replayLadder(
   boundaryKey: string | null = null,
   expandToSiblingGroup = false
 ): ProgressivePlan | null {
-  const boundaryRoot = boundaryKey ? $getNodeByKey<ListItemNode>(boundaryKey) : null;
+  const boundaryRoot = boundaryKey ? $getListItemByKey(boundaryKey) : null;
   const withinBoundary = (item: ListItemNode): boolean =>
     !boundaryRoot || isContentDescendantOf(item, boundaryRoot) || item.getKey() === boundaryRoot.getKey();
 

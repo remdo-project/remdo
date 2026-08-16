@@ -15,11 +15,13 @@ import {
   KEY_ENTER_COMMAND,
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
+  SKIP_DOM_SELECTION_TAG,
 } from 'lexical';
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { restoreEditorFocus } from '#client/editor/runtime/focus';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { resolveCaretPickerAnchor } from './anchor';
 import { $isTriggerAtBoundary } from './boundary';
@@ -381,19 +383,24 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
     [$confirmActiveOption, editor]
   );
 
+  const restoreFocus = useCallback(() => {
+    restoreEditorFocus(editor);
+  }, [editor]);
+
   const handleCommitOption = useCallback(
     (option: TOption) => {
-      editor.update(() => {
-        $commitOption(option);
-      });
       // A trap popup (the calendar) holds DOM focus while committing; the popup
       // then unmounts, so hand focus back to the editor or the next keystroke is
       // lost. An 'editor'-model popup never took focus, so this is a no-op there.
-      if ((specRef.current.focusModel ?? 'editor') === 'trap') {
-        editor.focus();
-      }
+      const isTrapPopup = (specRef.current.focusModel ?? 'editor') === 'trap';
+      editor.update(() => {
+        $commitOption(option);
+      }, {
+        onUpdate: isTrapPopup ? restoreFocus : undefined,
+        tag: isTrapPopup ? SKIP_DOM_SELECTION_TAG : undefined,
+      });
     },
-    [$commitOption, editor]
+    [$commitOption, editor, restoreFocus]
   );
 
   // Cancel from inside a focus-trapping popup (the calendar): close and return
@@ -401,8 +408,8 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
   // in the popup, so the popup calls this directly (e.g. on Escape).
   const handleCancel = useCallback(() => {
     closeSession();
-    editor.focus();
-  }, [closeSession, editor]);
+    restoreFocus();
+  }, [closeSession, restoreFocus]);
 
   useEffect(() => {
     installOutlineSelectionHelpers(editor);
@@ -463,8 +470,8 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       // CRITICAL handlers.
       editor.registerCommand(
         KEY_DOWN_COMMAND,
-        (event: KeyboardEvent | null) => {
-          if (!event || !sessionRef.current || event.getModifierState('AltGraph')) {
+        (event) => {
+          if (!sessionRef.current || event.getModifierState('AltGraph')) {
             return false;
           }
           const withCmdCtrl = event.metaKey || event.ctrlKey;
@@ -476,8 +483,8 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       ),
       editor.registerCommand(
         KEY_DOWN_COMMAND,
-        (event: KeyboardEvent | null) => {
-          if (!event || sessionRef.current || event.isComposing) {
+        (event) => {
+          if (sessionRef.current || event.isComposing) {
             return false;
           }
           // A trigger typed while another picker is open is ordinary query text,
@@ -502,7 +509,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       editor.registerCommand(KEY_TAB_COMMAND, $handleTabCommand, COMMAND_PRIORITY_CRITICAL),
       editor.registerCommand(
         KEY_ESCAPE_COMMAND,
-        (event: KeyboardEvent | null) => {
+        (event) => {
           // Esc closes the picker and keeps the typed trigger as plain text.
           if (!sessionRef.current) {
             return false;
@@ -514,7 +521,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       ),
       editor.registerCommand(
         KEY_BACKSPACE_COMMAND,
-        (event: KeyboardEvent | null) => {
+        (event) => {
           // Backspace is ordinary editing. With a non-empty query, let the
           // keystroke shorten it (the engine re-syncs). With an empty query the
           // only thing to delete is the trigger character itself: remove it and

@@ -117,6 +117,11 @@ export function createViteSharedConfig() {
       strictPort: true,
       proxy: previewProxy,
     },
+    // Key the prebundle cache to the port block, like every other per-instance path. Sharing one
+    // cache means a second dev server re-optimizes it under a running one, which keeps serving its
+    // now-stale module graph and ends up with two copies of a package (for Lexical: "cannot find a
+    // LexicalComposerContext"). Recovery needs a cache wipe plus a restart.
+    cacheDir: `node_modules/.vite/${config.env.PORT}`,
     assetsInclude: ['**/*.ysweet'],
     define: Object.fromEntries(
       Object.entries(config.browser).map(([key, value]) => [
@@ -125,7 +130,9 @@ export function createViteSharedConfig() {
       ])
     ),
     resolve: {
-      dedupe: ["react", "react-dom"],
+      // lexical joins react here for the same reason: its modules hold module-scoped state
+      // (the composer context, node registries) that breaks if two copies are resolved.
+      dedupe: ["react", "react-dom", "lexical"],
       alias: {
         "#client": path.resolve(repoRoot, "./src/client"),
         "#collaboration": path.resolve(repoRoot, "./src/collaboration"),

@@ -15,26 +15,22 @@ import { useEffect } from 'react';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/commands';
 
-function shouldHandlePlainArrow(editor: LexicalEditor, event: KeyboardEvent | null): boolean {
+function shouldHandlePlainArrow(editor: LexicalEditor, event: KeyboardEvent): boolean {
   if (!editor.selection.isStructural()) {
     return false;
-  }
-
-  if (!event) {
-    return true;
   }
 
   return !(event.shiftKey || event.altKey || event.metaKey || event.ctrlKey);
 }
 
-function dispatchCollapse(editor: LexicalEditor, edge: 'start' | 'end', event: KeyboardEvent | null): boolean {
+function dispatchCollapse(editor: LexicalEditor, edge: 'start' | 'end', event: KeyboardEvent): boolean {
   const handled = editor.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge });
   if (!handled) {
     return false;
   }
 
-  event?.preventDefault();
-  event?.stopPropagation();
+  event.preventDefault();
+  event.stopPropagation();
   return true;
 }
 
@@ -47,7 +43,7 @@ export function SelectionCollapsePlugin() {
     return mergeRegister(
       editor.registerCommand(
         KEY_ARROW_DOWN_COMMAND,
-        (event: KeyboardEvent | null) => {
+        (event) => {
           if (!shouldHandlePlainArrow(editor, event)) {
             return false;
           }
@@ -58,7 +54,7 @@ export function SelectionCollapsePlugin() {
       ),
       editor.registerCommand(
         KEY_ARROW_UP_COMMAND,
-        (event: KeyboardEvent | null) => {
+        (event) => {
           if (!shouldHandlePlainArrow(editor, event)) {
             return false;
           }
@@ -69,7 +65,7 @@ export function SelectionCollapsePlugin() {
       ),
       editor.registerCommand(
         KEY_ARROW_LEFT_COMMAND,
-        (event: KeyboardEvent | null) => {
+        (event) => {
           if (!shouldHandlePlainArrow(editor, event)) {
             return false;
           }
@@ -80,7 +76,7 @@ export function SelectionCollapsePlugin() {
       ),
       editor.registerCommand(
         KEY_ARROW_RIGHT_COMMAND,
-        (event: KeyboardEvent | null) => {
+        (event) => {
           if (!shouldHandlePlainArrow(editor, event)) {
             return false;
           }
@@ -91,8 +87,8 @@ export function SelectionCollapsePlugin() {
       ),
       editor.registerCommand(
         KEY_DOWN_COMMAND,
-        (event: KeyboardEvent | null) => {
-          if (!event || !shouldHandlePlainArrow(editor, event)) {
+        (event) => {
+          if (!shouldHandlePlainArrow(editor, event)) {
             return false;
           }
 
@@ -107,14 +103,14 @@ export function SelectionCollapsePlugin() {
       ),
       editor.registerCommand(
         KEY_ESCAPE_COMMAND,
-        (event: KeyboardEvent | null) => {
+        (event) => {
           const handled = editor.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'anchor' });
           if (!handled) {
             return false;
           }
 
-          event?.preventDefault();
-          event?.stopPropagation();
+          event.preventDefault();
+          event.stopPropagation();
           return true;
         },
         COMMAND_PRIORITY_CRITICAL

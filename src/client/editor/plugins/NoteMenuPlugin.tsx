@@ -1,4 +1,4 @@
-import type { ListItemNode, ListType } from '@lexical/list';
+import type { ListType } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { Menu } from '@mantine/core';
 import { mergeRegister } from '@lexical/utils';
@@ -14,6 +14,7 @@ import { $getNoteId } from '#client/editor/runtime/note-id-state';
 
 import { FOLD_VIEW_TO_LEVEL_COMMAND, OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
+import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { requireContentItemFromNode } from '#client/editor/outline/schema';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { getNestedList } from '#client/editor/outline/selection/tree';
@@ -94,14 +95,18 @@ export function NoteMenuPlugin() {
     setMenuState(null);
   }, [setMenuState]);
 
+  const focusRoot = useCallback(() => {
+    focusEditorRoot(editor);
+  }, [editor]);
+
   const triggerFoldToggle = () => {
     const current = menuRef.current;
     if (!current || !current.hasChildren || current.isZoomRoot) {
       return;
     }
+    focusRoot();
     editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: current.noteKey });
     closeMenu();
-    editor.focus();
   };
 
   const triggerToggleChecked = () => {
@@ -109,9 +114,9 @@ export function NoteMenuPlugin() {
     if (!current) {
       return;
     }
+    focusRoot();
     editor.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle', noteItemKey: current.noteKey });
     closeMenu();
-    editor.focus();
   };
 
   const triggerZoom = () => {
@@ -121,7 +126,7 @@ export function NoteMenuPlugin() {
       return;
     }
     const noteId = editor.getEditorState().read(() => {
-      const node = $getNodeByKey<ListItemNode>(current.noteKey);
+      const node = $getNodeByKey(current.noteKey);
       if (!node) {
         return null;
       }
@@ -132,15 +137,15 @@ export function NoteMenuPlugin() {
       closeMenu();
       return;
     }
+    focusRoot();
     editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId });
     closeMenu();
-    editor.focus();
   };
 
   const triggerFoldViewToLevel = (level: number) => {
+    focusRoot();
     editor.dispatchCommand(FOLD_VIEW_TO_LEVEL_COMMAND, { level });
     closeMenu();
-    editor.focus();
   };
 
   const handleMenuShortcut = (event: MenuShortcutEvent): boolean => {
@@ -467,8 +472,9 @@ export function NoteMenuPlugin() {
                 key={option.type}
                 data-note-menu-item={option.id}
                 onClick={() => {
+                  focusRoot();
                   editor.update(() => {
-                    const node = $getNodeByKey<ListItemNode>(menu.noteKey);
+                    const node = $getNodeByKey(menu.noteKey);
                     if (!node) {
                       return;
                     }
@@ -480,7 +486,6 @@ export function NoteMenuPlugin() {
                     nested.setListType(option.type);
                   });
                   closeMenu();
-                  editor.focus();
                 }}
               >
                 {option.label}

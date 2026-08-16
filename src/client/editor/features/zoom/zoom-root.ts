@@ -19,7 +19,7 @@ export function $resolveZoomRoot(editor: LexicalEditor): ListItemNode | null {
   if (!rootKey) {
     return null;
   }
-  const rootNode = $getNodeByKey<ListItemNode>(rootKey);
+  const rootNode = $getNodeByKey(rootKey);
   if (!$isListItemNode(rootNode) || isChildrenWrapper(rootNode)) {
     return null;
   }

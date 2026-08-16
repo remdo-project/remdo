@@ -18,6 +18,9 @@ only; it never changes the underlying outline structure or note identities.
    row toggle or via the [quick action menu](./menu.md) keyboard path (`Shift`,
    `Shift`, then `F`).
    Descendants keep their own fold status when an ancestor is toggled.
+   Using the row toggle returns DOM focus to the editor and leaves the
+   [focus note](./selection.md#selection-states) unchanged, so typing continues
+   where it left off; the toggle itself never becomes the focused element.
 4. Folding is saved per note and synced in collaboration; undo/redo restores it
    like any other edit.
 5. If folding would hide the active selection, it collapses to the folded note

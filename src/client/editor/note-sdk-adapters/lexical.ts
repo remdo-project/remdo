@@ -257,7 +257,7 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
   };
 
   const $noteIdFromContentKey = (key: string): NoteId | null => {
-    const node = $getNodeByKey<ListItemNode>(key);
+    const node = $getNodeByKey(key);
     if (!$isListItemNode(node) || isChildrenWrapper(node) || !node.isAttached()) {
       return null;
     }

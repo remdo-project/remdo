@@ -1,11 +1,11 @@
 import { $createListItemNode, $createListNode, ListItemNode, ListNode } from '@lexical/list';
 import { act } from '@testing-library/react';
-import { $createTextNode, $getNodeByKey, $getRoot, $setState, createEditor } from 'lexical';
+import { $createTextNode, $getRoot, $setState, createEditor } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
-import { meta } from '#tests';
+import { $getListItemByKeyOrThrow, meta } from '#tests';
 import { $replayLadder, emptyLadder, popStep, pushStep } from '#client/editor/outline/selection/rungs';
 
 function createListEditor(): { editor: LexicalEditor; dispose: () => void } {
@@ -119,13 +119,13 @@ describe('$replayLadder', () => {
         await act(async () => {
           editor.update(() => {
             const keys = $buildTreeComplex();
-            const note2 = $getNodeByKey<ListItemNode>(keys.get('note2')!)!;
+            const note2 = $getListItemByKeyOrThrow(keys.get('note2')!);
 
             const plan = $replayLadder(note2, [{ kind: 'subtree' }]);
 
             if (plan && plan.type === 'range') {
-              startId = $getNoteId($getNodeByKey<ListItemNode>(plan.startKey)!);
-              endId = $getNoteId($getNodeByKey<ListItemNode>(plan.endKey)!);
+              startId = $getNoteId($getListItemByKeyOrThrow(plan.startKey));
+              endId = $getNoteId($getListItemByKeyOrThrow(plan.endKey));
             }
           });
         });
@@ -150,7 +150,7 @@ describe('$replayLadder', () => {
         await act(async () => {
           editor.update(() => {
             const keys = $buildTreeComplex();
-            const note2 = $getNodeByKey<ListItemNode>(keys.get('note2')!)!;
+            const note2 = $getListItemByKeyOrThrow(keys.get('note2')!);
 
             const plan = $replayLadder(note2, [
               { kind: 'subtree' },
@@ -158,8 +158,8 @@ describe('$replayLadder', () => {
             ]);
 
             if (plan && plan.type === 'range') {
-              startId = $getNoteId($getNodeByKey<ListItemNode>(plan.startKey)!);
-              endId = $getNoteId($getNodeByKey<ListItemNode>(plan.endKey)!);
+              startId = $getNoteId($getListItemByKeyOrThrow(plan.startKey));
+              endId = $getNoteId($getListItemByKeyOrThrow(plan.endKey));
             }
           });
         });
@@ -187,13 +187,13 @@ describe('$replayLadder', () => {
             const keys = $buildTreeComplex();
             // note4 is the last child of note1; a sibling-down step has no next
             // sibling, so it hoists to note1 and takes note1's whole subtree.
-            const note4 = $getNodeByKey<ListItemNode>(keys.get('note4')!)!;
+            const note4 = $getListItemByKeyOrThrow(keys.get('note4')!);
 
             const plan = $replayLadder(note4, [{ kind: 'subtree' }, { kind: 'sibling', direction: 'down' }]);
 
             if (plan && plan.type === 'range') {
-              startId = $getNoteId($getNodeByKey<ListItemNode>(plan.startKey)!);
-              endId = $getNoteId($getNodeByKey<ListItemNode>(plan.endKey)!);
+              startId = $getNoteId($getListItemByKeyOrThrow(plan.startKey));
+              endId = $getNoteId($getListItemByKeyOrThrow(plan.endKey));
             }
           });
         });

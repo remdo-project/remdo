@@ -33,8 +33,13 @@ export type MobileActionId =
   | 'menu';
 
 // Actions that map directly to a no-payload command. `done` and `fold` need a
-// payload, so they are handled explicitly in runMobileAction.
-const DIRECT_COMMANDS: Partial<Record<MobileActionId, LexicalCommand<undefined>>> = {
+// payload, so they are handled explicitly in runMobileAction. Lexical's own
+// UNDO/REDO are LexicalCommand<void> while this repo's commands are
+// LexicalCommand<undefined>; both accept an undefined payload, and keeping the
+// union (rather than AnyLexicalCommand) still rejects a payload-taking command here.
+const DIRECT_COMMANDS: Partial<
+  Record<MobileActionId, LexicalCommand<undefined> | LexicalCommand<void>>
+> = {
   indent: INDENT_NOTES_COMMAND,
   outdent: OUTDENT_NOTES_COMMAND,
   moveUp: REORDER_NOTES_UP_COMMAND,

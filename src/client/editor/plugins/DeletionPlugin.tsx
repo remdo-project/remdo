@@ -369,7 +369,7 @@ export function DeletionPlugin() {
 
     const unregisterBackspace = editor.registerCommand(
       KEY_BACKSPACE_COMMAND,
-      (event: KeyboardEvent | null) => {
+      (event) => {
         if ($deleteStructuralSelection(event)) {
           return true;
         }
@@ -380,8 +380,8 @@ export function DeletionPlugin() {
         }
         const { selection, contentItem } = edgeSelection;
 
-        event?.preventDefault();
-        event?.stopPropagation();
+        event.preventDefault();
+        event.stopPropagation();
         const zoomRoot = $resolveZoomRoot(editor);
         if (zoomRoot && contentItem.getKey() === zoomRoot.getKey()) {
           return true;
@@ -394,7 +394,7 @@ export function DeletionPlugin() {
 
     const unregisterDelete = editor.registerCommand(
       KEY_DELETE_COMMAND,
-      (event: KeyboardEvent | null) => {
+      (event) => {
         if ($deleteStructuralSelection(event)) {
           return true;
         }
@@ -405,8 +405,8 @@ export function DeletionPlugin() {
         }
         const { selection, contentItem } = edgeSelection;
 
-        event?.preventDefault();
-        event?.stopPropagation();
+        event.preventDefault();
+        event.stopPropagation();
         const zoomRoot = $resolveZoomRoot(editor);
         const nextNote = getNextNoteInDocumentOrder(contentItem);
         const nextNoteOutsideZoomRoot =

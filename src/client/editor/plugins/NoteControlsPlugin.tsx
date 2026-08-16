@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/commands';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { $resolveNoteStateFromDOMNode } from '#client/editor/plugins/note-state';
 import { useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 
@@ -319,10 +320,12 @@ export function NoteControlsPlugin() {
     event.preventDefault();
     event.stopPropagation();
     const button = event.currentTarget;
+    // preventDefault keeps focus off the button, but it does not bring focus back when it was
+    // outside the editor; the gutter action must leave the editor focused either way.
+    focusEditorRoot(editor);
     const container = button.closest<HTMLElement>('.editor-container');
     if (!container) {
       editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: controls.noteKey });
-      editor.focus();
       return;
     }
     const rect = button.getBoundingClientRect();
@@ -332,14 +335,13 @@ export function NoteControlsPlugin() {
       top: rect.top - containerRect.top + rect.height / 2,
     };
     editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: controls.noteKey, anchor });
-    editor.focus();
   };
 
   const onFoldPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
+    focusEditorRoot(editor);
     editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: controls.noteKey });
-    editor.focus();
   };
 
   return createPortal(
