@@ -34,8 +34,10 @@ within a document; a global `noteRef` combines document and note identity.
   moment of creation.
 - `noteId` generation is a local operation using randomness; we assume it is
   effectively unique and do not require a document-wide scan at creation time.
-- When a note is split into two notes, the note that remains at the original
-  position retains its `noteId`, and the newly created note receives a fresh `noteId`.
+- When a note is split into two notes, the note that keeps the original note's
+  children retains its `noteId`, and the newly created note receives a fresh
+  `noteId`. [Insertion](./insertion.md#default-behavior-caret-selection) defines which
+  text each note keeps.
 
 ### Duplication and copy
 

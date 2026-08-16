@@ -121,7 +121,7 @@ in place where possible; the disturbance tiers are defined in [Collaboration res
 | `Esc` | Collapses any structural selection to a caret without changing the document. |
 | Unmodified Arrow / `Home` / `End` / `Page` keys | Collapse a structural selection and place the caret at the corresponding edge (start/end or top/bottom) so typing resumes there. |
 | `Tab` / `Shift+Tab` | Indent / outdent the selection — see [Indentation](./indentation.md). |
-| `Enter` | Caret selection: see [Insertion](./insertion.md). Structural selection: no-op. |
+| `Enter` | Caret or inline text selection: see [Insertion](./insertion.md). Structural selection: no-op. |
 
 ## Collaboration reshaping
 
@@ -148,7 +148,7 @@ it perturbs the replay, evaluated from the anchor outward:
 | Selection state | Allowed operations |
 | --------------- | ------------------ |
 | Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List types](./list-types.md#toggling)); structural commands may resolve a one-note target note range as defined by the command. |
-| Inline text selection | Inline formatting, inline delete/backspace, and toggle checked; structural commands define whether and how the selection resolves to a target note range. |
+| Inline text selection | Typing, inline formatting, inline delete/backspace, insertion (per [Insertion](./insertion.md#inline-text-selection)), and toggle checked; structural commands define whether and how the selection resolves to a target note range. |
 | Structural selection | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste, toggle checked, and other structural commands operate on its selected note range in [document order](./note-model.md#definitions). |
 
 Clipboard behavior for structural selections and inline text selections is

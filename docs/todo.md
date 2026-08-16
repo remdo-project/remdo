@@ -96,9 +96,13 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
-- **Inline-selection Enter behavior.** Decide and specify what `Enter` does for
-  a non-collapsed [inline text selection](specs/outliner/selection.md#selection-states)
-  in [Insertion](specs/outliner/insertion.md), then align implementation and automated coverage.
+- **Inline-selection Enter behavior.** [Insertion](specs/outliner/insertion.md#inline-text-selection) specifies `Enter`
+  for an [inline text selection](specs/outliner/selection.md#selection-states); the implementation still falls
+  through to the editor framework's default. That default splits into a note
+  below, gives the new note the original's children, assigns `noteId` to the
+  half that loses them (contradicting [Note IDs](specs/outliner/note-ids.md#creation)), and in a
+  [subtree view](specs/outliner/zoom.md#visibility-and-editing-boundary) creates a note outside the zoom
+  boundary. Align implementation and automated coverage.
 
 - **Current-location presentation ownership.** Before implementing the
   [view header](specs/outliner/view-header.md) alongside [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name
