@@ -320,9 +320,9 @@ export function NoteControlsPlugin() {
     event.preventDefault();
     event.stopPropagation();
     const button = event.currentTarget;
-    // preventDefault keeps focus off the button, but it does not bring focus back when it was
-    // outside the editor; the gutter action must leave the editor focused either way.
-    focusEditorRoot(editor);
+    // No focusEditorRoot here: NoteMenuPlugin closes the menu when a selection change lands while
+    // the editor root holds focus, so focusing before the dispatch would immediately dismiss the
+    // menu this click is opening. The menu takes focus itself and restores it on close.
     const container = button.closest<HTMLElement>('.editor-container');
     if (!container) {
       editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: controls.noteKey });
