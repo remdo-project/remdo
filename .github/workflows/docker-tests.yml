@@ -21,16 +21,15 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
 
+      - name: Resolve Playwright version
+        run: echo "PLAYWRIGHT_VERSION=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_ENV"
+
+      # The Docker E2E command installs Chromium into this cache itself.
       - name: Cache Playwright browsers (optional)
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-
-      - name: Workspace init (installs browsers + Lexical)
-        env:
-          PLAYWRIGHT_INSTALL: "true"
-        run: pnpm run dev:init
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
 
       - name: Run Docker E2E suite
         run: pnpm run test:e2e:docker
