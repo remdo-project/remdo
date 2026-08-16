@@ -217,6 +217,9 @@ rm -rf "${TEST_DATA_DIR}" || {
   exit 1
 }
 mkdir -p "${TEST_DATA_DIR}"
+# Retention outlives the run, so restrict the runtime the way mktemp -d did:
+# it holds a live admin session token and generated service secrets.
+chmod 700 "${TEST_DATA_DIR}"
 
 remdo_docker_run "${IMAGE_NAME}" "${DOCKER_HOME_DATA_DIR}" -d --name "${CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
   -e AUTH_SECRET="${DOCKER_DEV_TEST_SECRET}" \

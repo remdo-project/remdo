@@ -39,7 +39,8 @@ the next invocation.
 Docker E2E builds and verifies the production container against its own runtime
 data. It also reaches a production-launcher container through its
 bridge-published port. The invocation removes its containers when it finishes or
-fails and retains its runtime data.
+fails and retains its runtime data, which stays readable only to the user that
+ran it.
 
 Before starting its containers, an invocation replaces the previous Docker E2E
 runtime data, including files owned by an earlier invocation's containers.
