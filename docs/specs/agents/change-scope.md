@@ -23,8 +23,23 @@ invalid input or a commit range combined with uncommitted work.
 
 ## Result type
 
-`ChangeScopeResult` is the caller-visible change scope, `no-change`, or a
-resolution failure.
+`ChangeScopeResult` has this complete shape:
+
+```yaml
+state: <ready | no-change | failed>
+selection: <uncommitted | requested or default Git range> # if resolved
+kind: <uncommitted | commit-range> # if resolved
+base: <immutable comparison-base commit | UNCOMMITTED> # if resolved
+head: <immutable HEAD commit> # if resolved
+files: # if resolved
+  - <repository-relative path>
+input: <supplied scope input> # if failed and supplied
+reason: <resolution failure> # if failed
+```
+
+`ready` has one or more files; `no-change` has an empty file list. The immutable
+fields identify the selected repository state independently of later ref
+movement. A failed result retains the supplied input when one exists.
 
 ### Caller-visible display
 
