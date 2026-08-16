@@ -22,14 +22,16 @@ shared resolver from the repository root with the omitted or supplied scope:
 sh .agents/skills/_shared/tools/resolve-scope.sh [scope]
 ```
 
-Use the emitted fields as the complete change-scope result.
+Store the initial `SELECTION` separately from the other emitted fields as the
+complete change-scope result.
 
 Record the complete selected diff, including untracked-file content, as the
 initial repository-state identity. When
 [Correct the state](../../../docs/specs/agents/skills/remdo-converge-change.md#correct-the-state)
 refreshes the scope, rerun the resolver with `uncommitted` or the retained
-`<BASE>..HEAD`, retaining the original selection while replacing the other
-resolved fields, and record the refreshed complete diff. Compare these content
+`<BASE>..HEAD`, replace `STATE`, `KIND`, `BASE`, `HEAD`, and `FILES`, retain the
+stored initial `SELECTION` rather than the refreshed resolver's `SELECTION`, and
+record the refreshed complete diff. Compare these content
 snapshots when the specification checks for a repeated repository state; paths
 or ref IDs alone are not state identity.
 
