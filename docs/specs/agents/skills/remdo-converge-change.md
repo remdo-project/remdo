@@ -15,12 +15,11 @@ normal nonempty commit for that batch.
 ## Convergence
 
 1. Resolve the change scope.
-   1. If resolution fails, then return `stopped` with the failed scope result.
-   2. Immediately report its
+   1. Immediately report its
       [caller-visible display](../change-scope.md#caller-visible-display) as a
       short, standalone `Scope:` line without other progress.
-   3. If the selected diff is empty, then return `converged`.
-   4. If the scope is a commit range, then retain `BASE` while correction
+   2. If the selected diff is empty, then return `converged`.
+   3. If the scope is a commit range, then retain `BASE` while correction
       commits advance `HEAD` and assess `BASE..HEAD` in every later quality
       step.
 2. Run one or more independent simplification assessments that collectively
@@ -44,14 +43,13 @@ Repeat the following cycle:
    record cleanup as `not-run` because the scope has no code or tests.
 2. If the audit determines corrections, then run
    [Correct the state](#correct-the-state) and restart the Quality cycle.
-3. If the audit failed, then return `stopped`.
-4. Invoke [`remdo-verify-change`](remdo-verify-change.md), preserve its finding
+3. Invoke [`remdo-verify-change`](remdo-verify-change.md), preserve its finding
    dispositions, and leave `material out of scope` findings unchanged.
-5. If failed checks or
+4. If failed checks or
    [`confirmed` findings](remdo-verify-change.md#findings) determine
    corrections, then run [Correct the state](#correct-the-state) and restart the
    Quality cycle.
-6. If verification completes with no determined correction, then return
+5. If verification completes with no determined correction, then return
    `converged`.
 
 ### Correct the state
@@ -62,7 +60,7 @@ returns ends convergence.
 1. If a completed simplification assessment or [Quality cycle](#quality-cycle)
    step determines a correction that the skill cannot apply, then leave it
    unapplied and return `not-converged`.
-2. After the quality step finishes, apply the determined batch.
+2. After the determining step finishes, apply the determined batch.
 3. Validate the batch against its applicable authoritative contracts. If the
    scope is a commit range, then satisfy the contributor
    [verification lifecycle](../../../dev/testing.md#verification-lifecycle)
@@ -77,6 +75,9 @@ returns ends convergence.
 8. If the refreshed state matches a repository state reached earlier in the
    run, then return `stopped` with a concern.
 9. Return to the invoking algorithm with the refreshed scope.
+
+Every failure not handled above follows the
+[capability protocol](../protocol.md#results).
 
 ## Result
 
