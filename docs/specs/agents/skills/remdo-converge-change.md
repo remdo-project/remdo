@@ -12,57 +12,66 @@ attached branch, it stages and commits each coherent correction batch.
 
 ## Convergence
 
-The skill resolves its change scope before other repository work. Immediately
-after resolution, it reports the selected scope as a short, standalone
-`Scope:` line before continuing. It reports `uncommitted changes` or the
-caller-visible Git range, without internal commit IDs or other progress. For a
-commit range, `BASE` remains fixed while `HEAD` advances through correction
-commits; later stages assess `BASE..HEAD`.
+1. Resolve the change scope.
+   1. Immediately report its
+      [caller-visible display](../change-scope.md#caller-visible-display) as a
+      short, standalone `Scope:` line without other progress.
+   2. If the selected diff is empty, then return `converged`.
+   3. If the scope is a commit range, then retain `BASE` while correction
+      commits advance `HEAD` and assess `BASE..HEAD` in every later quality
+      step.
+2. Run one or more independent simplification assessments that collectively
+   cover the resolved change once. Give each only its target and applicable
+   authoritative contracts, and collect every result before editing.
+   1. If any assessment does not complete, then return `stopped` while
+      preserving completed assessment evidence.
+   2. Apply the shared
+      [decision rule](../../../../AGENTS.md#execution-and-evidence) to options
+      in completed results and retain any
+      [decisions](../protocol.md#decisions). If the rule does not permit an
+      autonomous choice, then return `stopped` with the unresolved choices as
+      [concerns](../protocol.md#concerns).
+   3. If the findings or resolved options determine behavior-preserving
+      corrections, then run [Correct the state](#correct-the-state).
+3. Repeat the following quality cycle:
+   1. If the scope contains code or tests, then run the cleanup audit.
+   2. If the audit determines corrections, then run
+      [Correct the state](#correct-the-state) and continue the quality cycle.
+   3. Invoke [`remdo-verify-change`](remdo-verify-change.md), preserve its
+      finding dispositions, and leave `material out of scope` findings
+      unchanged.
+   4. If failed checks or
+      [`confirmed` findings](remdo-verify-change.md#findings) determine
+      corrections, then run [Correct the state](#correct-the-state) and
+      continue the quality cycle.
+   5. If verification completes with no determined correction, then return
+      `converged`.
 
-```text
-[resolve scope]
-    ├─ no change ─────────────────────────> [converged]
-    │ ready
-    v
-[simplify current state once]
-    │
-    v
-[cleanup audit]
-    ├─ corrections ─> [apply + validate] ─> ↩ cleanup audit
-    │ passed or scope has no code/tests
-    v
-[verify current state]
-    ├─ corrections ─> [apply + validate] ─> ↩ cleanup audit
-    ├─ correction left unapplied ─────────> [not-converged]
-    │ completed; no determined correction
-    v
-[converged]
-```
+### Correct the state
 
-One or more independent simplification assessments collectively cover the
-resolved change once. Each receives only its target and applicable authoritative
-contracts. The skill applies determined behavior-preserving findings and
-resolves each option under the shared
-[decision rule](../../../../AGENTS.md#execution-and-evidence) without changing
-intended behavior. A resolved option may determine a correction; the skill
-retains a non-obvious autonomous choice as a
-[decision](../protocol.md#decisions) and stops with a
-[concern](../protocol.md#concerns) when developer input is required.
+Run this subalgorithm for each determined correction batch. Any agent result it
+returns ends convergence.
 
-Verification invokes [`remdo-verify-change`](remdo-verify-change.md). The skill
-preserves its finding dispositions, applies corrections from failed checks and
-[`confirmed` findings](remdo-verify-change.md#findings), and leaves `material out of scope` findings unchanged.
+1. If a completed quality step determines a correction that the skill cannot
+   apply, then leave it unapplied and return `not-converged`.
+2. After the quality step finishes, apply the determined batch.
+3. Validate the batch against its applicable authoritative contracts. If the
+   scope is a commit range, then satisfy the contributor
+   [verification lifecycle](../../../dev/testing.md#verification-lifecycle)
+   before committing.
+4. If validation or a check fails and an in-scope correction can be determined,
+   then repair the batch and return to step 3.
+5. If validation or a check still fails, then return `stopped` without
+   committing.
+6. Persist the batch under [Authority](#authority), then refresh the same
+   retained scope.
+7. If the selected diff is empty, then return `converged`.
+8. If the refreshed state matches a repository state reached earlier in the
+   run, then return `stopped` with a concern.
+9. Return to the invoking algorithm with the refreshed scope.
 
-Before creating a commit-range correction commit, the skill runs the batch's
-likely affected tests and applicable static checks under the contributor
-[testing policy](../../../dev/testing.md#verification-lifecycle). If a check
-fails, it repairs and rechecks the batch when it can determine an in-scope
-correction; otherwise it stops without committing.
-
-After each correction batch, the skill refreshes the retained scope. It
-converges without further quality steps if no selected diff remains.
-
-A repeated repository state stops with a concern.
+Any other unhandled failure returns `stopped` under the
+[capability protocol](../protocol.md#results).
 
 ## Result
 

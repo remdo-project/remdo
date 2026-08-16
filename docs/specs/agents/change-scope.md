@@ -25,3 +25,9 @@ invalid input or a commit range combined with uncommitted work.
 
 `ChangeScopeResult` is the caller-visible change scope, `no-change`, or a
 resolution failure.
+
+### Caller-visible display
+
+A human-facing display of a selected scope is `uncommitted changes` for an
+uncommitted scope or the requested or default Git range for a commit range. It
+does not expose resolved immutable commit IDs.
