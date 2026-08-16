@@ -118,16 +118,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   as no-ops. Align shared body-to-owner resolution and add focused coverage for
   each affected command path.
 
-- **Tri-state checked rendering and toggle polarity.** Target behavior
-  ([List types](specs/outliner/list-types.md#checked-state)): a note whose
-  subtree is only partly checked displays as mixed, and toggling unchecks only
-  when the whole target subtree is already checked. The implementation renders
-  binary markers and computes toggle state from the targeted notes' own states
-  (`CheckListPlugin.tsx`: single-note opposite, `targets.every` over range
-  notes; asserted by `tests/unit/checklist-state.spec.ts`). Add mixed
-  rendering and subtree-driven polarity together, updating the tests in the
-  same change.
-
 - **Menu toggle inside a structural selection.** Target behavior
   ([Menu](specs/outliner/menu.md)): the note menu's toggle applies to the selected
   note range when the current note is inside it. The implementation always

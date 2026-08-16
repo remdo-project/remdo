@@ -5,14 +5,15 @@ import type { LexicalEditor } from 'lexical';
 import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 import { useEffect } from 'react';
 
-import { $getNoteChecked, $setNoteCheckedRaw } from '#client/editor/runtime/checklist-state';
+import type { NoteCheckedDisplay } from '#client/editor/runtime/checklist-state';
+import { $getNoteChecked, $isNoteSubtreeChecked, $setNoteCheckedRaw, NoteCheckedDisplayCache } from '#client/editor/runtime/checklist-state';
 import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
 import type { SetNoteCheckedPayload } from '#client/editor/commands';
 import { isBulletHit, isCheckboxHit } from '#client/editor/outline/bullet-hit-test';
 import { $resolveNoteIdFromDOMNode } from '#client/editor/outline/note-context';
 import { $resolveStructuralItemsFromRange } from '#client/editor/outline/selection/range';
 import { requireContentItemFromNode, resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { getParentContentItem, getSubtreeItems } from '#client/editor/outline/selection/tree';
+import { getParentContentItem, getSubtreeItems, getWrapperForContent } from '#client/editor/outline/selection/tree';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 
 // A body-wrapper renders as `.note-body-wrapper`, never a checklist `<li>`, so it
@@ -20,20 +21,50 @@ import { installOutlineSelectionHelpers } from '#client/editor/outline/selection
 const isChecklistItem = (element: HTMLElement): boolean =>
   element.classList.contains('list-item-checked') || element.classList.contains('list-item-unchecked');
 
-const $syncNoteCheckedDataset = (editor: LexicalEditor, key: string): void => {
-  const node = $getNodeByKey(key);
-  if (!$isListItemNode(node)) {
-    return;
-  }
-  const element = editor.getElementByKey(key);
+const ARIA_CHECKED_BY_DISPLAY: Record<NoteCheckedDisplay, string> = {
+  checked: 'true',
+  mixed: 'mixed',
+  unchecked: 'false',
+};
+
+const $syncNoteCheckedDataset = (
+  editor: LexicalEditor,
+  node: ListItemNode,
+  display: NoteCheckedDisplay
+): void => {
+  const element = editor.getElementByKey(node.getKey());
   if (!(element instanceof HTMLElement)) {
     return;
   }
-  const checked = $getNoteChecked(node);
-  if (checked) {
+  // `data-note-checked` reports the note's own completion, so a note the user
+  // checked keeps reading as done regardless of what is later moved under it.
+  if ($getNoteChecked(node) === true) {
     element.dataset.noteChecked = 'true';
   } else {
     delete element.dataset.noteChecked;
+  }
+  // `data-note-subtree` reports the subtree, which drives the mixed marker.
+  if (display === 'mixed') {
+    element.dataset.noteSubtree = 'mixed';
+  } else {
+    delete element.dataset.noteSubtree;
+  }
+  // A note's children live in a sibling wrapper, so the wrapper carries the
+  // "everything in here sits under a checked note" flag and CSS dims the
+  // unchecked notes within it at any depth.
+  const wrapper = getWrapperForContent(node);
+  const wrapperElement = wrapper ? editor.getElementByKey(wrapper.getKey()) : null;
+  if (wrapperElement instanceof HTMLElement) {
+    if ($getNoteChecked(node) === true) {
+      wrapperElement.dataset.noteUnderChecked = 'true';
+    } else {
+      delete wrapperElement.dataset.noteUnderChecked;
+    }
+  }
+  // Lexical writes a binary aria-checked from the item's own checked flag while
+  // reconciling a check-type list; a mixed subtree needs the third ARIA value.
+  if (element.getAttribute('role') === 'checkbox') {
+    element.setAttribute('aria-checked', ARIA_CHECKED_BY_DISPLAY[display]);
   }
 };
 
@@ -163,7 +194,7 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
       const node = $getNearestNodeFromDOMNode(listItem);
       if ($isListItemNode(node)) {
         listItem.focus();
-        $setNoteCheckedRecursively(node, !$getNoteChecked(node));
+        $setNoteCheckedRecursively(node, !$isNoteSubtreeChecked(node));
       }
     });
   };
@@ -208,14 +239,9 @@ export function CheckListPlugin() {
             return true;
           }
 
-          if (targets.length === 1) {
-            const single = targets[0]!;
-            const target = !$getNoteChecked(single);
-            $setNoteCheckedRecursively(single, target);
-            return true;
-          }
-
-          const allChecked = targets.every((target) => $getNoteChecked(target) === true);
+          // Polarity is computed over the targets' whole subtrees, so a partly
+          // checked target completes rather than clearing what is already done.
+          const allChecked = targets.every((target) => $isNoteSubtreeChecked(target));
           const targetState = !allChecked;
           for (const target of targets) {
             $setNoteCheckedRecursively(target, targetState);
@@ -266,10 +292,35 @@ export function CheckListPlugin() {
         ListItemNode,
         (mutations) => {
           editor.getEditorState().read(() => {
+            // A mutated note changes its ancestors' subtree state, and Lexical
+            // does not report an ancestor as mutated when only a descendant
+            // changed, so each mutated note's ancestor chain resyncs too.
+            // Descendants need no walk: dimming hangs off the children-wrapper,
+            // and a recursive write marks every note it touches as mutated.
+            const mutated: ListItemNode[] = [];
             for (const [key, mutation] of mutations) {
-              if (mutation !== 'destroyed') {
-                $syncNoteCheckedDataset(editor, key);
+              if (mutation === 'destroyed') {
+                // A destroyed note has no ancestors to walk. Its former parent
+                // still resyncs, because removing a note dirties its siblings
+                // and its wrapper's owner.
+                continue;
               }
+              const node = $getNodeByKey(key);
+              if ($isListItemNode(node)) {
+                mutated.push(node);
+              }
+            }
+
+            const pending = new Map<string, ListItemNode>();
+            for (const node of mutated) {
+              for (let item: ListItemNode | null = node; item; item = getParentContentItem(item)) {
+                pending.set(item.getKey(), item);
+              }
+            }
+
+            const displays = new NoteCheckedDisplayCache();
+            for (const node of pending.values()) {
+              $syncNoteCheckedDataset(editor, node, displays.get(node));
             }
           });
         }

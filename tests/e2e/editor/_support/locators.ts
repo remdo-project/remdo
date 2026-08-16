@@ -6,6 +6,14 @@ export const documentZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(p
 export const homeZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(page).locator('[data-zoom-crumb="home"]');
 export const homeView = (page: Page): Locator => page.locator('[data-testid="document-home"]');
 
+// The `:not(.list-nested-item)` guard excludes children-wrappers, so this matches
+// the note's own row rather than the wrapper that holds its subtree.
+export const noteRow = (page: Page, label: string): Locator =>
+  editorLocator(page)
+    .locator('li.list-item:not(.list-nested-item)')
+    .filter({ hasText: label })
+    .first();
+
 export async function setCaretAtText(
   page: Page,
   label: string,
