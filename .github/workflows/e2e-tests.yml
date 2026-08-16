@@ -21,16 +21,17 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
 
+      - name: Resolve Playwright version
+        run: echo "PLAYWRIGHT_VERSION=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_ENV"
+
       - name: Cache Playwright browsers (optional)
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
 
-      - name: Workspace init (installs browsers)
-        env:
-          PLAYWRIGHT_INSTALL: "true"
-        run: pnpm run dev:init
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium
 
       - name: Run Playwright E2E suite
         env:

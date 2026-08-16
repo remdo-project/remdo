@@ -211,11 +211,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Tooling
 
-- **Standard workspace bootstrap.** Retire `pnpm run dev:init` and
-  `tools/dev-init.sh`. Document `pnpm install --frozen-lockfile` for local
-  setup, let E2E workflows invoke `pnpm exec playwright install chromium`
-  after shared workspace setup, and remove obsolete references.
-
 - **Upstream-owned launcher reassessment.** Reassess whether Playwright can
   replace `tools/e2e/docker-source-server.ts`, and whether Vite or direct tool
   commands can retire the remaining dev-boundary, collaboration-server, and
