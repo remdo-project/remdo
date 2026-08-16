@@ -53,9 +53,10 @@ describe('resolve-scope.sh (shared tool)', () => {
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('STATE=ready');
-    expect(result.stdout).toContain('SCOPE=commit-range');
+    expect(result.stdout).toContain('SELECTION=origin/main...HEAD');
+    expect(result.stdout).toContain('KIND=commit-range');
     expect(result.stdout).toMatch(/BASE=[0-9a-f]{40}/);
-    expect(result.stdout).toMatch(/HEAD_SHA=[0-9a-f]{40}/);
+    expect(result.stdout).toMatch(/HEAD=[0-9a-f]{40}/);
     expect(result.stdout).toContain('b.md');
   });
 
@@ -63,8 +64,9 @@ describe('resolve-scope.sh (shared tool)', () => {
     const result = run(taskBranch(), ['HEAD~1..HEAD']);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('STATE=ready');
-    expect(result.stdout).toContain('SCOPE=commit-range');
-    expect(result.stdout).toMatch(/HEAD_SHA=[0-9a-f]{40}/);
+    expect(result.stdout).toContain('SELECTION=HEAD~1..HEAD');
+    expect(result.stdout).toContain('KIND=commit-range');
+    expect(result.stdout).toMatch(/HEAD=[0-9a-f]{40}/);
     expect(result.stdout).toContain('b.md');
   });
 
@@ -91,7 +93,8 @@ describe('resolve-scope.sh (shared tool)', () => {
     const result = run(work, ['main...HEAD']);
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('SCOPE=commit-range');
+    expect(result.stdout).toContain('SELECTION=main...HEAD');
+    expect(result.stdout).toContain('KIND=commit-range');
     expect(result.stdout).toContain('b.md');
     expect(result.stdout).not.toContain('upstream.md');
   });
@@ -102,9 +105,10 @@ describe('resolve-scope.sh (shared tool)', () => {
     const result = run(work, ['uncommitted']);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('STATE=ready');
-    expect(result.stdout).toContain('SCOPE=uncommitted');
+    expect(result.stdout).toContain('SELECTION=uncommitted');
+    expect(result.stdout).toContain('KIND=uncommitted');
     expect(result.stdout).toContain('BASE=UNCOMMITTED');
-    expect(result.stdout).toMatch(/HEAD_SHA=[0-9a-f]{40}/);
+    expect(result.stdout).toMatch(/HEAD=[0-9a-f]{40}/);
     expect(result.stdout).toContain('c.md');
   });
 
@@ -117,7 +121,7 @@ describe('resolve-scope.sh (shared tool)', () => {
     const result = run(work, ['uncommitted']);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('STATE=ready');
-    expect(result.stdout).toContain('SCOPE=uncommitted');
+    expect(result.stdout).toContain('KIND=uncommitted');
     expect(result.stdout).toContain('a.md');
   });
 
@@ -143,7 +147,8 @@ describe('resolve-scope.sh (shared tool)', () => {
     const result = run(work);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('STATE=ready');
-    expect(result.stdout).toContain('SCOPE=uncommitted');
+    expect(result.stdout).toContain('SELECTION=uncommitted');
+    expect(result.stdout).toContain('KIND=uncommitted');
     expect(result.stdout).toContain('a.md');
   });
 
@@ -159,7 +164,8 @@ describe('resolve-scope.sh (shared tool)', () => {
     const result = run(taskBranch(), ['uncommitted']);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('STATE=no-change');
-    expect(result.stdout).toContain('SCOPE=uncommitted');
+    expect(result.stdout).toContain('SELECTION=uncommitted');
+    expect(result.stdout).toContain('KIND=uncommitted');
   });
 
   it('ignores files excluded by Git standard ignore rules', () => {
@@ -180,7 +186,8 @@ describe('resolve-scope.sh (shared tool)', () => {
     const result = run(work);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('STATE=no-change');
-    expect(result.stdout).toContain('SCOPE=commit-range');
+    expect(result.stdout).toContain('SELECTION=origin/main...HEAD');
+    expect(result.stdout).toContain('KIND=commit-range');
   });
 
   it('uses the default normally on a dev branch', () => {
@@ -193,7 +200,8 @@ describe('resolve-scope.sh (shared tool)', () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('STATE=ready');
-    expect(result.stdout).toContain('SCOPE=commit-range');
+    expect(result.stdout).toContain('SELECTION=origin/main...HEAD');
+    expect(result.stdout).toContain('KIND=commit-range');
     expect(result.stdout).toContain('dev.md');
   });
 
@@ -267,7 +275,8 @@ describe('resolve-scope.sh (shared tool)', () => {
     const result = run(work, ['v1.0.0..v1.0.1']);
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('SCOPE=commit-range');
+    expect(result.stdout).toContain('SELECTION=v1.0.0..v1.0.1');
+    expect(result.stdout).toContain('KIND=commit-range');
   });
 
   it('returns no-change for an empty explicit commit range', () => {
@@ -275,7 +284,8 @@ describe('resolve-scope.sh (shared tool)', () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('STATE=no-change');
-    expect(result.stdout).toContain('SCOPE=commit-range');
+    expect(result.stdout).toContain('SELECTION=HEAD..HEAD');
+    expect(result.stdout).toContain('KIND=commit-range');
   });
 
   it('fails when an uncommitted file query fails instead of returning a partial list', () => {
@@ -325,7 +335,7 @@ describe('resolve-scope.sh (shared tool)', () => {
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('HEAD does not resolve to a commit');
-    expect(result.stdout).not.toContain('HEAD_SHA=');
+    expect(result.stdout).not.toContain('HEAD=');
   });
 
   it('refuses an explicit range whose left revision does not resolve', () => {
@@ -346,7 +356,8 @@ describe('resolve-scope.sh (shared tool)', () => {
     const result = run(work);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('STATE=ready');
-    expect(result.stdout).toContain('SCOPE=commit-range');
+    expect(result.stdout).toContain('SELECTION=origin/main...HEAD');
+    expect(result.stdout).toContain('KIND=commit-range');
   });
 
   it('resolves the dirty default as uncommitted on a detached HEAD', () => {
@@ -356,25 +367,32 @@ describe('resolve-scope.sh (shared tool)', () => {
     const result = run(work);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('STATE=ready');
-    expect(result.stdout).toContain('SCOPE=uncommitted');
+    expect(result.stdout).toContain('SELECTION=uncommitted');
+    expect(result.stdout).toContain('KIND=uncommitted');
     expect(result.stdout).toContain('c.md');
   });
 
   it('refuses an unrecognized scope argument', () => {
     const result = run(taskBranch(), ['nonsense']);
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('unrecognized scope');
+    expect(result.stderr).toContain('STATE=failed');
+    expect(result.stderr).toContain('INPUT=nonsense');
+    expect(result.stderr).toContain('REASON=unrecognized scope');
   });
 
   it('refuses more than one scope input', () => {
     const result = run(taskBranch(), ['uncommitted', 'HEAD~1..HEAD']);
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('at most one scope input');
+    expect(result.stderr).toContain('STATE=failed');
+    expect(result.stderr).not.toContain('INPUT=');
+    expect(result.stderr).toContain('REASON=expected at most one scope input');
   });
 
   it('fails loud outside a git repository', () => {
     const result = run(makeNonRepoDir());
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('not a git repository');
+    expect(result.stderr).toBe(
+      'STATE=failed\nREASON=not a git repository\n',
+    );
   });
 });

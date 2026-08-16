@@ -15,12 +15,11 @@ normal nonempty commit for that batch.
 ## Convergence
 
 1. Resolve the change scope.
-   1. If resolution fails, then return `stopped` with the failed scope result.
-   2. Immediately report its
+   1. Immediately report its
       [caller-visible display](../change-scope.md#caller-visible-display) as a
       short, standalone `Scope:` line without other progress.
-   3. If the selected diff is empty, then return `converged`.
-   4. If the scope is a commit range, then retain `BASE` while correction
+   2. If the selected diff is empty, then return `converged`.
+   3. If the scope is a commit range, then retain `BASE` while correction
       commits advance `HEAD` and assess `BASE..HEAD` in every later quality
       step.
 2. Run one or more independent simplification assessments that collectively
@@ -113,5 +112,3 @@ findings: # if any
 ```
 
 `not-converged` means a completed quality step left a determined correction unapplied.
-For failed resolution, the top-level `reason` identifies why convergence
-stopped while `scope.reason` preserves the resolver evidence.

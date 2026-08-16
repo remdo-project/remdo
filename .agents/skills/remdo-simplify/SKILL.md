@@ -22,12 +22,8 @@ optional scope:
 sh .agents/skills/_shared/tools/resolve-scope.sh [scope]
 ```
 
-Retain the supplied selection, or the default selected by the
-[change-scope](../../../docs/specs/agents/change-scope.md#resolution) contract,
-and decode it with `STATE`, `SCOPE`, `BASE`, `HEAD_SHA`, and the file list as
-the resolved target. Map a non-zero exit to `stopped` with the resolver failure
-as its reason. When `STATE` is `no-change`, return the complete `no-change`
-result with that target.
+Use the emitted complete change-scope result as the resolved target and follow
+the specification's outcome for its state.
 
 ## Assessment procedure
 
