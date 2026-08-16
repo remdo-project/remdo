@@ -85,15 +85,14 @@ if [[ "${DOCKER_DAEMON_ROOTLESS}" == "true" ]]; then
 fi
 PROD_BRIDGE_HEALTH_URL="${PROD_BRIDGE_APP_ORIGIN%/}/health"
 
-# Wipe a host-mounted data dir from inside the container so container-owned
-# (often root-owned, on a rootful daemon) files are removed by a process with the
-# right uid; fall back to a throwaway container if the live one is already gone.
+# Wipe a host-mounted data dir from inside a container so container-owned (often
+# root-owned, on a rootful daemon) files are removed by a process with the right
+# uid. Skip a dir the host does not have: mounting it would make Docker create it
+# as root, leaving a directory the host then cannot replace.
 wipe_container_data() {
-  local container_name="$1"
-  local host_data_dir="$2"
+  local host_data_dir="$1"
 
-  if docker exec "${container_name}" sh -c 'rm -rf /data/* /data/.[!.]* /data/..?*' \
-    >/dev/null 2>&1; then
+  if [[ ! -d "${host_data_dir}" ]]; then
     return
   fi
   if docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
@@ -105,10 +104,10 @@ wipe_container_data() {
 # Remove container-owned (often root-owned) files from the retained data dirs so
 # the host can replace them.
 wipe_retained_container_data() {
-  wipe_container_data "${CONTAINER_NAME}" "${DOCKER_HOME_DATA_DIR}"
-  wipe_container_data "${BOOTSTRAP_CONTAINER_NAME}" "${BOOTSTRAP_DATA_DIR}"
-  wipe_container_data "${PROD_BRIDGE_CONTAINER_NAME}" "${PROD_BRIDGE_DATA_DIR}"
-  wipe_container_data "${HOSTED_CONTAINER_NAME}" "${HOSTED_DATA_DIR}"
+  wipe_container_data "${DOCKER_HOME_DATA_DIR}"
+  wipe_container_data "${BOOTSTRAP_DATA_DIR}"
+  wipe_container_data "${PROD_BRIDGE_DATA_DIR}"
+  wipe_container_data "${HOSTED_DATA_DIR}"
 }
 
 run_prod_bridge_launcher() {
@@ -213,7 +212,10 @@ fi
 if [[ -d "${TEST_DATA_DIR}" ]]; then
   wipe_retained_container_data
 fi
-rm -rf "${TEST_DATA_DIR}"
+rm -rf "${TEST_DATA_DIR}" || {
+  echo "Could not replace the retained Docker E2E runtime: ${TEST_DATA_DIR}" >&2
+  exit 1
+}
 mkdir -p "${TEST_DATA_DIR}"
 
 remdo_docker_run "${IMAGE_NAME}" "${DOCKER_HOME_DATA_DIR}" -d --name "${CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
