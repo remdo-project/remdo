@@ -10,6 +10,7 @@ import { $getNoteChecked, $isNoteSubtreeChecked, $setNoteCheckedRaw, NoteChecked
 import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
 import type { SetNoteCheckedPayload } from '#client/editor/commands';
 import { isBulletHit, isCheckboxHit } from '#client/editor/outline/bullet-hit-test';
+import { isContentItem } from '#client/editor/outline/list-structure';
 import { $resolveNoteIdFromDOMNode } from '#client/editor/outline/note-context';
 import { $resolveStructuralItemsFromRange } from '#client/editor/outline/selection/range';
 import { requireContentItemFromNode, resolveContentItemFromNode } from '#client/editor/outline/schema';
@@ -321,8 +322,11 @@ export function CheckListPlugin() {
                 // and its wrapper's owner.
                 continue;
               }
+              // Wrappers are ListItemNodes too, and a body wrapper's next
+              // sibling is the owning note's children wrapper — syncing one as
+              // if it were a note would clear that wrapper's open-work flag.
               const node = $getNodeByKey(key);
-              if ($isListItemNode(node)) {
+              if (isContentItem(node)) {
                 mutated.push(node);
               }
             }
