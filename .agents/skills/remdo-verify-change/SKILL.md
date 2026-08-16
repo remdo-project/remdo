@@ -20,10 +20,13 @@ Run the [shared scope resolver](../_shared/tools/resolve-scope.sh) from the repo
 sh <shared-resolver-path> [scope]
 ```
 
-Stop on a non-zero exit. Retain the emitted `STATE`, `SCOPE`, immutable `BASE`
-and `HEAD_SHA`, and file list. Report `no-change` immediately when `STATE`
-equals it; do not run checks or reviews. Otherwise checks and reviewers must
-inspect the selected scope; the caller owns its stability.
+Retain the supplied selection, or the default selected by the change-scope
+contract, and decode it with the emitted `STATE`, `SCOPE`, immutable `BASE` and
+`HEAD_SHA`, and file list as the complete change-scope result. Map a non-zero
+exit to `stopped` with its failed change-scope result. Report `no-change`
+immediately when `STATE` equals it; do not run checks or reviews. Otherwise
+checks and reviewers must inspect the selected scope; the caller owns its
+stability.
 
 ## Run focused checks
 

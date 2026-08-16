@@ -110,7 +110,7 @@ outcome: <ready-for-review | completed | stopped>
 reason: <condition that stopped preparation> # if stopped
 decisions: <Decision[]> # if any
 concerns: <Concern[]> # if any
-scope: <ChangeScopeResult> # if scope resolution ran
+scope: <ChangeScopeResult> # if convergence ran
 target_behavior: # if approved
   - summary: <approved behavior>
     owner: <contract path>

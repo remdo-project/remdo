@@ -20,9 +20,11 @@ its optional scope unchanged:
 sh .agents/skills/_shared/tools/resolve-scope.sh [scope]
 ```
 
+Retain the supplied selection, or the default selected by the change-scope
+contract, and decode it with the emitted fields as the resolved change target.
 Map a non-zero exit to `stopped`, using the resolver failure as its reason, and
-`STATE=no-change` to the specification's `no-change` result. Otherwise use the
-emitted fields as the resolved change target. Do not introduce another scope resolver.
+`STATE=no-change` to the specification's `no-change` result. Do not introduce
+another scope resolver.
 
 ## Assess the target
 

@@ -29,7 +29,8 @@ or advance another capability's lifecycle.
 ## Result type
 
 `AssessmentTarget` is one of these successfully resolved variants. Its change
-variant uses the [change-scope result](change-scope.md#result-type).
+variant uses a [change-scope result](change-scope.md#result-type) whose state
+may be `ready` or `no-change`.
 
 ```yaml
 kind: change
