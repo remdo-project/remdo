@@ -211,11 +211,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Tooling
 
-- **Upstream-owned launcher reassessment.** Reassess whether Playwright can
-  replace `tools/e2e/docker-source-server.ts`, and whether Vite or direct tool
-  commands can retire the remaining dev-boundary, collaboration-server, and
-  single-command package wrappers.
-
 - **Upstream ast-grep project-config validation.** Contribute upstream support
   for rejecting unknown project-config keys or shipping version-matched schemas
   with `@ast-grep/cli`, then replace the repository-owned config validator with
