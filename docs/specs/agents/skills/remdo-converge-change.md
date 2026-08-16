@@ -31,19 +31,23 @@ attached branch, it stages and commits each coherent correction batch.
       [concerns](../protocol.md#concerns).
    2. If the findings or resolved options determine behavior-preserving
       corrections, then run [Correct the state](#correct-the-state).
-3. Repeat the following quality cycle:
-   1. If the scope contains code or tests, then run the cleanup audit.
-   2. If the audit determines corrections, then run
-      [Correct the state](#correct-the-state) and continue the quality cycle.
-   3. Invoke [`remdo-verify-change`](remdo-verify-change.md), preserve its
-      finding dispositions, and leave `material out of scope` findings
-      unchanged.
-   4. If failed checks or
-      [`confirmed` findings](remdo-verify-change.md#findings) determine
-      corrections, then run [Correct the state](#correct-the-state) and
-      continue the quality cycle.
-   5. If verification completes with no determined correction, then return
-      `converged`.
+3. Run the [Quality cycle](#quality-cycle).
+
+### Quality cycle
+
+Repeat the following cycle:
+
+1. If the scope contains code or tests, then run the cleanup audit.
+2. If the audit determines corrections, then run
+   [Correct the state](#correct-the-state) and continue the cycle.
+3. Invoke [`remdo-verify-change`](remdo-verify-change.md), preserve its finding
+   dispositions, and leave `material out of scope` findings unchanged.
+4. If failed checks or
+   [`confirmed` findings](remdo-verify-change.md#findings) determine
+   corrections, then run [Correct the state](#correct-the-state) and continue
+   the cycle.
+5. If verification completes with no determined correction, then return
+   `converged`.
 
 ### Correct the state
 
