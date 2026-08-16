@@ -1,6 +1,6 @@
-import { $createAutoLinkNode, $createLinkNode, $isLinkNode } from '@lexical/link';
+import { $createAutoLinkNode, $createLinkNode, $isAutoLinkNode, $isLinkNode } from '@lexical/link';
 import { act } from '@testing-library/react';
-import { $createTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
+import { $createTextNode, $isTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
@@ -308,6 +308,42 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       expect(linkNode.getURL()).toBe(url);
       expect(linkNode.getTarget()).toBe('_blank');
       expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
+  });
+
+  it('keeps an AutoLinkNode editable when its text is edited into a different URL', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await act(async () => {
+      remdo.editor.update(() => {
+        const note = $findNoteById('note1')!;
+        note.clear();
+        const autoLink = $createAutoLinkNode('https://example.com/');
+        autoLink.append($createTextNode('https://example.com/'));
+        note.append(autoLink);
+      });
+    });
+    await remdo.waitForSynced();
+
+    // Editing the text of an autolink must not freeze the old destination under the new text:
+    // the node stays an AutoLinkNode so AutoLinkPlugin can re-sync or unlink it.
+    await act(async () => {
+      remdo.editor.update(() => {
+        const note = $findNoteById('note1')!;
+        const autoLink = note.getChildren().find($isAutoLinkNode)!;
+        const linkText = autoLink.getFirstChild();
+        if (!$isTextNode(linkText)) {
+          throw new TypeError('Expected the autolink to contain a text node');
+        }
+        linkText.setTextContent('https://changed.example.org/');
+      });
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const autoLink = note.getChildren().find($isAutoLinkNode);
+      expect(autoLink).toBeDefined();
+      expect(autoLink!.getURL()).not.toBe('https://example.com/');
     });
   });
 

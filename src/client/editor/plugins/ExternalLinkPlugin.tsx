@@ -96,19 +96,20 @@ function $normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
     unwrapLinkNode(node);
     return;
   }
-  if (node instanceof AutoLinkNode) {
-    const match = externalUrlMatcher(node.getTextContent());
-    const matchedUrl = match ? normalizeExternalUrl(match.url) : null;
-    if (matchedUrl !== normalizedUrl) {
-      const replacement = $createLinkNode(normalizedUrl, {
-        rel: EXTERNAL_LINK_ATTRIBUTES.rel,
-        target: EXTERNAL_LINK_ATTRIBUTES.target,
-        title: node.getTitle(),
-      });
-      replacement.append(...node.getChildren());
-      node.replace(replacement);
-      return;
-    }
+  // An imported autolink whose text is not itself a URL (e.g. <a href=…>Example</a>) can never be
+  // maintained by AutoLinkPlugin, which keys off the text; convert it to a plain link so its URL
+  // survives. When the text *does* match a URL the node stays an AutoLinkNode even if the two
+  // disagree: that is a link the user is editing, and upstream re-syncs the URL from the new text
+  // (or unlinks it). Converting there would freeze the old destination under the new text.
+  if (node instanceof AutoLinkNode && !externalUrlMatcher(node.getTextContent())) {
+    const replacement = $createLinkNode(normalizedUrl, {
+      rel: EXTERNAL_LINK_ATTRIBUTES.rel,
+      target: EXTERNAL_LINK_ATTRIBUTES.target,
+      title: node.getTitle(),
+    });
+    replacement.append(...node.getChildren());
+    node.replace(replacement);
+    return;
   }
   if (
     node.getURL() === normalizedUrl

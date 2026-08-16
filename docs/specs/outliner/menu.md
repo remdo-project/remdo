@@ -50,8 +50,9 @@ its entry, actions, and behavior.
    first-letter type-ahead).
    Executing an action returns DOM focus to the editor and leaves the
    [focus note](./selection.md#selection-states) unchanged, whether the action was
-   activated by keyboard or by pointer, and regardless of where focus was when the
-   menu opened. An action that itself moves the caret (Zoom) sets the new focus note.
+   activated by keyboard or by pointer, and regardless of where focus was when
+   the menu opened. An action that itself moves the caret (Zoom) sets the new
+   focus note.
 3. When opened from a row, the current note is that row's note. When opened
    without a row and outside a view header, the current note is the
    [focus note](./selection.md#selection-states). A view-header menu has no current note.
