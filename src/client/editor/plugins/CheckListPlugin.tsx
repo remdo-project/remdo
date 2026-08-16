@@ -89,6 +89,15 @@ const $setNoteCheckedRecursively = (node: ListItemNode, checked: boolean) => {
   }
 };
 
+// Toggling is one decision over the whole target set: it unchecks only when
+// every target is already complete. Shared so each toggling surface agrees.
+const $toggleNoteCheckedForTargets = (targets: ListItemNode[]) => {
+  const allChecked = targets.every((target) => $isNoteSubtreeChecked(target));
+  for (const target of targets) {
+    $setNoteCheckedRecursively(target, !allChecked);
+  }
+};
+
 const $resolveRootTargets = (items: ListItemNode[]): ListItemNode[] => {
   const ordered: ListItemNode[] = [];
   const seen = new Set<string>();
@@ -192,10 +201,23 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
     event.stopImmediatePropagation();
     editor.update(() => {
       const node = $getNearestNodeFromDOMNode(listItem);
-      if ($isListItemNode(node)) {
-        listItem.focus();
-        $setNoteCheckedRecursively(node, !$isNoteSubtreeChecked(node));
+      const clicked = $isListItemNode(node) ? resolveContentItemFromNode(node) : null;
+      if (!clicked) {
+        return;
       }
+      // A marker click targets the selected range only from inside it; outside
+      // any structural selection it targets the clicked note alone. Resolved
+      // before focusing so the targets never depend on that DOM mutation.
+      const outlineSelection = editor.selection.get();
+      const selectedItems = outlineSelection?.kind === 'structural' && outlineSelection.range
+        ? $resolveStructuralItemsFromRange(outlineSelection.range)
+        : [];
+      const targets = selectedItems.some((item) => item.is(clicked))
+        ? $resolveRootTargets(selectedItems)
+        : [clicked];
+
+      listItem.focus();
+      $toggleNoteCheckedForTargets(targets);
     });
   };
 
@@ -239,13 +261,7 @@ export function CheckListPlugin() {
             return true;
           }
 
-          // Polarity is computed over the targets' whole subtrees, so a partly
-          // checked target completes rather than clearing what is already done.
-          const allChecked = targets.every((target) => $isNoteSubtreeChecked(target));
-          const targetState = !allChecked;
-          for (const target of targets) {
-            $setNoteCheckedRecursively(target, targetState);
-          }
+          $toggleNoteCheckedForTargets(targets);
           return true;
         },
         COMMAND_PRIORITY_LOW

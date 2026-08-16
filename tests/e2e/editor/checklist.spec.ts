@@ -1,6 +1,6 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
-import { editorLocator } from '#editor/locators';
+import { editorLocator, noteRow, setCaretAtText } from '#editor/locators';
 import { createEditorDocumentPathRegExp } from './_support/routes';
 
 const getPseudoMetrics = async (listItem: Locator, pseudo: '::before' | '::after') => {
@@ -81,5 +81,51 @@ test.describe('Checklist markers', () => {
       .locator('li.list-item:not(.list-nested-item)', { hasText: 'note4' })
       .first();
     await expect(zoomedItem).toHaveAttribute('aria-checked', 'false');
+  });
+
+  test('checkbox marker click inside a structural selection toggles the selected range', async ({
+    page,
+    editor,
+  }) => {
+    await editor.load('tree-list-types');
+
+    const note3 = noteRow(page, 'note3');
+    const note4 = noteRow(page, 'note4');
+
+    await setCaretAtText(page, 'note3');
+    await page.keyboard.press('Shift+ArrowDown');
+    await page.keyboard.press('Shift+ArrowDown');
+
+    const input = editorLocator(page).locator('.editor-input');
+    await expect(input).toHaveClass(/editor-input--structural/);
+
+    await clickMarker(note4, '::after');
+
+    // The range covers note3 and note4, so the click toggles both rather than
+    // only the clicked note.
+    await expect(note4).toHaveAttribute('aria-checked', 'true');
+    await expect(note3).toHaveAttribute('data-note-checked', 'true');
+  });
+
+  test('checkbox marker click outside a structural selection toggles only that note', async ({
+    page,
+    editor,
+  }) => {
+    await editor.load('tree-list-types');
+
+    const note1 = noteRow(page, 'note1');
+    const note4 = noteRow(page, 'note4');
+
+    await setCaretAtText(page, 'note1');
+    await page.keyboard.press('Shift+ArrowDown');
+    await page.keyboard.press('Shift+ArrowDown');
+
+    const input = editorLocator(page).locator('.editor-input');
+    await expect(input).toHaveClass(/editor-input--structural/);
+
+    await clickMarker(note4, '::after');
+
+    await expect(note4).toHaveAttribute('aria-checked', 'true');
+    await expect(note1).not.toHaveAttribute('data-note-checked', 'true');
   });
 });

@@ -125,13 +125,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   `CheckListPlugin.tsx`, asserted by `tests/unit/checklist-state.spec.ts`);
   adjust the resolution and tests.
 
-- **Check-marker click vs selection.** Target behavior ([toggle targets](specs/outliner/list-types.md#toggling)): a marker
-  click on a note inside a structural selection toggles the selected note
-  range; the implementation always toggles only the clicked note (the marker
-  click handler in `CheckListPlugin.tsx` sets state directly instead of
-  dispatching `SET_NOTE_CHECKED_COMMAND`). Reroute it and cover with a test.
-  The click's selection consequences stay with [Selection](specs/outliner/selection.md).
-
 - **Report the Lexical `updateEditorSync` warning upstream.** A commit that
   moves the DOM selection emits a Lexical dev warning through an entirely
   internal chain: `$commitPendingUpdates` → `$updateDOMSelection` →
