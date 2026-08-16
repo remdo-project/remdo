@@ -100,8 +100,16 @@ require explicit user authority.
 #### Execution and verification
 
 - Prefer the simplest permanent implementation. Stop on a missing task
-  dependency, investigate repository evidence before asking, and ask before
-  choosing between unresolved material tradeoffs.
+  dependency and investigate repository evidence before asking.
+- The shared entry point owns its
+  [decision rule](../../../AGENTS.md#execution-and-evidence). Agents resolve
+  alternatives against applicable contracts and repository evidence. Within
+  accepted behavior and authority, they treat a clearly preferred alternative
+  as ordinary work. When none is clearly preferred, they choose among materially
+  viable alternatives only when the choice is readily reversible or otherwise
+  bounded, retaining the [decision](protocol.md#decisions) for handoff.
+  Otherwise they stop before choosing and ask the developer, or return the
+  unresolved choice as a [concern](protocol.md#concerns) when acting as a capability.
 - The shared entry point directs agents to add Markdown prose soft wraps only
   when required by line-length lint.
 - Agents follow the contributor [testing policy](../../dev/testing.md) and

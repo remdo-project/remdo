@@ -58,12 +58,13 @@ merge unchanged and produces `verification-failed`.
 
 ## Result
 
-The result uses this complete shape with the shared
-[`Concern`](../protocol.md#concerns) type:
+The result uses the shared [result fields](../protocol.md#results) in this
+complete shape:
 
 ```yaml
 outcome: <up-to-date | fast-forwarded | merged | conflicted | verification-failed | restore-conflicted | stopped>
 reason: <stop or manual recovery condition> # if any
+decisions: <Decision[]> # if any
 concerns: <Concern[]> # if any
 destination: <branch> # if resolved
 target: <fixed fetched origin/main commit> # if fetched

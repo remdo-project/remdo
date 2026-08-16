@@ -28,9 +28,13 @@ A capability returning to a caller returns literal YAML beginning with:
 ```yaml
 outcome: <capability-owned outcome>
 reason: <condition explaining a non-success outcome> # if needed
+decisions: <Decision[]> # if any
 concerns: <Concern[]> # if any
 # capability-specific fields
 ```
+
+The shared [`Decision`](#decisions) and [`Concern`](#concerns) types are defined
+below.
 
 Capability contracts repeat this envelope with their allowed `outcome` values,
 local inclusion conditions, and additional fields so each result template is
@@ -44,6 +48,22 @@ After an operation or participant reports failure, a capability advances only
 through handling defined by its contract. Otherwise it ends, preserves
 completed evidence, and reports the reason. When `stopped` is among its
 outcomes, it is the fallback unless another outcome applies.
+
+## Decisions
+
+A **decision** records a non-obvious choice made among materially viable
+alternatives under the shared
+[decision rule](../../../AGENTS.md#execution-and-evidence). Its summary states
+the selected alternative, decisive reason, and material tradeoff. A decision is
+not a concern; report a remaining condition separately only if it meets the
+definition below.
+
+A `Decision` has this shape:
+
+```yaml
+source: <originating capability or participant>
+summary: <selected alternative, decisive reason, and material tradeoff>
+```
 
 ## Concerns
 
@@ -60,14 +80,14 @@ summary: <condition>
 
 ## Aggregation
 
-A caller preserves unhandled non-success statuses and concerns with their
-provenance. It may consolidate them as its contract permits without changing
-their meaning.
+A caller preserves decisions, unhandled non-success statuses, and concerns with
+their provenance. It may consolidate them as its contract permits without
+changing their meaning.
 
 ## Reports
 
 The capability addressing the reader owns its human-readable **report**. The
 report aggregates nested results instead of concatenating reports. Result state
 determines its categories. It uses stable labels and only needed detail to
-present the outcome, applicable scope, work and evidence, concerns, and next
-owner or action in that order.
+present the outcome, applicable scope, work and evidence, decisions, concerns,
+and next owner or action in that order.

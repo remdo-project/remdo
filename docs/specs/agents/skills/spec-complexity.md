@@ -45,13 +45,14 @@ implementation-preserving refactor proposal.
 
 ## Result
 
-The result uses this complete shape with the shared
-[`Concern`](../protocol.md#concerns) and
-[`AssessmentTarget`](../assessment-target.md#result-type) types:
+The result uses the shared [result fields](../protocol.md#results) and the
+[`AssessmentTarget`](../assessment-target.md#result-type) type in this complete
+shape:
 
 ```yaml
 outcome: <complexity-found | no-material-complexity | no-change | stopped>
 reason: <condition that prevented assessment> # if stopped
+decisions: <Decision[]> # if any
 concerns: <Concern[]> # if any
 target: <AssessmentTarget> # if resolved
 estimated_cost: # if complexity-found

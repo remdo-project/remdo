@@ -71,7 +71,16 @@ change. Do not add update-tracking sections to durable documents.
 ## Execution and evidence
 
 - Stop on a missing task dependency. Investigate repository evidence before
-  asking, and ask before choosing between unresolved material tradeoffs.
+  asking.
+- Resolve alternatives against applicable contracts and repository evidence.
+  Choose a clearly preferred alternative within accepted behavior and authority
+  as ordinary work. When no alternative is clearly preferred and multiple
+  materially viable alternatives remain, choose and continue only if the choice
+  stays within accepted behavior and authority and is readily reversible or
+  otherwise bounded; retain the
+  [decision](docs/specs/agents/protocol.md#decisions) for handoff. Otherwise stop
+  before the choice and ask the developer, or return the unresolved choice as a
+  [concern](docs/specs/agents/protocol.md#concerns) when acting as a capability.
 - Avoid speculative abstractions, compatibility shims, feature flags, and
   defensive guards that accepted behavior does not require.
 - Do not add soft wraps to Markdown prose unless required by line-length lint.

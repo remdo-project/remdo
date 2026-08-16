@@ -42,7 +42,12 @@ commits; later stages assess `BASE..HEAD`.
 One or more independent simplification assessments collectively cover the
 resolved change once. Each receives only its target and applicable authoritative
 contracts. The skill applies determined behavior-preserving findings and
-retains options as [concerns](../protocol.md#concerns).
+resolves each option under the shared
+[decision rule](../../../../AGENTS.md#execution-and-evidence) without changing
+intended behavior. A resolved option may determine a correction; the skill
+retains a non-obvious autonomous choice as a
+[decision](../protocol.md#decisions) and stops with a
+[concern](../protocol.md#concerns) when developer input is required.
 
 Verification invokes [`remdo-verify-change`](remdo-verify-change.md). The skill
 preserves its finding dispositions, applies corrections from failed checks and
@@ -66,13 +71,14 @@ confirmed finding as fixed or uncorrected. `verification.findings` is the
 latest iteration only. `simplification`, `cleanup`, and `verification` contain
 the complete latest results for the state they assessed.
 
-The result uses this complete shape with the shared
-[`Concern`](../protocol.md#concerns) and
-[`ChangeScopeResult`](../change-scope.md#result-type) types:
+The result uses the shared [result fields](../protocol.md#results) and the
+[`ChangeScopeResult`](../change-scope.md#result-type) type in this complete
+shape:
 
 ```yaml
 outcome: <converged | not-converged | stopped>
 reason: <condition that prevented or stopped convergence> # if not converged or stopped
+decisions: <Decision[]> # if any
 concerns: <Concern[]> # if any
 scope: <ChangeScopeResult>
 corrections: # if any
