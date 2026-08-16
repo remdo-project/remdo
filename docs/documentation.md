@@ -21,8 +21,6 @@ Each durable statement lives with the owner of the question it answers.
 - **`docs/` root — Project-wide documents.** Root files own repository- or
   corpus-wide contracts, current tracking, and archived follow-up.
 - **`docs/specs/` — [Specifications](#specification-structure).**
-- **`docs/specs/feedback-cases/` — Specification evidence.** Its
-  [README](specs/feedback-cases/README.md) owns the evidence structure and maintenance rules.
 - **[`CONTRIBUTING.md`](../CONTRIBUTING.md) — Shared contributor policy.** Owns
   standards and decision defaults that apply across contribution topics.
 - **`docs/dev/` — Topic-specific contributor policy.** Each document owns
