@@ -71,15 +71,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   mechanically. Document only architectural boundaries that remain non-obvious
   from the source tree and enforcement.
 
-### Testing
-
-- **Docker E2E diagnostic runtime.** Reconsider the removal-on-exit lifecycle in
-  `docs/specs/testing/test-harness.md`. Evaluate retaining runtime data and
-  captured container logs in a stable, permission-restricted location until the
-  next invocation. If adopted, replace that state only after startup preflight,
-  preserve container-assisted cleanup for root-owned files, keep authentication
-  and test-secret data local, and update the specification and implementation together.
-
 ### Dependencies
 
 - **Dependabot pnpm 11 version updates.** When GitHub's [supported-ecosystems table](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
