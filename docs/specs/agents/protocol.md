@@ -71,10 +71,13 @@ A **concern** is a reported condition that may affect the caller's result or
 decision. The caller's contract determines whether to resolve, omit, aggregate,
 re-report, or change flow or outcome.
 
+A capability-owned source identifies an originating step, dependency, or
+equivalent unit when naming only the capability would discard provenance.
+
 A `Concern` has this shape:
 
 ```yaml
-source: <originating capability or participant>
+source: <originating capability, participant, or capability-owned source>
 summary: <condition>
 ```
 

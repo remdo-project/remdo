@@ -13,8 +13,10 @@ heuristics.
 
 ## Repository bindings
 
-For a change [assessment target](../../../docs/specs/agents/assessment-target.md),
-run the shared resolver from the repository root with its optional scope:
+Resolve the input under the shared
+[assessment-target](../../../docs/specs/agents/assessment-target.md) contract.
+For a change target, run the shared resolver from the repository root with its
+optional scope:
 
 ```sh
 sh .agents/skills/_shared/tools/resolve-scope.sh [scope]
