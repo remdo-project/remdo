@@ -28,4 +28,15 @@ or advance another capability's lifecycle.
 
 ## Result type
 
-`AssessmentTarget` is the successfully resolved change or subject target.
+`AssessmentTarget` is one of these successfully resolved variants. Its change
+variant uses the [change-scope result](change-scope.md#result-type).
+
+```yaml
+kind: change
+scope: <ChangeScopeResult>
+```
+
+```yaml
+kind: subject
+path: <repository-relative file or directory>
+```

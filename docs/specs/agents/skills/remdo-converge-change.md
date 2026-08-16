@@ -37,15 +37,16 @@ attached branch, it stages and commits each coherent correction batch.
 
 Repeat the following cycle:
 
-1. If the scope contains code or tests, then run the cleanup audit.
+1. If the scope contains code or tests, then run the cleanup audit. Otherwise,
+   record cleanup as `not-run` because the scope has no code or tests.
 2. If the audit determines corrections, then run
-   [Correct the state](#correct-the-state) and continue the cycle.
+   [Correct the state](#correct-the-state) and restart the Quality cycle.
 3. Invoke [`remdo-verify-change`](remdo-verify-change.md), preserve its finding
    dispositions, and leave `material out of scope` findings unchanged.
 4. If failed checks or
    [`confirmed` findings](remdo-verify-change.md#findings) determine
-   corrections, then run [Correct the state](#correct-the-state) and continue
-   the cycle.
+   corrections, then run [Correct the state](#correct-the-state) and restart the
+   Quality cycle.
 5. If verification completes with no determined correction, then return
    `converged`.
 
