@@ -31,7 +31,6 @@ owner. Provider-specific surfaces may load it alongside their own rules.
 - **Runtime configuration:** [Configuration](docs/specs/runtime/configuration.md).
   - **Port and origin derivation:** [Network addressing](docs/specs/runtime/configuration.md#network-addressing).
 - **Tracked repository follow-up:** [RemDo TODO](docs/todo.md#tracked-follow-up).
-- **Specification evidence boundaries:** [Specification Feedback Cases](docs/specs/feedback-cases/README.md).
 - **Task behavior:** its current owner under `docs/`.
 
 Link current owners at first use when discussing repository work. A contract
@@ -94,9 +93,6 @@ change. Do not add update-tracking sections to durable documents.
   [tracking record](docs/todo.md) and suppress findings it already covers. End
   with `Suppressed N finding(s) already tracked` when `N` is nonzero, and
   forward this rule to review subagents.
-- Treat `docs/specs/feedback-cases/cases/**` as frozen outside an explicit
-  request to create or refine a case. Explicit research may read them as
-  evidence; routine work and review do not analyze or update them.
 - Format multiple options or questions as a numbered list. Mark one option
   **(Recommended)** with its reason when evidence supports a preference.
 - When a repo-local skill runs, report exactly one final `Local skills:` line:

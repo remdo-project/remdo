@@ -68,7 +68,6 @@ documentation. Route agents by the question they need to answer:
 - **Runtime configuration:** [Configuration](../runtime/configuration.md).
   - **Port and origin derivation:** [Network addressing](../runtime/configuration.md#network-addressing).
 - **Tracked repository follow-up:** [RemDo TODO](../../todo.md#tracked-follow-up).
-- **Specification evidence boundaries:** [Specification Feedback Cases](../feedback-cases/README.md).
 - **Task behavior:** its current owner, located by filename and scope opener
   under `docs/`.
 
@@ -115,8 +114,6 @@ require explicit user authority.
 - Review checks the repository [tracking record](../../todo.md) before reporting findings.
 - Artifacts intended for developer review land in the working directory for
   inspection. Changes remain uncommitted unless commit authority applies.
-- [Specification feedback cases](../feedback-cases/README.md) remain frozen
-  evidence outside an explicit request to create or refine a case.
 
 ## References
 
