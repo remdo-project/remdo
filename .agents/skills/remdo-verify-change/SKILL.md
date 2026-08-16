@@ -20,9 +20,10 @@ Run the [shared scope resolver](../_shared/tools/resolve-scope.sh) from the repo
 sh <shared-resolver-path> [scope]
 ```
 
-Use the emitted complete change-scope result. Report `no-change` immediately;
-do not run checks or reviews. Otherwise checks and reviewers must inspect the
-selected scope; the caller owns its stability.
+Use the emitted complete change-scope result. When its state is `no-change`,
+report `no-change` immediately and do not run checks or reviews. Otherwise
+checks and reviewers must inspect the selected scope; the caller owns its
+stability.
 
 ## Run focused checks
 

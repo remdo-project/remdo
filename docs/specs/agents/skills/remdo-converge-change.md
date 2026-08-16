@@ -57,8 +57,9 @@ Repeat the following cycle:
 Run this subalgorithm for each determined correction batch. Any agent result it
 returns ends convergence.
 
-1. If a completed quality step determines a correction that the skill cannot
-   apply, then leave it unapplied and return `not-converged`.
+1. If a completed simplification assessment or [Quality cycle](#quality-cycle)
+   step determines a correction that the skill cannot apply, then leave it
+   unapplied and return `not-converged`.
 2. After the quality step finishes, apply the determined batch.
 3. Validate the batch against its applicable authoritative contracts. If the
    scope is a commit range, then satisfy the contributor
