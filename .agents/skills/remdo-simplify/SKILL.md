@@ -25,6 +25,9 @@ sh .agents/skills/_shared/tools/resolve-scope.sh [scope]
 Use the emitted complete change-scope result as the resolved target and follow
 the specification's outcome for its state.
 
+If the resolver exits non-zero, return `stopped` with its failure evidence as
+the reason.
+
 ## Assessment procedure
 
 Assess the resolved [Target](../../../docs/specs/agents/skills/remdo-simplify.md#target)
