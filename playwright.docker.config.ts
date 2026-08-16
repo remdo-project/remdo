@@ -1,5 +1,6 @@
 import { defineConfig } from '@playwright/test';
 import process from 'node:process';
+import { config } from './config';
 import { chromium, dockerBrowserUse, playwrightBaseConfig } from './config/playwright/base';
 import { homeOrigin, sourceOrigin } from './tests/e2e/docker/_support/origins';
 
@@ -13,6 +14,7 @@ export default defineConfig({
   use: {
     baseURL: homeOrigin,
     ...dockerBrowserUse,
+    trace: config.env.CI ? 'retain-on-failure' : 'off',
   },
   webServer: [
     {

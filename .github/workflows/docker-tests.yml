@@ -34,3 +34,11 @@ jobs:
 
       - name: Run Docker E2E suite
         run: pnpm run test:e2e:docker
+
+      - name: Upload Playwright failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          path: data/test-results/playwright
+          if-no-files-found: ignore
+          retention-days: 7

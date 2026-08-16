@@ -14,7 +14,9 @@ DOCKER_DEV_TEST_ADMIN_SECRET="ci-admin"
 DOCKER_TEST_YSWEET_AUTH_KEY="WLo8wx1G1lGKpIDaDjky9npTrV_fW8jCpRVtB8rd"
 DOCKER_TEST_YSWEET_SERVER_TOKEN="AAAgOkIiPro6W2lCzxyW6BDQkuOmTVSfs0MZh-4PGTM_st0"
 
-TEST_DATA_DIR="$(mktemp -d -t remdo-docker-test-XXXXXX)"
+# Retained between invocations so a failed run's container data, backup output,
+# and launcher log stay inspectable. Replaced at startup, never on exit.
+TEST_DATA_DIR="${ROOT_DIR%/}/data/docker-test-runtime"
 DOCKER_E2E_AUTH_STATE_PATH="${TEST_DATA_DIR%/}/docker-e2e-auth-state.json"
 DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH="${TEST_DATA_DIR%/}/docker-e2e-smoke-document-id.txt"
 DOCKER_HOME_DATA_DIR="${TEST_DATA_DIR%/}/home"
@@ -38,7 +40,6 @@ SOURCE_ORIGIN="http://localhost:${SOURCE_PORT_BASE}"
 
 CONTAINER_NAME="${IMAGE_NAME}-${PORT}"
 HEALTH_URL="${APP_ORIGIN%/}/health"
-DATA_CLEANED="false"
 DOCKER_RUN_ARGS=()
 
 # Second scenario: a fresh, ADMIN_SECRET-only container that forces the
@@ -84,15 +85,14 @@ if [[ "${DOCKER_DAEMON_ROOTLESS}" == "true" ]]; then
 fi
 PROD_BRIDGE_HEALTH_URL="${PROD_BRIDGE_APP_ORIGIN%/}/health"
 
-# Wipe a host-mounted data dir from inside the container so container-owned
-# (often root-owned, on a rootful daemon) files are removed by a process with the
-# right uid; fall back to a throwaway container if the live one is already gone.
+# Wipe a host-mounted data dir from inside a container so container-owned (often
+# root-owned, on a rootful daemon) files are removed by a process with the right
+# uid. Skip a dir the host does not have: mounting it would make Docker create it
+# as root, leaving a directory the host then cannot replace.
 wipe_container_data() {
-  local container_name="$1"
-  local host_data_dir="$2"
+  local host_data_dir="$1"
 
-  if docker exec "${container_name}" sh -c 'rm -rf /data/* /data/.[!.]* /data/..?*' \
-    >/dev/null 2>&1; then
+  if [[ ! -d "${host_data_dir}" ]]; then
     return
   fi
   if docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
@@ -101,18 +101,13 @@ wipe_container_data() {
   fi
 }
 
-cleanup_data_dir() {
-  if [[ "${DATA_CLEANED}" == "true" ]]; then
-    return
-  fi
-
-  wipe_container_data "${CONTAINER_NAME}" "${DOCKER_HOME_DATA_DIR}"
-  wipe_container_data "${BOOTSTRAP_CONTAINER_NAME}" "${BOOTSTRAP_DATA_DIR}"
-  wipe_container_data "${PROD_BRIDGE_CONTAINER_NAME}" "${PROD_BRIDGE_DATA_DIR}"
-  wipe_container_data "${HOSTED_CONTAINER_NAME}" "${HOSTED_DATA_DIR}"
-
-  rm -rf "${TEST_DATA_DIR}" >/dev/null 2>&1 || true
-  DATA_CLEANED="true"
+# Remove container-owned (often root-owned) files from the retained data dirs so
+# the host can replace them.
+wipe_retained_container_data() {
+  wipe_container_data "${DOCKER_HOME_DATA_DIR}"
+  wipe_container_data "${BOOTSTRAP_DATA_DIR}"
+  wipe_container_data "${PROD_BRIDGE_DATA_DIR}"
+  wipe_container_data "${HOSTED_DATA_DIR}"
 }
 
 run_prod_bridge_launcher() {
@@ -135,9 +130,10 @@ remove_prod_bridge_container() {
   docker rm -f "${PROD_BRIDGE_CONTAINER_NAME}" >/dev/null 2>&1 || true
 }
 
+# Remove the containers but retain their runtime data: the next invocation
+# replaces it after wiping container-owned files through a live container.
 cleanup() {
   remove_prod_bridge_container
-  cleanup_data_dir
   docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
   docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
   docker rm -f "${HOSTED_CONTAINER_NAME}" >/dev/null 2>&1 || true
@@ -205,6 +201,25 @@ docker rm -f "${PROD_BRIDGE_CONTAINER_NAME}" >/dev/null 2>&1 || true
 docker rm -f "${HOSTED_CONTAINER_NAME}" >/dev/null 2>&1 || true
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
+
+# Replace the retained runtime now that the image exists: the previous run's
+# containers are gone, so wiping its root-owned files needs the throwaway
+# container. Guard the fixed path — this is an unconditional recursive delete.
+if [[ "${TEST_DATA_DIR}" != "${ROOT_DIR%/}/data/docker-test-runtime" ]]; then
+  echo "Refusing to reset unexpected Docker E2E runtime: ${TEST_DATA_DIR}" >&2
+  exit 1
+fi
+if [[ -d "${TEST_DATA_DIR}" ]]; then
+  wipe_retained_container_data
+fi
+rm -rf "${TEST_DATA_DIR}" || {
+  echo "Could not replace the retained Docker E2E runtime: ${TEST_DATA_DIR}" >&2
+  exit 1
+}
+mkdir -p "${TEST_DATA_DIR}"
+# Retention outlives the run, so restrict the runtime the way mktemp -d did:
+# it holds a live admin session token and generated service secrets.
+chmod 700 "${TEST_DATA_DIR}"
 
 remdo_docker_run "${IMAGE_NAME}" "${DOCKER_HOME_DATA_DIR}" -d --name "${CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
   -e AUTH_SECRET="${DOCKER_DEV_TEST_SECRET}" \
@@ -681,5 +696,3 @@ if [[ "$(docker inspect --format '{{.State.Running}}' \
 fi
 echo "Explicitly stopped production container remained stopped."
 remove_prod_bridge_container
-
-cleanup_data_dir
