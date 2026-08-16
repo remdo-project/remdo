@@ -29,7 +29,7 @@ export async function dragDomSelectionBetween(start: Node, startOffset: number, 
       selection.removeAllRanges();
       selection.addRange(dragRange);
     }
-  });
+  }, start);
 }
 
 // DOM list-item boundary selection for a pointer-created note range.
@@ -60,7 +60,7 @@ async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNoteId: st
     range.setEnd(parent, endOffset);
     selection.removeAllRanges();
     selection.addRange(range);
-  });
+  }, startElement);
 }
 
 // Note-range helper: single-note uses Shift+Arrow to enter structural mode,
@@ -130,7 +130,7 @@ export async function dragDomSelectionBetweenRange(
     const selection = getDomSelection();
     selection.removeAllRanges();
     selection.addRange(range);
-  });
+  }, start);
 }
 
 // Collapse the DOM selection to a caret at a specific node/offset.
@@ -143,7 +143,7 @@ export async function collapseDomSelectionAtNode(target: Node, offset: number) {
     caretRange.collapse(true);
     selection.removeAllRanges();
     selection.addRange(caretRange);
-  });
+  }, target);
 }
 
 // Extend an existing DOM selection to a node/offset using Selection.extend.
@@ -155,7 +155,7 @@ export async function extendDomSelectionToNode(target: Node, offset: number) {
 
     const clamped = clampDomOffset(target, offset);
     selection.extend(target, clamped);
-  });
+  }, target);
 }
 
 function clampOffset(node: Text, offset: number): number {
@@ -182,9 +182,10 @@ function getDomSelection(): Selection {
   return globalThis.getSelection() as Selection;
 }
 
-async function mutateDomSelection(mutator: (selection: Selection) => void) {
+async function mutateDomSelection(mutator: (selection: Selection) => void, target: Node) {
   await act(async () => {
-    const rootElement = document.querySelector('[data-remdo-editor="true"]');
+    const targetElement = target instanceof HTMLElement ? target : target.parentElement;
+    const rootElement = targetElement?.closest('[contenteditable="true"]');
     if (rootElement instanceof HTMLElement && document.activeElement !== rootElement) {
       rootElement.focus();
     }

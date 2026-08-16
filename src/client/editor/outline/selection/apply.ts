@@ -1,7 +1,8 @@
 import type { ListItemNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import type { RangeSelection } from 'lexical';
-import { $createRangeSelection, $getNodeByKey, $setSelection } from 'lexical';
+import { $createRangeSelection, $setSelection } from 'lexical';
+import { $getListItemByKey } from '#client/editor/outline/list-structure';
 
 import { resolveBoundaryPoint, resolveContentBoundaryPoint } from './caret';
 import { getSubtreeTail } from './tree';
@@ -9,7 +10,7 @@ import { getSubtreeTail } from './tree';
 export type BoundaryMode = 'content' | 'subtree';
 
 export function $applyCaretEdge(itemKey: string, edge: 'start' | 'end'): boolean {
-  const targetItem = $getNodeByKey<ListItemNode>(itemKey);
+  const targetItem = $getListItemByKey(itemKey);
   if (!targetItem) {
     return false;
   }

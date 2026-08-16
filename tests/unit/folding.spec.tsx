@@ -1,3 +1,4 @@
+import { act, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/commands';
@@ -59,6 +60,30 @@ describe('folding (docs/specs/outliner/folding.md)', () => {
       },
       { noteId: 'note3', text: 'note3' },
     ]);
+  });
+
+  it('row toggle returns focus to the editor when focus was outside it', meta({ fixture: 'basic' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1');
+
+    const outside = document.createElement('input');
+    document.body.append(outside);
+    outside.focus();
+    expect(document.activeElement).toBe(outside);
+
+    const toggle = await waitFor(() => {
+      const el = document.querySelector<HTMLElement>('.note-controls__button--expanded');
+      if (!el) {
+        throw new Error('fold toggle not rendered');
+      }
+      return el;
+    });
+
+    await act(async () => {
+      toggle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+    });
+
+    expect(document.activeElement).toBe(remdo.editor.getRootElement());
+    outside.remove();
   });
 
   it('auto-expands a folded parent when indenting a new child', meta({ fixture: 'basic' }), async ({ remdo }) => {

@@ -1,7 +1,6 @@
 import { act, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { $getNodeByKey, $getSelection, $isRangeSelection, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
-import type { TextNode } from 'lexical';
+import { $getNodeByKey, $getSelection, $isRangeSelection, $isTextNode, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
 
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import {
@@ -100,7 +99,10 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
     it('delete at the end of an empty zoom root at document end is a no-op', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note3' } }), async ({ remdo }) => {
       await remdo.mutate(() => {
         const note3 = $findNoteById('note3')!;
-        const textNode = note3.getFirstChild<TextNode>()!;
+        const textNode = note3.getFirstChild();
+        if (!$isTextNode(textNode)) {
+          throw new TypeError('Expected note3 to contain a text node');
+        }
         textNode.setTextContent('');
       });
       const before = remdo.getEditorState();

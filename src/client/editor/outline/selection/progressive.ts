@@ -1,6 +1,7 @@
 import type { ListItemNode } from '@lexical/list';
 import type { RangeSelection } from 'lexical';
-import { $getNodeByKey, $getSelection, $isRangeSelection } from 'lexical';
+import { $getSelection, $isRangeSelection } from 'lexical';
+import { $getListItemByKey } from '#client/editor/outline/list-structure';
 
 import { reportInvariant } from '#client/editor/invariant';
 
@@ -49,11 +50,7 @@ function $resolveBoundaryRoot(boundaryKey: string | null | undefined): ListItemN
   if (!boundaryKey) {
     return null;
   }
-  const node = $getNodeByKey<ListItemNode>(boundaryKey);
-  if (!node) {
-    return null;
-  }
-  return node;
+  return $getListItemByKey(boundaryKey);
 }
 
 // Push one rung onto `base` and replay it. If the freshly pushed rung produced
@@ -100,10 +97,7 @@ function $resolveProgressionAnchorContent(
 
   let anchorContent: ListItemNode | null = null;
   if (progressionRef.current.anchorKey) {
-    const storedAnchor = $getNodeByKey<ListItemNode>(progressionRef.current.anchorKey);
-    if (storedAnchor) {
-      anchorContent = storedAnchor;
-    }
+    anchorContent = $getListItemByKey(progressionRef.current.anchorKey);
   }
 
   if (!anchorContent) {
@@ -265,7 +259,7 @@ export function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
   }
 
   if (result.plan.type === 'inline') {
-    const item = $getNodeByKey<ListItemNode>(result.plan.itemKey);
+    const item = $getListItemByKey(result.plan.itemKey);
     if (!item) {
       return false;
     }
@@ -275,8 +269,8 @@ export function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
     return true;
   }
 
-  const startItem = $getNodeByKey<ListItemNode>(result.plan.startKey);
-  const endItem = $getNodeByKey<ListItemNode>(result.plan.endKey);
+  const startItem = $getListItemByKey(result.plan.startKey);
+  const endItem = $getListItemByKey(result.plan.endKey);
   if (!startItem || !endItem) {
     return false;
   }

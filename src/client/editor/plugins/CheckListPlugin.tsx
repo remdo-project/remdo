@@ -38,7 +38,7 @@ const $syncNoteCheckedDataset = (editor: LexicalEditor, key: string): void => {
 };
 
 const $resolveContentItemByKey = (key: string): ListItemNode | null => {
-  const node = $getNodeByKey<ListItemNode>(key);
+  const node = $getNodeByKey(key);
   return node ? requireContentItemFromNode(node) : null;
 };
 

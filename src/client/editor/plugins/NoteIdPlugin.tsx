@@ -10,6 +10,7 @@ import {
   $getNodeByKey,
   $getRoot,
   $getSelection,
+  $hasUpdateTag,
   $insertNodes,
   $isElementNode,
   $isRangeSelection,
@@ -65,7 +66,7 @@ import { parseOwnedNoteLinkUrl } from '#client/editor/links/note-link-url';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { useCollaborationStatus } from './collaboration';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
-import { NOTE_ID_NORMALIZE_TAG } from '#client/editor/update-tags';
+import { NOTE_ID_NORMALIZE_TAG, TEST_BRIDGE_LOAD_TAG } from '#client/editor/update-tags';
 
 const NEWLINE_PATTERN = /\r?\n/;
 
@@ -625,10 +626,11 @@ function $insertNodesAtSelection(
       orderedHeads = replacementHeads.length > 0 ? replacementHeads : getContentSiblings(parentList);
     } else {
       const lastHead = orderedHeads.at(-1)!;
-      parentList = lastHead.getParent();
-      if (!$isListNode(parentList)) {
+      const candidateParent = lastHead.getParent();
+      if (!$isListNode(candidateParent)) {
         return false;
       }
+      parentList = candidateParent;
       nextSibling = getNextContentSibling(lastHead);
     }
   } else if ($isRangeSelection(selection) && selection.isCollapsed()) {
@@ -636,10 +638,11 @@ function $insertNodesAtSelection(
     if (!contentItem) {
       return false;
     }
-    parentList = contentItem.getParent();
-    if (!$isListNode(parentList)) {
+    const candidateParent = contentItem.getParent();
+    if (!$isListNode(candidateParent)) {
       return false;
     }
+    parentList = candidateParent;
     const placement = resolveCaretPlacement(selection, contentItem);
     if (!placement) {
       return false;
@@ -762,7 +765,10 @@ export function NoteIdPlugin() {
         updateStructuralOverlay(editor, marker.range, true, CUT_MARKER_OVERLAY);
       }),
       editor.registerNodeTransform(ListItemNode, (node) => {
-        if (!readyRef.current) {
+        // A tagged bulk load backfills ids through $normalizeNoteIdsOnLoad instead, so the
+        // transform stays out of the way: assigning here would pre-empt normalization and
+        // hide the missing-id diagnostic it reports.
+        if (!readyRef.current || $hasUpdateTag(TEST_BRIDGE_LOAD_TAG)) {
           return;
         }
         $ensureNoteId(node);

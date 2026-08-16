@@ -46,11 +46,14 @@ async function createKeyboardHelperHarness(
   root.tabIndex = 0;
   const unregisterInsert = editor.registerCommand(
     CONTROLLED_TEXT_INSERTION_COMMAND,
-    (text: string) => {
+    (payload) => {
+      if (typeof payload !== 'string') {
+        return false;
+      }
       editor.update(() => {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
-          selection.insertText(text);
+          selection.insertText(payload);
         }
       });
       return true;

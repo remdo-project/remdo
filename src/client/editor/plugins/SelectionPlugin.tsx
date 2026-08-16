@@ -1,4 +1,4 @@
-import type { ListItemNode } from '@lexical/list';
+import { $getListItemByKey } from '#client/editor/outline/list-structure';
 import { collapseSelectionToCaret, resolveBoundaryPoint } from '#client/editor/outline/selection/caret';
 import { $applyCaretEdge, setSelectionBetweenItems } from '#client/editor/outline/selection/apply';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND, PROGRESSIVE_SELECTION_DIRECTION_COMMAND } from '#client/editor/commands';
@@ -14,7 +14,6 @@ import {
 import type { ProgressivePlanResult } from '#client/editor/outline/selection/progressive';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
-  $getNodeByKey,
   $getSelection,
   $isRangeSelection,
   $addUpdateTag,
@@ -87,8 +86,8 @@ export function SelectionPlugin() {
             return;
           }
 
-          const anchorItem = $getNodeByKey<ListItemNode>(payload.anchorKey);
-          const focusItem = $getNodeByKey<ListItemNode>(payload.focusKey);
+          const anchorItem = $getListItemByKey(payload.anchorKey);
+          const focusItem = $getListItemByKey(payload.focusKey);
           if (!anchorItem || !focusItem) {
             return;
           }
@@ -121,8 +120,8 @@ export function SelectionPlugin() {
             return;
           }
 
-          const startItem = $getNodeByKey<ListItemNode>(reshape.plan.startKey);
-          const endItem = $getNodeByKey<ListItemNode>(reshape.plan.endKey);
+          const startItem = $getListItemByKey(reshape.plan.startKey);
+          const endItem = $getListItemByKey(reshape.plan.endKey);
           if (!startItem || !endItem) {
             return;
           }
@@ -241,7 +240,7 @@ export function SelectionPlugin() {
 
     const unregisterSelectAll = editor.registerCommand(
       SELECT_ALL_COMMAND,
-      (event: KeyboardEvent | null) => {
+      (event) => {
         const zoomRootKey = getZoomRoot(editor);
         const planResult = editor
           .getEditorState()
@@ -251,7 +250,8 @@ export function SelectionPlugin() {
           return false;
         }
 
-        event?.preventDefault();
+        unlockRef.current = { pending: true, reason: 'directional' };
+        event.preventDefault();
 
         $applyPlan(planResult);
 
@@ -262,8 +262,8 @@ export function SelectionPlugin() {
 
     const unregisterArrowLeft = editor.registerCommand(
       KEY_ARROW_LEFT_COMMAND,
-      (event: KeyboardEvent | null) => {
-        if (!event || !event.shiftKey) {
+      (event) => {
+        if (!event.shiftKey) {
           return false;
         }
 
@@ -283,8 +283,8 @@ export function SelectionPlugin() {
 
     const unregisterArrowRight = editor.registerCommand(
       KEY_ARROW_RIGHT_COMMAND,
-      (event: KeyboardEvent | null) => {
-        if (!event || !event.shiftKey) {
+      (event) => {
+        if (!event.shiftKey) {
           return false;
         }
 

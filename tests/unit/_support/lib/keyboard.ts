@@ -82,11 +82,12 @@ export async function pressKey(
     ctrlKey: nextCtrl,
   });
 
+  const editorUpdate = waitForEditorUpdate(remdo.editor);
   await act(async () => {
     root.dispatchEvent(event);
   });
 
-  await waitForEditorUpdate(remdo.editor);
+  await editorUpdate;
   await remdo.waitForSynced();
 }
 
@@ -98,6 +99,7 @@ export async function pressKey(
 export async function typeText(remdo: RemdoTestApi, text: string): Promise<void> {
   const root = getRootElementOrThrow(remdo.editor);
 
+  const editorUpdate = waitForEditorUpdate(remdo.editor);
   await act(async () => {
     for (const ch of text) {
       const event = new KeyboardEvent('keydown', {
@@ -116,15 +118,24 @@ export async function typeText(remdo: RemdoTestApi, text: string): Promise<void>
     }
   });
 
-  await waitForEditorUpdate(remdo.editor);
+  await editorUpdate;
   await remdo.waitForSynced();
 }
 
 function waitForEditorUpdate(editor: LexicalEditor) {
   return new Promise<void>((resolve) => {
-    editor.update(() => {
+    let settled = false;
+    let unregister = () => {};
+    let noopTimer: ReturnType<typeof setTimeout>;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      unregister();
+      clearTimeout(noopTimer);
       resolve();
-    });
+    };
+    unregister = editor.registerUpdateListener(settle);
+    noopTimer = setTimeout(settle, 0);
   });
 }
 

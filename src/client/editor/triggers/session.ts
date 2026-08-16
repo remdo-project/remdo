@@ -91,7 +91,7 @@ export function $openTriggerSession(
   if (!session) {
     return null;
   }
-  const triggerNode = $getNodeByKey<TextNode>(session.textNodeKey);
+  const triggerNode = $getNodeByKey(session.textNodeKey);
   if (!$isTextNode(triggerNode)) {
     return null;
   }
@@ -116,7 +116,7 @@ export function $resolvePinnedSession(
   caretOffset: number,
   session: TriggerSession
 ): ResolvedTriggerSession | null {
-  const pinnedNode = $getNodeByKey<TextNode>(session.textNodeKey);
+  const pinnedNode = $getNodeByKey(session.textNodeKey);
   if (!$isTextNode(pinnedNode)) {
     return null;
   }

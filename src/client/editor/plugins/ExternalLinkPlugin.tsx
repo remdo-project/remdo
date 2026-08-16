@@ -1,10 +1,10 @@
-import { AutoLinkNode, LinkNode } from '@lexical/link';
+import { $createLinkNode, AutoLinkNode, LinkNode } from '@lexical/link';
 import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { mergeRegister } from '@lexical/utils';
 import type { LinkMatcher } from '@lexical/link';
 import LinkifyIt from 'linkify-it';
-import { $getNodeByKey } from 'lexical';
+import { $getNodeByKey, TextNode } from 'lexical';
 import { useEffect } from 'react';
 import tlds from 'tlds';
 
@@ -87,13 +87,28 @@ function unwrapLinkNode(node: LinkNode | AutoLinkNode) {
   parent.splice(node.getIndexWithinParent(), 1, node.getChildren());
 }
 
-function normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
+function $normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
   if ($isNoteLinkNode(node)) {
     return;
   }
   const normalizedUrl = normalizeExternalUrl(node.getURL());
   if (!normalizedUrl) {
     unwrapLinkNode(node);
+    return;
+  }
+  // An imported autolink whose text is not itself a URL (e.g. <a href=…>Example</a>) can never be
+  // maintained by AutoLinkPlugin, which keys off the text; convert it to a plain link so its URL
+  // survives. When the text *does* match a URL the node stays an AutoLinkNode even if the two
+  // disagree: that is a link the user is editing, and upstream re-syncs the URL from the new text
+  // (or unlinks it). Converting there would freeze the old destination under the new text.
+  if (node instanceof AutoLinkNode && !externalUrlMatcher(node.getTextContent())) {
+    const replacement = $createLinkNode(normalizedUrl, {
+      rel: EXTERNAL_LINK_ATTRIBUTES.rel,
+      target: EXTERNAL_LINK_ATTRIBUTES.target,
+      title: node.getTitle(),
+    });
+    replacement.append(...node.getChildren());
+    node.replace(replacement);
     return;
   }
   if (
@@ -123,7 +138,7 @@ function registerExternalLinkMutationListener(
         for (const key of keys) {
           const node = $getNodeByKey(key);
           if (node instanceof LinkNode || node instanceof AutoLinkNode) {
-            normalizeExternalLinkNode(node);
+            $normalizeExternalLinkNode(node);
           }
         }
       });
@@ -131,17 +146,32 @@ function registerExternalLinkMutationListener(
   });
 }
 
-export function ExternalLinkPlugin() {
+function ExternalLinkNormalizationPlugin() {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
     return mergeRegister(
-      editor.registerNodeTransform(LinkNode, normalizeExternalLinkNode),
-      editor.registerNodeTransform(AutoLinkNode, normalizeExternalLinkNode),
+      editor.registerNodeTransform(TextNode, (node) => {
+        const parent = node.getParent();
+        if (parent instanceof AutoLinkNode) {
+          $normalizeExternalLinkNode(parent);
+        }
+      }),
+      editor.registerNodeTransform(LinkNode, $normalizeExternalLinkNode),
+      editor.registerNodeTransform(AutoLinkNode, $normalizeExternalLinkNode),
       registerExternalLinkMutationListener(editor, LinkNode),
       registerExternalLinkMutationListener(editor, AutoLinkNode),
     );
   }, [editor]);
 
-  return <AutoLinkPlugin matchers={MATCHERS} />;
+  return null;
+}
+
+export function ExternalLinkPlugin() {
+  return (
+    <>
+      <ExternalLinkNormalizationPlugin />
+      <AutoLinkPlugin matchers={MATCHERS} />
+    </>
+  );
 }

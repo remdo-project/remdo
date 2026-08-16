@@ -5,6 +5,7 @@ import {
 } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect, useRef } from 'react';
+import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { setZoomRoot } from './zoom-root';
 import type { UpdateListenerPayload } from 'lexical';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
@@ -197,6 +198,9 @@ export function ZoomPlugin() {
       return;
     }
 
+    // Focus before the selection update so the DOM focus event cannot dispatch
+    // commands from inside a synchronous collaboration read.
+    focusEditorRoot(editor);
     editor.update(() => {
       if ($placeCaretAtZoomEntry(noteId) === 'missing') {
         pendingZoomSelectionRef.current = noteId;

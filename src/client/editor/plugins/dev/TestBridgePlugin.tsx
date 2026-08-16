@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import type { LexicalCommand, LexicalEditor, EditorUpdateOptions, SerializedEditorState } from 'lexical';
+import type { AnyLexicalCommand, LexicalEditor, EditorUpdateOptions, SerializedEditorState } from 'lexical';
 import { $createTextNode, $getRoot, $isTextNode } from 'lexical';
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
 import { assertEditorSchema } from './schema/assertEditorSchema';
@@ -152,13 +152,14 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
       editor.setEditorState(parsed, { tag: TEST_BRIDGE_LOAD_TAG });
     }, { skipSchemaValidation: options?.skipSchemaValidationOnce });
 
-    if (options?.skipSchemaValidationOnce) {
-      await withOutcome('normalizeNoteIds', 'any', () => {
-        editor.update(() => {
-          $normalizeNoteIdsOnLoad($getRoot(), collab.docId);
-        });
-      }, { skipSchemaValidation: true });
-    }
+    // The load is tagged, so the ListItemNode transform skips id assignment; normalization is
+    // what backfills missing ids. It must run for every load, not just a schema-bypassed one,
+    // or a document with a note lacking a noteId stays id-less.
+    await withOutcome('normalizeNoteIds', 'any', () => {
+      editor.update(() => {
+        $normalizeNoteIdsOnLoad($getRoot(), collab.docId);
+      });
+    }, { skipSchemaValidation: options?.skipSchemaValidationOnce });
   };
 
   const mutate = async (fn: () => void, opts?: EditorUpdateOptions) => {
@@ -170,7 +171,7 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     await withOutcome('mutate', 'update', () => editor.update(fn, { ...opts, tag }));
   };
 
-  const dispatchCommand = async (command: LexicalCommand<unknown>, payload?: unknown, opts?: EditorActionOptions) => {
+  const dispatchCommand = async (command: AnyLexicalCommand, payload?: unknown, opts?: EditorActionOptions) => {
     const expect = opts?.expect ?? 'update';
     await withOutcome('dispatchCommand', expect, (reportNoop) => {
       const didDispatch = editor.dispatchCommand(command, payload);

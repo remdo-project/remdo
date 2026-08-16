@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/commands';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { $resolveNoteStateFromDOMNode } from '#client/editor/plugins/note-state';
 import { useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 
@@ -319,10 +320,12 @@ export function NoteControlsPlugin() {
     event.preventDefault();
     event.stopPropagation();
     const button = event.currentTarget;
+    // No focusEditorRoot here: NoteMenuPlugin closes the menu when a selection change lands while
+    // the editor root holds focus, so focusing before the dispatch would immediately dismiss the
+    // menu this click is opening. The menu takes focus itself and restores it on close.
     const container = button.closest<HTMLElement>('.editor-container');
     if (!container) {
       editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: controls.noteKey });
-      editor.focus();
       return;
     }
     const rect = button.getBoundingClientRect();
@@ -332,14 +335,13 @@ export function NoteControlsPlugin() {
       top: rect.top - containerRect.top + rect.height / 2,
     };
     editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: controls.noteKey, anchor });
-    editor.focus();
   };
 
   const onFoldPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
+    focusEditorRoot(editor);
     editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: controls.noteKey });
-    editor.focus();
   };
 
   return createPortal(

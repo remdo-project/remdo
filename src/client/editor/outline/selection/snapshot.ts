@@ -1,6 +1,7 @@
 import type { ListItemNode } from '@lexical/list';
 import type { BaseSelection } from 'lexical';
-import { $getNodeByKey, $isRangeSelection } from 'lexical';
+import { $isRangeSelection } from 'lexical';
+import { $getListItemByKey } from '#client/editor/outline/list-structure';
 
 import { reportInvariant } from '#client/editor/invariant';
 import { $isSelectionWithinOneBody, $selectionCrossesRegionBoundary } from '#client/editor/features/note-body/note-body-ops';
@@ -38,8 +39,8 @@ export type StructuralReshape =
 function $rangeFromReplayPlan(
   plan: Extract<ProgressivePlan, { type: 'range' }>
 ): OutlineSelectionRange | null {
-  const startHead = $getNodeByKey<ListItemNode>(plan.startKey);
-  const tail = $getNodeByKey<ListItemNode>(plan.endKey);
+  const startHead = $getListItemByKey(plan.startKey);
+  const tail = $getListItemByKey(plan.endKey);
   if (!startHead || !tail) {
     return null;
   }
@@ -167,21 +168,28 @@ export function $computeOutlineSelectionSnapshot({
     anchorSelectionKey !== null &&
     isLadderStructural &&
     nextProgression.anchorKey === anchorSelectionKey;
+  const hasDirectionalUnlock = nextUnlock.pending && nextUnlock.reason === 'directional';
 
-  if (isProgressiveTagged) {
-    nextUnlock = { ...nextUnlock, pending: false };
-  } else if ($isRangeSelection(selection)) {
-    if (
-      !anchorSelectionKey ||
-      (selection.isCollapsed() && !isCollapsedStructuralIntent) ||
-      nextProgression.anchorKey !== anchorSelectionKey
-    ) {
+  // A progressive-tagged selection is left untouched: Lexical may follow a tagged element-point
+  // range with an untagged DOM-normalized text-point range, and keeping the directional unlock
+  // pending stops one anchor mismatch from discarding the logical ladder anchor during that handoff.
+  if (!isProgressiveTagged) {
+    if ($isRangeSelection(selection)) {
+      if (
+        !hasDirectionalUnlock &&
+        (!anchorSelectionKey ||
+          (selection.isCollapsed() && !isCollapsedStructuralIntent) ||
+          nextProgression.anchorKey !== anchorSelectionKey)
+      ) {
+        resetProgression();
+      }
+      if (hasDirectionalUnlock) {
+        nextUnlock = { pending: false, reason: 'external' };
+      }
+    } else {
       resetProgression();
       nextUnlock = { pending: false, reason: 'external' };
     }
-  } else {
-    resetProgression();
-    nextUnlock = { pending: false, reason: 'external' };
   }
 
   // Collaboration / undo-redo / typing reshape: when an update we did NOT
@@ -199,7 +207,7 @@ export function $computeOutlineSelectionSnapshot({
     ladderHasStructuralRung(nextProgression) &&
     nextProgression.anchorKey === anchorSelectionKey
   ) {
-    const anchorContent = $getNodeByKey<ListItemNode>(nextProgression.anchorKey);
+    const anchorContent = $getListItemByKey(nextProgression.anchorKey);
     if (!anchorContent) {
       // Tier 4: anchor id no longer resolves — reset and collapse to a caret.
       resetProgression();
@@ -327,7 +335,7 @@ export function $computeOutlineSelectionSnapshot({
 
   const overrideAnchorKey = ladderHasStructuralRung(nextProgression) ? nextProgression.anchorKey : null;
 
-  if (!isSnapTagged && headItems.length >= 2) {
+  if (!isSnapTagged && !hasDirectionalUnlock && headItems.length >= 2) {
     const candidate = $createSnapPayload(selection, headItems, overrideAnchorKey);
     if (candidate && !$selectionMatchesPayload(selection, candidate)) {
       payload = candidate;

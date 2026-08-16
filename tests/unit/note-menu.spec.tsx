@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { OPEN_NOTE_MENU_COMMAND } from '#client/editor/commands';
 import { handleNoteMenuShortcut } from '#client/editor/plugins/note-menu-shortcuts';
-import { getNoteKey, meta } from '#tests';
+import { getNoteElement, getNoteKey, meta, placeCaretAtNote } from '#tests';
 
 const createShortcutEvent = (key: string) => ({
   key,
@@ -55,6 +55,11 @@ describe('quick action menu (docs/specs/outliner/menu.md)', () => {
     'applies level 1 when fold to level is clicked',
     meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note1' } }),
     async ({ remdo }) => {
+      await waitFor(() => {
+        expect(getNoteElement(remdo, 'note1')).toHaveAttribute('data-zoom-root', 'true');
+      });
+      await placeCaretAtNote(remdo, 'note4');
+
       const note4Key = getNoteKey(remdo, 'note4');
       await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: note4Key });
 
@@ -70,27 +75,29 @@ describe('quick action menu (docs/specs/outliner/menu.md)', () => {
         expect(document.querySelector('[data-note-menu]')).toBeNull();
       });
 
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            {
-              noteId: 'note2',
-              text: 'note2',
-              folded: true,
-              children: [{ noteId: 'note3', text: 'note3' }],
-            },
-            { noteId: 'note4', text: 'note4' },
-          ],
-        },
-        { noteId: 'note5', text: 'note5' },
-        {
-          noteId: 'note6',
-          text: 'note6',
-          children: [{ noteId: 'note7', text: 'note7' }],
-        },
-      ]);
+      await waitFor(() => {
+        expect(remdo).toMatchOutline([
+          {
+            noteId: 'note1',
+            text: 'note1',
+            children: [
+              {
+                noteId: 'note2',
+                text: 'note2',
+                folded: true,
+                children: [{ noteId: 'note3', text: 'note3' }],
+              },
+              { noteId: 'note4', text: 'note4' },
+            ],
+          },
+          { noteId: 'note5', text: 'note5' },
+          {
+            noteId: 'note6',
+            text: 'note6',
+            children: [{ noteId: 'note7', text: 'note7' }],
+          },
+        ]);
+      });
     }
   );
 });

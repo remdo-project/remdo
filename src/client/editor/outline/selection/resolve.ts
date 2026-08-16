@@ -104,7 +104,7 @@ function resolveEmptySiblingFromBoundary(
       }
     }
 
-    if ($isListItemNode(pointNode) && isChildrenWrapper(pointNode)) {
+    if (isChildrenWrapper(pointNode)) {
       return nextSibling;
     }
   }
@@ -115,7 +115,7 @@ function resolveEmptySiblingFromBoundary(
   ) {
     const anchorPoint = selection.anchor;
     const focusPoint = selection.focus;
-    if ($isListItemNode(pointNode) && isChildrenWrapper(pointNode) && point.getNode() === pointNode) {
+    if (isChildrenWrapper(pointNode) && point.getNode() === pointNode) {
       return nextSibling;
     }
 
@@ -165,10 +165,10 @@ export function $createSnapPayload(
   }
 
   const anchorNode = overrideAnchorKey
-    ? $getNodeByKey<ListItemNode>(overrideAnchorKey)
+    ? $getNodeByKey(overrideAnchorKey)
     : $resolveSelectionPointItem(selection, selection.anchor);
   const focusNode = $resolveSelectionPointItem(selection, selection.focus);
-  if (!anchorNode || !focusNode) {
+  if (!$isListItemNode(anchorNode) || !focusNode) {
     return null;
   }
 

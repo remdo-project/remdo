@@ -253,7 +253,7 @@ export function NoteBodyPlugin() {
       // option on Enter first, matching how note insertion defers to the picker.
       editor.registerCommand(
         KEY_ENTER_COMMAND,
-        (event: KeyboardEvent | null) => {
+        (event) => {
           const selection = $getSelection();
           if (!$isRangeSelection(selection)) {
             return false;
@@ -279,7 +279,7 @@ export function NoteBodyPlugin() {
       // Cmd/Ctrl+A inside a body selects the body's text only; never the ladder.
       editor.registerCommand(
         SELECT_ALL_COMMAND,
-        (event: KeyboardEvent | null) => {
+        (event) => {
           const body = $getActiveNoteBody();
           if (!body) {
             return false;
@@ -293,12 +293,12 @@ export function NoteBodyPlugin() {
       // Delete on an already-empty body removes it and returns to the note.
       editor.registerCommand(
         KEY_BACKSPACE_COMMAND,
-        (event: KeyboardEvent | null) => $handleBodyDelete('backward', event),
+        (event) => $handleBodyDelete('backward', event),
         COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         KEY_DELETE_COMMAND,
-        (event: KeyboardEvent | null) => $handleBodyDelete('forward', event),
+        (event) => $handleBodyDelete('forward', event),
         COMMAND_PRIORITY_CRITICAL
       )
     );

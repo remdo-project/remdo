@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 
-import type { ListItemNode } from '@lexical/list';
-import { $getNodeByKey } from 'lexical';
 
-import { pressKey, readOutline, getNoteKey, placeCaretAtNote, typeText, meta } from '#tests';
+import { $getListItemByKeyOrThrow, pressKey, readOutline, getNoteKey, placeCaretAtNote, typeText, meta } from '#tests';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
 import { flattenOutline } from '#tests-common/outline';
@@ -21,8 +19,7 @@ function noteIds(remdo: RemdoTestApi): string[] {
 async function removeNote(remdo: RemdoTestApi, noteId: string): Promise<void> {
   const key = getNoteKey(remdo, noteId);
   await remdo.mutate(() => {
-    const item = $getNodeByKey<ListItemNode>(key)!;
-    removeNoteSubtree(item);
+    removeNoteSubtree($getListItemByKeyOrThrow(key, noteId));
   });
 }
 

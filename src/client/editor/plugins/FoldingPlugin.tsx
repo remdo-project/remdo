@@ -204,7 +204,7 @@ export function FoldingPlugin() {
     const unregisterSetCommand = editor.registerCommand(
       SET_NOTE_FOLD_COMMAND,
       ({ state, noteItemKey }) => {
-        const node = $getNodeByKey<ListItemNode>(noteItemKey);
+        const node = $getNodeByKey(noteItemKey);
         const contentItem = node ? resolveContentItemFromNode(node) : null;
         if (!contentItem) {
           return false;

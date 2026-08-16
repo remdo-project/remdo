@@ -122,7 +122,7 @@ function $splitContentItemAtSelection(
   const newItem = $createListItemNode();
 
   if (destination === 'first-child') {
-    let child: ReturnType<typeof contentItem.getFirstChild> = splitAfterNode;
+    let child: LexicalNode | null = splitAfterNode;
     while (child !== null) {
       const nextSibling: LexicalNode | null = child.getNextSibling();
       newItem.append(child);
@@ -165,7 +165,7 @@ export function InsertionPlugin() {
     return mergeRegister(
       editor.registerCommand(
         KEY_ENTER_COMMAND,
-        (event: KeyboardEvent | null) => {
+        (event) => {
           if (!editor.selection.isStructural()) {
             return false;
           }
@@ -178,8 +178,8 @@ export function InsertionPlugin() {
       ),
       editor.registerCommand(
         KEY_DOWN_COMMAND,
-        (event: KeyboardEvent | null) => {
-          if (!event || !editor.selection.isStructural()) {
+        (event) => {
+          if (!editor.selection.isStructural()) {
             return false;
           }
           if (event.altKey || event.metaKey || event.ctrlKey) {
@@ -197,7 +197,7 @@ export function InsertionPlugin() {
       ),
       editor.registerCommand(
         KEY_ENTER_COMMAND,
-        (event: KeyboardEvent | null) => {
+        (event) => {
           const selection = $getSelection();
 
           if (!$isRangeSelection(selection) || !selection.isCollapsed()) {

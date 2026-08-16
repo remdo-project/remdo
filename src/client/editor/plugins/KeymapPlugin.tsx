@@ -1,4 +1,4 @@
-import type { LexicalCommand, LexicalEditor } from 'lexical';
+import type { AnyLexicalCommand, LexicalEditor } from 'lexical';
 import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect } from 'react';
@@ -16,7 +16,7 @@ interface KeyChord {
 
 interface KeymapEntry {
   chord: KeyChord;
-  command: LexicalCommand<unknown>;
+  command: AnyLexicalCommand;
   payload?: unknown;
 }
 
