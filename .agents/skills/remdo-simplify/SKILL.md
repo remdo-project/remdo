@@ -7,12 +7,9 @@ description: Assess a selected RemDo change or repository subject for concrete b
 
 Read the authoritative
 [`remdo-simplify`](../../../docs/specs/agents/skills/remdo-simplify.md)
-specification in full before resolving or assessing a target. Follow its
-[Target](../../../docs/specs/agents/skills/remdo-simplify.md#target),
-[Findings](../../../docs/specs/agents/skills/remdo-simplify.md#findings), and
-[Result](../../../docs/specs/agents/skills/remdo-simplify.md#result) sections for
-all capability behavior. The procedure below only binds target resolution and
-supplies replaceable evidence-discovery heuristics.
+specification in full before resolving or assessing a target. The procedure
+below only binds target resolution and supplies replaceable evidence-discovery
+heuristics.
 
 ## Repository bindings
 
