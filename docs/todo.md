@@ -27,13 +27,11 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Agent-flow representation guidance.** After the
-  [`remdo-converge-change`](specs/agents/skills/remdo-converge-change.md)
-  structured-algorithm pilot is settled, define durable guidance for choosing
-  and writing agent-specification flow representations that are clear and
-  unambiguous for people and agents. Then align applicable specifications as
-  whole contracts without changing accepted behavior through mechanical
-  notation conversion.
+- **Agent-flow specification alignment.** Reassess specifications that use
+  diagrams or overlapping flow prose under the structured-algorithm guidance.
+  Align each applicable specification as a whole contract with one clear
+  behavioral account while preserving accepted behavior and material edge
+  paths; avoid mechanical notation-only conversions.
 
 - **Remaining agent skill alignment.** Apply the adopted
   [specification/procedure boundary](documentation.md#agent-skill-boundary) to

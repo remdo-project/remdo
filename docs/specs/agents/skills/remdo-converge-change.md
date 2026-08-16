@@ -23,15 +23,13 @@ attached branch, it stages and commits each coherent correction batch.
 2. Run one or more independent simplification assessments that collectively
    cover the resolved change once. Give each only its target and applicable
    authoritative contracts, and collect every result before editing.
-   1. If any assessment does not complete, then return `stopped` while
-      preserving completed assessment evidence.
-   2. Apply the shared
+   1. Apply the shared
       [decision rule](../../../../AGENTS.md#execution-and-evidence) to options
       in completed results and retain any
       [decisions](../protocol.md#decisions). If the rule does not permit an
       autonomous choice, then return `stopped` with the unresolved choices as
       [concerns](../protocol.md#concerns).
-   3. If the findings or resolved options determine behavior-preserving
+   2. If the findings or resolved options determine behavior-preserving
       corrections, then run [Correct the state](#correct-the-state).
 3. Repeat the following quality cycle:
    1. If the scope contains code or tests, then run the cleanup audit.
@@ -60,7 +58,7 @@ returns ends convergence.
    [verification lifecycle](../../../dev/testing.md#verification-lifecycle)
    before committing.
 4. If validation or a check fails and an in-scope correction can be determined,
-   then repair the batch and return to step 3.
+   then repair the batch and repeat validation.
 5. If validation or a check still fails, then return `stopped` without
    committing.
 6. Persist the batch under [Authority](#authority), then refresh the same
@@ -69,9 +67,6 @@ returns ends convergence.
 8. If the refreshed state matches a repository state reached earlier in the
    run, then return `stopped` with a concern.
 9. Return to the invoking algorithm with the refreshed scope.
-
-Any other unhandled failure returns `stopped` under the
-[capability protocol](../protocol.md#results).
 
 ## Result
 
