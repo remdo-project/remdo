@@ -96,9 +96,11 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
-- **Inline-selection Enter behavior.** Decide and specify what `Enter` does for
-  a non-collapsed [inline text selection](specs/outliner/selection.md#selection-states)
-  in [Insertion](specs/outliner/insertion.md), then align implementation and automated coverage.
+- **Inline line breaks in note content.** [Body](specs/outliner/body.md#core-behavior) owns multi-line text, and
+  [Clipboard](specs/outliner/clipboard.md#inline-text-selection-single-note) turns multi-line plain text into notes, so a
+  [note's content text](specs/outliner/note-model.md#definitions) holds no line breaks. Neither the outline
+  schema nor its validator rejects one, leaving the invariant unenforced against
+  a handler or paste path that inserts a line break node into content.
 
 - **Current-location presentation ownership.** Before implementing the
   [view header](specs/outliner/view-header.md) alongside [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name
@@ -143,19 +145,25 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   instead of warning. File the upstream report, then drop the patch once a
   release fixes it.
 
-- **Replace the date-picker calendar widget.** The Mantine `DatePicker` in
-  `DatePickerPopover.tsx` does not move keyboard focus across month boundaries
-  or implement the calendar's complete [keyboard contract](specs/outliner/dates.md#core-behavior). Its two
-  keyboard-and-commit E2E cases in `tests/e2e/editor/date-picker.spec.ts` are
-  skipped until a replacement restores that coverage. Research and compare
-  current maintained options rather than selecting from the preliminary spike:
-  React DayPicker is the closest complete widget and documents the required
-  APG keyboard behavior; React Aria Calendar provides a stronger accessibility
-  and internationalization foundation but requires more composition; a future
-  Mantine release or upstream fix may preserve the current integration. Compare
-  cross-month focus, the complete key set, ISO-date and time-zone handling,
-  accessibility, styling and bundle cost, and maintenance burden. Implement the
-  selected replacement and re-enable both tests.
+- **React Aria overlay and focus primitives for editor popups.** The date
+  calendar now delegates its focus trap and keyboard to React Aria, leaving two
+  repository-owned mechanisms that predate it and serve the shared
+  [popup contract](specs/outliner/popups.md).
+  `focusModel: 'trap'` in `triggers/useTriggerSession.tsx` has a single
+  consumer (`DateInsertPlugin.tsx`); its commit-time focus restoration, the
+  blur-dismiss exemption, and the pointer-suppression exemption exist only
+  because the popup previously took focus without a library-owned trap. Each
+  exemption is a place where an editor-focus assumption reached a popup that
+  does not share it: the pointer one left the calendar's month and year selects
+  unable to open by click. `triggers/anchor.ts` positions every popup from
+  hand-computed caret and element rects with a fixed offset and no viewport
+  collision handling, so a picker opened near the viewport edge clips, while
+  React Aria's overlay positioning handles flipping and containment. Assess
+  whether the trap model can retire and whether the `@` picker, the calendar,
+  and the [Quick Action Menu](specs/outliner/menu.md) can share React Aria
+  overlay positioning; a caret-anchored popup has no trigger element, so
+  determine what it anchors to before committing to it. Land as its own change:
+  it alters popups this repository owns beyond dates.
 
 ### Agents
 

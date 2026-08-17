@@ -361,7 +361,16 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
   );
 
   const handlePickerMouseDown = useCallback((event: ReactMouseEvent<HTMLElement>) => {
-    // Keep the caret/selection stable while interacting with the picker.
+    // Keep the caret/selection stable while interacting with the picker: an
+    // 'editor'-model popup leaves DOM focus in the editor, so a mousedown that
+    // moved focus would destroy the caret its commit range depends on.
+    //
+    // A 'trap'-model popup (the calendar) already holds focus and has no live
+    // caret to protect, and its own controls need the default action —
+    // suppressing it leaves a <select> unable to open on click.
+    if ((specRef.current.focusModel ?? 'editor') === 'trap') {
+      return;
+    }
     event.preventDefault();
   }, []);
 
