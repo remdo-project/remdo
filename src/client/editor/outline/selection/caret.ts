@@ -79,13 +79,20 @@ export function isPointAtBoundary(
   listItem: ListItemNode,
   edge: Edge
 ): boolean {
-  const boundary = resolveBoundaryPoint(listItem, edge);
-  if (!boundary) {
-    return false;
+  const node = point.getNode();
+
+  // An element point on the note addresses a child index rather than a text
+  // offset, so its edges are the first and last child slots. This is how the
+  // caret lands when a note's remaining content is a decorator such as a date.
+  if (!$isTextNode(node)) {
+    if (node.getKey() !== listItem.getKey()) {
+      return false;
+    }
+    return edge === 'start' ? point.offset === 0 : point.offset === listItem.getChildrenSize();
   }
 
-  const node = point.getNode();
-  if (!$isTextNode(node)) {
+  const boundary = resolveBoundaryPoint(listItem, edge);
+  if (!boundary) {
     return false;
   }
 

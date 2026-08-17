@@ -185,6 +185,16 @@ export function readOutline(remdo: RemdoTestApi): Outline {
 }
 export async function selectEntireNote(remdo: RemdoTestApi, noteId: string): Promise<void> {
   // Selects the full text range of a single note.
+  await selectNoteTextRange(remdo, noteId, 0, Number.POSITIVE_INFINITY);
+}
+
+export async function selectNoteTextRange(
+  remdo: RemdoTestApi,
+  noteId: string,
+  start: number,
+  end: number
+): Promise<void> {
+  // Selects a partial text range of a single note.
   // Limitations: requires a text node in the note; does not simulate pointer selection.
   await placeCaretAtNote(remdo, noteId);
 
@@ -197,9 +207,40 @@ export async function selectEntireNote(remdo: RemdoTestApi, noteId: string): Pro
     const anchorTextNode = anchorNode as TextNode;
 
     const length = anchorTextNode.getTextContentSize();
-    rangeSelection.setTextNodeRange(anchorTextNode, 0, anchorTextNode, length);
+    rangeSelection.setTextNodeRange(
+      anchorTextNode,
+      Math.min(length, start),
+      anchorTextNode,
+      Math.min(length, end)
+    );
   });
 }
+
+export async function selectAcrossNoteTextNodes(
+  remdo: RemdoTestApi,
+  noteId: string,
+  anchorTextNodeIndex: number,
+  anchorOffset: number,
+  focusTextNodeIndex: number,
+  focusOffset: number
+): Promise<void> {
+  // Selects a range spanning several text nodes of one note (formatting splits).
+  await placeCaretAtNote(remdo, noteId);
+
+  await remdo.mutate(() => {
+    const textNodes = $findItemByNoteId(noteId).getChildren().filter($isTextNode);
+    const selection = $getSelection();
+    expect($isRangeSelection(selection)).toBe(true);
+
+    (selection as ReturnType<typeof $createRangeSelection>).setTextNodeRange(
+      textNodes[anchorTextNodeIndex]!,
+      anchorOffset,
+      textNodes[focusTextNodeIndex]!,
+      focusOffset
+    );
+  });
+}
+
 function readFromCaretListItem<T>(remdo: RemdoTestApi, read: (item: ListItemNode) => T): T {
   return remdo.validate(() => {
     const selection = $getSelection();
