@@ -1,6 +1,10 @@
-import { DatePicker } from '@mantine/dates';
-import '@mantine/dates/styles.css';
+import { createCalendar, getLocalTimeZone, isToday, parseDate } from '@internationalized/date';
 import { useEffect, useRef } from 'react';
+import { FocusScope, useButton, useCalendar, useCalendarCell, useCalendarGrid, useDialog, useLocale } from 'react-aria';
+import { useCalendarState } from 'react-stately';
+import type { CalendarDate } from '@internationalized/date';
+import type { AriaButtonProps } from 'react-aria';
+import type { CalendarState } from 'react-stately';
 
 type DatePickerMode = 'edit' | 'insert';
 
@@ -11,53 +15,142 @@ interface DatePickerPanelProps {
   onCancel?: () => void;
 }
 
-export function DatePickerPanel({ isoDate, mode, onChange, onCancel }: DatePickerPanelProps) {
-  // Both modes are modal calendar dialogs: focus moves into the grid so Mantine's
-  // built-in day/week/month keyboard navigation drives it, and Escape/Tab are
-  // handled here (Lexical key commands don't fire while focus is in the calendar).
-  // Insert opens from a trigger session; edit opens from a committed token, but the
-  // in-calendar keyboard contract is identical.
-  const containerRef = useRef<HTMLDivElement>(null);
+// A modal calendar dialog (docs/specs/outliner/dates.md). React Aria's hooks own
+// the keyboard contract; this file supplies markup, styling hooks, and cancel.
 
+function CalendarCell({ state, date }: {
+  state: CalendarState;
+  date: CalendarDate;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { cellProps, buttonProps, isSelected, isDisabled, isOutsideVisibleRange, formattedDate }
+    = useCalendarCell({ date }, state, ref);
+
+  return (
+    <td {...cellProps}>
+      {/* A div, not a <button>: the grid is one Tab stop via useCalendarCell's
+          roving tabindex, and disabled cells get no tabindex at all — which a
+          native button would still leave tabbable. */}
+      <div
+        {...buttonProps}
+        ref={ref}
+        className="date-picker-day"
+        data-date-picker-day={date.toString()}
+        data-selected={isSelected || undefined}
+        data-disabled={isDisabled || undefined}
+        data-outside-month={isOutsideVisibleRange || undefined}
+        data-today={isToday(date, getLocalTimeZone()) || undefined}
+      >
+        {formattedDate}
+      </div>
+    </td>
+  );
+}
+
+function CalendarGrid({ state }: { state: CalendarState }) {
+  const { gridProps, headerProps, weekDays, weeksInMonth } = useCalendarGrid({}, state);
+
+  return (
+    <table {...gridProps} className="date-picker-grid">
+      <thead {...headerProps}>
+        <tr>
+          {weekDays.map((day, index) => (
+            // Weekday abbreviations repeat across locales (e.g. "S" twice), so
+            // the column position is the stable key.
+            // eslint-disable-next-line react/no-array-index-key -- see above.
+            <th key={index} className="date-picker-weekday">{day}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from({ length: weeksInMonth }, (_, weekIndex) => (
+          <tr key={weekIndex}>
+            {state.getDatesInWeek(weekIndex).map((date, dayIndex) => (
+              date
+                ? <CalendarCell key={date.toString()} state={state} date={date} />
+                // eslint-disable-next-line react/no-array-index-key -- empty leading/trailing cells have no date to key on.
+                : <td key={dayIndex} />
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+// useButton turns useCalendar's { onPress, isDisabled, aria-label } into DOM props;
+// calling onPress directly would mean fabricating a press event to satisfy its type.
+function NavButton({ props, children }: { props: AriaButtonProps; children: string }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const { buttonProps } = useButton(props, ref);
+
+  return (
+    <button {...buttonProps} ref={ref} className="date-picker-nav">
+      {children}
+    </button>
+  );
+}
+
+export function DatePickerPanel({ isoDate, mode, onChange, onCancel }: DatePickerPanelProps) {
+  const { locale } = useLocale();
+  const state = useCalendarState({
+    locale,
+    createCalendar,
+    // parseDate yields a zone-free CalendarDate, so a first-of-month value cannot
+    // open the calendar on the previous month west of UTC.
+    value: parseDate(isoDate),
+    // The cell's press handler (click, and Enter/Space on the focused day) calls
+    // state.selectDate, which surfaces here — so this is the single commit path
+    // for every way a day can be chosen. In single-selection mode the value is
+    // never null.
+    onChange: (date) => onChange(date.toString()),
+  });
+
+  const ref = useRef<HTMLDivElement>(null);
+  const { calendarProps, prevButtonProps, nextButtonProps, title } = useCalendar({}, state);
+  const { dialogProps } = useDialog({ 'aria-label': mode === 'edit' ? 'Edit date' : 'Insert date' }, ref);
+
+  // Opening moves focus onto the calendar's roving-focus day, not the first
+  // tabbable control. FocusScope's own autoFocus would take the prev-month
+  // button instead, leaving arrow keys with nothing to drive.
   useEffect(() => {
-    // Move focus onto the calendar's active day cell — Mantine puts the selected
-    // day (or today) in tab order with tabIndex=0 — so arrow keys drive the grid
-    // rather than the editor. Scope to day cells so the month-nav header button
-    // (also tabbable) is not focused instead.
-    const day = containerRef.current?.querySelector<HTMLElement>('[data-date-picker-day][tabindex="0"]');
-    day?.focus();
+    state.setFocused(true);
+    // Run once on open: re-running would steal focus back from the month
+    // navigation while the user is tabbing through the dialog.
+    // eslint-disable-next-line react/exhaustive-deps -- see above.
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className="date-picker-panel"
-      data-date-picker
-      data-date-picker-mode={mode}
-      onKeyDown={(event) => {
-        // Focus is in the calendar, so Lexical's key commands never fire.
-        // Escape cancels; Tab must not escape into browser focus traversal
-        // (it would leave the popup open with focus outside it) — for now it
-        // also cancels and returns focus to the editor. Both hand focus back.
-        if (event.key === 'Escape' || event.key === 'Tab') {
-          event.preventDefault();
-          event.stopPropagation();
-          onCancel?.();
-        }
-      }}
-    >
-      <DatePicker
-        value={isoDate}
-        // Pass the ISO string, not `new Date(isoDate)`: `new Date('YYYY-MM-DD')`
-        // parses as UTC midnight, which is the previous local day west of UTC, so
-        // a first-of-month date could open the calendar on the wrong month.
-        defaultDate={isoDate || undefined}
-        onChange={onChange}
-        getDayProps={(date) => ({
-          // Mantine passes a YYYY-MM-DD string; trim any time suffix defensively.
-          'data-date-picker-day': date.slice(0, 10),
-        })}
-      />
-    </div>
+    <FocusScope contain restoreFocus>
+      <div
+        {...dialogProps}
+        ref={ref}
+        className="date-picker-panel"
+        data-date-picker
+        data-date-picker-mode={mode}
+        onKeyDown={(event) => {
+          // Focus is inside the calendar, so Lexical's key commands never fire.
+          // Escape is the only cancel key: Tab is left to FocusScope, which
+          // cycles the dialog's own controls (docs/specs/outliner/dates.md).
+          // Enter and Space are the day cell's own press keys and commit there.
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            onCancel?.();
+          }
+        }}
+      >
+        {/* The calendar's own group role lives on an inner element: spreading it
+            onto the dialog would replace role="dialog". */}
+        <div {...calendarProps} className="date-picker-calendar">
+          <div className="date-picker-header">
+            <NavButton props={prevButtonProps}>‹</NavButton>
+            <h2 className="date-picker-title">{title}</h2>
+            <NavButton props={nextButtonProps}>›</NavButton>
+          </div>
+          <CalendarGrid state={state} />
+        </div>
+      </div>
+    </FocusScope>
   );
 }

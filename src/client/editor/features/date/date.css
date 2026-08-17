@@ -37,4 +37,98 @@
   background: var(--mantine-color-dark-7);
   box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
   padding: 0.5rem;
+  font-size: var(--mantine-font-size-sm);
+}
+
+.date-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  margin-bottom: 0.35rem;
+}
+
+.date-picker-title {
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  color: var(--mantine-color-dark-0);
+  margin: 0;
+}
+
+.date-picker-nav {
+  border: 0;
+  border-radius: var(--mantine-radius-xs);
+  background: transparent;
+  color: var(--mantine-color-dark-1);
+  cursor: pointer;
+  font-size: var(--mantine-font-size-md);
+  line-height: 1;
+  padding: 0.2rem 0.45rem;
+}
+
+.date-picker-nav:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.date-picker-nav:hover:not(:disabled) {
+  background: var(--mantine-color-dark-5);
+  color: var(--mantine-color-gray-0);
+}
+
+.date-picker-grid {
+  border-collapse: collapse;
+}
+
+.date-picker-weekday {
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 500;
+  color: var(--mantine-color-dimmed);
+  padding: 0.2rem 0;
+}
+
+/* A div with role="button" (see DatePickerPopover.tsx), so the centering and
+   type styling a native button would provide is set explicitly. */
+.date-picker-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--mantine-radius-xs);
+  color: var(--mantine-color-dark-0);
+  cursor: pointer;
+  font-size: var(--mantine-font-size-sm);
+  user-select: none;
+}
+
+/* The roving-focus cell is the calendar's keyboard position — it must stay
+   visible, so this is not gated on :focus-visible. */
+.date-picker-day:focus {
+  outline: 2px solid var(--mantine-color-blue-3);
+  outline-offset: -1px;
+}
+
+.date-picker-day:hover:not([data-disabled]) {
+  background: var(--mantine-color-dark-5);
+}
+
+.date-picker-day[data-outside-month] {
+  color: var(--mantine-color-dark-3);
+}
+
+/* An inset ring rather than an outline, so today's marker and the focus
+   outline below can be shown at the same time without competing. */
+.date-picker-day[data-today]:not([data-selected]) {
+  box-shadow: inset 0 0 0 1px var(--mantine-color-dark-2);
+}
+
+.date-picker-day[data-selected] {
+  background: var(--mantine-color-teal-8);
+  color: var(--mantine-color-teal-1);
+}
+
+.date-picker-day[data-disabled] {
+  color: var(--mantine-color-dark-3);
+  cursor: default;
 }

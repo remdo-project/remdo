@@ -6,6 +6,19 @@ export const documentZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(p
 export const homeZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(page).locator('[data-zoom-crumb="home"]');
 export const homeView = (page: Page): Locator => page.locator('[data-testid="document-home"]');
 
+// The date picker portals outside `.editor-container`, so its locators are
+// page-scoped by necessity. Day cells are addressed by their own ISO date, which
+// is stable across locales — unlike a cell's accessible name (a localized
+// "Monday, June 10, 2026" that also gains "Today"/"selected" prefixes).
+export const datePickerPanel = (page: Page): Locator => page.locator('[data-date-picker]');
+export const datePickerDays = (page: Page): Locator => page.locator('[data-date-picker-day]');
+export const datePickerDay = (page: Page, isoDate: string): Locator =>
+  page.locator(`[data-date-picker-day="${isoDate}"]`);
+export const datePickerWeekdays = (page: Page): Locator =>
+  datePickerPanel(page).locator('.date-picker-weekday');
+export const dateTokens = (page: Page): Locator =>
+  editorLocator(page).locator('[data-date-node-key]');
+
 export async function setCaretAtText(
   page: Page,
   label: string,

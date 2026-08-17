@@ -142,20 +142,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   dispatching `SET_NOTE_CHECKED_COMMAND`). Reroute it and cover with a test.
   The click's selection consequences stay with [Selection](specs/outliner/selection.md).
 
-- **Replace the date-picker calendar widget.** The Mantine `DatePicker` in
-  `DatePickerPopover.tsx` does not move keyboard focus across month boundaries
-  or implement the calendar's complete [keyboard contract](specs/outliner/dates.md#core-behavior). Its two
-  keyboard-and-commit E2E cases in `tests/e2e/editor/date-picker.spec.ts` are
-  skipped until a replacement restores that coverage. Research and compare
-  current maintained options rather than selecting from the preliminary spike:
-  React DayPicker is the closest complete widget and documents the required
-  APG keyboard behavior; React Aria Calendar provides a stronger accessibility
-  and internationalization foundation but requires more composition; a future
-  Mantine release or upstream fix may preserve the current integration. Compare
-  cross-month focus, the complete key set, ISO-date and time-zone handling,
-  accessibility, styling and bundle cost, and maintenance burden. Implement the
-  selected replacement and re-enable both tests.
-
 ### Agents
 
 - **Capability protocol adoption.** Identify agent capabilities used as
