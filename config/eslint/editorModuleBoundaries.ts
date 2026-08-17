@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import type { Rule } from 'eslint';
 import type { ImportDeclaration, Node } from 'estree';
@@ -11,6 +12,15 @@ import type { ImportDeclaration, Node } from 'estree';
 // This is the graph as it stands, not the graph as it should be: it freezes
 // today's edges so the taxonomy work can only narrow them. Entries are grouped
 // by layer, so an edge is allowed because its bucket reaches downward.
+//
+// TODO: replace these buckets with owners. They are the current folders, which
+// mix three axes — layer (`outline`, `runtime`), mechanism (`plugins`), and
+// capability (`features`) — so a bucket name does not answer "who owns this?".
+// Neither the grouping above nor any single entry is authoritative about
+// intended ownership; both record where code sits today. Until then, treat a
+// violation as "this edge is new", not as "this edge is wrong by design".
+// Probe: the table lists owners rather than directories, and the layer comments
+// above are gone.
 const ALLOWED: Record<string, readonly string[]> = {
   // Foundations. The document model and the state it is stored in; imported
   // widely, importing little.
@@ -29,7 +39,7 @@ const ALLOWED: Record<string, readonly string[]> = {
   // Wiring. Composes the above into an editor, so it reaches every layer.
   // The breadth of `plugins` is what the taxonomy work narrows: it holds
   // capabilities, core editing, and infrastructure at once.
-  plugins: ['#root', 'features', 'links', 'outline', 'runtime', 'triggers', 'view'],
+  plugins: ['#root', 'features', 'links', 'note-sdk-adapters', 'outline', 'runtime', 'triggers', 'view'],
   '#root': ['features', 'outline', 'plugins', 'runtime'],
 
   // Adapter to the Note SDK, outside the editor.
@@ -77,7 +87,20 @@ const EXCEPTIONS: readonly { from: string; to: string; file: string; why: string
 ];
 
 const EDITOR_ROOT = path.normalize('src/client/editor');
+const EDITOR_ROOT_ABS = path.resolve(EDITOR_ROOT);
 const ALIAS_PREFIX = '#client/editor/';
+
+// Cached: the rule asks this once per import, and the set of top-level
+// directories does not change during a lint run.
+const directoryCache = new Map<string, boolean>();
+
+function isDirectory(candidate: string): boolean {
+  const cached = directoryCache.get(candidate);
+  if (cached !== undefined) return cached;
+  const result = fs.existsSync(candidate) && fs.statSync(candidate).isDirectory();
+  directoryCache.set(candidate, result);
+  return result;
+}
 
 function toEditorRelative(filename: string): string | null {
   const normalized = path.normalize(filename);
@@ -88,9 +111,15 @@ function toEditorRelative(filename: string): string | null {
 
 // The top-level bucket a path belongs to: its first segment, or `#root` for a
 // module sitting directly in src/client/editor.
+//
+// A specifier naming a directory barrel (`#client/editor/note-sdk-adapters`)
+// has no slash, so it must be recognized as that directory rather than read as
+// a loose `#root` module — otherwise every barrel silently bypasses its own
+// boundary.
 function bucketOf(editorRelative: string): string {
   const segments = editorRelative.split('/');
-  return segments.length > 1 ? segments[0]! : '#root';
+  if (segments.length > 1) return segments[0]!;
+  return isDirectory(path.join(EDITOR_ROOT_ABS, editorRelative)) ? editorRelative : '#root';
 }
 
 function resolveTarget(specifier: string, fromDir: string): string | null {
