@@ -46,6 +46,16 @@ const ALLOWED: Record<string, readonly string[]> = {
   'note-sdk-adapters': ['outline', 'runtime'],
 };
 
+// Editor directories deliberately outside the graph. Listing them is what makes
+// an unlisted directory an error rather than a silent gap.
+const UNGOVERNED = new Set([
+  // Dev tooling reaches production modules by design and has its own boundary
+  // (the dev/prod seam enforced in eslint.config.mts).
+  'dev',
+  // Ambient module declarations, not runtime modules.
+  'types',
+]);
+
 // TODO: empty this list; it exists only to admit today's boundary violations
 // so the rule can be enforced before the modules move. Every entry is a
 // boundary the taxonomy is meant to remove, so a non-empty list means the
@@ -90,16 +100,31 @@ const EDITOR_ROOT = path.normalize('src/client/editor');
 const EDITOR_ROOT_ABS = path.resolve(EDITOR_ROOT);
 const ALIAS_PREFIX = '#client/editor/';
 
-// Cached: the rule asks this once per import, and the set of top-level
-// directories does not change during a lint run.
-const directoryCache = new Map<string, boolean>();
+// The editor's composition root: always present and always linted, so it is a
+// stable place to audit the whole EXCEPTIONS inventory once per run.
+const AUDIT_ANCHOR = 'Editor.tsx';
+
+// Cached: the rule asks these once per import, and the tree does not change
+// during a lint run.
+const statCache = new Map<string, 'dir' | 'file' | 'none'>();
+
+function statKind(candidate: string): 'dir' | 'file' | 'none' {
+  const cached = statCache.get(candidate);
+  if (cached !== undefined) return cached;
+  let result: 'dir' | 'file' | 'none' = 'none';
+  if (fs.existsSync(candidate)) {
+    result = fs.statSync(candidate).isDirectory() ? 'dir' : 'file';
+  }
+  statCache.set(candidate, result);
+  return result;
+}
 
 function isDirectory(candidate: string): boolean {
-  const cached = directoryCache.get(candidate);
-  if (cached !== undefined) return cached;
-  const result = fs.existsSync(candidate) && fs.statSync(candidate).isDirectory();
-  directoryCache.set(candidate, result);
-  return result;
+  return statKind(candidate) === 'dir';
+}
+
+function isFile(candidate: string): boolean {
+  return statKind(candidate) === 'file';
 }
 
 function toEditorRelative(filename: string): string | null {
@@ -143,6 +168,10 @@ export const editorModuleBoundariesRule: Rule.RuleModule = {
         'Editor boundary: {{from}}/ must not import {{to}}/. Allowed from {{from}}/: {{allowed}}. If this edge is intended, add it to ALLOWED in config/eslint/editorModuleBoundaries.ts; if it is debt, add an EXCEPTIONS entry naming the work that removes it.',
       staleException:
         'Stale EXCEPTIONS entry in config/eslint/editorModuleBoundaries.ts: {{file}} no longer imports {{to}}/. Delete the entry.',
+      missingExceptionFile:
+        'Stale EXCEPTIONS entry in config/eslint/editorModuleBoundaries.ts: {{file}} no longer exists. Delete the entry, or update its path if the file moved.',
+      unconfiguredBucket:
+        'Editor directory {{bucket}}/ has no ALLOWED entry, so its imports are unchecked. Add it to ALLOWED in config/eslint/editorModuleBoundaries.ts with the buckets it may import, or to UNGOVERNED if it is deliberately outside the graph.',
     },
   },
   create(context) {
@@ -150,8 +179,18 @@ export const editorModuleBoundariesRule: Rule.RuleModule = {
     if (editorRelative === null) return {};
 
     const from = bucketOf(editorRelative);
+    if (UNGOVERNED.has(from)) return {};
+
     const allowed = ALLOWED[from];
-    if (!allowed) return {};
+    // Fail closed: a bucket with no entry is an editor directory nobody has
+    // placed in the graph, so it would otherwise import anything unchecked.
+    if (!allowed) {
+      return {
+        Program(node) {
+          context.report({ node, messageId: 'unconfiguredBucket', data: { bucket: from } });
+        },
+      };
+    }
 
     const fromDir = path.dirname(context.physicalFilename);
     const fileExceptions = EXCEPTIONS.filter((entry) => entry.file === editorRelative);
@@ -203,6 +242,20 @@ export const editorModuleBoundariesRule: Rule.RuleModule = {
             node: program,
             messageId: 'staleException',
             data: { file: entry.file, to: entry.to },
+          });
+        }
+
+        // An exception whose file was renamed or deleted is unreachable above,
+        // because ESLint never visits the old path — and a move is the expected
+        // workflow. Auditing the whole inventory from one always-linted file
+        // keeps the list shrink-only through renames too.
+        if (editorRelative !== AUDIT_ANCHOR) return;
+        for (const entry of EXCEPTIONS) {
+          if (isFile(path.join(EDITOR_ROOT_ABS, entry.file))) continue;
+          context.report({
+            node: program,
+            messageId: 'missingExceptionFile',
+            data: { file: entry.file },
           });
         }
       },
