@@ -22,8 +22,10 @@ visible in every list type and survives list-type changes, reload, and collabora
 Setting a note's checked state is recursive: the note and all of its
 descendants take the same state.
 
-A note displays as checked only while it and all of its descendants are
-checked; when only some are, it displays as mixed.
+A checked note reads as complete, whatever the state of its descendants. A
+checked note whose descendants are not all checked additionally marks that its
+subtree holds unfinished work, and every unchecked note under a checked one is
+presented as unfinished work rather than as part of the completed note.
 
 ### Toggling
 

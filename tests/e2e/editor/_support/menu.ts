@@ -1,6 +1,6 @@
 import type { Locator, Page } from '#editor/fixtures';
 import { expect } from '#editor/fixtures';
-import { editorLocator, setCaretAtText } from './locators';
+import { editorLocator, noteRow, setCaretAtText } from './locators';
 
 type MenuOpenMethod = 'hover' | 'shortcut';
 
@@ -36,12 +36,6 @@ const menuItem = (page: Page, id: MenuItemId): Locator =>
 const menuItems = (page: Page): Locator =>
   editorLocator(page).locator('[data-note-menu-item]');
 
-const findNoteItem = (page: Page, label: string): Locator =>
-  editorLocator(page)
-    .locator('li.list-item:not(.list-nested-item)')
-    .filter({ hasText: label })
-    .first();
-
 const openMenuByHover = async (page: Page, listItem: Locator): Promise<void> => {
   await expect(listItem).toBeVisible();
   await listItem.locator('[data-lexical-text="true"]').first().hover();
@@ -59,7 +53,7 @@ const openMenuByShortcut = async (page: Page): Promise<void> => {
 export const openNoteMenu = async (page: Page, label: string, options?: OpenMenuOptions): Promise<MenuHandle> => {
   const openMethod = options?.openMethod ?? 'hover';
   const anchor = options?.anchor ?? 'note';
-  const listItem = findNoteItem(page, label);
+  const listItem = noteRow(page, label);
 
   if (anchor === 'caret') {
     await setCaretAtText(page, label, 0);

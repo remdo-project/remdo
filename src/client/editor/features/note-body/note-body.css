@@ -20,8 +20,9 @@
   line-height: 1.45;
 }
 
+/* Matches the note text: a checked note strikes its body too. */
 .remdo-outline
-  li.list-item:is(.list-item-checked, [data-note-checked='true'])
+  li.list-item[data-note-checked='true']
   + li.note-body-wrapper
   .note-body {
   text-decoration: line-through;
