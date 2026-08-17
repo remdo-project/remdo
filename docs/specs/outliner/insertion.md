@@ -1,7 +1,8 @@
 # Insertion
 
-With a **[caret selection](./selection.md#selection-states)**, `Enter` inserts new notes.
-The caret is inside a single note, and actions apply to that note's text. Unless
+With a **[caret selection](./selection.md#selection-states)** or an **[inline text
+selection](./selection.md#selection-states)**, `Enter` inserts new notes. The
+selection is inside a single note, and actions apply to that note's text. Unless
 stated otherwise, parent notes are expanded; folded and collapsed parent
 behavior is called out explicitly (see [Folding](./folding.md)).
 
@@ -16,7 +17,18 @@ behavior is called out explicitly (see [Folding](./folding.md)).
    expanded, create a new first child. Otherwise (no children or collapsed
    parent), insert a next sibling immediately below.
 
-## Zoom boundary behavior (caret selection)
+## Inline text selection
+
+`Enter` first removes the selected text, then applies the caret rules above at
+the resulting caret, so an inline text selection never has its own placement,
+identity, or focus rules. Removal and insertion undo as one step.
+
+When the selection covers the note's whole [content text](./note-model.md#definitions),
+the emptied note takes the **end of note** rule rather than the start rule its
+caret position would otherwise select, so one keystroke leaves one empty note
+rather than two.
+
+## Zoom boundary behavior
 
 In a [subtree view](./zoom.md#visibility-and-editing-boundary), default
 insertion still applies to the outline children except where it would place the

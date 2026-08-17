@@ -96,9 +96,11 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
-- **Inline-selection Enter behavior.** Decide and specify what `Enter` does for
-  a non-collapsed [inline text selection](specs/outliner/selection.md#selection-states)
-  in [Insertion](specs/outliner/insertion.md), then align implementation and automated coverage.
+- **Inline line breaks in note content.** [Body](specs/outliner/body.md#core-behavior) owns multi-line text, and
+  [Clipboard](specs/outliner/clipboard.md#inline-text-selection-single-note) turns multi-line plain text into notes, so a
+  [note's content text](specs/outliner/note-model.md#definitions) holds no line breaks. Neither the outline
+  schema nor its validator rejects one, leaving the invariant unenforced against
+  a handler or paste path that inserts a line break node into content.
 
 - **Current-location presentation ownership.** Before implementing the
   [view header](specs/outliner/view-header.md) alongside [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name

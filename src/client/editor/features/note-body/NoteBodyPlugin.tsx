@@ -23,6 +23,7 @@ import { useEffect } from 'react';
 
 import { getPreviousContentSibling, isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { stopKeyboardEvent } from '#client/editor/keyboard-event';
 import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
 import { BodyWrapperNode, isBodyWrapper } from './note-body-node';
 import type { NoteBodyNode } from './note-body-node';
@@ -38,12 +39,6 @@ import {
   isNoteBodyEmpty,
 } from './note-body-ops';
 import './note-body.css';
-
-function stop(event: KeyboardEvent | null): true {
-  event?.preventDefault();
-  event?.stopPropagation();
-  return true;
-}
 
 /**
  * True when `point` sits at the body's leading or trailing edge — the boundaries
@@ -192,7 +187,7 @@ export function NoteBodyPlugin() {
       // Shift+Arrow: a body owns its selection world, so block extension out of
       // it at the boundary (other modifiers fall through).
       if (event?.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
-        return $handleBodyShiftArrow(editor, direction) ? stop(event) : false;
+        return $handleBodyShiftArrow(editor, direction) ? stopKeyboardEvent(event) : false;
       }
       // Other modified arrows are handled elsewhere.
       if (event && (event.altKey || event.metaKey || event.ctrlKey)) {
@@ -214,9 +209,9 @@ export function NoteBodyPlugin() {
       }
       const zoomRoot = $resolveZoomRoot(editor);
       if (direction === 'left' || direction === 'right') {
-        return $skipBodyForHorizontalNav(direction, zoomRoot) ? stop(event) : false;
+        return $skipBodyForHorizontalNav(direction, zoomRoot) ? stopKeyboardEvent(event) : false;
       }
-      return $skipBodyForVerticalNav(editor, direction, zoomRoot) ? stop(event) : false;
+      return $skipBodyForVerticalNav(editor, direction, zoomRoot) ? stopKeyboardEvent(event) : false;
     };
 
     return mergeRegister(
@@ -261,10 +256,10 @@ export function NoteBodyPlugin() {
 
           if ($getActiveNoteBody()) {
             selection.insertLineBreak();
-            return stop(event);
+            return stopKeyboardEvent(event);
           }
 
-          if (!event?.shiftKey || !selection.isCollapsed()) {
+          if (!event?.shiftKey) {
             return false;
           }
           const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
@@ -272,7 +267,7 @@ export function NoteBodyPlugin() {
             return false;
           }
           $addNoteBody(contentItem);
-          return stop(event);
+          return stopKeyboardEvent(event);
         },
         COMMAND_PRIORITY_HIGH
       ),
@@ -285,7 +280,7 @@ export function NoteBodyPlugin() {
             return false;
           }
           body.select(0, body.getChildrenSize());
-          return stop(event);
+          return stopKeyboardEvent(event);
         },
         COMMAND_PRIORITY_CRITICAL
       ),
@@ -314,7 +309,7 @@ function $handleBodyDelete(direction: 'backward' | 'forward', event: KeyboardEve
   }
   if (isNoteBodyEmpty(body)) {
     $removeNoteBody(body);
-    return stop(event);
+    return stopKeyboardEvent(event);
   }
 
   const selection = $getSelection();
@@ -324,7 +319,7 @@ function $handleBodyDelete(direction: 'backward' | 'forward', event: KeyboardEve
     const selectedLength = selection.getTextContent().length;
     if (selectedLength >= body.getTextContentSize() && selectedLength > 0) {
       $removeNoteBody(body);
-      return stop(event);
+      return stopKeyboardEvent(event);
     }
     return false;
   }
@@ -332,5 +327,5 @@ function $handleBodyDelete(direction: 'backward' | 'forward', event: KeyboardEve
   // Collapsed caret at a body boundary is a no-op: a body never merges into the
   // surrounding notes (Backspace at the start / Delete at the end). Otherwise let
   // the default delete edit the body text in place.
-  return $isCaretAtBodyEdge(body, direction) ? stop(event) : false;
+  return $isCaretAtBodyEdge(body, direction) ? stopKeyboardEvent(event) : false;
 }
