@@ -1,6 +1,7 @@
 import { getLocalTimeZone, isToday, parseDate } from '@internationalized/date';
-import { Button, Calendar, CalendarCell, CalendarGrid, CalendarGridBody, CalendarGridHeader, CalendarHeaderCell, Dialog, Heading } from 'react-aria-components';
+import { Button, Calendar, CalendarCell, CalendarGrid, CalendarGridBody, CalendarGridHeader, CalendarHeaderCell, CalendarMonthPicker, CalendarYearPicker, Dialog } from 'react-aria-components';
 import { FocusScope } from 'react-aria';
+import type { Key } from 'react-aria';
 
 type DatePickerMode = 'edit' | 'insert';
 
@@ -9,6 +10,29 @@ interface DatePickerPanelProps {
   mode: DatePickerMode;
   onChange: (isoDate: string | null) => void;
   onCancel?: () => void;
+}
+
+// The month and year pickers supply option data and labels but render nothing,
+// so this is the shared widget for both. A native select is already keyboard-
+// and screen-reader-correct, and it stays one Tab stop like the grid.
+function PickerSelect({ items, value, onPick, label }: {
+  items: readonly { id: number; formatted: string }[];
+  value: Key;
+  onPick: (key: Key | null) => void;
+  label: string;
+}) {
+  return (
+    <select
+      className="date-picker-select"
+      aria-label={label}
+      value={String(value)}
+      onChange={(event) => onPick(Number(event.target.value))}
+    >
+      {items.map((item) => (
+        <option key={item.id} value={item.id}>{item.formatted}</option>
+      ))}
+    </select>
+  );
 }
 
 // A modal calendar dialog (docs/specs/outliner/dates.md). React Aria owns the
@@ -44,7 +68,16 @@ export function DatePickerPanel({ isoDate, mode, onChange, onCancel }: DatePicke
         >
           <div className="date-picker-header">
             <Button slot="previous" className="date-picker-nav">‹</Button>
-            <Heading className="date-picker-title" />
+            <CalendarMonthPicker>
+              {({ items, value, onChange: onPick, 'aria-label': label }) => (
+                <PickerSelect items={items} value={value} onPick={onPick} label={label} />
+              )}
+            </CalendarMonthPicker>
+            <CalendarYearPicker>
+              {({ items, value, onChange: onPick, 'aria-label': label }) => (
+                <PickerSelect items={items} value={value} onPick={onPick} label={label} />
+              )}
+            </CalendarYearPicker>
             <Button slot="next" className="date-picker-nav">›</Button>
           </div>
           <CalendarGrid className="date-picker-grid">

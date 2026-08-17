@@ -147,9 +147,12 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   repository-owned mechanisms that predate it and serve the shared
   [popup contract](specs/outliner/popups.md).
   `focusModel: 'trap'` in `triggers/useTriggerSession.tsx` has a single
-  consumer (`DateInsertPlugin.tsx`); its commit-time focus restoration and the
-  blur-dismiss exemption exist only because the popup previously took focus
-  without a library-owned trap. `triggers/anchor.ts` positions every popup from
+  consumer (`DateInsertPlugin.tsx`); its commit-time focus restoration, the
+  blur-dismiss exemption, and the pointer-suppression exemption exist only
+  because the popup previously took focus without a library-owned trap. Each
+  exemption is a place where an editor-focus assumption reached a popup that
+  does not share it: the pointer one left the calendar's month and year selects
+  unable to open by click. `triggers/anchor.ts` positions every popup from
   hand-computed caret and element rects with a fixed offset and no viewport
   collision handling, so a picker opened near the viewport edge clips, while
   React Aria's overlay positioning handles flipping and containment. Assess

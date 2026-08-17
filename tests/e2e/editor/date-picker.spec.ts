@@ -152,13 +152,13 @@ test.describe('date picker (docs/specs/outliner/dates.md)', () => {
   });
 
   test('the calendar has month chrome and marks today', async ({ page, editor }) => {
-    // The calendar owns its chrome: a month/year heading, prev/next controls,
+    // The calendar owns its chrome: month and year pickers, prev/next controls,
     // weekday headers, and a distinguishable today.
     await editor.load('basic');
     await openInsertPicker(page);
 
     const panel = datePickerPanel(page);
-    await expect(panel.getByRole('heading')).toBeVisible();
+    await expect(panel.locator('.date-picker-select')).toHaveCount(2);
     // The month-nav labels come from React Aria's localized strings. Scope to the
     // rendered controls: the library also mounts hidden duplicates for its own
     // month navigation.
@@ -191,12 +191,14 @@ test.describe('date picker (docs/specs/outliner/dates.md)', () => {
     expect(dayBeforeTabbing).not.toBeNull();
 
     // Per the APG grid pattern the whole day grid is a single Tab stop, so the
-    // cycle is: previous month, next month, the focused day, and back. A
-    // regression that made every day cell tabbable walked Tab through the
-    // adjacent month's days one at a time, so this asserts the landing points,
-    // not merely that focus stayed inside.
+    // cycle is: previous month, the month and year pickers, next month, the
+    // focused day, and back. A regression that made every day cell tabbable
+    // walked Tab through the adjacent month's days one at a time, so this
+    // asserts the landing points, not merely that focus stayed inside.
     const cycle = [
       'control:Previous',
+      'control:month',
+      'control:year',
       'control:Next',
       `day:${dayBeforeTabbing}`,
     ];
@@ -226,6 +228,48 @@ test.describe('date picker (docs/specs/outliner/dates.md)', () => {
     await page.keyboard.press('Escape');
     await expect(anyDay(page)).toHaveCount(0);
     expect(await focusIsInside(page, '.editor-input')).toBe(true);
+  });
+
+  test('the month and year pickers jump the visible month', async ({ page, editor }) => {
+    // Long-range navigation without paging a month at a time.
+    await editor.load('basic');
+    await openInsertPicker(page);
+    const selects = datePickerPanel(page).locator('.date-picker-select');
+    const [monthSelect, yearSelect] = [selects.first(), selects.last()];
+
+    const startMonth = (await anyDay(page).getAttribute('data-date-picker-day'))!.slice(0, 7);
+
+    // Pick a different month by its option value, whichever is not current.
+    const monthOptions = await monthSelect.locator('option').evaluateAll((options) =>
+      options.map((option) => (option as HTMLOptionElement).value));
+    const currentMonth = await monthSelect.inputValue();
+    await monthSelect.selectOption(monthOptions.find((value) => value !== currentMonth)!);
+    const afterMonth = (await anyDay(page).getAttribute('data-date-picker-day'))!.slice(0, 7);
+    expect(afterMonth).not.toBe(startMonth);
+
+    // Same for the year.
+    const yearOptions = await yearSelect.locator('option').evaluateAll((options) =>
+      options.map((option) => (option as HTMLOptionElement).value));
+    const currentYear = await yearSelect.inputValue();
+    await yearSelect.selectOption(yearOptions.find((value) => value !== currentYear)!);
+    const afterYear = (await anyDay(page).getAttribute('data-date-picker-day'))!.slice(0, 4);
+    expect(afterYear).not.toBe(startMonth.slice(0, 4));
+
+    // The grid still owns the keyboard after using a select.
+    await expect(datePickerPanel(page).locator('[data-date-picker-day][tabindex="0"]')).toHaveCount(1);
+  });
+
+  test('the month and year pickers take focus on click', async ({ page, editor }) => {
+    // The trigger engine suppresses mousedown for its editor-focus popups, whose
+    // commit range depends on a live caret. The calendar traps focus instead, so
+    // that suppression must not reach it: it left the selects unable to open by
+    // pointer, reachable only by arrow keys.
+    await editor.load('basic');
+    await openInsertPicker(page);
+
+    const select = datePickerPanel(page).locator('.date-picker-select').first();
+    await select.click();
+    await expect(select).toBeFocused();
   });
 
   test('exactly one day cell is in the tab order', async ({ page, editor }) => {
