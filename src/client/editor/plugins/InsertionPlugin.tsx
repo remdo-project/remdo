@@ -114,27 +114,31 @@ function $splitContentItemAtSelection(
   }
 
   const anchorNode = selection.anchor.getNode();
-  // Compare keys, not object identity: a write reclones the node, so a
-  // reference captured before one (such as before `removeText`) is stale.
-  const anchorItemKey = $isTextNode(anchorNode)
-    ? anchorNode.getParent()?.getKey()
-    : anchorNode.getKey();
-  if (anchorItemKey !== contentItem.getKey()) {
+  // Resolve through inline ancestors, not one `getParent()`: the anchor may sit
+  // inside a link. Compare keys, not object identity, because a write reclones
+  // the node, so a reference captured before one (such as before `removeText`)
+  // is stale.
+  if (resolveContentItemFromNode(anchorNode)?.getKey() !== contentItem.getKey()) {
     return false;
   }
 
   const offset = selection.anchor.offset;
-  let splitAfterNode = null;
+  let splitAfterNode: LexicalNode | null = null;
 
   if ($isTextNode(anchorNode)) {
     const size = anchorNode.getTextContentSize();
     if (offset > 0 && offset < size) {
       const [, rightNode] = anchorNode.splitText(offset);
-      splitAfterNode = rightNode;
+      splitAfterNode = rightNode ?? null;
     } else if (offset === 0) {
       splitAfterNode = anchorNode;
     } else {
       splitAfterNode = anchorNode.getNextSibling();
+    }
+    // The split moves the note's own children, so rise to the ancestor that is
+    // one. A caret inside a link splits at the link, keeping the link whole.
+    while (splitAfterNode !== null && splitAfterNode.getParent()?.getKey() !== contentItem.getKey()) {
+      splitAfterNode = splitAfterNode.getParent();
     }
   } else {
     // An element anchor already points between children — for example after

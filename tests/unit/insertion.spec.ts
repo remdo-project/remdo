@@ -10,7 +10,9 @@ import {
   typeText,
   meta,
 } from '#tests';
-import { $createTextNode } from 'lexical';
+import { $createTextNode, $getSelection, $isTextNode } from 'lexical';
+import type { $createRangeSelection } from 'lexical';
+import { $createLinkNode, $isLinkNode } from '@lexical/link';
 import { $setNoteFolded } from '#client/editor/runtime/fold-state';
 import { $createDateNode } from '#client/editor/features/date/date-node';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
@@ -449,6 +451,33 @@ describe('insertion semantics (docs/insertion.md)', () => {
         { noteId: 'note1', text: 'Mar 4, 2026' },
         { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
       ]);
+    });
+
+    it('splits at the link when the selection sits inside one', meta({ fixture: 'tree' }), async ({ remdo }) => {
+      await remdo.mutate(() => {
+        const note = $findNoteById('note1')!;
+        note.clear();
+        const link = $createLinkNode('https://example.com/');
+        link.append($createTextNode('linktext'));
+        note.append($createTextNode('before '));
+        note.append(link);
+        note.append($createTextNode(' after'));
+      });
+      await placeCaretAtNote(remdo, 'note1', 0);
+      await remdo.mutate(() => {
+        const selection = $getSelection() as ReturnType<typeof $createRangeSelection>;
+        const link = $findNoteById('note1')!.getChildren().find($isLinkNode)!;
+        const linkText = link.getChildren().filter($isTextNode)[0]!;
+        selection.setTextNodeRange(linkText, 2, linkText, 6);
+      });
+      await pressKey(remdo, { key: 'Enter' });
+
+      expect(remdo).toMatchOutline([
+        { noteId: null, text: 'before ' },
+        { noteId: 'note1', text: 'lixt after' },
+        { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
+      ]);
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('leaves shift+enter to the note body, keeping the selected text', meta({ fixture: 'tree' }), async ({ remdo }) => {
