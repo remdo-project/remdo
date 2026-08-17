@@ -1,0 +1,858 @@
+import { describe, expect, it } from 'vitest';
+import { $isLineBreakNode } from 'lexical';
+import { waitFor } from '@testing-library/react';
+
+import type { SerializedLexicalNode, SerializedTextNode } from 'lexical';
+import type { SerializedNoteLinkNode } from '#client/editor/runtime/note-link-node';
+import type { SerializedNoteListItemNode } from '#client/editor/runtime/serialized-note-types';
+import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import { flattenOutline } from '#tests-common/outline';
+import {
+  buildClipboardPayload,
+  buildCustomClipboardPayload,
+  collectSerializedNodes,
+  copySelection,
+  cutSelection,
+  dragDomSelectionBetween,
+  findSerializedNode,
+  getNoteTextNode,
+  getSerializedNodeChildren,
+  getSerializedRootListNode,
+  pastePayload,
+  placeCaretAtNote,
+  pressKey,
+  readOutline,
+  selectStructuralNotesByDomRange,
+  selectStructuralNotes,
+  selectNoteRange,
+  typeText,
+  meta,
+} from '#tests';
+import { createUniqueNoteId } from '#domain/notes/ids';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { getNoteBody } from '#client/editor/features/note-body/note-body-ops';
+import { renderRemdoEditor } from './collab/_support/render-editor';
+
+function findSerializedListItem(node: SerializedLexicalNode, noteId: string): SerializedNoteListItemNode | null {
+  return findSerializedNode([node], (candidate): candidate is SerializedNoteListItemNode => (
+    candidate.type === 'listitem' && (candidate as SerializedNoteListItemNode).noteId === noteId
+  ));
+}
+
+function findSerializedNoteLink(node: SerializedLexicalNode): SerializedNoteLinkNode | null {
+  return findSerializedNode([node], (candidate): candidate is SerializedNoteLinkNode => (
+    candidate.type === 'note-link'
+  ));
+}
+
+function findSerializedNoteLinkInNodes(nodes: SerializedLexicalNode[] | undefined): SerializedNoteLinkNode | null {
+  return findSerializedNode(nodes, (candidate): candidate is SerializedNoteLinkNode => (
+    candidate.type === 'note-link'
+  ));
+}
+
+function collectSerializedNoteLinksInNodes(nodes: SerializedLexicalNode[] | undefined): SerializedNoteLinkNode[] {
+  return collectSerializedNodes(nodes, (candidate): candidate is SerializedNoteLinkNode => (
+    candidate.type === 'note-link'
+  ));
+}
+
+function cloneSerializedListItemByNoteId(remdo: RemdoTestApi, noteId: string): SerializedNoteListItemNode {
+  const listNode = getSerializedRootListNode(remdo) as SerializedLexicalNode;
+  const match = findSerializedListItem(listNode, noteId)!;
+  return structuredClone(match);
+}
+
+function cloneWrapperAfterNoteId(remdo: RemdoTestApi, noteId: string): SerializedNoteListItemNode {
+  const listNode = getSerializedRootListNode(remdo);
+  const children = listNode.children as SerializedNoteListItemNode[];
+  const index = children.findIndex((child) => child.type === 'listitem' && child.noteId === noteId);
+  return structuredClone(children[index + 1]!);
+}
+
+function setSerializedText(node: SerializedLexicalNode, text: string): void {
+  if (node.type === 'text') {
+    (node as SerializedTextNode).text = text;
+    return;
+  }
+
+  const children = getSerializedNodeChildren(node);
+  for (const child of children) {
+    if (child.type === 'text') {
+      (child as SerializedTextNode).text = text;
+      return;
+    }
+  }
+}
+
+function collectOutlineNoteIds(outline: ReturnType<typeof readOutline>): string[] {
+  return flattenOutline(outline)
+    .map((node) => node.noteId)
+    .filter((noteId): noteId is string => typeof noteId === 'string');
+}
+
+function findOutlineNodeByText(outline: ReturnType<typeof readOutline>, text: string) {
+  return flattenOutline(outline).find((node) => node.text === text) ?? null;
+}
+
+describe('note ids on paste', () => {
+  it('assigns a fresh noteId when pasting a copied note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await copySelection(remdo);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: null, text: 'note2' },
+    ]);
+
+    const outline = readOutline(remdo);
+    const noteIds = outline.map((note) => note.noteId);
+    const pastedNote = outline.at(-1);
+    expect(pastedNote?.text).toBe('note2');
+    expect(pastedNote?.noteId).not.toBe('note2');
+    expect(new Set(noteIds).size).toBe(outline.length);
+  });
+
+  it('pasting a note over a body-text selection does not replace the owner note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A selection wholly inside note1's body is inline (the body is its own
+    // region), so pasting a copied note must edit the body text, never run a
+    // structural replace of note1. Regression: body-aware head resolution used to
+    // map the body-local selection to a one-note structural head.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'bodytext');
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await copySelection(remdo);
+
+    // Select all of note1's body text, then paste the copied note onto it.
+    await remdo.mutate(() => {
+      const body = getNoteBody($findNoteById('note1')!)!;
+      body.select(0, body.getChildrenSize());
+    });
+    await pastePayload(remdo, clipboardPayload);
+
+    // note1 survives (was not structurally replaced) and note2 is untouched.
+    const outline = readOutline(remdo);
+    expect(outline.find((note) => note.noteId === 'note1')).toBeDefined();
+    expect(outline.find((note) => note.noteId === 'note2')?.text).toBe('note2');
+  });
+
+  it('assigns fresh noteIds when pasting multiple copied notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectNoteRange(remdo, 'note1', 'note2');
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+    });
+    const clipboardPayload = await copySelection(remdo);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: null, text: 'note1' },
+      { noteId: null, text: 'note2' },
+    ]);
+
+    const outline = readOutline(remdo);
+    const noteIds = outline.map((note) => note.noteId);
+    expect(new Set(noteIds).size).toBe(outline.length);
+  });
+
+  it('preserves a note link when a copied note is pasted into a body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A body is rich text, so pasting copied note content into it must keep
+    // inline rich nodes (note links, formatting) rather than flatten to plain
+    // text. note1 gets a note link, is copied, then pasted into note3's body.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' @note2');
+    await pressKey(remdo, { key: 'Enter' });
+
+    await selectStructuralNotes(remdo, 'note1');
+    const clipboardPayload = await copySelection(remdo);
+
+    // Give note3 a body and put the caret in it, then paste.
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await pastePayload(remdo, clipboardPayload);
+
+    // Two note links now exist: note1's original and the one preserved in the
+    // body (not downgraded to plain text, which would leave only one).
+    const rootListNode = getSerializedRootListNode(remdo) as SerializedLexicalNode;
+    const links = collectSerializedNoteLinksInNodes([rootListNode]);
+    expect(links.filter((link) => link.noteId === 'note2')).toHaveLength(2);
+  });
+
+  it('pasting a multi-note payload into a body uses line breaks, not literal newlines', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A multi-note structural payload can't live in a body as structure, so it
+    // flattens to text — but the body's line representation is LineBreakNodes,
+    // not literal "\n" in a text node (the body line nav scans for LineBreakNode
+    // children). Copy two notes, paste into note3's body, expect a line break.
+    await selectNoteRange(remdo, 'note1', 'note2');
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+    });
+    const clipboardPayload = await copySelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await pastePayload(remdo, clipboardPayload);
+
+    const lineBreaks = remdo.editor.getEditorState().read(() => {
+      const body = getNoteBody($findNoteById('note3')!)!;
+      return body.getChildren().filter($isLineBreakNode).length;
+    });
+    expect(lineBreaks).toBeGreaterThan(0);
+  });
+
+  it('materializes same-document note-link docId in clipboard payload', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' @note2');
+    await pressKey(remdo, { key: 'Enter' });
+
+    await selectStructuralNotes(remdo, 'note1');
+    const clipboardPayload = await copySelection(remdo);
+    const copiedLink = findSerializedNoteLinkInNodes(clipboardPayload.nodes as SerializedLexicalNode[])!;
+    // Clipboard payload must be self-contained across browser contexts, so same-doc links carry docId here.
+    expect(copiedLink.docId).toBe(remdo.getCollabDocId());
+    expect(copiedLink.noteId).toBe('note2');
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    const copiedNotes = flattenOutline(readOutline(remdo)).filter((node) => node.text === 'note1 note2 ');
+    const pastedNoteId = copiedNotes.at(-1)!.noteId!;
+    const rootListNode = getSerializedRootListNode(remdo) as SerializedLexicalNode;
+    const pastedListItem = findSerializedListItem(rootListNode, pastedNoteId)!;
+    const pastedLink = findSerializedNoteLink(pastedListItem)!;
+    expect(pastedLink.noteId).toBe('note2');
+    expect(pastedLink.docId).toBe(remdo.getCollabDocId());
+  });
+
+  it('materializes explicit docId for every note link in structural cut clipboard payloads', meta({ fixture: 'links' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note1');
+    const cutPayload = (await cutSelection(remdo)) as { remdoCut?: boolean; nodes?: SerializedLexicalNode[] };
+    expect(cutPayload.remdoCut).toBe(true);
+
+    const links = collectSerializedNoteLinksInNodes(cutPayload.nodes);
+    const sameDocLink = links.find((link) => link.noteId === 'note2')!;
+    const crossDocLink = links.find((link) => link.noteId === 'remoteNote')!;
+
+    expect(sameDocLink.docId).toBe(remdo.getCollabDocId());
+    expect(crossDocLink.docId).toBe('otherDoc');
+  });
+
+  it(
+    'preserves the source docId when same-document note links are pasted into another document',
+    meta({ fixture: 'links' }),
+    async ({ remdo }) => {
+      // The `links` fixture includes a same-document note link in note1 -> note2.
+      await selectStructuralNotes(remdo, 'note1');
+      const clipboardPayload = await copySelection(remdo);
+      const sourceDocId = remdo.getCollabDocId();
+      const copiedClipboardLink = findSerializedNoteLinkInNodes(clipboardPayload.nodes as SerializedLexicalNode[])!;
+      expect(copiedClipboardLink.noteId).toBe('note2');
+      // Clipboard payload must still carry explicit docId so links remain self-contained across browser boundaries.
+      expect(copiedClipboardLink.docId).toBe(sourceDocId);
+
+      const destinationDocId = createUniqueNoteId();
+
+      const { api: destination, unmount } = await renderRemdoEditor(destinationDocId);
+      try {
+        // Cross-browser paste has no shared runtime between editors; destination can only rely on clipboard payload.
+        const insertionNoteId = readOutline(destination).at(-1)!.noteId!;
+        await placeCaretAtNote(destination, insertionNoteId, Number.POSITIVE_INFINITY);
+        await pastePayload(destination, clipboardPayload);
+
+        // Pasting at end of the last root note inserts the new note as the new last root note in this fixture.
+        const pastedNoteId = readOutline(destination).at(-1)!.noteId!;
+        const rootListNode = getSerializedRootListNode(destination) as SerializedLexicalNode;
+        const pastedListItem = findSerializedListItem(rootListNode, pastedNoteId)!;
+        const pastedLink = findSerializedNoteLink(pastedListItem)!;
+        expect(pastedLink.noteId).toBe('note2');
+        expect(pastedLink.docId).toBe(sourceDocId);
+      } finally {
+        unmount();
+      }
+    }
+  );
+
+  it('regenerates noteIds when pasting over a note range', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+
+    const clipboardPayload = await copySelection(remdo);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: null, text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    const outline = readOutline(remdo);
+    expect(outline[1]?.noteId).not.toBe('note2');
+  });
+
+  it('regenerates noteIds inside clipboard payloads that contain duplicates', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+
+    const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
+    const listNode = clipboardPayload.nodes[0] as { children: SerializedLexicalNode[] };
+    const firstChild = listNode.children[0]!;
+    const duplicate = structuredClone(firstChild);
+    listNode.children.push(duplicate);
+
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: null, text: 'note2' },
+      { noteId: null, text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    const outline = readOutline(remdo);
+    const noteIds = outline.map((note) => note.noteId);
+    expect(new Set(noteIds).size).toBe(outline.length);
+  });
+
+  it('assigns fresh noteIds when clipboard payload omits them (including nested)', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    const parent = cloneSerializedListItemByNoteId(remdo, 'note1');
+    const wrapper = cloneWrapperAfterNoteId(remdo, 'note1');
+    delete parent.noteId;
+    setSerializedText(parent, 'pasted parent');
+
+    const nested = findSerializedListItem(wrapper, 'note2')!;
+    delete nested.noteId;
+    setSerializedText(nested, 'pasted child');
+
+    const clipboardPayload = buildCustomClipboardPayload(remdo, [parent, wrapper]);
+    await placeCaretAtNote(remdo, 'note6', Number.POSITIVE_INFINITY);
+
+    await pastePayload(remdo, clipboardPayload);
+
+    const outline = readOutline(remdo);
+    const pastedParent = findOutlineNodeByText(outline, 'pasted parent');
+    const pastedChild = findOutlineNodeByText(outline, 'pasted child');
+    expect(pastedParent?.noteId).toEqual(expect.any(String));
+    expect(pastedChild?.noteId).toEqual(expect.any(String));
+    expect(pastedParent?.noteId).not.toBe('note1');
+    expect(pastedChild?.noteId).not.toBe('note2');
+
+    const noteIds = collectOutlineNoteIds(outline);
+    expect(new Set(noteIds).size).toBe(noteIds.length);
+  });
+
+  it('regenerates ids when replacing multi-note ranges', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    await selectStructuralNotesByDomRange(remdo, 'note1', 'note6');
+    expect(remdo).toMatchSelection({
+      state: 'structural',
+      notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'],
+    });
+
+    const note2 = cloneSerializedListItemByNoteId(remdo, 'note2');
+    const note7 = cloneSerializedListItemByNoteId(remdo, 'note7');
+    const clipboardPayload = buildCustomClipboardPayload(remdo, [note2, note7]);
+
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: null, text: 'note2' },
+      { noteId: null, text: 'note7' },
+    ]);
+  });
+
+  it('regenerates ids for range selections that span notes (snaps to structural)', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectNoteRange(remdo, 'note1', 'note2');
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+
+    const note2 = cloneSerializedListItemByNoteId(remdo, 'note2');
+    const clipboardPayload = buildCustomClipboardPayload(remdo, [note2]);
+
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: null, text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('regenerates duplicate noteIds across parent/child clipboard nodes', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    const parent = cloneSerializedListItemByNoteId(remdo, 'note1');
+    const wrapper = cloneWrapperAfterNoteId(remdo, 'note1');
+    parent.noteId = 'dup';
+    setSerializedText(parent, 'dup parent');
+
+    const nested = findSerializedListItem(wrapper, 'note2')!;
+    nested.noteId = 'dup';
+    setSerializedText(nested, 'dup child');
+
+    const clipboardPayload = buildCustomClipboardPayload(remdo, [parent, wrapper]);
+
+    await placeCaretAtNote(remdo, 'note6', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    const outline = readOutline(remdo);
+    const dupParent = findOutlineNodeByText(outline, 'dup parent');
+    const dupChild = findOutlineNodeByText(outline, 'dup child');
+    expect(dupParent?.noteId).toEqual(expect.any(String));
+    expect(dupChild?.noteId).toEqual(expect.any(String));
+    expect(dupParent?.noteId).not.toBe('dup');
+    expect(dupChild?.noteId).not.toBe('dup');
+
+    const noteIds = collectOutlineNoteIds(outline);
+    expect(new Set(noteIds).size).toBe(noteIds.length);
+  });
+
+  it('regenerates noteIds that equal the document id', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const docId = remdo.getCollabDocId();
+    const docNote = cloneSerializedListItemByNoteId(remdo, 'note2');
+    docNote.noteId = docId;
+    setSerializedText(docNote, 'doc-id');
+    const clipboardPayload = buildCustomClipboardPayload(remdo, [docNote]);
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: null, text: 'doc-id' },
+    ]);
+
+    const insertedId = findOutlineNodeByText(readOutline(remdo), 'doc-id')?.noteId;
+    expect(insertedId).toBeTruthy();
+    expect(insertedId).not.toBe(docId);
+  });
+
+  it('regenerates noteIds for repeated pastes of the same payload', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await copySelection(remdo);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+
+    await pastePayload(remdo, clipboardPayload);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: null, text: 'note2' },
+      { noteId: null, text: 'note2' },
+    ]);
+
+    const outline = readOutline(remdo);
+    const first = outline[3]?.noteId;
+    const second = outline[4]?.noteId;
+    expect(first).not.toBe('note2');
+    expect(second).not.toBe('note2');
+    expect(first).not.toBe(second);
+  });
+
+  it('restores copied content when pasting over an edited note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await copySelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' edited');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2 edited' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    await selectStructuralNotes(remdo, 'note2');
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: null, text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    const outline = readOutline(remdo);
+    expect(outline[1]?.noteId).not.toBe('note2');
+  });
+
+  it('marks structural cut clipboard payloads as cut', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const payload = (await cutSelection(remdo)) as { remdoCut?: boolean };
+    expect(payload.remdoCut).toBe(true);
+  });
+
+  it('keeps inline text cuts within a single note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const note2Text = getNoteTextNode(remdo, 'note2');
+    await dragDomSelectionBetween(note2Text, 0, note2Text, 2);
+
+    const payload = (await cutSelection(remdo)) as { remdoCut?: boolean };
+    expect(payload.remdoCut).not.toBe(true);
+
+    const outline = readOutline(remdo);
+    expect(outline).toHaveLength(3);
+    expect(outline[1]?.text).toBe('te2');
+  });
+
+  it('preserves noteIds when cutting and pasting back in place', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('inserts multi-note cuts at a caret inside note text without replacing surrounding text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2', 'note3');
+    const clipboardPayload = await cutSelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note1', 1);
+
+    await pastePayload(remdo, clipboardPayload);
+
+    // Expected: split at the caret offset and insert the cut notes between prefix/suffix.
+    expect(remdo).toMatchOutline([
+      { noteId: null, text: 'n' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note1', text: 'ote1' },
+    ]);
+  });
+
+  it('preserves noteIds when cutting and pasting a note elsewhere', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2' },
+    ]);
+  });
+
+  it('clears cut markers after a copy', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const cutPayload = await cutSelection(remdo);
+
+    await selectStructuralNotes(remdo, 'note1');
+    await copySelection(remdo);
+
+    const expectedOutline = readOutline(remdo);
+
+    // Paste uses the old cut payload instead of the new paste on purpose; with the marker cleared, it should be a no-op.
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, cutPayload);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+  });
+
+  it('replaces the cut marker with the most recent cut', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    //cut 1
+    await selectStructuralNotes(remdo, 'note2');
+    await cutSelection(remdo);
+    //cut 2
+    await selectStructuralNotes(remdo, 'note1');
+    const cutPayload = await cutSelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+
+    //paste cut 2
+    await pastePayload(remdo, cutPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note1', text: 'note1' },
+    ]);
+  });
+
+  it('clears cut markers after pasting a non-cut payload', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const cutPayload = await cutSelection(remdo);
+    await selectStructuralNotes(remdo, 'note1');
+    const copyPayload = await copySelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, copyPayload);
+
+    const expectedOutline = readOutline(remdo);
+
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, cutPayload);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+  });
+
+  it('collapses the note range after cutting multiple notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2', 'note3');
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+    await cutSelection(remdo);
+
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+  });
+
+  it('collapses multi-note inline selection after cut to the visual start', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectNoteRange(remdo, 'note3', 'note2');
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    });
+
+    await cutSelection(remdo);
+
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+  });
+
+  it('drops cut markers after local edits', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' edited');
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2 edited' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('pasting inside a cut note\'s own body is a no-op and leaves the cut pending', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Cut note2 (with a body), then paste with the caret inside note2's body.
+    // The body is inside the cut boundary, so per docs/specs/outliner/clipboard.md the
+    // paste does nothing and the cut stays pending — no text is inserted into the
+    // body and the note is not duplicated.
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'body');
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    // Caret inside note2's own body, then paste the cut.
+    await remdo.mutate(() => {
+      getNoteBody($findNoteById('note2')!)!.selectEnd();
+    });
+    await pastePayload(remdo, clipboardPayload);
+
+    // No-op: note2 unchanged (body not duplicated), nothing moved.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', body: 'body' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    // The cut is still pending: pasting elsewhere now moves note2.
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2', body: 'body' },
+    ]);
+  });
+
+  it('pasting a cut into a non-cut note\'s body is an interim no-op (cut stays pending)', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A body can't structurally hold notes, so there is no valid move target.
+    // Interim behavior (final semantics deferred to the cut/paste redesign, see
+    // docs/legacy-backlog.md#note-body-follow-ups): the paste does nothing and
+    // the cut stays pending — it must never inject list nodes into the body nor
+    // copy the text without moving.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'b1');
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    // Caret inside note1's body (note1 is NOT cut), then paste the cut.
+    await remdo.mutate(() => {
+      getNoteBody($findNoteById('note1')!)!.selectEnd();
+    });
+    await pastePayload(remdo, clipboardPayload);
+
+    // No-op: note1's body unchanged, note2 still in place.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'b1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    // Cut still pending: pasting elsewhere completes the move.
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'b1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2' },
+    ]);
+  });
+
+  it('drops cut markers after editing a cut note\'s body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Give note2 a body, cut it, then edit inside the body. The body is part of
+    // the cut note, so the edit must cancel the pending cut — a later paste does
+    // not move the (now-edited) note.
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'body');
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    // Edit inside note2's body.
+    await remdo.mutate(() => {
+      getNoteBody($findNoteById('note2')!)!.selectEnd();
+    });
+    await typeText(remdo, ' more');
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', body: 'body more' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('drops cut markers after local deletions', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Backspace' });
+
+    const expectedOutline = [
+      { noteId: 'note1', text: 'note1 note2' },
+      { noteId: 'note3', text: 'note3' },
+    ];
+    await waitFor(() => {
+      expect(remdo).toMatchOutline(expectedOutline);
+    });
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+  });
+
+  it('drops cut markers after structural edits', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Tab' });
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+
+    const expectedOutline = readOutline(remdo);
+
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+  });
+
+  it('drops cut markers after inserts inside the cut boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2', 'note3');
+    const clipboardPayload = await cutSelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter' });
+
+    const expectedOutline = readOutline(remdo);
+
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+  });
+
+  it('treats structural pastes inside a cut subtree as a no-op', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    const expectedOutline = readOutline(remdo);
+
+    await selectStructuralNotes(remdo, 'note2');
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2' },
+    ]);
+  });
+
+  it('treats caret paste inside a cut subtree as a no-op', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    const expectedOutline = readOutline(remdo);
+
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2' },
+    ]);
+  });
+
+  it('treats a second paste after cut as a no-op', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    const expectedOutline = readOutline(remdo);
+
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+  });
+});

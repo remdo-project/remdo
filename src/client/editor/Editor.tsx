@@ -18,6 +18,7 @@ import { NoteBodyPlugin } from './features/note-body/NoteBodyPlugin';
 import { LinksPlugin } from './plugins/LinksPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import { NoteIdPlugin } from './plugins/NoteIdPlugin';
+import { ClipboardPlugin } from './plugins/ClipboardPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
 import { KeymapPlugin } from './plugins/KeymapPlugin';
 import { StatusIndicators } from './StatusIndicators';
@@ -104,6 +105,7 @@ function EditorRuntime({
           {schemaReady ? (
             <>
               <NoteIdPlugin />
+              <ClipboardPlugin />
               <KeymapPlugin />
               <IndentationPlugin />
               <ReorderingPlugin />
