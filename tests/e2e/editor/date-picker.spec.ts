@@ -191,13 +191,11 @@ test.describe('date picker (docs/specs/outliner/dates.md)', () => {
     expect(dayBeforeTabbing).not.toBeNull();
 
     // Per the APG grid pattern the whole day grid is a single Tab stop, so the
-    // cycle is: cancel, commit, previous month, next month, the focused day, and
-    // back. A regression that made every day cell tabbable walked Tab through the
+    // cycle is: previous month, next month, the focused day, and back. A
+    // regression that made every day cell tabbable walked Tab through the
     // adjacent month's days one at a time, so this asserts the landing points,
     // not merely that focus stayed inside.
     const cycle = [
-      'control:Cancel',
-      'control:OK',
       'control:Previous',
       'control:Next',
       `day:${dayBeforeTabbing}`,
@@ -213,9 +211,9 @@ test.describe('date picker (docs/specs/outliner/dates.md)', () => {
       landings.push(await page.evaluate(() => {
         const active = document.activeElement;
         if (!(active instanceof HTMLElement)) return 'none';
-        if (active.dataset.datePickerDay) return `day:${active.dataset.datePickerDay}`;
-        // Month nav is labelled; the action buttons name themselves by text.
-        return `control:${active.getAttribute('aria-label') ?? active.textContent}`;
+        return active.dataset.datePickerDay
+          ? `day:${active.dataset.datePickerDay}`
+          : `control:${active.getAttribute('aria-label')}`;
       }));
     }
 
@@ -228,28 +226,6 @@ test.describe('date picker (docs/specs/outliner/dates.md)', () => {
     await page.keyboard.press('Escape');
     await expect(anyDay(page)).toHaveCount(0);
     expect(await focusIsInside(page, '.editor-input')).toBe(true);
-  });
-
-  test('the OK button commits the focused day and Cancel discards', async ({ page, editor }) => {
-    // Pointer-reachable commit and cancel (docs/specs/outliner/dates.md): without
-    // them neither action is discoverable with a mouse.
-    await editor.load('basic');
-    await openInsertPicker(page);
-    const panel = datePickerPanel(page);
-
-    // Cancel closes with nothing inserted.
-    await panel.getByRole('button', { name: 'Cancel' }).click();
-    await expect(anyDay(page)).toHaveCount(0);
-    await expect(dateTokens(page)).toHaveCount(0);
-
-    // OK commits the focused day — navigate first so it is not simply today.
-    await openInsertPicker(page);
-    await page.keyboard.press('ArrowDown');
-    const focused = await focusedDay(page);
-    await panel.getByRole('button', { name: 'OK' }).click();
-    await expect(anyDay(page)).toHaveCount(0);
-    await expect(dateTokens(page)).toHaveCount(1);
-    expect(focused).not.toBeNull();
   });
 
   test('exactly one day cell is in the tab order', async ({ page, editor }) => {

@@ -1,6 +1,5 @@
 import { getLocalTimeZone, isToday, parseDate } from '@internationalized/date';
-import { use } from 'react';
-import { Button, Calendar, CalendarCell, CalendarGrid, CalendarGridBody, CalendarGridHeader, CalendarHeaderCell, CalendarStateContext, Dialog, Heading } from 'react-aria-components';
+import { Button, Calendar, CalendarCell, CalendarGrid, CalendarGridBody, CalendarGridHeader, CalendarHeaderCell, Dialog, Heading } from 'react-aria-components';
 import { FocusScope } from 'react-aria';
 
 type DatePickerMode = 'edit' | 'insert';
@@ -10,35 +9,6 @@ interface DatePickerPanelProps {
   mode: DatePickerMode;
   onChange: (isoDate: string | null) => void;
   onCancel?: () => void;
-}
-
-// Commit and cancel as pointer-reachable controls, per the APG date picker
-// dialog. Keyboard users commit with Enter/Space on a day and cancel with
-// Escape; without these, neither action is discoverable with a mouse.
-// Rendered inside <Calendar> so it can read the focused day from context.
-function DialogActions({ onCommit, onCancel }: {
-  onCommit: (isoDate: string) => void;
-  onCancel?: () => void;
-}) {
-  const state = use(CalendarStateContext);
-
-  // Plain buttons, not RAC <Button>: inside <Calendar> that requires a `slot`
-  // naming one of the calendar's own controls, and these need no press synthesis.
-  return (
-    <div className="date-picker-actions">
-      <button type="button" className="date-picker-action" onClick={() => onCancel?.()}>
-        Cancel
-      </button>
-      <button
-        type="button"
-        className="date-picker-action date-picker-action-primary"
-        // Commits the focused day, matching what Enter/Space would commit.
-        onClick={() => state && onCommit(state.focusedDate.toString())}
-      >
-        OK
-      </button>
-    </div>
-  );
 }
 
 // A modal calendar dialog (docs/specs/outliner/dates.md). React Aria owns the
@@ -92,7 +62,6 @@ export function DatePickerPanel({ isoDate, mode, onChange, onCancel }: DatePicke
               )}
             </CalendarGridBody>
           </CalendarGrid>
-          <DialogActions onCommit={onChange} onCancel={onCancel} />
         </Calendar>
         </Dialog>
       </div>
