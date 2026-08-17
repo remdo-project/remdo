@@ -34,6 +34,11 @@ describe('remdo/editor-module-boundaries', () => {
           filename: path.resolve('src/client/app/router.tsx'),
           code: `import { x } from '${FORBIDDEN}';`,
         },
+        {
+          name: 'a directory listed as ungoverned is exempt',
+          filename: path.join(EDITOR, 'dev/VanillaLexicalEditor.tsx'),
+          code: `import { x } from '${FORBIDDEN}';`,
+        },
       ],
       invalid: [
         {
@@ -42,6 +47,15 @@ describe('remdo/editor-module-boundaries', () => {
           name: 'a relative specifier is resolved to its bucket',
           filename: OUTLINE_FILE,
           code: `import { x } from '../features/zoom/zoom-root';`,
+          errors: [{ messageId: 'forbidden' }],
+        },
+        {
+          // A directory barrel specifier has no slash, so it must resolve to
+          // that directory rather than read as a loose root module — otherwise
+          // every barrel bypasses its own boundary.
+          name: 'a directory barrel resolves to its directory, not the root bucket',
+          filename: OUTLINE_FILE,
+          code: `import { x } from '#client/editor/note-sdk-adapters';`,
           errors: [{ messageId: 'forbidden' }],
         },
         {
@@ -69,6 +83,14 @@ describe('remdo/editor-module-boundaries', () => {
           filename: EXCUSED_FILE,
           code: `import { x } from '#client/editor/runtime/note-id-state';`,
           errors: [{ messageId: 'staleException' }],
+        },
+        {
+          // Fails closed: a directory nobody placed in the graph would
+          // otherwise import anything unchecked.
+          name: 'an editor directory absent from the graph is reported',
+          filename: path.join(EDITOR, 'zz-unconfigured/module.ts'),
+          code: `import { x } from '${FORBIDDEN}';`,
+          errors: [{ messageId: 'unconfiguredBucket' }],
         },
         {
           name: 'an exception excuses only the bucket it names',
