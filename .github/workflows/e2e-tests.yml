@@ -37,10 +37,6 @@ jobs:
 
       - name: Run Playwright E2E suite
         env:
-          # The suite runs ~360s on a standard runner: its two cores are the
-          # constraint, not suite size or any one slow test. The same 168 tests
-          # take 107s on 10 cores, 141s on 4, and 242s on 2. Keep enough headroom
-          # that ordinary runner variance does not read as a failure.
           TEST_TIMEOUT: 600
         run: pnpm run test:e2e
 
