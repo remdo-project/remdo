@@ -20,6 +20,10 @@ export default defineConfig({
   ],
   use: {
     baseURL,
+    // Date labels and the calendar's month/weekday names follow the runtime
+    // locale, so pin it (and the zone) to keep assertions machine-independent.
+    locale: 'en-US',
+    timezoneId: 'UTC',
   },
   projects: [
     {

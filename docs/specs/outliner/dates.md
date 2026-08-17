@@ -5,7 +5,8 @@ RemDo-owned inline date tokens provide a picker and keyboard behavior in the out
 ## Core behavior
 
 1. Dates are non-text inline RemDo nodes with a stored ISO date (`YYYY-MM-DD`)
-   and a readable local label such as `Jun 10, 2026`.
+   and a readable label formatted for the reader's locale — `Jun 10, 2026` in
+   `en-US`. The stored ISO date is the durable value; the label is presentation.
 2. `!` is an inline trigger character; its open/dismiss/confirm lifecycle is the
    shared one in [Editor popups](./popups.md).
 3. The `!` picker is a **modal calendar dialog**: opening it moves focus into a
@@ -13,13 +14,22 @@ RemDo-owned inline date tokens provide a picker and keyboard behavior in the out
    with today (the user's local browser date) preselected.
 4. The calendar owns its keyboard while open: `ArrowLeft`/`Right` move by a day,
    `ArrowUp`/`Down` by a week, `Home`/`End` to the start/end of the week,
-   `PageUp`/`PageDown` by a month, `Shift+PageUp`/`PageDown` by a year. The editor
+   `PageUp`/`PageDown` by a month, `Shift+PageUp`/`PageDown` by a year. Day
+   movement crosses month boundaries, paging the visible month with it. The editor
    caret does not move under the open grid.
-5. `Enter` or `Space` commits the focused day; a primary-button click commits the
-   clicked day. `Escape` — and `Tab` — cancel the calendar and restore the caret
-   to the editor. Committing inserts a date node plus a trailing space over the
-   [pinned `!` span](./popups.md#shared-editor-popup-contract).
-6. Clicking, or `Enter`/`Space` on a selected date token, opens the same calendar
+5. The calendar has its own chrome: month and year pickers naming the visible
+   month, previous- and next-month controls, and localized weekday column
+   headers. Choosing a month or year moves the visible month without committing
+   a date. Today and the selected day are each distinguishable from an ordinary
+   day. Choosing a day is the only commit action; the calendar has no separate
+   confirm or cancel button.
+6. `Enter` or `Space` commits the focused day; a primary-button click commits the
+   clicked day. `Escape` cancels the calendar and restores the caret to the
+   editor. `Tab` cycles focus within the dialog's own controls (the month
+   navigation, the month and year pickers, and the grid, which is a single tab
+   stop) and never leaves it. Committing inserts a date node plus a trailing
+   space over the [pinned `!` span](./popups.md#shared-editor-popup-contract).
+7. Clicking, or `Enter`/`Space` on a selected date token, opens the same calendar
    in *edit* mode over that node. It is opened from a committed token rather than
    a trigger session, so the trigger lifecycle does not apply, but the in-calendar
    keyboard contract is identical — except commit updates the existing token
@@ -51,8 +61,6 @@ RemDo-owned inline date tokens provide a picker and keyboard behavior in the out
 - Let users edit a date node as ordinary text while preserving date identity
   when possible.
 - Support typed date queries or natural-language date parsing after `!`.
-- Give the calendar its own chrome and have `Tab` cycle its month and year
-  navigation controls within the dialog.
 
 ## References
 
