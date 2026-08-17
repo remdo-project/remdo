@@ -48,6 +48,7 @@
   margin-bottom: 0.35rem;
 }
 
+/* An <h2>, whose UA font-size Mantine's reset does not normalize. */
 .date-picker-title {
   font-size: var(--mantine-font-size-sm);
   font-weight: 600;
@@ -123,8 +124,9 @@
   padding: 0.2rem 0;
 }
 
-/* A div with role="button" (see DatePickerPopover.tsx), so the centering and
-   type styling a native button would provide is set explicitly. */
+/* A div with role="button" (see DatePickerPopover.tsx), so the centering a
+   native button would provide is set explicitly. Type is inherited from the
+   panel. */
 .date-picker-day {
   display: flex;
   align-items: center;
@@ -134,7 +136,6 @@
   border-radius: var(--mantine-radius-xs);
   color: var(--mantine-color-dark-0);
   cursor: pointer;
-  font-size: var(--mantine-font-size-sm);
   user-select: none;
 }
 
