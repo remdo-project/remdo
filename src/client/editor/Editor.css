@@ -289,10 +289,6 @@
   outline: none;
 }
 
-.remdo-outline li.list-item:is(.list-item-checked, [data-note-checked='true']) {
-  text-decoration: line-through;
-}
-
 .remdo-outline ol.list-ol {
   counter-reset: remdo-ordered;
 }
@@ -347,8 +343,28 @@
   color: var(--mantine-color-dark-2);
 }
 
-.remdo-outline li.list-item.list-item-checked {
+/* Completion is the note's own: a note the user checked stays struck through
+   however its children later change. */
+.remdo-outline li.list-item[data-note-checked='true'] {
   --checkbox-mask-image: url('/icons/checkbox-checked.svg');
+  text-decoration: line-through;
+}
+
+/* The marker additionally reports the subtree, so a checked note holding open
+   work shows the mixed glyph — the only cue left once the note is folded. */
+.remdo-outline li.list-item[data-note-subtree='mixed'] {
+  --checkbox-mask-image: url('/icons/checkbox-mixed.svg');
+}
+
+/* Open work under a checked note is dimmed so it stays legible as unfinished
+   rather than reading as done along with its parent. The flag sits on the
+   children-wrapper, which holds the whole subtree, and checked descendants are
+   excluded because they read as done in their own right. This is editable text,
+   so the dim step stops at dark-2, which still clears the 4.5:1 contrast floor. */
+.remdo-outline
+  li.list-nested-item[data-note-under-checked='true']
+  li.list-item:not([data-note-checked='true']) {
+  color: var(--mantine-color-dark-2);
 }
 
 .note-controls-layer {

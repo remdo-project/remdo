@@ -63,6 +63,16 @@ patchedDependencies:
   # Lexical V2 must ignore remote cursors mapped only to deleted text nodes.
   # Regression: tests/unit/collab/lexical-yjs-cursor-sync.collab.spec.ts.
   '@lexical/yjs@0.49.0': patches/@lexical__yjs@0.49.0.patch
+  # Lexical must not warn when its own commit machinery dispatches a mutating
+  # command: $updateDOMSelection sets the DOM selection during a commit, the
+  # browser fires selectionchange, and Lexical dispatches
+  # SELECTION_CHANGE_COMMAND while the committed state is still frozen. The
+  # v0.49.0 warning (facebook/lexical#8863) targets application code
+  # dispatching from editor.read() and does not exclude that internal path.
+  # The guard spans the whole commit, so it also silences a mutation or update
+  # listener dispatching a mutating command; revisit when upstream fixes this.
+  # Regression: tests/e2e/editor/checklist.spec.ts structural-selection cases.
+  lexical@0.49.0: patches/lexical@0.49.0.patch
 catalog:
   '@antfu/eslint-config': 9.3.0
   '@ast-grep/cli': ^0.45.1
