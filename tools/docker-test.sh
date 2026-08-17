@@ -652,8 +652,21 @@ if [[ "${autoheal_ready}" != "true" ]]; then
   echo "Production instance did not recover after Y-Sweet exited." >&2
   exit 1
 fi
-if ! docker logs "${PROD_BRIDGE_CONTAINER_NAME}" 2>&1 \
-  | grep -Fq 'Production service y-sweet exited unexpectedly with status'; then
+# Docker increments RestartCount when it decides to restart, which happens
+# before the supervisor's stderr reaches the log: the entrypoint echoes this
+# line and only then drains its children, and the old gateway keeps answering
+# /health while it drains. The autoheal gate above can therefore pass before
+# the line is readable, so poll for it instead of sampling once.
+supervisor_reported=false
+for _ in {1..80}; do
+  if docker logs "${PROD_BRIDGE_CONTAINER_NAME}" 2>&1 \
+    | grep -Fq 'Production service y-sweet exited unexpectedly with status'; then
+    supervisor_reported=true
+    break
+  fi
+  sleep 0.1
+done
+if [[ "${supervisor_reported}" != "true" ]]; then
   docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
   echo "Production instance log did not identify the failed Y-Sweet process." >&2
   exit 1
