@@ -30,6 +30,15 @@ export default defineConfig({
       ...(config.env.COLLAB_ENABLED ? [] : ['tests/unit/collab/**']),
     ],
     css: true,
+    // Date labels resolve their format from the runtime locale and zone
+    // (`formatDateNodeLabel`), so pin both to keep expected text
+    // machine-independent. LC_ALL is deliberately not set: it would leak into
+    // shell subprocesses that lack the locale. Node reads ICU's default from
+    // LANG, which every environment already accepts.
+    env: {
+      LANG: 'en_US.UTF-8',
+      TZ: 'UTC',
+    },
     slowTestThreshold: config.env.COLLAB_ENABLED ? 4000 : undefined,
     api: isVitestUi ? {
       host: config.env.HOST,

@@ -142,6 +142,23 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   dispatching `SET_NOTE_CHECKED_COMMAND`). Reroute it and cover with a test.
   The click's selection consequences stay with [Selection](specs/outliner/selection.md).
 
+- **React Aria overlay and focus primitives for editor popups.** The date
+  calendar now delegates its focus trap and keyboard to React Aria, leaving two
+  repository-owned mechanisms that predate it and serve the shared
+  [popup contract](specs/outliner/popups.md).
+  `focusModel: 'trap'` in `triggers/useTriggerSession.tsx` has a single
+  consumer (`DateInsertPlugin.tsx`); its commit-time focus restoration and the
+  blur-dismiss exemption exist only because the popup previously took focus
+  without a library-owned trap. `triggers/anchor.ts` positions every popup from
+  hand-computed caret and element rects with a fixed offset and no viewport
+  collision handling, so a picker opened near the viewport edge clips, while
+  React Aria's overlay positioning handles flipping and containment. Assess
+  whether the trap model can retire and whether the `@` picker, the calendar,
+  and the [Quick Action Menu](specs/outliner/menu.md) can share React Aria
+  overlay positioning; a caret-anchored popup has no trigger element, so
+  determine what it anchors to before committing to it. Land as its own change:
+  it alters popups this repository owns beyond dates.
+
 ### Agents
 
 - **Capability protocol adoption.** Identify agent capabilities used as

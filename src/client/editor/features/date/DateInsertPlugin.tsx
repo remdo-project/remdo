@@ -1,5 +1,5 @@
+import { getLocalTimeZone, today } from '@internationalized/date';
 import { $createTextNode } from 'lexical';
-import dayjs from 'dayjs';
 
 import { useTriggerSession } from '#client/editor/triggers/useTriggerSession';
 import type { TriggerSpec } from '#client/editor/triggers/types';
@@ -7,7 +7,8 @@ import { $createDateNode } from './date-node';
 import { DatePickerPanel } from './DatePickerPopover';
 
 function getTodayIsoDate(): string {
-  return dayjs().format('YYYY-MM-DD');
+  // CalendarDate is zone-free and stringifies as YYYY-MM-DD.
+  return today(getLocalTimeZone()).toString();
 }
 
 // Dates are inserted through `!`, an inline trigger character. The shared
