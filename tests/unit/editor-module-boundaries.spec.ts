@@ -45,6 +45,15 @@ describe('remdo/editor-module-boundaries', () => {
           errors: [{ messageId: 'forbidden' }],
         },
         {
+          // A directory barrel specifier has no slash, so it must resolve to
+          // that directory rather than read as a loose root module — otherwise
+          // every barrel bypasses its own boundary.
+          name: 'a directory barrel resolves to its directory, not the root bucket',
+          filename: OUTLINE_FILE,
+          code: `import { x } from '#client/editor/note-sdk-adapters';`,
+          errors: [{ messageId: 'forbidden' }],
+        },
+        {
           name: 're-export crosses a boundary like an import',
           filename: OUTLINE_FILE,
           code: `export { x } from '${FORBIDDEN}';`,
