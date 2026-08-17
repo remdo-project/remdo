@@ -6,7 +6,7 @@ import type { SerializedLexicalNode, SerializedTextNode } from 'lexical';
 import type { SerializedNoteLinkNode } from '#client/editor/runtime/note-link-node';
 import type { SerializedNoteListItemNode } from '#client/editor/runtime/serialized-note-types';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
-import { flattenOutline } from '#tests-common/outline';
+import { collectOutlineNoteIds, flattenOutline } from '#tests-common/outline';
 import {
   buildClipboardPayload,
   buildCustomClipboardPayload,
@@ -85,11 +85,6 @@ function setSerializedText(node: SerializedLexicalNode, text: string): void {
   }
 }
 
-function collectOutlineNoteIds(outline: ReturnType<typeof readOutline>): string[] {
-  return flattenOutline(outline)
-    .map((node) => node.noteId)
-    .filter((noteId): noteId is string => typeof noteId === 'string');
-}
 
 function findOutlineNodeByText(outline: ReturnType<typeof readOutline>, text: string) {
   return flattenOutline(outline).find((node) => node.text === text) ?? null;

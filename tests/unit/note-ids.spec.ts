@@ -2,7 +2,7 @@ import { $createListItemNode, $createListNode } from '@lexical/list';
 import { $createParagraphNode, $createTextNode, $getRoot, $setState } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 
-import { flattenOutline } from '#tests-common/outline';
+import { collectOutlineNoteIds } from '#tests-common/outline';
 import {
   placeCaretAtNote,
   pressKey,
@@ -12,11 +12,6 @@ import {
 import { createNoteIdAvoiding } from '#domain/notes/ids';
 import { noteIdState } from '#client/editor/runtime/note-id-state';
 
-function collectOutlineNoteIds(outline: ReturnType<typeof readOutline>): string[] {
-  return flattenOutline(outline)
-    .map((node) => node.noteId)
-    .filter((noteId): noteId is string => typeof noteId === 'string');
-}
 
 
 describe('note ids', () => {

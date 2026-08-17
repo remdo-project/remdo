@@ -1,7 +1,8 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { RuleTester } from 'eslint';
-import { describe, it } from 'vitest';
-import { editorModuleBoundariesRule } from '../../config/eslint/editorModuleBoundaries';
+import { describe, expect, it } from 'vitest';
+import { EXCEPTIONS, editorModuleBoundariesRule } from '../../config/eslint/editorModuleBoundaries';
 
 // Covers how the rule resolves specifiers and manages exceptions, not which
 // edges `ALLOWED` and `EXCEPTIONS` currently list — those tables are migration
@@ -100,5 +101,18 @@ describe('remdo/editor-module-boundaries', () => {
         },
       ],
     });
+  });
+
+  // The rule reports an exception whose *import* is gone, but only while
+  // linting that file — so an entry whose file was renamed or deleted is
+  // unreachable there, and that is the migration's main workflow. Auditing the
+  // inventory here keeps the list shrink-only through moves too, and unlike
+  // `lint:code` (which caches by content) this runs every time.
+  it('lists no exception whose file has been renamed or deleted', () => {
+    const missing = EXCEPTIONS
+      .map((entry) => entry.file)
+      .filter((file) => !fs.existsSync(path.join(EDITOR, file)));
+
+    expect(missing).toEqual([]);
   });
 });

@@ -97,6 +97,12 @@ export function flattenOutline(outline: Outline): OutlineNode[] {
   return flattened;
 }
 
+export function collectOutlineNoteIds(outline: Outline): string[] {
+  return flattenOutline(outline)
+    .map((node) => node.noteId)
+    .filter((noteId): noteId is string => typeof noteId === 'string');
+}
+
 export function mutateOutlineNoteIdWildcards(actual: Outline, expected: Outline): void {
   // Normalize actuals before comparison so we keep vitest's diff output while still allowing
   // `noteId: null` in expected outlines to mean "a valid generated noteId exists here, but don't care about the value".
