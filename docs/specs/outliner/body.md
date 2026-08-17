@@ -8,7 +8,9 @@ navigation, lifecycle, and merge behavior.
 
 1. **Add gesture.** `Shift+Enter` on a note adds a body below that note's content
    and moves the caret into it. If the note already has a body, the gesture moves
-   the caret to the start of the existing body instead of adding another.
+   the caret to the start of the existing body instead of adding another. The
+   gesture applies to a [caret or inline text selection](./selection.md#selection-states) in the note's
+   content and leaves that content text unchanged.
 2. **Ownership.** A note has at most one body, and a body belongs to that one
    note. The body travels with the note through indent/outdent, reorder,
    structural delete, and [clipboard](./clipboard.md) copy/cut/paste.

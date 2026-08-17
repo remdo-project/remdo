@@ -1,0 +1,39 @@
+diff --git a/dist/Lexical.dev.js b/dist/Lexical.dev.js
+index 7c6fbcfbbfdda3f79d3b41bec1640e60e1df479c..7c838691289f135efdc3e482d4276febc134b50c 100644
+--- a/dist/Lexical.dev.js
++++ b/dist/Lexical.dev.js
+@@ -12664,7 +12664,7 @@ function updateEditorSync(editor, updateFn, options) {
+       // routed to editor._onError rather than rethrown, so the mutation is
+       // silently dropped. Route through $beginUpdate instead, which starts a
+       // fresh writable update, so the work actually applies.
+-      {
++      if (!isCommittingPendingUpdates) {
+         console.warn(`updateEditorSync: an editor update (e.g. a command listener that ` + `mutates the editor) ran while a read-only context was on the ` + `stack. This most commonly happens when a command is dispatched ` + `from inside editor.read(). The update has been deferred to a ` + `fresh writable update so it still applies, but dispatching ` + `mutations from a read-only context is an anti-pattern — dispatch ` + `after editor.read() returns, or via queueMicrotask.`);
+       }
+       $beginUpdate(editor, updateFn, options);
+diff --git a/dist/Lexical.dev.mjs b/dist/Lexical.dev.mjs
+index 32aeb4eb929ac82d05988992e97ab3204bf698b4..a15f7b3f1d04b5e10e18d6c1f5bf204cc1e7bb86 100644
+--- a/dist/Lexical.dev.mjs
++++ b/dist/Lexical.dev.mjs
+@@ -12662,7 +12662,7 @@ function updateEditorSync(editor, updateFn, options) {
+       // routed to editor._onError rather than rethrown, so the mutation is
+       // silently dropped. Route through $beginUpdate instead, which starts a
+       // fresh writable update, so the work actually applies.
+-      {
++      if (!isCommittingPendingUpdates) {
+         console.warn(`updateEditorSync: an editor update (e.g. a command listener that ` + `mutates the editor) ran while a read-only context was on the ` + `stack. This most commonly happens when a command is dispatched ` + `from inside editor.read(). The update has been deferred to a ` + `fresh writable update so it still applies, but dispatching ` + `mutations from a read-only context is an anti-pattern — dispatch ` + `after editor.read() returns, or via queueMicrotask.`);
+       }
+       $beginUpdate(editor, updateFn, options);
+diff --git a/src/LexicalUpdates.ts b/src/LexicalUpdates.ts
+index 5fad1c4b5f20470b1335fdffc37ace2c93e95401..9af73f7d441023a26c03ec6ff3905a9bbe559d44 100644
+--- a/src/LexicalUpdates.ts
++++ b/src/LexicalUpdates.ts
+@@ -1291,7 +1291,7 @@ export function updateEditorSync(
+       // routed to editor._onError rather than rethrown, so the mutation is
+       // silently dropped. Route through $beginUpdate instead, which starts a
+       // fresh writable update, so the work actually applies.
+-      if (__DEV__) {
++      if (__DEV__ && !isCommittingPendingUpdates) {
+         console.warn(
+           `updateEditorSync: an editor update (e.g. a command listener that ` +
+             `mutates the editor) ran while a read-only context was on the ` +

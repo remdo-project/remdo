@@ -96,9 +96,11 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
-- **Inline-selection Enter behavior.** Decide and specify what `Enter` does for
-  a non-collapsed [inline text selection](specs/outliner/selection.md#selection-states)
-  in [Insertion](specs/outliner/insertion.md), then align implementation and automated coverage.
+- **Inline line breaks in note content.** [Body](specs/outliner/body.md#core-behavior) owns multi-line text, and
+  [Clipboard](specs/outliner/clipboard.md#inline-text-selection-single-note) turns multi-line plain text into notes, so a
+  [note's content text](specs/outliner/note-model.md#definitions) holds no line breaks. Neither the outline
+  schema nor its validator rejects one, leaving the invariant unenforced against
+  a handler or paste path that inserts a line break node into content.
 
 - **Current-location presentation ownership.** Before implementing the
   [view header](specs/outliner/view-header.md) alongside [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name
@@ -118,16 +120,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   as no-ops. Align shared body-to-owner resolution and add focused coverage for
   each affected command path.
 
-- **Tri-state checked rendering and toggle polarity.** Target behavior
-  ([List types](specs/outliner/list-types.md#checked-state)): a note whose
-  subtree is only partly checked displays as mixed, and toggling unchecks only
-  when the whole target subtree is already checked. The implementation renders
-  binary markers and computes toggle state from the targeted notes' own states
-  (`CheckListPlugin.tsx`: single-note opposite, `targets.every` over range
-  notes; asserted by `tests/unit/checklist-state.spec.ts`). Add mixed
-  rendering and subtree-driven polarity together, updating the tests in the
-  same change.
-
 - **Menu toggle inside a structural selection.** Target behavior
   ([Menu](specs/outliner/menu.md)): the note menu's toggle applies to the selected
   note range when the current note is inside it. The implementation always
@@ -135,12 +127,23 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   `CheckListPlugin.tsx`, asserted by `tests/unit/checklist-state.spec.ts`);
   adjust the resolution and tests.
 
-- **Check-marker click vs selection.** Target behavior ([toggle targets](specs/outliner/list-types.md#toggling)): a marker
-  click on a note inside a structural selection toggles the selected note
-  range; the implementation always toggles only the clicked note (the marker
-  click handler in `CheckListPlugin.tsx` sets state directly instead of
-  dispatching `SET_NOTE_CHECKED_COMMAND`). Reroute it and cover with a test.
-  The click's selection consequences stay with [Selection](specs/outliner/selection.md).
+- **Report the Lexical `updateEditorSync` warning upstream.** A commit that
+  moves the DOM selection emits a Lexical dev warning through an entirely
+  internal chain: `$commitPendingUpdates` → `$updateDOMSelection` →
+  `setDOMSelectionBaseAndExtent` → the browser's native `selectionchange` →
+  Lexical's `eventHandler` → `dispatchCommand(SELECTION_CHANGE_COMMAND)`, whose
+  `triggerCommandListeners` wraps the listener pump in `updateEditorSync`
+  whenever a listener set is non-empty — regardless of whether any listener
+  mutates. No repository-side change suppresses it; Lexical's own rich-text
+  listeners are enough to trigger it. The warning arrived in v0.49.0 with
+  [facebook/lexical#8863](https://github.com/facebook/lexical/pull/8863), whose
+  thread does not discuss this internal path, and no upstream issue reports it.
+  The [registered `lexical` patch](../pnpm-workspace.yaml) gates the warning on
+  `isCommittingPendingUpdates` meanwhile. That flag spans the whole commit, so
+  the patch also silences genuine repository-side mistakes — a mutation or
+  update listener dispatching a mutating command would now defer silently
+  instead of warning. File the upstream report, then drop the patch once a
+  release fixes it.
 
 - **React Aria overlay and focus primitives for editor popups.** The date
   calendar now delegates its focus trap and keyboard to React Aria, leaving two

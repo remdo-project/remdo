@@ -1,11 +1,18 @@
 import type { ListNode } from '@lexical/list';
+import { $isListItemNode } from '@lexical/list';
 import { $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
 
+import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { $getNoteChecked } from '#client/editor/runtime/checklist-state';
 import { SET_NOTE_CHECKED_COMMAND } from '#client/editor/commands';
+import { isContentItem } from '#client/editor/outline/list-structure';
+import { getWrapperForContent } from '#client/editor/outline/selection/tree';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getNoteElement, meta, placeCaretAtNote, selectNoteRange, setRawNoteCheckedState } from '#tests';
+
+const checkedStates = (remdo: RemdoTestApi, ...noteIds: string[]) =>
+  remdo.editor.getEditorState().read(() => noteIds.map((id) => $getNoteChecked($findNoteById(id)!)));
 
 it('stores checked state on bullet list items', meta({ fixture: 'flat' }), async ({ remdo }) => {
   await setRawNoteCheckedState(remdo, 'note1', true);
@@ -78,8 +85,9 @@ it('toggles checked state for the caret note on non-checklist lists', meta({ fix
 });
 
 it('toggles checked state recursively for the caret note subtree', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  // note2 owns note3, so checking both makes the whole subtree checked.
   await setRawNoteCheckedState(remdo, 'note2', true);
-  await setRawNoteCheckedState(remdo, 'note3', false);
+  await setRawNoteCheckedState(remdo, 'note3', true);
 
   await placeCaretAtNote(remdo, 'note2');
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
@@ -101,6 +109,104 @@ it('toggles checked state recursively for the caret note subtree', meta({ fixtur
     return [$getNoteChecked(note2), $getNoteChecked(note3), $getNoteChecked(note4)];
   });
   expect(afterUncheckedToggle).toEqual([true, true, undefined]);
+});
+
+it('completes a partly checked subtree instead of clearing it', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  // note2 is checked while its child note3 is not: the subtree is mixed.
+  await setRawNoteCheckedState(remdo, 'note2', true);
+
+  await placeCaretAtNote(remdo, 'note2');
+  await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
+
+  expect(checkedStates(remdo, 'note2', 'note3')).toEqual([true, true]);
+
+  // Only once the whole subtree is checked does toggling clear it.
+  await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
+
+  expect(checkedStates(remdo, 'note2', 'note3')).toEqual([undefined, undefined]);
+});
+
+it('computes range toggle polarity from the targets subtrees', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  // The range resolves to two root targets, note2 (which owns note3) and note4.
+  // Checking note2 and note4 alone leaves note2's subtree partly checked, so the
+  // range is not fully checked and toggling completes it.
+  await setRawNoteCheckedState(remdo, 'note2', true);
+  await setRawNoteCheckedState(remdo, 'note4', true);
+
+  await selectNoteRange(remdo, 'note2', 'note4');
+  expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+  await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
+
+  expect(checkedStates(remdo, 'note2', 'note3', 'note4')).toEqual([true, true, true]);
+});
+
+it('keeps a checked note complete while marking its subtree as mixed', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  // note2 owns note3. Checking note2 alone completes note2 and leaves note3 open.
+  await setRawNoteCheckedState(remdo, 'note2', true);
+
+  const note2 = getNoteElement(remdo, 'note2');
+  expect(note2.dataset.noteChecked).toBe('true');
+  expect(note2.dataset.noteSubtree).toBe('mixed');
+
+  // note1 owns note2, so its subtree is mixed too, but note1 is not itself done.
+  const note1 = getNoteElement(remdo, 'note1');
+  expect(note1.dataset.noteChecked).toBeUndefined();
+  expect(note1.dataset.noteSubtree).toBe('mixed');
+
+  // Completing the subtree clears the mixed marking.
+  await setRawNoteCheckedState(remdo, 'note3', true);
+  expect(getNoteElement(remdo, 'note2').dataset.noteSubtree).toBeUndefined();
+});
+
+it('marks the subtree of a checked note as open work', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  // The flag sits on the children-wrapper, the sibling right after the note.
+  const wrapperOf = (noteId: string) => {
+    const next = getNoteElement(remdo, noteId).nextElementSibling;
+    return next instanceof HTMLElement && next.classList.contains('list-nested-item') ? next : null;
+  };
+
+  await setRawNoteCheckedState(remdo, 'note2', true);
+  expect(wrapperOf('note2')?.dataset.noteUnderChecked).toBe('true');
+
+  // note4 is not checked, so nothing under it is marked as open work.
+  expect(wrapperOf('note4')?.dataset.noteUnderChecked).toBeUndefined();
+
+  // Unchecking the ancestor clears the marking for its whole subtree.
+  await setRawNoteCheckedState(remdo, 'note2', false);
+  expect(wrapperOf('note2')?.dataset.noteUnderChecked).toBeUndefined();
+});
+
+it('keeps the open-work marking when a checked note also has a body', meta({ fixture: 'large' }), async ({ remdo }) => {
+  // A body-wrapper is a ListItemNode whose next sibling is the note's own
+  // children-wrapper, so syncing one as if it were a note would clear the flag.
+  const childrenWrapperOf = (noteId: string) => {
+    let next = getNoteElement(remdo, noteId).nextElementSibling;
+    if (next?.classList.contains('note-body-wrapper')) {
+      next = next.nextElementSibling;
+    }
+    return next instanceof HTMLElement && next.classList.contains('list-nested-item') ? next : null;
+  };
+
+  // n2 carries both a body and children.
+  expect(getNoteElement(remdo, 'n2').nextElementSibling?.classList.contains('note-body-wrapper')).toBe(true);
+  expect(childrenWrapperOf('n2')).not.toBeNull();
+
+  await setRawNoteCheckedState(remdo, 'n2', true);
+  expect(childrenWrapperOf('n2')?.dataset.noteUnderChecked).toBe('true');
+
+  // The body-wrapper must not be treated as a note in its own right: its next
+  // sibling is the children-wrapper above, so resolving a wrapper for it would
+  // target — and clear — that same element.
+  const resolvedFromBodyWrapper = remdo.editor.getEditorState().read(() => {
+    const note = $findNoteById('n2')!;
+    const bodyWrapper = note.getNextSibling();
+    expect(isContentItem(bodyWrapper)).toBe(false);
+    return $isListItemNode(bodyWrapper) ? getWrapperForContent(bodyWrapper)?.getKey() ?? null : null;
+  });
+  const childrenWrapperKey = remdo.editor.getEditorState().read(() =>
+    getWrapperForContent($findNoteById('n2')!)?.getKey() ?? null
+  );
+  expect(resolvedFromBodyWrapper).toBe(childrenWrapperKey);
 });
 
 it('applies one target state to every note in the range when toggling', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {

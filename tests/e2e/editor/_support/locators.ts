@@ -19,6 +19,14 @@ export const datePickerWeekdays = (page: Page): Locator =>
 export const dateTokens = (page: Page): Locator =>
   editorLocator(page).locator('[data-date-node-key]');
 
+// The `:not(.list-nested-item)` guard excludes children-wrappers, so this matches
+// the note's own row rather than the wrapper that holds its subtree.
+export const noteRow = (page: Page, label: string): Locator =>
+  editorLocator(page)
+    .locator('li.list-item:not(.list-nested-item)')
+    .filter({ hasText: label })
+    .first();
+
 export async function setCaretAtText(
   page: Page,
   label: string,
