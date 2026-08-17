@@ -3,6 +3,7 @@ import antfu from '@antfu/eslint-config';
 import compatPlugin from 'eslint-plugin-compat';
 import lexicalPlugin from '@lexical/eslint-plugin';
 import { commandsInCommandsFileRule } from './config/eslint/commandsInCommandsFile';
+import { editorModuleBoundariesRule } from './config/eslint/editorModuleBoundaries';
 import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
 
 const importMetaEnvRestriction = {
@@ -306,6 +307,13 @@ export default antfu(
     },
   },
   {
+    files: ['src/client/editor/**/*.{ts,tsx,mts,cts}'],
+    ignores: [colocatedSpecGlob],
+    rules: {
+      'remdo/editor-module-boundaries': 'error',
+    },
+  },
+  {
     files: ['tests/**/*.{ts,tsx}', colocatedSpecGlob],
     languageOptions: {
       parserOptions: {
@@ -409,6 +417,7 @@ export default antfu(
       remdo: {
         rules: {
           'commands-in-commands-file': commandsInCommandsFileRule,
+          'editor-module-boundaries': editorModuleBoundariesRule,
           'no-legacy-fallbacks': noLegacyFallbacksRule,
         },
       },
