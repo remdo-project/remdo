@@ -15,7 +15,7 @@ import {
   $resolveRootContentList,
   resolveContentItemFromNode,
 } from '#client/editor/outline/schema';
-import { $resolveSelectedNoteRange } from '#client/editor/plugins/selected-note-range';
+import { $resolveSelectedNoteRange } from './selected-note-range';
 import { $selectItemEdge } from './caret';
 import { $resolveStructuralDeletionTargets, applyStructuralDeletionTargets } from './deletion';
 import { getFirstDescendantListItem } from './tree';
@@ -26,7 +26,7 @@ interface ResolvedDeletion {
   viewRoot: ListItemNode | null;
 }
 
-// Deletion targets for a resolved note range, plus the selection and zoom root
+// Deletion targets for a resolved note range, plus the selection and view root
 // the caret placement needs. Null when nothing is deletable. Non-mutating.
 function $resolveDeletionForRange(
   editor: LexicalEditor,

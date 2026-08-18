@@ -153,7 +153,7 @@ export function $computeProgressivePlan(
     // claims the event instead of falling through to the default browser Cmd+A.
     // Leave the ladder unchanged (don't persist the blocked rung).
     if (boundaryRoot) {
-      // Zoom boundary: clamp to the zoom root's subtree.
+      // View boundary: clamp to the view root's subtree.
       const clampedPlan = $createSubtreePlan(boundaryRoot);
       if (clampedPlan) {
         return { anchorKey, plan: clampedPlan };
@@ -244,7 +244,7 @@ export function $computeDirectionalPlan(
   const { ladder: next, plan } = $growLadder(base, anchorContent, direction, boundaryReplayKey, false);
 
   if (!plan) {
-    // Boundary push (past document/zoom root) — no-op, keep the current ladder.
+    // Boundary push (past document/view root) — no-op, keep the current ladder.
     return { noop: true };
   }
 
