@@ -17,7 +17,7 @@ import {
   selectEntireNote,
   typeText,
 } from '#tests';
-import { getNoteBody } from '#client/editor/features/note-body/note-body-ops';
+import { getNoteBody } from '#client/editor/outline/selection/body-region';
 
 async function pastePlainText(remdo: RemdoTestApi, text: string) {
   const transfer = createDataTransfer();

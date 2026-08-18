@@ -4,7 +4,7 @@ import type { LexicalNode, RangeSelection } from 'lexical';
 import { $getNodeByKey } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
-import { $getNoteBodyFromNode, $getNoteForBody } from '#client/editor/features/note-body/note-body-ops';
+import { $getNoteBodyFromNode, $getNoteForBody } from '#client/editor/outline/selection/body-region';
 import { getBodyWrapper, getPreviousContentSibling, isChildrenWrapper, isWrapperItem } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 
