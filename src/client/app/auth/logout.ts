@@ -32,7 +32,6 @@ async function signOutOnServer(): Promise<void> {
 }
 
 async function clearLocalData(): Promise<void> {
-  resetUserData();
   try {
     await clearLocalUserData();
   } catch {
@@ -47,10 +46,13 @@ async function clearLocalData(): Promise<void> {
  */
 export async function logoutCurrentUser(): Promise<void> {
   rememberPendingSignOut();
-  await Promise.race([signOutOnServer(), afterTimeout(SERVER_SIGN_OUT_TIMEOUT_MS)]);
 
+  // Stop the collaboration runtime first. It fetches document tokens against the
+  // session, so revoking while it is live races a request that then 401s.
+  resetUserData();
   forgetAuthenticatedSession();
   clearCurrentUserBootstrapCache();
 
+  await Promise.race([signOutOnServer(), afterTimeout(SERVER_SIGN_OUT_TIMEOUT_MS)]);
   await Promise.race([clearLocalData(), afterTimeout(LOCAL_CLEANUP_TIMEOUT_MS)]);
 }

@@ -199,13 +199,9 @@ Deferred hardening; long-horizon items live in
   Destructive actions such as logout should warn before clearing local Yjs data
   when offline edits have not synced to the server.
 - Local data wipe follow-up: add a separate "wipe this device" flow and design
-  the related UX, including unsynced local edits, server-offline behavior, and
-  open-tab IndexedDB cleanup blockers.
-- Logout cleanup follow-up: keep server sign-out available even when local
-  cleanup is incomplete, then design a user-visible warning/retry path for cases
-  where IndexedDB enumeration or deletion cannot confirm that Y-Sweet offline
-  data was removed. Until that UI exists, avoid silently claiming complete local
-  cleanup in unsupported browser storage environments.
+  the related UX, including unsynced local edits and server-offline behavior.
+  (The open-tab IndexedDB cleanup blocker is resolved: the provider closes its
+  connection on teardown, and a cross-tab sign-out tears peers down.)
 
 ## Admin enrollment follow-ups
 
