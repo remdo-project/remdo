@@ -6,10 +6,17 @@ import * as Y from 'yjs';
  * work may still be in flight. This interop layer defers the actual destroy
  * until those updates finish, so the BroadcastChannel is not closed underneath
  * a pending `handleUpdate()` continuation.
+ *
+ * It also closes the `IDBDatabase` handle, which Y-Sweet's own `destroy()`
+ * never does: it closes only the BroadcastChannel and the doc listener. A
+ * connection left open blocks `indexedDB.deleteDatabase()` indefinitely — the
+ * spec makes `blocked` an unbounded wait, not a failure — so logout could not
+ * clear local data even with a single tab open.
  */
 type ProviderWithDestroy = Provider & { destroy: () => void };
 
 interface IndexedDbProviderLike {
+  db?: { close?: () => void };
   doc?: Y.Doc;
   destroy: () => void;
   handleUpdate?: (update: Uint8Array, origin: unknown) => void | Promise<void>;
@@ -84,6 +91,9 @@ function patchIndexedDbProvider(value: unknown): IndexedDbProviderLike | null {
     }
     destroyed = true;
     originalDestroy();
+    // Release the IndexedDB connection Y-Sweet leaves open, so a later
+    // deleteDatabase() is not blocked by this provider.
+    candidate.db?.close?.();
   };
 
   const maybeFinalizeDestroy = () => {
