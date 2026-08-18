@@ -57,6 +57,9 @@
       "#tests": [
         "./tests/unit/_support/lib/index.ts"
       ],
+      "#tests-collab/*": [
+        "./tests/unit/collab/_support/*"
+      ],
       "#fixtures/*": [
         "./tests/fixtures/*"
       ],

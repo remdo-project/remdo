@@ -137,6 +137,7 @@ export function createViteSharedConfig() {
         "#client": path.resolve(repoRoot, "./src/client"),
         "#collaboration": path.resolve(repoRoot, "./src/collaboration"),
         "#tests": path.resolve(repoRoot, "./tests/unit/_support/lib/index.ts"),
+        "#tests-collab": path.resolve(repoRoot, "./tests/unit/collab/_support"),
         "#tests-common": path.resolve(repoRoot, "./tests/_support"),
         "#fixtures": path.resolve(repoRoot, "./tests/fixtures"),
         "#config": path.resolve(repoRoot, "./config"),

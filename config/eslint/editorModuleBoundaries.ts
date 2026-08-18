@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Rule } from 'eslint';
-import type { ImportDeclaration, Node } from 'estree';
+import type { Node } from 'estree';
 
 // Editor-internal dependency graph. Each key is a top-level directory under
 // `src/client/editor`; its value lists the directories it may import from.
@@ -64,7 +64,10 @@ const UNGOVERNED = new Set([
 //
 // An entry that no longer matches any import is reported as stale, so a move
 // cannot land while leaving its exception behind.
-const EXCEPTIONS: readonly { from: string; to: string; file: string; why: string }[] = [
+// Exported so the spec can audit the inventory: an entry whose file was renamed
+// or deleted is unreachable from the rule, because ESLint never visits the old
+// path — and a move is the workflow this list exists to police.
+export const EXCEPTIONS: readonly { from: string; to: string; file: string; why: string }[] = [
   {
     from: 'outline',
     to: 'features',
@@ -100,31 +103,18 @@ const EDITOR_ROOT = path.normalize('src/client/editor');
 const EDITOR_ROOT_ABS = path.resolve(EDITOR_ROOT);
 const ALIAS_PREFIX = '#client/editor/';
 
-// The editor's composition root: always present and always linted, so it is a
-// stable place to audit the whole EXCEPTIONS inventory once per run.
-const AUDIT_ANCHOR = 'Editor.tsx';
-
-// Cached: the rule asks these once per import, and the tree does not change
-// during a lint run.
-const statCache = new Map<string, 'dir' | 'file' | 'none'>();
-
-function statKind(candidate: string): 'dir' | 'file' | 'none' {
-  const cached = statCache.get(candidate);
-  if (cached !== undefined) return cached;
-  let result: 'dir' | 'file' | 'none' = 'none';
-  if (fs.existsSync(candidate)) {
-    result = fs.statSync(candidate).isDirectory() ? 'dir' : 'file';
-  }
-  statCache.set(candidate, result);
-  return result;
-}
+// Cached: `bucketOf` asks this for every barrel specifier, and the set of
+// top-level directories does not change during a lint run. A watch-mode process
+// outlives that assumption, so a directory added mid-session is only recognized
+// after the watcher restarts.
+const directoryCache = new Map<string, boolean>();
 
 function isDirectory(candidate: string): boolean {
-  return statKind(candidate) === 'dir';
-}
-
-function isFile(candidate: string): boolean {
-  return statKind(candidate) === 'file';
+  const cached = directoryCache.get(candidate);
+  if (cached !== undefined) return cached;
+  const result = fs.existsSync(candidate) && fs.statSync(candidate).isDirectory();
+  directoryCache.set(candidate, result);
+  return result;
 }
 
 function toEditorRelative(filename: string): string | null {
@@ -168,8 +158,6 @@ export const editorModuleBoundariesRule: Rule.RuleModule = {
         'Editor boundary: {{from}}/ must not import {{to}}/. Allowed from {{from}}/: {{allowed}}. If this edge is intended, add it to ALLOWED in config/eslint/editorModuleBoundaries.ts; if it is debt, add an EXCEPTIONS entry naming the work that removes it.',
       staleException:
         'Stale EXCEPTIONS entry in config/eslint/editorModuleBoundaries.ts: {{file}} no longer imports {{to}}/. Delete the entry.',
-      missingExceptionFile:
-        'Stale EXCEPTIONS entry in config/eslint/editorModuleBoundaries.ts: {{file}} no longer exists. Delete the entry, or update its path if the file moved.',
       unconfiguredBucket:
         'Editor directory {{bucket}}/ has no ALLOWED entry, so its imports are unchecked. Add it to ALLOWED in config/eslint/editorModuleBoundaries.ts with the buckets it may import, or to UNGOVERNED if it is deliberately outside the graph.',
     },
@@ -220,7 +208,7 @@ export const editorModuleBoundariesRule: Rule.RuleModule = {
 
     return {
       ImportDeclaration(node) {
-        checkSource(node.source, (node as ImportDeclaration).source.value);
+        checkSource(node.source, node.source.value);
       },
       // `export ... from` and `export * from` re-export across the boundary just
       // as an import does.
@@ -242,20 +230,6 @@ export const editorModuleBoundariesRule: Rule.RuleModule = {
             node: program,
             messageId: 'staleException',
             data: { file: entry.file, to: entry.to },
-          });
-        }
-
-        // An exception whose file was renamed or deleted is unreachable above,
-        // because ESLint never visits the old path — and a move is the expected
-        // workflow. Auditing the whole inventory from one always-linted file
-        // keeps the list shrink-only through renames too.
-        if (editorRelative !== AUDIT_ANCHOR) return;
-        for (const entry of EXCEPTIONS) {
-          if (isFile(path.join(EDITOR_ROOT_ABS, entry.file))) continue;
-          context.report({
-            node: program,
-            messageId: 'missingExceptionFile',
-            data: { file: entry.file },
           });
         }
       },
