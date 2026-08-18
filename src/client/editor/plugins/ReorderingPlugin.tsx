@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '#client/editor/commands';
 import { moveNotesDownInRange, moveNotesUpInRange } from '#client/editor/outline/note-ops';
 import { $resolveViewRoot } from '#client/editor/outline/view-root';
-import { $resolveSelectedNoteRange } from './selected-note-range';
+import { $resolveSelectedNoteRange } from '#client/editor/outline/selection/selected-note-range';
 
 type MoveDirection = 'up' | 'down';
 

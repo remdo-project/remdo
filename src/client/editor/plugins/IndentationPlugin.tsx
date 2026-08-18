@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { INDENT_NOTES_COMMAND, OUTDENT_NOTES_COMMAND } from '#client/editor/commands';
 import { indentNotesInRange, outdentNotesInRange } from '#client/editor/outline/note-ops';
 import { $resolveViewRoot } from '#client/editor/outline/view-root';
-import { $resolveSelectedNoteRange } from './selected-note-range';
+import { $resolveSelectedNoteRange } from '#client/editor/outline/selection/selected-note-range';
 
 function $indent(editor: LexicalEditor, direction: 'indent' | 'outdent'): boolean {
   const range = $resolveSelectedNoteRange(editor);

@@ -15,7 +15,7 @@ import {
   $resolveRootContentList,
   resolveContentItemFromNode,
 } from '#client/editor/outline/schema';
-import { $resolveSelectedNoteRange } from '#client/editor/plugins/selected-note-range';
+import { $resolveSelectedNoteRange } from './selected-note-range';
 import { $selectItemEdge } from './caret';
 import { $resolveStructuralDeletionTargets, applyStructuralDeletionTargets } from './deletion';
 import { getFirstDescendantListItem } from './tree';

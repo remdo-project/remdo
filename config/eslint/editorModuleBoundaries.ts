@@ -65,12 +65,6 @@ const UNGOVERNED = new Set([
 // or deleted is unreachable from the rule, because ESLint never visits the old
 // path — and a move is the workflow this list exists to police.
 export const EXCEPTIONS: readonly { from: string; to: string; file: string; why: string }[] = [
-  {
-    from: 'outline',
-    to: 'plugins',
-    file: 'outline/selection/delete-selection.ts',
-    why: 'plugins/selected-note-range.ts belongs under outline/selection',
-  },
   { from: 'runtime', to: 'features', file: 'runtime/nodes.ts', why: 'node registration; see node-ownership question' },
   { from: 'features', to: 'plugins', file: 'features/zoom/ZoomPlugin.tsx', why: 'collaboration provider is not a plugin concern' },
 ];
