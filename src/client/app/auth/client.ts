@@ -3,6 +3,7 @@ import { createAuthClient } from 'better-auth/react';
 import { clearStoredCurrentUserBootstrap } from '#client/app/documents/current-user-bootstrap-storage';
 
 const KNOWN_SESSION_STORAGE_KEY = 'remdo-authenticated-session';
+const PENDING_SIGN_OUT_STORAGE_KEY = 'remdo-pending-sign-out';
 
 export const authClient = createAuthClient({
   basePath: '/api/auth',
@@ -28,6 +29,9 @@ function getSessionStorage(): Storage | null {
 
 export function rememberAuthenticatedSession() {
   getSessionStorage()?.setItem(KNOWN_SESSION_STORAGE_KEY, '1');
+  // A fresh session supersedes any sign-out this device never delivered;
+  // replaying it later would revoke the new session instead.
+  forgetPendingSignOut();
 }
 
 export function forgetAuthenticatedSession() {
@@ -37,6 +41,24 @@ export function forgetAuthenticatedSession() {
 
 export function hasRememberedSession() {
   return getSessionStorage()?.getItem(KNOWN_SESSION_STORAGE_KEY) === '1';
+}
+
+/**
+ * A sign-out that could not reach the server leaves the session cookie valid, so
+ * the next reachable revalidation would sign the user back in. The marker keeps
+ * this device signed out until the server confirms, and is cleared by any
+ * successful sign-in.
+ */
+export function rememberPendingSignOut() {
+  getSessionStorage()?.setItem(PENDING_SIGN_OUT_STORAGE_KEY, '1');
+}
+
+export function forgetPendingSignOut() {
+  getSessionStorage()?.removeItem(PENDING_SIGN_OUT_STORAGE_KEY);
+}
+
+export function hasPendingSignOut() {
+  return getSessionStorage()?.getItem(PENDING_SIGN_OUT_STORAGE_KEY) === '1';
 }
 
 export function isLikelyFetchUnavailableError(error: unknown): boolean {
@@ -51,6 +73,15 @@ function resolveUnavailableSessionGateState(): SessionGateState {
     : { status: 'offline-unavailable' };
 }
 
+async function completePendingSignOut(): Promise<void> {
+  try {
+    await authClient.signOut();
+    forgetPendingSignOut();
+  } catch {
+    // Still unreachable; the marker keeps the device signed out.
+  }
+}
+
 function readAuthErrorStatus(error: unknown): number | null {
   if (typeof error !== 'object' || error === null || !('status' in error)) {
     return null;
@@ -60,6 +91,11 @@ function readAuthErrorStatus(error: unknown): number | null {
 }
 
 export async function resolveSessionGateState(): Promise<SessionGateState> {
+  if (hasPendingSignOut()) {
+    await completePendingSignOut();
+    return { status: 'unauthenticated' };
+  }
+
   try {
     const result = await authClient.getSession();
     if (result.data) {
