@@ -17,7 +17,10 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: 'node_modules' },
-    exclude: { path: 'node_modules|/data/|/dist/' },
+    // Anchored: an unanchored `/data/` would skip a nested `src/**/data/`
+    // while missing the repo-root directory it means, silently dropping those
+    // modules from the crawl.
+    exclude: { path: '^(node_modules|data|dist)/' },
     tsConfig: { fileName: 'tsconfig.json' },
     // Without explicit extensions, relative TypeScript imports resolve to
     // nothing and the run reports a clean graph it never actually read.
