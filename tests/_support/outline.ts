@@ -1,6 +1,6 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
-import { formatDateNodeLabel } from '#client/editor/features/date/date-node';
+import { formatDateNodeLabel } from '#client/editor/features/date/date-label';
 import type { SerializedOutlineNote } from '#client/editor/plugins/dev/schema/traverseSerializedOutline';
 import { traverseSerializedOutline } from '#client/editor/plugins/dev/schema/traverseSerializedOutline';
 

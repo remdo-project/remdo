@@ -2,7 +2,7 @@ import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection'
 import type { NodeKey } from 'lexical';
 import { useMemo } from 'react';
 
-import { formatDateNodeLabel } from './date-node';
+import { formatDateNodeLabel } from './date-label';
 
 interface DateTokenProps {
   isoDate: string;
