@@ -8,7 +8,8 @@ import { $findNoteById } from '#client/editor/outline/note-traversal';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { findSerializedNode, meta, placeCaretAtNote, placeCaretAtNoteTextNode, pressKey, typeText } from '#tests';
 import type { SerializedDateNode } from './date-node';
-import { $createDateNode, $isDateNode, formatDateNodeLabel } from './date-node';
+import { $createDateNode, $isDateNode } from './date-node';
+import { formatDateNodeLabel } from './date-label';
 
 function findSerializedDateNode(nodes: SerializedLexicalNode[] | undefined): SerializedDateNode | null {
   return findSerializedNode(nodes, (node): node is SerializedDateNode => node.type === 'date');
