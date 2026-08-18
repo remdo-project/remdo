@@ -57,7 +57,6 @@ describe('y-sweet IndexedDB provider lifecycle guard', () => {
     doc.getMap('notes').set('a', 1);
     teardown();
 
-    // The update has not settled, so teardown must not close the handle yet.
     expect(close).not.toHaveBeenCalled();
 
     releaseUpdate();

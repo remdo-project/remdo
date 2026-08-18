@@ -343,7 +343,6 @@ export function createServerAuth({
         return null;
       }
       try {
-        // getAccessToken selects by account row id, not by provider.
         const context = await auth.$context;
         const account = (await context.internalAdapter.findAccounts(userId))
           .find((candidate) => candidate.providerId === serverId);
