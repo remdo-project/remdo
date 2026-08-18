@@ -31,7 +31,7 @@ import {
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getNoteBody } from '#client/editor/features/note-body/note-body-ops';
-import { renderRemdoEditor } from './collab/_support/render-editor';
+import { renderRemdoEditor } from '#tests-collab/render-editor';
 
 function findSerializedListItem(node: SerializedLexicalNode, noteId: string): SerializedNoteListItemNode | null {
   return findSerializedNode([node], (candidate): candidate is SerializedNoteListItemNode => (
