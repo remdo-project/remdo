@@ -25,7 +25,7 @@ deferral recorded under `updateConfig.ignoreDependencies`, in file order:
    `TODO(deps):` marker, ignore entries, and any override or workaround that
    keeps the dependency at its deferred version.
 2. Run `pnpm update --latest --workspace-root <selectors>` and normalize
-   `pnpm-workspace.yaml` with `CI=1 pnpm exec eslint --fix pnpm-workspace.yaml`.
+   `pnpm-workspace.yaml` with `CI=true pnpm exec eslint --fix pnpm-workspace.yaml`.
 3. Reject a resolved-version downgrade. Use the marker's rationale to add
    applicable verification; run `pnpm run audit:security` for a
    security-related deferral.
@@ -45,7 +45,7 @@ reconcile that refresh unit, and restart at category 1 after committing it. A
 category that produces no diff advances to the next category.
 
 1. Refresh workspace packages with `pnpm update --latest --workspace-root`,
-   then normalize `pnpm-workspace.yaml` with `CI=1 pnpm exec eslint --fix pnpm-workspace.yaml`.
+   then normalize `pnpm-workspace.yaml` with `CI=true pnpm exec eslint --fix pnpm-workspace.yaml`.
 2. Refresh the package-manager release and Corepack integrity with `corepack use
    pnpm@latest`.
 3. Inspect Node's official release index and the published official
