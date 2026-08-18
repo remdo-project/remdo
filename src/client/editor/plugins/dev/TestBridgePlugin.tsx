@@ -4,7 +4,7 @@ import type { AnyLexicalCommand, LexicalEditor, EditorUpdateOptions, SerializedE
 import { $createTextNode, $getRoot, $isTextNode } from 'lexical';
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
 import { assertEditorSchema } from './schema/assertEditorSchema';
-import { useCollaborationStatus } from '../collaboration';
+import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
 import { markSchemaValidationSkipOnce } from '../../schema-validation-skip-once';
 import { $normalizeNoteIdsOnLoad } from '../note-id-normalization';
 import { $findNoteById } from '#client/editor/outline/note-traversal';

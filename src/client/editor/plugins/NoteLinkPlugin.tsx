@@ -1,7 +1,7 @@
 import { $createTextNode } from 'lexical';
 
 import { $createNoteLinkNode } from '#client/editor/runtime/note-link-node';
-import { useCollaborationStatus } from '#client/editor/plugins/collaboration/CollaborationProvider';
+import { useCollaborationStatus } from '#client/editor/runtime/collaboration/CollaborationProvider';
 import { useTriggerSession } from '#client/editor/triggers/useTriggerSession';
 import type { TriggerSpec } from '#client/editor/triggers/types';
 import type { LinkPickerOption } from '#client/editor/links/note-link-index';

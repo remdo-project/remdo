@@ -61,7 +61,7 @@ import {
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/commands';
 import { parseOwnedNoteLinkUrl } from '#client/editor/links/note-link-url';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { useCollaborationStatus } from './collaboration';
+import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
 
 const NEWLINE_PATTERN = /\r?\n/;
 

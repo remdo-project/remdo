@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Icon } from '#client/ui/Icon';
 import type { IconComponent } from '#client/ui/Icon';
 import { useInvariantIndicator } from './invariant';
-import { useCollaborationIndicator } from './plugins/collaboration';
+import { useCollaborationIndicator } from './runtime/collaboration';
 
 export interface StatusDescriptor {
   key: string;
