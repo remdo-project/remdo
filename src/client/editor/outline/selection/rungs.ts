@@ -163,7 +163,7 @@ export function $replayLadder(
     // the current level (contextItem). If a sibling exists there, extend the
     // range to it and its subtree; otherwise hoist to the parent level and take
     // the parent's whole subtree (the hoist itself is the step). A step that can
-    // neither advance nor hoist (past the document/zoom root) is unresolvable.
+    // neither advance nor hoist (past the document/view root) is unresolvable.
     //
     // In whole-group mode the range extends to every sibling at this level
     // instead of advancing by one. Hoist behaviour is unchanged.
