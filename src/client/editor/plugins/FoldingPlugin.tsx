@@ -38,14 +38,14 @@ const $applyFoldViewToLevel = (editor: LexicalEditor, level: number): boolean =>
     return false;
   }
 
-  const zoomRoot = $resolveViewRoot(editor);
-  const zoomRootKey = zoomRoot?.getKey() ?? null;
+  const viewRoot = $resolveViewRoot(editor);
+  const viewRootKey = viewRoot?.getKey() ?? null;
   let changed = false;
 
   forEachContentItemWithAncestorsInOutline(rootList, (item, ancestors) => {
     // The zoom root keeps its own children visible while zoomed, regardless of
     // its stored folded state. Deeper descendants still follow fold-to-level.
-    if (zoomRootKey && item.getKey() === zoomRootKey) {
+    if (viewRootKey && item.getKey() === viewRootKey) {
       if ($isNoteFolded(item)) {
         $setNoteFolded(item, false);
         changed = true;
@@ -53,14 +53,14 @@ const $applyFoldViewToLevel = (editor: LexicalEditor, level: number): boolean =>
       return;
     }
 
-    const zoomRootIndex = zoomRootKey
-      ? ancestors.findIndex((ancestor) => ancestor.getKey() === zoomRootKey)
+    const viewRootIndex = viewRootKey
+      ? ancestors.findIndex((ancestor) => ancestor.getKey() === viewRootKey)
       : -1;
-    if (zoomRootKey && zoomRootIndex === -1) {
+    if (viewRootKey && viewRootIndex === -1) {
       return;
     }
 
-    const depth = ancestors.length - zoomRootIndex;
+    const depth = ancestors.length - viewRootIndex;
     const nextFolded = level > 0 && depth === level && noteHasChildren(item);
     if ($isNoteFolded(item) !== nextFolded) {
       $setNoteFolded(item, nextFolded);

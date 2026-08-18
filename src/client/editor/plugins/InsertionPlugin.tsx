@@ -235,8 +235,8 @@ export function InsertionPlugin() {
           if (!contentItem) {
             return false;
           }
-          const zoomRootKey = getViewRoot(editor);
-          const isZoomRoot = zoomRootKey !== null && contentItem.getKey() === zoomRootKey;
+          const viewRootKey = getViewRoot(editor);
+          const isViewRoot = viewRootKey !== null && contentItem.getKey() === viewRootKey;
 
           // An inline text selection removes its text and then takes the caret
           // rules below, so it needs no placement rules of its own. Whether it
@@ -256,7 +256,7 @@ export function InsertionPlugin() {
           const placement = clearedWholeText ? 'end' : resolveCaretPlacement(selection, contentItem);
 
           if (placement === 'start' || placement === 'end') {
-            if (isZoomRoot) {
+            if (isViewRoot) {
               $insertEmptyFirstChild(contentItem);
             } else if (placement === 'start') {
               $handleEnterAtStart(contentItem);
@@ -267,7 +267,7 @@ export function InsertionPlugin() {
           }
 
           if (placement === 'middle'
-            && $splitContentItemAtSelection(contentItem, selection, isZoomRoot ? 'first-child' : 'sibling')) {
+            && $splitContentItemAtSelection(contentItem, selection, isViewRoot ? 'first-child' : 'sibling')) {
             return stopKeyboardEvent(event);
           }
 

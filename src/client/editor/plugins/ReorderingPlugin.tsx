@@ -18,8 +18,8 @@ function $moveSelection(
   if (!range) {
     return false;
   }
-  const zoomRoot = $resolveViewRoot(editor);
-  return direction === 'up' ? moveNotesUpInRange(range, zoomRoot) : moveNotesDownInRange(range, zoomRoot);
+  const viewRoot = $resolveViewRoot(editor);
+  return direction === 'up' ? moveNotesUpInRange(range, viewRoot) : moveNotesDownInRange(range, viewRoot);
 }
 
 export function ReorderingPlugin() {

@@ -13,10 +13,10 @@ function $indent(editor: LexicalEditor, direction: 'indent' | 'outdent'): boolea
   if (!range) {
     return false;
   }
-  const zoomRoot = $resolveViewRoot(editor);
+  const viewRoot = $resolveViewRoot(editor);
   return direction === 'indent'
-    ? indentNotesInRange(range, zoomRoot)
-    : outdentNotesInRange(range, zoomRoot);
+    ? indentNotesInRange(range, viewRoot)
+    : outdentNotesInRange(range, viewRoot);
 }
 
 export function IndentationPlugin() {

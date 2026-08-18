@@ -601,13 +601,13 @@ function $insertNodesAtSelection(
     if (orderedHeads.length === 0) {
       return false;
     }
-    const zoomRootKey = getViewRoot(editor);
-    const zoomRootHead =
-      zoomRootKey === null ? null : orderedHeads.find((head) => head.getKey() === zoomRootKey) ?? null;
-    if (zoomRootHead) {
-      parentList = $getOrCreateChildList(zoomRootHead);
+    const viewRootKey = getViewRoot(editor);
+    const viewRootHead =
+      viewRootKey === null ? null : orderedHeads.find((head) => head.getKey() === viewRootKey) ?? null;
+    if (viewRootHead) {
+      parentList = $getOrCreateChildList(viewRootHead);
       nextSibling = getFirstDescendantListItem(parentList);
-      const replacementHeads = orderedHeads.filter((head) => head !== zoomRootHead);
+      const replacementHeads = orderedHeads.filter((head) => head !== viewRootHead);
       orderedHeads = replacementHeads.length > 0 ? replacementHeads : getContentSiblings(parentList);
     } else {
       const lastHead = orderedHeads.at(-1)!;
@@ -632,18 +632,18 @@ function $insertNodesAtSelection(
     if (!placement) {
       return false;
     }
-    const zoomRootKey = getViewRoot(editor);
-    const isZoomRoot = zoomRootKey !== null && contentItem.getKey() === zoomRootKey;
+    const viewRootKey = getViewRoot(editor);
+    const isViewRoot = viewRootKey !== null && contentItem.getKey() === viewRootKey;
 
     if (placement === 'start') {
-      if (isZoomRoot) {
+      if (isViewRoot) {
         parentList = $getOrCreateChildList(contentItem);
         nextSibling = getFirstDescendantListItem(parentList);
       } else {
         nextSibling = contentItem;
       }
     } else if (placement === 'middle') {
-      if (isZoomRoot) {
+      if (isViewRoot) {
         parentList = $getOrCreateChildList(contentItem);
         const split = $splitContentItemAtSelection(contentItem, selection, 'first-child');
         nextSibling = split ?? getFirstDescendantListItem(parentList);
@@ -652,7 +652,7 @@ function $insertNodesAtSelection(
         nextSibling = split ? contentItem : getNextContentSibling(contentItem);
       }
     } else {
-      if (isZoomRoot) {
+      if (isViewRoot) {
         parentList = $getOrCreateChildList(contentItem);
         nextSibling = getFirstDescendantListItem(parentList);
       } else {

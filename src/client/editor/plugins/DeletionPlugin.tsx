@@ -382,8 +382,8 @@ export function DeletionPlugin() {
 
         event.preventDefault();
         event.stopPropagation();
-        const zoomRoot = $resolveViewRoot(editor);
-        if (zoomRoot && contentItem.getKey() === zoomRoot.getKey()) {
+        const viewRoot = $resolveViewRoot(editor);
+        if (viewRoot && contentItem.getKey() === viewRoot.getKey()) {
           return true;
         }
 
@@ -407,10 +407,10 @@ export function DeletionPlugin() {
 
         event.preventDefault();
         event.stopPropagation();
-        const zoomRoot = $resolveViewRoot(editor);
+        const viewRoot = $resolveViewRoot(editor);
         const nextNote = getNextNoteInDocumentOrder(contentItem);
-        const nextNoteOutsideZoomRoot =
-          zoomRoot !== null && nextNote !== null && !isContentDescendantOf(nextNote, zoomRoot);
+        const nextNoteOutsideViewRoot =
+          viewRoot !== null && nextNote !== null && !isContentDescendantOf(nextNote, viewRoot);
 
         const currentHasChildren = noteHasChildren(contentItem);
         // A note that owns a non-empty body is not a removable empty leaf: the
@@ -421,7 +421,7 @@ export function DeletionPlugin() {
           !currentHasChildren && isEmptyNote(contentItem) && $noteBodyIsEmpty(contentItem);
 
         if (currentIsEmptyLeaf) {
-          if (zoomRoot && contentItem.getKey() === zoomRoot.getKey() && (!nextNote || nextNoteOutsideZoomRoot)) {
+          if (viewRoot && contentItem.getKey() === viewRoot.getKey() && (!nextNote || nextNoteOutsideViewRoot)) {
             return true;
           }
 
@@ -442,7 +442,7 @@ export function DeletionPlugin() {
         if (!nextNote) {
           return true;
         }
-        if (nextNoteOutsideZoomRoot) {
+        if (nextNoteOutsideViewRoot) {
           return true;
         }
 

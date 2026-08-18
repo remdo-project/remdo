@@ -66,7 +66,7 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
     }
     return note;
   };
-  const $resolveCurrentZoomRoot = () => $resolveViewRoot(editor);
+  const $resolveCurrentViewRoot = () => $resolveViewRoot(editor);
   const $resolveRangeNotes = (range: NoteRange): ListItemNode[] | null => {
     const start = $requireNoteById(range.start);
     const end = $requireNoteById(range.end);
@@ -345,28 +345,28 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return indentNotes(resolved, $resolveCurrentZoomRoot());
+      return indentNotes(resolved, $resolveCurrentViewRoot());
     },
     outdent: (range) => {
       const resolved = $resolveRangeNotes(range);
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return outdentNotes(resolved, $resolveCurrentZoomRoot());
+      return outdentNotes(resolved, $resolveCurrentViewRoot());
     },
     moveUp: (range) => {
       const resolved = $resolveRangeNotes(range);
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return moveNotesUp(resolved, $resolveCurrentZoomRoot());
+      return moveNotesUp(resolved, $resolveCurrentViewRoot());
     },
     moveDown: (range) => {
       const resolved = $resolveRangeNotes(range);
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return moveNotesDown(resolved, $resolveCurrentZoomRoot());
+      return moveNotesDown(resolved, $resolveCurrentViewRoot());
     },
   };
 }

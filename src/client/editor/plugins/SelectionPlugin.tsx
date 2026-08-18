@@ -150,7 +150,7 @@ export function SelectionPlugin() {
       // touched any node — as opposed to a selection-only change such as a
       // Shift+Click extension. Only a tree change re-replays the ladder.
       const treeChanged = dirtyElements.size > 0 || dirtyLeaves.size > 0;
-      const zoomRootKey = getViewRoot(editor);
+      const viewRootKey = getViewRoot(editor);
       const { payload, hasStructuralSelection, structuralRange, outlineSelection, progression, unlock, reshape } =
         editorState.read(() =>
           $computeOutlineSelectionSnapshot({
@@ -161,7 +161,7 @@ export function SelectionPlugin() {
             progression: ladderRef.current,
             unlock: unlockRef.current,
             initialProgression: INITIAL_PROGRESSIVE_STATE,
-            boundaryKey: zoomRootKey,
+            boundaryKey: viewRootKey,
           })
         );
 
@@ -241,10 +241,10 @@ export function SelectionPlugin() {
     const unregisterSelectAll = editor.registerCommand(
       SELECT_ALL_COMMAND,
       (event) => {
-        const zoomRootKey = getViewRoot(editor);
+        const viewRootKey = getViewRoot(editor);
         const planResult = editor
           .getEditorState()
-          .read(() => $computeProgressivePlan(ladderRef, INITIAL_PROGRESSIVE_STATE, zoomRootKey));
+          .read(() => $computeProgressivePlan(ladderRef, INITIAL_PROGRESSIVE_STATE, viewRootKey));
 
         if (!planResult) {
           return false;
@@ -303,7 +303,7 @@ export function SelectionPlugin() {
     );
 
     const $runDirectionalPlan = (direction: 'up' | 'down') => {
-      const zoomRootKey = getViewRoot(editor);
+      const viewRootKey = getViewRoot(editor);
 
       unlockRef.current = { pending: true, reason: 'directional' };
 
@@ -312,7 +312,7 @@ export function SelectionPlugin() {
       // $computeDirectionalPlan owns the ladder ref: it pushes/pops the ladder
       // and returns either a plan, a collapse signal (popped to caret), a no-op
       // (stop-at-anchor / boundary), or null on an unresolvable selection.
-      const result = $computeDirectionalPlan(ladderRef, direction, INITIAL_PROGRESSIVE_STATE, zoomRootKey);
+      const result = $computeDirectionalPlan(ladderRef, direction, INITIAL_PROGRESSIVE_STATE, viewRootKey);
 
       if (!result) {
         ladderRef.current = INITIAL_PROGRESSIVE_STATE;

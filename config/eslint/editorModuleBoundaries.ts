@@ -89,7 +89,7 @@ export const EXCEPTIONS: readonly { from: string; to: string; file: string; why:
   },
   { from: 'runtime', to: 'features', file: 'runtime/nodes.ts', why: 'node registration; see node-ownership question' },
   { from: 'runtime', to: 'features', file: 'runtime/serialized-note-types.ts', why: 'note-body model' },
-  { from: 'note-sdk-adapters', to: 'features', file: 'note-sdk-adapters/lexical.ts', why: 'note-body model + zoom view root' },
+  { from: 'note-sdk-adapters', to: 'features', file: 'note-sdk-adapters/lexical.ts', why: 'note-body model' },
   { from: 'features', to: 'plugins', file: 'features/zoom/ZoomPlugin.tsx', why: 'collaboration provider is not a plugin concern' },
 ];
 

@@ -207,11 +207,11 @@ export function NoteBodyPlugin() {
       if ($getActiveNoteBody()) {
         return false;
       }
-      const zoomRoot = $resolveViewRoot(editor);
+      const viewRoot = $resolveViewRoot(editor);
       if (direction === 'left' || direction === 'right') {
-        return $skipBodyForHorizontalNav(direction, zoomRoot) ? stopKeyboardEvent(event) : false;
+        return $skipBodyForHorizontalNav(direction, viewRoot) ? stopKeyboardEvent(event) : false;
       }
-      return $skipBodyForVerticalNav(editor, direction, zoomRoot) ? stopKeyboardEvent(event) : false;
+      return $skipBodyForVerticalNav(editor, direction, viewRoot) ? stopKeyboardEvent(event) : false;
     };
 
     return mergeRegister(
