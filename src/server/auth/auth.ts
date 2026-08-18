@@ -136,6 +136,12 @@ function createBetterAuthInstance({
         allowDynamicClientRegistration: allowSignup,
         allowUnauthenticatedClientRegistration: allowSignup,
         clientRegistrationDefaultScopes: [...REMDO_SERVER_OAUTH_SCOPES],
+        // Better Auth 1.7 rejects an explicit DCR `resources` request unless the
+        // identifier is allowlisted for registration: "When both registration
+        // resource options are omitted, explicit resource requests are
+        // rejected." A home registers itself against this source's own origin,
+        // which is the single resource this server exposes.
+        clientRegistrationDefaultResources: [serverOrigin],
         rateLimit: {
           register: { window: 60, max: 5 },
         },
@@ -160,6 +166,15 @@ function createBetterAuthInstance({
           }
           return [{
             providerId: server.id,
+            // Better Auth 1.7 pairs every OAuth account with a stable issuer
+            // namespace. These providers have no discovery document, so the
+            // issuer is set explicitly; the source server advertises its own
+            // baseUrl as its issuer.
+            accountIssuer: server.baseUrl,
+            // Without discovery Better Auth cannot tell this provider is OIDC,
+            // so it would read the non-OIDC `id` claim. A RemDo source is an
+            // OIDC provider whose userinfo returns `sub`.
+            accountSubject: ({ profile }) => profile.sub ?? '',
             authorizationUrl: `${server.baseUrl}/api/auth/oauth2/authorize`,
             tokenUrl: `${server.baseUrl}/api/auth/oauth2/token`,
             userInfoUrl: `${server.baseUrl}/api/auth/oauth2/userinfo`,
@@ -335,9 +350,16 @@ export function createServerAuth({
         return null;
       }
       try {
+        // Better Auth 1.7 selects the account by its row id, not by providerId.
+        const context = await auth.$context;
+        const account = (await context.internalAdapter.findAccounts(userId))
+          .find((candidate) => candidate.providerId === serverId);
+        if (!account) {
+          return null;
+        }
         const token = await auth.api.getAccessToken({
           body: {
-            providerId: serverId,
+            accountId: account.id,
             userId,
           },
         });
