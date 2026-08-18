@@ -53,11 +53,12 @@ cannot discover; without one, it runs the complete group used by CI.
   and production-runtime changes.
 - `pnpm run test:e2e:all` — run browser and Docker E2E; use when complete E2E
   coverage is requested.
-- `pnpm run lint` — run every static check: types, code, styles, documentation,
-  agent instructions, and the dependency graph; use for the default static
-  feedback.
-- `pnpm run audit:policy` and `pnpm run check:dev-boundary` — check
-  dependency-policy and production-boundary changes; neither runs under
-  `pnpm run lint`.
+- `pnpm run lint` — check the source as written: types, code, styles,
+  documentation, agent instructions, and the dependency graph; use for the
+  default static feedback.
+- `pnpm run audit:policy`, `pnpm run audit:unused:prod`, and
+  `pnpm run check:dev-boundary` — check the resolved lockfile and the production
+  bundle, so each resolves or builds rather than reading source; use after
+  dependency, bundle, and production-boundary changes.
 
 CI runs all static checks configured in its workflows.

@@ -76,7 +76,6 @@
     "test:unit:watch": "cross-env NODE_ENV=test COLLAB_ENABLED=false ./tools/env.sh pnpm exec vitest --watch --ui",
     "todo:list": "git grep --no-column --color=auto -n -E '(^|[^[:alnum:]_])(TO[D]O|FIX[M]E)([^[:alnum:]_]|$)' -- ':!docs/**' ':!*.md' ':!patches/**' || test $? -eq 1",
     "typecheck": "timeout ${TEST_TIMEOUT:-120}s tsc",
-    "typecheck:tests": "timeout ${TEST_TIMEOUT:-120}s pnpm exec tsc -p tsconfig.tests.json --pretty false",
     "typecheck:watch": "tsc --watch"
   },
   "dependencies": {
