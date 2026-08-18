@@ -24,16 +24,6 @@ is a poor fit, use an integration or end-to-end test rather than an over-complex
 unit test or a manual check. Manual and live checks are development aids, not
 substitutes for automated coverage.
 
-## Test location
-
-A test lives beside its subject once that subject has a settled owner, and under
-`tests/` otherwise. Colocation follows ownership rather than preceding it: a
-spec placed beside code that is about to move has to move twice, so a subject
-whose owner is still unresolved keeps its test under `tests/`.
-
-A change that establishes or relocates an owner moves that owner's tests in the
-same change.
-
 ## Verification lifecycle
 
 Before each commit or uncommitted handoff, run likely affected tests and
