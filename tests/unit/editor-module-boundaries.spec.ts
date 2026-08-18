@@ -18,7 +18,7 @@ const OUTLINE_FILE = path.join(EDITOR, 'outline/note-range.ts');
 // Same bucket, but listed in `EXCEPTIONS` for its `features` import.
 const EXCUSED_FILE = path.join(EDITOR, 'outline/note-context.ts');
 
-const FORBIDDEN = '#client/editor/features/zoom/zoom-root';
+const FORBIDDEN = '#client/editor/features/zoom/zoom-caret';
 const EXCUSED = '#client/editor/features/note-body/note-body-ops';
 
 describe('remdo/editor-module-boundaries', () => {
@@ -47,7 +47,7 @@ describe('remdo/editor-module-boundaries', () => {
           // rule resolves specifiers instead of pattern-matching them.
           name: 'a relative specifier is resolved to its bucket',
           filename: OUTLINE_FILE,
-          code: `import { x } from '../features/zoom/zoom-root';`,
+          code: `import { x } from '../features/zoom/zoom-caret';`,
           errors: [{ messageId: 'forbidden' }],
         },
         {

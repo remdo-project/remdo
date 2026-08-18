@@ -39,7 +39,7 @@ import {
 import { getNoteBody, $getSelectionBody, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { getZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { getViewRoot } from '#client/editor/outline/view-root';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '#client/editor/outline/selection/caret-placement';
 import { $resolveStructuralDeletionHeads } from '#client/editor/outline/selection/deletion';
@@ -601,7 +601,7 @@ function $insertNodesAtSelection(
     if (orderedHeads.length === 0) {
       return false;
     }
-    const zoomRootKey = getZoomRoot(editor);
+    const zoomRootKey = getViewRoot(editor);
     const zoomRootHead =
       zoomRootKey === null ? null : orderedHeads.find((head) => head.getKey() === zoomRootKey) ?? null;
     if (zoomRootHead) {
@@ -632,7 +632,7 @@ function $insertNodesAtSelection(
     if (!placement) {
       return false;
     }
-    const zoomRootKey = getZoomRoot(editor);
+    const zoomRootKey = getViewRoot(editor);
     const isZoomRoot = zoomRootKey !== null && contentItem.getKey() === zoomRootKey;
 
     if (placement === 'start') {

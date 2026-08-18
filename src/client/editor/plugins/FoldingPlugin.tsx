@@ -8,7 +8,7 @@ import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW }
 import { $isNoteFolded, $setNoteFolded } from '#client/editor/runtime/fold-state';
 import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/commands';
 import { forEachContentItemInOutline, forEachContentItemWithAncestorsInOutline } from '#client/editor/outline/list-traversal';
-import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { $resolveRootContentList, resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
 import { isChildrenWrapper } from '#client/editor/outline/list-structure';
@@ -38,7 +38,7 @@ const $applyFoldViewToLevel = (editor: LexicalEditor, level: number): boolean =>
     return false;
   }
 
-  const zoomRoot = $resolveZoomRoot(editor);
+  const zoomRoot = $resolveViewRoot(editor);
   const zoomRootKey = zoomRoot?.getKey() ?? null;
   let changed = false;
 

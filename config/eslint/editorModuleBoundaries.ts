@@ -83,12 +83,6 @@ export const EXCEPTIONS: readonly { from: string; to: string; file: string; why:
   { from: 'outline', to: 'features', file: 'outline/selection/snapshot.ts', why: 'note-body model' },
   {
     from: 'outline',
-    to: 'features',
-    file: 'outline/selection/delete-selection.ts',
-    why: 'zoom view-root ownership is unresolved',
-  },
-  {
-    from: 'outline',
     to: 'plugins',
     file: 'outline/selection/delete-selection.ts',
     why: 'plugins/selected-note-range.ts belongs under outline/selection',

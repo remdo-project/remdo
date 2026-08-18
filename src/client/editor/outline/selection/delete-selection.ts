@@ -8,7 +8,7 @@ import {
   $isRangeSelection,
   $isTextNode,
 } from 'lexical';
-import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { $normalizeOutlineRoot } from '#client/editor/outline/normalization';
 import {
   $requireRootContentList,
@@ -36,7 +36,7 @@ function $resolveDeletionForRange(
     return null;
   }
   const selection = $getSelection();
-  const zoomRoot = $resolveZoomRoot(editor);
+  const zoomRoot = $resolveViewRoot(editor);
   const targets = $resolveStructuralDeletionTargets(range, selection, zoomRoot);
   return targets ? { targets, selection, zoomRoot } : null;
 }

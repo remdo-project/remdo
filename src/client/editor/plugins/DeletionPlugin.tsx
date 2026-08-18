@@ -24,7 +24,7 @@ import {
   insertBefore,
 } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
 import {
   $deleteFocusedOrSelectedNotes,
@@ -382,7 +382,7 @@ export function DeletionPlugin() {
 
         event.preventDefault();
         event.stopPropagation();
-        const zoomRoot = $resolveZoomRoot(editor);
+        const zoomRoot = $resolveViewRoot(editor);
         if (zoomRoot && contentItem.getKey() === zoomRoot.getKey()) {
           return true;
         }
@@ -407,7 +407,7 @@ export function DeletionPlugin() {
 
         event.preventDefault();
         event.stopPropagation();
-        const zoomRoot = $resolveZoomRoot(editor);
+        const zoomRoot = $resolveViewRoot(editor);
         const nextNote = getNextNoteInDocumentOrder(contentItem);
         const nextNoteOutsideZoomRoot =
           zoomRoot !== null && nextNote !== null && !isContentDescendantOf(nextNote, zoomRoot);

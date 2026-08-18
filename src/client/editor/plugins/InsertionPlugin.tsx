@@ -23,7 +23,7 @@ import { $getOrCreateChildList, getBodyWrapper, insertBefore } from '#client/edi
 import { resolveBoundaryPoint } from '#client/editor/outline/selection/caret';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { resolveCaretPlacement } from '#client/editor/outline/selection/caret-placement';
-import { getZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { getViewRoot } from '#client/editor/outline/view-root';
 import { getNestedList, noteHasChildren } from '#client/editor/outline/selection/tree';
 
 function $createNote(text: string): ListItemNode {
@@ -235,7 +235,7 @@ export function InsertionPlugin() {
           if (!contentItem) {
             return false;
           }
-          const zoomRootKey = getZoomRoot(editor);
+          const zoomRootKey = getViewRoot(editor);
           const isZoomRoot = zoomRootKey !== null && contentItem.getKey() === zoomRootKey;
 
           // An inline text selection removes its text and then takes the caret

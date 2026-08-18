@@ -3,7 +3,7 @@ import { collapseSelectionToCaret, resolveBoundaryPoint } from '#client/editor/o
 import { $applyCaretEdge, setSelectionBetweenItems } from '#client/editor/outline/selection/apply';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND, PROGRESSIVE_SELECTION_DIRECTION_COMMAND } from '#client/editor/commands';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
-import { getZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { getViewRoot } from '#client/editor/outline/view-root';
 import { $shouldBlockHorizontalArrow } from '#client/editor/outline/selection/navigation';
 import {
   $applyProgressivePlan,
@@ -150,7 +150,7 @@ export function SelectionPlugin() {
       // touched any node — as opposed to a selection-only change such as a
       // Shift+Click extension. Only a tree change re-replays the ladder.
       const treeChanged = dirtyElements.size > 0 || dirtyLeaves.size > 0;
-      const zoomRootKey = getZoomRoot(editor);
+      const zoomRootKey = getViewRoot(editor);
       const { payload, hasStructuralSelection, structuralRange, outlineSelection, progression, unlock, reshape } =
         editorState.read(() =>
           $computeOutlineSelectionSnapshot({
@@ -241,7 +241,7 @@ export function SelectionPlugin() {
     const unregisterSelectAll = editor.registerCommand(
       SELECT_ALL_COMMAND,
       (event) => {
-        const zoomRootKey = getZoomRoot(editor);
+        const zoomRootKey = getViewRoot(editor);
         const planResult = editor
           .getEditorState()
           .read(() => $computeProgressivePlan(ladderRef, INITIAL_PROGRESSIVE_STATE, zoomRootKey));
@@ -303,7 +303,7 @@ export function SelectionPlugin() {
     );
 
     const $runDirectionalPlan = (direction: 'up' | 'down') => {
-      const zoomRootKey = getZoomRoot(editor);
+      const zoomRootKey = getViewRoot(editor);
 
       unlockRef.current = { pending: true, reason: 'directional' };
 

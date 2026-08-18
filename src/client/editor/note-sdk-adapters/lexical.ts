@@ -18,7 +18,7 @@ import { getNoteBody, $resolveNoteForSelectionPoint } from '#client/editor/featu
 import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '#client/editor/outline/note-ops';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $requireContentItemNoteId, $requireRootContentList } from '#client/editor/outline/schema';
-import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import type { OutlineSelectionRange } from '#client/editor/outline/selection/model';
 import { $resolveStructuralHeadsFromRange } from '#client/editor/outline/selection/range';
 import {
@@ -66,7 +66,7 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
     }
     return note;
   };
-  const $resolveCurrentZoomRoot = () => $resolveZoomRoot(editor);
+  const $resolveCurrentZoomRoot = () => $resolveViewRoot(editor);
   const $resolveRangeNotes = (range: NoteRange): ListItemNode[] | null => {
     const start = $requireNoteById(range.start);
     const end = $requireNoteById(range.end);

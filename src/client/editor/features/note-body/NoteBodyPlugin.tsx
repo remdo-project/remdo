@@ -24,7 +24,7 @@ import { useEffect } from 'react';
 import { getPreviousContentSibling, isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { stopKeyboardEvent } from '#client/editor/keyboard-event';
-import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { BodyWrapperNode, isBodyWrapper } from './note-body-node';
 import type { NoteBodyNode } from './note-body-node';
 import {
@@ -207,7 +207,7 @@ export function NoteBodyPlugin() {
       if ($getActiveNoteBody()) {
         return false;
       }
-      const zoomRoot = $resolveZoomRoot(editor);
+      const zoomRoot = $resolveViewRoot(editor);
       if (direction === 'left' || direction === 'right') {
         return $skipBodyForHorizontalNav(direction, zoomRoot) ? stopKeyboardEvent(event) : false;
       }
