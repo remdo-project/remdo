@@ -136,11 +136,8 @@ function createBetterAuthInstance({
         allowDynamicClientRegistration: allowSignup,
         allowUnauthenticatedClientRegistration: allowSignup,
         clientRegistrationDefaultScopes: [...REMDO_SERVER_OAUTH_SCOPES],
-        // Better Auth 1.7 rejects an explicit DCR `resources` request unless the
-        // identifier is allowlisted for registration: "When both registration
-        // resource options are omitted, explicit resource requests are
-        // rejected." A home registers itself against this source's own origin,
-        // which is the single resource this server exposes.
+        // A registering home requests this source's origin as its resource, and
+        // Better Auth rejects any resource that registration does not allowlist.
         clientRegistrationDefaultResources: [serverOrigin],
         rateLimit: {
           register: { window: 60, max: 5 },
@@ -166,14 +163,10 @@ function createBetterAuthInstance({
           }
           return [{
             providerId: server.id,
-            // Better Auth 1.7 pairs every OAuth account with a stable issuer
-            // namespace. These providers have no discovery document, so the
-            // issuer is set explicitly; the source server advertises its own
-            // baseUrl as its issuer.
+            // An OAuth account is keyed by (issuer, subject). These providers
+            // publish no discovery document, so both come from the source server
+            // itself: its origin is the issuer, and its userinfo returns `sub`.
             accountIssuer: server.baseUrl,
-            // Without discovery Better Auth cannot tell this provider is OIDC,
-            // so it would read the non-OIDC `id` claim. A RemDo source is an
-            // OIDC provider whose userinfo returns `sub`.
             accountSubject: ({ profile }) => profile.sub ?? '',
             authorizationUrl: `${server.baseUrl}/api/auth/oauth2/authorize`,
             tokenUrl: `${server.baseUrl}/api/auth/oauth2/token`,
@@ -350,7 +343,7 @@ export function createServerAuth({
         return null;
       }
       try {
-        // Better Auth 1.7 selects the account by its row id, not by providerId.
+        // getAccessToken selects by account row id, not by provider.
         const context = await auth.$context;
         const account = (await context.internalAdapter.findAccounts(userId))
           .find((candidate) => candidate.providerId === serverId);

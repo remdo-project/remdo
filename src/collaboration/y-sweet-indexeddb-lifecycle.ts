@@ -24,7 +24,9 @@ interface IndexedDbProviderLike {
 
 const guardedIndexedDbProviders = new WeakSet<object>();
 
-// TODO: Remove once Y-Sweet handles IndexedDB provider teardown safely upstream.
+// TODO: Remove once Y-Sweet tears its IndexedDB provider down safely upstream —
+// deferring destroy past in-flight updates and closing the database handle.
+// Probe: drop this guard and run tests/unit/y-sweet-indexeddb-lifecycle.spec.ts.
 export function guardYSweetIndexedDbProviderLifecycle(
   provider: ProviderWithDestroy & { indexedDBProvider?: unknown }
 ): () => void {
@@ -91,8 +93,6 @@ function patchIndexedDbProvider(value: unknown): IndexedDbProviderLike | null {
     }
     destroyed = true;
     originalDestroy();
-    // Release the IndexedDB connection Y-Sweet leaves open, so a later
-    // deleteDatabase() is not blocked by this provider.
     candidate.db?.close?.();
   };
 

@@ -20,9 +20,8 @@ function createProvider(handleUpdate?: FakeIndexedDbProvider['handleUpdate']) {
     destroy,
     handleUpdate: handleUpdate ?? (async () => {}),
   };
-  // Y-Sweet registers its async handleUpdate on the doc; mirror that here.
-  // The listener's Promise arm is dropped to match `doc.on`'s void signature,
-  // exactly as the guard does when it re-registers the wrapped handler.
+  // Mirror Y-Sweet: an async handleUpdate registered on the doc. The cast drops
+  // the Promise arm to match `doc.on`'s void signature, as the guard also does.
   doc.on('update', indexedDBProvider.handleUpdate as (update: Uint8Array, origin: unknown) => void);
 
   const owner = {
@@ -42,8 +41,6 @@ describe('y-sweet IndexedDB provider lifecycle guard', () => {
 
     teardown();
 
-    // Y-Sweet's own destroy() closes only the BroadcastChannel; without this the
-    // connection stays open and indexedDB.deleteDatabase() blocks forever.
     expect(close).toHaveBeenCalledTimes(1);
   });
 
