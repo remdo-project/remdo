@@ -5,7 +5,7 @@ import { ExternalLinkPlugin } from './ExternalLinkPlugin';
 import { NoteLinkPlugin } from './NoteLinkPlugin';
 
 export function LinksPlugin() {
-  // NoteIdPlugin still owns plain-text internal note-link paste upgrades.
+  // ClipboardPlugin owns plain-text internal note-link paste upgrades.
   return (
     <>
       <NoteLinkPlugin />
