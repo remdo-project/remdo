@@ -1,6 +1,6 @@
 import type { ListItemNode } from '@lexical/list';
 import { $getState, $setState, createState } from 'lexical';
-import { patchListItemStateConfig } from './list-item-state-config';
+import { patchListItemStateConfig } from '#client/editor/runtime/list-item-state-config';
 
 const checklistState = createState('checkState', {
   parse: (value) => (value === true ? true : undefined),
@@ -18,12 +18,10 @@ export function $setNoteCheckedRaw(node: ListItemNode, value: boolean | undefine
 
 let didPatch = false;
 
-function ensureChecklistStateConfig(): void {
+export function ensureCheckedStateConfig(): void {
   if (didPatch) {
     return;
   }
   didPatch = true;
   patchListItemStateConfig(checklistState);
 }
-
-ensureChecklistStateConfig();
