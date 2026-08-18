@@ -67,18 +67,11 @@ const UNGOVERNED = new Set([
 export const EXCEPTIONS: readonly { from: string; to: string; file: string; why: string }[] = [
   {
     from: 'outline',
-    to: 'features',
-    file: 'outline/selection/delete-selection.ts',
-    why: 'zoom view-root ownership is unresolved',
-  },
-  {
-    from: 'outline',
     to: 'plugins',
     file: 'outline/selection/delete-selection.ts',
     why: 'plugins/selected-note-range.ts belongs under outline/selection',
   },
   { from: 'runtime', to: 'features', file: 'runtime/nodes.ts', why: 'node registration; see node-ownership question' },
-  { from: 'note-sdk-adapters', to: 'features', file: 'note-sdk-adapters/lexical.ts', why: 'zoom view-root ownership is unresolved' },
   { from: 'features', to: 'plugins', file: 'features/zoom/ZoomPlugin.tsx', why: 'collaboration provider is not a plugin concern' },
 ];
 

@@ -5,7 +5,7 @@ import { mergeRegister } from '@lexical/utils';
 import { useEffect } from 'react';
 import { INDENT_NOTES_COMMAND, OUTDENT_NOTES_COMMAND } from '#client/editor/commands';
 import { indentNotesInRange, outdentNotesInRange } from '#client/editor/outline/note-ops';
-import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { $resolveSelectedNoteRange } from './selected-note-range';
 
 function $indent(editor: LexicalEditor, direction: 'indent' | 'outdent'): boolean {
@@ -13,10 +13,10 @@ function $indent(editor: LexicalEditor, direction: 'indent' | 'outdent'): boolea
   if (!range) {
     return false;
   }
-  const zoomRoot = $resolveZoomRoot(editor);
+  const viewRoot = $resolveViewRoot(editor);
   return direction === 'indent'
-    ? indentNotesInRange(range, zoomRoot)
-    : outdentNotesInRange(range, zoomRoot);
+    ? indentNotesInRange(range, viewRoot)
+    : outdentNotesInRange(range, viewRoot);
 }
 
 export function IndentationPlugin() {

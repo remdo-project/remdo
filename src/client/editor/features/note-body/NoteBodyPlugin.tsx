@@ -24,10 +24,18 @@ import { useEffect } from 'react';
 import { getPreviousContentSibling, isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { stopKeyboardEvent } from '#client/editor/keyboard-event';
-import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { BodyWrapperNode, isBodyWrapper } from '#client/editor/outline/note-body-node';
 import type { NoteBodyNode } from '#client/editor/outline/note-body-node';
-import { $addNoteBody, $isCaretOnElementEdgeVisualLine, $reconcileNoteBodyWrappers, $removeNoteBody, $skipBodyForHorizontalNav, $skipBodyForVerticalNav, isNoteBodyEmpty } from './note-body-ops';
+import {
+  $addNoteBody,
+  $isCaretOnElementEdgeVisualLine,
+  $reconcileNoteBodyWrappers,
+  $removeNoteBody,
+  $skipBodyForHorizontalNav,
+  $skipBodyForVerticalNav,
+  isNoteBodyEmpty,
+} from './note-body-ops';
 import { $getNoteBodyFromNode, $getSelectionBody } from '#client/editor/outline/selection/body-region';
 import './note-body.css';
 
@@ -198,11 +206,11 @@ export function NoteBodyPlugin() {
       if ($getActiveNoteBody()) {
         return false;
       }
-      const zoomRoot = $resolveZoomRoot(editor);
+      const viewRoot = $resolveViewRoot(editor);
       if (direction === 'left' || direction === 'right') {
-        return $skipBodyForHorizontalNav(direction, zoomRoot) ? stopKeyboardEvent(event) : false;
+        return $skipBodyForHorizontalNav(direction, viewRoot) ? stopKeyboardEvent(event) : false;
       }
-      return $skipBodyForVerticalNav(editor, direction, zoomRoot) ? stopKeyboardEvent(event) : false;
+      return $skipBodyForVerticalNav(editor, direction, viewRoot) ? stopKeyboardEvent(event) : false;
     };
 
     return mergeRegister(

@@ -6,7 +6,7 @@ import {
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect, useRef } from 'react';
 import { focusEditorRoot } from '#client/editor/runtime/focus';
-import { setZoomRoot } from './zoom-root';
+import { setViewRoot } from '#client/editor/outline/view-root';
 import type { UpdateListenerPayload } from 'lexical';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { useCollaborationStatus } from '#client/editor/plugins/collaboration/CollaborationProvider';
@@ -45,7 +45,7 @@ export function ZoomPlugin() {
     zoomNoteIdRef.current = resolveZoomNoteId(zoomNoteId);
     const noteId = zoomNoteIdRef.current;
     if (!noteId) {
-      setZoomRoot(editor, null);
+      setViewRoot(editor, null);
       return;
     }
 
@@ -57,7 +57,7 @@ export function ZoomPlugin() {
       }
       zoomRootKey = root.getKey();
     });
-    setZoomRoot(editor, zoomRootKey);
+    setViewRoot(editor, zoomRootKey);
   }, [editor, zoomNoteId]);
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export function ZoomPlugin() {
         // in between (e.g. Backspace right after a bullet click) must already
         // see the new boundary.
         zoomNoteIdRef.current = resolveZoomNoteId(noteId);
-        setZoomRoot(editor, zoomRoot.getKey());
+        setViewRoot(editor, zoomRoot.getKey());
         editor.focus();
         return true;
       },
@@ -120,7 +120,7 @@ export function ZoomPlugin() {
         };
       });
 
-      setZoomRoot(editor, resolved.zoomRootKey ?? null);
+      setViewRoot(editor, resolved.zoomRootKey ?? null);
 
       if (!areNotePathsEqual(resolved.path, lastPathRef.current)) {
         lastPathRef.current = resolved.path;
