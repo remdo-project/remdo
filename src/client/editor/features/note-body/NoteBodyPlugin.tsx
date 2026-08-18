@@ -25,19 +25,10 @@ import { getPreviousContentSibling, isChildrenWrapper } from '#client/editor/out
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { stopKeyboardEvent } from '#client/editor/keyboard-event';
 import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
-import { BodyWrapperNode, isBodyWrapper } from './note-body-node';
-import type { NoteBodyNode } from './note-body-node';
-import {
-  $addNoteBody,
-  $getNoteBodyFromNode,
-  $getSelectionBody,
-  $isCaretOnElementEdgeVisualLine,
-  $reconcileNoteBodyWrappers,
-  $removeNoteBody,
-  $skipBodyForHorizontalNav,
-  $skipBodyForVerticalNav,
-  isNoteBodyEmpty,
-} from './note-body-ops';
+import { BodyWrapperNode, isBodyWrapper } from '#client/editor/outline/note-body-node';
+import type { NoteBodyNode } from '#client/editor/outline/note-body-node';
+import { $addNoteBody, $isCaretOnElementEdgeVisualLine, $reconcileNoteBodyWrappers, $removeNoteBody, $skipBodyForHorizontalNav, $skipBodyForVerticalNav, isNoteBodyEmpty } from './note-body-ops';
+import { $getNoteBodyFromNode, $getSelectionBody } from '#client/editor/outline/selection/body-region';
 import './note-body.css';
 
 /**

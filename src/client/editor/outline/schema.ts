@@ -4,7 +4,7 @@ import { $getRoot } from 'lexical';
 import type { LexicalNode } from 'lexical';
 
 import { $getNoteId } from '#client/editor/runtime/note-id-state';
-import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
+import { isBodyWrapper } from '#client/editor/outline/note-body-node';
 import { reportInvariant } from '#client/editor/invariant';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from './list-structure';
 

@@ -30,7 +30,7 @@ import {
 } from '#tests';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { getNoteBody } from '#client/editor/features/note-body/note-body-ops';
+import { getNoteBody } from '#client/editor/outline/selection/body-region';
 import { renderRemdoEditor } from '#tests-collab/render-editor';
 
 function findSerializedListItem(node: SerializedLexicalNode, noteId: string): SerializedNoteListItemNode | null {

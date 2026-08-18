@@ -71,19 +71,6 @@ export const EXCEPTIONS: readonly { from: string; to: string; file: string; why:
   {
     from: 'outline',
     to: 'features',
-    file: 'outline/note-context.ts',
-    why: 'note-body model belongs to the outline (docs/todo.md, editor module ownership)',
-  },
-  { from: 'outline', to: 'features', file: 'outline/schema.ts', why: 'note-body model' },
-  { from: 'outline', to: 'features', file: 'outline/list-structure.ts', why: 'note-body model' },
-  { from: 'outline', to: 'features', file: 'outline/selection/tree.ts', why: 'note-body model' },
-  { from: 'outline', to: 'features', file: 'outline/selection/resolve.ts', why: 'note-body model' },
-  { from: 'outline', to: 'features', file: 'outline/selection/heads.ts', why: 'note-body model' },
-  { from: 'outline', to: 'features', file: 'outline/selection/structural-range.ts', why: 'note-body model' },
-  { from: 'outline', to: 'features', file: 'outline/selection/snapshot.ts', why: 'note-body model' },
-  {
-    from: 'outline',
-    to: 'features',
     file: 'outline/selection/delete-selection.ts',
     why: 'zoom view-root ownership is unresolved',
   },
@@ -94,8 +81,7 @@ export const EXCEPTIONS: readonly { from: string; to: string; file: string; why:
     why: 'plugins/selected-note-range.ts belongs under outline/selection',
   },
   { from: 'runtime', to: 'features', file: 'runtime/nodes.ts', why: 'node registration; see node-ownership question' },
-  { from: 'runtime', to: 'features', file: 'runtime/serialized-note-types.ts', why: 'note-body model' },
-  { from: 'note-sdk-adapters', to: 'features', file: 'note-sdk-adapters/lexical.ts', why: 'note-body model + zoom view root' },
+  { from: 'note-sdk-adapters', to: 'features', file: 'note-sdk-adapters/lexical.ts', why: 'zoom view-root ownership is unresolved' },
   { from: 'features', to: 'plugins', file: 'features/zoom/ZoomPlugin.tsx', why: 'collaboration provider is not a plugin concern' },
 ];
 

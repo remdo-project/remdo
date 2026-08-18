@@ -1,7 +1,7 @@
 import type { SerializedLexicalNode } from 'lexical';
 import type { SerializedListItemNode } from '@lexical/list';
 
-import { BodyWrapperNode } from '#client/editor/features/note-body/note-body-node';
+import { BodyWrapperNode } from '#client/editor/outline/note-body-node';
 
 export type SerializedNoteListItemNode = SerializedListItemNode & {
   checkState?: boolean;

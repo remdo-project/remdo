@@ -6,7 +6,7 @@ import {
   $requireContentItemNoteId,
   resolveContentItemFromNode,
 } from './schema';
-import { $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
+import { $resolveNoteForSelectionPoint } from '#client/editor/outline/selection/body-region';
 
 export function $resolveContentNoteFromDOMNode(node: Node | null): ListItemNode | null {
   if (!node) {

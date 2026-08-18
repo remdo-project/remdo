@@ -14,7 +14,7 @@ import {
   isChildrenWrapper,
   maybeRemoveEmptyWrapper,
 } from '#client/editor/outline/list-structure';
-import { getNoteBody, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
+import { getNoteBody, $resolveNoteForSelectionPoint } from '#client/editor/outline/selection/body-region';
 import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '#client/editor/outline/note-ops';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $requireContentItemNoteId, $requireRootContentList } from '#client/editor/outline/schema';

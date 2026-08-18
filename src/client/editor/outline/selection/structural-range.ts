@@ -4,7 +4,7 @@ import { $getSelectedNotes, $getContiguousSelectionHeads } from './heads';
 import type { OutlineSelection, OutlineSelectionRange } from './model';
 import { $resolveStructuralHeadsFromRange } from './range';
 import { computeStructuralRangeFromHeads } from './resolve';
-import { $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
+import { $resolveNoteForSelectionPoint } from '#client/editor/outline/selection/body-region';
 
 interface ResolveStructuralRangeOptions {
   allowCollapsedSingleNote?: boolean;
