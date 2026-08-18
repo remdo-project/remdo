@@ -56,9 +56,7 @@ cannot discover; without one, it runs the complete group used by CI.
 - `pnpm run lint` — check the source as written: types, code, styles,
   documentation, agent instructions, and the dependency graph; use for the
   default static feedback.
-- `pnpm run audit:policy`, `pnpm run audit:unused:prod`, and
-  `pnpm run check:dev-boundary` — check the resolved lockfile and the production
-  bundle, so each resolves or builds rather than reading source; use after
-  dependency, bundle, and production-boundary changes.
+- `pnpm run verify` — run `lint`, then the checks that resolve the lockfile or
+  build the production bundle; use before a commit or handoff.
 
 CI runs all static checks configured in its workflows.
