@@ -9,7 +9,7 @@ import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { setViewRoot } from '#client/editor/outline/view-root';
 import type { UpdateListenerPayload } from 'lexical';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { useCollaborationStatus } from '#client/editor/plugins/collaboration/CollaborationProvider';
+import { useCollaborationStatus } from '#client/editor/runtime/collaboration/CollaborationProvider';
 import { $findNoteById, $getNoteAncestorPath, areNotePathsEqual } from '#client/editor/outline/note-traversal';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import { isContentDescendantOf } from '#client/editor/outline/selection/tree';

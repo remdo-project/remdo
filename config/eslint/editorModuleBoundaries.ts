@@ -24,8 +24,8 @@ import type { Node } from 'estree';
 const ALLOWED: Record<string, readonly string[]> = {
   // Foundations.
   outline: ['#root', 'runtime'],
-  // Cycle: runtime sits above outline (node registration) and below it
-  // (note-id and fold state).
+  // Cycle: runtime registers and serializes the outline's node types, and
+  // outline reads the per-note state runtime stores.
   runtime: ['#root', 'outline'],
 
   // Capabilities.
@@ -66,7 +66,6 @@ const UNGOVERNED = new Set([
 // path — and a move is the workflow this list exists to police.
 export const EXCEPTIONS: readonly { from: string; to: string; file: string; why: string }[] = [
   { from: 'runtime', to: 'features', file: 'runtime/nodes.ts', why: 'node registration; see node-ownership question' },
-  { from: 'features', to: 'plugins', file: 'features/zoom/ZoomPlugin.tsx', why: 'collaboration provider is not a plugin concern' },
 ];
 
 const EDITOR_ROOT = path.normalize('src/client/editor');

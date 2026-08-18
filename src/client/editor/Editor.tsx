@@ -5,7 +5,7 @@ import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { useCallback, useState } from 'react';
 import { createEditorInitialConfig } from '#client/editor/runtime/config';
-import { CollaborationPlugin, useOfflineDocumentUnavailable } from './plugins/collaboration';
+import { CollaborationPlugin, useOfflineDocumentUnavailable } from './runtime/collaboration';
 import { CheckListPlugin } from './plugins/CheckListPlugin';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { DevEditorSeam } from './DevEditorSeam';

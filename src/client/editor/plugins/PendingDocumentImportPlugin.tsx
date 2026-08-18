@@ -3,7 +3,7 @@ import { $getRoot } from 'lexical';
 import type { SerializedEditorState } from 'lexical';
 import { useEffect } from 'react';
 
-import { useCollaborationStatus } from './collaboration';
+import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
 import { markSchemaValidationSkipOnce } from '../schema-validation-skip-once';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
