@@ -22,27 +22,24 @@ import type { Node } from 'estree';
 // Probe: the table lists owners rather than directories, and the layer comments
 // above are gone.
 const ALLOWED: Record<string, readonly string[]> = {
-  // Foundations. The document model and the state it is stored in; imported
-  // widely, importing little.
+  // Foundations.
   outline: ['#root', 'runtime'],
   // Cycle: runtime sits above outline (node registration) and below it
   // (note-id and fold state).
   runtime: ['#root', 'outline'],
 
-  // Capabilities. One concern each, built on the foundations.
+  // Capabilities.
   links: ['outline', 'runtime'],
   search: ['outline'],
   triggers: ['outline', 'runtime'],
   view: ['outline', 'search'],
   features: ['#root', 'outline', 'runtime', 'triggers', 'view'],
 
-  // Wiring. Composes the above into an editor, so it reaches every layer.
-  // The breadth of `plugins` is what the taxonomy work narrows: it holds
-  // capabilities, core editing, and infrastructure at once.
+  // Wiring. `plugins` reaches every layer because it holds capabilities, core
+  // editing, and infrastructure at once — the breadth the taxonomy work narrows.
   plugins: ['#root', 'features', 'links', 'note-sdk-adapters', 'outline', 'runtime', 'triggers', 'view'],
   '#root': ['features', 'outline', 'plugins', 'runtime'],
 
-  // Adapter to the Note SDK, outside the editor.
   'note-sdk-adapters': ['outline', 'runtime'],
 };
 
@@ -71,19 +68,6 @@ export const EXCEPTIONS: readonly { from: string; to: string; file: string; why:
   {
     from: 'outline',
     to: 'features',
-    file: 'outline/note-context.ts',
-    why: 'note-body model belongs to the outline (docs/todo.md, editor module ownership)',
-  },
-  { from: 'outline', to: 'features', file: 'outline/schema.ts', why: 'note-body model' },
-  { from: 'outline', to: 'features', file: 'outline/list-structure.ts', why: 'note-body model' },
-  { from: 'outline', to: 'features', file: 'outline/selection/tree.ts', why: 'note-body model' },
-  { from: 'outline', to: 'features', file: 'outline/selection/resolve.ts', why: 'note-body model' },
-  { from: 'outline', to: 'features', file: 'outline/selection/heads.ts', why: 'note-body model' },
-  { from: 'outline', to: 'features', file: 'outline/selection/structural-range.ts', why: 'note-body model' },
-  { from: 'outline', to: 'features', file: 'outline/selection/snapshot.ts', why: 'note-body model' },
-  {
-    from: 'outline',
-    to: 'features',
     file: 'outline/selection/delete-selection.ts',
     why: 'zoom view-root ownership is unresolved',
   },
@@ -94,8 +78,7 @@ export const EXCEPTIONS: readonly { from: string; to: string; file: string; why:
     why: 'plugins/selected-note-range.ts belongs under outline/selection',
   },
   { from: 'runtime', to: 'features', file: 'runtime/nodes.ts', why: 'node registration; see node-ownership question' },
-  { from: 'runtime', to: 'features', file: 'runtime/serialized-note-types.ts', why: 'note-body model' },
-  { from: 'note-sdk-adapters', to: 'features', file: 'note-sdk-adapters/lexical.ts', why: 'note-body model + zoom view root' },
+  { from: 'note-sdk-adapters', to: 'features', file: 'note-sdk-adapters/lexical.ts', why: 'zoom view-root ownership is unresolved' },
   { from: 'features', to: 'plugins', file: 'features/zoom/ZoomPlugin.tsx', why: 'collaboration provider is not a plugin concern' },
 ];
 
@@ -170,8 +153,7 @@ export const editorModuleBoundariesRule: Rule.RuleModule = {
     if (UNGOVERNED.has(from)) return {};
 
     const allowed = ALLOWED[from];
-    // Fail closed: a bucket with no entry is an editor directory nobody has
-    // placed in the graph, so it would otherwise import anything unchecked.
+    // Fail closed: an unlisted directory would otherwise import anything.
     if (!allowed) {
       return {
         Program(node) {
@@ -210,16 +192,13 @@ export const editorModuleBoundariesRule: Rule.RuleModule = {
       ImportDeclaration(node) {
         checkSource(node.source, node.source.value);
       },
-      // `export ... from` and `export * from` re-export across the boundary just
-      // as an import does.
       ExportNamedDeclaration(node) {
         if (node.source) checkSource(node.source, node.source.value);
       },
       ExportAllDeclaration(node) {
         checkSource(node.source, node.source.value);
       },
-      // Dynamic `import('...')` with a literal specifier; a computed specifier
-      // is not statically resolvable and is left to review.
+      // A computed specifier is not statically resolvable and is left to review.
       ImportExpression(node) {
         if (node.source.type === 'Literal') checkSource(node.source, node.source.value);
       },

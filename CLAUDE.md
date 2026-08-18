@@ -9,6 +9,24 @@ anything written via the memory/remember workflows — are a per-machine cache,
 `MEMORY.md` plus one file per memory). Do **not** write them under this repo's
 `.claude/` (e.g. `.claude/projects/.../memory/`) or under any worktree.
 
+## Code comments
+
+Default to no comment. A comment earns its place only by carrying what the code
+cannot: why this way, what breaks otherwise, or a constraint from outside the
+file. Everything else belongs in a better name.
+
+Apply the test before writing or keeping one: **delete it — is anything lost
+that a competent reader could not recover from the code?** If no, leave it
+deleted. Prefer deleting a weak comment over shortening it.
+
+Never restate the code, the identifier, or the value beside it; never label a
+section that its own contents already announce. When a comment feels necessary
+to explain *what* the code does, rename or split the code instead.
+
+This governs prose comments. [Tracked comments](CONTRIBUTING.md#code-comments)
+(`TODO`/`FIXME`) follow their own rules, and a contract owner's documentation is
+not a comment.
+
 ## Response economy (Claude Code)
 
 Optimize for the user's reading time, not for word count. The goal is not

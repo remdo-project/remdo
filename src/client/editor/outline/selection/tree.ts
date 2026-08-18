@@ -3,7 +3,7 @@ import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
-import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
+import { isBodyWrapper } from '#client/editor/outline/note-body-node';
 import { getBodyWrapper, getContentSiblings, getPreviousContentSibling, isChildrenWrapper, isContentItem, maybeRemoveEmptyWrapper } from '../list-structure';
 
 export function normalizeContentRange(

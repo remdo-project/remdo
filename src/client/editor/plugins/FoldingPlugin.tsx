@@ -10,7 +10,7 @@ import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/edito
 import { forEachContentItemInOutline, forEachContentItemWithAncestorsInOutline } from '#client/editor/outline/list-traversal';
 import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
 import { $resolveRootContentList, resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
+import { $resolveNoteForSelectionPoint } from '#client/editor/outline/selection/body-region';
 import { isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
 import type { OutlineSelection } from '#client/editor/outline/selection/model';

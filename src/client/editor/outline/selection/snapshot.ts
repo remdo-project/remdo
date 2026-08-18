@@ -4,7 +4,7 @@ import { $isRangeSelection } from 'lexical';
 import { $getListItemByKey } from '#client/editor/outline/list-structure';
 
 import { reportInvariant } from '#client/editor/invariant';
-import { $isSelectionWithinOneBody, $selectionCrossesRegionBoundary } from '#client/editor/features/note-body/note-body-ops';
+import { $isSelectionWithinOneBody, $selectionCrossesRegionBoundary } from '#client/editor/outline/selection/body-region';
 
 import type { OutlineSelection, OutlineSelectionRange } from './model';
 import { $getContiguousSelectionHeads, $getSelectedNotes } from './heads';
