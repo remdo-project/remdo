@@ -36,7 +36,7 @@ import {
   isContentItem,
   flattenNoteNodes,
 } from '#client/editor/outline/list-structure';
-import { getNoteBody, $getSelectionBody, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
+import { getNoteBody, $getSelectionBody, $resolveNoteForSelectionPoint } from '#client/editor/outline/selection/body-region';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { getViewRoot } from '#client/editor/outline/view-root';

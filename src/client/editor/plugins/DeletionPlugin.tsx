@@ -40,7 +40,8 @@ import {
   removeNoteSubtree,
   isContentDescendantOf,
 } from '#client/editor/outline/selection/tree';
-import { getNoteBody, isNoteBodyEmpty } from '#client/editor/features/note-body/note-body-ops';
+import { isNoteBodyEmpty } from '#client/editor/features/note-body/note-body-ops';
+import { getNoteBody } from '#client/editor/outline/selection/body-region';
 
 const TRAILING_WHITESPACE_PATTERN = /\s$/;
 const LEADING_WHITESPACE_PATTERN = /^\s/;

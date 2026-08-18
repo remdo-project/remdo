@@ -15,11 +15,11 @@ const EDITOR = path.resolve('src/client/editor');
 // Governed by `outline`, which may not import `features`, and carries no
 // exception entry.
 const OUTLINE_FILE = path.join(EDITOR, 'outline/note-range.ts');
-// Same bucket, but listed in `EXCEPTIONS` for its `features` import.
-const EXCUSED_FILE = path.join(EDITOR, 'outline/note-context.ts');
+// Listed in `EXCEPTIONS` for its `features` import.
+const EXCUSED_FILE = path.join(EDITOR, 'runtime/nodes.ts');
 
 const FORBIDDEN = '#client/editor/features/zoom/zoom-caret';
-const EXCUSED = '#client/editor/features/note-body/note-body-ops';
+const EXCUSED = '#client/editor/features/date/date-node';
 
 describe('remdo/editor-module-boundaries', () => {
   it('resolves every import form and keeps exceptions scoped and current', () => {
