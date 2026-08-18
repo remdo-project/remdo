@@ -4,7 +4,7 @@ import * as Y from 'yjs';
 import { guardYSweetIndexedDbProviderLifecycle } from '#collaboration/y-sweet-indexeddb-lifecycle';
 
 interface FakeIndexedDbProvider {
-  db: { close: () => void };
+  db: { close: () => void; objectStoreNames: { contains: (name: string) => boolean } };
   doc: Y.Doc;
   destroy: () => void;
   handleUpdate: (update: Uint8Array, origin: unknown) => Promise<void>;
@@ -14,8 +14,9 @@ function createProvider(handleUpdate?: FakeIndexedDbProvider['handleUpdate']) {
   const doc = new Y.Doc();
   const close = vi.fn();
   const destroy = vi.fn();
+  let storePresent = true;
   const indexedDBProvider: FakeIndexedDbProvider = {
-    db: { close },
+    db: { close, objectStoreNames: { contains: () => storePresent } },
     doc,
     destroy,
     handleUpdate: handleUpdate ?? (async () => {}),
@@ -29,7 +30,7 @@ function createProvider(handleUpdate?: FakeIndexedDbProvider['handleUpdate']) {
     indexedDBProvider,
   } as unknown as Provider & { destroy: () => void; indexedDBProvider?: unknown };
 
-  return { close, destroy, doc, owner };
+  return { close, destroy, doc, owner, evictDatabase: () => { storePresent = false; } };
 }
 
 describe('y-sweet IndexedDB provider lifecycle guard', () => {
@@ -73,5 +74,28 @@ describe('y-sweet IndexedDB provider lifecycle guard', () => {
     teardown();
 
     expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops updates once the database has been evicted', async () => {
+    const handled: string[] = [];
+    const { doc, evictDatabase, owner } = createProvider(async () => {
+      handled.push('update');
+    });
+
+    guardYSweetIndexedDbProviderLifecycle(owner);
+    doc.getMap('notes').set('before', 1);
+    await vi.waitFor(() => {
+      expect(handled).toHaveLength(1);
+    });
+
+    // Another tab wiped this origin's storage; reopening yields a database with
+    // no `updates` store, so a write would throw NotFoundError.
+    evictDatabase();
+    doc.getMap('notes').set('after', 1);
+    await new Promise((resolve) => {
+      setTimeout(resolve, 20);
+    });
+
+    expect(handled).toHaveLength(1);
   });
 });

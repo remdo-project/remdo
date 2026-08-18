@@ -20,3 +20,23 @@ export function broadcastSignOut(): void {
     // A tab that cannot broadcast still signs itself out.
   }
 }
+
+export function subscribeToSignOut(onSignOut: () => void): () => void {
+  try {
+    const channel = getGlobalBroadcastChannel();
+    // Messages arrive as `storage` events, which only fire once `setup()` has
+    // attached its listener.
+    const teardownChannel = channel.setup();
+    const unsubscribe = channel.subscribe((message) => {
+      if (message.data?.trigger === 'signout') {
+        onSignOut();
+      }
+    });
+    return () => {
+      unsubscribe();
+      teardownChannel();
+    };
+  } catch {
+    return () => {};
+  }
+}
