@@ -1,5 +1,5 @@
 import type { TriggerPickerState } from '#client/editor/triggers/types';
-import type { LinkPickerOption } from '#client/editor/links/note-link-index';
+import type { LinkPickerOption } from '#client/editor/features/links/note-link-index';
 
 function toDomIdFragment(value: string): string {
   return value.replaceAll(/[^\w-]/g, '-');

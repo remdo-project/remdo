@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { meta } from '#tests';
 import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
 import type { NoteListType } from '#note-sdk';
-import { collectDocumentSearchResults } from '#client/editor/search/search-candidates';
-import type { SearchCandidate } from '#client/editor/search/search-candidates';
+import { collectDocumentSearchResults } from '#client/editor/features/search/search-candidates';
+import type { SearchCandidate } from '#client/editor/features/search/search-candidates';
 
 const ALL = { query: '', limit: Number.MAX_SAFE_INTEGER, childPreviewLimit: 2 };
 

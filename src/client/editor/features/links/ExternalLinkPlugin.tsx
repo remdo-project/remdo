@@ -8,7 +8,7 @@ import { $getNodeByKey, TextNode } from 'lexical';
 import { useEffect } from 'react';
 import tlds from 'tlds';
 
-import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
+import { $isNoteLinkNode } from '#client/editor/features/links/note-link-node';
 
 const EXTERNAL_LINK_ATTRIBUTES = {
   rel: 'noopener noreferrer',

@@ -9,7 +9,7 @@ import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import type {
   SearchableNote,
   SearchableNotes,
-} from '#client/editor/search/search-candidates';
+} from '#client/editor/features/search/search-candidates';
 import {
   useEditorViewActions,
   useRegisterSearchNotesReader,
