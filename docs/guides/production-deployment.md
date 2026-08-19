@@ -76,6 +76,23 @@ daemons are supported.
    terminates public HTTPS.
 4. Deploy the service and open its `APP_ORIGIN`.
 
+## Upgrade an Existing Instance
+
+An upgrade preserves accounts and documents. Schema changes apply on the first
+start of the new version.
+
+1. Stop the instance. A schema change can rewrite tables that authentication
+   writes to.
+2. Copy the [persistent storage root](../architecture.md#runtime-persistence-boundary),
+   which is what a rollback restores. The [`backup` script](../../package.json)
+   exports document content for reading and does not replace this copy.
+
+   ```sh
+   cp -a "${DATA_DIR}" "${DATA_DIR}.bak-$(date +%F)"
+   ```
+
+3. Deploy and start as for a new deployment.
+
 ## Verify and Complete First Access
 
 1. Append `/health` to the application URL and confirm that the gateway reports
