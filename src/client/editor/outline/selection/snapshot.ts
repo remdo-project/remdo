@@ -111,7 +111,7 @@ interface OutlineSelectionSnapshotInput {
   progression: ProgressiveSelectionState;
   unlock: ProgressiveUnlockState;
   initialProgression: ProgressiveSelectionState;
-  // Zoom boundary (zoom root key) or null at the document root. A reshape must
+  // View boundary (view root key) or null at the document root. A reshape must
   // stay inside this boundary, just like the keyboard command paths.
   boundaryKey: string | null;
 }

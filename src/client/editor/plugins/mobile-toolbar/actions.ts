@@ -13,7 +13,7 @@ import {
   SET_NOTE_FOLD_COMMAND,
 } from '#client/editor/commands';
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
-import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 import { noteHasChildren } from '#client/editor/outline/selection/tree';
 
@@ -87,7 +87,7 @@ function $resolveFoldableNoteKey(editor: LexicalEditor): string | null {
   if (!$isListItemNode(note) || !noteHasChildren(note)) {
     return null;
   }
-  if (key === $resolveZoomRoot(editor)?.getKey()) {
+  if (key === $resolveViewRoot(editor)?.getKey()) {
     return null;
   }
   return key;

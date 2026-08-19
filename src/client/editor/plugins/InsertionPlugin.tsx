@@ -17,13 +17,13 @@ import {
 import type { LexicalNode, RangeSelection } from 'lexical';
 import { useEffect } from 'react';
 import { stopKeyboardEvent } from '#client/editor/keyboard-event';
-import { $isNoteFolded } from '#client/editor/runtime/fold-state';
+import { $autoExpandIfFolded, $isNoteFolded } from '#client/editor/outline/fold-state';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $getOrCreateChildList, getBodyWrapper, insertBefore } from '#client/editor/outline/list-structure';
 import { resolveBoundaryPoint } from '#client/editor/outline/selection/caret';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { resolveCaretPlacement } from '#client/editor/outline/selection/caret-placement';
-import { getZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { getViewRoot } from '#client/editor/outline/view-root';
 import { getNestedList, noteHasChildren } from '#client/editor/outline/selection/tree';
 
 function $createNote(text: string): ListItemNode {
@@ -74,6 +74,7 @@ function $handleEnterAtEnd(contentItem: ListItemNode) {
 }
 
 function $insertFirstChild(contentItem: ListItemNode, newItem: ListItemNode) {
+  $autoExpandIfFolded(contentItem);
   const childList = $getOrCreateChildList(contentItem);
   const firstChild = childList.getFirstChild();
   if (firstChild) {
@@ -235,8 +236,8 @@ export function InsertionPlugin() {
           if (!contentItem) {
             return false;
           }
-          const zoomRootKey = getZoomRoot(editor);
-          const isZoomRoot = zoomRootKey !== null && contentItem.getKey() === zoomRootKey;
+          const viewRootKey = getViewRoot(editor);
+          const isViewRoot = viewRootKey !== null && contentItem.getKey() === viewRootKey;
 
           // An inline text selection removes its text and then takes the caret
           // rules below, so it needs no placement rules of its own. Whether it
@@ -256,7 +257,7 @@ export function InsertionPlugin() {
           const placement = clearedWholeText ? 'end' : resolveCaretPlacement(selection, contentItem);
 
           if (placement === 'start' || placement === 'end') {
-            if (isZoomRoot) {
+            if (isViewRoot) {
               $insertEmptyFirstChild(contentItem);
             } else if (placement === 'start') {
               $handleEnterAtStart(contentItem);
@@ -267,7 +268,7 @@ export function InsertionPlugin() {
           }
 
           if (placement === 'middle'
-            && $splitContentItemAtSelection(contentItem, selection, isZoomRoot ? 'first-child' : 'sibling')) {
+            && $splitContentItemAtSelection(contentItem, selection, isViewRoot ? 'first-child' : 'sibling')) {
             return stopKeyboardEvent(event);
           }
 

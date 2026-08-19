@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { CollaborationConnectionStatus } from '#collaboration/runtime';
-import { buildCollaborationIndicatorViewModel } from '#client/editor/plugins/collaboration/useCollaborationIndicator';
+import { buildCollaborationIndicatorViewModel } from '#client/editor/runtime/collaboration/useCollaborationIndicator';
 
 function resolveView({
   enabled = true,

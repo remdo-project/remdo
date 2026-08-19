@@ -29,7 +29,7 @@ import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import { $normalizeNoteIdsOnLoad } from '#client/editor/plugins/note-id-normalization';
 import { $skipBodyForVerticalNav } from './note-body-ops';
 import { getNoteBody } from '#client/editor/outline/selection/body-region';
-import { $resolveLinkPickerOptions } from '#client/editor/plugins/note-link/options';
+import { $resolveLinkPickerOptions } from '#client/editor/features/links/picker/options';
 
 describe('note body (docs/specs/outliner/body.md)', () => {
   it('normalization merges a duplicate child-wrapper past a body-wrapper', meta({

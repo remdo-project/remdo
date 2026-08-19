@@ -6,7 +6,7 @@ import { mergeRegister } from '@lexical/utils';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import { isWrapperItem } from '#client/editor/outline/list-structure';
-import { useCollaborationStatus } from './collaboration';
+import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
 import { NOTE_ID_NORMALIZE_TAG, TEST_BRIDGE_LOAD_TAG } from '#client/editor/update-tags';
 

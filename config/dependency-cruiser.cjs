@@ -1,8 +1,7 @@
 /**
- * Dependency graph checks that complement the `remdo/editor-module-boundaries`
- * ESLint rule. That rule owns which editor folders may import which; this owns
- * the questions it cannot answer — cycles, and the coupling metrics used to
- * assess module ownership (docs/todo.md, editor module ownership).
+ * Graph-wide checks `eslint-plugin-boundaries` cannot make: it inspects imports
+ * one file at a time and so cannot see a cycle. Also the source of the coupling
+ * metrics used to assess module ownership.
  */
 module.exports = {
   forbidden: [

@@ -3,7 +3,7 @@ import { $getRoot, RootNode } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 import { useLayoutEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
-import { useCollaborationStatus } from './collaboration';
+import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
 import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '#client/editor/outline/normalization';
 import { markSchemaValidationSkipOnce } from '../schema-validation-skip-once';
 import { ROOT_SCHEMA_NORMALIZE_TAG } from '#client/editor/update-tags';

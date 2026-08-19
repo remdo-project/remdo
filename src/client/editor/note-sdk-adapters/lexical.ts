@@ -1,7 +1,7 @@
 import type { LexicalEditor, LexicalNode } from 'lexical';
 import { $createTextNode, $getNodeByKey, $getSelection, $isRangeSelection, $setState } from 'lexical';
 import { createUniqueNoteId } from '#domain/notes/ids';
-import { $getNoteChecked } from '#client/editor/runtime/checklist-state';
+import { $getNoteChecked } from '#client/editor/features/checklist/checked-state';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import { noteRangeFromNoteId, noteRangeFromOrderedIds } from '#client/editor/outline/note-range';
 import {
@@ -18,7 +18,7 @@ import { getNoteBody, $resolveNoteForSelectionPoint } from '#client/editor/outli
 import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '#client/editor/outline/note-ops';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $requireContentItemNoteId, $requireRootContentList } from '#client/editor/outline/schema';
-import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import type { OutlineSelectionRange } from '#client/editor/outline/selection/model';
 import { $resolveStructuralHeadsFromRange } from '#client/editor/outline/selection/range';
 import {
@@ -46,6 +46,7 @@ import type {
 import { createEditorNotes, NoteNotFoundError } from '#note-sdk';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
+import { $autoExpandIfFolded } from '#client/editor/outline/fold-state';
 
 interface LexicalEditorNotesAdapterOptions {
   editor: LexicalEditor;
@@ -66,7 +67,7 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
     }
     return note;
   };
-  const $resolveCurrentZoomRoot = () => $resolveZoomRoot(editor);
+  const $resolveCurrentViewRoot = () => $resolveViewRoot(editor);
   const $resolveRangeNotes = (range: NoteRange): ListItemNode[] | null => {
     const start = $requireNoteById(range.start);
     const end = $requireNoteById(range.end);
@@ -167,6 +168,7 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
           if (isInsideMovedSubtree(parent)) {
             throw new Error('Cannot move notes into their own subtree');
           }
+          $autoExpandIfFolded(parent);
           return $getOrCreateChildList(parent);
         })();
     const availableSiblings = getContentSiblings(targetList).filter((sibling) => !movedKeys.has(sibling.getKey()));
@@ -345,28 +347,28 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return indentNotes(resolved, $resolveCurrentZoomRoot());
+      return indentNotes(resolved, $resolveCurrentViewRoot());
     },
     outdent: (range) => {
       const resolved = $resolveRangeNotes(range);
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return outdentNotes(resolved, $resolveCurrentZoomRoot());
+      return outdentNotes(resolved, $resolveCurrentViewRoot());
     },
     moveUp: (range) => {
       const resolved = $resolveRangeNotes(range);
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return moveNotesUp(resolved, $resolveCurrentZoomRoot());
+      return moveNotesUp(resolved, $resolveCurrentViewRoot());
     },
     moveDown: (range) => {
       const resolved = $resolveRangeNotes(range);
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return moveNotesDown(resolved, $resolveCurrentZoomRoot());
+      return moveNotesDown(resolved, $resolveCurrentViewRoot());
     },
   };
 }

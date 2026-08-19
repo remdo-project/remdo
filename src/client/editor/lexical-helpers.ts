@@ -5,6 +5,7 @@ import {
 } from '@lexical/list';
 import { reportInvariant } from '#client/editor/invariant';
 import { $getOrCreateChildList, getNodesForNote, getPreviousContentSibling, isChildrenWrapper } from '#client/editor/outline/list-structure';
+import { $autoExpandIfFolded } from '#client/editor/outline/fold-state';
 
 export function $indentNote(noteItem: ListItemNode) {
   const parentList = noteItem.getParent();
@@ -25,6 +26,7 @@ export function $indentNote(noteItem: ListItemNode) {
     return;
   }
 
+  $autoExpandIfFolded(previousContent);
   const targetList = $getOrCreateChildList(previousContent);
   targetList.append(...getNodesForNote(noteItem));
 }

@@ -49,7 +49,7 @@ describe('search candidates plugin', () => {
       useRegisterSearchNotesReader: () => registerSearchNotesReader,
     }));
 
-    const { SearchCandidatesPlugin } = await import('#client/editor/plugins/SearchCandidatesPlugin');
+    const { SearchCandidatesPlugin } = await import('#client/editor/features/search/SearchCandidatesPlugin');
     const view = render(<SearchCandidatesPlugin docId="main" />);
     return { view, fireUpdate: (payload: Parameters<UpdateListener>[0]) => updateListener!(payload) };
   }

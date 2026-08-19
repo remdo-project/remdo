@@ -9,7 +9,7 @@ import {
   OUTDENT_NOTES_COMMAND,
   REORDER_NOTES_DOWN_COMMAND,
 } from '#client/editor/commands';
-import { $getNoteChecked } from '#client/editor/runtime/checklist-state';
+import { $getNoteChecked } from '#client/editor/features/checklist/checked-state';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { resolveSelectionCapability, runMobileAction } from '#client/editor/plugins/mobile-toolbar/actions';
 
