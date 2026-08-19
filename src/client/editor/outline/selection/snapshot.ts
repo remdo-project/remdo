@@ -3,7 +3,7 @@ import type { BaseSelection } from 'lexical';
 import { $isRangeSelection } from 'lexical';
 import { $getListItemByKey } from '#client/editor/outline/list-structure';
 
-import { reportInvariant } from '#client/editor/invariant';
+import { reportInvariant } from '#client/editor/foundation/invariant';
 import { $isSelectionWithinOneBody, $selectionCrossesRegionBoundary } from '#client/editor/outline/selection/body-region';
 
 import type { OutlineSelection, OutlineSelectionRange } from './model';

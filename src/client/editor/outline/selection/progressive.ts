@@ -3,7 +3,7 @@ import type { RangeSelection } from 'lexical';
 import { $getSelection, $isRangeSelection } from 'lexical';
 import { $getListItemByKey } from '#client/editor/outline/list-structure';
 
-import { reportInvariant } from '#client/editor/invariant';
+import { reportInvariant } from '#client/editor/foundation/invariant';
 
 import { selectInlineContent, selectNoteBody, setSelectionBetweenItems } from './apply';
 import type { ProgressiveSelectionState } from './resolve';

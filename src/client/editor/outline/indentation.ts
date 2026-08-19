@@ -3,7 +3,7 @@ import {
   $isListItemNode,
   $isListNode,
 } from '@lexical/list';
-import { reportInvariant } from '#client/editor/invariant';
+import { reportInvariant } from '#client/editor/foundation/invariant';
 import { $getOrCreateChildList, getNodesForNote, getPreviousContentSibling, isChildrenWrapper } from './list-structure';
 import { $autoExpandIfFolded } from './fold-state';
 

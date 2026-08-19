@@ -4,11 +4,11 @@ import type { SerializedEditorState } from 'lexical';
 import { useEffect } from 'react';
 
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
-import { markSchemaValidationSkipOnce } from '../schema-validation-skip-once';
+import { markSchemaValidationSkipOnce } from '#client/editor/foundation/schema-validation-skip-once';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
 import { claimPendingDocumentImport } from '#client/editor/runtime/pending-document-import';
-import { NOTE_ID_NORMALIZE_TAG, TEST_BRIDGE_LOAD_TAG } from '#client/editor/update-tags';
+import { NOTE_ID_NORMALIZE_TAG, TEST_BRIDGE_LOAD_TAG } from '#client/editor/foundation/update-tags';
 
 interface PendingDocumentImportPluginProps {
   onError: (error: Error) => void;

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { IconAlertTriangle } from '@tabler/icons-react';
-import type { StatusDescriptor } from './StatusIndicators';
+import type { StatusDescriptor } from './status-descriptor';
 
 interface InvariantPayload {
   message: string;

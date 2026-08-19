@@ -3,7 +3,7 @@ import type { LexicalEditor } from 'lexical';
 import { COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
 import { mergeRegister } from '@lexical/utils';
 import { useEffect } from 'react';
-import { INDENT_NOTES_COMMAND, OUTDENT_NOTES_COMMAND } from '#client/editor/commands';
+import { INDENT_NOTES_COMMAND, OUTDENT_NOTES_COMMAND } from '#client/editor/foundation/commands';
 import { indentNotesInRange, outdentNotesInRange } from '#client/editor/outline/note-ops';
 import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { $resolveSelectedNoteRange } from '#client/editor/outline/selection/selected-note-range';

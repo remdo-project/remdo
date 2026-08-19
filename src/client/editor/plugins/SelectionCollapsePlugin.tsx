@@ -13,7 +13,7 @@ import {
 import { useEffect } from 'react';
 
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
-import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/commands';
+import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/foundation/commands';
 
 function shouldHandlePlainArrow(editor: LexicalEditor, event: KeyboardEvent): boolean {
   if (!editor.selection.isStructural()) {

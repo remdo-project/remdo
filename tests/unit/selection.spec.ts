@@ -20,7 +20,7 @@ import {
   meta,
 } from '#tests';
 import { $getSelection, $isRangeSelection, SELECT_ALL_COMMAND } from 'lexical';
-import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '#client/editor/commands';
+import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '#client/editor/foundation/commands';
 
 const TREE_COMPLEX_OUTLINE: Outline = [
   {

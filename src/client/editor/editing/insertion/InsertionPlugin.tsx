@@ -16,7 +16,7 @@ import {
 } from 'lexical';
 import type { LexicalNode, RangeSelection } from 'lexical';
 import { useEffect } from 'react';
-import { stopKeyboardEvent } from '#client/editor/keyboard-event';
+import { stopKeyboardEvent } from '#client/editor/foundation/keyboard-event';
 import { $autoExpandIfFolded, $isNoteFolded } from '#client/editor/outline/fold-state';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $getOrCreateChildList, getBodyWrapper, insertBefore } from '#client/editor/outline/list-structure';

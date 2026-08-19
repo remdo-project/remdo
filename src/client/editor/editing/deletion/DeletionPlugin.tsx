@@ -13,7 +13,7 @@ import {
   KEY_DELETE_COMMAND,
 } from 'lexical';
 import type { LexicalNode, TextNode } from 'lexical';
-import { DELETE_SELECTED_NOTES_COMMAND } from '#client/editor/commands';
+import { DELETE_SELECTED_NOTES_COMMAND } from '#client/editor/foundation/commands';
 import { useEffect, useState } from 'react';
 import {
   $getOrCreateChildList,

@@ -5,8 +5,8 @@ import { useLayoutEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
 import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '#client/editor/outline/normalization';
-import { markSchemaValidationSkipOnce } from '../schema-validation-skip-once';
-import { ROOT_SCHEMA_NORMALIZE_TAG } from '#client/editor/update-tags';
+import { markSchemaValidationSkipOnce } from '#client/editor/foundation/schema-validation-skip-once';
+import { ROOT_SCHEMA_NORMALIZE_TAG } from '#client/editor/foundation/update-tags';
 
 interface RootSchemaPluginProps {
   onSchemaReadyChange: (ready: boolean) => void;

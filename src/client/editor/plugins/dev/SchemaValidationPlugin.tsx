@@ -2,8 +2,8 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useCallback, useEffect, useRef } from 'react';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
 import { assertEditorSchema } from './schema/assertEditorSchema';
-import { consumeSchemaValidationSkipOnce } from '../../schema-validation-skip-once';
-import { SCHEMA_VALIDATE_SYNC_TAG } from '#client/editor/update-tags';
+import { consumeSchemaValidationSkipOnce } from '#client/editor/foundation/schema-validation-skip-once';
+import { SCHEMA_VALIDATE_SYNC_TAG } from '#client/editor/foundation/update-tags';
 
 export function SchemaValidationPlugin(): null {
   const [editor] = useLexicalComposerContext();

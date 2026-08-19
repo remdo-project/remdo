@@ -57,7 +57,7 @@ import {
   noteHasChildren,
   removeNoteHeads,
 } from '#client/editor/outline/selection/tree';
-import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/commands';
+import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/foundation/commands';
 import { parseOwnedNoteLinkUrl } from '#client/editor/features/links/note-link-url';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration';

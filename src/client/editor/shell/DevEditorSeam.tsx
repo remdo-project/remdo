@@ -8,7 +8,7 @@ import { Suspense, lazy } from 'react';
 // See docs/architecture.md#production-bundle-boundary.
 
 const LazyDevPlugin = import.meta.env.DEV
-  ? lazy(() => import('./plugins/dev/DevPlugin').then((m) => ({ default: m.DevPlugin })))
+  ? lazy(() => import('#client/editor/plugins/dev/DevPlugin').then((m) => ({ default: m.DevPlugin })))
   : null;
 
 export function DevEditorSeam() {

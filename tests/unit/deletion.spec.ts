@@ -16,7 +16,7 @@ import {
   meta,
 } from '#tests';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
+import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 
 // Coverage gaps (handled in e2e instead of unit tests):
 // - Inline Backspace/Delete inside a note: jsdom doesn’t emulate native deletion

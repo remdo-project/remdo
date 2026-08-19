@@ -4,7 +4,7 @@ import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } fr
 import type { LexicalNode } from 'lexical';
 import { $getNodeByKey } from 'lexical';
 import { isBodyWrapper } from '#client/editor/outline/note-body-node';
-import { reportInvariant } from '#client/editor/invariant';
+import { reportInvariant } from '#client/editor/foundation/invariant';
 
 // Treat wrapper nodes strictly: a wrapper must contain exactly one list child and nothing else.
 // Lexical's isNestedListNode only checks that the first child is a list, but we avoid that looseness
