@@ -85,6 +85,47 @@ export const editorBoundaries = {
   ],
 } as const;
 
+const APP = `${CLIENT}/app`;
+
+export const appBoundaries = {
+  include: [`${APP}/**`],
+  ignore: cssIgnore,
+  elements: [
+    element('app-shell', `${APP}/shell`),
+    element('app-session', `${APP}/session`),
+    element('app-user-data', `${APP}/user-data`),
+    element('app-workspace', `${APP}/workspace`),
+    element('app-sharing', `${APP}/sharing`),
+    element('app-admin', `${APP}/admin`),
+    element('app-dev', `${APP}/dev`),
+    element('unowned', APP),
+  ],
+  policies: [
+    { from: { element: { type: 'app-shell' } },
+      allow: { to: { element: { type: [
+        'app-shell',
+        'app-session',
+        'app-user-data',
+        'app-workspace',
+        'app-sharing',
+        'app-admin',
+        'app-dev',
+      ] } } } },
+    { from: { element: { type: 'app-session' } },
+      allow: { to: { element: { type: ['app-session', 'app-user-data'] } } } },
+    { from: { element: { type: 'app-user-data' } },
+      allow: { to: { element: { type: ['app-user-data', 'app-session', 'app-sharing'] } } } },
+    { from: { element: { type: 'app-workspace' } },
+      allow: { to: { element: { type: ['app-workspace', 'app-user-data'] } } } },
+    { from: { element: { type: 'app-sharing' } },
+      allow: { to: { element: { type: ['app-sharing', 'app-user-data'] } } } },
+    { from: { element: { type: 'app-admin' } },
+      allow: { to: { element: { type: ['app-admin', 'app-session', 'app-user-data'] } } } },
+    { from: { element: { type: 'app-dev' } },
+      allow: { to: { element: { type: ['app-dev', 'app-shell'] } } } },
+  ],
+} as const;
+
 const CLIENT_SHARED = ['client-ui', 'client-runtime', 'client-search'] as const;
 
 export const srcBoundaries = {
@@ -108,22 +149,8 @@ export const srcBoundaries = {
     element('unowned', SRC),
   ],
   policies: [
-    { from: { element: { type: 'client-app' } },
-      allow: { to: { element: { type: [
-        'client-app',
-        ...CLIENT_SHARED,
-        'client-editor',
-        'domain',
-        'note-sdk',
-        'document-routes',
-        'collaboration',
-        'platform',
-      ] } } } },
-
-    // AppHeader imports the dev-toolbar seam until the shell composes that
-    // link. boundaries.spec.ts owns the file-level ratchet.
     { from: { element: { type: 'client-ui' } },
-      allow: { to: { element: { type: ['client-ui', 'client-app'] } } } },
+      allow: { to: { element: { type: ['client-ui'] } } } },
 
     { from: { element: { type: 'client-runtime' } },
       allow: { to: { element: { type: ['client-runtime'] } } } },

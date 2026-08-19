@@ -1,13 +1,9 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import AppHeader from './AppHeader';
 import type { AppHeaderAuthState } from './AppHeader';
-
-vi.mock('#client/app/routes/DevToolbarSeam', () => ({
-  DevToolbarLinksSeam: () => null,
-}));
 
 function renderHeader(authState: AppHeaderAuthState) {
   return render(
