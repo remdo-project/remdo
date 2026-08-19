@@ -16,7 +16,7 @@ import { DeletionPlugin } from '#client/editor/editing/deletion/DeletionPlugin';
 import { DatePlugin } from '#client/editor/features/date/DatePlugin';
 import { NoteBodyPlugin } from '#client/editor/features/note-body/NoteBodyPlugin';
 import { LinksPlugin } from '#client/editor/features/links/LinksPlugin';
-import { RootSchemaPlugin } from '#client/editor/plugins/RootSchemaPlugin';
+import { RootSchemaPlugin } from '#client/editor/runtime/RootSchemaPlugin';
 import { NoteIdPlugin } from '#client/editor/runtime/note-ids/NoteIdPlugin';
 import { ClipboardPlugin } from '#client/editor/editing/clipboard/ClipboardPlugin';
 import { ReorderingPlugin } from '#client/editor/editing/reordering/ReorderingPlugin';
@@ -29,7 +29,7 @@ import { NoteControlsPlugin } from '#client/editor/features/menu/NoteControlsPlu
 import { NoteMenuPlugin } from '#client/editor/features/menu/NoteMenuPlugin';
 import { MobileActionToolbar } from '#client/editor/plugins/mobile-toolbar/MobileActionToolbar';
 import { SearchCandidatesPlugin } from '#client/editor/features/search/SearchCandidatesPlugin';
-import { PendingDocumentImportPlugin } from '#client/editor/plugins/PendingDocumentImportPlugin';
+import { PendingDocumentImportPlugin } from '#client/editor/runtime/PendingDocumentImportPlugin';
 import './Editor.css';
 
 interface EditorProps {
