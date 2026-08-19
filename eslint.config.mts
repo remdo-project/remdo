@@ -325,8 +325,9 @@ export default antfu(
     },
   },
   {
-    // Coarse src owners. Editor files keep the fine graph in the block below;
-    // including them here would replace that graph with "editor is one owner."
+    // Coarse src owners. Editor and app files keep their fine graphs below;
+    // including them here would replace those graphs with one owner each.
+    // `src/client/dev` is an owner and stays in this graph.
     files: ['src/**/*.{ts,tsx,mts,cts}'],
     ignores: ['src/client/editor/**', 'src/client/app/**', colocatedSpecGlob],
     plugins: { boundaries },
