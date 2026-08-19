@@ -218,7 +218,7 @@ The terms below describe the target vocabulary for multi-hub document access.
 
 Implementation owners are the `src/` elements declared in
 [`config/eslint/boundaries.ts`](../config/eslint/boundaries.ts). That file holds
-the coarse src graph, the editor-internal graph, and the app product-module
+the coarse src graph, including app product modules, and the editor-internal
 graph. A new unowned directory is granted nothing, so its imports fail lint.
 
 ## References

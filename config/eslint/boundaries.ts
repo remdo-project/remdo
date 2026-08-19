@@ -83,9 +83,19 @@ export const editorBoundaries = {
 } as const;
 
 const APP = `${CLIENT}/app`;
+const CLIENT_SHARED = ['client-ui', 'client-runtime', 'client-search'] as const;
+const APP_SRC_OWNERS = [
+  ...CLIENT_SHARED,
+  'client-editor',
+  'domain',
+  'note-sdk',
+  'document-routes',
+  'collaboration',
+  'platform',
+] as const;
 
-export const appBoundaries = {
-  include: [`${APP}/**`],
+export const srcBoundaries = {
+  include: [`${SRC}/**`],
   ignore: cssIgnore,
   elements: [
     element('app-shell', `${APP}/shell`),
@@ -95,41 +105,6 @@ export const appBoundaries = {
     element('app-sharing', `${APP}/sharing`),
     element('app-admin', `${APP}/admin`),
     element('app-dev', `${APP}/dev`),
-    element('unowned', APP),
-  ],
-  policies: [
-    { from: { element: { type: 'app-shell' } },
-      allow: { to: { element: { type: [
-        'app-shell',
-        'app-session',
-        'app-user-data',
-        'app-workspace',
-        'app-sharing',
-        'app-admin',
-        'app-dev',
-      ] } } } },
-    { from: { element: { type: 'app-session' } },
-      allow: { to: { element: { type: ['app-session', 'app-user-data'] } } } },
-    { from: { element: { type: 'app-user-data' } },
-      allow: { to: { element: { type: ['app-user-data', 'app-session', 'app-sharing'] } } } },
-    { from: { element: { type: 'app-workspace' } },
-      allow: { to: { element: { type: ['app-workspace', 'app-user-data'] } } } },
-    { from: { element: { type: 'app-sharing' } },
-      allow: { to: { element: { type: ['app-sharing', 'app-user-data'] } } } },
-    { from: { element: { type: 'app-admin' } },
-      allow: { to: { element: { type: ['app-admin', 'app-session', 'app-user-data'] } } } },
-    { from: { element: { type: 'app-dev' } },
-      allow: { to: { element: { type: ['app-dev', 'app-shell'] } } } },
-  ],
-} as const;
-
-const CLIENT_SHARED = ['client-ui', 'client-runtime', 'client-search'] as const;
-
-export const srcBoundaries = {
-  include: [`${SRC}/**`],
-  ignore: cssIgnore,
-  elements: [
-    element('client-app', `${CLIENT}/app`),
     element('client-editor', `${CLIENT}/editor`),
     element('client-ui', `${CLIENT}/ui`),
     element('client-runtime', `${CLIENT}/runtime`),
@@ -146,6 +121,30 @@ export const srcBoundaries = {
     element('unowned', SRC),
   ],
   policies: [
+    { from: { element: { type: 'app-shell' } },
+      allow: { to: { element: { type: [
+        'app-shell',
+        'app-session',
+        'app-user-data',
+        'app-workspace',
+        'app-sharing',
+        'app-admin',
+        'app-dev',
+        ...APP_SRC_OWNERS,
+      ] } } } },
+    { from: { element: { type: 'app-session' } },
+      allow: { to: { element: { type: ['app-session', 'app-user-data', ...APP_SRC_OWNERS] } } } },
+    { from: { element: { type: 'app-user-data' } },
+      allow: { to: { element: { type: ['app-user-data', 'app-session', 'app-sharing', ...APP_SRC_OWNERS] } } } },
+    { from: { element: { type: 'app-workspace' } },
+      allow: { to: { element: { type: ['app-workspace', 'app-user-data', ...APP_SRC_OWNERS] } } } },
+    { from: { element: { type: 'app-sharing' } },
+      allow: { to: { element: { type: ['app-sharing', 'app-user-data', ...APP_SRC_OWNERS] } } } },
+    { from: { element: { type: 'app-admin' } },
+      allow: { to: { element: { type: ['app-admin', 'app-session', 'app-user-data', ...APP_SRC_OWNERS] } } } },
+    { from: { element: { type: 'app-dev' } },
+      allow: { to: { element: { type: ['app-dev', 'app-shell', 'client-dev', ...APP_SRC_OWNERS] } } } },
+
     { from: { element: { type: 'client-ui' } },
       allow: { to: { element: { type: ['client-ui'] } } } },
 
