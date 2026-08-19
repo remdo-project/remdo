@@ -10,7 +10,7 @@ import {
   meta,
 } from '#tests';
 import { createNoteIdAvoiding } from '#domain/notes/ids';
-import { noteIdState } from '#client/editor/runtime/note-id-state';
+import { noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 
 
 

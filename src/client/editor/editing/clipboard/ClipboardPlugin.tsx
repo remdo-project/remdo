@@ -25,7 +25,7 @@ import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { createUniqueNoteId, createNoteIdAvoiding } from '#domain/notes/ids';
 import { $createNoteLinkNode } from '#client/editor/features/links/note-link-node';
-import { noteIdState } from '#client/editor/runtime/note-id-state';
+import { noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 import { isSerializedBodyWrapper } from '#client/editor/runtime/serialized-note-types';
 import {
   $getOrCreateChildList,

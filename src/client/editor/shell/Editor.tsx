@@ -17,7 +17,7 @@ import { DatePlugin } from '#client/editor/features/date/DatePlugin';
 import { NoteBodyPlugin } from '#client/editor/features/note-body/NoteBodyPlugin';
 import { LinksPlugin } from '#client/editor/features/links/LinksPlugin';
 import { RootSchemaPlugin } from '#client/editor/plugins/RootSchemaPlugin';
-import { NoteIdPlugin } from '#client/editor/plugins/NoteIdPlugin';
+import { NoteIdPlugin } from '#client/editor/runtime/note-ids/NoteIdPlugin';
 import { ClipboardPlugin } from '#client/editor/editing/clipboard/ClipboardPlugin';
 import { ReorderingPlugin } from '#client/editor/editing/reordering/ReorderingPlugin';
 import { KeymapPlugin } from '#client/editor/plugins/KeymapPlugin';

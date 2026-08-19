@@ -3,7 +3,7 @@ import { $isListNode } from '@lexical/list';
 import { $getRoot } from 'lexical';
 import type { LexicalNode } from 'lexical';
 
-import { $getNoteId } from '#client/editor/runtime/note-id-state';
+import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 import { isBodyWrapper } from '#client/editor/outline/note-body-node';
 import { reportInvariant } from '#client/editor/foundation/invariant';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from './list-structure';
