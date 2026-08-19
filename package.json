@@ -142,6 +142,8 @@
     "csstree-validator": "catalog:",
     "dependency-cruiser": "catalog:",
     "eslint": "catalog:",
+    "eslint-import-resolver-typescript": "catalog:",
+    "eslint-plugin-boundaries": "catalog:",
     "eslint-plugin-compat": "catalog:",
     "eslint-plugin-react-refresh": "catalog:",
     "jiti": "catalog:",
