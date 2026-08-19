@@ -1,17 +1,15 @@
 // Element and policy configuration for `eslint-plugin-boundaries`.
-//
-// `boundariesInclude` scopes classification to the editor, so everything
-// outside it is *ignored* rather than *unknown* and `no-unknown-dependencies`
-// reports only what the resolver genuinely cannot place.
 const EDITOR = 'src/client/editor';
 
+// Limits classification to the editor. Without it every import reaching outside
+// counts as unknown, and `no-unknown-dependencies` reports the legal ones too.
 export const boundariesInclude = [`${EDITOR}/**`];
 
-// Stylesheets are imported for their side effect and are not modules.
+// Imported for their side effect; there is no module to place in a bucket.
 export const boundariesIgnore = ['**/*.css'];
 
-// Folder patterns, subfolders first: `stopMatching` takes the first hit, so
-// `${EDITOR}` last classifies the files sitting directly in it.
+// Maps each editor file to the bucket that owns it.
+// The last entry matches the whole editor
 export const boundariesElements = [
   { type: 'outline', pattern: `${EDITOR}/outline`, stopMatching: true },
   { type: 'runtime', pattern: `${EDITOR}/runtime`, stopMatching: true },
@@ -27,28 +25,31 @@ export const boundariesElements = [
   { type: 'editor-root', pattern: EDITOR, stopMatching: true },
 ] as const;
 
-const ALLOWED: Record<string, readonly string[]> = {
-  outline: ['editor-root', 'runtime'],
-  runtime: ['editor-root', 'outline', 'features'],
-  links: ['outline', 'runtime'],
-  search: ['outline'],
-  triggers: ['outline', 'runtime'],
-  view: ['outline', 'search'],
-  features: ['editor-root', 'outline', 'runtime', 'triggers', 'view'],
-  plugins: ['editor-root', 'features', 'links', 'adapters', 'outline', 'runtime', 'triggers', 'view'],
-  'editor-root': ['features', 'outline', 'plugins', 'runtime'],
-  adapters: ['outline', 'runtime', 'features'],
-};
-
+// Each bucket, and the buckets it may import from. Anything unlisted is refused.
 export const boundariesPolicies = [
-  ...Object.entries(ALLOWED).map(([from, to]) => ({
-    from: { element: { type: from } },
-    allow: { to: { element: { type: [from, ...to] } } },
-  })),
-  // Dev tooling reaches production modules by design and has its own seam;
-  // ambient declarations are not runtime modules.
-  {
-    from: { element: { type: ['editor-dev', 'editor-types'] } },
-    allow: { to: { element: { type: '*' } } },
-  },
+  { from: { element: { type: 'outline' } },
+    allow: { to: { element: { type: ['editor-root', 'runtime'] } } } },
+  { from: { element: { type: 'runtime' } },
+    allow: { to: { element: { type: ['editor-root', 'outline', 'features'] } } } },
+  { from: { element: { type: 'links' } },
+    allow: { to: { element: { type: ['outline', 'runtime'] } } } },
+  { from: { element: { type: 'search' } },
+    allow: { to: { element: { type: ['outline'] } } } },
+  { from: { element: { type: 'triggers' } },
+    allow: { to: { element: { type: ['outline', 'runtime'] } } } },
+  { from: { element: { type: 'view' } },
+    allow: { to: { element: { type: ['outline', 'search'] } } } },
+  { from: { element: { type: 'features' } },
+    allow: { to: { element: { type: ['editor-root', 'outline', 'runtime', 'triggers', 'view'] } } } },
+  { from: { element: { type: 'plugins' } },
+    allow: { to: { element: { type: ['editor-root', 'features', 'links', 'adapters', 'outline', 'runtime', 'triggers', 'view'] } } } },
+  { from: { element: { type: 'editor-root' } },
+    allow: { to: { element: { type: ['features', 'outline', 'plugins', 'runtime'] } } } },
+  { from: { element: { type: 'adapters' } },
+    allow: { to: { element: { type: ['outline', 'runtime', 'features'] } } } },
+
+  // Dev tooling reaches production modules by design; ambient declarations are
+  // not runtime modules. Neither belongs in the graph.
+  { from: { element: { type: ['editor-dev', 'editor-types'] } },
+    allow: { to: { element: { type: '*' } } } },
 ];
