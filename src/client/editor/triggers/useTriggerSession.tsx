@@ -17,23 +17,22 @@ import {
   KEY_TAB_COMMAND,
   SKIP_DOM_SELECTION_TAG,
 } from 'lexical';
-import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from 'react';
+import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 
 import { restoreEditorFocus } from '#client/editor/runtime/focus';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
-import { resolveCaretPickerAnchor } from './anchor';
 import { $isTriggerAtBoundary } from './boundary';
 import { isOtherPopupActive, setPopupActive } from './active-popup';
+import { EditorPopupOverlay } from './overlay';
+import { resolveCaretTargetRect } from './target-rect';
 import { $openTriggerSession, $resolvePinnedSession } from './session';
-import type { PickerAnchor, TriggerSession, TriggerSpec } from './types';
+import type { TriggerSession, TriggerSpec } from './types';
 
 interface InternalPickerState<TOption> {
   query: string;
   options: TOption[];
   activeIndex: number;
-  anchor: PickerAnchor;
 }
 
 function clampActiveIndex(activeIndex: number, optionsLength: number): number {
@@ -70,7 +69,7 @@ function isTypingTrigger(event: KeyboardEvent, triggerChar: string): boolean {
 export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNode {
   const [editor] = useLexicalComposerContext();
   const sessionToken = useRef(Symbol('trigger-session')).current;
-  // Stable id for this picker's listbox, so an 'editor'-model combobox can point
+  // Stable id for this picker's listbox, so a type-to-filter combobox can point
   // the editor host's aria-controls at it.
   const listboxId = useId();
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(() => {
@@ -102,11 +101,11 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
     setPickerState(null);
   }, [setPickerState]);
 
-  // WAI-ARIA combobox: the role lives on the focused host, which for an
-  // 'editor'-model picker is the contenteditable editor root (focus never leaves
+  // WAI-ARIA combobox: the role lives on the focused host, which for a
+  // type-to-filter picker is the contenteditable editor root (focus never leaves
   // it). Mirror the combobox state onto the root while this picker is open, and
-  // clear it on close/unmount. Trap popups (the calendar) manage their own AT
-  // state and are skipped.
+  // clear it on close/unmount. Popups that manage their own AT state omit
+  // getActiveDescendantId and are skipped.
   // WAI-ARIA combobox structural attributes, keyed on open/closed only (a boolean),
   // so they are set once when the picker opens and cleared once when it closes —
   // not torn down and re-added on every keystroke. `picker` gets a fresh object
@@ -115,7 +114,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
   // (plugins rebuild it inline every render).
   const isPickerOpen = picker !== null;
   useEffect(() => {
-    if ((specRef.current.focusModel ?? 'editor') !== 'editor' || !isPickerOpen) {
+    if (!specRef.current.getActiveDescendantId || !isPickerOpen) {
       return;
     }
     const root = editor.getRootElement();
@@ -136,14 +135,14 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
   // The active-descendant id changes as the highlight moves, so update just that
   // attribute per picker state — without re-running the structural effect above.
   useEffect(() => {
-    if ((specRef.current.focusModel ?? 'editor') !== 'editor' || !picker) {
+    if (!specRef.current.getActiveDescendantId || !picker) {
       return;
     }
     const root = editor.getRootElement();
     if (!root) {
       return;
     }
-    const activeDescendantId = specRef.current.getActiveDescendantId?.(picker);
+    const activeDescendantId = specRef.current.getActiveDescendantId(picker);
     if (activeDescendantId) {
       root.setAttribute('aria-activedescendant', activeDescendantId);
     } else {
@@ -233,17 +232,10 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       return;
     }
 
-    const anchor = resolveCaretPickerAnchor(editor);
-    if (!anchor) {
-      closeSession();
-      return;
-    }
-
     setPickerState({
       query: nextState.query,
       options: nextState.options,
       activeIndex: nextState.activeIndex,
-      anchor,
     });
   }, [closeSession, editor, setPickerState]);
 
@@ -361,14 +353,12 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
   );
 
   const handlePickerMouseDown = useCallback((event: ReactMouseEvent<HTMLElement>) => {
-    // Keep the caret/selection stable while interacting with the picker: an
-    // 'editor'-model popup leaves DOM focus in the editor, so a mousedown that
-    // moved focus would destroy the caret its commit range depends on.
-    //
-    // A 'trap'-model popup (the calendar) already holds focus and has no live
-    // caret to protect, and its own controls need the default action —
-    // suppressing it leaves a <select> unable to open on click.
-    if ((specRef.current.focusModel ?? 'editor') === 'trap') {
+    // Keep the caret stable for type-to-filter pickers, whose commit range
+    // depends on a live editor selection. Native <select> (the calendar's month
+    // and year pickers) must still receive the default action or they cannot
+    // open by click.
+    const target = event.target;
+    if (target instanceof Element && target.closest('select, option')) {
       return;
     }
     event.preventDefault();
@@ -398,22 +388,22 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
 
   const handleCommitOption = useCallback(
     (option: TOption) => {
-      // A trap popup (the calendar) holds DOM focus while committing; the popup
-      // then unmounts, so hand focus back to the editor or the next keystroke is
-      // lost. An 'editor'-model popup never took focus, so this is a no-op there.
-      const isTrapPopup = (specRef.current.focusModel ?? 'editor') === 'trap';
+      const pickerRoot = document.querySelector('[data-trigger-picker]');
+      const shouldRestore = Boolean(
+        pickerRoot && document.activeElement instanceof Node && pickerRoot.contains(document.activeElement)
+      );
       editor.update(() => {
         $commitOption(option);
       }, {
-        onUpdate: isTrapPopup ? restoreFocus : undefined,
-        tag: isTrapPopup ? SKIP_DOM_SELECTION_TAG : undefined,
+        onUpdate: shouldRestore ? restoreFocus : undefined,
+        tag: shouldRestore ? SKIP_DOM_SELECTION_TAG : undefined,
       });
     },
     [$commitOption, editor, restoreFocus]
   );
 
-  // Cancel from inside a focus-trapping popup (the calendar): close and return
-  // focus to the editor. Lexical key commands do not fire while focus is trapped
+  // Cancel from inside a popup that holds DOM focus (the calendar): close and
+  // return focus to the editor. Lexical key commands do not fire while focus is
   // in the popup, so the popup calls this directly (e.g. on Escape).
   const handleCancel = useCallback(() => {
     closeSession();
@@ -561,14 +551,9 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
         if (!sessionRef.current) {
           return;
         }
-        // A focus-trapping popup (the calendar) takes focus out of the editor by
-        // design; don't treat that as a dismiss. Only close if focus left for
-        // somewhere outside both the editor and the popup.
-        if (specRef.current.focusModel === 'trap') {
-          const next = event.relatedTarget;
-          if (next instanceof Element && next.closest('[data-trigger-picker]')) {
-            return;
-          }
+        const next = event.relatedTarget;
+        if (next instanceof Element && next.closest('[data-trigger-picker]')) {
+          return;
         }
         closeSession();
       };
@@ -627,15 +612,16 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
     return null;
   }
 
-  // The engine owns the portal and the positioned anchor wrapper (carrying the
-  // shared `data-trigger-picker` dismissal hook); the spec renders only the
-  // popup body.
-  const anchorStyle: CSSProperties = { left: picker.anchor.left, top: picker.anchor.top };
-  return createPortal(
-    <div
+  // The engine owns the overlay (portal, caret-anchored placement, dismissal
+  // hook); the spec renders only the popup body.
+  return (
+    <EditorPopupOverlay
       className="trigger-picker-anchor"
-      style={anchorStyle}
-      data-trigger-picker
+      editor={editor}
+      getTargetRect={resolveCaretTargetRect}
+      isTriggerPicker
+      portalRoot={portalRoot}
+      onClose={closeSession}
       onMouseDown={handlePickerMouseDown}
     >
       {spec.renderPopup(picker, {
@@ -646,7 +632,6 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
         cancel: handleCancel,
         listboxId,
       })}
-    </div>,
-    portalRoot
+    </EditorPopupOverlay>
   );
 }

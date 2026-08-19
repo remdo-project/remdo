@@ -319,22 +319,10 @@ export function NoteControlsPlugin() {
   const onMenuPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    const button = event.currentTarget;
     // No focusEditorRoot here: NoteMenuPlugin closes the menu when a selection change lands while
     // the editor root holds focus, so focusing before the dispatch would immediately dismiss the
     // menu this click is opening. The menu takes focus itself and restores it on close.
-    const container = button.closest<HTMLElement>('.editor-container');
-    if (!container) {
-      editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: controls.noteKey });
-      return;
-    }
-    const rect = button.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    const anchor = {
-      left: rect.right - containerRect.left,
-      top: rect.top - containerRect.top + rect.height / 2,
-    };
-    editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: controls.noteKey, anchor });
+    editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: controls.noteKey, anchor: 'controls' });
   };
 
   const onFoldPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {

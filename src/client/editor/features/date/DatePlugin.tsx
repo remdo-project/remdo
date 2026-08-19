@@ -22,11 +22,10 @@ import {
 } from 'lexical';
 import type { LexicalNode } from 'lexical';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 
 import { focusEditorRoot, restoreEditorFocus } from '#client/editor/runtime/focus';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
-import { resolveElementPickerAnchor } from '#client/editor/triggers/anchor';
+import { EditorPopupOverlay } from '#client/editor/triggers/overlay';
 import { $isDateNode } from './date-node';
 import type { DateNode } from './date-node';
 import { DatePickerPanel } from './DatePickerPopover';
@@ -314,18 +313,11 @@ export function DatePlugin() {
       }
 
       const nodeKey = selectedDateNode.getKey();
-      const element = editor.getElementByKey(nodeKey);
-      if (!element) {
-        return false;
-      }
-
-      const anchor = resolveElementPickerAnchor(editor, element);
-      if (!anchor) {
+      if (!editor.getElementByKey(nodeKey)) {
         return false;
       }
 
       setPickerState({
-        anchor,
         isoDate: selectedDateNode.getIsoDate(),
         nodeKey,
       });
@@ -450,11 +442,6 @@ export function DatePlugin() {
         return;
       }
 
-      const anchor = resolveElementPickerAnchor(editor, target.element);
-      if (!anchor) {
-        return;
-      }
-
       editor.update(() => {
         const node = $selectDateTokenByKey(target.nodeKey);
         if (!node) {
@@ -464,7 +451,6 @@ export function DatePlugin() {
         event.preventDefault();
         event.stopPropagation();
         setPickerState({
-          anchor,
           isoDate: node.getIsoDate(),
           nodeKey: target.nodeKey,
         });
@@ -510,16 +496,21 @@ export function DatePlugin() {
     <>
       <DateInsertPlugin />
       {picker && portalRoot
-        ? createPortal(
-            <div className="date-picker-anchor" style={{ left: picker.anchor.left, top: picker.anchor.top }}>
+        ? (
+            <EditorPopupOverlay
+              className="date-picker-overlay"
+              editor={editor}
+              getTargetRect={() => editor.getElementByKey(picker.nodeKey)?.getBoundingClientRect() ?? null}
+              portalRoot={portalRoot}
+              onClose={handlePickerCancel}
+            >
               <DatePickerPanel
                 isoDate={picker.isoDate}
                 mode="edit"
                 onChange={handlePickerChange}
                 onCancel={handlePickerCancel}
               />
-            </div>,
-            portalRoot
+            </EditorPopupOverlay>
           )
         : null}
     </>
