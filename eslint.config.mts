@@ -310,8 +310,10 @@ export default antfu(
   {
     // Coarse src owners. Editor files keep the fine graph in the block below;
     // including them here would replace that graph with "editor is one owner."
+    // Nested app `dev/` is the unrestricted tooling side of the production
+    // bundle boundary. `src/client/dev` is an owner and stays in this graph.
     files: ['src/**/*.{ts,tsx,mts,cts}'],
-    ignores: ['src/client/editor/**', 'src/**/dev/**', colocatedSpecGlob],
+    ignores: ['src/client/editor/**', 'src/client/app/**/dev/**', colocatedSpecGlob],
     plugins: { boundaries },
     settings: {
       'boundaries/elements': srcBoundaries.elements,

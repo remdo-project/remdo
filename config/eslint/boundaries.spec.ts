@@ -11,7 +11,8 @@ const listLooseSourceFiles = (dir: string): string[] =>
     .filter((entry) => entry.isFile() && /\.(?:ts|tsx)$/u.test(entry.name))
     .map((entry) => entry.name);
 
-const IMPORT_SPECIFIER = /from\s+['"]([^'"]+)['"]/gu;
+// Static `from '…'`, side-effect `import '…'`, and `import('…')`.
+const IMPORT_SPECIFIER = /(?:from\s+|import\s*(?:\(\s*)?)['"]([^'"]+)['"]/gu;
 
 const relativeToSrc = (file: string): string =>
   path.relative(SRC, file).replaceAll('\\', '/');
@@ -56,7 +57,10 @@ describe('boundaries', () => {
 
   const isPublishedEditorImport = (specifier: string): boolean =>
     specifier.startsWith('#client/editor/view/')
-    || specifier.startsWith('#client/editor/shell/');
+    || specifier.startsWith('#client/editor/shell/')
+    // DEV-gated editor/dev loads are the production-bundle seam
+    // (docs/architecture.md#production-bundle-boundary), not a workspace leak.
+    || specifier.startsWith('#client/editor/dev/');
 
   it('does not grow the deep-import allowlist', () => {
     const appFiles = walkSourceFiles(path.join(CLIENT, 'app'));
