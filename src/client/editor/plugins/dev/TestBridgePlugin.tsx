@@ -5,10 +5,10 @@ import { $createTextNode, $getRoot, $isTextNode } from 'lexical';
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
 import { assertEditorSchema } from './schema/assertEditorSchema';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
-import { markSchemaValidationSkipOnce } from '../../schema-validation-skip-once';
+import { markSchemaValidationSkipOnce } from '#client/editor/foundation/schema-validation-skip-once';
 import { $normalizeNoteIdsOnLoad } from '../note-id-normalization';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { TEST_BRIDGE_LOAD_TAG, TEST_BRIDGE_MUTATE_TAG } from '#client/editor/update-tags';
+import { TEST_BRIDGE_LOAD_TAG, TEST_BRIDGE_MUTATE_TAG } from '#client/editor/foundation/update-tags';
 import { getTestBridgeRegistry } from './testBridgeRegistry';
 
 type EditorOutcome =

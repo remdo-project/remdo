@@ -8,7 +8,7 @@ import {
   readCaretNoteId,
 } from '#tests';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
+import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 
 describe('zoom plugin', () => {

@@ -1,6 +1,6 @@
 import { IconCloudCheck, IconCloudX } from '@tabler/icons-react';
 import type { IconComponent } from '#client/ui/Icon';
-import type { StatusDescriptor } from '#client/editor/StatusIndicators';
+import type { StatusDescriptor } from '#client/editor/foundation/status-descriptor';
 import { useEffect, useState } from 'react';
 import { useCollaborationStatus } from './CollaborationProvider';
 import { getLocalPersistenceSupportDecision } from '#collaboration/runtime';

@@ -8,7 +8,7 @@ import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import { isWrapperItem } from '#client/editor/outline/list-structure';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
-import { NOTE_ID_NORMALIZE_TAG, TEST_BRIDGE_LOAD_TAG } from '#client/editor/update-tags';
+import { NOTE_ID_NORMALIZE_TAG, TEST_BRIDGE_LOAD_TAG } from '#client/editor/foundation/update-tags';
 
 function $ensureNoteId(item: ListItemNode) {
   // Adjacency wrappers (children-wrapper, body-wrapper) are not notes.

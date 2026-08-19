@@ -1,20 +1,9 @@
 import { Group, Text } from '@mantine/core';
 import { createPortal } from 'react-dom';
 import { Icon } from '#client/ui/Icon';
-import type { IconComponent } from '#client/ui/Icon';
-import { useInvariantIndicator } from './invariant';
-import { useCollaborationIndicator } from './runtime/collaboration';
-
-export interface StatusDescriptor {
-  key: string;
-  visible: boolean;
-  icon: IconComponent;
-  color?: string;
-  ariaLabel: string;
-  title?: string;
-  text?: string;
-  className?: string;
-}
+import type { StatusDescriptor } from '#client/editor/foundation/status-descriptor';
+import { useInvariantIndicator } from '#client/editor/foundation/invariant';
+import { useCollaborationIndicator } from '#client/editor/runtime/collaboration';
 
 function renderIndicator(descriptor: StatusDescriptor) {
   if (!descriptor.visible) return null;

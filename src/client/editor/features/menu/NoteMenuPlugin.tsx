@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { $getNoteId } from '#client/editor/runtime/note-id-state';
 
-import { FOLD_VIEW_TO_LEVEL_COMMAND, OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
+import { FOLD_VIEW_TO_LEVEL_COMMAND, OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { requireContentItemFromNode } from '#client/editor/outline/schema';

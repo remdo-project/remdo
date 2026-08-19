@@ -3,7 +3,7 @@ import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } fr
 import type { RootNode } from 'lexical';
 import { $createParagraphNode, $setState } from 'lexical';
 
-import { reportInvariant } from '#client/editor/invariant';
+import { reportInvariant } from '#client/editor/foundation/invariant';
 import { getBodyWrapper, getPreviousContentSibling, insertBefore, isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { getWrapperForContent } from '#client/editor/outline/selection/tree';
 import { createUniqueNoteId } from '#domain/notes/ids';

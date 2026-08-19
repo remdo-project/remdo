@@ -1,6 +1,6 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
-import { reportInvariant } from '#client/editor/invariant';
+import { reportInvariant } from '#client/editor/foundation/invariant';
 import { isSerializedBodyWrapper } from '#client/editor/runtime/serialized-note-types';
 
 interface NodeWithChildren extends SerializedLexicalNode {

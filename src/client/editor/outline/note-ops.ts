@@ -1,6 +1,6 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
-import { $indentNote, $outdentNote } from '#client/editor/lexical-helpers';
+import { $indentNote, $outdentNote } from './indentation';
 import type { OutlineSelectionRange } from './selection/model';
 import { $resolveStructuralHeadsFromRange } from './selection/range';
 import {

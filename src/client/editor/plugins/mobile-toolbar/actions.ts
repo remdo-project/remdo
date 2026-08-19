@@ -11,7 +11,7 @@ import {
   REORDER_NOTES_UP_COMMAND,
   SET_NOTE_CHECKED_COMMAND,
   SET_NOTE_FOLD_COMMAND,
-} from '#client/editor/commands';
+} from '#client/editor/foundation/commands';
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';

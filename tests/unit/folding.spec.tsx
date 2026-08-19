@@ -1,7 +1,7 @@
 import { act, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/commands';
+import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/foundation/commands';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
 import { getNoteKey, meta, placeCaretAtNote, pressKey, readCaretNoteId } from '#tests';

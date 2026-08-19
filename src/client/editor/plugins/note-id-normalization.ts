@@ -7,7 +7,7 @@ import { createNoteIdAvoiding } from '#domain/notes/ids';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import { isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { isBodyWrapper } from '#client/editor/outline/note-body-node';
-import { reportInvariant } from '#client/editor/invariant';
+import { reportInvariant } from '#client/editor/foundation/invariant';
 
 function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, path: number[]) {
   // A children-wrapper is not a note. (Body-wrappers are already skipped by the

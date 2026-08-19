@@ -13,9 +13,9 @@ import { useCollaborationStatus } from '#client/editor/runtime/collaboration/Col
 import { $findNoteById, $getNoteAncestorPath, areNotePathsEqual } from '#client/editor/outline/note-traversal';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import { isContentDescendantOf } from '#client/editor/outline/selection/tree';
-import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
+import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 import { resolveZoomNoteId } from './zoom-note-id';
-import { ZOOM_CARET_TAG, ZOOM_INIT_TAG } from '#client/editor/update-tags';
+import { ZOOM_CARET_TAG, ZOOM_INIT_TAG } from '#client/editor/foundation/update-tags';
 import { useEditorViewActions, useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 import { $placeCaretAtZoomEntry, $placeCaretAtZoomEntryIfOutside } from './zoom-caret';
 import { useZoomBulletInteractions } from './useZoomBulletInteractions';

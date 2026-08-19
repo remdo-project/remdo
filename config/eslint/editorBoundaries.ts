@@ -13,6 +13,11 @@ export const boundariesIgnore = ['**/*.css'];
 // Maps each editor file to the bucket that owns it.
 // The last entry matches the whole editor
 export const boundariesElements = [
+  { type: 'editing-insertion', pattern: `${EDITOR}/editing/insertion`, stopMatching: true },
+  { type: 'editing-deletion', pattern: `${EDITOR}/editing/deletion`, stopMatching: true },
+  { type: 'editing-indentation', pattern: `${EDITOR}/editing/indentation`, stopMatching: true },
+  { type: 'editing-reordering', pattern: `${EDITOR}/editing/reordering`, stopMatching: true },
+  { type: 'editing-clipboard', pattern: `${EDITOR}/editing/clipboard`, stopMatching: true },
   { type: 'outline', pattern: `${EDITOR}/outline`, stopMatching: true },
   { type: 'runtime', pattern: `${EDITOR}/runtime`, stopMatching: true },
   { type: 'features', pattern: `${EDITOR}/features`, stopMatching: true },
@@ -22,25 +27,38 @@ export const boundariesElements = [
   { type: 'adapters', pattern: `${EDITOR}/note-sdk-adapters`, stopMatching: true },
   { type: 'editor-dev', pattern: `${EDITOR}/dev`, stopMatching: true },
   { type: 'editor-types', pattern: `${EDITOR}/types`, stopMatching: true },
+  { type: 'foundation', pattern: `${EDITOR}/foundation`, stopMatching: true },
+  { type: 'shell', pattern: `${EDITOR}/shell`, stopMatching: true },
   { type: 'editor-root', pattern: EDITOR, stopMatching: true },
 ] as const;
 
 // Each bucket, and the buckets it may import from. Anything unlisted is refused.
 export const boundariesPolicies = [
+  // One owner per operation: they share a namespace, not an implementation.
+  { from: { element: { type: ['editing-insertion', 'editing-indentation', 'editing-reordering'] } },
+    allow: { to: { element: { type: ['foundation', 'outline'] } } } },
+  { from: { element: { type: 'editing-deletion' } },
+    allow: { to: { element: { type: ['foundation', 'outline', 'features'] } } } },
+  { from: { element: { type: 'editing-clipboard' } },
+    allow: { to: { element: { type: ['foundation', 'outline', 'features', 'runtime'] } } } },
+
   { from: { element: { type: 'outline' } },
-    allow: { to: { element: { type: ['editor-root', 'runtime'] } } } },
+    allow: { to: { element: { type: ['foundation', 'runtime'] } } } },
   { from: { element: { type: 'runtime' } },
-    allow: { to: { element: { type: ['editor-root', 'outline', 'features'] } } } },
+    allow: { to: { element: { type: ['foundation', 'outline', 'features'] } } } },
   { from: { element: { type: 'triggers' } },
     allow: { to: { element: { type: ['outline', 'runtime'] } } } },
   { from: { element: { type: 'view' } },
     allow: { to: { element: { type: ['outline', 'features'] } } } },
   { from: { element: { type: 'features' } },
-    allow: { to: { element: { type: ['editor-root', 'outline', 'runtime', 'triggers', 'view', 'adapters'] } } } },
+    allow: { to: { element: { type: ['foundation', 'outline', 'runtime', 'triggers', 'view', 'adapters'] } } } },
   { from: { element: { type: 'plugins' } },
-    allow: { to: { element: { type: ['editor-root', 'features', 'adapters', 'outline', 'runtime', 'triggers', 'view'] } } } },
-  { from: { element: { type: 'editor-root' } },
-    allow: { to: { element: { type: ['features', 'outline', 'plugins', 'runtime'] } } } },
+    allow: { to: { element: { type: ['foundation', 'features', 'adapters', 'outline', 'runtime', 'triggers', 'view'] } } } },
+  // The shell composes; it is the one bucket allowed to reach everything it
+  // mounts. foundation is absent on purpose: it is the leaves, and imports
+  // nothing inside the editor.
+  { from: { element: { type: 'shell' } },
+    allow: { to: { element: { type: ['foundation', 'features', 'plugins', 'runtime', 'editing-insertion', 'editing-deletion', 'editing-indentation', 'editing-reordering', 'editing-clipboard'] } } } },
   { from: { element: { type: 'adapters' } },
     allow: { to: { element: { type: ['outline', 'runtime', 'features'] } } } },
 

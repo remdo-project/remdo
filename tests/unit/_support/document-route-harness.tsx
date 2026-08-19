@@ -154,7 +154,7 @@ function MockZoomBreadcrumbs({
   );
 }
 
-vi.mock('#client/editor/Editor', () => ({ default: MockEditor }));
+vi.mock('#client/editor/shell/Editor', () => ({ default: MockEditor }));
 vi.mock('#client/editor/features/zoom/ZoomBreadcrumbs', () => ({
   ZoomBreadcrumbs: MockZoomBreadcrumbs,
 }));

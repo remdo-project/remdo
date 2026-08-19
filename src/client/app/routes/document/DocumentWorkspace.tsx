@@ -8,7 +8,7 @@ import {
   useEditorViewActions,
   useZoomPath,
 } from '#client/editor/view/EditorViewProvider';
-import Editor from '#client/editor/Editor';
+import Editor from '#client/editor/shell/Editor';
 import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentSearchInput, DocumentSearchResults } from './DocumentSearch';
 import DocumentToolbar from './DocumentToolbar';

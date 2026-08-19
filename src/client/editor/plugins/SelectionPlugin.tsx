@@ -1,7 +1,7 @@
 import { $getListItemByKey } from '#client/editor/outline/list-structure';
 import { collapseSelectionToCaret, resolveBoundaryPoint } from '#client/editor/outline/selection/caret';
 import { $applyCaretEdge, setSelectionBetweenItems } from '#client/editor/outline/selection/apply';
-import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND, PROGRESSIVE_SELECTION_DIRECTION_COMMAND } from '#client/editor/commands';
+import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND, PROGRESSIVE_SELECTION_DIRECTION_COMMAND } from '#client/editor/foundation/commands';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { getViewRoot } from '#client/editor/outline/view-root';
 import { $shouldBlockHorizontalArrow } from '#client/editor/outline/selection/navigation';
