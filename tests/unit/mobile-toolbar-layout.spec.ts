@@ -4,7 +4,7 @@ import {
   PINNED_ACTION_IDS,
   SCROLL_ACTION_IDS,
   resolveToolbarLayout,
-} from '#client/editor/plugins/mobile-toolbar/toolbar-layout';
+} from '#client/editor/mobile-toolbar/toolbar-layout';
 
 // The mobile toolbar splits its actions into a pinned group (always-reachable
 // primaries) and a scrolling group (docs/specs/outliner/mobile-toolbar.md "Layout").

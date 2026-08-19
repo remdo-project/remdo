@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import Editor from '#client/editor/Editor';
+import Editor from '#client/editor/shell/Editor';
 import { EditorViewProvider } from '#client/editor/view/EditorViewProvider';
 import type { EditorViewBindings } from '#client/editor/view/EditorViewProvider';
 

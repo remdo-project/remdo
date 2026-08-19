@@ -1,4 +1,4 @@
-import { $getNoteId } from '#client/editor/runtime/note-id-state';
+import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 import { matchesPathQuery } from '#client/search/query-match';
 import { forEachContentItemWithAncestorsInOutline } from '#client/editor/outline/list-traversal';
 import { $requireRootContentList } from '#client/editor/outline/schema';

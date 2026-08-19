@@ -23,7 +23,7 @@ import { useEffect } from 'react';
 
 import { getPreviousContentSibling, isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { stopKeyboardEvent } from '#client/editor/keyboard-event';
+import { stopKeyboardEvent } from '#client/editor/foundation/keyboard-event';
 import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { BodyWrapperNode, isBodyWrapper } from '#client/editor/outline/note-body-node';
 import type { NoteBodyNode } from '#client/editor/outline/note-body-node';

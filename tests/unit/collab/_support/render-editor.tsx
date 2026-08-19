@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render } from '@testing-library/react';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
-import { getTestBridgeRegistry } from '#client/editor/plugins/dev/testBridgeRegistry';
+import type { RemdoTestApi } from '#client/editor/dev';
+import { getTestBridgeRegistry } from '#client/editor/dev/testBridgeRegistry';
 import type { EditorViewBindings } from '#client/editor/view/EditorViewProvider';
 import { ensureCollabTestDocument } from './documents';
 import { TestEditorView } from './test-editor-view';

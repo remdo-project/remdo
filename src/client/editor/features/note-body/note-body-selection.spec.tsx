@@ -9,7 +9,7 @@ import {
   typeText,
   meta,
 } from '#tests';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getBodyWrapper } from '#client/editor/outline/list-structure';
 

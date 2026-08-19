@@ -7,7 +7,7 @@ import { ensureFoldStateConfig } from '#client/editor/outline/fold-state';
 import { DateNode } from '../features/date/date-node';
 import { BodyWrapperNode, NoteBodyNode } from '#client/editor/outline/note-body-node';
 import { NoteLinkNode } from '#client/editor/features/links/note-link-node';
-import { ensureNoteIdStateConfig } from './note-id-state';
+import { ensureNoteIdStateConfig } from './note-ids/note-id-state';
 
 ensureNoteIdStateConfig();
 ensureFoldStateConfig();

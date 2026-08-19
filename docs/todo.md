@@ -61,16 +61,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   determine which premature wraps can be rejected deterministically without
   requiring mechanical greedy wrapping, and align affected maintained prose.
 
-### Editor
-
-- **Editor module ownership.** Editor capabilities are split across `features/`,
-  `plugins/`, `search/`, `links/`, `triggers/`, and `view/`, while `runtime/` and
-  `outline/` import capability-specific modules. Establish a coherent folder
-  taxonomy that makes ownership and shared foundations visible, migrate modules
-  without changing behavior, and enforce the resulting dependency boundaries
-  mechanically. Document only architectural boundaries that remain non-obvious
-  from the source tree and enforcement.
-
 ### Dependencies
 
 - **Dependabot pnpm 11 version updates.** When GitHub's [supported-ecosystems table](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
@@ -121,15 +111,13 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   an interim no-op whose final behavior is still
   [undecided](legacy-backlog.md#note-body-follow-ups). Splitting it
   first would restructure code around behavior that is about to move, so the
-  [module ownership](#editor) work relocates the file without reshaping it, and
-  the split follows the cut/paste decision.
+  split follows the cut/paste decision.
 
 - **Duplicate note-splitting helper.** `$splitContentItemAtSelection` exists in
   both `InsertionPlugin.tsx` and `ClipboardPlugin.tsx`. Only the insertion copy
   resolves the anchor through inline ancestors, so pasting with the caret inside
-  a link still refuses to split. Resolve the duplication with the
-  [editor module ownership](#editor) work rather than patching one copy, so the
-  surviving helper has one owner.
+  a link still refuses to split. Deduplicate so the surviving helper has one
+  owner rather than patching one copy.
 
 - **Current-location presentation ownership.** Before implementing the
   [view header](specs/outliner/view-header.md) alongside [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name

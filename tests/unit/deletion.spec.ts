@@ -2,7 +2,7 @@ import { act, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { $getNodeByKey, $getSelection, $isRangeSelection, $isTextNode, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
 
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import {
   findNearestListItem,
   getNoteKey,
@@ -16,7 +16,7 @@ import {
   meta,
 } from '#tests';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
+import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 
 // Coverage gaps (handled in e2e instead of unit tests):
 // - Inline Backspace/Delete inside a note: jsdom doesn’t emulate native deletion

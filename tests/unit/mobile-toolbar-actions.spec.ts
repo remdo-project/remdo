@@ -8,10 +8,10 @@ import {
   OPEN_NOTE_MENU_COMMAND,
   OUTDENT_NOTES_COMMAND,
   REORDER_NOTES_DOWN_COMMAND,
-} from '#client/editor/commands';
+} from '#client/editor/foundation/commands';
 import { $getNoteChecked } from '#client/editor/features/checklist/checked-state';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { resolveSelectionCapability, runMobileAction } from '#client/editor/plugins/mobile-toolbar/actions';
+import { resolveSelectionCapability, runMobileAction } from '#client/editor/mobile-toolbar/actions';
 
 // Behavior coverage for the mobile action toolbar (docs/specs/outliner/mobile-toolbar.md).
 // Every toolbar action is a command dispatch reusing existing wiring: these

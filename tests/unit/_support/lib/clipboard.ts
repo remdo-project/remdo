@@ -1,6 +1,6 @@
 import type { SerializedListNode } from '@lexical/list';
 import type { SerializedNoteListItemNode } from '#client/editor/runtime/serialized-note-types';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import type { SerializedLexicalNode } from 'lexical';
 import { COPY_COMMAND, CUT_COMMAND, PASTE_COMMAND } from 'lexical';
 import { findSerializedNode, getSerializedNodeChildren } from './serialized';

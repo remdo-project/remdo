@@ -6,7 +6,7 @@ import type { LexicalEditor } from 'lexical';
 import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 
 import { $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
-import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/commands';
+import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/foundation/commands';
 import { forEachContentItemInOutline, forEachContentItemWithAncestorsInOutline } from '#client/editor/outline/list-traversal';
 import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { $resolveRootContentList, resolveContentItemFromNode } from '#client/editor/outline/schema';

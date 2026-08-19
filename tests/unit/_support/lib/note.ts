@@ -1,6 +1,6 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import { waitFor } from '@testing-library/react';
 import type { TextNode } from 'lexical';
 import {
@@ -16,10 +16,10 @@ import {
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
 import { findNearestListItem, getRootElementOrThrow } from './selection';
-import { $getNoteId } from '#client/editor/runtime/note-id-state';
+import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 import { $setNoteCheckedRaw } from '#client/editor/features/checklist/checked-state';
 import { expect } from 'vitest';
-import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/commands';
+import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/foundation/commands';
 export type { Outline, OutlineNode } from '#tests-common/outline';
 export type SelectionSnapshot =
   | { state: 'none' }
