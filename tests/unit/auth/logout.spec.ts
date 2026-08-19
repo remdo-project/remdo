@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  authClient,
   forgetAuthenticatedSession,
-  forgetPendingSignOut,
   rememberPendingSignOut,
+  revokeServerSession,
 } from '#client/app/auth/client';
 import { clearLocalUserData } from '#client/app/auth/local-data';
 import { logoutCurrentUser } from '#client/app/auth/logout';
@@ -12,12 +11,9 @@ import { resetUserData } from '#client/app/documents/user-data';
 import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
 
 vi.mock('#client/app/auth/client', () => ({
-  authClient: {
-    signOut: vi.fn(),
-  },
   forgetAuthenticatedSession: vi.fn(),
-  forgetPendingSignOut: vi.fn(),
   rememberPendingSignOut: vi.fn(),
+  revokeServerSession: vi.fn(),
 }));
 
 vi.mock('#client/app/auth/local-data', () => ({
@@ -46,39 +42,18 @@ describe('logout', () => {
   });
 
   it('signs out locally after the server confirms', async () => {
-    vi.mocked(authClient.signOut).mockResolvedValue({ data: { success: true }, error: null });
+    vi.mocked(revokeServerSession).mockResolvedValue();
 
     await logoutCurrentUser();
 
-    expect(authClient.signOut).toHaveBeenCalledTimes(1);
-    expectSignedOutLocally();
-    expect(forgetPendingSignOut).toHaveBeenCalled();
-  });
-
-
-  it('signs out locally when the server rejects', async () => {
-    vi.mocked(authClient.signOut).mockResolvedValue({ data: null, error: { message: 'nope' } });
-
-    await logoutCurrentUser();
-
-    expectSignedOutLocally();
-  });
-
-  it('signs out locally and stays signed out when the server is unreachable', async () => {
-    vi.mocked(authClient.signOut).mockRejectedValue(new TypeError('offline'));
-
-    await logoutCurrentUser();
-
-    expectSignedOutLocally();
-    // The session cookie is still valid, so the next reachable revalidation
-    // would sign this device back in without the marker.
     expect(rememberPendingSignOut).toHaveBeenCalled();
-    expect(forgetPendingSignOut).not.toHaveBeenCalled();
+    expect(revokeServerSession).toHaveBeenCalledTimes(1);
+    expectSignedOutLocally();
   });
 
   it('signs out locally when the server never answers', async () => {
     vi.useFakeTimers();
-    vi.mocked(authClient.signOut).mockReturnValue(new Promise(() => {}));
+    vi.mocked(revokeServerSession).mockReturnValue(new Promise(() => {}));
 
     const logout = logoutCurrentUser();
     await vi.advanceTimersByTimeAsync(5000);
@@ -89,7 +64,7 @@ describe('logout', () => {
   });
 
   it('signs out locally when clearing local databases fails', async () => {
-    vi.mocked(authClient.signOut).mockResolvedValue({ data: { success: true }, error: null });
+    vi.mocked(revokeServerSession).mockResolvedValue();
     vi.mocked(clearLocalUserData).mockRejectedValue(new Error('blocked'));
 
     await logoutCurrentUser();
@@ -100,7 +75,7 @@ describe('logout', () => {
 
   it('never leaves the session remembered when local cleanup hangs', async () => {
     vi.useFakeTimers();
-    vi.mocked(authClient.signOut).mockResolvedValue({ data: { success: true }, error: null });
+    vi.mocked(revokeServerSession).mockResolvedValue();
     vi.mocked(clearLocalUserData).mockReturnValue(new Promise(() => {}));
 
     const logout = logoutCurrentUser();

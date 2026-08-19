@@ -61,6 +61,22 @@ export function hasPendingSignOut() {
   return getSessionStorage()?.getItem(PENDING_SIGN_OUT_STORAGE_KEY) === '1';
 }
 
+/**
+ * Revoke the server session. The pending marker stays until the server confirms;
+ * a `{ error }` result is not confirmation.
+ */
+export async function revokeServerSession(): Promise<void> {
+  try {
+    const result = await authClient.signOut();
+    if (result.error) {
+      throw result.error;
+    }
+    forgetPendingSignOut();
+  } catch {
+    rememberPendingSignOut();
+  }
+}
+
 export function isLikelyFetchUnavailableError(error: unknown): boolean {
   // Browser fetch failures are exposed as TypeError, but message text varies
   // across engines, so callers must keep this predicate scoped to fetch paths.
@@ -73,15 +89,6 @@ function resolveUnavailableSessionGateState(): SessionGateState {
     : { status: 'offline-unavailable' };
 }
 
-async function completePendingSignOut(): Promise<void> {
-  try {
-    await authClient.signOut();
-    forgetPendingSignOut();
-  } catch {
-    // Still unreachable; the marker keeps the device signed out.
-  }
-}
-
 function readAuthErrorStatus(error: unknown): number | null {
   if (typeof error !== 'object' || error === null || !('status' in error)) {
     return null;
@@ -92,7 +99,7 @@ function readAuthErrorStatus(error: unknown): number | null {
 
 export async function resolveSessionGateState(): Promise<SessionGateState> {
   if (hasPendingSignOut()) {
-    await completePendingSignOut();
+    await revokeServerSession();
     return { status: 'unauthenticated' };
   }
 

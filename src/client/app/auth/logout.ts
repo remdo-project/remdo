@@ -2,10 +2,9 @@ import { resetUserData } from '#client/app/documents/user-data';
 import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
 import { clearLocalUserData } from './local-data';
 import {
-  authClient,
   forgetAuthenticatedSession,
-  forgetPendingSignOut,
   rememberPendingSignOut,
+  revokeServerSession,
 } from './client';
 
 const SERVER_SIGN_OUT_TIMEOUT_MS = 1500;
@@ -18,20 +17,6 @@ function withTimeout(work: Promise<void>, timeoutMs: number): Promise<void> {
       setTimeout(resolve, timeoutMs);
     }),
   ]);
-}
-
-async function signOutOnServer(): Promise<void> {
-  try {
-    const result = await authClient.signOut();
-    if (result.error) {
-      throw result.error;
-    }
-    forgetPendingSignOut();
-  } catch {
-    // The cookie stays valid, so the next reachable revalidation would sign this
-    // device back in. Retry on the next gate check instead.
-    rememberPendingSignOut();
-  }
 }
 
 async function clearLocalData(): Promise<void> {
@@ -59,7 +44,7 @@ export async function logoutCurrentUser(): Promise<void> {
   // Revocation and local cleanup share no data, so the device is not kept
   // waiting for the sum of both budgets.
   await Promise.all([
-    withTimeout(signOutOnServer(), SERVER_SIGN_OUT_TIMEOUT_MS),
+    withTimeout(revokeServerSession(), SERVER_SIGN_OUT_TIMEOUT_MS),
     withTimeout(clearLocalData(), LOCAL_CLEANUP_TIMEOUT_MS),
   ]);
 }
