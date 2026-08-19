@@ -1,4 +1,4 @@
-import { Anchor, Container, Group, Text } from '@mantine/core';
+import { Container, Group, Text, UnstyledButton } from '@mantine/core';
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import styles from './AppHeader.module.css';
@@ -12,6 +12,7 @@ export type AppHeaderAuthState =
 
 export interface AppHeaderProps {
   authState: AppHeaderAuthState;
+  onLogout: () => void;
   trailingNav?: ReactNode;
 }
 
@@ -19,7 +20,7 @@ function navLinkClassName({ isActive }: { isActive: boolean }): string {
   return [styles.link, isActive && styles.activeLink].filter(Boolean).join(' ');
 }
 
-export default function AppHeader({ authState, trailingNav }: AppHeaderProps) {
+export default function AppHeader({ authState, onLogout, trailingNav }: AppHeaderProps) {
   const hasAppAccess = authState.status === 'authenticated'
     || authState.status === 'offline-remembered';
 
@@ -44,9 +45,9 @@ export default function AppHeader({ authState, trailingNav }: AppHeaderProps) {
               </NavLink>
             )}
             {hasAppAccess && (
-              <Anchor className={styles.link} href="/logout">
+              <UnstyledButton className={styles.link} onClick={onLogout}>
                 Logout
-              </Anchor>
+              </UnstyledButton>
             )}
             {authState.status === 'unauthenticated' && (
               <NavLink className={navLinkClassName} to="/">

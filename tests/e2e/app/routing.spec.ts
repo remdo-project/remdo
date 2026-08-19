@@ -20,6 +20,10 @@ async function createIndexedDb(page: Page, dbName: string): Promise<void> {
   }, dbName);
 }
 
+async function countNavigations(page: Page): Promise<number> {
+  return page.evaluate(() => performance.getEntriesByType('navigation').length);
+}
+
 async function hasIndexedDb(page: Page, dbName: string): Promise<boolean> {
   return page.evaluate(async (name) => {
     const databases = await indexedDB.databases();
@@ -83,7 +87,7 @@ test.describe('Routing', () => {
     await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Sharing' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Logout' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible();
     await page.waitForLoadState('networkidle');
     expect(userDataRequests).toEqual([]);
   });
@@ -122,12 +126,34 @@ test.describe('Routing', () => {
     await page.goto('/');
     await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
     await createIndexedDb(page, 'y-sweet-logout-test');
+    const navigations = await countNavigations(page);
 
-    await page.getByRole('link', { name: 'Logout' }).click();
+    await page.getByRole('button', { name: 'Logout' }).click();
 
     await expectPath(page, '/');
+    await expect(page.getByRole('status')).toContainText(/signed out/i);
+    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeFocused();
     await expect.poll(async () => hasIndexedDb(page, 'y-sweet-logout-test')).toBe(false);
+    // Logout replaces the view in place; a reload would add a navigation entry.
+    expect(await countNavigations(page)).toBe(navigations);
     const bootstrapResponse = await page.request.get('/api/current-user');
     expect(bootstrapResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
+  });
+
+  test('signs out every tab sharing the browser storage', async ({ page, context }) => {
+    await page.goto('/');
+    await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+
+    const peer = await context.newPage();
+    await peer.goto('/');
+    await expect(peer.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+
+    await page.getByRole('button', { name: 'Logout' }).click();
+
+    // The peer stops using its local data as soon as the broadcast lands; the
+    // login view follows a loader round-trip, so allow for a slow one.
+    await expect(peer.getByRole('button', { name: 'Logout' })).toBeHidden({ timeout: 15_000 });
+    await expect(peer.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible({ timeout: 15_000 });
+    await peer.close();
   });
 });
