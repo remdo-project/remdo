@@ -1,5 +1,6 @@
 import { resetUserData } from '#client/app/documents/user-data';
 import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
+import { clearUnsyncedLocalChanges } from '#collaboration/unsynced-local-changes';
 import { clearLocalUserData } from './local-data';
 import {
   forgetAuthenticatedSession,
@@ -34,6 +35,7 @@ async function clearLocalData(): Promise<void> {
  */
 export async function logoutCurrentUser(): Promise<void> {
   rememberPendingSignOut();
+  clearUnsyncedLocalChanges();
 
   // Stop the collaboration runtime first. It fetches document tokens against the
   // session, so revoking while it is live races a request that then 401s.

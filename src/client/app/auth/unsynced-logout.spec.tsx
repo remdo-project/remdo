@@ -2,12 +2,12 @@ import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { hasUnsyncedLocalChanges } from '#collaboration/session';
+import { hasUnsyncedLocalChanges } from '#collaboration/unsynced-local-changes';
 import { LogoutProvider, useLogout } from './useLogout';
 import { logoutCurrentUser } from './logout';
 import UnsyncedLogoutDialog from '#client/ui/UnsyncedLogoutDialog';
 
-vi.mock('#collaboration/session', () => ({
+vi.mock('#collaboration/unsynced-local-changes', () => ({
   hasUnsyncedLocalChanges: vi.fn(() => false),
 }));
 

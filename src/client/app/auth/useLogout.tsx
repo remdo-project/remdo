@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { createContext, use, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { hasUnsyncedLocalChanges } from '#collaboration/session';
+import { hasUnsyncedLocalChanges } from '#collaboration/unsynced-local-changes';
 import { logoutCurrentUser } from './logout';
 import { broadcastSignOut } from './logout-broadcast';
 

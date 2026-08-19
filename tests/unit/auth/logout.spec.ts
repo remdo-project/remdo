@@ -9,6 +9,11 @@ import { clearLocalUserData } from '#client/app/auth/local-data';
 import { logoutCurrentUser } from '#client/app/auth/logout';
 import { resetUserData } from '#client/app/documents/user-data';
 import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
+import {
+  clearUnsyncedLocalChanges,
+  hasUnsyncedLocalChanges,
+  markDocumentUnsynced,
+} from '#collaboration/unsynced-local-changes';
 
 vi.mock('#client/app/auth/client', () => ({
   forgetAuthenticatedSession: vi.fn(),
@@ -39,6 +44,7 @@ describe('logout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(clearLocalUserData).mockResolvedValue();
+    clearUnsyncedLocalChanges();
   });
 
   it('signs out locally after the server confirms', async () => {
@@ -49,6 +55,15 @@ describe('logout', () => {
     expect(rememberPendingSignOut).toHaveBeenCalled();
     expect(revokeServerSession).toHaveBeenCalledTimes(1);
     expectSignedOutLocally();
+  });
+
+  it('drops origin-wide unsynced marks so the next session does not inherit them', async () => {
+    markDocumentUnsynced('doc-a');
+    vi.mocked(revokeServerSession).mockResolvedValue();
+
+    await logoutCurrentUser();
+
+    expect(hasUnsyncedLocalChanges()).toBe(false);
   });
 
   it('signs out locally when the server never answers', async () => {
