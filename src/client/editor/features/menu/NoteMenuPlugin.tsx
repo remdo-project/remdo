@@ -173,33 +173,15 @@ export function NoteMenuPlugin() {
     [closeMenu]
   );
 
-  const syncMenuTarget = useCallback(() => {
-    const current = menuRef.current;
-    if (!current) {
-      return;
-    }
-    const root = rootRef.current ?? editor.getRootElement();
-    if (!root) {
-      closeMenu();
-      return;
-    }
-    const element = editor.getElementByKey(current.noteKey);
-    if (!(element instanceof HTMLElement) || !root.contains(element)) {
-      closeMenu();
-    }
-  }, [closeMenu, editor]);
-
   useEffect(() => {
     if (!rootElement) {
       return;
     }
-    rootElement.addEventListener('scroll', syncMenuTarget);
     rootElement.addEventListener('focusout', handleRootFocusOut);
     return () => {
-      rootElement.removeEventListener('scroll', syncMenuTarget);
       rootElement.removeEventListener('focusout', handleRootFocusOut);
     };
-  }, [handleRootFocusOut, rootElement, syncMenuTarget]);
+  }, [handleRootFocusOut, rootElement]);
 
   useEffect(() => {
     const handleDocumentKeyDown = (event: KeyboardEvent) => {

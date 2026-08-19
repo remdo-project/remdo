@@ -1,7 +1,7 @@
 import type { LexicalEditor } from 'lexical';
 import type { Placement } from 'react-aria';
 import { UNSAFE_PortalProvider } from 'react-aria';
-import type { CSSProperties, MouseEventHandler, ReactNode } from 'react';
+import type { MouseEventHandler, ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Popover } from 'react-aria-components';
 
@@ -12,7 +12,6 @@ interface EditorPopupOverlayProps {
   placement?: Placement;
   offset?: number;
   className?: string;
-  style?: CSSProperties;
   'aria-label'?: string;
   onMouseDown?: MouseEventHandler<HTMLElement>;
   onClose?: () => void;
@@ -21,9 +20,6 @@ interface EditorPopupOverlayProps {
   children: ReactNode;
 }
 
-// Shared React Aria overlay for editor popups. Positions against a live target
-// rect (caret or element), flips when the viewport is tight, and leaves
-// keyboard and focus with the caller.
 export function EditorPopupOverlay({
   editor,
   portalRoot,
@@ -31,7 +27,6 @@ export function EditorPopupOverlay({
   placement = 'bottom start',
   offset = 6,
   className,
-  style,
   'aria-label': ariaLabel,
   onMouseDown,
   onClose,
@@ -98,7 +93,6 @@ export function EditorPopupOverlay({
         shouldCloseOnInteractOutside={() => false}
         shouldFlip
         shouldSkipAnimation
-        style={style}
         triggerRef={triggerRef}
         onMouseDown={onMouseDown}
         onOpenChange={(open) => {
