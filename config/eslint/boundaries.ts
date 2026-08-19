@@ -159,17 +159,6 @@ export const srcBoundaries = {
     { from: { element: { type: 'client-dev' } },
       allow: { to: { element: { type: ['client-dev', ...CLIENT_SHARED] } } } },
 
-    { from: { element: { type: 'client-editor' } },
-      allow: { to: { element: { type: [
-        'client-editor',
-        ...CLIENT_SHARED,
-        'domain',
-        'note-sdk',
-        'document-routes',
-        'collaboration',
-        'platform',
-      ] } } } },
-
     { from: { element: { type: 'server' } },
       allow: { to: { element: { type: ['server', 'domain', 'platform', 'projection'] } } } },
     { from: { element: { type: 'domain' } },
