@@ -57,6 +57,7 @@ allowBuilds:
   '@ast-grep/cli': true
   better-sqlite3: true
   esbuild: true
+  unrs-resolver: true
   y-sweet: true
 
 patchedDependencies:
@@ -115,6 +116,8 @@ catalog:
   csstree-validator: ^4.0.1
   dependency-cruiser: ^18.2.0
   eslint: ^10.8.1
+  eslint-import-resolver-typescript: ^4.4.5
+  eslint-plugin-boundaries: ^7.2.0
   eslint-plugin-compat: ^7.0.2
   eslint-plugin-react-refresh: ^0.5.3
   hono: ^4.12.34
