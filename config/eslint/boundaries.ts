@@ -61,8 +61,9 @@ export const editorBoundaries = {
       allow: { to: { element: { type: ['foundation', 'outline'] } } } },
     { from: { element: { type: 'triggers' } },
       allow: { to: { element: { type: ['outline', 'runtime'] } } } },
+    // Workspace re-exports the pending-import API for the app.
     { from: { element: { type: 'view' } },
-      allow: { to: { element: { type: ['outline', 'features'] } } } },
+      allow: { to: { element: { type: ['outline', 'features', 'runtime'] } } } },
     { from: { element: { type: 'features' } },
       allow: { to: { element: { type: ['foundation', 'outline', 'runtime', 'triggers', 'view', 'adapters'] } } } },
     // The shell composes, so it reaches everything it mounts. Its edge into

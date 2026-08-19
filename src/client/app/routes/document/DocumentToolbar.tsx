@@ -2,9 +2,9 @@ import { ActionIcon, Combobox, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconUpload } from '@tabler/icons-react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { useRef } from 'react';
-import { ZoomBreadcrumbs } from '#client/editor/features/zoom/ZoomBreadcrumbs';
 import type { DocumentSourceNote } from '#note-sdk';
-import type { NotePathItem } from '#client/editor/outline/note-traversal';
+import { ZoomBreadcrumbs } from '#client/editor/view/workspace';
+import type { NotePathItem } from '#client/editor/view/workspace';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
 
 const NEW_DOCUMENT_VALUE = '$new-document';

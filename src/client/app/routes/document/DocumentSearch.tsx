@@ -1,6 +1,6 @@
 import { TextInput } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
-import type { NotePathItem } from '#client/editor/outline/note-traversal';
+import type { NotePathItem } from '#client/editor/view/workspace';
 import {
   UNTITLED_LABEL,
   normalizeNavigationLabel,

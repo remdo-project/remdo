@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
-import type { NotePathItem } from '#client/editor/outline/note-traversal';
+import type { NotePathItem } from '#client/editor/view/workspace';
 import type { NoteListType } from '#note-sdk';
 import { queryMatchRanges } from '#client/search/query-match';
 import { UNTITLED_LABEL, formatNavigationLabel, normalizeNavigationLabel } from '#client/ui/navigation-label';

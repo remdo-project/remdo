@@ -27,13 +27,6 @@ const relativeToRoot = (fromFile: string, specifier: string, root: string): stri
   return null;
 };
 
-const editorImportPath = (fromFile: string, specifier: string): string | null => {
-  if (specifier.startsWith('#client/editor/')) {
-    return specifier.slice('#client/editor/'.length);
-  }
-  return relativeToRoot(fromFile, specifier, path.join(CLIENT, 'editor'));
-};
-
 const appImportPath = (fromFile: string, specifier: string): string | null => {
   if (specifier.startsWith('#client/app/')) {
     return specifier.slice('#client/app/'.length);
@@ -66,55 +59,20 @@ describe('boundaries', () => {
     expect(listLooseSourceFiles(CLIENT)).toEqual([]);
   });
 
-  // App may import editor/view and editor/shell. Anything else under editor is
-  // a deep leak until the editor publishes a workspace surface. ui→app is the
-  // header/seam cycle until the shell composes that link. This list must not grow.
+  // ui→app is the header/seam cycle until the shell composes that link.
+  // App→editor internals are refused by eslint (view/shell only).
   const knownDeepLeaks = [
-    'client/app/routes/SearchResultRow.tsx -> #client/editor/outline/note-traversal',
-    'client/app/routes/document/DocumentSearch.tsx -> #client/editor/outline/note-traversal',
-    'client/app/routes/document/DocumentToolbar.tsx -> #client/editor/features/zoom/ZoomBreadcrumbs',
-    'client/app/routes/document/DocumentToolbar.tsx -> #client/editor/outline/note-traversal',
-    'client/app/routes/document/useDocumentActions.ts -> #client/editor/runtime/pending-document-import',
-    'client/app/routes/useDocumentSearchModel.ts -> #client/editor/features/search/search-candidates',
     'client/ui/AppHeader.tsx -> #client/app/routes/DevToolbarSeam',
   ];
 
-  const isPublishedEditorImport = (relative: string): boolean =>
-    relative.startsWith('view/')
-    || relative.startsWith('shell/')
-    // DEV-gated editor/dev loads are the production-bundle seam
-    // (docs/architecture.md#production-bundle-boundary), not a workspace leak.
-    || relative.startsWith('dev/');
-
-  const leaksFrom = (
-    root: string,
-    importedPath: (fromFile: string, specifier: string) => string | null,
-    isLeak: (relative: string) => boolean,
-  ): string[] =>
-    [...new Set(
-      walkSourceFiles(root).flatMap((file) =>
+  it('does not grow the deep-import allowlist', () => {
+    const leaks = [...new Set(
+      walkSourceFiles(path.join(CLIENT, 'ui')).flatMap((file) =>
         specifiersIn(file)
-          .filter((specifier) => {
-            const relative = importedPath(file, specifier);
-            return relative !== null && isLeak(relative);
-          })
+          .filter((specifier) => appImportPath(file, specifier) !== null)
           .map((specifier) => `${relativeToSrc(file)} -> ${specifier}`),
       ),
     )].sort();
-
-  it('does not grow the deep-import allowlist', () => {
-    const leaks = [
-      ...leaksFrom(
-        path.join(CLIENT, 'app'),
-        editorImportPath,
-        (relative) => !isPublishedEditorImport(relative),
-      ),
-      ...leaksFrom(
-        path.join(CLIENT, 'ui'),
-        appImportPath,
-        () => true,
-      ),
-    ].sort();
 
     expect(leaks).toEqual([...knownDeepLeaks].sort());
   });

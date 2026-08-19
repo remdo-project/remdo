@@ -6,8 +6,8 @@ import type {
   MouseEvent as ReactMouseEvent,
 } from 'react';
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
-import { collectDocumentSearchResults } from '#client/editor/features/search/search-candidates';
-import type { SearchCandidate } from '#client/editor/features/search/search-candidates';
+import { collectDocumentSearchResults } from '#client/editor/view/workspace';
+import type { SearchCandidate } from '#client/editor/view/workspace';
 import { useSearchNotes } from '#client/editor/view/EditorViewProvider';
 
 // Direct children shown in each result row's preview (the row reports "+N more"

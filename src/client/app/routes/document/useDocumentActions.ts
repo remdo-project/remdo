@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { registerPendingDocumentImport } from '#client/editor/runtime/pending-document-import';
+import { registerPendingDocumentImport } from '#client/editor/view/workspace';
 import type { UserDataNote } from '#note-sdk';
 
 const UPLOADED_JSON_EXTENSION = '.json';
