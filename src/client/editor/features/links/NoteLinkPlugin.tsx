@@ -1,13 +1,13 @@
 import { $createTextNode } from 'lexical';
 
-import { $createNoteLinkNode } from '#client/editor/runtime/note-link-node';
+import { $createNoteLinkNode } from '#client/editor/features/links/note-link-node';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration/CollaborationProvider';
 import { useTriggerSession } from '#client/editor/triggers/useTriggerSession';
 import type { TriggerSpec } from '#client/editor/triggers/types';
-import type { LinkPickerOption } from '#client/editor/links/note-link-index';
-import { LINK_PICKER_RESULT_LIMIT, $resolveLinkPickerOptions } from './note-link/options';
-import { NoteLinkPicker } from './note-link/NoteLinkPicker';
-import { getActiveOptionId } from './note-link/option-id';
+import type { LinkPickerOption } from '#client/editor/features/links/note-link-index';
+import { LINK_PICKER_RESULT_LIMIT, $resolveLinkPickerOptions } from './picker/options';
+import { NoteLinkPicker } from './picker/NoteLinkPicker';
+import { getActiveOptionId } from './picker/option-id';
 
 // Note links are inserted through `@`, an inline trigger character. The shared
 // trigger engine owns the open/dismiss/confirm lifecycle (see

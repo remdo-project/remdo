@@ -25,7 +25,7 @@ import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { createUniqueNoteId, createNoteIdAvoiding } from '#domain/notes/ids';
 import { $autoExpandIfFolded } from '#client/editor/runtime/fold-state';
-import { $createNoteLinkNode } from '#client/editor/runtime/note-link-node';
+import { $createNoteLinkNode } from '#client/editor/features/links/note-link-node';
 import { noteIdState } from '#client/editor/runtime/note-id-state';
 import { isSerializedBodyWrapper } from '#client/editor/runtime/serialized-note-types';
 import {
@@ -59,7 +59,7 @@ import {
   removeNoteHeads,
 } from '#client/editor/outline/selection/tree';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/commands';
-import { parseOwnedNoteLinkUrl } from '#client/editor/links/note-link-url';
+import { parseOwnedNoteLinkUrl } from '#client/editor/features/links/note-link-url';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
 

@@ -6,7 +6,7 @@ import { ensureCheckedStateConfig } from '#client/editor/features/checklist/chec
 import { ensureFoldStateConfig } from './fold-state';
 import { DateNode } from '../features/date/date-node';
 import { BodyWrapperNode, NoteBodyNode } from '#client/editor/outline/note-body-node';
-import { NoteLinkNode } from './note-link-node';
+import { NoteLinkNode } from '#client/editor/features/links/note-link-node';
 import { ensureNoteIdStateConfig } from './note-id-state';
 
 ensureNoteIdStateConfig();

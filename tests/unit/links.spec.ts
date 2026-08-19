@@ -3,7 +3,7 @@ import { act } from '@testing-library/react';
 import { $createTextNode, $isTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
-import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
+import { $isNoteLinkNode } from '#client/editor/features/links/note-link-node';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import {

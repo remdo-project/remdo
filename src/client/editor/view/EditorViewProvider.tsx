@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
 import { areNotePathsEqual } from '#client/editor/outline/note-traversal';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
-import type { SearchableNotes } from '#client/editor/search/search-candidates';
+import type { SearchableNotes } from '#client/editor/features/search/search-candidates';
 
 export interface EditorViewBindings {
   zoomNoteId?: string | null;

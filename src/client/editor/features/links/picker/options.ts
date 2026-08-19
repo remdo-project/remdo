@@ -4,8 +4,8 @@ import {
   $collectLinkableNotesInDocumentOrder,
   filterLinkableNotes,
   toLinkPickerOptions,
-} from '#client/editor/links/note-link-index';
-import type { LinkPickerOption } from '#client/editor/links/note-link-index';
+} from '#client/editor/features/links/note-link-index';
+import type { LinkPickerOption } from '#client/editor/features/links/note-link-index';
 import { $resolveNoteIdFromNode } from '#client/editor/outline/note-context';
 
 export const LINK_PICKER_RESULT_LIMIT = 5;

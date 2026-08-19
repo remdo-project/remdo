@@ -1,7 +1,7 @@
 import type { MouseEvent as ReactMouseEvent } from 'react';
 
 import type { TriggerPickerState, TriggerPopupHandlers } from '#client/editor/triggers/types';
-import type { LinkPickerOption } from '#client/editor/links/note-link-index';
+import type { LinkPickerOption } from '#client/editor/features/links/note-link-index';
 import { getOptionId } from './option-id';
 
 interface NoteLinkPickerProps {
