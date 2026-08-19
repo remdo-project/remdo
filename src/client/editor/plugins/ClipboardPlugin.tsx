@@ -24,7 +24,6 @@ import {
 import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { createUniqueNoteId, createNoteIdAvoiding } from '#domain/notes/ids';
-import { $autoExpandIfFolded } from '#client/editor/runtime/fold-state';
 import { $createNoteLinkNode } from '#client/editor/features/links/note-link-node';
 import { noteIdState } from '#client/editor/runtime/note-id-state';
 import { isSerializedBodyWrapper } from '#client/editor/runtime/serialized-note-types';
@@ -62,6 +61,7 @@ import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/commands';
 import { parseOwnedNoteLinkUrl } from '#client/editor/features/links/note-link-url';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
+import { $autoExpandIfFolded } from '#client/editor/outline/fold-state';
 
 const NEWLINE_PATTERN = /\r?\n/;
 
@@ -334,6 +334,7 @@ function $insertFirstChildNotes(contentItem: ListItemNode | null, lines: string[
   if (!contentItem || lines.length === 0) {
     return;
   }
+  $autoExpandIfFolded(contentItem);
   const childList = $getOrCreateChildList(contentItem);
   const nodes = buildListItemsFromPlainText(lines.join('\n'));
   const firstChild = childList.getFirstChild();
@@ -605,6 +606,7 @@ function $insertNodesAtSelection(
     const viewRootHead =
       viewRootKey === null ? null : orderedHeads.find((head) => head.getKey() === viewRootKey) ?? null;
     if (viewRootHead) {
+      $autoExpandIfFolded(viewRootHead);
       parentList = $getOrCreateChildList(viewRootHead);
       nextSibling = getFirstDescendantListItem(parentList);
       const replacementHeads = orderedHeads.filter((head) => head !== viewRootHead);
@@ -637,6 +639,7 @@ function $insertNodesAtSelection(
 
     if (placement === 'start') {
       if (isViewRoot) {
+        $autoExpandIfFolded(contentItem);
         parentList = $getOrCreateChildList(contentItem);
         nextSibling = getFirstDescendantListItem(parentList);
       } else {
@@ -644,6 +647,7 @@ function $insertNodesAtSelection(
       }
     } else if (placement === 'middle') {
       if (isViewRoot) {
+        $autoExpandIfFolded(contentItem);
         parentList = $getOrCreateChildList(contentItem);
         const split = $splitContentItemAtSelection(contentItem, selection, 'first-child');
         nextSibling = split ?? getFirstDescendantListItem(parentList);
@@ -653,6 +657,7 @@ function $insertNodesAtSelection(
       }
     } else {
       if (isViewRoot) {
+        $autoExpandIfFolded(contentItem);
         parentList = $getOrCreateChildList(contentItem);
         nextSibling = getFirstDescendantListItem(parentList);
       } else {

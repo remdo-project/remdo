@@ -28,6 +28,7 @@ import {
   PASTE_COMMAND,
 } from 'lexical';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { SET_NOTE_FOLD_COMMAND } from '#client/editor/commands';
 
 describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
   it('pastes single-line plain text inline', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -93,6 +94,25 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
     expect(focusNote?.noteId).toBeTruthy();
     expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
+  });
+
+  it('auto-expands a folded note when pasting at its end (docs/specs/outliner/folding.md)', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    await remdo.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'folded', noteItemKey: getNoteKey(remdo, 'note2') });
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pastePlainText(remdo, 'A\nB');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      {
+        noteId: 'note2',
+        text: 'note2',
+        children: [
+          { noteId: null, text: 'A' },
+          { noteId: null, text: 'B' },
+          { noteId: 'note3', text: 'note3' },
+        ],
+      },
+    ]);
   });
 
   it('pastes multi-line plain text at the start of a nested note as previous siblings', meta({ fixture: 'tree' }), async ({ remdo }) => {
