@@ -6,7 +6,7 @@ import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelec
 import { useEffect } from 'react';
 
 import type { NoteCheckedDisplay } from '#client/editor/features/checklist/checked-subtree';
-import { $getNoteChecked, $setNoteCheckedRaw } from '#client/editor/runtime/checklist-state';
+import { $getNoteChecked, $setNoteCheckedRaw } from '#client/editor/features/checklist/checked-state';
 import { $isNoteSubtreeChecked, NoteCheckedDisplayCache } from '#client/editor/features/checklist/checked-subtree';
 import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
 import type { SetNoteCheckedPayload } from '#client/editor/commands';

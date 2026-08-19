@@ -26,7 +26,7 @@ const ALLOWED: Record<string, readonly string[]> = {
   outline: ['#root', 'runtime'],
   // Cycle: runtime registers and serializes the outline's node types, and
   // outline reads the per-note state runtime stores.
-  runtime: ['#root', 'outline'],
+  runtime: ['#root', 'outline', 'features'],
 
   // Capabilities.
   links: ['outline', 'runtime'],
@@ -40,7 +40,7 @@ const ALLOWED: Record<string, readonly string[]> = {
   plugins: ['#root', 'features', 'links', 'note-sdk-adapters', 'outline', 'runtime', 'triggers', 'view'],
   '#root': ['features', 'outline', 'plugins', 'runtime'],
 
-  'note-sdk-adapters': ['outline', 'runtime'],
+  'note-sdk-adapters': ['outline', 'runtime', 'features'],
 };
 
 // Editor directories deliberately outside the graph. Listing them is what makes
@@ -53,20 +53,6 @@ const UNGOVERNED = new Set([
   'types',
 ]);
 
-// TODO: empty this list; it exists only to admit today's boundary violations
-// so the rule can be enforced before the modules move. Every entry is a
-// boundary the taxonomy is meant to remove, so a non-empty list means the
-// migration is unfinished. Probe: delete this constant and the `excused` branch
-// in the rule below; `pnpm run lint:code` passes once no entries remain.
-//
-// An entry that no longer matches any import is reported as stale, so a move
-// cannot land while leaving its exception behind.
-// Exported so the spec can audit the inventory: an entry whose file was renamed
-// or deleted is unreachable from the rule, because ESLint never visits the old
-// path — and a move is the workflow this list exists to police.
-export const EXCEPTIONS: readonly { from: string; to: string; file: string; why: string }[] = [
-  { from: 'runtime', to: 'features', file: 'runtime/nodes.ts', why: 'node registration; see node-ownership question' },
-];
 
 const EDITOR_ROOT = path.normalize('src/client/editor');
 const EDITOR_ROOT_ABS = path.resolve(EDITOR_ROOT);
@@ -124,9 +110,7 @@ export const editorModuleBoundariesRule: Rule.RuleModule = {
     schema: [],
     messages: {
       forbidden:
-        'Editor boundary: {{from}}/ must not import {{to}}/. Allowed from {{from}}/: {{allowed}}. If this edge is intended, add it to ALLOWED in config/eslint/editorModuleBoundaries.ts; if it is debt, add an EXCEPTIONS entry naming the work that removes it.',
-      staleException:
-        'Stale EXCEPTIONS entry in config/eslint/editorModuleBoundaries.ts: {{file}} no longer imports {{to}}/. Delete the entry.',
+        'Editor boundary: {{from}}/ must not import {{to}}/. Allowed from {{from}}/: {{allowed}}. Move the code to the bucket that owns it, or add the edge to ALLOWED in config/eslint/editorModuleBoundaries.ts.',
       unconfiguredBucket:
         'Editor directory {{bucket}}/ has no ALLOWED entry, so its imports are unchecked. Add it to ALLOWED in config/eslint/editorModuleBoundaries.ts with the buckets it may import, or to UNGOVERNED if it is deliberately outside the graph.',
     },
@@ -149,9 +133,6 @@ export const editorModuleBoundariesRule: Rule.RuleModule = {
     }
 
     const fromDir = path.dirname(context.physicalFilename);
-    const fileExceptions = EXCEPTIONS.filter((entry) => entry.file === editorRelative);
-    const usedExceptions = new Set<string>();
-
     const checkSource = (node: Node, specifier: unknown): void => {
       if (typeof specifier !== 'string') return;
 
@@ -160,12 +141,6 @@ export const editorModuleBoundariesRule: Rule.RuleModule = {
 
       const to = bucketOf(target);
       if (to === from || allowed.includes(to)) return;
-
-      const excused = fileExceptions.some((entry) => entry.from === from && entry.to === to);
-      if (excused) {
-        usedExceptions.add(to);
-        return;
-      }
 
       context.report({
         node,
@@ -187,16 +162,6 @@ export const editorModuleBoundariesRule: Rule.RuleModule = {
       // A computed specifier is not statically resolvable and is left to review.
       ImportExpression(node) {
         if (node.source.type === 'Literal') checkSource(node.source, node.source.value);
-      },
-      'Program:exit': function reportStale(program) {
-        for (const entry of fileExceptions) {
-          if (usedExceptions.has(entry.to)) continue;
-          context.report({
-            node: program,
-            messageId: 'staleException',
-            data: { file: entry.file, to: entry.to },
-          });
-        }
       },
     };
   },

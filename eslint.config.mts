@@ -18,15 +18,15 @@ const importMetaEnvRestriction = {
 const checklistStateRestrictions = [
   {
     selector: "CallExpression[callee.property.name='getChecked']",
-    message: 'Use $getNoteChecked from #client/editor/runtime/checklist-state instead.',
+    message: 'Use $getNoteChecked from #client/editor/features/checklist/checked-state instead.',
   },
   {
     selector: "CallExpression[callee.property.name='setChecked']",
-    message: 'Use $setNoteChecked from #client/editor/runtime/checklist-state instead.',
+    message: 'Use $setNoteChecked from #client/editor/features/checklist/checked-state instead.',
   },
   {
     selector: "CallExpression[callee.property.name='toggleChecked']",
-    message: 'Use $toggleNoteChecked from #client/editor/runtime/checklist-state instead.',
+    message: 'Use $toggleNoteChecked from #client/editor/features/checklist/checked-state instead.',
   },
 ] as const;
 const clientImportPattern = String.raw`\#client/*`;
@@ -288,7 +288,7 @@ export default antfu(
     },
   },
   {
-    files: ['src/client/editor/plugins/CheckListPlugin.tsx'],
+    files: ['src/client/editor/features/checklist/CheckListPlugin.tsx'],
     rules: {
       // This plugin is the sanctioned boundary for direct checklist node syncing.
       'no-restricted-syntax': [

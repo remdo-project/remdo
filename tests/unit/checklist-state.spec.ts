@@ -4,7 +4,7 @@ import { $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
 
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
-import { $getNoteChecked } from '#client/editor/runtime/checklist-state';
+import { $getNoteChecked } from '#client/editor/features/checklist/checked-state';
 import { SET_NOTE_CHECKED_COMMAND } from '#client/editor/commands';
 import { isContentItem } from '#client/editor/outline/list-structure';
 import { getWrapperForContent } from '#client/editor/outline/selection/tree';

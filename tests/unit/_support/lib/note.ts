@@ -17,7 +17,7 @@ import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
 import { findNearestListItem, getRootElementOrThrow } from './selection';
 import { $getNoteId } from '#client/editor/runtime/note-id-state';
-import { $setNoteCheckedRaw } from '#client/editor/runtime/checklist-state';
+import { $setNoteCheckedRaw } from '#client/editor/features/checklist/checked-state';
 import { expect } from 'vitest';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/commands';
 export type { Outline, OutlineNode } from '#tests-common/outline';
