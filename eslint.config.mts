@@ -4,7 +4,7 @@ import compatPlugin from 'eslint-plugin-compat';
 import lexicalPlugin from '@lexical/eslint-plugin';
 import { commandsInCommandsFileRule } from './config/eslint/commandsInCommandsFile';
 import boundaries from 'eslint-plugin-boundaries';
-import { boundariesElements, boundariesPolicies, boundariesUngoverned } from './config/eslint/editorBoundaries';
+import { boundariesElements, boundariesIgnore, boundariesInclude, boundariesPolicies } from './config/eslint/editorBoundaries';
 import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
 
 const importMetaEnvRestriction = {
@@ -313,12 +313,14 @@ export default antfu(
     plugins: { boundaries },
     settings: {
       'boundaries/elements': boundariesElements,
-      'import/resolver': { typescript: { project: './tsconfig.json' }, node: { extensions: ['.ts', '.tsx'] } },
+      'boundaries/include': boundariesInclude,
+      'boundaries/ignore': boundariesIgnore,
+      'import/resolver': { typescript: { project: './tsconfig.json' } },
     },
     rules: {
       'boundaries/dependencies': ['error', {
         default: 'disallow',
-        policies: [...boundariesPolicies, ...boundariesUngoverned],
+        policies: boundariesPolicies,
       }],
       'boundaries/no-unknown-dependencies': 'error',
     },
