@@ -1,6 +1,8 @@
 import { Outlet, useMatches } from 'react-router-dom';
 import type { UIMatch } from 'react-router-dom';
 import type { SessionGateState } from './auth/client';
+import { LogoutProvider, useLogout } from './auth/useLogout';
+import UnsyncedLogoutDialog from '#client/ui/UnsyncedLogoutDialog';
 import AppHeader from '#client/ui/AppHeader';
 import type { AppHeaderAuthState } from '#client/ui/AppHeader';
 import styles from './AppFrame.module.css';
@@ -35,13 +37,30 @@ function resolveHeaderAuthState(sessionState: SessionGateState | null): AppHeade
 }
 
 export default function AppFrame() {
+  return (
+    <LogoutProvider>
+      <AppFrameContent />
+    </LogoutProvider>
+  );
+}
+
+function AppFrameContent() {
   const matches = useMatches();
   const sessionState = matches.findLast(hasSessionState)?.loaderData.sessionState ?? null;
+  const logout = useLogout();
 
   return (
     <div className={styles.backdrop}>
       <div className={styles.shell}>
-        <AppHeader authState={resolveHeaderAuthState(sessionState)} />
+        <AppHeader
+          authState={resolveHeaderAuthState(sessionState)}
+          onLogout={logout.requestLogout}
+        />
+        <UnsyncedLogoutDialog
+          onCancel={logout.cancelLogout}
+          onConfirm={logout.confirmLogout}
+          opened={logout.confirmingLoss}
+        />
         <Outlet />
       </div>
     </div>

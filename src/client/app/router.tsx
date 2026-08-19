@@ -9,7 +9,6 @@ import { adminRouteLoader } from './routes/admin-route-loader';
 import { devRoutes } from './routes/devRoutes';
 import OAuthConsentRoute from './routes/OAuthConsentRoute';
 import DocumentRoute from './routes/DocumentRoute';
-import LogoutRoute from './routes/LogoutRoute';
 import RootRoute from './routes/RootRoute';
 import type { RootRouteLoaderData } from './routes/RootRoute';
 import SharingRoute from './routes/SharingRoute';
@@ -127,11 +126,6 @@ const appRoutes = [
     path: '/',
     loader: ({ request }: { request: Request }) => rootRouteLoader(request),
     element: <RootRoute />,
-    hydrateFallbackElement,
-  },
-  {
-    path: '/logout',
-    element: <LogoutRoute />,
     hydrateFallbackElement,
   },
   {

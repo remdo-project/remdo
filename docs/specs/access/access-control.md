@@ -21,10 +21,31 @@ authorization sources of truth. Session UI and read-only Yjs
 [user-data projections](../../architecture.md#document-registry) may expose their results but do not authorize a request.
 
 The client user-data runtime starts only inside the authenticated app. Login,
-enrollment, offline, logout, and OAuth consent surfaces render outside that
-runtime, including when the surface requires an authenticated session. A
-browser may cache its last validated bootstrap for offline reopen; logout clears
-that cache and local Yjs offline data.
+enrollment, offline, and OAuth consent surfaces render outside that runtime,
+including when the surface requires an authenticated session. A browser may
+cache its last validated bootstrap for offline reopen.
+
+## Logout
+
+Logout is a local act on one device. It always completes, including offline: no
+unreachable server and no undeletable database leaves the user signed in, and
+every step is bounded so the act cannot stall.
+
+Logout clears the cached bootstrap and the device's local Yjs offline data.
+Deleting the offline encryption key satisfies that clearing: the remaining
+ciphertext is unreadable, so a database the browser refuses to drop does not
+leave readable user data behind.
+
+If this device holds edits the server has not acknowledged, logout asks
+before discarding them. Acknowledged work is not prompted.
+
+The server session is revoked as part of logout. A revocation the device could
+not deliver is retried until the server confirms it, and until then that device
+reports no session rather than resuming the one it failed to end. Signing in
+again supersedes an undelivered revocation.
+
+Signing out of one browser tab signs out every tab sharing its storage, which
+stops using the local data it is losing.
 
 ## Document Access
 

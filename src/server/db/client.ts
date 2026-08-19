@@ -1,4 +1,4 @@
-import { createSqliteServerDatabaseClient } from './sqlite-client';
+import { createSqliteServerDatabaseClient, readTableColumns, tableExists } from './sqlite-client';
 import type { SqliteServerDatabaseClient } from './sqlite-client';
 import type { ServerDatabaseClient } from './types';
 
@@ -7,6 +7,7 @@ interface ServerDatabaseClientOptions {
 }
 
 export type { ServerDatabaseClient, SqliteServerDatabaseClient };
+export { readTableColumns, tableExists };
 
 export function createServerDatabaseClient(
   options: ServerDatabaseClientOptions = {},

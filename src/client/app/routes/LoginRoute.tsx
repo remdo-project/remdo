@@ -1,7 +1,8 @@
 import { Alert, Anchor, Button, PasswordInput, Stack, Text, TextInput } from '@mantine/core';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import { authClient, rememberAuthenticatedSession } from '#client/app/auth/client';
+import { LOGGED_OUT_STATE_KEY } from '#client/app/auth/useLogout';
 import CenteredCardPage from '#client/ui/CenteredCardPage';
 import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
 import { resolvePostAuthPath } from './post-auth-path';
@@ -26,6 +27,15 @@ export default function LoginRoute() {
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const signedOut = (location.state as Record<string, unknown> | null)?.[LOGGED_OUT_STATE_KEY] === true;
+  const titleRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    // Logout unmounts the control that triggered it, dropping focus to <body>.
+    if (signedOut) {
+      titleRef.current?.focus();
+    }
+  }, [signedOut]);
 
   const completeAuth = () => {
     rememberAuthenticatedSession();
@@ -60,7 +70,16 @@ export default function LoginRoute() {
   };
 
   return (
-    <CenteredCardPage description="Sign in to access your documents." title="Sign in">
+    <CenteredCardPage
+      description="Sign in to access your documents."
+      title="Sign in"
+      titleRef={signedOut ? titleRef : undefined}
+    >
+      {signedOut && !errorMessage && (
+        <Alert color="blue" role="status" title="You're signed out">
+          This device's local data was cleared.
+        </Alert>
+      )}
       {errorMessage && (
         <Alert color="red" title="Authentication failed">
           {errorMessage}

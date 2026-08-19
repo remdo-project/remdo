@@ -1,15 +1,28 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { authClient, forgetAuthenticatedSession } from '#client/app/auth/client';
+import {
+  forgetAuthenticatedSession,
+  rememberPendingSignOut,
+  revokeServerSession,
+} from '#client/app/auth/client';
+import { clearLocalUserData } from '#client/app/auth/local-data';
 import { logoutCurrentUser } from '#client/app/auth/logout';
 import { resetUserData } from '#client/app/documents/user-data';
 import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
+import {
+  clearUnsyncedLocalChanges,
+  hasUnsyncedLocalChanges,
+  markDocumentUnsynced,
+} from '#collaboration/unsynced-local-changes';
 
 vi.mock('#client/app/auth/client', () => ({
-  authClient: {
-    signOut: vi.fn(),
-  },
   forgetAuthenticatedSession: vi.fn(),
+  rememberPendingSignOut: vi.fn(),
+  revokeServerSession: vi.fn(),
+}));
+
+vi.mock('#client/app/auth/local-data', () => ({
+  clearLocalUserData: vi.fn(),
 }));
 
 vi.mock('#client/app/documents/user-data', () => ({
@@ -20,47 +33,71 @@ vi.mock('#client/app/documents/current-user-bootstrap', () => ({
   clearCurrentUserBootstrapCache: vi.fn(),
 }));
 
-describe('logout client state', () => {
+function expectSignedOutLocally() {
+  expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
+  expect(clearCurrentUserBootstrapCache).toHaveBeenCalledTimes(1);
+  expect(resetUserData).toHaveBeenCalledTimes(1);
+  expect(clearLocalUserData).toHaveBeenCalledTimes(1);
+}
+
+describe('logout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(clearLocalUserData).mockResolvedValue();
+    clearUnsyncedLocalChanges();
   });
 
-  it('clears client state and reports server logout after Better Auth signs out', async () => {
-    vi.mocked(authClient.signOut).mockResolvedValue({ data: { success: true }, error: null });
+  it('signs out locally after the server confirms', async () => {
+    vi.mocked(revokeServerSession).mockResolvedValue();
 
-    await expect(logoutCurrentUser()).resolves.toEqual({
-      serverSignedOut: true,
-    });
+    await logoutCurrentUser();
 
-    expect(authClient.signOut).toHaveBeenCalledTimes(1);
-    expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
-    expect(clearCurrentUserBootstrapCache).toHaveBeenCalledTimes(1);
-    expect(resetUserData).toHaveBeenCalledTimes(1);
+    expect(rememberPendingSignOut).toHaveBeenCalled();
+    expect(revokeServerSession).toHaveBeenCalledTimes(1);
+    expectSignedOutLocally();
   });
 
-  it('still clears client state when Better Auth rejects logout', async () => {
-    const error = { message: 'sign-out failed' };
-    vi.mocked(authClient.signOut).mockResolvedValue({ data: null, error });
+  it('drops origin-wide unsynced marks so the next session does not inherit them', async () => {
+    markDocumentUnsynced('doc-a');
+    vi.mocked(revokeServerSession).mockResolvedValue();
 
-    await expect(logoutCurrentUser()).resolves.toEqual({
-      serverSignedOut: false,
-    });
+    await logoutCurrentUser();
 
-    expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
-    expect(clearCurrentUserBootstrapCache).toHaveBeenCalledTimes(1);
-    expect(resetUserData).toHaveBeenCalledTimes(1);
+    expect(hasUnsyncedLocalChanges()).toBe(false);
   });
 
-  it('still clears client state when Better Auth sign-out throws', async () => {
-    const error = new TypeError('offline');
-    vi.mocked(authClient.signOut).mockRejectedValue(error);
+  it('signs out locally when the server never answers', async () => {
+    vi.useFakeTimers();
+    vi.mocked(revokeServerSession).mockReturnValue(new Promise(() => {}));
 
-    await expect(logoutCurrentUser()).resolves.toEqual({
-      serverSignedOut: false,
-    });
+    const logout = logoutCurrentUser();
+    await vi.advanceTimersByTimeAsync(5000);
+    await logout;
+
+    expectSignedOutLocally();
+    vi.useRealTimers();
+  });
+
+  it('signs out locally when clearing local databases fails', async () => {
+    vi.mocked(revokeServerSession).mockResolvedValue();
+    vi.mocked(clearLocalUserData).mockRejectedValue(new Error('blocked'));
+
+    await logoutCurrentUser();
 
     expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
     expect(clearCurrentUserBootstrapCache).toHaveBeenCalledTimes(1);
-    expect(resetUserData).toHaveBeenCalledTimes(1);
+  });
+
+  it('never leaves the session remembered when local cleanup hangs', async () => {
+    vi.useFakeTimers();
+    vi.mocked(revokeServerSession).mockResolvedValue();
+    vi.mocked(clearLocalUserData).mockReturnValue(new Promise(() => {}));
+
+    const logout = logoutCurrentUser();
+    await vi.advanceTimersByTimeAsync(5000);
+    await logout;
+
+    expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
   });
 });

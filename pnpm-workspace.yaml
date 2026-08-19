@@ -2,6 +2,16 @@ catalogMode: prefer
 
 engineStrict: true
 
+minimumReleaseAgeExclude:
+  - '@better-auth/core@1.7.0'
+  - '@better-auth/drizzle-adapter@1.7.0'
+  - '@better-auth/kysely-adapter@1.7.0'
+  - '@better-auth/memory-adapter@1.7.0'
+  - '@better-auth/mongo-adapter@1.7.0'
+  - '@better-auth/oauth-provider@1.7.0'
+  - '@better-auth/prisma-adapter@1.7.0'
+  - '@better-auth/telemetry@1.7.0'
+  - better-auth@1.7.0
 nodeVersion: 24.19.0
 
 shellEmulator: true
@@ -77,8 +87,8 @@ patchedDependencies:
 catalog:
   '@antfu/eslint-config': 9.3.0
   '@ast-grep/cli': ^0.45.1
-  '@better-auth/core': 1.7.0-rc.1
-  '@better-auth/oauth-provider': 1.7.0-rc.1
+  '@better-auth/core': 1.7.0
+  '@better-auth/oauth-provider': 1.7.0
   '@eslint-react/eslint-plugin': ^5.18.3
   '@hono/node-server': ^2.0.10
   '@internationalized/date': ^3.12.3
@@ -108,7 +118,7 @@ catalog:
   '@vitest/ui': 4.1.10
   '@y-sweet/client': ^0.9.1
   '@y-sweet/sdk': ^0.9.1
-  better-auth: 1.7.0-rc.1
+  better-auth: 1.7.0
   better-sqlite3: ^12.11.1
   chokidar-cli: ^3.0.0
   concurrently: ^10.0.4
@@ -158,3 +168,4 @@ packageExtensions:
   eslint-plugin-compat:
     dependencies:
       caniuse-lite: 1.0.30001785
+
