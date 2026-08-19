@@ -40,7 +40,7 @@ export const boundariesPolicies = [
   { from: { element: { type: 'plugins' } },
     allow: { to: { element: { type: ['editor-root', 'features', 'adapters', 'outline', 'runtime', 'triggers', 'view'] } } } },
   { from: { element: { type: 'editor-root' } },
-    allow: { to: { element: { type: ['features', 'outline', 'plugins', 'runtime'] } } } },
+    allow: { to: { element: { type: ['features', 'plugins', 'runtime'] } } } },
   { from: { element: { type: 'adapters' } },
     allow: { to: { element: { type: ['outline', 'runtime', 'features'] } } } },
 
