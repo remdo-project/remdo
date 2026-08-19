@@ -18,6 +18,7 @@ export const boundariesElements = [
   { type: 'editing-indentation', pattern: `${EDITOR}/editing/indentation`, stopMatching: true },
   { type: 'editing-reordering', pattern: `${EDITOR}/editing/reordering`, stopMatching: true },
   { type: 'editing-clipboard', pattern: `${EDITOR}/editing/clipboard`, stopMatching: true },
+  { type: 'selection', pattern: `${EDITOR}/selection`, stopMatching: true },
   { type: 'outline', pattern: `${EDITOR}/outline`, stopMatching: true },
   { type: 'runtime', pattern: `${EDITOR}/runtime`, stopMatching: true },
   { type: 'features', pattern: `${EDITOR}/features`, stopMatching: true },
@@ -42,6 +43,9 @@ export const boundariesPolicies = [
   { from: { element: { type: 'editing-clipboard' } },
     allow: { to: { element: { type: ['foundation', 'outline', 'features', 'runtime'] } } } },
 
+  { from: { element: { type: 'selection' } },
+    allow: { to: { element: { type: ['foundation', 'outline'] } } } },
+
   { from: { element: { type: 'outline' } },
     allow: { to: { element: { type: ['foundation', 'runtime'] } } } },
   { from: { element: { type: 'runtime' } },
@@ -58,7 +62,7 @@ export const boundariesPolicies = [
   // mounts. foundation is absent on purpose: it is the leaves, and imports
   // nothing inside the editor.
   { from: { element: { type: 'shell' } },
-    allow: { to: { element: { type: ['foundation', 'features', 'plugins', 'runtime', 'editing-insertion', 'editing-deletion', 'editing-indentation', 'editing-reordering', 'editing-clipboard'] } } } },
+    allow: { to: { element: { type: ['foundation', 'features', 'plugins', 'runtime', 'selection', 'editing-insertion', 'editing-deletion', 'editing-indentation', 'editing-reordering', 'editing-clipboard'] } } } },
   { from: { element: { type: 'adapters' } },
     allow: { to: { element: { type: ['outline', 'runtime', 'features'] } } } },
 
