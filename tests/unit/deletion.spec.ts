@@ -2,7 +2,7 @@ import { act, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { $getNodeByKey, $getSelection, $isRangeSelection, $isTextNode, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
 
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import {
   findNearestListItem,
   getNoteKey,

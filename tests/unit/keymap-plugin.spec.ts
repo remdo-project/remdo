@@ -1,7 +1,7 @@
 import type { LexicalEditor } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND, SET_NOTE_CHECKED_COMMAND } from '#client/editor/foundation/commands';
-import { createKeyHandler } from '#client/editor/plugins/KeymapPlugin';
+import { createKeyHandler } from '#client/editor/keymap/KeymapPlugin';
 
 const altChordDown = { key: 'ArrowDown', alt: true, shift: true } as const;
 const altChordUp = { key: 'ArrowUp', alt: true, shift: true } as const;

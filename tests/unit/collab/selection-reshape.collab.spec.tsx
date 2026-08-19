@@ -3,7 +3,7 @@ import { waitFor } from '@testing-library/react';
 
 
 import { $getListItemByKeyOrThrow, pressKey, readOutline, getNoteKey, placeCaretAtNote, typeText, meta } from '#tests';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
 import { flattenOutline } from '#tests-common/outline';
 import { createCollabPeer } from './_support/remdo-peers';

@@ -4,7 +4,7 @@ import { $createTextNode, $getRoot, $setState, createEditor } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
-import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
+import { $getNoteId, noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 import { $getListItemByKeyOrThrow, meta } from '#tests';
 import { $replayLadder, emptyLadder, popStep, pushStep } from '#client/editor/outline/selection/rungs';
 

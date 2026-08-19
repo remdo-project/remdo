@@ -3,7 +3,7 @@ import { $isListItemNode } from '@lexical/list';
 import { $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
 
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import { $getNoteChecked } from '#client/editor/features/checklist/checked-state';
 import { SET_NOTE_CHECKED_COMMAND } from '#client/editor/foundation/commands';
 import { isContentItem } from '#client/editor/outline/list-structure';

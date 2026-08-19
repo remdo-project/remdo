@@ -5,7 +5,7 @@ import type { ListItemNode } from '@lexical/list';
 import { $getNodeByKey } from 'lexical';
 import { $indentNote } from '#client/editor/outline/indentation';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
-import { assertEditorSchema } from '#client/editor/plugins/dev/schema/assertEditorSchema';
+import { assertEditorSchema } from '#client/editor/dev/schema/assertEditorSchema';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 

@@ -9,27 +9,27 @@ import { CollaborationPlugin, useOfflineDocumentUnavailable } from '#client/edit
 import { CheckListPlugin } from '#client/editor/features/checklist/CheckListPlugin';
 import { IndentationPlugin } from '#client/editor/editing/indentation/IndentationPlugin';
 import { DevEditorSeam } from './DevEditorSeam';
-import { SelectionPlugin, SelectionInputPlugin } from '#client/editor/plugins/SelectionPlugin';
-import { SelectionCollapsePlugin } from '#client/editor/plugins/SelectionCollapsePlugin';
+import { SelectionPlugin, SelectionInputPlugin } from '#client/editor/selection/SelectionPlugin';
+import { SelectionCollapsePlugin } from '#client/editor/selection/SelectionCollapsePlugin';
 import { InsertionPlugin } from '#client/editor/editing/insertion/InsertionPlugin';
 import { DeletionPlugin } from '#client/editor/editing/deletion/DeletionPlugin';
 import { DatePlugin } from '#client/editor/features/date/DatePlugin';
 import { NoteBodyPlugin } from '#client/editor/features/note-body/NoteBodyPlugin';
 import { LinksPlugin } from '#client/editor/features/links/LinksPlugin';
-import { RootSchemaPlugin } from '#client/editor/plugins/RootSchemaPlugin';
-import { NoteIdPlugin } from '#client/editor/plugins/NoteIdPlugin';
+import { RootSchemaPlugin } from '#client/editor/runtime/RootSchemaPlugin';
+import { NoteIdPlugin } from '#client/editor/runtime/note-ids/NoteIdPlugin';
 import { ClipboardPlugin } from '#client/editor/editing/clipboard/ClipboardPlugin';
 import { ReorderingPlugin } from '#client/editor/editing/reordering/ReorderingPlugin';
-import { KeymapPlugin } from '#client/editor/plugins/KeymapPlugin';
+import { KeymapPlugin } from '#client/editor/keymap/KeymapPlugin';
 import { StatusIndicators } from './StatusIndicators';
 import { ZoomPlugin } from '#client/editor/features/zoom/ZoomPlugin';
 import { ZoomVisibilityPlugin } from '#client/editor/features/zoom/ZoomVisibilityPlugin';
 import { FoldingPlugin } from '#client/editor/features/folding/FoldingPlugin';
 import { NoteControlsPlugin } from '#client/editor/features/menu/NoteControlsPlugin';
 import { NoteMenuPlugin } from '#client/editor/features/menu/NoteMenuPlugin';
-import { MobileActionToolbar } from '#client/editor/plugins/mobile-toolbar/MobileActionToolbar';
+import { MobileActionToolbar } from '#client/editor/mobile-toolbar/MobileActionToolbar';
 import { SearchCandidatesPlugin } from '#client/editor/features/search/SearchCandidatesPlugin';
-import { PendingDocumentImportPlugin } from '#client/editor/plugins/PendingDocumentImportPlugin';
+import { PendingDocumentImportPlugin } from '#client/editor/runtime/PendingDocumentImportPlugin';
 import './Editor.css';
 
 interface EditorProps {

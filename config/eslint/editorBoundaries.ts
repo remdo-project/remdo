@@ -7,21 +7,24 @@ const EDITOR = 'src/client/editor';
 // counts as unknown, and `no-unknown-dependencies` reports the legal ones too.
 export const boundariesInclude = [`${EDITOR}/**`];
 
-// Imported for their side effect; there is no module to place in a bucket.
+// Imported for their side effect; there is no module to give an owner.
 export const boundariesIgnore = ['**/*.css'];
 
-// Maps each editor file to the bucket that owns it.
-// The last entry matches the whole editor
+// Maps each editor file to its owner. The editor holds no loose files, so the
+// last entry claims nothing today; it is what a new one would fall into, and
+// no policy grants it anything.
 export const boundariesElements = [
   { type: 'editing-insertion', pattern: `${EDITOR}/editing/insertion`, stopMatching: true },
   { type: 'editing-deletion', pattern: `${EDITOR}/editing/deletion`, stopMatching: true },
   { type: 'editing-indentation', pattern: `${EDITOR}/editing/indentation`, stopMatching: true },
   { type: 'editing-reordering', pattern: `${EDITOR}/editing/reordering`, stopMatching: true },
   { type: 'editing-clipboard', pattern: `${EDITOR}/editing/clipboard`, stopMatching: true },
+  { type: 'selection', pattern: `${EDITOR}/selection`, stopMatching: true },
   { type: 'outline', pattern: `${EDITOR}/outline`, stopMatching: true },
   { type: 'runtime', pattern: `${EDITOR}/runtime`, stopMatching: true },
   { type: 'features', pattern: `${EDITOR}/features`, stopMatching: true },
-  { type: 'plugins', pattern: `${EDITOR}/plugins`, stopMatching: true },
+  { type: 'keymap', pattern: `${EDITOR}/keymap`, stopMatching: true },
+  { type: 'mobile-toolbar', pattern: `${EDITOR}/mobile-toolbar`, stopMatching: true },
   { type: 'triggers', pattern: `${EDITOR}/triggers`, stopMatching: true },
   { type: 'view', pattern: `${EDITOR}/view`, stopMatching: true },
   { type: 'adapters', pattern: `${EDITOR}/note-sdk-adapters`, stopMatching: true },
@@ -29,10 +32,10 @@ export const boundariesElements = [
   { type: 'editor-types', pattern: `${EDITOR}/types`, stopMatching: true },
   { type: 'foundation', pattern: `${EDITOR}/foundation`, stopMatching: true },
   { type: 'shell', pattern: `${EDITOR}/shell`, stopMatching: true },
-  { type: 'editor-root', pattern: EDITOR, stopMatching: true },
+  { type: 'unowned', pattern: EDITOR, stopMatching: true },
 ] as const;
 
-// Each bucket, and the buckets it may import from. Anything unlisted is refused.
+// Each owner, and the owners it may import from. Anything unlisted is refused.
 export const boundariesPolicies = [
   // One owner per operation: they share a namespace, not an implementation.
   { from: { element: { type: ['editing-insertion', 'editing-indentation', 'editing-reordering'] } },
@@ -42,23 +45,28 @@ export const boundariesPolicies = [
   { from: { element: { type: 'editing-clipboard' } },
     allow: { to: { element: { type: ['foundation', 'outline', 'features', 'runtime'] } } } },
 
+  { from: { element: { type: 'selection' } },
+    allow: { to: { element: { type: ['foundation', 'outline'] } } } },
+
   { from: { element: { type: 'outline' } },
     allow: { to: { element: { type: ['foundation', 'runtime'] } } } },
   { from: { element: { type: 'runtime' } },
     allow: { to: { element: { type: ['foundation', 'outline', 'features'] } } } },
+  { from: { element: { type: 'keymap' } },
+    allow: { to: { element: { type: ['foundation'] } } } },
+  { from: { element: { type: 'mobile-toolbar' } },
+    allow: { to: { element: { type: ['foundation', 'outline'] } } } },
   { from: { element: { type: 'triggers' } },
     allow: { to: { element: { type: ['outline', 'runtime'] } } } },
   { from: { element: { type: 'view' } },
     allow: { to: { element: { type: ['outline', 'features'] } } } },
   { from: { element: { type: 'features' } },
     allow: { to: { element: { type: ['foundation', 'outline', 'runtime', 'triggers', 'view', 'adapters'] } } } },
-  { from: { element: { type: 'plugins' } },
-    allow: { to: { element: { type: ['foundation', 'features', 'adapters', 'outline', 'runtime', 'triggers', 'view'] } } } },
-  // The shell composes; it is the one bucket allowed to reach everything it
-  // mounts. foundation is absent on purpose: it is the leaves, and imports
-  // nothing inside the editor.
+  // The shell composes, so it reaches everything it mounts. Its edge into
+  // editor-dev exists only for DevEditorSeam's lazy import, which is what keeps
+  // dev tooling out of the production bundle; check-dev-boundary proves it does.
   { from: { element: { type: 'shell' } },
-    allow: { to: { element: { type: ['foundation', 'features', 'plugins', 'runtime', 'editing-insertion', 'editing-deletion', 'editing-indentation', 'editing-reordering', 'editing-clipboard'] } } } },
+    allow: { to: { element: { type: ['foundation', 'features', 'runtime', 'selection', 'keymap', 'mobile-toolbar', 'editor-dev', 'editing-insertion', 'editing-deletion', 'editing-indentation', 'editing-reordering', 'editing-clipboard'] } } } },
   { from: { element: { type: 'adapters' } },
     allow: { to: { element: { type: ['outline', 'runtime', 'features'] } } } },
 
