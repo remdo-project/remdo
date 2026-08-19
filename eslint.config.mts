@@ -3,7 +3,6 @@ import antfu from '@antfu/eslint-config';
 import compatPlugin from 'eslint-plugin-compat';
 import lexicalPlugin from '@lexical/eslint-plugin';
 import { commandsInCommandsFileRule } from './config/eslint/commandsInCommandsFile';
-import { editorModuleBoundariesRule } from './config/eslint/editorModuleBoundaries';
 import boundaries from 'eslint-plugin-boundaries';
 import { boundariesElements, boundariesPolicies, boundariesUngoverned } from './config/eslint/editorBoundaries';
 import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
@@ -311,15 +310,6 @@ export default antfu(
   {
     files: ['src/client/editor/**/*.{ts,tsx,mts,cts}'],
     ignores: [colocatedSpecGlob],
-    rules: {
-      'remdo/editor-module-boundaries': 'error',
-    },
-  },
-  {
-    // Runs the same graph as the rule above so the two can be compared before
-    // the custom rule retires.
-    files: ['src/client/editor/**/*.{ts,tsx,mts,cts}'],
-    ignores: [colocatedSpecGlob],
     plugins: { boundaries },
     settings: {
       'boundaries/elements': boundariesElements,
@@ -437,7 +427,6 @@ export default antfu(
       remdo: {
         rules: {
           'commands-in-commands-file': commandsInCommandsFileRule,
-          'editor-module-boundaries': editorModuleBoundariesRule,
           'no-legacy-fallbacks': noLegacyFallbacksRule,
         },
       },
