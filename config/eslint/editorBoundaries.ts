@@ -1,4 +1,6 @@
-// Element and policy configuration for `eslint-plugin-boundaries`.
+// Enforces which parts of the editor may import which, one import at a time.
+// It reasons about folders, not files, so a mutual edge here can still be an
+// acyclic chain — `pnpm run lint:deps` owns cycles.
 const EDITOR = 'src/client/editor';
 
 // Limits classification to the editor. Without it every import reaching outside
