@@ -34,7 +34,7 @@
         "./src/platform/*"
       ],
       "#document-routes": [
-        "./src/document-routes.ts"
+        "./src/document-routes/index.ts"
       ],
       "#server/*": [
         "./src/server/*"

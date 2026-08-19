@@ -214,6 +214,14 @@ The terms below describe the target vocabulary for multi-hub document access.
 
 - Keep an explicit active hub context when opening a document in runtime.
 
+## Code modules
+
+Implementation owners are the `src/` elements declared in
+[`config/eslint/srcBoundaries.ts`](../config/eslint/srcBoundaries.ts). That file
+is the coarse dependency graph; a new unowned directory fails the inventory
+test beside it. Editor-internal owners remain
+[`config/eslint/editorBoundaries.ts`](../config/eslint/editorBoundaries.ts).
+
 ## References
 
 - [web.dev: Offline UX design guidelines](https://web.dev/articles/offline-ux-design-guidelines)

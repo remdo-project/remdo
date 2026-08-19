@@ -5,6 +5,12 @@ import lexicalPlugin from '@lexical/eslint-plugin';
 import { commandsInCommandsFileRule } from './config/eslint/commandsInCommandsFile';
 import boundaries from 'eslint-plugin-boundaries';
 import { boundariesElements, boundariesIgnore, boundariesInclude, boundariesPolicies } from './config/eslint/editorBoundaries';
+import {
+  srcBoundariesElements,
+  srcBoundariesIgnore,
+  srcBoundariesInclude,
+  srcBoundariesPolicies,
+} from './config/eslint/srcBoundaries';
 import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
 
 const importMetaEnvRestriction = {
@@ -305,6 +311,25 @@ export default antfu(
     rules: {
       'compat/compat': 'error',
       'remdo/commands-in-commands-file': 'error',
+    },
+  },
+  {
+    // Coarse src owners. Editor files keep the fine graph in the block below;
+    // including them here would replace that graph with "editor is one owner."
+    files: ['src/**/*.{ts,tsx,mts,cts}'],
+    ignores: ['src/client/editor/**', 'src/**/dev/**', colocatedSpecGlob],
+    plugins: { boundaries },
+    settings: {
+      'boundaries/elements': srcBoundariesElements,
+      'boundaries/include': srcBoundariesInclude,
+      'boundaries/ignore': srcBoundariesIgnore,
+      'import/resolver': { typescript: { project: './tsconfig.json' } },
+    },
+    rules: {
+      'boundaries/dependencies': ['error', {
+        default: 'disallow',
+        policies: srcBoundariesPolicies,
+      }],
     },
   },
   {
