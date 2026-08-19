@@ -28,7 +28,7 @@ export const boundariesElements = [
 ] as const;
 
 const ALLOWED: Record<string, readonly string[]> = {
-  outline: ['editor-root', 'runtime', 'features'],
+  outline: ['editor-root', 'runtime'],
   runtime: ['editor-root', 'outline', 'features'],
   links: ['outline', 'runtime'],
   search: ['outline'],
