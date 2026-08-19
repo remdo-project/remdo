@@ -13,6 +13,7 @@ import type { GenericOAuthConfig } from 'better-auth/plugins';
 import type { ExpressionBuilder } from 'kysely';
 import { config } from '#config';
 import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
+import { readTableColumns, tableExists } from '#server/db/client';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { RemdoDatabase } from '#server/db/schema';
 import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
@@ -53,12 +54,8 @@ function rebuildAccountTableWithRequiredIssuer(sqlite: Database.Database): void 
     /"?issuer"?\s+TEXT(?!\s+NOT NULL)/iu,
     '"issuer" text not null'
   );
-  if (requiredIssuerSql === createTableSql) {
-    return;
-  }
-
-  const columns = (sqlite.prepare('PRAGMA table_info(account)').all() as { name: string }[])
-    .map((column) => `"${column.name}"`)
+  const columns = readTableColumns(sqlite, 'account')
+    .map((column) => `"${column}"`)
     .join(', ');
 
   sqlite.exec('PRAGMA foreign_keys = OFF');
@@ -92,15 +89,10 @@ function backfillAccountIssuers(
   sqlite: Database.Database,
   sourceServers: readonly StoredSourceServer[]
 ): void {
-  const accountTableExists = sqlite
-    .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'account'")
-    .get();
-  if (!accountTableExists) {
+  if (!tableExists(sqlite, 'account')) {
     return;
   }
-
-  const columns = sqlite.prepare('PRAGMA table_info(account)').all() as { name: string }[];
-  if (columns.some((column) => column.name === 'issuer')) {
+  if (readTableColumns(sqlite, 'account').includes('issuer')) {
     return;
   }
 

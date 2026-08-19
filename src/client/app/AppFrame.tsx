@@ -1,7 +1,7 @@
 import { Outlet, useMatches } from 'react-router-dom';
 import type { UIMatch } from 'react-router-dom';
 import type { SessionGateState } from './auth/client';
-import { useLogout } from './auth/useLogout';
+import { LogoutProvider, useLogout } from './auth/useLogout';
 import UnsyncedLogoutDialog from '#client/ui/UnsyncedLogoutDialog';
 import AppHeader from '#client/ui/AppHeader';
 import type { AppHeaderAuthState } from '#client/ui/AppHeader';
@@ -37,6 +37,14 @@ function resolveHeaderAuthState(sessionState: SessionGateState | null): AppHeade
 }
 
 export default function AppFrame() {
+  return (
+    <LogoutProvider>
+      <AppFrameContent />
+    </LogoutProvider>
+  );
+}
+
+function AppFrameContent() {
   const matches = useMatches();
   const sessionState = matches.findLast(hasSessionState)?.loaderData.sessionState ?? null;
   const logout = useLogout();

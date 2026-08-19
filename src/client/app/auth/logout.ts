@@ -11,10 +11,13 @@ import {
 const SERVER_SIGN_OUT_TIMEOUT_MS = 1500;
 const LOCAL_CLEANUP_TIMEOUT_MS = 2000;
 
-function afterTimeout(timeoutMs: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, timeoutMs);
-  });
+function withTimeout(work: Promise<void>, timeoutMs: number): Promise<void> {
+  return Promise.race([
+    work,
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, timeoutMs);
+    }),
+  ]);
 }
 
 async function signOutOnServer(): Promise<void> {
@@ -53,6 +56,10 @@ export async function logoutCurrentUser(): Promise<void> {
   forgetAuthenticatedSession();
   clearCurrentUserBootstrapCache();
 
-  await Promise.race([signOutOnServer(), afterTimeout(SERVER_SIGN_OUT_TIMEOUT_MS)]);
-  await Promise.race([clearLocalData(), afterTimeout(LOCAL_CLEANUP_TIMEOUT_MS)]);
+  // Revocation and local cleanup share no data, so the device is not kept
+  // waiting for the sum of both budgets.
+  await Promise.all([
+    withTimeout(signOutOnServer(), SERVER_SIGN_OUT_TIMEOUT_MS),
+    withTimeout(clearLocalData(), LOCAL_CLEANUP_TIMEOUT_MS),
+  ]);
 }

@@ -6,9 +6,8 @@ import { useLogout } from '#client/app/auth/useLogout';
  * renders nothing: logout is local and bounded, so there is no progress to show
  * and no failure to report.
  *
- * Reaching it loads a fresh document, so no collaboration session is live and
- * there are no unsynced edits to warn about. The in-app control owns that
- * warning.
+ * It shares the app's one logout controller, so reaching it with unsynced edits
+ * raises the same confirmation the header button does.
  */
 export default function LogoutRoute() {
   const logout = useLogout();

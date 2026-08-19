@@ -55,16 +55,6 @@ describe('logout', () => {
     expect(forgetPendingSignOut).toHaveBeenCalled();
   });
 
-  it('keeps the device signed out until an undelivered sign-out reaches the server', async () => {
-    vi.mocked(authClient.signOut).mockRejectedValue(new TypeError('offline'));
-
-    await logoutCurrentUser();
-
-    // The session cookie is still valid, so the next reachable revalidation
-    // would sign this device back in without the marker.
-    expect(rememberPendingSignOut).toHaveBeenCalled();
-    expect(forgetPendingSignOut).not.toHaveBeenCalled();
-  });
 
   it('signs out locally when the server rejects', async () => {
     vi.mocked(authClient.signOut).mockResolvedValue({ data: null, error: { message: 'nope' } });
@@ -74,12 +64,16 @@ describe('logout', () => {
     expectSignedOutLocally();
   });
 
-  it('signs out locally when the server is unreachable', async () => {
+  it('signs out locally and stays signed out when the server is unreachable', async () => {
     vi.mocked(authClient.signOut).mockRejectedValue(new TypeError('offline'));
 
     await logoutCurrentUser();
 
     expectSignedOutLocally();
+    // The session cookie is still valid, so the next reachable revalidation
+    // would sign this device back in without the marker.
+    expect(rememberPendingSignOut).toHaveBeenCalled();
+    expect(forgetPendingSignOut).not.toHaveBeenCalled();
   });
 
   it('signs out locally when the server never answers', async () => {

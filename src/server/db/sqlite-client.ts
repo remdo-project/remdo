@@ -37,14 +37,14 @@ function shouldCreateParentDirectory(dbPath: string): boolean {
   return dbPath !== ':memory:' && dbPath !== '';
 }
 
-function tableExists(sqlite: Database.Database, tableName: string): boolean {
+export function tableExists(sqlite: Database.Database, tableName: string): boolean {
   const row = sqlite
     .prepare('SELECT 1 FROM sqlite_master WHERE type = ? AND name = ?')
     .get('table', tableName);
   return Boolean(row);
 }
 
-function readTableColumns(sqlite: Database.Database, tableName: string): string[] {
+export function readTableColumns(sqlite: Database.Database, tableName: string): string[] {
   return (sqlite.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>)
     .map((row) => row.name);
 }

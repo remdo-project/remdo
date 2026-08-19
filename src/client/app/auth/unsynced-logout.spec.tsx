@@ -3,7 +3,7 @@ import { fireEvent, render, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { hasUnsyncedLocalChanges } from '#collaboration/session';
-import { useLogout } from './useLogout';
+import { LogoutProvider, useLogout } from './useLogout';
 import { logoutCurrentUser } from './logout';
 import UnsyncedLogoutDialog from '#client/ui/UnsyncedLogoutDialog';
 
@@ -33,6 +33,11 @@ function LogoutHarness() {
   );
 }
 
+function SecondLogoutCaller() {
+  const logout = useLogout();
+  return <button onClick={logout.requestLogout} type="button">Logout elsewhere</button>;
+}
+
 function renderHarness() {
   // The shared jsdom document already hosts a mounted editor, so queries are
   // scoped to this render's own container rather than the whole body.
@@ -41,7 +46,9 @@ function renderHarness() {
   const view = render(
     <MantineProvider>
       <MemoryRouter>
-        <LogoutHarness />
+        <LogoutProvider>
+          <LogoutHarness />
+        </LogoutProvider>
       </MemoryRouter>
     </MantineProvider>,
     { baseElement: container, container }
@@ -88,6 +95,30 @@ describe('logout with unsynced local edits', () => {
 
     expect(logoutCurrentUser).not.toHaveBeenCalled();
     expect(dialog()).toBeNull();
+  });
+
+  it('confirms once for every caller sharing the app frame', () => {
+    vi.mocked(hasUnsyncedLocalChanges).mockReturnValue(true);
+    const container = document.createElement('div');
+    document.body.append(container);
+    // `/logout` renders inside the frame that owns the dialog, so a second
+    // caller must reach the same controller rather than set state nothing shows.
+    render(
+      <MantineProvider>
+        <MemoryRouter>
+          <LogoutProvider>
+            <LogoutHarness />
+            <SecondLogoutCaller />
+          </LogoutProvider>
+        </MemoryRouter>
+      </MantineProvider>,
+      { baseElement: container, container }
+    );
+
+    fireEvent.click(within(container).getByRole('button', { name: 'Logout elsewhere' }));
+
+    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(logoutCurrentUser).not.toHaveBeenCalled();
   });
 
   it('signs out once the loss is accepted', () => {
