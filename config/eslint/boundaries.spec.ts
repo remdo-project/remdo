@@ -11,11 +11,35 @@ const listLooseSourceFiles = (dir: string): string[] =>
     .filter((entry) => entry.isFile() && /\.(?:ts|tsx)$/u.test(entry.name))
     .map((entry) => entry.name);
 
-// Static `from '…'`, side-effect `import '…'`, and `import('…')`.
 const IMPORT_SPECIFIER = /(?:from\s+|import\s*(?:\(\s*)?)['"]([^'"]+)['"]/gu;
 
 const relativeToSrc = (file: string): string =>
   path.relative(SRC, file).replaceAll('\\', '/');
+
+const relativeToRoot = (fromFile: string, specifier: string, root: string): string | null => {
+  if (specifier.startsWith('.')) {
+    const relative = path.relative(root, path.resolve(path.dirname(fromFile), specifier));
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+      return null;
+    }
+    return relative.replaceAll('\\', '/');
+  }
+  return null;
+};
+
+const editorImportPath = (fromFile: string, specifier: string): string | null => {
+  if (specifier.startsWith('#client/editor/')) {
+    return specifier.slice('#client/editor/'.length);
+  }
+  return relativeToRoot(fromFile, specifier, path.join(CLIENT, 'editor'));
+};
+
+const appImportPath = (fromFile: string, specifier: string): string | null => {
+  if (specifier.startsWith('#client/app/')) {
+    return specifier.slice('#client/app/'.length);
+  }
+  return relativeToRoot(fromFile, specifier, path.join(CLIENT, 'app'));
+};
 
 const walkSourceFiles = (dir: string): string[] => {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -55,18 +79,25 @@ describe('boundaries', () => {
     'client/ui/AppHeader.tsx -> #client/app/routes/DevToolbarSeam',
   ];
 
-  const isPublishedEditorImport = (specifier: string): boolean =>
-    specifier.startsWith('#client/editor/view/')
-    || specifier.startsWith('#client/editor/shell/')
+  const isPublishedEditorImport = (relative: string): boolean =>
+    relative.startsWith('view/')
+    || relative.startsWith('shell/')
     // DEV-gated editor/dev loads are the production-bundle seam
     // (docs/architecture.md#production-bundle-boundary), not a workspace leak.
-    || specifier.startsWith('#client/editor/dev/');
+    || relative.startsWith('dev/');
 
-  const leaksFrom = (root: string, isLeak: (specifier: string) => boolean): string[] =>
+  const leaksFrom = (
+    root: string,
+    importedPath: (fromFile: string, specifier: string) => string | null,
+    isLeak: (relative: string) => boolean,
+  ): string[] =>
     [...new Set(
       walkSourceFiles(root).flatMap((file) =>
         specifiersIn(file)
-          .filter(isLeak)
+          .filter((specifier) => {
+            const relative = importedPath(file, specifier);
+            return relative !== null && isLeak(relative);
+          })
           .map((specifier) => `${relativeToSrc(file)} -> ${specifier}`),
       ),
     )].sort();
@@ -75,11 +106,13 @@ describe('boundaries', () => {
     const leaks = [
       ...leaksFrom(
         path.join(CLIENT, 'app'),
-        (specifier) => specifier.startsWith('#client/editor/') && !isPublishedEditorImport(specifier),
+        editorImportPath,
+        (relative) => !isPublishedEditorImport(relative),
       ),
       ...leaksFrom(
         path.join(CLIENT, 'ui'),
-        (specifier) => specifier.startsWith('#client/app/'),
+        appImportPath,
+        () => true,
       ),
     ].sort();
 
