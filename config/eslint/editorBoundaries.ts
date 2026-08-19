@@ -13,6 +13,11 @@ export const boundariesIgnore = ['**/*.css'];
 // Maps each editor file to the bucket that owns it.
 // The last entry matches the whole editor
 export const boundariesElements = [
+  { type: 'editing-insertion', pattern: `${EDITOR}/editing/insertion`, stopMatching: true },
+  { type: 'editing-deletion', pattern: `${EDITOR}/editing/deletion`, stopMatching: true },
+  { type: 'editing-indentation', pattern: `${EDITOR}/editing/indentation`, stopMatching: true },
+  { type: 'editing-reordering', pattern: `${EDITOR}/editing/reordering`, stopMatching: true },
+  { type: 'editing-clipboard', pattern: `${EDITOR}/editing/clipboard`, stopMatching: true },
   { type: 'outline', pattern: `${EDITOR}/outline`, stopMatching: true },
   { type: 'runtime', pattern: `${EDITOR}/runtime`, stopMatching: true },
   { type: 'features', pattern: `${EDITOR}/features`, stopMatching: true },
@@ -27,6 +32,14 @@ export const boundariesElements = [
 
 // Each bucket, and the buckets it may import from. Anything unlisted is refused.
 export const boundariesPolicies = [
+  // One owner per operation: they share a namespace, not an implementation.
+  { from: { element: { type: ['editing-insertion', 'editing-indentation', 'editing-reordering'] } },
+    allow: { to: { element: { type: ['editor-root', 'outline'] } } } },
+  { from: { element: { type: 'editing-deletion' } },
+    allow: { to: { element: { type: ['editor-root', 'outline', 'features'] } } } },
+  { from: { element: { type: 'editing-clipboard' } },
+    allow: { to: { element: { type: ['editor-root', 'outline', 'features', 'runtime'] } } } },
+
   { from: { element: { type: 'outline' } },
     allow: { to: { element: { type: ['editor-root', 'runtime'] } } } },
   { from: { element: { type: 'runtime' } },
@@ -40,7 +53,7 @@ export const boundariesPolicies = [
   { from: { element: { type: 'plugins' } },
     allow: { to: { element: { type: ['editor-root', 'features', 'adapters', 'outline', 'runtime', 'triggers', 'view'] } } } },
   { from: { element: { type: 'editor-root' } },
-    allow: { to: { element: { type: ['features', 'plugins', 'runtime'] } } } },
+    allow: { to: { element: { type: ['features', 'plugins', 'runtime', 'editing-insertion', 'editing-deletion', 'editing-indentation', 'editing-reordering', 'editing-clipboard'] } } } },
   { from: { element: { type: 'adapters' } },
     allow: { to: { element: { type: ['outline', 'runtime', 'features'] } } } },
 
