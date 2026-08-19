@@ -12,9 +12,9 @@ const listDirectories = (dir: string): string[] =>
     .map((entry) => entry.name);
 
 describe('editor boundaries', () => {
-  // An unlisted directory falls through to the `editor-root` catch-all and
-  // inherits its allowances, so it raises no lint error however it imports.
-  // Failing here is what prompts placing a new directory in the graph.
+  // An unlisted directory falls through to the `unowned` catch-all, which no
+  // policy grants anything, so its imports are refused rather than silently
+  // allowed. Failing here is what prompts giving a new directory an owner.
   it('lists every directory under the editor', () => {
     const declared = new Set(
       boundariesElements
