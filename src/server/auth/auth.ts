@@ -6,7 +6,6 @@ import {
 import { isLoopbackHost } from '@better-auth/core/utils/host';
 import { betterAuth } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
-import type Database from 'better-sqlite3';
 import { admin, genericOAuth, jwt } from 'better-auth/plugins';
 import type { GenericOAuthConfig } from 'better-auth/plugins';
 import type { ExpressionBuilder } from 'kysely';
@@ -66,7 +65,7 @@ function createBetterAuthInstance({
 }: {
   allowSignup: boolean;
   baseURL: string;
-  database: Database.Database;
+  database: SqliteServerDatabaseClient;
   sourceServers: readonly StoredSourceServer[];
   oauthClientCredentials?: OAuthClientCredentials;
   secret: string;
@@ -87,7 +86,14 @@ function createBetterAuthInstance({
       // include the canonical public port in every Better Auth cookie name.
       cookiePrefix: `remdo-${publicPort}`,
     },
-    database,
+    // better-sqlite3 is one connection. Better Auth 1.7 wraps signup in a
+    // transaction that stays open across password hashing; overlapping sqlite
+    // work then deadlocks on lock upgrade and surfaces SQLITE_BUSY as a 422.
+    database: {
+      db: database.db,
+      type: 'sqlite',
+      transaction: false,
+    },
     account: {
       accountLinking: {
         // Source linking is an explicit, authenticated delegation between two
@@ -253,7 +259,7 @@ export function createServerAuth({
   const auth = createBetterAuthInstance({
     allowSignup,
     baseURL,
-    database: database.sqlite,
+    database,
     sourceServers,
     oauthClientCredentials,
     secret,
@@ -264,7 +270,7 @@ export function createServerAuth({
     : createBetterAuthInstance({
         allowSignup: true,
         baseURL,
-        database: database.sqlite,
+        database,
         sourceServers,
         oauthClientCredentials,
         secret,

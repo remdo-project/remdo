@@ -122,6 +122,7 @@ export function createSqliteServerDatabaseClient({
 
   const sqlite = new Database(dbPath);
   sqlite.pragma(`busy_timeout = ${SQLITE_BUSY_TIMEOUT_MS}`);
+  sqlite.pragma('journal_mode = WAL');
   ensureDocumentsTable(sqlite);
   ensureDocumentAccessTable(sqlite);
   const db = new Kysely<RemdoDatabase>({
