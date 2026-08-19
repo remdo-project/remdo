@@ -5,6 +5,10 @@ import { useLogout } from '#client/app/auth/useLogout';
  * `/logout` stays reachable because it is bookmarkable and typed by hand, but it
  * renders nothing: logout is local and bounded, so there is no progress to show
  * and no failure to report.
+ *
+ * Reaching it loads a fresh document, so no collaboration session is live and
+ * there are no unsynced edits to warn about. The in-app control owns that
+ * warning.
  */
 export default function LogoutRoute() {
   const logout = useLogout();
@@ -15,7 +19,7 @@ export default function LogoutRoute() {
       return;
     }
     startedRef.current = true;
-    void logout();
+    logout.requestLogout();
   }, [logout]);
 
   return null;

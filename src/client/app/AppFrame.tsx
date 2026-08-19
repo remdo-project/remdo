@@ -2,6 +2,7 @@ import { Outlet, useMatches } from 'react-router-dom';
 import type { UIMatch } from 'react-router-dom';
 import type { SessionGateState } from './auth/client';
 import { useLogout } from './auth/useLogout';
+import UnsyncedLogoutDialog from '#client/ui/UnsyncedLogoutDialog';
 import AppHeader from '#client/ui/AppHeader';
 import type { AppHeaderAuthState } from '#client/ui/AppHeader';
 import styles from './AppFrame.module.css';
@@ -45,9 +46,12 @@ export default function AppFrame() {
       <div className={styles.shell}>
         <AppHeader
           authState={resolveHeaderAuthState(sessionState)}
-          onLogout={() => {
-            void logout();
-          }}
+          onLogout={logout.requestLogout}
+        />
+        <UnsyncedLogoutDialog
+          onCancel={logout.cancelLogout}
+          onConfirm={logout.confirmLogout}
+          opened={logout.confirmingLoss}
         />
         <Outlet />
       </div>

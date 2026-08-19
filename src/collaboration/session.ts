@@ -44,6 +44,23 @@ type ManagedProvider = (CollaborationSessionProvider & MinimalProviderEvents) | 
 // initial sync, which keeps a live connection and so never arms this deadline.
 const AWAIT_SYNC_RECONNECT_TIMEOUT_MS = 30_000;
 
+const liveSessions = new Set<CollabSession>();
+
+/**
+ * Whether any open document holds edits the server has not acknowledged.
+ *
+ * Reads `hasLocalChanges` rather than the snapshot's `synced`, which a
+ * disconnect forces false for every document whether or not it was edited.
+ * Reading it synchronously matters: a caller deciding whether to warn before
+ * destroying local data cannot await, and offline a request would never settle.
+ */
+export function hasUnsyncedLocalChanges(): boolean {
+  return [...liveSessions].some((session) => {
+    const provider = session.getProvider() as { hasLocalChanges?: boolean } | null;
+    return provider?.hasLocalChanges === true;
+  });
+}
+
 function isLocalCacheHydratedDoc(doc: Y.Doc): boolean {
   return doc.store.clients.size > 0;
 }
@@ -89,6 +106,7 @@ export class CollabSession {
   private state: CollabSnapshot;
 
   constructor(options: SessionOptions) {
+    liveSessions.add(this);
     const { origin, apiOrigin, createSyncTokenPath, enabled, docId, providerFactory } = options;
     this.enabled = enabled;
     this.providerFactory = providerFactory ?? createProviderFactory({ apiOrigin, createSyncTokenPath, visibleOrigin: origin });
@@ -305,6 +323,7 @@ export class CollabSession {
   }
 
   destroy() {
+    liveSessions.delete(this);
     this.teardown(true);
     this.listeners.clear();
   }
