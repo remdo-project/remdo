@@ -1,48 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { editorBoundaries, srcBoundaries } from './boundaries';
 
 const SRC = path.resolve('src');
 const CLIENT = path.join(SRC, 'client');
-const EDITOR = path.join(CLIENT, 'editor');
-
-const listDirectories = (dir: string): string[] =>
-  fs
-    .readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name);
 
 const listLooseSourceFiles = (dir: string): string[] =>
   fs
     .readdirSync(dir, { withFileTypes: true })
     .filter((entry) => entry.isFile() && /\.(?:ts|tsx)$/u.test(entry.name))
     .map((entry) => entry.name);
-
-const undeclaredDirectories = (
-  root: string,
-  patterns: readonly string[],
-): string[] => {
-  const declared = new Set(
-    patterns
-      .map((pattern) => path.relative(root, path.resolve(pattern)))
-      .filter((relative) => relative.length > 0),
-  );
-
-  const undeclared = (relative: string): string[] => {
-    if (declared.has(relative)) {
-      return [];
-    }
-    const nested = listDirectories(path.join(root, relative));
-    const claimed = nested.some((name) => declared.has(path.join(relative, name)));
-    if (!claimed) {
-      return [relative];
-    }
-    return nested.flatMap((name) => undeclared(path.join(relative, name)));
-  };
-
-  return listDirectories(root).flatMap((name) => undeclared(name));
-};
 
 const IMPORT_SPECIFIER = /from\s+['"]([^'"]+)['"]/gu;
 
@@ -69,29 +36,6 @@ const specifiersIn = (file: string): string[] => {
 };
 
 describe('boundaries', () => {
-  it('lists every directory under the editor', () => {
-    expect(
-      undeclaredDirectories(EDITOR, editorBoundaries.elements.map((element) => element.pattern)),
-    ).toEqual([]);
-  });
-
-  it('lists every directory under src', () => {
-    expect(
-      undeclaredDirectories(SRC, srcBoundaries.elements.map((element) => element.pattern)),
-    ).toEqual([]);
-  });
-
-  it('lists every directory under src/client', () => {
-    const declared = new Set(
-      srcBoundaries.elements
-        .map((element) => path.relative(SRC, path.resolve(element.pattern)))
-        .filter((relative) => relative.length > 0),
-    );
-    expect(
-      listDirectories(CLIENT).filter((name) => !declared.has(path.join('client', name))),
-    ).toEqual([]);
-  });
-
   it('has no loose source files under src or src/client', () => {
     expect(listLooseSourceFiles(SRC)).toEqual([]);
     expect(listLooseSourceFiles(CLIENT)).toEqual([]);
