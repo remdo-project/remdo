@@ -5,7 +5,7 @@ import { waitFor } from '@testing-library/react';
 import type { SerializedLexicalNode, SerializedTextNode } from 'lexical';
 import type { SerializedNoteLinkNode } from '#client/editor/features/links/note-link-node';
 import type { SerializedNoteListItemNode } from '#client/editor/runtime/serialized-note-types';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import { collectOutlineNoteIds, flattenOutline } from '#tests-common/outline';
 import {
   buildClipboardPayload,

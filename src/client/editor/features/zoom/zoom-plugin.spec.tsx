@@ -9,7 +9,7 @@ import {
 } from '#tests';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 
 describe('zoom plugin', () => {
   function expectVisibleNotes(remdo: RemdoTestApi, visibleNoteIds: string[], hiddenNoteIds: string[]) {

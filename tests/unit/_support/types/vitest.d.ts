@@ -1,5 +1,5 @@
 import type { Outline, SelectionSnapshot } from '#tests';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import type { EditorViewBindings } from '#client/editor/view/EditorViewProvider';
 
 interface RemdoTaskMeta {

@@ -5,7 +5,7 @@ import type { SerializedLexicalNode } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import { findSerializedNode, meta, placeCaretAtNote, placeCaretAtNoteTextNode, pressKey, typeText } from '#tests';
 import type { SerializedDateNode } from './date-node';
 import { $createDateNode, $isDateNode } from './date-node';

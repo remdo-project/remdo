@@ -22,7 +22,8 @@ export const boundariesElements = [
   { type: 'outline', pattern: `${EDITOR}/outline`, stopMatching: true },
   { type: 'runtime', pattern: `${EDITOR}/runtime`, stopMatching: true },
   { type: 'features', pattern: `${EDITOR}/features`, stopMatching: true },
-  { type: 'plugins', pattern: `${EDITOR}/plugins`, stopMatching: true },
+  { type: 'keymap', pattern: `${EDITOR}/keymap`, stopMatching: true },
+  { type: 'mobile-toolbar', pattern: `${EDITOR}/mobile-toolbar`, stopMatching: true },
   { type: 'triggers', pattern: `${EDITOR}/triggers`, stopMatching: true },
   { type: 'view', pattern: `${EDITOR}/view`, stopMatching: true },
   { type: 'adapters', pattern: `${EDITOR}/note-sdk-adapters`, stopMatching: true },
@@ -50,19 +51,24 @@ export const boundariesPolicies = [
     allow: { to: { element: { type: ['foundation', 'runtime'] } } } },
   { from: { element: { type: 'runtime' } },
     allow: { to: { element: { type: ['foundation', 'outline', 'features'] } } } },
+  { from: { element: { type: 'keymap' } },
+    allow: { to: { element: { type: ['foundation'] } } } },
+  { from: { element: { type: 'mobile-toolbar' } },
+    allow: { to: { element: { type: ['foundation', 'outline'] } } } },
   { from: { element: { type: 'triggers' } },
     allow: { to: { element: { type: ['outline', 'runtime'] } } } },
   { from: { element: { type: 'view' } },
     allow: { to: { element: { type: ['outline', 'features'] } } } },
   { from: { element: { type: 'features' } },
     allow: { to: { element: { type: ['foundation', 'outline', 'runtime', 'triggers', 'view', 'adapters'] } } } },
-  { from: { element: { type: 'plugins' } },
-    allow: { to: { element: { type: ['foundation', 'features', 'adapters', 'outline', 'runtime', 'triggers', 'view'] } } } },
   // The shell composes; it is the one bucket allowed to reach everything it
   // mounts. foundation is absent on purpose: it is the leaves, and imports
   // nothing inside the editor.
+  // editor-dev is reachable only through DevEditorSeam's lazy import, which is
+  // what keeps dev tooling out of the production bundle; check-dev-boundary
+  // proves it stays there.
   { from: { element: { type: 'shell' } },
-    allow: { to: { element: { type: ['foundation', 'features', 'plugins', 'runtime', 'selection', 'editing-insertion', 'editing-deletion', 'editing-indentation', 'editing-reordering', 'editing-clipboard'] } } } },
+    allow: { to: { element: { type: ['foundation', 'features', 'runtime', 'selection', 'keymap', 'mobile-toolbar', 'editor-dev', 'editing-insertion', 'editing-deletion', 'editing-indentation', 'editing-reordering', 'editing-clipboard'] } } } },
   { from: { element: { type: 'adapters' } },
     allow: { to: { element: { type: ['outline', 'runtime', 'features'] } } } },
 

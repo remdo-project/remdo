@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { placeCaretAtNote, pressKey, typeText } from '#tests';
 import { REORDER_NOTES_DOWN_COMMAND } from '#client/editor/foundation/commands';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import { bench, describe } from 'vitest';
 import { renderRemdoEditor } from '../unit/collab/_support/render-editor';
 import type { SerializedEditorState } from 'lexical';

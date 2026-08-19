@@ -1,6 +1,6 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import { waitFor } from '@testing-library/react';
 import type { TextNode } from 'lexical';
 import {
