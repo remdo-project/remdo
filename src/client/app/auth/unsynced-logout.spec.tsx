@@ -3,6 +3,8 @@ import { fireEvent, render, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { hasUnsyncedLocalChanges } from '#collaboration/unsynced-local-changes';
+import { resetUserData } from '#client/app/documents/user-data';
+import { forgetAuthenticatedSession } from './client';
 import { LogoutProvider, useLogout } from './useLogout';
 import { logoutCurrentUser } from './logout';
 import UnsyncedLogoutDialog from '#client/ui/UnsyncedLogoutDialog';
@@ -11,12 +13,28 @@ vi.mock('#collaboration/unsynced-local-changes', () => ({
   hasUnsyncedLocalChanges: vi.fn(() => false),
 }));
 
+vi.mock('#client/app/documents/user-data', () => ({
+  resetUserData: vi.fn(),
+}));
+
+vi.mock('./client', () => ({
+  forgetAuthenticatedSession: vi.fn(),
+}));
+
 vi.mock('./logout', () => ({
   logoutCurrentUser: vi.fn(async () => {}),
 }));
 
+let deliverPeerSignOut: (() => void) | undefined;
+
 vi.mock('./logout-broadcast', () => ({
   broadcastSignOut: vi.fn(),
+  subscribeToSignOut: vi.fn((onSignOut: () => void) => {
+    deliverPeerSignOut = onSignOut;
+    return () => {
+      deliverPeerSignOut = undefined;
+    };
+  }),
 }));
 
 function LogoutHarness() {
@@ -101,8 +119,8 @@ describe('logout with unsynced local edits', () => {
     vi.mocked(hasUnsyncedLocalChanges).mockReturnValue(true);
     const container = document.createElement('div');
     document.body.append(container);
-    // `/logout` renders inside the frame that owns the dialog, so a second
-    // caller must reach the same controller rather than set state nothing shows.
+    // A second caller in the same frame must reach the same controller rather
+    // than set state nothing shows.
     render(
       <MantineProvider>
         <MemoryRouter>
@@ -129,5 +147,14 @@ describe('logout with unsynced local edits', () => {
     fireEvent.click(within(document.body).getByRole('button', { name: 'Sign out and discard' }));
 
     expect(logoutCurrentUser).toHaveBeenCalledTimes(1);
+  });
+
+  it('tears a peer tab down without repeating the originating wipe', () => {
+    renderHarness();
+    deliverPeerSignOut?.();
+
+    expect(resetUserData).toHaveBeenCalledTimes(1);
+    expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
+    expect(logoutCurrentUser).not.toHaveBeenCalled();
   });
 });

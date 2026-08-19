@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react';
-import { createContext, use, useCallback, useState } from 'react';
+import { createContext, use, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { resetUserData } from '#client/app/documents/user-data';
 import { hasUnsyncedLocalChanges } from '#collaboration/unsynced-local-changes';
+import { forgetAuthenticatedSession } from './client';
 import { logoutCurrentUser } from './logout';
-import { broadcastSignOut } from './logout-broadcast';
+import { broadcastSignOut, subscribeToSignOut } from './logout-broadcast';
 
 export const LOGGED_OUT_STATE_KEY = 'loggedOut';
 
@@ -61,6 +63,14 @@ function useLogoutController(): LogoutController {
   const cancelLogout = useCallback(() => {
     setConfirmingLoss(false);
   }, []);
+
+  useEffect(() => subscribeToSignOut(() => {
+    // Another tab is clearing this origin's storage. Tear the runtime down
+    // before a further edit hits a provider whose database is already going away.
+    resetUserData();
+    forgetAuthenticatedSession();
+    void navigate('/', { replace: true });
+  }), [navigate]);
 
   return { confirmingLoss, requestLogout, confirmLogout, cancelLogout };
 }
