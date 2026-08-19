@@ -46,6 +46,7 @@ import type {
 import { createEditorNotes, NoteNotFoundError } from '#note-sdk';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
+import { $autoExpandIfFolded } from '#client/editor/outline/fold-state';
 
 interface LexicalEditorNotesAdapterOptions {
   editor: LexicalEditor;
@@ -167,6 +168,7 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
           if (isInsideMovedSubtree(parent)) {
             throw new Error('Cannot move notes into their own subtree');
           }
+          $autoExpandIfFolded(parent);
           return $getOrCreateChildList(parent);
         })();
     const availableSiblings = getContentSiblings(targetList).filter((sibling) => !movedKeys.has(sibling.getKey()));

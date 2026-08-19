@@ -3,7 +3,6 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
 import { $getNodeByKey } from 'lexical';
-import { $autoExpandIfFolded } from '#client/editor/outline/fold-state';
 import { isBodyWrapper } from '#client/editor/outline/note-body-node';
 import { reportInvariant } from '#client/editor/invariant';
 
@@ -143,8 +142,6 @@ export const $getOrCreateChildList = (parentNote: ListItemNode): ListNode => {
   if (!$isListNode(parentList)) {
     throw new Error('Expected parent note to live inside a list');
   }
-
-  $autoExpandIfFolded(parentNote);
 
   // The children-wrapper sits after the note, after any body-wrapper.
   const bodyWrapper = getBodyWrapper(parentNote);

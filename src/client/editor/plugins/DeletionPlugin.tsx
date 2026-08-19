@@ -42,6 +42,7 @@ import {
 } from '#client/editor/outline/selection/tree';
 import { isNoteBodyEmpty } from '#client/editor/features/note-body/note-body-ops';
 import { getNoteBody } from '#client/editor/outline/selection/body-region';
+import { $autoExpandIfFolded } from '#client/editor/outline/fold-state';
 
 const TRAILING_WHITESPACE_PATTERN = /\s$/;
 const LEADING_WHITESPACE_PATTERN = /^\s/;
@@ -187,6 +188,7 @@ function $moveChildrenToTarget(
     return true;
   }
 
+  $autoExpandIfFolded(target);
   const targetList = $getOrCreateChildList(target);
   targetList.append(...nodesToMove);
   return true;

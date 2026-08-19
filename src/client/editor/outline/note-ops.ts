@@ -15,6 +15,7 @@ import {
 } from './list-structure';
 import { resolveContiguousSiblingRangeFromHeads } from './selection/sibling-run';
 import { getNextContentSibling, getParentContentItem, isContentDescendantOf, isWithinBoundary } from './selection/tree';
+import { $autoExpandIfFolded } from '#client/editor/outline/fold-state';
 
 function canIndentNote(noteItem: ListItemNode, boundaryRoot: ListItemNode | null): boolean {
   if (!isWithinBoundary(noteItem, boundaryRoot)) {
@@ -198,6 +199,7 @@ function $moveToParentSiblingChildList(
   }
 
   const nodesToMove = flattenNoteNodes(notes);
+  $autoExpandIfFolded(targetParent);
   const targetList = $getOrCreateChildList(targetParent);
 
   if (direction === 'down') {
