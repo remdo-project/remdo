@@ -26,15 +26,17 @@ describe('unsynced local changes ledger', () => {
     markDocumentSynced('doc-a');
 
     expect(hasUnsyncedLocalChanges()).toBe(true);
+    expect(localStorage.getItem('remdo-unsynced:doc-a')).toBeNull();
+    expect(localStorage.getItem('remdo-unsynced:doc-b')).toBe('1');
 
     markDocumentSynced('doc-b');
 
     expect(hasUnsyncedLocalChanges()).toBe(false);
   });
 
-  it('treats a corrupt ledger as unsynced so logout still warns', () => {
-    localStorage.setItem('remdo-unsynced-documents', '{');
+  it('does not treat an unrelated storage value as unsynced work', () => {
+    localStorage.setItem('remdo-unsynced-documents', '["doc-a"]');
 
-    expect(hasUnsyncedLocalChanges()).toBe(true);
+    expect(hasUnsyncedLocalChanges()).toBe(false);
   });
 });

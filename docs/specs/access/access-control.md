@@ -36,6 +36,9 @@ Deleting the offline encryption key satisfies that clearing: the remaining
 ciphertext is unreadable, so a database the browser refuses to drop does not
 leave readable user data behind.
 
+If this device holds edits the server has not acknowledged, logout asks
+before discarding them. Acknowledged work is not prompted.
+
 The server session is revoked as part of logout. A revocation the device could
 not deliver is retried until the server confirms it, and until then that device
 reports no session rather than resuming the one it failed to end. Signing in
