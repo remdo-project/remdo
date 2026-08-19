@@ -217,10 +217,9 @@ The terms below describe the target vocabulary for multi-hub document access.
 ## Code modules
 
 Implementation owners are the `src/` elements declared in
-[`config/eslint/srcBoundaries.ts`](../config/eslint/srcBoundaries.ts). That file
-is the coarse dependency graph; a new unowned directory fails the inventory
-test beside it. Editor-internal owners remain
-[`config/eslint/editorBoundaries.ts`](../config/eslint/editorBoundaries.ts).
+[`config/eslint/boundaries.ts`](../config/eslint/boundaries.ts). That file holds
+the coarse src graph and the editor-internal graph; a new unowned directory
+fails the inventory test beside it.
 
 ## References
 

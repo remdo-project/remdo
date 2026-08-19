@@ -4,13 +4,7 @@ import compatPlugin from 'eslint-plugin-compat';
 import lexicalPlugin from '@lexical/eslint-plugin';
 import { commandsInCommandsFileRule } from './config/eslint/commandsInCommandsFile';
 import boundaries from 'eslint-plugin-boundaries';
-import { boundariesElements, boundariesIgnore, boundariesInclude, boundariesPolicies } from './config/eslint/editorBoundaries';
-import {
-  srcBoundariesElements,
-  srcBoundariesIgnore,
-  srcBoundariesInclude,
-  srcBoundariesPolicies,
-} from './config/eslint/srcBoundaries';
+import { editorBoundaries, srcBoundaries } from './config/eslint/boundaries';
 import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
 
 const importMetaEnvRestriction = {
@@ -320,15 +314,15 @@ export default antfu(
     ignores: ['src/client/editor/**', 'src/**/dev/**', colocatedSpecGlob],
     plugins: { boundaries },
     settings: {
-      'boundaries/elements': srcBoundariesElements,
-      'boundaries/include': srcBoundariesInclude,
-      'boundaries/ignore': srcBoundariesIgnore,
+      'boundaries/elements': srcBoundaries.elements,
+      'boundaries/include': srcBoundaries.include,
+      'boundaries/ignore': srcBoundaries.ignore,
       'import/resolver': { typescript: { project: './tsconfig.json' } },
     },
     rules: {
       'boundaries/dependencies': ['error', {
         default: 'disallow',
-        policies: srcBoundariesPolicies,
+        policies: srcBoundaries.policies,
       }],
     },
   },
@@ -337,15 +331,15 @@ export default antfu(
     ignores: [colocatedSpecGlob],
     plugins: { boundaries },
     settings: {
-      'boundaries/elements': boundariesElements,
-      'boundaries/include': boundariesInclude,
-      'boundaries/ignore': boundariesIgnore,
+      'boundaries/elements': editorBoundaries.elements,
+      'boundaries/include': editorBoundaries.include,
+      'boundaries/ignore': editorBoundaries.ignore,
       'import/resolver': { typescript: { project: './tsconfig.json' } },
     },
     rules: {
       'boundaries/dependencies': ['error', {
         default: 'disallow',
-        policies: boundariesPolicies,
+        policies: editorBoundaries.policies,
       }],
       'boundaries/no-unknown-dependencies': 'error',
     },
