@@ -2,7 +2,7 @@ import { Suspense, lazy } from 'react';
 
 // Dev editor seam: the production-side entry that reaches the dev plugins. In
 // the production build `import.meta.env.DEV` is statically false, so the branch
-// is dead and the lazy import into plugins/dev/ is never referenced — the dev
+// is dead and the lazy import into dev/ is never referenced — the dev
 // editor plugins (tree view, test bridge, schema validation) leave the prod
 // bundle. In dev/test they load lazily inside the editor's Lexical context.
 // See docs/architecture.md#production-bundle-boundary.
