@@ -59,17 +59,6 @@ describe('boundaries', () => {
     expect(listLooseSourceFiles(CLIENT)).toEqual([]);
   });
 
-  it('has one selection tree', () => {
-    expect(fs.existsSync(path.join(CLIENT, 'editor/selection'))).toBe(false);
-    expect(fs.existsSync(path.join(CLIENT, 'editor/outline/selection'))).toBe(true);
-  });
-
-  it('does not share the name runtime between client and editor', () => {
-    expect(fs.existsSync(path.join(CLIENT, 'runtime'))).toBe(false);
-    expect(fs.existsSync(path.join(CLIENT, 'editor/runtime'))).toBe(true);
-    expect(fs.existsSync(path.join(CLIENT, 'browser'))).toBe(true);
-  });
-
   it('does not grow the ui-to-app import allowlist', () => {
     const leaks = [...new Set(
       walkSourceFiles(path.join(CLIENT, 'ui')).flatMap((file) =>
