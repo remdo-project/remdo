@@ -115,8 +115,41 @@ export const editorBoundaries = {
 
 const APP = `${CLIENT}/app`;
 
+const CLIENT_SHARED = ['client-ui', 'client-browser', 'client-search'] as const;
+
+const APP_EXTERNALS = [
+  ...CLIENT_SHARED,
+  'client-editor',
+  'domain',
+  'note-sdk',
+  'document-routes',
+  'collaboration',
+  'platform',
+] as const;
+
+const srcElements = [
+  element('client-app', `${CLIENT}/app`),
+  element('client-editor', `${CLIENT}/editor`),
+  element('client-ui', `${CLIENT}/ui`),
+  element('client-browser', `${CLIENT}/browser`),
+  element('client-search', `${CLIENT}/search`),
+  element('client-dev', `${CLIENT}/dev`),
+  element('server', `${SRC}/server`),
+  element('domain', `${SRC}/domain`),
+  element('note-sdk', `${SRC}/note-sdk`),
+  element('collaboration', `${SRC}/collaboration`),
+  element('platform', `${SRC}/platform`),
+  element('projection', `${SRC}/projection`),
+  element('headless', `${SRC}/headless`),
+  element('document-routes', `${SRC}/document-routes`),
+  element('unowned', SRC),
+] as const;
+
 export const appBoundaries = {
-  include: [`${APP}/**`],
+  // Same src universe as the coarse graph so app → projection/headless/server
+  // is a denied owner, not an ignored unknown. ESLint `files` still limits
+  // which modules this graph checks as sources.
+  include: [`${SRC}/**`],
   ignore: cssIgnore,
   elements: [
     element('app-shell', `${APP}/shell`),
@@ -126,7 +159,7 @@ export const appBoundaries = {
     element('app-sharing', `${APP}/sharing`),
     element('app-admin', `${APP}/admin`),
     element('app-dev', `${APP}/dev`),
-    element('unowned', APP),
+    ...srcElements,
   ],
   policies: [
     { from: { element: { type: 'app-shell' } },
@@ -138,44 +171,27 @@ export const appBoundaries = {
         'app-sharing',
         'app-admin',
         'app-dev',
+        ...APP_EXTERNALS,
       ] } } } },
     { from: { element: { type: 'app-session' } },
-      allow: { to: { element: { type: ['app-session', 'app-user-data'] } } } },
+      allow: { to: { element: { type: ['app-session', 'app-user-data', ...APP_EXTERNALS] } } } },
     { from: { element: { type: 'app-user-data' } },
-      allow: { to: { element: { type: ['app-user-data', 'app-session', 'app-sharing'] } } } },
+      allow: { to: { element: { type: ['app-user-data', 'app-session', 'app-sharing', ...APP_EXTERNALS] } } } },
     { from: { element: { type: 'app-workspace' } },
-      allow: { to: { element: { type: ['app-workspace', 'app-user-data'] } } } },
+      allow: { to: { element: { type: ['app-workspace', 'app-user-data', ...APP_EXTERNALS] } } } },
     { from: { element: { type: 'app-sharing' } },
-      allow: { to: { element: { type: ['app-sharing', 'app-user-data'] } } } },
+      allow: { to: { element: { type: ['app-sharing', 'app-user-data', ...APP_EXTERNALS] } } } },
     { from: { element: { type: 'app-admin' } },
-      allow: { to: { element: { type: ['app-admin', 'app-session', 'app-user-data'] } } } },
+      allow: { to: { element: { type: ['app-admin', 'app-session', 'app-user-data', ...APP_EXTERNALS] } } } },
     { from: { element: { type: 'app-dev' } },
-      allow: { to: { element: { type: ['app-dev', 'app-shell'] } } } },
+      allow: { to: { element: { type: ['app-dev', 'app-shell', 'client-dev', 'client-ui'] } } } },
   ],
 } as const;
-
-const CLIENT_SHARED = ['client-ui', 'client-browser', 'client-search'] as const;
 
 export const srcBoundaries = {
   include: [`${SRC}/**`],
   ignore: cssIgnore,
-  elements: [
-    element('client-app', `${CLIENT}/app`),
-    element('client-editor', `${CLIENT}/editor`),
-    element('client-ui', `${CLIENT}/ui`),
-    element('client-browser', `${CLIENT}/browser`),
-    element('client-search', `${CLIENT}/search`),
-    element('client-dev', `${CLIENT}/dev`),
-    element('server', `${SRC}/server`),
-    element('domain', `${SRC}/domain`),
-    element('note-sdk', `${SRC}/note-sdk`),
-    element('collaboration', `${SRC}/collaboration`),
-    element('platform', `${SRC}/platform`),
-    element('projection', `${SRC}/projection`),
-    element('headless', `${SRC}/headless`),
-    element('document-routes', `${SRC}/document-routes`),
-    element('unowned', SRC),
-  ],
+  elements: srcElements,
   policies: [
     { from: { element: { type: 'client-ui' } },
       allow: { to: { element: { type: ['client-ui'] } } } },
