@@ -26,12 +26,23 @@ describe('unsynced local changes ledger', () => {
     markDocumentSynced('doc-a');
 
     expect(hasUnsyncedLocalChanges()).toBe(true);
-    expect(localStorage.getItem('remdo-unsynced:doc-a')).toBeNull();
-    expect(localStorage.getItem('remdo-unsynced:doc-b')).toBe('1');
 
     markDocumentSynced('doc-b');
 
     expect(hasUnsyncedLocalChanges()).toBe(false);
+  });
+
+  it('does not let one tab\'s acknowledgement drop another tab\'s mark', () => {
+    sessionStorage.setItem('remdo-unsynced-tab-id', 'tab-a');
+    markDocumentUnsynced('doc-a');
+    sessionStorage.setItem('remdo-unsynced-tab-id', 'tab-b');
+    markDocumentUnsynced('doc-a');
+
+    sessionStorage.setItem('remdo-unsynced-tab-id', 'tab-a');
+    markDocumentSynced('doc-a');
+
+    expect(hasUnsyncedLocalChanges()).toBe(true);
+    expect(localStorage.getItem('remdo-unsynced:doc-a:tab-b')).toBe('1');
   });
 
   it('does not treat an unrelated storage value as unsynced work', () => {

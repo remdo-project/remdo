@@ -12,6 +12,7 @@ vi.mock('better-auth/react', () => ({
 
 describe('auth client session gate', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     getSessionMock.mockReset();
     signOutMock.mockReset();
     localStorage.clear();
@@ -161,6 +162,19 @@ describe('auth client session gate', () => {
 
     expect(localStorage.getItem('remdo-pending-sign-out')).toBe('1');
     expect(getSessionMock).not.toHaveBeenCalled();
+  });
+
+  it('does not stall the session gate when pending revocation never settles', async () => {
+    vi.useFakeTimers();
+    signOutMock.mockReturnValue(new Promise(() => {}));
+    localStorage.setItem('remdo-pending-sign-out', '1');
+    const { resolveSessionGateState } = await import('#client/app/auth/client');
+
+    const pending = resolveSessionGateState();
+    await vi.advanceTimersByTimeAsync(2000);
+    await expect(pending).resolves.toEqual({ status: 'unauthenticated' });
+    expect(localStorage.getItem('remdo-pending-sign-out')).toBe('1');
+    vi.useRealTimers();
   });
 });
 

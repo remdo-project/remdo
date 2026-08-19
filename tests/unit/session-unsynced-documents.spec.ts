@@ -34,6 +34,23 @@ describe('collaboration session unsynced document ledger', () => {
     clearUnsyncedLocalChanges();
   });
 
+  it('does not treat a provider that starts unacked as unsaved work', () => {
+    const docId = 'doc-a';
+    const docMap = new Map<string, Y.Doc>([[docId, new Y.Doc()]]);
+    const mock = createMockProvider();
+    mock.hasLocalChanges = true;
+    const session = new CollabSession({
+      docId,
+      enabled: true,
+      providerFactory: createMockProviderFactory(mock),
+    });
+    session.attach(docMap);
+    sessions.push(session);
+
+    expect(session.snapshot().hasLocalChanges).toBe(false);
+    expect(hasUnsyncedLocalChanges()).toBe(false);
+  });
+
   it('records a document when the provider reports local changes', () => {
     const { mock, session } = createSession('doc-a');
     sessions.push(session);

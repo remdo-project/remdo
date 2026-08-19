@@ -93,6 +93,8 @@ export class CollabSession {
   private attachTask: Promise<void> | null = null;
   private attachVersion = 0;
   private providerHadLocalChanges = false;
+  private sawProviderAck = false;
+  private unsavedLocalEdits = false;
   private state: CollabSnapshot;
 
   constructor(options: SessionOptions) {
@@ -190,7 +192,12 @@ export class CollabSession {
         const hydrated = base.hydrated || base.localCacheHydrated || events.synced === true;
         const computedSynced = hydrated && events.synced === true && events.hasLocalChanges !== true;
         const synced = options.forceUnsynced ? false : computedSynced;
-        const hasLocalChanges = events.hasLocalChanges === true;
+        const providerUnacked = events.hasLocalChanges === true;
+        if (!providerUnacked) {
+          this.sawProviderAck = true;
+          this.unsavedLocalEdits = false;
+        }
+        const hasLocalChanges = this.unsavedLocalEdits || (this.sawProviderAck && providerUnacked);
         this.recordProviderLocalChanges(hasLocalChanges);
         const nextState: CollabSnapshot = { ...base, hasLocalChanges, hydrated, synced };
         if (
@@ -210,8 +217,13 @@ export class CollabSession {
       };
 
       const handleDocUpdate = (_update: Uint8Array, origin: unknown) => {
+        const fromCache = isLocalCacheUpdateOrigin(origin, provider);
+        if (!fromCache && origin !== provider) {
+          this.unsavedLocalEdits = true;
+          recomputeState();
+        }
         if (this.state.localCacheHydrated) return;
-        if (!isLocalCacheUpdateOrigin(origin, provider)) return;
+        if (!fromCache) return;
         trace('collab', 'local cache hydrated from local document updates', { docId: this.state.docId });
         recomputeState({ localCacheHydrated: true });
       };
@@ -343,6 +355,8 @@ export class CollabSession {
     // Drop the in-memory edge tracker only. A still-dirty document stays in
     // origin storage until a later provider actually acknowledges it.
     this.providerHadLocalChanges = false;
+    this.sawProviderAck = false;
+    this.unsavedLocalEdits = false;
 
     if (abortAwait) {
       this.awaitController?.abort(new Error('Collaboration session destroyed'));

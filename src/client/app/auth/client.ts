@@ -4,6 +4,7 @@ import { clearStoredCurrentUserBootstrap } from '#client/app/documents/current-u
 
 const KNOWN_SESSION_STORAGE_KEY = 'remdo-authenticated-session';
 const PENDING_SIGN_OUT_STORAGE_KEY = 'remdo-pending-sign-out';
+const SERVER_SIGN_OUT_TIMEOUT_MS = 1500;
 
 export const authClient = createAuthClient({
   basePath: '/api/auth',
@@ -67,7 +68,12 @@ export function hasPendingSignOut() {
  */
 export async function revokeServerSession(): Promise<void> {
   try {
-    const result = await authClient.signOut();
+    const result = await Promise.race([
+      authClient.signOut(),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Server sign-out timed out.')), SERVER_SIGN_OUT_TIMEOUT_MS);
+      }),
+    ]);
     if (result.error) {
       throw result.error;
     }
