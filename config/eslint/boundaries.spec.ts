@@ -62,24 +62,26 @@ describe('boundaries', () => {
     // (docs/architecture.md#production-bundle-boundary), not a workspace leak.
     || specifier.startsWith('#client/editor/dev/');
 
-  it('does not grow the deep-import allowlist', () => {
-    const appFiles = walkSourceFiles(path.join(CLIENT, 'app'));
-    const uiFiles = walkSourceFiles(path.join(CLIENT, 'ui'));
+  const leaksFrom = (root: string, isLeak: (specifier: string) => boolean): string[] =>
+    [...new Set(
+      walkSourceFiles(root).flatMap((file) =>
+        specifiersIn(file)
+          .filter(isLeak)
+          .map((specifier) => `${relativeToSrc(file)} -> ${specifier}`),
+      ),
+    )].sort();
 
-    const leaks = [...new Set([
-      ...appFiles.flatMap((file) =>
-        specifiersIn(file)
-          .filter((specifier) =>
-            specifier.startsWith('#client/editor/') && !isPublishedEditorImport(specifier),
-          )
-          .map((specifier) => `${relativeToSrc(file)} -> ${specifier}`),
+  it('does not grow the deep-import allowlist', () => {
+    const leaks = [
+      ...leaksFrom(
+        path.join(CLIENT, 'app'),
+        (specifier) => specifier.startsWith('#client/editor/') && !isPublishedEditorImport(specifier),
       ),
-      ...uiFiles.flatMap((file) =>
-        specifiersIn(file)
-          .filter((specifier) => specifier.startsWith('#client/app/'))
-          .map((specifier) => `${relativeToSrc(file)} -> ${specifier}`),
+      ...leaksFrom(
+        path.join(CLIENT, 'ui'),
+        (specifier) => specifier.startsWith('#client/app/'),
       ),
-    ])].sort();
+    ].sort();
 
     expect(leaks).toEqual([...knownDeepLeaks].sort());
   });
