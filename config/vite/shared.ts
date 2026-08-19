@@ -145,7 +145,7 @@ export function createViteSharedConfig() {
         "#note-sdk": path.resolve(repoRoot, "./src/note-sdk/index.ts"),
         "#platform": path.resolve(repoRoot, "./src/platform"),
         "#projection": path.resolve(repoRoot, "./src/projection"),
-        "#document-routes": path.resolve(repoRoot, "./src/document-routes.ts"),
+        "#document-routes": path.resolve(repoRoot, "./src/document-routes/index.ts"),
         "#server": path.resolve(repoRoot, "./src/server"),
         "#tools": path.resolve(repoRoot, "./tools/lib"),
       },

@@ -4,7 +4,7 @@ import compatPlugin from 'eslint-plugin-compat';
 import lexicalPlugin from '@lexical/eslint-plugin';
 import { commandsInCommandsFileRule } from './config/eslint/commandsInCommandsFile';
 import boundaries from 'eslint-plugin-boundaries';
-import { boundariesElements, boundariesIgnore, boundariesInclude, boundariesPolicies } from './config/eslint/editorBoundaries';
+import { editorBoundaries, srcBoundaries } from './config/eslint/boundaries';
 import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
 
 const importMetaEnvRestriction = {
@@ -308,19 +308,40 @@ export default antfu(
     },
   },
   {
-    files: ['src/client/editor/**/*.{ts,tsx,mts,cts}'],
-    ignores: [colocatedSpecGlob],
+    // Coarse src owners. Editor files keep the fine graph in the block below;
+    // including them here would replace that graph with "editor is one owner."
+    // Nested app `dev/` is the unrestricted tooling side of the production
+    // bundle boundary. `src/client/dev` is an owner and stays in this graph.
+    files: ['src/**/*.{ts,tsx,mts,cts}'],
+    ignores: ['src/client/editor/**', 'src/client/app/**/dev/**', colocatedSpecGlob],
     plugins: { boundaries },
     settings: {
-      'boundaries/elements': boundariesElements,
-      'boundaries/include': boundariesInclude,
-      'boundaries/ignore': boundariesIgnore,
+      'boundaries/elements': srcBoundaries.elements,
+      'boundaries/include': srcBoundaries.include,
+      'boundaries/ignore': srcBoundaries.ignore,
       'import/resolver': { typescript: { project: './tsconfig.json' } },
     },
     rules: {
       'boundaries/dependencies': ['error', {
         default: 'disallow',
-        policies: boundariesPolicies,
+        policies: srcBoundaries.policies,
+      }],
+    },
+  },
+  {
+    files: ['src/client/editor/**/*.{ts,tsx,mts,cts}'],
+    ignores: [colocatedSpecGlob],
+    plugins: { boundaries },
+    settings: {
+      'boundaries/elements': editorBoundaries.elements,
+      'boundaries/include': editorBoundaries.include,
+      'boundaries/ignore': editorBoundaries.ignore,
+      'import/resolver': { typescript: { project: './tsconfig.json' } },
+    },
+    rules: {
+      'boundaries/dependencies': ['error', {
+        default: 'disallow',
+        policies: editorBoundaries.policies,
       }],
       'boundaries/no-unknown-dependencies': 'error',
     },
