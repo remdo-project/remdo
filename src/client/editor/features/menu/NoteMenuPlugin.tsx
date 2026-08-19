@@ -410,13 +410,11 @@ export function NoteMenuPlugin() {
       closeOnInteractOutside
       editor={editor}
       getTargetRect={resolveMenuTargetRect}
+      isOutsidePressExempt={(element) => Boolean(element.closest('.note-controls__button--menu'))}
       offset={8}
       placement="right"
       portalRoot={portalRoot}
-      onClose={() => {
-        closeMenu();
-        focusRoot();
-      }}
+      onClose={closeMenu}
     >
       <div onKeyDown={handleMenuKeyDown}>
       <Menu

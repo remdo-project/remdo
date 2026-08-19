@@ -1,9 +1,9 @@
 import type { LexicalEditor } from 'lexical';
 import type { Placement } from 'react-aria';
-import { UNSAFE_PortalProvider } from 'react-aria';
+import { useOverlayPosition } from 'react-aria';
 import type { MouseEventHandler, ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
-import { Popover } from 'react-aria-components';
+import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 interface EditorPopupOverlayProps {
   editor: LexicalEditor;
@@ -17,6 +17,7 @@ interface EditorPopupOverlayProps {
   onClose?: () => void;
   isTriggerPicker?: boolean;
   closeOnInteractOutside?: boolean;
+  isOutsidePressExempt?: (element: Element) => boolean;
   children: ReactNode;
 }
 
@@ -32,26 +33,48 @@ export function EditorPopupOverlay({
   onClose,
   isTriggerPicker,
   closeOnInteractOutside = false,
+  isOutsidePressExempt,
   children,
 }: EditorPopupOverlayProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<Element | null>(editor.getRootElement());
   triggerRef.current = editor.getRootElement();
-  const [positionGeneration, setPositionGeneration] = useState(0);
+  const lastTargetRectRef = useRef<DOMRect | null>(null);
+
+  const { overlayProps, updatePosition } = useOverlayPosition({
+    targetRef: triggerRef,
+    overlayRef,
+    placement,
+    offset,
+    isOpen: true,
+    maxHeight: typeof window === 'undefined' ? 800 : window.innerHeight,
+    onClose: null,
+    shouldFlip: true,
+    getTargetRect: () => {
+      const rect = getTargetRect();
+      if (rect) {
+        lastTargetRectRef.current = rect;
+        return rect;
+      }
+      return lastTargetRectRef.current;
+    },
+  });
 
   useEffect(() => {
-    const bump = () => {
-      setPositionGeneration((generation) => generation + 1);
+    const update = () => {
+      updatePosition();
     };
     const root = editor.getRootElement();
-    root?.addEventListener('scroll', bump, true);
-    globalThis.addEventListener('resize', bump);
-    globalThis.addEventListener('scroll', bump, true);
+    root?.addEventListener('scroll', update, true);
+    globalThis.addEventListener('resize', update);
+    globalThis.addEventListener('scroll', update, true);
+    update();
     return () => {
-      root?.removeEventListener('scroll', bump, true);
-      globalThis.removeEventListener('resize', bump);
-      globalThis.removeEventListener('scroll', bump, true);
+      root?.removeEventListener('scroll', update, true);
+      globalThis.removeEventListener('resize', update);
+      globalThis.removeEventListener('scroll', update, true);
     };
-  }, [editor]);
+  }, [editor, updatePosition]);
 
   useEffect(() => {
     if (!closeOnInteractOutside) {
@@ -62,7 +85,7 @@ export function EditorPopupOverlay({
       if (!(target instanceof Element)) {
         return;
       }
-      if (target.closest('[data-note-menu], [data-date-picker], [data-trigger-picker], .note-controls__button--menu')) {
+      if (overlayRef.current?.contains(target) || isOutsidePressExempt?.(target)) {
         return;
       }
       onClose?.();
@@ -71,38 +94,23 @@ export function EditorPopupOverlay({
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true);
     };
-  }, [closeOnInteractOutside, onClose]);
+  }, [closeOnInteractOutside, isOutsidePressExempt, onClose]);
 
   if (!triggerRef.current) {
     return null;
   }
 
-  return (
-    <UNSAFE_PortalProvider getContainer={() => portalRoot}>
-      <Popover
-        aria-label={ariaLabel}
-        className={className}
-        data-position-generation={positionGeneration}
-        data-trigger-picker={isTriggerPicker ? '' : undefined}
-        getTargetRect={(target) => getTargetRect() ?? target.getBoundingClientRect()}
-        isKeyboardDismissDisabled
-        isNonModal
-        isOpen
-        offset={offset}
-        placement={placement}
-        shouldCloseOnInteractOutside={() => false}
-        shouldFlip
-        shouldSkipAnimation
-        triggerRef={triggerRef}
-        onMouseDown={onMouseDown}
-        onOpenChange={(open) => {
-          if (!open) {
-            onClose?.();
-          }
-        }}
-      >
-        {children}
-      </Popover>
-    </UNSAFE_PortalProvider>
+  return createPortal(
+    <div
+      {...overlayProps}
+      aria-label={ariaLabel}
+      className={className}
+      data-trigger-picker={isTriggerPicker ? '' : undefined}
+      ref={overlayRef}
+      onMouseDown={onMouseDown}
+    >
+      {children}
+    </div>,
+    portalRoot
   );
 }

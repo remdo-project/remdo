@@ -33,6 +33,38 @@ describe('quick action menu (docs/specs/outliner/menu.md)', () => {
     expect(document.querySelector('[data-note-menu-item="view-fold-to-level"]')).not.toBeNull();
   });
 
+  it('stays open when the window scrolls', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const noteKey = getNoteKey(remdo, 'note1');
+    await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: noteKey });
+    await waitFor(() => {
+      expect(document.querySelector('[data-note-menu]')).not.toBeNull();
+    });
+
+    fireEvent.scroll(window);
+
+    expect(document.querySelector('[data-note-menu]')).not.toBeNull();
+  });
+
+  it('does not move focus into the editor on outside pointer dismiss', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const noteKey = getNoteKey(remdo, 'note1');
+    await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: noteKey });
+    await waitFor(() => {
+      expect(document.querySelector('[data-note-menu]')).not.toBeNull();
+    });
+
+    const editorRoot = remdo.editor.getRootElement();
+    expect(editorRoot).not.toBeNull();
+    const outside = document.createElement('button');
+    document.body.append(outside);
+    fireEvent.pointerDown(outside);
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-note-menu]')).toBeNull();
+    });
+    expect(document.activeElement).not.toBe(editorRoot);
+    outside.remove();
+  });
+
   it('routes digit shortcuts to fold view levels', () => {
     const event = createShortcutEvent('1');
     const foldViewToLevel = vi.fn();
