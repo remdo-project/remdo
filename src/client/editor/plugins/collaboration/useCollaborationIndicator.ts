@@ -119,7 +119,7 @@ export function useCollaborationIndicator(): StatusDescriptor {
     icon,
     ariaLabel: buildAriaLabel(view),
     title: buildStatusTitle(view),
-    text: view.unsavedOffline ? 'Unsaved changes · will sync when reconnected' : undefined,
+    text: view.unsavedOffline ? 'Unsaved · syncs when reconnected' : undefined,
     className: classNames,
   };
 }

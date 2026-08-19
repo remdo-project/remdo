@@ -214,7 +214,7 @@ test.describe('Offline app shell', () => {
     await withOfflinePage(context, async (offlinePage) => {
       await offlinePage.goto(`/n/${docId}`);
       await waitForEditableEditor(offlinePage);
-      const unsavedNotice = offlinePage.getByText('Unsaved changes · will sync when reconnected');
+      const unsavedNotice = offlinePage.getByText('Unsaved · syncs when reconnected');
       // Reading a document offline risks nothing, so it claims no unsaved work.
       await expect(unsavedNotice).toHaveCount(0);
       const offlineEditorInput = offlinePage.locator('.editor-input').first();

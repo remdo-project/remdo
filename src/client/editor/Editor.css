@@ -22,13 +22,14 @@
   z-index: 1;
 }
 
+/* Mantine's Text owns `text-wrap`, so the component sets `wrap="nowrap"` rather
+   than a `white-space` shorthand here, which that longhand would override. */
 .status-icon-text {
   margin-left: 0;
   max-width: 0;
   opacity: 0;
   overflow: hidden;
   transition: opacity 150ms ease, max-width 150ms ease, margin-left 150ms ease;
-  white-space: nowrap;
 }
 
 .collab-status--interrupted .status-icon-text {

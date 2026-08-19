@@ -194,10 +194,6 @@ Deferred hardening; long-horizon items live in
   — bounded and minor, but a clean fix would let the connect loop actually exit
   on destroy rather than park forever. What remains is the
   server-down/reconnect-loop noise on a *live* session.)
-- Unsynced local edits follow-up: expose a reliable "pending local changes"
-  signal from the collaboration/local-persistence layer and show it in the UI.
-  Destructive actions such as logout should warn before clearing local Yjs data
-  when offline edits have not synced to the server.
 - Local data wipe follow-up: add a separate "wipe this device" flow and design
   the related UX, including unsynced local edits and server-offline behavior.
   (The open-tab IndexedDB cleanup blocker is resolved: the provider closes its
