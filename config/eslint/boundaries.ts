@@ -1,8 +1,5 @@
-// Owner graphs for eslint-plugin-boundaries. Two graphs, one module: the
-// editor keeps its capability grain, and src/ is classified only as coarse
-// owners so that grain stays unfrozen. Each graph reasons about folders, not
-// files, so a mutual edge can still be an acyclic chain — `pnpm run lint:deps`
-// owns cycles.
+// Each graph reasons about folders, not files, so a mutual edge can still be
+// an acyclic chain — `pnpm run lint:deps` owns cycles.
 const SRC = 'src';
 const CLIENT = `${SRC}/client`;
 const EDITOR = `${CLIENT}/editor`;
@@ -131,17 +128,6 @@ export const srcBoundaries = {
       allow: { to: { element: { type: ['client-search'] } } } },
     { from: { element: { type: 'client-dev' } },
       allow: { to: { element: { type: ['client-dev', ...CLIENT_SHARED] } } } },
-
-    { from: { element: { type: 'client-editor' } },
-      allow: { to: { element: { type: [
-        'client-editor',
-        ...CLIENT_SHARED,
-        'domain',
-        'note-sdk',
-        'document-routes',
-        'collaboration',
-        'platform',
-      ] } } } },
 
     { from: { element: { type: 'server' } },
       allow: { to: { element: { type: ['server', 'domain', 'platform', 'projection'] } } } },

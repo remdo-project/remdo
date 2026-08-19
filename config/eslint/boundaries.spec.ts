@@ -11,10 +11,28 @@ const listLooseSourceFiles = (dir: string): string[] =>
     .filter((entry) => entry.isFile() && /\.(?:ts|tsx)$/u.test(entry.name))
     .map((entry) => entry.name);
 
-const IMPORT_SPECIFIER = /from\s+['"]([^'"]+)['"]/gu;
+const IMPORT_SPECIFIER = /(?:from\s+|import\s*(?:\(\s*)?)['"]([^'"]+)['"]/gu;
 
 const relativeToSrc = (file: string): string =>
   path.relative(SRC, file).replaceAll('\\', '/');
+
+const relativeToRoot = (fromFile: string, specifier: string, root: string): string | null => {
+  if (specifier.startsWith('.')) {
+    const relative = path.relative(root, path.resolve(path.dirname(fromFile), specifier));
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+      return null;
+    }
+    return relative.replaceAll('\\', '/');
+  }
+  return null;
+};
+
+const appImportPath = (fromFile: string, specifier: string): string | null => {
+  if (specifier.startsWith('#client/app/')) {
+    return specifier.slice('#client/app/'.length);
+  }
+  return relativeToRoot(fromFile, specifier, path.join(CLIENT, 'app'));
+};
 
 const walkSourceFiles = (dir: string): string[] => {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -51,7 +69,7 @@ describe('boundaries', () => {
     const leaks = [...new Set(
       walkSourceFiles(path.join(CLIENT, 'ui')).flatMap((file) =>
         specifiersIn(file)
-          .filter((specifier) => specifier.startsWith('#client/app/'))
+          .filter((specifier) => appImportPath(file, specifier) !== null)
           .map((specifier) => `${relativeToSrc(file)} -> ${specifier}`),
       ),
     )].sort();
