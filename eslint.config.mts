@@ -245,6 +245,23 @@ export default antfu(
     },
   },
   {
+    files: ['src/client/app/**/*.{ts,tsx,mts,cts}'],
+    ignores: ['src/client/app/**/dev/**', colocatedSpecGlob],
+    rules: {
+      'no-restricted-imports': restrictedImports(
+        {
+          group: [serverImportPattern],
+          message: 'Client code must not import server runtime modules.',
+        },
+        devImportRestriction,
+        {
+          regex: String.raw`#client/editor/(?!view/|shell/)`,
+          message: 'App imports the editor through #client/editor/view or #client/editor/shell.',
+        },
+      ),
+    },
+  },
+  {
     // Client dev directories and co-located specs: excluded above, kept under
     // the client server-import restriction (they may import dev modules).
     files: ['src/client/**/dev/**/*.{ts,tsx,mts,cts}', colocatedSpecGlob],

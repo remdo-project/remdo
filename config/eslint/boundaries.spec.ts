@@ -45,12 +45,6 @@ describe('boundaries', () => {
   // a deep leak until the editor publishes a workspace surface. ui→app is the
   // header/seam cycle until the shell composes that link. This list must not grow.
   const knownDeepLeaks = [
-    'client/app/routes/SearchResultRow.tsx -> #client/editor/outline/note-traversal',
-    'client/app/routes/document/DocumentSearch.tsx -> #client/editor/outline/note-traversal',
-    'client/app/routes/document/DocumentToolbar.tsx -> #client/editor/features/zoom/ZoomBreadcrumbs',
-    'client/app/routes/document/DocumentToolbar.tsx -> #client/editor/outline/note-traversal',
-    'client/app/routes/document/useDocumentActions.ts -> #client/editor/runtime/pending-document-import',
-    'client/app/routes/useDocumentSearchModel.ts -> #client/editor/features/search/search-candidates',
     'client/ui/AppHeader.tsx -> #client/app/routes/DevToolbarSeam',
   ];
 

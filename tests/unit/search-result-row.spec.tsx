@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { NotePathItem } from '#client/editor/outline/note-traversal';
+import type { NotePathItem } from '#client/editor/view/workspace';
 import { SearchResultRow } from '#client/app/routes/SearchResultRow';
 
 const ancestorPath: NotePathItem[] = [
