@@ -20,6 +20,11 @@ interface CollabSnapshot {
   docId: string;
   hydrated: boolean;
   synced: boolean;
+  /**
+   * Edits the server has not acknowledged. Unlike `synced`, a disconnect does
+   * not set this: losing the connection does not create unsaved work.
+   */
+  hasLocalChanges: boolean;
   localCacheHydrated: boolean;
   connectionStatus: CollaborationConnectionStatus;
   docEpoch: number;
@@ -49,16 +54,13 @@ const liveSessions = new Set<CollabSession>();
 /**
  * Whether any open document holds edits the server has not acknowledged.
  *
- * Reads `hasLocalChanges` rather than the snapshot's `synced`, which a
- * disconnect forces false for every document whether or not it was edited.
- * Reading it synchronously matters: a caller deciding whether to warn before
- * destroying local data cannot await, and offline a request would never settle.
+ * Reads `hasLocalChanges` rather than `synced`, which a disconnect forces false
+ * for every document whether or not it was edited. Reading it synchronously
+ * matters: a caller deciding whether to warn before destroying local data
+ * cannot await, and offline a request would never settle.
  */
 export function hasUnsyncedLocalChanges(): boolean {
-  return [...liveSessions].some((session) => {
-    const provider = session.getProvider() as { hasLocalChanges?: boolean } | null;
-    return provider?.hasLocalChanges === true;
-  });
+  return [...liveSessions].some((session) => session.snapshot().hasLocalChanges);
 }
 
 function isLocalCacheHydratedDoc(doc: Y.Doc): boolean {
@@ -113,6 +115,7 @@ export class CollabSession {
     this.state = {
       docId,
       hydrated: !enabled,
+      hasLocalChanges: false,
       synced: !enabled,
       localCacheHydrated: !enabled,
       connectionStatus: enabled ? 'connecting' : 'disconnected',
@@ -174,6 +177,7 @@ export class CollabSession {
       this.state = {
         ...this.state,
         hydrated: false,
+        hasLocalChanges: false,
         synced: false,
         localCacheHydrated: false,
         connectionStatus: 'error',
@@ -199,11 +203,13 @@ export class CollabSession {
         const hydrated = base.hydrated || base.localCacheHydrated || events.synced === true;
         const computedSynced = hydrated && events.synced === true && events.hasLocalChanges !== true;
         const synced = options.forceUnsynced ? false : computedSynced;
-        const nextState: CollabSnapshot = { ...base, hydrated, synced };
+        const hasLocalChanges = events.hasLocalChanges === true;
+        const nextState: CollabSnapshot = { ...base, hasLocalChanges, hydrated, synced };
         if (
           nextState.docId === this.state.docId &&
           nextState.hydrated === this.state.hydrated &&
           nextState.synced === this.state.synced &&
+          nextState.hasLocalChanges === this.state.hasLocalChanges &&
           nextState.localCacheHydrated === this.state.localCacheHydrated &&
           nextState.connectionStatus === this.state.connectionStatus &&
           nextState.docEpoch === this.state.docEpoch &&
@@ -266,6 +272,7 @@ export class CollabSession {
 
       recomputeState({
         hydrated: false,
+        hasLocalChanges: false,
         synced: false,
         localCacheHydrated: isLocalCacheHydratedDoc(doc),
         connectionStatus: toCollaborationConnectionStatus(provider.status),
@@ -298,6 +305,7 @@ export class CollabSession {
     this.state = {
       ...this.state,
       hydrated: false,
+      hasLocalChanges: false,
       synced: false,
       localCacheHydrated: false,
       connectionStatus: 'disconnected',

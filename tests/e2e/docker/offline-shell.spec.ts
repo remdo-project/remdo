@@ -214,7 +214,9 @@ test.describe('Offline app shell', () => {
     await withOfflinePage(context, async (offlinePage) => {
       await offlinePage.goto(`/n/${docId}`);
       await waitForEditableEditor(offlinePage);
-      await expect(offlinePage.getByText('Sync paused · edits sync when reconnected')).toBeVisible();
+      const unsavedNotice = offlinePage.getByText('Unsaved changes · will sync when reconnected');
+      // Reading a document offline risks nothing, so it claims no unsaved work.
+      await expect(unsavedNotice).toHaveCount(0);
       const offlineEditorInput = offlinePage.locator('.editor-input').first();
       await expect(offlinePage.locator('li.list-item').filter({ hasText: onlineSeedText })).toHaveCount(1);
 
@@ -222,10 +224,11 @@ test.describe('Offline app shell', () => {
       await offlinePage.keyboard.press('Enter');
       await offlinePage.keyboard.type(offlineEditText);
       await expect(offlinePage.locator('li.list-item').filter({ hasText: offlineEditText })).toHaveCount(1);
+      await expect(unsavedNotice).toBeVisible();
 
       await context.setOffline(false);
       await expect(offlinePage.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
-      await expect(offlinePage.getByText('Sync paused · edits sync when reconnected')).toHaveCount(0);
+      await expect(unsavedNotice).toHaveCount(0);
       await expect(offlinePage.locator('li.list-item').filter({ hasText: offlineEditText })).toHaveCount(1);
     });
   });
