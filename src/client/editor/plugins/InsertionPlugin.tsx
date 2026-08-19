@@ -17,7 +17,7 @@ import {
 import type { LexicalNode, RangeSelection } from 'lexical';
 import { useEffect } from 'react';
 import { stopKeyboardEvent } from '#client/editor/keyboard-event';
-import { $isNoteFolded } from '#client/editor/runtime/fold-state';
+import { $isNoteFolded } from '#client/editor/outline/fold-state';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $getOrCreateChildList, getBodyWrapper, insertBefore } from '#client/editor/outline/list-structure';
 import { resolveBoundaryPoint } from '#client/editor/outline/selection/caret';

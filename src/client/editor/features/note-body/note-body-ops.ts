@@ -3,7 +3,7 @@ import { $createTextNode, $getSelection, $isRangeSelection, getDOMSelection } fr
 import type { LexicalEditor, LexicalNode } from 'lexical';
 
 import { getBodyWrapper, getPreviousContentSibling } from '#client/editor/outline/list-structure';
-import { $isNoteFolded } from '#client/editor/runtime/fold-state';
+import { $isNoteFolded } from '#client/editor/outline/fold-state';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $selectItemEdge, isPointAtBoundary } from '#client/editor/outline/selection/caret';
 import {

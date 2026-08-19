@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import type { LexicalEditor } from 'lexical';
 import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 
-import { $isNoteFolded, $setNoteFolded } from '#client/editor/runtime/fold-state';
+import { $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
 import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/commands';
 import { forEachContentItemInOutline, forEachContentItemWithAncestorsInOutline } from '#client/editor/outline/list-traversal';
 import { $resolveViewRoot } from '#client/editor/outline/view-root';

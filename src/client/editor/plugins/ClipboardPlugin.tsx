@@ -24,7 +24,7 @@ import {
 import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { createUniqueNoteId, createNoteIdAvoiding } from '#domain/notes/ids';
-import { $autoExpandIfFolded } from '#client/editor/runtime/fold-state';
+import { $autoExpandIfFolded } from '#client/editor/outline/fold-state';
 import { $createNoteLinkNode } from '#client/editor/features/links/note-link-node';
 import { noteIdState } from '#client/editor/runtime/note-id-state';
 import { isSerializedBodyWrapper } from '#client/editor/runtime/serialized-note-types';

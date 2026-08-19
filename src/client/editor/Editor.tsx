@@ -24,7 +24,7 @@ import { KeymapPlugin } from './plugins/KeymapPlugin';
 import { StatusIndicators } from './StatusIndicators';
 import { ZoomPlugin } from './features/zoom/ZoomPlugin';
 import { ZoomVisibilityPlugin } from './features/zoom/ZoomVisibilityPlugin';
-import { FoldingPlugin } from './plugins/FoldingPlugin';
+import { FoldingPlugin } from './features/folding/FoldingPlugin';
 import { NoteControlsPlugin } from './features/menu/NoteControlsPlugin';
 import { NoteMenuPlugin } from './features/menu/NoteMenuPlugin';
 import { MobileActionToolbar } from './plugins/mobile-toolbar/MobileActionToolbar';

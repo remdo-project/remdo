@@ -13,7 +13,7 @@ import {
 import { $createTextNode, $getSelection, $isTextNode } from 'lexical';
 import type { $createRangeSelection } from 'lexical';
 import { $createLinkNode, $isLinkNode } from '@lexical/link';
-import { $setNoteFolded } from '#client/editor/runtime/fold-state';
+import { $setNoteFolded } from '#client/editor/outline/fold-state';
 import { $createDateNode } from '#client/editor/features/date/date-node';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 

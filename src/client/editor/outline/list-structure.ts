@@ -3,7 +3,7 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
 import { $getNodeByKey } from 'lexical';
-import { $autoExpandIfFolded } from '#client/editor/runtime/fold-state';
+import { $autoExpandIfFolded } from '#client/editor/outline/fold-state';
 import { isBodyWrapper } from '#client/editor/outline/note-body-node';
 import { reportInvariant } from '#client/editor/invariant';
 
