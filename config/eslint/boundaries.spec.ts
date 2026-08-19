@@ -41,35 +41,20 @@ describe('boundaries', () => {
     expect(listLooseSourceFiles(CLIENT)).toEqual([]);
   });
 
-  // App may import editor/view and editor/shell. Anything else under editor is
-  // a deep leak until the editor publishes a workspace surface. ui→app is the
-  // header/seam cycle until the shell composes that link. This list must not grow.
+  // ui→app is the header/seam cycle until the shell composes that link.
+  // App→editor internals are refused by eslint (view/shell only).
   const knownDeepLeaks = [
     'client/ui/AppHeader.tsx -> #client/app/routes/DevToolbarSeam',
   ];
 
-  const isPublishedEditorImport = (specifier: string): boolean =>
-    specifier.startsWith('#client/editor/view/')
-    || specifier.startsWith('#client/editor/shell/');
-
   it('does not grow the deep-import allowlist', () => {
-    const appFiles = walkSourceFiles(path.join(CLIENT, 'app'));
-    const uiFiles = walkSourceFiles(path.join(CLIENT, 'ui'));
-
-    const leaks = [...new Set([
-      ...appFiles.flatMap((file) =>
-        specifiersIn(file)
-          .filter((specifier) =>
-            specifier.startsWith('#client/editor/') && !isPublishedEditorImport(specifier),
-          )
-          .map((specifier) => `${relativeToSrc(file)} -> ${specifier}`),
-      ),
-      ...uiFiles.flatMap((file) =>
+    const leaks = [...new Set(
+      walkSourceFiles(path.join(CLIENT, 'ui')).flatMap((file) =>
         specifiersIn(file)
           .filter((specifier) => specifier.startsWith('#client/app/'))
           .map((specifier) => `${relativeToSrc(file)} -> ${specifier}`),
       ),
-    ])].sort();
+    )].sort();
 
     expect(leaks).toEqual([...knownDeepLeaks].sort());
   });
