@@ -9,8 +9,8 @@ interface NoteLinkPickerProps {
   handlers: TriggerPopupHandlers<LinkPickerOption>;
 }
 
-// The note-link popup body. The shared trigger engine owns the portal and the
-// positioned, dismissable anchor wrapper; this renders only the listbox.
+// The note-link popup body. The shared trigger engine owns the portal and
+// overlay; this renders only the listbox.
 export function NoteLinkPicker({ picker, handlers }: NoteLinkPickerProps) {
   return (
     <div

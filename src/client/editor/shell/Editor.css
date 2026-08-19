@@ -441,13 +441,6 @@
 .note-menu-overlay {
   z-index: 4;
   width: max-content;
-  pointer-events: none;
-}
-
-.trigger-picker-anchor > *,
-.date-picker-overlay > *,
-.note-menu-overlay > * {
-  pointer-events: auto;
 }
 
 .note-menu-dropdown {

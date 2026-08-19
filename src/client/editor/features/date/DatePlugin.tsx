@@ -502,7 +502,6 @@ export function DatePlugin() {
               editor={editor}
               getTargetRect={() => editor.getElementByKey(picker.nodeKey)?.getBoundingClientRect() ?? null}
               portalRoot={portalRoot}
-              onClose={handlePickerCancel}
             >
               <DatePickerPanel
                 isoDate={picker.isoDate}

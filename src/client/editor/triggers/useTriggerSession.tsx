@@ -81,6 +81,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
   const pickerRef = useRef<InternalPickerState<TOption> | null>(null);
   const sessionRef = useRef<TriggerSession | null>(null);
   const pendingTriggerRef = useRef(false);
+  const overlayRootRef = useRef<HTMLDivElement | null>(null);
 
   // Hold the spec in a ref so the engine's effects/callbacks do not depend on
   // its identity. Plugins build their spec inline (a new object each render);
@@ -353,12 +354,9 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
   );
 
   const handlePickerMouseDown = useCallback((event: ReactMouseEvent<HTMLElement>) => {
-    // Keep the caret stable for type-to-filter pickers, whose commit range
-    // depends on a live editor selection. Native <select> (the calendar's month
-    // and year pickers) must still receive the default action or they cannot
-    // open by click.
-    const target = event.target;
-    if (target instanceof Element && target.closest('select, option')) {
+    // Type-to-filter pickers keep a live editor caret for commit. Popups that
+    // take focus omit getActiveDescendantId and need the default action.
+    if (!specRef.current.getActiveDescendantId) {
       return;
     }
     event.preventDefault();
@@ -388,7 +386,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
 
   const handleCommitOption = useCallback(
     (option: TOption) => {
-      const pickerRoot = document.querySelector('[data-trigger-picker]');
+      const pickerRoot = overlayRootRef.current;
       const shouldRestore = Boolean(
         pickerRoot && document.activeElement instanceof Node && pickerRoot.contains(document.activeElement)
       );
@@ -612,26 +610,27 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
     return null;
   }
 
-  // The engine owns the overlay (portal, caret-anchored placement, dismissal
-  // hook); the spec renders only the popup body.
   return (
     <EditorPopupOverlay
       className="trigger-picker-anchor"
       editor={editor}
       getTargetRect={resolveCaretTargetRect}
-      isTriggerPicker
       portalRoot={portalRoot}
-      onClose={closeSession}
-      onMouseDown={handlePickerMouseDown}
     >
-      {spec.renderPopup(picker, {
-        onPickerMouseDown: handlePickerMouseDown,
-        onItemMouseOver: handleItemMouseOver,
-        onItemMouseDown: handleItemMouseDown,
-        commitOption: handleCommitOption,
-        cancel: handleCancel,
-        listboxId,
-      })}
+      <div
+        ref={overlayRootRef}
+        data-trigger-picker
+        onMouseDown={handlePickerMouseDown}
+      >
+        {spec.renderPopup(picker, {
+          onPickerMouseDown: handlePickerMouseDown,
+          onItemMouseOver: handleItemMouseOver,
+          onItemMouseDown: handleItemMouseDown,
+          commitOption: handleCommitOption,
+          cancel: handleCancel,
+          listboxId,
+        })}
+      </div>
     </EditorPopupOverlay>
   );
 }

@@ -184,6 +184,26 @@ export function NoteMenuPlugin() {
   }, [handleRootFocusOut, rootElement]);
 
   useEffect(() => {
+    if (!menu) {
+      return;
+    }
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+      if (target.closest('[data-note-menu], .note-controls__button--menu')) {
+        return;
+      }
+      closeMenu();
+    };
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+    };
+  }, [closeMenu, menu]);
+
+  useEffect(() => {
     const handleDocumentKeyDown = (event: KeyboardEvent) => {
       const root = rootRef.current;
       if (!root) {
@@ -405,16 +425,12 @@ export function NoteMenuPlugin() {
 
   return (
     <EditorPopupOverlay
-      aria-label="Quick action menu"
       className="note-menu-overlay"
-      closeOnInteractOutside
       editor={editor}
       getTargetRect={resolveMenuTargetRect}
-      isOutsidePressExempt={(element) => Boolean(element.closest('.note-controls__button--menu'))}
       offset={8}
       placement="right"
       portalRoot={portalRoot}
-      onClose={closeMenu}
     >
       <div onKeyDown={handleMenuKeyDown}>
       <Menu

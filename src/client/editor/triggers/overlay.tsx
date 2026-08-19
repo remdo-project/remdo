@@ -1,7 +1,7 @@
 import type { LexicalEditor } from 'lexical';
 import type { Placement } from 'react-aria';
 import { useOverlayPosition } from 'react-aria';
-import type { MouseEventHandler, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -12,12 +12,6 @@ interface EditorPopupOverlayProps {
   placement?: Placement;
   offset?: number;
   className?: string;
-  'aria-label'?: string;
-  onMouseDown?: MouseEventHandler<HTMLElement>;
-  onClose?: () => void;
-  isTriggerPicker?: boolean;
-  closeOnInteractOutside?: boolean;
-  isOutsidePressExempt?: (element: Element) => boolean;
   children: ReactNode;
 }
 
@@ -28,15 +22,10 @@ export function EditorPopupOverlay({
   placement = 'bottom start',
   offset = 6,
   className,
-  'aria-label': ariaLabel,
-  onMouseDown,
-  onClose,
-  isTriggerPicker,
-  closeOnInteractOutside = false,
-  isOutsidePressExempt,
   children,
 }: EditorPopupOverlayProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  // useOverlayPosition requires a trigger element; the live box is getTargetRect.
   const triggerRef = useRef<Element | null>(editor.getRootElement());
   triggerRef.current = editor.getRootElement();
   const lastTargetRectRef = useRef<DOMRect | null>(null);
@@ -47,7 +36,7 @@ export function EditorPopupOverlay({
     placement,
     offset,
     isOpen: true,
-    maxHeight: typeof window === 'undefined' ? 800 : window.innerHeight,
+    maxHeight: window.innerHeight,
     onClose: null,
     shouldFlip: true,
     getTargetRect: () => {
@@ -56,7 +45,7 @@ export function EditorPopupOverlay({
         lastTargetRectRef.current = rect;
         return rect;
       }
-      return lastTargetRectRef.current;
+      return lastTargetRectRef.current ?? new DOMRect();
     },
   });
 
@@ -76,26 +65,6 @@ export function EditorPopupOverlay({
     };
   }, [editor, updatePosition]);
 
-  useEffect(() => {
-    if (!closeOnInteractOutside) {
-      return;
-    }
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target;
-      if (!(target instanceof Element)) {
-        return;
-      }
-      if (overlayRef.current?.contains(target) || isOutsidePressExempt?.(target)) {
-        return;
-      }
-      onClose?.();
-    };
-    document.addEventListener('pointerdown', handlePointerDown, true);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown, true);
-    };
-  }, [closeOnInteractOutside, isOutsidePressExempt, onClose]);
-
   if (!triggerRef.current) {
     return null;
   }
@@ -103,11 +72,8 @@ export function EditorPopupOverlay({
   return createPortal(
     <div
       {...overlayProps}
-      aria-label={ariaLabel}
       className={className}
-      data-trigger-picker={isTriggerPicker ? '' : undefined}
       ref={overlayRef}
-      onMouseDown={onMouseDown}
     >
       {children}
     </div>,
