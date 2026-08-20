@@ -9,6 +9,25 @@ const cssIgnore = ['**/*.css'] as const;
 const element = (type: string, pattern: string) =>
   ({ type, pattern, stopMatching: true }) as const;
 
+const FEATURE_TYPES = [
+  'features-checklist',
+  'features-date',
+  'features-folding',
+  'features-links',
+  'features-menu',
+  'features-note-body',
+  'features-search',
+  'features-zoom',
+] as const;
+
+const EDITING_TYPES = [
+  'editing-insertion',
+  'editing-deletion',
+  'editing-indentation',
+  'editing-reordering',
+  'editing-clipboard',
+] as const;
+
 export const editorBoundaries = {
   // Limits classification to the editor. Without it every import reaching
   // outside counts as unknown, and `no-unknown-dependencies` reports the
@@ -24,10 +43,16 @@ export const editorBoundaries = {
     element('editing-indentation', `${EDITOR}/editing/indentation`),
     element('editing-reordering', `${EDITOR}/editing/reordering`),
     element('editing-clipboard', `${EDITOR}/editing/clipboard`),
-    element('selection', `${EDITOR}/selection`),
+    element('features-checklist', `${EDITOR}/features/checklist`),
+    element('features-date', `${EDITOR}/features/date`),
+    element('features-folding', `${EDITOR}/features/folding`),
+    element('features-links', `${EDITOR}/features/links`),
+    element('features-menu', `${EDITOR}/features/menu`),
+    element('features-note-body', `${EDITOR}/features/note-body`),
+    element('features-search', `${EDITOR}/features/search`),
+    element('features-zoom', `${EDITOR}/features/zoom`),
     element('outline', `${EDITOR}/outline`),
     element('runtime', `${EDITOR}/runtime`),
-    element('features', `${EDITOR}/features`),
     element('keymap', `${EDITOR}/keymap`),
     element('mobile-toolbar', `${EDITOR}/mobile-toolbar`),
     element('triggers', `${EDITOR}/triggers`),
@@ -44,17 +69,14 @@ export const editorBoundaries = {
     { from: { element: { type: ['editing-insertion', 'editing-indentation', 'editing-reordering'] } },
       allow: { to: { element: { type: ['foundation', 'outline'] } } } },
     { from: { element: { type: 'editing-deletion' } },
-      allow: { to: { element: { type: ['foundation', 'outline', 'features'] } } } },
+      allow: { to: { element: { type: ['foundation', 'outline', 'features-note-body'] } } } },
     { from: { element: { type: 'editing-clipboard' } },
-      allow: { to: { element: { type: ['foundation', 'outline', 'features', 'runtime'] } } } },
-
-    { from: { element: { type: 'selection' } },
-      allow: { to: { element: { type: ['foundation', 'outline'] } } } },
+      allow: { to: { element: { type: ['foundation', 'outline', 'features-links', 'runtime'] } } } },
 
     { from: { element: { type: 'outline' } },
       allow: { to: { element: { type: ['foundation', 'runtime'] } } } },
     { from: { element: { type: 'runtime' } },
-      allow: { to: { element: { type: ['foundation', 'outline', 'features'] } } } },
+      allow: { to: { element: { type: ['foundation', 'outline', 'features-checklist', 'features-date', 'features-links'] } } } },
     { from: { element: { type: 'keymap' } },
       allow: { to: { element: { type: ['foundation'] } } } },
     { from: { element: { type: 'mobile-toolbar' } },
@@ -63,17 +85,26 @@ export const editorBoundaries = {
       allow: { to: { element: { type: ['outline', 'runtime'] } } } },
     // Workspace re-exports the pending-import API for the app.
     { from: { element: { type: 'view' } },
-      allow: { to: { element: { type: ['outline', 'features', 'runtime'] } } } },
-    { from: { element: { type: 'features' } },
+      allow: { to: { element: { type: ['outline', 'features-search', 'features-zoom', 'runtime'] } } } },
+    { from: { element: { type: FEATURE_TYPES } },
       allow: { to: { element: { type: ['foundation', 'outline', 'runtime', 'triggers', 'view', 'adapters'] } } } },
     // The shell composes, so it reaches everything it mounts. Its edge into
     // editor-dev exists only for DevEditorSeam's lazy import, which is what
     // keeps dev tooling out of the production bundle; check-dev-boundary
     // proves it does.
     { from: { element: { type: 'shell' } },
-      allow: { to: { element: { type: ['foundation', 'features', 'runtime', 'selection', 'keymap', 'mobile-toolbar', 'editor-dev', 'editing-insertion', 'editing-deletion', 'editing-indentation', 'editing-reordering', 'editing-clipboard'] } } } },
+      allow: { to: { element: { type: [
+        'foundation',
+        'runtime',
+        'outline',
+        'keymap',
+        'mobile-toolbar',
+        'editor-dev',
+        ...EDITING_TYPES,
+        ...FEATURE_TYPES,
+      ] } } } },
     { from: { element: { type: 'adapters' } },
-      allow: { to: { element: { type: ['outline', 'runtime', 'features'] } } } },
+      allow: { to: { element: { type: ['outline', 'runtime', 'features-checklist'] } } } },
 
     // Dev tooling reaches production modules by design; ambient declarations
     // are not runtime modules. Neither belongs in the graph.
@@ -84,7 +115,7 @@ export const editorBoundaries = {
 
 const APP = `${CLIENT}/app`;
 
-const CLIENT_SHARED = ['client-ui', 'client-runtime', 'client-search'] as const;
+const CLIENT_SHARED = ['client-ui', 'client-browser', 'client-search'] as const;
 
 const APP_EXTERNALS = [
   ...CLIENT_SHARED,
@@ -100,7 +131,7 @@ const srcElements = [
   element('client-app', `${CLIENT}/app`),
   element('client-editor', `${CLIENT}/editor`),
   element('client-ui', `${CLIENT}/ui`),
-  element('client-runtime', `${CLIENT}/runtime`),
+  element('client-browser', `${CLIENT}/browser`),
   element('client-search', `${CLIENT}/search`),
   element('client-dev', `${CLIENT}/dev`),
   element('server', `${SRC}/server`),
@@ -165,8 +196,8 @@ export const srcBoundaries = {
     { from: { element: { type: 'client-ui' } },
       allow: { to: { element: { type: ['client-ui'] } } } },
 
-    { from: { element: { type: 'client-runtime' } },
-      allow: { to: { element: { type: ['client-runtime'] } } } },
+    { from: { element: { type: 'client-browser' } },
+      allow: { to: { element: { type: ['client-browser'] } } } },
     { from: { element: { type: 'client-search' } },
       allow: { to: { element: { type: ['client-search'] } } } },
     { from: { element: { type: 'client-dev' } },
