@@ -1,7 +1,7 @@
 import { getMigrations } from 'better-auth/db/migration';
 import { describe, expect, it, vi } from 'vitest';
 import { createServerRuntime } from '#server/runtime';
-import { createDeferred } from '../_support/deferred';
+import { createDeferred } from '../../tests/unit/_support/deferred';
 
 vi.mock('better-auth/db/migration', async (importOriginal) => {
   const actual = await importOriginal<typeof import('better-auth/db/migration')>();

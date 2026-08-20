@@ -6,7 +6,7 @@ import { createDocumentPath } from '#document-routes';
 import {
   renderDocumentRoute,
   resetDocumentRouteHarness,
-} from './_support/document-route-harness';
+} from '../../../../../tests/unit/_support/document-route-harness';
 
 describe('document toolbar and import', () => {
 

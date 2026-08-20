@@ -12,7 +12,7 @@ import {
   renderDocumentRouteWithResult,
   resetDocumentRouteHarness,
   setMockZoomPath,
-} from './_support/document-route-harness';
+} from '../../../../tests/unit/_support/document-route-harness';
 
 describe('document route', () => {
 

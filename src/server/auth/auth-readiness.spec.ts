@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createServerAuth } from '#server/auth/auth';
 import { createServerDatabaseClient } from '#server/db/client';
-import { createDeferred } from '../_support/deferred';
+import { createDeferred } from '../../../tests/unit/_support/deferred';
 
 const betterAuthMock = vi.hoisted(() => vi.fn());
 const getMigrationsMock = vi.hoisted(() => vi.fn());
