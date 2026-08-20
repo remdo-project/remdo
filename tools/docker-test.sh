@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck disable=SC1091 # shared helper lives in the repo.
+. "${ROOT_DIR}/tools/lib/drop-npm-run-delimiter.sh"
+# shellcheck disable=SC1091 # shared helper lives in the repo.
 . "${ROOT_DIR}/tools/lib/docker.sh"
 remdo_load_dotenv "${ROOT_DIR}"
 : "${DOCKER_TEST_BROWSER_HOST:=remdo.localhost}"
@@ -269,6 +271,13 @@ PLAYWRIGHT_ENV=(
   YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}"
   REMDO_E2E_SOURCE_ORIGIN="${SOURCE_ORIGIN}"
 )
+# Naming a test file drops Playwright's setup project; that spec writes the
+# storage state the remaining Docker e2e specs and this script's auth-state
+# check require.
+docker_e2e_playwright_files=()
+if [[ "$#" -gt 0 ]]; then
+  docker_e2e_playwright_files=(tests/e2e/docker/setup.spec.ts "$@")
+fi
 
 if ! env \
   "${PLAYWRIGHT_ENV[@]}" \
@@ -281,7 +290,8 @@ if ! env \
   E2E_WRITE_SMOKE_DOCUMENT_ID="${DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH}" \
   E2E_SMOKE_DOCUMENT_ID="${DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH}" \
   "${ROOT_DIR}/tools/env.sh" timeout "${TEST_TIMEOUT:-300}s" \
-  pnpm exec playwright test --config playwright.docker.config.ts; then
+  pnpm exec playwright test --config playwright.docker.config.ts \
+    "${docker_e2e_playwright_files[@]}"; then
   docker logs "${CONTAINER_NAME}" || true
   echo "Docker e2e failed: ${HEALTH_URL}" >&2
   exit 1

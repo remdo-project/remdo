@@ -33,8 +33,10 @@ Local test selection intentionally optimizes feedback time rather than
 completeness. Also run explicitly selected tests for known relationships it
 cannot discover. CI runs complete repository verification and must pass before integration.
 
-Pass test paths directly, as `pnpm run test:unit <path>...`; a scoped run costs
-seconds where the whole suite costs minutes.
+Pass test paths directly, as `pnpm run test:unit <path>...`. A scoped run costs
+seconds where the whole suite costs minutes. `pnpm run test:unit -- <path>`
+selects the same tests: `--` is the npm extra-args delimiter, and pnpm forwards
+it.
 
 ## Empirical checks
 
