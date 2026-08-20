@@ -124,7 +124,11 @@ export default function DocumentToolbar({
                           data-document-ref={document.value}
                           id={document.value}
                           key={`${group.id}:${document.value}`}
-                          onPress={() => onSelectDocument(document.value)}
+                          onPress={() => {
+                            if (document.value === docId) {
+                              onSelectDocument(document.value);
+                            }
+                          }}
                           textValue={document.filterText}
                         >
                           {document.label}

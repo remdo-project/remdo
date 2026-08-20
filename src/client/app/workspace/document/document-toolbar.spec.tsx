@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTestUserData } from '#tests';
 import * as pendingDocumentImports from '#client/editor/runtime/pending-document-import';
@@ -7,6 +7,7 @@ import {
   renderDocumentRoute,
   resetDocumentRouteHarness,
 } from '../../../../../tests/unit/_support/document-route-harness';
+import DocumentToolbar from './DocumentToolbar';
 
 describe('document toolbar and import', () => {
 
@@ -52,6 +53,32 @@ describe('document toolbar and import', () => {
     await openDocumentPicker();
 
     expect(await screen.findByRole('option', { name: 'Test Document' })).toBeInTheDocument();
+  });
+
+  it('selects a different document once when the option is pressed', async () => {
+    const onSelectDocument = vi.fn();
+    render(
+      <DocumentToolbar
+        docId="routeDoc"
+        documentLabel="routeDoc"
+        documentSources={getTestUserData().documentSources().children()}
+        onSelectDocument={onSelectDocument}
+        onSelectHome={() => {}}
+        onSelectNoteId={() => {}}
+        onStatusHostChange={() => {}}
+        path={[]}
+        searchControl={null}
+      />,
+    );
+
+    await openDocumentPicker();
+    const nextDocument = await screen.findByRole('option', { name: 'Test Document' });
+    fireEvent.pointerDown(nextDocument, { pointerType: 'mouse' });
+    fireEvent.pointerUp(nextDocument, { pointerType: 'mouse' });
+    fireEvent.click(nextDocument);
+
+    expect(onSelectDocument).toHaveBeenCalledTimes(1);
+    expect(onSelectDocument).toHaveBeenCalledWith('testDoc');
   });
 
   it('keeps the current document labeled when it is not in the source list', async () => {
