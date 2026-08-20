@@ -126,6 +126,20 @@ describe('auth client session gate', () => {
     expect(localStorage.getItem('remdo-current-user-bootstrap')).toBeNull();
   });
 
+  it('still writes the shared pending marker when tab storage rejects the origin mark', async () => {
+    const { PENDING_SIGN_OUT_STORAGE_KEY, rememberPendingSignOut } = await import('#client/app/session/client');
+    const setItem = vi.spyOn(sessionStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+    });
+
+    try {
+      expect(() => rememberPendingSignOut()).not.toThrow();
+      expect(localStorage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)).toBe('1');
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
   it('exposes the pending-sign-out write as a storage event peers can observe', async () => {
     const {
       isPendingSignOutStorageEvent,

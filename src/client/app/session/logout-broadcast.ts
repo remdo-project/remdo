@@ -1,4 +1,5 @@
 import {
+  PENDING_SIGN_OUT_STORAGE_KEY,
   hasPendingSignOut,
   isPendingSignOutStorageEvent,
   originatedPendingSignOut,
@@ -13,26 +14,37 @@ const PEER_SIGN_OUT_POLL_MS = 50;
  * marker and skip the tab that wrote it.
  */
 export function subscribeToSignOut(onSignOut: () => void): () => void {
+  // LogoutProvider stays mounted through sign-in, so this latch must clear when
+  // the marker is gone or a later peer logout is ignored.
   let delivered = false;
-  let pollId = 0;
   const deliver = () => {
     if (delivered) {
       return;
     }
     delivered = true;
-    window.clearInterval(pollId);
     onSignOut();
+  };
+  const rearm = () => {
+    delivered = false;
   };
 
   const onStorage = (event: StorageEvent) => {
     if (isPendingSignOutStorageEvent(event)) {
       deliver();
+      return;
+    }
+    if (event.key === PENDING_SIGN_OUT_STORAGE_KEY || event.key === null) {
+      rearm();
     }
   };
   window.addEventListener('storage', onStorage);
 
-  pollId = window.setInterval(() => {
-    if (hasPendingSignOut() && !originatedPendingSignOut()) {
+  const pollId = window.setInterval(() => {
+    if (!hasPendingSignOut()) {
+      rearm();
+      return;
+    }
+    if (!originatedPendingSignOut()) {
       deliver();
     }
   }, PEER_SIGN_OUT_POLL_MS);

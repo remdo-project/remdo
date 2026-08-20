@@ -62,8 +62,13 @@ export function hasRememberedSession() {
  */
 export function rememberPendingSignOut() {
   // Mark this tab first so its own peer-sign-out poll does not treat the write
-  // as another tab's broadcast.
-  getTabStorage()?.setItem(PENDING_SIGN_OUT_ORIGIN_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
+  // as another tab's broadcast. Session storage is best-effort: a quota or
+  // permission failure must not skip the shared marker or abort logout.
+  try {
+    getTabStorage()?.setItem(PENDING_SIGN_OUT_ORIGIN_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
+  } catch {
+    // Originator mark is optional; peers still see the shared localStorage key.
+  }
   getSessionStorage()?.setItem(PENDING_SIGN_OUT_STORAGE_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
 }
 
