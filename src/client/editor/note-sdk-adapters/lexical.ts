@@ -1,7 +1,7 @@
 import type { LexicalEditor, LexicalNode } from 'lexical';
 import { $createTextNode, $getNodeByKey, $getSelection, $isRangeSelection, $setState } from 'lexical';
 import { createUniqueNoteId } from '#domain/notes/ids';
-import { $getNoteChecked } from '#client/editor/features/checklist/checked-state';
+import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 import { noteRangeFromNoteId, noteRangeFromOrderedIds } from '#client/editor/outline/note-range';
 import {

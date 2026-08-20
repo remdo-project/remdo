@@ -10,7 +10,7 @@ const element = (type: string, pattern: string) =>
   ({ type, pattern, stopMatching: true }) as const;
 
 const FEATURE_TYPES = [
-  'features-checklist',
+  'features-list-types',
   'features-date',
   'features-folding',
   'features-links',
@@ -43,7 +43,7 @@ export const editorBoundaries = {
     element('editing-indentation', `${EDITOR}/editing/indentation`),
     element('editing-reordering', `${EDITOR}/editing/reordering`),
     element('editing-clipboard', `${EDITOR}/editing/clipboard`),
-    element('features-checklist', `${EDITOR}/features/checklist`),
+    element('features-list-types', `${EDITOR}/features/list-types`),
     element('features-date', `${EDITOR}/features/date`),
     element('features-folding', `${EDITOR}/features/folding`),
     element('features-links', `${EDITOR}/features/links`),
@@ -76,7 +76,7 @@ export const editorBoundaries = {
     { from: { element: { type: 'outline' } },
       allow: { to: { element: { type: ['foundation', 'runtime'] } } } },
     { from: { element: { type: 'runtime' } },
-      allow: { to: { element: { type: ['foundation', 'outline', 'features-checklist', 'features-date', 'features-links'] } } } },
+      allow: { to: { element: { type: ['foundation', 'outline', 'features-list-types', 'features-date', 'features-links'] } } } },
     { from: { element: { type: 'keymap' } },
       allow: { to: { element: { type: ['foundation'] } } } },
     { from: { element: { type: 'mobile-toolbar' } },
@@ -86,6 +86,8 @@ export const editorBoundaries = {
     // Workspace re-exports the pending-import API for the app.
     { from: { element: { type: 'view' } },
       allow: { to: { element: { type: ['outline', 'features-search', 'features-zoom', 'runtime'] } } } },
+    { from: { element: { type: 'features-menu' } },
+      allow: { to: { element: { type: ['foundation', 'outline', 'runtime', 'triggers', 'view', 'adapters', 'features-list-types'] } } } },
     { from: { element: { type: FEATURE_TYPES } },
       allow: { to: { element: { type: ['foundation', 'outline', 'runtime', 'triggers', 'view', 'adapters'] } } } },
     // The shell composes, so it reaches everything it mounts. Its edge into
@@ -104,7 +106,7 @@ export const editorBoundaries = {
         ...FEATURE_TYPES,
       ] } } } },
     { from: { element: { type: 'adapters' } },
-      allow: { to: { element: { type: ['outline', 'runtime', 'features-checklist'] } } } },
+      allow: { to: { element: { type: ['outline', 'runtime', 'features-list-types'] } } } },
 
     // Dev tooling reaches production modules by design; ambient declarations
     // are not runtime modules. Neither belongs in the graph.

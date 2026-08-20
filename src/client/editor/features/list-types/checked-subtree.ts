@@ -2,7 +2,7 @@ import type { ListItemNode } from '@lexical/list';
 
 import { getContentSiblings } from '#client/editor/outline/list-structure';
 import { getNestedList } from '#client/editor/outline/selection/tree';
-import { $getNoteChecked } from '#client/editor/features/checklist/checked-state';
+import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
 
 // A note's own checked flag says whether the user completed that note; this
 // derived state says whether its whole subtree is complete. They differ once a
