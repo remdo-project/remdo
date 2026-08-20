@@ -54,6 +54,16 @@ describe('document toolbar and import', () => {
     expect(await screen.findByRole('option', { name: 'Test Document' })).toBeInTheDocument();
   });
 
+  it('keeps the current document labeled when it is not in the source list', async () => {
+    renderDocumentRoute();
+
+    expect(await screen.findByRole('combobox', { name: 'Choose document' })).toHaveValue('routeDoc');
+
+    await openDocumentPicker();
+
+    expect(await screen.findByRole('option', { name: 'routeDoc' })).toBeInTheDocument();
+  });
+
   it('filters picker options after the current name is edited', async () => {
     renderDocumentRoute();
 

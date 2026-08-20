@@ -49,6 +49,10 @@ export default function DocumentToolbar({
     })),
   })).filter((source) => source.options.length > 0);
   const selectedText = formatNavigationLabel(documentLabel, Number.POSITIVE_INFINITY);
+  const selectedLabel = formatNavigationLabel(documentLabel);
+  const currentListed = documentGroups.some((group) =>
+    group.options.some((document) => document.value === docId),
+  );
 
   return (
     <header className="document-header">
@@ -60,13 +64,13 @@ export default function DocumentToolbar({
               allowsEmptyCollection
               aria-label="Choose document"
               className="document-header-doc-combobox"
+              key={docId}
               defaultFilter={(textValue, inputValue) => {
                 if (filterQuery == null || inputValue.length === 0) {
                   return true;
                 }
                 return textValue.toLowerCase().includes(filterQuery.toLowerCase());
               }}
-              isDisabled={documentGroups.length === 0}
               menuTrigger="focus"
               onInputChange={(value) => {
                 setFilterQuery((current) => {
@@ -97,6 +101,16 @@ export default function DocumentToolbar({
               </div>
               <Popover offset={4} placement="bottom start">
                 <ListBox className="document-header-doc-dropdown remdo-menu">
+                  {currentListed ? null : (
+                    <ListBoxItem
+                      data-document-ref={docId}
+                      id={docId}
+                      onAction={() => onSelectDocument(docId)}
+                      textValue={selectedText}
+                    >
+                      {selectedLabel}
+                    </ListBoxItem>
+                  )}
                   {documentGroups.map((group) => (
                     <ListBoxSection
                       data-document-source-id={group.id}
