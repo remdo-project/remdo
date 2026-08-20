@@ -3,8 +3,10 @@
 set -eu
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)"
-# shellcheck disable=SC1091 # shared helper lives in the repo.
-. "${ROOT_DIR}/tools/lib/drop-npm-run-delimiter.sh"
+
+if [ "${1:-}" = "--" ]; then
+  shift
+fi
 
 # A short TMPDIR keeps tsx IPC socket paths valid in long worktrees.
 exec env -u NO_COLOR \
