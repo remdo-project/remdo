@@ -71,16 +71,21 @@ export function hasRememberedSession() {
  * A sign-out that could not reach the server leaves the session cookie valid, so
  * the next reachable revalidation would sign the user back in. The marker keeps
  * this device signed out until a successful sign-in. A confirmed revoke is
- * remembered per tab so later loaders do not call sign-out again.
+ * remembered per tab for this marker generation so later loaders do not call
+ * sign-out again.
  */
 export function rememberPendingSignOut() {
   // Mark this tab first so its own peer-sign-out poll does not treat the write
-  // as another tab's broadcast. A new logout is not yet confirmed.
+  // as another tab's broadcast. Keep an existing generation so a failed revoke
+  // does not look like a new logout to other tabs.
   withTabStorage((storage) => {
     storage.setItem(PENDING_SIGN_OUT_ORIGIN_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
     storage.removeItem(CONFIRMED_SIGN_OUT_KEY);
   });
-  getSessionStorage()?.setItem(PENDING_SIGN_OUT_STORAGE_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
+  const storage = getSessionStorage();
+  if (storage && !storage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)) {
+    storage.setItem(PENDING_SIGN_OUT_STORAGE_KEY, crypto.randomUUID());
+  }
 }
 
 export function forgetPendingSignOut() {
@@ -91,8 +96,13 @@ export function forgetPendingSignOut() {
   });
 }
 
+function pendingSignOutGeneration(): string | null {
+  const value = getSessionStorage()?.getItem(PENDING_SIGN_OUT_STORAGE_KEY);
+  return value && value.length > 0 ? value : null;
+}
+
 export function hasPendingSignOut() {
-  return getSessionStorage()?.getItem(PENDING_SIGN_OUT_STORAGE_KEY) === PENDING_SIGN_OUT_STORAGE_VALUE;
+  return pendingSignOutGeneration() !== null;
 }
 
 export function originatedPendingSignOut() {
@@ -100,18 +110,25 @@ export function originatedPendingSignOut() {
 }
 
 function rememberConfirmedSignOut() {
+  const generation = pendingSignOutGeneration();
+  if (!generation) {
+    return;
+  }
   withTabStorage((storage) => {
-    storage.setItem(CONFIRMED_SIGN_OUT_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
+    storage.setItem(CONFIRMED_SIGN_OUT_KEY, generation);
   });
 }
 
 function hasConfirmedSignOut() {
-  return getTabStorage()?.getItem(CONFIRMED_SIGN_OUT_KEY) === PENDING_SIGN_OUT_STORAGE_VALUE;
+  const generation = pendingSignOutGeneration();
+  return generation !== null
+    && getTabStorage()?.getItem(CONFIRMED_SIGN_OUT_KEY) === generation;
 }
 
 export function isPendingSignOutStorageEvent(event: StorageEvent): boolean {
   return event.key === PENDING_SIGN_OUT_STORAGE_KEY
-    && event.newValue === PENDING_SIGN_OUT_STORAGE_VALUE;
+    && typeof event.newValue === 'string'
+    && event.newValue.length > 0;
 }
 
 /**

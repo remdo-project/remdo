@@ -154,7 +154,7 @@ describe('auth client session gate', () => {
 
     try {
       expect(() => rememberPendingSignOut()).not.toThrow();
-      expect(localStorage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)).toBe('1');
+      expect(localStorage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)).toBeTruthy();
     } finally {
       setItem.mockRestore();
     }
@@ -187,6 +187,18 @@ describe('auth client session gate', () => {
     expect(signOutMock).toHaveBeenCalledTimes(1);
     expect(getSessionMock).not.toHaveBeenCalled();
     expect(localStorage.getItem('remdo-pending-sign-out')).toBe('1');
+  });
+
+  it('retries revocation when a later logout replaces the pending marker', async () => {
+    signOutMock.mockResolvedValue({ data: { success: true }, error: null });
+    localStorage.setItem('remdo-pending-sign-out', 'logout-1');
+    const { resolveSessionGateState } = await import('#client/app/session/client');
+
+    await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
+    localStorage.setItem('remdo-pending-sign-out', 'logout-2');
+    await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
+
+    expect(signOutMock).toHaveBeenCalledTimes(2);
   });
 
   it('does not resume a session whose sign-out the server has not confirmed', async () => {
