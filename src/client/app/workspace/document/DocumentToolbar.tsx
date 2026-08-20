@@ -71,6 +71,7 @@ export default function DocumentToolbar({
                 }
                 return textValue.toLowerCase().includes(filterQuery.toLowerCase());
               }}
+              inputValue={filterQuery ?? selectedText}
               menuTrigger="focus"
               onInputChange={(value) => {
                 setFilterQuery((current) => {
@@ -105,7 +106,7 @@ export default function DocumentToolbar({
                     <ListBoxItem
                       data-document-ref={docId}
                       id={docId}
-                      onAction={() => onSelectDocument(docId)}
+                      onPress={() => onSelectDocument(docId)}
                       textValue={selectedText}
                     >
                       {selectedLabel}
@@ -123,7 +124,7 @@ export default function DocumentToolbar({
                           data-document-ref={document.value}
                           id={document.value}
                           key={`${group.id}:${document.value}`}
-                          onAction={() => onSelectDocument(document.value)}
+                          onPress={() => onSelectDocument(document.value)}
                           textValue={document.filterText}
                         >
                           {document.label}

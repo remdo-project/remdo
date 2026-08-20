@@ -192,6 +192,24 @@ describe('document route', () => {
     });
   });
 
+  it('clears zoom when the current document is pressed in the picker', async () => {
+    const router = renderDocumentRoute('/');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Zoom note' }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(createDocumentPath('testDoc', 'note3'));
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
+    const currentDocument = await screen.findByRole('option', { name: 'Test Document' });
+    fireEvent.pointerDown(currentDocument, { pointerType: 'mouse' });
+    fireEvent.pointerUp(currentDocument, { pointerType: 'mouse' });
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+    });
+  });
+
   it('resets the page title when the route unmounts', async () => {
     const { result } = renderDocumentRouteWithResult();
 
