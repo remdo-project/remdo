@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SourceServer } from '#domain/source-servers';
-import type { UserDocument } from '#note-sdk';
+import type { UserDocument } from '#domain/documents/user-data';
 import { syncSourceServersMapArray, syncUserDocumentsMapArray } from '#server/projection/user-data';
 import * as Y from 'yjs';
 

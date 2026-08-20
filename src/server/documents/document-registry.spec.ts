@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createTestResource } from '../_support/test-resource';
-import { createDocumentRegistryHarness } from './_support/document-registry-harness';
+import { createTestResource } from '../../../tests/unit/_support/test-resource';
+import { createDocumentRegistryHarness } from '../../../tests/unit/server/_support/document-registry-harness';
 
 const createHarness = createTestResource(createDocumentRegistryHarness);
 

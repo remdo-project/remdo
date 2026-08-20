@@ -8,7 +8,11 @@ function isAllowedFilename(filename: string): boolean {
   if (!filename || filename === '<input>' || filename === '<text>') {
     return true;
   }
-  return path.normalize(filename).endsWith(TARGET_SUFFIX);
+  const normalized = path.normalize(filename);
+  if (/\.spec\.(?:ts|tsx|js|jsx)$/u.test(normalized)) {
+    return true;
+  }
+  return normalized.endsWith(TARGET_SUFFIX);
 }
 
 export const commandsInCommandsFileRule: Rule.RuleModule = {

@@ -262,9 +262,9 @@ export default antfu(
     },
   },
   {
-    // Client dev directories and co-located specs: excluded above, kept under
-    // the client server-import restriction (they may import dev modules).
-    files: ['src/client/**/dev/**/*.{ts,tsx,mts,cts}', colocatedSpecGlob],
+    // Client dev directories and client co-located specs: excluded above, kept
+    // under the client server-import restriction (they may import dev modules).
+    files: ['src/client/**/dev/**/*.{ts,tsx,mts,cts}', 'src/client/**/*.spec.{ts,tsx}'],
     rules: {
       'no-restricted-imports': restrictedImports({
         group: [serverImportPattern],
