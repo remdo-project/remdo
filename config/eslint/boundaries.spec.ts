@@ -59,13 +59,7 @@ describe('boundaries', () => {
     expect(listLooseSourceFiles(CLIENT)).toEqual([]);
   });
 
-  // ui→app is the header/seam cycle until the shell composes that link.
-  // App→editor internals are refused by eslint (view/shell only).
-  const knownDeepLeaks = [
-    'client/ui/AppHeader.tsx -> #client/app/routes/DevToolbarSeam',
-  ];
-
-  it('does not grow the deep-import allowlist', () => {
+  it('does not grow the ui-to-app import allowlist', () => {
     const leaks = [...new Set(
       walkSourceFiles(path.join(CLIENT, 'ui')).flatMap((file) =>
         specifiersIn(file)
@@ -74,6 +68,6 @@ describe('boundaries', () => {
       ),
     )].sort();
 
-    expect(leaks).toEqual([...knownDeepLeaks].sort());
+    expect(leaks).toEqual([]);
   });
 });

@@ -16,10 +16,10 @@ import {
   useZoomNoteId,
 } from '#client/editor/view/EditorViewProvider';
 import type { SearchNotesReader } from '#client/editor/view/EditorViewProvider';
-import DocumentRoute from '#client/app/routes/DocumentRoute';
+import DocumentRoute from '#client/app/workspace/DocumentRoute';
 import { createDocumentPath, parseDocumentRef } from '#document-routes';
 
-vi.mock('#client/app/documents/user-data', async () => {
+vi.mock('#client/app/user-data/user-data', async () => {
   const { mockUserDataModule } = await import('#tests');
   return mockUserDataModule();
 });

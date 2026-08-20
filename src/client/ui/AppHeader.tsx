@@ -1,6 +1,6 @@
 import { Container, Group, Text, UnstyledButton } from '@mantine/core';
+import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { DevToolbarLinksSeam } from '#client/app/routes/DevToolbarSeam';
 import styles from './AppHeader.module.css';
 import { APP_TITLE } from './navigation-label';
 
@@ -13,13 +13,14 @@ export type AppHeaderAuthState =
 export interface AppHeaderProps {
   authState: AppHeaderAuthState;
   onLogout: () => void;
+  trailingNav?: ReactNode;
 }
 
 function navLinkClassName({ isActive }: { isActive: boolean }): string {
   return [styles.link, isActive && styles.activeLink].filter(Boolean).join(' ');
 }
 
-export default function AppHeader({ authState, onLogout }: AppHeaderProps) {
+export default function AppHeader({ authState, onLogout, trailingNav }: AppHeaderProps) {
   const hasAppAccess = authState.status === 'authenticated'
     || authState.status === 'offline-remembered';
 
@@ -53,7 +54,7 @@ export default function AppHeader({ authState, onLogout }: AppHeaderProps) {
                 Sign in
               </NavLink>
             )}
-            <DevToolbarLinksSeam linkClassName={styles.link} />
+            {trailingNav}
           </Group>
         </nav>
       </Container>

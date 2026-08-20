@@ -4,7 +4,7 @@ import compatPlugin from 'eslint-plugin-compat';
 import lexicalPlugin from '@lexical/eslint-plugin';
 import { commandsInCommandsFileRule } from './config/eslint/commandsInCommandsFile';
 import boundaries from 'eslint-plugin-boundaries';
-import { editorBoundaries, srcBoundaries } from './config/eslint/boundaries';
+import { appBoundaries, editorBoundaries, srcBoundaries } from './config/eslint/boundaries';
 import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
 
 const importMetaEnvRestriction = {
@@ -325,12 +325,11 @@ export default antfu(
     },
   },
   {
-    // Coarse src owners. Editor files keep the fine graph in the block below;
-    // including them here would replace that graph with "editor is one owner."
-    // Nested app `dev/` is the unrestricted tooling side of the production
-    // bundle boundary. `src/client/dev` is an owner and stays in this graph.
+    // Coarse src owners. Editor and app files keep their fine graphs below;
+    // including them here would replace those graphs with one owner each.
+    // `src/client/dev` is an owner and stays in this graph.
     files: ['src/**/*.{ts,tsx,mts,cts}'],
-    ignores: ['src/client/editor/**', 'src/client/app/**/dev/**', colocatedSpecGlob],
+    ignores: ['src/client/editor/**', 'src/client/app/**', colocatedSpecGlob],
     plugins: { boundaries },
     settings: {
       'boundaries/elements': srcBoundaries.elements,
@@ -361,6 +360,23 @@ export default antfu(
         policies: editorBoundaries.policies,
       }],
       'boundaries/no-unknown-dependencies': 'error',
+    },
+  },
+  {
+    files: ['src/client/app/**/*.{ts,tsx,mts,cts}'],
+    ignores: [colocatedSpecGlob],
+    plugins: { boundaries },
+    settings: {
+      'boundaries/elements': appBoundaries.elements,
+      'boundaries/include': appBoundaries.include,
+      'boundaries/ignore': appBoundaries.ignore,
+      'import/resolver': { typescript: { project: './tsconfig.json' } },
+    },
+    rules: {
+      'boundaries/dependencies': ['error', {
+        default: 'disallow',
+        policies: appBoundaries.policies,
+      }],
     },
   },
   {

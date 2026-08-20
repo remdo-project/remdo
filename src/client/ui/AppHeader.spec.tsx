@@ -5,10 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import AppHeader from './AppHeader';
 import type { AppHeaderAuthState } from './AppHeader';
 
-vi.mock('#client/app/routes/DevToolbarSeam', () => ({
-  DevToolbarLinksSeam: () => null,
-}));
-
 function renderHeader(authState: AppHeaderAuthState, onLogout = vi.fn()) {
   const result = render(
     <MantineProvider>

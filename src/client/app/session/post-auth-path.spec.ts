@@ -1,0 +1,49 @@
+import { describe, expect, it } from 'vitest';
+import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/shell/dev-route';
+import {
+  createPostAuthNextSearch,
+  resolvePostAuthPath,
+  resolvePostAuthTargetPath,
+} from '#client/app/session/post-auth-path';
+
+const CURRENT_ORIGIN = 'https://remdo.test';
+
+describe('post-auth paths', () => {
+  it('builds a next search param from the current route', () => {
+    const search = createPostAuthNextSearch(new Request(`https://remdo.test${DEV_LEXICAL_DEMO_ROUTE}`));
+
+    expect(new URLSearchParams(search).get('next')).toBe(DEV_LEXICAL_DEMO_ROUTE);
+  });
+
+  it('allows relative post-auth targets', () => {
+    expect(resolvePostAuthTargetPath('/', CURRENT_ORIGIN)).toBe('/');
+    expect(resolvePostAuthTargetPath('/sharing', CURRENT_ORIGIN)).toBe('/sharing');
+    expect(resolvePostAuthTargetPath('/n/main', CURRENT_ORIGIN)).toBe('/n/main');
+    expect(resolvePostAuthTargetPath(DEV_LEXICAL_DEMO_ROUTE, CURRENT_ORIGIN)).toBe(DEV_LEXICAL_DEMO_ROUTE);
+    expect(resolvePostAuthTargetPath('/api/current-user', CURRENT_ORIGIN)).toBe('/api/current-user');
+    expect(resolvePostAuthTargetPath('n/main', CURRENT_ORIGIN)).toBe('/n/main');
+    expect(resolvePostAuthTargetPath('https://remdo.test/n/main', CURRENT_ORIGIN)).toBe('/n/main');
+  });
+
+  it('normalizes post-auth targets as route paths', () => {
+    expect(resolvePostAuthTargetPath('/n/../dev/lexical-demo#main', CURRENT_ORIGIN))
+      .toBe(`${DEV_LEXICAL_DEMO_ROUTE}#main`);
+    expect(resolvePostAuthTargetPath('/..//example.test/n/main', CURRENT_ORIGIN)).toBe('/example.test/n/main');
+    expect(resolvePostAuthTargetPath('https://remdo.test//example.test/n/main', CURRENT_ORIGIN))
+      .toBe('/example.test/n/main');
+  });
+
+  it('rejects external post-auth targets', () => {
+    for (const target of [
+      '//example.test/n/main',
+      'https://example.test/n/main',
+      String.raw`/\example.test/n/main`,
+    ]) {
+      expect(resolvePostAuthTargetPath(target, CURRENT_ORIGIN)).toBeNull();
+    }
+  });
+
+  it('preserves the root document query after authentication', () => {
+    expect(resolvePostAuthPath('?doc=main', CURRENT_ORIGIN)).toBe('/n/main');
+  });
+});
