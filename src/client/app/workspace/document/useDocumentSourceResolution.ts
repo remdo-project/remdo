@@ -54,7 +54,6 @@ export function useDocumentSourceResolution(
   const currentDocument = currentSource?.documents().byId(docId) ?? null;
 
   return {
-    currentSourceId: currentSource?.id() ?? null,
     documentLabel: currentDocument?.text() ?? docId,
     // Block only while the probe is still deciding; once it settles we mount the
     // editor and let the collaboration layer surface the connection state.

@@ -20,8 +20,6 @@ const NEW_DOCUMENT_VALUE = '$new-document';
 const UPLOAD_DOCUMENT_VALUE = '$upload-document';
 
 export default function DocumentToolbar({
-  currentSourceId,
-  docId,
   documentLabel,
   documentSources,
   onCreateDocument,
@@ -33,8 +31,6 @@ export default function DocumentToolbar({
   path,
   searchControl,
 }: {
-  currentSourceId: string | null;
-  docId: string;
   documentLabel: string;
   documentSources: readonly DocumentSourceNote[];
   onCreateDocument: () => void;
@@ -51,7 +47,6 @@ export default function DocumentToolbar({
     id: source.id(),
     label: source.text(),
     options: source.documents().children().map((document) => ({
-      active: document.id() === docId && source.id() === currentSourceId,
       label: formatNavigationLabel(document.text()),
       value: document.id(),
     })),
@@ -79,18 +74,17 @@ export default function DocumentToolbar({
               >
                 <IconChevronDown aria-hidden="true" size={14} />
               </Button>
-              <Popover className="document-header-doc-popover" offset={4} placement="bottom start">
-                <Menu aria-label="Documents" className="document-header-doc-dropdown">
+              <Popover offset={4} placement="bottom start">
+                <Menu aria-label="Documents" className="document-header-doc-dropdown remdo-menu">
                   {documentGroups.map((group) => (
                     <MenuSection
                       data-document-source-id={group.id}
                       id={group.id}
                       key={group.id}
                     >
-                      <Header className="document-header-doc-group-label">{group.label}</Header>
+                      <Header>{group.label}</Header>
                       {group.options.map((document) => (
                         <MenuItem
-                          data-active={document.active || undefined}
                           data-document-ref={document.value}
                           id={`${group.id}:${document.value}`}
                           key={`${group.id}:${document.value}`}
