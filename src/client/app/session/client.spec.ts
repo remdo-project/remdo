@@ -16,6 +16,7 @@ describe('auth client session gate', () => {
     getSessionMock.mockReset();
     signOutMock.mockReset();
     localStorage.clear();
+    sessionStorage.clear();
     Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: true,
@@ -125,16 +126,33 @@ describe('auth client session gate', () => {
     expect(localStorage.getItem('remdo-current-user-bootstrap')).toBeNull();
   });
 
-  it('clears a pending sign-out once the server confirms it', async () => {
+  it('exposes the pending-sign-out write as a storage event peers can observe', async () => {
+    const {
+      isPendingSignOutStorageEvent,
+      PENDING_SIGN_OUT_STORAGE_KEY,
+      rememberPendingSignOut,
+    } = await import('#client/app/session/client');
+
+    rememberPendingSignOut();
+
+    expect(isPendingSignOutStorageEvent(new StorageEvent('storage', {
+      key: PENDING_SIGN_OUT_STORAGE_KEY,
+      newValue: localStorage.getItem(PENDING_SIGN_OUT_STORAGE_KEY),
+    }))).toBe(true);
+  });
+
+  it('does not resume a session after the server confirms sign-out', async () => {
     signOutMock.mockResolvedValue({ data: { success: true }, error: null });
+    getSessionMock.mockResolvedValue({ data: { user: { id: 'user1' } } });
     localStorage.setItem('remdo-pending-sign-out', '1');
     const { resolveSessionGateState } = await import('#client/app/session/client');
 
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
+    await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
 
-    expect(signOutMock).toHaveBeenCalledTimes(1);
+    expect(signOutMock).toHaveBeenCalledTimes(2);
     expect(getSessionMock).not.toHaveBeenCalled();
-    expect(localStorage.getItem('remdo-pending-sign-out')).toBeNull();
+    expect(localStorage.getItem('remdo-pending-sign-out')).toBe('1');
   });
 
   it('does not resume a session whose sign-out the server has not confirmed', async () => {

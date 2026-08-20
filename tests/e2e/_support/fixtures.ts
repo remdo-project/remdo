@@ -26,6 +26,20 @@ interface ConsoleIssuePatternOptions {
 }
 
 const issueExpectationsByPage = new WeakMap<Page, ConsoleIssueMatchers>();
+const allowedResponseStatusesByPage = new WeakMap<Page, Set<number>>();
+
+function allowResponseStatuses(page: Page, statuses: number[]): void {
+  const allowed = allowedResponseStatusesByPage.get(page) ?? new Set();
+  for (const status of statuses) {
+    allowed.add(status);
+  }
+  allowedResponseStatusesByPage.set(page, allowed);
+}
+
+export function allowUnauthorizedNetwork(page: Page): void {
+  allowResponseStatuses(page, [HTTP_STATUS.UNAUTHORIZED]);
+  setExpectedConsoleIssues(page, ['401'], { mode: 'allowContains' });
+}
 
 function createIssueCounts(messages: string[]): Map<string, number> {
   const counts = new Map<string, number>();
@@ -131,6 +145,9 @@ export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) =
 
   const onResponse = (response: Response) => {
     const status = response.status();
+    if (allowedResponseStatusesByPage.get(page)?.has(status)) {
+      return;
+    }
     if (status >= HTTP_STATUS.BAD_REQUEST && !allowResponse(response)) {
       throw new Error(`response ${status}: ${response.url()}`);
     }
@@ -146,6 +163,7 @@ export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) =
     const outstandingContains = expected ? [...expected.containsCounts.entries()] : [];
     const outstanding = [...outstandingExact, ...outstandingContains];
     issueExpectationsByPage.delete(page);
+    allowedResponseStatusesByPage.delete(page);
     page.off('console', onConsole);
     page.off('pageerror', onPageError);
     page.off('response', onResponse);

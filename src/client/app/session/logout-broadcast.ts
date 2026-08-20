@@ -1,42 +1,44 @@
-import { getGlobalBroadcastChannel } from 'better-auth/client';
+import {
+  hasPendingSignOut,
+  isPendingSignOutStorageEvent,
+  originatedPendingSignOut,
+} from './client';
+
+const PEER_SIGN_OUT_POLL_MS = 50;
 
 /**
- * Better Auth broadcasts a sign-out to its other tabs, but only from a
- * successful response, so an offline or failed sign-out never reaches them.
- * Posting the same message ourselves covers that case on the channel Better
- * Auth already listens to.
- *
- * `getGlobalBroadcastChannel` is exported but undocumented, so every use of it
- * goes through this module.
+ * Other tabs learn of a sign-out from the pending-sign-out marker the
+ * originating tab writes. A `storage` event is the prompt path; some browsers
+ * omit that event between same-origin tabs, so peers also poll the shared
+ * marker and skip the tab that wrote it.
  */
-export function broadcastSignOut(): void {
-  try {
-    getGlobalBroadcastChannel().post({
-      event: 'session',
-      data: { trigger: 'signout' },
-      clientId: crypto.randomUUID(),
-    });
-  } catch {
-    // A tab that cannot broadcast still signs itself out.
-  }
-}
-
 export function subscribeToSignOut(onSignOut: () => void): () => void {
-  try {
-    const channel = getGlobalBroadcastChannel();
-    // Messages arrive as `storage` events, which only fire once `setup()` has
-    // attached its listener.
-    const teardownChannel = channel.setup();
-    const unsubscribe = channel.subscribe((message) => {
-      if (message.data?.trigger === 'signout') {
-        onSignOut();
-      }
-    });
-    return () => {
-      unsubscribe();
-      teardownChannel();
-    };
-  } catch {
-    return () => {};
-  }
+  let delivered = false;
+  let pollId = 0;
+  const deliver = () => {
+    if (delivered) {
+      return;
+    }
+    delivered = true;
+    window.clearInterval(pollId);
+    onSignOut();
+  };
+
+  const onStorage = (event: StorageEvent) => {
+    if (isPendingSignOutStorageEvent(event)) {
+      deliver();
+    }
+  };
+  window.addEventListener('storage', onStorage);
+
+  pollId = window.setInterval(() => {
+    if (hasPendingSignOut() && !originatedPendingSignOut()) {
+      deliver();
+    }
+  }, PEER_SIGN_OUT_POLL_MS);
+
+  return () => {
+    window.removeEventListener('storage', onStorage);
+    window.clearInterval(pollId);
+  };
 }

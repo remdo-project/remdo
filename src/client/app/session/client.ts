@@ -3,7 +3,9 @@ import { createAuthClient } from 'better-auth/react';
 import { clearStoredCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap-storage';
 
 const KNOWN_SESSION_STORAGE_KEY = 'remdo-authenticated-session';
-const PENDING_SIGN_OUT_STORAGE_KEY = 'remdo-pending-sign-out';
+export const PENDING_SIGN_OUT_STORAGE_KEY = 'remdo-pending-sign-out';
+const PENDING_SIGN_OUT_ORIGIN_KEY = 'remdo-pending-sign-out-origin';
+const PENDING_SIGN_OUT_STORAGE_VALUE = '1';
 const SERVER_SIGN_OUT_TIMEOUT_MS = 1500;
 
 export const authClient = createAuthClient({
@@ -28,6 +30,14 @@ function getSessionStorage(): Storage | null {
   }
 }
 
+function getTabStorage(): Storage | null {
+  try {
+    return globalThis.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
 export function rememberAuthenticatedSession() {
   getSessionStorage()?.setItem(KNOWN_SESSION_STORAGE_KEY, '1');
   // A fresh session supersedes any sign-out this device never delivered;
@@ -47,24 +57,37 @@ export function hasRememberedSession() {
 /**
  * A sign-out that could not reach the server leaves the session cookie valid, so
  * the next reachable revalidation would sign the user back in. The marker keeps
- * this device signed out until the server confirms, and is cleared by any
- * successful sign-in.
+ * this device signed out until a successful sign-in, including after the server
+ * has confirmed the revoke.
  */
 export function rememberPendingSignOut() {
-  getSessionStorage()?.setItem(PENDING_SIGN_OUT_STORAGE_KEY, '1');
+  // Mark this tab first so its own peer-sign-out poll does not treat the write
+  // as another tab's broadcast.
+  getTabStorage()?.setItem(PENDING_SIGN_OUT_ORIGIN_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
+  getSessionStorage()?.setItem(PENDING_SIGN_OUT_STORAGE_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
 }
 
 export function forgetPendingSignOut() {
   getSessionStorage()?.removeItem(PENDING_SIGN_OUT_STORAGE_KEY);
+  getTabStorage()?.removeItem(PENDING_SIGN_OUT_ORIGIN_KEY);
 }
 
 export function hasPendingSignOut() {
-  return getSessionStorage()?.getItem(PENDING_SIGN_OUT_STORAGE_KEY) === '1';
+  return getSessionStorage()?.getItem(PENDING_SIGN_OUT_STORAGE_KEY) === PENDING_SIGN_OUT_STORAGE_VALUE;
+}
+
+export function originatedPendingSignOut() {
+  return getTabStorage()?.getItem(PENDING_SIGN_OUT_ORIGIN_KEY) === PENDING_SIGN_OUT_STORAGE_VALUE;
+}
+
+export function isPendingSignOutStorageEvent(event: StorageEvent): boolean {
+  return event.key === PENDING_SIGN_OUT_STORAGE_KEY
+    && event.newValue === PENDING_SIGN_OUT_STORAGE_VALUE;
 }
 
 /**
- * Revoke the server session. The pending marker stays until the server confirms;
- * a `{ error }` result is not confirmation.
+ * Revoke the server session. The pending marker stays until a successful
+ * sign-in; a `{ error }` result is not confirmation.
  */
 export async function revokeServerSession(): Promise<void> {
   try {
@@ -77,7 +100,6 @@ export async function revokeServerSession(): Promise<void> {
     if (result.error) {
       throw result.error;
     }
-    forgetPendingSignOut();
   } catch {
     rememberPendingSignOut();
   }
