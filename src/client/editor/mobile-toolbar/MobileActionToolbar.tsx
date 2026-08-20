@@ -7,8 +7,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
-import { useCoarsePointer } from '#client/runtime/useCoarsePointer';
-import { useVisualViewportBottom } from '#client/runtime/useVisualViewportBottom';
+import { useCoarsePointer } from '#client/browser/useCoarsePointer';
+import { useVisualViewportBottom } from '#client/browser/useVisualViewportBottom';
 import type { MobileActionId, SelectionCapability } from './actions';
 import { resolveSelectionCapability, runMobileAction } from './actions';
 import type { LaidOutAction } from './toolbar-layout';

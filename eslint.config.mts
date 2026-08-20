@@ -19,15 +19,15 @@ const importMetaEnvRestriction = {
 const checklistStateRestrictions = [
   {
     selector: "CallExpression[callee.property.name='getChecked']",
-    message: 'Use $getNoteChecked from #client/editor/features/checklist/checked-state instead.',
+    message: 'Use $getNoteChecked from #client/editor/features/list-types/checked-state instead.',
   },
   {
     selector: "CallExpression[callee.property.name='setChecked']",
-    message: 'Use $setNoteChecked from #client/editor/features/checklist/checked-state instead.',
+    message: 'Use $setNoteChecked from #client/editor/features/list-types/checked-state instead.',
   },
   {
     selector: "CallExpression[callee.property.name='toggleChecked']",
-    message: 'Use $toggleNoteChecked from #client/editor/features/checklist/checked-state instead.',
+    message: 'Use $toggleNoteChecked from #client/editor/features/list-types/checked-state instead.',
   },
 ] as const;
 const clientImportPattern = String.raw`\#client/*`;
@@ -262,9 +262,9 @@ export default antfu(
     },
   },
   {
-    // Client dev directories and co-located specs: excluded above, kept under
-    // the client server-import restriction (they may import dev modules).
-    files: ['src/client/**/dev/**/*.{ts,tsx,mts,cts}', colocatedSpecGlob],
+    // Client dev directories and client co-located specs: excluded above, kept
+    // under the client server-import restriction (they may import dev modules).
+    files: ['src/client/**/dev/**/*.{ts,tsx,mts,cts}', 'src/client/**/*.spec.{ts,tsx}'],
     rules: {
       'no-restricted-imports': restrictedImports({
         group: [serverImportPattern],
@@ -306,7 +306,7 @@ export default antfu(
     },
   },
   {
-    files: ['src/client/editor/features/checklist/CheckListPlugin.tsx'],
+    files: ['src/client/editor/features/list-types/CheckListPlugin.tsx'],
     rules: {
       // This plugin is the sanctioned boundary for direct checklist node syncing.
       'no-restricted-syntax': [

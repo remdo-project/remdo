@@ -16,7 +16,7 @@ import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { requireContentItemFromNode } from '#client/editor/outline/schema';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
-import { getNestedList } from '#client/editor/outline/selection/tree';
+import { $getNestedListType, $setNestedListType } from '#client/editor/features/list-types/nested-list-type';
 import { handleNoteMenuShortcut } from '#client/editor/features/menu/note-menu-shortcuts';
 import type { NoteMenuShortcutEvent } from '#client/editor/features/menu/note-menu-shortcuts';
 import { $resolveNoteStateFromDOMNode } from '#client/editor/features/menu/note-state';
@@ -242,7 +242,7 @@ export function NoteMenuPlugin() {
         if (!resolved) {
           return null;
         }
-        const childListType = resolved.hasChildren ? getNestedList(resolved.contentItem)?.getListType() ?? null : null;
+        const childListType = resolved.hasChildren ? $getNestedListType(resolved.contentItem) : null;
         return {
           noteKey: resolved.noteKey,
           hasChildren: resolved.hasChildren,
@@ -414,11 +414,7 @@ export function NoteMenuPlugin() {
         return;
       }
       const contentItem = requireContentItemFromNode(node);
-      const nested = getNestedList(contentItem);
-      if (!nested) {
-        return;
-      }
-      nested.setListType(listType);
+      $setNestedListType(contentItem, listType);
     });
     closeMenu();
   };

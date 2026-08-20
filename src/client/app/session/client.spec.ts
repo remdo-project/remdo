@@ -16,6 +16,7 @@ describe('auth client session gate', () => {
     getSessionMock.mockReset();
     signOutMock.mockReset();
     localStorage.clear();
+    sessionStorage.clear();
     Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: true,
@@ -125,16 +126,91 @@ describe('auth client session gate', () => {
     expect(localStorage.getItem('remdo-current-user-bootstrap')).toBeNull();
   });
 
-  it('clears a pending sign-out once the server confirms it', async () => {
+  it('completes sign-in memory when tab storage rejects origin-mark removal', async () => {
+    const {
+      PENDING_SIGN_OUT_STORAGE_KEY,
+      rememberAuthenticatedSession,
+      rememberPendingSignOut,
+    } = await import('#client/app/session/client');
+    rememberPendingSignOut();
+    const removeItem = vi.spyOn(sessionStorage, 'removeItem').mockImplementation(() => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+    });
+
+    try {
+      expect(() => rememberAuthenticatedSession()).not.toThrow();
+      expect(localStorage.getItem('remdo-authenticated-session')).toBe('1');
+      expect(localStorage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)).toBeNull();
+    } finally {
+      removeItem.mockRestore();
+    }
+  });
+
+  it('writes a pending marker when crypto.randomUUID is unavailable', async () => {
+    const { PENDING_SIGN_OUT_STORAGE_KEY, rememberPendingSignOut } = await import('#client/app/session/client');
+    vi.stubGlobal('crypto', {});
+
+    try {
+      expect(() => rememberPendingSignOut()).not.toThrow();
+      expect(localStorage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)).toBeTruthy();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('still writes the shared pending marker when tab storage rejects the origin mark', async () => {
+    const { PENDING_SIGN_OUT_STORAGE_KEY, rememberPendingSignOut } = await import('#client/app/session/client');
+    const setItem = vi.spyOn(sessionStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+    });
+
+    try {
+      expect(() => rememberPendingSignOut()).not.toThrow();
+      expect(localStorage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)).toBeTruthy();
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
+  it('exposes the pending-sign-out write as a storage event peers can observe', async () => {
+    const {
+      isPendingSignOutStorageEvent,
+      PENDING_SIGN_OUT_STORAGE_KEY,
+      rememberPendingSignOut,
+    } = await import('#client/app/session/client');
+
+    rememberPendingSignOut();
+
+    expect(isPendingSignOutStorageEvent(new StorageEvent('storage', {
+      key: PENDING_SIGN_OUT_STORAGE_KEY,
+      newValue: localStorage.getItem(PENDING_SIGN_OUT_STORAGE_KEY),
+    }))).toBe(true);
+  });
+
+  it('does not resume a session after the server confirms sign-out', async () => {
     signOutMock.mockResolvedValue({ data: { success: true }, error: null });
+    getSessionMock.mockResolvedValue({ data: { user: { id: 'user1' } } });
     localStorage.setItem('remdo-pending-sign-out', '1');
     const { resolveSessionGateState } = await import('#client/app/session/client');
 
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
+    await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
 
     expect(signOutMock).toHaveBeenCalledTimes(1);
     expect(getSessionMock).not.toHaveBeenCalled();
-    expect(localStorage.getItem('remdo-pending-sign-out')).toBeNull();
+    expect(localStorage.getItem('remdo-pending-sign-out')).toBe('1');
+  });
+
+  it('retries revocation when a later logout replaces the pending marker', async () => {
+    signOutMock.mockResolvedValue({ data: { success: true }, error: null });
+    localStorage.setItem('remdo-pending-sign-out', 'logout-1');
+    const { resolveSessionGateState } = await import('#client/app/session/client');
+
+    await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
+    localStorage.setItem('remdo-pending-sign-out', 'logout-2');
+    await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
+
+    expect(signOutMock).toHaveBeenCalledTimes(2);
   });
 
   it('does not resume a session whose sign-out the server has not confirmed', async () => {

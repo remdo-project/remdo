@@ -1,11 +1,12 @@
 import { MantineProvider } from '@mantine/core';
-import { fireEvent, render, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { act, fireEvent, render, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { hasUnsyncedLocalChanges } from '#collaboration/unsynced-local-changes';
 import { resetUserData } from '#client/app/user-data/user-data';
 import { forgetAuthenticatedSession } from './client';
-import { LogoutProvider, useLogout } from './useLogout';
+import { LOGGED_OUT_STATE_KEY, LogoutProvider, useLogout } from './useLogout';
 import { logoutCurrentUser } from './logout';
 import UnsyncedLogoutDialog from '#client/ui/UnsyncedLogoutDialog';
 
@@ -28,7 +29,6 @@ vi.mock('./logout', () => ({
 let deliverPeerSignOut: (() => void) | undefined;
 
 vi.mock('./logout-broadcast', () => ({
-  broadcastSignOut: vi.fn(),
   subscribeToSignOut: vi.fn((onSignOut: () => void) => {
     deliverPeerSignOut = onSignOut;
     return () => {
@@ -56,7 +56,12 @@ function SecondLogoutCaller() {
   return <button onClick={logout.requestLogout} type="button">Logout elsewhere</button>;
 }
 
-function renderHarness() {
+function LocationState() {
+  const location = useLocation();
+  return <output>{JSON.stringify(location.state)}</output>;
+}
+
+function renderHarness(extra?: ReactNode) {
   // The shared jsdom document already hosts a mounted editor, so queries are
   // scoped to this render's own container rather than the whole body.
   const container = document.createElement('div');
@@ -66,6 +71,7 @@ function renderHarness() {
       <MemoryRouter>
         <LogoutProvider>
           <LogoutHarness />
+          {extra}
         </LogoutProvider>
       </MemoryRouter>
     </MantineProvider>,
@@ -149,10 +155,17 @@ describe('logout with unsynced local edits', () => {
     expect(logoutCurrentUser).toHaveBeenCalledTimes(1);
   });
 
-  it('tears a peer tab down without repeating the originating wipe', () => {
-    renderHarness();
-    deliverPeerSignOut?.();
+  it('sends a peer tab to the signed-out location without repeating the wipe', async () => {
+    const { ui } = renderHarness(<LocationState />);
+    act(() => {
+      deliverPeerSignOut?.();
+    });
 
+    await waitFor(() => {
+      expect(ui.getByRole('status')).toHaveTextContent(
+        JSON.stringify({ [LOGGED_OUT_STATE_KEY]: true }),
+      );
+    });
     expect(resetUserData).toHaveBeenCalledTimes(1);
     expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
     expect(logoutCurrentUser).not.toHaveBeenCalled();

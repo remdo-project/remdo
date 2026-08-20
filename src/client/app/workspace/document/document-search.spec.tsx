@@ -12,8 +12,8 @@ import {
   renderDocumentRoute,
   resetDocumentRouteHarness,
   setMockSearchSnapshot,
-} from './_support/document-route-harness';
-import type { TestSearchSnapshot } from './_support/document-route-harness';
+} from '../../../../../tests/unit/_support/document-route-harness';
+import type { TestSearchSnapshot } from '../../../../../tests/unit/_support/document-route-harness';
 
 function setSearchSnapshot(snapshot: TestSearchSnapshot) {
   setMockSearchSnapshot('routeDoc', snapshot);

@@ -6,7 +6,7 @@ import {
   hasUnsyncedLocalChanges,
   markDocumentUnsynced,
 } from '#collaboration/unsynced-local-changes';
-import { createMockProvider, createMockProviderFactory } from './collab/_support/mock-provider';
+import { createMockProvider, createMockProviderFactory } from '#tests-collab/mock-provider';
 
 function createSession(docId: string) {
   const docMap = new Map<string, Y.Doc>([[docId, new Y.Doc()]]);

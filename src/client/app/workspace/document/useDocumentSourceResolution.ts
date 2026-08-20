@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDocumentSourcesLoading } from '#client/app/user-data/user-data';
-import { useOnlineState } from '#client/runtime/useOnlineState';
+import { useOnlineState } from '#client/browser/useOnlineState';
 import { createDocumentSyncTokenApiPath } from '#document-routes';
 import type { DocumentSourceNote } from '#note-sdk';
 

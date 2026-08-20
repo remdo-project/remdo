@@ -5,7 +5,7 @@ import { resetUserData } from '#client/app/user-data/user-data';
 import { hasUnsyncedLocalChanges } from '#collaboration/unsynced-local-changes';
 import { forgetAuthenticatedSession } from './client';
 import { logoutCurrentUser } from './logout';
-import { broadcastSignOut, subscribeToSignOut } from './logout-broadcast';
+import { subscribeToSignOut } from './logout-broadcast';
 
 export const LOGGED_OUT_STATE_KEY = 'loggedOut';
 
@@ -38,9 +38,8 @@ function useLogoutController(): LogoutController {
   const [confirmingLoss, setConfirmingLoss] = useState(false);
 
   const signOut = useCallback(async () => {
-    // Peers tear down while this tab is still healthy, before its own storage
-    // and session go away.
-    broadcastSignOut();
+    // `logoutCurrentUser` writes the pending-sign-out marker first, so peers
+    // tear down while this tab is still healthy.
     await logoutCurrentUser();
     await navigate('/', { replace: true, state: { [LOGGED_OUT_STATE_KEY]: true } });
   }, [navigate]);
@@ -69,7 +68,7 @@ function useLogoutController(): LogoutController {
     // before a further edit hits a provider whose database is already going away.
     resetUserData();
     forgetAuthenticatedSession();
-    void navigate('/', { replace: true });
+    void navigate('/', { replace: true, state: { [LOGGED_OUT_STATE_KEY]: true } });
   }), [navigate]);
 
   return { confirmingLoss, requestLogout, confirmLogout, cancelLogout };

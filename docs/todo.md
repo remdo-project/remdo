@@ -95,8 +95,9 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 - **Enter at the end of an inline element.** Target behavior
   ([Insertion](specs/outliner/insertion.md)): splitting a note keeps the note id
   and children on the note holding the trailing text
-  (`tests/unit/insertion.spec.ts`). `$splitContentItemAtSelection` in
-  `InsertionPlugin.tsx` resolves the anchor through inline ancestors, but when
+  (`src/client/editor/editing/insertion/insertion.spec.ts`).
+  `$splitContentItemAtSelection` in `InsertionPlugin.tsx` resolves the
+  anchor through inline ancestors, but when
   the caret sits at the end of an inline element's last text node and content
   follows the inline, `getNextSibling()` is null and the split returns false. A
   non-collapsed selection ending there deletes the text and swallows `Enter`
@@ -141,7 +142,8 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   ([Menu](specs/outliner/menu.md)): the note menu's toggle applies to the selected
   note range when the current note is inside it. The implementation always
   targets the menu's note (`noteItemKey` is resolved first in
-  `CheckListPlugin.tsx`, asserted by `tests/unit/checklist-state.spec.ts`);
+  `CheckListPlugin.tsx`, asserted by
+  `src/client/editor/features/list-types/checklist-state.spec.ts`);
   adjust the resolution and tests.
 
 - **Report the Lexical `updateEditorSync` warning upstream.** A commit that

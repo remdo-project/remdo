@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { NotePathItem } from '#client/editor/view/workspace';
+import type { SearchPathItem } from '#client/editor/view/workspace';
 import { SearchResultRow } from '#client/app/workspace/SearchResultRow';
 
-const ancestorPath: NotePathItem[] = [
+const ancestorPath: SearchPathItem[] = [
   { noteId: 'root', label: 'Work' },
   { noteId: 'mid', label: 'Q3 planning' },
   { noteId: 'mid2', label: 'Roadmap' },
@@ -26,7 +26,7 @@ function renderRow({
   query = 'refine',
   text = 'TODO refine estimates',
 }: {
-  path?: NotePathItem[];
+  path?: SearchPathItem[];
   checked?: boolean;
   children?: typeof childPreview;
   childCount?: number;

@@ -1,6 +1,6 @@
 import { TextInput } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
-import type { NotePathItem } from '#client/editor/view/workspace';
+import type { SearchPathItem } from '#client/editor/view/workspace';
 import {
   UNTITLED_LABEL,
   normalizeNavigationLabel,
@@ -8,7 +8,7 @@ import {
 import { SearchResultRow } from '../SearchResultRow';
 import type { DocumentSearchModel } from '../useDocumentSearchModel';
 
-function buildSearchResultAccessibleName(text: string, path: NotePathItem[]): string {
+function buildSearchResultAccessibleName(text: string, path: SearchPathItem[]): string {
   const name = normalizeNavigationLabel(text) || UNTITLED_LABEL;
   const ancestors = path.slice(0, -1);
   if (ancestors.length === 0) {

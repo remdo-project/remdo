@@ -26,6 +26,18 @@ interface ConsoleIssuePatternOptions {
 }
 
 const issueExpectationsByPage = new WeakMap<Page, ConsoleIssueMatchers>();
+const allowUnauthorizedApiByPage = new WeakMap<Page, boolean>();
+
+export function allowUnauthorizedNetwork(page: Page): void {
+  allowUnauthorizedApiByPage.set(page, true);
+  setExpectedConsoleIssues(page, ['status of 401'], { mode: 'allowContains' });
+}
+
+function isLogoutUnauthorizedPath(pathname: string): boolean {
+  return pathname === '/api/current-user'
+    || pathname.startsWith('/api/auth/')
+    || pathname.endsWith('/sync-tokens');
+}
 
 function createIssueCounts(messages: string[]): Map<string, number> {
   const counts = new Map<string, number>();
@@ -131,6 +143,13 @@ export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) =
 
   const onResponse = (response: Response) => {
     const status = response.status();
+    if (
+      allowUnauthorizedApiByPage.get(page)
+      && status === HTTP_STATUS.UNAUTHORIZED
+      && isLogoutUnauthorizedPath(new URL(response.url()).pathname)
+    ) {
+      return;
+    }
     if (status >= HTTP_STATUS.BAD_REQUEST && !allowResponse(response)) {
       throw new Error(`response ${status}: ${response.url()}`);
     }
@@ -146,6 +165,7 @@ export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) =
     const outstandingContains = expected ? [...expected.containsCounts.entries()] : [];
     const outstanding = [...outstandingExact, ...outstandingContains];
     issueExpectationsByPage.delete(page);
+    allowUnauthorizedApiByPage.delete(page);
     page.off('console', onConsole);
     page.off('pageerror', onPageError);
     page.off('response', onResponse);
