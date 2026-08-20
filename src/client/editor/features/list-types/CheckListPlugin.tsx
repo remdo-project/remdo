@@ -5,9 +5,9 @@ import type { LexicalEditor } from 'lexical';
 import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 import { useEffect } from 'react';
 
-import type { NoteCheckedDisplay } from '#client/editor/features/checklist/checked-subtree';
-import { $getNoteChecked, $setNoteCheckedRaw } from '#client/editor/features/checklist/checked-state';
-import { $isNoteSubtreeChecked, NoteCheckedDisplayCache } from '#client/editor/features/checklist/checked-subtree';
+import type { NoteCheckedDisplay } from '#client/editor/features/list-types/checked-subtree';
+import { $getNoteChecked, $setNoteCheckedRaw } from '#client/editor/features/list-types/checked-state';
+import { $isNoteSubtreeChecked, NoteCheckedDisplayCache } from '#client/editor/features/list-types/checked-subtree';
 import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 import type { SetNoteCheckedPayload } from '#client/editor/foundation/commands';
 import { isBulletHit, isCheckboxHit } from '#client/editor/outline/bullet-hit-test';

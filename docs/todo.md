@@ -143,7 +143,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   note range when the current note is inside it. The implementation always
   targets the menu's note (`noteItemKey` is resolved first in
   `CheckListPlugin.tsx`, asserted by
-  `src/client/editor/features/checklist/checklist-state.spec.ts`);
+  `src/client/editor/features/list-types/checklist-state.spec.ts`);
   adjust the resolution and tests.
 
 - **Report the Lexical `updateEditorSync` warning upstream.** A commit that
