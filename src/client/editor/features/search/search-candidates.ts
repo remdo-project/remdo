@@ -1,6 +1,10 @@
 import type { NoteListType } from '#note-sdk';
-import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import { matchesPathQuery } from '#client/search/query-match';
+
+export interface SearchPathItem {
+  noteId: string;
+  label: string;
+}
 
 /** A note's render-relevant fields, used for the child preview. */
 interface ChildCandidate {
@@ -14,7 +18,7 @@ interface ChildCandidate {
  *  self last) for matching and result context. */
 export interface SearchCandidate extends ChildCandidate {
   childPreview: ChildPreview;
-  path: NotePathItem[];
+  path: SearchPathItem[];
 }
 
 /** The first few direct children of a result (for the row preview) plus the
@@ -66,7 +70,7 @@ function toChildCandidate(note: SearchableNote): ChildCandidate {
 
 interface CandidateWalkEntry {
   note: SearchableNote;
-  ancestorPath: NotePathItem[];
+  ancestorPath: SearchPathItem[];
 }
 
 /**
