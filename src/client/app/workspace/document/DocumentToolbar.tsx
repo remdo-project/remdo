@@ -1,6 +1,6 @@
 import { IconChevronDown } from '@tabler/icons-react';
-import type { Key, ReactNode } from 'react';
-import { useRef } from 'react';
+import type { ReactNode } from 'react';
+import { useRef, useState } from 'react';
 import {
   Button,
   ComboBox,
@@ -14,18 +14,7 @@ import {
 import type { DocumentSourceNote } from '#note-sdk';
 import { ZoomBreadcrumbs } from '#client/editor/view/workspace';
 import type { NotePathItem } from '#client/editor/view/workspace';
-import { formatNavigationLabel, normalizeNavigationLabel, UNTITLED_LABEL } from '#client/ui/navigation-label';
-
-function documentFilterText(raw: string): string {
-  const normalized = normalizeNavigationLabel(raw);
-  return normalized.length > 0 ? normalized : UNTITLED_LABEL;
-}
-
-function documentIdFromKey(key: Key): string {
-  const value = String(key);
-  const separator = value.indexOf(':');
-  return separator === -1 ? value : value.slice(separator + 1);
-}
+import { formatNavigationLabel } from '#client/ui/navigation-label';
 
 export default function DocumentToolbar({
   docId,
@@ -49,23 +38,17 @@ export default function DocumentToolbar({
   searchControl: ReactNode;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [filterQuery, setFilterQuery] = useState<string | null>(null);
   const documentGroups = documentSources.map((source) => ({
     id: source.id(),
     label: source.text(),
     options: source.documents().children().map((document) => ({
-      filterText: documentFilterText(document.text()),
+      filterText: formatNavigationLabel(document.text(), Number.POSITIVE_INFINITY),
       label: formatNavigationLabel(document.text()),
       value: document.id(),
     })),
   })).filter((source) => source.options.length > 0);
-  const selectedKey = documentGroups
-    .flatMap((group) => group.options.map((document) => ({
-      key: `${group.id}:${document.value}`,
-      filterText: document.filterText,
-      value: document.value,
-    })))
-    .find((document) => document.value === docId);
-  const selectedText = selectedKey?.filterText ?? documentFilterText(documentLabel);
+  const selectedText = formatNavigationLabel(documentLabel, Number.POSITIVE_INFINITY);
 
   return (
     <header className="document-header">
@@ -78,28 +61,28 @@ export default function DocumentToolbar({
               aria-label="Choose document"
               className="document-header-doc-combobox"
               defaultFilter={(textValue, inputValue) => {
-                if (inputValue === selectedText || inputValue.length === 0) {
+                if (filterQuery == null || inputValue.length === 0) {
                   return true;
                 }
-                return textValue.toLowerCase().includes(inputValue.toLowerCase());
+                return textValue.toLowerCase().includes(filterQuery.toLowerCase());
               }}
               isDisabled={documentGroups.length === 0}
               menuTrigger="focus"
+              onInputChange={(value) => {
+                setFilterQuery((current) => {
+                  if (current !== null) {
+                    return value;
+                  }
+                  return value === selectedText ? null : value;
+                });
+              }}
               onOpenChange={(isOpen) => {
+                setFilterQuery(null);
                 if (isOpen) {
                   requestAnimationFrame(() => inputRef.current?.select());
                 }
               }}
-              onChange={(key) => {
-                if (key == null) {
-                  return;
-                }
-                const nextDocId = documentIdFromKey(key);
-                if (nextDocId !== docId) {
-                  onSelectDocument(nextDocId);
-                }
-              }}
-              value={selectedKey?.key ?? null}
+              value={docId}
             >
               <div className="document-header-doc-combo remdo-interaction-surface">
                 <Input className="document-header-doc-input" ref={inputRef} />
@@ -119,11 +102,9 @@ export default function DocumentToolbar({
                       {group.options.map((document) => (
                         <ListBoxItem
                           data-document-ref={document.value}
-                          id={`${group.id}:${document.value}`}
+                          id={document.value}
                           key={`${group.id}:${document.value}`}
-                          onAction={document.value === docId
-                            ? () => onSelectDocument(docId)
-                            : undefined}
+                          onAction={() => onSelectDocument(document.value)}
                           textValue={document.filterText}
                         >
                           {document.label}

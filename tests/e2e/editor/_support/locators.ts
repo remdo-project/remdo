@@ -2,7 +2,6 @@ import type { Locator, Page } from '#editor/fixtures';
 
 export const editorLocator = (page: Page): Locator => page.locator('.editor-container');
 export const zoomBreadcrumbs = (page: Page): Locator => page.locator('[data-zoom-breadcrumbs]');
-export const documentZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(page).locator('[data-zoom-crumb="document"]');
 export const homeZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(page).locator('[data-zoom-crumb="home"]');
 export const homeView = (page: Page): Locator => page.locator('[data-testid="document-home"]');
 export const documentPicker = (page: Page): Locator => page.getByRole('combobox', { name: 'Choose document' });
@@ -13,10 +12,9 @@ export async function chooseDocument(page: Page, name: string): Promise<void> {
   await page.getByRole('option', { name, exact: true }).first().click();
 }
 
-export async function clearZoomFromDocumentPicker(page: Page): Promise<void> {
+export async function clearZoom(page: Page): Promise<void> {
   const name = await documentPicker(page).inputValue();
-  await documentPickerButton(page).click();
-  await page.getByRole('option', { name, exact: true }).first().click();
+  await chooseDocument(page, name);
 }
 
 // The date picker portals outside `.editor-container`, so its locators are

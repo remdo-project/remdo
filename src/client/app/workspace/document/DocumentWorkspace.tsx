@@ -82,11 +82,11 @@ export default function DocumentWorkspace({
   const uploadDocument = (file: File) => {
     void actions.uploadDocument(file);
   };
-  // Opening a document from Home lands on its document-root view. Selecting the
-  // already-open document is a no-op route change, so clear zoom directly (only
-  // when actually zoomed) to reach the root instead of returning to the previous
+  // Home rows and the trail picker both land on the document-root view.
+  // Selecting the already-open document is a no-op route change, so clear zoom
+  // directly (only when actually zoomed) instead of returning to the previous
   // zoomed subtree.
-  const openDocumentFromHome = leaveHome((nextDocId: string) => {
+  const openDocument = leaveHome((nextDocId: string) => {
     if (nextDocId !== docId) {
       onSelectDocument(nextDocId);
     } else if (zoomNoteId !== null) {
@@ -139,7 +139,7 @@ export default function DocumentWorkspace({
         docId={docId}
         documentLabel={source.documentLabel}
         documentSources={documentSources}
-        onSelectDocument={openDocumentFromHome}
+        onSelectDocument={openDocument}
         onSelectHome={() => setHomeActive(true)}
         onSelectNoteId={zoomToNote}
         onStatusHostChange={setStatusHost}
@@ -181,7 +181,7 @@ export default function DocumentWorkspace({
         <HomeView
           {...home}
           onCreateDocument={createDocument}
-          onSelectDocument={openDocumentFromHome}
+          onSelectDocument={openDocument}
           onUploadDocument={uploadDocument}
         />
       )}

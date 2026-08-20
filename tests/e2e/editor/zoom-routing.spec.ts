@@ -1,6 +1,6 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
-import { clearZoomFromDocumentPicker, editorLocator, zoomBreadcrumbs } from '#editor/locators';
+import { clearZoom, editorLocator, zoomBreadcrumbs } from '#editor/locators';
 import { waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
 
@@ -62,7 +62,7 @@ test.describe('Zoom routing', () => {
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await editor.load('basic');
 
-    await clearZoomFromDocumentPicker(page);
+    await clearZoom(page);
     await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
   });
 
@@ -80,7 +80,7 @@ test.describe('Zoom routing', () => {
     const breadcrumbs = zoomBreadcrumbs(page);
     await expect(breadcrumbs.locator('[data-zoom-crumb="ancestor"]')).toHaveCount(0);
 
-    await clearZoomFromDocumentPicker(page);
+    await clearZoom(page);
     await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
   });
 
