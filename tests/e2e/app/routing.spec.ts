@@ -1,4 +1,10 @@
-import { collectCurrentUserRequests, expect, test, unauthenticatedTest } from '#e2e/fixtures';
+import {
+  allowUnauthorizedNetwork,
+  collectCurrentUserRequests,
+  expect,
+  test,
+  unauthenticatedTest,
+} from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import type { CurrentUserBootstrap } from '#domain/documents/user-data';
 import { HTTP_STATUS } from '#platform/http/status';
@@ -128,6 +134,7 @@ test.describe('Routing', () => {
     await createIndexedDb(page, 'y-sweet-logout-test');
     const navigations = await countNavigations(page);
 
+    allowUnauthorizedNetwork(page);
     await page.getByRole('button', { name: 'Logout' }).click();
 
     await expectPath(page, '/');
@@ -148,12 +155,14 @@ test.describe('Routing', () => {
     await peer.goto('/');
     await expect(peer.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
 
+    allowUnauthorizedNetwork(page);
     await page.getByRole('button', { name: 'Logout' }).click();
 
     // The peer stops using its local data as soon as the broadcast lands; the
     // login view follows a loader round-trip, so allow for a slow one.
     await expect(peer.getByRole('button', { name: 'Logout' })).toBeHidden({ timeout: 15_000 });
     await expect(peer.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible({ timeout: 15_000 });
+    await expect(peer.getByRole('status')).toContainText(/signed out/i);
     await peer.close();
   });
 });
