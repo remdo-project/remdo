@@ -21,6 +21,7 @@ owner. Provider-specific surfaces may load it alongside their own rules.
   - **Cross-mode change impact:** [Run-Mode Impact](CONTRIBUTING.md#run-mode-impact).
   - **Compatibility defaults:** [Backward compatibility](CONTRIBUTING.md#backward-compatibility-pre-10).
   - **Tracked code comments:** [Code comments](CONTRIBUTING.md#code-comments).
+  - **UI library default:** [UI Libraries](CONTRIBUTING.md#ui-libraries).
   - **Testing policy:** [Testing](docs/dev/testing.md).
 - **Long-term product constraints:** [Project principles](docs/principles.md).
 - **Supported run modes:** [Run Modes](docs/run-modes.md).

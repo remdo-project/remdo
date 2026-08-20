@@ -21,12 +21,12 @@ describe('document toolbar and import', () => {
 
   const clickNewDocument = async () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByRole('option', { hidden: true, name: 'New' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'New' }));
   };
 
   const clickUploadDocument = async () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByText('Upload'));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Upload' }));
   };
 
   const rejectDocumentCreation = (message = 'offline') => {
@@ -43,10 +43,9 @@ describe('document toolbar and import', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
 
-    const newOption = await screen.findByRole('option', { hidden: true, name: 'New' });
-    const uploadOption = (await screen.findByText('Upload')).closest('[role="option"]');
-    expect(uploadOption).not.toBeNull();
-    expect(newOption.compareDocumentPosition(uploadOption!) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    const newOption = await screen.findByRole('menuitem', { name: 'New' });
+    const uploadOption = await screen.findByRole('menuitem', { name: 'Upload' });
+    expect(newOption.compareDocumentPosition(uploadOption) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   });
 
   it('creates a document from the selected backup filename before registering the pending import', async () => {

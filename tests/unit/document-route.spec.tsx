@@ -53,7 +53,7 @@ describe('document route', () => {
     const router = renderDocumentRoute(createDocumentPath('testDoc'));
 
     fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByRole('option', { hidden: true, name: 'Source Document' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Source Document' }));
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe(createDocumentPath('sourceDoc'));
@@ -67,7 +67,7 @@ describe('document route', () => {
     const router = renderDocumentRoute();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByRole('option', { hidden: true, name: 'Test Document' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Test Document' }));
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/');

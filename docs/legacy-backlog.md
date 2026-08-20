@@ -239,7 +239,7 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-
 
 Tracks the gaps between [Home](specs/outliner/home.md) and the [view header](specs/outliner/view-header.md) as specified and what ships.
 
-- The document-source chevron combobox picker in `DocumentToolbar.tsx`
+- The document-source chevron menu picker in `DocumentToolbar.tsx`
   (`NEW_DOCUMENT_VALUE` / `UPLOAD_DOCUMENT_VALUE` and the grouped document
   options) is replaced by Home: Home owns document browsing and the New/Upload
   actions. Remove the picker once Home fully covers switching; the intervening
@@ -251,7 +251,7 @@ Tracks the gaps between [Home](specs/outliner/home.md) and the [view header](spe
   the document root (per [Home](specs/outliner/home.md) core behavior 3), the toolbar
   picker keeps the zoom (its pre-existing switcher behavior). Removing the picker
   removes the inconsistency; decide the picker's behavior only if it outlives Home.
-  Retirement is its own PR: delete the picker combobox and the `documentControl`
+  Retirement is its own PR: delete the picker menu and the `documentControl`
   slot from `ZoomBreadcrumbs` (the doc name stays a crumb — full pure-nav is the
   view-header work), delete its specs (`document-switcher.spec.ts`, the picker
   cases in `document-toolbar.spec.tsx`/`document-route.spec.tsx`), and rewrite the
@@ -282,12 +282,11 @@ the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#br
   end state is the document name being the document root note's own text (a CRDT
   edit), which also unifies the root and subtree-zoom header. Needs an SDK rename
   capability, its server/collab path, and a name migration.
-- Breadcrumb accessibility: `ZoomBreadcrumbs` (Mantine `Breadcrumbs`) emits
-  neither a `nav` landmark nor an ordered list, and the crumbs carry no
-  `aria-current`. When the header lands the breadcrumb becomes pure navigation
-  and the header carries the view's heading semantics; the editable content and
-  the heading role must stay on separate elements (a `textbox` role masks an
-  inner heading from assistive tech). Close with the view-header work.
+- Breadcrumb heading semantics: when the header lands the breadcrumb becomes
+  pure navigation and the header carries the view's heading semantics; the
+  editable content and the heading role must stay on separate elements (a
+  `textbox` role masks an inner heading from assistive tech). Close with the
+  view-header work.
 - Fold semantics at the view header are unreconciled with the restricted kind.
   [Zoom](specs/outliner/zoom.md) items 7–8 describe the zoom root's stored fold state
   being preserved and not hiding its children while zoomed, but the

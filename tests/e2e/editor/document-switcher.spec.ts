@@ -46,7 +46,7 @@ test.describe('Document switcher', () => {
     const createdDocId = await captureCreatedDoc(page, async () => {
       const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
       await switcherTrigger.click();
-      await page.getByRole('option', { name: 'New', exact: true }).click();
+      await page.getByRole('menuitem', { name: 'New', exact: true }).click();
     });
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
     await ensureReady(page);
@@ -56,7 +56,7 @@ test.describe('Document switcher', () => {
     const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
     await expect(switcherTrigger).toBeVisible();
     await switcherTrigger.click();
-    await page.getByRole('option', { name: sourceDocument.title, exact: true }).click();
+    await page.getByRole('menuitem', { name: sourceDocument.title, exact: true }).click();
     await expect(page).toHaveURL(createEditorDocumentPath(sourceDocument.id));
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await ensureReady(page);
@@ -64,7 +64,7 @@ test.describe('Document switcher', () => {
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
 
     await switcherTrigger.click();
-    await page.getByRole('option', { name: 'New Document', exact: true }).first().click();
+    await page.getByRole('menuitem', { name: 'New Document', exact: true }).first().click();
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await ensureReady(page);
@@ -82,14 +82,14 @@ test.describe('Document switcher', () => {
     const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
     await switcherTrigger.click();
 
-    const initialNewDocumentCount = await page.getByRole('option', { name: 'New Document' }).count();
+    const initialNewDocumentCount = await page.getByRole('menuitem', { name: 'New Document' }).count();
 
     await captureCreatedDoc(page, async () => {
-      await page.getByRole('option', { name: 'New', exact: true }).click();
+      await page.getByRole('menuitem', { name: 'New', exact: true }).click();
     });
 
     await switcherTrigger.click();
-    await expect(page.getByRole('option', { name: 'New Document' })).toHaveCount(initialNewDocumentCount + 1);
+    await expect(page.getByRole('menuitem', { name: 'New Document' })).toHaveCount(initialNewDocumentCount + 1);
   });
 
   test('uploads a lexical JSON backup into a newly created document', async ({ page, captureCreatedDoc }) => {
@@ -101,7 +101,7 @@ test.describe('Document switcher', () => {
     const createdDocId = await captureCreatedDoc(page, async () => {
       await page.getByRole('button', { name: 'Choose document' }).click();
       const fileChooserPromise = page.waitForEvent('filechooser');
-      await page.getByRole('option', { name: 'Upload', exact: true }).click();
+      await page.getByRole('menuitem', { name: 'Upload', exact: true }).click();
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles({
         buffer: Buffer.from(await readFixture('tree-complex')),
@@ -117,7 +117,7 @@ test.describe('Document switcher', () => {
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
 
     await page.getByRole('button', { name: 'Choose document' }).click();
-    await expect(page.getByRole('option', { name: 'tree-complex', exact: true })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: 'tree-complex', exact: true })).toBeVisible();
   });
 
   test('keeps the created document and reports invalid uploaded JSON', async ({ page, captureCreatedDoc }) => {
@@ -129,7 +129,7 @@ test.describe('Document switcher', () => {
     const createdDocId = await captureCreatedDoc(page, async () => {
       await page.getByRole('button', { name: 'Choose document' }).click();
       const fileChooserPromise = page.waitForEvent('filechooser');
-      await page.getByRole('option', { name: 'Upload', exact: true }).click();
+      await page.getByRole('menuitem', { name: 'Upload', exact: true }).click();
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles({
         buffer: Buffer.from('{'),
@@ -141,7 +141,7 @@ test.describe('Document switcher', () => {
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
     await expect(page.getByRole('alert')).toContainText('Could not upload document');
     await page.getByRole('button', { name: 'Choose document' }).click();
-    await expect(page.getByRole('option', { name: 'broken', exact: true })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: 'broken', exact: true })).toBeVisible();
   });
 });
 

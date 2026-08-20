@@ -1,7 +1,16 @@
-import { ActionIcon, Combobox, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconUpload } from '@tabler/icons-react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { useRef } from 'react';
+import {
+  Button,
+  Header,
+  Menu,
+  MenuItem,
+  MenuSection,
+  MenuTrigger,
+  Popover,
+  Separator,
+} from 'react-aria-components';
 import type { DocumentSourceNote } from '#note-sdk';
 import { ZoomBreadcrumbs } from '#client/editor/view/workspace';
 import type { NotePathItem } from '#client/editor/view/workspace';
@@ -38,9 +47,6 @@ export default function DocumentToolbar({
   searchControl: ReactNode;
 }) {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
-  const documentPicker = useCombobox({
-    onDropdownClose: () => documentPicker.resetSelectedOption(),
-  });
   const documentGroups = documentSources.map((source) => ({
     id: source.id(),
     label: source.text(),
@@ -65,73 +71,57 @@ export default function DocumentToolbar({
         <ZoomBreadcrumbs
           docLabel={documentLabel}
           documentControl={(
-            <Combobox
-              offset={{ mainAxis: 4, crossAxis: -44 }}
-              onOptionSubmit={(value) => {
-                documentPicker.closeDropdown();
-                if (value === NEW_DOCUMENT_VALUE) {
-                  onCreateDocument();
-                  return;
-                }
-                if (value === UPLOAD_DOCUMENT_VALUE) {
-                  uploadInputRef.current?.click();
-                  return;
-                }
-                onSelectDocument(value);
-              }}
-              position="bottom-start"
-              shadow="md"
-              store={documentPicker}
-              withinPortal={false}
-            >
-              <Combobox.Target>
-                <ActionIcon
-                  aria-label="Choose document"
-                  className="document-header-doc-menu remdo-interaction-surface"
-                  disabled={documentGroups.length === 0}
-                  onClick={() => documentPicker.toggleDropdown()}
-                  size="sm"
-                  variant="subtle"
-                >
-                  <IconChevronDown aria-hidden="true" size={14} />
-                </ActionIcon>
-              </Combobox.Target>
-              <Combobox.Dropdown className="document-header-doc-dropdown">
-                <Combobox.Options>
+            <MenuTrigger>
+              <Button
+                aria-label="Choose document"
+                className="document-header-doc-menu remdo-interaction-surface"
+                isDisabled={documentGroups.length === 0}
+              >
+                <IconChevronDown aria-hidden="true" size={14} />
+              </Button>
+              <Popover className="document-header-doc-popover" offset={4} placement="bottom start">
+                <Menu aria-label="Documents" className="document-header-doc-dropdown">
                   {documentGroups.map((group) => (
-                    <Combobox.Group
+                    <MenuSection
                       data-document-source-id={group.id}
+                      id={group.id}
                       key={group.id}
-                      label={group.label}
                     >
+                      <Header className="document-header-doc-group-label">{group.label}</Header>
                       {group.options.map((document) => (
-                        <Combobox.Option
-                          active={document.active}
+                        <MenuItem
+                          data-active={document.active || undefined}
                           data-document-ref={document.value}
+                          id={`${group.id}:${document.value}`}
                           key={`${group.id}:${document.value}`}
-                          value={document.value}
+                          onAction={() => onSelectDocument(document.value)}
+                          textValue={document.label}
                         >
                           {document.label}
-                        </Combobox.Option>
+                        </MenuItem>
                       ))}
-                    </Combobox.Group>
+                    </MenuSection>
                   ))}
-                  <div aria-hidden="true" className="document-header-doc-divider document-header-doc-divider--dark-5" />
-                  <Combobox.Option value={NEW_DOCUMENT_VALUE}>
+                  <Separator />
+                  <MenuItem id={NEW_DOCUMENT_VALUE} onAction={onCreateDocument} textValue="New">
                     <span className="document-header-doc-action">
                       <IconPlus aria-hidden="true" size={14} />
                       <span>New</span>
                     </span>
-                  </Combobox.Option>
-                  <Combobox.Option value={UPLOAD_DOCUMENT_VALUE}>
+                  </MenuItem>
+                  <MenuItem
+                    id={UPLOAD_DOCUMENT_VALUE}
+                    onAction={() => uploadInputRef.current?.click()}
+                    textValue="Upload"
+                  >
                     <span className="document-header-doc-action">
                       <IconUpload aria-hidden="true" size={14} />
                       <span>Upload</span>
                     </span>
-                  </Combobox.Option>
-                </Combobox.Options>
-              </Combobox.Dropdown>
-            </Combobox>
+                  </MenuItem>
+                </Menu>
+              </Popover>
+            </MenuTrigger>
           )}
           path={path}
           onSelectHome={onSelectHome}
