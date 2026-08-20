@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
-import type { NotePathItem } from '#client/editor/view/workspace';
+import type { SearchPathItem } from '#client/editor/view/workspace';
 import type { NoteListType } from '#note-sdk';
 import { queryMatchRanges } from '#client/search/query-match';
 import { UNTITLED_LABEL, formatNavigationLabel, normalizeNavigationLabel } from '#client/ui/navigation-label';
@@ -13,7 +13,7 @@ interface ChildPreviewItem {
 }
 
 interface SearchResultRowProps {
-  ancestorPath: NotePathItem[];
+  ancestorPath: SearchPathItem[];
   checked: boolean;
   childPreview: ChildPreviewItem[];
   childCount: number;
@@ -26,7 +26,7 @@ const BREADCRUMB_VISIBLE_LIMIT = 4;
 const BREADCRUMB_EDGE_COUNT = 2;
 
 type BreadcrumbCrumb =
-  | { kind: 'note'; item: NotePathItem }
+  | { kind: 'note'; item: SearchPathItem }
   | { kind: 'ellipsis'; hiddenLabels: string[] };
 
 // Builds the ancestor subline crumbs for a match. The matched note (the last
@@ -34,7 +34,7 @@ type BreadcrumbCrumb =
 // full ancestor chain (including the top-level note) is shown for context. A deep
 // chain collapses to first/last edges joined by a single ellipsis crumb; width
 // truncation of individual crumbs is handled in CSS, not here.
-function buildBreadcrumbCrumbs(ancestorPath: NotePathItem[]): BreadcrumbCrumb[] {
+function buildBreadcrumbCrumbs(ancestorPath: SearchPathItem[]): BreadcrumbCrumb[] {
   // Ancestors only — drop the matched note (the primary label), keep the rest.
   const path = ancestorPath.slice(0, -1);
 
@@ -102,7 +102,7 @@ function ResultBreadcrumb({
   onSelectAncestor,
   query,
 }: {
-  ancestorPath: NotePathItem[];
+  ancestorPath: SearchPathItem[];
   onSelectAncestor: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
   query: string;
 }) {

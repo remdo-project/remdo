@@ -5,11 +5,11 @@ import * as React from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { vi } from 'vitest';
 import { resetTestUserData, TEST_USER_DATA_DOCUMENT } from '#tests';
-import type { NotePathItem } from '#client/editor/view/workspace';
 import type {
+  NotePathItem,
   SearchableNote,
   SearchableNotes,
-} from '#client/editor/features/search/search-candidates';
+} from '#client/editor/view/workspace';
 import {
   useEditorViewActions,
   useRegisterSearchNotesReader,
