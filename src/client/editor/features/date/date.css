@@ -20,17 +20,8 @@
   outline-offset: 1px;
 }
 
-.date-picker-anchor {
-  position: absolute;
-  z-index: 4;
-}
-
 .date-picker-panel {
-  /*
-   * The typeahead insert path portals this panel into Lexical's typeahead
-   * anchor, which is sized to the `!` trigger glyph (a few px). Claim the
-   * calendar's natural width so the panel is not collapsed by that anchor.
-   */
+  /* Claim natural width so a caret-sized overlay target cannot collapse the grid. */
   width: max-content;
   border: 1px solid var(--mantine-color-dark-4);
   border-radius: var(--mantine-radius-sm);

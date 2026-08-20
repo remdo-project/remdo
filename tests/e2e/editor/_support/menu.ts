@@ -37,6 +37,11 @@ const menuItems = (page: Page): Locator =>
   editorLocator(page).locator('[data-note-menu-item]');
 
 const openMenuByHover = async (page: Page, listItem: Locator): Promise<void> => {
+  const existing = menuLocator(page);
+  if (await existing.count() > 0) {
+    await page.keyboard.press('Escape');
+    await expect(existing).toHaveCount(0);
+  }
   await expect(listItem).toBeVisible();
   await listItem.locator('[data-lexical-text="true"]').first().hover();
 
