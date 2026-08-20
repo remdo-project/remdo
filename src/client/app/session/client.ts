@@ -51,6 +51,15 @@ function withTabStorage(mutate: (storage: Storage) => void): void {
   }
 }
 
+function newPendingSignOutGeneration(): string {
+  const randomUUID = globalThis.crypto.randomUUID;
+  if (typeof randomUUID === 'function') {
+    return randomUUID.call(globalThis.crypto);
+  }
+  // `randomUUID` is secure-context-only; development may serve http://<host>.
+  return `${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
+}
+
 export function rememberAuthenticatedSession() {
   getSessionStorage()?.setItem(KNOWN_SESSION_STORAGE_KEY, '1');
   // A fresh session supersedes any sign-out this device never delivered;
@@ -84,7 +93,7 @@ export function rememberPendingSignOut() {
   });
   const storage = getSessionStorage();
   if (storage && !storage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)) {
-    storage.setItem(PENDING_SIGN_OUT_STORAGE_KEY, crypto.randomUUID());
+    storage.setItem(PENDING_SIGN_OUT_STORAGE_KEY, newPendingSignOutGeneration());
   }
 }
 

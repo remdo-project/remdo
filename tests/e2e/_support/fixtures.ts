@@ -33,6 +33,12 @@ export function allowUnauthorizedNetwork(page: Page): void {
   setExpectedConsoleIssues(page, ['status of 401'], { mode: 'allowContains' });
 }
 
+function isLogoutUnauthorizedPath(pathname: string): boolean {
+  return pathname === '/api/current-user'
+    || pathname.startsWith('/api/auth/')
+    || pathname.endsWith('/sync-tokens');
+}
+
 function createIssueCounts(messages: string[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const message of messages) {
@@ -140,7 +146,7 @@ export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) =
     if (
       allowUnauthorizedApiByPage.get(page)
       && status === HTTP_STATUS.UNAUTHORIZED
-      && new URL(response.url()).pathname.startsWith('/api/')
+      && isLogoutUnauthorizedPath(new URL(response.url()).pathname)
     ) {
       return;
     }

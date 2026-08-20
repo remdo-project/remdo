@@ -146,6 +146,18 @@ describe('auth client session gate', () => {
     }
   });
 
+  it('writes a pending marker when crypto.randomUUID is unavailable', async () => {
+    const { PENDING_SIGN_OUT_STORAGE_KEY, rememberPendingSignOut } = await import('#client/app/session/client');
+    vi.stubGlobal('crypto', {});
+
+    try {
+      expect(() => rememberPendingSignOut()).not.toThrow();
+      expect(localStorage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)).toBeTruthy();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('still writes the shared pending marker when tab storage rejects the origin mark', async () => {
     const { PENDING_SIGN_OUT_STORAGE_KEY, rememberPendingSignOut } = await import('#client/app/session/client');
     const setItem = vi.spyOn(sessionStorage, 'setItem').mockImplementation(() => {
