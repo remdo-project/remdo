@@ -65,12 +65,6 @@ Rules:
   caught. (`resolveToolbarLayout`'s disabled marking is unit-covered; the gap is
   the render+click wiring.)
 
-## Runtime and tooling source boundaries
-
-- Move runtime config under production source, split `tools/` into explicit
-  prod/dev/e2e ownership, and enforce production import direction; keep
-  `knip.jsonc` aligned as the interim boundary inventory.
-
 ## Search architecture
 
 - Add a document-level SDK visitor/walker API and use it as the shared
