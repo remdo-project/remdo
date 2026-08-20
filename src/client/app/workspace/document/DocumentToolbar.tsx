@@ -76,6 +76,11 @@ export default function DocumentToolbar({
                   return value === selectedText ? null : value;
                 });
               }}
+              onChange={(key) => {
+                if (key != null) {
+                  onSelectDocument(String(key));
+                }
+              }}
               onOpenChange={(isOpen) => {
                 setFilterQuery(null);
                 if (isOpen) {
