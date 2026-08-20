@@ -126,6 +126,26 @@ describe('auth client session gate', () => {
     expect(localStorage.getItem('remdo-current-user-bootstrap')).toBeNull();
   });
 
+  it('completes sign-in memory when tab storage rejects origin-mark removal', async () => {
+    const {
+      PENDING_SIGN_OUT_STORAGE_KEY,
+      rememberAuthenticatedSession,
+      rememberPendingSignOut,
+    } = await import('#client/app/session/client');
+    rememberPendingSignOut();
+    const removeItem = vi.spyOn(sessionStorage, 'removeItem').mockImplementation(() => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+    });
+
+    try {
+      expect(() => rememberAuthenticatedSession()).not.toThrow();
+      expect(localStorage.getItem('remdo-authenticated-session')).toBe('1');
+      expect(localStorage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)).toBeNull();
+    } finally {
+      removeItem.mockRestore();
+    }
+  });
+
   it('still writes the shared pending marker when tab storage rejects the origin mark', async () => {
     const { PENDING_SIGN_OUT_STORAGE_KEY, rememberPendingSignOut } = await import('#client/app/session/client');
     const setItem = vi.spyOn(sessionStorage, 'setItem').mockImplementation(() => {
@@ -164,7 +184,7 @@ describe('auth client session gate', () => {
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
 
-    expect(signOutMock).toHaveBeenCalledTimes(2);
+    expect(signOutMock).toHaveBeenCalledTimes(1);
     expect(getSessionMock).not.toHaveBeenCalled();
     expect(localStorage.getItem('remdo-pending-sign-out')).toBe('1');
   });

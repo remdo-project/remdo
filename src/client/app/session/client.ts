@@ -5,6 +5,7 @@ import { clearStoredCurrentUserBootstrap } from '#client/app/user-data/current-u
 const KNOWN_SESSION_STORAGE_KEY = 'remdo-authenticated-session';
 export const PENDING_SIGN_OUT_STORAGE_KEY = 'remdo-pending-sign-out';
 const PENDING_SIGN_OUT_ORIGIN_KEY = 'remdo-pending-sign-out-origin';
+const CONFIRMED_SIGN_OUT_KEY = 'remdo-sign-out-confirmed';
 const PENDING_SIGN_OUT_STORAGE_VALUE = '1';
 const SERVER_SIGN_OUT_TIMEOUT_MS = 1500;
 
@@ -38,6 +39,18 @@ function getTabStorage(): Storage | null {
   }
 }
 
+function withTabStorage(mutate: (storage: Storage) => void): void {
+  try {
+    const storage = getTabStorage();
+    if (storage) {
+      mutate(storage);
+    }
+  } catch {
+    // Tab-scoped marks are best-effort; quota or permission failures must not
+    // abort logout, sign-in, or the shared pending marker.
+  }
+}
+
 export function rememberAuthenticatedSession() {
   getSessionStorage()?.setItem(KNOWN_SESSION_STORAGE_KEY, '1');
   // A fresh session supersedes any sign-out this device never delivered;
@@ -57,24 +70,25 @@ export function hasRememberedSession() {
 /**
  * A sign-out that could not reach the server leaves the session cookie valid, so
  * the next reachable revalidation would sign the user back in. The marker keeps
- * this device signed out until a successful sign-in, including after the server
- * has confirmed the revoke.
+ * this device signed out until a successful sign-in. A confirmed revoke is
+ * remembered per tab so later loaders do not call sign-out again.
  */
 export function rememberPendingSignOut() {
   // Mark this tab first so its own peer-sign-out poll does not treat the write
-  // as another tab's broadcast. Session storage is best-effort: a quota or
-  // permission failure must not skip the shared marker or abort logout.
-  try {
-    getTabStorage()?.setItem(PENDING_SIGN_OUT_ORIGIN_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
-  } catch {
-    // Originator mark is optional; peers still see the shared localStorage key.
-  }
+  // as another tab's broadcast. A new logout is not yet confirmed.
+  withTabStorage((storage) => {
+    storage.setItem(PENDING_SIGN_OUT_ORIGIN_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
+    storage.removeItem(CONFIRMED_SIGN_OUT_KEY);
+  });
   getSessionStorage()?.setItem(PENDING_SIGN_OUT_STORAGE_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
 }
 
 export function forgetPendingSignOut() {
   getSessionStorage()?.removeItem(PENDING_SIGN_OUT_STORAGE_KEY);
-  getTabStorage()?.removeItem(PENDING_SIGN_OUT_ORIGIN_KEY);
+  withTabStorage((storage) => {
+    storage.removeItem(PENDING_SIGN_OUT_ORIGIN_KEY);
+    storage.removeItem(CONFIRMED_SIGN_OUT_KEY);
+  });
 }
 
 export function hasPendingSignOut() {
@@ -85,14 +99,25 @@ export function originatedPendingSignOut() {
   return getTabStorage()?.getItem(PENDING_SIGN_OUT_ORIGIN_KEY) === PENDING_SIGN_OUT_STORAGE_VALUE;
 }
 
+function rememberConfirmedSignOut() {
+  withTabStorage((storage) => {
+    storage.setItem(CONFIRMED_SIGN_OUT_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
+  });
+}
+
+function hasConfirmedSignOut() {
+  return getTabStorage()?.getItem(CONFIRMED_SIGN_OUT_KEY) === PENDING_SIGN_OUT_STORAGE_VALUE;
+}
+
 export function isPendingSignOutStorageEvent(event: StorageEvent): boolean {
   return event.key === PENDING_SIGN_OUT_STORAGE_KEY
     && event.newValue === PENDING_SIGN_OUT_STORAGE_VALUE;
 }
 
 /**
- * Revoke the server session. The pending marker stays until a successful
- * sign-in; a `{ error }` result is not confirmation.
+ * Revoke the server session. A `{ error }` result is not confirmation. The
+ * shared pending marker stays until sign-in so a still-visible cookie cannot
+ * resume the session; this tab stops retrying once the server confirms.
  */
 export async function revokeServerSession(): Promise<void> {
   try {
@@ -105,6 +130,7 @@ export async function revokeServerSession(): Promise<void> {
     if (result.error) {
       throw result.error;
     }
+    rememberConfirmedSignOut();
   } catch {
     rememberPendingSignOut();
   }
@@ -132,7 +158,9 @@ function readAuthErrorStatus(error: unknown): number | null {
 
 export async function resolveSessionGateState(): Promise<SessionGateState> {
   if (hasPendingSignOut()) {
-    await revokeServerSession();
+    if (!hasConfirmedSignOut()) {
+      await revokeServerSession();
+    }
     return { status: 'unauthenticated' };
   }
 
