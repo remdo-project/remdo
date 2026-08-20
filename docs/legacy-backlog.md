@@ -239,24 +239,19 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-
 
 Tracks the gaps between [Home](specs/outliner/home.md) and the [view header](specs/outliner/view-header.md) as specified and what ships.
 
-- The document-source chevron menu picker in `DocumentToolbar.tsx`
-  (`NEW_DOCUMENT_VALUE` / `UPLOAD_DOCUMENT_VALUE` and the grouped document
-  options) is replaced by Home: Home owns document browsing and the New/Upload
-  actions. Remove the picker once Home fully covers switching; the intervening
-  state (both present) is the recorded interim. While both exist they duplicate
-  the upload file-input plumbing (`handleUploadInputChange` + hidden `<input>`)
-  and the per-source document list; removing the picker resolves the duplication,
-  so leave it rather than extracting a shared helper now. The two also differ on
-  re-selecting the already-open document while zoomed: a Home row clears zoom to
-  the document root (per [Home](specs/outliner/home.md) core behavior 3), the toolbar
-  picker keeps the zoom (its pre-existing switcher behavior). Removing the picker
-  removes the inconsistency; decide the picker's behavior only if it outlives Home.
-  Retirement is its own PR: delete the picker menu and the `documentControl`
-  slot from `ZoomBreadcrumbs` (the doc name stays a crumb — full pure-nav is the
-  view-header work), delete its specs (`document-switcher.spec.ts`, the picker
-  cases in `document-toolbar.spec.tsx`/`document-route.spec.tsx`), and rewrite the
+- The document-source combobox in `DocumentToolbar.tsx` still lists documents for
+  switching; Home owns browsing and New/Upload. Remove the picker once Home fully
+  covers switching; the intervening state (both present) is the recorded interim.
+  While both exist they duplicate the per-source document list; removing the
+  picker resolves the duplication, so leave it rather than extracting a shared
+  helper now. Re-selecting the already-open document while zoomed now matches
+  Home: both clear zoom to the document root. Retirement is its own PR: delete
+  the picker and the `documentControl` slot from `ZoomBreadcrumbs` (the doc name
+  stays a crumb — full pure-nav is the view-header work), delete its specs
+  (`document-switcher.spec.ts`, the picker cases in
+  `document-toolbar.spec.tsx`/`document-route.spec.tsx`), and rewrite the
   source-linking switch in `tests/e2e/docker/linking.spec.ts` to reach a linked
-  document through Home instead of the picker dropdown.
+  document through Home instead of the picker.
 - Home visibility is component-local `homeActive` state in `DocumentWorkspace`,
   not URL/route backed, so it is lost on reload and not linkable. `home.md`
   "Entering and leaving Home" treats Home as the surface above `/`; route Home

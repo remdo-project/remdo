@@ -52,8 +52,8 @@ describe('document route', () => {
     }]);
     const router = renderDocumentRoute(createDocumentPath('testDoc'));
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Source Document' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Source Document' }));
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe(createDocumentPath('sourceDoc'));
@@ -66,8 +66,8 @@ describe('document route', () => {
   it('navigates from another document to the local Home root', async () => {
     const router = renderDocumentRoute();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Test Document' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Test Document' }));
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/');

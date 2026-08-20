@@ -72,8 +72,6 @@ export default function DocumentWorkspace({
       setHomeActive(false);
       action(...args);
     };
-  // Selecting a document leaves Home immediately (a synchronous route change).
-  const selectDocument = leaveHome(onSelectDocument);
   // Create/upload are async: Home is left when they succeed and navigate to the
   // new document (the route-change reset below), not eagerly — so a failure
   // keeps the user on Home where its error alert is shown, rather than dropping
@@ -138,14 +136,13 @@ export default function DocumentWorkspace({
   return (
     <div className="document-editor-shell" ref={shellRef}>
       <DocumentToolbar
+        docId={docId}
         documentLabel={source.documentLabel}
         documentSources={documentSources}
-        onCreateDocument={createDocument}
-        onSelectDocument={selectDocument}
+        onSelectDocument={openDocumentFromHome}
         onSelectHome={() => setHomeActive(true)}
         onSelectNoteId={zoomToNote}
         onStatusHostChange={setStatusHost}
-        onUploadDocument={uploadDocument}
         path={zoomPath}
         searchControl={(
           // Entering search takes over the content region; dismiss Home so the

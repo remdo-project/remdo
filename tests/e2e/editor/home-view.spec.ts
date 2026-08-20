@@ -108,8 +108,8 @@ test.describe('Home view', () => {
 
     // Create a second document so history holds two different document URLs, and
     // wait for its navigation to land before interacting.
-    await page.getByRole('button', { name: 'Choose document' }).click();
-    await page.getByRole('menuitem', { name: 'New', exact: true }).click();
+    await homeZoomBreadcrumb(page).click();
+    await homeView(page).getByRole('button', { name: 'New document' }).click();
     await expect.poll(() => page.url()).not.toBe(firstUrl);
     await waitForSynced(page);
     await expect(editorLocator(page)).toBeVisible();
@@ -133,8 +133,8 @@ test.describe('Home view', () => {
 
     // The document picker stays in the toolbar over Home; choosing a document
     // must leave Home so the chosen document's editor is shown.
-    await page.getByRole('button', { name: 'Choose document' }).click();
-    await page.getByRole('menuitem').first().click();
+    await page.getByRole('button', { name: 'Show documents' }).click();
+    await page.getByRole('option').first().click();
     await waitForSynced(page);
 
     await expect(homeView(page)).toHaveCount(0);

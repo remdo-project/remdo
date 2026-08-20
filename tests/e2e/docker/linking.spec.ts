@@ -55,7 +55,7 @@ test('links a source by URL and opens its Home document', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/'));
 
-  const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
+  const switcherTrigger = page.getByRole('button', { name: 'Show documents' });
   await expect(switcherTrigger).toBeVisible();
   await switcherTrigger.click();
 
@@ -63,7 +63,7 @@ test('links a source by URL and opens its Home document', async ({ page }) => {
   await expect(dropdown.locator('[data-document-source-id="local"]')).toContainText('Current Server');
   const sourceGroup = dropdown.locator(`[data-document-source-id="${sourceServerId}"]`);
   await expect(sourceGroup).toContainText(sourceHost);
-  await sourceGroup.getByRole('menuitem', { name: 'Home', exact: true }).click();
+  await sourceGroup.getByRole('option', { name: 'Home', exact: true }).click();
 
   await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/n\/[\dA-Za-z]+$/u);
   await waitForEditableEditor(page);

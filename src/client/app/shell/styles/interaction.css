@@ -66,7 +66,8 @@ body {
   font-size: var(--mantine-font-size-xs);
 }
 
-.remdo-menu [role='menuitem'] {
+.remdo-menu [role='menuitem'],
+.remdo-menu [role='option'] {
   border-radius: var(--mantine-radius-xs);
   padding: 0.25rem 0.4rem;
   color: var(--mantine-color-dark-0);
@@ -75,6 +76,11 @@ body {
   cursor: pointer;
 }
 
-.remdo-menu [role='menuitem'][data-focused] {
+.remdo-menu [role='menuitem'][data-focused],
+.remdo-menu [role='option'][data-focused] {
   background: var(--mantine-color-dark-5);
+}
+
+.remdo-menu [role='option'][data-selected] {
+  font-weight: 600;
 }

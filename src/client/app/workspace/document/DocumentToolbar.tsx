@@ -1,64 +1,71 @@
-import { IconChevronDown, IconPlus, IconUpload } from '@tabler/icons-react';
-import type { ChangeEvent, ReactNode } from 'react';
+import { IconChevronDown } from '@tabler/icons-react';
+import type { Key, ReactNode } from 'react';
 import { useRef } from 'react';
 import {
   Button,
+  ComboBox,
   Header,
-  Menu,
-  MenuItem,
-  MenuSection,
-  MenuTrigger,
+  Input,
+  ListBox,
+  ListBoxItem,
+  ListBoxSection,
   Popover,
-  Separator,
 } from 'react-aria-components';
 import type { DocumentSourceNote } from '#note-sdk';
 import { ZoomBreadcrumbs } from '#client/editor/view/workspace';
 import type { NotePathItem } from '#client/editor/view/workspace';
-import { formatNavigationLabel } from '#client/ui/navigation-label';
+import { formatNavigationLabel, normalizeNavigationLabel, UNTITLED_LABEL } from '#client/ui/navigation-label';
 
-const NEW_DOCUMENT_VALUE = '$new-document';
-const UPLOAD_DOCUMENT_VALUE = '$upload-document';
+function documentFilterText(raw: string): string {
+  const normalized = normalizeNavigationLabel(raw);
+  return normalized.length > 0 ? normalized : UNTITLED_LABEL;
+}
+
+function documentIdFromKey(key: Key): string {
+  const value = String(key);
+  const separator = value.indexOf(':');
+  return separator === -1 ? value : value.slice(separator + 1);
+}
 
 export default function DocumentToolbar({
+  docId,
   documentLabel,
   documentSources,
-  onCreateDocument,
   onSelectDocument,
   onSelectHome,
   onSelectNoteId,
   onStatusHostChange,
-  onUploadDocument,
   path,
   searchControl,
 }: {
+  docId: string;
   documentLabel: string;
   documentSources: readonly DocumentSourceNote[];
-  onCreateDocument: () => void;
   onSelectDocument: (docId: string) => void;
   onSelectHome: () => void;
   onSelectNoteId: (noteId: string | null) => void;
   onStatusHostChange: (host: HTMLDivElement | null) => void;
-  onUploadDocument: (file: File) => void;
   path: NotePathItem[];
   searchControl: ReactNode;
 }) {
-  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const documentGroups = documentSources.map((source) => ({
     id: source.id(),
     label: source.text(),
     options: source.documents().children().map((document) => ({
+      filterText: documentFilterText(document.text()),
       label: formatNavigationLabel(document.text()),
       value: document.id(),
     })),
   })).filter((source) => source.options.length > 0);
-
-  const handleUploadInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0] ?? null;
-    event.currentTarget.value = '';
-    if (file) {
-      onUploadDocument(file);
-    }
-  };
+  const selectedKey = documentGroups
+    .flatMap((group) => group.options.map((document) => ({
+      key: `${group.id}:${document.value}`,
+      filterText: document.filterText,
+      value: document.value,
+    })))
+    .find((document) => document.value === docId);
+  const selectedText = selectedKey?.filterText ?? documentFilterText(documentLabel);
 
   return (
     <header className="document-header">
@@ -66,56 +73,67 @@ export default function DocumentToolbar({
         <ZoomBreadcrumbs
           docLabel={documentLabel}
           documentControl={(
-            <MenuTrigger>
-              <Button
-                aria-label="Choose document"
-                className="document-header-doc-menu remdo-interaction-surface"
-                isDisabled={documentGroups.length === 0}
-              >
-                <IconChevronDown aria-hidden="true" size={14} />
-              </Button>
+            <ComboBox
+              allowsEmptyCollection
+              aria-label="Choose document"
+              className="document-header-doc-combobox"
+              defaultFilter={(textValue, inputValue) => {
+                if (inputValue === selectedText || inputValue.length === 0) {
+                  return true;
+                }
+                return textValue.toLowerCase().includes(inputValue.toLowerCase());
+              }}
+              isDisabled={documentGroups.length === 0}
+              menuTrigger="focus"
+              onOpenChange={(isOpen) => {
+                if (isOpen) {
+                  requestAnimationFrame(() => inputRef.current?.select());
+                }
+              }}
+              onChange={(key) => {
+                if (key == null) {
+                  return;
+                }
+                const nextDocId = documentIdFromKey(key);
+                if (nextDocId !== docId) {
+                  onSelectDocument(nextDocId);
+                }
+              }}
+              value={selectedKey?.key ?? null}
+            >
+              <div className="document-header-doc-combo remdo-interaction-surface">
+                <Input className="document-header-doc-input" ref={inputRef} />
+                <Button aria-label="Show documents" className="document-header-doc-menu">
+                  <IconChevronDown aria-hidden="true" size={14} />
+                </Button>
+              </div>
               <Popover offset={4} placement="bottom start">
-                <Menu aria-label="Documents" className="document-header-doc-dropdown remdo-menu">
+                <ListBox className="document-header-doc-dropdown remdo-menu">
                   {documentGroups.map((group) => (
-                    <MenuSection
+                    <ListBoxSection
                       data-document-source-id={group.id}
                       id={group.id}
                       key={group.id}
                     >
                       <Header>{group.label}</Header>
                       {group.options.map((document) => (
-                        <MenuItem
+                        <ListBoxItem
                           data-document-ref={document.value}
                           id={`${group.id}:${document.value}`}
                           key={`${group.id}:${document.value}`}
-                          onAction={() => onSelectDocument(document.value)}
-                          textValue={document.label}
+                          onAction={document.value === docId
+                            ? () => onSelectDocument(docId)
+                            : undefined}
+                          textValue={document.filterText}
                         >
                           {document.label}
-                        </MenuItem>
+                        </ListBoxItem>
                       ))}
-                    </MenuSection>
+                    </ListBoxSection>
                   ))}
-                  <Separator />
-                  <MenuItem id={NEW_DOCUMENT_VALUE} onAction={onCreateDocument} textValue="New">
-                    <span className="document-header-doc-action">
-                      <IconPlus aria-hidden="true" size={14} />
-                      <span>New</span>
-                    </span>
-                  </MenuItem>
-                  <MenuItem
-                    id={UPLOAD_DOCUMENT_VALUE}
-                    onAction={() => uploadInputRef.current?.click()}
-                    textValue="Upload"
-                  >
-                    <span className="document-header-doc-action">
-                      <IconUpload aria-hidden="true" size={14} />
-                      <span>Upload</span>
-                    </span>
-                  </MenuItem>
-                </Menu>
+                </ListBox>
               </Popover>
-            </MenuTrigger>
+            </ComboBox>
           )}
           path={path}
           onSelectHome={onSelectHome}
@@ -126,14 +144,6 @@ export default function DocumentToolbar({
         {searchControl}
         <div className="document-header-status" ref={onStatusHostChange} />
       </div>
-      <input
-        accept="application/json,.json"
-        aria-label="Upload document backup"
-        className="document-header-upload-input"
-        onChange={handleUploadInputChange}
-        ref={uploadInputRef}
-        type="file"
-      />
     </header>
   );
 }

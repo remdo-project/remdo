@@ -1,6 +1,6 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
-import { documentZoomBreadcrumb, editorLocator, zoomBreadcrumbs } from '#editor/locators';
+import { clearZoomFromDocumentPicker, editorLocator, zoomBreadcrumbs } from '#editor/locators';
 import { waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
 
@@ -57,12 +57,12 @@ test.describe('Zoom routing', () => {
     await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
   });
 
-  test('clears zoom route when clicking document breadcrumb', async ({ page, editor }) => {
+  test('clears zoom route when re-selecting the current document in the picker', async ({ page, editor }) => {
     await page.goto(createEditorDocumentPath(editor.docId, 'note1'));
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await editor.load('basic');
 
-    await documentZoomBreadcrumb(page).click();
+    await clearZoomFromDocumentPicker(page);
     await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
   });
 
@@ -80,7 +80,7 @@ test.describe('Zoom routing', () => {
     const breadcrumbs = zoomBreadcrumbs(page);
     await expect(breadcrumbs.locator('[data-zoom-crumb="ancestor"]')).toHaveCount(0);
 
-    await documentZoomBreadcrumb(page).click();
+    await clearZoomFromDocumentPicker(page);
     await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
   });
 

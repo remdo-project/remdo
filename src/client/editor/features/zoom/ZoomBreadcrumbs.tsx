@@ -41,11 +41,8 @@ export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectHome,
         ) : null}
         <li>
           {documentControl ? (
-            <span className={styles.documentCrumbGroup} data-zoom-crumb="document-group">
-              {documentCrumb}
-              <span className={styles.documentControl} data-zoom-crumb="document-control">
-                {documentControl}
-              </span>
+            <span className={styles.documentCrumbGroup} data-zoom-crumb="document">
+              {documentControl}
             </span>
           ) : (
             documentCrumb

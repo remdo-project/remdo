@@ -140,13 +140,16 @@ function MockEditor({
 
 function MockZoomBreadcrumbs({
   documentControl,
+  onSelectHome,
   onSelectNoteId,
 }: {
   documentControl: React.ReactNode;
+  onSelectHome?: () => void;
   onSelectNoteId: (noteId: string | null) => void;
 }) {
   return (
     <>
+      {onSelectHome ? <button onClick={onSelectHome} type="button">Home</button> : null}
       {documentControl}
       <button onClick={() => onSelectNoteId('note3')} type="button">Zoom note</button>
       <button onClick={() => onSelectNoteId(null)} type="button">Clear zoom</button>

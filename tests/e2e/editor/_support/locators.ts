@@ -5,6 +5,19 @@ export const zoomBreadcrumbs = (page: Page): Locator => page.locator('[data-zoom
 export const documentZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(page).locator('[data-zoom-crumb="document"]');
 export const homeZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(page).locator('[data-zoom-crumb="home"]');
 export const homeView = (page: Page): Locator => page.locator('[data-testid="document-home"]');
+export const documentPicker = (page: Page): Locator => page.getByRole('combobox', { name: 'Choose document' });
+export const documentPickerButton = (page: Page): Locator => page.getByRole('button', { name: 'Show documents' });
+
+export async function chooseDocument(page: Page, name: string): Promise<void> {
+  await documentPickerButton(page).click();
+  await page.getByRole('option', { name, exact: true }).first().click();
+}
+
+export async function clearZoomFromDocumentPicker(page: Page): Promise<void> {
+  const name = await documentPicker(page).inputValue();
+  await documentPickerButton(page).click();
+  await page.getByRole('option', { name, exact: true }).first().click();
+}
 
 // The date picker portals outside `.editor-container`, so its locators are
 // page-scoped by necessity. Day cells are addressed by their own ISO date, which

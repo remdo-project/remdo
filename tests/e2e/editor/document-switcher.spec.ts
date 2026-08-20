@@ -3,7 +3,7 @@ import { expect, test } from '#editor/fixtures';
 import { readFixture } from '#tools/fixtures';
 import { createUserDocument } from '../_support/documents';
 import { ensureReady, load, waitForSynced } from './_support/bridge';
-import { editorLocator } from './_support/locators';
+import { chooseDocument, documentPickerButton, editorLocator, homeView, homeZoomBreadcrumb } from '#editor/locators';
 import { createEditorDocumentPath } from './_support/routes';
 
 test.describe('Document switcher', () => {
@@ -44,27 +44,22 @@ test.describe('Document switcher', () => {
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
 
     const createdDocId = await captureCreatedDoc(page, async () => {
-      const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
-      await switcherTrigger.click();
-      await page.getByRole('menuitem', { name: 'New', exact: true }).click();
+      await homeZoomBreadcrumb(page).click();
+      await homeView(page).getByRole('button', { name: 'New document' }).click();
     });
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
     await ensureReady(page);
     await load(page, 'flat');
     await waitForSynced(page);
 
-    const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
-    await expect(switcherTrigger).toBeVisible();
-    await switcherTrigger.click();
-    await page.getByRole('menuitem', { name: sourceDocument.title, exact: true }).click();
+    await chooseDocument(page, sourceDocument.title);
     await expect(page).toHaveURL(createEditorDocumentPath(sourceDocument.id));
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await ensureReady(page);
     await waitForSynced(page);
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
 
-    await switcherTrigger.click();
-    await page.getByRole('menuitem', { name: 'New Document', exact: true }).first().click();
+    await chooseDocument(page, 'New Document');
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await ensureReady(page);
@@ -79,17 +74,17 @@ test.describe('Document switcher', () => {
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await ensureReady(page);
 
-    const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
-    await switcherTrigger.click();
-
-    const initialNewDocumentCount = await page.getByRole('menuitem', { name: 'New Document' }).count();
+    await documentPickerButton(page).click();
+    const initialNewDocumentCount = await page.getByRole('option', { name: 'New Document' }).count();
+    await page.keyboard.press('Escape');
 
     await captureCreatedDoc(page, async () => {
-      await page.getByRole('menuitem', { name: 'New', exact: true }).click();
+      await homeZoomBreadcrumb(page).click();
+      await homeView(page).getByRole('button', { name: 'New document' }).click();
     });
 
-    await switcherTrigger.click();
-    await expect(page.getByRole('menuitem', { name: 'New Document' })).toHaveCount(initialNewDocumentCount + 1);
+    await documentPickerButton(page).click();
+    await expect(page.getByRole('option', { name: 'New Document' })).toHaveCount(initialNewDocumentCount + 1);
   });
 
   test('uploads a lexical JSON backup into a newly created document', async ({ page, captureCreatedDoc }) => {
@@ -99,9 +94,9 @@ test.describe('Document switcher', () => {
     await ensureReady(page);
 
     const createdDocId = await captureCreatedDoc(page, async () => {
-      await page.getByRole('button', { name: 'Choose document' }).click();
+      await homeZoomBreadcrumb(page).click();
       const fileChooserPromise = page.waitForEvent('filechooser');
-      await page.getByRole('menuitem', { name: 'Upload', exact: true }).click();
+      await homeView(page).getByRole('button', { name: 'Upload document' }).click();
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles({
         buffer: Buffer.from(await readFixture('tree-complex')),
@@ -116,8 +111,8 @@ test.describe('Document switcher', () => {
     await waitForSynced(page);
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
 
-    await page.getByRole('button', { name: 'Choose document' }).click();
-    await expect(page.getByRole('menuitem', { name: 'tree-complex', exact: true })).toBeVisible();
+    await documentPickerButton(page).click();
+    await expect(page.getByRole('option', { name: 'tree-complex', exact: true })).toBeVisible();
   });
 
   test('keeps the created document and reports invalid uploaded JSON', async ({ page, captureCreatedDoc }) => {
@@ -127,9 +122,9 @@ test.describe('Document switcher', () => {
     await ensureReady(page);
 
     const createdDocId = await captureCreatedDoc(page, async () => {
-      await page.getByRole('button', { name: 'Choose document' }).click();
+      await homeZoomBreadcrumb(page).click();
       const fileChooserPromise = page.waitForEvent('filechooser');
-      await page.getByRole('menuitem', { name: 'Upload', exact: true }).click();
+      await homeView(page).getByRole('button', { name: 'Upload document' }).click();
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles({
         buffer: Buffer.from('{'),
@@ -140,8 +135,8 @@ test.describe('Document switcher', () => {
 
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
     await expect(page.getByRole('alert')).toContainText('Could not upload document');
-    await page.getByRole('button', { name: 'Choose document' }).click();
-    await expect(page.getByRole('menuitem', { name: 'broken', exact: true })).toBeVisible();
+    await documentPickerButton(page).click();
+    await expect(page.getByRole('option', { name: 'broken', exact: true })).toBeVisible();
   });
 });
 

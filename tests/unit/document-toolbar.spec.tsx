@@ -19,14 +19,18 @@ describe('document toolbar and import', () => {
     vi.unstubAllGlobals();
   });
 
+  const openHome = async () => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Home' }));
+  };
+
   const clickNewDocument = async () => {
-    fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'New' }));
+    await openHome();
+    fireEvent.click(await screen.findByRole('button', { name: 'New document' }));
   };
 
   const clickUploadDocument = async () => {
-    fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Upload' }));
+    await openHome();
+    fireEvent.click(await screen.findByRole('button', { name: 'Upload document' }));
   };
 
   const rejectDocumentCreation = (message = 'offline') => {
@@ -38,14 +42,31 @@ describe('document toolbar and import', () => {
     }));
   };
 
-  it('shows the upload action directly below the new document action', async () => {
+  const openDocumentPicker = async () => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
+  };
+
+  it('lists the current document among unfiltered picker options', async () => {
     renderDocumentRoute();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
+    await openDocumentPicker();
 
-    const newOption = await screen.findByRole('menuitem', { name: 'New' });
-    const uploadOption = await screen.findByRole('menuitem', { name: 'Upload' });
-    expect(newOption.compareDocumentPosition(uploadOption) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(await screen.findByRole('option', { name: 'Test Document' })).toBeInTheDocument();
+  });
+
+  it('filters picker options after the current name is edited', async () => {
+    renderDocumentRoute();
+
+    await openDocumentPicker();
+    expect(await screen.findByRole('option', { name: 'Test Document' })).toBeInTheDocument();
+
+    fireEvent.change(await screen.findByRole('combobox', { name: 'Choose document' }), {
+      target: { value: 'NoSuchDocument' },
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('option', { name: 'Test Document' })).toBeNull();
+    });
   });
 
   it('creates a document from the selected backup filename before registering the pending import', async () => {
@@ -56,7 +77,7 @@ describe('document toolbar and import', () => {
     const file = new File(['{"root":{"type":"root","children":[]}}'], ' Project Backup.json', {
       type: 'application/json',
     });
-    fireEvent.change(screen.getByLabelText('Upload document backup'), {
+    fireEvent.change(screen.getByLabelText('Upload document'), {
       target: { files: [file] },
     });
 
@@ -76,7 +97,7 @@ describe('document toolbar and import', () => {
 
     renderDocumentRoute();
     await clickUploadDocument();
-    fireEvent.change(screen.getByLabelText('Upload document backup'), {
+    fireEvent.change(screen.getByLabelText('Upload document'), {
       target: { files: [new File(['{}'], 'backup.json', { type: 'application/json' })] },
     });
 

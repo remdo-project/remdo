@@ -37,11 +37,6 @@
   text-decoration: underline;
 }
 
-.documentControl {
-  display: inline-flex;
-  align-items: center;
-}
-
 .documentCrumbGroup {
   display: inline-flex;
   align-items: center;
