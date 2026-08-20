@@ -8,7 +8,6 @@ import { devRoutes } from './devRoutes';
 import { resolveSessionGateState } from '#client/app/session/client';
 import type { SessionGateState } from '#client/app/session/client';
 import { resolveAuthenticatedLoginRedirect } from '#client/app/session/login-redirect';
-import LogoutRoute from '#client/app/session/LogoutRoute';
 import OAuthConsentRoute from '#client/app/session/OAuthConsentRoute';
 import OnlineGate from '#client/app/session/OnlineGate';
 import {
@@ -127,11 +126,6 @@ const appRoutes = [
     path: '/',
     loader: ({ request }: { request: Request }) => rootRouteLoader(request),
     element: <RootRoute />,
-    hydrateFallbackElement,
-  },
-  {
-    path: '/logout',
-    element: <LogoutRoute />,
     hydrateFallbackElement,
   },
   {

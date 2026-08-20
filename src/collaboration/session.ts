@@ -6,6 +6,7 @@ import {
   toCollaborationConnectionStatus,
   waitForSync,
 } from './runtime';
+import { markDocumentSynced, markDocumentUnsynced } from './unsynced-local-changes';
 import { trace } from '#platform/log';
 import type {
   CollaborationConnectionStatus,
@@ -20,6 +21,11 @@ interface CollabSnapshot {
   docId: string;
   hydrated: boolean;
   synced: boolean;
+  /**
+   * Edits the server has not acknowledged. Unlike `synced`, a disconnect does
+   * not set this: losing the connection does not create unsaved work.
+   */
+  hasLocalChanges: boolean;
   localCacheHydrated: boolean;
   connectionStatus: CollaborationConnectionStatus;
   docEpoch: number;
@@ -86,6 +92,9 @@ export class CollabSession {
   private cleanup: (() => void) | null = null;
   private attachTask: Promise<void> | null = null;
   private attachVersion = 0;
+  private providerHadLocalChanges = false;
+  private sawProviderAck = false;
+  private unsavedLocalEdits = false;
   private state: CollabSnapshot;
 
   constructor(options: SessionOptions) {
@@ -95,6 +104,7 @@ export class CollabSession {
     this.state = {
       docId,
       hydrated: !enabled,
+      hasLocalChanges: false,
       synced: !enabled,
       localCacheHydrated: !enabled,
       connectionStatus: enabled ? 'connecting' : 'disconnected',
@@ -156,6 +166,7 @@ export class CollabSession {
       this.state = {
         ...this.state,
         hydrated: false,
+        hasLocalChanges: false,
         synced: false,
         localCacheHydrated: false,
         connectionStatus: 'error',
@@ -181,11 +192,19 @@ export class CollabSession {
         const hydrated = base.hydrated || base.localCacheHydrated || events.synced === true;
         const computedSynced = hydrated && events.synced === true && events.hasLocalChanges !== true;
         const synced = options.forceUnsynced ? false : computedSynced;
-        const nextState: CollabSnapshot = { ...base, hydrated, synced };
+        const providerUnacked = events.hasLocalChanges === true;
+        if (!providerUnacked) {
+          this.sawProviderAck = true;
+          this.unsavedLocalEdits = false;
+        }
+        const hasLocalChanges = this.unsavedLocalEdits || (this.sawProviderAck && providerUnacked);
+        this.recordProviderLocalChanges(hasLocalChanges);
+        const nextState: CollabSnapshot = { ...base, hasLocalChanges, hydrated, synced };
         if (
           nextState.docId === this.state.docId &&
           nextState.hydrated === this.state.hydrated &&
           nextState.synced === this.state.synced &&
+          nextState.hasLocalChanges === this.state.hasLocalChanges &&
           nextState.localCacheHydrated === this.state.localCacheHydrated &&
           nextState.connectionStatus === this.state.connectionStatus &&
           nextState.docEpoch === this.state.docEpoch &&
@@ -198,8 +217,13 @@ export class CollabSession {
       };
 
       const handleDocUpdate = (_update: Uint8Array, origin: unknown) => {
+        const fromCache = isLocalCacheUpdateOrigin(origin, provider);
+        if (!fromCache && origin !== provider) {
+          this.unsavedLocalEdits = true;
+          recomputeState();
+        }
         if (this.state.localCacheHydrated) return;
-        if (!isLocalCacheUpdateOrigin(origin, provider)) return;
+        if (!fromCache) return;
         trace('collab', 'local cache hydrated from local document updates', { docId: this.state.docId });
         recomputeState({ localCacheHydrated: true });
       };
@@ -248,6 +272,7 @@ export class CollabSession {
 
       recomputeState({
         hydrated: false,
+        hasLocalChanges: false,
         synced: false,
         localCacheHydrated: isLocalCacheHydratedDoc(doc),
         connectionStatus: toCollaborationConnectionStatus(provider.status),
@@ -280,6 +305,7 @@ export class CollabSession {
     this.state = {
       ...this.state,
       hydrated: false,
+      hasLocalChanges: false,
       synced: false,
       localCacheHydrated: false,
       connectionStatus: 'disconnected',
@@ -309,11 +335,28 @@ export class CollabSession {
     this.listeners.clear();
   }
 
+  private recordProviderLocalChanges(hasLocalChanges: boolean) {
+    if (hasLocalChanges === this.providerHadLocalChanges) {
+      return;
+    }
+    if (hasLocalChanges) {
+      markDocumentUnsynced(this.state.docId);
+    } else {
+      markDocumentSynced(this.state.docId);
+    }
+    this.providerHadLocalChanges = hasLocalChanges;
+  }
+
   private teardown(abortAwait = false) {
     this.attachVersion += 1;
     this.attachTask = null;
     this.cleanup?.();
     this.cleanup = null;
+    // Drop the in-memory edge tracker only. A still-dirty document stays in
+    // origin storage until a later provider actually acknowledges it.
+    this.providerHadLocalChanges = false;
+    this.sawProviderAck = false;
+    this.unsavedLocalEdits = false;
 
     if (abortAwait) {
       this.awaitController?.abort(new Error('Collaboration session destroyed'));

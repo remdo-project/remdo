@@ -21,7 +21,9 @@ function renderIndicator(descriptor: StatusDescriptor) {
       title={descriptor.title}
     >
       <Icon icon={descriptor.icon} />
-      {descriptor.text ? <Text size="sm" className="status-icon-text">{descriptor.text}</Text> : null}
+      {descriptor.text
+        ? <Text className="status-icon-text" size="sm" textWrap="nowrap">{descriptor.text}</Text>
+        : null}
     </Group>
   );
 }

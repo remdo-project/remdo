@@ -1,3 +1,4 @@
+import { createLocalAccountIssuer } from '@better-auth/core/db';
 import type { ServerAuth, ServerAuthUser } from '#server/auth/auth';
 
 export const STABLE_AUTH_USERS = {
@@ -31,6 +32,7 @@ async function setCredentialPassword(auth: ServerAuth, userId: string, password:
   }
   await context.internalAdapter.createAccount({
     accountId: userId,
+    issuer: createLocalAccountIssuer('credential'),
     password: hashedPassword,
     providerId: 'credential',
     userId,

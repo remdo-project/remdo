@@ -194,18 +194,10 @@ Deferred hardening; long-horizon items live in
   — bounded and minor, but a clean fix would let the connect loop actually exit
   on destroy rather than park forever. What remains is the
   server-down/reconnect-loop noise on a *live* session.)
-- Unsynced local edits follow-up: expose a reliable "pending local changes"
-  signal from the collaboration/local-persistence layer and show it in the UI.
-  Destructive actions such as logout should warn before clearing local Yjs data
-  when offline edits have not synced to the server.
 - Local data wipe follow-up: add a separate "wipe this device" flow and design
-  the related UX, including unsynced local edits, server-offline behavior, and
-  open-tab IndexedDB cleanup blockers.
-- Logout cleanup follow-up: keep server sign-out available even when local
-  cleanup is incomplete, then design a user-visible warning/retry path for cases
-  where IndexedDB enumeration or deletion cannot confirm that Y-Sweet offline
-  data was removed. Until that UI exists, avoid silently claiming complete local
-  cleanup in unsupported browser storage environments.
+  the related UX, including unsynced local edits and server-offline behavior.
+  (The open-tab IndexedDB cleanup blocker is resolved: the provider closes its
+  connection on teardown, and a cross-tab sign-out tears peers down.)
 
 ## Admin enrollment follow-ups
 
