@@ -11,12 +11,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Header, Menu, MenuItem, MenuSection } from 'react-aria-components';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 
-import { FOLD_VIEW_TO_LEVEL_COMMAND, OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
+import { FOLD_VIEW_TO_LEVEL_COMMAND, OPEN_NOTE_MENU_COMMAND, SET_NESTED_LIST_TYPE_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { requireContentItemFromNode } from '#client/editor/outline/schema';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
-import { $getNestedListType, $setNestedListType } from '#client/editor/features/list-types/nested-list-type';
+import { $getNestedListType } from '#client/editor/features/list-types/nested-list-type';
 import { handleNoteMenuShortcut } from '#client/editor/features/menu/note-menu-shortcuts';
 import type { NoteMenuShortcutEvent } from '#client/editor/features/menu/note-menu-shortcuts';
 import { $resolveNoteStateFromDOMNode } from '#client/editor/features/menu/note-state';
@@ -408,13 +408,9 @@ export function NoteMenuPlugin() {
 
   const convertChildList = (listType: ListType) => {
     focusRoot();
-    editor.update(() => {
-      const node = $getNodeByKey(menu.noteKey);
-      if (!node) {
-        return;
-      }
-      const contentItem = requireContentItemFromNode(node);
-      $setNestedListType(contentItem, listType);
+    editor.dispatchCommand(SET_NESTED_LIST_TYPE_COMMAND, {
+      noteItemKey: menu.noteKey,
+      listType,
     });
     closeMenu();
   };

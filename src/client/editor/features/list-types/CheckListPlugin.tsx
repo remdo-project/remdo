@@ -8,14 +8,14 @@ import { useEffect } from 'react';
 import type { NoteCheckedDisplay } from '#client/editor/features/list-types/checked-subtree';
 import { $getNoteChecked, $setNoteCheckedRaw } from '#client/editor/features/list-types/checked-state';
 import { $isNoteSubtreeChecked, NoteCheckedDisplayCache } from '#client/editor/features/list-types/checked-subtree';
-import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
+import { SET_NESTED_LIST_TYPE_COMMAND, SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 import type { SetNoteCheckedPayload } from '#client/editor/foundation/commands';
 import { isBulletHit, isCheckboxHit } from '#client/editor/outline/bullet-hit-test';
 import { getPreviousContentSibling, isChildrenWrapper, isContentItem } from '#client/editor/outline/list-structure';
 import { $resolveNoteIdFromDOMNode } from '#client/editor/outline/note-context';
 import { $resolveStructuralItemsFromRange } from '#client/editor/outline/selection/range';
 import { requireContentItemFromNode, resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { getParentContentItem, getSubtreeItems, getWrapperForContent } from '#client/editor/outline/selection/tree';
+import { getNestedList, getParentContentItem, getSubtreeItems, getWrapperForContent } from '#client/editor/outline/selection/tree';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 
 // A body-wrapper renders as `.note-body-wrapper`, never a checklist `<li>`, so it
@@ -260,6 +260,20 @@ export function CheckListPlugin() {
     return mergeRegister(
       registerChecklistBulletZoomGuard(editor),
       registerCheckList(editor),
+      editor.registerCommand(
+        SET_NESTED_LIST_TYPE_COMMAND,
+        ({ noteItemKey, listType }) => {
+          const node = $getNodeByKey(noteItemKey);
+          const contentItem = node ? resolveContentItemFromNode(node) : null;
+          const nested = contentItem ? getNestedList(contentItem) : null;
+          if (!nested) {
+            return false;
+          }
+          nested.setListType(listType);
+          return true;
+        },
+        COMMAND_PRIORITY_LOW
+      ),
       editor.registerCommand(
         SET_NOTE_CHECKED_COMMAND,
         (payload) => {

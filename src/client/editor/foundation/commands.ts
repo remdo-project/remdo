@@ -11,6 +11,11 @@ export interface SetNoteCheckedPayload {
   noteItemKey?: string;
 }
 export const SET_NOTE_CHECKED_COMMAND = createCommand<SetNoteCheckedPayload>('remdo:set-note-checked');
+interface SetNestedListTypePayload {
+  noteItemKey: string;
+  listType: 'bullet' | 'number' | 'check';
+}
+export const SET_NESTED_LIST_TYPE_COMMAND = createCommand<SetNestedListTypePayload>('remdo:set-nested-list-type');
 type NoteFoldState = 'folded' | 'unfolded' | 'toggle';
 interface SetNoteFoldPayload {
   state: NoteFoldState;
