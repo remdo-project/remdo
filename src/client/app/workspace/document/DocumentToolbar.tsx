@@ -38,6 +38,7 @@ export default function DocumentToolbar({
   searchControl: ReactNode;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const filterEditedRef = useRef(false);
   const [filterQuery, setFilterQuery] = useState<string | null>(null);
   const documentGroups = documentSources.map((source) => ({
     id: source.id(),
@@ -74,6 +75,9 @@ export default function DocumentToolbar({
               inputValue={filterQuery ?? selectedText}
               menuTrigger="focus"
               onInputChange={(value) => {
+                if (value !== selectedText) {
+                  filterEditedRef.current = true;
+                }
                 setFilterQuery((current) => {
                   if (current !== null) {
                     return value;
@@ -86,15 +90,19 @@ export default function DocumentToolbar({
                   return;
                 }
                 const id = String(key);
-                const restoringFilter = Boolean(filterQuery) && filterQuery !== selectedText;
-                if (id !== docId || !restoringFilter) {
+                if (id !== docId || !filterEditedRef.current) {
                   onSelectDocument(id);
                 }
               }}
               onOpenChange={(isOpen) => {
                 setFilterQuery(null);
+                filterEditedRef.current = false;
                 if (isOpen) {
-                  requestAnimationFrame(() => inputRef.current?.select());
+                  requestAnimationFrame(() => {
+                    // RAC may sync the input when opening; that is not a user edit.
+                    filterEditedRef.current = false;
+                    inputRef.current?.select();
+                  });
                 }
               }}
               value={docId}

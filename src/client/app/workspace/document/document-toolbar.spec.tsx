@@ -105,6 +105,34 @@ describe('document toolbar and import', () => {
     expect(onSelectDocument).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['the selected name', 'Test Document'],
+    ['an empty string', ''],
+  ])('does not select a document when a filter is restored to %s and dismissed', async (_label, restoredValue) => {
+    const onSelectDocument = vi.fn();
+    render(
+      <DocumentToolbar
+        docId="testDoc"
+        documentLabel="Test Document"
+        documentSources={getTestUserData().documentSources().children()}
+        onSelectDocument={onSelectDocument}
+        onSelectHome={() => {}}
+        onSelectNoteId={() => {}}
+        onStatusHostChange={() => {}}
+        path={[]}
+        searchControl={null}
+      />,
+    );
+
+    await openDocumentPicker();
+    const picker = await screen.findByRole('combobox', { name: 'Choose document' });
+    fireEvent.change(picker, { target: { value: 'NoSuchDocument' } });
+    fireEvent.change(picker, { target: { value: restoredValue } });
+    fireEvent.blur(picker);
+
+    expect(onSelectDocument).not.toHaveBeenCalled();
+  });
+
   it('keeps the current document labeled when it is not in the source list', async () => {
     renderDocumentRoute();
 
