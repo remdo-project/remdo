@@ -82,8 +82,13 @@ export default function DocumentToolbar({
                 });
               }}
               onChange={(key) => {
-                if (key != null) {
-                  onSelectDocument(String(key));
+                if (key == null) {
+                  return;
+                }
+                const id = String(key);
+                const restoringFilter = Boolean(filterQuery) && filterQuery !== selectedText;
+                if (id !== docId || !restoringFilter) {
+                  onSelectDocument(id);
                 }
               }}
               onOpenChange={(isOpen) => {
