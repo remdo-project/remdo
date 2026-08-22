@@ -44,7 +44,7 @@ export default function DocumentToolbar({
     })),
   })).filter((source) => source.options.length > 0);
   const qualifyLabels = documentGroups.length > 1;
-  const documents = documentGroups.flatMap((group) => group.options.map((document) => ({
+  const listedDocuments = documentGroups.flatMap((group) => group.options.map((document) => ({
     filterText: qualifyLabels ? `${group.label} ${document.filterText}` : document.filterText,
     id: document.value,
     key: `${group.id}:${document.value}`,
@@ -52,7 +52,9 @@ export default function DocumentToolbar({
   })));
   const selectedText = formatNavigationLabel(documentLabel, Number.POSITIVE_INFINITY);
   const selectedLabel = formatNavigationLabel(documentLabel);
-  const currentListed = documents.some((document) => document.id === docId);
+  const documents = listedDocuments.some((document) => document.id === docId)
+    ? listedDocuments
+    : [{ filterText: selectedText, id: docId, key: docId, label: selectedLabel }, ...listedDocuments];
   const selectCurrentDocument = () => {
     onSelectDocument(docId);
   };
@@ -91,15 +93,6 @@ export default function DocumentToolbar({
               </div>
               <Popover offset={4} placement="bottom start">
                 <ListBox className="document-header-doc-dropdown remdo-menu">
-                  {currentListed ? null : (
-                    <ListBoxItem
-                      id={docId}
-                      onAction={selectCurrentDocument}
-                      textValue={selectedText}
-                    >
-                      {selectedLabel}
-                    </ListBoxItem>
-                  )}
                   {documents.map((document) => (
                     <ListBoxItem
                       id={document.id}
