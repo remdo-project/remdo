@@ -44,7 +44,7 @@ test.describe('Document switcher', () => {
     const picker = documentPicker(page);
     await expect(picker).toBeFocused();
 
-    await picker.pressSequentially('ba');
+    await page.keyboard.type('ba');
     await expect(picker).toHaveValue('ba');
     await picker.press('Backspace');
     await expect(picker).toHaveValue('b');

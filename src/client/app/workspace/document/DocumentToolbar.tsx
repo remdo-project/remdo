@@ -3,11 +3,9 @@ import type { ReactNode } from 'react';
 import {
   Button,
   ComboBox,
-  Header,
   Input,
   ListBox,
   ListBoxItem,
-  ListBoxSection,
   Popover,
 } from 'react-aria-components';
 import type { DocumentSourceNote } from '#note-sdk';
@@ -97,25 +95,28 @@ export default function DocumentToolbar({
                       {selectedLabel}
                     </ListBoxItem>
                   )}
-                  {documentGroups.map((group) => (
-                    <ListBoxSection
+                  {documentGroups.flatMap((group) => [
+                    <ListBoxItem
                       data-document-source-id={group.id}
-                      id={group.id}
-                      key={group.id}
+                      id={`source:${group.id}`}
+                      isDisabled
+                      key={`source:${group.id}`}
+                      textValue={group.label}
                     >
-                      <Header>{group.label}</Header>
-                      {group.options.map((document) => (
-                        <ListBoxItem
-                          id={document.value}
-                          key={`${group.id}:${document.value}`}
-                          onAction={document.value === docId ? selectCurrentDocument : undefined}
-                          textValue={document.filterText}
-                        >
-                          {document.label}
-                        </ListBoxItem>
-                      ))}
-                    </ListBoxSection>
-                  ))}
+                      {group.label}
+                    </ListBoxItem>,
+                    ...group.options.map((document) => (
+                      <ListBoxItem
+                        data-document-source-id={group.id}
+                        id={document.value}
+                        key={`${group.id}:${document.value}`}
+                        onAction={document.value === docId ? selectCurrentDocument : undefined}
+                        textValue={document.filterText}
+                      >
+                        {document.label}
+                      </ListBoxItem>
+                    )),
+                  ])}
                 </ListBox>
               </Popover>
             </ComboBox>

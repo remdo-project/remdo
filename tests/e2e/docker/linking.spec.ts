@@ -60,10 +60,9 @@ test('links a source by URL and opens its Home document', async ({ page }) => {
   await switcherTrigger.click();
 
   const dropdown = page.locator('.document-header-doc-dropdown');
-  await expect(dropdown.locator('[data-document-source-id="local"]')).toContainText('Current Server');
-  const sourceGroup = dropdown.locator(`[data-document-source-id="${sourceServerId}"]`);
-  await expect(sourceGroup).toContainText(sourceHost);
-  await sourceGroup.getByRole('option', { name: 'Home', exact: true }).click();
+  await expect(dropdown.getByRole('option', { name: 'Current Server' })).toBeVisible();
+  await expect(dropdown.locator(`[data-document-source-id="${sourceServerId}"]`).first()).toContainText(sourceHost);
+  await dropdown.locator(`[data-document-source-id="${sourceServerId}"]`).filter({ hasText: /^Home$/ }).click();
 
   await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/n\/[\dA-Za-z]+$/u);
   await waitForEditableEditor(page);
