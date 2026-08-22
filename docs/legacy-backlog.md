@@ -233,24 +233,19 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-
 
 Tracks the gaps between [Home](specs/outliner/home.md) and the [view header](specs/outliner/view-header.md) as specified and what ships.
 
-- The document-source chevron combobox picker in `DocumentToolbar.tsx`
-  (`NEW_DOCUMENT_VALUE` / `UPLOAD_DOCUMENT_VALUE` and the grouped document
-  options) is replaced by Home: Home owns document browsing and the New/Upload
-  actions. Remove the picker once Home fully covers switching; the intervening
-  state (both present) is the recorded interim. While both exist they duplicate
-  the upload file-input plumbing (`handleUploadInputChange` + hidden `<input>`)
-  and the per-source document list; removing the picker resolves the duplication,
-  so leave it rather than extracting a shared helper now. The two also differ on
-  re-selecting the already-open document while zoomed: a Home row clears zoom to
-  the document root (per [Home](specs/outliner/home.md) core behavior 3), the toolbar
-  picker keeps the zoom (its pre-existing switcher behavior). Removing the picker
-  removes the inconsistency; decide the picker's behavior only if it outlives Home.
-  Retirement is its own PR: delete the picker combobox and the `documentControl`
-  slot from `ZoomBreadcrumbs` (the doc name stays a crumb — full pure-nav is the
-  view-header work), delete its specs (`document-switcher.spec.ts`, the picker
-  cases in `document-toolbar.spec.tsx`/`document-route.spec.tsx`), and rewrite the
+- The document-source combobox in `DocumentToolbar.tsx` still lists documents for
+  switching; Home owns browsing and New/Upload. Remove the picker once Home fully
+  covers switching; the intervening state (both present) is the recorded interim.
+  While both exist they duplicate the per-source document list; removing the
+  picker resolves the duplication, so leave it rather than extracting a shared
+  helper now. Re-selecting the already-open document while zoomed now matches
+  Home: both clear zoom to the document root. Retirement is its own PR: delete
+  the picker and the `documentControl` slot from `ZoomBreadcrumbs` (the doc name
+  stays a crumb — full pure-nav is the view-header work), delete its specs
+  (`document-switcher.spec.ts`, the picker cases in
+  `document-toolbar.spec.tsx`/`document-route.spec.tsx`), and rewrite the
   source-linking switch in `tests/e2e/docker/linking.spec.ts` to reach a linked
-  document through Home instead of the picker dropdown.
+  document through Home instead of the picker.
 - Home visibility is component-local `homeActive` state in `DocumentWorkspace`,
   not URL/route backed, so it is lost on reload and not linkable. `home.md`
   "Entering and leaving Home" treats Home as the surface above `/`; route Home
@@ -276,12 +271,11 @@ the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#br
   end state is the document name being the document root note's own text (a CRDT
   edit), which also unifies the root and subtree-zoom header. Needs an SDK rename
   capability, its server/collab path, and a name migration.
-- Breadcrumb accessibility: `ZoomBreadcrumbs` (Mantine `Breadcrumbs`) emits
-  neither a `nav` landmark nor an ordered list, and the crumbs carry no
-  `aria-current`. When the header lands the breadcrumb becomes pure navigation
-  and the header carries the view's heading semantics; the editable content and
-  the heading role must stay on separate elements (a `textbox` role masks an
-  inner heading from assistive tech). Close with the view-header work.
+- Breadcrumb heading semantics: when the header lands the breadcrumb becomes
+  pure navigation and the header carries the view's heading semantics; the
+  editable content and the heading role must stay on separate elements (a
+  `textbox` role masks an inner heading from assistive tech). Close with the
+  view-header work.
 - Fold semantics at the view header are unreconciled with the restricted kind.
   [Zoom](specs/outliner/zoom.md) items 7–8 describe the zoom root's stored fold state
   being preserved and not hiding its children while zoomed, but the

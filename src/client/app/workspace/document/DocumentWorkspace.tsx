@@ -72,8 +72,6 @@ export default function DocumentWorkspace({
       setHomeActive(false);
       action(...args);
     };
-  // Selecting a document leaves Home immediately (a synchronous route change).
-  const selectDocument = leaveHome(onSelectDocument);
   // Create/upload are async: Home is left when they succeed and navigate to the
   // new document (the route-change reset below), not eagerly — so a failure
   // keeps the user on Home where its error alert is shown, rather than dropping
@@ -84,11 +82,11 @@ export default function DocumentWorkspace({
   const uploadDocument = (file: File) => {
     void actions.uploadDocument(file);
   };
-  // Opening a document from Home lands on its document-root view. Selecting the
-  // already-open document is a no-op route change, so clear zoom directly (only
-  // when actually zoomed) to reach the root instead of returning to the previous
+  // Home rows and the trail picker both land on the document-root view.
+  // Selecting the already-open document is a no-op route change, so clear zoom
+  // directly (only when actually zoomed) instead of returning to the previous
   // zoomed subtree.
-  const openDocumentFromHome = leaveHome((nextDocId: string) => {
+  const openDocument = leaveHome((nextDocId: string) => {
     if (nextDocId !== docId) {
       onSelectDocument(nextDocId);
     } else if (zoomNoteId !== null) {
@@ -138,16 +136,13 @@ export default function DocumentWorkspace({
   return (
     <div className="document-editor-shell" ref={shellRef}>
       <DocumentToolbar
-        currentSourceId={source.currentSourceId}
         docId={docId}
         documentLabel={source.documentLabel}
         documentSources={documentSources}
-        onCreateDocument={createDocument}
-        onSelectDocument={selectDocument}
+        onSelectDocument={openDocument}
         onSelectHome={() => setHomeActive(true)}
         onSelectNoteId={zoomToNote}
         onStatusHostChange={setStatusHost}
-        onUploadDocument={uploadDocument}
         path={zoomPath}
         searchControl={(
           // Entering search takes over the content region; dismiss Home so the
@@ -186,7 +181,7 @@ export default function DocumentWorkspace({
         <HomeView
           {...home}
           onCreateDocument={createDocument}
-          onSelectDocument={openDocumentFromHome}
+          onSelectDocument={openDocument}
           onUploadDocument={uploadDocument}
         />
       )}

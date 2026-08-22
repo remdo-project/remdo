@@ -55,7 +55,7 @@ test('links a source by URL and opens its Home document', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/'));
 
-  const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
+  const switcherTrigger = page.getByRole('button', { name: 'Show documents' });
   await expect(switcherTrigger).toBeVisible();
   await switcherTrigger.click();
 

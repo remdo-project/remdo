@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTestUserData } from '#tests';
 import * as pendingDocumentImports from '#client/editor/runtime/pending-document-import';
@@ -7,6 +7,7 @@ import {
   renderDocumentRoute,
   resetDocumentRouteHarness,
 } from '../../../../../tests/unit/_support/document-route-harness';
+import DocumentToolbar from './DocumentToolbar';
 
 describe('document toolbar and import', () => {
 
@@ -19,14 +20,18 @@ describe('document toolbar and import', () => {
     vi.unstubAllGlobals();
   });
 
+  const openHome = async () => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Home' }));
+  };
+
   const clickNewDocument = async () => {
-    fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByRole('option', { hidden: true, name: 'New' }));
+    await openHome();
+    fireEvent.click(await screen.findByRole('button', { name: 'New document' }));
   };
 
   const clickUploadDocument = async () => {
-    fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByText('Upload'));
+    await openHome();
+    fireEvent.click(await screen.findByRole('button', { name: 'Upload document' }));
   };
 
   const rejectDocumentCreation = (message = 'offline') => {
@@ -38,15 +43,124 @@ describe('document toolbar and import', () => {
     }));
   };
 
-  it('shows the upload action directly below the new document action', async () => {
+  const openDocumentPicker = async () => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
+  };
+
+  const renderPickerToolbar = (
+    onSelectDocument = vi.fn(),
+    docId = 'testDoc',
+    documentLabel = 'Test Document',
+  ) => {
+    render(
+      <DocumentToolbar
+        docId={docId}
+        documentLabel={documentLabel}
+        documentSources={getTestUserData().documentSources().children()}
+        onSelectDocument={onSelectDocument}
+        onSelectHome={() => {}}
+        onSelectNoteId={() => {}}
+        onStatusHostChange={() => {}}
+        path={[]}
+        searchControl={null}
+      />,
+    );
+    return onSelectDocument;
+  };
+
+  const pressOption = async (name: string) => {
+    const option = await screen.findByRole('option', { name });
+    fireEvent.pointerDown(option, { pointerType: 'mouse' });
+    fireEvent.pointerUp(option, { pointerType: 'mouse' });
+    fireEvent.click(option);
+  };
+
+  it('lists the current document among unfiltered picker options', async () => {
     renderDocumentRoute();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
+    await openDocumentPicker();
 
-    const newOption = await screen.findByRole('option', { hidden: true, name: 'New' });
-    const uploadOption = (await screen.findByText('Upload')).closest('[role="option"]');
-    expect(uploadOption).not.toBeNull();
-    expect(newOption.compareDocumentPosition(uploadOption!) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(await screen.findByRole('option', { name: 'Test Document' })).toBeInTheDocument();
+  });
+
+  it('selects a different document once when the option is pressed', async () => {
+    const onSelectDocument = renderPickerToolbar(vi.fn(), 'routeDoc', 'routeDoc');
+
+    await openDocumentPicker();
+    await pressOption('Test Document');
+
+    expect(onSelectDocument).toHaveBeenCalledTimes(1);
+    expect(onSelectDocument).toHaveBeenCalledWith('testDoc');
+  });
+
+  it('selects the current document when its option is pressed', async () => {
+    const onSelectDocument = renderPickerToolbar();
+
+    await openDocumentPicker();
+    await pressOption('Test Document');
+
+    expect(onSelectDocument).toHaveBeenCalledTimes(1);
+    expect(onSelectDocument).toHaveBeenCalledWith('testDoc');
+  });
+
+  it('selects the current document when Enter commits the focused option', async () => {
+    const onSelectDocument = renderPickerToolbar();
+
+    await openDocumentPicker();
+    const picker = await screen.findByRole('combobox', { name: 'Choose document' });
+    const option = await screen.findByRole('option', { name: 'Test Document' });
+    picker.setAttribute('aria-activedescendant', option.id);
+    fireEvent.keyDown(picker, { key: 'Enter' });
+
+    expect(onSelectDocument).toHaveBeenCalledWith('testDoc');
+  });
+
+  it('does not select a document when Enter is pressed with no matching options', async () => {
+    const onSelectDocument = renderPickerToolbar();
+
+    await openDocumentPicker();
+    const picker = await screen.findByRole('combobox', { name: 'Choose document' });
+    fireEvent.change(picker, { target: { value: 'NoSuchDocument' } });
+    fireEvent.keyDown(picker, { key: 'Enter' });
+
+    expect(onSelectDocument).not.toHaveBeenCalled();
+  });
+
+  it('does not select a document when a filter edit is dismissed', async () => {
+    const onSelectDocument = renderPickerToolbar();
+
+    await openDocumentPicker();
+    const picker = await screen.findByRole('combobox', { name: 'Choose document' });
+    fireEvent.change(picker, { target: { value: 'NoSuchDocument' } });
+    fireEvent.change(picker, { target: { value: '' } });
+    fireEvent.blur(picker);
+
+    expect(onSelectDocument).not.toHaveBeenCalled();
+  });
+
+  it('keeps the current document labeled when it is not in the source list', async () => {
+    renderDocumentRoute();
+
+    expect(await screen.findByRole('combobox', { name: 'Choose document' })).toHaveValue('routeDoc');
+
+    await openDocumentPicker();
+
+    expect(await screen.findByRole('option', { name: 'routeDoc' })).toBeInTheDocument();
+  });
+
+  it('filters picker options after the current name is edited', async () => {
+    renderDocumentRoute();
+
+    await openDocumentPicker();
+    expect(await screen.findByRole('option', { name: 'Test Document' })).toBeInTheDocument();
+
+    fireEvent.change(await screen.findByRole('combobox', { name: 'Choose document' }), {
+      target: { value: 'NoSuchDocument' },
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('option', { name: 'Test Document' })).toBeNull();
+    });
   });
 
   it('creates a document from the selected backup filename before registering the pending import', async () => {
@@ -57,7 +171,7 @@ describe('document toolbar and import', () => {
     const file = new File(['{"root":{"type":"root","children":[]}}'], ' Project Backup.json', {
       type: 'application/json',
     });
-    fireEvent.change(screen.getByLabelText('Upload document backup'), {
+    fireEvent.change(screen.getByLabelText('Upload document'), {
       target: { files: [file] },
     });
 
@@ -77,7 +191,7 @@ describe('document toolbar and import', () => {
 
     renderDocumentRoute();
     await clickUploadDocument();
-    fireEvent.change(screen.getByLabelText('Upload document backup'), {
+    fireEvent.change(screen.getByLabelText('Upload document'), {
       target: { files: [new File(['{}'], 'backup.json', { type: 'application/json' })] },
     });
 

@@ -58,6 +58,7 @@ documentation. Route agents by the question they need to answer:
   - **Cross-mode change impact:** [Run-Mode Impact](../../../CONTRIBUTING.md#run-mode-impact).
   - **Compatibility defaults:** [Backward compatibility](../../../CONTRIBUTING.md#backward-compatibility-pre-10).
   - **Tracked code comments:** [Code comments](../../../CONTRIBUTING.md#code-comments).
+  - **UI library default:** [UI Libraries](../../../CONTRIBUTING.md#ui-libraries).
   - **Testing policy:** [Testing](../../dev/testing.md).
 - **Long-term product constraints:** [Project principles](../../principles.md).
 - **Supported run modes:** [Run Modes](../../run-modes.md).

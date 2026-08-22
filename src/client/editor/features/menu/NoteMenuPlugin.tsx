@@ -432,7 +432,7 @@ export function NoteMenuPlugin() {
       <Menu
         aria-label="Quick action menu"
         autoFocus
-        className="note-menu-dropdown"
+        className="note-menu-dropdown remdo-menu"
         data-note-menu
         data-note-menu-note-key={menu.noteKey}
       >

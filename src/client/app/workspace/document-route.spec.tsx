@@ -52,8 +52,8 @@ describe('document route', () => {
     }]);
     const router = renderDocumentRoute(createDocumentPath('testDoc'));
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByRole('option', { hidden: true, name: 'Source Document' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Source Document' }));
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe(createDocumentPath('sourceDoc'));
@@ -66,8 +66,8 @@ describe('document route', () => {
   it('navigates from another document to the local Home root', async () => {
     const router = renderDocumentRoute();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByRole('option', { hidden: true, name: 'Test Document' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Test Document' }));
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/');
@@ -187,6 +187,24 @@ describe('document route', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear zoom' }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+    });
+  });
+
+  it('clears zoom when the current document is pressed in the picker', async () => {
+    const router = renderDocumentRoute('/');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Zoom note' }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(createDocumentPath('testDoc', 'note3'));
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
+    const currentDocument = await screen.findByRole('option', { name: 'Test Document' });
+    fireEvent.pointerDown(currentDocument, { pointerType: 'mouse' });
+    fireEvent.pointerUp(currentDocument, { pointerType: 'mouse' });
+
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/');
     });

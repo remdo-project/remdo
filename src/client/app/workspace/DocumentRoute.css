@@ -63,41 +63,88 @@
   border-color: var(--mantine-color-dark-4);
 }
 
-.document-header-doc-menu {
-  color: var(--mantine-color-dark-2);
+.document-header-doc-combobox {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.document-header-doc-combo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  max-width: 16rem;
+  border: 1px solid transparent;
+  border-radius: var(--mantine-radius-sm);
+  background: transparent;
   --interaction-radius: var(--mantine-radius-sm);
 }
 
-.document-header-doc-menu:hover,
-.document-header-doc-menu:focus-visible {
+.document-header-doc-combobox[data-open] .document-header-doc-combo {
+  min-width: 10rem;
+  background: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.document-header-doc-input {
+  flex: 1;
+  min-width: 0;
+  field-sizing: content;
+  border: none;
+  background: transparent;
   color: var(--mantine-color-dark-0);
+  font: inherit;
+  padding: 0;
+  outline: none;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.document-header-doc-combo:hover .document-header-doc-input {
+  text-decoration: underline;
+}
+
+.document-header-doc-combobox[data-open] .document-header-doc-input {
+  padding: 0.15rem 0.4rem;
+  cursor: text;
+  text-decoration: none;
+}
+
+.document-header-doc-combobox[data-open] .document-header-doc-combo:hover .document-header-doc-input {
+  text-decoration: none;
+}
+
+.document-header-doc-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--mantine-color-dark-2);
+  cursor: pointer;
+}
+
+.document-header-doc-menu[data-hovered],
+.document-header-doc-menu[data-focus-visible] {
+  color: var(--mantine-color-dark-0);
+}
+
+.document-header-doc-menu[data-disabled] {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .document-header-doc-dropdown {
   min-width: 10rem;
+  max-height: 16rem;
+  overflow: auto;
 }
 
 .document-header-doc-dropdown [role='option'] {
   white-space: nowrap;
-}
-
-.document-header-doc-divider {
-  border-top: 1px solid var(--document-header-doc-divider-color);
-  margin: 0.25rem 0;
-}
-
-.document-header-doc-divider--dark-5 {
-  --document-header-doc-divider-color: var(--mantine-color-dark-5);
-}
-
-.document-header-doc-action {
-  align-items: center;
-  display: inline-flex;
-  gap: 0.35rem;
-}
-
-.document-header-upload-input {
-  display: none;
 }
 
 .document-header-search .mantine-Input-input:focus,

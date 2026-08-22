@@ -42,7 +42,8 @@ editing boundary, distinct from the editor's [selection](./selection.md).
 
 ## Clearing zoom
 
-Selecting the document breadcrumb sets the zoom target to the document root.
+Re-selecting the current document in the document picker, or opening that
+document from [Home](./home.md), sets the zoom target to the document root.
 If the zoom root no longer resolves, zoom also resets to the document root.
 
 Zoom otherwise changes only through explicit zoom navigation.
@@ -67,8 +68,9 @@ The breadcrumb is navigation through the ancestors above the current location.
 1. The document-root view contains only the Home crumb.
 2. A subtree view contains the zoom path without the zoom root, in order:
    Home / document name / ancestor notes.
-3. Every crumb is a link. Home opens [Home](./home.md), the document name clears
-   zoom, and an ancestor note changes the zoom root to that note.
+3. Home opens [Home](./home.md). The document name is the document picker;
+   choosing the current document clears zoom. An ancestor note changes the
+   zoom root to that note.
 
 Labels other than Home use the corresponding note's display text, truncated to
 20 characters when needed.

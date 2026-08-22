@@ -50,3 +50,37 @@ body {
 .remdo-interaction-surface[data-active='hover']::after {
   box-shadow: var(--hover-ring);
 }
+
+.remdo-menu {
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-dark-7);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+  padding: 0.25rem;
+  outline: none;
+}
+
+.remdo-menu header {
+  padding: 0.25rem 0.4rem 0.1rem;
+  color: var(--mantine-color-dark-2);
+  font-size: var(--mantine-font-size-xs);
+}
+
+.remdo-menu [role='menuitem'],
+.remdo-menu [role='option'] {
+  border-radius: var(--mantine-radius-xs);
+  padding: 0.25rem 0.4rem;
+  color: var(--mantine-color-dark-0);
+  font-size: var(--mantine-font-size-sm);
+  outline: none;
+  cursor: pointer;
+}
+
+.remdo-menu [role='menuitem'][data-focused],
+.remdo-menu [role='option'][data-focused] {
+  background: var(--mantine-color-dark-5);
+}
+
+.remdo-menu [role='option'][data-selected] {
+  font-weight: 600;
+}
