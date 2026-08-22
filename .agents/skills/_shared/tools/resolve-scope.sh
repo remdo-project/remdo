@@ -139,7 +139,8 @@ case "$scope_arg" in
       || fail "range left revision '$left' does not resolve to a commit"
     right_sha=$(git rev-parse --verify --quiet "$right^{commit}") \
       || fail "range right revision '$right' does not resolve to a commit"
-    head_sha=$(git rev-parse --verify HEAD)
+    head_sha=$(git rev-parse --verify --quiet HEAD^{commit}) \
+      || fail "HEAD does not resolve to a commit"
     if [ "$right_sha" != "$head_sha" ]; then
       fail "range right revision must resolve to HEAD"
     fi

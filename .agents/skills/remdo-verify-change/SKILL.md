@@ -67,7 +67,7 @@ transport and native session persistence when launching the managed call:
   --permission-mode auto --session-id <SESSION_ID> --setting-sources
   user,project --settings '{"disableAllHooks":true}'`. Start its prompt with
   `/code-review medium`, followed by every resolved changed path as a quoted
-  argument for `uncommitted`, or the exact `<BASE>..<HEAD_SHA>` range for a
+  argument for `uncommitted`, or the exact `<BASE>..<HEAD>` range for a
   commit range, then append the review constraint.
 
 For an uncommitted Claude review, derive the changed paths again from

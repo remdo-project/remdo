@@ -324,6 +324,22 @@ describe('resolve-scope.sh (shared tool)', () => {
     expect(result.stderr).not.toContain('repository is dirty');
   });
 
+  it('fails through the documented format when an explicit range meets an unborn HEAD', () => {
+    const work = taskBranch();
+    const tip = git(work, 'rev-parse', 'HEAD').stdout.trim();
+    git(work, 'switch', '--quiet', '--orphan', 'orphan');
+    git(work, 'rm', '-rf', '--quiet', '.');
+
+    const result = run(work, [`${tip}..${tip}`]);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('STATE=failed');
+    expect(result.stderr).toContain(`INPUT=${tip}..${tip}`);
+    expect(result.stderr).toContain('REASON=HEAD does not resolve to a commit');
+    expect(result.stderr).not.toContain('Needed a single revision');
+    expect(result.stdout).not.toContain('HEAD=');
+  });
+
   it('fails when uncommitted HEAD cannot be resolved', () => {
     const work = taskBranch();
     writeFile(work, 'c.md', '# C uncommitted\n');
