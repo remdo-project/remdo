@@ -21,8 +21,11 @@ normal nonempty commit for that batch.
    then retain `BASE` while correction commits advance `HEAD` and assess
    `BASE..HEAD` in every later quality step.
 2. Run one or more independent simplification assessments that collectively
-   cover the resolved change once. Give each only its target and applicable
-   authoritative contracts, and collect every result before editing. Apply
+   cover the resolved change once. [`remdo-simplify`](remdo-simplify.md) covers
+   changed code and tests. Remaining changed artifacts receive one independent
+   assessment under that skill's [Findings](remdo-simplify.md#findings) and
+   [Result](remdo-simplify.md#result) contracts. Give each only its target and
+   applicable authoritative contracts, and collect every result before editing. Apply
    the shared
    [decision rule](../../../../AGENTS.md#execution-and-evidence) to options
    in completed results and retain any
