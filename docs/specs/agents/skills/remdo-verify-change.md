@@ -21,10 +21,6 @@ until verification finishes.
     ├─ failure ───────────> [report and stop]
     │ pass
     v
-[resolve agent settings]
-    ├─ failure ───────────> [report and stop]
-    │ ready
-    v
 [independent configured reviews]
     │
     v
@@ -40,9 +36,9 @@ A commit range skips those checks.
 
 ## Reviews
 
-The verifier resolves [agent settings](../settings.md) and starts an
-independent fresh review for each configured `remdo-verify-change`
-reviewer against the resolved change scope. Their identities remain
+The verifier reads [agent settings](../settings.md) and starts an
+independent fresh review for each `remdo-verify-change` reviewer against
+the resolved change scope. Their identities remain
 distinct in the result, and one review never interrupts another. Each
 reviewer returns one consolidated final report containing all completed
 delegated review work, so a later lifecycle notification cannot replace

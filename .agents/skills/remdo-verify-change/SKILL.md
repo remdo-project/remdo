@@ -41,11 +41,10 @@ Resolve [agent settings](../../../docs/specs/agents/settings.md) from the
 repository root:
 
 ```sh
-sh .agents/skills/_shared/tools/resolve-agent-settings.sh
+pnpm exec tsx .agents/skills/_shared/tools/resolve-agent-settings.ts
 ```
 
-Use the emitted document. If resolution fails, report the resolver output and
-stop before invoking reviewers.
+Use the emitted document.
 
 Then attempt a fresh review for each configured `remdo-verify-change`
 reviewer concurrently through the runtime's managed parallel-call surface.
