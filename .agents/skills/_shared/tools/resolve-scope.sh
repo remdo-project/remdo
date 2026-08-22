@@ -27,11 +27,11 @@ else
 fi
 
 fail() {
-  echo "STATE=failed" >&2
+  printf '%s\n' 'STATE=failed' >&2
   if [ "$input_supplied" = true ]; then
-    echo "INPUT=$scope_arg" >&2
+    printf 'INPUT=%s\n' "$scope_arg" >&2
   fi
-  echo "REASON=$1" >&2
+  printf 'REASON=%s\n' "$1" >&2
   exit 1
 }
 

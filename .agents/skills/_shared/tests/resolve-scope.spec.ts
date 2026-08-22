@@ -396,6 +396,14 @@ describe('resolve-scope.sh (shared tool)', () => {
     expect(result.stderr).toContain('REASON=unrecognized scope');
   });
 
+  it('preserves backslash escapes in failed result fields', () => {
+    const result = run(taskBranch(), ['foo\\c']);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toBe(
+      "STATE=failed\nINPUT=foo\\c\nREASON=unrecognized scope 'foo\\c' — expected a range (A..B / A...B) or 'uncommitted'\n",
+    );
+  });
+
   it('refuses more than one scope input', () => {
     const result = run(taskBranch(), ['uncommitted', 'HEAD~1..HEAD']);
     expect(result.status).not.toBe(0);
