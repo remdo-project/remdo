@@ -80,21 +80,37 @@ persistence when launching the managed call:
   <effort>`, followed by every resolved changed path as a quoted argument
   for `uncommitted`, or the exact `<BASE>..<HEAD>` range for a commit
   range, then append the review constraint.
+- `grok`: generate and retain a fresh UUID as `SESSION_ID`, then run
+  `/usr/bin/env GROK_CLAUDE_HOOKS_ENABLED=false
+  GROK_CLAUDE_MCPS_ENABLED=false GROK_MEMORY=0
+  GROK_DISABLE_AUTOUPDATER=1 grok --model <model> --effort
+  <effort> --session-id <SESSION_ID> --permission-mode dontAsk
+  --sandbox read-only --disable-web-search --no-auto-update --no-plan
+  --verbatim -p <prompt>`. Grok's `-p` takes the prompt as its next
+  argument, unlike Claude's boolean `-p`. The prompt is the review
+  constraint, then every resolved changed path JSON-quoted for
+  `uncommitted`, or the exact `<BASE>..<HEAD>` range for a commit
+  range, then: do not invoke skills.
 
-For an uncommitted Claude review, derive the changed paths again from
+For an uncommitted Claude or Grok review, derive the changed paths again from
 NUL-delimited staged, unstaged, and untracked Git output. Deduplicate the exact
 path strings and append each with JSON string quoting; do not parse the
 resolver's display-oriented `FILES` lines.
 
-Construct the Claude prompt without evaluating path text as shell syntax.
-Capture each command's combined ordinary output and exit status through the
-runtime's managed call rather than a repository wrapper or response file.
-Retain the generated Claude `SESSION_ID` and the Codex-reported session ID with
-their results. After each review finishes, use that ID to inspect its persisted
-native session and every delegated-review history to perform the specification's
-empirical command validation. A final report's description of its own activity
-is not command evidence; unavailable history or command evidence that violates
-the review constraint makes that review `failed`.
+Construct the Claude and Grok prompts without evaluating path text as
+shell syntax. Capture each command's combined ordinary output and exit
+status through the runtime's managed call rather than a repository
+wrapper or response file. Retain each reviewer's session ID with its
+result. After each review finishes, use that ID to inspect its persisted
+native session and every delegated-review history to perform the
+specification's empirical command validation. For Grok, read
+`$GROK_HOME/sessions/<urlencoded-cwd>/<SESSION_ID>/chat_history.jsonl`
+(default `GROK_HOME` is `~/.grok`). Nested `subagents/*/meta.json` is
+only an index: follow each `child_session_id` to that sibling session's
+`chat_history.jsonl`. Tool-call arguments in those files are command
+evidence. A final report's description of its own activity is not
+command evidence. Apply the specification's Reviews contract to that
+evidence.
 
 Reviewer runtime is unspecified. Wait for each managed call's completion
 notification; do not poll it or interpret silence or elapsed time as failure.
