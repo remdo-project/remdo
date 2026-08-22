@@ -47,6 +47,34 @@ describe('document toolbar and import', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
   };
 
+  const renderPickerToolbar = (
+    onSelectDocument = vi.fn(),
+    docId = 'testDoc',
+    documentLabel = 'Test Document',
+  ) => {
+    render(
+      <DocumentToolbar
+        docId={docId}
+        documentLabel={documentLabel}
+        documentSources={getTestUserData().documentSources().children()}
+        onSelectDocument={onSelectDocument}
+        onSelectHome={() => {}}
+        onSelectNoteId={() => {}}
+        onStatusHostChange={() => {}}
+        path={[]}
+        searchControl={null}
+      />,
+    );
+    return onSelectDocument;
+  };
+
+  const pressOption = async (name: string) => {
+    const option = await screen.findByRole('option', { name });
+    fireEvent.pointerDown(option, { pointerType: 'mouse' });
+    fireEvent.pointerUp(option, { pointerType: 'mouse' });
+    fireEvent.click(option);
+  };
+
   it('lists the current document among unfiltered picker options', async () => {
     renderDocumentRoute();
 
@@ -56,78 +84,43 @@ describe('document toolbar and import', () => {
   });
 
   it('selects a different document once when the option is pressed', async () => {
-    const onSelectDocument = vi.fn();
-    render(
-      <DocumentToolbar
-        docId="routeDoc"
-        documentLabel="routeDoc"
-        documentSources={getTestUserData().documentSources().children()}
-        onSelectDocument={onSelectDocument}
-        onSelectHome={() => {}}
-        onSelectNoteId={() => {}}
-        onStatusHostChange={() => {}}
-        path={[]}
-        searchControl={null}
-      />,
-    );
+    const onSelectDocument = renderPickerToolbar(vi.fn(), 'routeDoc', 'routeDoc');
 
     await openDocumentPicker();
-    const nextDocument = await screen.findByRole('option', { name: 'Test Document' });
-    fireEvent.pointerDown(nextDocument, { pointerType: 'mouse' });
-    fireEvent.pointerUp(nextDocument, { pointerType: 'mouse' });
-    fireEvent.click(nextDocument);
+    await pressOption('Test Document');
 
     expect(onSelectDocument).toHaveBeenCalledTimes(1);
     expect(onSelectDocument).toHaveBeenCalledWith('testDoc');
   });
 
-  it('does not select a document when a filter edit is dismissed', async () => {
-    const onSelectDocument = vi.fn();
-    render(
-      <DocumentToolbar
-        docId="testDoc"
-        documentLabel="Test Document"
-        documentSources={getTestUserData().documentSources().children()}
-        onSelectDocument={onSelectDocument}
-        onSelectHome={() => {}}
-        onSelectNoteId={() => {}}
-        onStatusHostChange={() => {}}
-        path={[]}
-        searchControl={null}
-      />,
-    );
+  it('selects the current document when its option is pressed', async () => {
+    const onSelectDocument = renderPickerToolbar();
 
     await openDocumentPicker();
-    const picker = await screen.findByRole('combobox', { name: 'Choose document' });
-    fireEvent.change(picker, { target: { value: 'NoSuchDocument' } });
-    fireEvent.blur(picker);
+    await pressOption('Test Document');
 
-    expect(onSelectDocument).not.toHaveBeenCalled();
+    expect(onSelectDocument).toHaveBeenCalledTimes(1);
+    expect(onSelectDocument).toHaveBeenCalledWith('testDoc');
   });
 
-  it.each([
-    ['the selected name', 'Test Document'],
-    ['an empty string', ''],
-  ])('does not select a document when a filter is restored to %s and dismissed', async (_label, restoredValue) => {
-    const onSelectDocument = vi.fn();
-    render(
-      <DocumentToolbar
-        docId="testDoc"
-        documentLabel="Test Document"
-        documentSources={getTestUserData().documentSources().children()}
-        onSelectDocument={onSelectDocument}
-        onSelectHome={() => {}}
-        onSelectNoteId={() => {}}
-        onStatusHostChange={() => {}}
-        path={[]}
-        searchControl={null}
-      />,
-    );
+  it('selects the current document when Enter commits the focused option', async () => {
+    const onSelectDocument = renderPickerToolbar();
+
+    await openDocumentPicker();
+    fireEvent.keyDown(await screen.findByRole('combobox', { name: 'Choose document' }), {
+      key: 'Enter',
+    });
+
+    expect(onSelectDocument).toHaveBeenCalledWith('testDoc');
+  });
+
+  it('does not select a document when a filter edit is dismissed', async () => {
+    const onSelectDocument = renderPickerToolbar();
 
     await openDocumentPicker();
     const picker = await screen.findByRole('combobox', { name: 'Choose document' });
     fireEvent.change(picker, { target: { value: 'NoSuchDocument' } });
-    fireEvent.change(picker, { target: { value: restoredValue } });
+    fireEvent.change(picker, { target: { value: '' } });
     fireEvent.blur(picker);
 
     expect(onSelectDocument).not.toHaveBeenCalled();

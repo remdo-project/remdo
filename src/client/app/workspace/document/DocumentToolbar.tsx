@@ -1,6 +1,6 @@
 import { IconChevronDown } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import {
   Button,
   ComboBox,
@@ -38,8 +38,6 @@ export default function DocumentToolbar({
   searchControl: ReactNode;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const filterEditedRef = useRef(false);
-  const [filterQuery, setFilterQuery] = useState<string | null>(null);
   const documentGroups = documentSources.map((source) => ({
     id: source.id(),
     label: source.text(),
@@ -54,6 +52,9 @@ export default function DocumentToolbar({
   const currentListed = documentGroups.some((group) =>
     group.options.some((document) => document.value === docId),
   );
+  const selectCurrentDocument = () => {
+    onSelectDocument(docId);
+  };
 
   return (
     <header className="document-header">
@@ -67,48 +68,43 @@ export default function DocumentToolbar({
               className="document-header-doc-combobox"
               key={docId}
               defaultFilter={(textValue, inputValue) => {
-                if (filterQuery == null || inputValue.length === 0) {
+                if (inputValue.length === 0 || inputValue === selectedText) {
                   return true;
                 }
-                return textValue.toLowerCase().includes(filterQuery.toLowerCase());
+                return textValue.toLowerCase().includes(inputValue.toLowerCase());
               }}
-              inputValue={filterQuery ?? selectedText}
               menuTrigger="focus"
-              onInputChange={(value) => {
-                if (value !== selectedText) {
-                  filterEditedRef.current = true;
-                }
-                setFilterQuery((current) => {
-                  if (current !== null) {
-                    return value;
-                  }
-                  return value === selectedText ? null : value;
-                });
-              }}
               onChange={(key) => {
-                if (key == null) {
-                  return;
-                }
-                const id = String(key);
-                if (id !== docId || !filterEditedRef.current) {
-                  onSelectDocument(id);
+                if (key != null && String(key) !== docId) {
+                  onSelectDocument(String(key));
                 }
               }}
               onOpenChange={(isOpen) => {
-                setFilterQuery(null);
-                filterEditedRef.current = false;
                 if (isOpen) {
-                  requestAnimationFrame(() => {
-                    // RAC may sync the input when opening; that is not a user edit.
-                    filterEditedRef.current = false;
-                    inputRef.current?.select();
-                  });
+                  requestAnimationFrame(() => inputRef.current?.select());
                 }
               }}
               value={docId}
             >
               <div className="document-header-doc-combo remdo-interaction-surface">
-                <Input className="document-header-doc-input" ref={inputRef} />
+                <Input
+                  className="document-header-doc-input"
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter') {
+                      return;
+                    }
+                    const activeId = event.currentTarget.getAttribute('aria-activedescendant');
+                    if (activeId == null) {
+                      selectCurrentDocument();
+                      return;
+                    }
+                    const option = document.getElementById(activeId);
+                    if (option?.getAttribute('data-document-ref') === docId) {
+                      selectCurrentDocument();
+                    }
+                  }}
+                  ref={inputRef}
+                />
                 <Button aria-label="Show documents" className="document-header-doc-menu">
                   <IconChevronDown aria-hidden="true" size={14} />
                 </Button>
@@ -119,7 +115,7 @@ export default function DocumentToolbar({
                     <ListBoxItem
                       data-document-ref={docId}
                       id={docId}
-                      onPress={() => onSelectDocument(docId)}
+                      onPress={selectCurrentDocument}
                       textValue={selectedText}
                     >
                       {selectedLabel}
@@ -137,11 +133,7 @@ export default function DocumentToolbar({
                           data-document-ref={document.value}
                           id={document.value}
                           key={`${group.id}:${document.value}`}
-                          onPress={() => {
-                            if (document.value === docId) {
-                              onSelectDocument(document.value);
-                            }
-                          }}
+                          onPress={document.value === docId ? selectCurrentDocument : undefined}
                           textValue={document.filterText}
                         >
                           {document.label}
