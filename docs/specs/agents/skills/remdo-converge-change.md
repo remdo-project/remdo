@@ -6,58 +6,74 @@ correction for one repository change. It returns an [agent result](../protocol.m
 
 ## Authority
 
-[Repository authority](../../../../AGENTS.md#repository-authority): the skill edits
-`uncommitted` corrections without staging them. For a commit range on an
-attached branch, it stages and commits each coherent correction batch.
+[Repository authority](../../../../AGENTS.md#repository-authority): the skill
+leaves `uncommitted` corrections unstaged and uncommitted. For a commit range,
+it treats a correction as inapplicable when `HEAD` is detached. On an attached
+branch, it stages only each validated coherent correction batch and creates one
+normal nonempty commit for that batch.
 
 ## Convergence
 
-The skill resolves its change scope before other repository work. Immediately
-after resolution, it reports the selected scope as a short, standalone
-`Scope:` line before continuing. It reports `uncommitted changes` or the
-caller-visible Git range, without internal commit IDs or other progress. For a
-commit range, `BASE` remains fixed while `HEAD` advances through correction
-commits; later stages assess `BASE..HEAD`.
+1. Resolve the change scope. Immediately report its
+   [caller-visible display](../change-scope.md#caller-visible-display) as a
+   short, standalone `Scope:` line without other progress. If the selected
+   diff is empty, then return `converged`. If the scope is a commit range,
+   then retain `BASE` while correction commits advance `HEAD` and assess
+   `BASE..HEAD` in every later quality step.
+2. Run one or more independent simplification assessments that collectively
+   cover the resolved change once. [`remdo-simplify`](remdo-simplify.md) covers
+   changed code and tests. Remaining changed artifacts receive one independent
+   assessment under that skill's [Findings](remdo-simplify.md#findings) and
+   [Result](remdo-simplify.md#result) contracts. Give each only its target and
+   applicable authoritative contracts, and collect every result before
+   editing. Apply the shared
+   [decision rule](../../../../AGENTS.md#execution-and-evidence) to options
+   in completed results and retain any
+   [decisions](../protocol.md#decisions). If the rule does not permit an
+   autonomous choice, then leave that option unapplied and retain it as a
+   [concern](../protocol.md#concerns). If the findings or resolved options
+   determine behavior-preserving corrections, then run
+   [Correct the state](#correct-the-state).
+3. Repeat the following quality steps:
+   1. If the scope contains code or tests, then run the cleanup audit.
+      Otherwise, record cleanup as `not-run`.
+   2. If the audit determines corrections, then run
+      [Correct the state](#correct-the-state) and restart these quality
+      steps.
+   3. Invoke [`remdo-verify-change`](remdo-verify-change.md), preserve its
+      finding dispositions, and leave `material out of scope` findings
+      unchanged.
+   4. If failed checks or
+      [`confirmed` findings](remdo-verify-change.md#findings) determine
+      corrections, then run [Correct the state](#correct-the-state) and
+      restart these quality steps.
+   5. Return `converged`.
 
-```text
-[resolve scope]
-    ├─ no change ─────────────────────────> [converged]
-    │ ready
-    v
-[simplify current state once]
-    │
-    v
-[cleanup audit]
-    ├─ corrections ─> [apply + validate] ─> ↩ cleanup audit
-    │ passed or scope has no code/tests
-    v
-[verify current state]
-    ├─ corrections ─> [apply + validate] ─> ↩ cleanup audit
-    ├─ correction left unapplied ─────────> [not-converged]
-    │ completed; no determined correction
-    v
-[converged]
-```
+### Correct the state
 
-One or more independent simplification assessments collectively cover the
-resolved change once. Each receives only its target and applicable authoritative
-contracts. The skill applies determined behavior-preserving findings and
-retains options as [concerns](../protocol.md#concerns).
+Run this subalgorithm for each determined correction batch. Any outcome it
+returns ends convergence. Ordinary completion returns to the invoking step
+with the refreshed scope.
 
-Verification invokes [`remdo-verify-change`](remdo-verify-change.md). The skill
-preserves its finding dispositions, applies corrections from failed checks and
-[`confirmed` findings](remdo-verify-change.md#findings), and leaves `material out of scope` findings unchanged.
+1. If the determined correction cannot be applied, then leave it unapplied
+   and return `not-converged`.
+2. Apply the batch.
+3. Validate it against its applicable authoritative contracts. If the scope
+   is a commit range, then satisfy the contributor
+   [verification lifecycle](../../../dev/testing.md#verification-lifecycle)
+   before committing.
+4. If validation or a check fails and an in-scope correction can be
+   determined, then repair the batch and repeat validation.
+5. If validation or a check still fails, then return `stopped` without
+   committing.
+6. Persist the batch under [Authority](#authority), then refresh the retained
+   scope's snapshot. Keep `selection`, `kind`, and `base`.
+7. If the selected diff is empty, then return `converged`.
+8. If the refreshed state matches a repository state reached earlier in the
+   run, then return `stopped` with a concern.
 
-Before creating a commit-range correction commit, the skill runs the batch's
-likely affected tests and applicable static checks under the contributor
-[testing policy](../../../dev/testing.md#verification-lifecycle). If a check
-fails, it repairs and rechecks the batch when it can determine an in-scope
-correction; otherwise it stops without committing.
-
-After each correction batch, the skill refreshes the retained scope. It
-converges without further quality steps if no selected diff remains.
-
-A repeated repository state stops with a concern.
+Unhandled failures follow the
+[capability protocol](../protocol.md#results).
 
 ## Result
 
@@ -66,14 +82,15 @@ confirmed finding as fixed or uncorrected. `verification.findings` is the
 latest iteration only. `simplification`, `cleanup`, and `verification` contain
 the complete latest results for the state they assessed.
 
-The result uses this shape:
+The result uses the shared [result fields](../protocol.md#results) and the
+[`ChangeScopeResult`](../change-scope.md#result-type) type:
 
 ```yaml
 outcome: <converged | not-converged | stopped>
-concerns: # if any
-  - source: <originating capability or participant>
-    summary: <condition>
-scope: <resolved scope or resolution failure>
+reason: <condition that prevented or stopped convergence> # if not converged or stopped
+decisions: <Decision[]> # if any
+concerns: <Concern[]> # if any
+scope: <ChangeScopeResult>
 corrections: # if any
   - source: <simplification | cleanup | verification>
     summary: <applied correction>
@@ -91,7 +108,6 @@ findings: # if any
     disposition: <confirmed | rejected | unresolved | material out of scope>
     reason: <disposition reason>
     resolution: <fixed | uncorrected> # if confirmed
-reason: <condition that prevented or stopped convergence> # if not converged or stopped
 ```
 
 `not-converged` means a completed quality step left a determined correction unapplied.

@@ -35,17 +35,15 @@ does not open that URL or verify the developer-owned server.
 
 ## Result
 
-Return the shared [result](../protocol.md#results) envelope:
+The result uses the shared [result fields](../protocol.md#results):
 
 ```yaml
 outcome: <created | stopped>
-concerns: # if any
-  - source: <originating capability or participant>
-    summary: <condition>
+reason: <condition that stopped the run> # if stopped
+concerns: <Concern[]> # if any
 artifact: # if created
   path: public/playground/index.html
   url: /playground/index.html
-reason: <condition that stopped the run> # if stopped
 ```
 
 `created` requires the stable artifact to be complete. `stopped` reports why

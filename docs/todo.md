@@ -27,6 +27,12 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
+- **Agent-flow specification alignment.** Reassess specifications that use
+  diagrams or overlapping flow prose under the structured-algorithm guidance.
+  Align each applicable specification as a whole contract with one clear
+  behavioral account while preserving accepted behavior and material edge
+  paths; avoid mechanical notation-only conversions.
+
 - **Remaining agent skill alignment.** Apply the adopted
   [specification/procedure boundary](documentation.md#agent-skill-boundary) to
   the remaining skills. Reconsider custom scripts and state machines that encode

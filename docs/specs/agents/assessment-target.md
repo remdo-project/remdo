@@ -25,3 +25,19 @@ target:
 Natural-language input must identify one valid target unambiguously.
 Resolution stops on invalid or ambiguous input and does not perform assessment
 or advance another capability's lifecycle.
+
+## Result type
+
+`AssessmentTarget` is one of these successfully resolved variants. Its change
+variant uses a [change-scope result](change-scope.md#result-type) whose state
+may be `ready` or `no-change`.
+
+```yaml
+kind: change
+scope: <ChangeScopeResult>
+```
+
+```yaml
+kind: subject
+path: <repository-relative file or directory>
+```

@@ -58,13 +58,12 @@ merge unchanged and produces `verification-failed`.
 
 ## Result
 
-The result uses this shape:
+The result uses the shared [result fields](../protocol.md#results):
 
 ```yaml
 outcome: <up-to-date | fast-forwarded | merged | conflicted | verification-failed | restore-conflicted | stopped>
-concerns: # if any
-  - source: <originating capability or participant>
-    summary: <condition>
+reason: <stop or manual recovery condition> # if any
+concerns: <Concern[]> # if any
 destination: <branch> # if resolved
 target: <fixed fetched origin/main commit> # if fetched
 incoming_commits: <count> # if target resolved
@@ -77,7 +76,6 @@ corrections: # if any
 verification: <not-run | passed | failed> # if merge form determined
 preservation: <not-needed | untouched | pending | restored | restore-conflicted> # if requested and known
 saved_work: <stash commit> # if retained
-reason: <stop or manual recovery condition> # if any
 ```
 
 - `stopped` means an otherwise-unclassified failure ended the run.

@@ -20,3 +20,35 @@ ancestor of `HEAD` and becomes `BASE`; for three dots, their merge base becomes
 
 Resolution returns `no-change` when the selected diff is empty. It refuses an
 invalid input or a commit range combined with uncommitted work.
+
+## Result type
+
+`ChangeScopeResult` has this complete shape:
+
+```yaml
+state: <ready | no-change | failed>
+selection: <uncommitted | requested or default Git range> # if resolved
+kind: <uncommitted | commit-range> # if resolved
+base: <immutable comparison-base commit | UNCOMMITTED> # if resolved
+head: <immutable HEAD commit> # if resolved
+files: # if resolved
+  - <repository-relative path>
+input: <supplied scope input> # if failed and supplied
+reason: <resolution failure> # if failed
+```
+
+`ready` has one or more files; `no-change` has an empty file list. `selection`
+and `kind` identify the chosen scope. `state`, `head`, and `files` are the
+comparison snapshot. `base` is that snapshot's comparison base (`UNCOMMITTED`
+or an immutable commit). A failed result retains the supplied input when one
+exists.
+
+A caller that keeps a resolved result while the repository changes, without
+changing the chosen scope, keeps `selection`, `kind`, and `base`, and replaces
+`state`, `head`, and `files` from a later resolution of that same scope.
+
+### Caller-visible display
+
+A human-facing display of a selected scope is `uncommitted changes` for an
+uncommitted scope or the requested or default Git range for a commit range. It
+does not expose resolved immutable commit IDs.

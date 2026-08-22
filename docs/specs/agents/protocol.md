@@ -27,13 +27,17 @@ A capability returning to a caller returns literal YAML beginning with:
 
 ```yaml
 outcome: <capability-owned outcome>
-concerns: # if any
-  - source: <originating capability or participant>
-    summary: <condition>
+reason: <condition explaining a non-success outcome> # if needed
+concerns: <Concern[]> # if any
 # capability-specific fields
 ```
 
-Capability contracts define additional fields that add detail without replacing
+The shared [`Concern`](#concerns) type is defined below. Angle-bracket names
+refer to linked shared types; `Type[]` is a list of that type. A capability
+that applies the
+[decision rule](../../../AGENTS.md#execution-and-evidence) or aggregates
+participant decisions includes `decisions: <Decision[]> # if any`. Capability
+contracts define additional fields that add detail without replacing
 `concerns`. In examples, `# if ...` marks a conditional field. Results explain
 omitted work when its absence affects the caller's interpretation. A capability
 addressing a human renders the result as its report instead of also returning
@@ -44,22 +48,48 @@ through handling defined by its contract. Otherwise it ends, preserves
 completed evidence, and reports the reason. When `stopped` is among its
 outcomes, it is the fallback unless another outcome applies.
 
+## Decisions
+
+A **decision** records a non-obvious choice made among materially viable
+alternatives under the shared
+[decision rule](../../../AGENTS.md#execution-and-evidence). Its summary states
+the selected alternative, decisive reason, and material tradeoff. A decision is
+not a concern; report a remaining condition separately only if it meets the
+definition below.
+
+A `Decision` has this shape:
+
+```yaml
+source: <originating capability or participant>
+summary: <selected alternative, decisive reason, and material tradeoff>
+```
+
 ## Concerns
 
 A **concern** is a reported condition that may affect the caller's result or
 decision. The caller's contract determines whether to resolve, omit, aggregate,
 re-report, or change flow or outcome.
 
+A capability-owned source identifies an originating step, dependency, or
+equivalent unit when naming only the capability would discard provenance.
+
+A `Concern` has this shape:
+
+```yaml
+source: <originating capability, participant, or capability-owned source>
+summary: <condition>
+```
+
 ## Aggregation
 
-A caller preserves unhandled non-success statuses and concerns with their
-provenance. It may consolidate them as its contract permits without changing
-their meaning.
+A caller preserves decisions, unhandled non-success statuses, and concerns with
+their provenance. It may consolidate them as its contract permits without
+changing their meaning.
 
 ## Reports
 
 The capability addressing the reader owns its human-readable **report**. The
 report aggregates nested results instead of concatenating reports. Result state
 determines its categories. It uses stable labels and only needed detail to
-present the outcome, applicable scope, work and evidence, concerns, and next
-owner or action in that order.
+present the outcome, applicable scope, work and evidence, decisions, concerns,
+and next owner or action in that order.

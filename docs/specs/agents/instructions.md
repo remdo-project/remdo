@@ -100,8 +100,9 @@ require explicit user authority.
 #### Execution and verification
 
 - Prefer the simplest permanent implementation. Stop on a missing task
-  dependency, investigate repository evidence before asking, and ask before
-  choosing between unresolved material tradeoffs.
+  dependency and investigate repository evidence before asking.
+- The shared entry point owns its
+  [decision rule](../../../AGENTS.md#execution-and-evidence).
 - The shared entry point directs agents to add Markdown prose soft wraps only
   when required by line-length lint.
 - Agents follow the contributor [testing policy](../../dev/testing.md) and

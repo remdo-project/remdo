@@ -29,22 +29,22 @@ Findings are ordered by expected simplification value:
 - `S2`: a clearly worthwhile local code or test simplification;
 - `S3`: a concrete, low-risk cleanup.
 
-An option records a real tradeoff without one determined simpler end state and
-is not applied automatically.
+An option records a real tradeoff without one determined simpler end state. The
+assessment reports it without choosing or applying it.
 
 The assessment excludes style preferences, speculative architecture, and
 unrelated cleanup.
 
 ## Result
 
-The result uses this shape:
+The result uses the shared [result fields](../protocol.md#results) and the
+[`AssessmentTarget`](../assessment-target.md#result-type) type:
 
 ```yaml
 outcome: <simplifications-found | no-simplification | no-change | stopped>
-concerns: # if any
-  - source: <originating capability or participant>
-    summary: <condition>
-target: <resolved assessment target> # if resolved
+reason: <condition that prevented assessment> # if stopped
+concerns: <Concern[]> # if any
+target: <AssessmentTarget> # if resolved
 findings: # if simplifications-found
   - priority: <S1 | S2 | S3>
     location: <path and line>
@@ -57,7 +57,6 @@ options: # if any
     alternatives:
       - <alternative with material advantages and costs>
     recommendation: <preferred alternative and evidence> # if supported
-reason: <condition that prevented assessment> # if stopped
 ```
 
 - `simplifications-found`: at least one finding;

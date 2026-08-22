@@ -155,13 +155,43 @@ assessed independently. Use nested bullets only for a meaningful parent-child
 relationship in which each child expands its parent's responsibility. Keep a
 compact sequence inline when separating its items would not improve scanning.
 
+### Algorithms
+
+Use a structured algorithm when people or agents must follow ordered behavior
+with material conditions, loops, or terminal outcomes and a spatial view would
+not make those relationships clearer. Write it as a numbered Markdown list in
+causal order. Each step states an action; write a conditional transition as
+`If <condition>, then <action or destination>`.
+
+Start with the shortest causal spine sufficient to execute the behavior. Add a
+branch only when its condition changes the next action, destination, outcome,
+or contract-owned evidence. Inherit generic failures and shared properties from
+their linked owners; state them locally only when this algorithm recovers,
+changes their outcome, or adds handling that its caller needs. Do not create a
+step merely to restate list order, a linked contract, or replaceable procedure
+mechanics.
+
+Let ordinary completion fall through to the next step. Identify every non-local
+destination explicitly, including a repeated cycle, and prefer its semantic
+name over a step number. State terminal outcomes as `return <outcome>`. Use a
+nested numbered list only when its steps expand one parent action or condition;
+otherwise keep the main path flat. Extract repeated cohesive behavior into a
+named subalgorithm only when doing so removes repetition or keeps the main path
+scannable, and state how its returned outcomes and ordinary completion affect
+the invoking algorithm.
+
+The algorithm owns the order, branches, and loops it expresses. Keep shared
+properties with their authoritative owners and link them at the step where they
+apply. Surround the algorithm only with scope, authority, result structure, or
+other contract information it does not express.
+
 ### Diagrams
 
 Use a diagram only when it makes an important relationship materially clearer
-than prose. Keep the smallest diagram sufficient to answer its question and
-split views when secondary relationships obscure the primary one. Include only
-relevant states and transitions, but retain critical ownership, safety, and
-rollback boundaries regardless of duration.
+than prose or a structured algorithm. Keep the smallest diagram sufficient to
+answer its question and split views when secondary relationships obscure the
+primary one. Include only relevant states and transitions, but retain critical
+ownership, safety, and rollback boundaries regardless of duration.
 
 When a diagram is primary, it owns the actors, relationships, order, and loops
 it shows; do not restate them. Label steps with activities and transitions with

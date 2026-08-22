@@ -20,10 +20,10 @@ Run the [shared scope resolver](../_shared/tools/resolve-scope.sh) from the repo
 sh <shared-resolver-path> [scope]
 ```
 
-Stop on a non-zero exit. Retain the emitted `STATE`, `SCOPE`, immutable `BASE`
-and `HEAD_SHA`, and file list. Report `no-change` immediately when `STATE`
-equals it; do not run checks or reviews. Otherwise checks and reviewers must
-inspect the selected scope; the caller owns its stability.
+Use the emitted complete change-scope result. When its state is `no-change`,
+report `no-change` immediately and do not run checks or reviews. Otherwise
+checks and reviewers must inspect the selected scope; the caller owns its
+stability.
 
 ## Run focused checks
 
@@ -67,7 +67,7 @@ transport and native session persistence when launching the managed call:
   --permission-mode auto --session-id <SESSION_ID> --setting-sources
   user,project --settings '{"disableAllHooks":true}'`. Start its prompt with
   `/code-review medium`, followed by every resolved changed path as a quoted
-  argument for `uncommitted`, or the exact `<BASE>..<HEAD_SHA>` range for a
+  argument for `uncommitted`, or the exact `<BASE>..<HEAD>` range for a
   commit range, then append the review constraint.
 
 For an uncommitted Claude review, derive the changed paths again from

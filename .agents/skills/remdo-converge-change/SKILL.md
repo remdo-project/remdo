@@ -5,27 +5,31 @@ description: Converge a default or explicitly selected RemDo uncommitted or Git-
 
 # RemDo Converge Change
 
-Execute the authoritative [`remdo-converge-change`](../../../docs/specs/agents/skills/remdo-converge-change.md) contract.
+Read the authoritative
+[`remdo-converge-change`](../../../docs/specs/agents/skills/remdo-converge-change.md)
+specification in full before repository work. Follow its
+[Convergence](../../../docs/specs/agents/skills/remdo-converge-change.md#convergence)
+algorithm for all ordering, decisions, transitions, and outcomes. The procedure
+below only binds its operations to repository mechanisms.
 
-## Resolve the scope
+## Repository bindings
 
-Run the shared resolver from the repository root with the omitted or supplied
-[change scope](../../../docs/specs/agents/change-scope.md):
+When [Convergence](../../../docs/specs/agents/skills/remdo-converge-change.md#convergence)
+resolves its [change scope](../../../docs/specs/agents/change-scope.md), run the
+shared resolver from the repository root with the omitted or supplied scope:
 
 ```sh
 sh .agents/skills/_shared/tools/resolve-scope.sh [scope]
 ```
 
-Retain `STATE`, `SCOPE`, `BASE`, `HEAD_SHA`, and the file list. After a
-correction, refresh the file list with `uncommitted` or the retained
-`<BASE>..HEAD`; never select a new scope.
+Use the emitted complete change-scope result. When
+[Correct the state](../../../docs/specs/agents/skills/remdo-converge-change.md#correct-the-state)
+refreshes the retained scope, rerun the resolver with `uncommitted` or the
+retained `<BASE>..HEAD` and apply that emission's snapshot to the retained
+result. Never select a new scope.
 
-Use the contract's [Convergence](../../../docs/specs/agents/skills/remdo-converge-change.md#convergence)
-flow for scope reporting and every transition or outcome.
-
-## Run the quality steps
-
-At the simplification step, dispatch the contract's independent assessments:
+At the specification's simplification step, dispatch its independent
+assessments:
 
 - Invoke `$remdo-simplify` for changed code and tests. Pass a change
   [assessment target](../../../docs/specs/agents/assessment-target.md) with the
@@ -35,31 +39,12 @@ At the simplification step, dispatch the contract's independent assessments:
   `outcome`, the reviewed `target`, and any `findings`, `options`, or `reason`,
   following the [`remdo-simplify` result](../../../docs/specs/agents/skills/remdo-simplify.md#result).
 
-Run independent assessments concurrently when possible and wait for every
-result before editing. Retain each complete result.
+When the specification requires a cleanup audit, run `pnpm run audit:cleanup`.
+At verification, invoke `$remdo-verify-change` with the retained scope.
 
-When the contract requires a cleanup audit, run `pnpm run audit:cleanup`. At the
-verification step, invoke `$remdo-verify-change` with the retained scope and
-wait for its complete result. Route all results and correction candidates
-through the authoritative flow; do not add another quality loop.
-
-## Apply corrections
-
-Apply a complete correction batch only after the current step finishes. Validate
-it against its applicable authoritative contracts and repair inconsistencies
-introduced by it.
-
-For a commit range, require an attached `HEAD`, then run the validated batch's
-likely affected tests and applicable static checks under the contributor
-[`Testing`](../../../docs/dev/testing.md#verification-lifecycle) policy. If a
-check fails, repair, revalidate, and recheck the batch when an in-scope
-correction can be determined; otherwise stop without committing. After checks
-pass, stage only the validated batch and create one normal nonempty commit,
-requesting any required runtime escalation without re-asking the caller for
-staging or commit authority; stop only if escalation is denied or unavailable.
-Leave uncommitted-scope corrections uncommitted. Record the selected diff after
-the batch is committed or retained, compare it with previously assessed states,
-then route the refreshed scope through the contract.
+If repository permissions block commit-range persistence under the
+specification's [Authority](../../../docs/specs/agents/skills/remdo-converge-change.md#authority),
+request runtime escalation without asking again for staging or commit permission.
 
 ## Report
 

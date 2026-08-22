@@ -92,20 +92,24 @@ Legend:
   repository state.
 - **Handoff.** The coordinator's [report](../protocol.md#reports) includes the
   exact scope, approved target behavior and its contract owners, participant
-  work, convergence result, unhandled concerns, tracked gaps, and specific
-  manual review needs. It precedes any request for developer acceptance or
-  authority for subsequent repository or remote action.
+  work, convergence result, [decisions](../protocol.md#decisions), unhandled
+  concerns, tracked gaps, and specific manual review needs. It precedes any
+  request for developer acceptance or authority for subsequent repository or
+  remote action.
 - **Feedback.** Returns to the earliest affected lifecycle step; repository
   changes invalidate all later quality results.
 
 ## Result
 
+The result uses the shared [result fields](../protocol.md#results) and the
+[`ChangeScopeResult`](../change-scope.md#result-type) type:
+
 ```yaml
 outcome: <ready-for-review | completed | stopped>
-concerns: # if any
-  - source: <originating capability or participant>
-    summary: <condition>
-scope: <complete change scope> # if resolved
+reason: <condition that stopped preparation> # if stopped
+decisions: <Decision[]> # if any
+concerns: <Concern[]> # if any
+scope: <ChangeScopeResult> # if convergence ran
 target_behavior: # if approved
   - summary: <approved behavior>
     owner: <contract path>
@@ -117,7 +121,6 @@ tracked_gaps: # if any
   - <gap>
 manual_review: # if any
   - <specific need>
-reason: <condition that stopped preparation> # if stopped
 ```
 
 `ready-for-review` presents the handoff for developer review. `completed` means
