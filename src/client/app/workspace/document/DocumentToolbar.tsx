@@ -43,11 +43,16 @@ export default function DocumentToolbar({
       value: document.id(),
     })),
   })).filter((source) => source.options.length > 0);
+  const qualifyLabels = documentGroups.length > 1;
+  const documents = documentGroups.flatMap((group) => group.options.map((document) => ({
+    filterText: qualifyLabels ? `${group.label} ${document.filterText}` : document.filterText,
+    id: document.value,
+    key: `${group.id}:${document.value}`,
+    label: qualifyLabels ? `${group.label} · ${document.label}` : document.label,
+  })));
   const selectedText = formatNavigationLabel(documentLabel, Number.POSITIVE_INFINITY);
   const selectedLabel = formatNavigationLabel(documentLabel);
-  const currentListed = documentGroups.some((group) =>
-    group.options.some((document) => document.value === docId),
-  );
+  const currentListed = documents.some((document) => document.id === docId);
   const selectCurrentDocument = () => {
     onSelectDocument(docId);
   };
@@ -95,28 +100,16 @@ export default function DocumentToolbar({
                       {selectedLabel}
                     </ListBoxItem>
                   )}
-                  {documentGroups.flatMap((group) => [
+                  {documents.map((document) => (
                     <ListBoxItem
-                      data-document-source-id={group.id}
-                      id={`source:${group.id}`}
-                      isDisabled
-                      key={`source:${group.id}`}
-                      textValue={group.label}
+                      id={document.id}
+                      key={document.key}
+                      onAction={document.id === docId ? selectCurrentDocument : undefined}
+                      textValue={document.filterText}
                     >
-                      {group.label}
-                    </ListBoxItem>,
-                    ...group.options.map((document) => (
-                      <ListBoxItem
-                        data-document-source-id={group.id}
-                        id={document.value}
-                        key={`${group.id}:${document.value}`}
-                        onAction={document.value === docId ? selectCurrentDocument : undefined}
-                        textValue={document.filterText}
-                      >
-                        {document.label}
-                      </ListBoxItem>
-                    )),
-                  ])}
+                      {document.label}
+                    </ListBoxItem>
+                  ))}
                 </ListBox>
               </Popover>
             </ComboBox>

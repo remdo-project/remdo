@@ -84,14 +84,3 @@ body {
 .remdo-menu [role='option'][data-selected] {
   font-weight: 600;
 }
-
-.remdo-menu [role='option'][aria-disabled] {
-  padding: 0.25rem 0.4rem 0.1rem;
-  color: var(--mantine-color-dark-2);
-  font-size: var(--mantine-font-size-xs);
-  cursor: default;
-}
-
-.remdo-menu [role='option'][aria-disabled][data-focused] {
-  background: transparent;
-}

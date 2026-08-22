@@ -53,7 +53,7 @@ describe('document route', () => {
     const router = renderDocumentRoute(createDocumentPath('testDoc'));
 
     fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Source Document' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Source Server · Source Document' }));
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe(createDocumentPath('sourceDoc'));
