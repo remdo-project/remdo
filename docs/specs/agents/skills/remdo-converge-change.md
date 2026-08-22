@@ -63,8 +63,8 @@ with the refreshed scope.
    determined, then repair the batch and repeat validation.
 5. If validation or a check still fails, then return `stopped` without
    committing.
-6. Persist the batch under [Authority](#authority), then refresh the same
-   retained scope.
+6. Persist the batch under [Authority](#authority), then refresh the retained
+   scope's snapshot. Keep `selection`, `kind`, and `base`.
 7. If the selected diff is empty, then return `converged`.
 8. If the refreshed state matches a repository state reached earlier in the
    run, then return `stopped` with a concern.

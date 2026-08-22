@@ -24,8 +24,9 @@ sh .agents/skills/_shared/tools/resolve-scope.sh [scope]
 
 Use the emitted complete change-scope result. When
 [Correct the state](../../../docs/specs/agents/skills/remdo-converge-change.md#correct-the-state)
-refreshes the scope, rerun the resolver with `uncommitted` or the retained
-`<BASE>..HEAD`; never select a new scope.
+refreshes the retained scope, rerun the resolver with `uncommitted` or the
+retained `<BASE>..HEAD` and apply that emission's snapshot to the retained
+result. Never select a new scope.
 
 At the specification's simplification step, dispatch its independent
 assessments:
