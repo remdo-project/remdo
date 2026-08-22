@@ -1,6 +1,5 @@
 import { IconChevronDown } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
-import { useRef } from 'react';
 import {
   Button,
   ComboBox,
@@ -37,7 +36,6 @@ export default function DocumentToolbar({
   path: NotePathItem[];
   searchControl: ReactNode;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const documentGroups = documentSources.map((source) => ({
     id: source.id(),
     label: source.text(),
@@ -67,21 +65,10 @@ export default function DocumentToolbar({
               aria-label="Choose document"
               className="document-header-doc-combobox"
               key={docId}
-              defaultFilter={(textValue, inputValue) => {
-                if (inputValue.length === 0 || inputValue === selectedText) {
-                  return true;
-                }
-                return textValue.toLowerCase().includes(inputValue.toLowerCase());
-              }}
               menuTrigger="focus"
               onChange={(key) => {
                 if (key != null && String(key) !== docId) {
                   onSelectDocument(String(key));
-                }
-              }}
-              onOpenChange={(isOpen) => {
-                if (isOpen) {
-                  requestAnimationFrame(() => inputRef.current?.select());
                 }
               }}
               value={docId}
@@ -89,20 +76,11 @@ export default function DocumentToolbar({
               <div className="document-header-doc-combo remdo-interaction-surface">
                 <Input
                   className="document-header-doc-input"
-                  onKeyDown={(event) => {
-                    if (event.key !== 'Enter') {
-                      return;
-                    }
-                    const activeId = event.currentTarget.getAttribute('aria-activedescendant');
-                    if (activeId == null) {
-                      return;
-                    }
-                    const option = document.getElementById(activeId);
-                    if (option?.getAttribute('data-document-ref') === docId) {
-                      selectCurrentDocument();
+                  onFocus={(event) => {
+                    if (event.currentTarget.value === selectedText) {
+                      event.currentTarget.select();
                     }
                   }}
-                  ref={inputRef}
                 />
                 <Button aria-label="Show documents" className="document-header-doc-menu">
                   <IconChevronDown aria-hidden="true" size={14} />
@@ -112,9 +90,8 @@ export default function DocumentToolbar({
                 <ListBox className="document-header-doc-dropdown remdo-menu">
                   {currentListed ? null : (
                     <ListBoxItem
-                      data-document-ref={docId}
                       id={docId}
-                      onPress={selectCurrentDocument}
+                      onAction={selectCurrentDocument}
                       textValue={selectedText}
                     >
                       {selectedLabel}
@@ -129,10 +106,9 @@ export default function DocumentToolbar({
                       <Header>{group.label}</Header>
                       {group.options.map((document) => (
                         <ListBoxItem
-                          data-document-ref={document.value}
                           id={document.value}
                           key={`${group.id}:${document.value}`}
-                          onPress={document.value === docId ? selectCurrentDocument : undefined}
+                          onAction={document.value === docId ? selectCurrentDocument : undefined}
                           textValue={document.filterText}
                         >
                           {document.label}

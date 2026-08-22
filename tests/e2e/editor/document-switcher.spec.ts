@@ -3,7 +3,7 @@ import { expect, test } from '#editor/fixtures';
 import { readFixture } from '#tools/fixtures';
 import { createUserDocument } from '../_support/documents';
 import { ensureReady, load, waitForSynced } from './_support/bridge';
-import { chooseDocument, documentPickerButton, editorLocator, homeView, homeZoomBreadcrumb } from '#editor/locators';
+import { chooseDocument, documentPicker, documentPickerButton, editorLocator, homeView, homeZoomBreadcrumb } from '#editor/locators';
 import { createEditorDocumentPath } from './_support/routes';
 
 test.describe('Document switcher', () => {
@@ -33,6 +33,22 @@ test.describe('Document switcher', () => {
       page: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     }));
     expect(overflow).toEqual({ header: 0, page: 0 });
+  });
+
+  test('keeps the document picker filter editable after the first character', async ({ page }) => {
+    const sourceDocument = await createUserDocument(page, `Picker Filter ${Date.now()}`);
+    await page.goto(createEditorDocumentPath(sourceDocument.id));
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+
+    await documentPickerButton(page).click();
+    const picker = documentPicker(page);
+    await expect(picker).toBeFocused();
+
+    await picker.pressSequentially('ba');
+    await expect(picker).toHaveValue('ba');
+    await picker.press('Backspace');
+    await expect(picker).toHaveValue('b');
+    await expect(picker).toBeFocused();
   });
 
   test('creates a listed document, switches to it, and switches back to the source document', async ({ page, captureCreatedDoc }) => {

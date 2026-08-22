@@ -107,6 +107,9 @@
   padding: 0.15rem 0.4rem;
   cursor: text;
   text-decoration: none;
+  field-sizing: fixed;
+  min-width: 8rem;
+  text-overflow: clip;
 }
 
 .document-header-doc-combobox[data-open] .document-header-doc-combo:hover .document-header-doc-input {
