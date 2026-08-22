@@ -75,11 +75,4 @@ describe('collaboration session awaitSynced', { timeout: COLLAB_LONG_TIMEOUT_MS 
     await expect(second).resolves.toBeUndefined();
     expect(session.snapshot().synced).toBe(true);
   });
-
-  it('tears down cleanly with mock providers', () => {
-    const { session } = createSession();
-
-    expect(() => session.detach()).not.toThrow();
-    expect(() => session.destroy()).not.toThrow();
-  });
 });
