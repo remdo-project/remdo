@@ -21,7 +21,11 @@ until verification finishes.
     ├─ failure ───────────> [report and stop]
     │ pass
     v
-[independent Codex + Claude reviews]
+[resolve agent settings]
+    ├─ failure ───────────> [report and stop]
+    │ ready
+    v
+[independent configured reviews]
     │
     v
 [finding validation]
@@ -31,22 +35,25 @@ until verification finishes.
 ```
 
 For uncommitted work, the verifier performs the contributor
-[testing policy's handoff verification](../../../dev/testing.md#verification-lifecycle). A commit range proceeds directly to reviews.
+[testing policy's handoff verification](../../../dev/testing.md#verification-lifecycle).
+A commit range skips those checks.
 
 ## Reviews
 
-The verifier starts independent fresh Codex and Claude reviews against
-the resolved change scope. Their identities remain distinct in the result, and
-one review never interrupts the other. Each provider returns one consolidated
-final report containing all completed delegated review work, so a later
-lifecycle notification cannot replace that evidence.
+The verifier resolves [agent settings](../settings.md) and starts an
+independent fresh review for each configured `remdo-verify-change`
+reviewer against the resolved change scope. Their identities remain
+distinct in the result, and one review never interrupts another. Each
+reviewer returns one consolidated final report containing all completed
+delegated review work, so a later lifecycle notification cannot replace
+that evidence.
 
 Each review inspects the complete resolved scope, repository guidance, Git
 context, and referenced files. **Empirical.** The verifier tells reviewers that
 repository verification is handled separately, to neither run nor manually
 reproduce repository tests or checks, to pass the constraint to delegated
 reviewers, and to report any needed runtime check and why without running it.
-Validation confirms from reviewer commands that neither reviewer ran nor
+Validation confirms from reviewer commands that no configured reviewer ran or
 manually reproduced a repository check, because forwarded guidance alone does
 not establish compliance. **Empirical.**
 
@@ -121,12 +128,12 @@ checks: # if run
     status: <passed | failed | not-run>
     details: <failure evidence or reason not run> # if failed or not-run
 reviews: # if run
-  - source: <codex | claude>
+  - source: <reviewer-id>
     status: <completed | unavailable | failed>
     details: <review evidence or failure evidence>
 findings: # if any
   - summary: <finding>
-    source: <codex | claude>
+    source: <reviewer-id>
     disposition: <confirmed | rejected | unresolved | material out of scope>
     reason: <disposition reason>
 ```

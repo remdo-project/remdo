@@ -1,6 +1,6 @@
 ---
 name: remdo-verify-change
-description: Verify a default or explicitly selected RemDo uncommitted or Git-range scope with focused uncommitted checks, fresh Codex and Claude reviews, and evidence-based finding dispositions. Use when the user or another workflow asks to verify, inspect, or independently review a completed repository change without editing, approving, committing, or advancing its lifecycle.
+description: Verify a default or explicitly selected RemDo uncommitted or Git-range scope with focused uncommitted checks, fresh independent reviews from configured providers, and evidence-based finding dispositions. Use when the user or another workflow asks to verify, inspect, or independently review a completed repository change without editing, approving, committing, or advancing its lifecycle.
 ---
 
 # RemDo Verify Change
@@ -37,12 +37,22 @@ invoking reviewers.
 
 ## Run fresh reviews
 
-Then attempt fresh Codex and Claude reviews concurrently through the runtime's
-managed parallel-call surface. Never shell-background either process. Do not
-substitute another reviewer when one is missing or fails, and do not abort the
-other review.
+Resolve [agent settings](../../../docs/specs/agents/settings.md) from the
+repository root:
 
-Use this review constraint for both providers:
+```sh
+sh .agents/skills/_shared/tools/resolve-agent-settings.sh
+```
+
+Use the emitted document. If resolution fails, report the resolver output and
+stop before invoking reviewers.
+
+Then attempt a fresh review for each configured `remdo-verify-change`
+reviewer concurrently through the runtime's managed parallel-call surface.
+Never shell-background a review process. Do not substitute another reviewer
+when one is missing or fails, and do not abort another review.
+
+Use this review constraint for every configured reviewer:
 
 > Repository verification is handled outside this review. Do not run or
 > manually reproduce repository tests or checks, including through ad hoc
@@ -53,22 +63,24 @@ Use this review constraint for both providers:
 > Pass these instructions to every delegated reviewer. Report any additional
 > runtime check needed and why; do not run it.
 
-Invoke each native reviewer directly with medium effort in a fresh session,
-requesting any required enclosing runtime escalation for normal provider
-transport and native session persistence when launching the managed call:
+Invoke each configured reviewer from the dispatch below using that reviewer's
+resolved `model` and `effort` in a fresh session, requesting any required
+enclosing runtime escalation for normal provider transport and native session
+persistence when launching the managed call:
 
-- Codex: run `codex exec -s read-only --ignore-rules` with `--disable hooks`,
-  `approval_policy="never"`, `notify=[]`, `model="gpt-5.6-terra"`,
-  `model_reasoning_effort="medium"`, and the review constraint as
+- `codex`: run `codex exec -s read-only --ignore-rules` with `--disable hooks`,
+  `approval_policy="never"`, `notify=[]`, `model="<model>"`,
+  `model_reasoning_effort="<effort>"`, and the review constraint as
   `developer_instructions`; then pass `review --uncommitted` or
   `review --base <BASE>`.
-- Claude: generate and retain a fresh UUID as `SESSION_ID`, then run `/usr/bin/env
-  CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1 claude -p --model opus --effort medium
-  --permission-mode auto --session-id <SESSION_ID> --setting-sources
-  user,project --settings '{"disableAllHooks":true}'`. Start its prompt with
-  `/code-review medium`, followed by every resolved changed path as a quoted
-  argument for `uncommitted`, or the exact `<BASE>..<HEAD>` range for a
-  commit range, then append the review constraint.
+- `claude`: generate and retain a fresh UUID as `SESSION_ID`, then run
+  `/usr/bin/env CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1 claude -p --model
+  <model> --effort <effort> --permission-mode auto --session-id
+  <SESSION_ID> --setting-sources user,project --settings
+  '{"disableAllHooks":true}'`. Start its prompt with `/code-review
+  <effort>`, followed by every resolved changed path as a quoted argument
+  for `uncommitted`, or the exact `<BASE>..<HEAD>` range for a commit
+  range, then append the review constraint.
 
 For an uncommitted Claude review, derive the changed paths again from
 NUL-delimited staged, unstaged, and untracked Git output. Deduplicate the exact
@@ -103,8 +115,8 @@ command-not-found evidence, as `unavailable`.
 
 ## Validate findings
 
-After both review attempts finish, apply the authoritative specification's
-[`Findings`](../../../docs/specs/agents/skills/remdo-verify-change.md#findings)
+After every configured review attempt finishes, apply the authoritative
+specification's [`Findings`](../../../docs/specs/agents/skills/remdo-verify-change.md#findings)
 contract to their complete evidence.
 
 ## Report
