@@ -74,13 +74,30 @@ describe('quick action menu (docs/specs/outliner/menu.md)', () => {
       zoom: vi.fn(),
     };
 
-    expect(handleNoteMenuShortcut(event, { hasChildren: false, isZoomRoot: true }, actions)).toBe(true);
+    expect(handleNoteMenuShortcut(event, { canFold: false }, actions)).toBe(true);
 
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
     expect(event.stopPropagation).toHaveBeenCalledTimes(1);
     expect(foldViewToLevel).toHaveBeenCalledWith(1);
     expect(actions.toggleFold).not.toHaveBeenCalled();
     expect(actions.zoom).not.toHaveBeenCalled();
+  });
+
+  it('routes F to fold when the snapshot allows it', () => {
+    const event = createShortcutEvent('f');
+    const toggleFold = vi.fn();
+    const actions = {
+      foldViewToLevel: vi.fn(),
+      toggleFold,
+      zoom: vi.fn(),
+    };
+
+    expect(handleNoteMenuShortcut(event, { canFold: true }, actions)).toBe(true);
+    expect(toggleFold).toHaveBeenCalledTimes(1);
+
+    toggleFold.mockClear();
+    expect(handleNoteMenuShortcut(createShortcutEvent('f'), { canFold: false }, actions)).toBe(false);
+    expect(toggleFold).not.toHaveBeenCalled();
   });
 
   it(

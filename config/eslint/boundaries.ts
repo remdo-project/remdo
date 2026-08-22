@@ -80,14 +80,14 @@ export const editorBoundaries = {
     { from: { element: { type: 'keymap' } },
       allow: { to: { element: { type: ['foundation'] } } } },
     { from: { element: { type: 'mobile-toolbar' } },
-      allow: { to: { element: { type: ['foundation', 'outline'] } } } },
+      allow: { to: { element: { type: ['foundation', 'outline', 'features-folding'] } } } },
     { from: { element: { type: 'triggers' } },
       allow: { to: { element: { type: ['outline', 'runtime'] } } } },
     // Workspace re-exports the pending-import API for the app.
     { from: { element: { type: 'view' } },
       allow: { to: { element: { type: ['outline', 'features-search', 'features-zoom', 'runtime'] } } } },
     { from: { element: { type: 'features-menu' } },
-      allow: { to: { element: { type: ['foundation', 'outline', 'runtime', 'triggers', 'view', 'adapters', 'features-list-types'] } } } },
+      allow: { to: { element: { type: ['foundation', 'outline', 'runtime', 'triggers', 'view', 'adapters', 'features-list-types', 'features-folding'] } } } },
     { from: { element: { type: FEATURE_TYPES } },
       allow: { to: { element: { type: ['foundation', 'outline', 'runtime', 'triggers', 'view', 'adapters'] } } } },
     // The shell composes, so it reaches everything it mounts. Its edge into

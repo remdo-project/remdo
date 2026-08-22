@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/foundation/commands';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
-import { getNoteKey, meta, placeCaretAtNote, pressKey, readCaretNoteId } from '#tests';
+import { getNoteElement, getNoteKey, meta, placeCaretAtNote, pressKey, readCaretNoteId } from '#tests';
 
 describe('folding (docs/specs/outliner/folding.md)', () => {
   it('stores folded only when true', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -84,6 +84,18 @@ describe('folding (docs/specs/outliner/folding.md)', () => {
 
     expect(document.activeElement).toBe(remdo.editor.getRootElement());
     outside.remove();
+  });
+
+  it('hides the row fold toggle on the zoom root', meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+    await waitFor(() => {
+      expect(getNoteElement(remdo, 'note2')).toHaveAttribute('data-zoom-root', 'true');
+    });
+    await placeCaretAtNote(remdo, 'note2');
+    await waitFor(() => {
+      expect(document.querySelector('.note-controls__button--menu')).not.toBeNull();
+    });
+    expect(document.querySelector('.note-controls__button--expanded')).toBeNull();
+    expect(document.querySelector('.note-controls__button--folded')).toBeNull();
   });
 
   it('auto-expands a folded parent when indenting a new child', meta({ fixture: 'basic' }), async ({ remdo }) => {

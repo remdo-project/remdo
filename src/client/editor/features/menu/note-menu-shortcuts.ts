@@ -4,8 +4,7 @@ export type NoteMenuShortcutEvent = Pick<
 >;
 
 interface NoteMenuShortcutState {
-  hasChildren: boolean;
-  isZoomRoot: boolean;
+  canFold: boolean;
 }
 
 interface NoteMenuShortcutActions {
@@ -32,7 +31,7 @@ export const handleNoteMenuShortcut = (
     actions.foldViewToLevel(Number(key));
     return true;
   }
-  if (key === 'f' && current.hasChildren && !current.isZoomRoot) {
+  if (key === 'f' && current.canFold) {
     event.preventDefault();
     event.stopPropagation();
     actions.toggleFold();

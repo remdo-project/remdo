@@ -16,11 +16,11 @@ import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { requireContentItemFromNode } from '#client/editor/outline/schema';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
+import { $canOfferFold } from '#client/editor/features/folding/fold-offer';
 import { $getNestedListType } from '#client/editor/features/list-types/nested-list-type';
 import { handleNoteMenuShortcut } from '#client/editor/features/menu/note-menu-shortcuts';
 import type { NoteMenuShortcutEvent } from '#client/editor/features/menu/note-menu-shortcuts';
 import { $resolveNoteStateFromDOMNode } from '#client/editor/features/menu/note-state';
-import { useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 import { isOtherPopupActive, setPopupActive } from '#client/editor/triggers/active-popup';
 import { EditorPopupOverlay } from '#client/editor/triggers/overlay';
 import { resolveCaretTargetRect } from '#client/editor/triggers/target-rect';
@@ -31,7 +31,7 @@ interface NoteMenuState {
   noteKey: string;
   hasChildren: boolean;
   isFolded: boolean;
-  isZoomRoot: boolean;
+  canFold: boolean;
   childListType: ListType | null;
   target: NoteMenuTarget;
 }
@@ -66,8 +66,6 @@ export function NoteMenuPlugin() {
   const [editor] = useLexicalComposerContext();
   const popupToken = useRef(Symbol('note-menu')).current;
   const rootRef = useRef(editor.getRootElement());
-  const zoomNoteId = useZoomNoteId();
-  const zoomNoteIdRef = useRef(zoomNoteId);
   const [rootElement, setRootElement] = useState(() => editor.getRootElement());
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(() => {
     const root = editor.getRootElement();
@@ -96,7 +94,7 @@ export function NoteMenuPlugin() {
 
   const triggerFoldToggle = () => {
     const current = menuRef.current;
-    if (!current || !current.hasChildren || current.isZoomRoot) {
+    if (!current?.canFold) {
       return;
     }
     focusRoot();
@@ -234,7 +232,7 @@ export function NoteMenuPlugin() {
       noteKey: string;
       hasChildren: boolean;
       isFolded: boolean;
-      isZoomRoot: boolean;
+      canFold: boolean;
       childListType: ListType | null;
     } | null => {
       return editor.read(() => {
@@ -247,7 +245,7 @@ export function NoteMenuPlugin() {
           noteKey: resolved.noteKey,
           hasChildren: resolved.hasChildren,
           isFolded: resolved.isFolded,
-          isZoomRoot: Boolean(zoomNoteIdRef.current && resolved.noteId === zoomNoteIdRef.current),
+          canFold: $canOfferFold(editor, resolved.contentItem),
           childListType,
         };
       });
@@ -362,10 +360,6 @@ export function NoteMenuPlugin() {
     );
   }, [closeMenu, editor, popupToken, setMenuState]);
 
-  useEffect(() => {
-    zoomNoteIdRef.current = zoomNoteId;
-  }, [zoomNoteId]);
-
   if (!portalRoot || !menu) {
     return null;
   }
@@ -437,7 +431,7 @@ export function NoteMenuPlugin() {
           <MenuItem data-note-menu-item="toggle-checked" id="toggle-checked" onAction={triggerToggleChecked}>
             Toggle checked
           </MenuItem>
-          {menu.hasChildren && !menu.isZoomRoot
+          {menu.canFold
             ? (
                 <MenuItem data-note-menu-item="fold" id="fold" onAction={triggerFoldToggle}>
                   {renderShortcutLabel(foldLabel, 'F')}
