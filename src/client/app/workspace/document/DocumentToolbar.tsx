@@ -95,7 +95,6 @@ export default function DocumentToolbar({
                     }
                     const activeId = event.currentTarget.getAttribute('aria-activedescendant');
                     if (activeId == null) {
-                      selectCurrentDocument();
                       return;
                     }
                     const option = document.getElementById(activeId);

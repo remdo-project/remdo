@@ -107,11 +107,23 @@ describe('document toolbar and import', () => {
     const onSelectDocument = renderPickerToolbar();
 
     await openDocumentPicker();
-    fireEvent.keyDown(await screen.findByRole('combobox', { name: 'Choose document' }), {
-      key: 'Enter',
-    });
+    const picker = await screen.findByRole('combobox', { name: 'Choose document' });
+    const option = await screen.findByRole('option', { name: 'Test Document' });
+    picker.setAttribute('aria-activedescendant', option.id);
+    fireEvent.keyDown(picker, { key: 'Enter' });
 
     expect(onSelectDocument).toHaveBeenCalledWith('testDoc');
+  });
+
+  it('does not select a document when Enter is pressed with no matching options', async () => {
+    const onSelectDocument = renderPickerToolbar();
+
+    await openDocumentPicker();
+    const picker = await screen.findByRole('combobox', { name: 'Choose document' });
+    fireEvent.change(picker, { target: { value: 'NoSuchDocument' } });
+    fireEvent.keyDown(picker, { key: 'Enter' });
+
+    expect(onSelectDocument).not.toHaveBeenCalled();
   });
 
   it('does not select a document when a filter edit is dismissed', async () => {
