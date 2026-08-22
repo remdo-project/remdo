@@ -12,10 +12,9 @@ import {
   SET_NOTE_CHECKED_COMMAND,
   SET_NOTE_FOLD_COMMAND,
 } from '#client/editor/foundation/commands';
+import { $canOfferFold } from '#client/editor/features/folding/fold-offer';
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
-import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';
-import { noteHasChildren } from '#client/editor/outline/selection/tree';
 
 // The toolbar's action set, in display order (docs/specs/outliner/mobile-toolbar.md).
 // Icons and labels are the surface's own inventory; behavior reuses existing
@@ -76,18 +75,10 @@ export function runMobileAction(editor: LexicalEditor, id: MobileActionId): void
   editor.dispatchCommand(DIRECT_COMMANDS[id]!, undefined);
 }
 
-// The focus note's key when it is a foldable target: a note with children that
-// is not the current zoom root (folding the zoom root would hide the zoomed-in
-// content, which the note menu forbids). Call inside editor.read/update.
-// Returns null when fold does not apply. Both the capability check and the fold
-// dispatch go through this, so the disabled state and the action agree.
 function $resolveFoldableNoteKey(editor: LexicalEditor): string | null {
   const key = $resolveFocusNoteKey(editor);
   const note = key ? $getNodeByKey(key) : null;
-  if (!$isListItemNode(note) || !noteHasChildren(note)) {
-    return null;
-  }
-  if (key === $resolveViewRoot(editor)?.getKey()) {
+  if (!$isListItemNode(note) || !$canOfferFold(editor, note)) {
     return null;
   }
   return key;

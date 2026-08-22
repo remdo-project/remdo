@@ -1,20 +1,20 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getSelection, $isRangeSelection } from 'lexical';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/foundation/commands';
-import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { focusEditorRoot } from '#client/editor/runtime/focus';
+import { $canOfferFold } from '#client/editor/features/folding/fold-offer';
 import { $resolveNoteStateFromDOMNode } from '#client/editor/features/menu/note-state';
+import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/foundation/commands';
+import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
+import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
+import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 
 interface NoteControlsState {
   noteKey: string;
-  hasChildren: boolean;
   isFolded: boolean;
-  isZoomRoot: boolean;
+  canFold: boolean;
   left: number;
   top: number;
   fontSize?: string;
@@ -37,10 +37,8 @@ const resolveTargetByY = (root: HTMLElement, clientY: number): HTMLElement | nul
 
 export function NoteControlsPlugin() {
   const [editor] = useLexicalComposerContext();
-  const rootRef = useRef(editor.getRootElement());
   const zoomNoteId = useZoomNoteId();
-  const zoomNoteIdRef = useRef(zoomNoteId);
-  zoomNoteIdRef.current = zoomNoteId;
+  const rootRef = useRef(editor.getRootElement());
   const [portalRoot, setPortalRoot] = useState(() => {
     const root = editor.getRootElement();
     return root ? root.closest('.editor-container') : null;
@@ -69,9 +67,11 @@ export function NoteControlsPlugin() {
   };
 
   useEffect(() => {
+    installOutlineSelectionHelpers(editor);
+
     const resolveNoteState = (
       element: HTMLElement
-    ): { noteKey: string; hasChildren: boolean; isFolded: boolean; isZoomRoot: boolean } | null => {
+    ): { noteKey: string; isFolded: boolean; canFold: boolean } | null => {
       return editor.read(() => {
         const resolved = $resolveNoteStateFromDOMNode(element);
         if (!resolved) {
@@ -79,29 +79,14 @@ export function NoteControlsPlugin() {
         }
         return {
           noteKey: resolved.noteKey,
-          hasChildren: resolved.hasChildren,
           isFolded: resolved.isFolded,
-          isZoomRoot: Boolean(zoomNoteIdRef.current && resolved.noteId === zoomNoteIdRef.current),
+          canFold: $canOfferFold(editor, resolved.contentItem),
         };
       });
     };
 
-    const resolveSelectionKey = (): string | null => {
-      let key: string | null = null;
-      editor.read(() => {
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection)) {
-          return;
-        }
-        const contentItem = resolveContentItemFromNode(selection.focus.getNode()) ??
-          resolveContentItemFromNode(selection.anchor.getNode());
-        if (!contentItem) {
-          return;
-        }
-        key = contentItem.getKey();
-      });
-      return key;
-    };
+    const resolveSelectionKey = (): string | null =>
+      editor.read(() => $resolveFocusNoteKey(editor));
 
     const resolveSelectionElement = (root: HTMLElement): HTMLElement | null => {
       const key = resolveSelectionKey();
@@ -302,7 +287,10 @@ export function NoteControlsPlugin() {
   }, [editor]);
 
   useEffect(() => {
-    syncActiveControlsRef.current?.();
+    // ZoomPlugin publishes the view root in a later sibling effect.
+    queueMicrotask(() => {
+      syncActiveControlsRef.current?.();
+    });
   }, [zoomNoteId]);
 
   if (!portalRoot || !controls) {
@@ -344,7 +332,7 @@ export function NoteControlsPlugin() {
           onPointerDown={onMenuPointerDown}
           aria-label="Open note menu"
         />
-        {controls.hasChildren && !controls.isZoomRoot ? (
+        {controls.canFold ? (
           <button
             type="button"
             className={
