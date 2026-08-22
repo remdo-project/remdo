@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { $canOfferFold } from '#client/editor/features/folding/fold-offer';
-import { $resolveNoteStateFromDOMNode } from '#client/editor/features/menu/note-state';
+import { $resolveNoteStateFromDOMNode } from '#client/editor/menu/note-state';
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/foundation/commands';
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';

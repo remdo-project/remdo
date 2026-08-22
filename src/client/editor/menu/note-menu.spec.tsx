@@ -2,7 +2,7 @@ import { fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { OPEN_NOTE_MENU_COMMAND } from '#client/editor/foundation/commands';
-import { handleNoteMenuShortcut } from '#client/editor/features/menu/note-menu-shortcuts';
+import { handleNoteMenuShortcut } from '#client/editor/menu/note-menu-shortcuts';
 import { getNoteElement, getNoteKey, meta, placeCaretAtNote } from '#tests';
 
 const createShortcutEvent = (key: string) => ({
