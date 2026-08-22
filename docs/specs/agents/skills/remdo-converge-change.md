@@ -25,8 +25,8 @@ normal nonempty commit for that batch.
    changed code and tests. Remaining changed artifacts receive one independent
    assessment under that skill's [Findings](remdo-simplify.md#findings) and
    [Result](remdo-simplify.md#result) contracts. Give each only its target and
-   applicable authoritative contracts, and collect every result before editing. Apply
-   the shared
+   applicable authoritative contracts, and collect every result before
+   editing. Apply the shared
    [decision rule](../../../../AGENTS.md#execution-and-evidence) to options
    in completed results and retain any
    [decisions](../protocol.md#decisions). If the rule does not permit an
