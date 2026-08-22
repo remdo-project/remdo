@@ -22,21 +22,13 @@ shared resolver from the repository root with the omitted or supplied scope:
 sh .agents/skills/_shared/tools/resolve-scope.sh [scope]
 ```
 
-Store the initial `SELECTION` separately from the other emitted fields as the
-complete change-scope result.
-
-Record the complete selected diff, including untracked-file content, as the
-initial repository-state identity. When
+Use the emitted complete change-scope result. When
 [Correct the state](../../../docs/specs/agents/skills/remdo-converge-change.md#correct-the-state)
 refreshes the scope, rerun the resolver with `uncommitted` or the retained
-`<BASE>..HEAD`, replace `STATE`, `KIND`, `BASE`, `HEAD`, and `FILES`, retain the
-stored initial `SELECTION` rather than the refreshed resolver's `SELECTION`, and
-record the refreshed complete diff. Compare these content
-snapshots when the specification checks for a repeated repository state; paths
-or ref IDs alone are not state identity.
+`<BASE>..HEAD`; never select a new scope.
 
-At [Convergence's simplification step](../../../docs/specs/agents/skills/remdo-converge-change.md#convergence),
-dispatch its independent assessments:
+At the specification's simplification step, dispatch its independent
+assessments:
 
 - Invoke `$remdo-simplify` for changed code and tests. Pass a change
   [assessment target](../../../docs/specs/agents/assessment-target.md) with the
@@ -46,10 +38,8 @@ dispatch its independent assessments:
   `outcome`, the reviewed `target`, and any `findings`, `options`, or `reason`,
   following the [`remdo-simplify` result](../../../docs/specs/agents/skills/remdo-simplify.md#result).
 
-In the specification's
-[Quality cycle](../../../docs/specs/agents/skills/remdo-converge-change.md#quality-cycle),
-run `pnpm run audit:cleanup` for the cleanup audit. At verification, invoke
-`$remdo-verify-change` with the retained scope.
+When the specification requires a cleanup audit, run `pnpm run audit:cleanup`.
+At verification, invoke `$remdo-verify-change` with the retained scope.
 
 If repository permissions block commit-range persistence under the
 specification's [Authority](../../../docs/specs/agents/skills/remdo-converge-change.md#authority),

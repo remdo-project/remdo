@@ -35,13 +35,11 @@ does not open that URL or verify the developer-owned server.
 
 ## Result
 
-The result uses the shared [result fields](../protocol.md#results) in this
-complete shape:
+The result uses the shared [result fields](../protocol.md#results):
 
 ```yaml
 outcome: <created | stopped>
 reason: <condition that stopped the run> # if stopped
-decisions: <Decision[]> # if any
 concerns: <Concern[]> # if any
 artifact: # if created
   path: public/playground/index.html

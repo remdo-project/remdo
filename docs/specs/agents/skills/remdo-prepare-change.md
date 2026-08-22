@@ -102,8 +102,7 @@ Legend:
 ## Result
 
 The result uses the shared [result fields](../protocol.md#results) and the
-[`ChangeScopeResult`](../change-scope.md#result-type) type in this complete
-shape:
+[`ChangeScopeResult`](../change-scope.md#result-type) type:
 
 ```yaml
 outcome: <ready-for-review | completed | stopped>

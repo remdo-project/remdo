@@ -38,13 +38,11 @@ unrelated cleanup.
 ## Result
 
 The result uses the shared [result fields](../protocol.md#results) and the
-[`AssessmentTarget`](../assessment-target.md#result-type) type in this complete
-shape:
+[`AssessmentTarget`](../assessment-target.md#result-type) type:
 
 ```yaml
 outcome: <simplifications-found | no-simplification | no-change | stopped>
 reason: <condition that prevented assessment> # if stopped
-decisions: <Decision[]> # if any
 concerns: <Concern[]> # if any
 target: <AssessmentTarget> # if resolved
 findings: # if simplifications-found

@@ -90,13 +90,11 @@ install-consistency checks.
 
 ## Result
 
-The result uses the shared [result fields](../protocol.md#results) in this
-complete shape:
+The result uses the shared [result fields](../protocol.md#results):
 
 ```yaml
 outcome: <refreshed | current | failed>
 reason: <condition that prevented completion> # if failed
-decisions: <Decision[]> # if any
 concerns: <Concern[]> # if any
 updates: # if any
   - class: <workspace dependencies | package manager | runtime | GitHub Actions>

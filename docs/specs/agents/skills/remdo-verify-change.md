@@ -108,13 +108,11 @@ A stopped result includes the failed phase's evidence. Reviews blocked by an
 earlier phase are omitted, not `unavailable`.
 
 The verifier's result uses the shared [result fields](../protocol.md#results)
-and the [`ChangeScopeResult`](../change-scope.md#result-type) type in this
-complete shape:
+and the [`ChangeScopeResult`](../change-scope.md#result-type) type:
 
 ```yaml
 outcome: <clean | findings | no-change | stopped>
 reason: <condition that stopped verification> # if stopped
-decisions: <Decision[]> # if any
 concerns: <Concern[]> # if any
 scope: <ChangeScopeResult>
 degraded: true # if degraded

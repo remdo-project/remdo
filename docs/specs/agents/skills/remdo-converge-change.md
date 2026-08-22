@@ -87,8 +87,7 @@ latest iteration only. `simplification`, `cleanup`, and `verification` contain
 the complete latest results for the state they assessed.
 
 The result uses the shared [result fields](../protocol.md#results) and the
-[`ChangeScopeResult`](../change-scope.md#result-type) type in this complete
-shape:
+[`ChangeScopeResult`](../change-scope.md#result-type) type:
 
 ```yaml
 outcome: <converged | not-converged | stopped>

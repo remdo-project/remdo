@@ -27,22 +27,18 @@ A capability returning to a caller returns literal YAML beginning with:
 
 ```yaml
 outcome: <capability-owned outcome>
-reason: <condition explaining a non-success outcome> # if needed
 decisions: <Decision[]> # if any
 concerns: <Concern[]> # if any
 # capability-specific fields
 ```
 
 The shared [`Decision`](#decisions) and [`Concern`](#concerns) types are defined
-below.
-
-Capability contracts repeat this envelope with their allowed `outcome` values,
-local inclusion conditions, and additional fields so each result template is
-complete. Angle-bracket names refer to linked shared types; `Type[]` is a list
-of that type. In examples, `# if ...` marks a conditional field. Results explain
-omitted work when its absence affects the caller's interpretation. A capability
-addressing a human renders the result as its report instead of also returning
-the YAML.
+below. Angle-bracket names refer to linked shared types; `Type[]` is a list of
+that type. Capability contracts define additional fields that add detail
+without replacing `decisions` or `concerns`. In examples, `# if ...` marks a
+conditional field. Results explain omitted work when its absence affects the
+caller's interpretation. A capability addressing a human renders the result as
+its report instead of also returning the YAML.
 
 After an operation or participant reports failure, a capability advances only
 through handling defined by its contract. Otherwise it ends, preserves
