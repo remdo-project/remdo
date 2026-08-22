@@ -1,7 +1,6 @@
 import type { ListItemNode } from '@lexical/list';
-import { $getNodeByKey } from 'lexical';
 
-import { getPreviousContentSibling } from '#client/editor/outline/list-structure';
+import { $getListItemByKey, getPreviousContentSibling } from '#client/editor/outline/list-structure';
 
 import type { BoundaryMode } from './apply';
 import { resolveContentBoundaryPoint } from './caret';
@@ -125,7 +124,7 @@ export function $replayLadder(
   boundaryKey: string | null = null,
   expandToSiblingGroup = false
 ): ProgressivePlan | null {
-  const boundaryRoot = boundaryKey ? $getNodeByKey<ListItemNode>(boundaryKey) : null;
+  const boundaryRoot = boundaryKey ? $getListItemByKey(boundaryKey) : null;
   const withinBoundary = (item: ListItemNode): boolean =>
     !boundaryRoot || isContentDescendantOf(item, boundaryRoot) || item.getKey() === boundaryRoot.getKey();
 
@@ -164,7 +163,7 @@ export function $replayLadder(
     // the current level (contextItem). If a sibling exists there, extend the
     // range to it and its subtree; otherwise hoist to the parent level and take
     // the parent's whole subtree (the hoist itself is the step). A step that can
-    // neither advance nor hoist (past the document/zoom root) is unresolvable.
+    // neither advance nor hoist (past the document/view root) is unresolvable.
     //
     // In whole-group mode the range extends to every sibling at this level
     // instead of advancing by one. Hoist behaviour is unchanged.

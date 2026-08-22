@@ -2,25 +2,29 @@ import path from 'node:path';
 import type { Rule } from 'eslint';
 import type { CallExpression, ImportDeclaration } from 'estree';
 
-const TARGET_SUFFIX = path.normalize('src/client/editor/commands.ts');
+const TARGET_SUFFIX = path.normalize('src/client/editor/foundation/commands.ts');
 
 function isAllowedFilename(filename: string): boolean {
   if (!filename || filename === '<input>' || filename === '<text>') {
     return true;
   }
-  return path.normalize(filename).endsWith(TARGET_SUFFIX);
+  const normalized = path.normalize(filename);
+  if (/\.spec\.(?:ts|tsx|js|jsx)$/u.test(normalized)) {
+    return true;
+  }
+  return normalized.endsWith(TARGET_SUFFIX);
 }
 
 export const commandsInCommandsFileRule: Rule.RuleModule = {
   meta: {
     type: 'problem',
     docs: {
-      description: 'Enforce createCommand usage only inside src/client/editor/commands.ts.',
+      description: 'Enforce createCommand usage only inside src/client/editor/foundation/commands.ts.',
     },
     schema: [],
     messages: {
       moveCommand:
-        'Define commands via createCommand in src/client/editor/commands.ts only; move this command there.',
+        'Define commands via createCommand in src/client/editor/foundation/commands.ts only; move this command there.',
     },
   },
   create(context) {

@@ -1,10 +1,12 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import { $isListItemNode } from '@lexical/list';
+import type { RemdoTestApi } from '#client/editor/dev';
 import { waitFor } from '@testing-library/react';
 import type { TextNode } from 'lexical';
 import {
   $createRangeSelection,
   $createTextNode,
+  $getNodeByKey,
   $getRoot,
   $getSelection,
   $isRangeSelection,
@@ -14,10 +16,10 @@ import {
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
 import { findNearestListItem, getRootElementOrThrow } from './selection';
-import { $getNoteId } from '#client/editor/runtime/note-id-state';
-import { $setNoteCheckedRaw } from '#client/editor/runtime/checklist-state';
+import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
+import { $setNoteCheckedRaw } from '#client/editor/features/list-types/checked-state';
 import { expect } from 'vitest';
-import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/commands';
+import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/foundation/commands';
 export type { Outline, OutlineNode } from '#tests-common/outline';
 export type SelectionSnapshot =
   | { state: 'none' }
@@ -33,11 +35,19 @@ export function $getNoteIdOrThrow(item: ListItemNode, message = 'Expected list i
   return noteId;
 }
 
+export function $getListItemByKeyOrThrow(key: string, label = key): ListItemNode {
+  const node = $getNodeByKey(key);
+  if (!$isListItemNode(node)) {
+    throw new TypeError(`Expected ${label} to resolve to a list item`);
+  }
+  return node;
+}
+
 function $findItemByNoteId(noteId: string): ListItemNode {
   const root = $getRoot();
   const list = root.getFirstChild() as ListNode;
   const $search = (listNode: ListNode): ListItemNode | null => {
-    const items = listNode.getChildren<ListItemNode>();
+    const items = listNode.getChildren().filter($isListItemNode);
     for (const item of items) {
       if ($getNoteId(item) === noteId) {
         return item;
@@ -76,13 +86,19 @@ function placeCaretAtListItem(item: ListItemNode, offset: number) {
   item.selectEnd();
 }
 
-export async function placeCaretAtNote(remdo: RemdoTestApi, noteId: string, offset = 0) {
-  // Places a collapsed caret in the note, using text content when available.
-  // Limitations: if the note has no text node, selection snaps to list item boundaries; selection may be promoted later by the app.
+// Lexical 0.49 requires the editor root to hold DOM focus before a programmatic selection
+// mutation, or the selection is discarded before it reaches the editor state.
+function focusEditorRootElement(remdo: RemdoTestApi): void {
   const rootElement = getRootElementOrThrow(remdo.editor);
   if (document.activeElement !== rootElement) {
     rootElement.focus();
   }
+}
+
+export async function placeCaretAtNote(remdo: RemdoTestApi, noteId: string, offset = 0) {
+  // Places a collapsed caret in the note, using text content when available.
+  // Limitations: if the note has no text node, selection snaps to list item boundaries; selection may be promoted later by the app.
+  focusEditorRootElement(remdo);
 
   await remdo.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'anchor' }, { expect: 'any' });
 
@@ -105,10 +121,7 @@ export async function placeCaretAtNoteTextNode(
   offset: number
 ) {
   // Places a collapsed caret inside a specific text node (for multi-format notes).
-  const rootElement = getRootElementOrThrow(remdo.editor);
-  if (document.activeElement !== rootElement) {
-    rootElement.focus();
-  }
+  focusEditorRootElement(remdo);
 
   await remdo.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'anchor' }, { expect: 'any' });
 
@@ -172,6 +185,16 @@ export function readOutline(remdo: RemdoTestApi): Outline {
 }
 export async function selectEntireNote(remdo: RemdoTestApi, noteId: string): Promise<void> {
   // Selects the full text range of a single note.
+  await selectNoteTextRange(remdo, noteId, 0, Number.POSITIVE_INFINITY);
+}
+
+export async function selectNoteTextRange(
+  remdo: RemdoTestApi,
+  noteId: string,
+  start: number,
+  end: number
+): Promise<void> {
+  // Selects a partial text range of a single note.
   // Limitations: requires a text node in the note; does not simulate pointer selection.
   await placeCaretAtNote(remdo, noteId);
 
@@ -184,9 +207,40 @@ export async function selectEntireNote(remdo: RemdoTestApi, noteId: string): Pro
     const anchorTextNode = anchorNode as TextNode;
 
     const length = anchorTextNode.getTextContentSize();
-    rangeSelection.setTextNodeRange(anchorTextNode, 0, anchorTextNode, length);
+    rangeSelection.setTextNodeRange(
+      anchorTextNode,
+      Math.min(length, start),
+      anchorTextNode,
+      Math.min(length, end)
+    );
   });
 }
+
+export async function selectAcrossNoteTextNodes(
+  remdo: RemdoTestApi,
+  noteId: string,
+  anchorTextNodeIndex: number,
+  anchorOffset: number,
+  focusTextNodeIndex: number,
+  focusOffset: number
+): Promise<void> {
+  // Selects a range spanning several text nodes of one note (formatting splits).
+  await placeCaretAtNote(remdo, noteId);
+
+  await remdo.mutate(() => {
+    const textNodes = $findItemByNoteId(noteId).getChildren().filter($isTextNode);
+    const selection = $getSelection();
+    expect($isRangeSelection(selection)).toBe(true);
+
+    (selection as ReturnType<typeof $createRangeSelection>).setTextNodeRange(
+      textNodes[anchorTextNodeIndex]!,
+      anchorOffset,
+      textNodes[focusTextNodeIndex]!,
+      focusOffset
+    );
+  });
+}
+
 function readFromCaretListItem<T>(remdo: RemdoTestApi, read: (item: ListItemNode) => T): T {
   return remdo.validate(() => {
     const selection = $getSelection();
@@ -264,6 +318,8 @@ export async function selectNoteRange(
     await selectEntireNote(remdo, startNoteId);
     return;
   }
+
+  focusEditorRootElement(remdo);
 
   await remdo.mutate(() => {
     const startItem = $findItemByNoteId(startNoteId);

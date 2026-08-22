@@ -6,7 +6,7 @@ import { resolveContiguousSiblingRangeBetween } from './sibling-run';
 import { getSubtreeItems } from './tree';
 
 function $resolveRangeBoundaryItem(key: string): ListItemNode | null {
-  const node = $getNodeByKey<ListItemNode>(key);
+  const node = $getNodeByKey(key);
   const content = resolveContentItemFromNode(node);
   if (!content || !content.isAttached()) {
     return null;

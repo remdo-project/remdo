@@ -14,7 +14,9 @@ DOCKER_DEV_TEST_ADMIN_SECRET="ci-admin"
 DOCKER_TEST_YSWEET_AUTH_KEY="WLo8wx1G1lGKpIDaDjky9npTrV_fW8jCpRVtB8rd"
 DOCKER_TEST_YSWEET_SERVER_TOKEN="AAAgOkIiPro6W2lCzxyW6BDQkuOmTVSfs0MZh-4PGTM_st0"
 
-TEST_DATA_DIR="$(mktemp -d -t remdo-docker-test-XXXXXX)"
+# Retained between invocations so a failed run's container data, backup output,
+# and launcher log stay inspectable. Replaced at startup, never on exit.
+TEST_DATA_DIR="${ROOT_DIR%/}/data/docker-test-runtime"
 DOCKER_E2E_AUTH_STATE_PATH="${TEST_DATA_DIR%/}/docker-e2e-auth-state.json"
 DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH="${TEST_DATA_DIR%/}/docker-e2e-smoke-document-id.txt"
 DOCKER_HOME_DATA_DIR="${TEST_DATA_DIR%/}/home"
@@ -38,7 +40,6 @@ SOURCE_ORIGIN="http://localhost:${SOURCE_PORT_BASE}"
 
 CONTAINER_NAME="${IMAGE_NAME}-${PORT}"
 HEALTH_URL="${APP_ORIGIN%/}/health"
-DATA_CLEANED="false"
 DOCKER_RUN_ARGS=()
 
 # Second scenario: a fresh, ADMIN_SECRET-only container that forces the
@@ -58,9 +59,8 @@ BOOTSTRAP_DATA_DIR="${TEST_DATA_DIR%/}/bootstrap-home"
 PROD_BRIDGE_PORT="$((PORT_BASE + 9))"
 remdo_assert_browser_safe_port "${PROD_BRIDGE_PORT}"
 PROD_BRIDGE_CONTAINER_NAME="remdo-${PROD_BRIDGE_PORT}"
-PROD_BRIDGE_APP_ORIGIN="https://${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}"
-PROD_BRIDGE_HEALTH_URL="${PROD_BRIDGE_APP_ORIGIN%/}/health"
 PROD_BRIDGE_DATA_DIR="${TEST_DATA_DIR%/}/prod-bridge-home"
+PROD_BRIDGE_SOURCE_DATA_DIR="${TEST_DATA_DIR%/}/prod-bridge-source"
 PROD_BRIDGE_LAUNCH_LOG="${TEST_DATA_DIR%/}/prod-bridge-launcher.log"
 
 # Fourth scenario: hosted production behind external TLS termination.
@@ -69,21 +69,30 @@ HOSTED_CONTAINER_NAME="${IMAGE_NAME}-${HOSTED_PORT}"
 HOSTED_APP_ORIGIN="https://remdo.onrender.com"
 HOSTED_DATA_DIR="${TEST_DATA_DIR%/}/hosted-home"
 
+DOCKER_DAEMON_ROOTLESS=false
 if remdo_docker_daemon_is_rootless; then
+  DOCKER_DAEMON_ROOTLESS=true
   remdo_require_rootless_host_network
   DOCKER_RUN_ARGS+=(--userns=host)
 fi
 DOCKER_RUN_ARGS+=(--network=host)
 
-# Wipe a host-mounted data dir from inside the container so container-owned
-# (often root-owned, on a rootful daemon) files are removed by a process with the
-# right uid; fall back to a throwaway container if the live one is already gone.
-wipe_container_data() {
-  local container_name="$1"
-  local host_data_dir="$2"
+PROD_BRIDGE_BROWSER_HOST="${DOCKER_TEST_BROWSER_HOST}"
+PROD_BRIDGE_APP_ORIGIN="https://${PROD_BRIDGE_BROWSER_HOST}:${PROD_BRIDGE_PORT}"
+if [[ "${DOCKER_DAEMON_ROOTLESS}" == "true" ]]; then
+  PROD_BRIDGE_BROWSER_HOST="remdo-${PROD_BRIDGE_PORT}.localhost"
+  PROD_BRIDGE_APP_ORIGIN="http://${PROD_BRIDGE_BROWSER_HOST}:${PROD_BRIDGE_PORT}"
+fi
+PROD_BRIDGE_HEALTH_URL="${PROD_BRIDGE_APP_ORIGIN%/}/health"
 
-  if docker exec "${container_name}" sh -c 'rm -rf /data/* /data/.[!.]* /data/..?*' \
-    >/dev/null 2>&1; then
+# Wipe a host-mounted data dir from inside a container so container-owned (often
+# root-owned, on a rootful daemon) files are removed by a process with the right
+# uid. Skip a dir the host does not have: mounting it would make Docker create it
+# as root, leaving a directory the host then cannot replace.
+wipe_container_data() {
+  local host_data_dir="$1"
+
+  if [[ ! -d "${host_data_dir}" ]]; then
     return
   fi
   if docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
@@ -92,18 +101,13 @@ wipe_container_data() {
   fi
 }
 
-cleanup_data_dir() {
-  if [[ "${DATA_CLEANED}" == "true" ]]; then
-    return
-  fi
-
-  wipe_container_data "${CONTAINER_NAME}" "${DOCKER_HOME_DATA_DIR}"
-  wipe_container_data "${BOOTSTRAP_CONTAINER_NAME}" "${BOOTSTRAP_DATA_DIR}"
-  wipe_container_data "${PROD_BRIDGE_CONTAINER_NAME}" "${PROD_BRIDGE_DATA_DIR}"
-  wipe_container_data "${HOSTED_CONTAINER_NAME}" "${HOSTED_DATA_DIR}"
-
-  rm -rf "${TEST_DATA_DIR}" >/dev/null 2>&1 || true
-  DATA_CLEANED="true"
+# Remove container-owned (often root-owned) files from the retained data dirs so
+# the host can replace them.
+wipe_retained_container_data() {
+  wipe_container_data "${DOCKER_HOME_DATA_DIR}"
+  wipe_container_data "${BOOTSTRAP_DATA_DIR}"
+  wipe_container_data "${PROD_BRIDGE_DATA_DIR}"
+  wipe_container_data "${HOSTED_DATA_DIR}"
 }
 
 run_prod_bridge_launcher() {
@@ -126,9 +130,10 @@ remove_prod_bridge_container() {
   docker rm -f "${PROD_BRIDGE_CONTAINER_NAME}" >/dev/null 2>&1 || true
 }
 
+# Remove the containers but retain their runtime data: the next invocation
+# replaces it after wiping container-owned files through a live container.
 cleanup() {
   remove_prod_bridge_container
-  cleanup_data_dir
   docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
   docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
   docker rm -f "${HOSTED_CONTAINER_NAME}" >/dev/null 2>&1 || true
@@ -139,10 +144,11 @@ wait_healthy() {
   local port="$1"
   local url="$2"
   local attempts="$3"
+  local browser_host="${4:-${DOCKER_TEST_BROWSER_HOST}}"
   local attempt
 
   for ((attempt = 0; attempt < attempts; attempt += 1)); do
-    if curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${port}:127.0.0.1" \
+    if curl --resolve "${browser_host}:${port}:127.0.0.1" \
       -kfsS "${url}" >/dev/null 2>&1; then
       return 0
     fi
@@ -195,6 +201,25 @@ docker rm -f "${PROD_BRIDGE_CONTAINER_NAME}" >/dev/null 2>&1 || true
 docker rm -f "${HOSTED_CONTAINER_NAME}" >/dev/null 2>&1 || true
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
+
+# Replace the retained runtime now that the image exists: the previous run's
+# containers are gone, so wiping its root-owned files needs the throwaway
+# container. Guard the fixed path — this is an unconditional recursive delete.
+if [[ "${TEST_DATA_DIR}" != "${ROOT_DIR%/}/data/docker-test-runtime" ]]; then
+  echo "Refusing to reset unexpected Docker E2E runtime: ${TEST_DATA_DIR}" >&2
+  exit 1
+fi
+if [[ -d "${TEST_DATA_DIR}" ]]; then
+  wipe_retained_container_data
+fi
+rm -rf "${TEST_DATA_DIR}" || {
+  echo "Could not replace the retained Docker E2E runtime: ${TEST_DATA_DIR}" >&2
+  exit 1
+}
+mkdir -p "${TEST_DATA_DIR}"
+# Retention outlives the run, so restrict the runtime the way mktemp -d did:
+# it holds a live admin session token and generated service secrets.
+chmod 700 "${TEST_DATA_DIR}"
 
 remdo_docker_run "${IMAGE_NAME}" "${DOCKER_HOME_DATA_DIR}" -d --name "${CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
   -e AUTH_SECRET="${DOCKER_DEV_TEST_SECRET}" \
@@ -555,7 +580,8 @@ fi
 if ! wait_healthy \
   "${PROD_BRIDGE_PORT}" \
   "${PROD_BRIDGE_HEALTH_URL}" \
-  40; then
+  40 \
+  "${PROD_BRIDGE_BROWSER_HOST}"; then
   docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
   tail -n 200 "${PROD_BRIDGE_LAUNCH_LOG}" >&2 || true
   echo "Production bridge launcher smoke failed: ${PROD_BRIDGE_HEALTH_URL}" >&2
@@ -571,6 +597,28 @@ if [[ "${prod_bridge_host_ip}" != "127.0.0.1" ]]; then
   exit 1
 fi
 echo "Production bridge launcher is loopback-only."
+
+if [[ "${DOCKER_DAEMON_ROOTLESS}" == "true" ]]; then
+  echo "Running loopback HTTP browser smoke..."
+  if ! env \
+    PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" \
+    REMDO_E2E_HOME_ORIGIN="${PROD_BRIDGE_APP_ORIGIN}" \
+    REMDO_E2E_SOURCE_ORIGIN="${SOURCE_ORIGIN}" \
+    ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
+    YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}" \
+    DATA_DIR="${PROD_BRIDGE_SOURCE_DATA_DIR}" \
+    HOST=localhost \
+    PUBLIC_HOST=localhost \
+    PORT_BASE="${SOURCE_PORT_BASE}" \
+    "${ROOT_DIR}/tools/env.sh" timeout "${TEST_TIMEOUT:-300}s" \
+    pnpm exec playwright test --config playwright.docker.config.ts \
+      tests/e2e/docker/setup.spec.ts; then
+    docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
+    echo "Loopback HTTP browser smoke failed: ${PROD_BRIDGE_APP_ORIGIN}" >&2
+    exit 1
+  fi
+  echo "Loopback HTTP browser smoke OK: ${PROD_BRIDGE_APP_ORIGIN}"
+fi
 
 first_prod_bridge_id="$(docker inspect --format '{{.Id}}' "${PROD_BRIDGE_CONTAINER_NAME}")"
 
@@ -591,7 +639,7 @@ for _ in {1..80}; do
   if [[ "${current_prod_bridge_id}" == "${first_prod_bridge_id}" \
     && "${current_restart_count}" =~ ^[0-9]+$ \
     && "${current_restart_count}" -gt "${initial_restart_count}" ]] \
-    && curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}:127.0.0.1" \
+    && curl --resolve "${PROD_BRIDGE_BROWSER_HOST}:${PROD_BRIDGE_PORT}:127.0.0.1" \
       -kfsS "${PROD_BRIDGE_HEALTH_URL}" >/dev/null 2>&1; then
     autoheal_ready=true
     break
@@ -604,8 +652,21 @@ if [[ "${autoheal_ready}" != "true" ]]; then
   echo "Production instance did not recover after Y-Sweet exited." >&2
   exit 1
 fi
-if ! docker logs "${PROD_BRIDGE_CONTAINER_NAME}" 2>&1 \
-  | grep -Fq 'Production service y-sweet exited unexpectedly with status'; then
+# Docker increments RestartCount when it decides to restart, which happens
+# before the supervisor's stderr reaches the log: the entrypoint echoes this
+# line and only then drains its children, and the old gateway keeps answering
+# /health while it drains. The autoheal gate above can therefore pass before
+# the line is readable, so poll for it instead of sampling once.
+supervisor_reported=false
+for _ in {1..80}; do
+  if docker logs "${PROD_BRIDGE_CONTAINER_NAME}" 2>&1 \
+    | grep -Fq 'Production service y-sweet exited unexpectedly with status'; then
+    supervisor_reported=true
+    break
+  fi
+  sleep 0.1
+done
+if [[ "${supervisor_reported}" != "true" ]]; then
   docker logs "${PROD_BRIDGE_CONTAINER_NAME}" || true
   echo "Production instance log did not identify the failed Y-Sweet process." >&2
   exit 1
@@ -622,7 +683,7 @@ replacement_ready="false"
 for _ in {1..80}; do
   replacement_id="$(docker inspect --format '{{.Id}}' "${PROD_BRIDGE_CONTAINER_NAME}" 2>/dev/null || true)"
   if [[ -n "${replacement_id}" && "${replacement_id}" != "${first_prod_bridge_id}" ]] \
-    && curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PROD_BRIDGE_PORT}:127.0.0.1" \
+    && curl --resolve "${PROD_BRIDGE_BROWSER_HOST}:${PROD_BRIDGE_PORT}:127.0.0.1" \
       -kfsS "${PROD_BRIDGE_HEALTH_URL}" >/dev/null 2>&1; then
     replacement_ready="true"
     break
@@ -648,5 +709,3 @@ if [[ "$(docker inspect --format '{{.State.Running}}' \
 fi
 echo "Explicitly stopped production container remained stopped."
 remove_prod_bridge_container
-
-cleanup_data_dir

@@ -94,6 +94,17 @@ describe('admin self-enrollment', () => {
     await expect(harness.auth.getUserCount()).resolves.toBe(2);
   });
 
+  it('creates distinct accounts when concurrent enrolls share one sqlite connection', async () => {
+    const harness = createHarness();
+    const responses = await Promise.all([
+      enroll(harness.app, { ...ENROLLEE, adminSecret: TEST_ADMIN_SECRET }),
+      enroll(harness.app, { ...OTHER_ENROLLEE, adminSecret: TEST_ADMIN_SECRET }),
+    ]);
+
+    expect(responses.every((response) => response.ok)).toBe(true);
+    await expect(harness.auth.getUserCount()).resolves.toBe(2);
+  });
+
   it('leaves a normally-signed-up user without the admin role', async () => {
     // A signup-enabled harness creates a plain (non-admin) user; only the
     // secret-gated enroll path grants the admin role.

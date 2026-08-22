@@ -34,7 +34,7 @@
         "./src/platform/*"
       ],
       "#document-routes": [
-        "./src/document-routes.ts"
+        "./src/document-routes/index.ts"
       ],
       "#server/*": [
         "./src/server/*"
@@ -56,6 +56,9 @@
       ],
       "#tests": [
         "./tests/unit/_support/lib/index.ts"
+      ],
+      "#tests-collab/*": [
+        "./tests/unit/collab/_support/*"
       ],
       "#fixtures/*": [
         "./tests/fixtures/*"

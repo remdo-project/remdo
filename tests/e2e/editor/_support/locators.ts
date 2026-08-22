@@ -2,9 +2,41 @@ import type { Locator, Page } from '#editor/fixtures';
 
 export const editorLocator = (page: Page): Locator => page.locator('.editor-container');
 export const zoomBreadcrumbs = (page: Page): Locator => page.locator('[data-zoom-breadcrumbs]');
-export const documentZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(page).locator('[data-zoom-crumb="document"]');
 export const homeZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(page).locator('[data-zoom-crumb="home"]');
 export const homeView = (page: Page): Locator => page.locator('[data-testid="document-home"]');
+export const documentPicker = (page: Page): Locator => page.getByRole('combobox', { name: 'Choose document' });
+export const documentPickerButton = (page: Page): Locator => page.getByRole('button', { name: 'Show documents' });
+
+export async function chooseDocument(page: Page, name: string): Promise<void> {
+  await documentPickerButton(page).click();
+  await page.getByRole('option', { name, exact: true }).first().click();
+}
+
+export async function clearZoom(page: Page): Promise<void> {
+  const name = await documentPicker(page).inputValue();
+  await chooseDocument(page, name);
+}
+
+// The date picker portals outside `.editor-container`, so its locators are
+// page-scoped by necessity. Day cells are addressed by their own ISO date, which
+// is stable across locales — unlike a cell's accessible name (a localized
+// "Monday, June 10, 2026" that also gains "Today"/"selected" prefixes).
+export const datePickerPanel = (page: Page): Locator => page.locator('[data-date-picker]');
+export const datePickerDays = (page: Page): Locator => page.locator('[data-date-picker-day]');
+export const datePickerDay = (page: Page, isoDate: string): Locator =>
+  page.locator(`[data-date-picker-day="${isoDate}"]`);
+export const datePickerWeekdays = (page: Page): Locator =>
+  datePickerPanel(page).locator('.date-picker-weekday');
+export const dateTokens = (page: Page): Locator =>
+  editorLocator(page).locator('[data-date-node-key]');
+
+// The `:not(.list-nested-item)` guard excludes children-wrappers, so this matches
+// the note's own row rather than the wrapper that holds its subtree.
+export const noteRow = (page: Page, label: string): Locator =>
+  editorLocator(page)
+    .locator('li.list-item:not(.list-nested-item)')
+    .filter({ hasText: label })
+    .first();
 
 export async function setCaretAtText(
   page: Page,

@@ -1,0 +1,260 @@
+import { useEffect, useMemo } from 'react';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import type { AnyLexicalCommand, LexicalEditor, EditorUpdateOptions, SerializedEditorState } from 'lexical';
+import { $createTextNode, $getRoot, $isTextNode } from 'lexical';
+import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
+import { assertEditorSchema } from './schema/assertEditorSchema';
+import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
+import { markSchemaValidationSkipOnce } from '#client/editor/foundation/schema-validation-skip-once';
+import { $normalizeNoteIdsOnLoad } from '#client/editor/runtime/note-ids/note-id-normalization';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { TEST_BRIDGE_LOAD_TAG, TEST_BRIDGE_MUTATE_TAG } from '#client/editor/foundation/update-tags';
+import { getTestBridgeRegistry } from './testBridgeRegistry';
+
+type EditorOutcome =
+  | { status: 'update' }
+  | { status: 'noop' }
+  | { status: 'error'; error: unknown }
+  | { status: 'timeout' };
+
+type EditorOutcomeExpectation = 'update' | 'noop' | 'any';
+
+interface EditorActionOptions {
+  expect?: EditorOutcomeExpectation;
+}
+
+interface ApplySerializedStateOptions {
+  skipSchemaValidationOnce?: boolean;
+}
+
+function hasPendingEditorUpdate(editor: LexicalEditor): boolean {
+  const internal = editor as LexicalEditor & {
+    _pendingEditorState: unknown | null;
+    _updates: Array<unknown>;
+    _updating: boolean;
+  };
+
+  return internal._pendingEditorState != null || internal._updates.length > 0 || internal._updating;
+}
+
+function handleOutcome(result: EditorOutcome, action: string, expect: EditorOutcomeExpectation): EditorOutcome {
+  if (result.status === 'error') {
+    throw result.error;
+  }
+
+  if (result.status === 'timeout') {
+    console.warn(`TestBridgePlugin: ${action} timed out waiting for editor outcome`);
+    return result;
+  }
+
+  if (expect !== 'any' && result.status !== expect) {
+    throw new Error(`TestBridgePlugin: ${action} expected ${expect}, got ${result.status}`);
+  }
+
+  return result;
+}
+
+function registerEditorErrorListener(editor: LexicalEditor, listener: (error: unknown) => void): () => void {
+  const internal = editor as LexicalEditor & { _onError: (error: unknown) => void };
+  const previous = internal._onError;
+
+  internal._onError = (error: unknown) => {
+    listener(error);
+    previous(error);
+  };
+
+  return () => {
+    internal._onError = previous;
+  };
+}
+
+function awaitEditorOutcome(editor: LexicalEditor, timeoutMs = 1000) {
+  let settled = false;
+  let resolveOutcome: (outcome: EditorOutcome) => void = () => {};
+
+  const cleanupFns: Array<() => void> = [];
+
+  const cleanup = () => {
+    while (cleanupFns.length > 0) {
+      const fn = cleanupFns.pop();
+      fn?.();
+    }
+  };
+
+  const settle = (result: EditorOutcome) => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    resolveOutcome(result);
+  };
+
+  const outcome = new Promise<EditorOutcome>((resolve) => {
+    resolveOutcome = resolve;
+  });
+
+  cleanupFns.push(
+    registerEditorErrorListener(editor, (error) => settle({ status: 'error', error })),
+    editor.registerUpdateListener(() => settle({ status: 'update' }))
+  );
+
+  const noopGuard = setTimeout(() => {
+    if (!settled && !hasPendingEditorUpdate(editor)) {
+      settle({ status: 'noop' });
+    }
+  }, 0);
+
+  cleanupFns.push(() => clearTimeout(noopGuard));
+
+  const timeout = setTimeout(() => {
+    settle({ status: 'timeout' });
+  }, timeoutMs);
+
+  cleanupFns.push(() => clearTimeout(timeout));
+
+  const reportNoop = () => settle({ status: 'noop' });
+
+  return { outcome, reportNoop };
+}
+
+function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof useCollaborationStatus>) {
+  const ensureHydrated = async () => {
+    if (!collab.enabled || collab.hydrated) return;
+    await collab.awaitSynced();
+  };
+
+  const withOutcome = async (
+    action: string,
+    expect: EditorOutcomeExpectation,
+    run: (reportNoop: () => void) => void,
+    options?: { skipSchemaValidation?: boolean }
+  ) => {
+    const outcome = awaitEditorOutcome(editor);
+    run(outcome.reportNoop);
+    const result = handleOutcome(await outcome.outcome, action, expect);
+    if (result.status === 'update') {
+      if (!options?.skipSchemaValidation) {
+        assertEditorSchema(editor.getEditorState().toJSON());
+      }
+      await collab.awaitSynced();
+    }
+  };
+
+  const waitForCollaborationReady = () => collab.awaitSynced();
+
+  const applySerializedState = async (input: string, options?: ApplySerializedStateOptions) => {
+    await ensureHydrated();
+    const runtimeState = prepareEditorStateForRuntime(JSON.parse(input) as SerializedEditorState, collab.docId);
+    const parsed = editor.parseEditorState(runtimeState);
+    await withOutcome('setEditorState', 'update', () => {
+      if (options?.skipSchemaValidationOnce) {
+        markSchemaValidationSkipOnce(editor);
+      }
+      editor.setEditorState(parsed, { tag: TEST_BRIDGE_LOAD_TAG });
+    }, { skipSchemaValidation: options?.skipSchemaValidationOnce });
+
+    // The load is tagged, so the ListItemNode transform skips id assignment; normalization is
+    // what backfills missing ids. It must run for every load, not just a schema-bypassed one,
+    // or a document with a note lacking a noteId stays id-less.
+    await withOutcome('normalizeNoteIds', 'any', () => {
+      editor.update(() => {
+        $normalizeNoteIdsOnLoad($getRoot(), collab.docId);
+      });
+    }, { skipSchemaValidation: options?.skipSchemaValidationOnce });
+  };
+
+  const mutate = async (fn: () => void, opts?: EditorUpdateOptions) => {
+    if (fn.constructor.name === 'AsyncFunction') {
+      throw new TypeError('TestBridgePlugin: mutate callback must be synchronous');
+    }
+
+    const tag = [TEST_BRIDGE_MUTATE_TAG, ...(Array.isArray(opts?.tag) ? opts.tag : opts?.tag ? [opts.tag] : [])];
+    await withOutcome('mutate', 'update', () => editor.update(fn, { ...opts, tag }));
+  };
+
+  const dispatchCommand = async (command: AnyLexicalCommand, payload?: unknown, opts?: EditorActionOptions) => {
+    const expect = opts?.expect ?? 'update';
+    await withOutcome('dispatchCommand', expect, (reportNoop) => {
+      const didDispatch = editor.dispatchCommand(command, payload);
+      if (!didDispatch) {
+        reportNoop();
+      }
+    });
+  };
+
+  const clear = async () => {
+    await mutate(() => {
+      $getRoot().clear();
+    });
+  };
+
+  const updateNoteText = async (noteId: string, text: string) => {
+    await mutate(() => {
+      const item = $findNoteById(noteId);
+      if (!item) {
+        return;
+      }
+
+      const textNode = item.getChildren().find((child): child is ReturnType<typeof $createTextNode> => $isTextNode(child));
+      if (textNode) {
+        textNode.setTextContent(text);
+        return;
+      }
+
+      item.append($createTextNode(text));
+    });
+  };
+
+  const getEditorState = () => editor.getEditorState().toJSON();
+  const validate = <T,>(fn: () => T) => editor.getEditorState().read(fn);
+
+  const waitForSynced = async () => {
+    await collab.awaitSynced();
+    assertEditorSchema(getEditorState());
+  };
+
+  const getCollabDocId = () => collab.docId;
+
+  const bridge = {
+    applySerializedState,
+    replaceDocument: applySerializedState,
+    waitForCollaborationReady,
+    clear,
+  };
+
+  return {
+    editor,
+    mutate,
+    validate,
+    getEditorState,
+    waitForSynced,
+    updateNoteText,
+    dispatchCommand,
+    getCollabDocId,
+    _bridge: bridge,
+  };
+}
+
+export type RemdoTestApi = ReturnType<typeof createTestBridgeApi>;
+
+export function TestBridgePlugin() {
+  const [editor] = useLexicalComposerContext();
+  const collab = useCollaborationStatus();
+
+  const api = useMemo(() => createTestBridgeApi(editor, collab), [collab, editor]);
+
+  useEffect(() => {
+    // Publish through the test-bridge registry, keyed by this editor. `api`
+    // rebuilds whenever collaboration status changes, so
+    // this refreshes the editor's entry on every rebuild; keying by editor means
+    // only the first publish hands off to a pending `waitForNext()`, and retract
+    // runs on unmount (`editor` is stable per mount) rather than on each rebuild.
+    getTestBridgeRegistry().publish(editor, api);
+  }, [editor, api]);
+
+  useEffect(() => {
+    const registry = getTestBridgeRegistry();
+    return () => registry.retract(editor);
+  }, [editor]);
+
+  return null;
+}

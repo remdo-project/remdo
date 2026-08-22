@@ -1,0 +1,240 @@
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  getTestUserData,
+  setTestDocumentSources,
+  setTestDocumentSourcesLoading,
+} from '#tests';
+import { createDocumentPath, createDocumentSyncTokenApiPath } from '#document-routes';
+import {
+  createDocumentCollectionSource,
+  renderDocumentRoute,
+  renderDocumentRouteWithResult,
+  resetDocumentRouteHarness,
+  setMockZoomPath,
+} from '../../../../tests/unit/_support/document-route-harness';
+
+describe('document route', () => {
+
+  beforeEach(() => {
+    resetDocumentRouteHarness();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('falls back to the route document id in the page title at the root', async () => {
+    renderDocumentRoute();
+
+    await waitFor(() => {
+      expect(document.title).toBe('routeDoc · RemDo');
+    });
+  });
+
+  it('uses listed document titles instead of route document ids in the page title', async () => {
+    const createdDocument = await getTestUserData().documents().create('  Project\nNotes  ');
+    renderDocumentRoute(createDocumentPath(createdDocument.id()));
+
+    await waitFor(() => {
+      expect(document.title).toBe('Project Notes · RemDo');
+    });
+  });
+
+  it('opens linked source documents through plain document routes', async () => {
+    setTestDocumentSources([{
+      baseUrl: 'https://source.example',
+      documents: createDocumentCollectionSource([{ id: 'sourceDoc', title: 'Source Document' }]),
+      id: 'source',
+      label: 'Source Server',
+      local: false,
+    }]);
+    const router = renderDocumentRoute(createDocumentPath('testDoc'));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Source Document' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(createDocumentPath('sourceDoc'));
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'sourceDoc');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', 'source');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-origin', 'https://source.example');
+    });
+  });
+
+  it('navigates from another document to the local Home root', async () => {
+    const router = renderDocumentRoute();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Test Document' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'testDoc');
+    });
+  });
+
+  it('waits for source resolution before opening a source-only plain document route', async () => {
+    // Keep the local-access probe in flight so the workspace stays on "Loading
+    // document" until source resolution completes, not because the probe failed.
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
+    setTestDocumentSourcesLoading(true);
+
+    renderDocumentRoute(createDocumentPath('sourceDoc'));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Loading document');
+    expect(screen.queryByTestId('editor-probe')).toBeNull();
+
+    act(() => {
+      setTestDocumentSources([{
+        baseUrl: 'https://source.example',
+        documents: createDocumentCollectionSource([{ id: 'sourceDoc', title: 'Source Document' }]),
+        id: 'source',
+        label: 'Source Server',
+        local: false,
+      }]);
+      setTestDocumentSourcesLoading(false);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'sourceDoc');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', 'source');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-origin', 'https://source.example');
+    });
+  });
+
+  it('opens the editor when the local-access probe fails while source resolution is loading', async () => {
+    // Server unreachable: the sync-token probe rejects. The workspace must mount
+    // the editor (letting the collaboration layer surface the connection state)
+    // instead of hanging on "Loading document" forever.
+    const fetchMock = vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    setTestDocumentSourcesLoading(true);
+
+    renderDocumentRoute(createDocumentPath('unreachableDoc'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'unreachableDoc');
+      expect(screen.queryByRole('status')).toBeNull();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      createDocumentSyncTokenApiPath('unreachableDoc'),
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('opens an authorized local document while source resolution is loading', async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    setTestDocumentSourcesLoading(true);
+
+    renderDocumentRoute(createDocumentPath('sharedDoc'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'sharedDoc');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', '');
+      expect(screen.queryByRole('status')).toBeNull();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      createDocumentSyncTokenApiPath('sharedDoc'),
+      expect.objectContaining({
+        body: JSON.stringify({ docId: 'sharedDoc' }),
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      }),
+    );
+  });
+
+  it('opens the editor offline while source resolution is loading', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(globalThis.navigator, 'onLine', 'get').mockReturnValue(false);
+    setTestDocumentSourcesLoading(true);
+
+    renderDocumentRoute(createDocumentPath('offlineDoc'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'offlineDoc');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', '');
+      expect(screen.queryByRole('status')).toBeNull();
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('sets the page title from the current zoom note when zoomed', async () => {
+    setMockZoomPath('routeDoc', 'note3', [
+      { noteId: 'note1', label: 'Parent' },
+      { noteId: 'note3', label: '  Current\nNote  ' },
+    ]);
+
+    renderDocumentRoute(createDocumentPath('routeDoc', 'note3'));
+
+    await waitFor(() => {
+      expect(document.title).toBe('Current Note · routeDoc · RemDo');
+    });
+  });
+
+  it('returns to the canonical Home root when zoom is cleared', async () => {
+    const router = renderDocumentRoute('/');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Zoom note' }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(createDocumentPath('testDoc', 'note3'));
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear zoom' }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+    });
+  });
+
+  it('clears zoom when the current document is pressed in the picker', async () => {
+    const router = renderDocumentRoute('/');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Zoom note' }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(createDocumentPath('testDoc', 'note3'));
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
+    const currentDocument = await screen.findByRole('option', { name: 'Test Document' });
+    fireEvent.pointerDown(currentDocument, { pointerType: 'mouse' });
+    fireEvent.pointerUp(currentDocument, { pointerType: 'mouse' });
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+    });
+  });
+
+  it('resets the page title when the route unmounts', async () => {
+    const { result } = renderDocumentRouteWithResult();
+
+    await waitFor(() => {
+      expect(document.title).toBe('routeDoc · RemDo');
+    });
+    result.unmount();
+
+    expect(document.title).toBe('RemDo');
+  });
+
+  it('remounts editor when document id changes via route params', async () => {
+    const router = renderDocumentRoute();
+
+    const first = await screen.findByTestId('editor-probe');
+    const firstInstanceId = first.dataset.instanceId;
+    expect(first.dataset.docId).toBe('routeDoc');
+
+    await router.navigate(createDocumentPath('other'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe').dataset.docId).toBe('other');
+    });
+
+    const second = screen.getByTestId('editor-probe');
+    expect(second.dataset.instanceId).not.toBe(firstInstanceId);
+  });
+});

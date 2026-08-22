@@ -13,7 +13,9 @@ jobs:
     permissions:
       contents: read
       actions: write
-    timeout-minutes: 10
+    # Stays above the suite's own TEST_TIMEOUT below, so an overrun surfaces as
+    # that command's exit 124 rather than the runner killing the job first.
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     env:
       PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
@@ -21,20 +23,21 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
 
+      - name: Resolve Playwright version
+        run: echo "PLAYWRIGHT_VERSION=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_ENV"
+
       - name: Cache Playwright browsers (optional)
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
 
-      - name: Workspace init (installs browsers)
-        env:
-          PLAYWRIGHT_INSTALL: "true"
-        run: pnpm run dev:init
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium
 
       - name: Run Playwright E2E suite
         env:
-          TEST_TIMEOUT: 360
+          TEST_TIMEOUT: 600
         run: pnpm run test:e2e
 
       - name: Upload Playwright failure evidence

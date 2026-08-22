@@ -1,25 +1,22 @@
+import { getLocalTimeZone, today } from '@internationalized/date';
 import { act } from '@testing-library/react';
-import dayjs from 'dayjs';
 import { $createTextNode, $getSelection, $isNodeSelection, $isRangeSelection, $isTextNode } from 'lexical';
 import type { SerializedLexicalNode } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import { findSerializedNode, meta, placeCaretAtNote, placeCaretAtNoteTextNode, pressKey, typeText } from '#tests';
 import type { SerializedDateNode } from './date-node';
 import { $createDateNode, $isDateNode } from './date-node';
+import { formatDateNodeLabel } from './date-label';
 
 function findSerializedDateNode(nodes: SerializedLexicalNode[] | undefined): SerializedDateNode | null {
   return findSerializedNode(nodes, (node): node is SerializedDateNode => node.type === 'date');
 }
 
 function getTodayIsoDate(): string {
-  return dayjs().format('YYYY-MM-DD');
-}
-
-function formatDateLabel(isoDate: string): string {
-  return dayjs(isoDate).format('MMM D, YYYY');
+  return today(getLocalTimeZone()).toString();
 }
 
 async function clickElement(element: Element) {
@@ -207,7 +204,7 @@ describe('date nodes', () => {
 
   it('inserts a date node from the ! picker', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const isoDate = getTodayIsoDate();
-    const label = formatDateLabel(isoDate);
+    const label = formatDateNodeLabel(isoDate);
 
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, ' !');

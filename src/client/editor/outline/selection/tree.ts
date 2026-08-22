@@ -2,8 +2,8 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
 
-import { reportInvariant } from '#client/editor/invariant';
-import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
+import { reportInvariant } from '#client/editor/foundation/invariant';
+import { isBodyWrapper } from '#client/editor/outline/note-body-node';
 import { getBodyWrapper, getContentSiblings, getPreviousContentSibling, isChildrenWrapper, isContentItem, maybeRemoveEmptyWrapper } from '../list-structure';
 
 export function normalizeContentRange(
@@ -308,9 +308,7 @@ export function isContentDescendantOf(candidate: ListItemNode, ancestor: ListIte
   return false;
 }
 
-// True when `item` is `boundary` or a content-descendant of it. A null boundary
-// means "no limit" — everything is within. Generic tree geometry: callers supply
-// the boundary node (zoom supplies the zoom root; see features/zoom/zoom-root.ts).
+// A null boundary means "no limit" — every item is within.
 export function isWithinBoundary(item: ListItemNode, boundary: ListItemNode | null): boolean {
   return boundary === null || isContentDescendantOf(item, boundary);
 }

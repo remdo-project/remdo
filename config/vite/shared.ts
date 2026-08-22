@@ -117,6 +117,11 @@ export function createViteSharedConfig() {
       strictPort: true,
       proxy: previewProxy,
     },
+    // Key the prebundle cache to the port block, like every other per-instance path. Sharing one
+    // cache means a second dev server re-optimizes it under a running one, which keeps serving its
+    // now-stale module graph and ends up with two copies of a package (for Lexical: "cannot find a
+    // LexicalComposerContext"). Recovery needs a cache wipe plus a restart.
+    cacheDir: `node_modules/.vite/${config.env.PORT}`,
     assetsInclude: ['**/*.ysweet'],
     define: Object.fromEntries(
       Object.entries(config.browser).map(([key, value]) => [
@@ -125,11 +130,14 @@ export function createViteSharedConfig() {
       ])
     ),
     resolve: {
-      dedupe: ["react", "react-dom"],
+      // lexical joins react here for the same reason: its modules hold module-scoped state
+      // (the composer context, node registries) that breaks if two copies are resolved.
+      dedupe: ["react", "react-dom", "lexical"],
       alias: {
         "#client": path.resolve(repoRoot, "./src/client"),
         "#collaboration": path.resolve(repoRoot, "./src/collaboration"),
         "#tests": path.resolve(repoRoot, "./tests/unit/_support/lib/index.ts"),
+        "#tests-collab": path.resolve(repoRoot, "./tests/unit/collab/_support"),
         "#tests-common": path.resolve(repoRoot, "./tests/_support"),
         "#fixtures": path.resolve(repoRoot, "./tests/fixtures"),
         "#config": path.resolve(repoRoot, "./config"),
@@ -137,7 +145,7 @@ export function createViteSharedConfig() {
         "#note-sdk": path.resolve(repoRoot, "./src/note-sdk/index.ts"),
         "#platform": path.resolve(repoRoot, "./src/platform"),
         "#projection": path.resolve(repoRoot, "./src/projection"),
-        "#document-routes": path.resolve(repoRoot, "./src/document-routes.ts"),
+        "#document-routes": path.resolve(repoRoot, "./src/document-routes/index.ts"),
         "#server": path.resolve(repoRoot, "./src/server"),
         "#tools": path.resolve(repoRoot, "./tools/lib"),
       },

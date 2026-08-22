@@ -18,13 +18,14 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_SPACE_COMMAND,
   KEY_TAB_COMMAND,
+  SKIP_DOM_SELECTION_TAG,
 } from 'lexical';
 import type { LexicalNode } from 'lexical';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 
+import { focusEditorRoot, restoreEditorFocus } from '#client/editor/runtime/focus';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
-import { resolveElementPickerAnchor } from '#client/editor/triggers/anchor';
+import { EditorPopupOverlay } from '#client/editor/triggers/overlay';
 import { $isDateNode } from './date-node';
 import type { DateNode } from './date-node';
 import { DatePickerPanel } from './DatePickerPopover';
@@ -167,6 +168,10 @@ export function DatePlugin() {
     setPickerState(null);
   }, [setPickerState]);
 
+  const restoreFocus = useCallback(() => {
+    restoreEditorFocus(editor);
+  }, [editor]);
+
   const $confirmDate = useCallback((isoDate: string): boolean => {
     const currentPicker = pickerRef.current;
     if (!currentPicker) {
@@ -209,14 +214,16 @@ export function DatePlugin() {
         return;
       }
 
+      // A calendar commit unmounts the trapping popup, so onUpdate returns focus to the
+      // editor (the caret was placed after the token in $confirmDate).
       editor.update(() => {
         $confirmDate(isoDate);
+      }, {
+        onUpdate: restoreFocus,
+        tag: SKIP_DOM_SELECTION_TAG,
       });
-      // A calendar commit unmounts the trapping popup; return focus to the editor
-      // (the caret was placed after the token in $confirmDate).
-      editor.focus();
     },
-    [$confirmDate, editor]
+    [$confirmDate, editor, restoreFocus]
   );
 
   // Cancel from inside the focus-trapping calendar (edit mode): close without
@@ -232,10 +239,14 @@ export function DatePlugin() {
         if ($isDateNode(node)) {
           $collapseDateTokenSelection(node, 'after');
         }
+      }, {
+        onUpdate: restoreFocus,
+        tag: SKIP_DOM_SELECTION_TAG,
       });
+    } else {
+      restoreFocus();
     }
-    editor.focus();
-  }, [closePicker, editor]);
+  }, [closePicker, editor, restoreFocus]);
 
   const $selectAdjacentDateToken = useCallback(
     (direction: DateTokenSelectionSide, event: KeyboardEvent | null): boolean => {
@@ -302,18 +313,11 @@ export function DatePlugin() {
       }
 
       const nodeKey = selectedDateNode.getKey();
-      const element = editor.getElementByKey(nodeKey);
-      if (!element) {
-        return false;
-      }
-
-      const anchor = resolveElementPickerAnchor(editor, element);
-      if (!anchor) {
+      if (!editor.getElementByKey(nodeKey)) {
         return false;
       }
 
       setPickerState({
-        anchor,
         isoDate: selectedDateNode.getIsoDate(),
         nodeKey,
       });
@@ -348,37 +352,37 @@ export function DatePlugin() {
       }),
       editor.registerCommand(
         KEY_ARROW_LEFT_COMMAND,
-        (event: KeyboardEvent | null) => $selectAdjacentDateToken('before', event),
+        (event) => $selectAdjacentDateToken('before', event),
         COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         KEY_ARROW_RIGHT_COMMAND,
-        (event: KeyboardEvent | null) => $selectAdjacentDateToken('after', event),
+        (event) => $selectAdjacentDateToken('after', event),
         COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         KEY_ENTER_COMMAND,
-        (event: KeyboardEvent | null) => $confirmCurrentPicker(event),
+        (event) => $confirmCurrentPicker(event),
         COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         KEY_ENTER_COMMAND,
-        (event: KeyboardEvent | null) => $openSelectedDateTokenPicker(event),
+        (event) => $openSelectedDateTokenPicker(event),
         COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         KEY_SPACE_COMMAND,
-        (event: KeyboardEvent | null) => $openSelectedDateTokenPicker(event),
+        (event) => $openSelectedDateTokenPicker(event),
         COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         KEY_TAB_COMMAND,
-        (event: KeyboardEvent | null) => $confirmCurrentPicker(event),
+        (event) => $confirmCurrentPicker(event),
         COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         KEY_ESCAPE_COMMAND,
-        (event: KeyboardEvent | null) => {
+        (event) => {
           if (!pickerRef.current) {
             return false;
           }
@@ -390,17 +394,17 @@ export function DatePlugin() {
       ),
       editor.registerCommand(
         KEY_ESCAPE_COMMAND,
-        (event: KeyboardEvent | null) => $clearSelectedDateToken(event),
+        (event) => $clearSelectedDateToken(event),
         COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         KEY_BACKSPACE_COMMAND,
-        (event: KeyboardEvent | null) => $deleteSelectedOrAdjacentDateToken('before', event),
+        (event) => $deleteSelectedOrAdjacentDateToken('before', event),
         COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         KEY_DELETE_COMMAND,
-        (event: KeyboardEvent | null) => $deleteSelectedOrAdjacentDateToken('after', event),
+        (event) => $deleteSelectedOrAdjacentDateToken('after', event),
         COMMAND_PRIORITY_CRITICAL
       ),
       () => {
@@ -426,7 +430,7 @@ export function DatePlugin() {
 
       event.preventDefault();
       event.stopPropagation();
-      editor.getRootElement()?.focus({ preventScroll: true });
+      focusEditorRoot(editor);
       editor.update(() => {
         $selectDateTokenByKey(target.nodeKey);
       });
@@ -435,11 +439,6 @@ export function DatePlugin() {
     const handleRootClick = (event: MouseEvent) => {
       const target = resolveDatePointerTarget(event);
       if (!target) {
-        return;
-      }
-
-      const anchor = resolveElementPickerAnchor(editor, target.element);
-      if (!anchor) {
         return;
       }
 
@@ -452,7 +451,6 @@ export function DatePlugin() {
         event.preventDefault();
         event.stopPropagation();
         setPickerState({
-          anchor,
           isoDate: node.getIsoDate(),
           nodeKey: target.nodeKey,
         });
@@ -481,7 +479,7 @@ export function DatePlugin() {
         // The calendar traps focus; without this, closing it on an outside click
         // abandons focus on <body>. A click landing in the editor refocuses it
         // anyway, so this is only load-bearing for clicks outside the editor.
-        editor.focus();
+        restoreFocus();
       }
     };
     document.addEventListener('mousedown', handleDocumentMouseDown, true);
@@ -492,22 +490,26 @@ export function DatePlugin() {
       root?.removeEventListener('click', handleRootClick, true);
       document.removeEventListener('mousedown', handleDocumentMouseDown, true);
     };
-  }, [$selectDateTokenByKey, closePicker, editor, setPickerState]);
+  }, [$selectDateTokenByKey, closePicker, editor, restoreFocus, setPickerState]);
 
   return (
     <>
       <DateInsertPlugin />
       {picker && portalRoot
-        ? createPortal(
-            <div className="date-picker-anchor" style={{ left: picker.anchor.left, top: picker.anchor.top }}>
+        ? (
+            <EditorPopupOverlay
+              className="date-picker-overlay"
+              editor={editor}
+              getTargetRect={() => editor.getElementByKey(picker.nodeKey)?.getBoundingClientRect() ?? null}
+              portalRoot={portalRoot}
+            >
               <DatePickerPanel
                 isoDate={picker.isoDate}
                 mode="edit"
                 onChange={handlePickerChange}
                 onCancel={handlePickerCancel}
               />
-            </div>,
-            portalRoot
+            </EditorPopupOverlay>
           )
         : null}
     </>

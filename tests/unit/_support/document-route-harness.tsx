@@ -5,21 +5,21 @@ import * as React from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { vi } from 'vitest';
 import { resetTestUserData, TEST_USER_DATA_DOCUMENT } from '#tests';
-import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import type {
+  NotePathItem,
   SearchableNote,
   SearchableNotes,
-} from '#client/editor/search/search-candidates';
+} from '#client/editor/view/workspace';
 import {
   useEditorViewActions,
   useRegisterSearchNotesReader,
   useZoomNoteId,
 } from '#client/editor/view/EditorViewProvider';
 import type { SearchNotesReader } from '#client/editor/view/EditorViewProvider';
-import DocumentRoute from '#client/app/routes/DocumentRoute';
+import DocumentRoute from '#client/app/workspace/DocumentRoute';
 import { createDocumentPath, parseDocumentRef } from '#document-routes';
 
-vi.mock('#client/app/documents/user-data', async () => {
+vi.mock('#client/app/user-data/user-data', async () => {
   const { mockUserDataModule } = await import('#tests');
   return mockUserDataModule();
 });
@@ -140,13 +140,16 @@ function MockEditor({
 
 function MockZoomBreadcrumbs({
   documentControl,
+  onSelectHome,
   onSelectNoteId,
 }: {
   documentControl: React.ReactNode;
+  onSelectHome?: () => void;
   onSelectNoteId: (noteId: string | null) => void;
 }) {
   return (
     <>
+      {onSelectHome ? <button onClick={onSelectHome} type="button">Home</button> : null}
       {documentControl}
       <button onClick={() => onSelectNoteId('note3')} type="button">Zoom note</button>
       <button onClick={() => onSelectNoteId(null)} type="button">Clear zoom</button>
@@ -154,7 +157,7 @@ function MockZoomBreadcrumbs({
   );
 }
 
-vi.mock('#client/editor/Editor', () => ({ default: MockEditor }));
+vi.mock('#client/editor/shell/Editor', () => ({ default: MockEditor }));
 vi.mock('#client/editor/features/zoom/ZoomBreadcrumbs', () => ({
   ZoomBreadcrumbs: MockZoomBreadcrumbs,
 }));

@@ -1,4 +1,5 @@
 import { expect, test } from '#editor/fixtures';
+import { attachPageGuards } from '#e2e/fixtures';
 import { ensureReady, waitForSynced } from '#editor/bridge';
 import { editorLocator, setCaretAtText } from '#editor/locators';
 import { createUserDocument } from '../_support/documents';
@@ -100,6 +101,33 @@ test.describe('note links', () => {
     await link.click();
 
     await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
+  });
+
+  test('clicking an external link opens a private tab', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    const url = new URL('/favicon.png', page.url()).toString();
+    await page.keyboard.type(` ${url}`);
+
+    const link = editorLocator(page).getByRole('link', { name: url });
+    await expect(link).toHaveAttribute('target', '_blank');
+    await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+
+    const openedGuards: { detach?: () => void } = {};
+    const openedPromise = page.context().waitForEvent('page', (openedPage) => {
+      openedGuards.detach = attachPageGuards(openedPage);
+      return true;
+    });
+    await link.click();
+    const opened = await openedPromise;
+    try {
+      await opened.waitForLoadState('domcontentloaded');
+      expect(await opened.evaluate(() => globalThis.opener === null)).toBe(true);
+      expect(await opened.evaluate(() => document.referrer)).toBe('');
+    } finally {
+      openedGuards.detach?.();
+      await opened.close();
+    }
   });
 
   test('inserts a note link from picker using pointer click', async ({ page, editor }) => {

@@ -1,0 +1,438 @@
+/* The document fills the width of the app-shell card — no reading-column cap. A
+   cap would manufacture empty margins to solve a measure problem we don't yet
+   have: an outliner is scanned more than read, indentation shortens nested
+   notes, and the wide space is better spent by real components (a sidebar, a
+   second doc pane) once they exist — at which point the document narrows because
+   something is there, not because of an artificial limit. The card surface and
+   elevation come from AppFrame; the document body just adds its own inset. */
+.document-editor-shell {
+  padding-block: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+}
+
+/* The document label / search / actions read as a quiet strip. A subtle inset
+   hairline — inset to the editor's `xl` body padding so it sits over the note
+   column, stopping short of the card edges — separates it from the outline
+   without the heaviness of a full-width divider. The `xl` inline padding matches
+   the editor pane and search results (the shared body inset), keeping the label
+   row column-aligned with the notes. */
+.document-header {
+  position: relative;
+  padding: 0 var(--mantine-spacing-xl) var(--mantine-spacing-sm);
+  margin-bottom: var(--mantine-spacing-xs);
+  min-height: 1.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-md);
+}
+
+.document-header::after {
+  content: '';
+  position: absolute;
+  left: var(--mantine-spacing-xl);
+  right: var(--mantine-spacing-xl);
+  bottom: 0;
+  height: 1px;
+  background: var(--mantine-color-dark-5);
+}
+
+.document-header-breadcrumbs {
+  flex: 1;
+  min-width: 0;
+}
+
+.document-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--mantine-spacing-sm);
+  flex-shrink: 0;
+}
+
+.document-header-search {
+  min-width: 11rem;
+  width: 18rem;
+  max-width: 24vw;
+  --interaction-radius: var(--mantine-radius-sm);
+}
+
+/* Give the search field slightly more prominence: a lighter fill and stronger
+   border lift it off the header strip so it reads as the primary action there. */
+.document-header-search .mantine-Input-input {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.document-header-doc-combobox {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.document-header-doc-combo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  max-width: 16rem;
+  border: 1px solid transparent;
+  border-radius: var(--mantine-radius-sm);
+  background: transparent;
+  --interaction-radius: var(--mantine-radius-sm);
+}
+
+.document-header-doc-combobox[data-open] .document-header-doc-combo {
+  min-width: 10rem;
+  background: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.document-header-doc-input {
+  flex: 1;
+  min-width: 0;
+  field-sizing: content;
+  border: none;
+  background: transparent;
+  color: var(--mantine-color-dark-0);
+  font: inherit;
+  padding: 0;
+  outline: none;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.document-header-doc-combo:hover .document-header-doc-input {
+  text-decoration: underline;
+}
+
+.document-header-doc-combobox[data-open] .document-header-doc-input {
+  padding: 0.15rem 0.4rem;
+  cursor: text;
+  text-decoration: none;
+}
+
+.document-header-doc-combobox[data-open] .document-header-doc-combo:hover .document-header-doc-input {
+  text-decoration: none;
+}
+
+.document-header-doc-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--mantine-color-dark-2);
+  cursor: pointer;
+}
+
+.document-header-doc-menu[data-hovered],
+.document-header-doc-menu[data-focus-visible] {
+  color: var(--mantine-color-dark-0);
+}
+
+.document-header-doc-menu[data-disabled] {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.document-header-doc-dropdown {
+  min-width: 10rem;
+  max-height: 16rem;
+  overflow: auto;
+}
+
+.document-header-doc-dropdown [role='option'] {
+  white-space: nowrap;
+}
+
+.document-header-search .mantine-Input-input:focus,
+.document-header-search .mantine-Input-input:focus-visible {
+  border-color: var(--mantine-color-dark-4);
+}
+
+.document-header-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  min-height: 1.2rem;
+}
+
+.document-header-status .editor-header {
+  position: static;
+  top: auto;
+  right: auto;
+  z-index: auto;
+  color: var(--mantine-color-dark-2);
+}
+
+.document-editor-shell .editor-container {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.document-editor-loading {
+  color: var(--mantine-color-dark-2);
+  padding: var(--mantine-spacing-md) var(--mantine-spacing-xl);
+}
+
+.document-editor-pane--hidden {
+  display: none;
+}
+
+/* Anchor results to the editor outline's first note, both axes, so opening
+   search doesn't shift the first row:
+   - Horizontal: the `xl` inline padding matches the editor pane, and each result's
+     text is indented by the note-text indent (list indent + bullet allowance) via
+     the shared `.remdo-outline` variables.
+   - Vertical: the editor pane offsets its first note by `lg` (its padding-top).
+     Each result card adds its own padding-top (`--result-card-padding`) on top of
+     this section, so the section's padding-top is `lg` minus that, keeping the
+     first result's text on the editor's note-text row. */
+.document-search-results {
+  --remdo-indent: var(--mantine-spacing-sm);
+  --remdo-bullet-allowance: calc(0.4em + 0.6em);
+  /* Internal card padding (half of spacing-xs); shared with the vertical-anchor
+     formula below so the two stay in sync. */
+  --result-card-padding: calc(var(--mantine-spacing-xs) / 2);
+  padding: calc(var(--mantine-spacing-lg) - var(--result-card-padding))
+    var(--mantine-spacing-xl)
+    var(--mantine-spacing-md);
+}
+
+.document-search-results-list {
+  margin: 0;
+  padding: 0;
+  padding-inline-start: var(--remdo-indent);
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--mantine-spacing-xs) / 2);
+}
+
+/* Each result is its own card surface; the active focus ring (below) overlays on
+   top of it. The 1px border is offset out of the inline-start padding so the
+   match text still lands on the editor's note-text column. */
+.document-search-results-item {
+  background: var(--mantine-color-dark-6);
+  border: 1px solid var(--mantine-color-dark-5);
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-dark-0);
+  cursor: pointer;
+  padding: var(--result-card-padding);
+  padding-inline-start: calc(var(--remdo-bullet-allowance) - 1px);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* Active result: focus ring overlaid on the card surface. */
+.document-search-results-item[data-search-result-active='true'] {
+  --interaction-radius: var(--mantine-radius-sm);
+  border-radius: var(--interaction-radius);
+  box-shadow: var(--focus-ring, 0 0 0 1px rgb(111 138 255 / 0.42), 0 0 0 3px rgb(111 138 255 / 0.11), 0 0 22px 5px rgb(111 138 255 / 0.12));
+}
+
+/* Primary line: the matched note's text. No list marker — text formatting only.
+   A checked note is struck through, mirroring the editor. */
+.document-search-result-match {
+  overflow-wrap: anywhere;
+}
+
+.document-search-result-match[data-note-checked='true'] {
+  text-decoration: line-through;
+}
+
+.document-search-result-mark {
+  background: var(--mantine-color-yellow-light, rgb(255 224 102 / 0.28));
+  color: inherit;
+  border-radius: var(--mantine-radius-xs);
+  padding: 0 0.05rem;
+}
+
+/* Ancestor subline: the location path under the matched note — small, dim, and
+   on a single line; crumbs shrink with ellipsis to share the available width. */
+.document-search-result-breadcrumb {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  min-width: 0;
+  gap: 0.15rem;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-2);
+}
+
+.document-search-result-crumb-separator {
+  flex: 0 0 auto;
+  color: var(--mantine-color-dark-3);
+}
+
+.document-search-result-crumb {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.document-search-result-crumb--ancestor {
+  flex: 0 1 auto;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+
+.document-search-result-crumb--ancestor:hover {
+  text-decoration: underline;
+}
+
+.document-search-result-crumb--ellipsis {
+  flex: 0 0 auto;
+  color: var(--mantine-color-dark-3);
+  cursor: default;
+}
+
+/* Child preview reuses the shared `.remdo-outline` list rendering (bullets,
+   checkboxes, counters) so previews match the editor. Only preview-local scale
+   and color are set here. */
+.document-search-result-children.remdo-outline {
+  margin-top: 0.1rem;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-1);
+}
+
+.document-search-result-children .list-item {
+  cursor: default;
+}
+
+.document-search-result-children-more {
+  margin-top: 0.05rem;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-3);
+}
+
+.document-search-results-empty {
+  margin: 0;
+  color: var(--mantine-color-dark-2);
+}
+
+.document-search-results-truncation {
+  margin: 0;
+  padding-inline-start: calc(var(--remdo-bullet-allowance) - 1px);
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-2);
+}
+
+/* The route container contributes no inline gutter: the body inset is owned by
+   the editor pane / document header (`xl`), which the search results anchor to.
+   Element+class beats Mantine's single-class `.mantine-Container-root` gutter. */
+main.document-route-container {
+  padding-inline: 0;
+}
+
+/* Home view: takes over the content region (like search mode). Inline padding
+   matches the editor pane / document header (`xl`) so the layout stays aligned. */
+.document-home {
+  padding: var(--mantine-spacing-lg) var(--mantine-spacing-xl) var(--mantine-spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-lg);
+}
+
+.document-home-title {
+  margin: 0;
+  font-size: var(--mantine-font-size-xl);
+  color: var(--mantine-color-dark-0);
+}
+
+.home-group {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--mantine-spacing-xs) / 2);
+}
+
+.home-group-label {
+  margin: 0 0 calc(var(--mantine-spacing-xs) / 2);
+  font-size: var(--mantine-font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mantine-color-dark-2);
+}
+
+.home-doc-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--mantine-spacing-xs) / 2);
+}
+
+.home-doc {
+  display: block;
+  width: 100%;
+  text-align: start;
+  background: none;
+  border: none;
+  padding: calc(var(--mantine-spacing-xs) / 2) var(--mantine-spacing-xs);
+  color: var(--mantine-color-dark-0);
+  font: inherit;
+  cursor: pointer;
+}
+
+.home-doc:hover {
+  background: var(--mantine-color-dark-6);
+}
+
+.home-actions {
+  display: flex;
+  gap: var(--mantine-spacing-sm);
+  flex-wrap: wrap;
+}
+
+.home-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  background: var(--mantine-color-dark-6);
+  border: 1px solid var(--mantine-color-dark-5);
+  border-radius: var(--mantine-radius-sm);
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  color: var(--mantine-color-dark-0);
+  font: inherit;
+  cursor: pointer;
+}
+
+.home-action:hover {
+  background: var(--mantine-color-dark-5);
+}
+
+.home-upload-input {
+  display: none;
+}
+
+@media (max-width: 48em) {
+  .document-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--mantine-spacing-xs);
+  }
+
+  .document-header-actions {
+    width: 100%;
+  }
+
+  .document-header-search {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    max-width: none;
+  }
+}

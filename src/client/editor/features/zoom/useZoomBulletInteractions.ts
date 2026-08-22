@@ -5,7 +5,7 @@ import {
   $resolveContentNoteFromDOMNode,
   $resolveNoteIdFromDOMNode,
 } from '#client/editor/outline/note-context';
-import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
+import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 
 export function useZoomBulletInteractions(editor: LexicalEditor) {
   const lastBulletHoverRef = useRef<HTMLElement | null>(null);

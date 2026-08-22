@@ -1,8 +1,8 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
-import { formatDateNodeLabel } from '#client/editor/features/date/date-node';
-import type { SerializedOutlineNote } from '#client/editor/plugins/dev/schema/traverseSerializedOutline';
-import { traverseSerializedOutline } from '#client/editor/plugins/dev/schema/traverseSerializedOutline';
+import { formatDateNodeLabel } from '#client/editor/features/date/date-label';
+import type { SerializedOutlineNote } from '#client/editor/dev/schema/traverseSerializedOutline';
+import { traverseSerializedOutline } from '#client/editor/dev/schema/traverseSerializedOutline';
 
 export interface OutlineNode {
   noteId: string | null;
@@ -95,6 +95,12 @@ export function flattenOutline(outline: Outline): OutlineNode[] {
   };
   walk(outline);
   return flattened;
+}
+
+export function collectOutlineNoteIds(outline: Outline): string[] {
+  return flattenOutline(outline)
+    .map((node) => node.noteId)
+    .filter((noteId): noteId is string => typeof noteId === 'string');
 }
 
 export function mutateOutlineNoteIdWildcards(actual: Outline, expected: Outline): void {

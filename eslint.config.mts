@@ -3,6 +3,8 @@ import antfu from '@antfu/eslint-config';
 import compatPlugin from 'eslint-plugin-compat';
 import lexicalPlugin from '@lexical/eslint-plugin';
 import { commandsInCommandsFileRule } from './config/eslint/commandsInCommandsFile';
+import boundaries from 'eslint-plugin-boundaries';
+import { appBoundaries, editorBoundaries, srcBoundaries } from './config/eslint/boundaries';
 import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
 
 const importMetaEnvRestriction = {
@@ -17,15 +19,15 @@ const importMetaEnvRestriction = {
 const checklistStateRestrictions = [
   {
     selector: "CallExpression[callee.property.name='getChecked']",
-    message: 'Use $getNoteChecked from #client/editor/runtime/checklist-state instead.',
+    message: 'Use $getNoteChecked from #client/editor/features/list-types/checked-state instead.',
   },
   {
     selector: "CallExpression[callee.property.name='setChecked']",
-    message: 'Use $setNoteChecked from #client/editor/runtime/checklist-state instead.',
+    message: 'Use $setNoteChecked from #client/editor/features/list-types/checked-state instead.',
   },
   {
     selector: "CallExpression[callee.property.name='toggleChecked']",
-    message: 'Use $toggleNoteChecked from #client/editor/runtime/checklist-state instead.',
+    message: 'Use $toggleNoteChecked from #client/editor/features/list-types/checked-state instead.',
   },
 ] as const;
 const clientImportPattern = String.raw`\#client/*`;
@@ -243,9 +245,26 @@ export default antfu(
     },
   },
   {
-    // Client dev directories and co-located specs: excluded above, kept under
-    // the client server-import restriction (they may import dev modules).
-    files: ['src/client/**/dev/**/*.{ts,tsx,mts,cts}', colocatedSpecGlob],
+    files: ['src/client/app/**/*.{ts,tsx,mts,cts}'],
+    ignores: ['src/client/app/**/dev/**', colocatedSpecGlob],
+    rules: {
+      'no-restricted-imports': restrictedImports(
+        {
+          group: [serverImportPattern],
+          message: 'Client code must not import server runtime modules.',
+        },
+        devImportRestriction,
+        {
+          regex: String.raw`#client/editor/(?!view/|shell/)`,
+          message: 'App imports the editor through #client/editor/view or #client/editor/shell.',
+        },
+      ),
+    },
+  },
+  {
+    // Client dev directories and client co-located specs: excluded above, kept
+    // under the client server-import restriction (they may import dev modules).
+    files: ['src/client/**/dev/**/*.{ts,tsx,mts,cts}', 'src/client/**/*.spec.{ts,tsx}'],
     rules: {
       'no-restricted-imports': restrictedImports({
         group: [serverImportPattern],
@@ -287,7 +306,7 @@ export default antfu(
     },
   },
   {
-    files: ['src/client/editor/plugins/CheckListPlugin.tsx'],
+    files: ['src/client/editor/features/list-types/CheckListPlugin.tsx'],
     rules: {
       // This plugin is the sanctioned boundary for direct checklist node syncing.
       'no-restricted-syntax': [
@@ -303,6 +322,61 @@ export default antfu(
     rules: {
       'compat/compat': 'error',
       'remdo/commands-in-commands-file': 'error',
+    },
+  },
+  {
+    // Coarse src owners. Editor and app files keep their fine graphs below;
+    // including them here would replace those graphs with one owner each.
+    // `src/client/dev` is an owner and stays in this graph.
+    files: ['src/**/*.{ts,tsx,mts,cts}'],
+    ignores: ['src/client/editor/**', 'src/client/app/**', colocatedSpecGlob],
+    plugins: { boundaries },
+    settings: {
+      'boundaries/elements': srcBoundaries.elements,
+      'boundaries/include': srcBoundaries.include,
+      'boundaries/ignore': srcBoundaries.ignore,
+      'import/resolver': { typescript: { project: './tsconfig.json' } },
+    },
+    rules: {
+      'boundaries/dependencies': ['error', {
+        default: 'disallow',
+        policies: srcBoundaries.policies,
+      }],
+    },
+  },
+  {
+    files: ['src/client/editor/**/*.{ts,tsx,mts,cts}'],
+    ignores: [colocatedSpecGlob],
+    plugins: { boundaries },
+    settings: {
+      'boundaries/elements': editorBoundaries.elements,
+      'boundaries/include': editorBoundaries.include,
+      'boundaries/ignore': editorBoundaries.ignore,
+      'import/resolver': { typescript: { project: './tsconfig.json' } },
+    },
+    rules: {
+      'boundaries/dependencies': ['error', {
+        default: 'disallow',
+        policies: editorBoundaries.policies,
+      }],
+      'boundaries/no-unknown-dependencies': 'error',
+    },
+  },
+  {
+    files: ['src/client/app/**/*.{ts,tsx,mts,cts}'],
+    ignores: [colocatedSpecGlob],
+    plugins: { boundaries },
+    settings: {
+      'boundaries/elements': appBoundaries.elements,
+      'boundaries/include': appBoundaries.include,
+      'boundaries/ignore': appBoundaries.ignore,
+      'import/resolver': { typescript: { project: './tsconfig.json' } },
+    },
+    rules: {
+      'boundaries/dependencies': ['error', {
+        default: 'disallow',
+        policies: appBoundaries.policies,
+      }],
     },
   },
   {

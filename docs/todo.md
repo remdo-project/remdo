@@ -67,25 +67,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   determine which premature wraps can be rejected deterministically without
   requiring mechanical greedy wrapping, and align affected maintained prose.
 
-### Editor
-
-- **Editor module ownership.** Editor capabilities are split across `features/`,
-  `plugins/`, `search/`, `links/`, `triggers/`, and `view/`, while `runtime/` and
-  `outline/` import capability-specific modules. Establish a coherent folder
-  taxonomy that makes ownership and shared foundations visible, migrate modules
-  without changing behavior, and enforce the resulting dependency boundaries
-  mechanically. Document only architectural boundaries that remain non-obvious
-  from the source tree and enforcement.
-
-### Testing
-
-- **Docker E2E diagnostic runtime.** Reconsider the removal-on-exit lifecycle in
-  `docs/specs/testing/test-harness.md`. Evaluate retaining runtime data and
-  captured container logs in a stable, permission-restricted location until the
-  next invocation. If adopted, replace that state only after startup preflight,
-  preserve container-assisted cleanup for root-owned files, keep authentication
-  and test-secret data local, and update the specification and implementation together.
-
 ### Dependencies
 
 - **Dependabot pnpm 11 version updates.** When GitHub's [supported-ecosystems table](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
@@ -111,9 +92,39 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
-- **Inline-selection Enter behavior.** Decide and specify what `Enter` does for
-  a non-collapsed [inline text selection](specs/outliner/selection.md#selection-states)
-  in [Insertion](specs/outliner/insertion.md), then align implementation and automated coverage.
+- **Inline line breaks in note content.** [Body](specs/outliner/body.md#core-behavior) owns multi-line text, and
+  [Clipboard](specs/outliner/clipboard.md#inline-text-selection-single-note) turns multi-line plain text into notes, so a
+  [note's content text](specs/outliner/note-model.md#definitions) holds no line breaks. Neither the outline
+  schema nor its validator rejects one, leaving the invariant unenforced against
+  a handler or paste path that inserts a line break node into content.
+
+- **Enter at the end of an inline element.** Target behavior
+  ([Insertion](specs/outliner/insertion.md)): splitting a note keeps the note id
+  and children on the note holding the trailing text
+  (`src/client/editor/editing/insertion/insertion.spec.ts`).
+  `$splitContentItemAtSelection` in `InsertionPlugin.tsx` resolves the
+  anchor through inline ancestors, but when
+  the caret sits at the end of an inline element's last text node and content
+  follows the inline, `getNextSibling()` is null and the split returns false. A
+  non-collapsed selection ending there deletes the text and swallows `Enter`
+  without splitting; a collapsed caret falls through to Lexical's default split,
+  which leaves the note id on the leading segment and inverts the rule above.
+  The symmetric offset-0 case and end-of-inline as the note's last child are
+  already handled.
+
+- **Hold `ClipboardPlugin` structural refactor.** At 996 lines it is the
+  editor's largest module and an obvious split candidate, but its cut and paste
+  semantics are due to change: pasting a pending structural cut into a body is
+  an interim no-op whose final behavior is still
+  [undecided](legacy-backlog.md#note-body-follow-ups). Splitting it
+  first would restructure code around behavior that is about to move, so the
+  split follows the cut/paste decision.
+
+- **Duplicate note-splitting helper.** `$splitContentItemAtSelection` exists in
+  both `InsertionPlugin.tsx` and `ClipboardPlugin.tsx`. Only the insertion copy
+  resolves the anchor through inline ancestors, so pasting with the caret inside
+  a link still refuses to split. Deduplicate so the surviving helper has one
+  owner rather than patching one copy.
 
 - **Current-location presentation ownership.** Before implementing the
   [view header](specs/outliner/view-header.md) alongside [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name
@@ -133,43 +144,31 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   as no-ops. Align shared body-to-owner resolution and add focused coverage for
   each affected command path.
 
-- **Tri-state checked rendering and toggle polarity.** Target behavior
-  ([List types](specs/outliner/list-types.md#checked-state)): a note whose
-  subtree is only partly checked displays as mixed, and toggling unchecks only
-  when the whole target subtree is already checked. The implementation renders
-  binary markers and computes toggle state from the targeted notes' own states
-  (`CheckListPlugin.tsx`: single-note opposite, `targets.every` over range
-  notes; asserted by `tests/unit/checklist-state.spec.ts`). Add mixed
-  rendering and subtree-driven polarity together, updating the tests in the
-  same change.
-
 - **Menu toggle inside a structural selection.** Target behavior
   ([Menu](specs/outliner/menu.md)): the note menu's toggle applies to the selected
   note range when the current note is inside it. The implementation always
   targets the menu's note (`noteItemKey` is resolved first in
-  `CheckListPlugin.tsx`, asserted by `tests/unit/checklist-state.spec.ts`);
+  `CheckListPlugin.tsx`, asserted by
+  `src/client/editor/features/list-types/checklist-state.spec.ts`);
   adjust the resolution and tests.
 
-- **Check-marker click vs selection.** Target behavior ([toggle targets](specs/outliner/list-types.md#toggling)): a marker
-  click on a note inside a structural selection toggles the selected note
-  range; the implementation always toggles only the clicked note (the marker
-  click handler in `CheckListPlugin.tsx` sets state directly instead of
-  dispatching `SET_NOTE_CHECKED_COMMAND`). Reroute it and cover with a test.
-  The click's selection consequences stay with [Selection](specs/outliner/selection.md).
-
-- **Replace the date-picker calendar widget.** The Mantine `DatePicker` in
-  `DatePickerPopover.tsx` does not move keyboard focus across month boundaries
-  or implement the calendar's complete [keyboard contract](specs/outliner/dates.md#core-behavior). Its two
-  keyboard-and-commit E2E cases in `tests/e2e/editor/date-picker.spec.ts` are
-  skipped until a replacement restores that coverage. Research and compare
-  current maintained options rather than selecting from the preliminary spike:
-  React DayPicker is the closest complete widget and documents the required
-  APG keyboard behavior; React Aria Calendar provides a stronger accessibility
-  and internationalization foundation but requires more composition; a future
-  Mantine release or upstream fix may preserve the current integration. Compare
-  cross-month focus, the complete key set, ISO-date and time-zone handling,
-  accessibility, styling and bundle cost, and maintenance burden. Implement the
-  selected replacement and re-enable both tests.
+- **Report the Lexical `updateEditorSync` warning upstream.** A commit that
+  moves the DOM selection emits a Lexical dev warning through an entirely
+  internal chain: `$commitPendingUpdates` → `$updateDOMSelection` →
+  `setDOMSelectionBaseAndExtent` → the browser's native `selectionchange` →
+  Lexical's `eventHandler` → `dispatchCommand(SELECTION_CHANGE_COMMAND)`, whose
+  `triggerCommandListeners` wraps the listener pump in `updateEditorSync`
+  whenever a listener set is non-empty — regardless of whether any listener
+  mutates. No repository-side change suppresses it; Lexical's own rich-text
+  listeners are enough to trigger it. The warning arrived in v0.49.0 with
+  [facebook/lexical#8863](https://github.com/facebook/lexical/pull/8863), whose
+  thread does not discuss this internal path, and no upstream issue reports it.
+  The [registered `lexical` patch](../pnpm-workspace.yaml) gates the warning on
+  `isCommittingPendingUpdates` meanwhile. That flag spans the whole commit, so
+  the patch also silences genuine repository-side mistakes — a mutation or
+  update listener dispatching a mutating command would now defer silently
+  instead of warning. File the upstream report, then drop the patch once a
+  release fixes it.
 
 ### Agents
 
@@ -225,16 +224,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   is insufficient.
 
 ### Tooling
-
-- **Standard workspace bootstrap.** Retire `pnpm run dev:init` and
-  `tools/dev-init.sh`. Document `pnpm install --frozen-lockfile` for local
-  setup, let E2E workflows invoke `pnpm exec playwright install chromium`
-  after shared workspace setup, and remove obsolete references.
-
-- **Upstream-owned launcher reassessment.** Reassess whether Playwright can
-  replace `tools/e2e/docker-source-server.ts`, and whether Vite or direct tool
-  commands can retire the remaining dev-boundary, collaboration-server, and
-  single-command package wrappers.
 
 - **Upstream ast-grep project-config validation.** Contribute upstream support
   for rejecting unknown project-config keys or shipping version-matched schemas

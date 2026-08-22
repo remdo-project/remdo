@@ -5,16 +5,17 @@ import {
 } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect, useRef } from 'react';
-import { setZoomRoot } from './zoom-root';
+import { focusEditorRoot } from '#client/editor/runtime/focus';
+import { setViewRoot } from '#client/editor/outline/view-root';
 import type { UpdateListenerPayload } from 'lexical';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { useCollaborationStatus } from '#client/editor/plugins/collaboration/CollaborationProvider';
+import { useCollaborationStatus } from '#client/editor/runtime/collaboration/CollaborationProvider';
 import { $findNoteById, $getNoteAncestorPath, areNotePathsEqual } from '#client/editor/outline/note-traversal';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import { isContentDescendantOf } from '#client/editor/outline/selection/tree';
-import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
+import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 import { resolveZoomNoteId } from './zoom-note-id';
-import { ZOOM_CARET_TAG, ZOOM_INIT_TAG } from '#client/editor/update-tags';
+import { ZOOM_CARET_TAG, ZOOM_INIT_TAG } from '#client/editor/foundation/update-tags';
 import { useEditorViewActions, useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 import { $placeCaretAtZoomEntry, $placeCaretAtZoomEntryIfOutside } from './zoom-caret';
 import { useZoomBulletInteractions } from './useZoomBulletInteractions';
@@ -44,7 +45,7 @@ export function ZoomPlugin() {
     zoomNoteIdRef.current = resolveZoomNoteId(zoomNoteId);
     const noteId = zoomNoteIdRef.current;
     if (!noteId) {
-      setZoomRoot(editor, null);
+      setViewRoot(editor, null);
       return;
     }
 
@@ -56,7 +57,7 @@ export function ZoomPlugin() {
       }
       zoomRootKey = root.getKey();
     });
-    setZoomRoot(editor, zoomRootKey);
+    setViewRoot(editor, zoomRootKey);
   }, [editor, zoomNoteId]);
 
   useEffect(() => {
@@ -80,7 +81,7 @@ export function ZoomPlugin() {
         // in between (e.g. Backspace right after a bullet click) must already
         // see the new boundary.
         zoomNoteIdRef.current = resolveZoomNoteId(noteId);
-        setZoomRoot(editor, zoomRoot.getKey());
+        setViewRoot(editor, zoomRoot.getKey());
         editor.focus();
         return true;
       },
@@ -119,7 +120,7 @@ export function ZoomPlugin() {
         };
       });
 
-      setZoomRoot(editor, resolved.zoomRootKey ?? null);
+      setViewRoot(editor, resolved.zoomRootKey ?? null);
 
       if (!areNotePathsEqual(resolved.path, lastPathRef.current)) {
         lastPathRef.current = resolved.path;
@@ -197,6 +198,9 @@ export function ZoomPlugin() {
       return;
     }
 
+    // Focus before the selection update so the DOM focus event cannot dispatch
+    // commands from inside a synchronous collaboration read.
+    focusEditorRoot(editor);
     editor.update(() => {
       if ($placeCaretAtZoomEntry(noteId) === 'missing') {
         pendingZoomSelectionRef.current = noteId;

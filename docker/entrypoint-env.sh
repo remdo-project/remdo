@@ -27,21 +27,33 @@ remdo_configure_internal_services() {
 remdo_configure_caddy_env() {
   : "${APP_ORIGIN:?Set APP_ORIGIN to the canonical public RemDo origin}"
   app_origin_protocol="$(remdo_origin_field "${APP_ORIGIN}" protocol)" || return 1
+  app_origin_hostname="$(remdo_origin_field "${APP_ORIGIN}" hostname)" || return 1
 
   if [ "${REMDO_DEV_CONTAINER:-false}" = "true" ]; then
     : "${REMDO_GATEWAY_BIND_ADDRESS:?Set REMDO_GATEWAY_BIND_ADDRESS for the development container}"
     CADDY_SITE_ADDRESS="${APP_ORIGIN}"
   else
-    if [ "${app_origin_protocol}" != "https:" ]; then
-      echo "APP_ORIGIN must use HTTPS outside the development container." >&2
-      return 1
-    fi
     unset REMDO_GATEWAY_BIND_ADDRESS
-    if [ -n "${PORT:-}" ]; then
-      CADDY_SITE_ADDRESS="http://$(remdo_origin_field "${APP_ORIGIN}" hostname):${PORT}"
-    else
-      CADDY_SITE_ADDRESS="${APP_ORIGIN}"
-    fi
+    case "${app_origin_protocol}:${app_origin_hostname}" in
+      http::*.localhost)
+        if [ "${REMDO_LAUNCHER_LOOPBACK_HTTP:-false}" != "true" ]; then
+          echo "HTTP *.localhost requires the self-hosted loopback launcher." >&2
+          return 1
+        fi
+        CADDY_SITE_ADDRESS="${APP_ORIGIN}"
+        ;;
+      https::*)
+        if [ -n "${PORT:-}" ]; then
+          CADDY_SITE_ADDRESS="http://${app_origin_hostname}:${PORT}"
+        else
+          CADDY_SITE_ADDRESS="${APP_ORIGIN}"
+        fi
+        ;;
+      *)
+        echo "APP_ORIGIN must use HTTPS unless it is a loopback-only *.localhost deployment." >&2
+        return 1
+        ;;
+    esac
   fi
 
   export APP_ORIGIN CADDY_SITE_ADDRESS

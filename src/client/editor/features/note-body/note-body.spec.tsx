@@ -20,15 +20,16 @@ import {
   typeText,
   meta,
 } from '#tests';
-import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/dev';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getBodyWrapper } from '#client/editor/outline/list-structure';
 import { getSubtreeTail } from '#client/editor/outline/selection/tree';
-import { $createBodyWrapper, $isNoteBodyNode, isBodyWrapper } from './note-body-node';
-import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
-import { $normalizeNoteIdsOnLoad } from '#client/editor/plugins/note-id-normalization';
-import { getNoteBody, $skipBodyForVerticalNav } from './note-body-ops';
-import { $resolveLinkPickerOptions } from '#client/editor/plugins/note-link/options';
+import { $createBodyWrapper, $isNoteBodyNode, isBodyWrapper } from '#client/editor/outline/note-body-node';
+import { $getNoteId, noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
+import { $normalizeNoteIdsOnLoad } from '#client/editor/runtime/note-ids/note-id-normalization';
+import { $skipBodyForVerticalNav } from './note-body-ops';
+import { getNoteBody } from '#client/editor/outline/selection/body-region';
+import { $resolveLinkPickerOptions } from '#client/editor/features/links/picker/options';
 
 describe('note body (docs/specs/outliner/body.md)', () => {
   it('normalization merges a duplicate child-wrapper past a body-wrapper', meta({

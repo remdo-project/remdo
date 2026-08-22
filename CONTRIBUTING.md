@@ -65,3 +65,11 @@ running the relevant suite. The code-local marker is the sole tracking record;
 the same work does not also appear in [`docs/todo.md`](docs/todo.md) or another
 documentation list. Its proximity to the code exposes it when the workaround is
 removed.
+
+## UI Libraries
+
+Overlay and APG widgets use React Aria Components. Mantine remains the
+painted form and layout library. Do not implement those widgets with a
+Mantine stand-in to match surrounding chrome. Semantic HTML is the
+fallback when a React Aria component's contract does not match the
+product, as with a breadcrumb trail that has no current item.

@@ -1,5 +1,5 @@
+import { getLocalTimeZone, today } from '@internationalized/date';
 import { $createTextNode } from 'lexical';
-import dayjs from 'dayjs';
 
 import { useTriggerSession } from '#client/editor/triggers/useTriggerSession';
 import type { TriggerSpec } from '#client/editor/triggers/types';
@@ -7,7 +7,8 @@ import { $createDateNode } from './date-node';
 import { DatePickerPanel } from './DatePickerPopover';
 
 function getTodayIsoDate(): string {
-  return dayjs().format('YYYY-MM-DD');
+  // CalendarDate is zone-free and stringifies as YYYY-MM-DD.
+  return today(getLocalTimeZone()).toString();
 }
 
 // Dates are inserted through `!`, an inline trigger character. The shared
@@ -18,8 +19,6 @@ function getTodayIsoDate(): string {
 export function DateInsertPlugin() {
   const spec: TriggerSpec<string> = {
     triggerChar: '!',
-    // The ! picker is a modal calendar dialog: focus moves into the grid.
-    focusModel: 'trap',
     // Query text is not interpreted in this phase; the only option is today.
     $resolveOptions: () => [getTodayIsoDate()],
     $commit: (isoDate, { range }) => {

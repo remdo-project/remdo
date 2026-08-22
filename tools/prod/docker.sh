@@ -32,12 +32,37 @@ case "${HOST}" in
     exit 1
     ;;
 esac
+LOOPBACK_HTTP=false
+if [[ "${APP_ORIGIN}" == http://* ]]; then
+  if [[ ! "${APP_ORIGIN}" =~ ^http://([a-z0-9-]+\.)+localhost:([0-9]+)$ ]]; then
+    echo "HTTP APP_ORIGIN must be an exact *.localhost origin with an explicit port." >&2
+    exit 1
+  fi
+  if [[ "${HOST}" != "127.0.0.1" ]]; then
+    echo "HTTP APP_ORIGIN requires HOST=127.0.0.1." >&2
+    exit 1
+  fi
+  LOOPBACK_HTTP=true
+fi
 if [[ "${HOST}" == "0.0.0.0" && "${PORT}" != "443" ]]; then
   echo "HOST=0.0.0.0 requires APP_ORIGIN to use the default HTTPS port 443." >&2
   exit 1
 fi
 remdo_load_env_defaults "${ROOT_DIR}"
 remdo_assert_browser_safe_port "${PORT}"
+
+if [[ "${LOOPBACK_HTTP}" == "true" ]]; then
+  if ! remdo_docker_daemon_is_rootless; then
+    echo "Loopback HTTP requires a rootless Docker daemon." >&2
+    exit 1
+  fi
+  docker_server_version="$(docker version --format '{{.Server.Version}}')"
+  docker_server_major="${docker_server_version%%.*}"
+  if (( docker_server_major < 28 )); then
+    echo "Loopback HTTP requires Docker Engine 28.0 or newer (found ${docker_server_version})." >&2
+    exit 1
+  fi
+fi
 
 # Operators set only ADMIN_SECRET (never auto-generated). AUTH_SECRET and the
 # Y-Sweet auth_key/server_token pair are bootstrapped inside the container from
@@ -76,6 +101,9 @@ DOCKER_ENV_ARGS=(
   -e APP_ORIGIN="${APP_ORIGIN}"
   -e ALLOW_SIGNUP="${ALLOW_SIGNUP}"
 )
+if [[ "${LOOPBACK_HTTP}" == "true" ]]; then
+  DOCKER_ENV_ARGS+=(-e REMDO_LAUNCHER_LOOPBACK_HTTP=true)
+fi
 
 # Forward bootstrap-managed secrets only when the operator set them explicitly,
 # so empty values never shadow the in-container bootstrap.

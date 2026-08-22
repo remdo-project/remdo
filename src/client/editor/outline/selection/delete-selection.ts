@@ -8,14 +8,14 @@ import {
   $isRangeSelection,
   $isTextNode,
 } from 'lexical';
-import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
+import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { $normalizeOutlineRoot } from '#client/editor/outline/normalization';
 import {
   $requireRootContentList,
   $resolveRootContentList,
   resolveContentItemFromNode,
 } from '#client/editor/outline/schema';
-import { $resolveSelectedNoteRange } from '#client/editor/plugins/selected-note-range';
+import { $resolveSelectedNoteRange } from './selected-note-range';
 import { $selectItemEdge } from './caret';
 import { $resolveStructuralDeletionTargets, applyStructuralDeletionTargets } from './deletion';
 import { getFirstDescendantListItem } from './tree';
@@ -23,10 +23,10 @@ import { getFirstDescendantListItem } from './tree';
 interface ResolvedDeletion {
   targets: NonNullable<ReturnType<typeof $resolveStructuralDeletionTargets>>;
   selection: ReturnType<typeof $getSelection>;
-  zoomRoot: ListItemNode | null;
+  viewRoot: ListItemNode | null;
 }
 
-// Deletion targets for a resolved note range, plus the selection and zoom root
+// Deletion targets for a resolved note range, plus the selection and view root
 // the caret placement needs. Null when nothing is deletable. Non-mutating.
 function $resolveDeletionForRange(
   editor: LexicalEditor,
@@ -36,9 +36,9 @@ function $resolveDeletionForRange(
     return null;
   }
   const selection = $getSelection();
-  const zoomRoot = $resolveZoomRoot(editor);
-  const targets = $resolveStructuralDeletionTargets(range, selection, zoomRoot);
-  return targets ? { targets, selection, zoomRoot } : null;
+  const viewRoot = $resolveViewRoot(editor);
+  const targets = $resolveStructuralDeletionTargets(range, selection, viewRoot);
+  return targets ? { targets, selection, viewRoot } : null;
 }
 
 // Keyboard Backspace/Delete path: only a note range removes
@@ -87,7 +87,7 @@ function $applyResolvedDeletion(resolved: ResolvedDeletion | null): boolean {
   if (!resolved) {
     return false;
   }
-  const { targets: structuralTargets, selection, zoomRoot } = resolved;
+  const { targets: structuralTargets, selection, viewRoot } = resolved;
 
   applyStructuralDeletionTargets(structuralTargets);
 
@@ -96,8 +96,8 @@ function $applyResolvedDeletion(resolved: ResolvedDeletion | null): boolean {
     caretApplied = $selectItemEdge(structuralTargets.caretPlan.target, structuralTargets.caretPlan.edge);
   }
 
-  if (!caretApplied && zoomRoot && zoomRoot.isAttached()) {
-    caretApplied = $selectItemEdge(zoomRoot, 'start');
+  if (!caretApplied && viewRoot && viewRoot.isAttached()) {
+    caretApplied = $selectItemEdge(viewRoot, 'start');
   }
 
   if (!caretApplied) {

@@ -65,12 +65,6 @@ Rules:
   caught. (`resolveToolbarLayout`'s disabled marking is unit-covered; the gap is
   the render+click wiring.)
 
-## Runtime and tooling source boundaries
-
-- Move runtime config under production source, split `tools/` into explicit
-  prod/dev/e2e ownership, and enforce production import direction; keep
-  `knip.jsonc` aligned as the interim boundary inventory.
-
 ## Search architecture
 
 - Add a document-level SDK visitor/walker API and use it as the shared
@@ -194,18 +188,10 @@ Deferred hardening; long-horizon items live in
   — bounded and minor, but a clean fix would let the connect loop actually exit
   on destroy rather than park forever. What remains is the
   server-down/reconnect-loop noise on a *live* session.)
-- Unsynced local edits follow-up: expose a reliable "pending local changes"
-  signal from the collaboration/local-persistence layer and show it in the UI.
-  Destructive actions such as logout should warn before clearing local Yjs data
-  when offline edits have not synced to the server.
 - Local data wipe follow-up: add a separate "wipe this device" flow and design
-  the related UX, including unsynced local edits, server-offline behavior, and
-  open-tab IndexedDB cleanup blockers.
-- Logout cleanup follow-up: keep server sign-out available even when local
-  cleanup is incomplete, then design a user-visible warning/retry path for cases
-  where IndexedDB enumeration or deletion cannot confirm that Y-Sweet offline
-  data was removed. Until that UI exists, avoid silently claiming complete local
-  cleanup in unsupported browser storage environments.
+  the related UX, including unsynced local edits and server-offline behavior.
+  (The open-tab IndexedDB cleanup blocker is resolved: the provider closes its
+  connection on teardown, and a cross-tab sign-out tears peers down.)
 
 ## Admin enrollment follow-ups
 
@@ -247,24 +233,19 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-
 
 Tracks the gaps between [Home](specs/outliner/home.md) and the [view header](specs/outliner/view-header.md) as specified and what ships.
 
-- The document-source chevron combobox picker in `DocumentToolbar.tsx`
-  (`NEW_DOCUMENT_VALUE` / `UPLOAD_DOCUMENT_VALUE` and the grouped document
-  options) is replaced by Home: Home owns document browsing and the New/Upload
-  actions. Remove the picker once Home fully covers switching; the intervening
-  state (both present) is the recorded interim. While both exist they duplicate
-  the upload file-input plumbing (`handleUploadInputChange` + hidden `<input>`)
-  and the per-source document list; removing the picker resolves the duplication,
-  so leave it rather than extracting a shared helper now. The two also differ on
-  re-selecting the already-open document while zoomed: a Home row clears zoom to
-  the document root (per [Home](specs/outliner/home.md) core behavior 3), the toolbar
-  picker keeps the zoom (its pre-existing switcher behavior). Removing the picker
-  removes the inconsistency; decide the picker's behavior only if it outlives Home.
-  Retirement is its own PR: delete the picker combobox and the `documentControl`
-  slot from `ZoomBreadcrumbs` (the doc name stays a crumb — full pure-nav is the
-  view-header work), delete its specs (`document-switcher.spec.ts`, the picker
-  cases in `document-toolbar.spec.tsx`/`document-route.spec.tsx`), and rewrite the
+- The document-source combobox in `DocumentToolbar.tsx` still lists documents for
+  switching; Home owns browsing and New/Upload. Remove the picker once Home fully
+  covers switching; the intervening state (both present) is the recorded interim.
+  While both exist they duplicate the per-source document list; removing the
+  picker resolves the duplication, so leave it rather than extracting a shared
+  helper now. Re-selecting the already-open document while zoomed now matches
+  Home: both clear zoom to the document root. Retirement is its own PR: delete
+  the picker and the `documentControl` slot from `ZoomBreadcrumbs` (the doc name
+  stays a crumb — full pure-nav is the view-header work), delete its specs
+  (`document-switcher.spec.ts`, the picker cases in
+  `document-toolbar.spec.tsx`/`document-route.spec.tsx`), and rewrite the
   source-linking switch in `tests/e2e/docker/linking.spec.ts` to reach a linked
-  document through Home instead of the picker dropdown.
+  document through Home instead of the picker.
 - Home visibility is component-local `homeActive` state in `DocumentWorkspace`,
   not URL/route backed, so it is lost on reload and not linkable. `home.md`
   "Entering and leaving Home" treats Home as the surface above `/`; route Home
@@ -290,12 +271,11 @@ the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#br
   end state is the document name being the document root note's own text (a CRDT
   edit), which also unifies the root and subtree-zoom header. Needs an SDK rename
   capability, its server/collab path, and a name migration.
-- Breadcrumb accessibility: `ZoomBreadcrumbs` (Mantine `Breadcrumbs`) emits
-  neither a `nav` landmark nor an ordered list, and the crumbs carry no
-  `aria-current`. When the header lands the breadcrumb becomes pure navigation
-  and the header carries the view's heading semantics; the editable content and
-  the heading role must stay on separate elements (a `textbox` role masks an
-  inner heading from assistive tech). Close with the view-header work.
+- Breadcrumb heading semantics: when the header lands the breadcrumb becomes
+  pure navigation and the header carries the view's heading semantics; the
+  editable content and the heading role must stay on separate elements (a
+  `textbox` role masks an inner heading from assistive tech). Close with the
+  view-header work.
 - Fold semantics at the view header are unreconciled with the restricted kind.
   [Zoom](specs/outliner/zoom.md) items 7–8 describe the zoom root's stored fold state
   being preserved and not hiding its children while zoomed, but the
@@ -529,7 +509,7 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
 - Pasting a pending structural cut into a *non-cut* note's body is currently a
   no-op (cut stays pending) since a body can't hold notes. Pin the final
   semantics (no-op vs. move-as-flattened-text) in the cut/paste redesign;
-  `NoteIdPlugin` `SELECTION_INSERT_CLIPBOARD_NODES_COMMAND` body branch.
+  `ClipboardPlugin` `SELECTION_INSERT_CLIPBOARD_NODES_COMMAND` body branch.
 
 ## Docs spec accuracy (branch docs/spec-accuracy)
 

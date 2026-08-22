@@ -1,5 +1,4 @@
-import { MantineProvider } from '@mantine/core';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ZoomBreadcrumbs } from './ZoomBreadcrumbs';
 import { NAVIGATION_LABEL_MAX_LENGTH, UNTITLED_LABEL } from '#client/ui/navigation-label';
@@ -12,11 +11,7 @@ const truncateLabel = (label: string) => {
 };
 
 const renderBreadcrumbs = (props: Parameters<typeof ZoomBreadcrumbs>[0]) =>
-  render(
-    <MantineProvider>
-      <ZoomBreadcrumbs {...props} />
-    </MantineProvider>
-  );
+  render(<ZoomBreadcrumbs {...props} />);
 
 describe('zoom breadcrumbs', () => {
   it('renders a Home crumb that opens Home when provided', () => {
@@ -55,7 +50,10 @@ describe('zoom breadcrumbs', () => {
       onSelectNoteId: onSelect,
     });
 
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('list')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: truncateLabel(docLabel) })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { current: 'page' })).toBeNull();
     expect(container.querySelector('[data-zoom-crumb=\"ancestor\"]')).toBeNull();
   });
 
@@ -111,7 +109,7 @@ describe('zoom breadcrumbs', () => {
     expect(screen.getByText(UNTITLED_LABEL)).toBeInTheDocument();
   });
 
-  it('renders a custom document control beside the document button', () => {
+  it('uses a custom document control in place of the document button', () => {
     const onSelect = vi.fn();
     renderBreadcrumbs({
       docLabel: 'project',
@@ -125,6 +123,6 @@ describe('zoom breadcrumbs', () => {
     });
 
     expect(screen.getByRole('combobox', { name: 'Switch document' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'project' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'project' })).toBeNull();
   });
 });

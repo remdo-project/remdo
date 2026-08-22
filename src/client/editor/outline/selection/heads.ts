@@ -2,14 +2,9 @@ import type { ListItemNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection } from 'lexical';
 
-import { reportInvariant } from '#client/editor/invariant';
-import {
-  $getNoteBodyFromNode,
-  $getNoteForBody,
-  $isSelectionWithinOneBody,
-  $resolveNoteForSelectionPoint,
-} from '#client/editor/features/note-body/note-body-ops';
-import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
+import { reportInvariant } from '#client/editor/foundation/invariant';
+import { $getNoteBodyFromNode, $getNoteForBody, $isSelectionWithinOneBody, $resolveNoteForSelectionPoint } from '#client/editor/outline/selection/body-region';
+import { isBodyWrapper } from '#client/editor/outline/note-body-node';
 import { getContentSiblings, isContentItem } from '../list-structure';
 import { resolveContentItemFromNode } from '../schema';
 import { getNextContentSibling, normalizeContentRange } from './tree';

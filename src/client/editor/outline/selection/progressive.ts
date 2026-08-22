@@ -1,8 +1,9 @@
 import type { ListItemNode } from '@lexical/list';
 import type { RangeSelection } from 'lexical';
-import { $getNodeByKey, $getSelection, $isRangeSelection } from 'lexical';
+import { $getSelection, $isRangeSelection } from 'lexical';
+import { $getListItemByKey } from '#client/editor/outline/list-structure';
 
-import { reportInvariant } from '#client/editor/invariant';
+import { reportInvariant } from '#client/editor/foundation/invariant';
 
 import { selectInlineContent, selectNoteBody, setSelectionBetweenItems } from './apply';
 import type { ProgressiveSelectionState } from './resolve';
@@ -49,11 +50,7 @@ function $resolveBoundaryRoot(boundaryKey: string | null | undefined): ListItemN
   if (!boundaryKey) {
     return null;
   }
-  const node = $getNodeByKey<ListItemNode>(boundaryKey);
-  if (!node) {
-    return null;
-  }
-  return node;
+  return $getListItemByKey(boundaryKey);
 }
 
 // Push one rung onto `base` and replay it. If the freshly pushed rung produced
@@ -100,10 +97,7 @@ function $resolveProgressionAnchorContent(
 
   let anchorContent: ListItemNode | null = null;
   if (progressionRef.current.anchorKey) {
-    const storedAnchor = $getNodeByKey<ListItemNode>(progressionRef.current.anchorKey);
-    if (storedAnchor) {
-      anchorContent = storedAnchor;
-    }
+    anchorContent = $getListItemByKey(progressionRef.current.anchorKey);
   }
 
   if (!anchorContent) {
@@ -159,7 +153,7 @@ export function $computeProgressivePlan(
     // claims the event instead of falling through to the default browser Cmd+A.
     // Leave the ladder unchanged (don't persist the blocked rung).
     if (boundaryRoot) {
-      // Zoom boundary: clamp to the zoom root's subtree.
+      // View boundary: clamp to the view root's subtree.
       const clampedPlan = $createSubtreePlan(boundaryRoot);
       if (clampedPlan) {
         return { anchorKey, plan: clampedPlan };
@@ -250,7 +244,7 @@ export function $computeDirectionalPlan(
   const { ladder: next, plan } = $growLadder(base, anchorContent, direction, boundaryReplayKey, false);
 
   if (!plan) {
-    // Boundary push (past document/zoom root) — no-op, keep the current ladder.
+    // Boundary push (past document/view root) — no-op, keep the current ladder.
     return { noop: true };
   }
 
@@ -265,7 +259,7 @@ export function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
   }
 
   if (result.plan.type === 'inline') {
-    const item = $getNodeByKey<ListItemNode>(result.plan.itemKey);
+    const item = $getListItemByKey(result.plan.itemKey);
     if (!item) {
       return false;
     }
@@ -275,8 +269,8 @@ export function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
     return true;
   }
 
-  const startItem = $getNodeByKey<ListItemNode>(result.plan.startKey);
-  const endItem = $getNodeByKey<ListItemNode>(result.plan.endKey);
+  const startItem = $getListItemByKey(result.plan.startKey);
+  const endItem = $getListItemByKey(result.plan.endKey);
   if (!startItem || !endItem) {
     return false;
   }

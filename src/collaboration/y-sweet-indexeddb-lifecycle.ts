@@ -6,18 +6,39 @@ import * as Y from 'yjs';
  * work may still be in flight. This interop layer defers the actual destroy
  * until those updates finish, so the BroadcastChannel is not closed underneath
  * a pending `handleUpdate()` continuation.
+ *
+ * It also closes the `IDBDatabase` handle, which Y-Sweet's own `destroy()`
+ * never does: it closes only the BroadcastChannel and the doc listener. A
+ * connection left open blocks `indexedDB.deleteDatabase()` indefinitely — the
+ * spec makes `blocked` an unbounded wait, not a failure — so logout could not
+ * clear local data even with a single tab open.
  */
 type ProviderWithDestroy = Provider & { destroy: () => void };
 
 interface IndexedDbProviderLike {
+  db?: { close?: () => void; objectStoreNames?: DOMStringList };
   doc?: Y.Doc;
   destroy: () => void;
   handleUpdate?: (update: Uint8Array, origin: unknown) => void | Promise<void>;
 }
 
+/**
+ * `Clear-Site-Data`, a browser storage eviction, or a wipe from another tab can
+ * delete the database out from under a live provider. Reopening it yields an
+ * empty one, so Y-Sweet's next transaction throws `NotFoundError` for a store
+ * that no longer exists. Persistence is already gone at that point; the write
+ * is dropped rather than raised.
+ */
+function hasUpdatesStore(provider: IndexedDbProviderLike): boolean {
+  const names = provider.db?.objectStoreNames;
+  return names === undefined || names.contains('updates');
+}
+
 const guardedIndexedDbProviders = new WeakSet<object>();
 
-// TODO: Remove once Y-Sweet handles IndexedDB provider teardown safely upstream.
+// TODO: Remove once Y-Sweet tears its IndexedDB provider down safely upstream —
+// deferring destroy past in-flight updates and closing the database handle.
+// Probe: drop this guard and run src/collaboration/y-sweet-indexeddb-lifecycle.spec.ts.
 export function guardYSweetIndexedDbProviderLifecycle(
   provider: ProviderWithDestroy & { indexedDBProvider?: unknown }
 ): () => void {
@@ -84,6 +105,7 @@ function patchIndexedDbProvider(value: unknown): IndexedDbProviderLike | null {
     }
     destroyed = true;
     originalDestroy();
+    candidate.db?.close?.();
   };
 
   const maybeFinalizeDestroy = () => {
@@ -94,7 +116,7 @@ function patchIndexedDbProvider(value: unknown): IndexedDbProviderLike | null {
   };
 
   const wrappedHandleUpdate = (update: Uint8Array, origin: unknown): void => {
-    if (closing) {
+    if (closing || !hasUpdatesStore(candidate)) {
       return;
     }
     activeUpdates += 1;

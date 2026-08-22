@@ -1,6 +1,6 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
-import { documentZoomBreadcrumb, editorLocator, setCaretAtText } from '#editor/locators';
+import { clearZoom, editorLocator, setCaretAtText } from '#editor/locators';
 import { openNoteMenu } from './_support/menu';
 import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
 
@@ -114,7 +114,7 @@ test.describe('Zoom visibility', () => {
     await expect(note1).toBeVisible();
     await expect(note2).toBeVisible();
 
-    await documentZoomBreadcrumb(page).click();
+    await clearZoom(page);
     await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
     await expect(note1).toHaveAttribute('data-folded', 'true');
     await expect(note2).toBeHidden();

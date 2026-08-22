@@ -6,7 +6,6 @@ import {
 import { isLoopbackHost } from '@better-auth/core/utils/host';
 import { betterAuth } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
-import type Database from 'better-sqlite3';
 import { admin, genericOAuth, jwt } from 'better-auth/plugins';
 import type { GenericOAuthConfig } from 'better-auth/plugins';
 import type { ExpressionBuilder } from 'kysely';
@@ -16,6 +15,7 @@ import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { RemdoDatabase } from '#server/db/schema';
 import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
 import { readSourceServersSync } from '#server/remdo-oauth/source-server-store';
+import { backfillAccountIssuers } from './account-issuer-backfill';
 
 interface CreateServerAuthOptions {
   allowSignup?: boolean;
@@ -65,7 +65,7 @@ function createBetterAuthInstance({
 }: {
   allowSignup: boolean;
   baseURL: string;
-  database: Database.Database;
+  database: SqliteServerDatabaseClient;
   sourceServers: readonly StoredSourceServer[];
   oauthClientCredentials?: OAuthClientCredentials;
   secret: string;
@@ -86,7 +86,14 @@ function createBetterAuthInstance({
       // include the canonical public port in every Better Auth cookie name.
       cookiePrefix: `remdo-${publicPort}`,
     },
-    database,
+    // better-sqlite3 is one connection. Better Auth 1.7 wraps signup in a
+    // transaction that stays open across password hashing; overlapping sqlite
+    // work then deadlocks on lock upgrade and surfaces SQLITE_BUSY as a 422.
+    database: {
+      db: database.db,
+      type: 'sqlite',
+      transaction: false,
+    },
     account: {
       accountLinking: {
         // Source linking is an explicit, authenticated delegation between two
@@ -136,6 +143,9 @@ function createBetterAuthInstance({
         allowDynamicClientRegistration: allowSignup,
         allowUnauthenticatedClientRegistration: allowSignup,
         clientRegistrationDefaultScopes: [...REMDO_SERVER_OAUTH_SCOPES],
+        // A registering home requests this source's origin as its resource, and
+        // Better Auth rejects any resource that registration does not allowlist.
+        clientRegistrationDefaultResources: [serverOrigin],
         rateLimit: {
           register: { window: 60, max: 5 },
         },
@@ -160,6 +170,11 @@ function createBetterAuthInstance({
           }
           return [{
             providerId: server.id,
+            // An OAuth account is keyed by (issuer, subject). These providers
+            // publish no discovery document, so both come from the source server
+            // itself: its origin is the issuer, and its userinfo returns `sub`.
+            accountIssuer: server.baseUrl,
+            accountSubject: ({ profile }) => profile.sub ?? '',
             authorizationUrl: `${server.baseUrl}/api/auth/oauth2/authorize`,
             tokenUrl: `${server.baseUrl}/api/auth/oauth2/token`,
             userInfoUrl: `${server.baseUrl}/api/auth/oauth2/userinfo`,
@@ -244,7 +259,7 @@ export function createServerAuth({
   const auth = createBetterAuthInstance({
     allowSignup,
     baseURL,
-    database: database.sqlite,
+    database,
     sourceServers,
     oauthClientCredentials,
     secret,
@@ -255,7 +270,7 @@ export function createServerAuth({
     : createBetterAuthInstance({
         allowSignup: true,
         baseURL,
-        database: database.sqlite,
+        database,
         sourceServers,
         oauthClientCredentials,
         secret,
@@ -281,6 +296,7 @@ export function createServerAuth({
     async ensureReady() {
       if (!readyPromise) {
         readyPromise = (async () => {
+          backfillAccountIssuers(database.sqlite, sourceServers);
           // Better Auth starts plugin initialization at construction time. Keep
           // every instance that shares this database inside RemDo's readiness
           // boundary so resource seeding cannot outlive the database owner.
@@ -335,9 +351,15 @@ export function createServerAuth({
         return null;
       }
       try {
+        const context = await auth.$context;
+        const account = (await context.internalAdapter.findAccounts(userId))
+          .find((candidate) => candidate.providerId === serverId);
+        if (!account) {
+          return null;
+        }
         const token = await auth.api.getAccessToken({
           body: {
-            providerId: serverId,
+            accountId: account.id,
             userId,
           },
         });

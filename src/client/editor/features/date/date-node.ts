@@ -1,4 +1,3 @@
-import dayjs from 'dayjs';
 import { $applyNodeReplacement, DecoratorNode } from 'lexical';
 import { createElement } from 'react';
 import type {
@@ -14,6 +13,7 @@ import type {
 import type { ReactNode } from 'react';
 
 import { DateToken } from './DateToken';
+import { formatDateNodeLabel } from './date-label';
 
 export type SerializedDateNode = Spread<
   {
@@ -39,12 +39,6 @@ function normalizeIsoDateOrThrow(value: unknown): string {
     throw new Error(INVALID_DATE_ERROR);
   }
   return value;
-}
-
-// isoDate is validated at every mutation boundary (setIsoDate / importJSON /
-// $createDateNode), so the stored value is always a valid YYYY-MM-DD here.
-export function formatDateNodeLabel(isoDate: string): string {
-  return dayjs(isoDate).format('MMM D, YYYY');
 }
 
 export class DateNode extends DecoratorNode<ReactNode> {

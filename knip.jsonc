@@ -3,10 +3,6 @@
   "vite": true,
   "vitest": true,
   "playwright": true,
-  "ignoreDependencies": [
-    // Invoked as a CLI binary from package scripts and tooling (`pnpm exec playwright ...`).
-    "playwright"
-  ],
   "ignoreUnresolved": [
     // Shell scripts invoked at runtime via spawnSync/execFileSync from specs, not module imports.
     "./tools/env.sh",
@@ -22,9 +18,13 @@
     "tools/remdo-api-server.ts!",
     "tools/snapshot/{cli,backup}.ts!",
     "tools/bootstrap-secrets.ts!",
+    // `tests/e2e/docker/_support/origins.ts` throws at module evaluation without
+    // the Docker runner's REMDO_E2E_* env, so knip cannot load this config and
+    // never reaches its globalSetup. Name both until those origins resolve lazily.
     "playwright.docker.config.ts",
+    "tests/e2e/docker/_support/seed-source-user.ts",
     "tools/{check-pnpm-policy,collab-server}.ts",
-    "tools/{dev,e2e}/**/*.ts",
+    "tools/dev/**/*.ts",
     "tests/perf/**/*.bench.ts",
     "tests/perf/generate-workload.ts",
     "vitest.bench.perf.config.mts"
