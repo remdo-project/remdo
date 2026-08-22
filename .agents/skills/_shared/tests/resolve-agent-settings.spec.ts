@@ -5,88 +5,57 @@ import {
   makeDir,
   writeFile,
 } from '../test-support/git-scratch';
-import {
-  mergeSettings,
-  resolveAgentSettings,
-} from '../tools/resolve-agent-settings';
+import { resolveAgentSettings } from '../tools/resolve-agent-settings';
 
-const defaults = {
-  'remdo-verify-change': {
-    reviewers: ['codex', 'claude'],
-    providers: {
-      codex: { model: 'gpt-5.6-terra', effort: 'medium' },
-      claude: { model: 'opus', effort: 'medium' },
-    },
-  },
-};
-
-const defaultYaml = `remdo-verify-change:
-  reviewers:
-    - codex
-    - claude
-  providers:
-    codex:
-      model: gpt-5.6-terra
-      effort: medium
-    claude:
-      model: opus
-      effort: medium
+const fixture = `skill:
+  items:
+    - a
+    - b
+  opts:
+    x: 1
+    y: 2
 `;
 
-function rootWithSettings(content = defaultYaml): string {
+function rootWith(content: string): string {
   const root = makeDir('agent-settings-root-');
   writeFile(root, '.agents/settings.yaml', content);
   return root;
+}
+
+function emptyHome(): string {
+  return makeDir('agent-settings-home-');
 }
 
 afterEach(cleanupTempDirs);
 
 describe('resolveAgentSettings', () => {
   it('returns committed defaults when no overlay exists', () => {
-    expect(resolveAgentSettings(rootWithSettings(), makeDir('agent-settings-home-'))).toEqual(
-      defaults,
-    );
-  });
-
-  it('resolves this repository\'s committed file', () => {
-    expect(resolveAgentSettings(process.cwd(), makeDir('agent-settings-home-'))).toEqual(
-      defaults,
-    );
-  });
-
-  it('replaces lists and deep-merges mappings from the overlay', () => {
-    const home = makeDir('agent-settings-home-');
-    writeFile(
-      home,
-      '.remdo/agent.yaml',
-      `remdo-verify-change:
-  reviewers: [codex]
-  providers:
-    codex:
-      effort: high
-`,
-    );
-
-    expect(resolveAgentSettings(rootWithSettings(), home)).toEqual({
-      'remdo-verify-change': {
-        reviewers: ['codex'],
-        providers: {
-          codex: { model: 'gpt-5.6-terra', effort: 'high' },
-          claude: { model: 'opus', effort: 'medium' },
-        },
-      },
+    expect(resolveAgentSettings(rootWith(fixture), emptyHome())).toEqual({
+      skill: { items: ['a', 'b'], opts: { x: 1, y: 2 } },
     });
   });
 
-  it('keeps overlay keys that are not in the committed file', () => {
-    expect(mergeSettings(
-      { 'remdo-verify-change': { reviewers: ['codex'] } },
-      { 'remdo-verify-change': { providers: { grok: { model: 'grok-4.6' } } } },
-    )).toEqual({
-      'remdo-verify-change': {
-        reviewers: ['codex'],
-        providers: { grok: { model: 'grok-4.6' } },
-      },
+  it('resolves this repository\'s committed file', () => {
+    expect(resolveAgentSettings(process.cwd(), emptyHome())).toMatchObject({
+      'remdo-verify-change': { reviewers: ['codex', 'claude'] },
+    });
+  });
+
+  it('replaces lists, deep-merges mappings, and keeps new overlay keys', () => {
+    const home = emptyHome();
+    writeFile(
+      home,
+      '.remdo/agent.yaml',
+      `skill:
+  items: [a]
+  opts:
+    y: 9
+    z: 3
+`,
+    );
+
+    expect(resolveAgentSettings(rootWith(fixture), home)).toEqual({
+      skill: { items: ['a'], opts: { x: 1, y: 9, z: 3 } },
     });
   });
 });

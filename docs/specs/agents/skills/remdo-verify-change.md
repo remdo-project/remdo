@@ -38,11 +38,10 @@ A commit range skips those checks.
 
 The verifier reads [agent settings](../settings.md) and starts an
 independent fresh review for each `remdo-verify-change` reviewer against
-the resolved change scope. Their identities remain
-distinct in the result, and one review never interrupts another. Each
-reviewer returns one consolidated final report containing all completed
-delegated review work, so a later lifecycle notification cannot replace
-that evidence.
+the resolved change scope. Their identities remain distinct in the
+result, and one review never interrupts another. Each reviewer returns
+one consolidated final report containing all completed delegated review
+work, so a later lifecycle notification cannot replace that evidence.
 
 Each review inspects the complete resolved scope, repository guidance, Git
 context, and referenced files. **Empirical.** The verifier tells reviewers that
