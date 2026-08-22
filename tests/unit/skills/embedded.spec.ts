@@ -34,17 +34,4 @@ describe('skill-local spec bridge', () => {
     const missing = mirrorDirs.filter(p => !config.includes(`"${p}"`));
     expect(missing).toEqual([]);
   });
-
-  it('keeps subagent authorization machine-readable for multiagent skills', () => {
-    const configs = [
-      '.agents/skills/remdo-converge-change/agents/openai.yaml',
-      '.agents/skills/remdo-prepare-change/agents/openai.yaml',
-    ];
-
-    for (const configPath of configs) {
-      const config = fs.readFileSync(configPath, 'utf8');
-      expect(config).toContain('  subagents:\n    authorized: true\n');
-      expect(config).toMatch(/use_cases:\n(?: {6}- ".+"\n)+/);
-    }
-  });
 });

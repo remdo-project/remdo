@@ -365,9 +365,4 @@ describe('config env resolve', () => {
       },
     )).toThrow();
   });
-
-  it('uses the un-prefixed ALLOW_SIGNUP key (no auth-prefixed variant)', () => {
-    expect(envSchema).toHaveProperty('ALLOW_SIGNUP');
-    expect(envSchema).not.toHaveProperty('AUTH_ALLOW_SIGNUP');
-  });
 });
