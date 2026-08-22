@@ -41,7 +41,7 @@ Resolve [agent settings](../../../docs/specs/agents/settings.md) from the
 repository root:
 
 ```sh
-pnpm exec tsx .agents/skills/_shared/tools/resolve-agent-settings.ts
+node --import=tsx .agents/skills/_shared/tools/resolve-agent-settings.ts
 ```
 
 Use the emitted document.
