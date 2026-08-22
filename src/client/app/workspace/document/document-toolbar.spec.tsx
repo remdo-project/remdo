@@ -108,8 +108,7 @@ describe('document toolbar and import', () => {
 
     await openDocumentPicker();
     const picker = await screen.findByRole('combobox', { name: 'Choose document' });
-    const option = await screen.findByRole('option', { name: 'Test Document' });
-    picker.setAttribute('aria-activedescendant', option.id);
+    fireEvent.pointerMove(await screen.findByRole('option', { name: 'Test Document' }));
     fireEvent.keyDown(picker, { key: 'Enter' });
 
     expect(onSelectDocument).toHaveBeenCalledWith('testDoc');

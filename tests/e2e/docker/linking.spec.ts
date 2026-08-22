@@ -1,12 +1,9 @@
 import { expect, guardedTest as test, setExpectedConsoleIssues } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
-import { Buffer } from 'node:buffer';
 import { DOCKER_TEST_AUTH } from '#tools/docker-test-auth';
 import { waitForEditableEditor } from './_support/helpers';
 import { homeOrigin, sourceOrigin } from './_support/origins';
 
-// The home derives a source's id from its origin (base64url), same as the server.
-const sourceServerId = Buffer.from(sourceOrigin, 'utf8').toString('base64url');
 const sourceHost = new URL(sourceOrigin).host;
 
 function buildUrl(origin: string, path: string): string {
@@ -60,10 +57,9 @@ test('links a source by URL and opens its Home document', async ({ page }) => {
   await switcherTrigger.click();
 
   const dropdown = page.locator('.document-header-doc-dropdown');
-  await expect(dropdown.locator('[data-document-source-id="local"]')).toContainText('Current Server');
-  const sourceGroup = dropdown.locator(`[data-document-source-id="${sourceServerId}"]`);
-  await expect(sourceGroup).toContainText(sourceHost);
-  await sourceGroup.getByRole('option', { name: 'Home', exact: true }).click();
+  const sourceHome = dropdown.getByRole('option', { name: `${sourceHost} · Home`, exact: true });
+  await expect(sourceHome).toBeVisible();
+  await sourceHome.click();
 
   await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/n\/[\dA-Za-z]+$/u);
   await waitForEditableEditor(page);

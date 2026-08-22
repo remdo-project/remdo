@@ -1,14 +1,11 @@
 import { IconChevronDown } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
-import { useRef } from 'react';
 import {
   Button,
   ComboBox,
-  Header,
   Input,
   ListBox,
   ListBoxItem,
-  ListBoxSection,
   Popover,
 } from 'react-aria-components';
 import type { DocumentSourceNote } from '#note-sdk';
@@ -37,7 +34,6 @@ export default function DocumentToolbar({
   path: NotePathItem[];
   searchControl: ReactNode;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const documentGroups = documentSources.map((source) => ({
     id: source.id(),
     label: source.text(),
@@ -47,11 +43,18 @@ export default function DocumentToolbar({
       value: document.id(),
     })),
   })).filter((source) => source.options.length > 0);
+  const qualifyLabels = documentGroups.length > 1;
+  const listedDocuments = documentGroups.flatMap((group) => group.options.map((document) => ({
+    filterText: qualifyLabels ? `${group.label} ${document.filterText}` : document.filterText,
+    id: document.value,
+    key: `${group.id}:${document.value}`,
+    label: qualifyLabels ? `${group.label} · ${document.label}` : document.label,
+  })));
   const selectedText = formatNavigationLabel(documentLabel, Number.POSITIVE_INFINITY);
   const selectedLabel = formatNavigationLabel(documentLabel);
-  const currentListed = documentGroups.some((group) =>
-    group.options.some((document) => document.value === docId),
-  );
+  const documents = listedDocuments.some((document) => document.id === docId)
+    ? listedDocuments
+    : [{ filterText: selectedText, id: docId, key: docId, label: selectedLabel }, ...listedDocuments];
   const selectCurrentDocument = () => {
     onSelectDocument(docId);
   };
@@ -67,21 +70,10 @@ export default function DocumentToolbar({
               aria-label="Choose document"
               className="document-header-doc-combobox"
               key={docId}
-              defaultFilter={(textValue, inputValue) => {
-                if (inputValue.length === 0 || inputValue === selectedText) {
-                  return true;
-                }
-                return textValue.toLowerCase().includes(inputValue.toLowerCase());
-              }}
               menuTrigger="focus"
               onChange={(key) => {
                 if (key != null && String(key) !== docId) {
                   onSelectDocument(String(key));
-                }
-              }}
-              onOpenChange={(isOpen) => {
-                if (isOpen) {
-                  requestAnimationFrame(() => inputRef.current?.select());
                 }
               }}
               value={docId}
@@ -89,20 +81,11 @@ export default function DocumentToolbar({
               <div className="document-header-doc-combo remdo-interaction-surface">
                 <Input
                   className="document-header-doc-input"
-                  onKeyDown={(event) => {
-                    if (event.key !== 'Enter') {
-                      return;
-                    }
-                    const activeId = event.currentTarget.getAttribute('aria-activedescendant');
-                    if (activeId == null) {
-                      return;
-                    }
-                    const option = document.getElementById(activeId);
-                    if (option?.getAttribute('data-document-ref') === docId) {
-                      selectCurrentDocument();
+                  onFocus={(event) => {
+                    if (event.currentTarget.value === selectedText) {
+                      event.currentTarget.select();
                     }
                   }}
-                  ref={inputRef}
                 />
                 <Button aria-label="Show documents" className="document-header-doc-menu">
                   <IconChevronDown aria-hidden="true" size={14} />
@@ -110,35 +93,15 @@ export default function DocumentToolbar({
               </div>
               <Popover offset={4} placement="bottom start">
                 <ListBox className="document-header-doc-dropdown remdo-menu">
-                  {currentListed ? null : (
+                  {documents.map((document) => (
                     <ListBoxItem
-                      data-document-ref={docId}
-                      id={docId}
-                      onPress={selectCurrentDocument}
-                      textValue={selectedText}
+                      id={document.id}
+                      key={document.key}
+                      onAction={document.id === docId ? selectCurrentDocument : undefined}
+                      textValue={document.filterText}
                     >
-                      {selectedLabel}
+                      {document.label}
                     </ListBoxItem>
-                  )}
-                  {documentGroups.map((group) => (
-                    <ListBoxSection
-                      data-document-source-id={group.id}
-                      id={group.id}
-                      key={group.id}
-                    >
-                      <Header>{group.label}</Header>
-                      {group.options.map((document) => (
-                        <ListBoxItem
-                          data-document-ref={document.value}
-                          id={document.value}
-                          key={`${group.id}:${document.value}`}
-                          onPress={document.value === docId ? selectCurrentDocument : undefined}
-                          textValue={document.filterText}
-                        >
-                          {document.label}
-                        </ListBoxItem>
-                      ))}
-                    </ListBoxSection>
                   ))}
                 </ListBox>
               </Popover>
