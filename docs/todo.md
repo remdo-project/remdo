@@ -122,13 +122,9 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   At the start and close of each capability slice, locate related entries across
   the [tracking record](#tracked-follow-up), the
   [legacy backlog](legacy-backlog.md), and relevant Git history. Treat them as
-  informative evidence rather than requirements or a predetermined API: assess
-  each against current owners, implementation, tests, and real consumers;
-  include still-beneficial adjacent work when it makes the slice more coherent;
-  remove or rewrite completed, rejected, or obsolete entries; and migrate useful
-  remaining work to the current TODO or its owner's `Future`. Do not leave an
-  encountered entry untouched merely because it predates the slice, and do not
-  let it expand the slice without current evidence.
+  informative evidence rather than requirements or a predetermined API, then
+  migrate, rewrite, or remove them according to current owners and what remains
+  useful.
 
 ### Outliner
 

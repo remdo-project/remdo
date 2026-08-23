@@ -30,8 +30,8 @@ and [menu](./menu.md) entries while owning only the toolbar surface and its beha
      [Deletion](./deletion.md), with no confirmation step. For a caret this
      removes the [focus note](./selection.md#selection-states), not the caret merge that Backspace performs. The current
      [zoom root](./zoom.md#definitions) supplies no delete target.
-3. Outside the view header, toggle fold targets the focus note; [Folding](./folding.md)
-   owns its applicability and operation.
+3. Outside the view header, toggle fold targets the focus note, per
+   [Folding](./folding.md).
 4. Undo and redo act on the document's edit history rather than the selection,
    reversing and reapplying the most recent edits.
 5. Open note menu opens the [quick action menu](./menu.md).

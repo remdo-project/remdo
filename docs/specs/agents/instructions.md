@@ -101,10 +101,8 @@ require explicit user authority.
 
 - Prefer the simplest permanent implementation. Stop on a missing task
   dependency and investigate repository evidence before asking.
-- The shared entry point directs agents to include directly encountered
-  adjacent cleanup when it is local, behavior-preserving, clearly correct from
-  current owners, and more costly to rediscover or track separately than to fix
-  now, without expanding into unrelated cleanup or unresolved design.
+- The shared entry point owns its
+  [adjacent-cleanup rule](../../../AGENTS.md#execution-and-evidence).
 - The shared entry point owns its
   [decision rule](../../../AGENTS.md#execution-and-evidence).
 - The shared entry point directs agents to add Markdown prose soft wraps only
