@@ -109,8 +109,7 @@ specification's empirical command validation. For Grok, read
 only an index: follow each `child_session_id` to that sibling session's
 `chat_history.jsonl`. Tool-call arguments in those files are command
 evidence. A final report's description of its own activity is not
-command evidence. Apply the specification's Reviews contract to that
-evidence.
+command evidence.
 
 Reviewer runtime is unspecified. Wait for each managed call's completion
 notification; do not poll it or interpret silence or elapsed time as failure.
