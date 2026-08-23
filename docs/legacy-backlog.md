@@ -21,8 +21,8 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
-- Mobile toolbar fold: `resolveSelectionCapability` (button enabled state) and
-  `runMobileAction('fold')` (dispatch) each resolve the focus note independently,
+- Mobile toolbar fold availability and activation each resolve the focus note
+  independently,
   so a selection change between the capability sync and the tap can fold a
   different note than the button's enabled state reflected. The tap acts on the
   current focus, which is arguably correct; revisit only if it proves confusing
@@ -638,20 +638,3 @@ peek + edge-fade, sizing, `aria-disabled`) is implemented; the durable contract
 lives in [docs/specs/outliner/mobile-toolbar.md](specs/outliner/mobile-toolbar.md), and the
 open follow-ups it left are the mobile-toolbar entries under the plugin
 follow-ups above. Design rationale is in git history.
-
-## Unify note actions across toolbar and menu (decided direction)
-
-The mobile action toolbar and the note [quick action menu](specs/outliner/menu.md) are
-two ad-hoc renderings of the same context-sensitive note-action set. Decided
-(research-backed; git history for the rationale): build a shared note-action
-registry — `(id, icon, label, when-applicable predicate, dispatch)` — that both
-surfaces render, so the popup menu, the touch toolbar, and keyboard entries come
-from one source. Rendering stays per-surface: the menu is a popup and *hides*
-inapplicable actions; the toolbar keeps its current rule (grey scroll actions,
-hide pinned via the anchor rule). Icons/labels may vary by note state
-(Fold/Unfold, Check/Uncheck). Folds in the tracked seams: dedup the two fold
-predicates, promote the menu's inline list-type change to a command, put
-`NoteMenuPlugin` on the shared popup engine, extract `usePortalRoot`. The
-toolbar's "open menu" icon and the menu's fuller-set-only actions (zoom,
-list-type, fold-to-level) are open design questions. This should follow the
-durable change workflow once its scope is defined.
