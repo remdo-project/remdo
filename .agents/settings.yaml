@@ -10,3 +10,6 @@ remdo-verify-change:
     claude:
       model: opus
       effort: medium
+    grok:
+      model: grok-4.6
+      effort: medium
