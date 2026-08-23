@@ -83,7 +83,7 @@ change. Do not add update-tracking sections to durable documents.
   [concern](docs/specs/agents/protocol.md#concerns) when acting as a capability.
 - Avoid speculative abstractions, compatibility shims, feature flags, and
   defensive guards that accepted behavior does not require.
-- Do not add soft wraps to Markdown prose unless required by line-length lint.
+- Add Markdown prose soft wraps only in response to line-length lint diagnostics.
 - For bugs, reproduce the problem when practical, then verify the fix with the
   focused reproducer and applicable final checks.
 - Apply the contributor [testing policy](docs/dev/testing.md) when selecting,

@@ -6,103 +6,82 @@ participating capabilities retain their contracts.
 
 ## Authority
 
-[Repository authority](../../../../AGENTS.md#repository-authority): after quick
-dialogue, the skill may create or switch to the owning branch and transfer only
-work adopted by the change. After approval, it may edit and commit approved
+[Repository authority](../../../../AGENTS.md#repository-authority): after the requested change and its adopted work are
+established, the skill may create or switch to the owning branch and transfer
+only that work. After target behavior is established, it may commit the established
 change work, including participant-defined commit units.
 
 ## Lifecycle
 
-```text
-[interactive: quick dialogue]                       {C}
-    ├─ investigate ─> [agent: exploration] {F} ─> ↩ quick dialogue
-    │ owning branch ready
-    v
-[agent: prepare spec]                               {C}
-    │ ready for review
-    v
-[developer: review spec]
-    ├─ requirements feedback ─> ↩ quick dialogue
-    ├─ revise spec ────────────> ↩ prepare spec
-    │ approved
-    v
-[agent: execute approved change]                    {C}
-    ├─ approved behavior must change ─> ↩ prepare spec
-    │ executed
-    v
-[agent: remdo-converge-change]                      {C+F}
-    ├─ stopped or not converged ─> [developer: decide concern]
-    │                                ├─ retry ─> ↩ affected step
-    │                                └─ stop ──> [stopped]
-    │ converged
-    v
-[ready-for-review]
-    │ handoff
-    v
-[developer: review]
-    ├─ requirements feedback ─> ↩ quick dialogue
-    ├─ spec feedback ─────────> ↩ prepare spec
-    ├─ implementation feedback ─> ↩ execute approved change
-    └─ accepted ────────────────> [completed]
-```
+The coordinator owns lifecycle state, integration decisions, and undelegated work.
+It [aggregates](../protocol.md#aggregation) participant results, and only it advances the lifecycle.
+An incomplete result leaves its invoking step unfinished.
+Returning to an earlier step retains decisions and evidence that remain valid.
 
-Legend:
-
-- `{C}` coordinator;
-- `{F}` fresh subagent;
-- `{C+F}` coordinator integrating fresh-subagent work;
-- `↩` returns to the named step.
-
-## Lifecycle rules
-
-- **Coordinator.** Retains the approved spec — its [target behavior](../../../documentation.md#target-behavior) and
-  [contract owners](../../../documentation.md#ownership) — and owns lifecycle
-  state, integration decisions, and undelegated work. It
-  [aggregates](../protocol.md#aggregation) participant results for handoff. Only
-  the coordinator advances the lifecycle; incomplete results leave it unchanged.
-- **Quick dialogue.** Establishes the outcome, constraints, non-goals, and
-  observable completion through focused developer decisions.
-- **Exploration.** Begins at the developer's request or accepted recommendation
-  to investigate material uncertainty. Its transition establishes the question,
-  scope, any required [repository authority](../../../../AGENTS.md#repository-authority), expected result,
-  and return point. Repository changes remain disposable unless adopted.
-- **Owning branch ready.** Before retaining work, fetch `origin/main` and ensure
-  the current [topic branch](../../../../CONTRIBUTING.md#git-workflow) uses its
-  fetched commit as the base and contains only work adopted by the change. Use
-  another base only if the developer specified one.
-- **Specification.** The coordinator identifies current contract owners and
-  prepares the spec by mapping proposed target behavior to the applicable
-  owners. It applies [Specification structure](../../../documentation.md#specification-structure)
-  when creating or editing a durable specification, changes only owners whose
-  target behavior must change, and surfaces unresolved behavior, [concerns](../protocol.md#concerns), and
-  [tracked gaps](../../../todo.md#tracked-follow-up) before developer review.
-- **Approval.** Developer approval establishes target behavior, not exact wording.
-- **Execution.** The coordinator performs undelegated work and invokes
-  applicable capabilities with their declared [calls](../protocol.md#calls),
-  populated only from guarantees it has established and authority it holds. It
-  retains their complete results; participants do not advance the lifecycle or
-  expand the approved behavior.
-- **Convergence.** [`remdo-converge-change`](remdo-converge-change.md) runs once
-  as a black box over the complete [change scope](../change-scope.md) and owns
-  the quality loop. Before it runs, the coordinator makes all adopted committed
-  and uncommitted work
-  representable as one supported scope. If that requires repository authority
-  the coordinator does not hold, it surfaces a concern and does not start
-  convergence. Developer review requires a `converged` result for the latest
-  repository state.
-- **Handoff.** The coordinator's [report](../protocol.md#reports) includes the
-  exact scope, approved target behavior and its contract owners, participant
-  work, convergence result, [decisions](../protocol.md#decisions), unhandled
-  concerns, tracked gaps, and specific manual review needs. It precedes any
-  request for developer acceptance or authority for subsequent repository or
-  remote action.
-- **Feedback.** Returns to the earliest affected lifecycle step; repository
-  changes invalidate all later quality results.
+1. **Coordinator — Establish the change.** Determine the requested outcome,
+   constraints, non-goals, observable completion, any developer-selected base,
+   and adopted existing work from explicit developer instructions and decisions,
+   applicable [accepted contracts](../../../documentation.md#target-behavior), and repository evidence.
+   Retain established information without asking the developer to confirm it again.
+   If the developer requests a distinct exploration, or material uncertainty
+   prevents a sound decision and bounded exploration could resolve it, then
+   establish any required [repository authority](../../../../AGENTS.md#repository-authority), its question, scope, expected result,
+   and return point. Perform the exploration, keeping its repository changes disposable
+   unless adopted. Integrate its result and repeat this step.
+   If a material choice remains unresolved, then obtain a focused developer decision.
+   Continue only after the requested change and adopted work are sufficiently bounded.
+   Exploration is read-only unless its established scope and held authority allow
+   disposable mutations.
+2. **Coordinator — Ready the owning branch.** Fetch `origin/main`. Base the current
+   [topic branch](../../../../CONTRIBUTING.md#git-workflow) on the fetched commit without unadopted work.
+   Use another base only if the developer selected one.
+   If repository evidence conflicts with the established base or adopted work,
+   then return to **Establish the change**.
+   If the owning branch cannot be readied within held authority, then retain a
+   [concern](../protocol.md#concerns) and return `stopped`.
+3. **Coordinator and developer — Establish target behavior.** Identify the
+   current [contract owners](../../../documentation.md#ownership) for the requested outcome.
+   When the requested outcome does not change accepted [target behavior](../../../documentation.md#target-behavior),
+   retain that behavior and its owners without a new specification or approval.
+   Otherwise, map the proposed target behavior to its owners. Change only
+   owners whose behavior must change under [Specification structure](../../../documentation.md#specification-structure).
+   Surface unresolved behavior, concerns, and [tracked gaps](../../../todo.md#tracked-follow-up).
+   Present the resulting target behavior and owners for developer review. Only
+   approval of that presentation establishes the changed target behavior.
+   Requirements feedback returns to **Establish the change**.
+   Specification feedback repeats this step.
+   Approval establishes target behavior, not exact wording.
+4. **Coordinator and participants — Execute the established change.** Perform
+   undelegated work and invoke applicable capabilities under their declared [calls](../protocol.md#calls).
+   Retain their results.
+   Participants neither advance the lifecycle nor expand established target behavior.
+   If execution evidence conflicts with established change information, then return
+   to the earliest of **Establish the change** or
+   **Establish target behavior** that must change.
+5. **Coordinator — Converge the change.** If forming one supported [change scope](../change-scope.md)
+   from all adopted committed and uncommitted work requires repository authority
+   not held by the coordinator, then return `stopped` with a concern. Otherwise,
+   prepare that scope and invoke [`remdo-converge-change`](remdo-converge-change.md).
+   It runs as a black box over that scope and owns the quality loop.
+   If convergence returns `stopped` or `not-converged`, then retain its result.
+   The developer chooses to stop or retry from the earliest concern-resolving step.
+   A stop returns `stopped`; a retry returns to that step.
+   Continue only with a `converged` result for the latest repository state.
+6. **Coordinator and developer — Hand off the change.** Present the active result
+   under [Reports](../protocol.md#reports) before requesting developer acceptance or authority
+   for subsequent repository or remote work.
+   Without a developer disposition, return `ready-for-review`.
+   Requirements feedback returns to **Establish the change**.
+   Feedback that changes target behavior returns to **Establish target behavior**.
+   Other specification feedback returns to **Execute the established change**.
+   Implementation feedback follows the same route.
+   After any repository mutation, complete the earliest affected step.
+   Repeat **Converge the change** before another handoff.
+   Developer acceptance returns `completed`.
 
 ## Result
 
-The result uses the shared [result fields](../protocol.md#results) and the
-[`ChangeScopeResult`](../change-scope.md#result-type) type:
+The result uses the shared [result fields](../protocol.md#results) and the [`ChangeScopeResult`](../change-scope.md#result-type) type:
 
 ```yaml
 outcome: <ready-for-review | completed | stopped>
@@ -110,8 +89,8 @@ reason: <condition that stopped preparation> # if stopped
 decisions: <Decision[]> # if any
 concerns: <Concern[]> # if any
 scope: <ChangeScopeResult> # if convergence ran
-target_behavior: # if approved
-  - summary: <approved behavior>
+target_behavior: # if established
+  - summary: <established behavior>
     owner: <contract path>
 participants: # if capabilities ran
   - capability: <capability>

@@ -104,7 +104,7 @@ require explicit user authority.
 - The shared entry point owns its
   [decision rule](../../../AGENTS.md#execution-and-evidence).
 - The shared entry point directs agents to add Markdown prose soft wraps only
-  when required by line-length lint.
+  in response to line-length lint diagnostics.
 - Agents follow the contributor [testing policy](../../dev/testing.md) and
   report CI as pending until it runs.
 - Agents perform each [empirical check](../../dev/testing.md#empirical-checks) required by an affected behavior's owner.
