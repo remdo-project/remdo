@@ -104,7 +104,7 @@ cleanup: # if evaluated
 verification: <complete latest remdo-verify-change result> # if run
 findings: # if any
   - summary: <finding>
-    source: <codex | claude>
+    source: <reviewer-id>
     disposition: <confirmed | rejected | unresolved | material out of scope>
     reason: <disposition reason>
     resolution: <fixed | uncorrected> # if confirmed

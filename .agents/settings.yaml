@@ -1,0 +1,15 @@
+# Defaults for docs/specs/agents/settings.md. Override in ~/.remdo/agent.yaml.
+remdo-verify-change:
+  reviewers:
+    - codex
+    - claude
+  providers:
+    codex:
+      model: gpt-5.6-terra
+      effort: medium
+    claude:
+      model: opus
+      effort: medium
+    grok:
+      model: grok-4.6
+      effort: medium

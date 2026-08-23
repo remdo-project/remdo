@@ -1,6 +1,6 @@
 interface:
   display_name: "RemDo Verify Change"
-  short_description: "Read-only dual-review verification for changes"
+  short_description: "Read-only independent review verification for changes"
   default_prompt: "Use $remdo-verify-change to verify the current RemDo change."
 policy:
   allow_implicit_invocation: false
