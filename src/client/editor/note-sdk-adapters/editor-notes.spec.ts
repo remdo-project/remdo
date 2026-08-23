@@ -122,6 +122,34 @@ describe('editor notes', () => {
     }
   });
 
+  it('notifies on a view-root-only change and preserves stored fold state', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+    const note = sdk.note('note2');
+    const noteKey = remdo.validate(() => $findNoteById('note2')!.getKey());
+    note.toggleFold();
+
+    const listener = vi.fn(() => ({
+      canToggleFold: note.canToggleFold(),
+      folded: note.folded(),
+    }));
+    const unsubscribe = sdk.subscribe(listener);
+
+    try {
+      setViewRoot(remdo.editor, noteKey);
+
+      await waitFor(() => {
+        expect(listener).toHaveBeenCalledOnce();
+        expect(listener).toHaveLastReturnedWith({ canToggleFold: false, folded: true });
+      });
+
+      note.toggleFold();
+      expect(note.folded()).toBe(true);
+    } finally {
+      unsubscribe();
+      setViewRoot(remdo.editor, null);
+    }
+  });
+
   it('resolves the structural range', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectNoteRange(remdo, 'note2', 'note3');
 
