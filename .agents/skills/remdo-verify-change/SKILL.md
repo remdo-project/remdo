@@ -81,16 +81,13 @@ persistence when launching the managed call:
   for `uncommitted`, or the exact `<BASE>..<HEAD>` range for a commit
   range, then append the review constraint.
 - `grok`: generate and retain a fresh UUID as `SESSION_ID`, then run
-  `/usr/bin/env GROK_CLAUDE_HOOKS_ENABLED=false
-  GROK_CLAUDE_MCPS_ENABLED=false GROK_MEMORY=0
-  GROK_DISABLE_AUTOUPDATER=1 grok --model <model> --effort
-  <effort> --session-id <SESSION_ID> --permission-mode dontAsk
-  --sandbox read-only --disable-web-search --no-auto-update --no-plan
-  --verbatim -p <prompt>`. Grok's `-p` takes the prompt as its next
-  argument, unlike Claude's boolean `-p`. The prompt is the review
-  constraint, then every resolved changed path JSON-quoted for
-  `uncommitted`, or the exact `<BASE>..<HEAD>` range for a commit
-  range, then: do not invoke skills.
+  `grok --model <model> --effort <effort> --session-id <SESSION_ID>
+  --permission-mode dontAsk --sandbox read-only --disable-web-search
+  --no-auto-update --no-plan --verbatim -p <prompt>`. Grok's `-p` takes
+  the prompt as its next argument, unlike Claude's boolean `-p`. The
+  prompt is the review constraint, then every resolved changed path
+  JSON-quoted for `uncommitted`, or the exact `<BASE>..<HEAD>` range for
+  a commit range, then: do not invoke skills.
 
 For an uncommitted Claude or Grok review, derive the changed paths again from
 NUL-delimited staged, unstaged, and untracked Git output. Deduplicate the exact
