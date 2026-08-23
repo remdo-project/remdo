@@ -1,6 +1,6 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect, useMemo } from 'react';
-import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
+import { createLexicalEditorNotesSession } from '#client/editor/note-sdk-adapters';
 import { useRegisterSearchNotesReader } from '#client/editor/view/EditorViewProvider';
 import type { SearchNotesReader } from '#client/editor/view/EditorViewProvider';
 
@@ -15,7 +15,10 @@ interface SearchCandidatesPluginProps {
 // the snapshot used to provide. Unregisters on unmount.
 export function SearchCandidatesPlugin({ docId }: SearchCandidatesPluginProps) {
   const [editor] = useLexicalComposerContext();
-  const editorNotes = useMemo(() => createLexicalEditorNotes({ editor, docId }), [docId, editor]);
+  const editorNotes = useMemo(
+    () => createLexicalEditorNotesSession({ editor, docId }),
+    [docId, editor]
+  );
   const registerSearchNotesReader = useRegisterSearchNotesReader();
 
   useEffect(() => {

@@ -79,7 +79,7 @@ export const editorBoundaries = {
     { from: { element: { type: 'keymap' } },
       allow: { to: { element: { type: ['foundation'] } } } },
     { from: { element: { type: 'mobile-toolbar' } },
-      allow: { to: { element: { type: ['foundation', 'outline', 'features-folding'] } } } },
+      allow: { to: { element: { type: ['foundation', 'outline'] } } } },
     { from: { element: { type: 'triggers' } },
       allow: { to: { element: { type: ['outline', 'runtime'] } } } },
     // Workspace re-exports the pending-import API for the app.
@@ -101,12 +101,13 @@ export const editorBoundaries = {
         'keymap',
         'menu',
         'mobile-toolbar',
+        'adapters',
         'editor-dev',
         ...EDITING_TYPES,
         ...FEATURE_TYPES,
       ] } } } },
     { from: { element: { type: 'adapters' } },
-      allow: { to: { element: { type: ['outline', 'runtime', 'features-list-types'] } } } },
+      allow: { to: { element: { type: ['outline', 'runtime', 'features-list-types', 'features-folding'] } } } },
 
     // Dev tooling reaches production modules by design; ambient declarations
     // are not runtime modules. Neither belongs in the graph.

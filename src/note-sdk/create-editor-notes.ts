@@ -56,13 +56,13 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
       // gone. Throw rather than report an empty body, so a stale handle to a
       // removed body is distinguishable from an existing empty one — matching the
       // base Note.text() contract that a missing note throws.
-      text: () => {
+      text: () => adapter.runRead(() => {
         const text = adapter.bodyTextOf(ownerId);
         if (text === null) {
           throw new NoteNotFoundError(ownerId);
         }
         return text;
-      },
+      }),
       children: () => [],
       as: createNoteAs(ownerId, kind, () => handle),
     };
@@ -72,23 +72,45 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
   const createHandle = (noteId: NoteId): EditorNote => {
     const kind = () => 'editor-note' as const;
     function create(arg1: string | ChildPosition, arg2?: string): EditorNote {
-      const { position, text } = resolveCreateArgs(arg1, arg2);
-      return createHandle(adapter.createNote(resolveChildTarget(noteId, () => adapter.childrenOf(noteId), position), text));
+      return adapter.runMutation(() => {
+        const { position, text } = resolveCreateArgs(arg1, arg2);
+        return createHandle(
+          adapter.createNote(
+            resolveChildTarget(noteId, () => adapter.childrenOf(noteId), position),
+            text,
+          ),
+        );
+      });
     }
     const handle: EditorNote = {
       id: () => noteId,
       kind,
-      attached: () => adapter.isBounded(noteId),
-      text: () => adapter.textOf(noteId),
-      listType: () => adapter.listTypeOf(noteId),
-      checked: () => adapter.checkedOf(noteId),
-      parent: () => {
+      attached: () => adapter.runRead(() => adapter.isBounded(noteId)),
+      folded: () => adapter.runRead(() => adapter.foldedOf(noteId)),
+      canToggleFold: () => adapter.runRead(() => adapter.canToggleFold(noteId)),
+      toggleFold: () => adapter.runMutation(() => {
+        if (!adapter.isBounded(noteId)) {
+          throw new NoteNotFoundError(noteId);
+        }
+        if (!adapter.canToggleFold(noteId)) {
+          return;
+        }
+        adapter.setFolded(noteId, !adapter.foldedOf(noteId));
+      }),
+      text: () => adapter.runRead(() => adapter.textOf(noteId)),
+      listType: () => adapter.runRead(() => adapter.listTypeOf(noteId)),
+      checked: () => adapter.runRead(() => adapter.checkedOf(noteId)),
+      parent: () => adapter.runRead(() => {
         const parentId = adapter.parentIdOf(noteId);
         return parentId === null ? null : createHandle(parentId);
-      },
-      children: () => adapter.childrenOf(noteId).map((childId) => createHandle(childId)),
+      }),
+      children: () => adapter.runRead(
+        () => adapter.childrenOf(noteId).map((childId) => createHandle(childId))
+      ),
       create,
-      body: () => (adapter.bodyTextOf(noteId) === null ? null : createBodyHandle(noteId)),
+      body: () => adapter.runRead(
+        () => (adapter.bodyTextOf(noteId) === null ? null : createBodyHandle(noteId))
+      ),
       as: createNoteAs(noteId, kind, () => handle),
     };
     return handle;
@@ -98,17 +120,24 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
     const currentDocId = adapter.docId();
     const kind = () => 'document' as const;
     function create(arg1: string | ChildPosition, arg2?: string): EditorNote {
-      const { position, text } = resolveCreateArgs(arg1, arg2);
-      return createHandle(
-        adapter.createNote(resolveChildTarget(currentDocId, adapter.currentDocumentChildrenIds, position), text),
-      );
+      return adapter.runMutation(() => {
+        const { position, text } = resolveCreateArgs(arg1, arg2);
+        return createHandle(
+          adapter.createNote(
+            resolveChildTarget(currentDocId, adapter.currentDocumentChildrenIds, position),
+            text,
+          ),
+        );
+      });
     }
     const handle: DocumentNote = {
       id: () => currentDocId,
       kind,
       text: () => currentDocId,
       access: () => createEmptyDocumentAccessCollection(currentDocId),
-      children: () => adapter.currentDocumentChildrenIds().map((noteId) => createHandle(noteId)),
+      children: () => adapter.runRead(
+        () => adapter.currentDocumentChildrenIds().map((noteId) => createHandle(noteId))
+      ),
       create,
       shareable: () => false,
       shareWith: async () => {
@@ -154,19 +183,24 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
   };
 
   return {
-    docId: () => adapter.docId(),
-    currentDocument: createCurrentDocumentHandle,
-    selection: () => resolveSelection(adapter.selection()),
+    docId: () => adapter.runRead(() => adapter.docId()),
+    currentDocument: () => adapter.runRead(createCurrentDocumentHandle),
+    focusNote: () => adapter.runRead(() => {
+      const focusNoteId = adapter.focusNoteId();
+      return focusNoteId === null ? null : createHandle(focusNoteId);
+    }),
+    selection: () => adapter.runRead(() => resolveSelection(adapter.selection())),
     note: (noteId) => createHandle(noteId),
-    delete: (range) => runRangeMutation(range, adapter.delete),
-    place: (range, target) => {
+    delete: (range) => adapter.runMutation(() => runRangeMutation(range, adapter.delete)),
+    place: (range, target) => adapter.runMutation(() => {
       ensurePlaceTargetExists(target);
       runRangeMutation(range, (noteRange) => adapter.place(noteRange, target));
-    },
-    indent: (range) => runRangeMutation(range, adapter.indent),
-    outdent: (range) => runRangeMutation(range, adapter.outdent),
-    moveUp: (range) => runRangeMutation(range, adapter.moveUp),
-    moveDown: (range) => runRangeMutation(range, adapter.moveDown),
+    }),
+    indent: (range) => adapter.runMutation(() => runRangeMutation(range, adapter.indent)),
+    outdent: (range) => adapter.runMutation(() => runRangeMutation(range, adapter.outdent)),
+    moveUp: (range) => adapter.runMutation(() => runRangeMutation(range, adapter.moveUp)),
+    moveDown: (range) => adapter.runMutation(() => runRangeMutation(range, adapter.moveDown)),
+    subscribe: adapter.subscribe,
   };
 }
 

@@ -32,24 +32,19 @@ describe('editor notes showcase', () => {
       const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       const note2 = sdk.note('note2');
 
-      remdo.validate(() => {
-        expect(sdk.docId()).toBe(remdo.getCollabDocId());
+      expect(sdk.docId()).toBe(remdo.getCollabDocId());
 
-        const selection = sdk.selection();
-        if (selection.kind !== 'caret') {
-          throw new Error(`Expected caret selection, got ${selection.kind}`);
-        }
-        expect(selection.range).toEqual({ start: 'note2', end: 'note2' });
-        expect(note2.text()).toBe('note2');
-      });
+      const selection = sdk.selection();
+      if (selection.kind !== 'caret') {
+        throw new Error(`Expected caret selection, got ${selection.kind}`);
+      }
+      expect(selection.range).toEqual({ start: 'note2', end: 'note2' });
+      expect(note2.text()).toBe('note2');
 
-      let topNoteId = '';
-      await remdo.mutate(() => {
-        const topNote = sdk.currentDocument().create({ after: 'note2' }, 'sdk note');
-        topNoteId = topNote.id();
-        sdk.note('note1').create('child note');
-        sdk.place({ start: 'note2', end: 'note2' }, { before: 'note1' });
-      });
+      const topNote = sdk.currentDocument().create({ after: 'note2' }, 'sdk note');
+      const topNoteId = topNote.id();
+      sdk.note('note1').create('child note');
+      sdk.place({ start: 'note2', end: 'note2' }, { before: 'note1' });
 
       expect(remdo).toMatchOutline([
         { noteId: 'note2', text: 'note2' },
@@ -58,17 +53,13 @@ describe('editor notes showcase', () => {
         { noteId: 'note3', text: 'note3' },
       ]);
 
-      remdo.validate(() => {
-        expect(sdk.note('note1').children().map((child) => child.text())).toEqual(['child note']);
-      });
+      expect(sdk.note('note1').children().map((child) => child.text())).toEqual(['child note']);
 
-      await remdo.mutate(() => {
-        sdk.indent({ start: topNoteId, end: topNoteId });
-        sdk.outdent({ start: topNoteId, end: topNoteId });
-        sdk.moveDown({ start: 'note2', end: 'note2' });
-        sdk.moveUp({ start: 'note2', end: 'note2' });
-        sdk.delete({ start: 'note3', end: 'note3' });
-      });
+      sdk.indent({ start: topNoteId, end: topNoteId });
+      sdk.outdent({ start: topNoteId, end: topNoteId });
+      sdk.moveDown({ start: 'note2', end: 'note2' });
+      sdk.moveUp({ start: 'note2', end: 'note2' });
+      sdk.delete({ start: 'note3', end: 'note3' });
 
       expect(remdo).toMatchOutline([
         { noteId: 'note2', text: 'note2' },
@@ -77,6 +68,26 @@ describe('editor notes showcase', () => {
       ]);
     }
   );
+
+  it('observes editor-note changes by subscribing and rereading', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+    const note = sdk.note('note2');
+    let folded = note.folded();
+    const unsubscribe = sdk.subscribe(() => {
+      folded = note.folded();
+    });
+
+    try {
+      expect(folded).toBe(false);
+      note.toggleFold();
+
+      await vi.waitFor(() => {
+        expect(folded).toBe(true);
+      });
+    } finally {
+      unsubscribe();
+    }
+  });
 
   it(
     'lists and creates documents through a projected user-data collection',
@@ -239,18 +250,16 @@ describe('editor notes showcase', () => {
       const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       const userData = getTestUserData();
 
-      remdo.validate(() => {
-        const documents = userData.documents();
-        const firstDocument = documents.children()[0]!;
-        const note1 = sdk.note('note1').as('editor-note');
+      const documents = userData.documents();
+      const firstDocument = documents.children()[0]!;
+      const note1 = sdk.note('note1').as('editor-note');
 
-        expect(userData.kind()).toBe('user-data');
-        expect(documents.kind()).toBe('collection');
-        expect(firstDocument.id()).toBe(TEST_USER_DATA_DOCUMENT.id);
-        expect(firstDocument.text()).toBe(TEST_USER_DATA_DOCUMENT.title);
-        expect(note1.attached()).toBe(true);
-        expect(note1.text()).toBe('note1');
-      });
+      expect(userData.kind()).toBe('user-data');
+      expect(documents.kind()).toBe('collection');
+      expect(firstDocument.id()).toBe(TEST_USER_DATA_DOCUMENT.id);
+      expect(firstDocument.text()).toBe(TEST_USER_DATA_DOCUMENT.title);
+      expect(note1.attached()).toBe(true);
+      expect(note1.text()).toBe('note1');
     }
   );
 });

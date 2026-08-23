@@ -276,15 +276,6 @@ the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#br
   editable content and the heading role must stay on separate elements (a
   `textbox` role masks an inner heading from assistive tech). Close with the
   view-header work.
-- Fold semantics at the view header are unreconciled with the restricted kind.
-  [Zoom](specs/outliner/zoom.md) items 7–8 describe the zoom root's stored fold state
-  being preserved and not hiding its children while zoomed, but the
-  [view header](specs/outliner/view-header.md) cannot be folded, and [Folding](specs/outliner/folding.md) item 8, [Menu](specs/outliner/menu.md) (the `F`
-  fold shortcut "for the current zoom root"), and fold-to-level ("applies from
-  the current zoom root") still describe the zoom root as a foldable outline
-  target. Reconcile these — what a header's fold control and stored state mean
-  once it is a non-structural header — when the view-header kind is built. Kept
-  out of this spec pass to avoid redesigning folding/menu now.
 
 ## Note-first SDK follow-ups
 
@@ -340,16 +331,14 @@ the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#br
   3. Clarify the remaining query/loading boundary:
      whether cross-document link search should load trees directly or use a
      separate index/search layer.
-  4. Clarify mutation boundaries only as needed by the new traversal/query
-     layer (single-note writes vs transactional/multi-note updates).
-  5. Redesign projected user-data note collections around note-model
+  4. Redesign projected user-data note collections around note-model
      invariants: child identity keyed by note id, sibling order owned by the
      parent, and browser state derived from the projection rather than local
      command-result appends. Apply this to documents as one projected note
      collection kind before adding more projected app-state sections.
-  6. Review the remaining top-level API naming after the note-owned
+  5. Review the remaining top-level API naming after the note-owned
      `create(...)` refactor, especially `createLexicalEditorNotes` and `place(...)`.
-  7. Update the durable docs once the traversal/query contract stabilizes:
+  6. Update the durable docs once the traversal/query contract stabilizes:
      `docs/specs/outliner/note-model.md`, `docs/architecture.md`,
      `docs/specs/outliner/search.md`, and `docs/specs/outliner/links.md`.
 
