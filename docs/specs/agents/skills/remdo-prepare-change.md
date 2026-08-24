@@ -6,18 +6,14 @@ participating capabilities retain their contracts.
 
 ## Authority
 
-[Repository authority](../../../../AGENTS.md#repository-authority): after the requested change and its adopted work are
-established, the skill may create or switch to the owning branch and transfer
-only that work. After target behavior is established, it may commit the established
-change work, including participant-defined commit units.
+[Repository authority](../../../../AGENTS.md#repository-authority): the skill may
+create or switch to its owning branch and create commits itself or through
+participating capabilities.
 
 ## Lifecycle
 
 The coordinator owns lifecycle state, integration decisions, and undelegated work.
 It [aggregates](../protocol.md#aggregation) participant results, and only it advances the lifecycle.
-Within held authority, it advances without developer input except where a step
-requires a developer decision or review.
-An incomplete result leaves its invoking step unfinished.
 Returning to an earlier step retains decisions and evidence that remain valid.
 
 1. **Coordinator — Establish the change.** Bound it before retaining work by
@@ -49,11 +45,14 @@ Returning to an earlier step retains decisions and evidence that remain valid.
    Otherwise, map the proposed target behavior to its owners. Change only
    owners whose behavior must change under [Specification structure](../../../documentation.md#specification-structure).
    Surface unresolved behavior, concerns, and [tracked gaps](../../../todo.md#tracked-follow-up).
-   Present the resulting target behavior and owners for developer review. Only
-   approval of that presentation establishes the changed target behavior.
+   Present the resulting target behavior and owners for developer review,
+   keeping specification edits uncommitted while target behavior remains under
+   review.
+   Only approval of that presentation establishes the changed target behavior.
    Requirements feedback returns to **Establish the change**.
    Specification feedback repeats this step.
-   Approval establishes target behavior, not exact wording.
+   Continue once target behavior is established; approval establishes changed
+   target behavior, not exact wording.
 4. **Coordinator and participants — Execute the established change.** Realize
    target behavior by performing undelegated work and invoking applicable
    capabilities under their declared [calls](../protocol.md#calls).
@@ -62,11 +61,10 @@ Returning to an earlier step retains decisions and evidence that remain valid.
    If execution evidence conflicts with established change information, then return
    to the earliest of **Establish the change** or
    **Establish target behavior** that must change.
-5. **Coordinator — Converge the change.** Complete the quality loop before developer
-   review. If forming one supported [change scope](../change-scope.md)
-   from all adopted committed and uncommitted work requires repository authority
-   not held by the coordinator, then return `stopped` with a concern. Otherwise,
-   prepare that scope and invoke [`remdo-converge-change`](remdo-converge-change.md).
+   Complete this step with all established change work committed.
+5. **Coordinator — Converge the change.** Complete the quality loop before
+   developer review. Form one supported [change scope](../change-scope.md) from
+   all adopted work and invoke [`remdo-converge-change`](remdo-converge-change.md).
    It runs as a black box over that scope and owns the quality loop.
    If convergence returns `stopped` or `not-converged`, then retain its result.
    The developer chooses to stop or retry from the earliest concern-resolving step.
