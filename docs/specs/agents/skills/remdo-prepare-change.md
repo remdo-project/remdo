@@ -15,32 +15,35 @@ change work, including participant-defined commit units.
 
 The coordinator owns lifecycle state, integration decisions, and undelegated work.
 It [aggregates](../protocol.md#aggregation) participant results, and only it advances the lifecycle.
+Within held authority, it advances without developer input except where a step
+requires a developer decision or review.
 An incomplete result leaves its invoking step unfinished.
 Returning to an earlier step retains decisions and evidence that remain valid.
 
-1. **Coordinator — Establish the change.** Determine the requested outcome,
-   constraints, non-goals, observable completion, any developer-selected base,
-   and adopted existing work from explicit developer instructions and decisions,
+1. **Coordinator — Establish the change.** Bound it before retaining work by
+   determining the requested outcome, constraints, non-goals, observable
+   completion, any developer-selected base, and adopted existing work from
+   explicit developer instructions and decisions,
    applicable [accepted contracts](../../../documentation.md#target-behavior), and repository evidence.
    Retain established information without asking the developer to confirm it again.
    If the developer requests a distinct exploration, or material uncertainty
    prevents a sound decision and bounded exploration could resolve it, then
    establish any required [repository authority](../../../../AGENTS.md#repository-authority), its question, scope, expected result,
-   and return point. Perform the exploration, keeping its repository changes disposable
-   unless adopted. Integrate its result and repeat this step.
+   and return point. Perform the exploration. It is read-only unless its established
+   scope and held authority allow disposable mutations; its repository changes
+   remain disposable unless adopted. Integrate its result and repeat this step.
    If a material choice remains unresolved, then obtain a focused developer decision.
    Continue only after the requested change and adopted work are sufficiently bounded.
-   Exploration is read-only unless its established scope and held authority allow
-   disposable mutations.
-2. **Coordinator — Ready the owning branch.** Fetch `origin/main`. Base the current
+2. **Coordinator — Ready the owning branch.** Isolate adopted work by fetching
+   `origin/main` and basing the current
    [topic branch](../../../../CONTRIBUTING.md#git-workflow) on the fetched commit without unadopted work.
    Use another base only if the developer selected one.
    If repository evidence conflicts with the established base or adopted work,
    then return to **Establish the change**.
    If the owning branch cannot be readied within held authority, then retain a
    [concern](../protocol.md#concerns) and return `stopped`.
-3. **Coordinator and developer — Establish target behavior.** Identify the
-   current [contract owners](../../../documentation.md#ownership) for the requested outcome.
+3. **Coordinator — Establish target behavior.** Define what execution must realize
+   by identifying the current [contract owners](../../../documentation.md#ownership) for the requested outcome.
    When the requested outcome does not change accepted [target behavior](../../../documentation.md#target-behavior),
    retain that behavior and its owners without a new specification or approval.
    Otherwise, map the proposed target behavior to its owners. Change only
@@ -51,14 +54,16 @@ Returning to an earlier step retains decisions and evidence that remain valid.
    Requirements feedback returns to **Establish the change**.
    Specification feedback repeats this step.
    Approval establishes target behavior, not exact wording.
-4. **Coordinator and participants — Execute the established change.** Perform
-   undelegated work and invoke applicable capabilities under their declared [calls](../protocol.md#calls).
+4. **Coordinator and participants — Execute the established change.** Realize
+   target behavior by performing undelegated work and invoking applicable
+   capabilities under their declared [calls](../protocol.md#calls).
    Retain their results.
-   Participants neither advance the lifecycle nor expand established target behavior.
+   Participants do not expand established target behavior.
    If execution evidence conflicts with established change information, then return
    to the earliest of **Establish the change** or
    **Establish target behavior** that must change.
-5. **Coordinator — Converge the change.** If forming one supported [change scope](../change-scope.md)
+5. **Coordinator — Converge the change.** Complete the quality loop before developer
+   review. If forming one supported [change scope](../change-scope.md)
    from all adopted committed and uncommitted work requires repository authority
    not held by the coordinator, then return `stopped` with a concern. Otherwise,
    prepare that scope and invoke [`remdo-converge-change`](remdo-converge-change.md).
@@ -67,9 +72,9 @@ Returning to an earlier step retains decisions and evidence that remain valid.
    The developer chooses to stop or retry from the earliest concern-resolving step.
    A stop returns `stopped`; a retry returns to that step.
    Continue only with a `converged` result for the latest repository state.
-6. **Coordinator and developer — Hand off the change.** Present the active result
-   under [Reports](../protocol.md#reports) before requesting developer acceptance or authority
-   for subsequent repository or remote work.
+6. **Coordinator — Hand off the change.** Support a developer disposition by
+   presenting the active result under [Reports](../protocol.md#reports) before requesting
+   developer acceptance or authority for subsequent repository or remote work.
    Without a developer disposition, return `ready-for-review`.
    Requirements feedback returns to **Establish the change**.
    Feedback that changes target behavior returns to **Establish target behavior**.
