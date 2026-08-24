@@ -90,6 +90,42 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   `docker/backup.sh`, `tools/snapshot/backup.ts`, and
   `tools/remote/make-backup.sh` with it.
 
+### SDK
+
+- **Note-centered SDK consumer boundary.** Evolve the consumer-facing SDK
+  around the shared [note model](specs/outliner/note-model.md) so high-level
+  consumers such as the [quick action menu](specs/outliner/menu.md),
+  [mobile toolbar](specs/outliner/mobile-toolbar.md), keymaps, and future
+  extensions can discover whether application capabilities are supported and
+  currently applicable, observe relevant changes, and invoke them without
+  importing Lexical commands or private feature modules. Keep capabilities at
+  the scope their semantics require—including a note, selection, current view
+  or zoom, and history—rather than forcing every operation onto a particular
+  note. Existing behavioral owners retain the semantics, adapters retain
+  framework and storage mechanics, and surfaces retain their inventory,
+  ordering, presentation, focus, layout, and hide-versus-disable policy.
+
+  Use the menu and mobile toolbar as reference consumers and advance one
+  coherent, behavior-preserving capability slice at a time. Each slice decides
+  only the contract, ownership, targeting, applicability, observation,
+  execution, lifecycle, and naming required by its real consumers and plausible
+  adapters. Record settled behavior in its owning specification once accepted
+  and leave unrelated questions open here. Do not preselect a generic action
+  registry, flat API, final SDK or package name, plugin contribution framework,
+  or second-adapter implementation. The convergence goal is reached when these
+  surfaces use the SDK for application behavior and their common behavior can
+  be backed by another note adapter without adapter-specific semantic logic in
+  the surfaces. Coordinate with the
+  [legacy Note-first SDK follow-ups](legacy-backlog.md#note-first-sdk-follow-ups)
+  rather than duplicating their resource, loading, and query work.
+
+  At the start and close of each capability slice, locate related entries across
+  the [tracking record](#tracked-follow-up), the
+  [legacy backlog](legacy-backlog.md), and relevant Git history. Treat them as
+  informative evidence rather than requirements or a predetermined API, then
+  migrate, rewrite, or remove them according to current owners and what remains
+  useful.
+
 ### Outliner
 
 - **Inline line breaks in note content.** [Body](specs/outliner/body.md#core-behavior) owns multi-line text, and
@@ -143,6 +179,14 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   checked-state toggles, focus-note toolbar actions, and the double-Shift menu
   as no-ops. Align shared body-to-owner resolution and add focused coverage for
   each affected command path.
+
+- **Zoom-root toolbar deletion.** Target behavior
+  ([Mobile toolbar](specs/outliner/mobile-toolbar.md#actions)): the current zoom
+  root supplies no delete target. `$resolveSelectedNotesDeletion` currently
+  resolves that note, so toolbar availability reports Delete as enabled and
+  command application can use the same target. Reject the zoom root in the
+  deletion owner's target resolution so availability and application agree,
+  then cover both the owner seam and toolbar delegation.
 
 - **Menu toggle inside a structural selection.** Target behavior
   ([Menu](specs/outliner/menu.md)): the note menu's toggle applies to the selected

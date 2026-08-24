@@ -11,13 +11,14 @@ import {
 } from '#client/editor/foundation/commands';
 import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
 import { resolveSelectionCapability, runMobileAction } from '#client/editor/mobile-toolbar/actions';
 
 // Behavior coverage for the mobile action toolbar (docs/specs/outliner/mobile-toolbar.md).
-// Every toolbar action is a command dispatch reusing existing wiring: these
-// tests exercise the new commands the toolbar adds (indent/outdent/delete)
-// behaviorally, verify runMobileAction maps all nine action ids to the right
-// command, and check the fold/delete capability the toolbar reflects. The
+// Most toolbar actions dispatch existing commands; single-note folding uses the
+// editor-note SDK. These tests exercise the new commands the toolbar adds
+// (indent/outdent/delete) behaviorally and check the fold/delete capability the
+// toolbar reflects. The
 // underlying reorder/done/fold/undo/redo operations are covered by their own
 // plugins' tests. Presence gating (coarse-pointer) is verified live per
 // AGENTS.md — the route harness never reaches schemaReady to mount the toolbar.
@@ -100,11 +101,13 @@ describe('mobile toolbar actions', () => {
   });
 
   it('toggles fold on the focus note', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    // fold is the action with the most dispatch logic (resolve the focus note
-    // key). note6 is a parent, so folding it is observable in the outline.
     await placeCaretAtNote(remdo, 'note6');
+    const notes = createLexicalEditorNotes({
+      editor: remdo.editor,
+      docId: remdo.getCollabDocId(),
+    });
 
-    runMobileAction(remdo.editor, 'fold');
+    runMobileAction(remdo.editor, notes, 'fold');
 
     await waitFor(() => {
       expect(remdo).toMatchOutline([
@@ -122,8 +125,12 @@ describe('mobile toolbar actions', () => {
     await placeCaretAtNote(remdo, 'note6');
     const noteItemKey = getNoteKey(remdo, 'note6');
     const dispatch = vi.spyOn(remdo.editor, 'dispatchCommand');
+    const notes = createLexicalEditorNotes({
+      editor: remdo.editor,
+      docId: remdo.getCollabDocId(),
+    });
 
-    runMobileAction(remdo.editor, 'menu');
+    runMobileAction(remdo.editor, notes, 'menu');
 
     expect(dispatch).toHaveBeenCalledWith(OPEN_NOTE_MENU_COMMAND, { noteItemKey });
     dispatch.mockRestore();
@@ -131,8 +138,12 @@ describe('mobile toolbar actions', () => {
 
   it('toggles done on the selected note', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note5');
+    const notes = createLexicalEditorNotes({
+      editor: remdo.editor,
+      docId: remdo.getCollabDocId(),
+    });
 
-    runMobileAction(remdo.editor, 'done');
+    runMobileAction(remdo.editor, notes, 'done');
 
     await waitFor(() => {
       const checked = remdo.editor.getEditorState().read(() => $getNoteChecked($findNoteById('note5')!));
@@ -141,11 +152,15 @@ describe('mobile toolbar actions', () => {
   });
 
   it('reflects fold capability: enabled for a parent, disabled for a leaf', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    const notes = createLexicalEditorNotes({
+      editor: remdo.editor,
+      docId: remdo.getCollabDocId(),
+    });
     await placeCaretAtNote(remdo, 'note6');
-    expect(resolveSelectionCapability(remdo.editor).fold).toBe(true);
+    expect(resolveSelectionCapability(remdo.editor, notes).fold).toBe(true);
 
     await placeCaretAtNote(remdo, 'note7');
-    expect(resolveSelectionCapability(remdo.editor).fold).toBe(false);
+    expect(resolveSelectionCapability(remdo.editor, notes).fold).toBe(false);
   });
 
   it('does not fold the current zoom root', meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
@@ -153,19 +168,27 @@ describe('mobile toolbar actions', () => {
     // the zoomed-in content, so with the caret on the zoom root fold is disabled
     // and a tap is a no-op — matching the note menu's zoom-root guard.
     await placeCaretAtNote(remdo, 'note2');
-    expect(resolveSelectionCapability(remdo.editor).fold).toBe(false);
+    const notes = createLexicalEditorNotes({
+      editor: remdo.editor,
+      docId: remdo.getCollabDocId(),
+    });
+    expect(resolveSelectionCapability(remdo.editor, notes).fold).toBe(false);
 
     const before = remdo.getEditorState();
-    runMobileAction(remdo.editor, 'fold');
+    runMobileAction(remdo.editor, notes, 'fold');
     expect(remdo).toMatchEditorState(before);
   });
 
   it('reflects delete capability for a caret and a note range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    const notes = createLexicalEditorNotes({
+      editor: remdo.editor,
+      docId: remdo.getCollabDocId(),
+    });
     await placeCaretAtNote(remdo, 'note5');
-    expect(resolveSelectionCapability(remdo.editor).delete).toBe(true);
+    expect(resolveSelectionCapability(remdo.editor, notes).delete).toBe(true);
 
     await selectStructuralNotes(remdo, 'note5', 'note6');
-    expect(resolveSelectionCapability(remdo.editor).delete).toBe(true);
+    expect(resolveSelectionCapability(remdo.editor, notes).delete).toBe(true);
   });
 
   it('deletes the focused note from a caret (removes the note and its subtree)', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {

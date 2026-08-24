@@ -26,8 +26,8 @@ its entry, actions, and behavior.
    - Toggle checked per [List types](./list-types.md#toggling): targets the
      [selected note range](./selection.md#note-ranges) when the current note is
      inside a [structural selection](./selection.md#selection-states), otherwise the current note; shortcut `Cmd/Ctrl+Enter`.
-   - Fold/Unfold per [Folding](./folding.md), hidden for leaf notes and for the
-     current [zoom root](./zoom.md#definitions), shortcut `F` when the menu is open.
+   - Fold/Unfold per [Folding](./folding.md), hidden when single-note folding is
+     unavailable, shortcut `F` when the menu is open.
    - Zoom per [Zoom](./zoom.md), shortcut `Z`.
 4. Children actions:
    - Child list type actions per [List types](./list-types.md#type-conversion), showing only

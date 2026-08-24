@@ -102,6 +102,8 @@ require explicit user authority.
 - Prefer the simplest permanent implementation. Stop on a missing task
   dependency and investigate repository evidence before asking.
 - The shared entry point owns its
+  [adjacent-cleanup rule](../../../AGENTS.md#execution-and-evidence).
+- The shared entry point owns its
   [decision rule](../../../AGENTS.md#execution-and-evidence).
 - The shared entry point directs agents to add Markdown prose soft wraps only
   when required by line-length lint.

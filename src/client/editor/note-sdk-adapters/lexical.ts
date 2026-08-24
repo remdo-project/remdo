@@ -1,8 +1,11 @@
 import type { LexicalEditor, LexicalNode } from 'lexical';
 import { $createTextNode, $getNodeByKey, $getSelection, $isRangeSelection, $setState } from 'lexical';
 import { createUniqueNoteId } from '#domain/notes/ids';
+import { $canOfferFold } from '#client/editor/features/folding/fold-offer';
 import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
+import { $autoExpandIfFolded, $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
+import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { noteRangeFromNoteId, noteRangeFromOrderedIds } from '#client/editor/outline/note-range';
 import {
   $getOrCreateChildList,
@@ -18,7 +21,7 @@ import { getNoteBody, $resolveNoteForSelectionPoint } from '#client/editor/outli
 import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '#client/editor/outline/note-ops';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $requireContentItemNoteId, $requireRootContentList } from '#client/editor/outline/schema';
-import { $resolveViewRoot } from '#client/editor/outline/view-root';
+import { $resolveViewRoot, subscribeViewRoot } from '#client/editor/outline/view-root';
 import type { OutlineSelectionRange } from '#client/editor/outline/selection/model';
 import { $resolveStructuralHeadsFromRange } from '#client/editor/outline/selection/range';
 import {
@@ -46,14 +49,47 @@ import type {
 import { createEditorNotes, NoteNotFoundError } from '#note-sdk';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
-import { $autoExpandIfFolded } from '#client/editor/outline/fold-state';
 
 interface LexicalEditorNotesAdapterOptions {
   editor: LexicalEditor;
   docId: string;
 }
 
-function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAdapterOptions): EditorNotesAdapter {
+type EditorNotesRunners = Pick<EditorNotesAdapter, 'runRead' | 'runMutation' | 'subscribe'>;
+
+function subscribeEditorNotes(editor: LexicalEditor, listener: () => void): () => void {
+  let active = true;
+  let pending = false;
+  const schedule = () => {
+    if (!active || pending) {
+      return;
+    }
+    pending = true;
+    // Editor listeners run during Lexical's commit, while view-root listeners
+    // already enter through a microtask. Deliver one checkpoint later so both
+    // sources coalesce and consumers can safely start a fresh SDK mutation.
+    queueMicrotask(() => {
+      queueMicrotask(() => {
+        pending = false;
+        if (active) {
+          listener();
+        }
+      });
+    });
+  };
+  const unregisterEditor = editor.registerUpdateListener(schedule);
+  const unsubscribeViewRoot = subscribeViewRoot(editor, schedule);
+  return () => {
+    active = false;
+    unregisterEditor();
+    unsubscribeViewRoot();
+  };
+}
+
+function createLexicalEditorNotesAdapter(
+  { editor, docId }: LexicalEditorNotesAdapterOptions,
+  runners: EditorNotesRunners,
+): EditorNotesAdapter {
   type MoveInsertionTarget =
     | { kind: 'before'; reference: LexicalNode }
     | { kind: 'after'; reference: LexicalNode }
@@ -291,7 +327,12 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
   };
 
   return {
+    ...runners,
     docId: () => docId,
+    focusNoteId: () => {
+      const focusKey = $resolveFocusNoteKey(editor);
+      return focusKey ? $noteIdFromContentKey(focusKey) : null;
+    },
     currentDocumentChildrenIds: () => {
       const rootList = $requireRootContentList();
       return getContentSiblings(rootList)
@@ -312,6 +353,9 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
       return $isListNode(parent) ? parent.getListType() : 'bullet';
     },
     checkedOf: (noteId) => $getNoteChecked($requireNoteById(noteId)) === true,
+    foldedOf: (noteId) => $isNoteFolded($requireNoteById(noteId)),
+    canToggleFold: (noteId) => $canOfferFold(editor, $requireNoteById(noteId)),
+    setFolded: (noteId, folded) => $setNoteFolded($requireNoteById(noteId), folded),
     parentIdOf: (noteId) => {
       const parent = getParentContentItem($requireNoteById(noteId));
       return parent ? $getNoteId(parent) : null;
@@ -374,5 +418,46 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
 }
 
 export function createLexicalEditorNotes(options: LexicalEditorNotesAdapterOptions): EditorNotes {
-  return createEditorNotes(createLexicalEditorNotesAdapter(options));
+  const { editor } = options;
+  const runMutation = <T>(operation: () => T): T => {
+    let result!: T;
+    const failure: { error?: unknown } = {};
+    editor.update(() => {
+      try {
+        result = operation();
+      } catch (error) {
+        failure.error = error;
+        // Preserve Lexical's rollback and error-reporting path. In production
+        // the configured onError may swallow this, so rethrow it below too.
+        throw error;
+      }
+    }, { discrete: true });
+    // If editor.update itself rethrows, control never reaches this branch.
+    if ('error' in failure) {
+      throw failure.error;
+    }
+    return result;
+  };
+  const runners: EditorNotesRunners = {
+    runRead: (operation) => editor.read(operation),
+    runMutation,
+    subscribe: (listener) => subscribeEditorNotes(editor, listener),
+  };
+  return createEditorNotes(createLexicalEditorNotesAdapter(options, runners));
+}
+
+/**
+ * Creates a transaction-bound SDK session for callers that already own one
+ * Lexical read or update, such as a bulk document walk. Ordinary consumers use
+ * createLexicalEditorNotes(), whose operations open their own transactions.
+ */
+export function createLexicalEditorNotesSession(
+  options: LexicalEditorNotesAdapterOptions,
+): EditorNotes {
+  const runImmediately = <T>(operation: () => T): T => operation();
+  return createEditorNotes(createLexicalEditorNotesAdapter(options, {
+    runRead: runImmediately,
+    runMutation: runImmediately,
+    subscribe: (listener) => subscribeEditorNotes(options.editor, listener),
+  }));
 }

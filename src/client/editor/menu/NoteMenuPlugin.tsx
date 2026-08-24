@@ -142,9 +142,13 @@ export function NoteMenuPlugin() {
   };
 
   const handleMenuShortcut = (event: MenuShortcutEvent): boolean => {
-    return handleNoteMenuShortcut(event, menuRef.current, {
+    const current = menuRef.current;
+    if (!current) {
+      return false;
+    }
+    return handleNoteMenuShortcut(event, {
       foldViewToLevel: triggerFoldViewToLevel,
-      toggleFold: triggerFoldToggle,
+      toggleFold: current.canFold ? triggerFoldToggle : undefined,
       zoom: triggerZoom,
     });
   };
@@ -384,9 +388,9 @@ export function NoteMenuPlugin() {
   };
 
   const handleMenuKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (handleNoteMenuShortcut(event.nativeEvent, menu, {
+    if (handleNoteMenuShortcut(event.nativeEvent, {
       foldViewToLevel: triggerFoldViewToLevel,
-      toggleFold: triggerFoldToggle,
+      toggleFold: menu.canFold ? triggerFoldToggle : undefined,
       zoom: triggerZoom,
     })) {
       return;
