@@ -1,6 +1,6 @@
 ---
 name: remdo-prepare-change
-description: Coordinate an explicitly requested RemDo repository change by establishing its outcome, adopted work, owning branch, and target behavior, then executing, converging, and handing it off. Use when the developer invokes $remdo-prepare-change for a new or existing change.
+description: Coordinate an explicitly requested RemDo repository change through interactive framing, owning-branch setup, target-behavior establishment, execution, convergence, and handoff. Use when the developer invokes $remdo-prepare-change for a new or existing change.
 ---
 
 # RemDo Prepare Change
@@ -11,10 +11,9 @@ The procedure below only binds its operations to repository mechanisms.
 
 ## Repository bindings
 
-At an exploration step, start a fresh subagent with the established question,
-scope, result, and return point. Do not pass a proposed answer.
-
-When creating the owning branch directly from the selected base, run:
+At **Ready the owning branch**, fetch `origin/main` and resolve the
+developer-selected base or fetched `origin/main` to a commit. When creating the
+owning branch directly from that commit, run:
 
 ```sh
 sh .agents/skills/_shared/tools/create-branch-from-base.sh <branch-name> <pinned-base-sha>

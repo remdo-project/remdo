@@ -16,71 +16,70 @@ The coordinator owns lifecycle state, integration decisions, and undelegated wor
 It [aggregates](../protocol.md#aggregation) participant results, and only it advances the lifecycle.
 Returning to an earlier step retains decisions and evidence that remain valid.
 
-1. **Coordinator — Establish the change.** Bound it before retaining work by
-   determining the requested outcome, constraints, non-goals, observable
-   completion, any developer-selected base, and adopted existing work from
-   explicit developer instructions and decisions,
-   applicable [accepted contracts](../../../documentation.md#target-behavior), and repository evidence.
-   Retain established information without asking the developer to confirm it again.
-   If the developer requests a distinct exploration, or material uncertainty
-   prevents a sound decision and bounded exploration could resolve it, then
-   establish any required [repository authority](../../../../AGENTS.md#repository-authority), its question, scope, expected result,
-   and return point. Perform the exploration. It is read-only unless its established
-   scope and held authority allow disposable mutations; its repository changes
-   remain disposable unless adopted. Integrate its result and repeat this step.
-   If a material choice remains unresolved, then obtain a focused developer decision.
-   Continue only after the requested change and adopted work are sufficiently bounded.
-2. **Coordinator — Ready the owning branch.** Isolate adopted work by fetching
-   `origin/main` and basing the current
-   [topic branch](../../../../CONTRIBUTING.md#git-workflow) on the fetched commit without unadopted work.
-   Use another base only if the developer selected one.
-   If repository evidence conflicts with the established base or adopted work,
-   then return to **Establish the change**.
-   If the owning branch cannot be readied within held authority, then retain a
-   [concern](../protocol.md#concerns) and return `stopped`.
-3. **Coordinator — Establish target behavior.** Define what execution must realize
-   by identifying the current [contract owners](../../../documentation.md#ownership) for the requested outcome.
-   When the requested outcome does not change accepted [target behavior](../../../documentation.md#target-behavior),
-   retain that behavior and its owners without a new specification or approval.
-   Otherwise, map the proposed target behavior to its owners. Change only
-   owners whose behavior must change under [Specification structure](../../../documentation.md#specification-structure).
-   Surface unresolved behavior, concerns, and [tracked gaps](../../../todo.md#tracked-follow-up).
-   Present the resulting target behavior and owners for developer review,
-   keeping specification edits uncommitted while target behavior remains under
-   review.
-   Only approval of that presentation establishes the changed target behavior.
-   Requirements feedback returns to **Establish the change**.
-   Specification feedback repeats this step.
-   Continue once target behavior is established; approval establishes changed
-   target behavior, not exact wording.
-4. **Coordinator and participants — Execute the established change.** Realize
-   target behavior by performing undelegated work and invoking applicable
-   capabilities under their declared [calls](../protocol.md#calls).
-   Retain their results.
-   Participants do not expand established target behavior.
-   If execution evidence conflicts with established change information, then return
-   to the earliest of **Establish the change** or
-   **Establish target behavior** that must change.
-   Complete this step with all established change work committed.
-5. **Coordinator — Converge the change.** Complete the quality loop before
-   developer review. Form one supported [change scope](../change-scope.md) from
-   all adopted work and invoke [`remdo-converge-change`](remdo-converge-change.md).
-   It runs as a black box over that scope and owns the quality loop.
-   If convergence returns `stopped` or `not-converged`, then retain its result.
-   The developer chooses to stop or retry from the earliest concern-resolving step.
-   A stop returns `stopped`; a retry returns to that step.
-   Continue only with a `converged` result for the latest repository state.
-6. **Coordinator — Hand off the change.** Support a developer disposition by
-   presenting the active result under [Reports](../protocol.md#reports) before requesting
-   developer acceptance or authority for subsequent repository or remote work.
-   Without a developer disposition, return `ready-for-review`.
-   Requirements feedback returns to **Establish the change**.
-   Feedback that changes target behavior returns to **Establish target behavior**.
-   Other specification feedback returns to **Execute the established change**.
-   Implementation feedback follows the same route.
-   After any repository mutation, complete the earliest affected step.
-   Repeat **Converge the change** before another handoff.
-   Developer acceptance returns `completed`.
+1. **Explore and frame the change.**
+   - **Interaction:** Short developer–coordinator dialogue. Continue from the
+     supplied intent; otherwise ask what the developer wants to explore.
+   - **Grounding:** Check relevant repository evidence as questions arise.
+     [Accepted contracts](../../../documentation.md#target-behavior) describe the current baseline; a conflict identifies
+     behavior the proposed change may need to revise.
+   - **Outcome:** A repository-grounded change direction clear enough to name
+     its owning branch.
+   - **Completion:** When the developer asks to proceed with the framed change,
+     continue to **Ready the owning branch**.
+2. **Ready the owning branch.**
+   - **Setup:** Autonomous. Base the owning
+     [topic branch](../../../../CONTRIBUTING.md#git-workflow) on current `origin/main` unless the developer selected another
+     base.
+   - **Conflict:** If repository evidence contradicts the selected base or
+     adopted work, return to **Explore and frame the change**.
+   - **Failure:** If the branch cannot be readied within held authority, retain
+     a [concern](../protocol.md#concerns) and return `stopped`.
+   - **Outcome:** The owning branch isolates the change direction and any
+     developer-adopted existing work from unrelated work.
+3. **Establish target behavior.**
+   - **Analysis:** Autonomous. Identify the current
+     [contract owners](../../../documentation.md#ownership). If the change direction does not alter accepted
+     [target behavior](../../../documentation.md#target-behavior), retain that behavior and its owners. Otherwise, update only
+     owners whose behavior must change under
+     [Specification structure](../../../documentation.md#specification-structure), and surface unresolved behavior, concerns,
+     and [tracked gaps](../../../todo.md#tracked-follow-up).
+   - **Review:** Present changed target behavior and its owners for developer
+     review, keeping specification edits uncommitted. Only approval of that
+     presentation establishes the behavior; approval does not bind exact wording.
+   - **Feedback:** Requirements feedback returns to
+     **Explore and frame the change**. Specification feedback repeats this step.
+   - **Outcome:** Target behavior mapped to the owners that execution must
+     realize, either retained from current contracts or approved by the developer.
+4. **Execute the established change.**
+   - **Execution:** Autonomous within the established target behavior. The
+     coordinator performs undelegated work, invokes applicable capabilities
+     under their declared [calls](../protocol.md#calls), and integrates their results.
+   - **Boundary:** Execution does not expand the established target behavior. If
+     execution evidence invalidates the change direction, return to
+     **Explore and frame the change**. If it invalidates only target behavior,
+     return to **Establish target behavior**.
+   - **Outcome:** All established change work is implemented and committed.
+5. **Converge the change.**
+   - **Convergence:** Autonomous. Form one supported
+     [change scope](../change-scope.md) from all adopted work and invoke
+     [`remdo-converge-change`](remdo-converge-change.md). It runs as a black box
+     and owns the complete quality loop over that scope.
+   - **Non-convergence:** Retain a `stopped` or `not-converged` result. The
+     developer chooses between returning `stopped` and retrying from the earliest
+     concern-resolving step.
+   - **Outcome:** A `converged` result for the latest repository state.
+6. **Hand off for developer review.**
+   - **Interaction:** Present the active result under
+     [Reports](../protocol.md#reports) before requesting developer acceptance or separate authority for subsequent
+     repository or remote work.
+   - **Feedback:** Requirements feedback returns to
+     **Explore and frame the change**. Feedback that changes target behavior
+     returns to **Establish target behavior**. Other specification or
+     implementation feedback returns to **Execute the established change**.
+     After any resulting repository mutation, repeat **Converge the change**
+     before another handoff.
+   - **Outcome:** Without a developer disposition, return `ready-for-review`.
+     Developer acceptance returns `completed`.
 
 ## Result
 
