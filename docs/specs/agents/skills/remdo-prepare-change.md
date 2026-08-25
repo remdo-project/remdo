@@ -30,16 +30,18 @@ Returning to an earlier step retains decisions and evidence that remain valid.
      proposed answer.
    - **Outcome:** A repository-grounded change direction and its adopted
      existing work, clear enough to name the owning branch.
-   - **Completion:** Continue to **Ready the owning branch** when the developer
-     asks to proceed or the supplied intent already requests work on a sufficiently
-     framed change.
+   - **Completion:** Advance only when the developer asks to proceed or the
+     supplied intent already requests work on a sufficiently framed change.
 2. **Ready the owning branch.**
-   - **Setup:** Autonomous. Before changing branches, identify existing work. If
-     any of it is not adopted for the change, do not change branches. Create or
-     switch to the owning [topic branch](../../../../CONTRIBUTING.md#git-workflow). When creating it, use fetched `origin/main`
+   - **Setup:** Autonomous. Before changing branches, identify existing work in
+     the current tree and owning branch. If any of it is not adopted for the
+     change, return to **Explore and frame the change**. Create or switch to the
+     owning [topic branch](../../../../CONTRIBUTING.md#git-workflow). When
+     creating it, use the `origin/main` commit current when this step began
      unless the developer selected another base.
    - **Conflict:** If repository evidence contradicts the selected base or
-     adopted work, return to **Explore and frame the change**.
+     adopted work, or adopted uncommitted work cannot remain on that base within
+     held authority, return to **Explore and frame the change**.
    - **Failure:** If the branch cannot be readied within held authority, retain
      a [concern](../protocol.md#concerns) and return `stopped`.
    - **Outcome:** The owning branch contains only work the developer adopted for
@@ -52,9 +54,10 @@ Returning to an earlier step retains decisions and evidence that remain valid.
      **Execute the established change**. Otherwise, update only owners whose
      behavior must change under [Specification structure](../../../documentation.md#specification-structure), and surface
      unresolved behavior, concerns, and [tracked gaps](../../../todo.md#tracked-follow-up).
-   - **Review:** Present changed target behavior and its owners for developer
-     review, keeping specification edits uncommitted. Only approval of that
-     presentation establishes changed behavior; approval does not bind exact wording.
+   - **Review:** When target behavior changes or specification feedback is
+     pending, present the changed behavior and its owners for developer review,
+     keeping specification edits uncommitted. Only approval of that presentation
+     establishes changed behavior; approval does not bind exact wording.
    - **Feedback:** Requirements feedback returns to
      **Explore and frame the change**. Specification feedback updates the
      presentation and repeats **Review** within this step.
@@ -75,8 +78,7 @@ Returning to an earlier step retains decisions and evidence that remain valid.
 5. **Converge the change.**
    - **Convergence:** Autonomous. Form one supported
      [change scope](../change-scope.md) from all adopted work and invoke
-     [`remdo-converge-change`](remdo-converge-change.md). It runs as a black box
-     and owns the complete quality loop over that scope.
+     [`remdo-converge-change`](remdo-converge-change.md).
    - **Scope failure:** If one supported scope cannot be formed within held
      authority, retain a [concern](../protocol.md#concerns) and return `stopped`.
    - **Non-convergence:** If convergence returns `stopped` or `not-converged`,

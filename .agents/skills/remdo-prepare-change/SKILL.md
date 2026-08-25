@@ -12,9 +12,8 @@ The procedure below only binds its operations to repository mechanisms.
 ## Repository bindings
 
 At **Ready the owning branch**, fetch `origin/main` and resolve the
-developer-selected base or fetched `origin/main` to a commit. After confirming
-all existing work is adopted for the change, when creating the owning branch
-directly from that commit, run:
+base selected under the specification to a commit. When creating the owning
+branch directly from that commit, run:
 
 ```sh
 sh .agents/skills/_shared/tools/create-branch-from-base.sh <branch-name> <pinned-base-sha>
