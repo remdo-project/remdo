@@ -1,6 +1,6 @@
 import type { LexicalCommand, LexicalEditor } from 'lexical';
-import { $getNodeByKey, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
-import { $isListItemNode } from '@lexical/list';
+import { REDO_COMMAND, UNDO_COMMAND } from 'lexical';
+import type { EditorNotes } from '#note-sdk';
 
 import {
   DELETE_SELECTED_NOTES_COMMAND,
@@ -10,9 +10,7 @@ import {
   REORDER_NOTES_DOWN_COMMAND,
   REORDER_NOTES_UP_COMMAND,
   SET_NOTE_CHECKED_COMMAND,
-  SET_NOTE_FOLD_COMMAND,
 } from '#client/editor/foundation/commands';
-import { $canOfferFold } from '#client/editor/features/folding/fold-offer';
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 
@@ -31,8 +29,9 @@ export type MobileActionId =
   | 'redo'
   | 'menu';
 
-// Actions that map directly to a no-payload command. `done` and `fold` need a
-// payload, so they are handled explicitly in runMobileAction. Lexical's own
+// Actions that map directly to a no-payload command. `done` needs a payload and
+// `fold` uses the editor-note SDK, so they are handled explicitly in
+// runMobileAction. Lexical's own
 // UNDO/REDO are LexicalCommand<void> while this repo's commands are
 // LexicalCommand<undefined>; both accept an undefined payload, and keeping the
 // union (rather than AnyLexicalCommand) still rejects a payload-taking command here.
@@ -49,20 +48,20 @@ const DIRECT_COMMANDS: Partial<
 };
 
 /**
- * Run a toolbar action against the editor's current selection. Every action is
- * a single command dispatch reusing existing wiring; the caller is a pointer
- * handler, so this is invoked outside any editor update.
+ * Run a toolbar action against the editor's current selection. The caller is a
+ * pointer handler, so this is invoked outside any editor update.
  */
-export function runMobileAction(editor: LexicalEditor, id: MobileActionId): void {
+export function runMobileAction(
+  editor: LexicalEditor,
+  notes: EditorNotes,
+  id: MobileActionId
+): void {
   if (id === 'done') {
     editor.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
     return;
   }
   if (id === 'fold') {
-    const noteItemKey = editor.read(() => $resolveFoldableNoteKey(editor));
-    if (noteItemKey) {
-      editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey });
-    }
+    notes.focusNote()?.toggleFold();
     return;
   }
   if (id === 'menu') {
@@ -75,15 +74,6 @@ export function runMobileAction(editor: LexicalEditor, id: MobileActionId): void
   editor.dispatchCommand(DIRECT_COMMANDS[id]!, undefined);
 }
 
-function $resolveFoldableNoteKey(editor: LexicalEditor): string | null {
-  const key = $resolveFocusNoteKey(editor);
-  const note = key ? $getNodeByKey(key) : null;
-  if (!$isListItemNode(note) || !$canOfferFold(editor, note)) {
-    return null;
-  }
-  return key;
-}
-
 // Capability of the actions the spec disables (fold, delete). Undo/redo track
 // their own capability through CAN_UNDO/CAN_REDO command events, not here.
 export interface SelectionCapability {
@@ -92,9 +82,12 @@ export interface SelectionCapability {
 }
 
 /** Compute fold/delete capability for the current selection. Non-mutating. */
-export function resolveSelectionCapability(editor: LexicalEditor): SelectionCapability {
-  return editor.read(() => ({
-    fold: $resolveFoldableNoteKey(editor) !== null,
-    delete: $canDeleteFocusedOrSelectedNotes(editor),
-  }));
+export function resolveSelectionCapability(
+  editor: LexicalEditor,
+  notes: EditorNotes
+): SelectionCapability {
+  return {
+    fold: notes.focusNote()?.canToggleFold() ?? false,
+    delete: editor.read(() => $canDeleteFocusedOrSelectedNotes(editor)),
+  };
 }

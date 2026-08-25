@@ -1,1 +1,1 @@
-export { createLexicalEditorNotes } from './lexical';
+export { createLexicalEditorNotes, createLexicalEditorNotesSession } from './lexical';

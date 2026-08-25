@@ -10,6 +10,12 @@ export type NoteListType = 'bullet' | 'number' | 'check';
 export interface EditorNote extends AddressableNote<'editor-note'> {
   /** True when the note still exists in the current editor state. */
   attached: () => boolean;
+  /** True when the note's folded state is set. */
+  folded: () => boolean;
+  /** True when the note can currently change its folded state. */
+  canToggleFold: () => boolean;
+  /** Toggles folded state; no-ops when folding is currently unavailable. */
+  toggleFold: () => void;
   /** Returns the parent editor note, or null for a top-level note. */
   parent: () => EditorNote | null;
   /** Returns direct child editor notes. Throws when the note does not exist. */
@@ -73,11 +79,23 @@ interface EditorNotesBase {
 export interface EditorNotes extends EditorNotesBase {
   /** Returns current document note handle. */
   currentDocument: () => DocumentNote;
+  /** Returns the current focus note, or null when there is none. */
+  focusNote: () => EditorNote | null;
   /** Returns an editor note handle by id; reads throw when the note does not exist. */
   note: (noteId: NoteId) => EditorNote;
+  /** Signals that a subsequent read may differ; listeners receive no change payload. */
+  subscribe: (listener: () => void) => () => void;
 }
 
 export interface EditorNotesAdapter extends EditorNotesBase {
+  /** Runs one complete SDK read against a consistent adapter state. */
+  runRead: <T>(operation: () => T) => T;
+  /** Runs one complete SDK mutation against a consistent adapter state. */
+  runMutation: <T>(operation: () => T) => T;
+  /** Signals that a subsequent SDK read may differ; listeners receive no change payload. */
+  subscribe: (listener: () => void) => () => void;
+  /** Reads the current focus note id, or null when there is none. */
+  focusNoteId: () => NoteId | null;
   /** Reads direct current-document root editor note ids in display order. */
   currentDocumentChildrenIds: () => readonly NoteId[];
   /** Creates and places an adapter-level note at target, then returns attached note id. */
@@ -92,6 +110,12 @@ export interface EditorNotesAdapter extends EditorNotesBase {
   listTypeOf: (noteId: NoteId) => NoteListType;
   /** Reads checked state, independent of the note's list type. Throws when note does not exist. */
   checkedOf: (noteId: NoteId) => boolean;
+  /** Reads folded state. Throws when note does not exist. */
+  foldedOf: (noteId: NoteId) => boolean;
+  /** True when folded state can currently change. Throws when note does not exist. */
+  canToggleFold: (noteId: NoteId) => boolean;
+  /** Sets folded state. Throws when note does not exist. */
+  setFolded: (noteId: NoteId, folded: boolean) => void;
   /** Reads the parent note id, or null for a top-level note. Throws when note does not exist. */
   parentIdOf: (noteId: NoteId) => NoteId | null;
   /** Reads direct child ids. Throws when note does not exist. */

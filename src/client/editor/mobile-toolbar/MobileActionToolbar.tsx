@@ -5,6 +5,7 @@ import { CAN_REDO_COMMAND, CAN_UNDO_COMMAND, COMMAND_PRIORITY_LOW } from 'lexica
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import type { EditorNotes } from '#note-sdk';
 
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { useCoarsePointer } from '#client/browser/useCoarsePointer';
@@ -48,7 +49,7 @@ function resolvePortalRoot(editor: LexicalEditor): Element | null {
   return root ? root.closest('.editor-container') : null;
 }
 
-export function MobileActionToolbar() {
+export function MobileActionToolbar({ notes }: { notes: EditorNotes }) {
   const [editor] = useLexicalComposerContext();
   const isCoarsePointer = useCoarsePointer();
   const visualViewportBottom = useVisualViewportBottom();
@@ -73,7 +74,7 @@ export function MobileActionToolbar() {
       if (!active) {
         return;
       }
-      const { fold, delete: canDelete } = resolveSelectionCapability(editor);
+      const { fold, delete: canDelete } = resolveSelectionCapability(editor, notes);
       setState((prev) =>
         prev.fold === fold && prev.delete === canDelete ? prev : { ...prev, fold, delete: canDelete }
       );
@@ -82,7 +83,7 @@ export function MobileActionToolbar() {
     queueMicrotask(syncCapability);
 
     const unregister = mergeRegister(
-      editor.registerUpdateListener(syncCapability),
+      notes.subscribe(syncCapability),
       editor.registerCommand(
         CAN_UNDO_COMMAND,
         (canUndo) => {
@@ -105,7 +106,7 @@ export function MobileActionToolbar() {
       active = false;
       unregister();
     };
-  }, [editor, isCoarsePointer]);
+  }, [editor, isCoarsePointer, notes]);
 
   // Show an edge fade only on a side that actually has more content, so the
   // scrolling group signals it scrolls rather than presenting a static edge.
@@ -172,7 +173,7 @@ export function MobileActionToolbar() {
     if (action.disabled) {
       return;
     }
-    runMobileAction(editor, action.id);
+    runMobileAction(editor, notes, action.id);
     editor.focus();
   };
 

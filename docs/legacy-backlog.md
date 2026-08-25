@@ -21,8 +21,8 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
-- Mobile toolbar fold: `resolveSelectionCapability` (button enabled state) and
-  `runMobileAction('fold')` (dispatch) each resolve the focus note independently,
+- Mobile toolbar fold availability and activation each resolve the focus note
+  independently,
   so a selection change between the capability sync and the tap can fold a
   different note than the button's enabled state reflected. The tap acts on the
   current focus, which is arguably correct; revisit only if it proves confusing
@@ -276,15 +276,6 @@ the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#br
   editable content and the heading role must stay on separate elements (a
   `textbox` role masks an inner heading from assistive tech). Close with the
   view-header work.
-- Fold semantics at the view header are unreconciled with the restricted kind.
-  [Zoom](specs/outliner/zoom.md) items 7–8 describe the zoom root's stored fold state
-  being preserved and not hiding its children while zoomed, but the
-  [view header](specs/outliner/view-header.md) cannot be folded, and [Folding](specs/outliner/folding.md) item 8, [Menu](specs/outliner/menu.md) (the `F`
-  fold shortcut "for the current zoom root"), and fold-to-level ("applies from
-  the current zoom root") still describe the zoom root as a foldable outline
-  target. Reconcile these — what a header's fold control and stored state mean
-  once it is a non-structural header — when the view-header kind is built. Kept
-  out of this spec pass to avoid redesigning folding/menu now.
 
 ## Note-first SDK follow-ups
 
@@ -340,16 +331,14 @@ the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#br
   3. Clarify the remaining query/loading boundary:
      whether cross-document link search should load trees directly or use a
      separate index/search layer.
-  4. Clarify mutation boundaries only as needed by the new traversal/query
-     layer (single-note writes vs transactional/multi-note updates).
-  5. Redesign projected user-data note collections around note-model
+  4. Redesign projected user-data note collections around note-model
      invariants: child identity keyed by note id, sibling order owned by the
      parent, and browser state derived from the projection rather than local
      command-result appends. Apply this to documents as one projected note
      collection kind before adding more projected app-state sections.
-  6. Review the remaining top-level API naming after the note-owned
+  5. Review the remaining top-level API naming after the note-owned
      `create(...)` refactor, especially `createLexicalEditorNotes` and `place(...)`.
-  7. Update the durable docs once the traversal/query contract stabilizes:
+  6. Update the durable docs once the traversal/query contract stabilizes:
      `docs/specs/outliner/note-model.md`, `docs/architecture.md`,
      `docs/specs/outliner/search.md`, and `docs/specs/outliner/links.md`.
 
@@ -638,20 +627,3 @@ peek + edge-fade, sizing, `aria-disabled`) is implemented; the durable contract
 lives in [docs/specs/outliner/mobile-toolbar.md](specs/outliner/mobile-toolbar.md), and the
 open follow-ups it left are the mobile-toolbar entries under the plugin
 follow-ups above. Design rationale is in git history.
-
-## Unify note actions across toolbar and menu (decided direction)
-
-The mobile action toolbar and the note [quick action menu](specs/outliner/menu.md) are
-two ad-hoc renderings of the same context-sensitive note-action set. Decided
-(research-backed; git history for the rationale): build a shared note-action
-registry — `(id, icon, label, when-applicable predicate, dispatch)` — that both
-surfaces render, so the popup menu, the touch toolbar, and keyboard entries come
-from one source. Rendering stays per-surface: the menu is a popup and *hides*
-inapplicable actions; the toolbar keeps its current rule (grey scroll actions,
-hide pinned via the anchor rule). Icons/labels may vary by note state
-(Fold/Unfold, Check/Uncheck). Folds in the tracked seams: dedup the two fold
-predicates, promote the menu's inline list-type change to a command, put
-`NoteMenuPlugin` on the shared popup engine, extract `usePortalRoot`. The
-toolbar's "open menu" icon and the menu's fuller-set-only actions (zoom,
-list-type, fold-to-level) are open design questions. This should follow the
-durable change workflow once its scope is defined.

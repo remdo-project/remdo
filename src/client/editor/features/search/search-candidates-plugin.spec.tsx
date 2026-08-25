@@ -42,7 +42,7 @@ describe('search candidates plugin', () => {
       useLexicalComposerContext: mockLexicalComposerContext,
     }));
     vi.doMock('#client/editor/note-sdk-adapters', () => ({
-      createLexicalEditorNotes: () => ({}),
+      createLexicalEditorNotesSession: () => ({}),
     }));
     vi.doMock('#client/editor/view/EditorViewProvider', () => ({
       // eslint-disable-next-line react/no-unnecessary-use-prefix -- Mock of a real hook; must keep the name.

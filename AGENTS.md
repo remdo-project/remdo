@@ -81,6 +81,10 @@ change. Do not add update-tracking sections to durable documents.
   [decision](docs/specs/agents/protocol.md#decisions) for handoff. Otherwise stop
   before the choice and ask the developer, or return the unresolved choice as a
   [concern](docs/specs/agents/protocol.md#concerns) when acting as a capability.
+- Include directly encountered adjacent cleanup when it is local,
+  behavior-preserving, clearly correct from current owners, and more costly to
+  rediscover or track separately than to fix now. Do not use this rule to
+  expand the change into unrelated cleanup or unresolved design.
 - Avoid speculative abstractions, compatibility shims, feature flags, and
   defensive guards that accepted behavior does not require.
 - Add Markdown prose soft wraps only in response to line-length lint diagnostics.

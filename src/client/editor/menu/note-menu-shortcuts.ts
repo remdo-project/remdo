@@ -3,24 +3,16 @@ export type NoteMenuShortcutEvent = Pick<
   'key' | 'altKey' | 'ctrlKey' | 'metaKey' | 'preventDefault' | 'stopPropagation'
 >;
 
-interface NoteMenuShortcutState {
-  canFold: boolean;
-}
-
 interface NoteMenuShortcutActions {
   foldViewToLevel: (level: number) => void;
-  toggleFold: () => void;
+  toggleFold?: () => void;
   zoom: () => void;
 }
 
 export const handleNoteMenuShortcut = (
   event: NoteMenuShortcutEvent,
-  current: NoteMenuShortcutState | null,
   actions: NoteMenuShortcutActions
 ): boolean => {
-  if (!current) {
-    return false;
-  }
   if (event.altKey || event.ctrlKey || event.metaKey) {
     return false;
   }
@@ -31,7 +23,7 @@ export const handleNoteMenuShortcut = (
     actions.foldViewToLevel(Number(key));
     return true;
   }
-  if (key === 'f' && current.canFold) {
+  if (key === 'f' && actions.toggleFold) {
     event.preventDefault();
     event.stopPropagation();
     actions.toggleFold();

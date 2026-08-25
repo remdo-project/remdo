@@ -1,9 +1,10 @@
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { createEditorInitialConfig } from '#client/editor/runtime/config';
 import { CollaborationPlugin, useOfflineDocumentUnavailable } from '#client/editor/runtime/collaboration';
 import { CheckListPlugin } from '#client/editor/features/list-types/CheckListPlugin';
@@ -30,6 +31,7 @@ import { NoteMenuPlugin } from '#client/editor/menu/NoteMenuPlugin';
 import { MobileActionToolbar } from '#client/editor/mobile-toolbar/MobileActionToolbar';
 import { SearchCandidatesPlugin } from '#client/editor/features/search/SearchCandidatesPlugin';
 import { PendingDocumentImportPlugin } from '#client/editor/runtime/PendingDocumentImportPlugin';
+import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
 import './Editor.css';
 
 interface EditorProps {
@@ -73,6 +75,11 @@ function EditorRuntime({
   searchModeRequested,
   onPendingDocumentImportError,
 }: EditorProps) {
+  const [editor] = useLexicalComposerContext();
+  const notes = useMemo(
+    () => createLexicalEditorNotes({ editor, docId }),
+    [docId, editor]
+  );
   const offlineDocumentUnavailable = useOfflineDocumentUnavailable();
   const [schemaReady, setSchemaReady] = useState(false);
   const handleSchemaReadyChange = useCallback((ready: boolean) => {
@@ -120,7 +127,7 @@ function EditorRuntime({
               <FoldingPlugin />
               <NoteControlsPlugin />
               <NoteMenuPlugin />
-              <MobileActionToolbar />
+              <MobileActionToolbar notes={notes} />
               <ZoomPlugin />
               <ZoomVisibilityPlugin />
               {searchModeRequested ? (

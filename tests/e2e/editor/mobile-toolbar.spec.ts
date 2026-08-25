@@ -1,4 +1,5 @@
 import { expect, test } from '#editor/fixtures';
+import { noteRow, setCaretAtText } from '#editor/locators';
 
 test.describe('Mobile action toolbar', () => {
   test.use({
@@ -52,5 +53,27 @@ test.describe('Mobile action toolbar', () => {
 
     await expect.poll(() => toolbar.evaluate((element) => element.getBoundingClientRect().bottom))
       .toBe(600);
+  });
+
+  test('updates fold availability with the focus note and folds its children', async ({
+    page,
+    editor,
+  }) => {
+    await editor.load('tree');
+
+    const toolbar = page.getByRole('toolbar', { name: 'Note actions' });
+    const toggleFold = toolbar.getByRole('button', { name: 'Toggle fold' });
+    const parent = noteRow(page, 'note2');
+    const child = noteRow(page, 'note3');
+
+    await setCaretAtText(page, 'note1');
+    await expect(toggleFold).toHaveAttribute('aria-disabled', 'true');
+
+    await setCaretAtText(page, 'note2');
+    await expect(toggleFold).not.toHaveAttribute('aria-disabled', 'true');
+
+    await toggleFold.click();
+    await expect(parent).toHaveAttribute('data-folded', 'true');
+    await expect(child).toBeHidden();
   });
 });

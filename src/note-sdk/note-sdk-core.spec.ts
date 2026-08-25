@@ -12,21 +12,26 @@ import type {
 import type { SourceServer } from '#domain/source-servers';
 
 function createMockAdapterFixture(
-  adapterSelection?: SelectionSnapshot
+  adapterSelection?: SelectionSnapshot,
+  focusNoteId: string | null = 'b',
 ): {
   adapter: EditorNotesAdapter;
   userData: Parameters<typeof createUserDataRootNote>[0];
   sourceServers: SourceServer[];
-  notes: Map<string, { text: string; children: string[]; body?: string }>;
+  notes: Map<string, { text: string; children: string[]; body?: string; folded: boolean }>;
   placeCalls: Array<{ range: NoteRange; target: PlaceTarget }>;
+  operationCounts: { mutations: number; reads: number };
+  notify: () => void;
 } {
   const resolvedSelection = adapterSelection ?? { kind: 'caret', range: { start: 'b', end: 'b' } };
-  const notes = new Map<string, { text: string; children: string[]; body?: string }>([
-    ['a', { text: 'A', children: ['b', 'c'] }],
-    ['b', { text: 'B', children: [] }],
-    ['c', { text: 'C', children: [] }],
+  const notes = new Map<string, { text: string; children: string[]; body?: string; folded: boolean }>([
+    ['a', { text: 'A', children: ['b', 'c'], folded: false }],
+    ['b', { text: 'B', children: [], folded: false }],
+    ['c', { text: 'C', children: [], folded: false }],
   ]);
   const placeCalls: Array<{ range: NoteRange; target: PlaceTarget }> = [];
+  const operationCounts = { mutations: 0, reads: 0 };
+  const listeners = new Set<() => void>();
   let nextDraftId = 1;
   const userData = [
     {
@@ -50,7 +55,7 @@ function createMockAdapterFixture(
     },
   ];
 
-  const requireNote = (noteId: string): { text: string; children: string[]; body?: string } => {
+  const requireNote = (noteId: string): { text: string; children: string[]; body?: string; folded: boolean } => {
     const note = notes.get(noteId);
     if (!note) {
       throw new NoteNotFoundError(noteId);
@@ -66,10 +71,29 @@ function createMockAdapterFixture(
   return {
     notes,
     placeCalls,
+    operationCounts,
+    notify: () => {
+      for (const listener of listeners) {
+        listener();
+      }
+    },
     userData,
     sourceServers,
     adapter: {
+      runRead: (operation) => {
+        operationCounts.reads += 1;
+        return operation();
+      },
+      runMutation: (operation) => {
+        operationCounts.mutations += 1;
+        return operation();
+      },
+      subscribe: (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
       docId: () => 'doc-1',
+      focusNoteId: () => focusNoteId,
       currentDocumentChildrenIds: () => ['a'],
       selection: () => resolvedSelection,
       createNote: (target, text = '') => {
@@ -85,7 +109,7 @@ function createMockAdapterFixture(
 
         const noteId = `draft-${nextDraftId}`;
         nextDraftId += 1;
-        notes.set(noteId, { text, children: [] });
+        notes.set(noteId, { text, children: [], folded: false });
         placeCalls.push({ range: { start: noteId, end: noteId }, target });
         return noteId;
       },
@@ -100,6 +124,11 @@ function createMockAdapterFixture(
       checkedOf: (noteId) => {
         requireNote(noteId);
         return false;
+      },
+      foldedOf: (noteId) => requireNote(noteId).folded,
+      canToggleFold: (noteId) => requireNote(noteId).children.length > 0,
+      setFolded: (noteId, folded) => {
+        requireNote(noteId).folded = folded;
       },
       parentIdOf: (noteId) => {
         requireNote(noteId);
@@ -333,6 +362,73 @@ describe('editor notes core', () => {
     expect(document.kind()).toBe('document');
     expect(document.text()).toBe('doc-1');
     expect(document.children().map((note) => note.id())).toEqual(['a']);
+  });
+
+  it('reads the current focus note from the adapter', () => {
+    const fixture = createMockAdapterFixture();
+    const sdk = createEditorNotes(fixture.adapter);
+
+    expect(sdk.focusNote()?.id()).toBe('b');
+    expect(createEditorNotes(createMockAdapterFixture(undefined, null).adapter).focusNote()).toBeNull();
+  });
+
+  it('reads and toggles folded state while it remains applicable', () => {
+    const fixture = createMockAdapterFixture();
+    const note = createEditorNotes(fixture.adapter).note('a');
+
+    expect(note.folded()).toBe(false);
+    expect(note.canToggleFold()).toBe(true);
+    note.toggleFold();
+    expect(note.folded()).toBe(true);
+    note.toggleFold();
+    expect(note.folded()).toBe(false);
+
+    expect(note.canToggleFold()).toBe(true);
+    fixture.notes.get('a')!.children = [];
+    note.toggleFold();
+    expect(note.folded()).toBe(false);
+  });
+
+  it('runs each complete SDK operation in one adapter boundary', () => {
+    const fixture = createMockAdapterFixture();
+    const sdk = createEditorNotes(fixture.adapter);
+    const note = sdk.note('a');
+
+    note.children();
+    expect(fixture.operationCounts).toEqual({ mutations: 0, reads: 1 });
+
+    fixture.operationCounts.reads = 0;
+    note.toggleFold();
+    expect(fixture.operationCounts).toEqual({ mutations: 1, reads: 0 });
+
+    fixture.operationCounts.mutations = 0;
+    sdk.place({ start: 'b', end: 'b' }, { after: 'c' });
+    expect(fixture.operationCounts).toEqual({ mutations: 1, reads: 0 });
+  });
+
+  it('delegates change subscriptions to the adapter', () => {
+    const fixture = createMockAdapterFixture();
+    const listener = vi.fn();
+    const unsubscribe = createEditorNotes(fixture.adapter).subscribe(listener);
+
+    fixture.notify();
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    fixture.notify();
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws from fold operations once the note is removed', () => {
+    const fixture = createMockAdapterFixture();
+    const sdk = createEditorNotes(fixture.adapter);
+    const note = sdk.note('a');
+
+    expect(sdk.delete({ start: 'a', end: 'a' })).toBe(true);
+
+    expect(() => note.folded()).toThrow(NoteNotFoundError);
+    expect(() => note.canToggleFold()).toThrow(NoteNotFoundError);
+    expect(() => note.toggleFold()).toThrow(NoteNotFoundError);
   });
 
   it('reflects selection and defers missing note errors to reads', () => {
