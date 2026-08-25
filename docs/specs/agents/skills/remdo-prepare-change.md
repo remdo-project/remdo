@@ -8,7 +8,7 @@ participating capabilities retain their contracts.
 
 [Repository authority](../../../../AGENTS.md#repository-authority): the skill may
 create or switch to its owning branch and create commits itself or through
-participating capabilities.
+participating capabilities at the lifecycle steps below.
 
 ## Lifecycle
 
@@ -24,12 +24,14 @@ Returning to an earlier step retains decisions and evidence that remain valid.
      behavior the proposed change may need to revise.
    - **Exploration:** Use fresh-context exploration only for a distinct question
      that benefits from separate investigation. Establish its question, scope,
-     expected result, and return point first; repository changes remain disposable
-     unless the developer adopts them.
+     expected result, return point, and any required repository authority first.
+     Repository changes remain uncommitted and disposable unless the developer
+     adopts them.
    - **Outcome:** A repository-grounded change direction clear enough to name
      its owning branch.
-   - **Completion:** When the developer asks to proceed with the framed change,
-     continue to **Ready the owning branch**.
+   - **Completion:** Continue to **Ready the owning branch** when the developer
+     asks to proceed or the supplied intent already requests work on a sufficiently
+     framed change.
 2. **Ready the owning branch.**
    - **Setup:** Autonomous. Create or switch to the owning
      [topic branch](../../../../CONTRIBUTING.md#git-workflow). When creating it, use current `origin/main` unless the developer
@@ -38,8 +40,8 @@ Returning to an earlier step retains decisions and evidence that remain valid.
      adopted work, return to **Explore and frame the change**.
    - **Failure:** If the branch cannot be readied within held authority, retain
      a [concern](../protocol.md#concerns) and return `stopped`.
-   - **Outcome:** The owning branch isolates the change direction and any
-     developer-adopted existing work from unrelated work.
+   - **Outcome:** The owning branch contains only work the developer adopted for
+     the framed change.
 3. **Establish target behavior.**
    - **Analysis:** Autonomous. Identify the current
      [contract owners](../../../documentation.md#ownership). If the change direction does not alter accepted
@@ -71,6 +73,8 @@ Returning to an earlier step retains decisions and evidence that remain valid.
      [change scope](../change-scope.md) from all adopted work and invoke
      [`remdo-converge-change`](remdo-converge-change.md). It runs as a black box
      and owns the complete quality loop over that scope.
+   - **Scope failure:** If one supported scope cannot be formed within held
+     authority, retain a [concern](../protocol.md#concerns) and return `stopped`.
    - **Non-convergence:** Retain a `stopped` or `not-converged` result. The
      developer chooses between returning `stopped` and retrying from the earliest
      concern-resolving step.
@@ -80,9 +84,9 @@ Returning to an earlier step retains decisions and evidence that remain valid.
      [Reports](../protocol.md#reports) before requesting developer acceptance or separate authority for subsequent
      repository or remote work.
    - **Feedback:** Requirements feedback returns to
-     **Explore and frame the change**. Feedback that changes target behavior
-     returns to **Establish target behavior**. Other specification or
-     implementation feedback returns to **Execute the established change**.
+     **Explore and frame the change**. Specification feedback returns to
+     **Establish target behavior**. Implementation feedback returns to
+     **Execute the established change**.
      After any resulting repository mutation, repeat **Converge the change**
      before another handoff.
    - **Outcome:** Without a developer disposition, return `ready-for-review`.
