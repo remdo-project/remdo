@@ -34,10 +34,11 @@ Returning to an earlier step retains decisions and evidence that remain valid.
      this step and when the developer asks to proceed or the supplied intent
      already requests work on a sufficiently framed change.
 2. **Ready the owning branch.**
-   - **Setup:** Autonomous. Before changing branches, identify existing work in
-     the current tree and owning branch. If any of it is not adopted for the
-     change, return to **Explore and frame the change**. Create or switch to the
-     owning [topic branch](../../../../CONTRIBUTING.md#git-workflow). When
+   - **Setup:** Autonomous. Before changing branches, identify work the branch
+     operation would carry and work the owning branch already contains. If any
+     of it is not adopted for the change, return to **Explore and frame the
+     change**. Create or switch to the owning
+     [topic branch](../../../../CONTRIBUTING.md#git-workflow). When
      creating it, use origin's `main` commit observed when this step began
      unless the developer selected another base.
    - **Conflict:** If repository evidence contradicts the selected base or
@@ -78,15 +79,16 @@ Returning to an earlier step retains decisions and evidence that remain valid.
    - **Outcome:** Established change work is committed; any implementation left
      for later is precisely tracked.
 5. **Converge the change.**
-   - **Convergence:** Autonomous. Form one supported
-     [change scope](../change-scope.md) from all adopted work and invoke
+   - **Convergence:** Autonomous. Make all adopted work representable by one
+     supported [change-scope input](../change-scope.md#resolution) and invoke
      [`remdo-converge-change`](remdo-converge-change.md).
    - **Scope failure:** If one supported scope cannot be formed within held
      authority, retain a [concern](../protocol.md#concerns) and return `stopped`.
    - **Non-convergence:** If convergence returns `stopped` or `not-converged`,
-     retain that nested result and identify the lifecycle step affected by its
-     concern. Ask the developer whether to stop or retry from that step. If they
-     stop, return `stopped`; if they retry, return to the identified step.
+     retain the complete nested result and identify the lifecycle step affected
+     by its reported condition. Ask the developer whether to stop or retry from
+     that step. If they stop, return `stopped`; if they retry, return to the
+     identified step.
    - **Outcome:** A `converged` result for the latest repository state.
 6. **Hand off for developer review.**
    - **Interaction:** Present the active result under
@@ -126,4 +128,7 @@ manual_review: # if any
 ```
 
 `ready-for-review` presents the handoff for developer review. `completed` means
-the developer accepted it. `stopped` means the workflow ended before acceptance.
+the developer accepted it. Both outcomes include the established
+`target_behavior`, the latest `converged` result, and its `scope`; the top-level
+`scope` is identical to `convergence.scope`. `stopped` means the workflow ended
+before acceptance.
