@@ -12,16 +12,16 @@ The procedure below only binds its operations to repository mechanisms.
 ## Repository bindings
 
 At **Ready the owning branch**, fetch `origin/main` and resolve the
-developer-selected base or fetched `origin/main` to a commit. When creating the
-owning branch directly from that commit, run:
+developer-selected base or fetched `origin/main` to a commit. After confirming
+all existing work is adopted for the change, when creating the owning branch
+directly from that commit, run:
 
 ```sh
 sh .agents/skills/_shared/tools/create-branch-from-base.sh <branch-name> <pinned-base-sha>
 ```
 
 When **Explore and frame the change** uses fresh-context exploration, start a
-fresh read-only subagent with its established question, scope, expected result,
-and return point.
+fresh subagent as specified.
 
 Before creating or editing a durable specification, read [`Documentation`](../../../docs/documentation.md).
 
