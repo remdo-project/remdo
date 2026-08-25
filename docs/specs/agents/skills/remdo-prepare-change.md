@@ -12,7 +12,7 @@ participating capabilities.
 
 ## Lifecycle
 
-The coordinator owns lifecycle state, integration decisions, and undelegated work.
+The coordinator owns lifecycle state and integration decisions.
 It [aggregates](../protocol.md#aggregation) participant results, and only it advances the lifecycle.
 Returning to an earlier step retains decisions and evidence that remain valid.
 

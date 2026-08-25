@@ -21,12 +21,7 @@ sh .agents/skills/_shared/tools/create-branch-from-base.sh <branch-name> <pinned
 
 Before creating or editing a durable specification, read [`Documentation`](../../../docs/documentation.md).
 
-Perform undelegated work under the repository guidelines. Invoke each
-applicable capability with the literal [`Call`](../../../docs/specs/agents/protocol.md#calls)
-established by the coordinator and integrate its complete result.
-
-At the lifecycle's **Converge the change** step, invoke `$remdo-converge-change`
-with the established scope and integrate its complete result.
+At the lifecycle's **Converge the change** step, invoke `$remdo-converge-change`.
 
 ## Report
 
