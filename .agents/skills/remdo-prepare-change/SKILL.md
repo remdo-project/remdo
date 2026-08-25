@@ -19,9 +19,13 @@ owning branch directly from that commit, run:
 sh .agents/skills/_shared/tools/create-branch-from-base.sh <branch-name> <pinned-base-sha>
 ```
 
+When **Explore and frame the change** uses fresh-context exploration, start a
+fresh subagent with its question, scope, expected result, and return point. Do
+not pass a proposed answer.
+
 Before creating or editing a durable specification, read [`Documentation`](../../../docs/documentation.md).
 
-At the lifecycle's **Converge the change** step, invoke `$remdo-converge-change`.
+At **Converge the change**, invoke `$remdo-converge-change` with the formed scope.
 
 ## Report
 

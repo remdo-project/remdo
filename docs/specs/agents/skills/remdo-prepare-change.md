@@ -22,14 +22,18 @@ Returning to an earlier step retains decisions and evidence that remain valid.
    - **Grounding:** Check relevant repository evidence as questions arise.
      [Accepted contracts](../../../documentation.md#target-behavior) describe the current baseline; a conflict identifies
      behavior the proposed change may need to revise.
+   - **Exploration:** Use fresh-context exploration only for a distinct question
+     that benefits from separate investigation. Establish its question, scope,
+     expected result, and return point first; repository changes remain disposable
+     unless the developer adopts them.
    - **Outcome:** A repository-grounded change direction clear enough to name
      its owning branch.
    - **Completion:** When the developer asks to proceed with the framed change,
      continue to **Ready the owning branch**.
 2. **Ready the owning branch.**
-   - **Setup:** Autonomous. Base the owning
-     [topic branch](../../../../CONTRIBUTING.md#git-workflow) on current `origin/main` unless the developer selected another
-     base.
+   - **Setup:** Autonomous. Create or switch to the owning
+     [topic branch](../../../../CONTRIBUTING.md#git-workflow). When creating it, use current `origin/main` unless the developer
+     selected another base.
    - **Conflict:** If repository evidence contradicts the selected base or
      adopted work, return to **Explore and frame the change**.
    - **Failure:** If the branch cannot be readied within held authority, retain
@@ -58,7 +62,10 @@ Returning to an earlier step retains decisions and evidence that remain valid.
      execution evidence invalidates the change direction, return to
      **Explore and frame the change**. If it invalidates only target behavior,
      return to **Establish target behavior**.
-   - **Outcome:** All established change work is implemented and committed.
+   - **Tracking:** Before committing a specification ahead of its implementation,
+     create or update a precise tracked gap; remove it when implementation conforms.
+   - **Outcome:** Established change work is committed; any implementation left
+     for later is precisely tracked.
 5. **Converge the change.**
    - **Convergence:** Autonomous. Form one supported
      [change scope](../change-scope.md) from all adopted work and invoke
