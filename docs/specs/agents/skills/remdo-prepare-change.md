@@ -33,9 +33,10 @@ Returning to an earlier step retains decisions and evidence that remain valid.
      asks to proceed or the supplied intent already requests work on a sufficiently
      framed change.
 2. **Ready the owning branch.**
-   - **Setup:** Autonomous. Create or switch to the owning
-     [topic branch](../../../../CONTRIBUTING.md#git-workflow). When creating it, use current `origin/main` unless the developer
-     selected another base.
+   - **Setup:** Autonomous. Before changing branches, identify existing work and
+     do not carry work the developer has not adopted. Create or switch to the
+     owning [topic branch](../../../../CONTRIBUTING.md#git-workflow). When creating it, use current `origin/main` unless the
+     developer selected another base.
    - **Conflict:** If repository evidence contradicts the selected base or
      adopted work, return to **Explore and frame the change**.
    - **Failure:** If the branch cannot be readied within held authority, retain
@@ -77,8 +78,9 @@ Returning to an earlier step retains decisions and evidence that remain valid.
      authority, retain a [concern](../protocol.md#concerns) and return `stopped`.
    - **Non-convergence:** If convergence returns `stopped` or `not-converged`,
      retain that nested result and ask the developer whether to stop or retry. If
-     they stop, return `stopped`; if they retry, return to the earliest
-     concern-resolving step.
+     they stop, return `stopped`; if they retry, return to the earliest of
+     **Explore**, **Ready**, **Establish**, **Execute**, or **Converge** that can
+     resolve the concern.
    - **Outcome:** A `converged` result for the latest repository state.
 6. **Hand off for developer review.**
    - **Interaction:** Present the active result under

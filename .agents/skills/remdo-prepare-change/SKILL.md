@@ -20,7 +20,8 @@ sh .agents/skills/_shared/tools/create-branch-from-base.sh <branch-name> <pinned
 ```
 
 When **Explore and frame the change** uses fresh-context exploration, start a
-fresh subagent.
+fresh read-only subagent with its established question, scope, expected result,
+and return point.
 
 Before creating or editing a durable specification, read [`Documentation`](../../../docs/documentation.md).
 
