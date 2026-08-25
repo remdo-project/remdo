@@ -30,18 +30,20 @@ Returning to an earlier step retains decisions and evidence that remain valid.
      proposed answer.
    - **Outcome:** A repository-grounded change direction and its adopted
      existing work, clear enough to name the owning branch.
-   - **Completion:** Advance only when the developer asks to proceed or the
-     supplied intent already requests work on a sufficiently framed change.
+   - **Completion:** Advance only after resolving any condition that returned to
+     this step and when the developer asks to proceed or the supplied intent
+     already requests work on a sufficiently framed change.
 2. **Ready the owning branch.**
    - **Setup:** Autonomous. Before changing branches, identify existing work in
      the current tree and owning branch. If any of it is not adopted for the
      change, return to **Explore and frame the change**. Create or switch to the
      owning [topic branch](../../../../CONTRIBUTING.md#git-workflow). When
-     creating it, use the `origin/main` commit current when this step began
+     creating it, use origin's `main` commit observed when this step began
      unless the developer selected another base.
    - **Conflict:** If repository evidence contradicts the selected base or
      adopted work, or adopted uncommitted work cannot remain on that base within
-     held authority, return to **Explore and frame the change**.
+     held authority, return to **Explore and frame the change** for a developer
+     decision. If the conflict remains unresolved, return `stopped`.
    - **Failure:** If the branch cannot be readied within held authority, retain
      a [concern](../protocol.md#concerns) and return `stopped`.
    - **Outcome:** The owning branch contains only work the developer adopted for
@@ -82,11 +84,9 @@ Returning to an earlier step retains decisions and evidence that remain valid.
    - **Scope failure:** If one supported scope cannot be formed within held
      authority, retain a [concern](../protocol.md#concerns) and return `stopped`.
    - **Non-convergence:** If convergence returns `stopped` or `not-converged`,
-     retain that nested result and ask the developer whether to stop or retry. If
-     they stop, return `stopped`; if they retry, return to the earliest of
-     **Explore and frame the change**, **Ready the owning branch**, **Establish
-     target behavior**, **Execute the established change**, or **Converge the
-     change** that can resolve the concern.
+     retain that nested result and identify the lifecycle step affected by its
+     concern. Ask the developer whether to stop or retry from that step. If they
+     stop, return `stopped`; if they retry, return to the identified step.
    - **Outcome:** A `converged` result for the latest repository state.
 6. **Hand off for developer review.**
    - **Interaction:** Present the active result under
@@ -94,9 +94,9 @@ Returning to an earlier step retains decisions and evidence that remain valid.
      repository or remote work.
    - **Feedback:** Resume the lifecycle from the named step. Requirements
      feedback returns to
-     **Explore and frame the change**. Specification feedback returns to
-     **Establish target behavior**. Implementation feedback returns to
-     **Execute the established change**.
+     **Explore and frame the change**. Specification feedback updates the
+     presentation and returns to **Review** in **Establish target behavior**.
+     Implementation feedback returns to **Execute the established change**.
      After any resulting repository mutation, the resumed lifecycle must reach
      **Converge the change** before another handoff.
    - **Outcome:** Without a developer disposition, return `ready-for-review`.
