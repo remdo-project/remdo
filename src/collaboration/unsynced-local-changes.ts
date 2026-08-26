@@ -30,7 +30,10 @@ function tabId(): string {
   }
   let id = storage.getItem(TAB_STORAGE_KEY);
   if (!id) {
-    id = crypto.randomUUID();
+    const randomUUID = globalThis.crypto.randomUUID;
+    id = typeof randomUUID === 'function'
+      ? randomUUID.call(globalThis.crypto)
+      : `${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
     storage.setItem(TAB_STORAGE_KEY, id);
   }
   return id;
