@@ -135,13 +135,14 @@ describe('note ids on split', () => {
 
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'no' },
-      { noteId: 'note2', text: 'te2', children: [{ noteId: 'note3', text: 'note3' }] },
+      { noteId: 'note2', text: 'no' },
+      { noteId: null, text: 'te2', children: [{ noteId: 'note3', text: 'note3' }] },
     ]);
 
     const outline = readOutline(remdo);
     const splitSibling = outline.find((node) => node.text === 'te2');
     expect(splitSibling?.noteId).toBeTruthy();
+    expect(splitSibling?.noteId).not.toBe('note2');
     expect(new Set(collectOutlineNoteIds(outline)).size).toBe(collectOutlineNoteIds(outline).length);
   });
 });

@@ -129,33 +129,13 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   schema nor its validator rejects one, leaving the invariant unenforced against
   a handler or paste path that inserts a line break node into content.
 
-- **Enter at the end of an inline element.** Target behavior
-  ([Insertion](specs/outliner/insertion.md)): splitting a note keeps the note id
-  and children on the note holding the trailing text
-  (`src/client/editor/editing/insertion/insertion.spec.ts`).
-  `$splitContentItemAtSelection` in `InsertionPlugin.tsx` resolves the
-  anchor through inline ancestors, but when
-  the caret sits at the end of an inline element's last text node and content
-  follows the inline, `getNextSibling()` is null and the split returns false. A
-  non-collapsed selection ending there deletes the text and swallows `Enter`
-  without splitting; a collapsed caret falls through to Lexical's default split,
-  which leaves the note id on the leading segment and inverts the rule above.
-  The symmetric offset-0 case and end-of-inline as the note's last child are
-  already handled.
-
-- **Hold `ClipboardPlugin` structural refactor.** At 996 lines it is the
-  editor's largest module and an obvious split candidate, but its cut and paste
+- **Hold `ClipboardPlugin` structural refactor.** It remains the editor's
+  largest module and an obvious split candidate, but its cut and paste
   semantics are due to change: pasting a pending structural cut into a body is
   an interim no-op whose final behavior is still
   [undecided](legacy-backlog.md#note-body-follow-ups). Splitting it
   first would restructure code around behavior that is about to move, so the
   split follows the cut/paste decision.
-
-- **Duplicate note-splitting helper.** `$splitContentItemAtSelection` exists in
-  both `InsertionPlugin.tsx` and `ClipboardPlugin.tsx`. Only the insertion copy
-  resolves the anchor through inline ancestors, so pasting with the caret inside
-  a link still refuses to split. Deduplicate so the surviving helper has one
-  owner rather than patching one copy.
 
 - **Current-location presentation ownership.** Before implementing the
   [view header](specs/outliner/view-header.md) alongside [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name

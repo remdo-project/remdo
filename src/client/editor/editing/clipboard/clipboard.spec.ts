@@ -66,12 +66,49 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
 
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'no' },
+      { noteId: 'note2', text: 'no' },
       { noteId: null, text: 'A' },
       { noteId: null, text: 'B' },
-      { noteId: 'note2', text: 'te2' },
+      { noteId: null, text: 'te2' },
       { noteId: 'note3', text: 'note3' },
     ]);
+  });
+
+  it('pastes between a link boundary and following text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const note = $findNoteById('note2')!;
+      note.clear();
+      const link = $createLinkNode('https://example.com/');
+      link.append($createTextNode('link'));
+      note.append(link, $createTextNode(' after'));
+    });
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await remdo.mutate(() => {
+      const link = $findNoteById('note2')!.getChildren().find($isLinkNode)!;
+      const linkText = link.getChildren().filter($isTextNode)[0]!;
+      const selection = $createRangeSelection();
+      selection.setTextNodeRange(linkText, 4, linkText, 4);
+      $setSelection(selection);
+    });
+
+    await pastePlainText(remdo, 'A\nB');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'link' },
+      { noteId: null, text: 'A' },
+      { noteId: null, text: 'B' },
+      { noteId: null, text: ' after' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+    remdo.validate(() => {
+      const link = $findNoteById('note2')!.getChildren().find($isLinkNode)!;
+      expect(link.getURL()).toBe('https://example.com/');
+    });
+
+    const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
+    expect(focusNote?.noteId).toBeTruthy();
+    expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
   });
 
   it('pastes multi-line plain text at end as first children when the note has children', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -144,7 +181,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     const texts = flattenOutline(readOutline(remdo)).map((node) => node.text ?? '');
     expect(texts).toEqual(['bold', 'italic', 'target', 'underline', 'plain bold it', 'A', 'B', 'alic underline plain']);
 
-    const original = findOutlineNodeByText(readOutline(remdo), 'alic underline plain');
+    const original = findOutlineNodeByText(readOutline(remdo), 'plain bold it');
     expect(original?.noteId).toBe('mixedFormatting');
 
     const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
@@ -159,7 +196,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     const texts = flattenOutline(readOutline(remdo)).map((node) => node.text ?? '');
     expect(texts).toEqual(['bold', 'italic', 'target', 'underline', 'plain ', 'A', 'B', 'bold italic underline plain']);
 
-    const original = findOutlineNodeByText(readOutline(remdo), 'bold italic underline plain');
+    const original = findOutlineNodeByText(readOutline(remdo), 'plain ');
     expect(original?.noteId).toBe('mixedFormatting');
 
     const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
@@ -167,7 +204,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
   });
 
-  it('keeps existing zoom-root descendants as direct children on middle multi-line paste', meta({ fixture: 'tree', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+  it('keeps zoom-root descendants with the trailing note on middle multi-line paste', meta({ fixture: 'tree', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 2);
     await pastePlainText(remdo, 'A\nB');
 
@@ -179,8 +216,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
         children: [
           { noteId: null, text: 'A' },
           { noteId: null, text: 'B' },
-          { noteId: null, text: 'te2' },
-          { noteId: 'note3', text: 'note3' },
+          { noteId: null, text: 'te2', children: [{ noteId: 'note3', text: 'note3' }] },
         ],
       },
     ]);

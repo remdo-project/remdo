@@ -526,10 +526,10 @@ describe('note ids on paste', () => {
 
     // Expected: split at the caret offset and insert the cut notes between prefix/suffix.
     expect(remdo).toMatchOutline([
-      { noteId: null, text: 'n' },
+      { noteId: 'note1', text: 'n' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
-      { noteId: 'note1', text: 'ote1' },
+      { noteId: null, text: 'ote1' },
     ]);
   });
 

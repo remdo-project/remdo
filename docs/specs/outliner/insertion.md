@@ -10,9 +10,12 @@ behavior is called out explicitly (see [Folding](./folding.md)).
 
 1. **Start of note** – create a previous sibling immediately above. Children of
    the original note stay attached to it.
-2. **Middle of note** – split into two siblings at the caret. Text **before**
-   the caret becomes a new sibling inserted immediately above the original; the
-   original note keeps the text after the caret and all of its children.
+2. **Middle of note** – split into two siblings at the exact caret, including
+   inside an inline container. The original note keeps the text **before** the
+   caret; a new next sibling receives the text after the caret and all existing
+   children. [Note IDs](./note-ids.md#creation), [Body](./body.md#core-behavior),
+   [Folding](./folding.md#core-behavior), [List types](./list-types.md#checked-state),
+   and [Links](./links.md#core-behavior) define how their owned state survives the split.
 3. **End of note** – when the note already has children **and** the parent is
    expanded, create a new first child. Otherwise (no children or collapsed
    parent), insert a next sibling immediately below.
@@ -33,15 +36,16 @@ rather than two.
 In a [subtree view](./zoom.md#visibility-and-editing-boundary), default
 insertion still applies to the outline children except where it would place the
 new note outside the [zoom boundary](./zoom.md#definitions); in those cases
-insertion stays inside the [subtree](./note-model.md#definitions). `Enter` from
-the [view header](./view-header.md) is defined by the view-header rules.
+insertion stays inside the [subtree](./note-model.md#definitions). A middle
+split of the zoom root makes the trailing note its first child; the original
+children follow that trailing note and become its children. `Enter` from the
+[view header](./view-header.md) is defined by the view-header rules.
 
 ## Focus rules
 
 1. **Start of note:** place the caret in the new sibling above so typing
    continues there.
-2. **Middle of note:** keep the caret in the original note (the one after the
-   caret) so the trailing text remains the active line.
+2. **Middle of note:** place the caret at the start of the fresh trailing note.
 3. **End of note:** place the caret at the start of the newly created note
    (child or sibling) so typing immediately fills it.
 

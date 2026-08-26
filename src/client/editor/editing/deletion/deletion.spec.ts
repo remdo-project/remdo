@@ -290,7 +290,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
-    it('drops an empty leaf when Delete is pressed at its end (instead of deleting the next note)', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+    it('merges a whitespace-only leaf on Delete so its content and identity survive', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
             expect(remdo).toMatchOutline([
         { noteId: 'alpha', text: 'alpha' },
         { noteId: 'space', text: ' ' },
@@ -308,14 +308,14 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
 
       await placeCaretAtNote(remdo, 'space', Number.POSITIVE_INFINITY);
 
-      const emptyNoteKey = readCaretNoteKey(remdo);
+      const whitespaceNoteKey = readCaretNoteKey(remdo);
       const betaKey = getNoteKey(remdo, 'beta');
 
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline([
         { noteId: 'alpha', text: 'alpha' },
-        { noteId: 'beta', text: 'beta' },
+        { noteId: 'space', text: ' beta' },
         {
           noteId: 'parent',
           children: [
@@ -326,12 +326,10 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
         },
         { noteId: 'trailing' },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'beta' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'space' });
 
-      // This assertion is the core regression check: the empty leaf should be removed,
-      // leaving the following note intact.
-      expect(isNodeAttached(remdo, emptyNoteKey)).toBe(false);
-      expect(isNodeAttached(remdo, betaKey)).toBe(true);
+      expect(isNodeAttached(remdo, whitespaceNoteKey)).toBe(true);
+      expect(isNodeAttached(remdo, betaKey)).toBe(false);
     });
 
     it('drops the next empty leaf without merging when Delete is pressed at the end of a note', meta({ fixture: 'flat' }), async ({ remdo }) => {

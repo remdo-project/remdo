@@ -13,7 +13,9 @@ navigation, lifecycle, and merge behavior.
    content and leaves that content text unchanged.
 2. **Ownership.** A note has at most one body, and a body belongs to that one
    note. The body travels with the note through indent/outdent, reorder,
-   structural delete, and [clipboard](./clipboard.md) copy/cut/paste.
+   structural delete, and [clipboard](./clipboard.md) copy/cut/paste. A middle
+   [split](./insertion.md#default-behavior-caret-selection) transfers the body
+   to the fresh note holding the trailing text.
 3. **Visually distinct.** A body renders set apart from the note's content. If
    its owning note is [checked](./list-types.md#checked-state), the body text is crossed out with the note.
 4. **Inline content.** Body text supports the same key-driven inline content as

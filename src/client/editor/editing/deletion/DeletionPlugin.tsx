@@ -42,7 +42,7 @@ import {
 } from '#client/editor/outline/selection/tree';
 import { isNoteBodyEmpty } from '#client/editor/features/note-body/note-body-ops';
 import { getNoteBody } from '#client/editor/outline/selection/body-region';
-import { $autoExpandIfFolded } from '#client/editor/outline/fold-state';
+import { $autoExpandIfFolded, $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
 
 const TRAILING_WHITESPACE_PATTERN = /\s$/;
 const LEADING_WHITESPACE_PATTERN = /^\s/;
@@ -152,8 +152,8 @@ function $setItemText(item: ListItemNode, text: string): TextNode {
   return node;
 }
 
-function isEmptyNote(item: ListItemNode): boolean {
-  return item.getTextContent().trim().length === 0;
+function hasNoContentText(item: ListItemNode): boolean {
+  return item.getTextContent().length === 0;
 }
 
 // True when the note has no body or an empty one. A non-empty body means the
@@ -334,8 +334,12 @@ export function DeletionPlugin() {
 
       const currentHasChildren = noteHasChildren(current);
       const targetHasChildren = noteHasChildren(target);
-      const currentIsEmptyLeaf = !currentHasChildren && isEmptyNote(current);
-      const targetIsEmptyLeaf = !targetHasChildren && isEmptyNote(target);
+      const targetIsParent = getParentContentItem(current) === target;
+      const targetHasOnlyCurrentChild = targetIsParent && getChildContentItems(target).length === 1;
+      const inheritedFoldedState =
+        currentHasChildren && (!targetHasChildren || targetHasOnlyCurrentChild) && $isNoteFolded(current);
+      const currentIsEmptyLeaf = !currentHasChildren && hasNoContentText(current);
+      const targetIsEmptyLeaf = !targetHasChildren && hasNoContentText(target);
 
       if (targetIsEmptyLeaf) {
         $carryBodyToSurvivor(target, current);
@@ -358,8 +362,10 @@ export function DeletionPlugin() {
       textNode.select(joinOffset, joinOffset);
 
       if (currentHasChildren) {
-        const targetIsParent = getParentContentItem(current) === target;
         $moveChildrenToTarget(current, target, targetIsParent ? 'replace' : 'append');
+        if (inheritedFoldedState) {
+          $setNoteFolded(target, true);
+        }
       }
 
       $carryBodyToSurvivor(current, target);
@@ -421,7 +427,7 @@ export function DeletionPlugin() {
         // without carrying the body, so treating it as empty would lose the body
         // text. Fall through to the merge path, which carries the body over.
         const currentIsEmptyLeaf =
-          !currentHasChildren && isEmptyNote(contentItem) && $noteBodyIsEmpty(contentItem);
+          !currentHasChildren && hasNoContentText(contentItem) && $noteBodyIsEmpty(contentItem);
 
         if (currentIsEmptyLeaf) {
           if (viewRoot && contentItem.getKey() === viewRoot.getKey() && (!nextNote || nextNoteOutsideViewRoot)) {
