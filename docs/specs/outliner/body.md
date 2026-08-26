@@ -38,6 +38,16 @@ For commands that act on a note, a caret or inline text selection inside a body
 targets its owning editor note. For example,
 [indent](./indentation.md#indent) targets the whole note, not the body text alone.
 
+## Clipboard
+
+- Pasting into a body edits that body without structurally replacing its owning
+  note.
+- A single copied or cut note contributes its rich inline label content; its
+  body and sub-notes are not inserted.
+- Multiple copied or cut notes contribute their line-separated plain-text
+  clipboard representation.
+- Note structure is never inserted into a body.
+
 ## Navigation
 
 Within a body, keys behave as follows:

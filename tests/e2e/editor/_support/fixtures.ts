@@ -1,4 +1,4 @@
-import { expect, readOutline, test as base } from '#e2e/fixtures';
+import { expect, test as base } from '#e2e/fixtures';
 import type { Locator, Page } from '#e2e/fixtures';
 import type { BrowserContext } from '@playwright/test';
 import { createUniqueNoteId } from '#domain/notes/ids';
@@ -39,5 +39,5 @@ export const test = base.extend<
   },
 });
 
-export { expect, readOutline };
+export { expect };
 export type { Page, Locator };

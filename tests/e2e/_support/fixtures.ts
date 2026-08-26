@@ -9,10 +9,6 @@ interface EditorLike {
   getEditorState: () => Promise<unknown>;
 }
 
-export async function readOutline(editor: EditorLike): Promise<Outline> {
-  return extractOutlineFromEditorState(await editor.getEditorState());
-}
-
 interface ConsoleIssueMatchers {
   exactCounts: Map<string, number>;
   containsCounts: Map<string, number>;
