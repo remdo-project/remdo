@@ -49,9 +49,25 @@ within a document; a global `noteRef` combines document and note identity.
 
 ### Clipboard
 
-Cut/paste moves preserve existing `noteId` values for the moved notes.
+Internal structural copy data omits `noteId` values. Cut data retains them and
+records its source `documentId`. Paste resolves the identity of the whole
+incoming note set before insertion:
 
-Behavioral clipboard rules (placement, move validation, focus) live in [Clipboard](./clipboard.md).
+1. Copy follows normal note creation, which assigns fresh `noteId` values to
+   every pasted note.
+2. Cut preserves every incoming `noteId` only when the source and destination
+   are the same document and none of the incoming IDs exists in the destination.
+3. Any collision, cross-document cut, or other structural clipboard data has
+   all incoming note IDs removed before insertion and follows the same normal
+   note creation path as copy.
+
+The decision uses no pending source-editor state. Consequently, the first
+same-document structural paste after a cut can preserve identity; after those
+IDs exist again, later structural pastes of the same clipboard data create new
+identities.
+
+Behavioral clipboard rules (capture, removal, placement, and focus) live in
+[Clipboard](./clipboard.md).
 
 ### Merge and deletion
 
@@ -84,7 +100,10 @@ Behavioral clipboard rules (placement, move validation, focus) live in [Clipboar
 - `noteId` generation must be collision-resistant across clients; IDs are
   created locally and synced as part of the note content.
 - Remote operations must not overwrite existing `noteId` values during normal application.
-- [Pending-cut cancellation](./clipboard.md#structural-selection) under remote edits is defined by Clipboard.
+- A [structural cut](./clipboard.md#structural-selection) syncs as an ordinary
+  immediate deletion. Remote edits do not cancel or alter its clipboard snapshot.
+- Paste resolves identity against the destination state at the time it is
+  applied; IDs introduced or restored by remote operations count as collisions.
 
 ## Global references
 

@@ -143,14 +143,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   The symmetric offset-0 case and end-of-inline as the note's last child are
   already handled.
 
-- **Hold `ClipboardPlugin` structural refactor.** At 996 lines it is the
-  editor's largest module and an obvious split candidate, but its cut and paste
-  semantics are due to change: pasting a pending structural cut into a body is
-  an interim no-op whose final behavior is still
-  [undecided](legacy-backlog.md#note-body-follow-ups). Splitting it
-  first would restructure code around behavior that is about to move, so the
-  split follows the cut/paste decision.
-
 - **Duplicate note-splitting helper.** `$splitContentItemAtSelection` exists in
   both `InsertionPlugin.tsx` and `ClipboardPlugin.tsx`. Only the insertion copy
   resolves the anchor through inline ancestors, so pasting with the caret inside

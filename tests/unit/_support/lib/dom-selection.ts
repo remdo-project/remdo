@@ -2,6 +2,7 @@ import { act, waitFor } from '@testing-library/react';
 import { expect } from 'vitest';
 
 import type { RemdoTestApi } from '#client/editor/dev';
+import { flattenOutline } from '#tests-common/outline';
 import { readOutline, placeCaretAtNote, selectNoteRange } from './note';
 import { pressKey } from './keyboard';
 import { getNoteElement } from './dom-note';
@@ -73,7 +74,7 @@ export async function selectStructuralNotes(
   endNoteId: string = startNoteId
 ): Promise<void> {
   if (startNoteId === endNoteId) {
-    const noteText = readOutline(remdo).find((note) => note.noteId === startNoteId)?.text ?? '';
+    const noteText = flattenOutline(readOutline(remdo)).find((note) => note.noteId === startNoteId)?.text ?? '';
     const needsInlineStage = noteText.trim().length > 0;
     await placeCaretAtNote(remdo, startNoteId, 0);
 

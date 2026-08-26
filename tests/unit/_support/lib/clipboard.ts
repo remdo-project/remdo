@@ -77,11 +77,8 @@ function readClipboardPayload(clipboardEvent: ClipboardEvent, label: string) {
   return JSON.parse(rawPayload) as { namespace?: string; nodes?: unknown[] };
 }
 
-// CUT_COMMAND only marks a note range for move; this helper reads
-// the payload the cut handler writes to the clipboard so paste stays realistic.
-// Limitation: structural cut collapses the selection onto the cut note; in
-// collab tests, relocate the caret before a remote delete of that note to
-// avoid Lexical/Yjs "node does not exist" errors.
+// Reads the payload populated before CUT_COMMAND removes a structural range so
+// paste tests exercise the same serialized boundary as the browser clipboard.
 export async function cutSelection(remdo: RemdoTestApi) {
   const clipboardEvent = createClipboardEvent(undefined, 'cut');
   await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent, { expect: 'update' });

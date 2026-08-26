@@ -1,7 +1,8 @@
 import { waitFor } from '@testing-library/react';
+import { $createListItemNode } from '@lexical/list';
 import { describe, expect, it } from 'vitest';
+import { $createTextNode, $setState } from 'lexical';
 import {
-  appendTextToNote,
   copySelection,
   cutSelection,
   pastePayload,
@@ -9,8 +10,11 @@ import {
   pressKey,
   readOutline,
   selectStructuralNotes,
+  typeText,
   meta,
 } from '#tests';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
@@ -169,18 +173,27 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
   });
 
-  it('drops cut markers after remote edits', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('syncs immediate structural cut removal and the later same-document paste', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const secondary = await createCollabPeer(remdo);
 
     await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
 
-    await placeCaretAtNote(secondary, 'note2', Number.POSITIVE_INFINITY);
-    await appendTextToNote(secondary, 'note2', ' remote');
+    const afterCut = [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+    ];
+    expect(remdo).toMatchOutline(afterCut);
+
+    await waitFor(() => {
+      expect(secondary).toMatchOutline(afterCut);
+    });
+
+    await placeCaretAtNote(secondary, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(secondary, ' remote');
     await waitFor(() => {
       expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        { noteId: 'note2', text: 'note2 remote' },
+        { noteId: 'note1', text: 'note1 remote' },
         { noteId: 'note3', text: 'note3' },
       ]);
     });
@@ -188,192 +201,53 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
 
-    // Paste is a no-op because the cut marker was invalidated by the remote edit.
     const expectedOutline = [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2 remote' },
+      { noteId: 'note1', text: 'note1 remote' },
       { noteId: 'note3', text: 'note3' },
-    ];
-    expect(remdo).toMatchOutline(expectedOutline);
-    await waitFor(() => {
-      expect(secondary).toMatchOutline(expectedOutline);
-    });
-  });
-
-  it('drops cut markers after remote deletions', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    const secondary = await createCollabPeer(remdo);
-
-    await selectStructuralNotes(remdo, 'note2');
-    const clipboardPayload = await cutSelection(remdo);
-    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-
-    await selectStructuralNotes(secondary, 'note2');
-    await pressKey(secondary, { key: 'Delete' });
-
-    const expectedOutline = [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2' },
     ];
 
     await waitFor(() => {
       expect(remdo).toMatchOutline(expectedOutline);
-    });
-
-    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
-    await pastePayload(remdo, clipboardPayload);
-
-    expect(remdo).toMatchOutline(expectedOutline);
-    await waitFor(() => {
       expect(secondary).toMatchOutline(expectedOutline);
     });
   });
 
-  it('keeps structural cut-paste as no-op after remote deletion of the cut source', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('regenerates a cut id that a peer reintroduces before paste', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const secondary = await createCollabPeer(remdo);
 
     await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
-    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-
-    await selectStructuralNotes(secondary, 'note2');
-    await pressKey(secondary, { key: 'Delete' });
-
-    const expectedOutline = [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note3', text: 'note3' },
-    ];
-
     await waitFor(() => {
-      expect(remdo).toMatchOutline(expectedOutline);
+      expect(secondary).toMatchOutline(readOutline(remdo));
     });
 
-    // Single-note structural destination makes fallback-to-destination behavior
-    // obvious: if fallback runs, note1 would be moved/removed.
-    await selectStructuralNotes(remdo, 'note1');
-    await pastePayload(remdo, clipboardPayload);
-
-    expect(remdo).toMatchOutline(expectedOutline);
-    await waitFor(() => {
-      expect(secondary).toMatchOutline(expectedOutline);
+    await secondary.mutate(() => {
+      const collision = $createListItemNode();
+      collision.append($createTextNode('collision'));
+      $setState(collision, noteIdState, 'note2');
+      $findNoteById('note3')!.insertAfter(collision);
     });
-  });
-
-  it('drops cut markers after remote structural edits', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    const secondary = await createCollabPeer(remdo);
-
-    await selectStructuralNotes(remdo, 'note2');
-    const clipboardPayload = await cutSelection(remdo);
-
-    await placeCaretAtNote(secondary, 'note2', 0);
-    await pressKey(secondary, { key: 'Tab' });
-
-    const expectedOutline = [
-      { noteId: 'note1', text: 'note1', children: [{ noteId: 'note2', text: 'note2' }] },
-      { noteId: 'note3', text: 'note3' },
-    ];
-    await waitFor(() => {
-      expect(remdo).toMatchOutline(expectedOutline);
-    });
-
-    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
-    await pastePayload(remdo, clipboardPayload);
-
-    expect(remdo).toMatchOutline(expectedOutline);
-    await waitFor(() => {
-      expect(secondary).toMatchOutline(expectedOutline);
-    });
-  });
-
-  it('drops cut markers after remote inserts inside the cut boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    const secondary = await createCollabPeer(remdo);
-
-    await selectStructuralNotes(remdo, 'note2', 'note3');
-    const clipboardPayload = await cutSelection(remdo);
-
-    await placeCaretAtNote(secondary, 'note2', Number.POSITIVE_INFINITY);
-    await pressKey(secondary, { key: 'Enter' });
     await waitFor(() => {
       expect(remdo).toMatchOutline(readOutline(secondary));
     });
 
-    const expectedOutline = readOutline(remdo);
-
-    await placeCaretAtNote(remdo, 'note1', 0);
-    await pastePayload(remdo, clipboardPayload);
-
-    expect(remdo).toMatchOutline(expectedOutline);
-    await waitFor(() => {
-      expect(secondary).toMatchOutline(expectedOutline);
-    });
-  });
-
-  it('merges cut moves with concurrent edits on the moved note', meta({ fixture: 'flat' }, { retry: 3 }), async ({ remdo }) => {
-    const secondary = await createCollabPeer(remdo);
-
-    await selectStructuralNotes(remdo, 'note2');
-    const clipboardPayload = await cutSelection(remdo);
-
     await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
 
-    await placeCaretAtNote(secondary, 'note2', Number.POSITIVE_INFINITY);
-    await appendTextToNote(secondary, 'note2', ' remote');
-
-    const expectedOutline = [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: 'note2', text: 'note2 remote' },
-    ];
-
     await waitFor(() => {
-      expect(remdo).toMatchOutline(expectedOutline);
-      expect(secondary).toMatchOutline(expectedOutline);
-    });
-  });
+      const outline = readOutline(remdo);
+      const original = outline.find((note) => note.text === 'note2')!;
+      const collision = outline.find((note) => note.text === 'collision')!;
+      const noteIds = outline
+        .map((note) => note.noteId)
+        .filter((noteId): noteId is string => typeof noteId === 'string');
 
-  it('merges cut moves with concurrent edits on a moved subtree', meta({ fixture: 'tree-complex' }, { retry: 3 }), async ({ remdo }) => {
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [
-          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-    ]);
-
-    const secondary = await createCollabPeer(remdo);
-
-    await selectStructuralNotes(remdo, 'note6', 'note7');
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
-
-    const clipboardPayload = await cutSelection(remdo);
-
-    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await pastePayload(remdo, clipboardPayload);
-
-    await placeCaretAtNote(secondary, 'note7', Number.POSITIVE_INFINITY);
-    await appendTextToNote(secondary, 'note7', ' remote');
-
-    const expectedOutline = [
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [
-          { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7 remote' }] },
-          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-    ];
-
-    await waitFor(() => {
-      expect(remdo).toMatchOutline(expectedOutline);
-      expect(secondary).toMatchOutline(expectedOutline);
+      expect(original.noteId).toEqual(expect.any(String));
+      expect(original.noteId).not.toBe('note2');
+      expect(collision.noteId).toBe('note2');
+      expect(new Set(noteIds).size).toBe(noteIds.length);
+      expect(secondary).toMatchOutline(outline);
     });
   });
 });
