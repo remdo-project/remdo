@@ -17,6 +17,8 @@ participating capabilities. During **Converge the change**,
 The coordinator owns lifecycle state and integration decisions.
 It [aggregates](../protocol.md#aggregation) participant results, and only it advances the lifecycle.
 Returning to an earlier step retains decisions and evidence that remain valid.
+An **Outcome** bullet is the phase postcondition; ordinary completion advances
+to the next numbered phase.
 
 1. **Explore and frame the change.**
    - **Interaction:** Short developer–coordinator dialogue. Continue from the
@@ -39,7 +41,8 @@ Returning to an earlier step retains decisions and evidence that remain valid.
      of it is not adopted for the change, return to **Explore and frame the
      change**. Create or switch to the owning
      [topic branch](../../../../CONTRIBUTING.md#git-workflow). When
-     creating it, use origin's `main` commit observed when this step began
+     creating it, use origin's current `main` refreshed and pinned when this
+     step began
      unless the developer selected another base.
    - **Conflict:** If repository evidence contradicts the selected base or
      adopted work, or adopted uncommitted work cannot remain on that base within
@@ -85,10 +88,11 @@ Returning to an earlier step retains decisions and evidence that remain valid.
    - **Scope failure:** If one supported scope cannot be formed within held
      authority, retain a [concern](../protocol.md#concerns) and return `stopped`.
    - **Non-convergence:** If convergence returns `stopped` or `not-converged`,
-     retain the complete nested result and identify the lifecycle step affected
-     by its reported condition. Ask the developer whether to stop or retry from
-     that step. If they stop, return `stopped`; if they retry, return to the
-     identified step.
+     retain the complete nested result. The retry step is **Converge the change**
+     unless the reported condition invalidates an earlier phase's outcome; in
+     that case use the earliest invalidated phase. Ask the developer whether to
+     stop or retry from that step. If they stop, return `stopped`; if they retry,
+     return to the identified step.
    - **Outcome:** A `converged` result for the latest repository state.
 6. **Hand off for developer review.**
    - **Interaction:** Present the active result under
