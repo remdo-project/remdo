@@ -27,11 +27,11 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Documentation
 
-- **Agent-flow specification alignment.** Reassess specifications that use
-  diagrams or overlapping flow prose under the structured-algorithm guidance.
-  Align each applicable specification as a whole contract with one clear
-  behavioral account while preserving accepted behavior and material edge
-  paths; avoid mechanical notation-only conversions.
+- **Remaining agent-flow specification alignment.** Reassess [`remdo-verify-change`](specs/agents/skills/remdo-verify-change.md)
+  and [`remdo-deps-refresh`](specs/agents/skills/remdo-deps-refresh.md) under the structured-algorithm guidance.
+  Align each specification as a whole contract with one clear behavioral account
+  while preserving accepted behavior and material edge paths; avoid mechanical
+  notation-only conversions.
 
 - **Remaining agent skill alignment.** Apply the adopted
   [specification/procedure boundary](documentation.md#agent-skill-boundary) to
@@ -40,14 +40,10 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   concise intent plus deterministic checks of stable repository invariants,
   then align each affected specification, procedure, implementation, and coverage.
 
-- **Prepare-change lifecycle.** Reconsider its dialogue, specification,
-  approval, and execution flow as a whole so it is simple, flexible, and clear.
-  Cover both underdetermined changes that require developer decisions and
-  already-determined changes—such as an explicit dependency refresh request
-  after branch selection—that should not require redundant target confirmation.
-  Define how accepted contracts, explicit instructions, branch and adopted-work
-  decisions, and later evidence establish or reopen decisions, then align the
-  specification and skill.
+- **Remaining skill-spec ownership boundaries.** Continue verifying ownership between
+  agent skill specifications and shared contracts such as [Contributing](../CONTRIBUTING.md).
+  Keep capability behavior with its skill and shared policy with the broader owner.
+  Update links and remove restatements in the same change.
 
 - **Condition ownership beyond capability calls.** Evaluate whether the
   [capability protocol](specs/agents/protocol.md) should generalize to other
@@ -63,9 +59,8 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 - **Markdown link-aware wrapping.** Define rendered-width paragraph reflow that
   preserves natural sentence and clause boundaries while ignoring hidden link
-  and image destinations. Clarify the authoring rule and its agent discovery,
-  determine which premature wraps can be rejected deterministically without
-  requiring mechanical greedy wrapping, and align affected maintained prose.
+  and image destinations. Determine viable deterministic premature-wrap checks
+  that do not require mechanical greedy reflow, then align maintained prose.
 
 ### Dependencies
 
@@ -228,14 +223,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   choosing merge or explicitly authorized rebase, with conflict and recovery
   behavior defined for each path. Keep `origin/main` integration owned by `remdo-merge-main`.
 
-- **Prepare-change implementation-gap tracking.** Update
-  [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md) so after
-  adding or changing a durable specification, it determines whether the
-  implementation conforms. Before any commit that would leave the specification
-  ahead of implementation, create or update a precise tracked follow-up for the
-  remaining implementation and remove it when implementation aligns. Do not
-  create a tracker when the committed state is already coherent.
-
 - **External dependency verification.** Define how implementation work checks
   current authoritative documentation or public APIs for external dependencies
   before using [empirical checks](dev/testing.md#empirical-checks).
@@ -249,13 +236,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   directives, and do not treat discovery as proof that an obligation is satisfied.
   Examples: Deterministic check, Empirical check, Deterministic/agentic?
   implementation (for skills' specs)
-
-- **Skill-spec ownership boundaries.** Verify ownership between agent skill
-  specifications, starting with [`remdo-prepare-change`](specs/agents/skills/remdo-prepare-change.md), and
-  repository-wide or contributor contracts such as
-  [Contributing](../CONTRIBUTING.md). Keep capability-specific behavior with
-  its skill and shared policy with the broader owner; update links and remove
-  restatements in the same change.
 
 - **Structured reviewer results.** Evaluate provider-supported structured
   findings, such as JSON Schema output, without weakening native review or

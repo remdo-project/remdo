@@ -1,7 +1,7 @@
 interface:
   display_name: "RemDo Prepare Change"
   short_description: "Coordinate and deliver a complete RemDo change"
-  default_prompt: "Use $remdo-prepare-change as the developer-facing entry to coordinate this RemDo change through approval, execution, convergence, and handoff."
+  default_prompt: "Use $remdo-prepare-change as the developer-facing entry to prepare and deliver this RemDo change through its complete lifecycle."
 policy:
   allow_implicit_invocation: false
   subagents:
