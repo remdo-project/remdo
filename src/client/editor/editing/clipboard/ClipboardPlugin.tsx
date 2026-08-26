@@ -61,7 +61,10 @@ import { parseOwnedNoteLinkUrl } from '#client/editor/features/links/note-link-u
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
 import { $autoExpandIfFolded } from '#client/editor/outline/fold-state';
-import { $splitContentItemAtSelection } from '#client/editor/outline/selection/split-content-item';
+import {
+  $insertFirstChildNodes,
+  $splitContentItemAtSelection,
+} from '#client/editor/outline/selection/split-content-item';
 
 const NEWLINE_PATTERN = /\r?\n/;
 
@@ -267,15 +270,8 @@ function $insertFirstChildNotes(contentItem: ListItemNode | null, lines: string[
   if (!contentItem || lines.length === 0) {
     return;
   }
-  $autoExpandIfFolded(contentItem);
-  const childList = $getOrCreateChildList(contentItem);
   const nodes = buildListItemsFromPlainText(lines.join('\n'));
-  const firstChild = childList.getFirstChild();
-  if (firstChild) {
-    insertBefore(firstChild, nodes);
-  } else {
-    childList.append(...nodes);
-  }
+  $insertFirstChildNodes(contentItem, nodes);
 }
 
 function $regenerateClipboardNoteIds(nodes: LexicalNode[], reservedIds: Set<string>) {

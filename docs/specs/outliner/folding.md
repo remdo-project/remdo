@@ -29,9 +29,9 @@ only; it never changes the underlying outline structure or note identities.
 6. If a child is inserted or moved under a folded parent, the parent
    auto-expands. If a note loses its last child, it is no longer folded.
 7. On a middle [split](./insertion.md#default-behavior-caret-selection), folded
-   state follows the children to the fresh trailing note. When a merge transfers
-   the removed note's children to a survivor that otherwise has no children,
-   the survivor inherits the removed note's folded state.
+   state accompanies the existing children. When a merge transfers the removed
+   note's children to a survivor that otherwise has no children, the survivor
+   inherits the removed note's folded state.
 8. [Zoom](./zoom.md) defines the outer visible [zoom boundary](./zoom.md#definitions);
    folding applies inside that view and zooming does not reset folding.
 9. Exception: when a folded note is the current

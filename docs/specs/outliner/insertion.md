@@ -13,9 +13,7 @@ behavior is called out explicitly (see [Folding](./folding.md)).
 2. **Middle of note** – split into two siblings at the exact caret, including
    inside an inline container. The original note keeps the text **before** the
    caret; a new next sibling receives the text after the caret and all existing
-   children. [Note IDs](./note-ids.md#creation), [Body](./body.md#core-behavior),
-   [Folding](./folding.md#core-behavior), [List types](./list-types.md#checked-state),
-   and [Links](./links.md#core-behavior) define how their owned state survives the split.
+   children.
 3. **End of note** – when the note already has children **and** the parent is
    expanded, create a new first child. Otherwise (no children or collapsed
    parent), insert a next sibling immediately below.
