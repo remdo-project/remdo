@@ -620,6 +620,21 @@ describe('note ids on paste', () => {
     expect(remdo).toMatchEditorState(initialState);
   });
 
+  it('round-trips after leaving and returning to the deletion caret', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    await remdo.waitForSynced();
+    const initialState = remdo.getEditorState();
+
+    await selectStructuralNotes(remdo, 'note4');
+    const clipboardPayload = await cutSelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note5', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+    await remdo.waitForSynced();
+
+    expect(remdo).toMatchEditorState(initialState);
+  });
+
   it('round-trips formatted note content exactly', meta({ fixture: 'formatted' }), async ({ remdo }) => {
     const initialState = remdo.getEditorState();
 

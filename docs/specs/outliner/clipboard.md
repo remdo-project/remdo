@@ -17,9 +17,6 @@ note-link identity across clipboard and persistence boundaries.
 - Internal structural copy data omits note identity. Cut data records its source
   document identity and retains note identity. [Note IDs](./note-ids.md#clipboard)
   owns how paste resolves those identities before the common insertion path.
-- The first valid same-document cut paste at the unchanged deletion focus
-  restores the recorded source gap exactly. After focus moves, normal
-  [Insertion](./insertion.md) placement applies.
 - Pasting while a [selected note range](./selection.md#note-ranges) is active
   replaces that selection with the pasted notes.
 - Clipboard data can be pasted repeatedly. RemDo does not keep a pending cut or
