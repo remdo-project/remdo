@@ -44,13 +44,17 @@ of Vite's interface-IP Network URLs.
 
 ### Reset Development Data
 
-Run `pnpm run dev:data-reset` while Main Development is running when stable
-credentials or fixture documents need restoring. Coordinate before resetting
-shared working-directory data because the command replaces fixture contents.
+Run `pnpm run dev:data-reset` while Main Development is running to recreate the
+stable development users and their fixture documents. Coordinate before
+resetting shared working-directory data because the command deletes every
+email-matched stable user, their documents, and every sharing grant involving
+them before creating fresh users and documents.
 
-- **Restores:** stable passwords and current fixture contents.
-- **Preserves:** existing document IDs, sharing, and documents not backed by a
-  current fixture.
+The reset revokes the stable users' sessions and invalidates their existing
+[linked-home](../specs/access/source-linking.md#cross-server-source-linking)
+delegations. It preserves unrelated local users and their data. Removed document
+IDs remain inaccessible, but the live collaboration service does not reclaim
+their underlying storage.
 
 ### Run PWA Preview
 
