@@ -5,7 +5,6 @@ import { waitFor } from '@testing-library/react';
 import type { TextNode } from 'lexical';
 import {
   $createRangeSelection,
-  $createTextNode,
   $getNodeByKey,
   $getRoot,
   $getSelection,
@@ -142,25 +141,6 @@ export async function placeCaretAtNoteTextNode(
   await waitFor(() => {
     expect(readCaretNoteId(remdo)).toBe(noteId);
     expect(remdo.editor.selection.get()?.kind).toBe('caret');
-  });
-}
-
-/**
- * Appends text to the note with the given id without going through input events.
- * Use for deterministic model-only edits (e.g., remote collab changes).
- * For user-typing behavior, prefer {@link typeText} from keyboard helpers.
- */
-export async function appendTextToNote(remdo: RemdoTestApi, noteId: string, text: string) {
-  await remdo.mutate(() => {
-    const item = $findItemByNoteId(noteId);
-
-    const textNode = item.getChildren().find((child): child is TextNode => child.getType() === 'text');
-    if (textNode) {
-      textNode.setTextContent(`${textNode.getTextContent()}${text}`);
-      return;
-    }
-
-    item.append($createTextNode(text));
   });
 }
 

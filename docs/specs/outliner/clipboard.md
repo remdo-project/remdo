@@ -6,27 +6,25 @@ note-link identity across clipboard and persistence boundaries.
 
 ## Structural selection
 
-- Copy duplicates the selected notes (including their
-  [subtrees](./note-model.md#definitions) and each note's [body](./body.md)) and leaves the document unchanged.
-- Copy captures the notes as they are at copy time; later edits to the
-  originals do not change what gets pasted.
-- Cut creates a **pending cut** from the
-  [selected note range](./selection.md#note-ranges). Its notes stay in place until paste moves them.
-- Any edit inside the pending cut before pasting, including a remote edit,
-  cancels the cut so edits stay where they were made.
-- After creating a pending cut, the caret moves to the start of the range's
-  first note in [document order](./note-model.md#definitions).
+- Copy and cut capture the selected notes (including their
+  [subtrees](./note-model.md#definitions) and each note's [body](./body.md)) as
+  they are at the time of the operation. Later source edits do not change the
+  clipboard data.
+- Copy leaves the document unchanged.
+- Cut removes the [selected note range](./selection.md#note-ranges)
+  immediately. Focus follows the [structural deletion](./deletion.md#structural-selection)
+  order.
+- Internal structural copy data omits note identity. Cut data records its source
+  document identity and retains note identity. [Note IDs](./note-ids.md#clipboard)
+  owns how paste resolves those identities before the common insertion path.
 - Pasting while a [selected note range](./selection.md#note-ranges) is active
   replaces that selection with the pasted notes.
-- Pasting a pending cut moves its notes to the new location. If the cut is no
-  longer valid, paste does nothing.
-- A pending cut can be pasted once; after a successful paste it is cleared.
-- If you try to paste inside the pending cut, nothing happens and the cut
-  remains pending.
-- Starting a new copy/cut, or pasting unrelated content, cancels the pending cut.
-- Pasting a copied note **outside** RemDo (plain text) includes each note's own
-  text, then its body text on the following line(s), then its sub-notes — the
-  order the note reads on screen.
+- Clipboard data can be pasted repeatedly. RemDo does not keep a pending cut or
+  wait for a paste before removing cut notes.
+- Pasting into a note body follows the [Body clipboard contract](./body.md#clipboard).
+- Copying or cutting notes supplies plain text for pasting **outside** RemDo:
+  each note's own text, then its body text on the following line(s), then its
+  sub-notes — the order the note reads on screen.
 
 ## Inline text selection (single note)
 
@@ -41,4 +39,6 @@ note-link identity across clipboard and persistence boundaries.
 - Pasting notes or multi-line plain text inserts multiple notes (one line per
   note for plain text).
 - Placement follows the caret-position rules from [Insertion](./insertion.md).
+- When the document's only note is empty, pasting notes replaces that empty
+  note instead of leaving it beside the pasted notes.
 - After a multi-note paste, focus lands at the end of the last inserted note.

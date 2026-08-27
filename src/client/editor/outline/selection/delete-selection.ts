@@ -10,6 +10,7 @@ import {
 } from 'lexical';
 import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { $normalizeOutlineRoot } from '#client/editor/outline/normalization';
+import type { OutlineSelectionRange } from '#client/editor/outline/selection/model';
 import {
   $requireRootContentList,
   $resolveRootContentList,
@@ -30,7 +31,7 @@ interface ResolvedDeletion {
 // the caret placement needs. Null when nothing is deletable. Non-mutating.
 function $resolveDeletionForRange(
   editor: LexicalEditor,
-  range: ReturnType<typeof $resolveSelectedNoteRange>
+  range: OutlineSelectionRange | null
 ): ResolvedDeletion | null {
   if (!range) {
     return null;
@@ -64,6 +65,15 @@ function $resolveSelectedNotesDeletion(editor: LexicalEditor): ResolvedDeletion 
  */
 export function $deleteSelectedNotes(editor: LexicalEditor): boolean {
   return $applyResolvedDeletion($resolveStructuralDeletion(editor));
+}
+
+/**
+ * Delete a resolved note range and apply the structural deletion focus order.
+ * Clipboard cut uses the same semantic deletion as Backspace/Delete even
+ * when the native Lexical range only partially covers a note representation.
+ */
+export function $deleteNotesInRange(editor: LexicalEditor, range: OutlineSelectionRange): boolean {
+  return $applyResolvedDeletion($resolveDeletionForRange(editor, range));
 }
 
 /**

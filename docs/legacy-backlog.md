@@ -495,10 +495,6 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
   V2 history only persists structure, not the caret). This is global, not
   body-specific — RemDo's undo tests assert structure only. Decide if restoring
   selection on undo is worth wiring the Yjs `UndoManager` StackItem `meta`.
-- Pasting a pending structural cut into a *non-cut* note's body is currently a
-  no-op (cut stays pending) since a body can't hold notes. Pin the final
-  semantics (no-op vs. move-as-flattened-text) in the cut/paste redesign;
-  `ClipboardPlugin` `SELECTION_INSERT_CLIPBOARD_NODES_COMMAND` body branch.
 
 ## Docs spec accuracy (branch docs/spec-accuracy)
 
