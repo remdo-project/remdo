@@ -6,7 +6,7 @@ import type { YSweetDocumentTokenManager } from '#server/collab-token';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import {
   createUserDocument,
-  refreshCurrentUserDocumentsProjectionBestEffort,
+  ensureCurrentUserBootstrap,
 } from '#server/documents/current-user';
 import type { DocumentRegistry } from '#server/documents/document-registry';
 import { createStableDevUsers, STABLE_AUTH_USERS } from '../lib/stable-auth-users';
@@ -117,11 +117,11 @@ async function purgeStableDevUsers(runtime: DevelopmentDataRuntime): Promise<voi
     await runtime.auth.deleteUser(userId);
   }
   for (const userId of preservedProjectionUserIds) {
-    await refreshCurrentUserDocumentsProjectionBestEffort(
+    await ensureCurrentUserBootstrap(
       runtime.registry,
       runtime.tokenManager,
       userId,
-      runtime.auth,
+      { auth: runtime.auth },
     );
   }
 }
