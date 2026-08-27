@@ -38,11 +38,27 @@ async function signIn(auth: ServerAuth, email: string, password: string): Promis
   return new Headers({ cookie: extractSessionCookie(response) });
 }
 
-async function readProjectedDocumentAccessIds(
+async function shareDocument(
+  runtime: ReturnType<typeof createServerRuntime>,
+  session: Headers,
+  documentId: string,
+  email: string,
+): Promise<void> {
+  const response = await runtime.app.request(`/api/documents/${documentId}/access`, {
+    method: 'POST',
+    headers: new Headers({
+      ...Object.fromEntries(session),
+      'content-type': 'application/json',
+    }),
+    body: JSON.stringify({ email }),
+  });
+  expect(response.ok).toBe(true);
+}
+
+async function readProjectedDocuments(
   runtime: ReturnType<typeof createServerRuntime>,
   userId: string,
-  documentId: string,
-): Promise<string[]> {
+): Promise<Array<{ accessUserIds: string[]; id: string }>> {
   const userDataDocument = await runtime.registry.getUserDocumentByKind(userId, 'user-data-projection');
   expect(userDataDocument).not.toBeNull();
   const doc = new Y.Doc();
@@ -52,11 +68,15 @@ async function readProjectedDocumentAccessIds(
     if (!(documents instanceof Y.Array)) {
       return [];
     }
-    const document = documents.toArray().find((entry) => entry.get('id') === documentId);
-    const access = document?.get('access');
-    return access instanceof Y.Array
-      ? access.toArray().map((entry) => String(entry.get('granteeUserId')))
-      : [];
+    return documents.toArray().map((document) => {
+      const access = document.get('access');
+      return {
+        accessUserIds: access instanceof Y.Array
+          ? access.toArray().map((entry) => String(entry.get('granteeUserId')))
+          : [],
+        id: String(document.get('id')),
+      };
+    });
   } finally {
     doc.destroy();
   }
@@ -102,17 +122,22 @@ describe('development data reset', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
         'Unrelated document',
         { auth: runtime.auth },
       );
-      const shareResponse = await runtime.app.request(`/api/documents/${unrelatedDocument.id}/access`, {
-        method: 'POST',
-        headers: new Headers({
-          ...Object.fromEntries(charlieSession),
-          'content-type': 'application/json',
-        }),
-        body: JSON.stringify({ email: STABLE_AUTH_USERS.alice.email }),
-      });
-      expect(shareResponse.ok).toBe(true);
-      await expect(readProjectedDocumentAccessIds(runtime, charlieId, unrelatedDocument.id))
-        .resolves.toEqual([initialAlice.id]);
+      await shareDocument(
+        runtime,
+        charlieSession,
+        unrelatedDocument.id,
+        STABLE_AUTH_USERS.alice.email,
+      );
+      await shareDocument(
+        runtime,
+        initialAliceSession,
+        stableUserDocument.id,
+        UNRELATED_USERS.charlie.email,
+      );
+      await expect(readProjectedDocuments(runtime, charlieId)).resolves.toEqual(expect.arrayContaining([
+        { accessUserIds: [initialAlice.id], id: unrelatedDocument.id },
+        { accessUserIds: [], id: stableUserDocument.id },
+      ]));
 
       const restoredFixture = await readFixtureState('flat');
       await resetDevelopmentData(runtime, new Map([['reset-contract', restoredFixture]]));
@@ -136,8 +161,12 @@ describe('development data reset', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       });
       await expect(runtime.registry.getDocumentAccessForGrantee(unrelatedDocument.id, initialAlice.id))
         .resolves.toBeNull();
-      await expect(readProjectedDocumentAccessIds(runtime, charlieId, unrelatedDocument.id))
-        .resolves.toEqual([]);
+      const projectedCharlieDocuments = await readProjectedDocuments(runtime, charlieId);
+      expect(projectedCharlieDocuments).toContainEqual({
+        accessUserIds: [],
+        id: unrelatedDocument.id,
+      });
+      expect(projectedCharlieDocuments.map(({ id }) => id)).not.toContain(stableUserDocument.id);
 
       const recreatedDocuments = await runtime.registry.listUserDocuments(recreatedAlice.id);
       const recreatedFixtureDocument = recreatedDocuments.find(
