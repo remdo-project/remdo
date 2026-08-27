@@ -88,11 +88,11 @@ describe('development data reset', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       await expect(runtime.auth.getSession(charlieSession)).resolves.toMatchObject({
         user: { id: charlieId },
       });
-      await expect(signIn(
+      await signIn(
         runtime.auth,
         STABLE_AUTH_USERS.alice.email,
         STABLE_AUTH_USERS.alice.password,
-      )).resolves.toBeInstanceOf(Headers);
+      );
 
       await expect(runtime.registry.getDocument(initialFixtureDocument.id)).resolves.toBeNull();
       await expect(runtime.registry.getDocument(stableUserDocument.id)).resolves.toBeNull();

@@ -1,13 +1,12 @@
 import type { SerializedEditorState } from 'lexical';
 
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
-import type { ServerAuth } from '#server/auth/auth';
+import type { ServerAuth, ServerAuthUser } from '#server/auth/auth';
 import type { YSweetDocumentTokenManager } from '#server/collab-token';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { createUserDocument } from '#server/documents/current-user';
 import type { DocumentRegistry } from '#server/documents/document-registry';
 import { createStableDevUsers, STABLE_AUTH_USERS } from '../lib/stable-auth-users';
-import type { CreatedStableAuthUser } from '../lib/stable-auth-users';
 import { waitForEditorUpdate, withHeadlessCollabSession } from '../../src/headless/collab-session';
 
 const FIXTURE_TITLE_PREFIX = 'fixture: ';
@@ -42,7 +41,7 @@ async function seedUserFixtures(
   registry: DocumentRegistry,
   tokenManager: YSweetDocumentTokenManager,
   auth: ServerAuth,
-  user: CreatedStableAuthUser,
+  user: ServerAuthUser,
   fixtures: ReadonlyMap<string, SerializedEditorState>,
 ): Promise<number> {
   let count = 0;
@@ -51,13 +50,13 @@ async function seedUserFixtures(
     const docId = (await createUserDocument(
       registry,
       tokenManager,
-      user.account.id,
+      user.id,
       title,
       { auth },
     )).id;
     await seedDocumentContent(docId, serialized);
     count += 1;
-    console.info(`  ${user.definition.email}: created "${title}" -> ${docId}`);
+    console.info(`  ${user.email}: created "${title}" -> ${docId}`);
   }
   return count;
 }

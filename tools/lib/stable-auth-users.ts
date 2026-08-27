@@ -13,15 +13,8 @@ export const STABLE_AUTH_USERS = {
   },
 } as const;
 
-export type StableAuthUser = (typeof STABLE_AUTH_USERS)[keyof typeof STABLE_AUTH_USERS];
-
-export interface CreatedStableAuthUser {
-  account: ServerAuthUser;
-  definition: StableAuthUser;
-}
-
-export async function createStableDevUsers(auth: ServerAuth): Promise<CreatedStableAuthUser[]> {
-  const created: CreatedStableAuthUser[] = [];
+export async function createStableDevUsers(auth: ServerAuth): Promise<ServerAuthUser[]> {
+  const created: ServerAuthUser[] = [];
   for (const user of Object.values(STABLE_AUTH_USERS)) {
     const response = await auth.createUser(user, new Headers());
     if (!response.ok) {
@@ -31,7 +24,7 @@ export async function createStableDevUsers(auth: ServerAuth): Promise<CreatedSta
     if (!account) {
       throw new Error(`User ${user.email} not found after creation.`);
     }
-    created.push({ account, definition: user });
+    created.push(account);
   }
   return created;
 }
