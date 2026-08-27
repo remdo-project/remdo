@@ -10,6 +10,7 @@ import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 import { resetDevelopmentData } from '../../../tools/dev/reset-development-data';
 import { withHeadlessCollabSession } from '../../../src/headless/collab-session';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
+import * as Y from 'yjs';
 
 const UNRELATED_USERS = {
   charlie: {
@@ -35,6 +36,30 @@ async function signIn(auth: ServerAuth, email: string, password: string): Promis
   }));
   expect(response.ok).toBe(true);
   return new Headers({ cookie: extractSessionCookie(response) });
+}
+
+async function readProjectedDocumentAccessIds(
+  runtime: ReturnType<typeof createServerRuntime>,
+  userId: string,
+  documentId: string,
+): Promise<string[]> {
+  const userDataDocument = await runtime.registry.getUserDocumentByKind(userId, 'user-data-projection');
+  expect(userDataDocument).not.toBeNull();
+  const doc = new Y.Doc();
+  try {
+    Y.applyUpdate(doc, await runtime.tokenManager.getDocAsUpdate(userDataDocument!.id));
+    const documents = doc.getMap<Y.Array<Y.Map<unknown>>>('user-data').get('documents');
+    if (!(documents instanceof Y.Array)) {
+      return [];
+    }
+    const document = documents.toArray().find((entry) => entry.get('id') === documentId);
+    const access = document?.get('access');
+    return access instanceof Y.Array
+      ? access.toArray().map((entry) => String(entry.get('granteeUserId')))
+      : [];
+  } finally {
+    doc.destroy();
+  }
 }
 
 describe('development data reset', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
@@ -77,7 +102,17 @@ describe('development data reset', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
         'Unrelated document',
         { auth: runtime.auth },
       );
-      await runtime.registry.grantDocumentAccess(unrelatedDocument.id, charlieId, initialAlice.id);
+      const shareResponse = await runtime.app.request(`/api/documents/${unrelatedDocument.id}/access`, {
+        method: 'POST',
+        headers: new Headers({
+          ...Object.fromEntries(charlieSession),
+          'content-type': 'application/json',
+        }),
+        body: JSON.stringify({ email: STABLE_AUTH_USERS.alice.email }),
+      });
+      expect(shareResponse.ok).toBe(true);
+      await expect(readProjectedDocumentAccessIds(runtime, charlieId, unrelatedDocument.id))
+        .resolves.toEqual([initialAlice.id]);
 
       const restoredFixture = await readFixtureState('flat');
       await resetDevelopmentData(runtime, new Map([['reset-contract', restoredFixture]]));
@@ -101,6 +136,8 @@ describe('development data reset', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       });
       await expect(runtime.registry.getDocumentAccessForGrantee(unrelatedDocument.id, initialAlice.id))
         .resolves.toBeNull();
+      await expect(readProjectedDocumentAccessIds(runtime, charlieId, unrelatedDocument.id))
+        .resolves.toEqual([]);
 
       const recreatedDocuments = await runtime.registry.listUserDocuments(recreatedAlice.id);
       const recreatedFixtureDocument = recreatedDocuments.find(

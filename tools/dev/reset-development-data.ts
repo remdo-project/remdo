@@ -4,7 +4,10 @@ import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-stat
 import type { ServerAuth, ServerAuthUser } from '#server/auth/auth';
 import type { YSweetDocumentTokenManager } from '#server/collab-token';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
-import { createUserDocument } from '#server/documents/current-user';
+import {
+  createUserDocument,
+  refreshCurrentUserDocumentsProjectionBestEffort,
+} from '#server/documents/current-user';
 import type { DocumentRegistry } from '#server/documents/document-registry';
 import { createStableDevUsers, STABLE_AUTH_USERS } from '../lib/stable-auth-users';
 import { waitForEditorUpdate, withHeadlessCollabSession } from '../../src/headless/collab-session';
@@ -73,7 +76,25 @@ async function purgeStableDevUsers(runtime: DevelopmentDataRuntime): Promise<voi
     return;
   }
 
+  const preservedProjectionUserIds = new Set<string>();
   await runtime.database.db.transaction().execute(async (transaction) => {
+    const affectedAccess = await transaction
+      .selectFrom('document_access as access')
+      .innerJoin('documents', 'documents.id', 'access.document_id')
+      .select(['documents.owner_user_id', 'access.grantee_user_id'])
+      .where((expression) => expression.or([
+        expression('documents.owner_user_id', 'in', userIds),
+        expression('access.grantee_user_id', 'in', userIds),
+      ]))
+      .execute();
+    for (const access of affectedAccess) {
+      preservedProjectionUserIds.add(access.owner_user_id);
+      preservedProjectionUserIds.add(access.grantee_user_id);
+    }
+    for (const userId of userIds) {
+      preservedProjectionUserIds.delete(userId);
+    }
+
     const ownedDocumentIds = transaction
       .selectFrom('documents')
       .select('id')
@@ -94,6 +115,14 @@ async function purgeStableDevUsers(runtime: DevelopmentDataRuntime): Promise<voi
 
   for (const userId of userIds) {
     await runtime.auth.deleteUser(userId);
+  }
+  for (const userId of preservedProjectionUserIds) {
+    await refreshCurrentUserDocumentsProjectionBestEffort(
+      runtime.registry,
+      runtime.tokenManager,
+      userId,
+      runtime.auth,
+    );
   }
 }
 
