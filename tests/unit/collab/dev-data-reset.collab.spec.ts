@@ -140,6 +140,21 @@ describe('development data reset', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       ]));
 
       const restoredFixture = await readFixtureState('flat');
+      const charlieUserDataDocument = (await runtime.registry.getUserDocumentByKind(
+        charlieId,
+        'user-data-projection',
+      ))!;
+      const updateDoc = runtime.tokenManager.updateDoc.bind(runtime.tokenManager);
+      let failCharlieProjectionUpdate = true;
+      runtime.tokenManager.updateDoc = async (docId, update) => {
+        if (failCharlieProjectionUpdate && docId === charlieUserDataDocument.id) {
+          failCharlieProjectionUpdate = false;
+          throw new Error('Expected projection refresh failure.');
+        }
+        await updateDoc(docId, update);
+      };
+      await expect(resetDevelopmentData(runtime, new Map([['reset-contract', restoredFixture]])))
+        .rejects.toThrow('Expected projection refresh failure.');
       await resetDevelopmentData(runtime, new Map([['reset-contract', restoredFixture]]));
 
       const recreatedAlice = (await runtime.auth.findUserByEmail(STABLE_AUTH_USERS.alice.email))!;

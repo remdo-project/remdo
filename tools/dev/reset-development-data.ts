@@ -72,55 +72,39 @@ async function purgeStableDevUsers(runtime: DevelopmentDataRuntime): Promise<voi
       userIds.push(account.id);
     }
   }
-  if (userIds.length === 0) {
-    return;
+  if (userIds.length > 0) {
+    await runtime.database.db.transaction().execute(async (transaction) => {
+      const ownedDocumentIds = transaction
+        .selectFrom('documents')
+        .select('id')
+        .where('owner_user_id', 'in', userIds);
+      await transaction
+        .deleteFrom('document_access')
+        .where('document_id', 'in', ownedDocumentIds)
+        .execute();
+      await transaction
+        .deleteFrom('document_access')
+        .where('grantee_user_id', 'in', userIds)
+        .execute();
+      await transaction
+        .deleteFrom('documents')
+        .where('owner_user_id', 'in', userIds)
+        .execute();
+    });
   }
-
-  const preservedProjectionUserIds = new Set<string>();
-  await runtime.database.db.transaction().execute(async (transaction) => {
-    const affectedAccess = await transaction
-      .selectFrom('document_access as access')
-      .innerJoin('documents', 'documents.id', 'access.document_id')
-      .select(['documents.owner_user_id', 'access.grantee_user_id'])
-      .where((expression) => expression.or([
-        expression('documents.owner_user_id', 'in', userIds),
-        expression('access.grantee_user_id', 'in', userIds),
-      ]))
-      .execute();
-    for (const access of affectedAccess) {
-      preservedProjectionUserIds.add(access.owner_user_id);
-      preservedProjectionUserIds.add(access.grantee_user_id);
-    }
-    for (const userId of userIds) {
-      preservedProjectionUserIds.delete(userId);
-    }
-
-    const ownedDocumentIds = transaction
-      .selectFrom('documents')
-      .select('id')
-      .where('owner_user_id', 'in', userIds);
-    await transaction
-      .deleteFrom('document_access')
-      .where('document_id', 'in', ownedDocumentIds)
-      .execute();
-    await transaction
-      .deleteFrom('document_access')
-      .where('grantee_user_id', 'in', userIds)
-      .execute();
-    await transaction
-      .deleteFrom('documents')
-      .where('owner_user_id', 'in', userIds)
-      .execute();
-  });
 
   for (const userId of userIds) {
     await runtime.auth.deleteUser(userId);
   }
-  for (const userId of preservedProjectionUserIds) {
+  const preservedUsers = await runtime.database.db
+    .selectFrom('user')
+    .select('id')
+    .execute();
+  for (const { id } of preservedUsers) {
     await ensureCurrentUserBootstrap(
       runtime.registry,
       runtime.tokenManager,
-      userId,
+      id,
       { auth: runtime.auth },
     );
   }
