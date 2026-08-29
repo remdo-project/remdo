@@ -217,6 +217,7 @@ export interface ServerAuth {
   baseURL: string;
   sourceServers: readonly StoredSourceServer[];
   createUser: (user: CreateAuthUserInput, headers: Headers) => Promise<Response>;
+  deleteUser: (userId: string) => Promise<void>;
   ensureReady: () => Promise<void>;
   findUserByEmail: (email: string) => Promise<ServerAuthUser | null>;
   grantAdminRole: (userId: string) => Promise<void>;
@@ -292,6 +293,10 @@ export function createServerAuth({
         headers,
         asResponse: true,
       });
+    },
+    async deleteUser(userId) {
+      const context = await auth.$context;
+      await context.internalAdapter.deleteUser(userId);
     },
     async ensureReady() {
       if (!readyPromise) {
