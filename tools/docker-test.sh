@@ -241,8 +241,8 @@ fi
 
 echo "Docker health check OK: ${HEALTH_URL}"
 
-PUBLIC_SHARE_TEST_FILE="${DOCKER_HOME_DATA_DIR%/}/public-share/docker-smoke.txt"
-printf '%s\n' 'docker public share' > "${PUBLIC_SHARE_TEST_FILE}"
+docker exec "${CONTAINER_NAME}" sh -c \
+  "printf '%s\\n' 'docker public share' > /data/public-share/docker-smoke.txt"
 if [[ "$(curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PORT}:127.0.0.1" \
   -kfsS "${APP_ORIGIN}/share/docker-smoke.txt")" != "docker public share" ]]; then
   docker logs "${CONTAINER_NAME}" || true
