@@ -76,6 +76,18 @@ daemons are supported.
    terminates public HTTPS.
 4. Deploy the service and open its `APP_ORIGIN`.
 
+## Publish a Public File
+
+After the first startup, use the service ID shown by Render's
+[SSH connection instructions](https://render.com/docs/ssh#starting-an-ssh-session):
+
+```sh
+scp -s ./report.pdf srv-abc123@ssh.frankfurt.render.com:/data/public-share/
+```
+
+It is public at `APP_ORIGIN/share/report.pdf`; replacing the file updates the
+same URL.
+
 ## Upgrade an Existing Instance
 
 An upgrade preserves accounts and documents. Schema changes apply on the first

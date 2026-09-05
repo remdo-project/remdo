@@ -241,6 +241,23 @@ fi
 
 echo "Docker health check OK: ${HEALTH_URL}"
 
+docker exec "${CONTAINER_NAME}" sh -c \
+  "printf '%s\\n' 'docker public share' > /data/public-share/docker-smoke.txt"
+if [[ "$(curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PORT}:127.0.0.1" \
+  -kfsS "${APP_ORIGIN}/share/docker-smoke.txt")" != "docker public share" ]]; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Public share file was not served through the gateway." >&2
+  exit 1
+fi
+public_share_cache_control="$(curl \
+  --resolve "${DOCKER_TEST_BROWSER_HOST}:${PORT}:127.0.0.1" \
+  -kfsS -o /dev/null -w '%header{cache-control}' \
+  "${APP_ORIGIN}/share/docker-smoke.txt")"
+if [[ "${public_share_cache_control}" != "no-cache" ]]; then
+  echo "Public share response did not require cache revalidation." >&2
+  exit 1
+fi
+
 if docker exec "${CONTAINER_NAME}" pidof crond >/dev/null; then
   echo "Development container unexpectedly started production backup cron." >&2
   exit 1

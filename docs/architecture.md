@@ -54,6 +54,10 @@ drift between app and collab endpoints.
 Development and production server runtimes expose only the gateway. The RemDo
 API and collaboration server remain loopback-only and are reached through it.
 
+In Production, the gateway serves `/data/public-share` at `/share/*` without
+authentication. Startup creates the directory, and responses require cache
+revalidation so replacing a file updates the same public URL.
+
 ### RemDo API boundary
 
 App-owned HTTP surface that sits in front of collaboration infrastructure.
