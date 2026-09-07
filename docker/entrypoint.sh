@@ -37,7 +37,7 @@ fi
 remdo_require_api_secrets
 
 COLLAB_DATA_DIR="${DATA_DIR%/}/collab"
-mkdir -p "$COLLAB_DATA_DIR"
+mkdir -p "$COLLAB_DATA_DIR" "${DATA_DIR%/}/public-share"
 : "${YSWEET_AUTH_KEY:?Set YSWEET_AUTH_KEY}"
 : "${YSWEET_SERVER_TOKEN:?Set YSWEET_SERVER_TOKEN}"
 
