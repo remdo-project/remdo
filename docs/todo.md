@@ -129,14 +129,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   schema nor its validator rejects one, leaving the invariant unenforced against
   a handler or paste path that inserts a line break node into content.
 
-- **Hold `ClipboardPlugin` structural refactor.** It remains the editor's
-  largest module and an obvious split candidate, but its cut and paste
-  semantics are due to change: pasting a pending structural cut into a body is
-  an interim no-op whose final behavior is still
-  [undecided](legacy-backlog.md#note-body-follow-ups). Splitting it
-  first would restructure code around behavior that is about to move, so the
-  split follows the cut/paste decision.
-
 - **Current-location presentation ownership.** Before implementing the
   [view header](specs/outliner/view-header.md) alongside [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name
   and scope, including whether "location header" better identifies it and
