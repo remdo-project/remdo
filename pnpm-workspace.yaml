@@ -130,7 +130,7 @@ catalog:
   eslint-plugin-boundaries: ^7.2.0
   eslint-plugin-compat: ^7.0.2
   eslint-plugin-react-refresh: ^0.5.3
-  hono: ^4.12.34
+  hono: ^4.13.5
   jiti: ^2.7.0
   jscpd: ^5.0.14
   jsdom: ^30.0.1
