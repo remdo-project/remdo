@@ -8,16 +8,16 @@ import { useEffect, useRef } from 'react';
 import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { setViewRoot } from '#client/editor/outline/view-root';
 import type { UpdateListenerPayload } from 'lexical';
-import { resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { $requireContentItemNoteId, resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration/CollaborationProvider';
 import { $findNoteById, $getNoteAncestorPath, areNotePathsEqual } from '#client/editor/outline/note-traversal';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
-import { isContentDescendantOf } from '#client/editor/outline/selection/tree';
-import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
+import { getParentContentItem, isContentDescendantOf } from '#client/editor/outline/selection/tree';
+import { ZOOM_OUT_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 import { resolveZoomNoteId } from './zoom-note-id';
 import { ZOOM_CARET_TAG, ZOOM_INIT_TAG } from '#client/editor/foundation/update-tags';
 import { useEditorViewActions, useZoomNoteId } from '#client/editor/view/EditorViewProvider';
-import { $placeCaretAtZoomEntry, $placeCaretAtZoomEntryIfOutside } from './zoom-caret';
+import { $placeCaretAtZoomEntry, $placeCaretAtZoomEntryIfOutside, $placeCaretAtZoomExit } from './zoom-caret';
 import { useZoomBulletInteractions } from './useZoomBulletInteractions';
 
 const EMPTY_ZOOM_STATE = {
@@ -27,21 +27,26 @@ const EMPTY_ZOOM_STATE = {
   selectionInZoomRoot: false,
 };
 
-export function ZoomPlugin() {
+export function ZoomPlugin({ onSelectHome }: { onSelectHome: () => void }) {
   const [editor] = useLexicalComposerContext();
   const collab = useCollaborationStatus();
   const zoomNoteId = useZoomNoteId();
-  const { requestZoomNoteId, setZoomPath } = useEditorViewActions();
+  const { isCurrentZoomRoute, requestZoomNoteId, setZoomPath } = useEditorViewActions();
   const lastPathRef = useRef<NotePathItem[] | null>(null);
   const zoomNoteIdRef = useRef(resolveZoomNoteId(zoomNoteId));
   const skipZoomSelectionRef = useRef(false);
   const pendingZoomSelectionRef = useRef<string | null>(null);
   const pendingZoomSelectionTaskRef = useRef(false);
   const pendingZoomSelectionNonceRef = useRef(0);
+  const previousZoomNoteIdRef = useRef(resolveZoomNoteId(zoomNoteId));
+  const commandSelectionAppliedRef = useRef(false);
 
   useZoomBulletInteractions(editor);
 
   useEffect(() => {
+    if (!isCurrentZoomRoute()) {
+      return;
+    }
     zoomNoteIdRef.current = resolveZoomNoteId(zoomNoteId);
     const noteId = zoomNoteIdRef.current;
     if (!noteId) {
@@ -58,7 +63,7 @@ export function ZoomPlugin() {
       zoomRootKey = root.getKey();
     });
     setViewRoot(editor, zoomRootKey);
-  }, [editor, zoomNoteId]);
+  }, [editor, isCurrentZoomRoute, zoomNoteId]);
 
   useEffect(() => {
     return editor.registerCommand(
@@ -75,6 +80,8 @@ export function ZoomPlugin() {
         if (!zoomRoot || $placeCaretAtZoomEntry(noteId) === 'missing') {
           return false;
         }
+        previousZoomNoteIdRef.current = noteId;
+        commandSelectionAppliedRef.current = true;
         requestZoomNoteId(noteId);
         // Publish the new zoom root synchronously: the React effects that
         // normally maintain it land only after the next commit, and a keypress
@@ -88,6 +95,33 @@ export function ZoomPlugin() {
       COMMAND_PRIORITY_LOW
     );
   }, [editor, requestZoomNoteId]);
+
+  useEffect(() => editor.registerCommand(
+    ZOOM_OUT_COMMAND,
+    () => {
+      const noteId = zoomNoteIdRef.current;
+      if (noteId === null) {
+        onSelectHome();
+        return true;
+      }
+      const root = $findNoteById(noteId);
+      if (!root) {
+        return false;
+      }
+      const parent = getParentContentItem(root);
+      const parentId = parent ? $requireContentItemNoteId(parent) : null;
+      // Accept the new target before routing, so another command never repeats
+      // an outward step from the previous rendered route.
+      zoomNoteIdRef.current = parentId;
+      setViewRoot(editor, parent?.getKey() ?? null);
+      $placeCaretAtZoomExit(noteId, parentId);
+      previousZoomNoteIdRef.current = parentId;
+      commandSelectionAppliedRef.current = true;
+      requestZoomNoteId(parentId);
+      return true;
+    },
+    COMMAND_PRIORITY_LOW
+  ), [editor, onSelectHome, requestZoomNoteId]);
 
   useEffect(() => {
     const handleUpdate = ({
@@ -176,7 +210,17 @@ export function ZoomPlugin() {
   }, [collab.hydrated, editor, requestZoomNoteId, setZoomPath]);
 
   useEffect(() => {
-    if (skipZoomSelectionRef.current) {
+    if (!isCurrentZoomRoute()) {
+      return;
+    }
+    const previousNoteId = previousZoomNoteIdRef.current;
+    const noteId = resolveZoomNoteId(zoomNoteId);
+    previousZoomNoteIdRef.current = noteId;
+    // Commands already placed the caret at their accepted destination. A route
+    // acknowledgement must not repeat placement or steal focus back from Home.
+    const commandSelectionApplied = commandSelectionAppliedRef.current && previousNoteId === noteId;
+    commandSelectionAppliedRef.current = false;
+    if (skipZoomSelectionRef.current || commandSelectionApplied) {
       skipZoomSelectionRef.current = false;
       pendingZoomSelectionRef.current = null;
       pendingZoomSelectionTaskRef.current = false;
@@ -184,15 +228,14 @@ export function ZoomPlugin() {
       return;
     }
 
-    const noteId = resolveZoomNoteId(zoomNoteId);
     pendingZoomSelectionRef.current = null;
-    if (!noteId) {
-      pendingZoomSelectionTaskRef.current = false;
-      pendingZoomSelectionNonceRef.current += 1;
+    pendingZoomSelectionTaskRef.current = false;
+    pendingZoomSelectionNonceRef.current += 1;
+    if (!noteId && !previousNoteId) {
       return;
     }
 
-    const hasRoot = editor.getEditorState().read(() => Boolean($findNoteById(noteId)));
+    const hasRoot = !noteId || editor.getEditorState().read(() => Boolean($findNoteById(noteId)));
     if (!hasRoot) {
       pendingZoomSelectionRef.current = noteId;
       return;
@@ -202,13 +245,16 @@ export function ZoomPlugin() {
     // commands from inside a synchronous collaboration read.
     focusEditorRoot(editor);
     editor.update(() => {
-      if ($placeCaretAtZoomEntry(noteId) === 'missing') {
+      if (previousNoteId && $placeCaretAtZoomExit(previousNoteId, noteId)) {
+        return;
+      }
+      if (noteId && $placeCaretAtZoomEntry(noteId) === 'missing') {
         pendingZoomSelectionRef.current = noteId;
         return;
       }
       pendingZoomSelectionRef.current = null;
     }, { tag: ZOOM_CARET_TAG });
-  }, [editor, zoomNoteId]);
+  }, [editor, isCurrentZoomRoute, zoomNoteId]);
 
   return null;
 }

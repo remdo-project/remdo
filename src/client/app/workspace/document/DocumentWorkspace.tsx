@@ -36,28 +36,36 @@ function isVisibleInCurrentView(element: HTMLElement): boolean {
 export default function DocumentWorkspace({
   docId,
   zoomNoteId,
+  zoomRequestId,
   onSelectDocument,
 }: {
   docId: string;
   zoomNoteId: string | null;
+  zoomRequestId?: number;
   onSelectDocument: (docId: string) => void;
 }) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
+  const { getLatestZoomRequestId, requestZoomNoteId } = useEditorViewActions();
   const [homeActive, setHomeActive] = useState(false);
-  // The route can change under Home — a different document or a different zoom
-  // target within the same document (history back/forward, a shared link). Reset
-  // Home on any route change so it never covers the location the URL points at.
+  const homeZoomRequestIdRef = useRef(0);
+  const openHome = useCallback(() => {
+    homeZoomRequestIdRef.current = getLatestZoomRequestId();
+    setHomeActive(true);
+  }, [getLatestZoomRequestId]);
+  // A route requested before Home opened may still be committing. Only newer
+  // navigation (or an external route/history change) should dismiss Home.
   const routeKey = zoomNoteId === null ? docId : `${docId}/${zoomNoteId}`;
-  const previousRouteKeyRef = useRef(routeKey);
-  if (previousRouteKeyRef.current !== routeKey) {
-    previousRouteKeyRef.current = routeKey;
-    if (homeActive) {
+  const previousRouteRef = useRef({ docId, routeKey, zoomRequestId });
+  const previousRoute = previousRouteRef.current;
+  if (previousRoute.routeKey !== routeKey || previousRoute.zoomRequestId !== zoomRequestId) {
+    previousRouteRef.current = { docId, routeKey, zoomRequestId };
+    if (homeActive && (previousRoute.docId !== docId || zoomRequestId === undefined ||
+      zoomRequestId > homeZoomRequestIdRef.current)) {
       setHomeActive(false);
     }
   }
   const zoomPath = useZoomPath();
-  const { requestZoomNoteId } = useEditorViewActions();
   const userData = useUserData();
   const documentSources = userData.documentSources().children();
   const source = useDocumentSourceResolution(docId, documentSources);
@@ -140,7 +148,7 @@ export default function DocumentWorkspace({
         documentLabel={source.documentLabel}
         documentSources={documentSources}
         onSelectDocument={openDocument}
-        onSelectHome={() => setHomeActive(true)}
+        onSelectHome={openHome}
         onSelectNoteId={zoomToNote}
         onStatusHostChange={setStatusHost}
         path={zoomPath}
@@ -200,6 +208,7 @@ export default function DocumentWorkspace({
             sourceId={source.sourceId}
             searchModeRequested={search.searchModeRequested}
             statusPortalRoot={statusHost}
+            onSelectHome={openHome}
             onPendingDocumentImportError={actions.handleImportError}
           />
         )}

@@ -36,8 +36,8 @@ editing boundary, distinct from the editor's [selection](./selection.md).
 ## Entering and changing zoom
 
 1. Clicking a visible editor note's bullet makes that note the zoom root.
-2. When the new zoom root has visible direct children, the caret moves to the
-   first one.
+2. When zooming in, if the new zoom root has visible direct children, the caret
+   moves to the first one.
 3. When it has none, the caret moves to the [view header](./view-header.md).
 
 ## Clearing zoom
@@ -47,6 +47,15 @@ document from [Home](./home.md), sets the zoom target to the document root.
 If the zoom root no longer resolves, zoom also resets to the document root.
 
 Zoom otherwise changes only through explicit zoom navigation.
+
+## Zooming out
+
+1. Zoom out opens the zoom root's immediate parent. A top-level note returns to
+   the document-root view.
+2. Returning to an ancestor, through Zoom out or a breadcrumb, places the
+   caret at the start of the ancestor's direct child containing the location
+   just left. This also applies when returning to the document root.
+3. At the document root, the action opens [Home](./home.md).
 
 ## Command boundaries
 

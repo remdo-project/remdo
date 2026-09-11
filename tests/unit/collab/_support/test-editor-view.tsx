@@ -25,7 +25,7 @@ export function TestEditorView({
       onZoomNoteIdChange={handleZoomNoteIdChange}
       zoomNoteId={zoomNoteId}
     >
-      <Editor docId={docId} statusPortalRoot={null} />
+      <Editor docId={docId} onSelectHome={() => {}} statusPortalRoot={null} />
     </EditorViewProvider>
   );
 }

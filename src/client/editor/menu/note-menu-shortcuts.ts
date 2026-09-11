@@ -7,6 +7,7 @@ interface NoteMenuShortcutActions {
   foldViewToLevel: (level: number) => void;
   toggleFold?: () => void;
   zoom: () => void;
+  zoomOut?: () => void;
 }
 
 export const handleNoteMenuShortcut = (
@@ -17,6 +18,12 @@ export const handleNoteMenuShortcut = (
     return false;
   }
   const key = event.key.toLowerCase();
+  if (key === 'o' && actions.zoomOut) {
+    event.preventDefault();
+    event.stopPropagation();
+    actions.zoomOut();
+    return true;
+  }
   if (key >= '0' && key <= '9') {
     event.preventDefault();
     event.stopPropagation();

@@ -33,6 +33,8 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 
 ## Entering and leaving Home
 
+Opening Home moves keyboard focus to its heading.
+
 1. On the local Home document, clearing zoom at the document root returns to
    `/` (owned by [Zoom routing](./zoom.md#routing)); Home is the surface above that root.
 

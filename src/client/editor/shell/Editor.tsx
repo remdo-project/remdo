@@ -36,6 +36,7 @@ import './Editor.css';
 
 interface EditorProps {
   docId: string;
+  onSelectHome: () => void;
   statusPortalRoot: HTMLElement | null;
   sourceOrigin?: string | null;
   sourceId?: string | null;
@@ -50,6 +51,7 @@ export default function Editor({
   sourceId = null,
   searchModeRequested,
   onPendingDocumentImportError,
+  onSelectHome,
 }: EditorProps) {
   const editorInitialConfig = createEditorInitialConfig();
 
@@ -62,6 +64,7 @@ export default function Editor({
             searchModeRequested={searchModeRequested}
             statusPortalRoot={statusPortalRoot}
             onPendingDocumentImportError={onPendingDocumentImportError}
+            onSelectHome={onSelectHome}
           />
         </CollaborationPlugin>
       </LexicalComposer>
@@ -74,6 +77,7 @@ function EditorRuntime({
   statusPortalRoot,
   searchModeRequested,
   onPendingDocumentImportError,
+  onSelectHome,
 }: EditorProps) {
   const [editor] = useLexicalComposerContext();
   const notes = useMemo(
@@ -128,7 +132,7 @@ function EditorRuntime({
               <NoteControlsPlugin />
               <NoteMenuPlugin />
               <MobileActionToolbar notes={notes} />
-              <ZoomPlugin />
+              <ZoomPlugin onSelectHome={onSelectHome} />
               <ZoomVisibilityPlugin />
               {searchModeRequested ? (
                 <SearchCandidatesPlugin docId={docId} />

@@ -13,6 +13,7 @@ type MenuItemId =
   | 'toggle-checked'
   | 'fold'
   | 'zoom'
+  | 'zoom-out'
   | 'list-number'
   | 'list-check'
   | 'list-bullet'

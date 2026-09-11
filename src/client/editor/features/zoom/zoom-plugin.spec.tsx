@@ -8,10 +8,33 @@ import {
   readCaretNoteId,
 } from '#tests';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
+import { ZOOM_OUT_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
+import { $resolveViewRoot } from '#client/editor/outline/view-root';
+import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 import type { RemdoTestApi } from '#client/editor/dev';
 
 describe('zoom plugin', () => {
+  it(
+    'advances repeated outward commands before the routed view catches up',
+    meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note3' } }),
+    async ({ remdo }) => {
+      // Controlled viewProps keep the rendered route at note3 throughout.
+      await waitFor(() => {
+        expect(getNoteElement(remdo, 'note3')).toHaveAttribute('data-zoom-root', 'true');
+      });
+
+      for (const [parent, branch] of [['note2', 'note3'], ['note1', 'note2'], [null, 'note1']] as const) {
+        await remdo.dispatchCommand(ZOOM_OUT_COMMAND, undefined);
+        const rootId = remdo.editor.getEditorState().read(() => {
+          const root = $resolveViewRoot(remdo.editor);
+          return root ? $getNoteId(root) : null;
+        });
+        expect(rootId).toBe(parent);
+        expect(readCaretNoteId(remdo)).toBe(branch);
+      }
+    }
+  );
+
   function expectVisibleNotes(remdo: RemdoTestApi, visibleNoteIds: string[], hiddenNoteIds: string[]) {
     for (const noteId of visibleNoteIds) {
       expect(getNoteElement(remdo, noteId)).not.toHaveClass('zoom-hidden');
