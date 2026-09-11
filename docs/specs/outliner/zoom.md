@@ -72,11 +72,11 @@ determines the result.
 
 ## Breadcrumbs
 
-The breadcrumb is navigation through the ancestors above the current location.
+The breadcrumb shows the current location and provides navigation to its ancestors.
 
-1. The document-root view contains only the Home crumb.
-2. A subtree view contains the zoom path without the zoom root, in order:
-   Home / document name / ancestor notes.
+1. The document-root view contains Home / document name.
+2. A subtree view contains Home / document name / ancestor notes / current note.
+   The current note is non-interactive text marked with `aria-current="page"`.
 3. Home opens [Home](./home.md). The document name is the document picker;
    choosing the current document clears zoom. An ancestor note changes the
    zoom root to that note.
