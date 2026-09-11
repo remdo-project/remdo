@@ -13,7 +13,6 @@ import {
   $isElementNode,
   $isRangeSelection,
   $isRootNode,
-  $isTextNode,
   $setState,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_LOW,
@@ -63,6 +62,10 @@ import { parseOwnedNoteLinkUrl } from '#client/editor/features/links/note-link-u
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
 import { $autoExpandIfFolded } from '#client/editor/outline/fold-state';
+import {
+  $insertFirstChildNodes,
+  $splitContentItemAtSelection,
+} from '#client/editor/outline/selection/split-content-item';
 import { $deleteNotesInRange } from '#client/editor/outline/selection/delete-selection';
 
 const NEWLINE_PATTERN = /\r?\n/;
@@ -237,86 +240,12 @@ function $isInlineSelectionWithinSingleNote(selection: BaseSelection | null): bo
   return anchorItem === focusItem;
 }
 
-function $splitContentItemAtSelection(
-  contentItem: ListItemNode,
-  selection: BaseSelection | null,
-  destination: 'sibling' | 'first-child' = 'sibling'
-): ListItemNode | null {
-  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-    return null;
-  }
-
-  const anchorNode = selection.anchor.getNode();
-  if (!$isTextNode(anchorNode) || anchorNode.getParent() !== contentItem) {
-    return null;
-  }
-
-  const offset = selection.anchor.offset;
-  const size = anchorNode.getTextContentSize();
-  let splitStart: LexicalNode | null = null;
-  if (offset <= 0) {
-    splitStart = anchorNode;
-  } else if (offset >= size) {
-    splitStart = anchorNode.getNextSibling() ?? null;
-  } else {
-    const [, rightNode] = anchorNode.splitText(offset);
-    splitStart = rightNode ?? null;
-  }
-
-  if (!splitStart) {
-    return null;
-  }
-
-  const newItem = $createListItemNode();
-  $setState(newItem, noteIdState, createUniqueNoteId());
-
-  if (destination === 'first-child') {
-    let child: LexicalNode | null = splitStart;
-    while (child) {
-      const nextSibling: LexicalNode | null = child.getNextSibling();
-      newItem.append(child);
-      child = nextSibling;
-    }
-  } else {
-    let child = contentItem.getFirstChild();
-    while (child && child !== splitStart) {
-      const next = child.getNextSibling();
-      newItem.append(child);
-      child = next;
-    }
-  }
-
-  if (newItem.getChildrenSize() === 0) {
-    return null;
-  }
-
-  if (destination === 'first-child') {
-    const childList = $getOrCreateChildList(contentItem);
-    const firstChild = childList.getFirstChild();
-    if (firstChild) {
-      insertBefore(firstChild, [newItem]);
-    } else {
-      childList.append(newItem);
-    }
-  } else {
-    contentItem.insertBefore(newItem);
-  }
-  return newItem;
-}
-
 function $insertFirstChildNotes(contentItem: ListItemNode | null, lines: string[]): void {
   if (!contentItem || lines.length === 0) {
     return;
   }
-  $autoExpandIfFolded(contentItem);
-  const childList = $getOrCreateChildList(contentItem);
   const nodes = buildListItemsFromPlainText(lines.join('\n'));
-  const firstChild = childList.getFirstChild();
-  if (firstChild) {
-    insertBefore(firstChild, nodes);
-  } else {
-    childList.append(...nodes);
-  }
+  $insertFirstChildNodes(contentItem, nodes);
 }
 
 function $clearClipboardNoteIds(nodes: LexicalNode[]) {
@@ -735,13 +664,19 @@ function $insertNodesAtSelection(
         }
       } else if (placement === 'middle') {
         if (isViewRoot) {
-          $autoExpandIfFolded(contentItem);
-          parentList = $getOrCreateChildList(contentItem);
           const split = $splitContentItemAtSelection(contentItem, selection, 'first-child');
-          nextSibling = split ?? getFirstDescendantListItem(parentList);
+          const splitParent = split?.getParent();
+          if (!split || !$isListNode(splitParent)) {
+            return false;
+          }
+          parentList = splitParent;
+          nextSibling = split;
         } else {
           const split = $splitContentItemAtSelection(contentItem, selection);
-          nextSibling = split ? contentItem : getNextContentSibling(contentItem);
+          if (!split) {
+            return false;
+          }
+          nextSibling = split;
         }
       } else {
         if (isViewRoot) {

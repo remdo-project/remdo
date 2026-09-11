@@ -27,6 +27,10 @@ checked note whose descendants are not all checked additionally marks that its
 subtree holds unfinished work, and every unchecked note under a checked one is
 presented as unfinished work rather than as part of the completed note.
 
+On a middle [split](./insertion.md#default-behavior-caret-selection), the
+original leading note retains its checked state, the fresh trailing note starts
+unchecked, and existing descendants retain their states.
+
 ### Toggling
 
 Toggling sets a target's notes and all their descendants to one state:
