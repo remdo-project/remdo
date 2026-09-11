@@ -44,7 +44,7 @@ describe('zoom navigation with pending routes', () => {
   it.each(['command', 'route'] as const)(
     'returns to the last accepted branch via %s before zoom-in routing finishes',
     async (navigation) => {
-      const { api, router, holdRoute } = await renderZoomNavigation(navigation === 'route' ? null : 'note1');
+      const { api, docId, router, holdRoute } = await renderZoomNavigation(navigation === 'route' ? null : 'note1');
       const release = holdRoute('note4');
       try {
         await act(async () => {
@@ -57,15 +57,15 @@ describe('zoom navigation with pending routes', () => {
           if (navigation === 'command') {
             api.editor.dispatchCommand(ZOOM_OUT_COMMAND, undefined);
           } else {
-            await router.navigate(createDocumentPath('testDoc', 'note1'));
+            await router.navigate(createDocumentPath(docId, 'note1'));
           }
         });
         await waitFor(() => expect(router.state.navigation.state).toBe('idle'));
-        expect(router.state.location.pathname).toBe(createDocumentPath('testDoc', 'note1'));
+        expect(router.state.location.pathname).toBe(createDocumentPath(docId, 'note1'));
         expect(readCaretNoteId(api)).toBe('note4');
 
         await act(async () => release());
-        expect(router.state.location.pathname).toBe(createDocumentPath('testDoc', 'note1'));
+        expect(router.state.location.pathname).toBe(createDocumentPath(docId, 'note1'));
         expect(readCaretNoteId(api)).toBe('note4');
       } finally {
         release();
