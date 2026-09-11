@@ -1,7 +1,7 @@
 import type { Page } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, homeView, zoomBreadcrumbs } from '#editor/locators';
-import { waitForSynced } from './_support/bridge';
+import { load, waitForSynced } from './_support/bridge';
 import { openNoteMenu } from './_support/menu';
 import { createEditorDocumentPath } from './_support/routes';
 
@@ -16,6 +16,27 @@ async function expectCaretAtStart(page: Page, text: string) {
     };
   })).toEqual({ text, offset: 0, collapsed: true });
 }
+
+test('Zoom out preserves the caret when returning to the canonical Home document root', async ({ page }) => {
+  await page.goto('/');
+  await load(page, 'tree-complex');
+  const search = page.getByRole('combobox', { name: 'Search document' });
+  await search.fill('note5');
+  await search.press('Enter');
+  await expect(page).toHaveURL(/\/n\/[^/]+_note5$/);
+  await expectCaretAtStart(page, 'note5');
+
+  await page.keyboard.press('Shift');
+  await page.keyboard.press('Shift');
+  await page.keyboard.press('o');
+  await expect(page).toHaveURL('/');
+  await expectCaretAtStart(page, 'note5');
+
+  await page.keyboard.press('Shift');
+  await page.keyboard.press('Shift');
+  await page.keyboard.press('o');
+  await expect(homeView(page).getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
+});
 
 test('Zoom out uses the current view and restores the branch just left', async ({ page, editor }) => {
   await editor.load('tree-complex');

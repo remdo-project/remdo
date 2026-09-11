@@ -14,11 +14,10 @@ import {
   createPostAuthNextSearch,
   resolvePostAuthPath,
 } from '#client/app/session/post-auth-path';
-import RootRoute from './RootRoute';
-import type { RootRouteLoaderData } from './RootRoute';
+import DocumentEntryRoute from './DocumentEntryRoute';
+import type { DocumentEntryLoaderData } from './DocumentEntryRoute';
 import SharingRoute from '#client/app/sharing/SharingRoute';
 import { getCachedCurrentUserBootstrap, getHomeDocumentId } from '#client/app/user-data/current-user-bootstrap';
-import DocumentRoute from '#client/app/workspace/DocumentRoute';
 import {
   createCanonicalDocumentPath,
   createDocumentPath,
@@ -38,7 +37,7 @@ async function authenticatedSessionLoader({ request }: { request: Request }) {
   return { sessionState: await requireAuthenticatedRoute(request) };
 }
 
-async function rootRouteLoader(request: Request): Promise<RootRouteLoaderData> {
+async function rootRouteLoader(request: Request): Promise<DocumentEntryLoaderData> {
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
     // Carry the public-server flag so the login page can gate its admin link.
@@ -125,7 +124,7 @@ const appRoutes = [
   {
     path: '/',
     loader: ({ request }: { request: Request }) => rootRouteLoader(request),
-    element: <RootRoute />,
+    element: <DocumentEntryRoute />,
     hydrateFallbackElement,
   },
   {
@@ -157,11 +156,9 @@ const appRoutes = [
   {
     path: 'n/:docRef',
     loader: documentLoader,
-    element: (
-      <AuthenticatedRoute>
-        <DocumentRoute />
-      </AuthenticatedRoute>
-    ),
+    // Match the root route's component tree so canonical Home-document zoom
+    // navigation preserves the editor, selection, and pending Home intent.
+    element: <DocumentEntryRoute />,
     hydrateFallbackElement,
   },
   {
