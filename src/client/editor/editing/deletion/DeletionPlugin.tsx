@@ -336,8 +336,8 @@ export function DeletionPlugin() {
       const targetHasChildren = noteHasChildren(target);
       const targetIsParent = getParentContentItem(current) === target;
       const targetHasOnlyCurrentChild = targetIsParent && getChildContentItems(target).length === 1;
-      const inheritedFoldedState =
-        currentHasChildren && (!targetHasChildren || targetHasOnlyCurrentChild) && $isNoteFolded(current);
+      const shouldInheritFoldedState = currentHasChildren && (!targetHasChildren || targetHasOnlyCurrentChild);
+      const inheritedFoldedState = $isNoteFolded(current);
       const currentIsEmptyLeaf = !currentHasChildren && hasNoContentText(current);
       const targetIsEmptyLeaf = !targetHasChildren && hasNoContentText(target);
 
@@ -363,8 +363,8 @@ export function DeletionPlugin() {
 
       if (currentHasChildren) {
         $moveChildrenToTarget(current, target, targetIsParent ? 'replace' : 'append');
-        if (inheritedFoldedState) {
-          $setNoteFolded(target, true);
+        if (shouldInheritFoldedState) {
+          $setNoteFolded(target, inheritedFoldedState);
         }
       }
 
