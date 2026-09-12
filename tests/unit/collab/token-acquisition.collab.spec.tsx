@@ -15,7 +15,8 @@ interface RecordedRequest {
 
 describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    if (vi.isMockFunction(globalThis.WebSocket)) globalThis.WebSocket.mockRestore();
+    if (vi.isMockFunction(globalThis.fetch)) vi.mocked(globalThis.fetch).mockRestore();
   });
 
   it('requests Y-Sweet document client tokens only through the RemDo API endpoint', async () => {
@@ -55,21 +56,18 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
     }
   });
 
-  it('does not warn when a token fetch is aborted by teardown mid-connect', async () => {
-    // Navigating away unmounts the editor while the token fetch is in flight;
-    // the session aborts that fetch on destroy. y-sweet warns on any token
-    // failure, so this asserts the benign teardown abort stays silent (the flake
-    // behind the admin-link e2e console-guard failure).
+  it('does not warn when a token fetch fails after teardown mid-connect', async () => {
+    // Destroying this session invalidates its connect attempt without aborting
+    // a token request that another live provider may share.
     const docId = 'tokenabort';
     await ensureCollabTestDocument(docId);
     const sessionCookie = await getCollabTestSessionCookie();
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = vi.mocked(console.warn);
 
     const originalFetch = globalThis.fetch.bind(globalThis);
     const tokenPath = createDocumentSyncTokenApiPath(docId);
-    // Hold the token request in flight until we release it, then fail it the way
-    // a navigation-cancelled fetch does — after teardown. y-sweet warns on any
-    // token rejection, so the fix must keep this post-teardown failure silent.
+    // Fail the pending request after teardown. The patched client must ignore
+    // the rejection belonging to the destroyed provider's connection attempt.
     let failTokenRequest: (() => void) | undefined;
     vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
       const request = withSessionCookie(input, init, sessionCookie);
@@ -102,7 +100,7 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
   it('does not open a websocket when a token fetch resolves after teardown', async () => {
     // The mirror of the abort case: if the in-flight token fetch *succeeds* just
     // after destroy(), y-sweet must not resume and open a WebSocket (resurrecting
-    // a torn-down connection). authEndpoint hangs on success-after-destroy too.
+    // a torn-down connection). The patched client ignores the departed attempt.
     const docId = 'tokenlateok';
     await ensureCollabTestDocument(docId);
     const sessionCookie = await getCollabTestSessionCookie();

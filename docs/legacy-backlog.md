@@ -179,15 +179,9 @@ Deferred hardening; long-horizon items live in
   fetch and websocket reconnect noise when the app *server* or collaboration
   server is genuinely unavailable. The editor should keep showing a clear
   disconnected state, but repeated retries should avoid flooding the console and
-  test guards. (The *teardown* case — a token fetch cancelled when navigating
-  away mid-connect — is fixed: once `session.destroy()` runs, `authEndpoint`
-  hands y-sweet a never-settling promise for that connect attempt so its loop
-  neither warns nor opens a socket; see `token-acquisition.collab.spec.tsx`.
-  Tradeoff: that pending promise retains its closure for the page lifetime, so a
-  session that opens/tears-down many docs leaks one per teardown-aborted connect
-  — bounded and minor, but a clean fix would let the connect loop actually exit
-  on destroy rather than park forever. What remains is the
-  server-down/reconnect-loop noise on a *live* session.)
+  test guards. Teardown cancellation is handled by the [client patch](../patches/@y-sweet__client@0.9.1.patch), covered by
+  [provider lifecycle regressions](../tests/unit/collab/provider-page-lifecycle.collab.spec.ts). Its [upstream follow-up](todo.md#upstream-reports) is tracked separately;
+  this item concerns retries on a live session.
 - Local data wipe follow-up: add a separate "wipe this device" flow and design
   the related UX, including unsynced local edits and server-offline behavior.
   (The open-tab IndexedDB cleanup blocker is resolved: the provider closes its

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { meta } from '#tests';
 import { createDeferred } from '../_support/deferred';
 import { asCollaborationProviderEvents, createProviderFactory, waitForSync } from '#collaboration/runtime';
 import type { ProviderFactoryResult } from '#collaboration/runtime';
@@ -39,7 +40,8 @@ afterEach(() => {
     provider.destroy();
     doc.destroy();
   }
-  vi.restoreAllMocks();
+  if (vi.isMockFunction(globalThis.WebSocket)) globalThis.WebSocket.mockRestore();
+  if (vi.isMockFunction(globalThis.fetch)) vi.mocked(globalThis.fetch).mockRestore();
   restoreFetch?.();
   restoreFetch = undefined;
 });
@@ -80,7 +82,7 @@ describe('provider page lifecycle', () => {
 
     if (outcome === 'success') {
       // An aborted request can already have queued its response before departure.
-      lateToken.resolve(await originalFetch(oldRequest!.url, { method: 'POST' }));
+      lateToken.resolve(await originalFetch(new Request(oldRequest!, { signal: new AbortController().signal })));
     } else {
       lateToken.reject(new TypeError('Failed to fetch'));
     }
@@ -181,9 +183,13 @@ describe('provider page lifecycle', () => {
     const originalFetch = globalThis.fetch;
     const departed = deferred<Response>();
     const restored = deferred<Response>();
+    let restoredRequest: Request | undefined;
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
       .mockReturnValueOnce(departed.promise)
-      .mockReturnValueOnce(restored.promise);
+      .mockImplementationOnce((input, init) => {
+        restoredRequest = new Request(input, init);
+        return restored.promise;
+      });
     const oldConnect = first.provider.connect();
     hidePage();
     restorePage();
@@ -191,28 +197,26 @@ describe('provider page lifecycle', () => {
     await oldConnect;
     const peerConnect = second.provider.connect();
     expect(fetchSpy).toHaveBeenCalledTimes(2);
-    restored.resolve(await originalFetch(`${resolveApiServerOrigin()}/api/documents/pagerequest/sync-tokens`, {
-      method: 'POST',
-    }));
+    restored.resolve(await originalFetch(restoredRequest!));
     await peerConnect;
     await waitForSync(asCollaborationProviderEvents(first.provider));
     expect(second.provider.status).toBe('connected');
   });
 
-  it('reports a shared token failure for the live consumer after the other is destroyed', async () => {
+  it('reports a shared token failure for the live consumer after the other is destroyed',
+    meta({ expectedConsoleIssues: ['Failed to get client token'] }), async () => {
     const first = await createProvider('pageshared');
     const second = await createProvider('pageshared');
     const token = deferred<Response>();
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockReturnValue(token.promise);
-    const warning = deferred<unknown[]>();
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation((...args) => warning.resolve(args));
+    const warnSpy = vi.mocked(console.warn);
     const firstConnect = first.provider.connect();
     const secondConnect = second.provider.connect();
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     first.provider.destroy();
     const error = new TypeError('Failed to fetch');
     token.reject(error);
-    expect(await warning.promise).toEqual(['Failed to get client token', error]);
+    await vi.waitFor(() => expect(warnSpy).toHaveBeenCalledWith('Failed to get client token', error));
     expect(second.provider.status).toBe('error');
     second.provider.destroy();
     await Promise.all([firstConnect, secondConnect]);
