@@ -77,6 +77,9 @@ route beneath it only when an independently useful trigger needs that narrower
 responsibility. State the subject or trigger that makes each route relevant. Do
 not restate linked contracts.
 
+The shared entry point owns its [document reading rules](../../../AGENTS.md#routes), including task triggers,
+reading scope, and reloading after context loss.
+
 ### Direct rules
 
 The shared entry point owns its directly loaded RemDo-specific rules. Those
@@ -115,6 +118,8 @@ require explicit user authority.
 
 #### Review and handoff
 
+- The shared entry point owns the [handoff check](../../../AGENTS.md#review-and-handoff) against applicable documentation
+  and constraints.
 - Review checks the repository [tracking record](../../todo.md) before reporting findings.
 - Artifacts intended for developer review land in the working directory for
   inspection. Changes remain uncommitted unless commit authority applies.
