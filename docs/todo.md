@@ -123,11 +123,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Outliner
 
-- **Imported note content.** Loading does not reject or repair hard line breaks
-  in [content text](specs/outliner/note-model.md#definitions). Development/test
-  validation reports them. Revisit import handling when malformed imports become
-  a concrete problem.
-
 - **Body-local command targets.** Target behavior ([Body](specs/outliner/body.md#selection-and-structural-targeting), [Indentation](specs/outliner/indentation.md#target-resolution), [Reordering](specs/outliner/reordering.md#target-resolution),
   [List types](specs/outliner/list-types.md#toggling), [Mobile toolbar](specs/outliner/mobile-toolbar.md#actions), and [Menu](specs/outliner/menu.md#behavior)): a caret or inline text selection
   inside a body targets its owning editor note for commands that act on a note.
