@@ -6,6 +6,7 @@ import { getTestBridgeRegistry } from '#client/editor/dev/testBridgeRegistry';
 import { readFixture } from '#tools/fixtures';
 import { getTestUserData } from '#tests';
 import DocumentRoute from '#client/app/workspace/DocumentRoute';
+import Home from '#client/app/workspace/Home';
 import { ensureCollabTestDocument } from '../collab/_support/documents';
 
 // Keep the real router, workspace, and editor together: these races cross all
@@ -18,14 +19,12 @@ export async function renderZoomNavigation(initialNoteId: string | null = 'note1
     if (pendingRoute?.noteId === noteId) {
       await pendingRoute.promise;
     }
-    return { docId, noteId, homeDocumentId: docId };
+    return { docId, noteId };
   };
   const router = createMemoryRouter([
     {
       path: '/',
-      element: <DocumentRoute />,
-      hydrateFallbackElement: <div />,
-      loader: () => loader(null),
+      element: <Home />,
     },
     {
       path: '/n/:docRef',
@@ -33,7 +32,7 @@ export async function renderZoomNavigation(initialNoteId: string | null = 'note1
       hydrateFallbackElement: <div />,
       loader: ({ params }) => loader(parseDocumentRef(params.docRef)!.noteId),
     },
-  ], { initialEntries: ['/'] });
+  ], { initialEntries: [createDocumentPath(docId)] });
   const nextEditor = getTestBridgeRegistry().waitForNext();
   render(<MantineProvider><RouterProvider router={router} /></MantineProvider>);
   const api = await nextEditor;

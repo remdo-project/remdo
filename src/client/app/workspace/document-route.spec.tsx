@@ -63,14 +63,14 @@ describe('document route', () => {
     });
   });
 
-  it('navigates from another document to the local Home root', async () => {
+  it('navigates to the default document using its document URL', async () => {
     const router = renderDocumentRoute();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
     fireEvent.click(await screen.findByRole('option', { name: 'Test Document' }));
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe('/');
+      expect(router.state.location.pathname).toBe(createDocumentPath('testDoc'));
       expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'testDoc');
     });
   });
@@ -178,8 +178,8 @@ describe('document route', () => {
     });
   });
 
-  it('returns to the canonical Home root when zoom is cleared', async () => {
-    const router = renderDocumentRoute('/');
+  it('returns to the document URL when zoom is cleared', async () => {
+    const router = renderDocumentRoute(createDocumentPath('testDoc'));
 
     fireEvent.click(await screen.findByRole('button', { name: 'Zoom note' }));
     await waitFor(() => {
@@ -188,12 +188,12 @@ describe('document route', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear zoom' }));
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe('/');
+      expect(router.state.location.pathname).toBe(createDocumentPath('testDoc'));
     });
   });
 
   it('clears zoom when the current document is pressed in the picker', async () => {
-    const router = renderDocumentRoute('/');
+    const router = renderDocumentRoute(createDocumentPath('testDoc'));
 
     fireEvent.click(await screen.findByRole('button', { name: 'Zoom note' }));
     await waitFor(() => {
@@ -206,7 +206,7 @@ describe('document route', () => {
     fireEvent.pointerUp(currentDocument, { pointerType: 'mouse' });
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe('/');
+      expect(router.state.location.pathname).toBe(createDocumentPath('testDoc'));
     });
   });
 

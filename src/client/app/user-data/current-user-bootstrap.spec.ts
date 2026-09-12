@@ -48,7 +48,7 @@ describe('current user bootstrap cache', () => {
     }));
     bootstrapModule = await import('#client/app/user-data/current-user-bootstrap');
 
-    await expect(bootstrapModule.getHomeDocumentId()).resolves.toBe(BOOTSTRAP.homeDocumentId);
+    await expect(bootstrapModule.getCurrentUserBootstrap()).resolves.toEqual(BOOTSTRAP);
   });
 
   it('uses the cached bootstrap when the app server is unavailable with remembered auth', async () => {
@@ -66,7 +66,7 @@ describe('current user bootstrap cache', () => {
     }));
     bootstrapModule = await import('#client/app/user-data/current-user-bootstrap');
 
-    await expect(bootstrapModule.getHomeDocumentId()).resolves.toBe(BOOTSTRAP.homeDocumentId);
+    await expect(bootstrapModule.getCurrentUserBootstrap()).resolves.toEqual(BOOTSTRAP);
   });
 
   it('does not use the cached bootstrap for reachable server errors', async () => {

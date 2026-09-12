@@ -243,14 +243,7 @@ Tracks the gaps between [Home](specs/outliner/home.md) and the [view header](spe
   the picker and the `documentControl` slot from `ZoomBreadcrumbs` (the doc name
   stays a crumb), delete its specs
   (`document-switcher.spec.ts`, the picker cases in
-  `document-toolbar.spec.tsx`/`document-route.spec.tsx`), and rewrite the
-  source-linking switch in `tests/e2e/docker/linking.spec.ts` to reach a linked
-  document through Home instead of the picker.
-- Home visibility is component-local `homeActive` state in `DocumentWorkspace`,
-  not URL/route backed, so it is lost on reload and not linkable. `home.md`
-  "Entering and leaving Home" treats Home as the surface above `/`; route Home
-  with the view-header work (which owns the `/` relationship), rather than
-  encoding a second ad-hoc route now.
+  `document-toolbar.spec.tsx`/`document-route.spec.tsx`).
 
 The [view header](specs/outliner/view-header.md) (Model F) is specified but not
 yet built; the entries below track implementation gaps against its rules.

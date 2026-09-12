@@ -14,12 +14,11 @@ import {
   createPostAuthNextSearch,
   resolvePostAuthPath,
 } from '#client/app/session/post-auth-path';
-import DocumentEntryRoute from './DocumentEntryRoute';
-import type { DocumentEntryLoaderData } from './DocumentEntryRoute';
+import HomeRoute from './HomeRoute';
+import DocumentRoute from '#client/app/workspace/DocumentRoute';
 import SharingRoute from '#client/app/sharing/SharingRoute';
-import { getCachedCurrentUserBootstrap, getHomeDocumentId } from '#client/app/user-data/current-user-bootstrap';
+import { getCachedCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap';
 import {
-  createCanonicalDocumentPath,
   createDocumentPath,
   parseDocumentRef,
 } from '#document-routes';
@@ -37,7 +36,7 @@ async function authenticatedSessionLoader({ request }: { request: Request }) {
   return { sessionState: await requireAuthenticatedRoute(request) };
 }
 
-async function rootRouteLoader(request: Request): Promise<DocumentEntryLoaderData> {
+async function homeRouteLoader(request: Request): Promise<{ sessionState: SessionGateState; publicServer?: boolean }> {
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
     // Carry the public-server flag so the login page can gate its admin link.
@@ -52,34 +51,28 @@ async function rootRouteLoader(request: Request): Promise<DocumentEntryLoaderDat
   if (sessionState.status === 'offline-unavailable') {
     return { sessionState };
   }
-  let homeDocumentId: string;
   let target: string;
   if (sessionState.status === 'offline-remembered') {
     const bootstrap = getCachedCurrentUserBootstrap();
     if (!bootstrap) {
       return { sessionState: { status: 'offline-unavailable' } };
     }
-    homeDocumentId = bootstrap.homeDocumentId;
     target = resolvePostAuthPath(search, url.origin);
   } else {
     const redirectTarget = resolveAuthenticatedLoginRedirect(search, url.origin);
     if (redirectTarget.kind === 'document-redirect') {
       throw redirectDocument(redirectTarget.href);
     }
-    homeDocumentId = await getHomeDocumentId();
     target = redirectTarget.path;
   }
 
-  if (target !== '/' && target !== createDocumentPath(homeDocumentId)) {
+  if (target !== '/') {
     throw redirect(target);
   }
   if (search) {
     throw redirect('/');
   }
   return {
-    docId: homeDocumentId,
-    homeDocumentId,
-    noteId: null,
     sessionState,
   };
 }
@@ -105,17 +98,12 @@ async function documentLoader({ request, params }: {
   if (sessionState.status === 'offline-remembered' && !bootstrap) {
     return { sessionState: { status: 'offline-unavailable' } as const };
   }
-  const homeDocumentId = bootstrap?.homeDocumentId ?? await getHomeDocumentId();
-  const canonicalPath = createCanonicalDocumentPath(
-    parsed.docId,
-    parsed.noteId,
-    homeDocumentId,
-  );
+  const canonicalPath = createDocumentPath(parsed.docId, parsed.noteId);
   if (url.pathname !== canonicalPath) {
     throw redirect(`${canonicalPath}${url.search}`);
   }
 
-  return { ...parsed, homeDocumentId, sessionState };
+  return { ...parsed, sessionState };
 }
 
 const hydrateFallbackElement = <div aria-hidden="true" />;
@@ -123,8 +111,8 @@ const hydrateFallbackElement = <div aria-hidden="true" />;
 const appRoutes = [
   {
     path: '/',
-    loader: ({ request }: { request: Request }) => rootRouteLoader(request),
-    element: <DocumentEntryRoute />,
+    loader: ({ request }: { request: Request }) => homeRouteLoader(request),
+    element: <HomeRoute />,
     hydrateFallbackElement,
   },
   {
@@ -156,9 +144,11 @@ const appRoutes = [
   {
     path: 'n/:docRef',
     loader: documentLoader,
-    // Match the root route's component tree so canonical Home-document zoom
-    // navigation preserves the editor, selection, and pending Home intent.
-    element: <DocumentEntryRoute />,
+    element: (
+      <AuthenticatedRoute>
+        <DocumentRoute />
+      </AuthenticatedRoute>
+    ),
     hydrateFallbackElement,
   },
   {

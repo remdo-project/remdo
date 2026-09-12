@@ -704,7 +704,8 @@ async function createUserDataStoreContext(
     const attached = await waitForSessionAttachment(session, docMap, docId);
 
     void attached.provider.connect();
-    await session.awaitSynced();
+    // Cached projections can populate Home before the server is reachable.
+    await session.awaitHydrated();
     return {
       session,
       doc: attached.doc,

@@ -340,8 +340,7 @@ main.document-route-container {
   padding-inline: 0;
 }
 
-/* Home view: takes over the content region (like search mode). Inline padding
-   matches the editor pane / document header (`xl`) so the layout stays aligned. */
+/* Home padding matches the editor pane / document header (`xl`). */
 .document-home {
   padding: var(--mantine-spacing-lg) var(--mantine-spacing-xl) var(--mantine-spacing-xl);
   display: flex;

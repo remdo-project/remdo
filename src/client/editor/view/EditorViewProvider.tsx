@@ -26,7 +26,6 @@ const EditorViewContext = createContext<{
   zoomPath: NotePathItem[];
   requestZoomNoteId: (noteId: string | null) => void;
   isCurrentZoomRoute: () => boolean;
-  getLatestZoomRequestId: () => number;
   setZoomPath: (path: NotePathItem[]) => void;
   searchNotes: SearchNotesReader;
   registerSearchNotesReader: (reader: SearchNotesReader | null) => void;
@@ -50,7 +49,6 @@ export function EditorViewProvider({
     () => zoomRequestId === undefined || zoomRequestId === latestZoomRequestIdRef.current,
     [zoomRequestId]
   );
-  const getLatestZoomRequestId = useCallback(() => latestZoomRequestIdRef.current, []);
   const [zoomPathState, setZoomPathState] = useState({
     sourceDocId: docId,
     path: EMPTY_PATH,
@@ -98,11 +96,10 @@ export function EditorViewProvider({
     zoomPath,
     requestZoomNoteId,
     isCurrentZoomRoute,
-    getLatestZoomRequestId,
     setZoomPath,
     searchNotes,
     registerSearchNotesReader,
-  }), [getLatestZoomRequestId, isCurrentZoomRoute, registerSearchNotesReader, requestZoomNoteId, searchNotes, setZoomPath, zoomNoteId, zoomPath]);
+  }), [isCurrentZoomRoute, registerSearchNotesReader, requestZoomNoteId, searchNotes, setZoomPath, zoomNoteId, zoomPath]);
 
   return (
     <EditorViewContext value={value}>{children}</EditorViewContext>
@@ -135,7 +132,6 @@ export function useEditorViewActions() {
   return {
     requestZoomNoteId: context.requestZoomNoteId,
     isCurrentZoomRoute: context.isCurrentZoomRoute,
-    getLatestZoomRequestId: context.getLatestZoomRequestId,
     setZoomPath: context.setZoomPath,
   };
 }

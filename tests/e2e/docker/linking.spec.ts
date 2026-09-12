@@ -48,18 +48,11 @@ test('links a source by URL and opens its Home document', async ({ page }) => {
   await expect(page.getByText('Linked sources')).toBeVisible();
   await expect(page.getByText(sourceOrigin, { exact: true })).toBeVisible();
 
-  // Open the source's Home document from the switcher.
+  // Open the source's default document through Home's source group.
   await page.goto('/');
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/'));
-
-  const switcherTrigger = page.getByRole('button', { name: 'Show documents' });
-  await expect(switcherTrigger).toBeVisible();
-  await switcherTrigger.click();
-
-  const dropdown = page.locator('.document-header-doc-dropdown');
-  const sourceHome = dropdown.getByRole('option', { name: `${sourceHost} · Home`, exact: true });
-  await expect(sourceHome).toBeVisible();
-  await sourceHome.click();
+  const sourceGroup = page.getByRole('group', { name: sourceHost, exact: true });
+  await sourceGroup.getByRole('button', { name: 'Home', exact: true }).click();
 
   await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/n\/[\dA-Za-z]+$/u);
   await waitForEditableEditor(page);

@@ -7,9 +7,9 @@ import { chooseDocument, documentPicker, documentPickerButton, editorLocator, ho
 import { createEditorDocumentPath } from './_support/routes';
 
 test.describe('Document switcher', () => {
-  test('stacks document and search controls without horizontal overflow on narrow screens', async ({ page }) => {
+  test('stacks document and search controls without horizontal overflow on narrow screens', async ({ page, editor }) => {
+    await editor.load('basic');
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto('/');
     await editorLocator(page).locator('.editor-input').first().waitFor();
 
     const shell = editorLocator(page)
@@ -35,20 +35,32 @@ test.describe('Document switcher', () => {
     expect(overflow).toEqual({ header: 0, page: 0 });
   });
 
-  test('keeps the document picker filter editable after the first character', async ({ page }) => {
+  test('keeps the picker editable when the document hydrates during typing', async ({ page }) => {
     const sourceDocument = await createUserDocument(page, `Picker Filter ${Date.now()}`);
-    await page.goto(createEditorDocumentPath(sourceDocument.id));
-    await editorLocator(page).locator('.editor-input').first().waitFor();
+    let releaseHydration!: () => void;
+    const hydrationHeld = new Promise<void>((resolve) => { releaseHydration = resolve; });
+    await page.route(`**/api/documents/${sourceDocument.id}/sync-tokens`, async (route) => {
+      await hydrationHeld;
+      await route.continue();
+    });
+    try {
+      await page.goto(createEditorDocumentPath(sourceDocument.id));
+      await editorLocator(page).locator('.editor-input').first().waitFor();
+      await documentPickerButton(page).click();
+      const picker = documentPicker(page);
+      await expect(picker).toBeFocused();
+      await page.keyboard.type('ba');
+      await expect(picker).toHaveValue('ba');
 
-    await documentPickerButton(page).click();
-    const picker = documentPicker(page);
-    await expect(picker).toBeFocused();
-
-    await page.keyboard.type('ba');
-    await expect(picker).toHaveValue('ba');
-    await picker.press('Backspace');
-    await expect(picker).toHaveValue('b');
-    await expect(picker).toBeFocused();
+      releaseHydration();
+      await waitForSynced(page);
+      await expect(picker).toBeFocused();
+      await picker.press('Backspace');
+      await expect(picker).toHaveValue('b');
+      await expect(picker).toBeFocused();
+    } finally {
+      releaseHydration();
+    }
   });
 
   test('creates a listed document, switches to it, and switches back to the source document', async ({ page, captureCreatedDoc }) => {
@@ -56,7 +68,7 @@ test.describe('Document switcher', () => {
     await seedDocument(page, sourceDocument.id, 'tree-complex');
 
     await page.goto(createEditorDocumentPath(sourceDocument.id));
-    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await waitForSynced(page);
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
 
     const createdDocId = await captureCreatedDoc(page, async () => {
@@ -153,6 +165,10 @@ test.describe('Document switcher', () => {
     await expect(page.getByRole('alert')).toContainText('Could not upload document');
     await documentPickerButton(page).click();
     await expect(page.getByRole('option', { name: 'broken', exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await chooseDocument(page, sourceDocument.title);
+    await chooseDocument(page, 'broken');
+    await expect(page.getByRole('alert')).toHaveCount(0);
   });
 });
 

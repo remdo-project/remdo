@@ -313,6 +313,37 @@ export class CollabSession {
     this.notify();
   }
 
+  async awaitHydrated(): Promise<void> {
+    if (this.attachTask) {
+      await this.attachTask;
+    }
+    if (this.state.hydrated) {
+      return;
+    }
+    if (!this.awaitController) {
+      throw new Error('Collaboration provider unavailable');
+    }
+    const signal = this.awaitController.signal;
+    signal.throwIfAborted();
+    await new Promise<void>((resolve, reject) => {
+      const unsubscribe = this.subscribe(() => {
+        if (this.state.hydrated) {
+          cleanup();
+          resolve();
+        }
+      });
+      const onAbort = () => {
+        cleanup();
+        reject(signal.reason);
+      };
+      function cleanup() {
+        unsubscribe();
+        signal.removeEventListener('abort', onAbort);
+      }
+      signal.addEventListener('abort', onAbort, { once: true });
+    });
+  }
+
   async awaitSynced() {
     if (!this.enabled) {
       return;
