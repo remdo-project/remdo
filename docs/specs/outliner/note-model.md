@@ -39,7 +39,7 @@ Adapters preserve these guarantees whenever they create, import, or export notes
 - **Previous note / next note:** adjacent editor notes in document order. View
   filters such as [zoom](./zoom.md) and [folding](./folding.md) can hide notes without changing that order.
 - **Content text:** a note's own text. An editor note's content text contains no
-  hard line breaks; multi-line text belongs in its body.
+  hard line breaks.
 - **Empty note:** an editor note whose content text is empty after trimming
   whitespace. Its body is separate and does not affect this state.
 - **Empty leaf note:** an empty note with no children.

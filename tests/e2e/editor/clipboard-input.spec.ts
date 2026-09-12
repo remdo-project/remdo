@@ -32,6 +32,6 @@ test('multiline HTML paste preserves destination structure, focus, and undo on a
     anchorText: 'Gamma', anchorOffset: 5, isCollapsed: true,
   });
 
-  await page.keyboard.press('Control+z');
+  await page.keyboard.press('ControlOrMeta+z');
   await expect.poll(() => editor.getEditorState()).toEqual(before);
 });

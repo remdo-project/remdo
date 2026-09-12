@@ -6,12 +6,12 @@ note-link identity across clipboard and persistence boundaries.
 
 ## Incoming content
 
-Outside a [body](./body.md), rich clipboard content with line breaks inside note
-labels, or multiple text blocks without note structure, is converted to
-line-separated plain text and follows the plain-text placement rules below.
+When pasting into [content text](./note-model.md#definitions), rich clipboard content with hard line breaks,
+or multiple text blocks without note structure, is converted to line-separated
+plain text and follows the plain-text placement rules below.
 Conversion applies to the whole payload, discarding inline formatting, link
 targets, and source hierarchy. The resulting text creates new notes. Line breaks
-inside a copied note's body alone do not trigger this conversion.
+inside a copied note's [body](./body.md) alone do not trigger this conversion.
 
 Plain-text line separators include LF, CRLF, and CR.
 
