@@ -1,4 +1,4 @@
-import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
+import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { BaseSelection, LexicalEditor, LexicalNode, RangeSelection, SerializedLexicalNode } from 'lexical';
@@ -816,7 +816,7 @@ export function ClipboardPlugin() {
             && payload.nodes.filter((node) => $isElementNode(node) && !node.isInline()).length > 1;
           if (hasBlocks || $hasClipboardContentBreak(payload.nodes)) {
             const text = $getPlainTextFromClipboardNodes(payload.nodes);
-            payload.nodes = [$createListNode('bullet').append(...buildListItemsFromPlainText(text))];
+            payload.nodes = buildListItemsFromPlainText(text);
           }
 
           const outlineSelection = editor.selection.get();
