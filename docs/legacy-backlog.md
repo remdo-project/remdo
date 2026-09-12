@@ -237,11 +237,10 @@ the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#br
 
 ## Note-first SDK follow-ups
 
-- App-resource SDK direction: model current-user app resources as projected
-  note collections plus HTTP commands. Reads should come from the
-  server-written current-user Yjs projection after bootstrap; writes should stay
-  explicit HTTP commands. The SDK should mirror the conceptual resource tree,
-  not raw route syntax.
+- Current app-resource SDK: note collections read server-written user-data
+  projections and mutations use HTTP commands. The [document registry](architecture.md#document-registry) owns the
+  current storage boundary; backing-store reconsideration is tracked in the
+  [SDK consumer work](todo.md#sdk).
 - Current source-server slice status: projection-backed source-server SDK/UI
   reads are in place, and account linking remains an HTTP command.
 - Current sharing/access slice status: document access reads are exposed as
@@ -252,11 +251,6 @@ the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#br
   expose well-shaped note kinds instead of flattened DTO-shaped records. Start
   with document access: consider modeling access as a relationship note with
   `document()` and `grantee()` where the grantee is a public user/person note.
-- Projection backing-store follow-up: after the sharing branch is merged,
-  revisit whether app-resource projections should stay on Yjs. The likely
-  target is a graph-shaped SDK backed by a simpler server-state graph/cache
-  mechanism with live invalidation or patches, while keeping Yjs focused on
-  collaborative document content. Do not choose or introduce that tool in this branch.
 - Next note-resource cleanup:
   1. ✅ Done: introduce a generic collection-note role for ordered projected
      collections keyed by stable child note id.

@@ -72,11 +72,14 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Performance
 
-- **Client performance contract.** Define measurable user-facing performance
-  targets and the evidence used to assess them. Reassess the existing
-  non-collaboration Vitest benchmark's workloads, operations, metric, and runner
-  as part of that design, then establish a specification and align or replace
-  the harness.
+- **Client performance contract.** Turn the [interaction and discovery principles](principles.md#interaction-and-discovery)
+  into measurable targets and evidence, including editing responsiveness,
+  search opening, and query updates across representative document sizes and
+  devices. Assess CPU and memory costs alongside user-visible latency. Reassess
+  the existing non-collaboration Vitest benchmark's workloads, operations,
+  metric, and runner, then establish a specification and align or replace the
+  harness. Use the evidence to select bounded optimizations rather than
+  presupposing an index, worker, or library.
 
 ### Operations
 
@@ -96,27 +99,31 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   capabilities and operations without importing Lexical commands or private
   feature modules.
 
-  Continue with the [quick action menu](specs/outliner/menu.md), keymaps, and
-  future real consumers one coherent, behavior-preserving capability slice at
-  a time. Keep capabilities at the scope their semantics require—including a
-  note, selection, current view or zoom, and history—rather than forcing every
-  operation onto a particular note. Each slice decides only the contract,
-  ownership, targeting, applicability, observation, execution, lifecycle, and
-  naming required by its consumers and plausible adapters. Existing behavioral
-  owners retain the semantics, adapters retain framework and storage mechanics,
-  and surfaces retain their inventory, ordering, presentation, focus, layout,
-  and hide-versus-disable policy.
+  Use real consumers, including keymaps, to improve the SDK, not merely to
+  migrate calls behind its existing API. The [quick action menu](specs/outliner/menu.md) is a useful next
+  playground; data access, queries, and observation are equally valid starting
+  points when a consumer exposes a more important gap. Choose small slices by
+  consumer value rather than a fixed PR sequence, following the
+  [consumer API principles](principles.md#consumer-apis) and the session's ownership boundaries. Preserve each
+  operation's owning behavior while reconsidering the SDK shape.
 
-  Do not preselect a generic action registry, flat API, final SDK or package
-  name, plugin contribution framework, or second-adapter implementation. The
-  convergence goal is reached when the quick action menu and other high-level
-  action consumers use the SDK for application behavior and their common
-  behavior can be backed by another note adapter without adapter-specific
-  semantic logic in the surfaces. Coordinate with the
-  [legacy Note-first SDK follow-ups](legacy-backlog.md#note-first-sdk-follow-ups)
-  rather than duplicating their resource, loading, and query work.
+  Reassess whether app-resource projections need Yjs or would be simpler with
+  established server-state/cache tooling, including its observation API. The
+  [document registry](architecture.md#document-registry) owns the current storage boundary; this comparison
+  concerns app resources, not replacement of collaborative document storage.
+  Choose tools against a concrete consumer and the [performance work](#performance), not the
+  existing projection layout. Coordinate resource-read changes with the
+  [offline document-inventory follow-up](architecture.md#future), and non-current-document access and
+  cross-document query/loading with the
+  [legacy Note-first SDK follow-ups](legacy-backlog.md#note-first-sdk-follow-ups).
 
-  At the start and close of each capability slice, locate related entries across
+  Success is a simple SDK surface for note access, observation, queries, and
+  operations without adapter-specific semantic logic in consumers. Keep
+  capabilities at their natural scope rather than forcing every operation onto
+  one note. Do not preselect a generic action registry, flat API, final SDK or
+  package name, plugin contribution framework, or second-adapter implementation.
+
+  At the start and close of each slice, locate related entries across
   the [tracking record](#tracked-follow-up), the
   [legacy backlog](legacy-backlog.md), and relevant Git history. Treat them as
   informative evidence rather than requirements or a predetermined API, then
