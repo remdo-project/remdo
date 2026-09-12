@@ -143,17 +143,21 @@ const $resolveToggleTargets = (
   editor: LexicalEditor,
   payload: SetNoteCheckedPayload
 ): ListItemNode[] => {
+  const outlineSelection = editor.selection.get();
+  const selectedItems = outlineSelection?.kind === 'structural' && outlineSelection.range
+    ? $resolveStructuralItemsFromRange(outlineSelection.range)
+    : [];
+
   if (payload.noteItemKey) {
     const item = $resolveContentItemByKey(payload.noteItemKey);
-    return item ? [item] : [];
+    if (!item) {
+      return [];
+    }
+    return selectedItems.some((selected) => selected.is(item)) ? $resolveRootTargets(selectedItems) : [item];
   }
 
-  const outlineSelection = editor.selection.get();
-  if (outlineSelection?.kind === 'structural' && outlineSelection.range) {
-    const targets = $resolveRootTargets($resolveStructuralItemsFromRange(outlineSelection.range));
-    if (targets.length > 0) {
-      return targets;
-    }
+  if (selectedItems.length > 0) {
+    return $resolveRootTargets(selectedItems);
   }
 
   const selection = $getSelection();

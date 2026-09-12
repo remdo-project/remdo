@@ -1,5 +1,5 @@
 import { expect, test } from '#editor/fixtures';
-import { editorLocator, setCaretAtText } from '#editor/locators';
+import { editorLocator, noteRow, setCaretAtText } from '#editor/locators';
 import { openNoteMenu } from './_support/menu';
 
 test.describe('Note menu', () => {
@@ -253,6 +253,35 @@ test.describe('Note menu', () => {
     await menuAfter.expectClosed();
     await expect(menuAfter.listItem).not.toHaveAttribute('data-note-checked', 'true');
   });
+
+  for (const entry of ['hover', 'shortcut'] as const) {
+    test(`toggles the selected range through the ${entry} menu and retains selection`, async ({ page, editor }) => {
+      await editor.load('flat');
+      await setCaretAtText(page, 'note1', 0);
+      await page.keyboard.press('Shift+ArrowDown');
+      await page.keyboard.press('Shift+ArrowDown');
+      await page.keyboard.press('Shift+ArrowDown');
+      const input = editorLocator(page).locator('.editor-input');
+      await expect(input).toHaveClass(/editor-input--structural/);
+
+      const menu = await openNoteMenu(page, 'note2', { openMethod: entry });
+      await menu.item('toggle-checked').click();
+      await menu.expectClosed();
+      await expect(noteRow(page, 'note1')).toHaveAttribute('data-note-checked', 'true');
+      await expect(noteRow(page, 'note2')).toHaveAttribute('data-note-checked', 'true');
+      await expect(noteRow(page, 'note3')).not.toHaveAttribute('data-note-checked', 'true');
+      await expect(input).toBeFocused();
+      await expect(input).toHaveClass(/editor-input--structural/);
+
+      await openNoteMenu(page, 'note2', { openMethod: entry });
+      await menu.item('toggle-checked').focus();
+      await page.keyboard.press('Enter');
+      await menu.expectClosed();
+      await expect(noteRow(page, 'note1')).not.toHaveAttribute('data-note-checked', 'true');
+      await expect(noteRow(page, 'note2')).not.toHaveAttribute('data-note-checked', 'true');
+      await expect(input).toBeFocused();
+    });
+  }
 
   test('shows list type actions for notes with children', async ({ page, editor }) => {
     await editor.load('tree-list-types');
