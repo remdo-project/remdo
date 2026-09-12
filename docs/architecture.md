@@ -150,6 +150,12 @@ specific sync channel (for example network sync or local persistence).
 - **Persistence provider:** stores updates/state locally (IndexedDB, filesystem,
   and similar stores).
 
+Page departure cancels pending network work without reporting cancellation as a
+token failure. Restoring a page from browser history resumes its previously
+active network providers; already disconnected or destroyed providers remain
+disconnected. Destroying one provider does not interrupt network work shared
+with a live provider. Genuine failures remain observable to active providers.
+
 ### Local Persistence
 
 Client-side storage for collaboration state.

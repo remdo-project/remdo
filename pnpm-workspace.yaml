@@ -74,8 +74,10 @@ patchedDependencies:
   # Lexical V2 must ignore remote cursors mapped only to deleted text nodes.
   # Regression: tests/unit/collab/lexical-yjs-cursor-sync.collab.spec.ts.
   '@lexical/yjs@0.49.0': patches/@lexical__yjs@0.49.0.patch
-  # Pending-connection cancellation; upstream follow-up: docs/todo.md#upstream-reports.
-  # Probe: remove patch; run tests/unit/collab/provider-page-lifecycle.collab.spec.ts.
+  # Cancel pending connections and close connecting sockets without Chromium warnings.
+  # Upstream follow-up: docs/todo.md#upstream-reports.
+  # Probe: remove patch; run tests/unit/collab/provider-page-lifecycle.collab.spec.ts
+  # and tests/e2e/app/collaboration-lifecycle.spec.ts.
   '@y-sweet/client@0.9.1': patches/@y-sweet__client@0.9.1.patch
   # Lexical must not warn when its own commit machinery dispatches a mutating
   # command: $updateDOMSelection sets the DOM selection during a commit, the
