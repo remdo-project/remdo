@@ -1,0 +1,232 @@
+diff --git a/dist/main.js b/dist/main.js
+index 5d0a238cc12a5258879bdcfb48ce3e42cf70c0bc..fe4c1a4dcdf46f8cfdeb1f3be3d5ba270d9546b4 100644
+--- a/dist/main.js
++++ b/dist/main.js
+@@ -547,6 +547,7 @@ var YSweetProvider2 = class {
+     this.ackedVersion = -1;
+     /** Whether we are currently in the process of connecting. */
+     this.isConnecting = false;
++    this.connectionGeneration = 0;
+     this.heartbeatHandle = null;
+     this.connectionTimeoutHandle = null;
+     this.reconnectSleeper = null;
+@@ -702,7 +703,10 @@ var YSweetProvider2 = class {
+   }
+   async ensureClientToken() {
+     if (this.clientToken === null) {
+-      this.clientToken = await getClientToken(this.authEndpoint, this.docId);
++      const generation = this.connectionGeneration;
++      const token = await getClientToken(this.authEndpoint, this.docId);
++      if (generation !== this.connectionGeneration) return token;
++      this.clientToken = token;
+     }
+     return this.clientToken;
+   }
+@@ -716,7 +720,7 @@ var YSweetProvider2 = class {
+         if (event === STATUS_CONNECTED) {
+           this.off(EVENT_CONNECTION_STATUS, statusListener);
+           resolve(true);
+-        } else if (event === STATUS_ERROR) {
++        } else if (event === STATUS_ERROR || event === STATUS_OFFLINE) {
+           this.off(EVENT_CONNECTION_STATUS, statusListener);
+           resolve(false);
+         }
+@@ -735,15 +739,17 @@ var YSweetProvider2 = class {
+       return;
+     }
+     this.isConnecting = true;
++    const generation = this.connectionGeneration;
+     this.setStatus(STATUS_CONNECTING);
+     const lastDebugUrl = this.debugUrl;
+     connecting:
+-      while (![STATUS_OFFLINE, STATUS_CONNECTED].includes(this.status)) {
++      while (generation === this.connectionGeneration && ![STATUS_OFFLINE, STATUS_CONNECTED].includes(this.status)) {
+         this.setStatus(STATUS_CONNECTING);
+         let clientToken;
+         try {
+           clientToken = await this.ensureClientToken();
+         } catch (e) {
++          if (generation !== this.connectionGeneration) return;
+           console.warn("Failed to get client token", e);
+           this.setStatus(STATUS_ERROR);
+           let timeout = DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH * Math.min(MAX_BACKOFF_COEFFICIENT, Math.pow(BACKOFF_BASE, this.retries));
+@@ -753,7 +759,10 @@ var YSweetProvider2 = class {
+           continue;
+         }
+         for (let i = 0; i < RETRIES_BEFORE_TOKEN_REFRESH; i++) {
+-          if (await this.attemptToConnect(clientToken)) {
++          if (generation !== this.connectionGeneration) return;
++          const connected = await this.attemptToConnect(clientToken);
++          if (generation !== this.connectionGeneration) return;
++          if (connected) {
+             this.retries = 0;
+             break connecting;
+           }
+@@ -762,8 +771,10 @@ var YSweetProvider2 = class {
+           this.reconnectSleeper = new Sleeper(timeout);
+           await this.reconnectSleeper.sleep();
+         }
++        if (generation !== this.connectionGeneration) return;
+         this.clientToken = null;
+       }
++    if (generation !== this.connectionGeneration) return;
+     this.isConnecting = false;
+     if (this.showDebuggerLink && lastDebugUrl !== this.debugUrl) {
+       console.log(
+@@ -777,10 +788,28 @@ var YSweetProvider2 = class {
+     }
+   }
+   disconnect() {
+-    this.setStatus(STATUS_OFFLINE);
++    this.connectionGeneration += 1;
++    this.isConnecting = false;
++    this.clearHeartbeat();
++    this.clearConnectionTimeout();
++    this.reconnectSleeper?.wake();
+     if (this.websocket) {
++      this.websocket.onopen = null;
++      this.websocket.onmessage = null;
++      this.websocket.onclose = null;
++      // Closing a connecting socket can report an error, including with Node's ws.
++      this.websocket.onerror = () => {};
+       this.websocket.close();
++      this.websocket = null;
+     }
++    this.setStatus(STATUS_OFFLINE);
++    awarenessProtocol.removeAwarenessStates(
++      this.awareness,
++      Array.from(this.awareness.getStates().keys()).filter(
++        (client) => client !== this.doc.clientID
++      ),
++      this
++    );
+   }
+   bindWebsocket(websocket) {
+     if (this.websocket) {
+@@ -926,9 +955,7 @@ var YSweetProvider2 = class {
+     this.send(toUint8Array(encoder));
+   }
+   destroy() {
+-    if (this.websocket) {
+-      this.websocket.close();
+-    }
++    this.disconnect();
+     if (this.indexedDBProvider) {
+       this.indexedDBProvider.destroy();
+     }
+diff --git a/dist/main.mjs b/dist/main.mjs
+index 0f0582d7679316c79f57bcfddf55c21af64fd806..7327468a279dc9d6a6c436a1071e83b8d097054d 100644
+--- a/dist/main.mjs
++++ b/dist/main.mjs
+@@ -547,6 +547,7 @@ var YSweetProvider2 = class {
+     this.ackedVersion = -1;
+     /** Whether we are currently in the process of connecting. */
+     this.isConnecting = false;
++    this.connectionGeneration = 0;
+     this.heartbeatHandle = null;
+     this.connectionTimeoutHandle = null;
+     this.reconnectSleeper = null;
+@@ -702,7 +703,10 @@ var YSweetProvider2 = class {
+   }
+   async ensureClientToken() {
+     if (this.clientToken === null) {
+-      this.clientToken = await getClientToken(this.authEndpoint, this.docId);
++      const generation = this.connectionGeneration;
++      const token = await getClientToken(this.authEndpoint, this.docId);
++      if (generation !== this.connectionGeneration) return token;
++      this.clientToken = token;
+     }
+     return this.clientToken;
+   }
+@@ -716,7 +720,7 @@ var YSweetProvider2 = class {
+         if (event === STATUS_CONNECTED) {
+           this.off(EVENT_CONNECTION_STATUS, statusListener);
+           resolve(true);
+-        } else if (event === STATUS_ERROR) {
++        } else if (event === STATUS_ERROR || event === STATUS_OFFLINE) {
+           this.off(EVENT_CONNECTION_STATUS, statusListener);
+           resolve(false);
+         }
+@@ -735,15 +739,17 @@ var YSweetProvider2 = class {
+       return;
+     }
+     this.isConnecting = true;
++    const generation = this.connectionGeneration;
+     this.setStatus(STATUS_CONNECTING);
+     const lastDebugUrl = this.debugUrl;
+     connecting:
+-      while (![STATUS_OFFLINE, STATUS_CONNECTED].includes(this.status)) {
++      while (generation === this.connectionGeneration && ![STATUS_OFFLINE, STATUS_CONNECTED].includes(this.status)) {
+         this.setStatus(STATUS_CONNECTING);
+         let clientToken;
+         try {
+           clientToken = await this.ensureClientToken();
+         } catch (e) {
++          if (generation !== this.connectionGeneration) return;
+           console.warn("Failed to get client token", e);
+           this.setStatus(STATUS_ERROR);
+           let timeout = DELAY_MS_BEFORE_RETRY_TOKEN_REFRESH * Math.min(MAX_BACKOFF_COEFFICIENT, Math.pow(BACKOFF_BASE, this.retries));
+@@ -753,7 +759,10 @@ var YSweetProvider2 = class {
+           continue;
+         }
+         for (let i = 0; i < RETRIES_BEFORE_TOKEN_REFRESH; i++) {
+-          if (await this.attemptToConnect(clientToken)) {
++          if (generation !== this.connectionGeneration) return;
++          const connected = await this.attemptToConnect(clientToken);
++          if (generation !== this.connectionGeneration) return;
++          if (connected) {
+             this.retries = 0;
+             break connecting;
+           }
+@@ -762,8 +771,10 @@ var YSweetProvider2 = class {
+           this.reconnectSleeper = new Sleeper(timeout);
+           await this.reconnectSleeper.sleep();
+         }
++        if (generation !== this.connectionGeneration) return;
+         this.clientToken = null;
+       }
++    if (generation !== this.connectionGeneration) return;
+     this.isConnecting = false;
+     if (this.showDebuggerLink && lastDebugUrl !== this.debugUrl) {
+       console.log(
+@@ -777,10 +788,28 @@ var YSweetProvider2 = class {
+     }
+   }
+   disconnect() {
+-    this.setStatus(STATUS_OFFLINE);
++    this.connectionGeneration += 1;
++    this.isConnecting = false;
++    this.clearHeartbeat();
++    this.clearConnectionTimeout();
++    this.reconnectSleeper?.wake();
+     if (this.websocket) {
++      this.websocket.onopen = null;
++      this.websocket.onmessage = null;
++      this.websocket.onclose = null;
++      // Closing a connecting socket can report an error, including with Node's ws.
++      this.websocket.onerror = () => {};
+       this.websocket.close();
++      this.websocket = null;
+     }
++    this.setStatus(STATUS_OFFLINE);
++    awarenessProtocol.removeAwarenessStates(
++      this.awareness,
++      Array.from(this.awareness.getStates().keys()).filter(
++        (client) => client !== this.doc.clientID
++      ),
++      this
++    );
+   }
+   bindWebsocket(websocket) {
+     if (this.websocket) {
+@@ -926,9 +955,7 @@ var YSweetProvider2 = class {
+     this.send(toUint8Array(encoder));
+   }
+   destroy() {
+-    if (this.websocket) {
+-      this.websocket.close();
+-    }
++    this.disconnect();
+     if (this.indexedDBProvider) {
+       this.indexedDBProvider.destroy();
+     }
