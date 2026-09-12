@@ -1,4 +1,4 @@
-import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
+import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { BaseSelection, LexicalEditor, LexicalNode, RangeSelection, SerializedLexicalNode } from 'lexical';
@@ -68,7 +68,7 @@ import {
 } from '#client/editor/outline/selection/split-content-item';
 import { $deleteNotesInRange } from '#client/editor/outline/selection/delete-selection';
 
-const NEWLINE_PATTERN = /\r?\n/;
+const NEWLINE_PATTERN = /\r\n|[\r\n]/;
 
 type ClipboardOperation = 'copy' | 'cut';
 
@@ -128,6 +128,15 @@ function $createNoteItemWithText(text: string): ListItemNode {
 function buildListItemsFromPlainText(text: string): ListItemNode[] {
   const lines = text.split(NEWLINE_PATTERN);
   return lines.map((line) => $createNoteItemWithText(line));
+}
+
+function $hasClipboardContentBreak(nodes: LexicalNode[]): boolean {
+  return nodes.some((node) => {
+    if (node.getType() === 'note-body') return false;
+    if (node.getType() === 'linebreak') return true;
+    if ($isElementNode(node)) return $hasClipboardContentBreak(node.getChildren());
+    return /[\r\n]/.test(node.getTextContent());
+  });
 }
 
 function $getPlainTextFromClipboardNodes(nodes: LexicalNode[]): string {
@@ -801,6 +810,13 @@ export function ClipboardPlugin() {
             lastPasteSelectionRangeRef.current = null;
             $insertClipboardNodesIntoBody(payload.selection, payload.nodes);
             return true;
+          }
+
+          const hasBlocks = $extractClipboardListChildren(payload.nodes).length === 0
+            && payload.nodes.filter((node) => $isElementNode(node) && !node.isInline()).length > 1;
+          if (hasBlocks || $hasClipboardContentBreak(payload.nodes)) {
+            const text = $getPlainTextFromClipboardNodes(payload.nodes);
+            payload.nodes = [$createListNode('bullet').append(...buildListItemsFromPlainText(text))];
           }
 
           const outlineSelection = editor.selection.get();
