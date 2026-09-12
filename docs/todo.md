@@ -138,33 +138,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   schema nor its validator rejects one, leaving the invariant unenforced against
   a handler or paste path that inserts a line break node into content.
 
-- **Enter at the end of an inline element.** Target behavior
-  ([Insertion](specs/outliner/insertion.md)): splitting a note keeps the note id
-  and children on the note holding the trailing text
-  (`src/client/editor/editing/insertion/insertion.spec.ts`).
-  `$splitContentItemAtSelection` in `InsertionPlugin.tsx` resolves the
-  anchor through inline ancestors, but when
-  the caret sits at the end of an inline element's last text node and content
-  follows the inline, `getNextSibling()` is null and the split returns false. A
-  non-collapsed selection ending there deletes the text and swallows `Enter`
-  without splitting; a collapsed caret falls through to Lexical's default split,
-  which leaves the note id on the leading segment and inverts the rule above.
-  The symmetric offset-0 case and end-of-inline as the note's last child are
-  already handled.
-
-- **Duplicate note-splitting helper.** `$splitContentItemAtSelection` exists in
-  both `InsertionPlugin.tsx` and `ClipboardPlugin.tsx`. Only the insertion copy
-  resolves the anchor through inline ancestors, so pasting with the caret inside
-  a link still refuses to split. Deduplicate so the surviving helper has one
-  owner rather than patching one copy.
-
-- **Current-location presentation ownership.** Before implementing the
-  [view header](specs/outliner/view-header.md) alongside [zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs), reconsider its name
-  and scope, including whether "location header" better identifies it and
-  whether editable current-location presentation remains separate from
-  ancestor breadcrumb navigation. Update both owners and their inbound links
-  together with the decision. Coordinate with the [legacy view-header follow-ups](legacy-backlog.md#home-and-view-header-follow-ups).
-
 - **Body-local command targets.** Target behavior ([Body](specs/outliner/body.md#selection-and-structural-targeting), [Indentation](specs/outliner/indentation.md#target-resolution), [Reordering](specs/outliner/reordering.md#target-resolution),
   [List types](specs/outliner/list-types.md#toggling), [Mobile toolbar](specs/outliner/mobile-toolbar.md#actions), and [Menu](specs/outliner/menu.md#behavior)): a caret or inline text selection
   inside a body targets its owning editor note for commands that act on a note.
@@ -209,6 +182,40 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   update listener dispatching a mutating command would now defer silently
   instead of warning. File the upstream report, then drop the patch once a
   release fixes it.
+
+### UX direction
+
+These proposals guide the next UX slices; unresolved choices remain proposals
+until accepted in their behavioral owners. Defer a command palette and action
+menus on every breadcrumb until improving the existing surfaces leaves a
+concrete unmet need.
+
+- **Current-location heading and actions.** Complete the [view header](specs/outliner/view-header.md) with an
+  adjacent menu for applicable current-location actions, and expose relevant
+  document actions on [Home](specs/outliner/home.md) rows. First reconsider the header's name and scope,
+  including whether "location header" better identifies it and whether editable
+  current-location presentation remains separate from ancestor [breadcrumb navigation](specs/outliner/zoom.md#breadcrumbs).
+  The [menu](specs/outliner/menu.md) currently gives a header no
+  current note and only View actions; settle its location-action targeting
+  before implementation. Update the owners and inbound links together. Deliver
+  rename before document deletion, whose permissions, collaboration effects,
+  and recovery or confirmation behavior still need a decision. Coordinate with
+  the [legacy view-header follow-ups](legacy-backlog.md#home-and-view-header-follow-ups) for the existing implementation and
+  storage gaps.
+
+- **Contextual menus across desktop and touch.** Keep the [note menu](specs/outliner/menu.md) available
+  on both, with discoverable keyboard entry and an easily reachable More action.
+  Let the [touch toolbar](specs/outliner/mobile-toolbar.md) accelerate frequent editing actions; reassess whether
+  reaching its menu should require horizontal scrolling. Align action names,
+  availability, selection targets, and focus restoration across surfaces,
+  following the [SDK capability work](#sdk) without adding a generic command system.
+
+- **Home and document switching.** Provide quick document filtering with clear
+  search scope before retiring the picker. Preserve a fast keyboard path
+  between documents; retain
+  a distinct quick switcher only if it still serves a separate need. Coordinate
+  with the [legacy Home follow-ups](legacy-backlog.md#home-and-view-header-follow-ups), and judge consolidation by switching speed
+  and clarity rather than duplicate destinations alone.
 
 ### Agents
 

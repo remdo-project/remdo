@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Header, Menu, MenuItem, MenuSection } from 'react-aria-components';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 
-import { FOLD_VIEW_TO_LEVEL_COMMAND, OPEN_NOTE_MENU_COMMAND, SET_NESTED_LIST_TYPE_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
+import { FOLD_VIEW_TO_LEVEL_COMMAND, OPEN_NOTE_MENU_COMMAND, SET_NESTED_LIST_TYPE_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_OUT_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { requireContentItemFromNode } from '#client/editor/outline/schema';
@@ -135,6 +135,12 @@ export function NoteMenuPlugin() {
     closeMenu();
   };
 
+  const triggerZoomOut = () => {
+    focusRoot();
+    editor.dispatchCommand(ZOOM_OUT_COMMAND, undefined);
+    closeMenu();
+  };
+
   const triggerFoldViewToLevel = (level: number) => {
     focusRoot();
     editor.dispatchCommand(FOLD_VIEW_TO_LEVEL_COMMAND, { level });
@@ -150,6 +156,7 @@ export function NoteMenuPlugin() {
       foldViewToLevel: triggerFoldViewToLevel,
       toggleFold: current.canFold ? triggerFoldToggle : undefined,
       zoom: triggerZoom,
+      zoomOut: triggerZoomOut,
     });
   };
 
@@ -395,6 +402,7 @@ export function NoteMenuPlugin() {
       foldViewToLevel: triggerFoldViewToLevel,
       toggleFold: menu.canFold ? triggerFoldToggle : undefined,
       zoom: triggerZoom,
+      zoomOut: triggerZoomOut,
     })) {
       return;
     }
@@ -470,6 +478,9 @@ export function NoteMenuPlugin() {
           : null}
         <MenuSection>
           <Header data-note-menu-section="view">View</Header>
+          <MenuItem data-note-menu-item="zoom-out" id="zoom-out" onAction={triggerZoomOut}>
+            <span>Zoom {renderShortcutLabel('out', 'O')}</span>
+          </MenuItem>
           <MenuItem data-note-menu-item="view-fold-to-level" id="view-fold-to-level" onAction={() => triggerFoldViewToLevel(1)}>
             <span>
               Fold to level [

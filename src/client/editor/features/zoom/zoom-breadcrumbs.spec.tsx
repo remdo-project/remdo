@@ -57,7 +57,7 @@ describe('zoom breadcrumbs', () => {
     expect(container.querySelector('[data-zoom-crumb=\"ancestor\"]')).toBeNull();
   });
 
-  it('excludes the zoom root from the trail and renders ancestors as links', async () => {
+  it('marks the current note without making it a navigation control', () => {
     const onSelect = vi.fn();
     const ancestorLabel = 'abcdefghijklmnopqrstuvwxyz';
     const currentLabel = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -70,10 +70,14 @@ describe('zoom breadcrumbs', () => {
       onSelectNoteId: onSelect,
     });
 
-    // Document + parent are links; the zoom root (last path item) is not a crumb.
     expect(screen.getByRole('button', { name: 'project' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: truncateLabel(ancestorLabel) })).toBeInTheDocument();
-    expect(screen.queryByText(truncateLabel(currentLabel))).toBeNull();
+    const current = screen.getByText(truncateLabel(currentLabel));
+    expect(current).toHaveAttribute('aria-current', 'page');
+    expect(current).not.toHaveAttribute('tabindex');
+    expect(screen.queryByRole('button', { name: truncateLabel(currentLabel) })).toBeNull();
+    current.click();
+    expect(onSelect).not.toHaveBeenCalled();
 
     screen.getByRole('button', { name: 'project' }).click();
     screen.getByRole('button', { name: truncateLabel(ancestorLabel) }).click();
@@ -82,7 +86,7 @@ describe('zoom breadcrumbs', () => {
     expect(onSelect).toHaveBeenNthCalledWith(2, 'note1');
   });
 
-  it('shows only the document crumb when the zoom root is a top-level note', () => {
+  it('includes a top-level zoom root after the document crumb', () => {
     const onSelect = vi.fn();
     renderBreadcrumbs({
       docLabel: 'project',
@@ -90,8 +94,8 @@ describe('zoom breadcrumbs', () => {
       onSelectNoteId: onSelect,
     });
 
-    // The single path item is the zoom root/title, so no note crumb renders.
     expect(screen.getByRole('button', { name: 'project' })).toBeInTheDocument();
+    expect(screen.getByText('note1')).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('button', { name: 'note1' })).toBeNull();
   });
 

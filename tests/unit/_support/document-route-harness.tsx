@@ -5,7 +5,7 @@ import * as React from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { vi } from 'vitest';
 import type { Mock } from 'vitest';
-import { resetTestUserData, TEST_USER_DATA_DOCUMENT } from '#tests';
+import { resetTestUserData } from '#tests';
 import type {
   DocumentCapabilitiesSnapshot,
   DocumentSession,
@@ -21,6 +21,7 @@ import {
   useZoomNoteId,
 } from '#client/editor/view/EditorViewProvider';
 import DocumentRoute from '#client/app/workspace/DocumentRoute';
+import Home from '#client/app/workspace/Home';
 import { createDocumentPath, parseDocumentRef } from '#document-routes';
 
 vi.mock('#client/app/user-data/user-data', async () => {
@@ -206,20 +207,12 @@ export function renderDocumentRouteWithResult(initialEntry: string = createDocum
     [
       {
         path: '/',
-        loader: () => ({
-          docId: TEST_USER_DATA_DOCUMENT.id,
-          homeDocumentId: TEST_USER_DATA_DOCUMENT.id,
-          noteId: null,
-        }),
-        element: routeElement,
+        element: <Home />,
         hydrateFallbackElement,
       },
       {
         path: '/n/:docRef',
-        loader: ({ params }) => ({
-          ...parseDocumentRef(params.docRef)!,
-          homeDocumentId: TEST_USER_DATA_DOCUMENT.id,
-        }),
+        loader: ({ params }) => parseDocumentRef(params.docRef)!,
         element: routeElement,
         hydrateFallbackElement,
       },

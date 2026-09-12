@@ -199,25 +199,17 @@ Tracks the gaps between [Home](specs/outliner/home.md) and the [view header](spe
   helper now. Re-selecting the already-open document while zoomed now matches
   Home: both clear zoom to the document root. Retirement is its own PR: delete
   the picker and the `documentControl` slot from `ZoomBreadcrumbs` (the doc name
-  stays a crumb — full pure-nav is the view-header work), delete its specs
+  stays a crumb), delete its specs
   (`document-switcher.spec.ts`, the picker cases in
-  `document-toolbar.spec.tsx`/`document-route.spec.tsx`), and rewrite the
-  source-linking switch in `tests/e2e/docker/linking.spec.ts` to reach a linked
-  document through Home instead of the picker.
-- Home visibility is component-local `homeActive` state in `DocumentWorkspace`,
-  not URL/route backed, so it is lost on reload and not linkable. `home.md`
-  "Entering and leaving Home" treats Home as the surface above `/`; route Home
-  with the view-header work (which owns the `/` relationship), rather than
-  encoding a second ad-hoc route now.
+  `document-toolbar.spec.tsx`/`document-route.spec.tsx`).
 
 The [view header](specs/outliner/view-header.md) (Model F) is specified but not
-yet built; the entries below track implementation gaps against its rules and
-the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#breadcrumbs).
+yet built; the entries below track implementation gaps against its rules.
 
 - No view header is rendered: while zoomed the zoom root remains the editable
   top outline `ListItemNode`, and at the document root the document name remains
   a breadcrumb crumb (`ZoomBreadcrumbs`), which also anchors the picker and is
-  the clear-zoom target — so the breadcrumb is not yet pure-nav there.
+  the clear-zoom target.
 - View header not yet the specified restricted kind: the subtree-zoom root is an
   editable outline `ListItemNode`, and the view-header restrictions are enforced
   through per-command zoom-root special-casing in `InsertionPlugin`,
@@ -229,9 +221,8 @@ the pure-nav breadcrumb behavior in [Zoom breadcrumbs](specs/outliner/zoom.md#br
   end state is the document name being the document root note's own text (a CRDT
   edit), which also unifies the root and subtree-zoom header. Needs an SDK rename
   capability, its server/collab path, and a name migration.
-- Breadcrumb heading semantics: when the header lands the breadcrumb becomes
-  pure navigation and the header carries the view's heading semantics; the
-  editable content and the heading role must stay on separate elements (a
+- Breadcrumb heading semantics: the header carries the view's heading semantics;
+  the editable content and the heading role must stay on separate elements (a
   `textbox` role masks an inner heading from assistive tech). Close with the
   view-header work.
 

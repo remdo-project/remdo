@@ -66,7 +66,7 @@ test.describe('Zoom routing', () => {
     await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
   });
 
-  test('clears breadcrumb path when zoom is cleared', async ({ page, editor }) => {
+  test('shows the current location through nested zoom and clears it at the document root', async ({ page, editor }) => {
     await editor.load('basic');
 
     const editorRoot = editorLocator(page);
@@ -74,14 +74,29 @@ test.describe('Zoom routing', () => {
     const metrics = await getBulletMetrics(note1);
     await page.mouse.click(metrics.x, metrics.y);
 
-    // The zoom root is the view title, not a crumb; a top-level zoom leaves only
-    // the document crumb and no ancestor crumbs.
     await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
     const breadcrumbs = zoomBreadcrumbs(page);
+    const current = breadcrumbs.locator('[aria-current="page"]');
+    await expect(current).toHaveText('note1');
     await expect(breadcrumbs.locator('[data-zoom-crumb="ancestor"]')).toHaveCount(0);
+
+    const note2 = editorRoot.locator('li.list-item:not(.list-nested-item)', { hasText: 'note2' }).first();
+    const childMetrics = await getBulletMetrics(note2);
+    await page.mouse.click(childMetrics.x, childMetrics.y);
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note2'));
+    await expect(current).toHaveText('note2');
+    const parent = breadcrumbs.getByRole('button', { name: 'note1', exact: true });
+    await parent.focus();
+    await parent.press('Tab');
+    await expect(page.getByRole('combobox', { name: 'Search document' })).toBeFocused();
+    await parent.click();
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
+    await expect(current).toHaveText('note1');
 
     await clearZoom(page);
     await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
+    await expect(current).toHaveCount(0);
+    await expect(breadcrumbs.locator('[data-zoom-crumb="ancestor"]')).toHaveCount(0);
   });
 
   test('invalid zoom route resets to document URL', async ({ page, editor }) => {

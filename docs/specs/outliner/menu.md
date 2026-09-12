@@ -33,6 +33,8 @@ its entry, actions, and behavior.
    - Child list type actions per [List types](./list-types.md#type-conversion), showing only
      the two non-current options; hidden for leaf notes.
 5. View actions:
+   - Zoom out per [Zoom](./zoom.md#zooming-out), shortcut `O` when the menu is
+     open.
    - `Fold to level [0-9]` per [Folding](./folding.md), with digit shortcuts
      scoped to the current zoom boundary. Clicking the action applies level `1`.
 6. Menu labels visually mark shortcut letters where applicable.
@@ -51,8 +53,7 @@ its entry, actions, and behavior.
    Executing an action returns DOM focus to the editor and leaves the
    [focus note](./selection.md#selection-states) unchanged, whether the action was
    activated by keyboard or by pointer, and regardless of where focus was when
-   the menu opened. An action that itself moves the caret (Zoom) sets the new
-   focus note.
+   the menu opened, unless the action defines a different focus or caret destination.
 3. When opened from a row, the current note is that row's note. When opened
    without a row and outside a view header, the current note is the
    [focus note](./selection.md#selection-states). A view-header menu has no current note.

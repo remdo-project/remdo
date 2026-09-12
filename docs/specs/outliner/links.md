@@ -45,7 +45,10 @@ generic external links.
 12. Clipboard payloads (copy/cut) must include explicit `docId` for every
    note link so cross-context paste has complete target identity.
 13. Cross-document pastes preserve source-target link identity; note links
-   are not retargeted to the destination document.
+    are not retargeted to the destination document.
+14. [Splitting](./insertion.md#default-behavior-caret-selection) inside a note
+    link or generic link preserves the same target and link attributes on both
+    fragments.
 
 ## Identity Representation Boundaries
 

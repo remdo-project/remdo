@@ -72,4 +72,4 @@ Overlay and APG widgets use React Aria Components. Mantine remains the
 painted form and layout library. Do not implement those widgets with a
 Mantine stand-in to match surrounding chrome. Semantic HTML is the
 fallback when a React Aria component's contract does not match the
-product, as with a breadcrumb trail that has no current item.
+product.

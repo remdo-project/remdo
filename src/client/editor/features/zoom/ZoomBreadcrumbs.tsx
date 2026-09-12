@@ -43,16 +43,22 @@ export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectHome,
             </button>
           )}
         </li>
-        {path.slice(0, -1).map((item) => (
+        {path.map((item, index) => (
           <li key={item.noteId}>
-            <button
-              type="button"
-              className={styles.crumbButton}
-              data-zoom-crumb="ancestor"
-              onClick={() => onSelectNoteId(item.noteId)}
-            >
-              {formatNavigationLabel(item.label)}
-            </button>
+            {index === path.length - 1 ? (
+              <span aria-current="page" data-zoom-crumb="current">
+                {formatNavigationLabel(item.label)}
+              </span>
+            ) : (
+              <button
+                type="button"
+                className={styles.crumbButton}
+                data-zoom-crumb="ancestor"
+                onClick={() => onSelectNoteId(item.noteId)}
+              >
+                {formatNavigationLabel(item.label)}
+              </button>
+            )}
           </li>
         ))}
       </ol>

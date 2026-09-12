@@ -17,6 +17,7 @@ import {
 } from '#tests';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
+import { $setNoteFolded } from '#client/editor/outline/fold-state';
 
 // Coverage gaps (handled in e2e instead of unit tests):
 // - Inline Backspace/Delete inside a note: jsdom doesn’t emulate native deletion
@@ -122,6 +123,30 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
         { noteId: 'note1', text: 'note1 note2', children: [ { noteId: 'note3', text: 'note3' } ] },
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+    });
+
+    it('inherits an unfolded only child when merging it into a folded zoom root', meta({ fixture: 'tree', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+      await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+      await pressKey(remdo, { key: 'Enter' });
+      await typeText(remdo, 'transferred child');
+      const transferredChildId = readCaretNoteId(remdo);
+      await pressKey(remdo, { key: 'Tab' });
+      await remdo.mutate(() => {
+        $setNoteFolded($findNoteById('note2')!, true);
+      });
+
+      await placeCaretAtNote(remdo, 'note3', 0);
+      await pressKey(remdo, { key: 'Backspace' });
+
+      expect(remdo).toMatchOutline([
+        { noteId: 'note1', text: 'note1' },
+        {
+          noteId: 'note2',
+          text: 'note2 note3',
+          children: [{ noteId: transferredChildId, text: 'transferred child' }],
+        },
+      ]);
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
     });
 
     it('merges a leaf into its previous sibling when Backspace is pressed at column 0', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -290,7 +315,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
-    it('drops an empty leaf when Delete is pressed at its end (instead of deleting the next note)', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+    it('merges a whitespace-only leaf on Delete so its content and identity survive', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
             expect(remdo).toMatchOutline([
         { noteId: 'alpha', text: 'alpha' },
         { noteId: 'space', text: ' ' },
@@ -308,14 +333,14 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
 
       await placeCaretAtNote(remdo, 'space', Number.POSITIVE_INFINITY);
 
-      const emptyNoteKey = readCaretNoteKey(remdo);
+      const whitespaceNoteKey = readCaretNoteKey(remdo);
       const betaKey = getNoteKey(remdo, 'beta');
 
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline([
         { noteId: 'alpha', text: 'alpha' },
-        { noteId: 'beta', text: 'beta' },
+        { noteId: 'space', text: ' beta' },
         {
           noteId: 'parent',
           children: [
@@ -326,12 +351,10 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
         },
         { noteId: 'trailing' },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'beta' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'space' });
 
-      // This assertion is the core regression check: the empty leaf should be removed,
-      // leaving the following note intact.
-      expect(isNodeAttached(remdo, emptyNoteKey)).toBe(false);
-      expect(isNodeAttached(remdo, betaKey)).toBe(true);
+      expect(isNodeAttached(remdo, whitespaceNoteKey)).toBe(true);
+      expect(isNodeAttached(remdo, betaKey)).toBe(false);
     });
 
     it('drops the next empty leaf without merging when Delete is pressed at the end of a note', meta({ fixture: 'flat' }), async ({ remdo }) => {

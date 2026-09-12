@@ -52,7 +52,7 @@ function EditorWithConsumer() {
     <MantineProvider>
       <EditorViewProvider docId="sessionReadiness" onZoomNoteIdChange={() => {}}>
         <ImmediateSearchConsumer />
-        <Editor docId="sessionReadiness" statusPortalRoot={null} />
+        <Editor docId="sessionReadiness" statusPortalRoot={null} onSelectHome={() => {}} />
       </EditorViewProvider>
     </MantineProvider>
   );

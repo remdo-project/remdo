@@ -30,6 +30,8 @@ test('admin self-enrollment creates the first admin and can open the editor', as
 
   allowTransientTokenFetchConsoleIssue(page);
   await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
+  await page.locator('[data-home-document-ref]').first().click();
   await waitForEditableEditor(page);
   await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
   await waitForServiceWorkerControl(page);

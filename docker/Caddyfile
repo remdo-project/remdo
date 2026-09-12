@@ -29,6 +29,12 @@
 			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
 		}
 
+		handle_path /share/* {
+			root * /data/public-share
+			header Cache-Control "no-cache"
+			file_server
+		}
+
 		@collab path /d /d/*
 		handle @collab {
 			reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}

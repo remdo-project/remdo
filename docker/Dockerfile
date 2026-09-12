@@ -87,7 +87,8 @@ ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
 
 # hadolint ignore=DL3018
 RUN apk add --no-cache caddy \
-  && mkdir -p /data /etc/caddy /srv/remdo /var/log /usr/local/share/remdo
+  && mkdir -p /data /etc/caddy /root/.ssh /srv/remdo /var/log /usr/local/share/remdo \
+  && chmod 0700 /root/.ssh
 
 # Install backup script and cron schedule (runs every minute).
 COPY docker/backup.sh /usr/local/bin/backup.sh

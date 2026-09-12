@@ -6,6 +6,7 @@ import type { NotePathItem } from '#client/editor/outline/note-traversal';
 
 export interface EditorViewBindings {
   zoomNoteId?: string | null;
+  zoomRequestId?: number;
 }
 
 const missingEditorViewContextError = new Error(
@@ -17,6 +18,7 @@ const EditorViewContext = createContext<{
   zoomNoteId: string | null;
   zoomPath: NotePathItem[];
   requestZoomNoteId: (noteId: string | null) => void;
+  isCurrentZoomRoute: () => boolean;
   setZoomPath: (path: NotePathItem[]) => void;
   documentSession: DocumentSession | null;
   registerDocumentSession: (session: DocumentSession) => () => void;
@@ -26,12 +28,20 @@ export function EditorViewProvider({
   children,
   docId,
   zoomNoteId = null,
+  zoomRequestId,
   onZoomNoteIdChange,
 }: EditorViewBindings & {
   children: ReactNode;
   docId: string;
-  onZoomNoteIdChange: (noteId: string | null) => void;
+  onZoomNoteIdChange: (noteId: string | null, requestId: number) => void;
 }) {
+  const latestZoomRequestIdRef = useRef(zoomRequestId ?? 0);
+  // Effects from an older routed render may run after another command. Check
+  // the live request counter when the effect runs, not only during rendering.
+  const isCurrentZoomRoute = useCallback(
+    () => zoomRequestId === undefined || zoomRequestId === latestZoomRequestIdRef.current,
+    [zoomRequestId]
+  );
   const [zoomPathState, setZoomPathState] = useState({
     sourceDocId: docId,
     path: EMPTY_PATH,
@@ -55,7 +65,8 @@ export function EditorViewProvider({
   }, [docId]);
 
   const requestZoomNoteId = useCallback((noteId: string | null) => {
-    onZoomNoteIdChangeRef.current(noteId);
+    latestZoomRequestIdRef.current += 1;
+    onZoomNoteIdChangeRef.current(noteId, latestZoomRequestIdRef.current);
   }, []);
 
   const [registeredDocumentSession, setRegisteredDocumentSession] = useState<DocumentSession | null>(null);
@@ -73,10 +84,11 @@ export function EditorViewProvider({
     zoomNoteId,
     zoomPath,
     requestZoomNoteId,
+    isCurrentZoomRoute,
     setZoomPath,
     documentSession,
     registerDocumentSession,
-  }), [documentSession, registerDocumentSession, requestZoomNoteId, setZoomPath, zoomNoteId, zoomPath]);
+  }), [documentSession, isCurrentZoomRoute, registerDocumentSession, requestZoomNoteId, setZoomPath, zoomNoteId, zoomPath]);
 
   return (
     <EditorViewContext value={value}>{children}</EditorViewContext>
@@ -108,6 +120,7 @@ export function useEditorViewActions() {
   const context = useEditorViewContext();
   return {
     requestZoomNoteId: context.requestZoomNoteId,
+    isCurrentZoomRoute: context.isCurrentZoomRoute,
     setZoomPath: context.setZoomPath,
   };
 }
