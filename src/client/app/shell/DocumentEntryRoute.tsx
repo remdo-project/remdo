@@ -5,7 +5,7 @@ import LoginRoute from '#client/app/session/LoginRoute';
 import DocumentRoute from '#client/app/workspace/DocumentRoute';
 import AuthenticatedRoute from './AuthenticatedRoute';
 
-export type RootRouteLoaderData =
+export type DocumentEntryLoaderData =
   | {
     publicServer: boolean;
     sessionState: Extract<SessionGateState, { status: 'unauthenticated' }>;
@@ -18,8 +18,8 @@ export type RootRouteLoaderData =
     sessionState: Exclude<SessionGateState, { status: 'offline-unavailable' | 'unauthenticated' }>;
   };
 
-export default function RootRoute() {
-  const data = useLoaderData<RootRouteLoaderData>();
+export default function DocumentEntryRoute() {
+  const data = useLoaderData<DocumentEntryLoaderData>();
   if (data.sessionState.status === 'unauthenticated') {
     return <LoginRoute />;
   }

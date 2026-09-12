@@ -1,6 +1,6 @@
 import { IconPlus, IconUpload } from '@tabler/icons-react';
 import type { ChangeEvent } from 'react';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
 import type { HomeContent, HomeDocumentEntry } from './home-content';
 
@@ -50,6 +50,11 @@ export function HomeView({
   tags,
 }: HomeViewProps) {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
 
   const handleUploadInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0] ?? null;
@@ -70,7 +75,7 @@ export function HomeView({
 
   return (
     <section aria-label="Home" className="document-home" data-testid="document-home">
-      <h1 className="document-home-title">Home</h1>
+      <h1 className="document-home-title" ref={headingRef} tabIndex={-1}>Home</h1>
 
       {groups
         .filter((group) => group.documents.length > 0)

@@ -6,6 +6,7 @@ import type { SearchableNotes } from '#client/editor/features/search/search-cand
 
 export interface EditorViewBindings {
   zoomNoteId?: string | null;
+  zoomRequestId?: number;
 }
 
 /** Runs `fn` against the live editor's SDK notes inside an editor read. Returns
@@ -24,6 +25,8 @@ const EditorViewContext = createContext<{
   zoomNoteId: string | null;
   zoomPath: NotePathItem[];
   requestZoomNoteId: (noteId: string | null) => void;
+  isCurrentZoomRoute: () => boolean;
+  getLatestZoomRequestId: () => number;
   setZoomPath: (path: NotePathItem[]) => void;
   searchNotes: SearchNotesReader;
   registerSearchNotesReader: (reader: SearchNotesReader | null) => void;
@@ -33,12 +36,21 @@ export function EditorViewProvider({
   children,
   docId,
   zoomNoteId = null,
+  zoomRequestId,
   onZoomNoteIdChange,
 }: EditorViewBindings & {
   children: ReactNode;
   docId: string;
-  onZoomNoteIdChange: (noteId: string | null) => void;
+  onZoomNoteIdChange: (noteId: string | null, requestId: number) => void;
 }) {
+  const latestZoomRequestIdRef = useRef(zoomRequestId ?? 0);
+  // Effects from an older routed render may run after another command. Check
+  // the live request counter when the effect runs, not only during rendering.
+  const isCurrentZoomRoute = useCallback(
+    () => zoomRequestId === undefined || zoomRequestId === latestZoomRequestIdRef.current,
+    [zoomRequestId]
+  );
+  const getLatestZoomRequestId = useCallback(() => latestZoomRequestIdRef.current, []);
   const [zoomPathState, setZoomPathState] = useState({
     sourceDocId: docId,
     path: EMPTY_PATH,
@@ -62,7 +74,8 @@ export function EditorViewProvider({
   }, [docId]);
 
   const requestZoomNoteId = useCallback((noteId: string | null) => {
-    onZoomNoteIdChangeRef.current(noteId);
+    latestZoomRequestIdRef.current += 1;
+    onZoomNoteIdChangeRef.current(noteId, latestZoomRequestIdRef.current);
   }, []);
 
   // The editor (inside the composer) registers a reader bound to its live state;
@@ -84,10 +97,12 @@ export function EditorViewProvider({
     zoomNoteId,
     zoomPath,
     requestZoomNoteId,
+    isCurrentZoomRoute,
+    getLatestZoomRequestId,
     setZoomPath,
     searchNotes,
     registerSearchNotesReader,
-  }), [registerSearchNotesReader, requestZoomNoteId, searchNotes, setZoomPath, zoomNoteId, zoomPath]);
+  }), [getLatestZoomRequestId, isCurrentZoomRoute, registerSearchNotesReader, requestZoomNoteId, searchNotes, setZoomPath, zoomNoteId, zoomPath]);
 
   return (
     <EditorViewContext value={value}>{children}</EditorViewContext>
@@ -119,6 +134,8 @@ export function useEditorViewActions() {
   const context = useEditorViewContext();
   return {
     requestZoomNoteId: context.requestZoomNoteId,
+    isCurrentZoomRoute: context.isCurrentZoomRoute,
+    getLatestZoomRequestId: context.getLatestZoomRequestId,
     setZoomPath: context.setZoomPath,
   };
 }

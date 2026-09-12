@@ -30,6 +30,7 @@ export const OPEN_NOTE_MENU_COMMAND = createCommand<{
 // Keep zoom payload as noteId: callers can dispatch from persisted app/UI state
 // outside the current editor state, while Lexical node keys are ephemeral and may be stale.
 export const ZOOM_TO_NOTE_COMMAND = createCommand<{ noteId: string }>('remdo:zoom-to-note');
+export const ZOOM_OUT_COMMAND = createCommand<undefined>('remdo:zoom-out');
 export const COLLAPSE_STRUCTURAL_SELECTION_COMMAND = createCommand<{
   edge?: 'start' | 'end' | 'anchor';
 }>('selection:collapse-structural');

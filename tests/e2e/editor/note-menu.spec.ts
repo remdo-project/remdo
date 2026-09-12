@@ -353,6 +353,7 @@ test.describe('Note menu', () => {
       'Zoom',
       'Numbered list',
       'Checklist',
+      'Zoom out',
       /Fold to level/,
     ]);
   });

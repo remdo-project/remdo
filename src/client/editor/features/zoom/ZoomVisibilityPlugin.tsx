@@ -9,7 +9,7 @@ import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $resolveRootContentList } from '#client/editor/outline/schema';
 import { getParentContentItem, getSubtreeItems, getWrapperForContent } from '#client/editor/outline/selection/tree';
 import { resolveZoomNoteId } from './zoom-note-id';
-import { useZoomNoteId } from '#client/editor/view/EditorViewProvider';
+import { useEditorViewActions, useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 
 const HIDDEN_CLASS = 'zoom-hidden';
 const ZOOM_ROOT_ATTR = 'zoomRoot';
@@ -110,6 +110,7 @@ const applyZoomRootMarker = (
 export function ZoomVisibilityPlugin() {
   const [editor] = useLexicalComposerContext();
   const zoomNoteId = useZoomNoteId();
+  const { isCurrentZoomRoute } = useEditorViewActions();
   const zoomNoteIdRef = useRef(resolveZoomNoteId(zoomNoteId));
   const flattenedWrapperKeysRef = useRef(new Set<string>());
   const zoomRootKeyRef = useRef<string | null>(null);
@@ -173,9 +174,12 @@ export function ZoomVisibilityPlugin() {
   }, [editor]);
 
   useEffect(() => {
+    if (!isCurrentZoomRoute()) {
+      return;
+    }
     zoomNoteIdRef.current = resolveZoomNoteId(zoomNoteId);
     applyVisibility();
-  }, [applyVisibility, zoomNoteId]);
+  }, [applyVisibility, isCurrentZoomRoute, zoomNoteId]);
 
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState }) => {
