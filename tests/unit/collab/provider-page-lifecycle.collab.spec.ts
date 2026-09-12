@@ -157,6 +157,9 @@ describe('provider page lifecycle', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
   it('keeps an intentionally disconnected provider offline on restoration', async () => {
     const { provider } = await createProvider('pageoffline');
+    restoreFetch = await installAuthenticatedApiFetch();
+    await provider.connect();
+    provider.disconnect();
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     hidePage();
     restorePage();
