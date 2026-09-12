@@ -57,8 +57,6 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
   });
 
   it('does not warn when a token fetch fails after teardown mid-connect', async () => {
-    // Destroying this session invalidates its connect attempt without aborting
-    // a token request that another live provider may share.
     const docId = 'tokenabort';
     await ensureCollabTestDocument(docId);
     const sessionCookie = await getCollabTestSessionCookie();
@@ -85,8 +83,6 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
       </MantineProvider>
     );
 
-    // Let the connect loop issue the (hanging) token request, tear down, then
-    // fail the in-flight request as a cancelled navigation would.
     await vi.waitFor(() => expect(failTokenRequest).toBeDefined());
     unmount();
     failTokenRequest?.();
@@ -98,9 +94,7 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
   });
 
   it('does not open a websocket when a token fetch resolves after teardown', async () => {
-    // The mirror of the abort case: if the in-flight token fetch *succeeds* just
-    // after destroy(), y-sweet must not resume and open a WebSocket (resurrecting
-    // a torn-down connection). The patched client ignores the departed attempt.
+    // A token arriving after destroy must not revive the departed connection.
     const docId = 'tokenlateok';
     await ensureCollabTestDocument(docId);
     const sessionCookie = await getCollabTestSessionCookie();
@@ -140,7 +134,6 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
     resolveTokenRequest?.();
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    // No new WebSocket after teardown — the late-successful token was not used.
     expect(wsUrls.length).toBe(wsBeforeTeardown);
   });
 });

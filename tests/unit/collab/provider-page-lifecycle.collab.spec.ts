@@ -6,6 +6,7 @@ import type { ProviderFactoryResult } from '#collaboration/runtime';
 import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
 import { ensureCollabTestDocument } from './_support/documents';
 import { installAuthenticatedApiFetch } from './_support/auth';
+import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -46,7 +47,7 @@ afterEach(() => {
   restoreFetch = undefined;
 });
 
-describe('provider page lifecycle', () => {
+describe('provider page lifecycle', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it.each([
     { outcome: 'success', timing: 'before' },
     { outcome: 'failure', timing: 'before' },
@@ -201,6 +202,31 @@ describe('provider page lifecycle', () => {
     await peerConnect;
     await waitForSync(asCollaborationProviderEvents(first.provider));
     expect(second.provider.status).toBe('connected');
+  });
+
+  it('synchronizes the live consumer when a shared token succeeds after the other is destroyed', async () => {
+    const first = await createProvider('pagesharedsuccess');
+    const second = await createProvider('pagesharedsuccess');
+    restoreFetch = await installAuthenticatedApiFetch();
+    const originalFetch = globalThis.fetch;
+    const token = deferred<Response>();
+    let request: Request | undefined;
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementationOnce((input, init) => {
+      request = new Request(input, init);
+      return token.promise;
+    });
+    const firstConnect = first.provider.connect();
+    const secondConnect = second.provider.connect();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    first.provider.destroy();
+    expect(request!.signal.aborted).toBe(false);
+    token.resolve(await originalFetch(request!));
+    await Promise.all([firstConnect, secondConnect]);
+    second.doc.getMap('lifecycle').set('survived', true);
+    await waitForSync(asCollaborationProviderEvents(second.provider));
+    expect(first.provider.status).toBe('offline');
+    expect(second.provider.status).toBe('connected');
+    expect(second.provider.hasLocalChanges).toBe(false);
   });
 
   it('reports a shared token failure for the live consumer after the other is destroyed',

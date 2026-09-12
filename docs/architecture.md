@@ -151,7 +151,7 @@ specific sync channel (for example network sync or local persistence).
   and similar stores).
 
 Page departure cancels pending network work without reporting cancellation as a
-token failure. Restoring a page from browser history resumes its previously
+token failure. Restoring a retained page from browser history resumes its previously
 active network providers; already disconnected or destroyed providers remain
 disconnected. Destroying one provider does not interrupt network work shared
 with a live provider. Genuine failures remain observable to active providers.
