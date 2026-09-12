@@ -87,30 +87,32 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### SDK
 
-- **Note-centered SDK consumer boundary.** Evolve the consumer-facing SDK
-  around the shared [note model](specs/outliner/note-model.md) so high-level
-  consumers such as the [quick action menu](specs/outliner/menu.md),
-  [mobile toolbar](specs/outliner/mobile-toolbar.md), keymaps, and future
-  extensions can discover whether application capabilities are supported and
-  currently applicable, observe relevant changes, and invoke them without
-  importing Lexical commands or private feature modules. Keep capabilities at
-  the scope their semantics require—including a note, selection, current view
-  or zoom, and history—rather than forcing every operation onto a particular
-  note. Existing behavioral owners retain the semantics, adapters retain
-  framework and storage mechanics, and surfaces retain their inventory,
-  ordering, presentation, focus, layout, and hide-versus-disable policy.
+- **Note-centered SDK consumer boundary.** The
+  [open document session](specs/outliner/document-session.md) now owns the first
+  settled slice around the shared [note model](specs/outliner/note-model.md): an
+  indexed observable document read model, observable action capabilities, and
+  semantic operations. [Search](specs/outliner/search.md) consumes its document
+  data and the [mobile toolbar](specs/outliner/mobile-toolbar.md) consumes its
+  capabilities and operations without importing Lexical commands or private
+  feature modules.
 
-  Use the menu and mobile toolbar as reference consumers and advance one
-  coherent, behavior-preserving capability slice at a time. Each slice decides
-  only the contract, ownership, targeting, applicability, observation,
-  execution, lifecycle, and naming required by its real consumers and plausible
-  adapters. Record settled behavior in its owning specification once accepted
-  and leave unrelated questions open here. Do not preselect a generic action
-  registry, flat API, final SDK or package name, plugin contribution framework,
-  or second-adapter implementation. The convergence goal is reached when these
-  surfaces use the SDK for application behavior and their common behavior can
-  be backed by another note adapter without adapter-specific semantic logic in
-  the surfaces. Coordinate with the
+  Continue with the [quick action menu](specs/outliner/menu.md), keymaps, and
+  future real consumers one coherent, behavior-preserving capability slice at
+  a time. Keep capabilities at the scope their semantics require—including a
+  note, selection, current view or zoom, and history—rather than forcing every
+  operation onto a particular note. Each slice decides only the contract,
+  ownership, targeting, applicability, observation, execution, lifecycle, and
+  naming required by its consumers and plausible adapters. Existing behavioral
+  owners retain the semantics, adapters retain framework and storage mechanics,
+  and surfaces retain their inventory, ordering, presentation, focus, layout,
+  and hide-versus-disable policy.
+
+  Do not preselect a generic action registry, flat API, final SDK or package
+  name, plugin contribution framework, or second-adapter implementation. The
+  convergence goal is reached when the quick action menu and other high-level
+  action consumers use the SDK for application behavior and their common
+  behavior can be backed by another note adapter without adapter-specific
+  semantic logic in the surfaces. Coordinate with the
   [legacy Note-first SDK follow-ups](legacy-backlog.md#note-first-sdk-follow-ups)
   rather than duplicating their resource, loading, and query work.
 

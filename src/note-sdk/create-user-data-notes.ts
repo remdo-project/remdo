@@ -11,7 +11,7 @@ import type {
   UserDataNote,
   UserDocumentsNote,
 } from './documents';
-import type { ChildPosition, CollectionNote, Note, NoteId } from './notes';
+import type { CollectionNote, Note, NoteId } from './notes';
 import { createNoteAs } from './handle-utils';
 
 const USER_DATA_ROOT_ID = 'user-data';
@@ -113,11 +113,6 @@ function createProjectedDocumentHandle(
 ): DocumentNote {
   const noteId = document.id;
   const kind = () => 'document' as const;
-  function create(_text: string): never;
-  function create(_position: ChildPosition, _text: string): never;
-  function create(): never {
-    throw new Error('Only the current document supports editor note creation.');
-  }
 
   async function shareWith(email: string): Promise<DocumentAccessNote> {
     if (!actions.shareDocument) {
@@ -135,7 +130,6 @@ function createProjectedDocumentHandle(
     text: () => document.title,
     access: () => createDocumentAccessHandle(document),
     children: () => [],
-    create,
     shareable: () => document.shareable === true,
     shareWith,
     as: createNoteAs(noteId, kind, () => handle),

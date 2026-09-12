@@ -16,10 +16,11 @@ export function areNotePathsEqual(next: NotePathItem[], prev: NotePathItem[] | n
   return next.every((item, index) => item.noteId === prev[index]!.noteId && item.label === prev[index]!.label);
 }
 
-// Current implementation scans the outline.
-// Planned direction: indexed note lookup so SDK handle reads built on top of
-// this path become cheap enough for consumers like search to treat note access
-// as effectively O(1).
+// TODO: Replace this outline scan with a shared editor-private noteId-to-NodeKey
+// locator so SDK adapters and Lexical features get expected O(1) resolution
+// without exposing NodeKeys through the SDK. Remove the fallback once locator
+// coverage proves creation, deletion, ID normalization, history/state
+// replacement, collaboration, and multiple-editor isolation.
 export function $findNoteById(noteId: string): ListItemNode | null {
   const list = $requireRootContentList();
   let match: ListItemNode | null = null;

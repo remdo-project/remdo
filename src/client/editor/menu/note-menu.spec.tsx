@@ -15,6 +15,16 @@ const createShortcutEvent = (key: string) => ({
 });
 
 describe('quick action menu (docs/specs/outliner/menu.md)', () => {
+  it('resolves the focus note when opened without an explicit row', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2');
+
+    await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, undefined);
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-note-menu]')).not.toBeNull();
+    });
+  });
+
   it('shows note, children, and view sections', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
     const noteKey = getNoteKey(remdo, 'note1');
     await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: noteKey });

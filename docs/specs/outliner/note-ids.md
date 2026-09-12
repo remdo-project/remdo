@@ -21,9 +21,10 @@ within a document; a global `noteRef` combines document and note identity.
 2. Document identity (`documentId`) is runtime state and must be injected by the
    host environment for each editor/session instance.
 3. `noteId` values are unique within a document at any moment in time.
-4. `noteId` values are stable for the lifetime of a note and do not change on
+4. An addressable note's `noteId` must not equal the active `documentId`.
+5. `noteId` values are stable for the lifetime of a note and do not change on
    edits, reorders, indent/outdent, or moves.
-5. `noteId` values round-trip through adapters and persisted JSON boundaries
+6. `noteId` values round-trip through adapters and persisted JSON boundaries
    unchanged for addressable notes.
 
 ## Lifecycle
@@ -81,9 +82,10 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
 - [Persisted JSON state](./links.md#definitions) must include `noteId` for addressable notes.
 - Persisted JSON state must not persist the active document ID as document-level
   identity.
-- On load, any missing or duplicate `noteId` values must be normalized before
-  the document is exposed to the app: keep existing unique IDs and assign fresh
-  IDs to missing or colliding notes (preserving [document order](./note-model.md#definitions)).
+- On load, any missing or duplicate `noteId` values, or a `noteId` equal to the
+  active `documentId`, must be normalized before the document is exposed to the
+  app: keep existing unique IDs and assign fresh IDs to missing or colliding
+  notes (preserving [document order](./note-model.md#definitions)).
 - Normalized IDs must be persisted on the next save.
 
 ## Runtime document ID ownership

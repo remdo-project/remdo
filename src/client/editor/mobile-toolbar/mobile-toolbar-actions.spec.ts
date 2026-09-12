@@ -1,211 +1,76 @@
-import { describe, it, expect, vi } from 'vitest';
-import { waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import type { DocumentSession, LoadState, SnapshotStore } from '#note-sdk';
+import { runMobileAction } from './actions';
 
-import { meta, getNoteKey, placeCaretAtNote, selectStructuralNotes } from '#tests';
-import {
-  DELETE_SELECTED_NOTES_COMMAND,
-  INDENT_NOTES_COMMAND,
-  OPEN_NOTE_MENU_COMMAND,
-  OUTDENT_NOTES_COMMAND,
-  REORDER_NOTES_DOWN_COMMAND,
-} from '#client/editor/foundation/commands';
-import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
-import { resolveSelectionCapability, runMobileAction } from '#client/editor/mobile-toolbar/actions';
+const loadingStore = <T,>(): SnapshotStore<LoadState<T>> => ({
+  getSnapshot: () => ({ status: 'loading' }),
+  subscribe: () => () => {},
+});
 
-// Behavior coverage for the mobile action toolbar (docs/specs/outliner/mobile-toolbar.md).
-// Most toolbar actions dispatch existing commands; single-note folding uses the
-// editor-note SDK. These tests exercise the new commands the toolbar adds
-// (indent/outdent/delete) behaviorally and check the fold/delete capability the
-// toolbar reflects. The
-// underlying reorder/done/fold/undo/redo operations are covered by their own
-// plugins' tests. Presence gating (coarse-pointer) is verified live per
-// AGENTS.md — the route harness never reaches schemaReady to mount the toolbar.
-//
-// tree-complex: note1 → [note2 → [note3], note4]; note5; note6 → [note7].
-describe('mobile toolbar actions', () => {
-  it('indents the selected note under its previous sibling', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    await placeCaretAtNote(remdo, 'note4');
+function createSession() {
+  const operations = {
+    indent: vi.fn(),
+    outdent: vi.fn(),
+    moveUp: vi.fn(),
+    moveDown: vi.fn(),
+    toggleChecked: vi.fn(),
+    toggleFocusedFold: vi.fn(),
+    toggleNoteFold: vi.fn(() => Promise.resolve()),
+    delete: vi.fn(),
+    undo: vi.fn(),
+    redo: vi.fn(),
+  };
+  const session: DocumentSession = {
+    documentId: 'main',
+    document: loadingStore(),
+    capabilities: loadingStore(),
+    note: (noteId) => ({
+      id: () => noteId,
+      text: () => '',
+      folded: () => false,
+      toggleFold: operations.toggleNoteFold,
+      subscribe: () => () => {},
+    }),
+    focus: { toggleFold: operations.toggleFocusedFold },
+    selection: {
+      indent: operations.indent,
+      outdent: operations.outdent,
+      moveUp: operations.moveUp,
+      moveDown: operations.moveDown,
+      toggleChecked: operations.toggleChecked,
+      delete: operations.delete,
+    },
+    history: { undo: operations.undo, redo: operations.redo },
+  };
+  return { operations, session };
+}
 
-    await remdo.dispatchCommand(INDENT_NOTES_COMMAND, undefined);
+describe('mobile toolbar action delegation', () => {
+  it('maps the toolbar inventory to named SDK operations', () => {
+    const { operations, session } = createSession();
+    const openNoteMenu = vi.fn();
 
-    // note4 indents under its previous sibling note2 (which already owns note3).
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1', text: 'note1',
-        children: [
-          {
-            noteId: 'note2', text: 'note2',
-            children: [{ noteId: 'note3', text: 'note3' }, { noteId: 'note4', text: 'note4' }],
-          },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-    ]);
-  });
+    runMobileAction(session, 'indent', openNoteMenu);
+    runMobileAction(session, 'outdent', openNoteMenu);
+    runMobileAction(session, 'moveUp', openNoteMenu);
+    runMobileAction(session, 'moveDown', openNoteMenu);
+    runMobileAction(session, 'done', openNoteMenu);
+    runMobileAction(session, 'fold', openNoteMenu);
+    runMobileAction(session, 'delete', openNoteMenu);
+    runMobileAction(session, 'undo', openNoteMenu);
+    runMobileAction(session, 'redo', openNoteMenu);
+    runMobileAction(session, 'menu', openNoteMenu);
 
-  it('outdents the selected child to its parent level', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    await placeCaretAtNote(remdo, 'note3');
-
-    await remdo.dispatchCommand(OUTDENT_NOTES_COMMAND, undefined);
-
-    // note3 was note2's only child; outdenting lifts it to a sibling after note2.
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1', text: 'note1',
-        children: [
-          { noteId: 'note2', text: 'note2' },
-          { noteId: 'note3', text: 'note3' },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-    ]);
-  });
-
-  it('moves the selected note down past its next sibling', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    await placeCaretAtNote(remdo, 'note1');
-
-    await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND, undefined);
-
-    expect(remdo).toMatchOutline([
-      { noteId: 'note5', text: 'note5' },
-      {
-        noteId: 'note1', text: 'note1',
-        children: [
-          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-    ]);
-  });
-
-  it('deletes the note range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    await selectStructuralNotes(remdo, 'note5', 'note6');
-
-    await remdo.dispatchCommand(DELETE_SELECTED_NOTES_COMMAND, undefined);
-
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1', text: 'note1',
-        children: [
-          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-    ]);
-  });
-
-  it('toggles fold on the focus note', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    await placeCaretAtNote(remdo, 'note6');
-    const notes = createLexicalEditorNotes({
-      editor: remdo.editor,
-      docId: remdo.getCollabDocId(),
-    });
-
-    runMobileAction(remdo.editor, notes, 'fold');
-
-    await waitFor(() => {
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1', children: [
-          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-          { noteId: 'note4', text: 'note4' },
-        ] },
-        { noteId: 'note5', text: 'note5' },
-        { noteId: 'note6', text: 'note6', folded: true, children: [{ noteId: 'note7', text: 'note7' }] },
-      ]);
-    });
-  });
-
-  it('opens the note menu for the focus note', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    await placeCaretAtNote(remdo, 'note6');
-    const noteItemKey = getNoteKey(remdo, 'note6');
-    const dispatch = vi.spyOn(remdo.editor, 'dispatchCommand');
-    const notes = createLexicalEditorNotes({
-      editor: remdo.editor,
-      docId: remdo.getCollabDocId(),
-    });
-
-    runMobileAction(remdo.editor, notes, 'menu');
-
-    expect(dispatch).toHaveBeenCalledWith(OPEN_NOTE_MENU_COMMAND, { noteItemKey });
-    dispatch.mockRestore();
-  });
-
-  it('toggles done on the selected note', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    await placeCaretAtNote(remdo, 'note5');
-    const notes = createLexicalEditorNotes({
-      editor: remdo.editor,
-      docId: remdo.getCollabDocId(),
-    });
-
-    runMobileAction(remdo.editor, notes, 'done');
-
-    await waitFor(() => {
-      const checked = remdo.editor.getEditorState().read(() => $getNoteChecked($findNoteById('note5')!));
-      expect(checked).toBe(true);
-    });
-  });
-
-  it('reflects fold capability: enabled for a parent, disabled for a leaf', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    const notes = createLexicalEditorNotes({
-      editor: remdo.editor,
-      docId: remdo.getCollabDocId(),
-    });
-    await placeCaretAtNote(remdo, 'note6');
-    expect(resolveSelectionCapability(remdo.editor, notes).fold).toBe(true);
-
-    await placeCaretAtNote(remdo, 'note7');
-    expect(resolveSelectionCapability(remdo.editor, notes).fold).toBe(false);
-  });
-
-  it('does not fold the current zoom root', meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
-    // Zoomed into note2 (which has child note3): folding note2 itself would hide
-    // the zoomed-in content, so with the caret on the zoom root fold is disabled
-    // and a tap is a no-op — matching the note menu's zoom-root guard.
-    await placeCaretAtNote(remdo, 'note2');
-    const notes = createLexicalEditorNotes({
-      editor: remdo.editor,
-      docId: remdo.getCollabDocId(),
-    });
-    expect(resolveSelectionCapability(remdo.editor, notes).fold).toBe(false);
-
-    const before = remdo.getEditorState();
-    runMobileAction(remdo.editor, notes, 'fold');
-    expect(remdo).toMatchEditorState(before);
-  });
-
-  it('reflects delete capability for a caret and a note range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    const notes = createLexicalEditorNotes({
-      editor: remdo.editor,
-      docId: remdo.getCollabDocId(),
-    });
-    await placeCaretAtNote(remdo, 'note5');
-    expect(resolveSelectionCapability(remdo.editor, notes).delete).toBe(true);
-
-    await selectStructuralNotes(remdo, 'note5', 'note6');
-    expect(resolveSelectionCapability(remdo.editor, notes).delete).toBe(true);
-  });
-
-  it('deletes the focused note from a caret (removes the note and its subtree)', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    await placeCaretAtNote(remdo, 'note6');
-
-    await remdo.dispatchCommand(DELETE_SELECTED_NOTES_COMMAND, undefined);
-
-    // note6 and its child note7 are gone; the rest is untouched.
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1', text: 'note1',
-        children: [
-          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-    ]);
+    expect(operations.indent).toHaveBeenCalledOnce();
+    expect(operations.outdent).toHaveBeenCalledOnce();
+    expect(operations.moveUp).toHaveBeenCalledOnce();
+    expect(operations.moveDown).toHaveBeenCalledOnce();
+    expect(operations.toggleChecked).toHaveBeenCalledOnce();
+    expect(operations.toggleFocusedFold).toHaveBeenCalledOnce();
+    expect(operations.toggleNoteFold).not.toHaveBeenCalled();
+    expect(operations.delete).toHaveBeenCalledOnce();
+    expect(operations.undo).toHaveBeenCalledOnce();
+    expect(operations.redo).toHaveBeenCalledOnce();
+    expect(openNoteMenu).toHaveBeenCalledOnce();
   });
 });

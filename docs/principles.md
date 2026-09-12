@@ -20,6 +20,7 @@ RemDo's product principles are assumptions that outrank current implementation d
    credentials, authentication tokens, or other confidential data. Development
    and test output may include synthetic fixture data and dedicated
    development/test credentials, but must not disclose real confidential data.
+5. Derived data should respect the privacy and access boundaries of its sources.
 
 ## Deployment targets
 
@@ -38,8 +39,34 @@ RemDo should support:
 1. One client may use documents from more than one RemDo server.
 2. That may include local documents, personally hosted cloud documents, and
    documents hosted by hosted RemDo.
-3. The architecture should keep that direction open without requiring the
+3. Discovery should extend across documents and other information sources
+   through adapters, preserving source identity, authority, and capabilities.
+4. The architecture should keep that direction open without requiring the
    implementation to support it.
+
+## Interaction and discovery
+
+The [search specification](specs/outliner/search.md) defines document-search behavior.
+
+1. Discovery work should not perceptibly slow editing or navigation.
+2. Search should open without perceptible delay. Results over available
+   information should update immediately as the query changes, without waiting
+   for additional sources.
+3. Recent committed local edits should remain discoverable, and search should
+   distinguish incomplete or stale coverage from no matches.
+4. Background work should respect device-appropriate CPU, memory, and storage
+   budgets; derived data should be rebuildable from its sources.
+
+## Consumer APIs
+
+The [open document session](specs/outliner/document-session.md) defines the opened-document boundary.
+
+1. Consumers should access notes, observe changes, and invoke supported
+   operations through a simple, consistent, adapter-neutral API.
+2. Consumer-facing concepts and operation semantics should stay stable as
+   implementation choices change.
+3. Ordinary consumers should not have to manage adapter transactions, indexing,
+   or storage machinery.
 
 ## Architecture test
 
@@ -50,6 +77,7 @@ Prefer solutions that:
 3. minimize custom security-critical code
 4. keep self-hosting first-class even when hosted offerings exist
 5. keep tooling replaceable when a cleaner design appears
+6. reuse established library APIs and machinery when they reduce total complexity
 
 ## Replaceable choices
 

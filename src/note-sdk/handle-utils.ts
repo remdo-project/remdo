@@ -5,7 +5,6 @@ import type {
   SourceServerNote,
   UserDataNote,
 } from './documents';
-import type { BodyNote, EditorNote } from './editor';
 import type {
   Note,
   CollectionNote,
@@ -14,8 +13,6 @@ import type {
 } from './notes';
 
 export function createNoteAs(noteId: NoteId, kind: () => NoteKind, self: () => Note): Note['as'] {
-  function asNote(kindToMatch: 'editor-note'): EditorNote;
-  function asNote(kindToMatch: 'body'): BodyNote;
   function asNote(kindToMatch: 'user-data'): UserDataNote;
   function asNote(kindToMatch: 'document'): DocumentNote;
   function asNote(kindToMatch: 'document-access'): DocumentAccessNote;

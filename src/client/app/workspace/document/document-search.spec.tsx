@@ -2,10 +2,12 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDocumentPath } from '#document-routes';
 import {
-  ROOT_SEARCH_SCOPE_ID,
+  createDocumentSnapshot,
+  createNoteSnapshot,
   findResultByLabel,
   getActiveResultLabel,
   getActiveSearchResult,
+  getMockSearchSubscriberCount,
   getResultByLabel,
   getResultLabels,
   refreshMockSearchNotes,
@@ -13,11 +15,7 @@ import {
   resetDocumentRouteHarness,
   setMockSearchSnapshot,
 } from '../../../../../tests/unit/_support/document-route-harness';
-import type { TestSearchSnapshot } from '../../../../../tests/unit/_support/document-route-harness';
-
-function setSearchSnapshot(snapshot: TestSearchSnapshot) {
-  setMockSearchSnapshot('routeDoc', snapshot);
-}
+import type { DocumentSnapshot } from '#note-sdk';
 
 async function openSearch() {
   const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
@@ -128,19 +126,19 @@ describe('document search', () => {
   it('requests search candidates from the editor only while search is focused', async () => {
     renderDocumentRoute();
 
-    const editorProbe = await screen.findByTestId('editor-probe');
+    await screen.findByTestId('editor-probe');
     const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
 
-    expect(editorProbe.dataset.searchModeRequested).toBe('false');
+    expect(getMockSearchSubscriberCount('routeDoc')).toBe(0);
 
     searchInput.focus();
     await waitFor(() => {
-      expect(editorProbe.dataset.searchModeRequested).toBe('true');
+      expect(getMockSearchSubscriberCount('routeDoc')).toBe(1);
     });
 
     fireEvent.blur(searchInput);
     await waitFor(() => {
-      expect(editorProbe.dataset.searchModeRequested).toBe('false');
+      expect(getMockSearchSubscriberCount('routeDoc')).toBe(0);
     });
   });
 
@@ -159,10 +157,10 @@ describe('document search', () => {
   });
 
   it('uses ancestor tokens only when another token matches the note itself', async () => {
-    setSearchSnapshot({
-      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'work', text: 'Work' }],
-      work: [{ noteId: 'match', text: 'TODO refine estimates' }],
-    });
+    setMockSearchSnapshot('routeDoc', createDocumentSnapshot('routeDoc', ['work'], [
+      createNoteSnapshot('work', 'Work', { children: { listType: 'bullet', noteIds: ['match'] } }),
+      createNoteSnapshot('match', 'TODO refine estimates'),
+    ]));
     renderDocumentRoute();
 
     const searchInput = await openSearch();
@@ -178,14 +176,12 @@ describe('document search', () => {
   });
 
   it('distinguishes same-text results by ancestor context in the accessible name', async () => {
-    setSearchSnapshot({
-      [ROOT_SEARCH_SCOPE_ID]: [
-        { noteId: 'work', text: 'Work' },
-        { noteId: 'home', text: 'Home' },
-      ],
-      work: [{ noteId: 'work-plan', text: 'Plan' }],
-      home: [{ noteId: 'home-plan', text: 'Plan' }],
-    });
+    setMockSearchSnapshot('routeDoc', createDocumentSnapshot('routeDoc', ['work', 'home'], [
+      createNoteSnapshot('work', 'Work', { children: { listType: 'bullet', noteIds: ['work-plan'] } }),
+      createNoteSnapshot('home', 'Home', { children: { listType: 'bullet', noteIds: ['home-plan'] } }),
+      createNoteSnapshot('work-plan', 'Plan'),
+      createNoteSnapshot('home-plan', 'Plan'),
+    ]));
     renderDocumentRoute();
 
     const searchInput = await openSearch();
@@ -301,11 +297,9 @@ describe('document search', () => {
   describe('result limit', () => {
     // A flat document of 12 top-level notes: 'note01'..'note12'. Empty query
     // matches every one, so it exercises the cap (10) plus truncation hint.
-    const manyNotesSnapshot = (): TestSearchSnapshot => {
+    const manyNotesSnapshot = (): DocumentSnapshot => {
       const ids = Array.from({ length: 12 }, (_unused, i) => `note${String(i + 1).padStart(2, '0')}`);
-      return {
-        [ROOT_SEARCH_SCOPE_ID]: ids.map((id) => ({ noteId: id, text: id })),
-      };
+      return createDocumentSnapshot('routeDoc', ids, ids.map((id) => createNoteSnapshot(id, id)));
     };
 
     const setManyNotes = () => {
@@ -487,9 +481,9 @@ describe('document search', () => {
   });
 
   it('uses sdk-provided candidates for flat results', async () => {
-    setMockSearchSnapshot('routeDoc', {
-      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'sdk1', text: 'sdk result' }],
-    });
+    setMockSearchSnapshot('routeDoc', createDocumentSnapshot('routeDoc', ['sdk1'], [
+      createNoteSnapshot('sdk1', 'sdk result'),
+    ]));
 
     renderDocumentRoute();
 
@@ -517,9 +511,9 @@ describe('document search', () => {
   });
 
   it('clears stale sdk candidates when switching documents', async () => {
-    setMockSearchSnapshot('routeDoc', {
-      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'mainonly', text: 'main only' }],
-    });
+    setMockSearchSnapshot('routeDoc', createDocumentSnapshot('routeDoc', ['mainonly'], [
+      createNoteSnapshot('mainonly', 'main only'),
+    ]));
     setMockSearchSnapshot('other', null);
 
     const router = renderDocumentRoute();
@@ -552,9 +546,9 @@ describe('document search', () => {
     const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'fresh' } });
 
-    setMockSearchSnapshot('routeDoc', {
-      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
-    });
+    setMockSearchSnapshot('routeDoc', createDocumentSnapshot('routeDoc', ['fresh'], [
+      createNoteSnapshot('fresh', 'fresh result'),
+    ]));
 
     await waitFor(() => {
       expect(screen.queryByTestId('document-search-results')).toBeNull();
@@ -569,9 +563,9 @@ describe('document search', () => {
   });
 
   it('waits for a fresh snapshot after invalidating current document candidates', async () => {
-    setMockSearchSnapshot('routeDoc', {
-      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'stale', text: 'shared result' }],
-    });
+    setMockSearchSnapshot('routeDoc', createDocumentSnapshot('routeDoc', ['stale'], [
+      createNoteSnapshot('stale', 'shared result'),
+    ]));
 
     renderDocumentRoute();
 
@@ -593,9 +587,9 @@ describe('document search', () => {
       expect(screen.queryByText('No notes')).toBeNull();
     });
 
-    setMockSearchSnapshot('routeDoc', {
-      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
-    });
+    setMockSearchSnapshot('routeDoc', createDocumentSnapshot('routeDoc', ['fresh'], [
+      createNoteSnapshot('fresh', 'fresh result'),
+    ]));
     refreshMockSearchNotes('routeDoc');
 
     await waitFor(() => {

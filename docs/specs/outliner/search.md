@@ -16,6 +16,8 @@ zooming to a result.
 ## Scope and boundaries
 
 1. Search always runs against the active document only.
+   Its note data comes from the active
+   [open document session](./document-session.md).
 2. Search empty states do not represent invalid routes, unavailable documents,
    or offline loading states.
 3. Runtime document-ID ownership and route/link identity are defined in

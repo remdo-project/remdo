@@ -5,10 +5,20 @@ import type {
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
 } from 'react';
-import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
-import { collectDocumentSearchResults } from '#client/editor/view/workspace';
-import type { SearchCandidate } from '#client/editor/view/workspace';
-import { useSearchNotes } from '#client/editor/view/EditorViewProvider';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import type { LoadState, DocumentSnapshot } from '#note-sdk';
+import { collectDocumentSearchResults } from '#client/search/document-search';
+import type { SearchResult } from '#client/search/document-search';
+import { useDocumentSession } from '#client/editor/view/EditorViewProvider';
 
 // Direct children shown in each result row's preview (the row reports "+N more"
 // for the remainder); kept beside the result limit since both bound the work the
@@ -22,14 +32,14 @@ interface UseDocumentSearchModelOptions {
 
 // Cap the flat results: a large document otherwise matches hundreds of notes
 // (every note on an empty query). The cap is applied during collection (see
-// collectDocumentSearchResults), so opening search stays fast. The first results
-// in document order are the useful ones; the rest are reached by a more specific
-// query.
+// collectDocumentSearchResults), so the query walk stops after finding one
+// additional match. The first results in document order are the useful ones;
+// the rest are reached by a more specific query.
 const SEARCH_RESULT_LIMIT = 10;
 
 export interface DocumentSearchModel {
   activeResultOptionId?: string;
-  flatResults: SearchCandidate[];
+  flatResults: SearchResult[];
   hasMoreResults: boolean;
   handleSearchBlur: () => void;
   handleSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -48,9 +58,13 @@ export interface DocumentSearchModel {
   searchResultsRef: React.RefObject<HTMLElement | null>;
 }
 
-const EMPTY_SEARCH_CANDIDATES: SearchCandidate[] = [];
+const EMPTY_SEARCH_CANDIDATES: SearchResult[] = [];
+const LOADING_DOCUMENT: LoadState<DocumentSnapshot> = Object.freeze({ status: 'loading' });
+const getLoadingDocument = () => LOADING_DOCUMENT;
+const subscribeToNothing = () => () => {};
+
 function getNextHighlightedNoteId(
-  candidates: SearchCandidate[],
+  candidates: SearchResult[],
   highlightedNoteId: string | null,
   direction: 'up' | 'down'
 ): string | null {
@@ -59,21 +73,21 @@ function getNextHighlightedNoteId(
   }
 
   if (!highlightedNoteId) {
-    return candidates[0]!.noteId;
+    return candidates[0]!.note.id;
   }
 
-  const currentIndex = candidates.findIndex((candidate) => candidate.noteId === highlightedNoteId);
+  const currentIndex = candidates.findIndex((candidate) => candidate.note.id === highlightedNoteId);
   if (currentIndex === -1) {
-    return candidates[0]!.noteId;
+    return candidates[0]!.note.id;
   }
 
   const delta = direction === 'down' ? 1 : -1;
   const nextIndex = Math.max(0, Math.min(candidates.length - 1, currentIndex + delta));
-  return candidates[nextIndex]!.noteId;
+  return candidates[nextIndex]!.note.id;
 }
 
 function resolveHighlightedNoteId(
-  candidates: SearchCandidate[],
+  candidates: SearchResult[],
   highlightedNoteId: string | null,
   searchModeActive: boolean
 ): string | null {
@@ -81,11 +95,11 @@ function resolveHighlightedNoteId(
     return null;
   }
 
-  if (highlightedNoteId && candidates.some((candidate) => candidate.noteId === highlightedNoteId)) {
+  if (highlightedNoteId && candidates.some((candidate) => candidate.note.id === highlightedNoteId)) {
     return highlightedNoteId;
   }
 
-  return candidates[0]!.noteId;
+  return candidates[0]!.note.id;
 }
 
 export function useDocumentSearchModel({
@@ -104,20 +118,25 @@ export function useDocumentSearchModel({
   const [searchInputComposing, setSearchInputComposing] = useState(false);
   const pendingEditorFocusAfterSearchExitRef = useRef(false);
 
-  // Results derive from the editor through the SDK accessor, in one capped,
-  // query-aware walk (see collectDocumentSearchResults). The cap is applied
-  // during collection, so opening search on a large document only visits notes
-  // up to the limit instead of building the whole document's candidate set.
-  // Recomputed per edit (accessor identity) and per query.
-  const searchNotes = useSearchNotes();
+  // The session is registered by the active editor, but its document read model
+  // is lazy: search subscribes only while requested. Loading and error states do
+  // not masquerade as an empty document (docs/specs/outliner/search.md).
+  const documentSession = useDocumentSession();
+  const documentStore = searchModeRequested ? documentSession?.document : null;
+  const documentState = useSyncExternalStore(
+    documentStore?.subscribe ?? subscribeToNothing,
+    documentStore?.getSnapshot ?? getLoadingDocument,
+    getLoadingDocument,
+  );
   const searchResults = useMemo(
-    () => searchNotes((notes) => collectDocumentSearchResults(notes, {
-      query: searchQuery,
-      limit: SEARCH_RESULT_LIMIT,
-      childPreviewLimit: CHILD_PREVIEW_LIMIT,
-    })),
-    // searchNotes identity changes per editor edit; searchQuery per keystroke.
-    [searchNotes, searchQuery],
+    () => documentState.status === 'ready'
+      ? collectDocumentSearchResults(documentState.data, {
+          query: searchQuery,
+          limit: SEARCH_RESULT_LIMIT,
+          childPreviewLimit: CHILD_PREVIEW_LIMIT,
+        })
+      : null,
+    [documentState, searchQuery],
   );
   const searchModeActive = searchModeRequested && searchResults !== null;
 
@@ -127,9 +146,6 @@ export function useDocumentSearchModel({
     () => resolveHighlightedNoteId(navigationCandidates, highlightedNoteId, searchModeActive),
     [highlightedNoteId, navigationCandidates, searchModeActive]
   );
-  const highlightedNavigationCandidate = resolvedHighlightedNoteId
-    ? navigationCandidates.find((candidate) => candidate.noteId === resolvedHighlightedNoteId) ?? null
-    : null;
 
   useEffect(() => {
     if (searchModeActive || !pendingEditorFocusAfterSearchExitRef.current) {
@@ -253,11 +269,11 @@ export function useDocumentSearchModel({
     }
 
     event.preventDefault();
-    if (!highlightedNavigationCandidate) {
+    if (!resolvedHighlightedNoteId) {
       return;
     }
 
-    acceptSearchResult(highlightedNavigationCandidate.noteId);
+    acceptSearchResult(resolvedHighlightedNoteId);
   };
 
   const handleSearchResultClick = (event: ReactMouseEvent<HTMLElement>, noteId: string) => {
@@ -293,7 +309,7 @@ export function useDocumentSearchModel({
 
   const highlightedResultNoteId = searchModeActive ? resolvedHighlightedNoteId : null;
   const highlightedResultIndex = highlightedResultNoteId
-    ? flatResults.findIndex((result) => result.noteId === highlightedResultNoteId)
+    ? flatResults.findIndex((result) => result.note.id === highlightedResultNoteId)
     : -1;
   const activeResultOptionId = highlightedResultIndex >= 0
     ? `${searchResultsListboxId}-option-${highlightedResultIndex}`
@@ -301,7 +317,7 @@ export function useDocumentSearchModel({
   return {
     activeResultOptionId,
     flatResults,
-    hasMoreResults: searchModeActive && searchResults.hasMore,
+    hasMoreResults: searchModeActive ? searchResults.hasMore : false,
     handleSearchBlur,
     handleSearchChange,
     handleSearchCompositionEnd,
