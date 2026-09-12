@@ -1,13 +1,16 @@
 export type { NoteId } from './notes';
 export type {
   ChildListSnapshot,
+  ChildPreview,
   DocumentCapabilitiesSnapshot,
+  DocumentSearchOptions,
+  DocumentSearchResults,
   DocumentSession,
-  DocumentSnapshot,
   LoadState,
   NoteListType,
   OpenDocumentNote,
   EditorNoteSnapshot,
+  SearchResult,
   SnapshotStore,
 } from './document-session';
 export type {

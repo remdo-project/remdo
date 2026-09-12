@@ -53,6 +53,7 @@ export function DocumentSearchResults({ model }: { model: DocumentSearchModel })
 
   return (
     <section
+      aria-busy={model.searchResultsPending || undefined}
       className="document-search-results"
       data-testid="document-search-results"
       ref={model.searchResultsRef}
@@ -91,7 +92,7 @@ export function DocumentSearchResults({ model }: { model: DocumentSearchModel })
               />
             </li>
           );
-        }) : (
+        }) : model.searchResultsPending ? null : (
           <li
             aria-disabled="true"
             aria-selected="false"

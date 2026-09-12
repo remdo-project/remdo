@@ -52,8 +52,8 @@ The [search specification](specs/outliner/search.md) defines document-search beh
 2. Search should open without perceptible delay. Results over available
    information should update immediately as the query changes, without waiting
    for additional sources.
-3. Recent committed local edits should remain discoverable, and search should
-   distinguish incomplete or stale coverage from no matches.
+3. Recent committed local edits should be discoverable when a query is evaluated,
+   and incomplete or stale source coverage should be distinguished from no matches.
 4. Background work should respect device-appropriate CPU, memory, and storage
    budgets; derived data should be rebuildable from its sources.
 

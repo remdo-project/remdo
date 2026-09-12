@@ -13,11 +13,8 @@ import {
   useReducer,
   useRef,
   useState,
-  useSyncExternalStore,
 } from 'react';
-import type { LoadState, DocumentSnapshot } from '#note-sdk';
-import { collectDocumentSearchResults } from '#client/search/document-search';
-import type { SearchResult } from '#client/search/document-search';
+import type { DocumentSearchResults, SearchResult } from '#note-sdk';
 import { useDocumentSession } from '#client/editor/view/EditorViewProvider';
 
 // Direct children shown in each result row's preview (the row reports "+N more"
@@ -30,11 +27,8 @@ interface UseDocumentSearchModelOptions {
   setZoomNoteId: (noteId: string | null) => void;
 }
 
-// Cap the flat results: a large document otherwise matches hundreds of notes
-// (every note on an empty query). The cap is applied during collection (see
-// collectDocumentSearchResults), so the query walk stops after finding one
-// additional match. The first results in document order are the useful ones;
-// the rest are reached by a more specific query.
+// Ask only for the first results and whether more exist; refining the query
+// reaches further matches without rendering the whole document.
 const SEARCH_RESULT_LIMIT = 10;
 
 export interface DocumentSearchModel {
@@ -54,14 +48,12 @@ export interface DocumentSearchModel {
   searchModeActive: boolean;
   searchModeRequested: boolean;
   searchQuery: string;
+  searchResultsPending: boolean;
   searchResultsListboxId: string;
   searchResultsRef: React.RefObject<HTMLElement | null>;
 }
 
 const EMPTY_SEARCH_CANDIDATES: SearchResult[] = [];
-const LOADING_DOCUMENT: LoadState<DocumentSnapshot> = Object.freeze({ status: 'loading' });
-const getLoadingDocument = () => LOADING_DOCUMENT;
-const subscribeToNothing = () => () => {};
 
 function getNextHighlightedNoteId(
   candidates: SearchResult[],
@@ -118,27 +110,43 @@ export function useDocumentSearchModel({
   const [searchInputComposing, setSearchInputComposing] = useState(false);
   const pendingEditorFocusAfterSearchExitRef = useRef(false);
 
-  // The session is registered by the active editor, but its document read model
-  // is lazy: search subscribes only while requested. Loading and error states do
-  // not masquerade as an empty document (docs/specs/outliner/search.md).
+  // The host registers only an available document. A request belongs to one
+  // opening/query/source, so an older completion cannot restore stale results.
   const documentSession = useDocumentSession();
-  const documentStore = searchModeRequested ? documentSession?.document : null;
-  const documentState = useSyncExternalStore(
-    documentStore?.subscribe ?? subscribeToNothing,
-    documentStore?.getSnapshot ?? getLoadingDocument,
-    getLoadingDocument,
-  );
-  const searchResults = useMemo(
-    () => documentState.status === 'ready'
-      ? collectDocumentSearchResults(documentState.data, {
-          query: searchQuery,
-          limit: SEARCH_RESULT_LIMIT,
-          childPreviewLimit: CHILD_PREVIEW_LIMIT,
-        })
+  const request = useMemo(
+    () => searchModeRequested && documentSession
+      ? { query: searchQuery }
       : null,
-    [documentState, searchQuery],
+    [documentSession, searchModeRequested, searchQuery],
   );
-  const searchModeActive = searchModeRequested && searchResults !== null;
+  const [response, setResponse] = useState<{
+    request: NonNullable<typeof request>;
+    results: DocumentSearchResults | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!request || !documentSession) {
+      return;
+    }
+    let current = true;
+    const publish = (results: DocumentSearchResults | null) => {
+      if (current) {
+        setResponse({ request, results });
+      }
+    };
+    void documentSession.search({
+      query: request.query,
+      limit: SEARCH_RESULT_LIMIT,
+      childPreviewLimit: CHILD_PREVIEW_LIMIT,
+    }).then(publish, () => publish(null));
+    return () => {
+      current = false;
+    };
+  }, [documentSession, request]);
+
+  const searchResults = request && response?.request === request ? response.results : null;
+  const searchResultsPending = request !== null && response?.request !== request;
+  const searchModeActive = request !== null && (searchResultsPending || searchResults !== null);
 
   const flatResults = searchResults?.flatResults ?? EMPTY_SEARCH_CANDIDATES;
   const navigationCandidates = searchModeActive ? flatResults : EMPTY_SEARCH_CANDIDATES;
@@ -317,7 +325,7 @@ export function useDocumentSearchModel({
   return {
     activeResultOptionId,
     flatResults,
-    hasMoreResults: searchModeActive ? searchResults.hasMore : false,
+    hasMoreResults: searchResults?.hasMore ?? false,
     handleSearchBlur,
     handleSearchChange,
     handleSearchCompositionEnd,
@@ -331,6 +339,7 @@ export function useDocumentSearchModel({
     searchModeActive,
     searchModeRequested,
     searchQuery,
+    searchResultsPending,
     searchResultsListboxId,
     searchResultsRef,
   };

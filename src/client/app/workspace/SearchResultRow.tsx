@@ -1,7 +1,6 @@
 import { Fragment } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
-import type { ChildPreview as SearchChildPreview, SearchResult } from '#client/search/document-search';
-import type { EditorNoteSnapshot, NoteListType } from '#note-sdk';
+import type { ChildPreview as SearchChildPreview, EditorNoteSnapshot, NoteListType, SearchResult } from '#note-sdk';
 import { queryMatchRanges } from '#client/search/query-match';
 import { UNTITLED_LABEL, formatNavigationLabel, normalizeNavigationLabel } from '#client/ui/navigation-label';
 

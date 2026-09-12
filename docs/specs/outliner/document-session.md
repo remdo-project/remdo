@@ -1,9 +1,10 @@
 # Open document session
 
 An open document session is the adapter-neutral contract between consumers and
-one opened document. It exposes [editor notes](./note-model.md#note-kinds),
+one opened document. It exposes [editor notes](./note-model.md#note-kinds), [search](./search.md),
 action capabilities, and semantic operations. The application host owns its
-lifetime, and each operation's behavioral owner retains its semantics.
+lifetime and exposes it only while the committed document is usable. Each
+operation's behavioral owner retains its semantics.
 
 ## State and observation
 
@@ -13,18 +14,18 @@ identity for addressable editor notes uses the global
 committed note and fails when it does not exist, including after deletion,
 rather than returning stale or substitute data.
 
-Observation is scoped to an addressed note, the whole document, or action
+Observation is scoped to an addressed note or action
 capabilities and signals that the relevant state should be reread. Addressed
-handles are readable without subscribing. Observable document and capability
+handles are readable without subscribing. Observable capability
 states distinguish unavailable, failed, and ready values; every ready value is an
 immutable, coherent revision. Listeners may safely invoke session operations.
 
 ## Operations and ownership
 
-Operations target an addressed note, the currently focused note, the current
+Mutations target an addressed note, the currently focused note, the current
 selection, or document history. They resolve and validate their targets when
 executed and no-op when the source or target is unavailable. An asynchronous
-operation resolves after its resulting local update commits, without waiting
+mutation resolves after its resulting local update commits, without waiting
 for listener delivery, collaboration, or persistence.
 
 Adapters own framework and storage mechanics. Consumer surfaces own which

@@ -29,11 +29,33 @@ export interface EditorNoteSnapshot {
   readonly children: ChildListSnapshot | null;
 }
 
-/** A complete, immutable open-document read model. */
-export interface DocumentSnapshot {
-  readonly documentId: string;
-  readonly root: ChildListSnapshot;
-  readonly notes: ReadonlyMap<NoteId, EditorNoteSnapshot>;
+/** A matching note plus its path (ancestors and self, self last). */
+export interface SearchResult {
+  note: EditorNoteSnapshot;
+  childPreview: ChildPreview;
+  path: readonly EditorNoteSnapshot[];
+}
+
+/** The first few direct children plus the exact direct-child count. */
+export interface ChildPreview {
+  notes: readonly EditorNoteSnapshot[];
+  listType: NoteListType;
+  totalCount: number;
+}
+
+export interface DocumentSearchResults {
+  /** Matching notes in document order, capped at the requested limit. */
+  flatResults: SearchResult[];
+  /** True when at least one match exists beyond the returned results. */
+  hasMore: boolean;
+}
+
+export interface DocumentSearchOptions {
+  query: string;
+  /** Maximum number of matching results to return. */
+  limit: number;
+  /** Maximum direct children to include in each result's preview. */
+  childPreviewLimit: number;
 }
 
 /** Current semantic capabilities used by high-level action surfaces. */
@@ -70,9 +92,10 @@ export interface OpenDocumentNote {
  */
 export interface DocumentSession {
   readonly documentId: string;
-  readonly document: SnapshotStore<LoadState<DocumentSnapshot>>;
   readonly capabilities: SnapshotStore<LoadState<DocumentCapabilitiesSnapshot>>;
 
+  /** Searches current committed data; rejects when the source cannot be read. */
+  readonly search: (options: DocumentSearchOptions) => Promise<DocumentSearchResults>;
   /** Returns a live handle that re-resolves the stable note ID on each access. */
   readonly note: (noteId: NoteId) => OpenDocumentNote;
   readonly focus: {

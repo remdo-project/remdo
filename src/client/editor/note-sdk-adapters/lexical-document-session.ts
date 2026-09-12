@@ -1,7 +1,7 @@
-import type { ListItemNode, ListNode } from '@lexical/list';
+import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
 import { mergeRegister } from '@lexical/utils';
-import type { EditorState, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 import {
   $getNodeByKey,
   CAN_REDO_COMMAND,
@@ -12,11 +12,8 @@ import {
 } from 'lexical';
 import { useEffect, useMemo } from 'react';
 import type {
-  ChildListSnapshot,
   DocumentCapabilitiesSnapshot,
   DocumentSession,
-  DocumentSnapshot,
-  EditorNoteSnapshot,
   LoadState,
   NoteId,
   OpenDocumentNote,
@@ -31,17 +28,14 @@ import {
   SET_NOTE_FOLD_COMMAND,
 } from '#client/editor/foundation/commands';
 import { $canOfferFold } from '#client/editor/features/folding/fold-offer';
-import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
 import { $isNoteFolded } from '#client/editor/outline/fold-state';
-import { getContentSiblings, isWrapperItem } from '#client/editor/outline/list-structure';
+import { isWrapperItem } from '#client/editor/outline/list-structure';
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
-import { getNestedList } from '#client/editor/outline/selection/tree';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { $resolveRootContentList } from '#client/editor/outline/schema';
-import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 import { subscribeViewRoot } from '#client/editor/outline/view-root';
+import { collectLexicalDocumentSearchResults } from './lexical-document-search';
 
 interface LexicalDocumentSessionSource {
   editor: LexicalEditor;
@@ -50,11 +44,6 @@ interface LexicalDocumentSessionSource {
 
 interface UseLexicalDocumentSessionOptions extends LexicalDocumentSessionSource {
   ready?: boolean;
-}
-
-interface DocumentProjection {
-  nodeKeys: Map<NoteId, string>;
-  snapshot: DocumentSnapshot;
 }
 
 interface AddressedNoteValues {
@@ -67,54 +56,6 @@ interface AddressedNoteObservation {
   values: AddressedNoteValues | null;
 }
 
-/** Runtime-readonly view: consumers cannot cast the public index back to Map and mutate it. */
-class ImmutableMapView<K, V> implements ReadonlyMap<K, V> {
-  readonly #map: Map<K, V>;
-  readonly [Symbol.toStringTag] = 'ImmutableMapView';
-
-  constructor(entries: Map<K, V>) {
-    this.#map = entries;
-    Object.freeze(this);
-  }
-
-  get size(): number {
-    return this.#map.size;
-  }
-
-  get(key: K): V | undefined {
-    return this.#map.get(key);
-  }
-
-  has(key: K): boolean {
-    return this.#map.has(key);
-  }
-
-  forEach(
-    callback: (value: V, key: K, map: ReadonlyMap<K, V>) => void,
-    thisArg?: unknown,
-  ): void {
-    for (const [key, value] of this.#map) {
-      callback.call(thisArg, value, key, this);
-    }
-  }
-
-  entries(): MapIterator<[K, V]> {
-    return this.#map.entries();
-  }
-
-  keys(): MapIterator<K> {
-    return this.#map.keys();
-  }
-
-  values(): MapIterator<V> {
-    return this.#map.values();
-  }
-
-  [Symbol.iterator](): MapIterator<[K, V]> {
-    return this.#map[Symbol.iterator]();
-  }
-}
-
 export interface LexicalDocumentSessionRuntime {
   session: DocumentSession;
   start: () => () => void;
@@ -123,7 +64,6 @@ export interface LexicalDocumentSessionRuntime {
 }
 
 const LOADING = Object.freeze({ status: 'loading' as const });
-const DOCUMENT_ERROR = new Error('The editor document could not be projected.');
 const CAPABILITIES_ERROR = new Error('The editor capabilities could not be projected.');
 
 function ready<T>(data: T): LoadState<T> {
@@ -132,123 +72,6 @@ function ready<T>(data: T): LoadState<T> {
 
 function failed<T>(error: unknown): LoadState<T> {
   return Object.freeze({ status: 'error' as const, error });
-}
-
-function childListsEqual(left: ChildListSnapshot, right: ChildListSnapshot): boolean {
-  return left.listType === right.listType
-    && left.noteIds.length === right.noteIds.length
-    && left.noteIds.every((noteId, index) => noteId === right.noteIds[index]);
-}
-
-function noteValuesEqual(
-  previous: EditorNoteSnapshot,
-  values: Pick<EditorNoteSnapshot, 'text' | 'checked' | 'folded'>,
-  children: ChildListSnapshot | null,
-): boolean {
-  return previous.text === values.text
-    && previous.checked === values.checked
-    && previous.folded === values.folded
-    && previous.children === children;
-}
-
-function previousChildList(
-  previous: DocumentProjection | null,
-  ownerId: NoteId | null,
-): ChildListSnapshot | null {
-  if (!previous) {
-    return null;
-  }
-  return ownerId === null
-    ? previous.snapshot.root
-    : previous.snapshot.notes.get(ownerId)?.children ?? null;
-}
-
-function extractDocumentProjection(
-  editorState: EditorState,
-  documentId: string,
-  previous: DocumentProjection | null,
-): DocumentProjection {
-  return editorState.read(() => {
-    const rootList = $resolveRootContentList();
-    if (!rootList) {
-      throw new Error('Missing document root list.');
-    }
-
-    const noteValues = new Map<NoteId, Pick<EditorNoteSnapshot, 'text' | 'checked' | 'folded'>>();
-    const childLists = new Map<NoteId | null, ChildListSnapshot>();
-    const nodeKeys = new Map<NoteId, string>();
-    const stack: Array<{ list: ListNode; ownerId: NoteId | null }> = [
-      { list: rootList, ownerId: null },
-    ];
-
-    while (stack.length > 0) {
-      const frame = stack.pop()!;
-      const children = getContentSiblings(frame.list);
-      const noteIds: NoteId[] = [];
-
-      for (const note of children) {
-        const noteId = $getNoteId(note);
-        if (!noteId || noteId === documentId || noteValues.has(noteId)) {
-          throw new Error('Invalid or duplicate editor note ID.');
-        }
-
-        noteValues.set(noteId, {
-          text: getNoteOwnText(note),
-          checked: $getNoteChecked(note) === true,
-          folded: $isNoteFolded(note),
-        });
-        nodeKeys.set(noteId, note.getKey());
-        noteIds.push(noteId);
-
-        const nested = getNestedList(note);
-        if (nested) {
-          stack.push({ list: nested, ownerId: noteId });
-        }
-      }
-
-      if (childLists.has(frame.ownerId)) {
-        throw new Error('A note cannot own more than one child list.');
-      }
-      const candidate: ChildListSnapshot = {
-        listType: frame.list.getListType(),
-        noteIds: Object.freeze(noteIds),
-      };
-      const previousList = previousChildList(previous, frame.ownerId);
-      childLists.set(
-        frame.ownerId,
-        previousList && childListsEqual(previousList, candidate)
-          ? previousList
-          : Object.freeze(candidate),
-      );
-    }
-
-    const root = childLists.get(null);
-    if (!root || root.noteIds.length === 0) {
-      throw new Error('The document must contain at least one editor note.');
-    }
-
-    const notes = new Map<NoteId, EditorNoteSnapshot>();
-    for (const [noteId, values] of noteValues) {
-      const children = childLists.get(noteId) ?? null;
-      const previousNote = previous?.snapshot.notes.get(noteId);
-      notes.set(
-        noteId,
-        previousNote && noteValuesEqual(previousNote, values, children)
-          ? previousNote
-          : Object.freeze({ id: noteId, ...values, children }),
-      );
-    }
-
-    const unchanged = previous !== null
-      && root === previous.snapshot.root
-      && notes.size === previous.snapshot.notes.size
-      && [...notes].every(([noteId, note]) => previous.snapshot.notes.get(noteId) === note);
-    const snapshot = unchanged
-      ? previous.snapshot
-      : Object.freeze({ documentId, root, notes: new ImmutableMapView(notes) });
-
-    return { nodeKeys, snapshot };
-  });
 }
 
 function capabilitySnapshotsEqual(
@@ -276,19 +99,14 @@ export function createLexicalDocumentSessionRuntime({
   editor,
   docId,
 }: LexicalDocumentSessionSource): LexicalDocumentSessionRuntime {
-  const documentListeners = new Set<() => void>();
   const capabilityListeners = new Set<() => void>();
   const addressedNotes = new Map<NoteId, AddressedNoteObservation>();
-  let documentState: LoadState<DocumentSnapshot> = LOADING;
   let capabilityState: LoadState<DocumentCapabilitiesSnapshot> = LOADING;
-  let projection: DocumentProjection | null = null;
   let latestEditorState = editor.getEditorState();
   let canUndo = false;
   let canRedo = false;
   let sourceReady = false;
-  let documentActive = false;
   let capabilitiesActive = false;
-  let documentDirty = false;
   let capabilitiesDirty = false;
   let addressedNotesDirty = false;
   let started = false;
@@ -305,46 +123,16 @@ export function createLexicalDocumentSessionRuntime({
   };
 
   const publishLoading = () => {
-    projection = null;
-    documentDirty = false;
     capabilitiesDirty = false;
     addressedNotesDirty = false;
     for (const observation of addressedNotes.values()) {
       observation.values = null;
     }
-    const documentChanged = documentActive && documentState !== LOADING;
     const capabilitiesChanged = capabilitiesActive && capabilityState !== LOADING;
-    documentState = LOADING;
     capabilityState = LOADING;
-    // Assign both scopes before notifying either one so cross-scope reads stay
-    // coherent across a source epoch and runtime stop.
-    if (documentChanged) {
-      notify(documentListeners);
-    }
     if (capabilitiesChanged) {
       notify(capabilityListeners);
     }
-  };
-
-  const $resolveIndexedNote = (noteId: NoteId): ListItemNode | null => {
-    const key = projection?.nodeKeys.get(noteId);
-    if (key) {
-      const node = $getNodeByKey(key);
-      if (
-        $isListItemNode(node)
-        && node.isAttached()
-        && !isWrapperItem(node)
-        && $getNoteId(node) === noteId
-      ) {
-        return node;
-      }
-    }
-
-    const note = $findNoteById(noteId);
-    if (note) {
-      projection?.nodeKeys.set(noteId, note.getKey());
-    }
-    return note;
   };
 
   const $resolveFocusedNote = (): ListItemNode | null => {
@@ -359,7 +147,7 @@ export function createLexicalDocumentSessionRuntime({
     }
     try {
       return editor.getEditorState().read(() => {
-        const note = $resolveIndexedNote(noteId);
+        const note = $findNoteById(noteId);
         return note
           ? { folded: $isNoteFolded(note), text: getNoteOwnText(note) }
           : null;
@@ -433,37 +221,12 @@ export function createLexicalDocumentSessionRuntime({
       return;
     }
 
-    let documentChanged = false;
     let capabilitiesChanged = false;
     const addressedListeners = new Set<() => void>();
 
     if (!sourceReady) {
       publishLoading();
       return;
-    }
-
-    if (documentActive && documentDirty) {
-      documentDirty = false;
-      try {
-        const nextProjection = extractDocumentProjection(latestEditorState, docId, projection);
-        const nextState = ready(nextProjection.snapshot);
-        if (
-          nextState.status !== documentState.status
-          || (nextState.status === 'ready'
-            && (documentState.status !== 'ready' || nextState.data !== documentState.data))
-        ) {
-          documentState = nextState;
-          documentChanged = true;
-        }
-        projection = nextProjection;
-      } catch {
-        const nextState = failed<DocumentSnapshot>(DOCUMENT_ERROR);
-        if (documentState.status !== 'error' || documentState.error !== DOCUMENT_ERROR) {
-          documentState = nextState;
-          documentChanged = true;
-        }
-        projection = null;
-      }
     }
 
     if (capabilitiesActive && capabilitiesDirty) {
@@ -498,11 +261,7 @@ export function createLexicalDocumentSessionRuntime({
       }
     }
 
-    // Assign both values before either listener set runs: consumers reading
-    // across scopes cannot observe a torn source revision.
-    if (documentChanged) {
-      notify(documentListeners);
-    }
+    // Refresh observations before invoking listeners, which may mutate notes.
     if (capabilitiesChanged) {
       notify(capabilityListeners);
     }
@@ -554,35 +313,6 @@ export function createLexicalDocumentSessionRuntime({
     );
   };
 
-  const activateDocument = () => {
-    if (documentActive) {
-      return;
-    }
-    documentActive = true;
-    documentDirty = true;
-    latestEditorState = editor.getEditorState();
-    if (started) {
-      refresh();
-    }
-  };
-
-  const subscribeDocument = (listener: () => void) => {
-    if (disposed) {
-      return () => {};
-    }
-    documentListeners.add(listener);
-    activateDocument();
-    return () => {
-      documentListeners.delete(listener);
-      if (documentListeners.size === 0) {
-        documentActive = false;
-        documentDirty = false;
-        projection = null;
-        documentState = LOADING;
-      }
-    };
-  };
-
   const activateCapabilities = () => {
     if (capabilitiesActive) {
       return;
@@ -614,9 +344,7 @@ export function createLexicalDocumentSessionRuntime({
     stop();
     unregisterHistory();
     unregisterHistory = () => {};
-    documentActive = false;
     capabilitiesActive = false;
-    documentListeners.clear();
     capabilityListeners.clear();
     addressedNotes.clear();
   };
@@ -626,7 +354,7 @@ export function createLexicalDocumentSessionRuntime({
       id: () => noteId,
       text: () => requireAddressedNote(noteId).text,
       folded: () => requireAddressedNote(noteId).folded,
-      toggleFold: () => toggleResolvedFoldAfterCommit(() => $resolveIndexedNote(noteId)),
+      toggleFold: () => toggleResolvedFoldAfterCommit(() => $findNoteById(noteId)),
       subscribe: (listener) => {
         if (disposed) {
           return () => {};
@@ -653,9 +381,11 @@ export function createLexicalDocumentSessionRuntime({
 
   const session: DocumentSession = {
     documentId: docId,
-    document: {
-      getSnapshot: () => documentState,
-      subscribe: subscribeDocument,
+    search: async (options) => {
+      if (disposed || !started || !sourceReady) {
+        throw new Error('The document is not available for search.');
+      }
+      return collectLexicalDocumentSearchResults(editor, options);
     },
     capabilities: {
       getSnapshot: () => capabilityState,
@@ -726,9 +456,6 @@ export function createLexicalDocumentSessionRuntime({
       editor.registerUpdateListener(({ editorState, dirtyElements, dirtyLeaves }) => {
         latestEditorState = editorState;
         if (dirtyElements.size > 0 || dirtyLeaves.size > 0) {
-          if (documentActive) {
-            documentDirty = true;
-          }
           if (addressedNotes.size > 0) {
             addressedNotesDirty = true;
           }
@@ -736,7 +463,7 @@ export function createLexicalDocumentSessionRuntime({
         if (capabilitiesActive) {
           capabilitiesDirty = true;
         }
-        if (documentDirty || capabilitiesDirty || addressedNotesDirty) {
+        if (capabilitiesDirty || addressedNotesDirty) {
           schedule();
         }
       }),
@@ -748,7 +475,6 @@ export function createLexicalDocumentSessionRuntime({
       }),
     );
 
-    documentDirty = documentActive;
     capabilitiesDirty = capabilitiesActive;
     addressedNotesDirty = addressedNotes.size > 0;
     refresh();
@@ -761,14 +487,12 @@ export function createLexicalDocumentSessionRuntime({
     }
     sourceReady = nextReady;
     latestEditorState = editor.getEditorState();
-    projection = null;
     if (!sourceReady) {
       canUndo = false;
       canRedo = false;
       publishLoading();
       return;
     }
-    documentDirty = documentActive;
     capabilitiesDirty = capabilitiesActive;
     addressedNotesDirty = addressedNotes.size > 0;
     if (started) {

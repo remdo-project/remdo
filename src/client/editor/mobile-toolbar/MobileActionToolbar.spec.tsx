@@ -74,13 +74,9 @@ function createSession(initialCapabilities: LoadState<DocumentCapabilitiesSnapsh
     undo: vi.fn(),
     redo: vi.fn(),
   };
-  const loadingStore: SnapshotStore<LoadState<never>> = {
-    getSnapshot: () => ({ status: 'loading' }),
-    subscribe: () => () => {},
-  };
   const session: DocumentSession = {
     documentId: 'main',
-    document: loadingStore,
+    search: vi.fn(),
     capabilities,
     note: (noteId) => ({
       id: () => noteId,

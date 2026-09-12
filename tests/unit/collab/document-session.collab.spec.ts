@@ -1,19 +1,11 @@
 import { waitFor } from '@testing-library/react';
-import { describe, expect, it, onTestFinished } from 'vitest';
-import type { LoadState } from '#note-sdk';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { meta } from '#tests';
 import { createLexicalDocumentSessionRuntime } from '#client/editor/note-sdk-adapters/lexical-document-session';
 import { createCollabPeer } from './_support/remdo-peers';
 
-function requireReady<T>(state: LoadState<T>): T {
-  if (state.status !== 'ready') {
-    throw new Error(`Expected a ready SDK snapshot, got ${state.status}.`);
-  }
-  return state.data;
-}
-
 describe('document session collaboration', () => {
-  it('publishes a remote note edit through the same document snapshot', meta({
+  it('observes a remote note edit and includes it in the next search', meta({
     collabDocId: 'sdkRemoteEdit',
     fixture: 'tree',
   }), async ({ remdo }) => {
@@ -26,19 +18,23 @@ describe('document session collaboration', () => {
     });
     runtime.start();
     runtime.setSourceReady(true);
-    runtime.session.document.subscribe(() => {});
     onTestFinished(() => runtime.dispose());
+    const note = runtime.session.note('note2');
+    const listener = vi.fn();
+    note.subscribe(listener);
 
-    await waitFor(() => {
-      expect(requireReady(runtime.session.document.getSnapshot()).notes.get('note2')?.text)
-        .toBe('note2');
-    });
+    expect(note.text()).toBe('note2');
+    const options = { query: 'updated', limit: 10, childPreviewLimit: 2 };
+    expect(await runtime.session.search(options)).toEqual({ flatResults: [], hasMore: false });
 
     await peer.updateNoteText('note2', 'updated by peer');
 
     await waitFor(() => {
-      expect(requireReady(runtime.session.document.getSnapshot()).notes.get('note2')?.text)
-        .toBe('updated by peer');
+      expect(note.text()).toBe('updated by peer');
+      expect(listener).toHaveBeenCalledOnce();
     });
+    const { flatResults } = await runtime.session.search(options);
+    expect(flatResults.map(({ note }) => ({ id: note.id, text: note.text })))
+      .toEqual([{ id: 'note2', text: 'updated by peer' }]);
   });
 });

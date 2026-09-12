@@ -22,7 +22,7 @@ function createSession() {
   };
   const session: DocumentSession = {
     documentId: 'main',
-    document: loadingStore(),
+    search: vi.fn(),
     capabilities: loadingStore(),
     note: (noteId) => ({
       id: () => noteId,

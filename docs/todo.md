@@ -89,10 +89,10 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 - **Note-centered SDK consumer boundary.** The
   [open document session](specs/outliner/document-session.md) now owns the first
-  settled slice around the shared [note model](specs/outliner/note-model.md): an
-  indexed observable document read model, observable action capabilities, and
-  semantic operations. [Search](specs/outliner/search.md) consumes its document
-  data and the [mobile toolbar](specs/outliner/mobile-toolbar.md) consumes its
+  settled slice around the shared [note model](specs/outliner/note-model.md):
+  addressed-note access and observation, observable action capabilities, and
+  semantic operations. [Search](specs/outliner/search.md) requests results through
+  the session and the [mobile toolbar](specs/outliner/mobile-toolbar.md) consumes its
   capabilities and operations without importing Lexical commands or private
   feature modules.
 
