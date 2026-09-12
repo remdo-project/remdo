@@ -148,14 +148,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   deletion owner's target resolution so availability and application agree,
   then cover both the owner seam and toolbar delegation.
 
-- **Menu toggle inside a structural selection.** Target behavior
-  ([Menu](specs/outliner/menu.md)): the note menu's toggle applies to the selected
-  note range when the current note is inside it. The implementation always
-  targets the menu's note (`noteItemKey` is resolved first in
-  `CheckListPlugin.tsx`, asserted by
-  `src/client/editor/features/list-types/checklist-state.spec.ts`);
-  adjust the resolution and tests.
-
 - **Report the Lexical `updateEditorSync` warning upstream.** A commit that
   moves the DOM selection emits a Lexical dev warning through an entirely
   internal chain: `$commitPendingUpdates` → `$updateDOMSelection` →
