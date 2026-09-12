@@ -116,14 +116,11 @@ Rules:
 - Reconsider `/api/config` vs `/api/health` — maybe one `/api/status` covers both.
 - Admin panel: **promoting an existing user to admin** and per-admin revocation
   — the only way today to gain admin is registering a new account via the secret.
+- Ban/impersonate from the Better Auth admin plugin.
 - Runtime public-policy toggle (replace `ALLOW_SIGNUP` env with admin-managed,
-  DB-backed state). Needs auth hot-swap (rebuild `betterAuth` to flip the
-  construction-time `disableSignUp`).
+  DB-backed state) and UI. Swappable auth is in place; the toggle still needs implementation.
 
 ## Source-linking follow-ups
-
-- Runtime public-policy toggle UI (see above) — this PR builds swappable-auth but
-  not the toggle.
 
 Deferred hardening; long-horizon items live in
 `docs/specs/access/access-control.md#future` and `docs/specs/access/source-linking.md#future`.
@@ -161,8 +158,6 @@ Deferred hardening; long-horizon items live in
     access". A source-unreachable/upstream failure is really a gateway error
     (502/504), which would also let the client distinguish "offline, keep the
     link" from a real "forbidden". Worth splitting when the status UI lands.
-- Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
-  the Better Auth admin plugin.
 
 ## Offline and local persistence follow-ups
 
@@ -435,13 +430,9 @@ yet built; the entries below track implementation gaps against its rules.
 
 ## Warning and drift detection follow-ups
 
-- Pin / drift decisions:
-  1. Decide whether to replace `pnpm dlx esbuild` in `docker/Dockerfile` with a
-     lockfile-backed tool path or at least an exact version; Docker currently
-     pulls a different `esbuild` than the workspace.
-  2. Decide whether to update the pinned `packageManager` version in
-     `package.json` or intentionally keep the current pnpm line and suppress the
-     resulting upgrade notices elsewhere.
+- Decide whether to replace `pnpm dlx esbuild` in `docker/Dockerfile` with a
+  lockfile-backed tool path or at least an exact version; Docker currently
+  pulls a different `esbuild` than the workspace.
 
 - Add more deterministic detection:
   1. Extend `tools/check-pnpm-policy.ts` to flag committed `pnpm dlx` usage so
@@ -464,8 +455,7 @@ yet built; the entries below track implementation gaps against its rules.
      `ExperimentalWarning` noise from Better Auth's SQLite path in dev/test commands.
   6. Review current install-time warnings and classify each as `fix`, `track`,
      or `ignore`, especially:
-     `glob@11.1.0`, `source-map@0.8.0-beta.0`, `sourcemap-codec@1.4.8`, and the
-     `@typescript-eslint/*` peer mismatch against `typescript 6`.
+     `glob@11.1.0`, `source-map@0.8.0-beta.0`, and `sourcemap-codec@1.4.8`.
 
 ## Dev environment: inotify watch exhaustion
 
@@ -514,9 +504,6 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
   code-lint gate. Extend the ESLint config to the dot tree (deciding which rules
   apply to skill specs, e.g. the `node/no-process-env` disables), or accept
   typecheck+tests as their gate. A config decision, not a mechanical fix.
-- Define shared cross-skill contracts once (AGENTS.md or contributing.md) and
-  have each skill state only its delta: one stop/escalation taxonomy (today
-  six names: ESCALATE/Blocker/Stuck/stop/dead-end/callout) and one report skeleton.
 
 ## Skill test-infra follow-up
 
@@ -566,18 +553,10 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
   RemDo services in their own `PORT_BASE` block before starting, instead of
   adding separate restart scripts. Keep the behavior port-scoped and avoid the
   shared Chrome DevTools endpoint.
-- Server routes follow-up: review the API endpoint set before extracting route
-  modules. Revisit endpoint names, grouping, browser-vs-server request
-  boundaries, and whether any routes should move, merge, or be dropped. After
-  the endpoint shape is settled, split `src/server/app.ts` route registration
-  into small Hono route modules mounted with `app.route(...)`, keeping
-  `createServerApp` focused on dependency setup and route overview. Consider a
-  Hono `showRoutes()` dev helper or test for endpoint inventory after the route
-  groups settle.
-- Source layout follow-up: revisit browser/server/shared folder boundaries.
-  Server code was added after the browser app shape was already established, so
-  some document/current-user/domain concepts now sit beside browser runtime code.
-  Clarify which modules are client-only, server-only, and shared domain code.
+- Server routes follow-up: review the API endpoint set. Revisit endpoint names,
+  grouping, browser-vs-server request boundaries, and whether any routes should
+  move, merge, or be dropped. Consider a Hono `showRoutes()` dev helper or test
+  for endpoint inventory after the route groups settle.
 - Revisit client auth/bootstrap state caching once the auth and current-user
   model is more settled. The current lightweight bootstrap cache should
   eventually be keyed to the active Better Auth session, or invalidated by a
@@ -605,12 +584,3 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
   on every render — so the gate never polls indefinitely. Revisit only if the
   stuck-until-manual-retry case proves to hurt in practice (e.g. add a single
   long-delay final probe, or a visibilitychange-triggered re-arm).
-
-## Mobile toolbar design tuning — ✅ shipped
-
-Playground-driven design tuning for the mobile action toolbar (pinned Done+Undo
-with the anchor rule, hide-vs-grey disabled behavior, left-aligned scroll with
-peek + edge-fade, sizing, `aria-disabled`) is implemented; the durable contract
-lives in [docs/specs/outliner/mobile-toolbar.md](specs/outliner/mobile-toolbar.md), and the
-open follow-ups it left are the mobile-toolbar entries under the plugin
-follow-ups above. Design rationale is in git history.
