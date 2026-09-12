@@ -238,7 +238,6 @@ export function createProviderFactory({
         }
       }
       provider.connect = () => Promise.resolve();
-      provider.disconnect();
       destroyIndexedDbProvider();
       originalDestroy();
     };
