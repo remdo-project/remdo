@@ -1,6 +1,7 @@
 import type * as Y from 'yjs';
 import type { CollaborationProviderEventsView } from '#collaboration/runtime';
 import { expect, test } from '#e2e/fixtures';
+import type { Page } from '#e2e/fixtures';
 import { createUserDocument } from '../_support/documents';
 
 declare global {
@@ -22,17 +23,20 @@ test.use({
   launchOptions: { ignoreDefaultArgs: ['--disable-back-forward-cache'] },
 });
 
+async function openLifecycleFixture(page: Page) {
+  // Exclude Vite's HMR socket while using the real collaboration runtime.
+  const fixturePath = '/collaboration-lifecycle.html';
+  await page.route(`**${fixturePath}`, (route) => route.fulfill({
+    contentType: 'text/html',
+    body: '<!doctype html><title>Collaboration lifecycle</title>',
+  }));
+  await page.goto(fixturePath);
+}
+
 for (const phase of ['pending', 'connected'] as const) {
   test(`restores a ${phase} collaboration connection from the browser back-forward cache`, async ({ page }) => {
     const { id } = await createUserDocument(page, 'Cache restoration');
-    // Serve a minimal document without Vite's HMR socket. The actual runtime,
-    // token endpoint, and collaboration server still run normally.
-    const fixturePath = '/collaboration-lifecycle.html';
-    await page.route(`**${fixturePath}`, (route) => route.fulfill({
-      contentType: 'text/html',
-      body: '<!doctype html><title>Collaboration lifecycle</title>',
-    }));
-    await page.goto(fixturePath);
+    await openLifecycleFixture(page);
     await page.evaluate(async ({ docId, phase }) => {
       const runtimePath = '/src/collaboration/runtime.ts';
       const { createProviderFactory, waitForSync } = await import(runtimePath);
@@ -87,3 +91,64 @@ for (const phase of ['pending', 'connected'] as const) {
     }))).toEqual({ status: 'connected', peerStatus: 'connected', pending: false });
   });
 }
+
+test('cancels a native socket handshake and restores without a browser warning', async ({ page }) => {
+  const { id } = await createUserDocument(page, 'Handshake departure');
+  await openLifecycleFixture(page);
+  const result = await page.evaluate(async (docId) => {
+    const NativeWebSocket = window.WebSocket;
+    const sockets: WebSocket[] = [];
+    const sentBy: WebSocket[] = [];
+    let wasConnecting = false;
+    let departedSocketClosed!: Promise<void>;
+    window.WebSocket = class extends NativeWebSocket {
+      constructor(url: string | URL, protocols?: string | string[]) {
+        super(url, protocols);
+        sockets.push(this);
+        if (sockets.length === 1) {
+          departedSocketClosed = new Promise((resolve) => this.addEventListener('close', () => resolve(), { once: true }));
+          // Run after the provider binds the socket, before its native open event.
+          queueMicrotask(() => {
+            wasConnecting = this.readyState === NativeWebSocket.CONNECTING;
+            window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+            window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+          });
+        }
+      }
+      override send(data: Parameters<WebSocket['send']>[0]) {
+        sentBy.push(this);
+        super.send(data);
+      }
+    };
+    const runtimePath = '/src/collaboration/runtime.ts';
+    const { createProviderFactory, waitForSync } = await import(runtimePath);
+    const { provider, doc } = await createProviderFactory()(docId, new Map());
+    try {
+      await provider.connect();
+      await waitForSync(provider);
+      await departedSocketClosed;
+      doc.getMap('lifecycle').set('value', 'after handshake cancellation');
+      await waitForSync(provider);
+      return {
+        wasConnecting,
+        sockets: sockets.length,
+        departedClosed: sockets[0]!.readyState === NativeWebSocket.CLOSED,
+        departedSent: sentBy.includes(sockets[0]!),
+        status: provider.status,
+        pending: provider.hasLocalChanges,
+      };
+    } finally {
+      provider.destroy();
+      doc.destroy();
+      window.WebSocket = NativeWebSocket;
+    }
+  }, id);
+  expect(result).toEqual({
+    wasConnecting: true,
+    sockets: 2,
+    departedClosed: true,
+    departedSent: false,
+    status: 'connected',
+    pending: false,
+  });
+});
