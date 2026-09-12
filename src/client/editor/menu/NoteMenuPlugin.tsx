@@ -350,7 +350,10 @@ export function NoteMenuPlugin() {
 
     const unregisterOpenCommand = editor.registerCommand(
       OPEN_NOTE_MENU_COMMAND,
-      ({ noteItemKey, anchor }) => openMenuForKey(noteItemKey, anchor ?? 'row'),
+      (payload) => {
+        const targetKey = payload?.noteItemKey ?? resolveSelectionKey();
+        return targetKey ? openMenuForKey(targetKey, payload?.anchor ?? 'row') : false;
+      },
       COMMAND_PRIORITY_LOW
     );
 

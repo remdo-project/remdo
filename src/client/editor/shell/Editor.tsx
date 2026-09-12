@@ -4,7 +4,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createEditorInitialConfig } from '#client/editor/runtime/config';
 import { CollaborationPlugin, useOfflineDocumentUnavailable } from '#client/editor/runtime/collaboration';
 import { CheckListPlugin } from '#client/editor/features/list-types/CheckListPlugin';
@@ -28,10 +28,10 @@ import { ZoomVisibilityPlugin } from '#client/editor/features/zoom/ZoomVisibilit
 import { FoldingPlugin } from '#client/editor/features/folding/FoldingPlugin';
 import { NoteControlsPlugin } from '#client/editor/menu/NoteControlsPlugin';
 import { NoteMenuPlugin } from '#client/editor/menu/NoteMenuPlugin';
-import { MobileActionToolbar } from '#client/editor/mobile-toolbar/MobileActionToolbar';
-import { SearchCandidatesPlugin } from '#client/editor/features/search/SearchCandidatesPlugin';
+import { MobileActionToolbarPlugin } from '#client/editor/mobile-toolbar/MobileActionToolbarPlugin';
 import { PendingDocumentImportPlugin } from '#client/editor/runtime/PendingDocumentImportPlugin';
-import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
+import { useLexicalDocumentSession } from '#client/editor/note-sdk-adapters';
+import { useRegisterDocumentSession } from '#client/editor/view/EditorViewProvider';
 import './Editor.css';
 
 interface EditorProps {
@@ -40,7 +40,6 @@ interface EditorProps {
   statusPortalRoot: HTMLElement | null;
   sourceOrigin?: string | null;
   sourceId?: string | null;
-  searchModeRequested?: boolean;
   onPendingDocumentImportError?: (error: Error) => void;
 }
 
@@ -49,7 +48,6 @@ export default function Editor({
   statusPortalRoot,
   sourceOrigin = null,
   sourceId = null,
-  searchModeRequested,
   onPendingDocumentImportError,
   onSelectHome,
 }: EditorProps) {
@@ -61,7 +59,6 @@ export default function Editor({
         <CollaborationPlugin docId={docId} sourceOrigin={sourceOrigin} sourceId={sourceId}>
           <EditorRuntime
             docId={docId}
-            searchModeRequested={searchModeRequested}
             statusPortalRoot={statusPortalRoot}
             onPendingDocumentImportError={onPendingDocumentImportError}
             onSelectHome={onSelectHome}
@@ -75,20 +72,24 @@ export default function Editor({
 function EditorRuntime({
   docId,
   statusPortalRoot,
-  searchModeRequested,
   onPendingDocumentImportError,
   onSelectHome,
 }: EditorProps) {
   const [editor] = useLexicalComposerContext();
-  const notes = useMemo(
-    () => createLexicalEditorNotes({ editor, docId }),
-    [docId, editor]
-  );
-  const offlineDocumentUnavailable = useOfflineDocumentUnavailable();
   const [schemaReady, setSchemaReady] = useState(false);
+  const session = useLexicalDocumentSession({ editor, docId, ready: schemaReady });
+  const registerDocumentSession = useRegisterDocumentSession();
+  const offlineDocumentUnavailable = useOfflineDocumentUnavailable();
   const handleSchemaReadyChange = useCallback((ready: boolean) => {
     setSchemaReady(ready);
   }, []);
+
+  useEffect(() => {
+    if (!schemaReady) {
+      return;
+    }
+    return registerDocumentSession(session);
+  }, [registerDocumentSession, schemaReady, session]);
 
   return (
     <>
@@ -131,18 +132,15 @@ function EditorRuntime({
               <FoldingPlugin />
               <NoteControlsPlugin />
               <NoteMenuPlugin />
-              <MobileActionToolbar notes={notes} />
+              <MobileActionToolbarPlugin session={session} />
               <ZoomPlugin onSelectHome={onSelectHome} />
               <ZoomVisibilityPlugin />
-              {searchModeRequested ? (
-                <SearchCandidatesPlugin docId={docId} />
-              ) : null}
               <CheckListPlugin />
               <ListPlugin hasStrictIndent />
               {onPendingDocumentImportError ? (
                 <PendingDocumentImportPlugin onError={onPendingDocumentImportError} />
               ) : null}
-              <DevEditorSeam />
+              <DevEditorSeam session={session} />
             </>
           ) : null}
         </>

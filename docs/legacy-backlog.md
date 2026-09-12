@@ -21,26 +21,11 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
-- Mobile toolbar fold availability and activation each resolve the focus note
-  independently,
-  so a selection change between the capability sync and the tap can fold a
-  different note than the button's enabled state reflected. The tap acts on the
-  current focus, which is arguably correct; revisit only if it proves confusing
-  in practice.
-
 - Portal-root tracking (`root.closest('.editor-container')` seeded in state +
-  updated from `registerRootListener`) is now hand-rolled in three plugins
-  (`NoteControlsPlugin`, `NoteMenuPlugin`, `MobileActionToolbar`). Extract a
-  shared `usePortalRoot(editor)` hook and migrate all three — net deletion, but
-  a cross-plugin refactor of otherwise-untouched code.
-
-- Mobile toolbar undo/redo can show a stale disabled state if the toolbar mounts
-  after history already has entries (e.g. coarse-pointer flips true mid-session):
-  Lexical emits `CAN_UNDO_COMMAND`/`CAN_REDO_COMMAND` only on stack changes, not
-  on registration, and RemDo doesn't own the `HistoryState` to seed from. Self-
-  corrects on the next edit. Normal mobile load mounts the toolbar with the
-  editor on empty history, so the common case is correct. Fix needs a
-  history-capability query/replay (no clean Lexical API today).
+  updated from `registerRootListener`) is hand-rolled at three call sites:
+  `NoteControlsPlugin`, `NoteMenuPlugin`, and `EditorRuntime` for the mobile
+  toolbar. Extract a shared `usePortalRoot(editor)` hook and migrate all three —
+  net deletion, but a cross-component refactor of otherwise-untouched code.
 
 - Mobile toolbar disabled buttons use `aria-disabled` (not native `disabled`),
   so a keyboard/AT user can focus a greyed action and it announces as disabled,
@@ -56,39 +41,12 @@ Rules:
   a synchronous pre-paint seed trips the `react/set-state-in-effect` lint, and
   the flash is negligible. Revisit if it's ever visible.
 
-- Mobile toolbar disabled-tap behavior (a greyed `aria-disabled` scroll action —
-  Delete/Redo — stays clickable, so `onActionClick`'s `if (action.disabled)`
-  guard must swallow the tap) is only live-verified, not covered by an automated
-  test: `renderDocumentRoute` never reaches `schemaReady`, so the toolbar (inside
-  the composer) never mounts in the jsdom harness. Add a dev e2e that taps a
-  disabled toolbar action and asserts no mutation, so dropping the guard is
-  caught. (`resolveToolbarLayout`'s disabled marking is unit-covered; the gap is
-  the render+click wiring.)
+## SDK and query architecture
 
-## Search architecture
-
-- Add a document-level SDK visitor/walker API and use it as the shared
-  traversal primitive for search snapshot building and note-link candidate
-  collection. Keep search/query semantics and note-link ranking/disambiguation
-  outside the SDK.
-- Make lexical note lookup indexed / amortized `O(1)` and move SDK handle reads
-  (`textOf`, `childrenOf`, `hasNote`, `note(...)`) onto that path so search and
-  other SDK consumers do not pay scan-based lookup costs per visited note.
-- Search now reads the editor through the SDK (`EditorNote` handles, including
-  `parent()`) via a `searchNotes` accessor on the editor view provider — no
-  materialized snapshot. Remaining ad-hoc projections (selection, schema-ready)
-  could converge onto the same accessor pattern over time.
-- Search candidate reads are O(n) per keystroke (live SDK walks; `parent()` and
-  by-id reads scan the outline). Accepted; collapses onto the indexed-lookup work
-  above with no change to the search-side API (the accessor reads stay the same).
-- Deferred: search results do not reactively refresh on concurrent collab edits
-  while the panel is open (the editor is hidden during search, so local edits
-  can't desync; only remote edits can). The accessor re-registers per local edit
-  ("pretend reactivity"); a reactive SDK would extend that to remote edits without
-  changing consumers.
-- [Future] Unify candidate discovery between search and the link picker: query
-  matching is now shared (`#client/search/query-match`), but the link picker
-  still has its own traversal/index pipeline distinct from the search SDK walk.
+- [Future] Unify candidate discovery between search and the link picker only if
+  their real query needs converge. Query matching is shared
+  (`#client/search/query-match`), but the link picker still has its own
+  traversal/index pipeline distinct from document search.
 
 ## Editor popup follow-ups
 
@@ -265,11 +223,10 @@ yet built; the entries below track implementation gaps against its rules.
 
 ## Note-first SDK follow-ups
 
-- App-resource SDK direction: model current-user app resources as projected
-  note collections plus HTTP commands. Reads should come from the
-  server-written current-user Yjs projection after bootstrap; writes should stay
-  explicit HTTP commands. The SDK should mirror the conceptual resource tree,
-  not raw route syntax.
+- Current app-resource SDK: note collections read server-written user-data
+  projections and mutations use HTTP commands. The [document registry](architecture.md#document-registry) owns the
+  current storage boundary; backing-store reconsideration is tracked in the
+  [SDK consumer work](todo.md#sdk).
 - Current source-server slice status: projection-backed source-server SDK/UI
   reads are in place, and account linking remains an HTTP command.
 - Current sharing/access slice status: document access reads are exposed as
@@ -280,11 +237,6 @@ yet built; the entries below track implementation gaps against its rules.
   expose well-shaped note kinds instead of flattened DTO-shaped records. Start
   with document access: consider modeling access as a relationship note with
   `document()` and `grantee()` where the grantee is a public user/person note.
-- Projection backing-store follow-up: after the sharing branch is merged,
-  revisit whether app-resource projections should stay on Yjs. The likely
-  target is a graph-shaped SDK backed by a simpler server-state graph/cache
-  mechanism with live invalidation or patches, while keeping Yjs focused on
-  collaborative document content. Do not choose or introduce that tool in this branch.
 - Next note-resource cleanup:
   1. ✅ Done: introduce a generic collection-note role for ordered projected
      collections keyed by stable child note id.
@@ -306,27 +258,17 @@ yet built; the entries below track implementation gaps against its rules.
   8. ✅ Done: remove duplicate `GET` read routes once projection-backed UI and
      e2e coverage no longer depend on them, keeping `/api/current-user` as the
      bootstrap endpoint.
-- Generic note handles, document-specific note kinds, and persisted user-data
-  storage are in place. Remaining work:
-  1. Introduce async walker/finder/query helpers for search and note-link
-     completion so cross-document traversal does not force raw recursive
-     `children()` traversal into callers.
-  2. Settle long-term `DocumentNote` semantics for non-current documents:
+- Persisted user-data handles and document-specific resource kinds remain a
+  separate SDK slice. Remaining work:
+  1. Settle long-term `DocumentNote` semantics for non-current documents:
      loading model, whether `children()` can hydrate, and which operations are
      allowed before document content is loaded.
-  3. Clarify the remaining query/loading boundary:
+  2. Clarify the cross-document query/loading boundary, including
      whether cross-document link search should load trees directly or use a
      separate index/search layer.
-  4. Redesign projected user-data note collections around note-model
-     invariants: child identity keyed by note id, sibling order owned by the
-     parent, and browser state derived from the projection rather than local
-     command-result appends. Apply this to documents as one projected note
-     collection kind before adding more projected app-state sections.
-  5. Review the remaining top-level API naming after the note-owned
-     `create(...)` refactor, especially `createLexicalEditorNotes` and `place(...)`.
-  6. Update the durable docs once the traversal/query contract stabilizes:
+  3. Update the durable docs once the cross-document query contract stabilizes:
      `docs/specs/outliner/note-model.md`, `docs/architecture.md`,
-     `docs/specs/outliner/search.md`, and `docs/specs/outliner/links.md`.
+     and `docs/specs/outliner/links.md`.
 
 ## Client-side perf follow-ups
 

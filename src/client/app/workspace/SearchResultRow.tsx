@@ -1,32 +1,20 @@
 import { Fragment } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
-import type { SearchPathItem } from '#client/editor/view/workspace';
-import type { NoteListType } from '#note-sdk';
+import type { ChildPreview as SearchChildPreview, EditorNoteSnapshot, NoteListType, SearchResult } from '#note-sdk';
 import { queryMatchRanges } from '#client/search/query-match';
 import { UNTITLED_LABEL, formatNavigationLabel, normalizeNavigationLabel } from '#client/ui/navigation-label';
 
-interface ChildPreviewItem {
-  noteId: string;
-  text: string;
-  listType: NoteListType;
-  checked: boolean;
-}
-
 interface SearchResultRowProps {
-  ancestorPath: SearchPathItem[];
-  checked: boolean;
-  childPreview: ChildPreviewItem[];
-  childCount: number;
+  result: SearchResult;
   onSelectAncestor: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
   query: string;
-  text: string;
 }
 
 const BREADCRUMB_VISIBLE_LIMIT = 4;
 const BREADCRUMB_EDGE_COUNT = 2;
 
 type BreadcrumbCrumb =
-  | { kind: 'note'; item: SearchPathItem }
+  | { kind: 'note'; item: EditorNoteSnapshot }
   | { kind: 'ellipsis'; hiddenLabels: string[] };
 
 // Builds the ancestor subline crumbs for a match. The matched note (the last
@@ -34,7 +22,7 @@ type BreadcrumbCrumb =
 // full ancestor chain (including the top-level note) is shown for context. A deep
 // chain collapses to first/last edges joined by a single ellipsis crumb; width
 // truncation of individual crumbs is handled in CSS, not here.
-function buildBreadcrumbCrumbs(ancestorPath: SearchPathItem[]): BreadcrumbCrumb[] {
+function buildBreadcrumbCrumbs(ancestorPath: readonly EditorNoteSnapshot[]): BreadcrumbCrumb[] {
   // Ancestors only — drop the matched note (the primary label), keep the rest.
   const path = ancestorPath.slice(0, -1);
 
@@ -47,7 +35,7 @@ function buildBreadcrumbCrumbs(ancestorPath: SearchPathItem[]): BreadcrumbCrumb[
   const hidden = path.slice(BREADCRUMB_EDGE_COUNT, -BREADCRUMB_EDGE_COUNT);
   return [
     ...head.map((item): BreadcrumbCrumb => ({ kind: 'note', item })),
-    { kind: 'ellipsis', hiddenLabels: hidden.map((item) => formatNavigationLabel(item.label)) },
+    { kind: 'ellipsis', hiddenLabels: hidden.map((item) => formatNavigationLabel(item.text)) },
     ...tail.map((item): BreadcrumbCrumb => ({ kind: 'note', item })),
   ];
 }
@@ -102,7 +90,7 @@ function ResultBreadcrumb({
   onSelectAncestor,
   query,
 }: {
-  ancestorPath: SearchPathItem[];
+  ancestorPath: readonly EditorNoteSnapshot[];
   onSelectAncestor: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
   query: string;
 }) {
@@ -135,16 +123,16 @@ function ResultBreadcrumb({
         // Normalize whitespace but keep the full label: width clipping is the
         // CSS ellipsis's job (see .document-search-result-crumb), and the title
         // must expose the full text the spec promises on a width-truncated crumb.
-        const label = normalizeNavigationLabel(crumb.item.label) || UNTITLED_LABEL;
+        const label = normalizeNavigationLabel(crumb.item.text) || UNTITLED_LABEL;
         return (
-          <Fragment key={crumb.item.noteId}>
+          <Fragment key={crumb.item.id}>
             {separator}
             <button
               className="document-search-result-crumb document-search-result-crumb--ancestor"
               data-search-result-ancestor-crumb
               onClick={(event) => {
                 event.stopPropagation();
-                onSelectAncestor(event, crumb.item.noteId);
+                onSelectAncestor(event, crumb.item.id);
               }}
               onMouseDown={(event) => {
                 // Keep focus on the search input: a focusable button would
@@ -170,16 +158,12 @@ function ResultBreadcrumb({
 // preview — so moving the highlight only restyles the selected row and never
 // re-lays-out the list.
 export function SearchResultRow({
-  ancestorPath,
-  checked,
-  childPreview,
-  childCount,
+  result,
   onSelectAncestor,
   query,
-  text,
 }: SearchResultRowProps) {
-  const remaining = childCount - childPreview.length;
-  const matchText = text.length > 0 ? text : '(empty note)';
+  const { note, path, childPreview } = result;
+  const matchText = note.text.length > 0 ? note.text : '(empty note)';
   return (
     <>
       {/* Primary line: the matched note's text. No list marker (bullet/number/
@@ -187,42 +171,21 @@ export function SearchResultRow({
           through via data-note-checked. */}
       <div
         className="document-search-result-match"
-        data-note-checked={checked ? 'true' : undefined}
+        data-note-checked={note.checked ? 'true' : undefined}
         data-search-result-match
       >
         <HighlightedText query={query} text={matchText} />
       </div>
       <ResultBreadcrumb
-        ancestorPath={ancestorPath}
+        ancestorPath={path}
         onSelectAncestor={onSelectAncestor}
         query={query}
       />
-      {childPreview.length > 0 ? (
-        <ChildPreview childPreview={childPreview} remaining={remaining} />
+      {childPreview.notes.length > 0 ? (
+        <ChildPreview preview={childPreview} />
       ) : null}
     </>
   );
-}
-
-interface ChildPreviewGroup {
-  listType: NoteListType;
-  items: ChildPreviewItem[];
-}
-
-// Groups consecutive children by list type so each group renders as the editor's
-// own list element (ul.list-ul / ol.list-ol), giving real bullets, checkboxes,
-// and ordered counters via the shared editor list CSS.
-function groupChildrenByListType(childPreview: ChildPreviewItem[]): ChildPreviewGroup[] {
-  const groups: ChildPreviewGroup[] = [];
-  for (const item of childPreview) {
-    const lastGroup = groups.at(-1);
-    if (lastGroup && lastGroup.listType === item.listType) {
-      lastGroup.items.push(item);
-    } else {
-      groups.push({ listType: item.listType, items: [item] });
-    }
-  }
-  return groups;
 }
 
 // Mirrors the editor: check-type lists get the checkbox marker classes; the
@@ -234,33 +197,24 @@ function childItemClassName(listType: NoteListType, checked: boolean): string {
   return `list-item ${checked ? 'list-item-checked' : 'list-item-unchecked'}`;
 }
 
-function ChildPreview({
-  childPreview,
-  remaining,
-}: {
-  childPreview: ChildPreviewItem[];
-  remaining: number;
-}) {
-  const groups = groupChildrenByListType(childPreview);
+function ChildPreview({ preview }: { preview: SearchChildPreview }) {
+  const { notes, listType, totalCount } = preview;
+  const remaining = totalCount - notes.length;
+  const ListTag = listType === 'number' ? 'ol' : 'ul';
+  const listClassName = listType === 'number' ? 'list-ol' : 'list-ul';
   return (
     <div className="document-search-result-children remdo-outline">
-      {groups.map((group) => {
-        const ListTag = group.listType === 'number' ? 'ol' : 'ul';
-        const listClassName = group.listType === 'number' ? 'list-ol' : 'list-ul';
-        return (
-          <ListTag className={listClassName} key={group.items[0]!.noteId}>
-            {group.items.map((child) => (
-              <li
-                className={childItemClassName(group.listType, child.checked)}
-                data-note-checked={child.checked ? 'true' : undefined}
-                key={child.noteId}
-              >
-                {child.text.length > 0 ? formatNavigationLabel(child.text) : '(empty note)'}
-              </li>
-            ))}
-          </ListTag>
-        );
-      })}
+      <ListTag className={listClassName}>
+        {notes.map((child) => (
+          <li
+            className={childItemClassName(listType, child.checked)}
+            data-note-checked={child.checked ? 'true' : undefined}
+            key={child.id}
+          >
+            {child.text.length > 0 ? formatNavigationLabel(child.text) : '(empty note)'}
+          </li>
+        ))}
+      </ListTag>
       {remaining > 0 ? (
         <div className="document-search-result-children-more">+{remaining} more</div>
       ) : null}

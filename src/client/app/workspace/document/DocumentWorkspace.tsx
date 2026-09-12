@@ -121,7 +121,6 @@ export default function DocumentWorkspace({
             docId={docId}
             sourceOrigin={source.sourceOrigin}
             sourceId={source.sourceId}
-            searchModeRequested={search.searchModeRequested}
             statusPortalRoot={statusHost}
             onSelectHome={onSelectHome}
             onPendingDocumentImportError={handleImportError}
