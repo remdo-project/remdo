@@ -38,24 +38,29 @@ async function hasIndexedDb(page: Page, dbName: string): Promise<boolean> {
 }
 
 test.describe('Routing', () => {
-  test('renders the authenticated Home document at the canonical root URL', async ({ page }) => {
+  test('keeps Home and the default document at distinct reloadable URLs', async ({ page }) => {
     const bootstrapResponse = await page.request.get('/api/current-user');
     expect(bootstrapResponse.ok()).toBe(true);
     const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
+    const documentPath = `/n/${bootstrap.homeDocumentId}`;
 
     await page.goto('/');
-
     await expectPath(page, '/');
-    await expect(page.locator('.document-editor-shell')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
+    await expect(page.locator('.document-editor-shell')).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
+
+    // An explicit post-login document target must not collapse into Home.
+    await page.goto(`/?next=${encodeURIComponent(documentPath)}`);
+    await expectPath(page, documentPath);
     await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
-
-    await page.goto(`/n/${bootstrap.homeDocumentId}`);
-
-    await expectPath(page, '/');
+    await page.reload();
+    await expectPath(page, documentPath);
     await expect(page.locator('.document-editor-shell')).toBeVisible();
   });
 
-  unauthenticatedTest('uses the root login entry and preserves a protected next target when unauthenticated', async ({ page }) => {
+  unauthenticatedTest('shows sign-in at Home and preserves protected destinations when signed out', async ({ page }) => {
     const userDataRequests = collectCurrentUserRequests(page);
     await page.goto('/');
 
@@ -74,6 +79,12 @@ test.describe('Routing', () => {
     await expect(page.getByRole('link', { name: 'Sharing' })).toHaveCount(0);
     await page.waitForLoadState('networkidle');
     expect(userDataRequests).toEqual([]);
+
+    await page.goto('/n/protectedDoc_note1');
+    await expectPath(page, '/');
+    expect(new URL(page.url()).searchParams.get('next')).toBe('/n/protectedDoc_note1');
+    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+    expect(userDataRequests).toEqual([]);
   });
 
   test('normalizes the default landing target to the authenticated root', async ({ page }) => {
@@ -81,7 +92,7 @@ test.describe('Routing', () => {
 
     await expectPath(page, '/');
     await expect.poll(() => new URL(page.url()).search).toBe('');
-    await expect(page.locator('.document-editor-shell')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
   });
 
   test('keeps full authenticated navigation on the standalone consent route', async ({ page }) => {
@@ -130,7 +141,7 @@ test.describe('Routing', () => {
 
   test('logs out the active session from the app header', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+    await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
     await createIndexedDb(page, 'y-sweet-logout-test');
     const navigations = await countNavigations(page);
 
@@ -149,11 +160,11 @@ test.describe('Routing', () => {
 
   test('signs out every tab sharing the browser storage', async ({ page, context }) => {
     await page.goto('/');
-    await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+    await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
 
     const peer = await context.newPage();
     await peer.goto('/');
-    await expect(peer.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+    await expect(peer.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
 
     allowUnauthorizedNetwork(page);
     await page.getByRole('button', { name: 'Logout' }).click();

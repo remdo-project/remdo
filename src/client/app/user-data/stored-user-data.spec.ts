@@ -16,7 +16,7 @@ interface MockCollabSessionInstance {
   docId: string;
   destroy: ReturnType<typeof vi.fn>;
   connect: ReturnType<typeof vi.fn>;
-  awaitSynced: ReturnType<typeof vi.fn>;
+  awaitHydrated: ReturnType<typeof vi.fn>;
 }
 
 interface MockCollabSessions {
@@ -159,10 +159,10 @@ describe('stored user data', () => {
   };
 
   const mockCollabSessions = ({
-    awaitSynced = () => Promise.resolve(),
+    awaitHydrated = () => Promise.resolve(),
     docsById = {},
   }: {
-    awaitSynced?: (docId: string, attempt: number) => Promise<void>;
+    awaitHydrated?: (docId: string, attempt: number) => Promise<void>;
     docsById?: Record<string, Y.Doc> | ((docId: string, attempt: number) => Y.Doc);
   } = {}): MockCollabSessions => {
     const sessions: MockCollabSessionInstance[] = [];
@@ -176,7 +176,7 @@ describe('stored user data', () => {
         };
 
         readonly destroy = vi.fn();
-        readonly awaitSynced: ReturnType<typeof vi.fn<() => Promise<void>>>;
+        readonly awaitHydrated: ReturnType<typeof vi.fn<() => Promise<void>>>;
         private readonly attempt: number;
         private readonly docId: string;
 
@@ -184,12 +184,12 @@ describe('stored user data', () => {
           this.docId = options.docId;
           this.attempt = (attemptsByDocId.get(this.docId) ?? 0) + 1;
           attemptsByDocId.set(this.docId, this.attempt);
-          this.awaitSynced = vi.fn(() => awaitSynced(this.docId, this.attempt));
+          this.awaitHydrated = vi.fn(() => awaitHydrated(this.docId, this.attempt));
           const session = {
             docId: this.docId,
             destroy: this.destroy,
             connect: this.provider.connect,
-            awaitSynced: this.awaitSynced,
+            awaitHydrated: this.awaitHydrated,
           };
           sessions.push(session);
           const docSessions = sessionsByDocId.get(this.docId) ?? [];
@@ -222,10 +222,10 @@ describe('stored user data', () => {
 
   const mockLinkedSourceProjection = ({
     remoteDoc,
-    sourceAwaitSynced = () => Promise.resolve(),
+    sourceAwaitHydrated = () => Promise.resolve(),
   }: {
     remoteDoc: Y.Doc;
-    sourceAwaitSynced?: (attempt: number) => Promise<void>;
+    sourceAwaitHydrated?: (attempt: number) => Promise<void>;
   }): MockCollabSessions => {
     const localDoc = createUserDataDoc([USER_RUNTIME_DOCUMENT], [USER_SOURCE_SERVER]);
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
@@ -247,8 +247,8 @@ describe('stored user data', () => {
       };
     }));
     return mockCollabSessions({
-      awaitSynced: (docId, attempt) => docId === 'sourceUserDataDoc'
-        ? sourceAwaitSynced(attempt)
+      awaitHydrated: (docId, attempt) => docId === 'sourceUserDataDoc'
+        ? sourceAwaitHydrated(attempt)
         : Promise.resolve(),
       docsById: {
         [USER_DATA_DOC_ID]: localDoc,
@@ -258,14 +258,14 @@ describe('stored user data', () => {
   };
 
   const waitForSessionAwait = async (sessions: MockCollabSessionInstance[]) => {
-    for (let attempt = 0; attempt < 10 && sessions[0]?.awaitSynced.mock.calls.length !== 1; attempt += 1) {
+    for (let attempt = 0; attempt < 10 && sessions[0]?.awaitHydrated.mock.calls.length !== 1; attempt += 1) {
       await Promise.resolve();
     }
 
     const session = sessions[0]!;
     expect(sessions).toHaveLength(1);
     expect(session.connect).toHaveBeenCalledTimes(1);
-    expect(session.awaitSynced).toHaveBeenCalledTimes(1);
+    expect(session.awaitHydrated).toHaveBeenCalledTimes(1);
     return session;
   };
 
@@ -278,7 +278,7 @@ describe('stored user data', () => {
   it('retries startup loading after an initial sync failure', async () => {
     vi.useFakeTimers();
     const collab = mockCollabSessions({
-      awaitSynced: async (_docId, attempt) => {
+      awaitHydrated: async (_docId, attempt) => {
         if (attempt === 1) {
           throw new Error('sync failed');
         }
@@ -306,7 +306,7 @@ describe('stored user data', () => {
 
     expect(collab.sessions).toHaveLength(1);
     expect(collab.sessions[0]!.connect).toHaveBeenCalledTimes(1);
-    expect(collab.sessions[0]!.awaitSynced).toHaveBeenCalledTimes(1);
+    expect(collab.sessions[0]!.awaitHydrated).toHaveBeenCalledTimes(1);
     expect(collab.sessions[0]!.destroy).toHaveBeenCalledTimes(1);
     expect(getUserDataVersion()).toBe(1);
     expect(listDocuments(eagerUserData)).toEqual([]);
@@ -315,7 +315,7 @@ describe('stored user data', () => {
 
     expect(collab.sessions).toHaveLength(2);
     expect(collab.sessions[1]!.connect).toHaveBeenCalledTimes(1);
-    expect(collab.sessions[1]!.awaitSynced).toHaveBeenCalledTimes(1);
+    expect(collab.sessions[1]!.awaitHydrated).toHaveBeenCalledTimes(1);
     expect(collab.sessions[1]!.destroy).not.toHaveBeenCalled();
     expect(getUserDataVersion()).toBe(2);
     expect(listDocuments(eagerUserData)).toEqual([
@@ -325,7 +325,7 @@ describe('stored user data', () => {
 
   it('destroys the failed startup session before retrying', async () => {
     const collab = mockCollabSessions({
-      awaitSynced: async (_docId, attempt) => {
+      awaitHydrated: async (_docId, attempt) => {
         if (attempt === 1) {
           throw new Error('sync failed');
         }
@@ -340,7 +340,7 @@ describe('stored user data', () => {
     await expect(getUserData()).rejects.toThrow('sync failed');
     expect(collab.sessions).toHaveLength(1);
     expect(collab.sessions[0]!.connect).toHaveBeenCalledTimes(1);
-    expect(collab.sessions[0]!.awaitSynced).toHaveBeenCalledTimes(1);
+    expect(collab.sessions[0]!.awaitHydrated).toHaveBeenCalledTimes(1);
     expect(collab.sessions[0]!.destroy).toHaveBeenCalledTimes(1);
 
     const userData = await getUserData();
@@ -348,7 +348,7 @@ describe('stored user data', () => {
     expect(collab.sessions).toHaveLength(2);
     expect(userData).toBe(eagerUserData);
     expect(collab.sessions[1]!.connect).toHaveBeenCalledTimes(1);
-    expect(collab.sessions[1]!.awaitSynced).toHaveBeenCalledTimes(1);
+    expect(collab.sessions[1]!.awaitHydrated).toHaveBeenCalledTimes(1);
     expect(collab.sessions[1]!.destroy).not.toHaveBeenCalled();
     expect(listDocuments(userData)).toEqual([USER_RUNTIME_DOCUMENT]);
   });
@@ -398,7 +398,7 @@ describe('stored user data', () => {
     await expect(userData.documents().create('New Document')).rejects.toThrow('Failed to create document: 500');
     expect(collab.sessions).toHaveLength(1);
     expect(collab.sessions[0]!.connect).toHaveBeenCalledTimes(1);
-    expect(collab.sessions[0]!.awaitSynced).toHaveBeenCalledTimes(1);
+    expect(collab.sessions[0]!.awaitHydrated).toHaveBeenCalledTimes(1);
     expect(collab.sessions[0]!.destroy).not.toHaveBeenCalled();
 
     const recoveredDocument = await userData.documents().create('Recovered Document');
@@ -536,7 +536,7 @@ describe('stored user data', () => {
     const remoteDoc = createUserDataDoc([]);
     const collab = mockLinkedSourceProjection({
       remoteDoc,
-      sourceAwaitSynced: () => sourceSync.promise,
+      sourceAwaitHydrated: () => sourceSync.promise,
     });
 
     const {
@@ -547,7 +547,7 @@ describe('stored user data', () => {
     await getUserData();
     for (
       let attempt = 0;
-      attempt < 10 && collab.byDocId('sourceUserDataDoc')[0]?.awaitSynced.mock.calls.length !== 1;
+      attempt < 10 && collab.byDocId('sourceUserDataDoc')[0]?.awaitHydrated.mock.calls.length !== 1;
       attempt += 1
     ) {
       await Promise.resolve();
@@ -572,7 +572,7 @@ describe('stored user data', () => {
     const remoteDoc = createUserDataDoc([{ id: 'sourceDoc', title: 'Source Document' }]);
     const collab = mockLinkedSourceProjection({
       remoteDoc,
-      sourceAwaitSynced: async (attempt) => {
+      sourceAwaitHydrated: async (attempt) => {
         if (attempt === 1) {
           throw new Error('source sync failed');
         }
@@ -592,7 +592,7 @@ describe('stored user data', () => {
     const userData = await getUserData();
     for (
       let attempt = 0;
-      attempt < 10 && collab.byDocId('sourceUserDataDoc')[0]?.awaitSynced.mock.calls.length !== 1;
+      attempt < 10 && collab.byDocId('sourceUserDataDoc')[0]?.awaitHydrated.mock.calls.length !== 1;
       attempt += 1
     ) {
       await Promise.resolve();
@@ -601,7 +601,7 @@ describe('stored user data', () => {
     const failedSourceSessions = collab.byDocId('sourceUserDataDoc');
     expect(failedSourceSessions).toHaveLength(1);
     expect(failedSourceSessions[0]!.connect).toHaveBeenCalledTimes(1);
-    expect(failedSourceSessions[0]!.awaitSynced).toHaveBeenCalledTimes(1);
+    expect(failedSourceSessions[0]!.awaitHydrated).toHaveBeenCalledTimes(1);
     expect(failedSourceSessions[0]!.destroy).toHaveBeenCalledTimes(1);
     expect(getDocumentSourcesLoading()).toBe(true);
     expect(observedLoadingStates).not.toContain(false);
@@ -619,7 +619,7 @@ describe('stored user data', () => {
     const sourceSessions = collab.byDocId('sourceUserDataDoc');
     expect(sourceSessions).toHaveLength(2);
     expect(sourceSessions[1]!.connect).toHaveBeenCalledTimes(1);
-    expect(sourceSessions[1]!.awaitSynced).toHaveBeenCalledTimes(1);
+    expect(sourceSessions[1]!.awaitHydrated).toHaveBeenCalledTimes(1);
     expect(sourceSessions[1]!.destroy).not.toHaveBeenCalled();
     expect(getDocumentSourcesLoading()).toBe(false);
     expect(listDocumentSources(userData)[1]?.documents).toEqual([
@@ -648,7 +648,7 @@ describe('stored user data', () => {
     const sourceSessions = collab.byDocId('sourceUserDataDoc');
     expect(sourceSessions).toHaveLength(1);
     expect(sourceSessions[0]!.connect).toHaveBeenCalledTimes(1);
-    expect(sourceSessions[0]!.awaitSynced).toHaveBeenCalledTimes(1);
+    expect(sourceSessions[0]!.awaitHydrated).toHaveBeenCalledTimes(1);
     expect(sourceSessions[0]!.destroy).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalledWith('Failed to read projection collection "documents" entry.');
     expect(getDocumentSourcesLoading()).toBe(false);
@@ -680,7 +680,7 @@ describe('stored user data', () => {
       };
     }));
     const collab = mockCollabSessions({
-      awaitSynced: (docId) => docId === 'sourceUserDataDoc' ? sourceSync.promise : Promise.resolve(),
+      awaitHydrated: (docId) => docId === 'sourceUserDataDoc' ? sourceSync.promise : Promise.resolve(),
       docsById: {
         [USER_DATA_DOC_ID]: localDoc,
         sourceUserDataDoc: remoteDoc,
@@ -692,7 +692,7 @@ describe('stored user data', () => {
     const userData = await getUserData();
     for (
       let attempt = 0;
-      attempt < 10 && collab.byDocId('sourceUserDataDoc')[0]?.awaitSynced.mock.calls.length !== 1;
+      attempt < 10 && collab.byDocId('sourceUserDataDoc')[0]?.awaitHydrated.mock.calls.length !== 1;
       attempt += 1
     ) {
       await Promise.resolve();
@@ -700,7 +700,7 @@ describe('stored user data', () => {
 
     const sourceSession = collab.byDocId('sourceUserDataDoc')[0]!;
     expect(sourceSession.connect).toHaveBeenCalledTimes(1);
-    expect(sourceSession.awaitSynced).toHaveBeenCalledTimes(1);
+    expect(sourceSession.awaitHydrated).toHaveBeenCalledTimes(1);
 
     // Unlinking removes the source from the user's projection entirely (the
     // projection only lists sources the user has linked).
@@ -750,7 +750,7 @@ describe('stored user data', () => {
       };
     }));
     mockCollabSessions({
-      awaitSynced: () => sync.promise,
+      awaitHydrated: () => sync.promise,
       docsById: { [USER_DATA_DOC_ID]: doc },
     });
 
@@ -790,7 +790,7 @@ describe('stored user data', () => {
 
   it('destroys a pending user data session when reset races with startup sync', async () => {
     const sync = createDeferred();
-    const collab = mockCollabSessions({ awaitSynced: () => sync.promise });
+    const collab = mockCollabSessions({ awaitHydrated: () => sync.promise });
 
     const {
       getUserData,

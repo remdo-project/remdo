@@ -38,11 +38,6 @@ export function clearCurrentUserBootstrapCache(): void {
   clearStoredCurrentUserBootstrap();
 }
 
-export async function getHomeDocumentId(): Promise<string> {
-  const bootstrap = await getCurrentUserBootstrap();
-  return bootstrap.homeDocumentId;
-}
-
 async function fetchCurrentUserBootstrap(): Promise<CurrentUserBootstrap> {
   let response: Response;
   try {

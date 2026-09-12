@@ -44,6 +44,14 @@ export function ZoomPlugin({ onSelectHome }: { onSelectHome: () => void }) {
   useZoomBulletInteractions(editor);
 
   useEffect(() => {
+    const ownerDocument = editor.getRootElement()?.ownerDocument;
+    if (collab.hydrated && zoomNoteIdRef.current === null &&
+      ownerDocument && ownerDocument.activeElement === ownerDocument.body) {
+      editor.focus(undefined, { defaultSelection: 'rootStart' });
+    }
+  }, [collab.hydrated, editor]);
+
+  useEffect(() => {
     if (!isCurrentZoomRoute()) {
       return;
     }
@@ -217,7 +225,7 @@ export function ZoomPlugin({ onSelectHome }: { onSelectHome: () => void }) {
     const noteId = resolveZoomNoteId(zoomNoteId);
     previousZoomNoteIdRef.current = noteId;
     // Commands already placed the caret at their accepted destination. A route
-    // acknowledgement must not repeat placement or steal focus back from Home.
+    // acknowledgement must not repeat placement or overwrite a newer selection.
     const commandSelectionApplied = commandSelectionAppliedRef.current && previousNoteId === noteId;
     commandSelectionAppliedRef.current = false;
     if (skipZoomSelectionRef.current || commandSelectionApplied) {

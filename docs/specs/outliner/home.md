@@ -1,20 +1,19 @@
 # Home
 
-**Home** sits at the top of the navigation hierarchy, above any single document,
-and lets a user browse their documents and jump between them.
+**Home** is the app landing page at `/`. Signed-out users see [sign-in](../access/access-control.md#authenticated-app-access);
+signed-in users browse their documents and jump between them.
 It sits one level above the [document-root view](./zoom.md#visibility-and-editing-boundary) — the document
 is a [note](./note-model.md), and Home is the surface from which its documents are reached.
 
 ## Definitions
 
-- **Home:** The view listing the user's documents and their entry points. It is
-  not a document and holds no editable outline. Home is reached from any document
-  via the leftmost [breadcrumb](./zoom.md#breadcrumbs) crumb.
+- **Home:** The landing view. It is not a document and holds no editable outline.
+  Home is reached from any document via the leftmost [breadcrumb](./zoom.md#breadcrumbs) crumb.
 
-## Core behavior
+## Signed-in behavior
 
-1. Home replaces the editor in the content region: while Home is shown, no
-   document outline is visible.
+1. Home shows document navigation and actions, without a document editor or its
+   toolbar.
 2. Home lists the user's documents grouped by source: the local server and each
    linked [source server](../access/source-linking.md#server-roles), under a heading per group.
 3. Each listed document shows its display name and opens that document when
@@ -33,10 +32,10 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 
 ## Entering and leaving Home
 
-Opening Home moves keyboard focus to its heading.
-
-1. On the local Home document, clearing zoom at the document root returns to
-   `/` (owned by [Zoom routing](./zoom.md#routing)); Home is the surface above that root.
+For signed-in users, opening Home moves keyboard focus to its heading.
+Navigation between Home and documents adds browser history
+entries, so Back and Forward restore the selected destination. Offline reopen
+uses the cached local document list.
 
 ## Future
 

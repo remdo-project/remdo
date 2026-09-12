@@ -2,11 +2,11 @@ import { useCallback } from 'react';
 import { Container } from '@mantine/core';
 import { useLoaderData, useLocation, useNavigate, useNavigationType, useSearchParams } from 'react-router-dom';
 import { EditorViewProvider } from '#client/editor/view/EditorViewProvider';
-import { createCanonicalDocumentPath } from '#document-routes';
+import { createDocumentPath } from '#document-routes';
 import type { ParsedDocumentRef } from '#document-routes';
 import DocumentWorkspace from './document/DocumentWorkspace';
 
-function useDocumentRouteNavigation(docId: string, homeDocumentId: string) {
+function useDocumentRouteNavigation(docId: string) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -15,26 +15,28 @@ function useDocumentRouteNavigation(docId: string, homeDocumentId: string) {
       return;
     }
     const nextSearch = searchParams.toString();
-    const pathname = createCanonicalDocumentPath(nextDocId, null, homeDocumentId);
+    const pathname = createDocumentPath(nextDocId);
     void navigate({
       pathname,
-      search: pathname === '/' ? '' : nextSearch ? `?${nextSearch}` : '',
+      search: nextSearch ? `?${nextSearch}` : '',
     });
-  }, [docId, homeDocumentId, navigate, searchParams]);
+  }, [docId, navigate, searchParams]);
 
   const navigateToZoomNote = useCallback((noteId: string | null, zoomRequestId: number) => {
     const nextSearch = searchParams.toString();
-    const pathname = createCanonicalDocumentPath(docId, noteId, homeDocumentId);
+    const pathname = createDocumentPath(docId, noteId);
     void navigate(
       {
         pathname,
-        search: pathname === '/' ? '' : nextSearch ? `?${nextSearch}` : '',
+        search: nextSearch ? `?${nextSearch}` : '',
       },
       { replace: true, state: { zoomRequestId } }
     );
-  }, [docId, homeDocumentId, navigate, searchParams]);
+  }, [docId, navigate, searchParams]);
 
-  return { navigateToDocument, navigateToZoomNote };
+  const navigateHome = useCallback(() => { void navigate('/'); }, [navigate]);
+
+  return { navigateHome, navigateToDocument, navigateToZoomNote };
 }
 
 export default function DocumentRoute() {
@@ -45,13 +47,10 @@ export default function DocumentRoute() {
   const zoomRequestId = navigationType === 'REPLACE'
     ? (location.state as { zoomRequestId?: number } | null)?.zoomRequestId
     : undefined;
-  const parsedRef = useLoaderData<ParsedDocumentRef & { homeDocumentId: string }>();
+  const parsedRef = useLoaderData<ParsedDocumentRef>();
   const docId = parsedRef.docId;
   const zoomNoteId = parsedRef.noteId;
-  const { navigateToDocument, navigateToZoomNote } = useDocumentRouteNavigation(
-    docId,
-    parsedRef.homeDocumentId,
-  );
+  const { navigateHome, navigateToDocument, navigateToZoomNote } = useDocumentRouteNavigation(docId);
 
   return (
     <Container className="document-route-container" component="main" fluid py="xs">
@@ -64,8 +63,8 @@ export default function DocumentRoute() {
         <DocumentWorkspace
           docId={docId}
           zoomNoteId={zoomNoteId}
-          zoomRequestId={zoomRequestId}
           onSelectDocument={navigateToDocument}
+          onSelectHome={navigateHome}
         />
       </EditorViewProvider>
     </Container>

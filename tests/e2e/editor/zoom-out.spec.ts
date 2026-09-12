@@ -1,4 +1,5 @@
 import type { Page } from '#editor/fixtures';
+import type { CurrentUserBootstrap } from '#domain/documents/user-data';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, homeView, zoomBreadcrumbs } from '#editor/locators';
 import { load, waitForSynced } from './_support/bridge';
@@ -17,8 +18,12 @@ async function expectCaretAtStart(page: Page, text: string) {
   })).toEqual({ text, offset: 0, collapsed: true });
 }
 
-test('Zoom out preserves the caret when returning to the canonical Home document root', async ({ page }) => {
-  await page.goto('/');
+test('Zoom out passes through the default document root before Home', async ({ page }) => {
+  const response = await page.request.get('/api/current-user');
+  expect(response.ok()).toBe(true);
+  const { homeDocumentId } = await response.json() as CurrentUserBootstrap;
+  const documentPath = createEditorDocumentPath(homeDocumentId);
+  await page.goto(documentPath);
   await load(page, 'tree-complex');
   const search = page.getByRole('combobox', { name: 'Search document' });
   await search.fill('note5');
@@ -29,12 +34,13 @@ test('Zoom out preserves the caret when returning to the canonical Home document
   await page.keyboard.press('Shift');
   await page.keyboard.press('Shift');
   await page.keyboard.press('o');
-  await expect(page).toHaveURL('/');
+  await expect(page).toHaveURL(documentPath);
   await expectCaretAtStart(page, 'note5');
 
   await page.keyboard.press('Shift');
   await page.keyboard.press('Shift');
   await page.keyboard.press('o');
+  await expect(page).toHaveURL('/');
   await expect(homeView(page).getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
 });
 
@@ -102,6 +108,7 @@ test('Zoom out opens Home by pointer and the current document can be reopened', 
   const menu = await openNoteMenu(page, 'note3');
   await menu.menu.getByRole('menuitem', { name: 'Zoom out' }).click();
   await menu.expectClosed();
+  await expect(page).toHaveURL('/');
   await expect(homeView(page).getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
 
   await homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).first().click();

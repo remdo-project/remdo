@@ -31,11 +31,6 @@ describe('zoom navigation with pending routes', () => {
       expect(router.state.location.pathname).toBe('/');
       expect(screen.getByRole('heading', { name: 'Home' })).toHaveFocus();
 
-      // History is a new intent even when it returns to the same document root.
-      // Home must not cover that newly selected view.
-      await act(async () => { await router.navigate(-1); });
-      expect(router.state.location.pathname).toBe('/');
-      expect(screen.queryByRole('heading', { name: 'Home' })).toBeNull();
     } finally {
       release();
     }

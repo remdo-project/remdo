@@ -18,26 +18,28 @@ import {
 } from './_support/helpers';
 
 test.describe('Offline app shell', () => {
-  test('opens the cached bootstrap home route while offline', async ({ page, context }) => {
+  test('opens the cached Home while offline', async ({ page, context }) => {
     await page.goto('/');
-    const homePath = new URL(page.url()).pathname;
     await waitForServiceWorkerControl(page);
-    await waitForEditableEditor(page);
+    await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
+    await expect(page.locator('[data-home-document-ref]').first()).toBeVisible();
     allowOfflineDisconnectedConsoleIssue(page);
     await page.close();
 
     await withOfflinePage(context, async (offlinePage) => {
       await offlinePage.goto('/');
-      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe(homePath);
-      await expect(offlinePage.locator('.document-editor-shell')).toBeVisible();
+      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/');
+      await expect(offlinePage.getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
+      await expect(offlinePage.locator('.document-editor-shell')).toHaveCount(0);
+      await expect(offlinePage.locator('[data-home-document-ref]').first()).toBeVisible();
     });
   });
 
-  test('opens the cached bootstrap home route when the API server is unavailable', async ({ page, context }) => {
+  test('opens the cached Home when the API server is unavailable', async ({ page, context }) => {
     await page.goto('/');
-    const homePath = new URL(page.url()).pathname;
     await waitForServiceWorkerControl(page);
-    await waitForEditableEditor(page);
+    await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
+    await expect(page.locator('[data-home-document-ref]').first()).toBeVisible();
     allowServerUnavailableConsoleIssue(page);
     await page.close();
 
@@ -51,8 +53,10 @@ test.describe('Offline app shell', () => {
       detachUnavailableGuards = attachPageGuards(unavailablePage);
       allowServerUnavailableConsoleIssue(unavailablePage);
       await unavailablePage.goto('/');
-      await expect.poll(() => new URL(unavailablePage!.url()).pathname).toBe(homePath);
-      await expect(unavailablePage.locator('.document-editor-shell')).toBeVisible();
+      await expect.poll(() => new URL(unavailablePage!.url()).pathname).toBe('/');
+      await expect(unavailablePage.getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
+      await expect(unavailablePage.locator('.document-editor-shell')).toHaveCount(0);
+      await expect(unavailablePage.locator('[data-home-document-ref]').first()).toBeVisible();
     } finally {
       await context.unroute('**/api/**');
       await cleanupOfflineTest(context, unavailablePage, detachUnavailableGuards);

@@ -89,4 +89,4 @@ Labels other than Home use the corresponding note's display text, truncated to
 [Note IDs](./note-ids.md#global-references) owns canonical URL forms. A zoom
 target is the `noteId` half of a `noteRef`. Loading a non-root zoom URL activates
 zoom when the note exists and otherwise opens the document at its canonical root
-URL. Clearing zoom on the local Home document returns to `/`.
+URL. Within a document, zoom navigation replaces the current history entry.

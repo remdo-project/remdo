@@ -12,9 +12,6 @@ import Editor from '#client/editor/shell/Editor';
 import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentSearchInput, DocumentSearchResults } from './DocumentSearch';
 import DocumentToolbar from './DocumentToolbar';
-import { HomeView } from './HomeView';
-import { buildHomeContent } from './home-content';
-import { useDocumentActions } from './useDocumentActions';
 import { useDocumentSourceResolution } from './useDocumentSourceResolution';
 import '../DocumentRoute.css';
 
@@ -36,85 +33,41 @@ function isVisibleInCurrentView(element: HTMLElement): boolean {
 export default function DocumentWorkspace({
   docId,
   zoomNoteId,
-  zoomRequestId,
+  onSelectHome,
   onSelectDocument,
 }: {
   docId: string;
   zoomNoteId: string | null;
-  zoomRequestId?: number;
+  onSelectHome: () => void;
   onSelectDocument: (docId: string) => void;
 }) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
-  const { getLatestZoomRequestId, requestZoomNoteId } = useEditorViewActions();
-  const [homeActive, setHomeActive] = useState(false);
-  const homeZoomRequestIdRef = useRef(0);
-  const openHome = useCallback(() => {
-    homeZoomRequestIdRef.current = getLatestZoomRequestId();
-    setHomeActive(true);
-  }, [getLatestZoomRequestId]);
-  // A route requested before Home opened may still be committing. Only newer
-  // navigation (or an external route/history change) should dismiss Home.
-  const routeKey = zoomNoteId === null ? docId : `${docId}/${zoomNoteId}`;
-  const previousRouteRef = useRef({ docId, routeKey, zoomRequestId });
-  const previousRoute = previousRouteRef.current;
-  if (previousRoute.routeKey !== routeKey || previousRoute.zoomRequestId !== zoomRequestId) {
-    previousRouteRef.current = { docId, routeKey, zoomRequestId };
-    if (homeActive && (previousRoute.docId !== docId || zoomRequestId === undefined ||
-      zoomRequestId > homeZoomRequestIdRef.current)) {
-      setHomeActive(false);
-    }
-  }
+  const { requestZoomNoteId } = useEditorViewActions();
   const zoomPath = useZoomPath();
   const userData = useUserData();
   const documentSources = userData.documentSources().children();
   const source = useDocumentSourceResolution(docId, documentSources);
-  const actions = useDocumentActions({ docId, onSelectDocument, userData });
-
-  // Home is a temporary overlay; any navigation away from it (opening a
-  // document, creating/uploading one, zooming, or opening search) must dismiss
-  // it, or the overlay would keep covering the editor for the newly targeted
-  // document. leaveHome wraps a navigating action with that dismissal.
-  const leaveHome = <Args extends unknown[]>(action: (...args: Args) => void) =>
-    (...args: Args) => {
-      setHomeActive(false);
-      action(...args);
-    };
-  // Create/upload are async: Home is left when they succeed and navigate to the
-  // new document (the route-change reset below), not eagerly — so a failure
-  // keeps the user on Home where its error alert is shown, rather than dropping
-  // them into the editor for the previously-open document.
-  const createDocument = () => {
-    void actions.createDocument();
-  };
-  const uploadDocument = (file: File) => {
-    void actions.uploadDocument(file);
-  };
-  // Home rows and the trail picker both land on the document-root view.
-  // Selecting the already-open document is a no-op route change, so clear zoom
-  // directly (only when actually zoomed) instead of returning to the previous
-  // zoomed subtree.
-  const openDocument = leaveHome((nextDocId: string) => {
+  const [importError, setImportError] = useState<{ docId: string; message: string } | null>(null);
+  if (importError && importError.docId !== docId) {
+    setImportError(null);
+  }
+  const handleImportError = useCallback((error: Error) => {
+    setImportError({ docId, message: error.message });
+  }, [docId]);
+  const openDocument = (nextDocId: string) => {
     if (nextDocId !== docId) {
       onSelectDocument(nextDocId);
     } else if (zoomNoteId !== null) {
       requestZoomNoteId(null);
     }
-  });
-  // Zooming to a note (from search accept or the toolbar) is a navigation away
-  // from Home. Kept stable because the search model memoizes on this identity.
-  const zoomToNote = useCallback((noteId: string | null) => {
-    setHomeActive(false);
-    requestZoomNoteId(noteId);
-  }, [requestZoomNoteId]);
+  };
 
   const documentLabel = formatNavigationLabel(source.documentLabel);
   const titleItem = zoomPath.at(-1) ?? null;
-  const pageTitle = homeActive
-    ? `Home · ${APP_TITLE}`
-    : titleItem
-      ? `${formatNavigationLabel(titleItem.label)} · ${documentLabel} · ${APP_TITLE}`
-      : `${documentLabel} · ${APP_TITLE}`;
+  const pageTitle = titleItem
+    ? `${formatNavigationLabel(titleItem.label)} · ${documentLabel} · ${APP_TITLE}`
+    : `${documentLabel} · ${APP_TITLE}`;
 
   const focusEditorInput = useCallback(() => {
     const editorInput = shellRef.current?.querySelector<HTMLElement>('.editor-input') ?? null;
@@ -126,7 +79,7 @@ export default function DocumentWorkspace({
   }, []);
   const search = useDocumentSearchModel({
     focusEditorInput,
-    setZoomNoteId: zoomToNote,
+    setZoomNoteId: requestZoomNoteId,
   });
 
   useEffect(() => {
@@ -136,11 +89,6 @@ export default function DocumentWorkspace({
     };
   }, [pageTitle]);
 
-  // Home props are built only while it is open, skipping the document-tree walk
-  // on the editor's render hot path when it is closed. (Opening search dismisses
-  // Home via the search control's focus handler, so the two never co-render.)
-  const home = homeActive ? buildHomeContent(documentSources) : null;
-
   return (
     <div className="document-editor-shell" ref={shellRef}>
       <DocumentToolbar
@@ -148,52 +96,19 @@ export default function DocumentWorkspace({
         documentLabel={source.documentLabel}
         documentSources={documentSources}
         onSelectDocument={openDocument}
-        onSelectHome={openHome}
-        onSelectNoteId={zoomToNote}
+        onSelectHome={onSelectHome}
+        onSelectNoteId={requestZoomNoteId}
         onStatusHostChange={setStatusHost}
         path={zoomPath}
-        searchControl={(
-          // Entering search takes over the content region; dismiss Home so the
-          // two never render at once and closing search returns to the document.
-          // display:contents keeps the input the flex item so its header sizing
-          // is unaffected by the focus-capturing wrapper.
-          <span onFocusCapture={() => setHomeActive(false)} style={{ display: 'contents' }}>
-            <DocumentSearchInput model={search} />
-          </span>
-        )}
+        searchControl={<DocumentSearchInput model={search} />}
       />
-      {actions.createError && (
-        <Alert
-          closeButtonLabel="Dismiss"
-          color="red"
-          onClose={actions.dismissCreateError}
-          title="Could not create document"
-          withCloseButton
-        >
-          {actions.createError}
-        </Alert>
-      )}
-      {actions.uploadError && (
-        <Alert
-          closeButtonLabel="Dismiss"
-          color="red"
-          onClose={actions.dismissUploadError}
-          title="Could not upload document"
-          withCloseButton
-        >
-          {actions.uploadError}
+      {importError?.docId === docId && (
+        <Alert closeButtonLabel="Dismiss" color="red" onClose={() => setImportError(null)} title="Could not upload document" withCloseButton>
+          {importError.message}
         </Alert>
       )}
       <DocumentSearchResults model={search} />
-      {home && (
-        <HomeView
-          {...home}
-          onCreateDocument={createDocument}
-          onSelectDocument={openDocument}
-          onUploadDocument={uploadDocument}
-        />
-      )}
-      <div className={homeActive || search.searchModeActive
+      <div className={search.searchModeActive
         ? 'document-editor-pane document-editor-pane--hidden'
         : 'document-editor-pane'}>
         {source.pending ? (
@@ -208,8 +123,8 @@ export default function DocumentWorkspace({
             sourceId={source.sourceId}
             searchModeRequested={search.searchModeRequested}
             statusPortalRoot={statusHost}
-            onSelectHome={openHome}
-            onPendingDocumentImportError={actions.handleImportError}
+            onSelectHome={onSelectHome}
+            onPendingDocumentImportError={handleImportError}
           />
         )}
       </div>
