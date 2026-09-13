@@ -150,13 +150,10 @@ specific sync channel (for example network sync or local persistence).
 - **Persistence provider:** stores updates/state locally (IndexedDB, filesystem,
   and similar stores).
 
-Page departure stops active network synchronization and cancels pending network
-work. After a network provider disconnects or is destroyed, its departed
-connection attempts must not start network activity or report failures.
-Restoring a retained page from browser history resumes only providers that were
-active at departure; providers already disconnected or destroyed stay
-disconnected. Destroying one provider does not interrupt network work shared
-with a live provider. Genuine failures remain observable to active providers.
+Leaving a page stops its collaboration activity without reporting expected
+cancellation as a failure. Restoring a retained page resumes only previously
+active synchronization. Ending one collaboration consumer does not interrupt
+others. Genuine synchronization failures remain observable.
 
 ### Local Persistence
 
