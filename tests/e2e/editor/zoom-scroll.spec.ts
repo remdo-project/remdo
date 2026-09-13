@@ -1,7 +1,7 @@
 import type { Locator } from '#editor/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { expect, test } from '#editor/fixtures';
-import { editorLocator, setCaretAtText } from '#editor/locators';
+import { editorLocator, noteRow, setCaretAtText } from '#editor/locators';
 import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
 
 const SCROLL_STYLES = `
@@ -24,8 +24,8 @@ const getCommonLocators = (page: Page, editor: { docId: string }) => {
   return {
     editorRoot,
     scrollContainer: editorRoot.locator('.editor-input').first(),
-    note1: editorRoot.locator('li.list-item', { hasText: 'note1' }).first(),
-    note7: editorRoot.locator('li.list-item', { hasText: 'note7' }).first(),
+    note1: noteRow(page, 'note1'),
+    note7: noteRow(page, 'note7'),
     docId: editor.docId,
   };
 };
@@ -161,6 +161,13 @@ test('zoom-root split keeps zoom and keeps the caret visible', async ({ page, ed
   }, createEditorDocumentPath(docId, 'note7'));
   await expect(page).toHaveURL(createEditorDocumentPathRegExp(docId, 'note7'));
 
+  // The URL changes before the route effects apply zoom and its entry caret.
+  await expect(note7).toHaveAttribute('data-zoom-root', 'true');
+  await expect.poll(() => note7.evaluate((element) => {
+    const selection = globalThis.getSelection();
+    return selection?.anchorOffset === 0 && element.contains(selection.anchorNode);
+  })).toBe(true);
+
   const noteIsTall = await note7.evaluate((element) => {
     const container = element.closest('.editor-input');
     if (!container) {
@@ -174,6 +181,11 @@ test('zoom-root split keeps zoom and keeps the caret visible', async ({ page, ed
   const expectedSuffix = longText.slice(splitIndex);
 
   await setCaretAtText(page, 'note7 is a long note used to force wrapping', splitIndex);
+
+  await expect.poll(() => note7.evaluate((element) => {
+    const selection = globalThis.getSelection();
+    return element.contains(selection?.anchorNode ?? null) ? selection?.anchorOffset : null;
+  })).toBe(splitIndex);
 
   await page.keyboard.press('Enter');
 

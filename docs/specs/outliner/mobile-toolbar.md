@@ -2,8 +2,10 @@
 
 The touch action toolbar is a row of note-action buttons docked at the bottom of
 the editor on touch devices, giving pointer-only users the structural actions
-that otherwise need a keyboard. It reuses the same operations as their keyboard
-and [menu](./menu.md) entries while owning only the toolbar surface and its behavior.
+that otherwise need a keyboard. It consumes the
+[open document session](./document-session.md) for capabilities and operations,
+reuses the same semantics as their keyboard and [menu](./menu.md) entries, and
+owns only the toolbar surface and its behavior.
 
 ## Presence
 

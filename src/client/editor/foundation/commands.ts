@@ -23,10 +23,13 @@ interface SetNoteFoldPayload {
 }
 export const SET_NOTE_FOLD_COMMAND = createCommand<SetNoteFoldPayload>('remdo:set-note-fold');
 export const FOLD_VIEW_TO_LEVEL_COMMAND = createCommand<{ level: number }>('remdo:fold-view-to-level');
-export const OPEN_NOTE_MENU_COMMAND = createCommand<{
-  noteItemKey: string;
-  anchor?: 'caret' | 'controls';
-}>('remdo:open-note-menu');
+export const OPEN_NOTE_MENU_COMMAND = createCommand<
+  | {
+    noteItemKey: string;
+    anchor?: 'caret' | 'controls';
+  }
+  | undefined
+>('remdo:open-note-menu');
 // Keep zoom payload as noteId: callers can dispatch from persisted app/UI state
 // outside the current editor state, while Lexical node keys are ephemeral and may be stale.
 export const ZOOM_TO_NOTE_COMMAND = createCommand<{ noteId: string }>('remdo:zoom-to-note');

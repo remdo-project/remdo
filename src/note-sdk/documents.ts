@@ -1,5 +1,4 @@
-import type { EditorNote } from './editor';
-import type { AddressableNote, ChildPosition, CollectionNote } from './notes';
+import type { AddressableNote, CollectionNote } from './notes';
 
 export interface UserDataNote extends AddressableNote<'user-data'> {
   /** Returns the user's home document note. */
@@ -31,13 +30,6 @@ export interface DocumentSourceNote extends AddressableNote<'document-source'> {
 export interface DocumentNote extends AddressableNote<'document'> {
   /** Returns direct access grants for this document. */
   access: () => CollectionNote<DocumentAccessNote>;
-  /** Returns direct document-root editor notes in display order. */
-  children: () => readonly EditorNote[];
-  /** Creates and places a direct child note relative to this document. */
-  create: {
-    (text: string): EditorNote;
-    (position: ChildPosition, text: string): EditorNote;
-  };
   /** Returns whether this document can grant direct local-user access. */
   shareable: () => boolean;
   /** Grants document access to a user email. */

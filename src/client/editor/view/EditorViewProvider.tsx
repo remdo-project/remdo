@@ -1,20 +1,13 @@
 import type { ReactNode } from 'react';
 import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
+import type { DocumentSession } from '#note-sdk';
 import { areNotePathsEqual } from '#client/editor/outline/note-traversal';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
-import type { SearchableNotes } from '#client/editor/features/search/search-candidates';
 
 export interface EditorViewBindings {
   zoomNoteId?: string | null;
   zoomRequestId?: number;
 }
-
-/** Runs `fn` against the live editor's SDK notes inside an editor read. Returns
- *  null before the editor has registered (no document ready). Re-created on each
- *  editor edit so consumers recompute by identity. */
-export type SearchNotesReader = <T>(fn: (notes: SearchableNotes) => T) => T | null;
-
-const NULL_SEARCH_NOTES_READER: SearchNotesReader = () => null;
 
 const missingEditorViewContextError = new Error(
   'Editor view context is missing. Wrap the route/editor shell in <EditorViewProvider>.'
@@ -27,8 +20,8 @@ const EditorViewContext = createContext<{
   requestZoomNoteId: (noteId: string | null) => void;
   isCurrentZoomRoute: () => boolean;
   setZoomPath: (path: NotePathItem[]) => void;
-  searchNotes: SearchNotesReader;
-  registerSearchNotesReader: (reader: SearchNotesReader | null) => void;
+  documentSession: DocumentSession | null;
+  registerDocumentSession: (session: DocumentSession) => () => void;
 } | null>(null);
 
 export function EditorViewProvider({
@@ -76,20 +69,16 @@ export function EditorViewProvider({
     onZoomNoteIdChangeRef.current(noteId, latestZoomRequestIdRef.current);
   }, []);
 
-  // The editor (inside the composer) registers a reader bound to its live state;
-  // the route reads search candidates through it. The plugin re-registers on each
-  // editor edit, giving a fresh reader identity, so consumers recompute — the
-  // "read once per edit" refresh the snapshot used to provide, without a
-  // materialized snapshot. A reader bound to unchanged state is wrapped fresh so
-  // its identity still changes.
-  const [searchNotes, setSearchNotes] = useState<SearchNotesReader>(() => NULL_SEARCH_NOTES_READER);
-  const registerSearchNotesReader = useCallback((reader: SearchNotesReader | null) => {
-    // Wrap so each registration yields a fresh reader identity (consumers
-    // recompute by identity), even when the plugin re-registers the same reader.
-    const next = reader ?? NULL_SEARCH_NOTES_READER;
-    const fresh: SearchNotesReader = (fn) => next(fn);
-    setSearchNotes(() => fresh);
+  const [registeredDocumentSession, setRegisteredDocumentSession] = useState<DocumentSession | null>(null);
+  const registerDocumentSession = useCallback((session: DocumentSession) => {
+    setRegisteredDocumentSession(session);
+    return () => {
+      setRegisteredDocumentSession((current) => current === session ? null : current);
+    };
   }, []);
+  const documentSession = registeredDocumentSession?.documentId === docId
+    ? registeredDocumentSession
+    : null;
 
   const value = useMemo(() => ({
     zoomNoteId,
@@ -97,9 +86,9 @@ export function EditorViewProvider({
     requestZoomNoteId,
     isCurrentZoomRoute,
     setZoomPath,
-    searchNotes,
-    registerSearchNotesReader,
-  }), [isCurrentZoomRoute, registerSearchNotesReader, requestZoomNoteId, searchNotes, setZoomPath, zoomNoteId, zoomPath]);
+    documentSession,
+    registerDocumentSession,
+  }), [documentSession, isCurrentZoomRoute, registerDocumentSession, requestZoomNoteId, setZoomPath, zoomNoteId, zoomPath]);
 
   return (
     <EditorViewContext value={value}>{children}</EditorViewContext>
@@ -137,13 +126,13 @@ export function useEditorViewActions() {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- Safe: hook exposes provider-owned editor view state.
-export function useRegisterSearchNotesReader() {
+export function useRegisterDocumentSession() {
   const context = useEditorViewContext();
-  return context.registerSearchNotesReader;
+  return context.registerDocumentSession;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- Safe: hook reads provider-owned editor view state.
-export function useSearchNotes(): SearchNotesReader {
+export function useDocumentSession(): DocumentSession | null {
   const context = useEditorViewContext();
-  return context.searchNotes;
+  return context.documentSession;
 }

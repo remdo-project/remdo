@@ -15,46 +15,57 @@ zooming to a result.
 
 ## Scope and boundaries
 
-1. Search always runs against the active document only.
-2. Search empty states do not represent invalid routes, unavailable documents,
-   or offline loading states.
-3. Runtime document-ID ownership and route/link identity are defined in
+1. Search covers all [editor notes](./note-model.md#note-kinds) in the active
+   document, including descendants hidden by [folding](./folding.md) and notes
+   outside the current [zoom boundary](./zoom.md#definitions). Its note data comes
+   from the active [open document session](./document-session.md).
+2. Runtime document-ID ownership and route/link identity are defined in
    [Note IDs](./note-ids.md) and [Links](./links.md), not in this search spec.
+
+## Evaluation and freshness
+
+1. Entering Search Mode or changing the query searches the current committed
+   document state.
+2. Content changes need not refresh results; empty and non-empty results follow
+   the same policy.
+3. Empty-state labels appear only after a successful search of available
+   document data.
+4. Results and empty-state labels clear when the active document changes or
+   becomes unavailable. While Search Mode remains active, the current query is
+   evaluated when the document becomes available.
 
 ## Behavior
 
 1. Focusing the search box enters Search Mode (including `Cmd/Ctrl+F`).
 2. Search Mode shows a flat results list sourced from document notes.
-3. Search results and empty states appear only after the active document's
-   search candidates are available.
-4. Search Mode has exactly one highlighted note when candidates exist.
-5. When query text is empty, flat results draw from all document notes (capped
+3. Search Mode has exactly one highlighted note when candidates exist.
+4. When query text is empty, flat results draw from all document notes (capped
    per the result limit below).
-6. Typing in the search box filters flat results by query matching. The query is
+5. Typing in the search box filters flat results by query matching. The query is
    a plain-text field split on whitespace into tokens (order-independent; extra
    whitespace ignored). A note matches when every token is a case-insensitive
    substring of some entry in the note's [note path](./note-model.md#definitions),
    and at least one token matches the note's own text. Results stay in
    [document order](./note-model.md#definitions). Matched tokens are highlighted
    wherever they occur — in the note label or an ancestor crumb.
-7. Flat results are capped at the first ten matches in document order. When at
+6. Flat results are capped at the first ten matches in document order. When at
    least one match exists beyond the shown results, a non-interactive trailing
    row reports that more matches exist (the shown count, with no exact total) and
    prompts refining the query; it is not a result (no highlight, no arrow/hover
    target, excluded from listbox options).
-8. `ArrowDown` highlights the next flat result.
-9. `ArrowUp` highlights the previous flat result.
-10. Arrow navigation stops at the first/last available note (no wraparound).
-11. Pointer hover over a flat result highlights it, the same as arrow navigation
+7. `ArrowDown` highlights the next flat result.
+8. `ArrowUp` highlights the previous flat result.
+9. Arrow navigation stops at the first/last available note (no wraparound).
+10. Pointer hover over a flat result highlights it, the same as arrow navigation
     (without moving focus out of the search box).
-12. If flat results are empty, there is no highlighted note.
-13. Search Mode ends when the search box loses focus.
-14. `Enter` moves focus to the editor and zooms to the highlighted note.
-15. `Escape` moves focus to the editor.
-16. Search input exposes combobox semantics for assistive tech, including popup
+11. If flat results are empty, there is no highlighted note.
+12. Search Mode ends when the search box loses focus.
+13. `Enter` moves focus to the editor and [zooms](./zoom.md#visibility-and-editing-boundary) to the highlighted note.
+14. `Escape` moves focus to the editor.
+15. Search input exposes combobox semantics for assistive tech, including popup
     state and active descendant linkage.
-17. Search results expose listbox semantics and mark the highlighted result as selected.
-18. Each result's accessible name includes its ancestor path context, so results
+16. Search results expose listbox semantics and mark the highlighted result as selected.
+17. Each result's accessible name includes its ancestor path context, so results
     that share the same note text are still distinguishable without sight (the
     same disambiguation the visible row provides).
 

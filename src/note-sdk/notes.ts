@@ -5,14 +5,10 @@ import type {
   SourceServerNote,
   UserDataNote,
 } from './documents';
-import type { BodyNote, EditorNote } from './editor';
 
 export type NoteId = string;
-export type RelativePlacement = { before: NoteId } | { after: NoteId };
-export type ChildPosition = RelativePlacement | { index: number };
+/** Runtime kinds in the user-data resource graph; open-document notes use DocumentSession. */
 export type NoteKind =
-  | 'editor-note'
-  | 'body'
   | 'user-data'
   | 'document'
   | 'document-access'
@@ -29,8 +25,6 @@ export interface Note<K extends NoteKind = NoteKind> {
   children: () => readonly Note[];
   /** Narrows the note by runtime kind; throws when the expected kind does not match. */
   as: {
-    (kind: 'editor-note'): EditorNote;
-    (kind: 'body'): BodyNote;
     (kind: 'user-data'): UserDataNote;
     (kind: 'document'): DocumentNote;
     (kind: 'document-access'): DocumentAccessNote;

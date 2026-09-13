@@ -57,7 +57,32 @@ export function toCollaborationConnectionStatus(
   return status === 'offline' ? 'disconnected' : status;
 }
 
-const docTokenInFlight = new Map<string, Promise<ClientToken>>();
+const docTokenInFlight = new Map<string, { promise: Promise<ClientToken>; controller: AbortController }>();
+const pageProviders = new Set<{ provider: ReturnType<typeof createYjsProvider>; reconnectOnRestore: boolean }>();
+
+function onPageHide() {
+  // A browser may run promise callbacks between pagehide listeners. Disconnect
+  // every consumer together before aborting any shared token request.
+  for (const entry of pageProviders) {
+    entry.reconnectOnRestore ||= entry.provider.status !== 'offline';
+    entry.provider.disconnect();
+  }
+  const requests = [...docTokenInFlight.values()];
+  docTokenInFlight.clear();
+  for (const request of requests) {
+    request.controller.abort();
+  }
+}
+
+function onPageShow(event: PageTransitionEvent) {
+  if (!event.persisted) return;
+  for (const entry of pageProviders) {
+    if (entry.reconnectOnRestore) {
+      entry.reconnectOnRestore = false;
+      void entry.provider.connect();
+    }
+  }
+}
 
 export interface LocalPersistenceSupportDecision {
   enabled: boolean;
@@ -172,36 +197,8 @@ export function createProviderFactory({
 
     const endpoints = resolveEndpoints(id);
 
-    // Navigating away tears the session down mid-connect, which aborts the
-    // in-flight token fetch (the browser cancels it). y-sweet's connect loop
-    // `console.warn`s any token failure, so once this session is destroyed a
-    // token failure is expected: hand y-sweet a never-settling promise instead
-    // of rejecting, so it has nothing to warn about (its loop is already
-    // neutralized by the `provider.connect` override below). This is per-session
-    // — a failure is swallowed only for the session that owns this `destroyed`
-    // flag, so it never suppresses a genuine failure on a still-live session
-    // that shares the deduped in-flight token fetch.
-    let destroyed = false;
-    // Once this session is destroyed, y-sweet's connect loop is parked awaiting
-    // this promise. Anything we return restarts it: resolving makes it open a
-    // WebSocket (resurrecting a torn-down connection / bogus token), rejecting
-    // makes it `console.warn`. So after destroy we hand it a never-settling
-    // promise on *either* outcome — the loop is already neutralized by the
-    // `provider.connect` no-op + `disconnect()` below, so this frame is never
-    // consumed. Do NOT "simplify" this to a returned value or a bare rethrow.
-    const settleUnlessDestroyed = <T>(settle: () => T): T | Promise<never> =>
-      destroyed ? new Promise<never>(() => {}) : settle();
-    const authEndpoint = async (): Promise<ClientToken> => {
-      let token: ClientToken;
-      try {
-        token = await getAuthToken(id, endpoints);
-      } catch (error) {
-        return settleUnlessDestroyed(() => {
-          throw error;
-        });
-      }
-      return settleUnlessDestroyed(() => rewriteTokenHost(token, visibleOrigin));
-    };
+    const authEndpoint = async (): Promise<ClientToken> =>
+      rewriteTokenHost(await getAuthToken(id, endpoints), visibleOrigin);
 
     const localPersistenceSupport = await getLocalPersistenceSupportDecision();
     trace(
@@ -219,16 +216,28 @@ export function createProviderFactory({
       provider as unknown as CollaborationProviderInstance & { indexedDBProvider?: unknown }
     );
 
+    let destroyed = false;
+    const pageEntry = { provider, reconnectOnRestore: false };
+    if (typeof window !== 'undefined') {
+      pageProviders.add(pageEntry);
+      window.addEventListener('pagehide', onPageHide);
+      window.addEventListener('pageshow', onPageShow);
+    }
+
     const originalDestroy = provider.destroy.bind(provider);
     const destroy = () => {
       if (destroyed) {
         return;
       }
       destroyed = true;
-      // Prevent the provider from scheduling reconnections after teardown, which can
-      // otherwise keep Node processes (e.g., snapshot CLI) alive.
+      if (typeof window !== 'undefined') {
+        pageProviders.delete(pageEntry);
+        if (pageProviders.size === 0) {
+          window.removeEventListener('pagehide', onPageHide);
+          window.removeEventListener('pageshow', onPageShow);
+        }
+      }
       provider.connect = () => Promise.resolve();
-      provider.disconnect();
       destroyIndexedDbProvider();
       originalDestroy();
     };
@@ -260,12 +269,14 @@ function getAuthToken(
   const cacheKey = `${endpoints.token}\0${docId}`;
   const existing = docTokenInFlight.get(cacheKey);
   if (existing) {
-    return existing;
+    return existing.promise;
   }
 
+  const controller = new AbortController();
   const promise = (async () => {
     trace('collab', 'requesting auth token', { docId });
     const response = await fetch(endpoints.token, {
+      signal: controller.signal,
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ docId }),
@@ -279,9 +290,12 @@ function getAuthToken(
     return (await response.json()) as ClientToken;
   })();
 
-  docTokenInFlight.set(cacheKey, promise);
+  const request = { promise, controller };
+  docTokenInFlight.set(cacheKey, request);
   return promise.finally(() => {
-    docTokenInFlight.delete(cacheKey);
+    if (docTokenInFlight.get(cacheKey) === request) {
+      docTokenInFlight.delete(cacheKey);
+    }
   });
 }
 

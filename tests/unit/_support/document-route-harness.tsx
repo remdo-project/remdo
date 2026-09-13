@@ -4,18 +4,22 @@ import { render, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { resetTestUserData } from '#tests';
 import type {
-  NotePathItem,
-  SearchableNote,
-  SearchableNotes,
-} from '#client/editor/view/workspace';
+  DocumentCapabilitiesSnapshot,
+  DocumentSession,
+  LoadState,
+  NoteId,
+  EditorNoteSnapshot,
+  SearchResult,
+} from '#note-sdk';
+import type { NotePathItem } from '#client/editor/view/workspace';
 import {
   useEditorViewActions,
-  useRegisterSearchNotesReader,
+  useRegisterDocumentSession,
   useZoomNoteId,
 } from '#client/editor/view/EditorViewProvider';
-import type { SearchNotesReader } from '#client/editor/view/EditorViewProvider';
 import DocumentRoute from '#client/app/workspace/DocumentRoute';
 import Home from '#client/app/workspace/Home';
 import { createDocumentPath, parseDocumentRef } from '#document-routes';
@@ -25,94 +29,104 @@ vi.mock('#client/app/user-data/user-data', async () => {
   return mockUserDataModule();
 });
 
-export const ROOT_SEARCH_SCOPE_ID = '__document_root__';
-
-export interface TestSearchCandidate {
-  noteId: string;
-  text: string;
-  listType?: 'bullet' | 'number' | 'check';
-  checked?: boolean;
-}
-
-export type TestSearchSnapshot = Record<string, TestSearchCandidate[]>;
-
-function createTestEditorNotes(snapshot: TestSearchSnapshot): SearchableNotes {
-  const childMap = snapshot;
-  const makeNote = (candidate: TestSearchCandidate): SearchableNote => ({
-    id: () => candidate.noteId,
-    text: () => candidate.text,
-    listType: () => candidate.listType ?? 'bullet',
-    checked: () => candidate.checked ?? false,
-    children: () => (childMap[candidate.noteId] ?? []).map(makeNote),
-  });
-
-  const roots = (childMap[ROOT_SEARCH_SCOPE_ID] ?? []).map(makeNote);
+export function createSearchResult(
+  id: NoteId,
+  text: string,
+  fields: Partial<Pick<SearchResult, 'path' | 'childPreview'>> = {},
+): SearchResult {
+  const note: EditorNoteSnapshot = { id, text, checked: false, folded: false, children: null };
   return {
-    currentDocument: () => ({ children: () => roots }),
+    note,
+    path: [note],
+    childPreview: { notes: [], listType: 'bullet', totalCount: 0 },
+    ...fields,
   };
 }
 
-const defaultSnapshot = {
-  [ROOT_SEARCH_SCOPE_ID]: [
-    { noteId: 'note1', text: 'note1' },
-    { noteId: 'note3', text: 'note3' },
-    { noteId: 'note5', text: 'note5' },
-  ],
-  note1: [{ noteId: 'note2', text: 'note2' }],
-  note3: [{ noteId: 'note4', text: 'note4' }],
-} satisfies TestSearchSnapshot;
+const LOADING_CAPABILITIES: LoadState<DocumentCapabilitiesSnapshot> = Object.freeze({ status: 'loading' });
+
+function defaultResults(): SearchResult[] {
+  const second = createSearchResult('note2', 'note2');
+  const fourth = createSearchResult('note4', 'note4');
+  return [
+    createSearchResult('note1', 'note1', {
+      childPreview: { notes: [second.note], listType: 'bullet', totalCount: 1 },
+    }),
+    second,
+    createSearchResult('note3', 'note3', {
+      childPreview: { notes: [fourth.note], listType: 'bullet', totalCount: 1 },
+    }),
+    fourth,
+    createSearchResult('note5', 'note5'),
+  ];
+}
 
 interface MockEditorProps {
   docId: string;
-  searchModeRequested?: boolean;
   sourceId?: string | null;
   sourceOrigin?: string | null;
 }
 
 let mockEditorInstanceCounter = 0;
-let searchSnapshots: Record<string, TestSearchSnapshot | null> = {};
-let searchRefreshCallbacks: Record<string, () => void> = {};
+let documentSearches: Record<string, Mock<DocumentSession['search']>> = {};
+let documentAvailability: Record<string, boolean> = {};
+let availabilityCallbacks: Record<string, () => void> = {};
 let zoomPaths: Record<string, Record<string, NotePathItem[]>> = {};
 
 function MockEditor({
   docId,
-  searchModeRequested,
   sourceId = null,
   sourceOrigin = null,
 }: MockEditorProps) {
   const zoomNoteId = useZoomNoteId();
   const { setZoomPath } = useEditorViewActions();
-  const registerSearchNotesReader = useRegisterSearchNotesReader();
+  const registerDocumentSession = useRegisterDocumentSession();
+  const [, refreshAvailability] = React.useReducer((value: number) => value + 1, 0);
+  const available = documentAvailability[docId] ?? true;
+  const session = React.useMemo<DocumentSession>(() => {
+    const noOp = () => {};
+    return {
+      documentId: docId,
+      search: mockDocumentSearch(docId),
+      capabilities: { getSnapshot: () => LOADING_CAPABILITIES, subscribe: () => noOp },
+      note: (noteId) => ({
+        id: () => noteId,
+        text: () => '',
+        folded: () => false,
+        toggleFold: () => Promise.resolve(),
+        subscribe: () => noOp,
+      }),
+      focus: { toggleFold: noOp },
+      selection: {
+        indent: noOp,
+        outdent: noOp,
+        moveUp: noOp,
+        moveDown: noOp,
+        toggleChecked: noOp,
+        delete: noOp,
+      },
+      history: { undo: noOp, redo: noOp },
+    };
+  }, [docId]);
 
   React.useEffect(() => {
     setZoomPath(zoomNoteId ? zoomPaths[docId]?.[zoomNoteId] ?? [] : []);
   }, [docId, setZoomPath, zoomNoteId]);
 
   React.useEffect(() => {
-    if (!searchModeRequested) {
-      return;
+    if (available) {
+      return registerDocumentSession(session);
     }
-    const applyCurrent = () => {
-      const candidateSelection = searchSnapshots[docId];
-      if (candidateSelection === null) {
-        registerSearchNotesReader(null);
-        return;
-      }
-      const snapshot = candidateSelection ?? defaultSnapshot;
-      const notes = createTestEditorNotes(snapshot);
-      const reader: SearchNotesReader = (fn) => fn(notes);
-      registerSearchNotesReader(reader);
-    };
+  }, [available, registerDocumentSession, session]);
 
-    applyCurrent();
-    searchRefreshCallbacks[docId] = applyCurrent;
+  React.useEffect(() => {
+    availabilityCallbacks[docId] = refreshAvailability;
     return () => {
-      if (searchRefreshCallbacks[docId] === applyCurrent) {
-        delete searchRefreshCallbacks[docId];
+      if (availabilityCallbacks[docId] === refreshAvailability) {
+        delete availabilityCallbacks[docId];
       }
-      registerSearchNotesReader(null);
     };
-  }, [docId, registerSearchNotesReader, searchModeRequested]);
+  }, [docId]);
 
   const [instanceId] = React.useState(() => `instance-${++mockEditorInstanceCounter}`);
   return (
@@ -120,7 +134,6 @@ function MockEditor({
       <div
         data-doc-id={docId}
         data-instance-id={instanceId}
-        data-search-mode-requested={searchModeRequested ? 'true' : 'false'}
         data-source-id={sourceId ?? ''}
         data-source-origin={sourceOrigin ?? ''}
         data-testid="editor-probe"
@@ -163,12 +176,14 @@ vi.mock('#client/editor/features/zoom/ZoomBreadcrumbs', () => ({
   ZoomBreadcrumbs: MockZoomBreadcrumbs,
 }));
 
-export function setMockSearchSnapshot(docId: string, snapshot: TestSearchSnapshot | null) {
-  searchSnapshots[docId] = snapshot;
+export function mockDocumentSearch(docId: string): Mock<DocumentSession['search']> {
+  return documentSearches[docId] ??= vi.fn<DocumentSession['search']>()
+    .mockResolvedValue({ flatResults: defaultResults(), hasMore: false });
 }
 
-export function refreshMockSearchNotes(docId: string) {
-  searchRefreshCallbacks[docId]?.();
+export function setMockDocumentAvailable(docId: string, available: boolean) {
+  documentAvailability[docId] = available;
+  availabilityCallbacks[docId]?.();
 }
 
 export function setMockZoomPath(docId: string, noteId: string, path: NotePathItem[]) {
@@ -178,8 +193,9 @@ export function setMockZoomPath(docId: string, noteId: string, path: NotePathIte
 export function resetDocumentRouteHarness() {
   resetTestUserData();
   mockEditorInstanceCounter = 0;
-  searchSnapshots = {};
-  searchRefreshCallbacks = {};
+  documentSearches = {};
+  documentAvailability = {};
+  availabilityCallbacks = {};
   zoomPaths = {};
   document.title = 'RemDo';
 }

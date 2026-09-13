@@ -150,6 +150,11 @@ specific sync channel (for example network sync or local persistence).
 - **Persistence provider:** stores updates/state locally (IndexedDB, filesystem,
   and similar stores).
 
+Leaving a page stops its collaboration activity without reporting expected
+cancellation as a failure. Restoring a retained page resumes only previously
+active synchronization. Ending one collaboration consumer does not interrupt
+others. Genuine synchronization failures remain observable.
+
 ### Local Persistence
 
 Client-side storage for collaboration state.
