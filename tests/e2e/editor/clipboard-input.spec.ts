@@ -14,7 +14,7 @@ test('rich paste preserves content, hierarchy, focus and undo on a narrow viewpo
 
   await editorLocator(page).locator('.editor-input').evaluate(element => {
     const data = new DataTransfer();
-    data.setData('text/html', '<p>Before</p><ul><li><b>Alpha</b><br>Beta<ul><li>Child</li></ul></li></ul><p><a href="https://example.com">After</a></p>');
+    data.setData('text/html', '<p>Before</p><ul><li><code>Alpha<br>Beta</code><ul><li>Child</li></ul></li></ul><p><a href="https://example.com">After</a></p>');
     data.setData('text/plain', 'Before\nAlpha\nBeta\nChild\nAfter');
     element.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
   });
@@ -28,7 +28,7 @@ test('rich paste preserves content, hierarchy, focus and undo on a narrow viewpo
     { noteId: null, text: 'te2', children: [{ noteId: 'note3', text: 'note3' }] },
   ]);
   await expect(editorLocator(page).getByRole('link', { name: 'After' })).toHaveAttribute('href', 'https://example.com');
-  await expect(editorLocator(page).locator('strong').filter({ hasText: 'Alpha' })).toBeVisible();
+  await expect(editorLocator(page).locator('code')).toHaveText('Alpha Beta');
   expect((await captureEditorSnapshot(page)).selection).toMatchObject({
     anchorText: 'After', anchorOffset: 5, isCollapsed: true,
   });

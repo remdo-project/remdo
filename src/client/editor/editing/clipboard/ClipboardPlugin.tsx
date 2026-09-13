@@ -146,7 +146,14 @@ function $normalizeClipboardLabelBreaks(nodes: LexicalNode[]): void {
   for (const node of nodes) {
     if ($isNoteBodyNode(node)) continue;
     if ($isLineBreakNode(node)) {
-      node.replace($createTextNode(' '));
+      const space = $createTextNode(' ');
+      const previous = node.getPreviousSibling();
+      const next = node.getNextSibling();
+      if ($isTextNode(previous) && $isTextNode(next)) {
+        space.setFormat(previous.getFormat() & next.getFormat());
+        if (previous.getStyle() === next.getStyle()) space.setStyle(previous.getStyle());
+      }
+      node.replace(space);
     } else if ($isTextNode(node)) {
       node.setTextContent(node.getTextContent().replace(/\r\n|[\r\n]/g, ' '));
     } else if ($isElementNode(node)) {

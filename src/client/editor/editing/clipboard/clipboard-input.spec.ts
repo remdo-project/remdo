@@ -46,6 +46,16 @@ describe('rich clipboard input', () => {
 
   }
 
+  it('keeps inline code formatting across a normalized label break', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note2');
+    await pasteHtml(remdo, '<p><code>Alpha<br>Beta</code></p>', 'Alpha\nBeta');
+    remdo.validate(() => {
+      const note = $findNoteById('note2')!;
+      expect(note.getTextContent()).toBe('Alpha Beta');
+      expect(note.getAllTextNodes().every(node => node.hasFormat('code'))).toBe(true);
+    });
+  });
+
   it('keeps bare text beside an HTML block when no plain-text flavor is supplied', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 0);
     await pasteHtml(remdo, 'Before<p>After<br></p>', '');
