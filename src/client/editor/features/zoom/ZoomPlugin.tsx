@@ -40,6 +40,7 @@ export function ZoomPlugin({ onSelectHome }: { onSelectHome: () => void }) {
   const pendingZoomSelectionNonceRef = useRef(0);
   const previousZoomNoteIdRef = useRef(resolveZoomNoteId(zoomNoteId));
   const commandSelectionAppliedRef = useRef(false);
+  const loadingFromServerRef = useRef(false);
 
   useZoomBulletInteractions(editor);
 
@@ -132,12 +133,17 @@ export function ZoomPlugin({ onSelectHome }: { onSelectHome: () => void }) {
   ), [editor, onSelectHome, requestZoomNoteId]);
 
   useEffect(() => {
+    const loadingFromServer = collab.enabled &&
+      (collab.connectionStatus === 'connecting' || collab.connectionStatus === 'handshaking');
+    const finishedLoadingFromServer = loadingFromServerRef.current && !loadingFromServer;
+    loadingFromServerRef.current = loadingFromServer;
     const handleUpdate = ({
       editorState,
       tags,
     }: UpdateListenerPayload) => {
       const noteId = zoomNoteIdRef.current;
       const isZoomInit = tags.has(ZOOM_INIT_TAG);
+      const hadZoomRoot = lastPathRef.current?.at(-1)?.noteId === noteId;
 
       const resolved = editorState.read(() => {
         const selection = $getSelection();
@@ -169,7 +175,11 @@ export function ZoomPlugin({ onSelectHome }: { onSelectHome: () => void }) {
         setZoomPath(resolved.path);
       }
 
-      if (zoomNoteIdRef.current && !resolved.root && collab.hydrated && !isZoomInit) {
+      // A cached snapshot can predate the requested note. Let the initial
+      // connection resolve that absence; deleting an already resolved root
+      // still leaves zoom immediately, including during a reconnect.
+      if (zoomNoteIdRef.current && !resolved.root && collab.hydrated && !isZoomInit &&
+        (!loadingFromServer || hadZoomRoot)) {
         pendingZoomSelectionRef.current = null;
         pendingZoomSelectionTaskRef.current = false;
         pendingZoomSelectionNonceRef.current += 1;
@@ -211,11 +221,11 @@ export function ZoomPlugin({ onSelectHome }: { onSelectHome: () => void }) {
       normalizedNodes: new Set(),
       dirtyElements: new Map(),
       dirtyLeaves: new Set(),
-      tags: new Set([ZOOM_INIT_TAG]),
+      tags: new Set(finishedLoadingFromServer ? [] : [ZOOM_INIT_TAG]),
     });
 
     return () => unregister();
-  }, [collab.hydrated, editor, requestZoomNoteId, setZoomPath]);
+  }, [collab.connectionStatus, collab.enabled, collab.hydrated, editor, requestZoomNoteId, setZoomPath]);
 
   useEffect(() => {
     if (!isCurrentZoomRoute()) {

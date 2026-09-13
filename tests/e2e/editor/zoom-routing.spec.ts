@@ -1,7 +1,8 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
-import { clearZoom, editorLocator, zoomBreadcrumbs } from '#editor/locators';
-import { waitForSynced } from './_support/bridge';
+import { withPageGuards } from '#e2e/fixtures';
+import { clearZoom, editorLocator, noteRow, zoomBreadcrumbs } from '#editor/locators';
+import { load, waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
 
 const getBulletMetrics = async (listItem: Locator) => {
@@ -119,3 +120,47 @@ test.describe('Zoom routing', () => {
     await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
   });
 });
+
+
+for (const target of ['note7', 'missingNote'] as const) {
+  test(`resolves uncached zoom target ${target} after refreshing a cached document`, async ({
+    page, editor, newEditorContext,
+  }, testInfo) => {
+    await editor.load('flat');
+    await page.goto('/');
+    const peerContext = await newEditorContext();
+    try {
+      const peer = await peerContext.newPage();
+      await withPageGuards(peer, async () => {
+        await peer.goto(createEditorDocumentPath(editor.docId));
+        await load(peer, 'tree-complex');
+      }, testInfo);
+    } finally {
+      await peerContext.close();
+    }
+
+    let releaseToken!: () => void;
+    const tokenGate = new Promise<void>((resolve) => { releaseToken = resolve; });
+    await page.route(`**/api/documents/${editor.docId}/sync-tokens`, async (route) => {
+      await tokenGate;
+      await route.continue();
+    });
+    try {
+      await page.goto(createEditorDocumentPath(editor.docId, target));
+      await expect(editorLocator(page).locator('.editor-input')).toBeEditable();
+      await expect(noteRow(page, 'note1')).toBeVisible();
+      await expect(page).toHaveURL(createEditorDocumentPath(editor.docId, target));
+      releaseToken();
+      await waitForSynced(page);
+      if (target === 'note7') {
+        await expect(zoomBreadcrumbs(page).locator('[aria-current="page"]')).toHaveText('note7');
+        await expect(page).toHaveURL(createEditorDocumentPath(editor.docId, 'note7'));
+      } else {
+        await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
+        await expect(noteRow(page, 'note7')).toBeVisible();
+      }
+    } finally {
+      releaseToken();
+    }
+  });
+}
