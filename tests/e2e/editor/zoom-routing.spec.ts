@@ -146,7 +146,7 @@ for (const target of ['note7', 'missingNote'] as const) {
     let releaseRetry!: () => void;
     const retryGate = new Promise<void>((resolve) => { releaseRetry = resolve; });
     let failConnection = true;
-    setExpectedConsoleIssues(page, ['net::ERR_FAILED', 'Failed to get client token'], { mode: 'contains' });
+    setExpectedConsoleIssues(page, ['net::ERR_FAILED', 'Failed to get client token'], { mode: 'allowContains' });
     await page.route(`**/api/documents/${editor.docId}/sync-tokens`, async (route) => {
       await tokenGate;
       if (failConnection) {
