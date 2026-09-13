@@ -533,6 +533,20 @@ describe('note ids on paste', () => {
     expect(outline[1]?.noteId).not.toBe('note2');
   });
 
+  it('keeps cut descendant IDs when a note label replaces partial inline text', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2', 'note3');
+    const payload = await cutSelection(remdo);
+    expect(remdo).toMatchOutline([{ noteId: 'note1', text: 'note1' }]);
+
+    const destination = getNoteTextNode(remdo, 'note1');
+    await dragDomSelectionBetween(destination, 1, destination, 3);
+    await pastePayload(remdo, payload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'nnote2e1', children: [{ noteId: 'note3', text: 'note3' }] },
+    ]);
+  });
+
   it('keeps inline text cuts within a single note', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const note2Text = getNoteTextNode(remdo, 'note2');
     await dragDomSelectionBetween(note2Text, 0, note2Text, 2);

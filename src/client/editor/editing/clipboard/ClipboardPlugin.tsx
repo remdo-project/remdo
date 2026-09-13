@@ -873,10 +873,17 @@ export function ClipboardPlugin() {
             return true;
           }
 
+          const canPreserveNoteIds = $canPreserveClipboardNoteIds(insertNodes, provenance, docId);
+          if (!canPreserveNoteIds) {
+            // Copy, foreign/legacy payloads, cross-document cuts, and colliding
+            // cuts all create notes. Erase any supplied identity and let the
+            // ordinary ListItemNode transform initialize IDs after insertion.
+            $clearClipboardNoteIds(insertNodes);
+          }
+
           if (isInlineSelection && $isRangeSelection(payload.selection)) {
             const inlineContentItem = resolveContentItemFromNode(payload.selection.anchor.getNode());
             if (firstNote && inlineContentItem) {
-              $clearClipboardNoteIds(insertNodes);
               payload.selection.removeText();
               $insertNodes(firstNote.getChildren());
               const remaining = insertNodes.slice(insertNodes.indexOf(firstNote) + 1);
@@ -914,13 +921,6 @@ export function ClipboardPlugin() {
             && docId.length > 0
             && provenance.sourceDocumentId === docId
           );
-          const canPreserveNoteIds = $canPreserveClipboardNoteIds(insertNodes, provenance, docId);
-          if (!canPreserveNoteIds) {
-            // Copy, foreign/legacy payloads, cross-document cuts, and colliding
-            // cuts all create notes. Erase any supplied identity and let the
-            // ordinary ListItemNode transform initialize IDs after insertion.
-            $clearClipboardNoteIds(insertNodes);
-          }
           return $insertNodesAtSelection(
             editor,
             selectionRange,
