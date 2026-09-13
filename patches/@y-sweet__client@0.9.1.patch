@@ -92,7 +92,7 @@ index 5d0a238cc12a5258879bdcfb48ce3e42cf70c0bc..d15867e9cb19ec612d21b57bf3ff4297
 +      websocket.onerror = () => {};
 +      // Chromium warns if close() interrupts the opening handshake. Detach now,
 +      // then close this socket on open without running the provider's handshake.
-+      if (websocket.readyState === this.WebSocketPolyfill.CONNECTING) {
++      if (typeof window !== "undefined" && websocket.readyState === this.WebSocketPolyfill.CONNECTING) {
 +        websocket.onopen = () => {
 +          websocket.onopen = null;
 +          websocket.close();
@@ -218,7 +218,7 @@ index 0f0582d7679316c79f57bcfddf55c21af64fd806..4ea5c1d25072995cad1410bcee7d5fb5
 +      websocket.onerror = () => {};
 +      // Chromium warns if close() interrupts the opening handshake. Detach now,
 +      // then close this socket on open without running the provider's handshake.
-+      if (websocket.readyState === this.WebSocketPolyfill.CONNECTING) {
++      if (typeof window !== "undefined" && websocket.readyState === this.WebSocketPolyfill.CONNECTING) {
 +        websocket.onopen = () => {
 +          websocket.onopen = null;
 +          websocket.close();
