@@ -1,7 +1,7 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
-import { withPageGuards } from '#e2e/fixtures';
-import { clearZoom, editorLocator, noteRow, zoomBreadcrumbs } from '#editor/locators';
+import { setExpectedConsoleIssues, withPageGuards } from '#e2e/fixtures';
+import { clearZoom, editorLocator, homeZoomBreadcrumb, noteRow, zoomBreadcrumbs } from '#editor/locators';
 import { load, waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
 
@@ -121,19 +121,21 @@ test.describe('Zoom routing', () => {
   });
 });
 
-
 for (const target of ['note7', 'missingNote'] as const) {
-  test(`resolves uncached zoom target ${target} after refreshing a cached document`, async ({
+  test(`resolves uncached zoom target ${target} after a failed refresh and reconnection`, async ({
     page, editor, newEditorContext,
   }, testInfo) => {
     await editor.load('flat');
-    await page.goto('/');
+    await waitForSynced(page);
+    await homeZoomBreadcrumb(page).click();
+    await expect(page).toHaveURL('/');
     const peerContext = await newEditorContext();
     try {
       const peer = await peerContext.newPage();
       await withPageGuards(peer, async () => {
         await peer.goto(createEditorDocumentPath(editor.docId));
         await load(peer, 'tree-complex');
+        await waitForSynced(peer);
       }, testInfo);
     } finally {
       await peerContext.close();
@@ -141,9 +143,18 @@ for (const target of ['note7', 'missingNote'] as const) {
 
     let releaseToken!: () => void;
     const tokenGate = new Promise<void>((resolve) => { releaseToken = resolve; });
+    let releaseRetry!: () => void;
+    const retryGate = new Promise<void>((resolve) => { releaseRetry = resolve; });
+    let failConnection = true;
+    setExpectedConsoleIssues(page, ['net::ERR_FAILED', 'Failed to get client token'], { mode: 'contains' });
     await page.route(`**/api/documents/${editor.docId}/sync-tokens`, async (route) => {
       await tokenGate;
-      await route.continue();
+      if (failConnection) {
+        await route.abort('failed');
+      } else {
+        await retryGate;
+        await route.continue();
+      }
     });
     try {
       await page.goto(createEditorDocumentPath(editor.docId, target));
@@ -151,6 +162,11 @@ for (const target of ['note7', 'missingNote'] as const) {
       await expect(noteRow(page, 'note1')).toBeVisible();
       await expect(page).toHaveURL(createEditorDocumentPath(editor.docId, target));
       releaseToken();
+      await expect(page.getByLabel(/Server disconnected/)).toBeVisible();
+      failConnection = false;
+      await expect(page).toHaveURL(createEditorDocumentPath(editor.docId, target));
+      releaseRetry();
+      await page.evaluate(() => globalThis.dispatchEvent(new Event('online')));
       await waitForSynced(page);
       if (target === 'note7') {
         await expect(zoomBreadcrumbs(page).locator('[aria-current="page"]')).toHaveText('note7');
@@ -160,7 +176,9 @@ for (const target of ['note7', 'missingNote'] as const) {
         await expect(noteRow(page, 'note7')).toBeVisible();
       }
     } finally {
+      failConnection = false;
       releaseToken();
+      releaseRetry();
     }
   });
 }

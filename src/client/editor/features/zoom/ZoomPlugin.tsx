@@ -40,7 +40,7 @@ export function ZoomPlugin({ onSelectHome }: { onSelectHome: () => void }) {
   const pendingZoomSelectionNonceRef = useRef(0);
   const previousZoomNoteIdRef = useRef(resolveZoomNoteId(zoomNoteId));
   const commandSelectionAppliedRef = useRef(false);
-  const loadingFromServerRef = useRef(false);
+  const wasSyncedRef = useRef(collab.synced);
 
   useZoomBulletInteractions(editor);
 
@@ -133,10 +133,8 @@ export function ZoomPlugin({ onSelectHome }: { onSelectHome: () => void }) {
   ), [editor, onSelectHome, requestZoomNoteId]);
 
   useEffect(() => {
-    const loadingFromServer = collab.enabled &&
-      (collab.connectionStatus === 'connecting' || collab.connectionStatus === 'handshaking');
-    const finishedLoadingFromServer = loadingFromServerRef.current && !loadingFromServer;
-    loadingFromServerRef.current = loadingFromServer;
+    const becameSynced = collab.synced && !wasSyncedRef.current;
+    wasSyncedRef.current = collab.synced;
     const handleUpdate = ({
       editorState,
       tags,
@@ -176,10 +174,10 @@ export function ZoomPlugin({ onSelectHome }: { onSelectHome: () => void }) {
       }
 
       // A cached snapshot can predate the requested note. Let the initial
-      // connection resolve that absence; deleting an already resolved root
+      // successful sync resolve that absence; deleting an already resolved root
       // still leaves zoom immediately, including during a reconnect.
       if (zoomNoteIdRef.current && !resolved.root && collab.hydrated && !isZoomInit &&
-        (!loadingFromServer || hadZoomRoot)) {
+        (!collab.enabled || collab.synced || hadZoomRoot)) {
         pendingZoomSelectionRef.current = null;
         pendingZoomSelectionTaskRef.current = false;
         pendingZoomSelectionNonceRef.current += 1;
@@ -221,11 +219,11 @@ export function ZoomPlugin({ onSelectHome }: { onSelectHome: () => void }) {
       normalizedNodes: new Set(),
       dirtyElements: new Map(),
       dirtyLeaves: new Set(),
-      tags: new Set(finishedLoadingFromServer ? [] : [ZOOM_INIT_TAG]),
+      tags: new Set(becameSynced ? [] : [ZOOM_INIT_TAG]),
     });
 
     return () => unregister();
-  }, [collab.connectionStatus, collab.enabled, collab.hydrated, editor, requestZoomNoteId, setZoomPath]);
+  }, [collab.enabled, collab.hydrated, collab.synced, editor, requestZoomNoteId, setZoomPath]);
 
   useEffect(() => {
     if (!isCurrentZoomRoute()) {
