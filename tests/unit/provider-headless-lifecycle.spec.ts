@@ -1,0 +1,48 @@
+import { spawnSync } from 'node:child_process';
+import process from 'node:process';
+import { describe, expect, it } from 'vitest';
+import { SUBPROCESS_TEST_TIMEOUT_MS, VITEST_DEFAULT_TEST_TIMEOUT_MS } from './_support/timeouts';
+
+describe('headless provider destruction', () => {
+  it.each([
+    { bundle: 'import', transport: 'native' },
+    { bundle: 'require', transport: 'native' },
+    { bundle: 'import', transport: 'ws' },
+    { bundle: 'require', transport: 'ws' },
+  ])('releases a pending $transport handshake in the $bundle bundle', ({ bundle, transport }) => {
+    const result = spawnSync(process.execPath, ['--input-type=module', '-e', `
+      import { createServer } from 'node:http';
+      import { once } from 'node:events';
+      import { createRequire } from 'node:module';
+
+      const load = ${bundle === 'require' ? 'createRequire(import.meta.url)' : '(name) => import(name)'};
+      const { createYjsProvider } = await load('@y-sweet/client');
+      const { Doc } = await load('yjs');
+      const WebSocket = ${transport === 'ws' ? "(await load('ws')).WebSocket" : 'globalThis.WebSocket'};
+      const server = createServer();
+      server.listen(0, '127.0.0.1');
+      await once(server, 'listening');
+      const doc = new Doc();
+      const provider = createYjsProvider(doc, 'pending', async () => ({
+        docId: 'pending',
+        url: 'ws://127.0.0.1:' + server.address().port,
+        token: 'test-token',
+      }), { connect: false, offlineSupport: false, showDebuggerLink: false, WebSocketPolyfill: WebSocket });
+
+      server.once('upgrade', (_request, socket) => {
+        // Leave the handshake unanswered, but do not let the fixture keep Node alive.
+        socket.unref();
+        server.unref();
+        provider.destroy();
+        doc.destroy();
+        console.log('destroyed');
+      });
+      await provider.connect();
+    `], { encoding: 'utf8', timeout: VITEST_DEFAULT_TEST_TIMEOUT_MS });
+
+    expect(result.stdout.trim()).toBe('destroyed');
+    expect(result.stderr).toBe('');
+    expect(result.error).toBeUndefined();
+    expect(result.status).toBe(0);
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
+});

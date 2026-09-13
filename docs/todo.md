@@ -157,6 +157,8 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   deletion owner's target resolution so availability and application agree,
   then cover both the owner seam and toolbar delegation.
 
+### Upstream reports
+
 - **Report the Lexical `updateEditorSync` warning upstream.** A commit that
   moves the DOM selection emits a Lexical dev warning through an entirely
   internal chain: `$commitPendingUpdates` → `$updateDOMSelection` →
@@ -174,6 +176,19 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   update listener dispatching a mutating command would now defer silently
   instead of warning. File the upstream report, then drop the patch once a
   release fixes it.
+
+- **Report Y-Sweet's pending-connection cancellation bug upstream.** In
+  `@y-sweet/client` 0.9.1, start `connect()` with a deferred token callback, call
+  `disconnect()`, then resolve or reject the callback. The departed attempt can
+  still open a socket or report a token failure and retry; calling `connect()`
+  again before it settles is refused because the old loop remains active. This
+  breaks page departure and Back/Forward-cache restoration.
+
+  File an upstream issue with a minimal reproduction and propose the
+  cancellation fix in the [registered client patch](../patches/@y-sweet__client@0.9.1.patch). Preserve genuine failures
+  for active attempts. The [provider lifecycle regressions](../tests/unit/collab/provider-page-lifecycle.collab.spec.ts) and
+  [native cache tests](../tests/e2e/app/collaboration-lifecycle.spec.ts) cover the behavior, including shared token consumers.
+  Remove the patch when a released client passes that coverage without it.
 
 ### UX direction
 

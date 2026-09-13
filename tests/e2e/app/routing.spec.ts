@@ -60,6 +60,25 @@ test.describe('Routing', () => {
     await expect(page.locator('.document-editor-shell')).toBeVisible();
   });
 
+  test('reloads Home while its background user-data token request is pending', async ({ page }) => {
+    let heldFirstRequest = false;
+    await page.route('**/sync-tokens', async (route) => {
+      if (!heldFirstRequest) {
+        heldFirstRequest = true;
+        return;
+      }
+      await route.continue();
+    });
+    const tokenRequested = page.waitForRequest('**/sync-tokens');
+    await page.goto('/');
+    await tokenRequested;
+    await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
+    await page.reload();
+    await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
+    await expect(page.getByRole('group', { name: 'Current Server', exact: true })
+      .getByRole('button', { name: 'Home', exact: true })).toBeVisible();
+  });
+
   unauthenticatedTest('shows sign-in at Home and preserves protected destinations when signed out', async ({ page }) => {
     const userDataRequests = collectCurrentUserRequests(page);
     await page.goto('/');
