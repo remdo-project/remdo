@@ -72,11 +72,14 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Performance
 
-- **Client performance contract.** Define measurable user-facing performance
-  targets and the evidence used to assess them. Reassess the existing
-  non-collaboration Vitest benchmark's workloads, operations, metric, and runner
-  as part of that design, then establish a specification and align or replace
-  the harness.
+- **Client performance contract.** Turn the [interaction and discovery principles](principles.md#interaction-and-discovery)
+  into measurable targets and evidence, including editing responsiveness,
+  search opening, and query updates across representative document sizes and
+  devices. Assess CPU and memory costs alongside user-visible latency. Reassess
+  the existing non-collaboration Vitest benchmark's workloads, operations,
+  metric, and runner, then establish a specification and align or replace the
+  harness. Use the evidence to select bounded optimizations rather than
+  presupposing an index, worker, or library.
 
 ### Operations
 
@@ -87,34 +90,40 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### SDK
 
-- **Note-centered SDK consumer boundary.** Evolve the consumer-facing SDK
-  around the shared [note model](specs/outliner/note-model.md) so high-level
-  consumers such as the [quick action menu](specs/outliner/menu.md),
-  [mobile toolbar](specs/outliner/mobile-toolbar.md), keymaps, and future
-  extensions can discover whether application capabilities are supported and
-  currently applicable, observe relevant changes, and invoke them without
-  importing Lexical commands or private feature modules. Keep capabilities at
-  the scope their semantics require—including a note, selection, current view
-  or zoom, and history—rather than forcing every operation onto a particular
-  note. Existing behavioral owners retain the semantics, adapters retain
-  framework and storage mechanics, and surfaces retain their inventory,
-  ordering, presentation, focus, layout, and hide-versus-disable policy.
+- **Note-centered SDK consumer boundary.** The
+  [open document session](specs/outliner/document-session.md) now owns the first
+  settled slice around the shared [note model](specs/outliner/note-model.md):
+  addressed-note access and observation, observable action capabilities, and
+  semantic operations. [Search](specs/outliner/search.md) requests results through
+  the session and the [mobile toolbar](specs/outliner/mobile-toolbar.md) consumes its
+  capabilities and operations without importing Lexical commands or private
+  feature modules.
 
-  Use the menu and mobile toolbar as reference consumers and advance one
-  coherent, behavior-preserving capability slice at a time. Each slice decides
-  only the contract, ownership, targeting, applicability, observation,
-  execution, lifecycle, and naming required by its real consumers and plausible
-  adapters. Record settled behavior in its owning specification once accepted
-  and leave unrelated questions open here. Do not preselect a generic action
-  registry, flat API, final SDK or package name, plugin contribution framework,
-  or second-adapter implementation. The convergence goal is reached when these
-  surfaces use the SDK for application behavior and their common behavior can
-  be backed by another note adapter without adapter-specific semantic logic in
-  the surfaces. Coordinate with the
-  [legacy Note-first SDK follow-ups](legacy-backlog.md#note-first-sdk-follow-ups)
-  rather than duplicating their resource, loading, and query work.
+  Use real consumers, including keymaps, to improve the SDK, not merely to
+  migrate calls behind its existing API. The [quick action menu](specs/outliner/menu.md) is a useful next
+  playground; data access, queries, and observation are equally valid starting
+  points when a consumer exposes a more important gap. Choose small slices by
+  consumer value rather than a fixed PR sequence, following the
+  [consumer API principles](principles.md#consumer-apis) and the session's ownership boundaries. Preserve each
+  operation's owning behavior while reconsidering the SDK shape.
 
-  At the start and close of each capability slice, locate related entries across
+  Reassess whether app-resource projections need Yjs or would be simpler with
+  established server-state/cache tooling, including its observation API. The
+  [document registry](architecture.md#document-registry) owns the current storage boundary; this comparison
+  concerns app resources, not replacement of collaborative document storage.
+  Choose tools against a concrete consumer and the [performance work](#performance), not the
+  existing projection layout. Coordinate resource-read changes with the
+  [offline document-inventory follow-up](architecture.md#future), and non-current-document access and
+  cross-document query/loading with the
+  [legacy Note-first SDK follow-ups](legacy-backlog.md#note-first-sdk-follow-ups).
+
+  Success is a simple SDK surface for note access, observation, queries, and
+  operations without adapter-specific semantic logic in consumers. Keep
+  capabilities at their natural scope rather than forcing every operation onto
+  one note. Do not preselect a generic action registry, flat API, final SDK or
+  package name, plugin contribution framework, or second-adapter implementation.
+
+  At the start and close of each slice, locate related entries across
   the [tracking record](#tracked-follow-up), the
   [legacy backlog](legacy-backlog.md), and relevant Git history. Treat them as
   informative evidence rather than requirements or a predetermined API, then
@@ -147,14 +156,6 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   command application can use the same target. Reject the zoom root in the
   deletion owner's target resolution so availability and application agree,
   then cover both the owner seam and toolbar delegation.
-
-- **Menu toggle inside a structural selection.** Target behavior
-  ([Menu](specs/outliner/menu.md)): the note menu's toggle applies to the selected
-  note range when the current note is inside it. The implementation always
-  targets the menu's note (`noteItemKey` is resolved first in
-  `CheckListPlugin.tsx`, asserted by
-  `src/client/editor/features/list-types/checklist-state.spec.ts`);
-  adjust the resolution and tests.
 
 ### Upstream reports
 

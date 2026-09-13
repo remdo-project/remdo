@@ -2,22 +2,18 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDocumentPath } from '#document-routes';
 import {
-  ROOT_SEARCH_SCOPE_ID,
+  createSearchResult,
   findResultByLabel,
   getActiveResultLabel,
   getActiveSearchResult,
   getResultByLabel,
   getResultLabels,
-  refreshMockSearchNotes,
+  mockDocumentSearch,
   renderDocumentRoute,
   resetDocumentRouteHarness,
-  setMockSearchSnapshot,
+  setMockDocumentAvailable,
 } from '../../../../../tests/unit/_support/document-route-harness';
-import type { TestSearchSnapshot } from '../../../../../tests/unit/_support/document-route-harness';
-
-function setSearchSnapshot(snapshot: TestSearchSnapshot) {
-  setMockSearchSnapshot('routeDoc', snapshot);
-}
+import { createDeferred } from '../../../../../tests/unit/_support/deferred';
 
 async function openSearch() {
   const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
@@ -96,7 +92,7 @@ describe('document search', () => {
 
     const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'note' } });
-    await screen.findByTestId('document-search-results');
+    await findResultByLabel('note1');
 
     expect(document.querySelector('.document-editor-pane--hidden')).not.toBeNull();
 
@@ -125,26 +121,32 @@ describe('document search', () => {
     });
   });
 
-  it('requests search candidates from the editor only while search is focused', async () => {
+  it('evaluates the SDK only on demand and evaluates again when search reopens', async () => {
+    const search = mockDocumentSearch('routeDoc');
     renderDocumentRoute();
 
-    const editorProbe = await screen.findByTestId('editor-probe');
+    await screen.findByTestId('editor-probe');
     const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
 
-    expect(editorProbe.dataset.searchModeRequested).toBe('false');
+    expect(search).not.toHaveBeenCalled();
 
-    searchInput.focus();
+    act(() => searchInput.focus());
     await waitFor(() => {
-      expect(editorProbe.dataset.searchModeRequested).toBe('true');
+      expect(search).toHaveBeenCalledWith({ query: '', limit: 10, childPreviewLimit: 2 });
     });
 
     fireEvent.blur(searchInput);
+    search.mockClear();
+    fireEvent.change(searchInput, { target: { value: 'note' } });
+    expect(search).not.toHaveBeenCalled();
+
+    fireEvent.focus(searchInput);
     await waitFor(() => {
-      expect(editorProbe.dataset.searchModeRequested).toBe('false');
+      expect(search).toHaveBeenCalledWith({ query: 'note', limit: 10, childPreviewLimit: 2 });
     });
   });
 
-  it('shows all notes in flat results and highlights the first item on empty query', async () => {
+  it('renders SDK results and highlights the first item on an empty query', async () => {
     renderDocumentRoute();
 
     await openSearch();
@@ -158,33 +160,17 @@ describe('document search', () => {
     expect(resultItems).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
   });
 
-  it('uses ancestor tokens only when another token matches the note itself', async () => {
-    setSearchSnapshot({
-      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'work', text: 'Work' }],
-      work: [{ noteId: 'match', text: 'TODO refine estimates' }],
-    });
-    renderDocumentRoute();
-
-    const searchInput = await openSearch();
-    fireEvent.change(searchInput, { target: { value: 'work todo' } });
-    await waitFor(() => {
-      expect(getResultLabels()).toEqual(['TODO refine estimates']);
-    });
-
-    fireEvent.change(searchInput, { target: { value: 'work' } });
-    await waitFor(() => {
-      expect(getResultLabels()).toEqual(['Work']);
-    });
-  });
-
   it('distinguishes same-text results by ancestor context in the accessible name', async () => {
-    setSearchSnapshot({
-      [ROOT_SEARCH_SCOPE_ID]: [
-        { noteId: 'work', text: 'Work' },
-        { noteId: 'home', text: 'Home' },
+    const work = createSearchResult('work', 'Work');
+    const home = createSearchResult('home', 'Home');
+    const workPlan = createSearchResult('work-plan', 'Plan');
+    const homePlan = createSearchResult('home-plan', 'Plan');
+    mockDocumentSearch('routeDoc').mockResolvedValue({
+      flatResults: [
+        { ...workPlan, path: [work.note, workPlan.note] },
+        { ...homePlan, path: [home.note, homePlan.note] },
       ],
-      work: [{ noteId: 'work-plan', text: 'Plan' }],
-      home: [{ noteId: 'home-plan', text: 'Plan' }],
+      hasMore: false,
     });
     renderDocumentRoute();
 
@@ -200,9 +186,7 @@ describe('document search', () => {
 
     await openSearch();
 
-    await waitFor(() => {
-      expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
-    });
+    await findResultByLabel('note1');
 
     const results = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'));
     const note1 = results.find((item) => item.getAttribute('data-search-result-label') === 'note1');
@@ -223,7 +207,7 @@ describe('document search', () => {
     expect(searchInput).toHaveAttribute('aria-expanded', 'true');
     expect(searchInput).toHaveAttribute('aria-controls', resultsListbox.id);
 
-    const firstOption = screen.getByRole('option', { name: 'note1' });
+    const firstOption = await screen.findByRole('option', { name: 'note1' });
     expect(firstOption).toHaveAttribute('aria-selected', 'true');
     expect(searchInput).toHaveAttribute('aria-activedescendant', firstOption.id);
 
@@ -238,15 +222,18 @@ describe('document search', () => {
   });
 
   it('keeps the first matching result highlighted when recovering from no matches', async () => {
+    const search = mockDocumentSearch('routeDoc');
+    search.mockResolvedValue({ flatResults: [], hasMore: false });
     const router = renderDocumentRoute();
 
     const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'zzzz' } });
     await screen.findByText('No matches');
 
+    search.mockResolvedValue({ flatResults: [createSearchResult('note1', 'note1')], hasMore: false });
     fireEvent.change(searchInput, { target: { value: 'note' } });
 
-    const firstOption = screen.getByRole('option', { name: 'note1' });
+    const firstOption = await screen.findByRole('option', { name: 'note1' });
     expect(firstOption).toHaveAttribute('aria-selected', 'true');
     expect(searchInput).toHaveAttribute('aria-activedescendant', firstOption.id);
 
@@ -258,13 +245,14 @@ describe('document search', () => {
   });
 
   it('keeps the search popup exposed as a listbox when there are no matches', async () => {
+    mockDocumentSearch('routeDoc').mockResolvedValue({ flatResults: [], hasMore: false });
     renderDocumentRoute();
 
     const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'zzzz' } });
 
     const resultsListbox = await screen.findByRole('listbox', { name: 'Search results' });
-    const emptyOption = screen.getByRole('option', { name: 'No matches' });
+    const emptyOption = await screen.findByRole('option', { name: 'No matches' });
 
     expect(searchInput).toHaveAttribute('aria-controls', resultsListbox.id);
     expect(searchInput).toHaveAttribute('aria-expanded', 'true');
@@ -299,38 +287,30 @@ describe('document search', () => {
 
 
   describe('result limit', () => {
-    // A flat document of 12 top-level notes: 'note01'..'note12'. Empty query
-    // matches every one, so it exercises the cap (10) plus truncation hint.
-    const manyNotesSnapshot = (): TestSearchSnapshot => {
-      const ids = Array.from({ length: 12 }, (_unused, i) => `note${String(i + 1).padStart(2, '0')}`);
-      return {
-        [ROOT_SEARCH_SCOPE_ID]: ids.map((id) => ({ noteId: id, text: id })),
-      };
-    };
-
     const setManyNotes = () => {
-      setMockSearchSnapshot('routeDoc', manyNotesSnapshot());
+      mockDocumentSearch('routeDoc').mockResolvedValue({
+        flatResults: Array.from({ length: 10 }, (_unused, index) => {
+          const id = `note${String(index + 1).padStart(2, '0')}`;
+          return createSearchResult(id, id);
+        }),
+        hasMore: true,
+      });
     };
 
-    it('caps flat results at ten and flags that more matches exist', async () => {
+    it('renders the SDK result limit hint without making it a navigable option', async () => {
       setManyNotes();
       renderDocumentRoute();
 
       await openSearch();
 
-      await waitFor(() => {
-        expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
-      });
+      await findResultByLabel('note01');
 
-      // Only the first ten notes in document order render as result rows.
       const labels = getResultLabels();
       expect(labels).toEqual([
         'note01', 'note02', 'note03', 'note04', 'note05',
         'note06', 'note07', 'note08', 'note09', 'note10',
       ]);
 
-      // The truncation row reports that more matches exist (without an exact
-      // total, since the capped walk stops early) and is not a navigable option.
       const truncation = document.querySelector<HTMLElement>('[data-search-result-truncation]');
       expect(truncation?.textContent).toBe('Showing the first 10 — refine your search');
       expect(truncation?.getAttribute('role')).not.toBe('option');
@@ -360,9 +340,7 @@ describe('document search', () => {
       renderDocumentRoute();
 
       await openSearch();
-      await waitFor(() => {
-        expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
-      });
+      await findResultByLabel('note1');
 
       expect(document.querySelector('[data-search-result-truncation]')).toBeNull();
     });
@@ -374,7 +352,7 @@ describe('document search', () => {
     const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'note' } });
 
-    await screen.findByTestId('document-search-results');
+    await findResultByLabel('note1');
 
     fireEvent.pointerDown(screen.getByTestId('editor-probe'), {
       button: 0,
@@ -474,21 +452,22 @@ describe('document search', () => {
     expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
   });
 
-  it('shows flat results across the whole document while query is non-empty', async () => {
+  it('renders every returned result while the editor pane is hidden', async () => {
     renderDocumentRoute();
 
     const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'note' } });
 
-    await screen.findByTestId('document-search-results');
+    await findResultByLabel('note1');
     const resultItems = getResultLabels();
     expect(resultItems).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
     expect(document.querySelector('.document-editor-pane--hidden')).not.toBeNull();
   });
 
-  it('uses sdk-provided candidates for flat results', async () => {
-    setMockSearchSnapshot('routeDoc', {
-      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'sdk1', text: 'sdk result' }],
+  it('renders SDK search results rather than reading the editor DOM', async () => {
+    mockDocumentSearch('routeDoc').mockResolvedValue({
+      flatResults: [createSearchResult('sdk1', 'sdk result')],
+      hasMore: false,
     });
 
     renderDocumentRoute();
@@ -496,13 +475,14 @@ describe('document search', () => {
     const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'sdk' } });
 
-    await screen.findByTestId('document-search-results');
+    await findResultByLabel('sdk result');
     const resultItems = getResultLabels();
 
     expect(resultItems).toEqual(['sdk result']);
   });
 
   it('keeps no highlight for no-match query and Enter is a no-op', async () => {
+    mockDocumentSearch('routeDoc').mockResolvedValue({ flatResults: [], hasMore: false });
     const router = renderDocumentRoute();
 
     const searchInput = await openSearch();
@@ -516,11 +496,12 @@ describe('document search', () => {
     expect(searchInput).toHaveFocus();
   });
 
-  it('clears stale sdk candidates when switching documents', async () => {
-    setMockSearchSnapshot('routeDoc', {
-      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'mainonly', text: 'main only' }],
+  it('clears previous results when switching to an unavailable document', async () => {
+    mockDocumentSearch('routeDoc').mockResolvedValue({
+      flatResults: [createSearchResult('mainonly', 'main only')],
+      hasMore: false,
     });
-    setMockSearchSnapshot('other', null);
+    setMockDocumentAvailable('other', false);
 
     const router = renderDocumentRoute();
     const searchInput = await openSearch();
@@ -544,33 +525,35 @@ describe('document search', () => {
     expect(router.state.location.pathname).toBe(createDocumentPath('other'));
   });
 
-  it('waits for the first candidate snapshot before showing search results', async () => {
-    setMockSearchSnapshot('routeDoc', null);
+  it('evaluates the current query when the document first becomes available', async () => {
+    setMockDocumentAvailable('routeDoc', false);
+    const search = mockDocumentSearch('routeDoc').mockResolvedValue({
+      flatResults: [createSearchResult('fresh', 'fresh result')],
+      hasMore: false,
+    });
 
     renderDocumentRoute();
 
     const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'fresh' } });
 
-    setMockSearchSnapshot('routeDoc', {
-      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
-    });
+    expect(search).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('document-search-results')).toBeNull();
+    expect(screen.queryByText('No notes')).toBeNull();
+    expect(screen.queryByText('No matches')).toBeNull();
 
-    await waitFor(() => {
-      expect(screen.queryByTestId('document-search-results')).toBeNull();
-      expect(screen.queryByText('No notes')).toBeNull();
-    });
-
-    refreshMockSearchNotes('routeDoc');
+    act(() => setMockDocumentAvailable('routeDoc', true));
 
     await waitFor(() => {
       expect(getActiveResultLabel()).toBe('fresh result');
     });
+    expect(search).toHaveBeenLastCalledWith({ query: 'fresh', limit: 10, childPreviewLimit: 2 });
   });
 
-  it('waits for a fresh snapshot after invalidating current document candidates', async () => {
-    setMockSearchSnapshot('routeDoc', {
-      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'stale', text: 'shared result' }],
+  it('clears results on source withdrawal and evaluates again after recovery', async () => {
+    const search = mockDocumentSearch('routeDoc').mockResolvedValue({
+      flatResults: [createSearchResult('stale', 'shared result')],
+      hasMore: false,
     });
 
     renderDocumentRoute();
@@ -583,9 +566,7 @@ describe('document search', () => {
       expect(getActiveResultLabel()).toBe('shared result');
     });
 
-    // Invalidate: candidates become unavailable, then refresh clears the reader.
-    setMockSearchSnapshot('routeDoc', null);
-    refreshMockSearchNotes('routeDoc');
+    act(() => setMockDocumentAvailable('routeDoc', false));
 
     await waitFor(() => {
       expect(screen.queryByTestId('document-search-results')).toBeNull();
@@ -593,17 +574,120 @@ describe('document search', () => {
       expect(screen.queryByText('No notes')).toBeNull();
     });
 
-    setMockSearchSnapshot('routeDoc', {
-      [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
-    });
-    refreshMockSearchNotes('routeDoc');
+    search.mockResolvedValue({ flatResults: [createSearchResult('fresh', 'fresh result')], hasMore: false });
+    act(() => setMockDocumentAvailable('routeDoc', true));
 
     await waitFor(() => {
       expect(getActiveResultLabel()).toBe('fresh result');
     });
   });
 
+  it('ignores a slower evaluation after a newer query has completed', async () => {
+    const older = createDeferred();
+    const search = mockDocumentSearch('routeDoc');
+    renderDocumentRoute();
+    const searchInput = await openSearch();
+    await findResultByLabel('note1');
+
+    search.mockImplementationOnce(() => older.promise.then(() => ({
+      flatResults: [createSearchResult('old', 'older result')], hasMore: false,
+    })));
+    fireEvent.change(searchInput, { target: { value: 'older' } });
+
+    search.mockResolvedValue({ flatResults: [createSearchResult('new', 'newer result')], hasMore: false });
+    fireEvent.change(searchInput, { target: { value: 'newer' } });
+    await findResultByLabel('newer result');
+
+    await act(async () => older.resolve());
+    expect(getResultLabels()).toEqual(['newer result']);
+  });
+
+  it('does not present an earlier empty answer while the current query is pending', async () => {
+    const current = createDeferred();
+    const search = mockDocumentSearch('routeDoc').mockResolvedValue({ flatResults: [], hasMore: false });
+    const router = renderDocumentRoute();
+    const searchInput = await openSearch();
+    fireEvent.change(searchInput, { target: { value: 'missing' } });
+    await screen.findByText('No matches');
+
+    search.mockImplementationOnce(() => current.promise.then(() => ({
+      flatResults: [createSearchResult('current', 'current result')], hasMore: false,
+    })));
+    fireEvent.change(searchInput, { target: { value: 'current' } });
+
+    expect(screen.queryByText('No matches')).toBeNull();
+    expect(screen.queryByText('No notes')).toBeNull();
+    expect(getActiveSearchResult()).toBeNull();
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+    expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc'));
+
+    await act(async () => current.resolve());
+    await findResultByLabel('current result');
+  });
+
+  it.each(['while closed', 'after reopening'])('ignores a previous opening\'s completion %s', async (timing) => {
+    const previous = createDeferred();
+    const search = mockDocumentSearch('routeDoc').mockImplementationOnce(() => previous.promise.then(() => ({
+      flatResults: [createSearchResult('old', 'previous opening')], hasMore: false,
+    })));
+    renderDocumentRoute();
+    const searchInput = await openSearch();
+    fireEvent.keyDown(searchInput, { key: 'Escape' });
+
+    if (timing === 'after reopening') {
+      search.mockResolvedValue({ flatResults: [createSearchResult('new', 'fresh opening')], hasMore: false });
+      act(() => searchInput.focus());
+      await findResultByLabel('fresh opening');
+    }
+
+    await act(async () => previous.resolve());
+    expect(getResultLabels()).toEqual(timing === 'while closed' ? [] : ['fresh opening']);
+    if (timing === 'while closed') {
+      expect(screen.queryByTestId('document-search-results')).toBeNull();
+      expect(searchInput).not.toHaveFocus();
+    }
+  });
+
+  it('ignores a withdrawn source\'s pending evaluation after that source recovers', async () => {
+    const previous = createDeferred();
+    const search = mockDocumentSearch('routeDoc').mockImplementationOnce(() => previous.promise.then(() => ({
+      flatResults: [createSearchResult('old', 'before withdrawal')], hasMore: false,
+    })));
+    renderDocumentRoute();
+    await openSearch();
+
+    act(() => setMockDocumentAvailable('routeDoc', false));
+    expect(screen.queryByTestId('document-search-results')).toBeNull();
+    search.mockResolvedValue({ flatResults: [createSearchResult('fresh', 'after recovery')], hasMore: false });
+    act(() => setMockDocumentAvailable('routeDoc', true));
+    await findResultByLabel('after recovery');
+
+    await act(async () => previous.resolve());
+    expect(getResultLabels()).toEqual(['after recovery']);
+  });
+
+  it('does not show an empty answer on failure and retries when the query changes', async () => {
+    const search = mockDocumentSearch('routeDoc').mockRejectedValue(new Error('Search unavailable'));
+    renderDocumentRoute();
+    const searchInput = await openSearch();
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: 'failed' } });
+    });
+
+    expect(screen.queryByText('No matches')).toBeNull();
+    expect(screen.queryByText('No notes')).toBeNull();
+    expect(getActiveSearchResult()).toBeNull();
+
+    search.mockResolvedValue({ flatResults: [createSearchResult('fresh', 'available result')], hasMore: false });
+    fireEvent.change(searchInput, { target: { value: 'available' } });
+    await findResultByLabel('available result');
+  });
+
   it('zooms to highlighted flat result on Enter and moves focus to editor', async () => {
+    mockDocumentSearch('routeDoc').mockResolvedValue({
+      flatResults: [createSearchResult('note3', 'note3')],
+      hasMore: false,
+    });
     const router = renderDocumentRoute();
 
     const searchInput = await openSearch();
@@ -626,7 +710,7 @@ describe('document search', () => {
 
     const searchInput = await openSearch();
     fireEvent.change(searchInput, { target: { value: 'note' } });
-    await screen.findByTestId('document-search-results');
+    await findResultByLabel('note1');
 
     fireEvent.blur(searchInput);
 

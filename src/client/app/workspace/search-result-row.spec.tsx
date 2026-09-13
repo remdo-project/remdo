@@ -1,21 +1,25 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { SearchPathItem } from '#client/editor/view/workspace';
+import type { EditorNoteSnapshot, NoteListType } from '#note-sdk';
 import { SearchResultRow } from '#client/app/workspace/SearchResultRow';
 
-const ancestorPath: SearchPathItem[] = [
-  { noteId: 'root', label: 'Work' },
-  { noteId: 'mid', label: 'Q3 planning' },
-  { noteId: 'mid2', label: 'Roadmap' },
-  { noteId: 'mid3', label: 'Grooming' },
-  { noteId: 'mid4', label: 'Estimates' },
-  { noteId: 'parent', label: 'Sprint backlog' },
-  { noteId: 'match', label: 'TODO refine estimates' },
+function note(id: string, text: string, checked = false): EditorNoteSnapshot {
+  return { id, text, checked, folded: false, children: null };
+}
+
+const ancestorPath = [
+  note('root', 'Work'),
+  note('mid', 'Q3 planning'),
+  note('mid2', 'Roadmap'),
+  note('mid3', 'Grooming'),
+  note('mid4', 'Estimates'),
+  note('parent', 'Sprint backlog'),
+  note('match', 'TODO refine estimates'),
 ];
 
 const childPreview = [
-  { noteId: 'c1', text: 'sub one', listType: 'number' as const, checked: false },
-  { noteId: 'c2', text: 'sub two', listType: 'check' as const, checked: true },
+  note('c1', 'sub one'),
+  note('c2', 'sub two', true),
 ];
 
 function renderRow({
@@ -23,26 +27,28 @@ function renderRow({
   checked = false,
   children = childPreview,
   childCount = 3,
+  listType = 'bullet',
   query = 'refine',
   text = 'TODO refine estimates',
 }: {
-  path?: SearchPathItem[];
+  path?: readonly EditorNoteSnapshot[];
   checked?: boolean;
   children?: typeof childPreview;
   childCount?: number;
+  listType?: NoteListType;
   query?: string;
   text?: string;
 } = {}) {
   const onSelectAncestor = vi.fn();
   const result = render(
     <SearchResultRow
-      ancestorPath={path}
-      checked={checked}
-      childCount={childCount}
-      childPreview={children}
+      result={{
+        note: note('match', text, checked),
+        path,
+        childPreview: { notes: children, totalCount: childCount, listType },
+      }}
       onSelectAncestor={onSelectAncestor}
       query={query}
-      text={text}
     />
   );
   return { ...result, onSelectAncestor };
@@ -89,11 +95,19 @@ describe('search result row', () => {
     separators.forEach((separator) => expect(separator).toHaveTextContent('/'));
   });
 
-  it('uses editor list markup for each child list type', () => {
-    const { container } = renderRow();
-    expect(container.querySelector('.document-search-result-children.remdo-outline')).not.toBeNull();
-    expect(container.querySelector('ol.list-ol > .list-item')).toHaveTextContent('sub one');
-    expect(container.querySelector('.list-item.list-item-checked')).toHaveTextContent('sub two');
+  it.each(['bullet', 'number', 'check'] as const)('uses editor markup for a %s child list', (listType) => {
+    const { container } = renderRow({ listType });
+    const list = container.querySelector('.document-search-result-children.remdo-outline > ul, .document-search-result-children.remdo-outline > ol');
+    expect(list?.tagName).toBe(listType === 'number' ? 'OL' : 'UL');
+    expect(list).toHaveClass(listType === 'number' ? 'list-ol' : 'list-ul');
+    const children = list!.querySelectorAll('li');
+    expect(children).toHaveLength(2);
+    expect(children[0]).toHaveTextContent('sub one');
+    expect(children[1]).toHaveAttribute('data-note-checked', 'true');
+    if (listType === 'check') {
+      expect(children[0]).toHaveClass('list-item-unchecked');
+      expect(children[1]).toHaveClass('list-item-checked');
+    }
   });
 
   it('highlights every matching label token in document order', () => {
@@ -114,7 +128,7 @@ describe('search result row', () => {
 
   it('keeps a long matching label intact', () => {
     const text = `${'x'.repeat(60)} needle tail`;
-    const { container } = renderRow({ path: [{ noteId: 'long', label: text }], query: 'needle', text });
+    const { container } = renderRow({ path: [note('long', text)], query: 'needle', text });
     expect(container.querySelector('.document-search-result-mark')).toHaveTextContent('needle');
   });
 
@@ -122,8 +136,8 @@ describe('search result row', () => {
     const longAncestor = 'Engineering '.repeat(8).trim();
     renderRow({
       path: [
-        { noteId: 'parent', label: longAncestor },
-        { noteId: 'child', label: 'sprint task' },
+        note('parent', longAncestor),
+        note('child', 'sprint task'),
       ],
       children: [],
       childCount: 0,
@@ -141,13 +155,13 @@ describe('search result row', () => {
     render(
       <div onClick={parentClick}>
         <SearchResultRow
-          ancestorPath={ancestorPath}
-          checked={false}
-          childCount={0}
-          childPreview={[]}
+          result={{
+            note: note('match', 'TODO refine estimates'),
+            path: ancestorPath,
+            childPreview: { notes: [], totalCount: 0, listType: 'bullet' },
+          }}
           onSelectAncestor={onSelectAncestor}
           query="refine"
-          text="TODO refine estimates"
         />
       </div>
     );

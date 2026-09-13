@@ -6,11 +6,12 @@ simplest permanent implementation consistent with its accepted contracts.
 ## Routes
 
 This is the shared repository entry point. Locate task-specific accepted
-behavior by filename and scope opener under `docs/`, then read only the current
-owner. Provider-specific surfaces may load it alongside their own rules.
+behavior by filename and scope opener under `docs/`, then read the relevant
+contract owners. Provider-specific surfaces may load it alongside their own rules.
 
-- **Instruction design and surface responsibilities:** [Agent instructions](docs/specs/agents/instructions.md).
-- **Durable documentation:** [Documentation](docs/documentation.md).
+- **Before changing agent instruction surfaces:** Read [Agent instructions](docs/specs/agents/instructions.md) in full.
+- **Before proposing, editing, or reviewing durable documentation:** Read
+  [Documentation](docs/documentation.md) in full and the documents that own the affected contracts.
   - **Owner categories:** [Layout](docs/documentation.md#documentation-layout).
   - **Current owners and dependencies:** [Ownership](docs/documentation.md#ownership).
   - **Accepted contracts and tracked gaps:** [Target behavior](docs/documentation.md#target-behavior).
@@ -23,7 +24,8 @@ owner. Provider-specific surfaces may load it alongside their own rules.
   - **Tracked code comments:** [Code comments](CONTRIBUTING.md#code-comments).
   - **UI library default:** [UI Libraries](CONTRIBUTING.md#ui-libraries).
   - **Testing policy:** [Testing](docs/dev/testing.md).
-- **Long-term product constraints:** [Project principles](docs/principles.md).
+- **For product, architecture, or dependency decisions:** Read
+  [Project principles](docs/principles.md) in full.
 - **Supported run modes:** [Run Modes](docs/run-modes.md).
   - **Production procedures:** [Production Deployment](docs/guides/production-deployment.md).
   - **Development procedures:** [Local Development](docs/guides/local-development.md).
@@ -33,6 +35,11 @@ owner. Provider-specific surfaces may load it alongside their own rules.
   - **Port and origin derivation:** [Network addressing](docs/specs/runtime/configuration.md#network-addressing).
 - **Tracked repository follow-up:** [RemDo TODO](docs/todo.md#tracked-follow-up).
 - **Task behavior:** its current owner under `docs/`.
+
+Reuse documents already read while their relevant content remains in context and
+unchanged. After compaction or a context reset, reload the authoritative documents
+still needed for unfinished work, following the reading requirements above,
+before continuing that work.
 
 Link current owners at first use when discussing repository work. A contract
 migration moves the complete contract and fixes inbound links in the same
@@ -100,6 +107,8 @@ change. Do not add update-tracking sections to durable documents.
 
 ## Review and handoff
 
+- Before handoff, check the resulting changes against the applicable
+  documentation and constraints.
 - Land artifacts intended for developer review in the working directory rather
   than duplicating them in chat. Leave changes uncommitted unless commit
   authority applies.

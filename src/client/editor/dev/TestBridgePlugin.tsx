@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { AnyLexicalCommand, LexicalEditor, EditorUpdateOptions, SerializedEditorState } from 'lexical';
 import { $createTextNode, $getRoot, $isTextNode } from 'lexical';
+import type { DocumentSession } from '#note-sdk';
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
 import { assertEditorSchema } from './schema/assertEditorSchema';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
@@ -116,7 +117,11 @@ function awaitEditorOutcome(editor: LexicalEditor, timeoutMs = 1000) {
   return { outcome, reportNoop };
 }
 
-function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof useCollaborationStatus>) {
+function createTestBridgeApi(
+  editor: LexicalEditor,
+  collab: ReturnType<typeof useCollaborationStatus>,
+  session: DocumentSession,
+) {
   const ensureHydrated = async () => {
     if (!collab.enabled || collab.hydrated) return;
     await collab.awaitSynced();
@@ -222,6 +227,7 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
   };
 
   return {
+    documentSession: session,
     editor,
     mutate,
     validate,
@@ -236,11 +242,14 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
 
 export type RemdoTestApi = ReturnType<typeof createTestBridgeApi>;
 
-export function TestBridgePlugin() {
+export function TestBridgePlugin({ session }: { session: DocumentSession }) {
   const [editor] = useLexicalComposerContext();
   const collab = useCollaborationStatus();
 
-  const api = useMemo(() => createTestBridgeApi(editor, collab), [collab, editor]);
+  const api = useMemo(
+    () => createTestBridgeApi(editor, collab, session),
+    [collab, editor, session],
+  );
 
   useEffect(() => {
     // Publish through the test-bridge registry, keyed by this editor. `api`
