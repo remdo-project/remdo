@@ -177,7 +177,7 @@ export function ZoomPlugin({ onSelectHome }: { onSelectHome: () => void }) {
       // successful sync resolve that absence; deleting an already resolved root
       // still leaves zoom immediately, including during a reconnect.
       if (zoomNoteIdRef.current && !resolved.root && collab.hydrated && !isZoomInit &&
-        (!collab.enabled || collab.synced || hadZoomRoot)) {
+        (collab.synced || hadZoomRoot)) {
         pendingZoomSelectionRef.current = null;
         pendingZoomSelectionTaskRef.current = false;
         pendingZoomSelectionNonceRef.current += 1;
@@ -223,7 +223,7 @@ export function ZoomPlugin({ onSelectHome }: { onSelectHome: () => void }) {
     });
 
     return () => unregister();
-  }, [collab.enabled, collab.hydrated, collab.synced, editor, requestZoomNoteId, setZoomPath]);
+  }, [collab.hydrated, collab.synced, editor, requestZoomNoteId, setZoomPath]);
 
   useEffect(() => {
     if (!isCurrentZoomRoute()) {
