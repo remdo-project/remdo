@@ -1,6 +1,5 @@
 export type { NoteId } from './notes';
 export type {
-  ChildListSnapshot,
   ChildPreview,
   DocumentCapabilitiesSnapshot,
   DocumentSearchOptions,
