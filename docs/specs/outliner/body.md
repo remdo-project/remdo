@@ -31,7 +31,7 @@ For [selection](./selection.md), a note's content and its body are distinct [sel
 - A selection spanning a note's content and its own body is structural, limited
   to that single note (a note is never selected structurally without its body).
   When the body belongs to the current view location, selection extension
-  follows [View header](./view-header.md#structural-boundary) instead.
+  follows [Location header](./location-header.md#structural-boundary) instead.
 - Any selection crossing two notes — including one with an endpoint inside a
   body — is structural and snaps to whole notes (see [Selection](./selection.md)).
 - The ladder never selects a body's text by itself.

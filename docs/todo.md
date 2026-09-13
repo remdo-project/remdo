@@ -197,18 +197,30 @@ until accepted in their behavioral owners. Defer a command palette and action
 menus on every breadcrumb until improving the existing surfaces leaves a
 concrete unmet need.
 
-- **Current-location heading and actions.** Complete the [view header](specs/outliner/view-header.md) with an
-  adjacent menu for applicable current-location actions, and expose relevant
-  document actions on [Home](specs/outliner/home.md) rows. First reconsider the header's name and scope,
-  including whether "location header" better identifies it and whether editable
-  current-location presentation remains separate from ancestor [breadcrumb navigation](specs/outliner/zoom.md#breadcrumbs).
-  The [menu](specs/outliner/menu.md) currently gives a header no
-  current note and only View actions; settle its location-action targeting
-  before implementation. Update the owners and inbound links together. Deliver
-  rename before document deletion, whose permissions, collaboration effects,
-  and recovery or confirmation behavior still need a decision. Coordinate with
-  the [legacy view-header follow-ups](legacy-backlog.md#home-and-view-header-follow-ups) for the existing implementation and
-  storage gaps.
+- **Document heading and rename.** Deliver the document-root [location header](specs/outliner/location-header.md),
+  its [menu](specs/outliner/menu.md), and the same document actions on [Home](specs/outliner/home.md) rows as one slice. The
+  document name currently appears only in the breadcrumb/picker; `DocumentNote`
+  exposes read-only text and there is no rename operation. Implement
+  [submitted rename](specs/outliner/location-header.md#document-rename) through the document SDK and existing [registry](architecture.md#document-registry), including
+  source routing, authorization, and name propagation to users with access.
+  Cover both entry points, cancel/failure, concurrent submissions, and linked
+  sources. Include the stored home document and preserve its authoritative name
+  through bootstrap label fallbacks. Title-storage migration, picker retirement,
+  and zoomed-note header implementation are separate work.
+
+- **Zoomed-note location header.** Complete the rich editable header and its
+  applicable note, children, and view actions, preserving the
+  [selection boundary](specs/outliner/location-header.md#structural-boundary). The [legacy implementation gaps](legacy-backlog.md#home-and-location-header-follow-ups) remain. Validate keyboard access,
+  leaf zoom,
+  repeated heading-and-child edits, rich links, and selection-boundary
+  discoverability before replacing the existing zoom-root row. Reconsider
+  explicit inline Edit/Done only if those tasks expose a persistent problem; a
+  rich-note draft modal is outside this work.
+
+- **Document deletion.** Decide permissions, effects on collaborators and
+  linked sources, and recovery or confirmation before adding deletion to
+  document menus. Deliver rename first; document destruction is separate from
+  structural note deletion.
 
 - **Contextual menus across desktop and touch.** Keep the [note menu](specs/outliner/menu.md) available
   on both, with discoverable keyboard entry and an easily reachable More action.
@@ -221,7 +233,7 @@ concrete unmet need.
   search scope before retiring the picker. Preserve a fast keyboard path
   between documents; retain
   a distinct quick switcher only if it still serves a separate need. Coordinate
-  with the [legacy Home follow-ups](legacy-backlog.md#home-and-view-header-follow-ups), and judge consolidation by switching speed
+  with the [legacy Home follow-ups](legacy-backlog.md#home-and-location-header-follow-ups), and judge consolidation by switching speed
   and clarity rather than duplicate destinations alone.
 
 ### Agents

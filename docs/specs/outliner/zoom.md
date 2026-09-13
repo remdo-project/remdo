@@ -26,7 +26,7 @@ editing boundary, distinct from the editor's [selection](./selection.md).
 4. Selection expansion, including Select All, stays inside the zoom boundary.
 5. Edits stay inside the zoom boundary: commands do not create, merge, move,
    or target notes outside it.
-6. The current location renders through the [view header](./view-header.md),
+6. The current location renders through the [location header](./location-header.md),
    with its children in the outline below.
 7. A zoom root's direct children remain visible even when the root's stored
    fold state is `folded`. Deeper descendants follow their own fold states.
@@ -38,7 +38,7 @@ editing boundary, distinct from the editor's [selection](./selection.md).
 1. Clicking a visible editor note's bullet makes that note the zoom root.
 2. When zooming in, if the new zoom root has visible direct children, the caret
    moves to the first one.
-3. When it has none, the caret moves to the [view header](./view-header.md).
+3. When it has none, the caret moves to the [location header](./location-header.md).
 
 ## Clearing zoom
 
@@ -66,7 +66,7 @@ Commands run from outline children use their capability's boundary rules:
 3. [Indentation](./indentation.md) owns indent and outdent.
 4. [Reordering](./reordering.md) owns directional movement.
 
-Commands from the [view header](./view-header.md) use its rules. A command may
+Commands from the [location header](./location-header.md) use its rules. A command may
 show brief non-modal feedback at a boundary, but its owning specification
 determines the result.
 
