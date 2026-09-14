@@ -440,6 +440,7 @@ describe('lexical document session', () => {
     await expect(runtime.session.search(SEARCH_ALL)).rejects.toThrow('not available');
     expect(runtime.session.capabilities.getSnapshot()).toEqual({ status: 'loading' });
     await runtime.session.note('note2').toggleFold();
+    runtime.session.view.foldToLevel(1);
     runtime.session.selection.indent();
     runtime.session.selection.outdent();
     runtime.session.selection.moveUp();
@@ -455,6 +456,7 @@ describe('lexical document session', () => {
     runtime.setSourceReady(true);
     await expect(runtime.session.search(SEARCH_ALL)).rejects.toThrow('not available');
     runtime.session.history.undo();
+    runtime.session.view.foldToLevel(1);
     expect(dispatch).not.toHaveBeenCalled();
   });
 });

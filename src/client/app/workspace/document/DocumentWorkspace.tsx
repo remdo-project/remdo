@@ -120,6 +120,7 @@ export default function DocumentWorkspace({
             note={source.document}
             onRename={openRename}
             onFoldToLevel={documentSession?.view.foldToLevel}
+            onZoomOut={onSelectHome}
           />}
           <h1 ref={headingRef} tabIndex={-1}>{source.documentLabel}</h1>
         </div>

@@ -303,6 +303,18 @@ describe('stored user data', () => {
     remoteDoc.destroy();
   });
 
+  it.each([403, 500])('rejects rename when the server responds with %s', async (status) => {
+    const doc = createUserDataDoc([USER_RUNTIME_DOCUMENT]);
+    mockCollabSessions({ docsById: { [USER_DATA_DOC_ID]: doc } });
+    const { getUserData, resetUserDataRuntime } = await import('#client/app/user-data/stored-user-data');
+    const userData = await getUserData();
+    vi.stubGlobal('fetch', async () => ({ ok: false, status }));
+    await expect(userData.homeDocument().rename('Another name')).rejects.toThrow('Could not rename the document');
+    expect(userData.homeDocument().text()).toBe(USER_RUNTIME_DOCUMENT.title);
+    resetUserDataRuntime();
+    doc.destroy();
+  });
+
   it('rejects a rename after its projected target disappears', async () => {
     const doc = createUserDataDoc([USER_RUNTIME_DOCUMENT, { id: 'removedDoc', title: 'Removed' }]);
     mockCollabSessions({ docsById: { [USER_DATA_DOC_ID]: doc } });

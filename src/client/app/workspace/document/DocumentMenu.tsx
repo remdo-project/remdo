@@ -16,10 +16,12 @@ export function DocumentMenu({
   note,
   onRename,
   onFoldToLevel,
+  onZoomOut,
 }: {
   note: DocumentNote;
   onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   onFoldToLevel?: (level: number) => void;
+  onZoomOut?: () => void;
 }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -31,6 +33,7 @@ export function DocumentMenu({
           onKeyDownCapture={(event) => {
             handleNoteMenuShortcut(event, {
               dismiss: () => setOpen(false),
+              zoomOut: onZoomOut && (() => { setOpen(false); onZoomOut(); }),
               foldViewToLevel: onFoldToLevel && ((level) => {
                 onFoldToLevel(level);
                 setOpen(false);
@@ -43,10 +46,11 @@ export function DocumentMenu({
               <Header>Note</Header>
               <MenuItem onAction={() => onRename(note, triggerRef.current)}>Rename…</MenuItem>
             </MenuSection>
-            {onFoldToLevel && (
+            {(onFoldToLevel || onZoomOut) && (
               <MenuSection>
                 <Header>View</Header>
-                <MenuItem onAction={() => onFoldToLevel(1)}>Fold to level [0–9]</MenuItem>
+                {onZoomOut && <MenuItem onAction={onZoomOut}>Zoom <span className="note-menu-shortcut">o</span>ut</MenuItem>}
+                {onFoldToLevel && <MenuItem onAction={() => onFoldToLevel(1)}>Fold to level [0–9]</MenuItem>}
               </MenuSection>
             )}
           </Menu>

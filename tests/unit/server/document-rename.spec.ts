@@ -74,7 +74,8 @@ describe('document rename', () => {
     expect(harness.readProjectedDocumentTitle(data.userDataDocumentId, data.homeDocumentId)).toBe('My notes');
   });
 
-  it('publishes the last committed rename when an earlier projection is delayed', async () => {
+  it.each([false, true])('publishes the last committed rename after a delayed projection (failure: %s)', async (failFirst) => {
+    const diagnostic = vi.spyOn(console, 'error').mockImplementation(() => {});
     const blocked = createDeferred();
     const release = createDeferred();
     let delayNext = false;
@@ -83,6 +84,7 @@ describe('document rename', () => {
         delayNext = false;
         blocked.resolve();
         await release.promise;
+        if (failFirst) throw new Error('projection refresh failed');
       }
     } });
     const headers = await harness.createSessionHeaders();
@@ -99,6 +101,8 @@ describe('document rename', () => {
     expect((await first).status).toBe(200);
     expect((await second).status).toBe(200);
     expect(harness.readProjectedDocumentTitle(data.userDataDocumentId, data.homeDocumentId)).toBe('Last name');
+    expect(diagnostic).toHaveBeenCalledTimes(failFirst ? 1 : 0);
+    if (failFirst) expect(diagnostic).toHaveBeenCalledWith('[remdo-api] user-data-projection.refresh-failed');
   });
 
   it('routes linked-source rename to the source identity and leaves the home registry untouched', async () => {

@@ -78,3 +78,20 @@ test('document heading offers view folding without treating the heading as an ed
   await page.getByRole('menu').press('0');
   await expect(noteRow(page, 'note3')).toBeVisible();
 });
+
+for (const entry of ['click', 'shortcut'] as const) {
+  test(`document heading Zoom out opens Home by ${entry}`, async ({ page, editor }) => {
+    await editor.load('basic');
+    await documentLocationHeader(page).getByRole('button').click();
+    if (entry === 'click') {
+      await page.getByRole('menuitem', { name: 'Zoom out' }).click();
+    } else {
+      await page.getByRole('menu').press('o');
+    }
+    await expect(page).toHaveURL('/');
+    await expect(homeView(page).getByRole('heading', { name: 'Home', exact: true })).toBeFocused();
+    const row = homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).first().locator('..');
+    await row.getByRole('button', { name: /^Actions for / }).click();
+    await expect(page.getByRole('menuitem')).toHaveText(['Rename…']);
+  });
+}
