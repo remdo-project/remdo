@@ -1,7 +1,7 @@
 ###############################
 # Builder: compile SPA assets #
 ###############################
-FROM node:24.19-alpine AS builder
+FROM node:24.21-alpine AS builder
 
 WORKDIR /app
 
@@ -76,7 +76,7 @@ RUN mkdir -p /usr/local/bin \
 ############################
 # Runner: serve SPA + YJS  #
 ############################
-FROM node:24.19-alpine AS runner
+FROM node:24.21-alpine AS runner
 
 ENV NODE_ENV=production
 ENV DATA_DIR=/data
