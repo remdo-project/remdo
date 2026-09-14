@@ -5,7 +5,7 @@ import type { createServerRuntime } from '../../src/server/runtime.ts';
 const API_MODULE_ID = '/src/server/runtime.ts';
 
 type ServerRuntimeFactory = typeof createServerRuntime;
-type ServerRuntime = ReturnType<ServerRuntimeFactory>;
+type ServerRuntime = Awaited<ReturnType<ServerRuntimeFactory>>;
 
 interface ServerAppModule {
   createServerRuntime: ServerRuntimeFactory;
@@ -34,7 +34,7 @@ async function getServerApp(
   }
 
   await loaded?.runtime.close();
-  const runtime = mod.createServerRuntime();
+  const runtime = await mod.createServerRuntime();
   return {
     createServerRuntime: mod.createServerRuntime,
     runtime,
@@ -43,22 +43,41 @@ async function getServerApp(
 
 export function remdoApiDevPlugin(): Plugin {
   let loaded: LoadedServerApp | null = null;
+  let loadTail = Promise.resolve();
+  let closing = false;
 
   return {
     name: 'remdo-api-dev',
     apply: 'serve',
+    async closeServer() {
+      closing = true;
+      await loadTail;
+      await loaded?.runtime.close();
+    },
     configureServer(server) {
+      loaded = null;
+      loadTail = Promise.resolve();
+      closing = false;
       const listener = getRequestListener(
         async (request) => {
-          loaded = await getServerApp(server, loaded);
-          return loaded.runtime.app.fetch(request);
+          if (closing) {
+            return new Response('Server is shutting down.', { status: 503 });
+          }
+          const pending = loadTail.then(async () => {
+            loaded = await getServerApp(server, loaded);
+            return loaded.runtime;
+          });
+          loadTail = pending.then(() => {}, () => {});
+          const runtime = await pending;
+          // Shutdown can begin while initialization is awaited.
+          // eslint-disable-next-line ts/no-unnecessary-condition
+          if (closing) {
+            return new Response('Server is shutting down.', { status: 503 });
+          }
+          return runtime.app.fetch(request);
         },
         { overrideGlobalObjects: false },
       );
-
-      server.httpServer?.once('close', () => {
-        void loaded?.runtime.close();
-      });
 
       server.middlewares.use((req, res, next) => {
         if (!isApiRequestPath(req.url)) {

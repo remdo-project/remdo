@@ -36,7 +36,6 @@ export function createAuthRoutes({ auth }: ServerRouteDependencies) {
   });
 
   routes.all('/*', async (c) => {
-    await auth.ensureReady();
     return auth.auth.handler(c.req.raw);
   });
 

@@ -4,7 +4,7 @@ import { createServerAppHarness } from './_support/server-app-harness';
 
 const createHarness = createTestResource(createServerAppHarness);
 
-function postJson(app: ReturnType<typeof createServerAppHarness>['app'], path: string, body: unknown, headers: Headers = new Headers()) {
+function postJson(app: Awaited<ReturnType<typeof createServerAppHarness>>['app'], path: string, body: unknown, headers: Headers = new Headers()) {
   const requestHeaders = new Headers(headers);
   requestHeaders.set('content-type', 'application/json');
   return app.request(path, { method: 'POST', headers: requestHeaders, body: JSON.stringify(body) });
@@ -24,7 +24,7 @@ afterEach(() => {
 // logic: the public-server guard, the auth gate, and the URL validation.
 describe('post /api/current-user/source-links', () => {
   it('refuses to link from a public server (public acts only as a source)', async () => {
-    const harness = createHarness({ allowSignup: true });
+    const harness = await createHarness({ allowSignup: true });
     const headers = await harness.createSessionHeaders();
     const response = await postJson(harness.app, '/api/current-user/source-links', { url: 'https://source.example' }, headers);
     expect(response.status).toBe(403);
@@ -34,13 +34,13 @@ describe('post /api/current-user/source-links', () => {
   });
 
   it('rejects an unauthenticated request', async () => {
-    const harness = createHarness({ allowSignup: false });
+    const harness = await createHarness({ allowSignup: false });
     const response = await postJson(harness.app, '/api/current-user/source-links', { url: 'https://source.example' });
     expect(response.status).toBe(401);
   });
 
   it('rejects a bearer-authenticated request (linking needs an interactive session)', async () => {
-    const harness = createHarness({ allowSignup: false });
+    const harness = await createHarness({ allowSignup: false });
     harness.auth.resolveBearerUser = vi.fn(async () => ({ email: 'x@example.com', id: 'u1', name: 'X' }));
     const headers = new Headers({ authorization: 'Bearer delegated-token' });
     const response = await postJson(harness.app, '/api/current-user/source-links', { url: 'https://source.example' }, headers);
@@ -51,7 +51,7 @@ describe('post /api/current-user/source-links', () => {
   });
 
   it('rejects a missing or non-http url', async () => {
-    const harness = createHarness({ allowSignup: false });
+    const harness = await createHarness({ allowSignup: false });
     const headers = await harness.createSessionHeaders();
     for (const url of [undefined, '', 'not-a-url', 'ws://source.example']) {
       const response = await postJson(harness.app, '/api/current-user/source-links', { url }, headers);
@@ -60,7 +60,7 @@ describe('post /api/current-user/source-links', () => {
   });
 
   it('maps a source that refuses registration to a client error, not a 500', async () => {
-    const harness = createHarness({ allowSignup: false });
+    const harness = await createHarness({ allowSignup: false });
     const headers = await harness.createSessionHeaders();
     // The source refuses dynamic registration (private source / not a RemDo
     // server): an expected outcome of the user's URL, not a home fault.
@@ -75,7 +75,7 @@ describe('post /api/current-user/source-links', () => {
   });
 
   it('maps a rate-limited source (429) to 429', async () => {
-    const harness = createHarness({ allowSignup: false });
+    const harness = await createHarness({ allowSignup: false });
     const headers = await harness.createSessionHeaders();
     vi.stubGlobal('fetch', vi.fn(async () => new Response('too many', { status: 429 })));
 
@@ -85,7 +85,7 @@ describe('post /api/current-user/source-links', () => {
   });
 
   it('maps a source 5xx (upstream fault) to a 500, not a client error', async () => {
-    const harness = createHarness({ allowSignup: false });
+    const harness = await createHarness({ allowSignup: false });
     const headers = await harness.createSessionHeaders();
     // A source-side outage is a genuine fault, not invalid user input.
     vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 503 })));
@@ -96,7 +96,7 @@ describe('post /api/current-user/source-links', () => {
   });
 
   it('normalizes a deep URL, ensures a source client, and reaches linkSocialAccount', async () => {
-    const harness = createHarness({ allowSignup: false, swappableAuth: true });
+    const harness = await createHarness({ allowSignup: false, swappableAuth: true });
     const headers = await harness.createSessionHeaders();
     let registeredRedirectUri: string | undefined;
     let registeredResource: string | undefined;

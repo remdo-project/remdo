@@ -23,7 +23,7 @@ const registerBody = JSON.stringify({
 
 describe('source OAuth registration gate', () => {
   it('accepts unauthenticated public-client registration on a public source', async () => {
-    const harness = createHarness({ allowSignup: true, baseURL: SOURCE_ORIGIN });
+    const harness = await createHarness({ allowSignup: true, baseURL: SOURCE_ORIGIN });
     const res = await harness.app.request('/api/auth/oauth2/register', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -38,7 +38,7 @@ describe('source OAuth registration gate', () => {
   });
 
   it('refuses unauthenticated registration on a private (non-public) source', async () => {
-    const harness = createHarness({ allowSignup: false, baseURL: SOURCE_ORIGIN });
+    const harness = await createHarness({ allowSignup: false, baseURL: SOURCE_ORIGIN });
     const res = await harness.app.request('/api/auth/oauth2/register', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

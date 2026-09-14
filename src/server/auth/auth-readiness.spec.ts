@@ -48,17 +48,16 @@ describe('server auth readiness', () => {
   it('waits for every started auth context before reporting initialization failure', async () => {
     const pendingContext = createDeferred();
     betterAuthMock
-      .mockReturnValueOnce(fakeBetterAuth(Promise.reject(new Error('context failed'))))
+      .mockImplementationOnce(() => fakeBetterAuth(Promise.reject(new Error('context failed'))))
       .mockReturnValueOnce(fakeBetterAuth(pendingContext.promise));
     const database = createServerDatabaseClient({ dbPath: ':memory:' });
-    const auth = createServerAuth({
+    const ready = createServerAuth({
       allowSignup: false,
       baseURL: 'http://127.0.0.1:4000',
       database,
       secret: 'test-better-auth-secret-0123456789',
     });
 
-    const ready = auth.ensureReady();
     const isSettled = trackSettlement(ready);
     await new Promise<void>((resolve) => {
       setImmediate(resolve);
@@ -70,33 +69,45 @@ describe('server auth readiness', () => {
     await database.close();
   });
 
-  it('waits for every started auth context before reporting migration failure', async () => {
-    const pendingContext = createDeferred();
-    betterAuthMock
-      .mockReturnValueOnce(fakeBetterAuth(Promise.resolve()))
-      .mockReturnValueOnce(fakeBetterAuth(pendingContext.promise));
+  it('does not initialize auth when migration fails', async () => {
     getMigrationsMock.mockResolvedValueOnce({
       async runMigrations() {
         throw new Error('migration failed');
       },
     });
     const database = createServerDatabaseClient({ dbPath: ':memory:' });
-    const auth = createServerAuth({
+    await expect(createServerAuth({
+      allowSignup: false,
+      baseURL: 'http://127.0.0.1:4000',
+      database,
+      secret: 'test-better-auth-secret-0123456789',
+    })).rejects.toThrow('migration failed');
+    expect(betterAuthMock).not.toHaveBeenCalled();
+    await database.close();
+  });
+
+  it('finishes migration before either auth instance starts', async () => {
+    const migrationStarted = createDeferred();
+    const releaseMigration = createDeferred();
+    getMigrationsMock.mockResolvedValueOnce({
+      async runMigrations() {
+        migrationStarted.resolve();
+        await releaseMigration.promise;
+      },
+    });
+    betterAuthMock.mockImplementation(() => fakeBetterAuth(Promise.resolve({})));
+    const database = createServerDatabaseClient({ dbPath: ':memory:' });
+    const ready = createServerAuth({
       allowSignup: false,
       baseURL: 'http://127.0.0.1:4000',
       database,
       secret: 'test-better-auth-secret-0123456789',
     });
-
-    const ready = auth.ensureReady();
-    const isSettled = trackSettlement(ready);
-    await new Promise<void>((resolve) => {
-      setImmediate(resolve);
-    });
-    expect(isSettled()).toBe(false);
-
-    pendingContext.resolve();
-    await expect(ready).rejects.toThrow('migration failed');
+    await migrationStarted.promise;
+    expect(betterAuthMock).not.toHaveBeenCalled();
+    releaseMigration.resolve();
+    await ready;
+    expect(betterAuthMock).toHaveBeenCalledTimes(2);
     await database.close();
   });
 });

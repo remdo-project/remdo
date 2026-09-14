@@ -6,14 +6,18 @@ import { createServerRuntime } from '#server/runtime';
 import { reportServerDiagnostic } from '#server/diagnostics';
 
 let runtime: ReturnType<typeof createServerRuntime> | null = null;
+let stopping = false;
 
 async function main() {
   runtime = createServerRuntime();
-  await runtime.auth.ensureReady();
+  const ready = await runtime;
+  if (stopping) {
+    return;
+  }
 
   serve(
     {
-      fetch: runtime.app.fetch,
+      fetch: ready.app.fetch,
       hostname: INTERNAL_SERVICE_HOST,
       port: config.env.API_SERVER_PORT,
     },
@@ -30,7 +34,8 @@ void main().catch(() => {
 });
 
 function shutdown(): void {
-  void (runtime?.close() ?? Promise.resolve()).finally(() => {
+  stopping = true;
+  void (runtime?.then((ready) => ready.close()) ?? Promise.resolve()).finally(() => {
     process.exit(0);
   });
 }

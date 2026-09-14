@@ -4,7 +4,7 @@ interface TestResource {
   cleanup: () => Promise<void> | void;
 }
 
-export function createTestResource<TOptions, TResource extends TestResource>(
+export function createTestResource<TOptions, TResource extends TestResource | Promise<TestResource>>(
   createResource: (options?: TOptions) => TResource,
 ): (options?: TOptions) => TResource {
   let resources: TResource[] = [];
@@ -15,7 +15,7 @@ export function createTestResource<TOptions, TResource extends TestResource>(
     const pending = resources;
     resources = [];
     for (const resource of pending) {
-      await resource.cleanup();
+      await (await resource).cleanup();
     }
   });
 

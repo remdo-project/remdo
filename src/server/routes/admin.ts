@@ -18,7 +18,6 @@ export function createAdminRoutes({
   // can create an admin account. Promoting an *existing* user is a later,
   // panel-gated capability, not this endpoint.
   routes.post('/enroll', async (c) => {
-    await auth.ensureReady();
 
     const body = await c.req.json<{
       adminSecret?: string;
