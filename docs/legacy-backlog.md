@@ -176,9 +176,10 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-
 - Map leak: entries evict only on successful claim, so abandoned uploads retain
   the `File` for the session.
 
-## Home and view-header follow-ups
+## Home and location-header follow-ups
 
-Tracks the gaps between [Home](specs/outliner/home.md) and the [view header](specs/outliner/view-header.md) as specified and what ships.
+Tracks remaining gaps between [Home](specs/outliner/home.md) and the [location header](specs/outliner/location-header.md) as specified and what
+ships.
 
 - The document-source combobox in `DocumentToolbar.tsx` still lists documents for
   switching; Home owns browsing and New/Upload. Remove the picker once Home fully
@@ -192,28 +193,26 @@ Tracks the gaps between [Home](specs/outliner/home.md) and the [view header](spe
   (`document-switcher.spec.ts`, the picker cases in
   `document-toolbar.spec.tsx`/`document-route.spec.tsx`).
 
-The [view header](specs/outliner/view-header.md) (Model F) is specified but not
-yet built; the entries below track implementation gaps against its rules.
+The location header and document actions are specified but not yet built; the
+entries below track implementation gaps against their rules.
 
-- No view header is rendered: while zoomed the zoom root remains the editable
-  top outline `ListItemNode`, and at the document root the document name remains
-  a breadcrumb crumb (`ZoomBreadcrumbs`), which also anchors the picker and is
-  the clear-zoom target.
-- View header not yet the specified restricted kind: the subtree-zoom root is an
-  editable outline `ListItemNode`, and the view-header restrictions are enforced
+- No document-root location header is rendered; the document name remains in
+  the breadcrumb picker. Home rows have no document action menu.
+- Document rename has no SDK operation or source-authorized endpoint, and no
+  submitted-name dialog. Implement [Document rename](specs/outliner/location-header.md#document-rename) before document deletion.
+- Menu buttons do not share the [persistent active target](specs/outliner/menu.md#entry) across the document
+  header, Home rows, and editor notes.
+- No zoomed-note location header is rendered: the zoom root remains the
+  editable top outline `ListItemNode`.
+- The subtree-zoom root is an editable outline `ListItemNode`, and the
+  location-header restrictions are enforced
   through per-command zoom-root special-casing in `InsertionPlugin`,
   `DeletionPlugin`, `FoldingPlugin`, `IndentationPlugin`, `ReorderingPlugin`, and
-  the note menu until the restricted kind exists.
-- Document name is not editable. Editing the header is specified to rename the
-  document at the root, but `DocumentNote` (`src/note-sdk/documents.ts`) exposes
-  only read-only `getText()` and there is no rename command/endpoint. The coherent
-  end state is the document name being the document root note's own text (a CRDT
-  edit), which also unifies the root and subtree-zoom header. Needs an SDK rename
-  capability, its server/collab path, and a name migration.
-- Breadcrumb heading semantics: the header carries the view's heading semantics;
+  the note menu until the separate header is implemented.
+- Zoomed-note heading semantics: the header carries the view's heading semantics;
   the editable content and the heading role must stay on separate elements (a
   `textbox` role masks an inner heading from assistive tech). Close with the
-  view-header work.
+  location-header work.
 
 ## Note-first SDK follow-ups
 

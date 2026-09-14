@@ -19,7 +19,7 @@ owns only the toolbar surface and its behavior.
 
 1. The toolbar carries these actions: indent, outdent, move up, move down, toggle
    done, toggle fold, delete, undo, redo, open note menu.
-2. A selection in the [view header](./view-header.md#structural-boundary)
+2. A selection in the [location header](./location-header.md#structural-boundary)
    supplies no note target to the toolbar. Otherwise, the structural actions
    target the current selection: the [editor note](./note-model.md#note-kinds) owning the
    [outline selection region](./selection.md#selection-states) of a [caret or inline text selection](./selection.md#selection-states), or every
@@ -32,7 +32,7 @@ owns only the toolbar surface and its behavior.
      [Deletion](./deletion.md), with no confirmation step. For a caret this
      removes the [focus note](./selection.md#selection-states), not the caret merge that Backspace performs. The current
      [zoom root](./zoom.md#definitions) supplies no delete target.
-3. Outside the view header, toggle fold targets the focus note, per
+3. Outside the location header, toggle fold targets the focus note, per
    [Folding](./folding.md).
 4. Undo and redo act on the document's edit history rather than the selection,
    reversing and reapplying the most recent edits.

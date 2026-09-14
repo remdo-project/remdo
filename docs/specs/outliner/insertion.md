@@ -37,7 +37,7 @@ new note outside the [zoom boundary](./zoom.md#definitions); in those cases
 insertion stays inside the [subtree](./note-model.md#definitions). A middle
 split of the zoom root makes the trailing note its first child; the original
 children follow that trailing note and become its children. `Enter` from the
-[view header](./view-header.md) is defined by the view-header rules.
+[location header](./location-header.md) is defined by the location-header rules.
 
 ## Focus rules
 
