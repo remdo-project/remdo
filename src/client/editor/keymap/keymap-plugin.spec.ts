@@ -9,22 +9,15 @@ const ctrlChordDown = { key: 'ArrowDown', ctrl: true, shift: true } as const;
 const ctrlChordUp = { key: 'ArrowUp', ctrl: true, shift: true } as const;
 const ctrlEnterChord = { key: 'Enter', ctrl: true } as const;
 
-type FakeEvent = KeyboardEvent & { defaultPrevented: boolean };
-
-const makeEvent = (chord: { key: string; alt?: boolean; ctrl?: boolean; shift?: boolean; meta?: boolean }): FakeEvent => {
-  const event = {
+const makeEvent = (chord: { key: string; alt?: boolean; ctrl?: boolean; shift?: boolean; meta?: boolean }): KeyboardEvent =>
+  new KeyboardEvent('keydown', {
     key: chord.key,
     altKey: chord.alt ?? false,
     ctrlKey: chord.ctrl ?? false,
     shiftKey: chord.shift ?? false,
     metaKey: chord.meta ?? false,
-    defaultPrevented: false,
-    preventDefault(this: FakeEvent) {
-      this.defaultPrevented = true;
-    },
-  } as unknown as FakeEvent;
-  return event;
-};
+    cancelable: true,
+  });
 
 describe('keymapPlugin key handler', () => {
   it('uses alt+shift to reorder on non-Apple platforms', () => {
@@ -36,11 +29,11 @@ describe('keymapPlugin key handler', () => {
 
     expect(handler(downEvent)).toBe(true);
     expect(downEvent.defaultPrevented).toBe(true);
-    expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_DOWN_COMMAND, null);
+    expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_DOWN_COMMAND);
 
     expect(handler(upEvent)).toBe(true);
     expect(upEvent.defaultPrevented).toBe(true);
-    expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_UP_COMMAND, null);
+    expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_UP_COMMAND);
   });
 
   it('uses ctrl+shift to reorder on Apple platforms', () => {
@@ -52,11 +45,11 @@ describe('keymapPlugin key handler', () => {
 
     expect(handler(downEvent)).toBe(true);
     expect(downEvent.defaultPrevented).toBe(true);
-    expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_DOWN_COMMAND, null);
+    expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_DOWN_COMMAND);
 
     expect(handler(upEvent)).toBe(true);
     expect(upEvent.defaultPrevented).toBe(true);
-    expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_UP_COMMAND, null);
+    expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_UP_COMMAND);
   });
 
   it('uses ctrl+enter to toggle checked state on non-Apple platforms', () => {
@@ -67,5 +60,31 @@ describe('keymapPlugin key handler', () => {
     expect(handler(event)).toBe(true);
     expect(event.defaultPrevented).toBe(true);
     expect(dispatchCommand).toHaveBeenCalledWith(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
+  });
+
+  it('returns false when a matched command is not handled but still prevents the browser default', () => {
+    const dispatchCommand = vi.fn().mockReturnValue(false);
+    const handler = createKeyHandler({ dispatchCommand } as unknown as LexicalEditor, false);
+    const event = makeEvent(altChordUp);
+
+    expect(handler(event)).toBe(false);
+    expect(event.defaultPrevented).toBe(true);
+    expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_UP_COMMAND);
+  });
+
+  it('leaves unmatched keys and modifiers untouched', () => {
+    const dispatchCommand = vi.fn().mockReturnValue(true);
+    const handler = createKeyHandler({ dispatchCommand } as unknown as LexicalEditor, false);
+
+    for (const chord of [
+      { key: 'Escape' },
+      { key: 'ArrowDown', alt: true },
+      { ...altChordDown, ctrl: true },
+    ]) {
+      const event = makeEvent(chord);
+      expect(handler(event)).toBe(false);
+      expect(event.defaultPrevented).toBe(false);
+    }
+    expect(dispatchCommand).not.toHaveBeenCalled();
   });
 });
