@@ -37,4 +37,29 @@ describe('document session collaboration', () => {
     expect(flatResults.map(({ note }) => ({ id: note.id, text: note.text })))
       .toEqual([{ id: 'note2', text: 'updated by peer' }]);
   });
+
+  it('observes addressed state changed through a peer session', meta({
+    collabDocId: 'sdkRemoteActions',
+    fixture: 'tree',
+  }), async ({ remdo }) => {
+    await remdo.waitForSynced();
+    const peer = await createCollabPeer(remdo);
+    await peer.waitForSynced();
+    const note = remdo.documentSession.noteRef('note2');
+    const listener = vi.fn();
+    onTestFinished(note.subscribe(listener));
+    const remote = peer.documentSession.noteRef('note2');
+
+    await remote.toggleChecked();
+    await remote.setChildListType('number');
+    await remote.toggleFold();
+
+    await waitFor(() => {
+      expect(note.getChecked()).toBe(true);
+      expect(note.getChildListType()).toBe('number');
+      expect(note.getFolded()).toBe(true);
+      expect(remdo.documentSession.noteRef('note3').getChecked()).toBe(true);
+      expect(listener).toHaveBeenCalled();
+    });
+  });
 });

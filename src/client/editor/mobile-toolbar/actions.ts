@@ -16,7 +16,7 @@ export type MobileActionId =
   | 'menu';
 
 export function runMobileAction(
-  session: DocumentSession,
+  session: Pick<DocumentSession, 'focus' | 'selection' | 'history'>,
   id: MobileActionId,
   openNoteMenu: () => void,
 ): void {

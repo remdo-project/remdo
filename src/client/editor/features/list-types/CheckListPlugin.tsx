@@ -5,9 +5,10 @@ import type { LexicalEditor } from 'lexical';
 import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 import { useEffect } from 'react';
 
+import { $setNoteCheckedRecursively, $toggleNoteCheckedForTargets } from './checked-operations';
 import type { NoteCheckedDisplay } from '#client/editor/features/list-types/checked-subtree';
 import { $getNoteChecked, $setNoteCheckedRaw } from '#client/editor/features/list-types/checked-state';
-import { $isNoteSubtreeChecked, NoteCheckedDisplayCache } from '#client/editor/features/list-types/checked-subtree';
+import { NoteCheckedDisplayCache } from '#client/editor/features/list-types/checked-subtree';
 import { SET_NESTED_LIST_TYPE_COMMAND, SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 import type { SetNoteCheckedPayload } from '#client/editor/foundation/commands';
 import { isBulletHit, isCheckboxHit } from '#client/editor/outline/bullet-hit-test';
@@ -15,7 +16,7 @@ import { getPreviousContentSibling, isChildrenWrapper, isContentItem } from '#cl
 import { $resolveNoteIdFromDOMNode } from '#client/editor/outline/note-context';
 import { $resolveStructuralItemsFromRange } from '#client/editor/outline/selection/range';
 import { requireContentItemFromNode, resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { getNestedList, getParentContentItem, getSubtreeItems, getWrapperForContent } from '#client/editor/outline/selection/tree';
+import { getNestedList, getParentContentItem, getWrapperForContent } from '#client/editor/outline/selection/tree';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 
 // A body-wrapper renders as `.note-body-wrapper`, never a checklist `<li>`, so it
@@ -87,31 +88,6 @@ const $syncNoteCheckedDataset = (
 const $resolveContentItemByKey = (key: string): ListItemNode | null => {
   const node = $getNodeByKey(key);
   return node ? requireContentItemFromNode(node) : null;
-};
-
-const $setNoteCheckedForSingleNode = (node: ListItemNode, checked: boolean) => {
-  $setNoteCheckedRaw(node, checked);
-  const parent = node.getParent();
-  if ($isListNode(parent) && parent.getListType() === 'check') {
-    node.setChecked(checked);
-  }
-};
-
-// User-facing checklist actions always apply to a subtree so descendants match
-// the toggled root.
-const $setNoteCheckedRecursively = (node: ListItemNode, checked: boolean) => {
-  for (const item of getSubtreeItems(node)) {
-    $setNoteCheckedForSingleNode(item, checked);
-  }
-};
-
-// Toggling is one decision over the whole target set: it unchecks only when
-// every target is already complete. Shared so each toggling surface agrees.
-const $toggleNoteCheckedForTargets = (targets: ListItemNode[]) => {
-  const allChecked = targets.every((target) => $isNoteSubtreeChecked(target));
-  for (const target of targets) {
-    $setNoteCheckedRecursively(target, !allChecked);
-  }
 };
 
 const $resolveRootTargets = (items: ListItemNode[]): ListItemNode[] => {

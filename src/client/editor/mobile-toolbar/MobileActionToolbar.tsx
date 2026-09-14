@@ -40,7 +40,7 @@ function disabledIds(capabilities: DocumentCapabilitiesSnapshot): Set<MobileActi
 }
 
 interface MobileActionToolbarProps {
-  session: DocumentSession;
+  session: Pick<DocumentSession, 'capabilities' | 'focus' | 'selection' | 'history'>;
   portalRoot: Element | null;
   focusEditor: () => void;
   openNoteMenu: () => void;

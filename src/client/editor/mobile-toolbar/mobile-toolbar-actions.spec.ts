@@ -1,11 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { DocumentSession, LoadState, SnapshotStore } from '#note-sdk';
+import type { DocumentSession } from '#note-sdk';
 import { runMobileAction } from './actions';
-
-const loadingStore = <T,>(): SnapshotStore<LoadState<T>> => ({
-  getSnapshot: () => ({ status: 'loading' }),
-  subscribe: () => () => {},
-});
 
 function createSession() {
   const operations = {
@@ -15,22 +10,11 @@ function createSession() {
     moveDown: vi.fn(),
     toggleChecked: vi.fn(),
     toggleFocusedFold: vi.fn(),
-    toggleNoteFold: vi.fn(() => Promise.resolve()),
     delete: vi.fn(),
     undo: vi.fn(),
     redo: vi.fn(),
   };
-  const session: DocumentSession = {
-    documentId: 'main',
-    search: vi.fn(),
-    capabilities: loadingStore(),
-    noteRef: (noteId) => ({
-      getId: () => noteId,
-      getText: () => '',
-      getFolded: () => false,
-      toggleFold: operations.toggleNoteFold,
-      subscribe: () => () => {},
-    }),
+  const session: Pick<DocumentSession, 'focus' | 'selection' | 'history'> = {
     focus: { toggleFold: operations.toggleFocusedFold },
     selection: {
       indent: operations.indent,
@@ -67,7 +51,6 @@ describe('mobile toolbar action delegation', () => {
     expect(operations.moveDown).toHaveBeenCalledOnce();
     expect(operations.toggleChecked).toHaveBeenCalledOnce();
     expect(operations.toggleFocusedFold).toHaveBeenCalledOnce();
-    expect(operations.toggleNoteFold).not.toHaveBeenCalled();
     expect(operations.delete).toHaveBeenCalledOnce();
     expect(operations.undo).toHaveBeenCalledOnce();
     expect(operations.redo).toHaveBeenCalledOnce();
