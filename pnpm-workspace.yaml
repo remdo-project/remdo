@@ -67,7 +67,7 @@ overrides:
 packageExtensions:
   eslint-plugin-compat:
     dependencies:
-      caniuse-lite: 1.0.30001785
+      caniuse-lite: 1.0.30001810
 patchedDependencies:
   # Lexical V2 must ignore remote cursors mapped only to deleted text nodes.
   # Regression: tests/unit/collab/lexical-yjs-cursor-sync.collab.spec.ts.

@@ -256,6 +256,7 @@ overrides:
   glob>minimatch: 10.2.4
   js-yaml: 4.3.2
   markdown-it: '>=14.2.0'
+  markdownlint-cli2>smol-toml: 1.7.1
   minimatch@10>brace-expansion: 5.0.9
   minimatch@3>brace-expansion: 1.1.18
   minimatch@5>brace-expansion: 2.1.4
@@ -263,11 +264,10 @@ overrides:
   postcss: '>=8.5.23'
   qs: 6.15.2
   serialize-javascript: 7.0.5
-  markdownlint-cli2>smol-toml: 1.7.1
   table>ajv: 8.18.0
   undici: '>=7.29.0'
 
-packageExtensionsChecksum: sha256-zl8DYLNKOFD2VSyV8Kqvl6CxA6aolU7BuOLdA+lIoaM=
+packageExtensionsChecksum: sha256-P2UIvEUclvIcYjhkF2z5RZVgXyK5zGkP39oytZlZ7pY=
 
 patchedDependencies:
   '@lexical/yjs@0.49.0': 00260a8317c2474983b02b294ea3977350cf3c86bd43b84f53dd452ef854fb89
@@ -3120,9 +3120,6 @@ packages:
   camelcase@5.3.1:
     resolution: {integrity: sha512-L28STB170nwWS63UjtlEOE3dldQApaJXZkOI1uMFfzf3rRuPegHaHesyee+YxQ+W6SvRDQV6UrdOdRiR153wJg==}
     engines: {node: '>=6'}
-
-  caniuse-lite@1.0.30001785:
-    resolution: {integrity: sha512-blhOL/WNR+Km1RI/LCVAvA73xplXA7ZbjzI4YkMK9pa6T/P3F2GxjNpEkyw5repTw9IvkyrjyHpwjnhZ5FOvYQ==}
 
   caniuse-lite@1.0.30001810:
     resolution: {integrity: sha512-TITQPUkaz+aVk5GL6NhOdwk1aEaNTSDPsGFWrTuhKGtjTF70jL/Oht2W4c6rXUe5fu7Ie19VIahAXHIIiWWNeg==}
@@ -8877,8 +8874,6 @@ snapshots:
 
   camelcase@5.3.1: {}
 
-  caniuse-lite@1.0.30001785: {}
-
   caniuse-lite@1.0.30001810: {}
 
   ccount@2.0.1: {}
@@ -9417,7 +9412,7 @@ snapshots:
       '@mdn/browser-compat-data': 6.1.5
       ast-metadata-inferer: 0.8.1
       browserslist: 4.28.9
-      caniuse-lite: 1.0.30001785
+      caniuse-lite: 1.0.30001810
       eslint: 10.10.0(jiti@2.7.0)(supports-color@10.2.2)
       find-up: 5.0.0
       globals: 15.15.0
