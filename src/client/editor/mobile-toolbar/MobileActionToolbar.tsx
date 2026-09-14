@@ -1,12 +1,14 @@
 import type { MouseEvent as ReactMouseEvent } from 'react';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { DocumentCapabilitiesSnapshot, DocumentSession } from '#note-sdk';
+import type { DocumentSession } from '#note-sdk';
 
 import { useCoarsePointer } from '#client/browser/useCoarsePointer';
 import { useVisualViewportBottom } from '#client/browser/useVisualViewportBottom';
 import type { MobileActionId } from './actions';
 import { runMobileAction } from './actions';
+import { useToolbarCapabilities } from './useToolbarCapabilities';
+import type { ToolbarCapabilities } from './useToolbarCapabilities';
 import type { LaidOutAction } from './toolbar-layout';
 import { resolveToolbarLayout } from './toolbar-layout';
 
@@ -24,23 +26,17 @@ const ACTION_META: Record<MobileActionId, { icon: string; label: string }> = {
   menu: { icon: '⋯', label: 'Note menu' },
 };
 
-const UNAVAILABLE_CAPABILITIES: DocumentCapabilitiesSnapshot = Object.freeze({
-  focus: Object.freeze({ canToggleFold: false }),
-  selection: Object.freeze({ canDelete: false }),
-  history: Object.freeze({ canUndo: false, canRedo: false }),
-});
-
-function disabledIds(capabilities: DocumentCapabilitiesSnapshot): Set<MobileActionId> {
+function disabledIds(capabilities: ToolbarCapabilities): Set<MobileActionId> {
   const set = new Set<MobileActionId>();
-  if (!capabilities.focus.canToggleFold) set.add('fold');
-  if (!capabilities.selection.canDelete) set.add('delete');
-  if (!capabilities.history.canUndo) set.add('undo');
-  if (!capabilities.history.canRedo) set.add('redo');
+  if (!capabilities.canToggleFold) set.add('fold');
+  if (!capabilities.canDelete) set.add('delete');
+  if (!capabilities.canUndo) set.add('undo');
+  if (!capabilities.canRedo) set.add('redo');
   return set;
 }
 
 interface MobileActionToolbarProps {
-  session: Pick<DocumentSession, 'capabilities' | 'focus' | 'selection' | 'history'>;
+  session: Pick<DocumentSession, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'>;
   portalRoot: Element | null;
   focusEditor: () => void;
   openNoteMenu: () => void;
@@ -62,14 +58,7 @@ function VisibleMobileActionToolbar({
   openNoteMenu,
 }: MobileActionToolbarProps & { portalRoot: Element }) {
   const visualViewportBottom = useVisualViewportBottom();
-  const capabilityState = useSyncExternalStore(
-    session.capabilities.subscribe,
-    session.capabilities.getSnapshot,
-    session.capabilities.getSnapshot,
-  );
-  const capabilities = capabilityState.status === 'ready'
-    ? capabilityState.data
-    : UNAVAILABLE_CAPABILITIES;
+  const capabilities = useToolbarCapabilities(session);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [fade, setFade] = useState<{ start: boolean; end: boolean }>({ start: false, end: false });
 

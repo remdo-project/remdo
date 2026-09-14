@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { DocumentSession } from '#note-sdk';
 import { runMobileAction } from './actions';
 
 function createSession() {
@@ -14,9 +13,10 @@ function createSession() {
     undo: vi.fn(),
     redo: vi.fn(),
   };
-  const session: Pick<DocumentSession, 'focus' | 'selection' | 'history'> = {
-    focus: { toggleFold: operations.toggleFocusedFold },
+  const session = {
+    focus: { canToggleFold: () => false, toggleFold: operations.toggleFocusedFold },
     selection: {
+      canDelete: () => false,
       indent: operations.indent,
       outdent: operations.outdent,
       moveUp: operations.moveUp,
@@ -24,7 +24,7 @@ function createSession() {
       toggleChecked: operations.toggleChecked,
       delete: operations.delete,
     },
-    history: { undo: operations.undo, redo: operations.redo },
+    history: { canUndo: () => false, canRedo: () => false, undo: operations.undo, redo: operations.redo },
   };
   return { operations, session };
 }

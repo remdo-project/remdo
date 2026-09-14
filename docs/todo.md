@@ -90,9 +90,13 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### SDK
 
-- **SDK API validation.** Assess capability observation that still exposes a
-  snapshot store, and
-  evaluate completion and unavailable-target outcomes when a consumer needs to
+- **Simplify SDK consumer types.** Review consumers beyond the mobile toolbar
+  for narrowing driven only by test setup and duplicate local types. Prefer
+  existing public types at meaningful boundaries; retain narrower contracts
+  when they provide a concrete benefit, following [SDK design](dev/sdk.md).
+
+- **SDK API validation.** Evaluate completion and unavailable-target outcomes
+  when a consumer needs to
   know whether an operation took effect. Evaluate query and app-resource reads
   in their own workflows using the [design principles and references](dev/sdk.md); choosing
   app-resource cache tooling remains a separate task.

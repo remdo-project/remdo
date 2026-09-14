@@ -3,17 +3,6 @@ import type { NoteId } from './notes';
 /** Marker style owned by the list containing an editor note. */
 export type NoteListType = 'bullet' | 'number' | 'check';
 
-export type LoadState<T> =
-  | Readonly<{ status: 'loading' }>
-  | Readonly<{ status: 'ready'; data: T }>
-  | Readonly<{ status: 'error'; error: unknown }>;
-
-/** A synchronously readable cached observable value. */
-export interface SnapshotStore<T> {
-  getSnapshot: () => T;
-  subscribe: (listener: () => void) => () => void;
-}
-
 /** Immutable parent-owned child order and presentation. */
 export interface ChildListSnapshot {
   readonly listType: NoteListType;
@@ -58,24 +47,11 @@ export interface DocumentSearchOptions {
   childPreviewLimit: number;
 }
 
-/** Current semantic capabilities used by high-level action surfaces. */
-export interface DocumentCapabilitiesSnapshot {
-  readonly focus: Readonly<{
-    canToggleFold: boolean;
-  }>;
-  readonly selection: Readonly<{
-    canDelete: boolean;
-  }>;
-  readonly history: Readonly<{
-    canUndo: boolean;
-    canRedo: boolean;
-  }>;
-}
-
 /**
  * A live, stable-ID reference to one editor note in the open document.
- * Value and capability reads throw NoteUnavailableError when the note or source
- * is unavailable. Operations revalidate their targets and no-op when unavailable.
+ * Value reads throw NoteUnavailableError when the note or source is unavailable.
+ * Capability reads return false in those states; unexpected read failures propagate.
+ * Operations revalidate their targets and no-op when unavailable.
  */
 export interface OpenDocumentNote {
   /** Stable ID used to re-resolve the note in the current document revision. */
@@ -104,10 +80,13 @@ export interface OpenDocumentNote {
 /**
  * RemDo's adapter-neutral API for one open document. Framework transactions,
  * commands, storage keys, and observation mechanics stay behind its adapter.
+ * Current capability reads need no subscription and return false when the source
+ * is unavailable. Unexpected read failures propagate.
  */
 export interface DocumentSession {
   readonly documentId: string;
-  readonly capabilities: SnapshotStore<LoadState<DocumentCapabilitiesSnapshot>>;
+  /** Notifies when action eligibility, source availability, or read failures may have changed. */
+  readonly subscribeCapabilities: (listener: () => void) => () => void;
 
   /** Searches current committed data; rejects when the source cannot be read. */
   readonly search: (options: DocumentSearchOptions) => Promise<DocumentSearchResults>;
@@ -119,10 +98,12 @@ export interface DocumentSession {
     foldToLevel: (level: number) => void;
   };
   readonly focus: {
+    canToggleFold: () => boolean;
     /** Resolves the current focus at execution and no-ops when folding is unavailable. */
     toggleFold: () => void;
   };
   readonly selection: {
+    canDelete: () => boolean;
     indent: () => void;
     outdent: () => void;
     moveUp: () => void;
@@ -135,6 +116,8 @@ export interface DocumentSession {
     delete: () => void;
   };
   readonly history: {
+    canUndo: () => boolean;
+    canRedo: () => boolean;
     undo: () => void;
     redo: () => void;
   };

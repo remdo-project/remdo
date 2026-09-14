@@ -5,12 +5,12 @@ import {
   $getRoot,
   $setState,
   CAN_UNDO_COMMAND,
+  CAN_REDO_COMMAND,
   COMMAND_PRIORITY_HIGH,
   REDO_COMMAND,
   UNDO_COMMAND,
 } from 'lexical';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import type { LoadState, SnapshotStore } from '#note-sdk';
 import { NoteUnavailableError } from '#note-sdk';
 import { createMountedLexicalEditor, getNoteKey, meta, placeCaretAtNote, selectNoteRange, typeText } from '#tests';
 import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
@@ -29,20 +29,6 @@ import { $resolveViewRoot, setViewRoot } from '#client/editor/outline/view-root'
 import { editorNodes } from '#client/editor/runtime/nodes';
 import { noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 import { createLexicalDocumentSessionRuntime } from './lexical-document-session';
-
-function requireReady<T>(state: LoadState<T>): T {
-  if (state.status !== 'ready') {
-    throw new Error(`Expected ready SDK state, got ${state.status}`);
-  }
-  return state.data;
-}
-
-async function waitUntilReady<T>(store: SnapshotStore<LoadState<T>>): Promise<T> {
-  await waitFor(() => {
-    expect(store.getSnapshot().status).toBe('ready');
-  });
-  return requireReady(store.getSnapshot());
-}
 
 async function flushObservations(): Promise<void> {
   await Promise.resolve();
@@ -63,6 +49,185 @@ function $setSingleNoteDocument(noteId: string, text: string): void {
 const SEARCH_ALL = { query: '', limit: 10, childPreviewLimit: 2 };
 
 describe('lexical document session', () => {
+  it('reads current focus, selection, and history capabilities without subscribing', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    const runtime = createLexicalDocumentSessionRuntime({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+    runtime.start();
+    runtime.setSourceReady(true);
+    onTestFinished(runtime.dispose);
+    const { session } = runtime;
+
+    await placeCaretAtNote(remdo, 'note1');
+    expect(session.focus.canToggleFold()).toBe(false);
+    expect(session.selection.canDelete()).toBe(true);
+    await placeCaretAtNote(remdo, 'note2');
+    expect(session.focus.canToggleFold()).toBe(true);
+
+    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
+    remdo.editor.dispatchCommand(CAN_REDO_COMMAND, true);
+    expect(session.history.canUndo()).toBe(true);
+    expect(session.history.canRedo()).toBe(true);
+
+    const unsubscribe = session.subscribeCapabilities(() => {});
+    unsubscribe();
+    await placeCaretAtNote(remdo, 'note3');
+    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, false);
+    expect(session.focus.canToggleFold()).toBe(false);
+    expect(session.history.canUndo()).toBe(false);
+  });
+
+  it('returns false for session and note capabilities while their source is unavailable', meta({ fixture: 'flat' }), ({ remdo }) => {
+    const runtime = createLexicalDocumentSessionRuntime({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+    onTestFinished(runtime.dispose);
+    const { session } = runtime;
+    const note = session.noteRef('note1');
+    const reads = [
+      session.focus.canToggleFold, session.selection.canDelete, session.history.canUndo, session.history.canRedo,
+      note.canToggleFold, note.canToggleChecked, note.canSetChildListType,
+    ];
+
+    for (const read of reads) expect(read()).toBe(false);
+    const stop = runtime.start();
+    for (const read of reads) expect(read()).toBe(false);
+    runtime.setSourceReady(true);
+    expect(session.focus.canToggleFold()).toBe(false);
+    expect(session.history.canUndo()).toBe(false);
+    stop();
+    for (const read of reads) expect(read()).toBe(false);
+    runtime.dispose();
+    runtime.start();
+    for (const read of reads) expect(read()).toBe(false);
+  });
+
+  it('observes unavailable-source recovery without losing history state', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const runtime = createLexicalDocumentSessionRuntime({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+    onTestFinished(runtime.dispose);
+    const values: boolean[] = [];
+    runtime.session.subscribeCapabilities(() => values.push(runtime.session.history.canUndo()));
+    runtime.start();
+    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
+    runtime.setSourceReady(true);
+    await flushObservations();
+    expect(values).toEqual([true]);
+
+    runtime.setSourceReady(false);
+    expect(runtime.session.history.canUndo()).toBe(false);
+    runtime.setSourceReady(true);
+    expect(runtime.session.history.canUndo()).toBe(true);
+    await flushObservations();
+    expect(values).toEqual([true, false, true]);
+  });
+
+  it('notifies source recovery even when capability values stay false', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const runtime = createLexicalDocumentSessionRuntime({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+    onTestFinished(runtime.dispose);
+    runtime.start();
+    runtime.setSourceReady(true);
+    const values: boolean[] = [];
+    runtime.session.subscribeCapabilities(() => values.push(runtime.session.focus.canToggleFold()));
+
+    runtime.setSourceReady(false);
+    expect(values).toEqual([false]);
+    runtime.setSourceReady(true);
+    await flushObservations();
+    expect(values).toEqual([false, false]);
+  });
+
+  it('keeps registrations independent and repeated cleanup cannot remove a later subscription', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const runtime = createLexicalDocumentSessionRuntime({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+    runtime.start();
+    runtime.setSourceReady(true);
+    onTestFinished(runtime.dispose);
+    const listener = vi.fn();
+    const first = runtime.session.subscribeCapabilities(listener);
+    const second = runtime.session.subscribeCapabilities(listener);
+    first();
+    first();
+    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
+    await flushObservations();
+    expect(listener).toHaveBeenCalledOnce();
+
+    second();
+    const third = runtime.session.subscribeCapabilities(listener);
+    second();
+    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, false);
+    await flushObservations();
+    expect(listener).toHaveBeenCalledTimes(2);
+    third();
+    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
+    await flushObservations();
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(runtime.session.history.canUndo()).toBe(true);
+  });
+
+  it('preserves unexpected read failures and observes recovery from a failed initial read', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    const runtime = createLexicalDocumentSessionRuntime({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+    runtime.start();
+    runtime.setSourceReady(true);
+    onTestFinished(runtime.dispose);
+    await placeCaretAtNote(remdo, 'note2');
+    const failure = new Error('Capability read failed');
+    const read = vi.spyOn(remdo.editor.getEditorState(), 'read').mockImplementation(() => { throw failure; });
+    expect(runtime.session.focus.canToggleFold).toThrow(failure);
+    expect(runtime.session.selection.canDelete).toThrow(failure);
+    const note = runtime.session.noteRef('note2');
+    for (const read of [note.canToggleFold, note.canToggleChecked, note.canSetChildListType]) {
+      expect(read).toThrow(failure);
+    }
+    const values: boolean[] = [];
+    const unsubscribe = runtime.session.subscribeCapabilities(() => values.push(runtime.session.focus.canToggleFold()));
+    onTestFinished(unsubscribe);
+
+    read.mockRestore();
+    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
+    await flushObservations();
+    expect(values).toEqual([true]);
+  });
+
+  it('notifies existing listeners when a capability read fails and recovers', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    const runtime = createLexicalDocumentSessionRuntime({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+    runtime.start();
+    runtime.setSourceReady(true);
+    onTestFinished(runtime.dispose);
+    await placeCaretAtNote(remdo, 'note2');
+    const values: unknown[] = [];
+    const unsubscribe = runtime.session.subscribeCapabilities(() => {
+      try {
+        values.push(runtime.session.focus.canToggleFold());
+      } catch (error) {
+        values.push(error);
+      }
+    });
+    onTestFinished(unsubscribe);
+    const failure = new Error('Capability read failed');
+    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
+    const read = vi.spyOn(remdo.editor.getEditorState(), 'read').mockImplementation(() => { throw failure; });
+    await flushObservations();
+    expect(values).toEqual([failure]);
+
+    read.mockRestore();
+    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, false);
+    await flushObservations();
+    expect(values).toEqual([failure, true]);
+  });
+
+  it('allows a capability listener to invoke an operation after publication', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    const runtime = createLexicalDocumentSessionRuntime({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+    runtime.start();
+    runtime.setSourceReady(true);
+    onTestFinished(runtime.dispose);
+    await placeCaretAtNote(remdo, 'note1');
+    const unsubscribe = runtime.session.subscribeCapabilities(() => {
+      if (runtime.session.focus.canToggleFold()) {
+        unsubscribe();
+        runtime.session.focus.toggleFold();
+      }
+    });
+    onTestFinished(unsubscribe);
+
+    await placeCaretAtNote(remdo, 'note2');
+    await waitFor(() => expect(runtime.session.noteRef('note2').getFolded()).toBe(true));
+  });
+
   it('reads addressed-note values without subscribing', meta({ fixture: 'tree' }), ({ remdo }) => {
     const runtime = createLexicalDocumentSessionRuntime({
       editor: remdo.editor,
@@ -101,19 +266,17 @@ describe('lexical document session', () => {
     runtime.setSourceReady(true);
     onTestFinished(() => runtime.dispose());
     const listener = vi.fn();
-    runtime.session.capabilities.subscribe(listener);
+    runtime.session.subscribeCapabilities(listener);
 
     await placeCaretAtNote(remdo, 'note1');
-    await waitFor(() => {
-      expect(requireReady(runtime.session.capabilities.getSnapshot()).selection.canDelete).toBe(true);
-    });
-    const before = runtime.session.capabilities.getSnapshot();
+    await flushObservations();
+    expect(runtime.session.selection.canDelete()).toBe(true);
     listener.mockClear();
 
     await placeCaretAtNote(remdo, 'note3');
     await flushObservations();
 
-    expect(runtime.session.capabilities.getSnapshot()).toBe(before);
+    expect(runtime.session.selection.canDelete()).toBe(true);
     expect(listener).not.toHaveBeenCalled();
   });
 
@@ -155,23 +318,19 @@ describe('lexical document session', () => {
     // History events are cached for a toolbar that subscribes later.
     remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
     const capabilityListener = vi.fn();
-    runtime.session.capabilities.subscribe(capabilityListener);
+    runtime.session.subscribeCapabilities(capabilityListener);
     await placeCaretAtNote(remdo, 'note2');
-    await waitFor(() => {
-      expect(requireReady(runtime.session.capabilities.getSnapshot())).toEqual({
-        focus: { canToggleFold: true },
-        selection: { canDelete: true },
-        history: { canUndo: true, canRedo: false },
-      });
-    });
+    expect(runtime.session.focus.canToggleFold()).toBe(true);
+    expect(runtime.session.selection.canDelete()).toBe(true);
+    expect(runtime.session.history.canUndo()).toBe(true);
+    expect(runtime.session.history.canRedo()).toBe(false);
+    await flushObservations();
 
     capabilityListener.mockClear();
     setViewRoot(remdo.editor, getNoteKey(remdo, 'note2'));
 
-    await waitFor(() => {
-      expect(requireReady(runtime.session.capabilities.getSnapshot()).focus.canToggleFold).toBe(false);
-    });
-    expect(capabilityListener).toHaveBeenCalledOnce();
+    await waitFor(() => expect(capabilityListener).toHaveBeenCalledOnce());
+    expect(runtime.session.focus.canToggleFold()).toBe(false);
   });
 
   it('delegates semantic operations and revalidates fold applicability', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -245,6 +404,9 @@ describe('lexical document session', () => {
     expect(missing.getText).toThrow(NoteUnavailableError);
     expect(missing.getFolded).toThrow(NoteUnavailableError);
     expect(missing.getId()).toBe('missing');
+    for (const read of [missing.canToggleFold, missing.canToggleChecked, missing.canSetChildListType]) {
+      expect(read()).toBe(false);
+    }
 
     await note.toggleFold();
 
@@ -494,8 +656,11 @@ describe('lexical document session', () => {
     await placeCaretAtNote(remdo, 'note2');
     remdo.documentSession.selection.delete();
     await waitFor(() => expect(listener).toHaveBeenCalledTimes(2));
-    for (const read of [note.getText, note.getFolded, note.getChecked, note.getChildListType, note.canToggleFold, note.canToggleChecked, note.canSetChildListType]) {
+    for (const read of [note.getText, note.getFolded, note.getChecked, note.getChildListType]) {
       expect(read).toThrow(NoteUnavailableError);
+    }
+    for (const read of [note.canToggleFold, note.canToggleChecked, note.canSetChildListType]) {
+      expect(read()).toBe(false);
     }
     const afterDeletion = remdo.getEditorState();
     await note.toggleChecked();
@@ -538,7 +703,9 @@ describe('lexical document session', () => {
     onTestFinished(runtime.dispose);
     const note = runtime.session.noteRef('note2');
     const observed: (string | undefined)[] = [];
+    const eligibility: boolean[] = [];
     const unsubscribe = note.subscribe(() => {
+      eligibility.push(note.canToggleChecked());
       try {
         observed.push(note.getText());
       } catch (error) {
@@ -551,10 +718,12 @@ describe('lexical document session', () => {
     await placeCaretAtNote(remdo, 'note2');
     runtime.session.selection.delete();
     await waitFor(() => expect(observed).toEqual([undefined]));
+    expect(eligibility).toEqual([false]);
     expect(note.getText).toThrow(NoteUnavailableError);
 
     runtime.session.history.undo();
     await waitFor(() => expect(observed).toEqual([undefined, 'note2']));
+    expect(eligibility).toEqual([false, true]);
     expect(note.getText()).toBe('note2');
 
     await remdo.updateNoteText('note2', 'restored note');
@@ -670,12 +839,12 @@ describe('lexical document session', () => {
     runtime.setSourceReady(true);
     onTestFinished(() => runtime.dispose());
     await placeCaretAtNote(remdo, 'note3');
-    runtime.session.capabilities.subscribe(() => {});
-    await waitUntilReady(runtime.session.capabilities);
+    runtime.session.subscribeCapabilities(() => {});
+    expect(runtime.session.history.canUndo).not.toThrow();
 
     runtime.setSourceReady(false);
     await expect(runtime.session.search(SEARCH_ALL)).rejects.toThrow('not available');
-    expect(runtime.session.capabilities.getSnapshot()).toEqual({ status: 'loading' });
+    expect(runtime.session.history.canUndo()).toBe(false);
     await expect(runtime.session.noteRef('note1').toggleFold()).resolves.toBeUndefined();
 
     await typeText(remdo, 'fresh ');
@@ -683,10 +852,10 @@ describe('lexical document session', () => {
 
     const { flatResults } = await runtime.session.search({ ...SEARCH_ALL, query: 'fresh' });
     expect(flatResults.map(({ note }) => note.text)).toEqual(['fresh note3']);
-    await waitUntilReady(runtime.session.capabilities);
+    expect(runtime.session.history.canUndo).not.toThrow();
   });
 
-  it('retains history capability changes across a stop and restart', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('retains history capability changes across a stop and restart', meta({ fixture: 'flat' }), ({ remdo }) => {
     const runtime = createLexicalDocumentSessionRuntime({
       editor: remdo.editor,
       docId: remdo.getCollabDocId(),
@@ -694,17 +863,15 @@ describe('lexical document session', () => {
     const stop = runtime.start();
     runtime.setSourceReady(true);
     onTestFinished(() => runtime.dispose());
-    runtime.session.capabilities.subscribe(() => {});
-    await waitUntilReady(runtime.session.capabilities);
+    runtime.session.subscribeCapabilities(() => {});
+    expect(runtime.session.history.canUndo).not.toThrow();
 
     stop();
     remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
-    expect(runtime.session.capabilities.getSnapshot()).toEqual({ status: 'loading' });
+    expect(runtime.session.history.canUndo()).toBe(false);
 
     runtime.start();
-    await waitFor(() => {
-      expect(requireReady(runtime.session.capabilities.getSnapshot()).history.canUndo).toBe(true);
-    });
+    expect(runtime.session.history.canUndo()).toBe(true);
   });
 
   it('surfaces invalid source state and reads a later valid state', meta({
@@ -820,14 +987,14 @@ describe('lexical document session', () => {
     const stop = runtime.start();
     runtime.setSourceReady(true);
     await placeCaretAtNote(remdo, 'note2');
-    runtime.session.capabilities.subscribe(() => {});
-    await waitUntilReady(runtime.session.capabilities);
+    runtime.session.subscribeCapabilities(() => {});
+    expect(runtime.session.history.canUndo).not.toThrow();
     const dispatch = vi.spyOn(remdo.editor, 'dispatchCommand');
     dispatch.mockClear();
 
     stop();
     await expect(runtime.session.search(SEARCH_ALL)).rejects.toThrow('not available');
-    expect(runtime.session.capabilities.getSnapshot()).toEqual({ status: 'loading' });
+    expect(runtime.session.history.canUndo()).toBe(false);
     await runtime.session.noteRef('note2').toggleFold();
     await runtime.session.noteRef('note2').toggleChecked();
     await runtime.session.noteRef('note2').setChildListType('check');

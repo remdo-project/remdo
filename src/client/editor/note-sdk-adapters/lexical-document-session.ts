@@ -12,9 +12,7 @@ import {
 } from 'lexical';
 import { useEffect, useMemo } from 'react';
 import type {
-  DocumentCapabilitiesSnapshot,
   DocumentSession,
-  LoadState,
   NoteId,
   OpenDocumentNote,
   NoteListType,
@@ -78,25 +76,19 @@ export interface LexicalDocumentSessionRuntime {
   dispose: () => void;
 }
 
-const LOADING = Object.freeze({ status: 'loading' as const });
-const CAPABILITIES_ERROR = new Error('The editor capabilities could not be projected.');
-
-function ready<T>(data: T): LoadState<T> {
-  return Object.freeze({ status: 'ready' as const, data });
+interface CapabilityValues {
+  canToggleFold: boolean;
+  canDelete: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
-function failed<T>(error: unknown): LoadState<T> {
-  return Object.freeze({ status: 'error' as const, error });
-}
-
-function capabilitySnapshotsEqual(
-  left: DocumentCapabilitiesSnapshot,
-  right: DocumentCapabilitiesSnapshot,
-): boolean {
-  return left.focus.canToggleFold === right.focus.canToggleFold
-    && left.selection.canDelete === right.selection.canDelete
-    && left.history.canUndo === right.history.canUndo
-    && left.history.canRedo === right.history.canRedo;
+function capabilityValuesEqual(left: CapabilityValues | null, right: CapabilityValues | null): boolean {
+  return left === right || (left !== null && right !== null
+    && left.canToggleFold === right.canToggleFold
+    && left.canDelete === right.canDelete
+    && left.canUndo === right.canUndo
+    && left.canRedo === right.canRedo);
 }
 
 function addressedNoteValuesEqual(
@@ -121,12 +113,10 @@ export function createLexicalDocumentSessionRuntime({
 }: LexicalDocumentSessionSource): LexicalDocumentSessionRuntime {
   const capabilityListeners = new Set<() => void>();
   const addressedNotes = new Map<NoteId, AddressedNoteObservation>();
-  let capabilityState: LoadState<DocumentCapabilitiesSnapshot> = LOADING;
-  let latestEditorState = editor.getEditorState();
+  let capabilityValues: CapabilityValues | null | undefined = null;
   let canUndo = false;
   let canRedo = false;
   let sourceReady = false;
-  let capabilitiesActive = false;
   let capabilitiesDirty = false;
   let addressedNotesDirty = false;
   let started = false;
@@ -142,7 +132,7 @@ export function createLexicalDocumentSessionRuntime({
     }
   };
 
-  const publishLoading = () => {
+  const publishUnavailable = () => {
     capabilitiesDirty = false;
     addressedNotesDirty = false;
     const addressedListeners = new Set<() => void>();
@@ -154,8 +144,8 @@ export function createLexicalDocumentSessionRuntime({
         }
       }
     }
-    const capabilitiesChanged = capabilitiesActive && capabilityState !== LOADING;
-    capabilityState = LOADING;
+    const capabilitiesChanged = capabilityListeners.size > 0 && capabilityValues !== null;
+    capabilityValues = null;
     if (capabilitiesChanged) {
       notify(capabilityListeners);
     }
@@ -206,21 +196,43 @@ export function createLexicalDocumentSessionRuntime({
     return note;
   };
 
-  const readCapabilitySnapshot = (): DocumentCapabilitiesSnapshot => latestEditorState.read(
-    () => {
-      const focusNote = $resolveFocusedNote();
-      return Object.freeze({
-        focus: Object.freeze({
-          canToggleFold: focusNote ? $canOfferFold(editor, focusNote) : false,
-        }),
-        selection: Object.freeze({
-          canDelete: $canDeleteFocusedOrSelectedNotes(editor),
-        }),
-        history: Object.freeze({ canUndo, canRedo }),
-      });
-    },
-    { editor },
-  );
+  const readCanToggleFold = () => {
+    if (!started || disposed || !sourceReady) return false;
+    return editor.getEditorState().read(() => {
+      const note = $resolveFocusedNote();
+      return note ? $canOfferFold(editor, note) : false;
+    }, { editor });
+  };
+
+  const readCanDelete = () => {
+    if (!started || disposed || !sourceReady) return false;
+    return editor.getEditorState().read(() => $canDeleteFocusedOrSelectedNotes(editor), { editor });
+  };
+
+  const readCanUndo = () => {
+    if (!started || disposed || !sourceReady) return false;
+    return canUndo;
+  };
+
+  const readCanRedo = () => {
+    if (!started || disposed || !sourceReady) return false;
+    return canRedo;
+  };
+
+  const readCapabilityObservation = (): CapabilityValues | null | undefined => {
+    if (!started || disposed || !sourceReady) return null;
+    try {
+      return {
+        canToggleFold: readCanToggleFold(),
+        canDelete: readCanDelete(),
+        canUndo: readCanUndo(),
+        canRedo: readCanRedo(),
+      };
+    } catch {
+      // Consumers reread to receive the original failure and can observe recovery.
+      return undefined;
+    }
+  };
 
   const toggleFocusedFold = () => {
     if (disposed || !started || !sourceReady) {
@@ -273,27 +285,16 @@ export function createLexicalDocumentSessionRuntime({
     const addressedListeners = new Set<() => void>();
 
     if (!sourceReady) {
-      publishLoading();
+      publishUnavailable();
       return;
     }
 
-    if (capabilitiesActive && capabilitiesDirty) {
+    if (capabilityListeners.size > 0 && capabilitiesDirty) {
       capabilitiesDirty = false;
-      try {
-        const nextCapabilities = readCapabilitySnapshot();
-        if (
-          capabilityState.status !== 'ready'
-          || !capabilitySnapshotsEqual(capabilityState.data, nextCapabilities)
-        ) {
-          capabilityState = ready(nextCapabilities);
-          capabilitiesChanged = true;
-        }
-      } catch {
-        if (capabilityState.status !== 'error' || capabilityState.error !== CAPABILITIES_ERROR) {
-          capabilityState = failed<DocumentCapabilitiesSnapshot>(CAPABILITIES_ERROR);
-          capabilitiesChanged = true;
-        }
-      }
+      const next = readCapabilityObservation();
+      capabilitiesChanged = capabilityValues === undefined || next === undefined
+        || !capabilityValuesEqual(capabilityValues, next);
+      capabilityValues = next;
     }
 
     if (addressedNotesDirty) {
@@ -338,7 +339,7 @@ export function createLexicalDocumentSessionRuntime({
         CAN_UNDO_COMMAND,
         (nextCanUndo) => {
           canUndo = nextCanUndo;
-          if (capabilitiesActive) {
+          if (capabilityListeners.size > 0) {
             capabilitiesDirty = true;
             schedule();
           }
@@ -350,7 +351,7 @@ export function createLexicalDocumentSessionRuntime({
         CAN_REDO_COMMAND,
         (nextCanRedo) => {
           canRedo = nextCanRedo;
-          if (capabilitiesActive) {
+          if (capabilityListeners.size > 0) {
             capabilitiesDirty = true;
             schedule();
           }
@@ -361,18 +362,6 @@ export function createLexicalDocumentSessionRuntime({
     );
   };
 
-  const activateCapabilities = () => {
-    if (capabilitiesActive) {
-      return;
-    }
-    capabilitiesActive = true;
-    capabilitiesDirty = true;
-    latestEditorState = editor.getEditorState();
-    if (started) {
-      refresh();
-    }
-  };
-
   const stop = () => {
     if (!started) {
       return;
@@ -381,7 +370,7 @@ export function createLexicalDocumentSessionRuntime({
     pending = false;
     unregisterSource();
     unregisterSource = () => {};
-    publishLoading();
+    publishUnavailable();
   };
 
   const dispose = () => {
@@ -392,7 +381,6 @@ export function createLexicalDocumentSessionRuntime({
     stop();
     unregisterHistory();
     unregisterHistory = () => {};
-    capabilitiesActive = false;
     capabilityListeners.clear();
     addressedNotes.clear();
   };
@@ -404,9 +392,9 @@ export function createLexicalDocumentSessionRuntime({
       getFolded: () => requireAddressedNote(noteId).folded,
       getChecked: () => requireAddressedNote(noteId).checked,
       getChildListType: () => requireAddressedNote(noteId).childListType,
-      canToggleFold: () => requireAddressedNote(noteId).canToggleFold,
-      canToggleChecked: () => requireAddressedNote(noteId).canToggleChecked,
-      canSetChildListType: () => requireAddressedNote(noteId).canSetChildListType,
+      canToggleFold: () => readAddressedNote(noteId)?.canToggleFold ?? false,
+      canToggleChecked: () => readAddressedNote(noteId)?.canToggleChecked ?? false,
+      canSetChildListType: () => readAddressedNote(noteId)?.canSetChildListType ?? false,
       toggleFold: () => updateAddressedNote(noteId, (note) => {
         if ($canOfferFold(editor, note)) {
           editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: note.getKey() });
@@ -456,23 +444,22 @@ export function createLexicalDocumentSessionRuntime({
       }
       return collectLexicalDocumentSearchResults(editor, options);
     },
-    capabilities: {
-      getSnapshot: () => capabilityState,
-      subscribe: (listener) => {
-        if (disposed) {
-          return () => {};
+    subscribeCapabilities: (listener) => {
+      if (disposed) return () => {};
+      if (capabilityListeners.size === 0) {
+        capabilityValues = readCapabilityObservation();
+      }
+      const registration = () => {
+        if (capabilityListeners.has(registration)) listener();
+      };
+      capabilityListeners.add(registration);
+      return () => {
+        if (!capabilityListeners.delete(registration)) return;
+        if (capabilityListeners.size === 0) {
+          capabilitiesDirty = false;
+          capabilityValues = null;
         }
-        capabilityListeners.add(listener);
-        activateCapabilities();
-        return () => {
-          capabilityListeners.delete(listener);
-          if (capabilityListeners.size === 0) {
-            capabilitiesActive = false;
-            capabilitiesDirty = false;
-            capabilityState = LOADING;
-          }
-        };
-      },
+      };
     },
     noteRef: createNoteRef,
     view: {
@@ -484,9 +471,11 @@ export function createLexicalDocumentSessionRuntime({
       },
     },
     focus: {
+      canToggleFold: readCanToggleFold,
       toggleFold: toggleFocusedFold,
     },
     selection: {
+      canDelete: readCanDelete,
       indent: () => {
         if (started && !disposed && sourceReady) editor.dispatchCommand(INDENT_NOTES_COMMAND, undefined);
       },
@@ -517,6 +506,8 @@ export function createLexicalDocumentSessionRuntime({
       },
     },
     history: {
+      canUndo: readCanUndo,
+      canRedo: readCanRedo,
       undo: () => {
         if (started && !disposed && sourceReady) editor.dispatchCommand(UNDO_COMMAND, undefined);
       },
@@ -534,18 +525,16 @@ export function createLexicalDocumentSessionRuntime({
       return stop;
     }
     started = true;
-    latestEditorState = editor.getEditorState();
     observeHistory();
 
     unregisterSource = mergeRegister(
-      editor.registerUpdateListener(({ editorState, dirtyElements, dirtyLeaves }) => {
-        latestEditorState = editorState;
+      editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
         if (dirtyElements.size > 0 || dirtyLeaves.size > 0) {
           if (addressedNotes.size > 0) {
             addressedNotesDirty = true;
           }
         }
-        if (capabilitiesActive) {
+        if (capabilityListeners.size > 0) {
           capabilitiesDirty = true;
         }
         if (capabilitiesDirty || addressedNotesDirty) {
@@ -554,7 +543,7 @@ export function createLexicalDocumentSessionRuntime({
       }),
       subscribeViewRoot(editor, () => {
         addressedNotesDirty = addressedNotes.size > 0;
-        if (capabilitiesActive) {
+        if (capabilityListeners.size > 0) {
           capabilitiesDirty = true;
         }
         if (capabilitiesDirty || addressedNotesDirty) {
@@ -563,7 +552,7 @@ export function createLexicalDocumentSessionRuntime({
       }),
     );
 
-    capabilitiesDirty = capabilitiesActive;
+    capabilitiesDirty = capabilityListeners.size > 0;
     addressedNotesDirty = addressedNotes.size > 0;
     refresh();
     return stop;
@@ -574,14 +563,11 @@ export function createLexicalDocumentSessionRuntime({
       return;
     }
     sourceReady = nextReady;
-    latestEditorState = editor.getEditorState();
     if (!sourceReady) {
-      canUndo = false;
-      canRedo = false;
-      publishLoading();
+      publishUnavailable();
       return;
     }
-    capabilitiesDirty = capabilitiesActive;
+    capabilitiesDirty = capabilityListeners.size > 0;
     addressedNotesDirty = addressedNotes.size > 0;
     if (started) {
       schedule();
