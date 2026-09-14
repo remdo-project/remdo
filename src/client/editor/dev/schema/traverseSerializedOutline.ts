@@ -44,6 +44,12 @@ function formatPath(path: number[]): string {
   return path.length === 0 ? 'root' : path.join('.');
 }
 
+function containsLineBreak(node: SerializedLexicalNode): boolean {
+  return node.type === 'linebreak'
+    || ('text' in node && typeof node.text === 'string' && /[\r\n]/.test(node.text))
+    || getChildren(node).some(containsLineBreak);
+}
+
 export function traverseSerializedOutline(state: SerializedEditorState): TraversalResult {
   let valid = true;
 
@@ -130,6 +136,11 @@ export function traverseSerializedOutline(state: SerializedEditorState): Travers
       const indent = typeof indentValue === 'number' ? indentValue : 0;
       const path = [...prefix, noteIndex];
       noteIndex += 1;
+
+      if (contentNodes.some(containsLineBreak)) {
+        fail(`content-line-break path=${formatPath(path)}`);
+        break;
+      }
 
       if (nestedLists.length > 0) {
         const pathStr = formatPath(path);

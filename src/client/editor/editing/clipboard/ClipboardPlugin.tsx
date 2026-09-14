@@ -6,13 +6,15 @@ import { $getHtmlContent, $getLexicalContent, setLexicalClipboardDataTransfer } 
 import type { LexicalClipboardData } from '@lexical/clipboard';
 import {
   $addUpdateTag,
-  $copyNode,
+  $createLineBreakNode,
   $createTextNode,
   $getSelection,
   $insertNodes,
   $isElementNode,
   $isRangeSelection,
   $isRootNode,
+  $isLineBreakNode,
+  $isTextNode,
   $setState,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_LOW,
@@ -36,6 +38,7 @@ import {
   getPreviousContentSibling,
   insertBefore,
   isContentItem,
+  isChildrenWrapper,
 } from '#client/editor/outline/list-structure';
 import { getNoteBody, $getSelectionBody } from '#client/editor/outline/selection/body-region';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
@@ -67,8 +70,9 @@ import {
   $splitContentItemAtSelection,
 } from '#client/editor/outline/selection/split-content-item';
 import { $deleteNotesInRange } from '#client/editor/outline/selection/delete-selection';
+import { $isNoteBodyNode } from '#client/editor/outline/note-body-node';
 
-const NEWLINE_PATTERN = /\r?\n/;
+const NEWLINE_PATTERN = /\r\n|[\r\n]/;
 
 type ClipboardOperation = 'copy' | 'cut';
 
@@ -131,27 +135,77 @@ function buildListItemsFromPlainText(text: string): ListItemNode[] {
 }
 
 function $getPlainTextFromClipboardNodes(nodes: LexicalNode[]): string {
-  const items = $extractClipboardListChildren(nodes);
-  const contentItems = items.filter(isContentItem);
-  if (contentItems.length > 0) {
-    // Each note's own text, then its body text, then its sub-notes — the same
-    // traversal as structural copy, so a copied note's body is not dropped when
-    // it is pasted over an inline selection.
-    return contentItems.flatMap(noteClipboardPlainText).join('\n');
-  }
-  return nodes.map((node) => node.getTextContent()).join('\n');
+  return nodes.flatMap((node) => {
+    if ($isListNode(node)) return getContentSiblings(node).flatMap(noteClipboardPlainText);
+    if (isContentItem(node)) return noteClipboardPlainText(node);
+    return [node.getTextContent()];
+  }).join('\n');
 }
 
-function $cloneClipboardNodeTree<T extends LexicalNode>(node: T): T {
-  const clone = $copyNode(node);
-  if ($isElementNode(node) && $isElementNode(clone)) {
-    const childClones = node.getChildren().map((child) => $cloneClipboardNodeTree(child));
-    clone.append(...childClones);
+function $normalizeClipboardLabelBreaks(nodes: LexicalNode[]): void {
+  for (const node of nodes) {
+    if ($isNoteBodyNode(node)) continue;
+    if ($isLineBreakNode(node)) {
+      const space = $createTextNode(' ');
+      const previous = node.getPreviousSibling();
+      const next = node.getNextSibling();
+      if ($isTextNode(previous) && $isTextNode(next)) {
+        space.setFormat(previous.getFormat() & next.getFormat());
+        if (previous.getStyle() === next.getStyle()) space.setStyle(previous.getStyle());
+      }
+      node.replace(space);
+    } else if ($isTextNode(node)) {
+      node.setTextContent(node.getTextContent().replace(/\r\n|[\r\n]/g, ' '));
+    } else if ($isElementNode(node)) {
+      $normalizeClipboardLabelBreaks(node.getChildren());
+    }
   }
-  return clone;
+}
+
+function $hasClipboardBody(nodes: LexicalNode[]): boolean {
+  return nodes.some((node) => $isNoteBodyNode(node)
+    || ($isElementNode(node) && $hasClipboardBody(node.getChildren())));
+}
+
+function $promoteLeadingClipboardChildren(nodes: LexicalNode[]): void {
+  for (const node of nodes) {
+    if (!$isElementNode(node) || $isNoteBodyNode(node)) continue;
+    $promoteLeadingClipboardChildren(node.getChildren());
+    if (!$isListNode(node)) continue;
+    let first = node.getFirstChild();
+    while (isChildrenWrapper(first)) {
+      const nested = first.getFirstChild();
+      if ($isListNode(nested)) insertBefore(first, nested.getChildren());
+      first.remove();
+      first = node.getFirstChild();
+    }
+  }
+}
+
+function $clipboardNodesToNotes(nodes: LexicalNode[]): LexicalNode[] {
+  const notes: LexicalNode[] = [];
+  let inlineItem: ListItemNode | null = null;
+  for (const node of nodes) {
+    if ($isListNode(node) || $isListItemNode(node)) {
+      notes.push(...($isListNode(node) ? node.getChildren() : [node]));
+      inlineItem = null;
+    } else if ($isElementNode(node) && !node.isInline()) {
+      notes.push($createListItemNode().append(...node.getChildren()));
+      inlineItem = null;
+    } else {
+      if (!inlineItem) {
+        inlineItem = $createListItemNode();
+        notes.push(inlineItem);
+      }
+      inlineItem.append(node);
+    }
+  }
+  $normalizeClipboardLabelBreaks(notes);
+  return notes;
 }
 
 function $extractSingleNoteLabelNodes(nodes: LexicalNode[]): LexicalNode[] | null {
+  if (nodes.some((node) => !$isListNode(node) && !$isListItemNode(node))) return null;
   const contentItems = $extractClipboardListChildren(nodes).filter(isContentItem);
   if (contentItems.length !== 1) {
     return null;
@@ -162,26 +216,19 @@ function $extractSingleNoteLabelNodes(nodes: LexicalNode[]): LexicalNode[] | nul
   // only the note label's rich inline children belong there.
   return contentItems[0]!
     .getChildren()
-    .filter((child) => !$isListNode(child))
-    .map($cloneClipboardNodeTree);
+    .filter((child) => !$isListNode(child));
 }
 
 function $extractInlineClipboardNodes(nodes: LexicalNode[]): LexicalNode[] {
   const items = $extractClipboardListChildren(nodes);
-  if (items.length === 1) {
-    const [item] = items;
-    if (isContentItem(item)) {
-      return item.getChildren().map($cloneClipboardNodeTree);
-    }
-  }
-
   if (items.length === 0) {
     const inlineNodes: LexicalNode[] = [];
     for (const node of nodes) {
       if ($isElementNode(node) && !node.isInline()) {
-        inlineNodes.push(...node.getChildren().map($cloneClipboardNodeTree));
+        if (inlineNodes.length > 0) inlineNodes.push($createLineBreakNode());
+        inlineNodes.push(...node.getChildren());
       } else {
-        inlineNodes.push($cloneClipboardNodeTree(node));
+        inlineNodes.push(node);
       }
     }
     return inlineNodes;
@@ -410,7 +457,7 @@ function $serializeStructuralHeads(heads: ListItemNode[]): SerializedLexicalNode
   return [list];
 }
 
-// The plain-text line(s) a note contributes: its own text, then its body's text.
+// Plain text follows reading order: own text, body text, then descendants.
 function noteClipboardPlainText(note: ListItemNode): string[] {
   const lines = [getNoteOwnText(note)];
   const body = getNoteBody(note);
@@ -790,9 +837,8 @@ export function ClipboardPlugin() {
           const provenance = lastPasteProvenanceRef.current;
           lastPasteProvenanceRef.current = null;
 
-          // A selection inside a body is rich text, not outline structure, so a
-          // paste there inserts the clipboard's plain text (never list nodes,
-          // which would break the outline). This also covers a collapsed caret.
+          $promoteLeadingClipboardChildren(payload.nodes);
+
           const pasteBody = $isRangeSelection(payload.selection)
             ? $getSelectionBody(payload.selection)
             : null;
@@ -815,8 +861,48 @@ export function ClipboardPlugin() {
           // into the next paste, regardless of which exit path below runs.
           lastPasteSelectionRangeRef.current = null;
 
+          if (isInlineSelection && $isRangeSelection(payload.selection) && $hasClipboardBody(payload.nodes)) {
+            // Retain the existing whole-payload plain-text form rather than merge bodies.
+            const [firstLine, ...restLines] = $getPlainTextFromClipboardNodes(payload.nodes).split(NEWLINE_PATTERN);
+            const inlineContentItem = resolveContentItemFromNode(payload.selection.anchor.getNode());
+            payload.selection.insertText(firstLine ?? '');
+            $insertFirstChildNotes(inlineContentItem, restLines);
+            return true;
+          }
+
+          const hasNoteStructure = $extractClipboardListChildren(payload.nodes).length > 0;
+          const insertNodes = $clipboardNodesToNotes(payload.nodes);
+          const firstNote = insertNodes.find(isContentItem);
+
+          if (!hasNoteStructure && insertNodes.length === 1 && !selectionRange && $isRangeSelection(payload.selection)) {
+            payload.selection.removeText();
+            $insertNodes(firstNote?.getChildren() ?? []);
+            return true;
+          }
+
+          const canPreserveNoteIds = $canPreserveClipboardNoteIds(insertNodes, provenance, docId);
+          if (!canPreserveNoteIds) {
+            // Copy, foreign/legacy payloads, cross-document cuts, and colliding
+            // cuts all create notes. Erase any supplied identity and let the
+            // ordinary ListItemNode transform initialize IDs after insertion.
+            $clearClipboardNoteIds(insertNodes);
+          }
+
           if (isInlineSelection && $isRangeSelection(payload.selection)) {
             const inlineContentItem = resolveContentItemFromNode(payload.selection.anchor.getNode());
+            if (firstNote && inlineContentItem) {
+              payload.selection.removeText();
+              $insertNodes(firstNote.getChildren());
+              const remaining = insertNodes.slice(insertNodes.indexOf(firstNote) + 1);
+              const firstChildList = isChildrenWrapper(remaining[0]) ? remaining[0].getFirstChild() : null;
+              if ($isListNode(firstChildList)) {
+                remaining.splice(0, 1, ...firstChildList.getChildren());
+              }
+              $insertFirstChildNodes(inlineContentItem, remaining);
+              const lastNote = remaining.findLast(isContentItem);
+              if (lastNote) $selectItemEdge(lastNote, 'end');
+              return true;
+            }
             const text = $getPlainTextFromClipboardNodes(payload.nodes);
             const lines = text.split(NEWLINE_PATTERN);
             const shouldInsertNotes = lines.length > 1;
@@ -842,14 +928,6 @@ export function ClipboardPlugin() {
             && docId.length > 0
             && provenance.sourceDocumentId === docId
           );
-          const canPreserveNoteIds = $canPreserveClipboardNoteIds(payload.nodes, provenance, docId);
-          if (!canPreserveNoteIds) {
-            // Copy, foreign/legacy payloads, cross-document cuts, and colliding
-            // cuts all create notes. Erase any supplied identity and let the
-            // ordinary ListItemNode transform initialize IDs after insertion.
-            $clearClipboardNoteIds(payload.nodes);
-          }
-          const insertNodes = $extractClipboardListChildren(payload.nodes);
           return $insertNodesAtSelection(
             editor,
             selectionRange,
@@ -898,7 +976,7 @@ export function ClipboardPlugin() {
             }
           }
 
-          if (lines.length <= 1) {
+          if (event.clipboardData.getData('text/html') || lines.length <= 1) {
             return false;
           }
 
