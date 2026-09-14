@@ -27,11 +27,11 @@ export interface HomeContent {
 // with real favorites/recents.
 export function buildHomeContent(documentSources: readonly DocumentSourceNote[]): HomeContent {
   const sources: HomeDocumentSource[] = documentSources.map((documentSource) => ({
-    id: documentSource.id(),
-    label: documentSource.text(),
-    documents: documentSource.documents().children().map((document) => ({
-      id: document.id(),
-      label: document.text(),
+    id: documentSource.getId(),
+    label: documentSource.getText(),
+    documents: documentSource.getDocuments().getChildren().map((document) => ({
+      id: document.getId(),
+      label: document.getText(),
     })),
   }));
   const allDocuments = sources.flatMap((source) => source.documents);

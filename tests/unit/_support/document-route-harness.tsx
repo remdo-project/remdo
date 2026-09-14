@@ -89,10 +89,10 @@ function MockEditor({
       documentId: docId,
       search: mockDocumentSearch(docId),
       capabilities: { getSnapshot: () => LOADING_CAPABILITIES, subscribe: () => noOp },
-      note: (noteId) => ({
-        id: () => noteId,
-        text: () => '',
-        folded: () => false,
+      noteRef: (noteId) => ({
+        getId: () => noteId,
+        getText: () => '',
+        getFolded: () => false,
         toggleFold: () => Promise.resolve(),
         subscribe: () => noOp,
       }),
@@ -257,6 +257,6 @@ export function getResultByLabel(label: string) {
 export const findResultByLabel = (label: string) => waitFor(() => getResultByLabel(label));
 
 export const createDocumentCollectionSource = (documents: Array<{ id: string; title: string }>) => ({
-  children: () => documents,
-  byId: (documentId: string) => documents.find((document) => document.id === documentId) ?? null,
+  getChildren: () => documents,
+  getById: (documentId: string) => documents.find((document) => document.id === documentId) ?? null,
 });

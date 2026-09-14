@@ -2,13 +2,13 @@ import { normalizeDocumentId } from '#domain/documents/ids';
 import { normalizeNoteId, normalizeNoteIdOrThrow } from '#domain/notes/ids';
 import { normalizeSourceServerId } from '#domain/source-servers';
 
-const NOTE_REF_SEPARATOR = '_';
+const NOTE_ADDRESS_SEPARATOR = '_';
 const APP_DOCUMENT_PATH_PREFIX = '/n';
 
-export function createNoteRef(docId: string, noteId: string): string {
-  const normalizedDocId = normalizeNoteIdOrThrow(docId, 'createNoteRef requires valid document and note ids.');
-  const normalizedNoteId = normalizeNoteIdOrThrow(noteId, 'createNoteRef requires valid document and note ids.');
-  return `${normalizedDocId}${NOTE_REF_SEPARATOR}${normalizedNoteId}`;
+export function createNoteAddress(docId: string, noteId: string): string {
+  const normalizedDocId = normalizeNoteIdOrThrow(docId, 'createNoteAddress requires valid document and note ids.');
+  const normalizedNoteId = normalizeNoteIdOrThrow(noteId, 'createNoteAddress requires valid document and note ids.');
+  return `${normalizedDocId}${NOTE_ADDRESS_SEPARATOR}${normalizedNoteId}`;
 }
 
 function createDocumentPathWithPrefix(prefix: string, docId: string, noteId: string | null = null): string {
@@ -19,7 +19,7 @@ function createDocumentPathWithPrefix(prefix: string, docId: string, noteId: str
       noteId,
       'createDocumentPath requires a valid note id when noteId is provided.',
     );
-    return `${prefix}/${createNoteRef(normalizedDocId, normalizedNoteId)}`;
+    return `${prefix}/${createNoteAddress(normalizedDocId, normalizedNoteId)}`;
   }
   return `${prefix}/${normalizedDocId}`;
 }
@@ -64,7 +64,7 @@ export function parseDocumentRef(docRef: string | undefined): ParsedDocumentRef 
     return null;
   }
 
-  const separatorIndex = trimmedRef.indexOf(NOTE_REF_SEPARATOR);
+  const separatorIndex = trimmedRef.indexOf(NOTE_ADDRESS_SEPARATOR);
   if (separatorIndex === -1) {
     const docId = normalizeDocumentId(trimmedRef);
     return docId ? { docId, noteId: null } : null;

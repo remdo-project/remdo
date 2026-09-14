@@ -71,8 +71,8 @@ class DelayedRetry {
 }
 
 const emptyDocumentSource: CollectionSource<UserDocument> = {
-  byId: () => null,
-  children: () => [],
+  getById: () => null,
+  getChildren: () => [],
 };
 
 // Tab-scoped store that keeps the live user-data session outside route/component lifecycles.
@@ -89,13 +89,13 @@ class StoredUserDataStore {
   });
   private readonly remoteSources = new Map<string, RemoteUserDataSourceRuntime>();
   private readonly documentSources: CollectionSource<DocumentSource> = {
-    byId: (sourceId) => this.createDocumentSources().find((source) => source.id === sourceId) ?? null,
-    children: () => this.createDocumentSources(),
+    getById: (sourceId) => this.createDocumentSources().find((source) => source.id === sourceId) ?? null,
+    getChildren: () => this.createDocumentSources(),
   };
   private readonly userData = createUserDataRootNote(this.documents, this.sourceServers, {
     createDocument: async (title) => this.createDocument(title),
     documentSources: this.documentSources,
-    homeDocumentId: () => this.homeDocumentId,
+    getHomeDocumentId: () => this.homeDocumentId,
     shareDocument: async (documentId, email) => shareDocumentWithUser(documentId, email),
   });
   private context: UserDataStoreContext | null = null;
@@ -284,7 +284,7 @@ class StoredUserDataStore {
         label: 'Current Server',
         local: true,
       },
-      ...this.sourceServers.children()
+      ...this.sourceServers.getChildren()
         .map((server) => {
           const runtime = this.remoteSources.get(server.id);
           return {
@@ -300,7 +300,7 @@ class StoredUserDataStore {
 
   private reconcileRemoteSources(generation: number): void {
     const linkedServers = new Map(
-      this.sourceServers.children()
+      this.sourceServers.getChildren()
         .map((server) => [server.id, server] as const),
     );
 
@@ -520,8 +520,8 @@ function createProjectedCollectionSource<T extends { id: string }>({
   };
 
   return {
-    byId: (itemId) => children().find((item) => item.id === itemId) ?? null,
-    children,
+    getById: (itemId) => children().find((item) => item.id === itemId) ?? null,
+    getChildren: children,
     clear: () => {
       collection = null;
       fallbackItems = [];

@@ -36,8 +36,8 @@ describe('document toolbar and import', () => {
 
   const rejectDocumentCreation = (message = 'offline') => {
     const userData = getTestUserData();
-    const realDocuments = userData.documents.bind(userData);
-    vi.spyOn(userData, 'documents').mockImplementation(() => ({
+    const realDocuments = userData.getDocuments.bind(userData);
+    vi.spyOn(userData, 'getDocuments').mockImplementation(() => ({
       ...realDocuments(),
       create: vi.fn().mockRejectedValue(new Error(message)),
     }));
@@ -56,7 +56,7 @@ describe('document toolbar and import', () => {
       <DocumentToolbar
         docId={docId}
         documentLabel={documentLabel}
-        documentSources={getTestUserData().documentSources().children()}
+        documentSources={getTestUserData().getDocumentSources().getChildren()}
         onSelectDocument={onSelectDocument}
         onSelectHome={() => {}}
         onSelectNoteId={() => {}}
@@ -180,7 +180,7 @@ describe('document toolbar and import', () => {
 
     const [createdDocId, registeredFile] = registerPendingImport.mock.calls[0]!;
     expect(registeredFile).toBe(file);
-    expect(getTestUserData().documents().byId(createdDocId)?.text()).toBe('Project Backup');
+    expect(getTestUserData().getDocuments().getById(createdDocId)?.getText()).toBe('Project Backup');
     expect(router.state.location.pathname).toBe(createDocumentPath(createdDocId));
   });
 

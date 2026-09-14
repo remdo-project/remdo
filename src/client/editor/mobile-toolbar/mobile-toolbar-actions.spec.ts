@@ -24,10 +24,10 @@ function createSession() {
     documentId: 'main',
     search: vi.fn(),
     capabilities: loadingStore(),
-    note: (noteId) => ({
-      id: () => noteId,
-      text: () => '',
-      folded: () => false,
+    noteRef: (noteId) => ({
+      getId: () => noteId,
+      getText: () => '',
+      getFolded: () => false,
       toggleFold: operations.toggleNoteFold,
       subscribe: () => () => {},
     }),

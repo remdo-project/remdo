@@ -349,11 +349,11 @@ export function createLexicalDocumentSessionRuntime({
     addressedNotes.clear();
   };
 
-  const createNote = (noteId: NoteId): OpenDocumentNote => {
+  const createNoteRef = (noteId: NoteId): OpenDocumentNote => {
     const handle: OpenDocumentNote = {
-      id: () => noteId,
-      text: () => requireAddressedNote(noteId).text,
-      folded: () => requireAddressedNote(noteId).folded,
+      getId: () => noteId,
+      getText: () => requireAddressedNote(noteId).text,
+      getFolded: () => requireAddressedNote(noteId).folded,
       toggleFold: () => toggleResolvedFoldAfterCommit(() => $findNoteById(noteId)),
       subscribe: (listener) => {
         if (disposed) {
@@ -405,7 +405,7 @@ export function createLexicalDocumentSessionRuntime({
         };
       },
     },
-    note: createNote,
+    noteRef: createNoteRef,
     focus: {
       toggleFold: () => toggleResolvedFold($resolveFocusedNote),
     },

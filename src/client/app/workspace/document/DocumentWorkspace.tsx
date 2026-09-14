@@ -46,7 +46,7 @@ export default function DocumentWorkspace({
   const { requestZoomNoteId } = useEditorViewActions();
   const zoomPath = useZoomPath();
   const userData = useUserData();
-  const documentSources = userData.documentSources().children();
+  const documentSources = userData.getDocumentSources().getChildren();
   const source = useDocumentSourceResolution(docId, documentSources);
   const [importError, setImportError] = useState<{ docId: string; message: string } | null>(null);
   if (importError && importError.docId !== docId) {

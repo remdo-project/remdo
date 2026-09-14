@@ -68,10 +68,10 @@ describe('lexical document session', () => {
     });
     onTestFinished(() => runtime.dispose());
 
-    const note = runtime.session.note('note2');
+    const note = runtime.session.noteRef('note2');
 
-    expect(note.text()).toBe('note2');
-    expect(note.folded()).toBe(false);
+    expect(note.getText()).toBe('note2');
+    expect(note.getFolded()).toBe(false);
   });
 
   it('rejects search until the runtime starts and the source is ready', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -121,14 +121,14 @@ describe('lexical document session', () => {
     runtime.start();
     runtime.setSourceReady(true);
     onTestFinished(() => runtime.dispose());
-    const note = runtime.session.note('note2');
+    const note = runtime.session.noteRef('note2');
 
     const serialized = remdo.getEditorState();
     const replacement = remdo.editor.parseEditorState(JSON.stringify(serialized));
     remdo.editor.setEditorState(replacement);
     await note.toggleFold();
 
-    expect(note.folded()).toBe(true);
+    expect(note.getFolded()).toBe(true);
     expect(remdo.editor.read(() => $isNoteFolded($findNoteById('note2')!))).toBe(true);
   });
 
@@ -181,11 +181,11 @@ describe('lexical document session', () => {
       expect(remdo.editor.read(() => $getNoteChecked($findNoteById('note5')!))).toBe(true);
     });
 
-    await runtime.session.note('note6').toggleFold();
-    await runtime.session.note('note7').toggleFold();
-    await runtime.session.note('missing').toggleFold();
-    expect(runtime.session.note('note6').folded()).toBe(true);
-    expect(runtime.session.note('note7').folded()).toBe(false);
+    await runtime.session.noteRef('note6').toggleFold();
+    await runtime.session.noteRef('note7').toggleFold();
+    await runtime.session.noteRef('missing').toggleFold();
+    expect(runtime.session.noteRef('note6').getFolded()).toBe(true);
+    expect(runtime.session.noteRef('note7').getFolded()).toBe(false);
   });
 
   it('searches the current hierarchy after moving and deleting notes', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -229,15 +229,15 @@ describe('lexical document session', () => {
     runtime.setSourceReady(true);
     onTestFinished(() => runtime.dispose());
 
-    const note = runtime.session.note('note2');
-    expect(note.id()).toBe('note2');
-    expect(note.text()).toBe('note2');
-    expect(note.folded()).toBe(false);
-    expect(() => runtime.session.note('missing').text()).toThrow();
+    const note = runtime.session.noteRef('note2');
+    expect(note.getId()).toBe('note2');
+    expect(note.getText()).toBe('note2');
+    expect(note.getFolded()).toBe(false);
+    expect(() => runtime.session.noteRef('missing').getText()).toThrow();
 
     await note.toggleFold();
 
-    expect(note.folded()).toBe(true);
+    expect(note.getFolded()).toBe(true);
     expect(remdo.editor.read(() => $isNoteFolded($findNoteById('note2')!))).toBe(true);
   });
 
@@ -249,11 +249,11 @@ describe('lexical document session', () => {
     runtime.start();
     runtime.setSourceReady(true);
     onTestFinished(() => runtime.dispose());
-    const note = runtime.session.note('note2');
+    const note = runtime.session.noteRef('note2');
     const listener = vi.fn();
     onTestFinished(note.subscribe(listener));
 
-    expect(note.text()).toBe('note2');
+    expect(note.getText()).toBe('note2');
     expect(listener).not.toHaveBeenCalled();
 
     await remdo.updateNoteText('note1', 'unrelated');
@@ -262,7 +262,7 @@ describe('lexical document session', () => {
 
     await remdo.updateNoteText('note2', 'changed');
     await waitFor(() => {
-      expect(note.text()).toBe('changed');
+      expect(note.getText()).toBe('changed');
       expect(listener).toHaveBeenCalledOnce();
     });
 
@@ -271,7 +271,7 @@ describe('lexical document session', () => {
       $setNoteFolded($findNoteById('note2')!, true);
     });
     await waitFor(() => {
-      expect(note.folded()).toBe(true);
+      expect(note.getFolded()).toBe(true);
       expect(listener).toHaveBeenCalledOnce();
     });
   });
@@ -339,17 +339,17 @@ describe('lexical document session', () => {
     const listener = vi.fn(() => {
       if (armed) {
         armed = false;
-        void runtime.session.note('note2').toggleFold();
+        void runtime.session.noteRef('note2').toggleFold();
       }
     });
-    runtime.session.note('note1').subscribe(listener);
+    runtime.session.noteRef('note1').subscribe(listener);
     armed = true;
 
     await placeCaretAtNote(remdo, 'note1');
     await typeText(remdo, '!');
 
     await waitFor(() => {
-      expect(runtime.session.note('note2').folded()).toBe(true);
+      expect(runtime.session.noteRef('note2').getFolded()).toBe(true);
     });
   });
 
@@ -368,7 +368,7 @@ describe('lexical document session', () => {
     runtime.setSourceReady(false);
     await expect(runtime.session.search(SEARCH_ALL)).rejects.toThrow('not available');
     expect(runtime.session.capabilities.getSnapshot()).toEqual({ status: 'loading' });
-    await expect(runtime.session.note('note1').toggleFold()).resolves.toBeUndefined();
+    await expect(runtime.session.noteRef('note1').toggleFold()).resolves.toBeUndefined();
 
     await typeText(remdo, 'fresh ');
     runtime.setSourceReady(true);
@@ -439,7 +439,7 @@ describe('lexical document session', () => {
     stop();
     await expect(runtime.session.search(SEARCH_ALL)).rejects.toThrow('not available');
     expect(runtime.session.capabilities.getSnapshot()).toEqual({ status: 'loading' });
-    await runtime.session.note('note2').toggleFold();
+    await runtime.session.noteRef('note2').toggleFold();
     runtime.session.selection.indent();
     runtime.session.selection.outdent();
     runtime.session.selection.moveUp();

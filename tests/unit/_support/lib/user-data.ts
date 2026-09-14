@@ -27,14 +27,14 @@ const localDocumentSource: DocumentSource = {
 };
 
 const documentSources: CollectionSource<DocumentSource> = {
-  children: () => [localDocumentSource, ...extraDocumentSources],
-  byId: (sourceId) => documentSources.children().find((source) => source.id === sourceId) ?? null,
+  getChildren: () => [localDocumentSource, ...extraDocumentSources],
+  getById: (sourceId) => documentSources.getChildren().find((source) => source.id === sourceId) ?? null,
 };
 
 function createMutableCollectionSource<Item extends { id: string }>(items: readonly Item[]): CollectionSource<Item> {
   return {
-    children: () => items,
-    byId: (itemId) => items.find((item) => item.id === itemId) ?? null,
+    getChildren: () => items,
+    getById: (itemId) => items.find((item) => item.id === itemId) ?? null,
   };
 }
 
@@ -57,7 +57,7 @@ const userData = createUserDataRootNote(documents, {
     return document;
   },
   documentSources,
-  homeDocumentId: () => TEST_USER_DATA_DOCUMENT.id,
+  getHomeDocumentId: () => TEST_USER_DATA_DOCUMENT.id,
 });
 
 export function resetTestUserData(): void {

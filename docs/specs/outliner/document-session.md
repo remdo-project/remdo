@@ -12,7 +12,7 @@ operation's behavioral owner retains its semantics.
 
 The session resolves editor notes by document-local note ID; cross-document
 identity for addressable editor notes uses the global
-[`noteRef`](./note-ids.md#definitions). An addressed handle reads the current
+[`noteAddress`](./note-ids.md#definitions). An addressed handle reads the current
 committed note and fails when it does not exist, including after deletion,
 rather than returning stale or substitute data.
 

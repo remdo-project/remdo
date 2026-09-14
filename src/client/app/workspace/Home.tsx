@@ -16,7 +16,7 @@ export default function Home() {
     void navigate(createDocumentPath(docId));
   }, [navigate]);
   const actions = useDocumentActions({ onSelectDocument: openDocument, userData });
-  const home = buildHomeContent(userData.documentSources().children());
+  const home = buildHomeContent(userData.getDocumentSources().getChildren());
 
   useEffect(() => {
     document.title = `Home · ${APP_TITLE}`;

@@ -2,13 +2,13 @@ import type { AddressableNote, CollectionNote } from './notes';
 
 export interface UserDataNote extends AddressableNote<'user-data'> {
   /** Returns the user's home document note. */
-  homeDocument: () => DocumentNote;
+  getHomeDocument: () => DocumentNote;
   /** Returns document lists grouped by current and linked source servers. */
-  documentSources: () => DocumentSourcesNote;
+  getDocumentSources: () => DocumentSourcesNote;
   /** Returns the user-documents child note. */
-  documents: () => UserDocumentsNote;
+  getDocuments: () => UserDocumentsNote;
   /** Returns the user's linkable source-server notes. */
-  sourceServers: () => SourceServersNote;
+  getSourceServers: () => SourceServersNote;
 }
 
 export interface UserDocumentsNote extends CollectionNote<DocumentNote> {
@@ -20,34 +20,34 @@ export type DocumentSourcesNote = CollectionNote<DocumentSourceNote>;
 
 export interface DocumentSourceNote extends AddressableNote<'document-source'> {
   /** Returns the source server origin, when the source is remote. */
-  baseUrl: () => string | null;
+  getBaseUrl: () => string | null;
   /** Returns documents projected by this source. */
-  documents: () => CollectionNote<DocumentNote>;
+  getDocuments: () => CollectionNote<DocumentNote>;
   /** Returns whether this source is the current/home server. */
-  local: () => boolean;
+  getLocal: () => boolean;
 }
 
 export interface DocumentNote extends AddressableNote<'document'> {
   /** Returns direct access grants for this document. */
-  access: () => CollectionNote<DocumentAccessNote>;
+  getAccess: () => CollectionNote<DocumentAccessNote>;
   /** Returns whether this document can grant direct local-user access. */
-  shareable: () => boolean;
+  canShareWith: () => boolean;
   /** Grants document access to a user email. */
   shareWith: (email: string) => Promise<DocumentAccessNote>;
 }
 
 export interface DocumentAccessNote extends AddressableNote<'document-access'> {
   /** Returns the shared user's email address. */
-  email: () => string;
+  getEmail: () => string;
   /** Returns the shared user's local auth user id. */
-  granteeUserId: () => string;
+  getGranteeUserId: () => string;
   /** Returns the shared user's display name, when available. */
-  name: () => string | null;
+  getName: () => string | null;
 }
 
 export type SourceServersNote = CollectionNote<SourceServerNote>;
 
 export interface SourceServerNote extends AddressableNote<'source-server'> {
   /** Returns the source server origin. */
-  baseUrl: () => string;
+  getBaseUrl: () => string;
 }

@@ -8,31 +8,31 @@ describe('user data writes', () => {
 
   it('creates a new document in the local user data', async () => {
     const initialUserData = getTestUserData();
-    expect(initialUserData.documents().children().map((document) => ({
-      id: document.id(),
-      title: document.text(),
+    expect(initialUserData.getDocuments().getChildren().map((document) => ({
+      id: document.getId(),
+      title: document.getText(),
     }))).toEqual([
       { id: TEST_USER_DATA_DOCUMENT.id, title: TEST_USER_DATA_DOCUMENT.title },
     ]);
 
     const userData = getTestUserData();
-    const document = await userData.documents().create('New Document');
+    const document = await userData.getDocuments().create('New Document');
 
-    expect(userData.documents().children().map((document) => ({
-      id: document.id(),
-      title: document.text(),
+    expect(userData.getDocuments().getChildren().map((document) => ({
+      id: document.getId(),
+      title: document.getText(),
     }))).toEqual([
       { id: TEST_USER_DATA_DOCUMENT.id, title: TEST_USER_DATA_DOCUMENT.title },
-      { id: document.id(), title: 'New Document' },
+      { id: document.getId(), title: 'New Document' },
     ]);
 
     const reloadedUserData = getTestUserData();
-    expect(reloadedUserData.documents().children().map((document) => ({
-      id: document.id(),
-      title: document.text(),
+    expect(reloadedUserData.getDocuments().getChildren().map((document) => ({
+      id: document.getId(),
+      title: document.getText(),
     }))).toEqual([
       { id: TEST_USER_DATA_DOCUMENT.id, title: TEST_USER_DATA_DOCUMENT.title },
-      { id: document.id(), title: 'New Document' },
+      { id: document.getId(), title: 'New Document' },
     ]);
   });
 

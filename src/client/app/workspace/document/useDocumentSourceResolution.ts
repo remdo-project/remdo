@@ -46,19 +46,19 @@ export function useDocumentSourceResolution(
 ) {
   const documentSourcesLoading = useDocumentSourcesLoading();
   const online = useOnlineState();
-  const currentSource = documentSources.find((source) => source.documents().byId(docId)) ?? null;
-  const localSource = documentSources.find((source) => source.local()) ?? null;
-  const localDocumentExists = Boolean(localSource?.documents().byId(docId));
+  const currentSource = documentSources.find((source) => source.getDocuments().getById(docId)) ?? null;
+  const localSource = documentSources.find((source) => source.getLocal()) ?? null;
+  const localDocumentExists = Boolean(localSource?.getDocuments().getById(docId));
   const ambiguous = online && documentSourcesLoading && !localDocumentExists && !currentSource;
   const probing = useLocalDocumentAccessProbing(docId, ambiguous);
-  const currentDocument = currentSource?.documents().byId(docId) ?? null;
+  const currentDocument = currentSource?.getDocuments().getById(docId) ?? null;
 
   return {
-    documentLabel: currentDocument?.text() ?? docId,
+    documentLabel: currentDocument?.getText() ?? docId,
     // Block only while the probe is still deciding; once it settles we mount the
     // editor and let the collaboration layer surface the connection state.
     pending: ambiguous && probing,
-    sourceId: currentSource?.local() === false ? currentSource.id() : null,
-    sourceOrigin: currentSource?.baseUrl() ?? null,
+    sourceId: currentSource?.getLocal() === false ? currentSource.getId() : null,
+    sourceOrigin: currentSource?.getBaseUrl() ?? null,
   };
 }

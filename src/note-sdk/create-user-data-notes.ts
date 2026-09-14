@@ -25,7 +25,7 @@ const USER_DOCUMENTS_TITLE = 'Documents';
 interface UserDataNoteActions {
   createDocument?: (title: string) => Promise<UserDocument>;
   documentSources?: CollectionSource<DocumentSource>;
-  homeDocumentId?: () => NoteId | null;
+  getHomeDocumentId?: () => NoteId | null;
   shareDocument?: (documentId: NoteId, email: string) => Promise<DocumentAccessView>;
 }
 
@@ -42,26 +42,26 @@ interface DocumentAccessItem extends DocumentAccessView {
 }
 
 export interface CollectionSource<Item extends { id: NoteId }> {
-  children: () => readonly Item[];
-  byId: (itemId: NoteId) => Item | null;
+  getChildren: () => readonly Item[];
+  getById: (itemId: NoteId) => Item | null;
 }
 
 type CollectionSourceInput<Item extends { id: NoteId }> = readonly Item[] | CollectionSource<Item>;
 
 function createArrayCollectionSource<Item extends { id: NoteId }>(items: readonly Item[]): CollectionSource<Item> {
   return {
-    children: () => items,
-    byId: (itemId) => items.find((item) => item.id === itemId) ?? null,
+    getChildren: () => items,
+    getById: (itemId) => items.find((item) => item.id === itemId) ?? null,
   };
 }
 
 function isCollectionSource<Item extends { id: NoteId }>(value: unknown): value is CollectionSource<Item> {
   return typeof value === 'object'
     && value !== null
-    && 'children' in value
-    && typeof value.children === 'function'
-    && 'byId' in value
-    && typeof value.byId === 'function';
+    && 'getChildren' in value
+    && typeof value.getChildren === 'function'
+    && 'getById' in value
+    && typeof value.getById === 'function';
 }
 
 function resolveCollectionSource<Item extends { id: NoteId }>(
@@ -84,13 +84,13 @@ function createDocumentAccessNoteHandle(access: DocumentAccessItem): DocumentAcc
   const noteId = access.id;
   const kind = () => 'document-access' as const;
   const handle: DocumentAccessNote = {
-    id: () => noteId,
-    kind,
-    text: () => access.name || access.email,
-    children: () => [],
-    email: () => access.email,
-    granteeUserId: () => access.granteeUserId,
-    name: () => access.name,
+    getId: () => noteId,
+    getKind: kind,
+    getText: () => access.name || access.email,
+    getChildren: () => [],
+    getEmail: () => access.email,
+    getGranteeUserId: () => access.granteeUserId,
+    getName: () => access.name,
     as: createNoteAs(noteId, kind, () => handle),
   };
 
@@ -125,12 +125,12 @@ function createProjectedDocumentHandle(
   }
 
   const handle: DocumentNote = {
-    id: () => noteId,
-    kind,
-    text: () => document.title,
-    access: () => createDocumentAccessHandle(document),
-    children: () => [],
-    shareable: () => document.shareable === true,
+    getId: () => noteId,
+    getKind: kind,
+    getText: () => document.title,
+    getAccess: () => createDocumentAccessHandle(document),
+    getChildren: () => [],
+    canShareWith: () => document.shareable === true,
     shareWith,
     as: createNoteAs(noteId, kind, () => handle),
   };
@@ -156,12 +156,12 @@ function createUserDocumentsHandle(
   }
 
   const handle: UserDocumentsNote = {
-    id: () => noteId,
-    kind,
-    text: () => USER_DOCUMENTS_TITLE,
-    children: () => documents.children().map((document) => createProjectedDocumentHandle(document, actions)),
-    byId: (documentId) => {
-      const document = documents.byId(documentId);
+    getId: () => noteId,
+    getKind: kind,
+    getText: () => USER_DOCUMENTS_TITLE,
+    getChildren: () => documents.getChildren().map((document) => createProjectedDocumentHandle(document, actions)),
+    getById: (documentId) => {
+      const document = documents.getById(documentId);
       return document ? createProjectedDocumentHandle(document, actions) : null;
     },
     create,
@@ -185,13 +185,13 @@ function createDocumentSourceHandle(
     text: USER_DOCUMENTS_TITLE,
   });
   const handle: DocumentSourceNote = {
-    id: () => noteId,
-    kind,
-    text: () => source.label,
-    children: () => [documents],
-    baseUrl: () => source.baseUrl,
-    documents: () => documents,
-    local: () => source.local,
+    getId: () => noteId,
+    getKind: kind,
+    getText: () => source.label,
+    getChildren: () => [documents],
+    getBaseUrl: () => source.baseUrl,
+    getDocuments: () => documents,
+    getLocal: () => source.local,
     as: createNoteAs(noteId, kind, () => handle),
   };
 
@@ -223,12 +223,12 @@ function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends No
 }): CollectionNote<ItemNote> {
   const kind = () => 'collection' as const;
   const handle: CollectionNote<ItemNote> = {
-    id: () => noteId,
-    kind,
-    text: () => text,
-    children: () => items.children().map((item) => createItemNote(item)),
-    byId: (itemId) => {
-      const item = items.byId(itemId);
+    getId: () => noteId,
+    getKind: kind,
+    getText: () => text,
+    getChildren: () => items.getChildren().map((item) => createItemNote(item)),
+    getById: (itemId) => {
+      const item = items.getById(itemId);
       return item ? createItemNote(item) : null;
     },
     as: createNoteAs(noteId, kind, () => handle),
@@ -243,11 +243,11 @@ function createSourceServerHandle(
   const noteId = sourceServer.id;
   const kind = () => 'source-server' as const;
   const handle: SourceServerNote = {
-    id: () => noteId,
-    kind,
-    text: () => sourceServer.label,
-    children: () => [],
-    baseUrl: () => sourceServer.baseUrl,
+    getId: () => noteId,
+    getKind: kind,
+    getText: () => sourceServer.label,
+    getChildren: () => [],
+    getBaseUrl: () => sourceServer.baseUrl,
     as: createNoteAs(noteId, kind, () => handle),
   };
 
@@ -294,10 +294,10 @@ export function createUserDataRootNote(
   const userSourceServers = createSourceServersHandle(sourceServers);
 
   function homeDocument(): DocumentNote {
-    const homeDocumentId = resolvedActions.homeDocumentId?.() ?? null;
+    const homeDocumentId = resolvedActions.getHomeDocumentId?.() ?? null;
     const document = homeDocumentId
-      ? userDocumentsSource.byId(homeDocumentId)
-      : userDocumentsSource.children()[0];
+      ? userDocumentsSource.getById(homeDocumentId)
+      : userDocumentsSource.getChildren()[0];
     if (!document) {
       throw new Error('Home document is not available.');
     }
@@ -305,14 +305,14 @@ export function createUserDataRootNote(
   }
 
   const handle: UserDataNote = {
-    id: () => noteId,
-    kind,
-    text: () => USER_DATA_TITLE,
-    children: () => [documentSources, userDocuments, userSourceServers],
-    homeDocument,
-    documentSources: () => documentSources,
-    documents: () => userDocuments,
-    sourceServers: () => userSourceServers,
+    getId: () => noteId,
+    getKind: kind,
+    getText: () => USER_DATA_TITLE,
+    getChildren: () => [documentSources, userDocuments, userSourceServers],
+    getHomeDocument: homeDocument,
+    getDocumentSources: () => documentSources,
+    getDocuments: () => userDocuments,
+    getSourceServers: () => userSourceServers,
     as: createNoteAs(noteId, kind, () => handle),
   };
 
