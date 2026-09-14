@@ -62,7 +62,11 @@ The [search specification](specs/outliner/search.md) defines document-search beh
 The [open document session](specs/outliner/document-session.md) defines the opened-document boundary.
 
 1. Consumers should access notes, observe changes, and invoke supported
-   operations through a simple, consistent, adapter-neutral API.
+   operations through a simple, consistent, adapter-neutral API that is easy to
+   use correctly and minimizes what consumers must remember.
+   Prefer established API models as defaults where they simplify consumption.
+   Departures should address concrete consumer needs and preserve coherence
+   across the API.
 2. Consumer-facing concepts and operation semantics should stay stable as
    implementation choices change.
 3. Ordinary consumers should not have to manage adapter transactions, indexing,

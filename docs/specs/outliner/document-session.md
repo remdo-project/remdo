@@ -6,6 +6,8 @@ action capabilities, and semantic operations. The application host owns its
 lifetime and exposes it only while the committed document is usable. Each
 operation's behavioral owner retains its semantics.
 
+[SDK design](../../dev/sdk.md) owns contributor guidance and external design references.
+
 ## State and observation
 
 The session resolves editor notes by document-local note ID; cross-document
