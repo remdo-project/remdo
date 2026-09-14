@@ -5,11 +5,13 @@ import {
   $getRoot,
   $setState,
   CAN_UNDO_COMMAND,
+  COMMAND_PRIORITY_HIGH,
   REDO_COMMAND,
   UNDO_COMMAND,
 } from 'lexical';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { LoadState, SnapshotStore } from '#note-sdk';
+import { NoteUnavailableError } from '#note-sdk';
 import { createMountedLexicalEditor, getNoteKey, meta, placeCaretAtNote, typeText } from '#tests';
 import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
 import {
@@ -61,11 +63,13 @@ function $setSingleNoteDocument(noteId: string, text: string): void {
 const SEARCH_ALL = { query: '', limit: 10, childPreviewLimit: 2 };
 
 describe('lexical document session', () => {
-  it('reads addressed-note values without waiting for adapter effects', meta({ fixture: 'tree' }), ({ remdo }) => {
+  it('reads addressed-note values without subscribing', meta({ fixture: 'tree' }), ({ remdo }) => {
     const runtime = createLexicalDocumentSessionRuntime({
       editor: remdo.editor,
       docId: remdo.getCollabDocId(),
     });
+    runtime.start();
+    runtime.setSourceReady(true);
     onTestFinished(() => runtime.dispose());
 
     const note = runtime.session.noteRef('note2');
@@ -233,7 +237,10 @@ describe('lexical document session', () => {
     expect(note.getId()).toBe('note2');
     expect(note.getText()).toBe('note2');
     expect(note.getFolded()).toBe(false);
-    expect(() => runtime.session.noteRef('missing').getText()).toThrow();
+    const missing = runtime.session.noteRef('missing');
+    expect(missing.getText).toThrow(NoteUnavailableError);
+    expect(missing.getFolded).toThrow(NoteUnavailableError);
+    expect(missing.getId()).toBe('missing');
 
     await note.toggleFold();
 
@@ -274,6 +281,119 @@ describe('lexical document session', () => {
       expect(note.getFolded()).toBe(true);
       expect(listener).toHaveBeenCalledOnce();
     });
+  });
+
+  it('keeps later subscriptions active when an earlier cleanup is repeated', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    const note = remdo.documentSession.noteRef('note2');
+    const unsubscribe = note.subscribe(() => {});
+    onTestFinished(unsubscribe);
+    unsubscribe();
+    const listener = vi.fn();
+    onTestFinished(note.subscribe(listener));
+    unsubscribe();
+
+    await remdo.updateNoteText('note2', 'changed');
+    await flushObservations();
+
+    expect(listener).toHaveBeenCalledOnce();
+  });
+
+  it('independently releases subscriptions using the same callback and note ID', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    const listener = vi.fn();
+    const unsubscribe = remdo.documentSession.noteRef('note2').subscribe(listener);
+    onTestFinished(unsubscribe);
+    onTestFinished(remdo.documentSession.noteRef('note2').subscribe(listener));
+    unsubscribe();
+
+    await remdo.updateNoteText('note2', 'changed');
+    await flushObservations();
+
+    expect(listener).toHaveBeenCalledOnce();
+  });
+
+  it('notifies when the source becomes unavailable and readable again', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    const runtime = createLexicalDocumentSessionRuntime({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+    onTestFinished(runtime.dispose);
+    const note = runtime.session.noteRef('note2');
+    expect(note.getText).toThrow(NoteUnavailableError);
+    const stop = runtime.start();
+    expect(note.getText).toThrow(NoteUnavailableError);
+    runtime.setSourceReady(true);
+    const listener = vi.fn();
+    onTestFinished(note.subscribe(listener));
+    expect(note.getText()).toBe('note2');
+
+    runtime.setSourceReady(false);
+    expect(listener).toHaveBeenCalledOnce();
+    expect(note.getText).toThrow(NoteUnavailableError);
+    await note.toggleFold();
+    runtime.setSourceReady(true);
+    await waitFor(() => expect(listener).toHaveBeenCalledTimes(2));
+    expect(note.getFolded()).toBe(false);
+    stop();
+    expect(note.getText).toThrow(NoteUnavailableError);
+  });
+
+  it('keeps a retained reference observable through deletion and undo until cleanup', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const runtime = createLexicalDocumentSessionRuntime({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+    runtime.start();
+    runtime.setSourceReady(true);
+    onTestFinished(runtime.dispose);
+    const note = runtime.session.noteRef('note2');
+    const observed: (string | undefined)[] = [];
+    const unsubscribe = note.subscribe(() => {
+      try {
+        observed.push(note.getText());
+      } catch (error) {
+        if (!(error instanceof NoteUnavailableError)) throw error;
+        observed.push(undefined);
+      }
+    });
+    onTestFinished(unsubscribe);
+
+    await placeCaretAtNote(remdo, 'note2');
+    runtime.session.selection.delete();
+    await waitFor(() => expect(observed).toEqual([undefined]));
+    expect(note.getText).toThrow(NoteUnavailableError);
+
+    runtime.session.history.undo();
+    await waitFor(() => expect(observed).toEqual([undefined, 'note2']));
+    expect(note.getText()).toBe('note2');
+
+    await remdo.updateNoteText('note2', 'restored note');
+    await waitFor(() => expect(observed).toEqual([undefined, 'note2', 'restored note']));
+
+    unsubscribe();
+    await remdo.updateNoteText('note2', 'after cleanup');
+    await flushObservations();
+    expect(note.getText()).toBe('after cleanup');
+    expect(observed).toEqual([undefined, 'note2', 'restored note']);
+
+    runtime.dispose();
+    expect(note.getId()).toBe('note2');
+    expect(note.getText).toThrow(NoteUnavailableError);
+  });
+
+  it('keeps addressed folding inside the zoom boundary', meta({
+    fixture: 'tree-complex',
+    viewProps: { zoomNoteId: 'note2' },
+  }), async ({ remdo }) => {
+    const session = remdo.documentSession;
+    for (const noteId of ['note1', 'note2', 'note6']) {
+      const note = session.noteRef(noteId);
+      expect(note.getText()).toBe(noteId);
+      await note.toggleFold();
+      expect(note.getFolded()).toBe(false);
+    }
+  });
+
+  it('allows addressed folding within a zoomed subtree', meta({
+    fixture: 'tree-complex',
+    viewProps: { zoomNoteId: 'note1' },
+  }), async ({ remdo }) => {
+    const note = remdo.documentSession.noteRef('note2');
+    await note.toggleFold();
+    expect(note.getFolded()).toBe(true);
   });
 
   it('maps each named operation to its semantic editor command', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -399,7 +519,9 @@ describe('lexical document session', () => {
     });
   });
 
-  it('rejects a search of invalid state and searches a later valid state', async () => {
+  it('surfaces invalid source state and reads a later valid state', meta({
+    expectedConsoleIssues: ['runtime.invariant Root must contain exactly one top-level list node'],
+  }), async () => {
     const mounted = createMountedLexicalEditor({
       namespace: 'document-session-error-recovery',
       nodes: editorNodes,
@@ -415,13 +537,92 @@ describe('lexical document session', () => {
     runtime.setSourceReady(true);
     onTestFinished(() => runtime.dispose());
     expect((await runtime.session.search(SEARCH_ALL)).flatResults[0]!.note.text).toBe('First');
+    const note = runtime.session.noteRef('first');
+    const observed: unknown[] = [];
+    const unsubscribe = note.subscribe(() => {
+      try {
+        observed.push(note.getText());
+      } catch (error) {
+        observed.push(error);
+      }
+    });
+    onTestFinished(unsubscribe);
 
     mounted.editor.update(() => $getRoot().clear(), { discrete: true });
     await expect(runtime.session.search(SEARCH_ALL)).rejects.toThrow('Missing document root list');
+    await waitFor(() => {
+      expect(observed.at(-1)).toEqual(expect.objectContaining({
+        message: 'Outline schema invariant: Root must contain exactly one top-level list node',
+      }));
+      expect(observed.at(-1)).not.toBeInstanceOf(NoteUnavailableError);
+    });
 
-    mounted.editor.update(() => $setSingleNoteDocument('second', 'Second'), { discrete: true });
-    expect((await runtime.session.search(SEARCH_ALL)).flatResults[0]!.note.text).toBe('Second');
+    mounted.editor.update(() => $setSingleNoteDocument('first', 'First'), { discrete: true });
+    await waitFor(() => expect(observed.at(-1)).toBe('First'));
+    expect((await runtime.session.search(SEARCH_ALL)).flatResults[0]!.note.text).toBe('First');
+    unsubscribe();
   });
+
+  it('observes recovery when subscribed during a read failure', meta({
+    expectedConsoleIssues: ['runtime.invariant Root must contain exactly one top-level list node'],
+  }), async () => {
+    const mounted = createMountedLexicalEditor({
+      namespace: 'document-session-subscribe-recovery',
+      nodes: editorNodes,
+      onError: (error) => { throw error; },
+    });
+    onTestFinished(mounted.dispose);
+    mounted.editor.update(() => $setSingleNoteDocument('first', 'First'), { discrete: true });
+    const runtime = createLexicalDocumentSessionRuntime({ editor: mounted.editor, docId: 'document' });
+    runtime.start();
+    runtime.setSourceReady(true);
+    onTestFinished(runtime.dispose);
+    const note = runtime.session.noteRef('first');
+    mounted.editor.update(() => $getRoot().clear(), { discrete: true });
+
+    const recovered: string[] = [];
+    onTestFinished(note.subscribe(() => recovered.push(note.getText())));
+    expect(note.getText).toThrow('Root must contain exactly one top-level list node');
+
+    mounted.editor.update(() => $setSingleNoteDocument('first', 'First'), { discrete: true });
+    await waitFor(() => expect(recovered).toEqual(['First']));
+  });
+
+  for (const rethrow of [false, true]) {
+    it(`rejects failed addressed operations when the host rethrows: ${rethrow}`, meta({ fixture: 'tree' }), async ({ remdo }) => {
+      const errors: Error[] = [];
+      const mounted = createMountedLexicalEditor({
+        namespace: 'document-session-operation-error',
+        nodes: editorNodes,
+        onError: (error) => {
+          errors.push(error);
+          if (rethrow) throw error;
+        },
+      });
+      onTestFinished(mounted.dispose);
+      mounted.editor.setEditorState(mounted.editor.parseEditorState(remdo.editor.getEditorState().toJSON()));
+      const runtime = createLexicalDocumentSessionRuntime({ editor: mounted.editor, docId: 'document' });
+      runtime.start();
+      runtime.setSourceReady(true);
+      onTestFinished(runtime.dispose);
+      const failure = new Error('Failed fold operation');
+      const unregister = mounted.editor.registerCommand(SET_NOTE_FOLD_COMMAND, () => { throw failure; }, COMMAND_PRIORITY_HIGH);
+      onTestFinished(unregister);
+      const note = runtime.session.noteRef('note2');
+      let outcome: unknown = 'pending';
+      const mutation = note.toggleFold();
+      void mutation.then(() => { outcome = 'resolved'; }, (error: unknown) => { outcome = error; });
+      await flushObservations();
+      expect(outcome).toBe(failure);
+      expect(errors).toEqual([failure]);
+      expect(note.getFolded()).toBe(false);
+
+      unregister();
+      mounted.editor.update(() => $setSingleNoteDocument('first', 'Later edit'), { discrete: true });
+      await expect(mutation).rejects.toBe(failure);
+      expect(runtime.session.noteRef('first').getText()).toBe('Later edit');
+    });
+  }
 
   it('makes every operation inert after stop and dispose', meta({ fixture: 'tree' }), async ({ remdo }) => {
     const runtime = createLexicalDocumentSessionRuntime({

@@ -10,17 +10,22 @@ import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import {
   getTestUserData,
   meta,
+  placeCaretAtNote,
   resetTestUserData,
   TEST_USER_DATA_DOCUMENT,
 } from '#tests';
-import { createUserDataRootNote } from '#note-sdk';
+import { createUserDataRootNote, NoteUnavailableError } from '#note-sdk';
 
 describe('note SDK showcase', () => {
   describe('open document session', () => {
-    it("reads an addressed note's text", meta({ fixture: 'tree' }), ({ remdo }) => {
+    it('retains a reference and reads fresh text after an edit', meta({ fixture: 'tree' }), async ({ remdo }) => {
       const note = remdo.documentSession.noteRef('note2');
+      const earlierText = note.getText();
 
-      expect(note.getText()).toBe('note2');
+      await remdo.updateNoteText('note2', 'changed');
+
+      expect(note.getText()).toBe('changed');
+      expect(earlierText).toBe('note2');
     });
 
     it("reads and toggles an addressed note's folded state", meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -33,11 +38,16 @@ describe('note SDK showcase', () => {
       expect(note.getFolded()).toBe(true);
     });
 
-    it("observes an addressed note's text after an editor-originated change", meta({ fixture: 'tree' }), async ({ remdo }) => {
+    it("observes text changes and handles an unavailable note", meta({ fixture: 'tree' }), async ({ remdo }) => {
       const note = remdo.documentSession.noteRef('note2');
-      let text = note.getText();
+      let text: string | null = note.getText();
       const unsubscribe = note.subscribe(() => {
-        text = note.getText();
+        try {
+          text = note.getText();
+        } catch (error) {
+          if (!(error instanceof NoteUnavailableError)) throw error;
+          text = null;
+        }
       });
       onTestFinished(unsubscribe);
 
@@ -46,6 +56,11 @@ describe('note SDK showcase', () => {
       await vi.waitFor(() => {
         expect(text).toBe('changed');
       });
+
+      await placeCaretAtNote(remdo, 'note2');
+      remdo.documentSession.selection.delete();
+      await vi.waitFor(() => expect(text).toBeNull());
+      unsubscribe();
     });
   });
 
