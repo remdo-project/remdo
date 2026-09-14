@@ -47,3 +47,5 @@ or the [menu's checked-target rule](./menu.md#actions) when supplied a note targ
 
 Adapters own framework and storage mechanics. Consumer surfaces own which
 operations they offer and how they present and interact with them.
+Editor bindings resolve row or selection context to stable note identity before
+passing it to consumers.

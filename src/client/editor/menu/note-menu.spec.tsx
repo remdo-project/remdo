@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { OPEN_NOTE_MENU_COMMAND } from '#client/editor/foundation/commands';
 import { handleNoteMenuShortcut } from '#client/editor/menu/note-menu-shortcuts';
 import { getNoteElement, getNoteKey, meta, placeCaretAtNote } from '#tests';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
 
 const createShortcutEvent = (key: string) => ({
   key,
@@ -41,6 +42,47 @@ describe('quick action menu (docs/specs/outliner/menu.md)', () => {
     expect(document.querySelector('[data-note-menu-item="list-check"]')).not.toBeNull();
     expect(document.querySelector('[data-note-menu-item="list-bullet"]')).not.toBeNull();
     expect(document.querySelector('[data-note-menu-item="view-fold-to-level"]')).not.toBeNull();
+  });
+
+  it('refreshes the open menu when the addressed note changes', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
+    await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: getNoteKey(remdo, 'note1') });
+    await waitFor(() => expect(document.querySelector('[data-note-menu-note-id="note1"]')).not.toBeNull());
+
+    await remdo.documentSession.noteRef('note1').setChildListType('check');
+    await remdo.documentSession.noteRef('note1').toggleFold();
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-note-menu-item="list-check"]')).toBeNull();
+      expect(document.querySelector('[data-note-menu-item="list-number"]')).not.toBeNull();
+      expect(document.querySelector('[data-note-menu-item="fold"]')?.textContent).toBe('Unfold');
+    });
+  });
+
+  it('executes against the same note after editor keys are replaced while open', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1');
+    const oldKey = getNoteKey(remdo, 'note2');
+    await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: oldKey });
+    await waitFor(() => expect(document.querySelector('[data-note-menu]')).not.toBeNull());
+    remdo.editor.setEditorState(remdo.editor.parseEditorState(JSON.stringify(remdo.getEditorState())));
+    expect(getNoteKey(remdo, 'note2')).not.toBe(oldKey);
+
+    fireEvent.click(document.querySelector('[data-note-menu-item="fold"]')!);
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-note-menu]')).toBeNull();
+      expect(remdo.documentSession.noteRef('note2').getFolded()).toBe(true);
+    });
+    expect(remdo.documentSession.noteRef('note1').getFolded()).toBe(false);
+  });
+
+  it('closes when its addressed note disappears', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1');
+    await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: getNoteKey(remdo, 'note3') });
+    await waitFor(() => expect(document.querySelector('[data-note-menu]')).not.toBeNull());
+
+    await remdo.mutate(() => $findNoteById('note3')!.remove());
+
+    await waitFor(() => expect(document.querySelector('[data-note-menu]')).toBeNull());
   });
 
   it('stays open when the window scrolls', meta({ fixture: 'flat' }), async ({ remdo }) => {

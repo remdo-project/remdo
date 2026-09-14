@@ -108,14 +108,14 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   settled slice around the shared [note model](specs/outliner/note-model.md):
   addressed-note access and observation, observable action capabilities, and
   semantic operations. [Search](specs/outliner/search.md) requests results through
-  the session and the [mobile toolbar](specs/outliner/mobile-toolbar.md) consumes its
-  capabilities and operations without importing Lexical commands or private
-  feature modules.
+  the session. The [mobile toolbar](specs/outliner/mobile-toolbar.md) and [quick action menu](specs/outliner/menu.md) consume its
+  capabilities and operations; editor bindings resolve menu targets to stable
+  note identity.
 
   Use real consumers, including keymaps, to improve the SDK, not merely to
-  migrate calls behind its existing API. The [quick action menu](specs/outliner/menu.md) is a useful next
-  playground; data access, queries, and observation are equally valid starting
-  points when a consumer exposes a more important gap. Choose small slices by
+  migrate calls behind its existing API. Data access, queries, and observation
+  are equally valid starting points when a consumer exposes a more important
+  gap. Choose small slices by
   consumer value rather than a fixed PR sequence, following the
   [consumer API principles](principles.md#consumer-apis) and the session's ownership boundaries. Preserve each
   operation's owning behavior while reconsidering the SDK shape.

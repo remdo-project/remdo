@@ -1,68 +1,27 @@
-import type { ListType } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { mergeRegister } from '@lexical/utils';
-import {
-  $getNodeByKey,
-  COMMAND_PRIORITY_LOW,
-  SELECTION_CHANGE_COMMAND,
-} from 'lexical';
-import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Header, Menu, MenuItem, MenuSection } from 'react-aria-components';
-import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
-
-import { FOLD_VIEW_TO_LEVEL_COMMAND, OPEN_NOTE_MENU_COMMAND, SET_NESTED_LIST_TYPE_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_OUT_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
-import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
+import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { DocumentSession, NoteId } from '#note-sdk';
+import { OPEN_NOTE_MENU_COMMAND } from '#client/editor/foundation/commands';
 import { focusEditorRoot } from '#client/editor/runtime/focus';
-import { requireContentItemFromNode } from '#client/editor/outline/schema';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
-import { $canOfferFold } from '#client/editor/features/folding/fold-offer';
-import { $getNestedListType } from '#client/editor/features/list-types/nested-list-type';
-import { handleNoteMenuShortcut } from '#client/editor/menu/note-menu-shortcuts';
-import type { NoteMenuShortcutEvent } from '#client/editor/menu/note-menu-shortcuts';
-import { $resolveNoteStateFromDOMNode } from '#client/editor/menu/note-state';
 import { isOtherPopupActive, setPopupActive } from '#client/editor/triggers/active-popup';
 import { EditorPopupOverlay } from '#client/editor/triggers/overlay';
 import { resolveCaretTargetRect } from '#client/editor/triggers/target-rect';
+import { resolveMenuNoteElement, resolveMenuNoteId } from './note-menu-target';
+import { NoteMenu } from './NoteMenu';
 
 type NoteMenuTarget = 'caret' | 'controls' | 'row';
 
 interface NoteMenuState {
-  noteKey: string;
-  hasChildren: boolean;
-  isFolded: boolean;
-  canFold: boolean;
-  childListType: ListType | null;
+  noteId: NoteId;
   target: NoteMenuTarget;
 }
 
-type MenuShortcutEvent = NoteMenuShortcutEvent;
-
 const DOUBLE_SHIFT_WINDOW_MS = 500;
 
-const listTypeOptions = [
-  { type: 'number' as const, label: 'Numbered list', id: 'list-number' },
-  { type: 'check' as const, label: 'Checklist', id: 'list-check' },
-  { type: 'bullet' as const, label: 'Bulleted list', id: 'list-bullet' },
-];
-
-const renderShortcutLabel = (label: string, shortcut: string) => {
-  const lowerLabel = label.toLowerCase();
-  const lowerShortcut = shortcut.toLowerCase();
-  const index = lowerLabel.indexOf(lowerShortcut);
-  if (index === -1) {
-    return label;
-  }
-  return (
-    <span className="note-menu-label">
-      {label.slice(0, index)}
-      <span className="note-menu-shortcut">{label.slice(index, index + 1)}</span>
-      {label.slice(index + 1)}
-    </span>
-  );
-};
-
-export function NoteMenuPlugin() {
+export function NoteMenuPlugin({ session }: { session: DocumentSession }) {
   const [editor] = useLexicalComposerContext();
   const popupToken = useRef(Symbol('note-menu')).current;
   const rootRef = useRef(editor.getRootElement());
@@ -76,7 +35,6 @@ export function NoteMenuPlugin() {
   const lastShiftRef = useRef(0);
   const shiftCanceledRef = useRef(false);
   const doubleShiftHandlerRef = useRef<((event: KeyboardEvent) => void) | null>(null);
-  const menuShortcutHandlerRef = useRef<((event: KeyboardEvent) => boolean) | null>(null);
 
   const setMenuState = useCallback((next: NoteMenuState | null) => {
     menuRef.current = next;
@@ -91,76 +49,6 @@ export function NoteMenuPlugin() {
   const focusRoot = useCallback(() => {
     focusEditorRoot(editor);
   }, [editor]);
-
-  const triggerFoldToggle = () => {
-    const current = menuRef.current;
-    if (!current?.canFold) {
-      return;
-    }
-    focusRoot();
-    editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: current.noteKey });
-    closeMenu();
-  };
-
-  const triggerToggleChecked = () => {
-    const current = menuRef.current;
-    if (!current) {
-      return;
-    }
-    focusRoot();
-    editor.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle', noteItemKey: current.noteKey });
-    closeMenu();
-  };
-
-  const triggerZoom = () => {
-    const current = menuRef.current;
-    if (!current) {
-      closeMenu();
-      return;
-    }
-    const noteId = editor.getEditorState().read(() => {
-      const node = $getNodeByKey(current.noteKey);
-      if (!node) {
-        return null;
-      }
-      const contentItem = requireContentItemFromNode(node);
-      return $getNoteId(contentItem);
-    });
-    if (!noteId) {
-      closeMenu();
-      return;
-    }
-    focusRoot();
-    editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId });
-    closeMenu();
-  };
-
-  const triggerZoomOut = () => {
-    focusRoot();
-    editor.dispatchCommand(ZOOM_OUT_COMMAND, undefined);
-    closeMenu();
-  };
-
-  const triggerFoldViewToLevel = (level: number) => {
-    focusRoot();
-    editor.dispatchCommand(FOLD_VIEW_TO_LEVEL_COMMAND, { level });
-    closeMenu();
-  };
-
-  const handleMenuShortcut = (event: MenuShortcutEvent): boolean => {
-    const current = menuRef.current;
-    if (!current) {
-      return false;
-    }
-    return handleNoteMenuShortcut(event, {
-      foldViewToLevel: triggerFoldViewToLevel,
-      toggleFold: current.canFold ? triggerFoldToggle : undefined,
-      zoom: triggerZoom,
-      zoomOut: triggerZoomOut,
-    });
-  };
-
-  menuShortcutHandlerRef.current = handleMenuShortcut;
 
   const handleRootFocusOut = useCallback(
     (event: FocusEvent) => {
@@ -222,74 +110,32 @@ export function NoteMenuPlugin() {
       if (!(active instanceof Node) || !root.contains(active)) {
         return;
       }
-      if (menuShortcutHandlerRef.current?.(event)) {
-        return;
-      }
       doubleShiftHandlerRef.current?.(event);
     };
     document.addEventListener('keydown', handleDocumentKeyDown);
     return () => {
       document.removeEventListener('keydown', handleDocumentKeyDown);
-      menuShortcutHandlerRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     installOutlineSelectionHelpers(editor);
 
-    const resolveNoteState = (
-      element: HTMLElement
-    ): {
-      noteKey: string;
-      hasChildren: boolean;
-      isFolded: boolean;
-      canFold: boolean;
-      childListType: ListType | null;
-    } | null => {
-      return editor.read(() => {
-        const resolved = $resolveNoteStateFromDOMNode(element);
-        if (!resolved) {
-          return null;
-        }
-        const childListType = resolved.hasChildren ? $getNestedListType(resolved.contentItem) : null;
-        return {
-          noteKey: resolved.noteKey,
-          hasChildren: resolved.hasChildren,
-          isFolded: resolved.isFolded,
-          canFold: $canOfferFold(editor, resolved.contentItem),
-          childListType,
-        };
-      });
-    };
-
-    const resolveSelectionKey = (): string | null =>
-      editor.read(() => $resolveFocusNoteKey(editor));
-
-    const openMenuForKey = (noteKey: string, target: NoteMenuTarget = 'row'): boolean => {
+    const openMenuForKey = (noteKey: string | undefined, target: NoteMenuTarget = 'row'): boolean => {
       // One editor popup at a time: don't open the menu on top of an open picker.
       if (!menuRef.current && isOtherPopupActive(editor, popupToken)) {
         return false;
       }
-      if (menuRef.current?.noteKey === noteKey) {
+      const noteId = resolveMenuNoteId(editor, noteKey);
+      if (!noteId) {
+        closeMenu();
+        return false;
+      }
+      if (menuRef.current?.noteId === noteId) {
         closeMenu();
         return true;
       }
-      const root = rootRef.current ?? editor.getRootElement();
-      if (!root) {
-        closeMenu();
-        return false;
-      }
-      const element = editor.getElementByKey(noteKey);
-      if (!(element instanceof HTMLElement) || !root.contains(element)) {
-        closeMenu();
-        return false;
-      }
-      const noteState = resolveNoteState(element);
-      if (!noteState) {
-        closeMenu();
-        return false;
-      }
-      setMenuState({ ...noteState, target });
+      setMenuState({ noteId, target });
       return true;
     };
 
@@ -311,10 +157,7 @@ export function NoteMenuPlugin() {
       if (elapsed <= DOUBLE_SHIFT_WINDOW_MS && !shiftCanceledRef.current) {
         lastShiftRef.current = 0;
         shiftCanceledRef.current = false;
-        const key = resolveSelectionKey();
-        if (key) {
-          openMenuForKey(key, 'caret');
-        }
+        openMenuForKey(undefined, 'caret');
         return true;
       }
       lastShiftRef.current = now;
@@ -351,8 +194,7 @@ export function NoteMenuPlugin() {
     const unregisterOpenCommand = editor.registerCommand(
       OPEN_NOTE_MENU_COMMAND,
       (payload) => {
-        const targetKey = payload?.noteItemKey ?? resolveSelectionKey();
-        return targetKey ? openMenuForKey(targetKey, payload?.anchor ?? 'row') : false;
+        return openMenuForKey(payload?.noteItemKey, payload?.anchor ?? 'row');
       },
       COMMAND_PRIORITY_LOW
     );
@@ -374,15 +216,11 @@ export function NoteMenuPlugin() {
     );
   }, [closeMenu, editor, popupToken, setMenuState]);
 
+  const note = useMemo(() => menu ? session.noteRef(menu.noteId) : null, [menu, session]);
+
   if (!portalRoot || !menu) {
     return null;
   }
-
-  const foldLabel = menu.isFolded ? 'Unfold' : 'Fold';
-  const listActions =
-    menu.hasChildren && menu.childListType
-      ? listTypeOptions.filter((option) => option.type !== menu.childListType)
-      : [];
 
   const resolveMenuTargetRect = (): DOMRect | null => {
     if (menu.target === 'caret') {
@@ -394,34 +232,7 @@ export function NoteMenuPlugin() {
         return button.getBoundingClientRect();
       }
     }
-    return editor.getElementByKey(menu.noteKey)?.getBoundingClientRect() ?? null;
-  };
-
-  const handleMenuKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (handleNoteMenuShortcut(event.nativeEvent, {
-      foldViewToLevel: triggerFoldViewToLevel,
-      toggleFold: menu.canFold ? triggerFoldToggle : undefined,
-      zoom: triggerZoom,
-      zoomOut: triggerZoomOut,
-    })) {
-      return;
-    }
-    if (event.key !== 'Tab' && event.key !== 'Escape') {
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    closeMenu();
-    focusRoot();
-  };
-
-  const convertChildList = (listType: ListType) => {
-    focusRoot();
-    editor.dispatchCommand(SET_NESTED_LIST_TYPE_COMMAND, {
-      noteItemKey: menu.noteKey,
-      listType,
-    });
-    closeMenu();
+    return resolveMenuNoteElement(editor, menu.noteId)?.getBoundingClientRect() ?? null;
   };
 
   return (
@@ -433,64 +244,14 @@ export function NoteMenuPlugin() {
       placement="right"
       portalRoot={portalRoot}
     >
-      <div onKeyDown={handleMenuKeyDown}>
-      <Menu
-        aria-label="Quick action menu"
-        autoFocus
-        className="note-menu-dropdown remdo-menu"
-        data-note-menu
-        data-note-menu-note-key={menu.noteKey}
-      >
-        <MenuSection>
-          <Header data-note-menu-section="note">Note</Header>
-          <MenuItem data-note-menu-item="toggle-checked" id="toggle-checked" onAction={triggerToggleChecked}>
-            Toggle checked
-          </MenuItem>
-          {menu.canFold
-            ? (
-                <MenuItem data-note-menu-item="fold" id="fold" onAction={triggerFoldToggle}>
-                  {renderShortcutLabel(foldLabel, 'F')}
-                </MenuItem>
-              )
-            : null}
-          <MenuItem data-note-menu-item="zoom" id="zoom" onAction={triggerZoom}>
-            {renderShortcutLabel('Zoom', 'Z')}
-          </MenuItem>
-        </MenuSection>
-        {listActions.length > 0
-          ? (
-              <MenuSection>
-                <Header data-note-menu-section="children">Children</Header>
-                {listActions.map((option) => (
-                  <MenuItem
-                    data-note-menu-item={option.id}
-                    id={option.id}
-                    key={option.type}
-                    onAction={() => {
-                      convertChildList(option.type);
-                    }}
-                  >
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </MenuSection>
-            )
-          : null}
-        <MenuSection>
-          <Header data-note-menu-section="view">View</Header>
-          <MenuItem data-note-menu-item="zoom-out" id="zoom-out" onAction={triggerZoomOut}>
-            <span>Zoom {renderShortcutLabel('out', 'O')}</span>
-          </MenuItem>
-          <MenuItem data-note-menu-item="view-fold-to-level" id="view-fold-to-level" onAction={() => triggerFoldViewToLevel(1)}>
-            <span>
-              Fold to level [
-              <span className="note-menu-shortcut">0-9</span>
-              ]
-            </span>
-          </MenuItem>
-        </MenuSection>
-      </Menu>
-      </div>
+      <NoteMenu
+        note={note!}
+        view={session.view}
+        selection={session.selection}
+        editorRoot={rootElement}
+        closeMenu={closeMenu}
+        focusRoot={focusRoot}
+      />
     </EditorPopupOverlay>
   );
 }
