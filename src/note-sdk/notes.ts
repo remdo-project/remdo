@@ -18,11 +18,11 @@ export type NoteKind =
 
 export interface Note<K extends NoteKind = NoteKind> {
   /** Runtime discriminator for note shape/role. */
-  kind: () => K;
+  getKind: () => K;
   /** Returns current note text. Throws when note does not exist. */
-  text: () => string;
+  getText: () => string;
   /** Returns direct child notes. */
-  children: () => readonly Note[];
+  getChildren: () => readonly Note[];
   /** Narrows the note by runtime kind; throws when the expected kind does not match. */
   as: {
     (kind: 'user-data'): UserDataNote;
@@ -38,12 +38,12 @@ export interface Note<K extends NoteKind = NoteKind> {
 /** A note kind that carries a stable, unique id within its tree. */
 export interface AddressableNote<K extends NoteKind = NoteKind> extends Note<K> {
   /** Stable id for a note. */
-  id: () => NoteId;
+  getId: () => NoteId;
 }
 
 export interface CollectionNote<Item extends Note = Note> extends AddressableNote<'collection'> {
   /** Returns the projected collection entries in display order. */
-  children: () => readonly Item[];
+  getChildren: () => readonly Item[];
   /** Returns the projected collection entry with the given id, if present. */
-  byId: (noteId: NoteId) => Item | null;
+  getById: (noteId: NoteId) => Item | null;
 }

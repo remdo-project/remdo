@@ -18,26 +18,26 @@ import { createUserDataRootNote } from '#note-sdk';
 describe('note SDK showcase', () => {
   describe('open document session', () => {
     it("reads an addressed note's text", meta({ fixture: 'tree' }), ({ remdo }) => {
-      const note = remdo.documentSession.note('note2');
+      const note = remdo.documentSession.noteRef('note2');
 
-      expect(note.text()).toBe('note2');
+      expect(note.getText()).toBe('note2');
     });
 
     it("reads and toggles an addressed note's folded state", meta({ fixture: 'tree' }), async ({ remdo }) => {
-      const note = remdo.documentSession.note('note2');
+      const note = remdo.documentSession.noteRef('note2');
 
-      expect(note.folded()).toBe(false);
+      expect(note.getFolded()).toBe(false);
 
       await note.toggleFold();
 
-      expect(note.folded()).toBe(true);
+      expect(note.getFolded()).toBe(true);
     });
 
     it("observes an addressed note's text after an editor-originated change", meta({ fixture: 'tree' }), async ({ remdo }) => {
-      const note = remdo.documentSession.note('note2');
-      let text = note.text();
+      const note = remdo.documentSession.noteRef('note2');
+      let text = note.getText();
       const unsubscribe = note.subscribe(() => {
-        text = note.text();
+        text = note.getText();
       });
       onTestFinished(unsubscribe);
 
@@ -56,27 +56,27 @@ describe('note SDK showcase', () => {
 
     it('lists and creates documents through a projected user-data collection', async () => {
       const userData = getTestUserData();
-      const documents = userData.documents();
+      const documents = userData.getDocuments();
 
-      expect(documents.id()).toBe('user-documents');
-      expect(documents.kind()).toBe('collection');
-      expect(documents.byId(TEST_USER_DATA_DOCUMENT.id)?.text()).toBe(TEST_USER_DATA_DOCUMENT.title);
-      expect(documents.children().map((document) => ({
-        id: document.id(),
-        text: document.text(),
+      expect(documents.getId()).toBe('user-documents');
+      expect(documents.getKind()).toBe('collection');
+      expect(documents.getById(TEST_USER_DATA_DOCUMENT.id)?.getText()).toBe(TEST_USER_DATA_DOCUMENT.title);
+      expect(documents.getChildren().map((document) => ({
+        id: document.getId(),
+        text: document.getText(),
       }))).toEqual([
         { id: TEST_USER_DATA_DOCUMENT.id, text: TEST_USER_DATA_DOCUMENT.title },
       ]);
 
       const createdDocument = await documents.create('New Document');
 
-      expect(createdDocument.kind()).toBe('document');
-      expect(documents.children().map((document) => ({
-        id: document.id(),
-        text: document.text(),
+      expect(createdDocument.getKind()).toBe('document');
+      expect(documents.getChildren().map((document) => ({
+        id: document.getId(),
+        text: document.getText(),
       }))).toEqual([
         { id: TEST_USER_DATA_DOCUMENT.id, text: TEST_USER_DATA_DOCUMENT.title },
-        { id: createdDocument.id(), text: 'New Document' },
+        { id: createdDocument.getId(), text: 'New Document' },
       ]);
     });
 
@@ -99,14 +99,14 @@ describe('note SDK showcase', () => {
         }),
       });
 
-      const document = userData.documents().byId('doc')!;
-      const access = document.access();
+      const document = userData.getDocuments().getById('doc')!;
+      const access = document.getAccess();
 
-      expect(access.kind()).toBe('collection');
-      expect(access.children().map((person) => ({
-        id: person.id(),
-        text: person.text(),
-        email: person.email(),
+      expect(access.getKind()).toBe('collection');
+      expect(access.getChildren().map((person) => ({
+        id: person.getId(),
+        text: person.getText(),
+        email: person.getEmail(),
       }))).toEqual([{
         id: 'alice',
         text: 'Alice',
@@ -115,8 +115,8 @@ describe('note SDK showcase', () => {
 
       const shared = await document.shareWith('bob@example.test');
 
-      expect(shared.kind()).toBe('document-access');
-      expect(shared.text()).toBe('Bob');
+      expect(shared.getKind()).toBe('document-access');
+      expect(shared.getText()).toBe('Bob');
     });
 
     it('reads source servers through the same projected collection shape', () => {
@@ -126,14 +126,14 @@ describe('note SDK showcase', () => {
         baseUrl: 'https://source.example',
       }], {});
 
-      const sourceServers = userData.sourceServers();
+      const sourceServers = userData.getSourceServers();
 
-      expect(sourceServers.id()).toBe('source-servers');
-      expect(sourceServers.kind()).toBe('collection');
-      expect(sourceServers.children().map((server) => ({
-        id: server.id(),
-        text: server.text(),
-        baseUrl: server.baseUrl(),
+      expect(sourceServers.getId()).toBe('source-servers');
+      expect(sourceServers.getKind()).toBe('collection');
+      expect(sourceServers.getChildren().map((server) => ({
+        id: server.getId(),
+        text: server.getText(),
+        baseUrl: server.getBaseUrl(),
       }))).toEqual([{
         id: 'source',
         text: 'Source Server',
@@ -146,23 +146,23 @@ describe('note SDK showcase', () => {
       const remoteDocuments = [{ id: 'sourceDoc', title: 'Source Document' }];
       const userData = createUserDataRootNote(localDocuments, [], {
         documentSources: {
-          byId: (sourceId) => sourceId === 'source'
+          getById: (sourceId) => sourceId === 'source'
             ? {
                 baseUrl: 'https://source.example',
                 documents: {
-                  byId: (documentId) => remoteDocuments.find((document) => document.id === documentId) ?? null,
-                  children: () => remoteDocuments,
+                  getById: (documentId) => remoteDocuments.find((document) => document.id === documentId) ?? null,
+                  getChildren: () => remoteDocuments,
                 },
                 id: 'source',
                 label: 'Source Server',
                 local: false,
               }
             : null,
-          children: () => [{
+          getChildren: () => [{
             baseUrl: null,
             documents: {
-              byId: (documentId) => localDocuments.find((document) => document.id === documentId) ?? null,
-              children: () => localDocuments,
+              getById: (documentId) => localDocuments.find((document) => document.id === documentId) ?? null,
+              getChildren: () => localDocuments,
             },
             id: 'local',
             label: 'Current Server',
@@ -170,8 +170,8 @@ describe('note SDK showcase', () => {
           }, {
             baseUrl: 'https://source.example',
             documents: {
-              byId: (documentId) => remoteDocuments.find((document) => document.id === documentId) ?? null,
-              children: () => remoteDocuments,
+              getById: (documentId) => remoteDocuments.find((document) => document.id === documentId) ?? null,
+              getChildren: () => remoteDocuments,
             },
             id: 'source',
             label: 'Source Server',
@@ -180,10 +180,10 @@ describe('note SDK showcase', () => {
         },
       });
 
-      expect(userData.documentSources().children().map((source) => ({
-        documents: source.documents().children().map((document) => document.text()),
-        id: source.id(),
-        text: source.text(),
+      expect(userData.getDocumentSources().getChildren().map((source) => ({
+        documents: source.getDocuments().getChildren().map((document) => document.getText()),
+        id: source.getId(),
+        text: source.getText(),
       }))).toEqual([
         { id: 'local', text: 'Current Server', documents: ['Local Document'] },
         { id: 'source', text: 'Source Server', documents: ['Source Document'] },
@@ -192,13 +192,13 @@ describe('note SDK showcase', () => {
 
     it('shows explicit user-data note narrowing with as(kind)', () => {
       const userData = createUserDataRootNote([TEST_USER_DATA_DOCUMENT]);
-      const documents = userData.documents();
-      const firstDocument = documents.children()[0]!;
+      const documents = userData.getDocuments();
+      const firstDocument = documents.getChildren()[0]!;
 
       expect(userData.as('user-data')).toBe(userData);
       expect(documents.as('collection')).toBe(documents);
       expect(firstDocument.as('document')).toBe(firstDocument);
-      expect(firstDocument.text()).toBe(TEST_USER_DATA_DOCUMENT.title);
+      expect(firstDocument.getText()).toBe(TEST_USER_DATA_DOCUMENT.title);
     });
   });
 });

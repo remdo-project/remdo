@@ -78,10 +78,10 @@ function createSession(initialCapabilities: LoadState<DocumentCapabilitiesSnapsh
     documentId: 'main',
     search: vi.fn(),
     capabilities,
-    note: (noteId) => ({
-      id: () => noteId,
-      text: () => '',
-      folded: () => false,
+    noteRef: (noteId) => ({
+      getId: () => noteId,
+      getText: () => '',
+      getFolded: () => false,
       toggleFold: operations.toggleNoteFold,
       subscribe: () => () => {},
     }),

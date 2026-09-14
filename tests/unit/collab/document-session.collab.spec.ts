@@ -19,18 +19,18 @@ describe('document session collaboration', () => {
     runtime.start();
     runtime.setSourceReady(true);
     onTestFinished(() => runtime.dispose());
-    const note = runtime.session.note('note2');
+    const note = runtime.session.noteRef('note2');
     const listener = vi.fn();
     note.subscribe(listener);
 
-    expect(note.text()).toBe('note2');
+    expect(note.getText()).toBe('note2');
     const options = { query: 'updated', limit: 10, childPreviewLimit: 2 };
     expect(await runtime.session.search(options)).toEqual({ flatResults: [], hasMore: false });
 
     await peer.updateNoteText('note2', 'updated by peer');
 
     await waitFor(() => {
-      expect(note.text()).toBe('updated by peer');
+      expect(note.getText()).toBe('updated by peer');
       expect(listener).toHaveBeenCalledOnce();
     });
     const { flatResults } = await runtime.session.search(options);

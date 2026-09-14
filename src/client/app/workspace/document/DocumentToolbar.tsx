@@ -35,12 +35,12 @@ export default function DocumentToolbar({
   searchControl: ReactNode;
 }) {
   const documentGroups = documentSources.map((source) => ({
-    id: source.id(),
-    label: source.text(),
-    options: source.documents().children().map((document) => ({
-      filterText: formatNavigationLabel(document.text(), Number.POSITIVE_INFINITY),
-      label: formatNavigationLabel(document.text()),
-      value: document.id(),
+    id: source.getId(),
+    label: source.getText(),
+    options: source.getDocuments().getChildren().map((document) => ({
+      filterText: formatNavigationLabel(document.getText(), Number.POSITIVE_INFINITY),
+      label: formatNavigationLabel(document.getText()),
+      value: document.getId(),
     })),
   })).filter((source) => source.options.length > 0);
   const qualifyLabels = documentGroups.length > 1;

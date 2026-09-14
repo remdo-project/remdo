@@ -60,35 +60,35 @@ describe('stored user data', () => {
   });
 
   const listDocuments = (userData: UserDataNote) =>
-    userData.documents().children().map((document) => ({
-      id: document.id(),
-      title: document.text(),
+    userData.getDocuments().getChildren().map((document) => ({
+      id: document.getId(),
+      title: document.getText(),
     }));
 
   const listSourceServers = (userData: UserDataNote) =>
-    userData.sourceServers().children().map((sourceServer) => ({
-      id: sourceServer.id(),
-      label: sourceServer.text(),
-      baseUrl: sourceServer.baseUrl(),
+    userData.getSourceServers().getChildren().map((sourceServer) => ({
+      id: sourceServer.getId(),
+      label: sourceServer.getText(),
+      baseUrl: sourceServer.getBaseUrl(),
     }));
 
   const listDocumentSources = (userData: UserDataNote) =>
-    userData.documentSources().children().map((source) => ({
-      documents: source.documents().children().map((document) => ({
-        id: document.id(),
-        title: document.text(),
+    userData.getDocumentSources().getChildren().map((source) => ({
+      documents: source.getDocuments().getChildren().map((document) => ({
+        id: document.getId(),
+        title: document.getText(),
       })),
-      id: source.id(),
-      label: source.text(),
-      local: source.local(),
+      id: source.getId(),
+      label: source.getText(),
+      local: source.getLocal(),
     }));
 
   const listDocumentAccess = (userData: UserDataNote, documentId: string) =>
-    userData.documents().byId(documentId)?.access().children().map((access) => ({
-      email: access.email(),
-      granteeUserId: access.granteeUserId(),
-      name: access.name(),
-      text: access.text(),
+    userData.getDocuments().getById(documentId)?.getAccess().getChildren().map((access) => ({
+      email: access.getEmail(),
+      granteeUserId: access.getGranteeUserId(),
+      name: access.getName(),
+      text: access.getText(),
     })) ?? [];
 
   const writeUserDataProjection = (
@@ -395,25 +395,25 @@ describe('stored user data', () => {
     await expect(getUserData()).resolves.toBe(userData);
     expect(listDocuments(userData)).toEqual([USER_RUNTIME_DOCUMENT]);
 
-    await expect(userData.documents().create('New Document')).rejects.toThrow('Failed to create document: 500');
+    await expect(userData.getDocuments().create('New Document')).rejects.toThrow('Failed to create document: 500');
     expect(collab.sessions).toHaveLength(1);
     expect(collab.sessions[0]!.connect).toHaveBeenCalledTimes(1);
     expect(collab.sessions[0]!.awaitHydrated).toHaveBeenCalledTimes(1);
     expect(collab.sessions[0]!.destroy).not.toHaveBeenCalled();
 
-    const recoveredDocument = await userData.documents().create('Recovered Document');
+    const recoveredDocument = await userData.getDocuments().create('Recovered Document');
 
     expect(collab.sessions).toHaveLength(1);
-    expect(recoveredDocument.text()).toBe('Recovered Document');
+    expect(recoveredDocument.getText()).toBe('Recovered Document');
     expect(listDocuments(userData)).toEqual([
       USER_RUNTIME_DOCUMENT,
-      { id: recoveredDocument.id(), title: 'Recovered Document' },
+      { id: recoveredDocument.getId(), title: 'Recovered Document' },
     ]);
 
     const reloadedUserData = await getUserData();
     expect(listDocuments(reloadedUserData)).toEqual([
       USER_RUNTIME_DOCUMENT,
-      { id: recoveredDocument.id(), title: 'Recovered Document' },
+      { id: recoveredDocument.getId(), title: 'Recovered Document' },
     ]);
   });
 
@@ -758,7 +758,7 @@ describe('stored user data', () => {
     const userData = getCurrentUserData();
 
     startUserDataRuntime();
-    const createdPromise = userData.documents().create('New Document');
+    const createdPromise = userData.getDocuments().create('New Document');
     await Promise.resolve();
     await Promise.resolve();
 
@@ -772,7 +772,7 @@ describe('stored user data', () => {
     expect(fetchMock.mock.calls.filter(([input]) => String(input) === '/api/documents')).toHaveLength(1);
     expect(listDocuments(userData)).toEqual([
       USER_RUNTIME_DOCUMENT,
-      { id: createdDocument.id(), title: 'New Document' },
+      { id: createdDocument.getId(), title: 'New Document' },
     ]);
   });
 

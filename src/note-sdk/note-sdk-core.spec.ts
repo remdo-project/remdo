@@ -30,8 +30,8 @@ function createFixture(): { documents: UserDocument[]; sourceServers: SourceServ
 describe('note SDK user-data core', () => {
   it('narrows notes by kind and throws on mismatches', () => {
     const { documents } = createFixture();
-    const projected = createUserDataRootNote(documents).documents();
-    const document = projected.children()[0]!;
+    const projected = createUserDataRootNote(documents).getDocuments();
+    const document = projected.getChildren()[0]!;
 
     expect(projected.as('collection')).toBe(projected);
     expect(document.as('document')).toBe(document);
@@ -40,14 +40,14 @@ describe('note SDK user-data core', () => {
 
   it('lists documents through user-data collection traversal', () => {
     const { documents } = createFixture();
-    const projected = createUserDataRootNote(documents).documents();
+    const projected = createUserDataRootNote(documents).getDocuments();
 
-    expect(projected.byId('flat')?.text()).toBe('Flat');
-    expect(projected.children().map((document) => ({
-      id: document.id(),
-      kind: document.kind(),
-      shareable: document.shareable(),
-      text: document.text(),
+    expect(projected.getById('flat')?.getText()).toBe('Flat');
+    expect(projected.getChildren().map((document) => ({
+      id: document.getId(),
+      kind: document.getKind(),
+      shareable: document.canShareWith(),
+      text: document.getText(),
     }))).toEqual([
       { id: 'main', kind: 'document', shareable: true, text: 'Main' },
       { id: 'flat', kind: 'document', shareable: false, text: 'Flat' },
@@ -57,18 +57,18 @@ describe('note SDK user-data core', () => {
   it('lists documents through grouped document-source traversal', async () => {
     const fixture = createFixture();
     const localDocuments = {
-      byId: (documentId: string) => fixture.documents.find((document) => document.id === documentId) ?? null,
-      children: () => fixture.documents,
+      getById: (documentId: string) => fixture.documents.find((document) => document.id === documentId) ?? null,
+      getChildren: () => fixture.documents,
     };
     const remoteDocuments = {
-      byId: (documentId: string) => documentId === 'remote'
+      getById: (documentId: string) => documentId === 'remote'
         ? { id: 'remote', shareable: false, title: 'Remote' }
         : null,
-      children: () => [{ id: 'remote', shareable: false, title: 'Remote' }],
+      getChildren: () => [{ id: 'remote', shareable: false, title: 'Remote' }],
     };
     const documentSources: CollectionSource<DocumentSource> = {
-      byId: (sourceId) => documentSources.children().find((source) => source.id === sourceId) ?? null,
-      children: () => [{
+      getById: (sourceId) => documentSources.getChildren().find((source) => source.id === sourceId) ?? null,
+      getChildren: () => [{
         baseUrl: null,
         documents: localDocuments,
         id: 'local',
@@ -86,12 +86,12 @@ describe('note SDK user-data core', () => {
       documentSources,
     });
 
-    expect(userData.documentSources().children().map((source) => ({
-      documents: source.documents().children().map((document) => document.text()),
-      id: source.id(),
-      kind: source.kind(),
-      local: source.local(),
-      text: source.text(),
+    expect(userData.getDocumentSources().getChildren().map((source) => ({
+      documents: source.getDocuments().getChildren().map((document) => document.getText()),
+      id: source.getId(),
+      kind: source.getKind(),
+      local: source.getLocal(),
+      text: source.getText(),
     }))).toEqual([
       {
         documents: ['Main', 'Flat'],
@@ -108,9 +108,9 @@ describe('note SDK user-data core', () => {
         text: 'Source Server',
       },
     ]);
-    const remoteSource = userData.documentSources().byId('source')!;
+    const remoteSource = userData.getDocumentSources().getById('source')!;
     expect(remoteSource.as('document-source')).toBe(remoteSource);
-    await expect(remoteSource.documents().byId('remote')!
+    await expect(remoteSource.getDocuments().getById('remote')!
       .shareWith('bob@example.test')).rejects.toThrow('Document sharing is not available for this document.');
   });
 
@@ -123,16 +123,16 @@ describe('note SDK user-data core', () => {
       name: 'Carol',
     }));
     const document = createUserDataRootNote(documents, { shareDocument })
-      .documents()
-      .byId('main')!;
+      .getDocuments()
+      .getById('main')!;
 
-    expect(document.access().children().map((access) => ({
-      id: access.id(),
-      kind: access.kind(),
-      text: access.text(),
-      email: access.email(),
-      granteeUserId: access.granteeUserId(),
-      name: access.name(),
+    expect(document.getAccess().getChildren().map((access) => ({
+      id: access.getId(),
+      kind: access.getKind(),
+      text: access.getText(),
+      email: access.getEmail(),
+      granteeUserId: access.getGranteeUserId(),
+      name: access.getName(),
     }))).toEqual([{
       id: 'bob',
       kind: 'document-access',
@@ -145,7 +145,7 @@ describe('note SDK user-data core', () => {
     const access = await document.shareWith('carol@example.test');
 
     expect(shareDocument).toHaveBeenCalledWith('main', 'carol@example.test');
-    expect(access.text()).toBe('Carol');
+    expect(access.getText()).toBe('Carol');
   });
 
   it('uses the email as access text when the display name is empty', () => {
@@ -158,23 +158,23 @@ describe('note SDK user-data core', () => {
       }],
       id: 'main',
       title: 'Main',
-    }]).documents().byId('main')!.access().children()[0]!;
+    }]).getDocuments().getById('main')!.getAccess().getChildren()[0]!;
 
-    expect(access.text()).toBe('reader@example.test');
+    expect(access.getText()).toBe('reader@example.test');
   });
 
   it('lists source servers through user-data collection traversal', () => {
     const fixture = createFixture();
     const sourceServers = createUserDataRootNote(fixture.documents, fixture.sourceServers, {})
-      .sourceServers();
-    const sourceServer = sourceServers.byId('source')!;
+      .getSourceServers();
+    const sourceServer = sourceServers.getById('source')!;
 
-    expect(sourceServers.kind()).toBe('collection');
-    expect(sourceServers.children().map((server) => ({
-      id: server.id(),
-      kind: server.kind(),
-      text: server.text(),
-      baseUrl: server.baseUrl(),
+    expect(sourceServers.getKind()).toBe('collection');
+    expect(sourceServers.getChildren().map((server) => ({
+      id: server.getId(),
+      kind: server.getKind(),
+      text: server.getText(),
+      baseUrl: server.getBaseUrl(),
     }))).toEqual([{
       id: 'source',
       kind: 'source-server',

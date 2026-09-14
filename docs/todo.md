@@ -90,6 +90,19 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### SDK
 
+- **SDK API validation.** Assess capability observation that still exposes a
+  snapshot store, and
+  evaluate completion and unavailable-target outcomes when a consumer needs to
+  know whether an operation took effect. Evaluate query and app-resource reads
+  in their own workflows using the [design principles and references](dev/sdk.md); choosing
+  app-resource cache tooling remains a separate task.
+
+  Keep model and API choices open to revision throughout this SDK initiative.
+  Revisit them when consumer evidence reveals friction or a better fit, and
+  update the design guidance, affected behavior owners, and [showcases](../src/note-sdk/note-sdk-showcase.spec.ts) with each
+  changed decision. Before closing the SDK work, reconcile those artifacts with
+  the final choices and explicitly track any remaining gaps.
+
 - **Note-centered SDK consumer boundary.** The
   [open document session](specs/outliner/document-session.md) now owns the first
   settled slice around the shared [note model](specs/outliner/note-model.md):

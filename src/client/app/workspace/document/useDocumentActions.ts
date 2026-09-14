@@ -24,9 +24,9 @@ export function useDocumentActions({
 
   const createDocument = async () => {
     try {
-      const nextDocument = await userData.documents().create('New Document');
+      const nextDocument = await userData.getDocuments().create('New Document');
       setCreateError(null);
-      onSelectDocument(nextDocument.id());
+      onSelectDocument(nextDocument.getId());
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : 'Failed to create document.');
     }
@@ -34,10 +34,10 @@ export function useDocumentActions({
 
   const uploadDocument = async (file: File) => {
     try {
-      const nextDocument = await userData.documents().create(resolveUploadedDocumentTitle(file.name));
-      registerPendingDocumentImport(nextDocument.id(), file);
+      const nextDocument = await userData.getDocuments().create(resolveUploadedDocumentTitle(file.name));
+      registerPendingDocumentImport(nextDocument.getId(), file);
       setCreateError(null);
-      onSelectDocument(nextDocument.id());
+      onSelectDocument(nextDocument.getId());
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : 'Failed to create document.');
     }

@@ -34,8 +34,8 @@ describe('document route', () => {
   });
 
   it('uses listed document titles instead of route document ids in the page title', async () => {
-    const createdDocument = await getTestUserData().documents().create('  Project\nNotes  ');
-    renderDocumentRoute(createDocumentPath(createdDocument.id()));
+    const createdDocument = await getTestUserData().getDocuments().create('  Project\nNotes  ');
+    renderDocumentRoute(createDocumentPath(createdDocument.getId()));
 
     await waitFor(() => {
       expect(document.title).toBe('Project Notes · RemDo');

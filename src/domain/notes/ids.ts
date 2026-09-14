@@ -1,7 +1,7 @@
 import { customAlphabet, urlAlphabet } from 'nanoid';
 
 // Hyphen/underscore stay invalid in both generation and normalization:
-// `_` is the noteRef separator (`docId_noteId`) and `-` hurts double-click copy ergonomics.
+// `_` is the noteAddress separator (`docId_noteId`) and `-` hurts double-click copy ergonomics.
 const NOTE_ID_STRUCTURAL_EXCLUDED = new Set(['-', '_']);
 // Generator additionally avoids ambiguous glyphs for hand-written/read IDs.
 const NOTE_ID_GENERATOR_READABILITY_EXCLUDED = new Set(['0', 'O', 'I', 'l']);

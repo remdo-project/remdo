@@ -86,8 +86,8 @@ Labels other than Home use the corresponding note's display text, truncated to
 
 ## Routing
 
-[Note IDs](./note-ids.md#global-references) owns canonical URL forms. A zoom
-target is the `noteId` half of a `noteRef`. Loading a non-root zoom URL activates
+[Note IDs](./note-ids.md#global-addresses) owns canonical URL forms. A zoom
+target is the `noteId` half of a `noteAddress`. Loading a non-root zoom URL activates
 zoom when the note exists and otherwise opens the document at its canonical root
 URL. On initial load, a target absent from
 [locally cached state](../../architecture.md#offline-application-behavior) retains its requested URL until successful server

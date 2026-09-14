@@ -12,7 +12,7 @@ import { ensureCollabTestDocument } from '../collab/_support/documents';
 // Keep the real router, workspace, and editor together: these races cross all
 // three boundaries. Only route completion is held, without relying on timers.
 export async function renderZoomNavigation(initialNoteId: string | null = 'note1') {
-  const docId = (await getTestUserData().documents().create('Navigation')).id();
+  const docId = (await getTestUserData().getDocuments().create('Navigation')).getId();
   await ensureCollabTestDocument(docId);
   let pendingRoute: { noteId: string | null; promise: Promise<void> } | undefined;
   const loader = async (noteId: string | null) => {

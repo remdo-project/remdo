@@ -12,22 +12,22 @@ export default function SharingRoute() {
   // A public server is source-only and refuses to link out (the link route 403s),
   // so hide the link form there rather than advertise an action it rejects.
   const publicServer = useCurrentUserPublicServer();
-  const documents = userData.documents().children();
+  const documents = userData.getDocuments().getChildren();
   const userDataReady = documents.length > 0;
-  const sourceServers = userData.sourceServers().children();
+  const sourceServers = userData.getSourceServers().getChildren();
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
-  const shareableDocuments = documents.filter((document) => document.shareable());
+  const shareableDocuments = documents.filter((document) => document.canShareWith());
   const documentOptions = shareableDocuments.map((document) => ({
-    label: document.text(),
-    value: document.id(),
+    label: document.getText(),
+    value: document.getId(),
   }));
-  const activeDocument = shareableDocuments.find((document) => document.id() === selectedDocId);
+  const activeDocument = shareableDocuments.find((document) => document.getId() === selectedDocId);
   const [shareEmail, setShareEmail] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [shareState, setShareState] = useState<ShareState>({ status: 'idle' });
   const [sourceErrorMessage, setSourceErrorMessage] = useState<string | null>(null);
   const sharePending = shareState.status === 'pending';
-  const visibleAccess = activeDocument?.access().children() ?? [];
+  const visibleAccess = activeDocument?.getAccess().getChildren() ?? [];
   const showSourceSection = publicServer === false || sourceServers.length > 0;
 
   const selectDocument = (docId: string | null) => {
@@ -118,9 +118,9 @@ export default function SharingRoute() {
             <Stack gap="xs">
               <Text component="h3" fw={600} size="sm">People with access</Text>
               {visibleAccess.map((access) => (
-                <Stack key={access.id()} gap={0}>
-                  <Text>{access.text()}</Text>
-                  {access.name() && <Text c="dimmed" size="sm">{access.email()}</Text>}
+                <Stack key={access.getId()} gap={0}>
+                  <Text>{access.getText()}</Text>
+                  {access.getName() && <Text c="dimmed" size="sm">{access.getEmail()}</Text>}
                 </Stack>
               ))}
             </Stack>
@@ -169,9 +169,9 @@ export default function SharingRoute() {
               ) : (
                 <Stack gap="xs">
                   {sourceServers.map((server) => (
-                    <Stack key={server.id()} gap={0}>
-                      <Text>{server.text()}</Text>
-                      <Text c="dimmed" size="sm">{server.baseUrl()}</Text>
+                    <Stack key={server.getId()} gap={0}>
+                      <Text>{server.getText()}</Text>
+                      <Text c="dimmed" size="sm">{server.getBaseUrl()}</Text>
                     </Stack>
                   ))}
                 </Stack>

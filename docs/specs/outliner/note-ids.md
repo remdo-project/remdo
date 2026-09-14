@@ -1,7 +1,7 @@
 # Note IDs
 
 Addressable [editor notes](./note-model.md#note-kinds) have stable identity
-within a document; a global `noteRef` combines document and note identity.
+within a document; a global `noteAddress` combines document and note identity.
 [Links](./links.md) defines note-link runtime and persistence boundaries.
 
 ## Definitions
@@ -11,7 +11,7 @@ within a document; a global `noteRef` combines document and note identity.
 - **documentId:** a runtime identifier for the active document, injected by the
   environment (for example browser routing or snapshot CLI). Document identity
   is globally unique as defined in [Architecture](../../architecture.md#document-identity).
-- **noteRef:** a globally unique reference composed from a document ID and a noteId.
+- **noteAddress:** a globally unique address composed from a document ID and a noteId.
 - **Addressable note:** any non-root note that appears as a content list item in
   the outline (the document root note, owned by [Note model](./note-model.md#definitions), is not addressable).
 
@@ -46,7 +46,7 @@ within a document; a global `noteRef` combines document and note identity.
   imported into another document must receive new `noteId` values. Content and
   structure may be copied, but identity is always new.
 - When duplicating an entire document, preserve all `noteId` values so that
-  `noteRef` remains unique via the new `documentId`.
+  `noteAddress` remains unique via the new `documentId`.
 
 ### Clipboard
 
@@ -107,9 +107,10 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
 - Paste resolves identity against the destination state at the time it is
   applied; IDs introduced or restored by remote operations count as collisions.
 
-## Global references
+## Global addresses
 
-- `noteRef` is composed as `documentId_noteId`.
-- Direct-link URLs use the form `/n/<noteRef>` for non-root notes.
+- `noteAddress` is composed as `documentId_noteId`.
+- Direct-link URLs use the form `/n/<noteAddress>` for non-root notes.
 - All document roots use `/n/<documentId>`. [Home](./home.md) uses `/`.
-- A `noteRef` is valid only while the referenced note exists in the referenced document.
+- A `noteAddress` is valid only while the referenced note exists in the referenced
+  document.

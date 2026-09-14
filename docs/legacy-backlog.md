@@ -206,7 +206,7 @@ yet built; the entries below track implementation gaps against its rules.
   the note menu until the restricted kind exists.
 - Document name is not editable. Editing the header is specified to rename the
   document at the root, but `DocumentNote` (`src/note-sdk/documents.ts`) exposes
-  only read-only `text()` and there is no rename command/endpoint. The coherent
+  only read-only `getText()` and there is no rename command/endpoint. The coherent
   end state is the document name being the document root note's own text (a CRDT
   edit), which also unifies the root and subtree-zoom header. Needs an SDK rename
   capability, its server/collab path, and a name migration.
@@ -224,7 +224,7 @@ yet built; the entries below track implementation gaps against its rules.
 - Current source-server slice status: projection-backed source-server SDK/UI
   reads are in place, and account linking remains an HTTP command.
 - Current sharing/access slice status: document access reads are exposed as
-  `document.access()` from the user-data projection, and `document.shareWith()`
+  `document.getAccess()` from the user-data projection, and `document.shareWith()`
   remains an HTTP command. The duplicate document-access `GET` read route is removed.
 - Projection/note mapping review follow-up: review server-side projection
   builders plus SDK-level mapping and helper logic so projected app resources
@@ -234,7 +234,7 @@ yet built; the entries below track implementation gaps against its rules.
 - Next note-resource cleanup:
   1. ✅ Done: introduce a generic collection-note role for ordered projected
      collections keyed by stable child note id.
-  2. ✅ Done: make `documents()` and `sourceServers()` return typed collection
+  2. ✅ Done: make `getDocuments()` and `getSourceServers()` return typed collection
      facades instead of adding one SDK note kind per collection.
   3. Keep entity note kinds explicit where they carry entity-specific behavior:
      `DocumentNote` for documents and `SourceServerNote` for source servers.
@@ -255,7 +255,7 @@ yet built; the entries below track implementation gaps against its rules.
 - Persisted user-data handles and document-specific resource kinds remain a
   separate SDK slice. Remaining work:
   1. Settle long-term `DocumentNote` semantics for non-current documents:
-     loading model, whether `children()` can hydrate, and which operations are
+     loading model, whether `getChildren()` can hydrate, and which operations are
      allowed before document content is loaded.
   2. Clarify the cross-document query/loading boundary, including
      whether cross-document link search should load trees directly or use a

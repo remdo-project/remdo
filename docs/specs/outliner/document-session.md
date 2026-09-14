@@ -6,11 +6,13 @@ action capabilities, and semantic operations. The application host owns its
 lifetime and exposes it only while the committed document is usable. Each
 operation's behavioral owner retains its semantics.
 
+[SDK design](../../dev/sdk.md) owns contributor guidance and external design references.
+
 ## State and observation
 
 The session resolves editor notes by document-local note ID; cross-document
 identity for addressable editor notes uses the global
-[`noteRef`](./note-ids.md#definitions). An addressed handle reads the current
+[`noteAddress`](./note-ids.md#definitions). An addressed handle reads the current
 committed note and fails when it does not exist, including after deletion,
 rather than returning stale or substitute data.
 
