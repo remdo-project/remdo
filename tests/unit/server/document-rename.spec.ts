@@ -125,6 +125,12 @@ describe('document rename', () => {
     expect((await request()).status).toBe(200);
     expect((await source.registry.getDocument('sourceDoc'))?.title).toBe('Renamed source');
     expect((await home.registry.getDocument('sourceDoc'))?.title).toBe('Home title');
+    const strangerHeaders = await source.createSessionHeaders();
+    const stranger = (await source.auth.getSession(strangerHeaders))!.user;
+    source.auth.resolveBearerUser = vi.fn(async () => stranger);
+    expect((await request()).status).toBe(404);
+    expect((await source.registry.getDocument('sourceDoc'))?.title).toBe('Renamed source');
+    expect((await home.registry.getDocument('sourceDoc'))?.title).toBe('Home title');
     home.auth.getLinkedRemdoServerAccessToken = vi.fn(async () => null);
     expect((await request()).status).toBe(403);
   });

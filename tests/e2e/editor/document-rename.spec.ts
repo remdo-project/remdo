@@ -77,6 +77,9 @@ test('document heading offers view folding without treating the heading as an ed
   await documentLocationHeader(page).getByRole('button').click();
   await page.getByRole('menu').press('0');
   await expect(noteRow(page, 'note3')).toBeVisible();
+  await documentLocationHeader(page).getByRole('button').click();
+  await page.getByRole('menuitem', { name: 'Fold to level [0-9]', exact: true }).click();
+  await expect(noteRow(page, 'note3')).toBeHidden();
 });
 
 for (const entry of ['click', 'shortcut'] as const) {

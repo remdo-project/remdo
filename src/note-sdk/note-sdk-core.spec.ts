@@ -82,8 +82,12 @@ describe('note SDK user-data core', () => {
         local: false,
       }],
     };
+    const shareDocument = vi.fn();
+    const renameDocument = vi.fn();
     const userData = createUserDataRootNote(fixture.documents, fixture.sourceServers, {
       documentSources,
+      shareDocument,
+      renameDocument,
     });
 
     expect(userData.documentSources().children().map((source) => ({
@@ -112,6 +116,9 @@ describe('note SDK user-data core', () => {
     expect(remoteSource.as('document-source')).toBe(remoteSource);
     await expect(remoteSource.documents().byId('remote')!
       .shareWith('bob@example.test')).rejects.toThrow('Document sharing is not available for this document.');
+    expect(shareDocument).not.toHaveBeenCalled();
+    await remoteSource.documents().byId('remote')!.rename('Remote name');
+    expect(renameDocument).toHaveBeenCalledWith('remote', 'Remote name', 'source');
   });
 
   it('shares documents through document-level user-data handles', async () => {

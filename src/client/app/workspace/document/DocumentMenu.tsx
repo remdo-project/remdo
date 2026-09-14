@@ -50,7 +50,7 @@ export function DocumentMenu({
               <MenuSection>
                 <Header>View</Header>
                 {onZoomOut && <MenuItem onAction={onZoomOut}>Zoom <span className="note-menu-shortcut">o</span>ut</MenuItem>}
-                {onFoldToLevel && <MenuItem onAction={() => onFoldToLevel(1)}>Fold to level [0–9]</MenuItem>}
+                {onFoldToLevel && <MenuItem onAction={() => onFoldToLevel(1)}>Fold to level [<span className="note-menu-shortcut">0-9</span>]</MenuItem>}
               </MenuSection>
             )}
           </Menu>

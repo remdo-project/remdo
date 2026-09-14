@@ -287,6 +287,8 @@ describe('stored user data', () => {
     const remote = userData.documentSources().byId('source')!.documents().byId('sourceHome')!;
     const requests: Array<{ url: string; body: unknown }> = [];
     vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(init?.method).toBe('PATCH');
+      expect(new Headers(init?.headers).get('content-type')).toBe('application/json');
       requests.push({ url: String(input), body: JSON.parse(String(init?.body)) });
       return { ok: true };
     });
