@@ -1,12 +1,8 @@
 import { act, fireEvent, render, within } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import type {
-  DocumentCapabilitiesSnapshot,
-  DocumentSession,
-  LoadState,
-  SnapshotStore,
-} from '#note-sdk';
+import type { DocumentSession } from '#note-sdk';
 import { MobileActionToolbar } from './MobileActionToolbar';
+import type { ToolbarCapabilities } from './useToolbarCapabilities';
 
 const browser = vi.hoisted(() => ({ coarsePointer: true }));
 const originalDocumentFonts = Object.getOwnPropertyDescriptor(document, 'fonts');
@@ -15,23 +11,26 @@ vi.mock('#client/browser/useVisualViewportBottom', () => ({
   useVisualViewportBottom: () => null,
 }));
 
-class MutableStore<T> implements SnapshotStore<T> {
-  #snapshot: T;
+class MutableCapabilities {
+  #value: ToolbarCapabilities | Error;
   readonly #listeners = new Set<() => void>();
 
-  constructor(snapshot: T) {
-    this.#snapshot = snapshot;
+  constructor(value: ToolbarCapabilities | Error) {
+    this.#value = value;
   }
 
-  getSnapshot = () => this.#snapshot;
+  read = () => {
+    if (this.#value instanceof Error) throw this.#value;
+    return this.#value;
+  };
 
   subscribe = (listener: () => void) => {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
   };
 
-  publish(snapshot: T): void {
-    this.#snapshot = snapshot;
+  publish(value: ToolbarCapabilities | Error): void {
+    this.#value = value;
     for (const listener of this.#listeners) {
       listener();
     }
@@ -42,26 +41,12 @@ class MutableStore<T> implements SnapshotStore<T> {
   }
 }
 
-function readyCapabilities(
-  options: {
-    canToggleFold?: boolean;
-    canDelete?: boolean;
-    canUndo?: boolean;
-    canRedo?: boolean;
-  } = {},
-): LoadState<DocumentCapabilitiesSnapshot> {
-  return {
-    status: 'ready',
-    data: {
-      focus: { canToggleFold: options.canToggleFold ?? false },
-      selection: { canDelete: options.canDelete ?? false },
-      history: { canUndo: options.canUndo ?? false, canRedo: options.canRedo ?? false },
-    },
-  };
+function readyCapabilities(options: Partial<ToolbarCapabilities> = {}): ToolbarCapabilities {
+  return { canToggleFold: false, canDelete: false, canUndo: false, canRedo: false, ...options };
 }
 
-function createSession(initialCapabilities: LoadState<DocumentCapabilitiesSnapshot>) {
-  const capabilities = new MutableStore(initialCapabilities);
+function createSession(initialCapabilities: ToolbarCapabilities | Error) {
+  const capabilities = new MutableCapabilities(initialCapabilities);
   const operations = {
     indent: vi.fn(),
     outdent: vi.fn(),
@@ -73,10 +58,11 @@ function createSession(initialCapabilities: LoadState<DocumentCapabilitiesSnapsh
     undo: vi.fn(),
     redo: vi.fn(),
   };
-  const session: Pick<DocumentSession, 'capabilities' | 'focus' | 'selection' | 'history'> = {
-    capabilities,
-    focus: { toggleFold: operations.toggleFocusedFold },
+  const session: Pick<DocumentSession, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'> = {
+    subscribeCapabilities: capabilities.subscribe,
+    focus: { canToggleFold: () => capabilities.read().canToggleFold, toggleFold: operations.toggleFocusedFold },
     selection: {
+      canDelete: () => capabilities.read().canDelete,
       indent: operations.indent,
       outdent: operations.outdent,
       moveUp: operations.moveUp,
@@ -84,12 +70,16 @@ function createSession(initialCapabilities: LoadState<DocumentCapabilitiesSnapsh
       toggleChecked: operations.toggleChecked,
       delete: operations.delete,
     },
-    history: { undo: operations.undo, redo: operations.redo },
+    history: {
+      canUndo: () => capabilities.read().canUndo,
+      canRedo: () => capabilities.read().canRedo,
+      undo: operations.undo, redo: operations.redo,
+    },
   };
   return { capabilities, operations, session };
 }
 
-function renderToolbar(session: Pick<DocumentSession, 'capabilities' | 'focus' | 'selection' | 'history'>) {
+function renderToolbar(session: Pick<DocumentSession, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'>) {
   const portalRoot = document.createElement('div');
   portalRoot.dataset.mobileToolbarTestRoot = '';
   document.body.append(portalRoot);
@@ -177,7 +167,7 @@ describe('mobile action toolbar', () => {
     expect(view.getByRole('button', { name: 'Redo' })).not.toHaveAttribute('aria-disabled');
   });
 
-  it('delegates focus-targeted actions without reusing the capability snapshot target', () => {
+  it('delegates focus-targeted actions without reusing the earlier capability target', () => {
     const { capabilities, operations, session } = createSession(readyCapabilities({
       canToggleFold: true,
       canDelete: true,
@@ -200,8 +190,8 @@ describe('mobile action toolbar', () => {
     expect(focusEditor).toHaveBeenCalledTimes(3);
   });
 
-  it('keeps loading capabilities unavailable without disabling always-enabled actions', () => {
-    const { operations, session } = createSession({ status: 'loading' });
+  it('keeps unavailable capabilities unavailable without disabling always-enabled actions', () => {
+    const { operations, session } = createSession(readyCapabilities());
     const { focusEditor, view } = renderToolbar(session);
 
     expect(view.getByRole('button', { name: 'Toggle fold' })).toHaveAttribute('aria-disabled', 'true');
@@ -211,5 +201,18 @@ describe('mobile action toolbar', () => {
     fireEvent.click(view.getByRole('button', { name: 'Toggle done' }));
     expect(operations.toggleChecked).toHaveBeenCalledOnce();
     expect(focusEditor).toHaveBeenCalledOnce();
+  });
+
+  it('disables conditional actions on a failed read and reflects recovery', () => {
+    const { capabilities, session } = createSession(new Error('Capability read failed'));
+    const { result, view } = renderToolbar(session);
+    expect(view.getByRole('button', { name: 'Toggle fold' })).toHaveAttribute('aria-disabled', 'true');
+    expect(view.queryByRole('button', { name: 'Undo' })).toBeNull();
+
+    act(() => capabilities.publish(readyCapabilities({ canToggleFold: true, canUndo: true })));
+    expect(view.getByRole('button', { name: 'Toggle fold' })).not.toHaveAttribute('aria-disabled');
+    expect(view.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+    result.unmount();
+    expect(capabilities.subscriberCount).toBe(0);
   });
 });

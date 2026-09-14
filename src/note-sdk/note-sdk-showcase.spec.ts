@@ -19,6 +19,24 @@ import { createUserDataRootNote, NoteUnavailableError } from '#note-sdk';
 
 describe('note SDK showcase', () => {
   describe('open document session', () => {
+    it('reads action eligibility directly and observes changes when needed', meta({ fixture: 'tree' }), async ({ remdo }) => {
+      const session = remdo.documentSession;
+      await placeCaretAtNote(remdo, 'note1');
+      expect(session.focus.canToggleFold()).toBe(false);
+
+      let canFold = session.focus.canToggleFold();
+      const unsubscribe = session.subscribeCapabilities(() => {
+        canFold = session.focus.canToggleFold();
+      });
+      onTestFinished(unsubscribe);
+      await placeCaretAtNote(remdo, 'note2');
+      await vi.waitFor(() => expect(canFold).toBe(true));
+      unsubscribe();
+
+      await placeCaretAtNote(remdo, 'note1');
+      expect(session.focus.canToggleFold()).toBe(false);
+    });
+
     it('retains a reference and reads fresh text after an edit', meta({ fixture: 'tree' }), async ({ remdo }) => {
       const note = remdo.documentSession.noteRef('note2');
       const earlierText = note.getText();

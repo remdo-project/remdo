@@ -7,9 +7,7 @@ import { vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { resetTestUserData } from '#tests';
 import type {
-  DocumentCapabilitiesSnapshot,
   DocumentSession,
-  LoadState,
   NoteId,
   EditorNoteSnapshot,
   SearchResult,
@@ -42,8 +40,6 @@ export function createSearchResult(
     ...fields,
   };
 }
-
-const LOADING_CAPABILITIES: LoadState<DocumentCapabilitiesSnapshot> = Object.freeze({ status: 'loading' });
 
 function defaultResults(): SearchResult[] {
   const second = createSearchResult('note2', 'note2');
@@ -88,7 +84,7 @@ function MockEditor({
     return {
       documentId: docId,
       search: mockDocumentSearch(docId),
-      capabilities: { getSnapshot: () => LOADING_CAPABILITIES, subscribe: () => noOp },
+      subscribeCapabilities: () => noOp,
       noteRef: (noteId) => ({
         getId: () => noteId,
         getText: () => '',
@@ -105,8 +101,9 @@ function MockEditor({
         subscribe: () => noOp,
       }),
       view: { zoomOut: noOp, foldToLevel: noOp },
-      focus: { toggleFold: noOp },
+      focus: { canToggleFold: () => false, toggleFold: noOp },
       selection: {
+        canDelete: () => false,
         indent: noOp,
         outdent: noOp,
         moveUp: noOp,
@@ -114,7 +111,7 @@ function MockEditor({
         toggleChecked: noOp,
         delete: noOp,
       },
-      history: { undo: noOp, redo: noOp },
+      history: { canUndo: () => false, canRedo: () => false, undo: noOp, redo: noOp },
     };
   }, [docId]);
 
