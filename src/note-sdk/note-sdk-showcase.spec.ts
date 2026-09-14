@@ -12,6 +12,7 @@ import {
   meta,
   placeCaretAtNote,
   resetTestUserData,
+  selectNoteRange,
   TEST_USER_DATA_DOCUMENT,
 } from '#tests';
 import { createUserDataRootNote, NoteUnavailableError } from '#note-sdk';
@@ -36,6 +37,46 @@ describe('note SDK showcase', () => {
       await note.toggleFold();
 
       expect(note.getFolded()).toBe(true);
+    });
+
+    it('discovers operations for a particular note, independent of focus', meta({ fixture: 'tree' }), ({ remdo }) => {
+      const parent = remdo.documentSession.noteRef('note2');
+      const leaf = remdo.documentSession.noteRef('note1');
+
+      expect(parent.canToggleFold()).toBe(true);
+      expect(parent.canSetChildListType()).toBe(true);
+      expect(leaf.canToggleFold()).toBe(false);
+      expect(leaf.canSetChildListType()).toBe(false);
+    });
+
+    it('toggles an addressed subtree', meta({ fixture: 'tree' }), async ({ remdo }) => {
+      const note = remdo.documentSession.noteRef('note2');
+
+      await note.toggleChecked();
+
+      expect(note.getChecked()).toBe(true);
+      expect(remdo.documentSession.noteRef('note3').getChecked()).toBe(true);
+    });
+
+    it('uses a note target to choose the contextual selected range', meta({ fixture: 'flat' }), async ({ remdo }) => {
+      await selectNoteRange(remdo, 'note1', 'note2');
+
+      remdo.documentSession.selection.toggleChecked({ noteId: 'note2' });
+
+      await vi.waitFor(() => {
+        expect(remdo.documentSession.noteRef('note1').getChecked()).toBe(true);
+        expect(remdo.documentSession.noteRef('note2').getChecked()).toBe(true);
+        expect(remdo.documentSession.noteRef('note3').getChecked()).toBe(false);
+      });
+    });
+
+    it('changes the list owned by an addressed parent', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
+      const parent = remdo.documentSession.noteRef('note1');
+      expect(parent.getChildListType()).toBe('number');
+
+      await parent.setChildListType('check');
+
+      expect(parent.getChildListType()).toBe('check');
     });
 
     it("observes text changes and handles an unavailable note", meta({ fixture: 'tree' }), async ({ remdo }) => {

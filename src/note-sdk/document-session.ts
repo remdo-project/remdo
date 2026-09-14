@@ -73,9 +73,9 @@ export interface DocumentCapabilitiesSnapshot {
 }
 
 /**
- * A live, stable-ID reference for one editor note in the open document.
- * Value reads throw NoteUnavailableError when the note or source is unavailable.
- * Operations revalidate their targets and no-op when unavailable.
+ * A live, stable-ID reference to one editor note in the open document.
+ * Value and capability reads throw NoteUnavailableError when the note or source
+ * is unavailable. Operations revalidate their targets and no-op when unavailable.
  */
 export interface OpenDocumentNote {
   /** Stable ID used to re-resolve the note in the current document revision. */
@@ -84,9 +84,20 @@ export interface OpenDocumentNote {
   readonly getText: () => string;
   /** Returns the current stored fold state. */
   readonly getFolded: () => boolean;
+  readonly getChecked: () => boolean;
+  /** The list owned by this note, or null for a leaf. */
+  readonly getChildListType: () => NoteListType | null;
+  readonly canToggleFold: () => boolean;
+  readonly canToggleChecked: () => boolean;
+  readonly canSetChildListType: () => boolean;
   /** Revalidates the note and resolves after any local fold update commits. */
   readonly toggleFold: () => Promise<void>;
-  /** Notifies when this note's exposed values or readability may have changed. */
+  /** Toggles only this note's subtree, independently of selection. */
+  readonly toggleChecked: () => Promise<void>;
+  /** Converts only this note's child list; no-ops for a leaf. */
+  readonly setChildListType: (listType: NoteListType) => Promise<void>;
+  readonly zoom: () => void;
+  /** Notifies when this note's exposed values, eligibility, or readability may have changed. */
   readonly subscribe: (listener: () => void) => () => void;
 }
 
@@ -102,6 +113,11 @@ export interface DocumentSession {
   readonly search: (options: DocumentSearchOptions) => Promise<DocumentSearchResults>;
   /** Returns a live reference without checking existence or creating a note. */
   readonly noteRef: (noteId: NoteId) => OpenDocumentNote;
+  readonly view: {
+    zoomOut: () => void;
+    /** Applies a level from 0 (unfold) through 9 within the current zoom boundary. */
+    foldToLevel: (level: number) => void;
+  };
   readonly focus: {
     /** Resolves the current focus at execution and no-ops when folding is unavailable. */
     toggleFold: () => void;
@@ -111,7 +127,11 @@ export interface DocumentSession {
     outdent: () => void;
     moveUp: () => void;
     moveDown: () => void;
-    toggleChecked: () => void;
+    /**
+     * Without a target, toggles the current selection. With a note ID, toggles
+     * the selected range when it contains that note, otherwise its subtree.
+     */
+    toggleChecked: (target?: { noteId: NoteId }) => void;
     delete: () => void;
   };
   readonly history: {

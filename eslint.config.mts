@@ -306,9 +306,12 @@ export default antfu(
     },
   },
   {
-    files: ['src/client/editor/features/list-types/CheckListPlugin.tsx'],
+    files: [
+      'src/client/editor/features/list-types/CheckListPlugin.tsx',
+      'src/client/editor/features/list-types/checked-operations.ts',
+    ],
     rules: {
-      // This plugin is the sanctioned boundary for direct checklist node syncing.
+      // These modules are the sanctioned boundary for direct checklist node syncing.
       'no-restricted-syntax': [
         'error',
         importMetaEnvRestriction,

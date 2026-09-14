@@ -12,7 +12,7 @@ import {
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { LoadState, SnapshotStore } from '#note-sdk';
 import { NoteUnavailableError } from '#note-sdk';
-import { createMountedLexicalEditor, getNoteKey, meta, placeCaretAtNote, typeText } from '#tests';
+import { createMountedLexicalEditor, getNoteKey, meta, placeCaretAtNote, selectNoteRange, typeText } from '#tests';
 import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
 import {
   DELETE_SELECTED_NOTES_COMMAND,
@@ -25,7 +25,7 @@ import {
 } from '#client/editor/foundation/commands';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
-import { setViewRoot } from '#client/editor/outline/view-root';
+import { $resolveViewRoot, setViewRoot } from '#client/editor/outline/view-root';
 import { editorNodes } from '#client/editor/runtime/nodes';
 import { noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 import { createLexicalDocumentSessionRuntime } from './lexical-document-session';
@@ -131,6 +131,10 @@ describe('lexical document session', () => {
     const replacement = remdo.editor.parseEditorState(JSON.stringify(serialized));
     remdo.editor.setEditorState(replacement);
     await note.toggleFold();
+    await note.toggleChecked();
+    await note.setChildListType('number');
+    expect(note.getChecked()).toBe(true);
+    expect(note.getChildListType()).toBe('number');
 
     expect(note.getFolded()).toBe(true);
     expect(remdo.editor.read(() => $isNoteFolded($findNoteById('note2')!))).toBe(true);
@@ -311,6 +315,195 @@ describe('lexical document session', () => {
     expect(listener).toHaveBeenCalledOnce();
   });
 
+  it('observes addressed eligibility when the view changes without an editor update', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    const note = remdo.documentSession.noteRef('note2');
+    const listener = vi.fn();
+    onTestFinished(note.subscribe(listener));
+    onTestFinished(() => setViewRoot(remdo.editor, null));
+    expect(note.canToggleFold()).toBe(true);
+
+    await placeCaretAtNote(remdo, 'note1');
+    await flushObservations();
+    expect(note.canToggleFold()).toBe(true);
+    expect(listener).not.toHaveBeenCalled();
+
+    setViewRoot(remdo.editor, getNoteKey(remdo, 'note2'));
+    await waitFor(() => expect(listener).toHaveBeenCalledOnce());
+    expect(note.canToggleFold()).toBe(false);
+    await note.toggleFold();
+    expect(note.getFolded()).toBe(false);
+  });
+
+  for (const noteId of ['note1', 'note6', 'note7']) {
+    it(`keeps target ${noteId} read-only outside the zoom boundary`, meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+      const session = remdo.documentSession;
+      const note = session.noteRef(noteId);
+      expect(note.getText()).toBe(noteId);
+
+      await note.toggleFold();
+      expect(note.getFolded()).toBe(false);
+      await note.setChildListType('number');
+      expect(note.getChildListType()).toBe(noteId === 'note7' ? null : 'bullet');
+      await note.toggleChecked();
+      expect(['note1', 'note2', 'note3', 'note4', 'note6', 'note7'].map((id) => session.noteRef(id).getChecked()))
+        .toEqual([false, false, false, false, false, false]);
+      session.selection.toggleChecked({ noteId });
+      await flushObservations();
+      expect(['note1', 'note2', 'note3', 'note4', 'note6', 'note7'].map((id) => session.noteRef(id).getChecked()))
+        .toEqual([false, false, false, false, false, false]);
+    });
+  }
+
+  it('observes eligibility when a retained note leaves and reenters the zoom boundary', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    const note = remdo.documentSession.noteRef('note6');
+    const listener = vi.fn();
+    onTestFinished(note.subscribe(listener));
+    onTestFinished(() => setViewRoot(remdo.editor, null));
+    expect(note.canToggleFold()).toBe(true);
+    expect(note.canSetChildListType()).toBe(true);
+
+    setViewRoot(remdo.editor, getNoteKey(remdo, 'note1'));
+    await waitFor(() => expect(listener).toHaveBeenCalledOnce());
+    expect(note.canToggleFold()).toBe(false);
+    expect(note.canSetChildListType()).toBe(false);
+
+    setViewRoot(remdo.editor, null);
+    await waitFor(() => expect(listener).toHaveBeenCalledTimes(2));
+    expect(note.canToggleFold()).toBe(true);
+    expect(note.canSetChildListType()).toBe(true);
+    await note.setChildListType('number');
+    expect(note.getChildListType()).toBe('number');
+  });
+
+  it('observes checked eligibility when a retained leaf leaves and reenters the zoom boundary', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    const note = remdo.documentSession.noteRef('note7');
+    const listener = vi.fn();
+    onTestFinished(note.subscribe(listener));
+    onTestFinished(() => setViewRoot(remdo.editor, null));
+
+    expect(note.canToggleChecked()).toBe(true);
+    setViewRoot(remdo.editor, getNoteKey(remdo, 'note1'));
+    await waitFor(() => expect(listener).toHaveBeenCalledOnce());
+    expect(note.canToggleChecked()).toBe(false);
+
+    setViewRoot(remdo.editor, null);
+    await waitFor(() => expect(listener).toHaveBeenCalledTimes(2));
+    expect(note.canToggleChecked()).toBe(true);
+    await note.toggleChecked();
+    expect(note.getChecked()).toBe(true);
+  });
+
+  it('allows addressed edits on the zoom root and its descendants', meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note1' } }), async ({ remdo }) => {
+    const session = remdo.documentSession;
+    await session.noteRef('note1').setChildListType('number');
+    expect(session.noteRef('note1').getChildListType()).toBe('number');
+
+    await session.noteRef('note2').toggleFold();
+    expect(session.noteRef('note2').getFolded()).toBe(true);
+    await session.noteRef('note3').toggleChecked();
+    expect(session.noteRef('note3').getChecked()).toBe(true);
+
+    await session.noteRef('note1').toggleChecked();
+    expect(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']
+      .map((id) => session.noteRef(id).getChecked()))
+      .toEqual([true, true, true, true, false, false, false]);
+  });
+
+  it('zooms by stable note ID and applies fold levels within the current view', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    const session = remdo.documentSession;
+    session.noteRef('note2').zoom();
+    await waitFor(() => {
+      expect(remdo.editor.read(() => $resolveViewRoot(remdo.editor)?.getKey())).toBe(getNoteKey(remdo, 'note2'));
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
+    });
+
+    session.view.zoomOut();
+    await waitFor(() => {
+      expect(remdo.editor.read(() => $resolveViewRoot(remdo.editor)?.getKey())).toBe(getNoteKey(remdo, 'note1'));
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+    });
+    session.view.foldToLevel(1);
+    await waitFor(() => expect(session.noteRef('note2').getFolded()).toBe(true));
+    expect(session.noteRef('note1').getFolded()).toBe(false);
+    expect(session.noteRef('note6').getFolded()).toBe(false);
+
+    session.view.foldToLevel(0);
+    await waitFor(() => expect(session.noteRef('note2').getFolded()).toBe(false));
+    session.noteRef('note6').zoom();
+    await waitFor(() => {
+      expect(remdo.editor.read(() => $resolveViewRoot(remdo.editor)?.getKey())).toBe(getNoteKey(remdo, 'note6'));
+    });
+    session.noteRef('missing').zoom();
+    expect(remdo.editor.read(() => $resolveViewRoot(remdo.editor)?.getKey())).toBe(getNoteKey(remdo, 'note6'));
+  });
+
+  it('distinguishes an addressed subtree from selection-aware checked targeting', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    const session = remdo.documentSession;
+    await selectNoteRange(remdo, 'note2', 'note4');
+    await session.noteRef('note6').toggleChecked();
+    expect(['note2', 'note3', 'note4', 'note6', 'note7'].map((id) => session.noteRef(id).getChecked()))
+      .toEqual([false, false, false, true, true]);
+
+    // An addressed operation never widens to other selected notes.
+    await session.noteRef('note3').toggleChecked();
+    expect(['note1', 'note2', 'note3', 'note4', 'note5'].map((id) => session.noteRef(id).getChecked()))
+      .toEqual([false, false, true, false, false]);
+
+    session.selection.toggleChecked({ noteId: 'note3' });
+    await waitFor(() => {
+      expect(['note1', 'note2', 'note3', 'note4', 'note5'].map((id) => session.noteRef(id).getChecked()))
+        .toEqual([false, true, true, true, false]);
+    });
+    session.selection.toggleChecked({ noteId: 'note6' });
+    await waitFor(() => {
+      expect(['note2', 'note3', 'note4', 'note6', 'note7'].map((id) => session.noteRef(id).getChecked()))
+        .toEqual([true, true, true, false, false]);
+    });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+  });
+
+  it('converts only the addressed child list and preserves checked state and deeper lists', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    const session = remdo.documentSession;
+    const parent = session.noteRef('note1');
+    const listener = vi.fn();
+    onTestFinished(parent.subscribe(listener));
+    await session.noteRef('note3').toggleChecked();
+    await placeCaretAtNote(remdo, 'note6');
+
+    await parent.setChildListType('number');
+    expect(parent.getChildListType()).toBe('number');
+    expect(session.noteRef('note2').getChildListType()).toBe('bullet');
+    expect(session.noteRef('note6').getChildListType()).toBe('bullet');
+    expect(session.noteRef('note3').getChecked()).toBe(true);
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note6' });
+    await waitFor(() => expect(listener).toHaveBeenCalledOnce());
+
+    await session.noteRef('note3').setChildListType('check');
+    expect(session.noteRef('note3').getChildListType()).toBeNull();
+    expect(session.noteRef('note3').canSetChildListType()).toBe(false);
+  });
+
+  it('notifies on checked-state changes and disappearance, with identifiable missing-note reads', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    const note = remdo.documentSession.noteRef('note2');
+    const listener = vi.fn();
+    onTestFinished(note.subscribe(listener));
+    await note.toggleChecked();
+    await waitFor(() => expect(listener).toHaveBeenCalledOnce());
+    expect(note.getChecked()).toBe(true);
+
+    await placeCaretAtNote(remdo, 'note2');
+    remdo.documentSession.selection.delete();
+    await waitFor(() => expect(listener).toHaveBeenCalledTimes(2));
+    for (const read of [note.getText, note.getFolded, note.getChecked, note.getChildListType, note.canToggleFold, note.canToggleChecked, note.canSetChildListType]) {
+      expect(read).toThrow(NoteUnavailableError);
+    }
+    const afterDeletion = remdo.getEditorState();
+    await note.toggleChecked();
+    await note.setChildListType('check');
+    remdo.documentSession.selection.toggleChecked({ noteId: 'note2' });
+    expect(remdo.getEditorState()).toEqual(afterDeletion);
+  });
+
   it('notifies when the source becomes unavailable and readable again', meta({ fixture: 'tree' }), async ({ remdo }) => {
     const runtime = createLexicalDocumentSessionRuntime({ editor: remdo.editor, docId: remdo.getCollabDocId() });
     onTestFinished(runtime.dispose);
@@ -327,9 +520,13 @@ describe('lexical document session', () => {
     expect(listener).toHaveBeenCalledOnce();
     expect(note.getText).toThrow(NoteUnavailableError);
     await note.toggleFold();
+    await note.toggleChecked();
+    await note.setChildListType('check');
     runtime.setSourceReady(true);
     await waitFor(() => expect(listener).toHaveBeenCalledTimes(2));
     expect(note.getFolded()).toBe(false);
+    expect(note.getChecked()).toBe(false);
+    expect(note.getChildListType()).toBe('bullet');
     stop();
     expect(note.getText).toThrow(NoteUnavailableError);
   });
@@ -385,15 +582,6 @@ describe('lexical document session', () => {
       await note.toggleFold();
       expect(note.getFolded()).toBe(false);
     }
-  });
-
-  it('allows addressed folding within a zoomed subtree', meta({
-    fixture: 'tree-complex',
-    viewProps: { zoomNoteId: 'note1' },
-  }), async ({ remdo }) => {
-    const note = remdo.documentSession.noteRef('note2');
-    await note.toggleFold();
-    expect(note.getFolded()).toBe(true);
   });
 
   it('maps each named operation to its semantic editor command', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -641,6 +829,12 @@ describe('lexical document session', () => {
     await expect(runtime.session.search(SEARCH_ALL)).rejects.toThrow('not available');
     expect(runtime.session.capabilities.getSnapshot()).toEqual({ status: 'loading' });
     await runtime.session.noteRef('note2').toggleFold();
+    await runtime.session.noteRef('note2').toggleChecked();
+    await runtime.session.noteRef('note2').setChildListType('check');
+    runtime.session.noteRef('note2').zoom();
+    runtime.session.view.zoomOut();
+    runtime.session.view.foldToLevel(1);
+    runtime.session.selection.toggleChecked({ noteId: 'note2' });
     runtime.session.selection.indent();
     runtime.session.selection.outdent();
     runtime.session.selection.moveUp();

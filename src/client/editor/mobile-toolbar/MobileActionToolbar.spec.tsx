@@ -69,22 +69,12 @@ function createSession(initialCapabilities: LoadState<DocumentCapabilitiesSnapsh
     moveDown: vi.fn(),
     toggleChecked: vi.fn(),
     toggleFocusedFold: vi.fn(),
-    toggleNoteFold: vi.fn(() => Promise.resolve()),
     delete: vi.fn(),
     undo: vi.fn(),
     redo: vi.fn(),
   };
-  const session: DocumentSession = {
-    documentId: 'main',
-    search: vi.fn(),
+  const session: Pick<DocumentSession, 'capabilities' | 'focus' | 'selection' | 'history'> = {
     capabilities,
-    noteRef: (noteId) => ({
-      getId: () => noteId,
-      getText: () => '',
-      getFolded: () => false,
-      toggleFold: operations.toggleNoteFold,
-      subscribe: () => () => {},
-    }),
     focus: { toggleFold: operations.toggleFocusedFold },
     selection: {
       indent: operations.indent,
@@ -99,7 +89,7 @@ function createSession(initialCapabilities: LoadState<DocumentCapabilitiesSnapsh
   return { capabilities, operations, session };
 }
 
-function renderToolbar(session: DocumentSession) {
+function renderToolbar(session: Pick<DocumentSession, 'capabilities' | 'focus' | 'selection' | 'history'>) {
   const portalRoot = document.createElement('div');
   portalRoot.dataset.mobileToolbarTestRoot = '';
   document.body.append(portalRoot);
@@ -200,7 +190,6 @@ describe('mobile action toolbar', () => {
 
     expect(operations.indent).toHaveBeenCalledOnce();
     expect(operations.toggleFocusedFold).toHaveBeenCalledOnce();
-    expect(operations.toggleNoteFold).not.toHaveBeenCalled();
     expect(openNoteMenu).toHaveBeenCalledOnce();
     expect(focusEditor).toHaveBeenCalledTimes(3);
 

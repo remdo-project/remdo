@@ -17,16 +17,24 @@ import type {
   LoadState,
   NoteId,
   OpenDocumentNote,
+  NoteListType,
 } from '#note-sdk';
 import { NoteUnavailableError } from '#note-sdk';
+import { $toggleNoteCheckedForTargets } from '#client/editor/features/list-types/checked-operations';
+import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
+import { $getNestedListType } from '#client/editor/features/list-types/nested-list-type';
 import {
   DELETE_SELECTED_NOTES_COMMAND,
+  FOLD_VIEW_TO_LEVEL_COMMAND,
   INDENT_NOTES_COMMAND,
   OUTDENT_NOTES_COMMAND,
   REORDER_NOTES_DOWN_COMMAND,
   REORDER_NOTES_UP_COMMAND,
   SET_NOTE_CHECKED_COMMAND,
   SET_NOTE_FOLD_COMMAND,
+  SET_NESTED_LIST_TYPE_COMMAND,
+  ZOOM_OUT_COMMAND,
+  ZOOM_TO_NOTE_COMMAND,
 } from '#client/editor/foundation/commands';
 import { $canOfferFold } from '#client/editor/features/folding/fold-offer';
 import { $isNoteFolded } from '#client/editor/outline/fold-state';
@@ -51,6 +59,11 @@ interface UseLexicalDocumentSessionOptions extends LexicalDocumentSessionSource 
 interface AddressedNoteValues {
   folded: boolean;
   text: string;
+  checked: boolean;
+  childListType: NoteListType | null;
+  canToggleFold: boolean;
+  canToggleChecked: boolean;
+  canSetChildListType: boolean;
 }
 
 interface AddressedNoteObservation {
@@ -94,6 +107,11 @@ function addressedNoteValuesEqual(
     || (left !== null
       && right !== null
       && left.folded === right.folded
+      && left.checked === right.checked
+      && left.childListType === right.childListType
+      && left.canToggleFold === right.canToggleFold
+      && left.canToggleChecked === right.canToggleChecked
+      && left.canSetChildListType === right.canSetChildListType
       && left.text === right.text);
 }
 
@@ -156,9 +174,18 @@ export function createLexicalDocumentSessionRuntime({
     }
     return editor.getEditorState().read(() => {
       const note = $findNoteById(noteId);
-      return note
-        ? { folded: $isNoteFolded(note), text: getNoteOwnText(note) }
-        : null;
+      if (!note) return null;
+      const childListType = $getNestedListType(note);
+      const withinView = isWithinBoundary(note, $resolveViewRoot(editor));
+      return {
+        folded: $isNoteFolded(note),
+        text: getNoteOwnText(note),
+        checked: $getNoteChecked(note) === true,
+        childListType,
+        canToggleChecked: withinView,
+        canToggleFold: withinView && $canOfferFold(editor, note),
+        canSetChildListType: withinView && childListType !== null,
+      };
     }, { editor });
   };
 
@@ -213,7 +240,10 @@ export function createLexicalDocumentSessionRuntime({
     }
   };
 
-  const toggleAddressedFold = async (noteId: NoteId): Promise<void> => {
+  const updateAddressedNote = async (
+    noteId: NoteId,
+    operation: (note: ListItemNode) => void,
+  ): Promise<void> => {
     if (!started || disposed || !sourceReady) {
       return;
     }
@@ -221,8 +251,8 @@ export function createLexicalDocumentSessionRuntime({
       editor.update(() => {
         try {
           const note = $findNoteById(noteId);
-          if (note && isWithinBoundary(note, $resolveViewRoot(editor)) && $canOfferFold(editor, note)) {
-            editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: note.getKey() });
+          if (note && isWithinBoundary(note, $resolveViewRoot(editor))) {
+            operation(note);
           }
         } catch (error) {
           reject(error);
@@ -372,7 +402,25 @@ export function createLexicalDocumentSessionRuntime({
       getId: () => noteId,
       getText: () => requireAddressedNote(noteId).text,
       getFolded: () => requireAddressedNote(noteId).folded,
-      toggleFold: () => toggleAddressedFold(noteId),
+      getChecked: () => requireAddressedNote(noteId).checked,
+      getChildListType: () => requireAddressedNote(noteId).childListType,
+      canToggleFold: () => requireAddressedNote(noteId).canToggleFold,
+      canToggleChecked: () => requireAddressedNote(noteId).canToggleChecked,
+      canSetChildListType: () => requireAddressedNote(noteId).canSetChildListType,
+      toggleFold: () => updateAddressedNote(noteId, (note) => {
+        if ($canOfferFold(editor, note)) {
+          editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: note.getKey() });
+        }
+      }),
+      toggleChecked: () => updateAddressedNote(noteId, (note) => $toggleNoteCheckedForTargets([note])),
+      setChildListType: (listType) => updateAddressedNote(noteId, (note) => {
+        editor.dispatchCommand(SET_NESTED_LIST_TYPE_COMMAND, { listType, noteItemKey: note.getKey() });
+      }),
+      zoom: () => {
+        if (started && !disposed && sourceReady && readAddressedNote(noteId)) {
+          editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId });
+        }
+      },
       subscribe: (listener) => {
         if (disposed) {
           return () => {};
@@ -427,6 +475,14 @@ export function createLexicalDocumentSessionRuntime({
       },
     },
     noteRef: createNoteRef,
+    view: {
+      zoomOut: () => {
+        if (started && !disposed && sourceReady) editor.dispatchCommand(ZOOM_OUT_COMMAND, undefined);
+      },
+      foldToLevel: (level) => {
+        if (started && !disposed && sourceReady) editor.dispatchCommand(FOLD_VIEW_TO_LEVEL_COMMAND, { level });
+      },
+    },
     focus: {
       toggleFold: toggleFocusedFold,
     },
@@ -443,10 +499,18 @@ export function createLexicalDocumentSessionRuntime({
       moveDown: () => {
         if (started && !disposed && sourceReady) editor.dispatchCommand(REORDER_NOTES_DOWN_COMMAND, undefined);
       },
-      toggleChecked: () => {
-        if (started && !disposed && sourceReady) {
+      toggleChecked: (target) => {
+        if (!started || disposed || !sourceReady) return;
+        if (!target) {
           editor.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
+          return;
         }
+        editor.update(() => {
+          const note = $findNoteById(target.noteId);
+          if (note && isWithinBoundary(note, $resolveViewRoot(editor))) {
+            editor.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle', noteItemKey: note.getKey() });
+          }
+        });
       },
       delete: () => {
         if (started && !disposed && sourceReady) editor.dispatchCommand(DELETE_SELECTED_NOTES_COMMAND, undefined);
@@ -489,8 +553,11 @@ export function createLexicalDocumentSessionRuntime({
         }
       }),
       subscribeViewRoot(editor, () => {
+        addressedNotesDirty = addressedNotes.size > 0;
         if (capabilitiesActive) {
           capabilitiesDirty = true;
+        }
+        if (capabilitiesDirty || addressedNotesDirty) {
           schedule();
         }
       }),
