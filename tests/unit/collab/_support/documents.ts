@@ -6,7 +6,7 @@ import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
 import { getCollabTestSessionCookie } from './auth';
 
 async function insertCollabTestDocument(docId: string): Promise<void> {
-  const client = createServerDatabaseClient();
+  const client = await createServerDatabaseClient();
   try {
     const owner = client.sqlite
       .prepare('SELECT id FROM "user" WHERE email = ? LIMIT 1')

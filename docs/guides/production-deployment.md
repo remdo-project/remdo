@@ -90,8 +90,11 @@ same URL.
 
 ## Upgrade an Existing Instance
 
-An upgrade preserves accounts and documents. Schema changes apply on the first
-start of the new version.
+An upgrade preserves accounts and documents through the
+[versioned persistence boundary](../architecture.md#runtime-persistence-boundary).
+Schema changes apply on the first start of the new version. If startup rejects
+an unsupported schema, retain the storage root and use a version that supports
+that database; do not reset it.
 
 1. Stop the instance. A schema change can rewrite tables that authentication
    writes to.

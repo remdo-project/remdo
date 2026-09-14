@@ -43,7 +43,7 @@ export async function createServerAppHarness({
   // In-memory like the other server harnesses — a per-test on-disk DB fsyncs
   // on every DDL/write, which turns contended-CI disk latency into test and
   // teardown timeouts.
-  const client = createServerDatabaseClient({ dbPath: ':memory:' });
+  const client = await createServerDatabaseClient({ dbPath: ':memory:' });
   // Derive trusted origins from the harness's own baseURL (not the env singleton)
   // so the auth instance honours the baseURL it was given.
   const trustedOrigins = deriveAuthTrustedOrigins({

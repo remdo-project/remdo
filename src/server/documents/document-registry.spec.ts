@@ -4,13 +4,13 @@ import { createDocumentRegistryHarness } from '../../../tests/unit/server/_suppo
 
 const createHarness = createTestResource(createDocumentRegistryHarness);
 
-function createRegistry() {
-  return createHarness().registry;
+async function createRegistry() {
+  return (await createHarness()).registry;
 }
 
 describe('document registry', () => {
   it('inserts a missing document', async () => {
-    const registry = createRegistry();
+    const registry = await createRegistry();
 
     const document = await registry.insertDocument({
       id: 'main',
@@ -30,7 +30,7 @@ describe('document registry', () => {
   });
 
   it('returns null when inserting an existing document id', async () => {
-    const registry = createRegistry();
+    const registry = await createRegistry();
 
     const first = await registry.insertDocument({
       id: 'main',
@@ -48,7 +48,7 @@ describe('document registry', () => {
   });
 
   it('lists the home document before user-created documents', async () => {
-    const registry = createRegistry();
+    const registry = await createRegistry();
     await registry.insertDocument({
       id: 'homeDoc',
       kind: 'home-document',
@@ -77,7 +77,7 @@ describe('document registry', () => {
   });
 
   it('excludes user data documents from the listed documents', async () => {
-    const registry = createRegistry();
+    const registry = await createRegistry();
     await registry.insertDocument({
       id: 'userData',
       kind: 'user-data-projection',
@@ -96,7 +96,7 @@ describe('document registry', () => {
   });
 
   it('lists shared documents after owned documents', async () => {
-    const registry = createRegistry();
+    const registry = await createRegistry();
     await registry.insertDocument({
       id: 'homeDoc',
       kind: 'home-document',
@@ -123,7 +123,7 @@ describe('document registry', () => {
   });
 
   it('creates idempotent document access grants', async () => {
-    const registry = createRegistry();
+    const registry = await createRegistry();
     await registry.insertDocument({
       id: 'shareDoc',
       ownerUserId: 'owner-1',
@@ -145,7 +145,7 @@ describe('document registry', () => {
   });
 
   it('grants document access only to document owners', async () => {
-    const registry = createRegistry();
+    const registry = await createRegistry();
     await registry.insertDocument({
       id: 'shareDoc',
       ownerUserId: 'owner-1',
@@ -157,7 +157,7 @@ describe('document registry', () => {
   });
 
   it('does not grant access to special documents', async () => {
-    const registry = createRegistry();
+    const registry = await createRegistry();
     await registry.insertDocument({
       id: 'userData',
       kind: 'user-data-projection',
@@ -169,7 +169,7 @@ describe('document registry', () => {
   });
 
   it('lists document access grants for the owner only', async () => {
-    const registry = createRegistry();
+    const registry = await createRegistry();
     await registry.insertDocument({
       id: 'shareDoc',
       ownerUserId: 'owner-1',
@@ -186,7 +186,7 @@ describe('document registry', () => {
   });
 
   it('records the owner for inserted documents', async () => {
-    const registry = createRegistry();
+    const registry = await createRegistry();
 
     const document = await registry.insertDocument({
       id: 'ownedNotes',
@@ -198,7 +198,7 @@ describe('document registry', () => {
   });
 
   it('finds one special document by user and kind', async () => {
-    const registry = createRegistry();
+    const registry = await createRegistry();
 
     await registry.insertDocument({
       id: 'userData1',
@@ -215,7 +215,7 @@ describe('document registry', () => {
   });
 
   it('rejects unsupported stored document kinds', async () => {
-    const registry = createRegistry();
+    const registry = await createRegistry();
 
     await expect(registry.insertDocument({
       id: 'invalidKind',

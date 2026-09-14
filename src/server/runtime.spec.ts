@@ -1,13 +1,14 @@
-import { getMigrations } from 'better-auth/db/migration';
+import { betterAuth } from 'better-auth';
+import * as migrations from '#server/db/migrate';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as authModule from '#server/auth/auth';
 import * as databaseModule from '#server/db/client';
 import { createServerRuntime } from '#server/runtime';
 import { createDeferred } from '../../tests/unit/_support/deferred';
 
-vi.mock('better-auth/db/migration', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('better-auth/db/migration')>();
-  return { ...actual, getMigrations: vi.fn(actual.getMigrations) };
+vi.mock('better-auth', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('better-auth')>();
+  return { ...actual, betterAuth: vi.fn(actual.betterAuth) };
 });
 
 const options = {
@@ -21,19 +22,14 @@ afterEach(() => vi.restoreAllMocks());
 
 describe('server runtime', () => {
   it('does not publish a runtime until auth migrations finish', async () => {
-    const actualGetMigrations = vi.mocked(getMigrations).getMockImplementation()!;
+    const migrate = migrations.migrateServerDatabase;
     const started = createDeferred();
     const release = createDeferred();
-    vi.mocked(getMigrations).mockImplementationOnce(async (...args) => {
-      const migrations = await actualGetMigrations(...args);
-      return {
-        ...migrations,
-        async runMigrations() {
-          started.resolve();
-          await release.promise;
-          await migrations.runMigrations();
-        },
-      };
+    const createAuth = vi.spyOn(authModule, 'createSwappableServerAuth');
+    vi.spyOn(migrations, 'migrateServerDatabase').mockImplementationOnce(async (db) => {
+      started.resolve();
+      await release.promise;
+      await migrate(db);
     });
     let published = false;
     const pending = createServerRuntime(options).then((runtime) => {
@@ -42,6 +38,7 @@ describe('server runtime', () => {
     });
     await started.promise;
     expect(published).toBe(false);
+    expect(createAuth).not.toHaveBeenCalled();
     release.resolve();
     const runtime = await pending;
     try {
@@ -53,13 +50,13 @@ describe('server runtime', () => {
   });
 
   it.each([false, true])('closes the database after failed initialization (close fails: %s)', async (closeFails) => {
-    const database = databaseModule.createServerDatabaseClient({ dbPath: ':memory:' });
-    vi.spyOn(databaseModule, 'createServerDatabaseClient').mockReturnValueOnce(database);
+    const database = await databaseModule.createServerDatabaseClient({ dbPath: ':memory:' });
+    vi.spyOn(databaseModule, 'createServerDatabaseClient').mockResolvedValueOnce(database);
     const close = vi.spyOn(database, 'close');
     if (closeFails) {
       close.mockRejectedValueOnce(new Error('database close failed'));
     }
-    vi.mocked(getMigrations).mockRejectedValueOnce(new Error('auth initialization failed'));
+    vi.spyOn(authModule, 'createSwappableServerAuth').mockRejectedValueOnce(new Error('auth initialization failed'));
     try {
       await expect(createServerRuntime(options)).rejects.toThrow('auth initialization failed');
       expect(close).toHaveBeenCalledOnce();
@@ -73,23 +70,22 @@ describe('server runtime', () => {
     }
   });
 
-  it('drains a pending auth rebuild before closing the database', async () => {
+  it('drains a pending auth rebuild without rerunning migrations before closing', async () => {
+    const migrate = vi.spyOn(migrations, 'migrateServerDatabase');
     const createAuth = vi.spyOn(authModule, 'createSwappableServerAuth');
     const runtime = await createServerRuntime(options);
     const swappable = await createAuth.mock.results[0]!.value;
-    const actualGetMigrations = vi.mocked(getMigrations).getMockImplementation()!;
+    const actualBetterAuth = vi.mocked(betterAuth).getMockImplementation()!;
     const started = createDeferred();
     const release = createDeferred();
-    vi.mocked(getMigrations).mockImplementationOnce(async (...args) => {
-      const migrations = await actualGetMigrations(...args);
-      return {
-        ...migrations,
-        async runMigrations() {
-          started.resolve();
-          await release.promise;
-          await migrations.runMigrations();
-        },
-      };
+    vi.mocked(betterAuth).mockImplementationOnce((...args) => {
+      const instance = actualBetterAuth(...args);
+      const context = instance.$context.then(async (ready) => {
+        started.resolve();
+        await release.promise;
+        return ready;
+      });
+      return { ...instance, $context: context };
     });
     const rebuild = swappable.rebuild();
     await started.promise;
@@ -99,6 +95,7 @@ describe('server runtime', () => {
     release.resolve();
     await Promise.all([rebuild, close]);
     expect(runtime.database.sqlite.open).toBe(false);
+    expect(migrate).toHaveBeenCalledOnce();
   });
 
 });

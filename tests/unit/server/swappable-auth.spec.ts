@@ -1,4 +1,4 @@
-import { getMigrations } from 'better-auth/db/migration';
+import { betterAuth } from 'better-auth';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSwappableServerAuth } from '#server/auth/auth';
 import { createServerDatabaseClient } from '#server/db/client';
@@ -13,11 +13,11 @@ import { createDeferred } from '../_support/deferred';
 const SOURCE_ID = deriveSourceId('https://source.example');
 const OTHER_SOURCE_ID = deriveSourceId('https://other.example');
 
-vi.mock('better-auth/db/migration', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('better-auth/db/migration')>();
+vi.mock('better-auth', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('better-auth')>();
   return {
     ...actual,
-    getMigrations: vi.fn(actual.getMigrations),
+    betterAuth: vi.fn(actual.betterAuth),
   };
 });
 
@@ -36,8 +36,8 @@ function liveProviderIds(swappable: Awaited<ReturnType<typeof createSwappableSer
 describe('createSwappableServerAuth', () => {
   let database: SqliteServerDatabaseClient;
 
-  beforeEach(() => {
-    database = createServerDatabaseClient({ dbPath: ':memory:' });
+  beforeEach(async () => {
+    database = await createServerDatabaseClient({ dbPath: ':memory:' });
   });
 
   afterEach(async () => {
@@ -80,18 +80,18 @@ describe('createSwappableServerAuth', () => {
     await ensureSourceServerRow(database, 'https://source.example');
     await claimSourceServerPublicClient(database, 'https://source.example', 'cid');
 
-    const actualGetMigrations = vi.mocked(getMigrations).getMockImplementation()!;
+    const actualBetterAuth = vi.mocked(betterAuth).getMockImplementation()!;
     const firstReplacementStarted = createDeferred();
     const releaseFirstReplacement = createDeferred();
-    vi.mocked(getMigrations).mockImplementationOnce(async (...args) => {
-      const migrations = await actualGetMigrations(...args);
+    vi.mocked(betterAuth).mockImplementationOnce((...args) => {
+      const instance = actualBetterAuth(...args);
       return {
-        ...migrations,
-        async runMigrations() {
+        ...instance,
+        $context: instance.$context.then(async (context) => {
           firstReplacementStarted.resolve();
           await releaseFirstReplacement.promise;
-          await migrations.runMigrations();
-        },
+          return context;
+        }),
       };
     });
 
@@ -100,7 +100,7 @@ describe('createSwappableServerAuth', () => {
     await ensureSourceServerRow(database, 'https://other.example');
     await claimSourceServerPublicClient(database, 'https://other.example', 'other-cid');
 
-    const migrationCallsBeforeSecond = vi.mocked(getMigrations).mock.calls.length;
+    const authCallsBeforeSecond = vi.mocked(betterAuth).mock.calls.length;
     const secondRebuild = swappable.rebuild();
     let idle = false;
     const waitForIdle = swappable.waitForIdle().then(() => {
@@ -110,7 +110,7 @@ describe('createSwappableServerAuth', () => {
     await new Promise<void>((resolve) => {
       setImmediate(resolve);
     });
-    expect(vi.mocked(getMigrations)).toHaveBeenCalledTimes(migrationCallsBeforeSecond);
+    expect(vi.mocked(betterAuth)).toHaveBeenCalledTimes(authCallsBeforeSecond);
     expect(idle).toBe(false);
 
     releaseFirstReplacement.resolve();
@@ -128,14 +128,12 @@ describe('createSwappableServerAuth', () => {
     await ensureSourceServerRow(database, 'https://source.example');
     await claimSourceServerPublicClient(database, 'https://source.example', 'cid');
 
-    const actualGetMigrations = vi.mocked(getMigrations).getMockImplementation()!;
-    vi.mocked(getMigrations).mockImplementationOnce(async (...args) => {
-      const migrations = await actualGetMigrations(...args);
+    const actualBetterAuth = vi.mocked(betterAuth).getMockImplementation()!;
+    vi.mocked(betterAuth).mockImplementationOnce((...args) => {
+      const instance = actualBetterAuth(...args);
       return {
-        ...migrations,
-        async runMigrations() {
-          throw new Error('replacement initialization failed');
-        },
+        ...instance,
+        $context: instance.$context.then(() => { throw new Error('replacement initialization failed'); }),
       };
     });
 

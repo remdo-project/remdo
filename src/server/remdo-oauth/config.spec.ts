@@ -81,7 +81,7 @@ describe('genericOAuth provider for a public-client source', () => {
   let serverAuth: Awaited<ReturnType<typeof createServerAuth>>;
 
   beforeEach(async () => {
-    database = createServerDatabaseClient({ dbPath: ':memory:' });
+    database = await createServerDatabaseClient({ dbPath: ':memory:' });
     serverAuth = await createServerAuth({
       allowSignup: false,
       baseURL: HOME_ORIGIN,

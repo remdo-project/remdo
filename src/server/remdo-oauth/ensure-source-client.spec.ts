@@ -8,8 +8,8 @@ import { ensureSourceServerRow, readSourceServersSync } from '#server/remdo-oaut
 describe('ensureSourceClient', () => {
   let database: SqliteServerDatabaseClient;
 
-  beforeEach(() => {
-    database = createServerDatabaseClient({ dbPath: ':memory:' });
+  beforeEach(async () => {
+    database = await createServerDatabaseClient({ dbPath: ':memory:' });
   });
 
   afterEach(async () => {
@@ -57,10 +57,17 @@ describe('ensureSourceClient', () => {
 
   it('re-registers a cached client from the predecessor callback/resource contract', async () => {
     const sourceId = deriveSourceId('https://source.example');
-    database.sqlite.exec('CREATE TABLE account (providerId TEXT NOT NULL)');
-    database.sqlite
-      .prepare('INSERT INTO account (providerId) VALUES (?), (?), (?)')
-      .run(sourceId, sourceId, 'other-provider');
+    database.sqlite.prepare(`
+      INSERT INTO user (id, name, email, emailVerified, createdAt, updatedAt)
+      VALUES ('owner', 'Owner', 'owner@example.test', 1, 1, 1)
+    `).run();
+    const insertAccount = database.sqlite.prepare(`
+      INSERT INTO account (id, issuer, accountId, providerId, userId, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, 'owner', 1, 1)
+    `);
+    for (const [index, providerId] of [sourceId, sourceId, 'other-provider'].entries()) {
+      insertAccount.run(`account-${index}`, providerId, `remote-${index}`, providerId);
+    }
     await database.db
       .insertInto('source_servers')
       .values({

@@ -13,8 +13,8 @@ const SOURCE_ID = deriveSourceId('https://source.example');
 describe('source server store', () => {
   let database: SqliteServerDatabaseClient;
 
-  beforeEach(() => {
-    database = createServerDatabaseClient({ dbPath: ':memory:' });
+  beforeEach(async () => {
+    database = await createServerDatabaseClient({ dbPath: ':memory:' });
   });
 
   afterEach(async () => {

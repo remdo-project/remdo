@@ -134,6 +134,19 @@ A production instance keeps its dataset and [generated runtime secrets](specs/ru
 one persistent storage root. The root belongs to one running instance and is
 not shared concurrently.
 
+SQL schema changes and their ordered migration history commit together before
+storage is exposed to auth or application consumers. Failed migrations roll
+back their schema and data changes; startup fails without serving requests.
+Reopening a migrated database does not rerun completed migrations, and rebuilding
+auth providers does not migrate storage.
+
+A fresh database starts at a versioned schema baseline. A database without
+migration history is adopted only after its complete schema matches a supported
+baseline, preserving its records. Unrecognized or incomplete unversioned schemas
+and history requiring unavailable migrations stop startup without resetting data.
+Historical migration behavior remains stable as application code and
+dependencies evolve.
+
 ## Collaboration Runtime Building Blocks
 
 ### Collab Hub

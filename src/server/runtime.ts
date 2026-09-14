@@ -47,7 +47,7 @@ export async function createServerRuntime({
   secret,
   tokenManager = createYSweetDocumentTokenManager(),
 }: ServerRuntimeOptions = {}): Promise<ServerRuntime> {
-  const database = createServerDatabaseClient({ dbPath });
+  const database = await createServerDatabaseClient({ dbPath });
   // Swappable so a source self-registered this session becomes a live OAuth
   // provider without a restart (ensureSourceClient calls rebuildAuth after
   // persisting the cached client_id).

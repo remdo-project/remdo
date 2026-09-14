@@ -478,10 +478,7 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
   clearer boundaries.
 - Consider adding email verification, then review trusted-provider,
   implicit-linking, and related authentication policies together.
-- Introduce a RemDo-owned, dialect-aware migration runner with ordered,
-  transactional migrations before the next persisted-schema change.
-- Once the runner exists, use it to drop `source_servers.client_secret`, then
-  remove the temporary predecessor-shape acceptance and its test.
+- Use a versioned migration to drop `source_servers.client_secret`.
 - Cross-server terminology: standardize OAuth/linking language around home
   server and source server, and keep "remote" only for unrelated generic cases.
 - Dev script ergonomics: update normal dev launchers to pre-kill conflicting

@@ -6,7 +6,6 @@ import {
 import { isLoopbackHost } from '@better-auth/core/utils/host';
 import { betterAuth } from 'better-auth';
 import type { BetterAuthOptions } from 'better-auth';
-import { getMigrations } from 'better-auth/db/migration';
 import { admin, genericOAuth, jwt } from 'better-auth/plugins';
 import type { GenericOAuthConfig } from 'better-auth/plugins';
 import type { ExpressionBuilder } from 'kysely';
@@ -16,7 +15,6 @@ import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { RemdoDatabase } from '#server/db/schema';
 import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
 import { readSourceServersSync } from '#server/remdo-oauth/source-server-store';
-import { backfillAccountIssuers } from './account-issuer-backfill';
 
 interface CreateServerAuthOptions {
   allowSignup?: boolean;
@@ -267,11 +265,6 @@ export async function createServerAuth({
     trustedOrigins: resolvedTrustedOrigins,
   };
   const options = createBetterAuthOptions(instanceOptions);
-  // Prepare schema before Better Auth starts plugin initialization.
-  backfillAccountIssuers(database.sqlite, sourceServers);
-  const { runMigrations } = await getMigrations(options);
-  await runMigrations();
-
   const auth = betterAuth(options);
   const userProvisioningAuth = allowSignup
     ? auth

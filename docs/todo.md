@@ -70,6 +70,18 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   lockfile install, and narrow or retire `remdo-deps-refresh` so dependency
   update discovery has one owner.
 
+### Database
+
+- **Reduce SQLite coupling before PostgreSQL support.** In a separate PR, use the
+  existing generic `ServerDatabaseClient` in application consumers and replace
+  synchronous raw SQLite reads and transactions in `source-server-store.ts` with
+  asynchronous Kysely operations. Keep driver access inside the SQLite
+  implementation and preserve source-linking behavior with existing integration
+  coverage. Preserve the [persistence boundary](architecture.md#runtime-persistence-boundary) and historical SQLite migrations.
+  This preparation excludes adding a PostgreSQL backend or transferring existing
+  data; actual PostgreSQL support needs its own integration tests and deployment
+  work.
+
 ### Performance
 
 - **Client performance contract.** Turn the [interaction and discovery principles](principles.md#interaction-and-discovery)
