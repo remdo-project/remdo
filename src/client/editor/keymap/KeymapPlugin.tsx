@@ -1,8 +1,7 @@
-import type { AnyLexicalCommand, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect } from 'react';
-import { mergeRegister } from '@lexical/utils';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND, SET_NOTE_CHECKED_COMMAND } from '#client/editor/foundation/commands';
 import { IS_APPLE_PLATFORM } from '#client/editor/foundation/platform';
 
@@ -16,15 +15,13 @@ interface KeyChord {
 
 interface KeymapEntry {
   chord: KeyChord;
-  command: AnyLexicalCommand;
-  payload?: unknown;
+  run: () => boolean;
 }
 
-function keymapForPlatform(isApple: boolean): KeymapEntry[] {
+function keymapForPlatform(editor: LexicalEditor, isApple: boolean): KeymapEntry[] {
   return [
     {
-      command: SET_NOTE_CHECKED_COMMAND,
-      payload: { state: 'toggle' },
+      run: () => editor.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' }),
       chord: {
         key: 'Enter',
         ctrl: isApple ? undefined : true,
@@ -32,7 +29,7 @@ function keymapForPlatform(isApple: boolean): KeymapEntry[] {
       },
     },
     {
-      command: REORDER_NOTES_DOWN_COMMAND,
+      run: () => editor.dispatchCommand(REORDER_NOTES_DOWN_COMMAND),
       chord: {
         key: 'ArrowDown',
         shift: true,
@@ -41,7 +38,7 @@ function keymapForPlatform(isApple: boolean): KeymapEntry[] {
       },
     },
     {
-      command: REORDER_NOTES_UP_COMMAND,
+      run: () => editor.dispatchCommand(REORDER_NOTES_UP_COMMAND),
       chord: {
         key: 'ArrowUp',
         shift: true,
@@ -65,11 +62,12 @@ function matchesChord(event: KeyboardEvent, chord: KeyChord): boolean {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function createKeyHandler(editor: LexicalEditor, isApple: boolean) {
+  const keymap = keymapForPlatform(editor, isApple);
   return (event: KeyboardEvent): boolean => {
-    for (const { chord, command, payload } of keymapForPlatform(isApple)) {
+    for (const { chord, run } of keymap) {
       if (matchesChord(event, chord)) {
         event.preventDefault();
-        return editor.dispatchCommand(command, payload ?? null);
+        return run();
       }
     }
     return false;
@@ -81,9 +79,7 @@ export function KeymapPlugin() {
 
   useEffect(() => {
     const handler = createKeyHandler(editor, IS_APPLE_PLATFORM);
-    return mergeRegister(
-      editor.registerCommand(KEY_DOWN_COMMAND, handler, COMMAND_PRIORITY_LOW)
-    );
+    return editor.registerCommand(KEY_DOWN_COMMAND, handler, COMMAND_PRIORITY_LOW);
   }, [editor]);
 
   return null;
