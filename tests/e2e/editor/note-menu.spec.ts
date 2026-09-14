@@ -283,6 +283,26 @@ test.describe('Note menu', () => {
     });
   }
 
+  test('checks the menu target outside the selected range', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', 0);
+    await page.keyboard.press('Shift+ArrowDown');
+    await page.keyboard.press('Shift+ArrowDown');
+    await page.keyboard.press('Shift+ArrowDown');
+    const input = editorLocator(page).locator('.editor-input');
+    await expect(input).toHaveClass(/editor-input--structural/);
+
+    const menu = await openNoteMenu(page, 'note3', { openMethod: 'hover' });
+    await menu.item('toggle-checked').click();
+
+    await menu.expectClosed();
+    await expect(noteRow(page, 'note1')).not.toHaveAttribute('data-note-checked', 'true');
+    await expect(noteRow(page, 'note2')).not.toHaveAttribute('data-note-checked', 'true');
+    await expect(noteRow(page, 'note3')).toHaveAttribute('data-note-checked', 'true');
+    await expect(input).toBeFocused();
+    await expect(input).toHaveClass(/editor-input--structural/);
+  });
+
   test('shows list type actions for notes with children', async ({ page, editor }) => {
     await editor.load('tree-list-types');
 

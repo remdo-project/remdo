@@ -131,7 +131,7 @@ function EditorRuntime({
               <SelectionInputPlugin />
               <FoldingPlugin />
               <NoteControlsPlugin />
-              <NoteMenuPlugin />
+              <NoteMenuPlugin session={session} />
               <MobileActionToolbarPlugin session={session} />
               <ZoomPlugin onSelectHome={onSelectHome} />
               <ZoomVisibilityPlugin />
