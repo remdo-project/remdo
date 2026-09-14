@@ -6,15 +6,15 @@ structural commands rely on it.
 ## Selection states
 
 A **selection region** is an independently selectable inline-editing surface:
-an [editor note](./note-model.md#note-kinds)'s content in a note row or [view header](./view-header.md), its [body](./body.md), or the
-[document root](./note-model.md#definitions)'s editable view header. An editor
-note's content and its body are separate selection regions.
+an [editor note](./note-model.md#note-kinds)'s content in a note row or [location header](./location-header.md), or its [body](./body.md). An
+editor note's content and its body are separate selection regions. Read-only
+document names and the Home heading are outside the editor selection model.
 
 An **outline selection region** is an editor note's content in a note row or
-its body. A view-header selection region never supplies a target note or target
-note range to a command; [View header](./view-header.md#structural-boundary)
-owns the inputs available there. A body displayed below a view header remains
-an outline selection region, not a view-header selection region.
+its body. A location-header selection region never supplies a target note range
+to a structural command; [Location header](./location-header.md#structural-boundary)
+owns the inputs available there. A body displayed below a location header remains
+an outline selection region, not a location-header selection region.
 
 A selection is always exactly one of:
 
@@ -28,8 +28,7 @@ A selection is always exactly one of:
 The **focus note** is the editor note containing a caret or inline text
 selection's focus endpoint, or the editor note at a structural selection's
 focus edge. [Body](./body.md#selection-and-structural-targeting) defines how a
-focus inside a body maps to its owning editor note. A selection in the document
-root's view header has no focus note.
+focus inside a body maps to its owning editor note.
 
 **Mode switch.** Typing inserts characters only in states 1 and 2. In state 3,
 the editor is in structural mode: keystrokes that would type become no-ops and
@@ -52,14 +51,14 @@ the common structure.
 
 A selection can never partially cross a note boundary. The moment a text
 selection extends beyond one note's content, it becomes a structural selection
-whose selected note range covers the crossed notes. Extension between a view
-header, its owned body, and its child outline follows [View header](./view-header.md#structural-boundary) instead.
+whose selected note range covers the crossed notes. Extension between a location
+header, its owned body, and its child outline follows [Location header](./location-header.md#structural-boundary) instead.
 
 ## The selection ladder
 
 The selection ladder applies only when the selection has a focus note, is
-outside the view header, and that note is not the current
-[zoom root](./zoom.md#definitions). In a view header, `Shift+Arrow` stays within
+outside the location header, and that note is not the current
+[zoom root](./zoom.md#definitions). In a location header, `Shift+Arrow` stays within
 the header's selection region and `Cmd/Ctrl+A` selects all header content;
 neither input creates a structural selection. In the zoom root's body,
 `Shift+Up/Down` is a no-op.

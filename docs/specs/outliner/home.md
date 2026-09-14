@@ -13,7 +13,7 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 ## Signed-in behavior
 
 1. Home shows document navigation and actions, without a document editor or its
-   toolbar.
+   toolbar. Its heading follows [Location header](./location-header.md).
 2. Home lists the user's documents grouped by source: the local server and each
    linked [source server](../access/source-linking.md#server-roles), under a heading per group.
 3. Each listed document shows its display name and opens that document when
@@ -29,6 +29,13 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 
 1. **New document** creates a document in the local source and opens it.
 2. **Upload document** imports a document from a backup file.
+3. Each document row has a separate [quick action menu](./menu.md) button.
+   Opening it targets that document without opening the document. Its document
+   actions match those on the document-root header;
+   actions requiring an open outline are absent.
+
+New document and Upload document remain directly visible on Home. The Home
+heading is not a document-action target.
 
 ## Entering and leaving Home
 

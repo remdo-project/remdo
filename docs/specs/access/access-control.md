@@ -61,6 +61,10 @@ a Better Auth account on the document's server. A direct grant gives that user
 full document access. Home documents and user-data projections do not accept
 direct grants.
 
+Users with full document access may [rename the document](../outliner/location-header.md#document-rename). The source authorizes
+each submission using the caller's current access; user-data projections remain
+read-only.
+
 The server issues [Y-Sweet document client tokens](../../architecture.md#token-vocabulary) according to the resulting access:
 
 - A normal-document owner or direct grantee receives full access.
