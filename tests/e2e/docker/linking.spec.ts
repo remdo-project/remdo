@@ -45,7 +45,7 @@ test('links a source by URL and opens its Home document', async ({ page }) => {
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/sharing'));
   // The linked source now appears under "Linked sources" (a read-only list; the
   // per-source Link button was removed — URL-first is the only link entry).
-  await expect(page.getByText('Linked sources')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Linked sources', exact: true })).toBeVisible();
   await expect(page.getByText(sourceOrigin, { exact: true })).toBeVisible();
 
   // Open the source's default document through Home's source group.

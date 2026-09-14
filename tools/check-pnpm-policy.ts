@@ -36,7 +36,7 @@ const listItems = (lines: string[], section: string): string[] =>
 const mapEntries = (lines: string[], section: string): Map<string, string> => {
   const out = new Map<string, string>();
   for (const line of sectionLines(lines, section)) {
-    if (!line.startsWith('  ') || line.startsWith('    ')) {
+    if (!line.startsWith('  ') || line.startsWith('    ') || line.trimStart().startsWith('#')) {
       continue;
     }
     const row = line.slice(2);
