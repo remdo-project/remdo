@@ -72,17 +72,21 @@ export interface DocumentCapabilitiesSnapshot {
   }>;
 }
 
-/** A live, stable-ID handle for one editor note in the open document. */
+/**
+ * A live, stable-ID reference for one editor note in the open document.
+ * Value reads throw NoteUnavailableError when the note or source is unavailable.
+ * Operations revalidate their targets and no-op when unavailable.
+ */
 export interface OpenDocumentNote {
   /** Stable ID used to re-resolve the note in the current document revision. */
   readonly getId: () => NoteId;
-  /** Returns the current content text; throws when the note is absent. */
+  /** Returns the current content text. */
   readonly getText: () => string;
-  /** Returns the current stored fold state; throws when the note is absent. */
+  /** Returns the current stored fold state. */
   readonly getFolded: () => boolean;
   /** Revalidates the note and resolves after any local fold update commits. */
   readonly toggleFold: () => Promise<void>;
-  /** Notifies only when this note's exposed values or existence may have changed. */
+  /** Notifies when this note's exposed values or readability may have changed. */
   readonly subscribe: (listener: () => void) => () => void;
 }
 
@@ -96,7 +100,7 @@ export interface DocumentSession {
 
   /** Searches current committed data; rejects when the source cannot be read. */
   readonly search: (options: DocumentSearchOptions) => Promise<DocumentSearchResults>;
-  /** Returns a live handle that re-resolves the stable note ID on each access. */
+  /** Returns a live reference without checking existence or creating a note. */
   readonly noteRef: (noteId: NoteId) => OpenDocumentNote;
   readonly focus: {
     /** Resolves the current focus at execution and no-ops when folding is unavailable. */

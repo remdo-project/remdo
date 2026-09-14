@@ -18,6 +18,7 @@ import type {
   NoteId,
   OpenDocumentNote,
 } from '#note-sdk';
+import { NoteUnavailableError } from '#note-sdk';
 import {
   DELETE_SELECTED_NOTES_COMMAND,
   INDENT_NOTES_COMMAND,
@@ -34,7 +35,8 @@ import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { subscribeViewRoot } from '#client/editor/outline/view-root';
+import { isWithinBoundary } from '#client/editor/outline/selection/tree';
+import { $resolveViewRoot, subscribeViewRoot } from '#client/editor/outline/view-root';
 import { collectLexicalDocumentSearchResults } from './lexical-document-search';
 
 interface LexicalDocumentSessionSource {
@@ -53,7 +55,7 @@ interface AddressedNoteValues {
 
 interface AddressedNoteObservation {
   listeners: Set<() => void>;
-  values: AddressedNoteValues | null;
+  values: AddressedNoteValues | null | undefined;
 }
 
 export interface LexicalDocumentSessionRuntime {
@@ -125,14 +127,21 @@ export function createLexicalDocumentSessionRuntime({
   const publishLoading = () => {
     capabilitiesDirty = false;
     addressedNotesDirty = false;
+    const addressedListeners = new Set<() => void>();
     for (const observation of addressedNotes.values()) {
-      observation.values = null;
+      if (observation.values !== null) {
+        observation.values = null;
+        for (const listener of observation.listeners) {
+          addressedListeners.add(listener);
+        }
+      }
     }
     const capabilitiesChanged = capabilitiesActive && capabilityState !== LOADING;
     capabilityState = LOADING;
     if (capabilitiesChanged) {
       notify(capabilityListeners);
     }
+    notify(addressedListeners);
   };
 
   const $resolveFocusedNote = (): ListItemNode | null => {
@@ -142,25 +151,30 @@ export function createLexicalDocumentSessionRuntime({
   };
 
   const readAddressedNote = (noteId: NoteId): AddressedNoteValues | null => {
-    if (disposed) {
+    if (!started || disposed || !sourceReady) {
       return null;
     }
+    return editor.getEditorState().read(() => {
+      const note = $findNoteById(noteId);
+      return note
+        ? { folded: $isNoteFolded(note), text: getNoteOwnText(note) }
+        : null;
+    }, { editor });
+  };
+
+  const readNoteObservation = (noteId: NoteId): AddressedNoteValues | null | undefined => {
     try {
-      return editor.getEditorState().read(() => {
-        const note = $findNoteById(noteId);
-        return note
-          ? { folded: $isNoteFolded(note), text: getNoteOwnText(note) }
-          : null;
-      }, { editor });
+      return readAddressedNote(noteId);
     } catch {
-      return null;
+      // Invalidate the observation; consumers reread to receive the original error.
+      return undefined;
     }
   };
 
   const requireAddressedNote = (noteId: NoteId): AddressedNoteValues => {
     const note = readAddressedNote(noteId);
     if (!note) {
-      throw new Error(`Note "${noteId}" is not available in the open document.`);
+      throw new NoteUnavailableError(noteId);
     }
     return note;
   };
@@ -181,37 +195,41 @@ export function createLexicalDocumentSessionRuntime({
     { editor },
   );
 
-  const resolveFoldTarget = (resolveNote: () => ListItemNode | null): string | null => {
+  const toggleFocusedFold = () => {
     if (disposed || !started || !sourceReady) {
-      return null;
+      return;
     }
+    let noteItemKey: string | null;
     try {
-      return editor.read(() => {
-        const note = resolveNote();
+      noteItemKey = editor.read(() => {
+        const note = $resolveFocusedNote();
         return note && $canOfferFold(editor, note) ? note.getKey() : null;
       });
     } catch {
-      return null;
+      return;
     }
-  };
-
-  const toggleResolvedFold = (resolveNote: () => ListItemNode | null) => {
-    const noteItemKey = resolveFoldTarget(resolveNote);
     if (noteItemKey) {
       editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey });
     }
   };
 
-  const toggleResolvedFoldAfterCommit = async (resolveNote: () => ListItemNode | null): Promise<void> => {
-    const noteItemKey = resolveFoldTarget(resolveNote);
-    if (!noteItemKey) {
+  const toggleAddressedFold = async (noteId: NoteId): Promise<void> => {
+    if (!started || disposed || !sourceReady) {
       return;
     }
-    await new Promise<void>((resolve) => {
-      editor.update(
-        () => editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey }),
-        { onUpdate: resolve },
-      );
+    await new Promise<void>((resolve, reject) => {
+      editor.update(() => {
+        try {
+          const note = $findNoteById(noteId);
+          if (note && isWithinBoundary(note, $resolveViewRoot(editor)) && $canOfferFold(editor, note)) {
+            editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: note.getKey() });
+          }
+        } catch (error) {
+          reject(error);
+          // Preserve Lexical's recovery even when the host reports without rethrowing.
+          throw error;
+        }
+      }, { onUpdate: resolve });
     });
   };
 
@@ -251,8 +269,8 @@ export function createLexicalDocumentSessionRuntime({
     if (addressedNotesDirty) {
       addressedNotesDirty = false;
       for (const [noteId, observation] of addressedNotes) {
-        const next = readAddressedNote(noteId);
-        if (!addressedNoteValuesEqual(observation.values, next)) {
+        const next = readNoteObservation(noteId);
+        if (observation.values === undefined || next === undefined || !addressedNoteValuesEqual(observation.values, next)) {
           observation.values = next;
           for (const listener of observation.listeners) {
             addressedListeners.add(listener);
@@ -354,7 +372,7 @@ export function createLexicalDocumentSessionRuntime({
       getId: () => noteId,
       getText: () => requireAddressedNote(noteId).text,
       getFolded: () => requireAddressedNote(noteId).folded,
-      toggleFold: () => toggleResolvedFoldAfterCommit(() => $findNoteById(noteId)),
+      toggleFold: () => toggleAddressedFold(noteId),
       subscribe: (listener) => {
         if (disposed) {
           return () => {};
@@ -363,13 +381,16 @@ export function createLexicalDocumentSessionRuntime({
         if (!observation) {
           observation = {
             listeners: new Set(),
-            values: readAddressedNote(noteId),
+            values: readNoteObservation(noteId),
           };
           addressedNotes.set(noteId, observation);
         }
-        observation.listeners.add(listener);
+        const registration = () => {
+          if (observation.listeners.has(registration)) listener();
+        };
+        observation.listeners.add(registration);
         return () => {
-          observation.listeners.delete(listener);
+          if (!observation.listeners.delete(registration)) return;
           if (observation.listeners.size === 0) {
             addressedNotes.delete(noteId);
           }
@@ -407,7 +428,7 @@ export function createLexicalDocumentSessionRuntime({
     },
     noteRef: createNoteRef,
     focus: {
-      toggleFold: () => toggleResolvedFold($resolveFocusedNote),
+      toggleFold: toggleFocusedFold,
     },
     selection: {
       indent: () => {
