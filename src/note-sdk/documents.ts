@@ -28,6 +28,8 @@ export interface DocumentSourceNote extends AddressableNote<'document-source'> {
 }
 
 export interface DocumentNote extends AddressableNote<'document'> {
+  /** Submits a complete name to the document's source server. */
+  rename: (text: string) => Promise<void>;
   /** Returns direct access grants for this document. */
   access: () => CollectionNote<DocumentAccessNote>;
   /** Returns whether this document can grant direct local-user access. */

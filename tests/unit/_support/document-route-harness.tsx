@@ -96,6 +96,7 @@ function MockEditor({
         toggleFold: () => Promise.resolve(),
         subscribe: () => noOp,
       }),
+      view: { foldToLevel: noOp },
       focus: { toggleFold: noOp },
       selection: {
         indent: noOp,

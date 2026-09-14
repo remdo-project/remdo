@@ -21,8 +21,7 @@ Editable content and heading semantics remain separately exposed to assistive te
 
 ## Actions
 
-A document view's header has an adjacent, always-visible, keyboard-focusable
-[quick action menu](./menu.md) button. Home actions follow [Home](./home.md#document-actions).
+A document view's header has a [quick action menu](./menu.md) button. Home actions follow [Home](./home.md#document-actions).
 
 ## Document rename
 

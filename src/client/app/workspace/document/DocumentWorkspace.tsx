@@ -6,12 +6,15 @@ import {
 } from '#client/app/workspace/useDocumentSearchModel';
 import {
   useEditorViewActions,
+  useDocumentSession,
   useZoomPath,
 } from '#client/editor/view/EditorViewProvider';
 import Editor from '#client/editor/shell/Editor';
+import { useNoteMenuTarget } from '#client/ui/note-menu-target';
 import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentSearchInput, DocumentSearchResults } from './DocumentSearch';
 import DocumentToolbar from './DocumentToolbar';
+import { DocumentMenu, useDocumentRename } from './DocumentMenu';
 import { useDocumentSourceResolution } from './useDocumentSourceResolution';
 import '../DocumentRoute.css';
 
@@ -42,6 +45,10 @@ export default function DocumentWorkspace({
   onSelectDocument: (docId: string) => void;
 }) {
   const shellRef = useRef<HTMLDivElement | null>(null);
+  useNoteMenuTarget(shellRef);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+  const { openRename, renameDialog } = useDocumentRename(headingRef);
+  const documentSession = useDocumentSession();
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
   const { requestZoomNoteId } = useEditorViewActions();
   const zoomPath = useZoomPath();
@@ -107,6 +114,16 @@ export default function DocumentWorkspace({
           {importError.message}
         </Alert>
       )}
+      {zoomNoteId === null && (
+        <div className="location-header note-menu-target note-menu-row">
+          {source.document && <DocumentMenu
+            note={source.document}
+            onRename={openRename}
+            onFoldToLevel={documentSession?.view.foldToLevel}
+          />}
+          <h1 ref={headingRef} tabIndex={-1}>{source.documentLabel}</h1>
+        </div>
+      )}
       <DocumentSearchResults model={search} />
       <div className={search.searchModeActive
         ? 'document-editor-pane document-editor-pane--hidden'
@@ -127,6 +144,7 @@ export default function DocumentWorkspace({
           />
         )}
       </div>
+      {renameDialog}
     </div>
   );
 }

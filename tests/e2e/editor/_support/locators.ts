@@ -4,6 +4,7 @@ export const editorLocator = (page: Page): Locator => page.locator('.editor-cont
 export const zoomBreadcrumbs = (page: Page): Locator => page.locator('[data-zoom-breadcrumbs]');
 export const homeZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(page).locator('[data-zoom-crumb="home"]');
 export const homeView = (page: Page): Locator => page.locator('[data-testid="document-home"]');
+export const documentLocationHeader = (page: Page): Locator => page.locator('.location-header');
 export const documentPicker = (page: Page): Locator => page.getByRole('combobox', { name: 'Choose document' });
 export const documentPickerButton = (page: Page): Locator => page.getByRole('button', { name: 'Show documents' });
 

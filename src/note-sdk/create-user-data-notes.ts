@@ -27,6 +27,7 @@ interface UserDataNoteActions {
   documentSources?: CollectionSource<DocumentSource>;
   homeDocumentId?: () => NoteId | null;
   shareDocument?: (documentId: NoteId, email: string) => Promise<DocumentAccessView>;
+  renameDocument?: (documentId: NoteId, text: string, sourceId: NoteId | null) => Promise<void>;
 }
 
 export interface DocumentSource {
@@ -110,6 +111,7 @@ function createDocumentAccessHandle(document: UserDocument): CollectionNote<Docu
 function createProjectedDocumentHandle(
   document: UserDocument,
   actions: UserDataNoteActions,
+  sourceId: NoteId | null = null,
 ): DocumentNote {
   const noteId = document.id;
   const kind = () => 'document' as const;
@@ -128,6 +130,10 @@ function createProjectedDocumentHandle(
     id: () => noteId,
     kind,
     text: () => document.title,
+    rename: async (text) => {
+      if (!actions.renameDocument) throw new Error('Document rename is unavailable.');
+      await actions.renameDocument(noteId, text, sourceId);
+    },
     access: () => createDocumentAccessHandle(document),
     children: () => [],
     shareable: () => document.shareable === true,
@@ -177,9 +183,9 @@ function createDocumentSourceHandle(
 ): DocumentSourceNote {
   const noteId = source.id;
   const kind = () => 'document-source' as const;
-  const documentActions = source.local ? actions : {};
+  const documentActions = source.local ? actions : { renameDocument: actions.renameDocument };
   const documents = createCollectionHandle({
-    createItemNote: (document) => createProjectedDocumentHandle(document, documentActions),
+    createItemNote: (document) => createProjectedDocumentHandle(document, documentActions, source.local ? null : noteId),
     items: source.documents,
     noteId: `${noteId}/documents`,
     text: USER_DOCUMENTS_TITLE,

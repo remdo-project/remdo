@@ -29,9 +29,9 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 
 1. **New document** creates a document in the local source and opens it.
 2. **Upload document** imports a document from a backup file.
-3. Each document row has a separate, always-visible, keyboard-focusable
-   [quick action menu](./menu.md) button. Opening it targets that document without opening
-   the document. Its document actions match those on the document-root header;
+3. Each document row has a separate [quick action menu](./menu.md) button.
+   Opening it targets that document without opening the document. Its document
+   actions match those on the document-root header;
    actions requiring an open outline are absent.
 
 New document and Upload document remain directly visible on Home. The Home

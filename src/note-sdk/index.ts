@@ -13,6 +13,7 @@ export type {
   SnapshotStore,
 } from './document-session';
 export type {
+  DocumentNote,
   DocumentSourceNote,
   UserDataNote,
 } from './documents';

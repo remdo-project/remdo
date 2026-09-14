@@ -18,8 +18,8 @@ import { requireContentItemFromNode } from '#client/editor/outline/schema';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { $canOfferFold } from '#client/editor/features/folding/fold-offer';
 import { $getNestedListType } from '#client/editor/features/list-types/nested-list-type';
-import { handleNoteMenuShortcut } from '#client/editor/menu/note-menu-shortcuts';
-import type { NoteMenuShortcutEvent } from '#client/editor/menu/note-menu-shortcuts';
+import { handleNoteMenuShortcut } from '#client/ui/note-menu-shortcuts';
+import type { NoteMenuShortcutEvent } from '#client/ui/note-menu-shortcuts';
 import { $resolveNoteStateFromDOMNode } from '#client/editor/menu/note-state';
 import { isOtherPopupActive, setPopupActive } from '#client/editor/triggers/active-popup';
 import { EditorPopupOverlay } from '#client/editor/triggers/overlay';
@@ -398,21 +398,13 @@ export function NoteMenuPlugin() {
   };
 
   const handleMenuKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (handleNoteMenuShortcut(event.nativeEvent, {
+    handleNoteMenuShortcut(event.nativeEvent, {
+      dismiss: () => { closeMenu(); focusRoot(); },
       foldViewToLevel: triggerFoldViewToLevel,
       toggleFold: menu.canFold ? triggerFoldToggle : undefined,
       zoom: triggerZoom,
       zoomOut: triggerZoomOut,
-    })) {
-      return;
-    }
-    if (event.key !== 'Tab' && event.key !== 'Escape') {
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    closeMenu();
-    focusRoot();
+    });
   };
 
   const convertChildList = (listType: ListType) => {

@@ -18,6 +18,8 @@ const USER_DATA_ROOT_NOTE_ID = 'user-data';
 const DOCUMENTS_KEY = 'documents';
 const SOURCE_SERVERS_KEY = 'source-servers';
 const DOCUMENT_ID_ALLOCATION_ATTEMPTS = 64;
+// Each read/modify/write must start from the preceding projection commit.
+const projectionRefreshes = new WeakMap<YSweetDocumentTokenManager, Map<string, Promise<void>>>();
 
 type UserSpecialDocumentKind = Exclude<DocumentKind, 'document'>;
 
@@ -66,15 +68,29 @@ async function refreshUserDataProjection(
     sourceServers?: readonly SourceServer[];
   } = {},
 ): Promise<void> {
-  await tokenManager.getOrCreateDocAndToken(userDataDocumentId, { authorization: 'read-only' });
+  let pending = projectionRefreshes.get(tokenManager);
+  if (!pending) {
+    pending = new Map();
+    projectionRefreshes.set(tokenManager, pending);
+  }
+  const previous = pending.get(userDataDocumentId) ?? Promise.resolve();
+  const refresh = previous.catch(() => {}).then(async () => {
+    await tokenManager.getOrCreateDocAndToken(userDataDocumentId, { authorization: 'read-only' });
 
-  const doc = new Y.Doc();
+    const doc = new Y.Doc();
+    try {
+      Y.applyUpdate(doc, await tokenManager.getDocAsUpdate(userDataDocumentId));
+      writeUserDataProjection(doc, await listProjectedUserDocuments(registry, userId, auth), sourceServers);
+      await tokenManager.updateDoc(userDataDocumentId, Y.encodeStateAsUpdate(doc));
+    } finally {
+      doc.destroy();
+    }
+  });
+  pending.set(userDataDocumentId, refresh);
   try {
-    Y.applyUpdate(doc, await tokenManager.getDocAsUpdate(userDataDocumentId));
-    writeUserDataProjection(doc, await listProjectedUserDocuments(registry, userId, auth), sourceServers);
-    await tokenManager.updateDoc(userDataDocumentId, Y.encodeStateAsUpdate(doc));
+    await refresh;
   } finally {
-    doc.destroy();
+    if (pending.get(userDataDocumentId) === refresh) pending.delete(userDataDocumentId);
   }
 }
 

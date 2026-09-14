@@ -85,6 +85,7 @@ function createSession(initialCapabilities: LoadState<DocumentCapabilitiesSnapsh
       toggleFold: operations.toggleNoteFold,
       subscribe: () => () => {},
     }),
+    view: { foldToLevel: vi.fn() },
     focus: { toggleFold: operations.toggleFocusedFold },
     selection: {
       indent: operations.indent,

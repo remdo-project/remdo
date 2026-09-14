@@ -44,6 +44,7 @@ export interface DocumentRegistry {
     granteeUserId: string,
   ) => Promise<DocumentAccess | null>;
   insertDocument: (input: InsertDocumentInput) => Promise<RegisteredDocument | null>;
+  renameDocument: (documentId: string, userId: string, title: string) => Promise<RegisteredDocument | null>;
   listDocumentAccessForOwner: (documentId: string, ownerUserId: string) => Promise<DocumentAccess[]>;
   listUserDocuments: (ownerUserId: string) => Promise<RegisteredDocument[]>;
 }
@@ -189,6 +190,27 @@ class KyselyDocumentRegistry implements DocumentRegistry {
       .where('documents.owner_user_id', '=', ownerUserId)
       .execute();
     return rows.map(toDocumentAccess);
+  }
+
+  async renameDocument(documentId: string, userId: string, title: string): Promise<RegisteredDocument | null> {
+    const row = await this.client.db
+      .updateTable('documents')
+      .set({ title, updated_at: Date.now() })
+      .where('id', '=', documentId)
+      .where('document_kind', 'in', ['document', 'home-document'])
+      .where((eb) => eb.or([
+        eb('owner_user_id', '=', userId),
+        eb.and([
+          eb('document_kind', '=', 'document'),
+          eb.exists(eb.selectFrom('document_access')
+            .select('document_id')
+            .whereRef('document_id', '=', 'documents.id')
+            .where('grantee_user_id', '=', userId)),
+        ]),
+      ]))
+      .returningAll()
+      .executeTakeFirst();
+    return row ? toRegisteredDocument(row) : null;
   }
 
   async listUserDocuments(ownerUserId: string): Promise<RegisteredDocument[]> {

@@ -8,15 +8,24 @@ contract.
 
 ## Entry
 
-1. Clicking the menu icon beside an editor-note row opens the quick action menu
-   anchored to that row. The icon appears on hover or when the note is the
-   caret/focus target.
-2. Double-Shift within 500ms opens the same quick action menu for the current
+1. Menu buttons use the same More icon in the leading gutter of their row or
+   header. Revealing a button does not shift the content. Activating it opens
+   the menu for the represented note.
+2. On hover-capable devices, one active menu button remains visible beside its
+   target. Hovering another note or keyboard navigation moves it; leaving the
+   row or page preserves the target. Only an open menu/dialog holds its target;
+   restored button focus does not block subsequent hover. Keyboard input
+   reveals the focused target before acting. Initially use the document heading,
+   or the caret note when
+   editing starts; Home uses its first document row. A removed or hidden target
+   falls back to an available target. The button scrolls with its note.
+   Header and Home row buttons remain keyboard reachable while visually hidden.
+   Without hover, header and Home row buttons remain visible; editor actions
+   remain available for the caret target and through the [touch toolbar](./mobile-toolbar.md).
+3. Double-Shift within 500ms opens the same quick action menu for the current
    selection when the editor is focused. Any other key between the two Shift
    presses cancels the gesture.
-3. Header and Home row menu buttons open the menu beside their represented
-   note. Menu buttons use the same More icon across surfaces and support `Enter`
-   and `Space` when focused.
+4. Header and Home row menu buttons support `Enter` and `Space` when focused.
 
 ## Actions
 

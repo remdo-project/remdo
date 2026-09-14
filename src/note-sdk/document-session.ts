@@ -98,6 +98,9 @@ export interface DocumentSession {
   readonly search: (options: DocumentSearchOptions) => Promise<DocumentSearchResults>;
   /** Returns a live handle that re-resolves the stable note ID on each access. */
   readonly note: (noteId: NoteId) => OpenDocumentNote;
+  readonly view: {
+    foldToLevel: (level: number) => void;
+  };
   readonly focus: {
     /** Resolves the current focus at execution and no-ops when folding is unavailable. */
     toggleFold: () => void;

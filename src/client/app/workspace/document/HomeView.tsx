@@ -1,8 +1,10 @@
 import { IconPlus, IconUpload } from '@tabler/icons-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef } from 'react';
+import { useNoteMenuTarget } from '#client/ui/note-menu-target';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
 import type { HomeContent, HomeDocumentEntry } from './home-content';
+import { DocumentMenu, useDocumentRename } from './DocumentMenu';
 
 export interface HomeViewProps extends HomeContent {
   onSelectDocument: (docId: string) => void;
@@ -14,17 +16,20 @@ function DocumentGroup({
   label,
   documents,
   onSelectDocument,
+  onRename,
 }: {
   label: string;
   documents: readonly HomeDocumentEntry[];
   onSelectDocument: (docId: string) => void;
+  onRename: ReturnType<typeof useDocumentRename>['openRename'];
 }) {
   return (
     <section aria-label={label} className="home-group" role="group">
       <h2 className="home-group-label">{label}</h2>
       <ul className="home-doc-list">
         {documents.map((document) => (
-          <li key={document.id}>
+          <li className="home-doc-row note-menu-target note-menu-row" key={document.id}>
+            <DocumentMenu note={document.note} onRename={onRename} />
             <button
               className="home-doc remdo-interaction-surface"
               data-home-document-ref={document.id}
@@ -49,8 +54,11 @@ export function HomeView({
   sources,
   tags,
 }: HomeViewProps) {
+  const scopeRef = useRef<HTMLElement | null>(null);
+  useNoteMenuTarget(scopeRef);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
+  const { openRename, renameDialog } = useDocumentRename(headingRef);
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -74,7 +82,7 @@ export function HomeView({
   ];
 
   return (
-    <section aria-label="Home" className="document-home" data-testid="document-home">
+    <section ref={scopeRef} aria-label="Home" className="document-home" data-testid="document-home">
       <h1 className="document-home-title" ref={headingRef} tabIndex={-1}>Home</h1>
 
       {groups
@@ -85,6 +93,7 @@ export function HomeView({
             key={group.key}
             label={group.label}
             onSelectDocument={onSelectDocument}
+            onRename={openRename}
           />
         ))}
 
@@ -110,6 +119,7 @@ export function HomeView({
           type="file"
         />
       </div>
+      {renameDialog}
     </section>
   );
 }

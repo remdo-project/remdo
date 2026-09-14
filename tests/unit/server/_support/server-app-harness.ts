@@ -148,6 +148,16 @@ export function createServerAppHarness({
       }
       return session.user.id;
     },
+    readProjectedDocumentTitle(docId: string, targetId: string) {
+      const doc = new Y.Doc();
+      try {
+        Y.applyUpdate(doc, collabDocuments.get(docId)!);
+        const entries = doc.getMap<Y.Array<Y.Map<unknown>>>('user-data').get('documents')!;
+        return entries.toArray().find((entry) => entry.get('id') === targetId)?.get('title');
+      } finally {
+        doc.destroy();
+      }
+    },
     readProjectedDocumentIds(docId: string) {
       const doc = new Y.Doc();
       try {

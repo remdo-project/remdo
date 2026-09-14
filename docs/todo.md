@@ -197,22 +197,10 @@ until accepted in their behavioral owners. Defer a command palette and action
 menus on every breadcrumb until improving the existing surfaces leaves a
 concrete unmet need.
 
-- **Document heading and rename.** Deliver the document-root [location header](specs/outliner/location-header.md),
-  its [menu](specs/outliner/menu.md), and the same document actions on [Home](specs/outliner/home.md) rows as one slice. The
-  document name currently appears only in the breadcrumb/picker; `DocumentNote`
-  exposes read-only text and there is no rename operation. Implement
-  [submitted rename](specs/outliner/location-header.md#document-rename) through the document SDK and existing [registry](architecture.md#document-registry), including
-  source routing, authorization, and name propagation to users with access.
-  Cover both entry points, cancel/failure, concurrent submissions, and linked
-  sources. Include the stored home document and preserve its authoritative name
-  through bootstrap label fallbacks. Title-storage migration, picker retirement,
-  and zoomed-note header implementation are separate work.
-
 - **Zoomed-note location header.** Complete the rich editable header and its
   applicable note, children, and view actions, preserving the
   [selection boundary](specs/outliner/location-header.md#structural-boundary). The [legacy implementation gaps](legacy-backlog.md#home-and-location-header-follow-ups) remain. Validate keyboard access,
-  leaf zoom,
-  repeated heading-and-child edits, rich links, and selection-boundary
+  leaf zoom, repeated heading-and-child edits, rich links, and selection-boundary
   discoverability before replacing the existing zoom-root row. Reconsider
   explicit inline Edit/Done only if those tasks expose a persistent problem; a
   rich-note draft modal is outside this work.

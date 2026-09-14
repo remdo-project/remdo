@@ -23,10 +23,10 @@ immutable, coherent revision. Listeners may safely invoke session operations.
 ## Operations and ownership
 
 Mutations target an addressed note, the currently focused note, the current
-selection, or document history. They resolve and validate their targets when
-executed and no-op when the source or target is unavailable. An asynchronous
-mutation resolves after its resulting local update commits, without waiting
-for listener delivery, collaboration, or persistence.
+selection, the [view](./folding.md#fold-to-level), or document history. They resolve and validate their
+targets when executed and no-op when the source or target is unavailable.
+An asynchronous mutation resolves after its resulting local update commits,
+without waiting for listener delivery, collaboration, or persistence.
 
 Adapters own framework and storage mechanics. Consumer surfaces own which
 operations they offer and how they present and interact with them.

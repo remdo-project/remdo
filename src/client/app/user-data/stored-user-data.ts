@@ -97,6 +97,11 @@ class StoredUserDataStore {
     documentSources: this.documentSources,
     homeDocumentId: () => this.homeDocumentId,
     shareDocument: async (documentId, email) => shareDocumentWithUser(documentId, email),
+    renameDocument: async (documentId, title, sourceId) => {
+      const documents = sourceId === null ? this.documents : this.remoteSources.get(sourceId)?.documents;
+      if (!documents?.byId(documentId)) throw new Error('Document is no longer available.');
+      await renameUserDocument(documentId, title, sourceId);
+    },
   });
   private context: UserDataStoreContext | null = null;
   private contextPromise: Promise<UserDataStoreContext> | null = null;
@@ -677,6 +682,17 @@ async function createUserDocument(title: string): Promise<UserDocument> {
     throw new TypeError('Document creation returned an invalid document.');
   }
   return { id, shareable: true, title: body.title };
+}
+
+async function renameUserDocument(docId: string, title: string, sourceId: string | null): Promise<void> {
+  const prefix = sourceId === null ? '/api' : `/api/current-user/source-servers/${encodeURIComponent(sourceId)}`;
+  const response = await fetch(`${prefix}/documents/${encodeURIComponent(docId)}`, {
+    method: 'PATCH',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title }),
+  });
+  if (!response.ok) throw new Error('Could not rename the document. Check your connection and document access, then retry.');
 }
 
 async function createUserDataStoreContext(

@@ -1,5 +1,7 @@
 export type ServerDiagnosticEvent =
   | 'current-user.resolve-failed'
+  | 'document.rename-failed'
+  | 'source-document.rename-failed'
   | 'document.create-failed'
   | 'document.share-failed'
   | 'document-sync-token.issue-failed'

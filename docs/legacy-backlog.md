@@ -179,7 +179,7 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-
 ## Home and location-header follow-ups
 
 Tracks remaining gaps between [Home](specs/outliner/home.md) and the [location header](specs/outliner/location-header.md) as specified and what
-ships. Document-root heading, menus, and rename work is tracked in [RemDo TODO](todo.md#ux-direction).
+ships.
 
 - The document-source combobox in `DocumentToolbar.tsx` still lists documents for
   switching; Home owns browsing and New/Upload. Remove the picker once Home fully

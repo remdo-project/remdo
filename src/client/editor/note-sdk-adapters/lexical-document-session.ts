@@ -20,6 +20,7 @@ import type {
 } from '#note-sdk';
 import {
   DELETE_SELECTED_NOTES_COMMAND,
+  FOLD_VIEW_TO_LEVEL_COMMAND,
   INDENT_NOTES_COMMAND,
   OUTDENT_NOTES_COMMAND,
   REORDER_NOTES_DOWN_COMMAND,
@@ -406,6 +407,11 @@ export function createLexicalDocumentSessionRuntime({
       },
     },
     note: createNote,
+    view: {
+      foldToLevel: (level) => {
+        if (started && !disposed && sourceReady) editor.dispatchCommand(FOLD_VIEW_TO_LEVEL_COMMAND, { level });
+      },
+    },
     focus: {
       toggleFold: () => toggleResolvedFold($resolveFocusedNote),
     },

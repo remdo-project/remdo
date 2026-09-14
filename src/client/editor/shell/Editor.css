@@ -396,8 +396,9 @@
 
 .note-controls__button--menu {
   grid-column: 2;
-  mask-image: url('/icons/menu-2.svg');
-  -webkit-mask-image: url('/icons/menu-2.svg');
+  grid-row: 1;
+  align-self: center;
+  justify-self: center;
 }
 
 .note-controls__button--expanded {

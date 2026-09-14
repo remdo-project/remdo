@@ -1,8 +1,9 @@
-import type { DocumentSourceNote } from '#note-sdk';
+import type { DocumentNote, DocumentSourceNote } from '#note-sdk';
 
 export interface HomeDocumentEntry {
   id: string;
   label: string;
+  note: DocumentNote;
 }
 
 export interface HomeDocumentSource {
@@ -32,6 +33,7 @@ export function buildHomeContent(documentSources: readonly DocumentSourceNote[])
     documents: documentSource.documents().children().map((document) => ({
       id: document.id(),
       label: document.text(),
+      note: document,
     })),
   }));
   const allDocuments = sources.flatMap((source) => source.documents);

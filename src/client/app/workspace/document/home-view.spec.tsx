@@ -1,8 +1,13 @@
 import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { createUserDataRootNote } from '#note-sdk';
 import { HomeView } from './HomeView';
 import type { HomeViewProps } from './HomeView';
+
+const entry = (id: string, label: string) => ({
+  id, label, note: createUserDataRootNote([{ id, title: label }]).documents().byId(id)!,
+});
 
 const baseProps = (): HomeViewProps => ({
   sources: [
@@ -10,14 +15,14 @@ const baseProps = (): HomeViewProps => ({
       id: 'local',
       label: 'Local',
       documents: [
-        { id: 'doc-a', label: 'Project Roadmap' },
-        { id: 'doc-b', label: 'Ideas' },
+        entry('doc-a', 'Project Roadmap'),
+        entry('doc-b', 'Ideas'),
       ],
     },
     {
       id: 'server',
       label: 'team-server.dev',
-      documents: [{ id: 'doc-c', label: 'Team notes' }],
+      documents: [entry('doc-c', 'Team notes')],
     },
   ],
   favorites: [],
@@ -66,8 +71,8 @@ describe('home view', () => {
 
   it('shows entry-point groups that have entries', () => {
     const props = baseProps();
-    props.favorites = [{ id: 'doc-a', label: 'Project Roadmap' }];
-    props.recents = [{ id: 'doc-c', label: 'Team notes' }];
+    props.favorites = [entry('doc-a', 'Project Roadmap')];
+    props.recents = [entry('doc-c', 'Team notes')];
     renderHome(props);
 
     expect(screen.getByRole('group', { name: 'Favorites' })).toBeInTheDocument();

@@ -10,6 +10,8 @@ import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { useZoomNoteId } from '#client/editor/view/EditorViewProvider';
+import '#client/ui/note-menu.css';
+import { activateNoteMenuTarget, isNoteMenuOpen } from '#client/ui/note-menu-target';
 
 interface NoteControlsState {
   noteKey: string;
@@ -163,7 +165,13 @@ export function NoteControlsPlugin() {
       return true;
     };
 
+    const activateControls = () => {
+      const controlsElement = rootRef.current?.closest('.editor-container')?.querySelector<HTMLElement>('.note-controls');
+      if (controlsElement) activateNoteMenuTarget(controlsElement);
+    };
+
     const handlePointerMove = (event: PointerEvent | MouseEvent) => {
+      if (isNoteMenuOpen()) return;
       const root = rootRef.current ?? editor.getRootElement();
       if (!root) {
         clearControls();
@@ -172,9 +180,6 @@ export function NoteControlsPlugin() {
       const container = root.closest<HTMLElement>('.editor-container');
       const eventTarget = event.target;
       const eventTargetElement = eventTarget instanceof Element ? eventTarget : null;
-      if (eventTargetElement?.closest('[data-note-menu]')) {
-        return;
-      }
       const isWithinContainer = !!(eventTargetElement && container?.contains(eventTargetElement));
       const isWithinNoteControls = !!eventTargetElement?.closest('.note-controls-layer');
       if (eventTargetElement && !isWithinContainer && !isWithinNoteControls) {
@@ -197,6 +202,7 @@ export function NoteControlsPlugin() {
       if (hoverElementRef.current) {
         const rect = hoverElementRef.current.getBoundingClientRect();
         if (event.clientY >= rect.top && event.clientY <= rect.bottom) {
+          activateControls();
           const sourceChanged = setInteractionSource('hover');
           if (sourceChanged) {
             syncActiveControls();
@@ -215,6 +221,7 @@ export function NoteControlsPlugin() {
         return;
       }
 
+      activateControls();
       const sourceChanged = setInteractionSource('hover');
       if (nextHover === hoverElementRef.current) {
         if (sourceChanged) {
@@ -236,6 +243,7 @@ export function NoteControlsPlugin() {
     };
 
     const handleKeyDown = () => {
+      activateControls();
       const sourceChanged = setInteractionSource('caret');
       if (sourceChanged) {
         syncActiveControls();
@@ -247,6 +255,7 @@ export function NoteControlsPlugin() {
       rootRef.current = currentRoot;
       currentRoot.addEventListener('scroll', handleScroll);
       currentRoot.addEventListener('keydown', handleKeyDown);
+      currentRoot.addEventListener('focus', handleKeyDown);
     }
 
     document.addEventListener('pointermove', handlePointerMove);
@@ -255,6 +264,7 @@ export function NoteControlsPlugin() {
       if (previousRoot) {
         previousRoot.removeEventListener('scroll', handleScroll);
         previousRoot.removeEventListener('keydown', handleKeyDown);
+        previousRoot.removeEventListener('focus', handleKeyDown);
       }
       currentRoot = nextRoot;
       rootRef.current = nextRoot;
@@ -262,6 +272,7 @@ export function NoteControlsPlugin() {
       if (currentRoot) {
         currentRoot.addEventListener('scroll', handleScroll);
         currentRoot.addEventListener('keydown', handleKeyDown);
+        currentRoot.addEventListener('focus', handleKeyDown);
       }
       syncActiveControls();
     });
@@ -281,6 +292,7 @@ export function NoteControlsPlugin() {
       if (currentRoot) {
         currentRoot.removeEventListener('scroll', handleScroll);
         currentRoot.removeEventListener('keydown', handleKeyDown);
+        currentRoot.removeEventListener('focus', handleKeyDown);
       }
       clearControls();
     };
@@ -292,6 +304,11 @@ export function NoteControlsPlugin() {
       syncActiveControlsRef.current?.();
     });
   }, [zoomNoteId]);
+
+  useEffect(() => {
+    const element = portalRoot?.querySelector<HTMLElement>('.note-controls');
+    if (element && editor.getRootElement()?.contains(document.activeElement)) activateNoteMenuTarget(element);
+  }, [portalRoot, controls?.noteKey, editor]);
 
   if (!portalRoot || !controls) {
     return null;
@@ -323,12 +340,12 @@ export function NoteControlsPlugin() {
   return createPortal(
     <div className="note-controls-layer" contentEditable={false} aria-hidden="true">
       <div
-        className="note-controls"
+        className="note-controls note-menu-target"
         style={style}
       >
         <button
           type="button"
-          className="note-controls__button note-controls__button--menu"
+          className="note-menu-button note-controls__button--menu"
           onPointerDown={onMenuPointerDown}
           aria-label="Open note menu"
         />

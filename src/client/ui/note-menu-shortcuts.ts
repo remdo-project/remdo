@@ -4,9 +4,10 @@ export type NoteMenuShortcutEvent = Pick<
 >;
 
 interface NoteMenuShortcutActions {
-  foldViewToLevel: (level: number) => void;
+  dismiss?: () => void;
+  foldViewToLevel?: (level: number) => void;
   toggleFold?: () => void;
-  zoom: () => void;
+  zoom?: () => void;
   zoomOut?: () => void;
 }
 
@@ -14,6 +15,12 @@ export const handleNoteMenuShortcut = (
   event: NoteMenuShortcutEvent,
   actions: NoteMenuShortcutActions
 ): boolean => {
+  if ((event.key === 'Tab' || event.key === 'Escape') && actions.dismiss) {
+    event.preventDefault();
+    event.stopPropagation();
+    actions.dismiss();
+    return true;
+  }
   if (event.altKey || event.ctrlKey || event.metaKey) {
     return false;
   }
@@ -24,7 +31,7 @@ export const handleNoteMenuShortcut = (
     actions.zoomOut();
     return true;
   }
-  if (key >= '0' && key <= '9') {
+  if (key >= '0' && key <= '9' && actions.foldViewToLevel) {
     event.preventDefault();
     event.stopPropagation();
     actions.foldViewToLevel(Number(key));
@@ -36,7 +43,7 @@ export const handleNoteMenuShortcut = (
     actions.toggleFold();
     return true;
   }
-  if (key === 'z') {
+  if (key === 'z' && actions.zoom) {
     event.preventDefault();
     event.stopPropagation();
     actions.zoom();

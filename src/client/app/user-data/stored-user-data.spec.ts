@@ -275,6 +275,46 @@ describe('stored user data', () => {
     expect(listDocuments(getCurrentUserData())).toEqual([]);
   });
 
+  it('submits names through the selected source and keeps projected home names authoritative', async () => {
+    const remoteDoc = createUserDataDoc([{ id: 'sourceHome', title: 'Source notebook' }]);
+    mockLinkedSourceProjection({ remoteDoc });
+    const { getUserData, resetUserDataRuntime } = await import('#client/app/user-data/stored-user-data');
+    const userData = await getUserData();
+    await vi.waitFor(() => {
+      expect(userData.documentSources().byId('source')?.documents().byId('sourceHome')?.text()).toBe('Source notebook');
+    });
+    const local = userData.homeDocument();
+    const remote = userData.documentSources().byId('source')!.documents().byId('sourceHome')!;
+    const requests: Array<{ url: string; body: unknown }> = [];
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ url: String(input), body: JSON.parse(String(init?.body)) });
+      return { ok: true };
+    });
+    await local.rename('Local notebook');
+    await remote.rename('Remote notebook');
+    expect(requests).toEqual([
+      { url: `/api/documents/${USER_RUNTIME_DOCUMENT.id}`, body: { title: 'Local notebook' } },
+      { url: '/api/current-user/source-servers/source/documents/sourceHome', body: { title: 'Remote notebook' } },
+    ]);
+    expect(userData.documentSources().byId('source')!.documents().byId('sourceHome')!.text()).toBe('Source notebook');
+    writeUserDataProjection(remoteDoc, [{ id: 'sourceHome', title: 'Remote notebook' }]);
+    expect(userData.documentSources().byId('source')!.documents().byId('sourceHome')!.text()).toBe('Remote notebook');
+    resetUserDataRuntime();
+    remoteDoc.destroy();
+  });
+
+  it('rejects a rename after its projected target disappears', async () => {
+    const doc = createUserDataDoc([USER_RUNTIME_DOCUMENT, { id: 'removedDoc', title: 'Removed' }]);
+    mockCollabSessions({ docsById: { [USER_DATA_DOC_ID]: doc } });
+    const { getUserData, resetUserDataRuntime } = await import('#client/app/user-data/stored-user-data');
+    const userData = await getUserData();
+    const target = userData.documents().byId('removedDoc')!;
+    writeUserDataProjection(doc, [USER_RUNTIME_DOCUMENT]);
+    await expect(target.rename('Another name')).rejects.toThrow('no longer available');
+    resetUserDataRuntime();
+    doc.destroy();
+  });
+
   it('retries startup loading after an initial sync failure', async () => {
     vi.useFakeTimers();
     const collab = mockCollabSessions({

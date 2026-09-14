@@ -1,0 +1,69 @@
+.note-menu-target {
+  --note-menu-button-size: 1.5rem;
+  --note-menu-icon-size: 0.85em;
+  --note-menu-gap: 0.35rem;
+}
+
+.note-menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--note-menu-button-size);
+  height: var(--note-menu-button-size);
+  padding: 0;
+  border: none;
+  border-radius: var(--mantine-radius-xs);
+  background: transparent;
+  color: var(--mantine-color-dark-2);
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.note-menu-button::before {
+  content: '';
+  width: var(--note-menu-icon-size);
+  height: var(--note-menu-icon-size);
+  background: currentColor;
+  mask: url('/icons/menu-2.svg') center / contain no-repeat;
+}
+
+.note-menu-button:hover,
+.note-menu-button:focus-visible,
+.note-menu-button[aria-expanded='true'] {
+  color: var(--mantine-color-blue-3);
+}
+
+.note-menu-button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+.note-menu-row {
+  /* Match the visible icon gap while retaining the larger button hit area. */
+  --note-menu-row-gap: calc(var(--note-menu-gap) - (var(--note-menu-button-size) - var(--note-menu-icon-size)) / 2);
+  display: flex;
+  align-items: center;
+  gap: var(--note-menu-row-gap);
+}
+
+.note-menu-row > .note-menu-button {
+  margin-inline-start: calc(-1 * (var(--note-menu-button-size) + var(--note-menu-row-gap)));
+}
+
+/* Opacity keeps keyboard entry and gutter geometry intact. */
+.note-menu-target > .note-menu-button {
+  opacity: 0;
+}
+
+.note-menu-target[data-menu-active='true'] > .note-menu-button,
+.note-menu-target > .note-menu-button[aria-expanded='true'] {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .note-menu-target > .note-menu-button {
+    opacity: 1;
+  }
+}

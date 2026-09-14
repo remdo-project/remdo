@@ -92,6 +92,35 @@ export function createSourceServerRoutes(dependencies: ServerRouteDependencies) 
     }
   });
 
+  routes.patch('/:serverId/documents/:docId', async (c) => {
+    const docId = normalizeDocumentId(c.req.param('docId'));
+    if (!docId) {
+      return c.json({ error: 'Invalid document id.' }, HTTP_STATUS.BAD_REQUEST);
+    }
+    try {
+      const access = await requireSourceAccess(c, c.req.param('serverId'));
+      if (access instanceof Response) return access;
+      const body = await c.req.json<{ title?: unknown }>();
+      const response = await fetch(`${access.server.baseUrl}/api/documents/${encodeURIComponent(docId)}`, {
+        method: 'PATCH',
+        headers: {
+          authorization: `Bearer ${access.accessToken}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ title: body.title }),
+      });
+      if (!response.ok) {
+        return c.json({ error: 'Source server could not rename the document.' }, response.status === HTTP_STATUS.BAD_REQUEST
+          ? HTTP_STATUS.BAD_REQUEST
+          : resolveSourceErrorStatus(response.status));
+      }
+      return c.json(await response.json());
+    } catch {
+      logError('source-document.rename-failed');
+      return c.json({ error: 'Failed to rename source document.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
+  });
+
   routes.post('/:serverId/documents/:docId/sync-tokens', async (c) => {
     const normalizedDocId = normalizeDocumentId(c.req.param('docId'));
     if (!normalizedDocId) {

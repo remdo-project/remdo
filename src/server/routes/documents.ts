@@ -61,6 +61,31 @@ export function createDocumentRoutes({
     }
   });
 
+  routes.patch('/:docId', async (c) => {
+    try {
+      const resolved = await requireDocIdAndActor(c);
+      if (resolved instanceof Response) return resolved;
+      const body = await c.req.json<{ title?: unknown }>();
+      const title = typeof body.title === 'string' ? body.title.trim() : '';
+      if (!title) {
+        return c.json({ error: 'Document name is required.' }, HTTP_STATUS.BAD_REQUEST);
+      }
+      const document = await registry.renameDocument(resolved.normalizedDocId, resolved.actor.userId, title);
+      if (!document) {
+        return c.json({ error: 'Document not found or access denied.' }, HTTP_STATUS.NOT_FOUND);
+      }
+      const grants = await registry.listDocumentAccessForOwner(document.id, document.ownerUserId);
+      const users = new Set([document.ownerUserId, ...grants.map((grant) => grant.granteeUserId)]);
+      await Promise.all(Array.from(users, (userId) => (
+        refreshCurrentUserDocumentsProjectionBestEffort(registry, tokenManager, userId, auth)
+      )));
+      return c.json({ id: document.id, title: document.title });
+    } catch {
+      logError('document.rename-failed');
+      return c.json({ error: 'Failed to rename document.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
+  });
+
   routes.post('/:docId/access', async (c) => {
     try {
       const resolved = await requireDocIdAndActor(c);
