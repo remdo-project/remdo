@@ -82,7 +82,7 @@ The breadcrumb shows the current location and provides navigation to its ancesto
    zoom root to that note.
 
 Labels other than Home use the corresponding note's display text, truncated to
-20 characters when needed.
+48 characters when needed.
 
 ## Routing
 
