@@ -9,7 +9,8 @@ Testing follows the [contributor testing policy](docs/dev/testing.md).
 
 ## Git Workflow
 
-`origin/main` is the review baseline for committed changes.
+`origin/main` is the default review baseline for committed changes. Work
+explicitly targeting an integration branch uses that branch instead.
 
 Topic branches use `<type>/<short-kebab-case-description>`. The prefix
 identifies the branch's primary outcome:

@@ -25,6 +25,38 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ## Backlog
 
+### Django backend replacement
+
+Rebuild the application backend around Django, minimizing custom infrastructure
+and operational work through established libraries and services.
+
+- **Target:** Django owns authentication, authorization, application metadata,
+  migrations, administration, and Y-Sweet token issuance. Retain the existing
+  frontend/editor and Yjs/Y-Sweet document collaboration. Replace Yjs
+  app-resource projections with established server-state/cache tooling; TanStack
+  Query/DB are candidates, not commitments.
+- **Approach:** Create temporary integration branch `feat/django-backend` from
+  `main`, recording the starting commit as the behavioral reference. Create
+  small implementation branches from it; their PRs target and are reviewed
+  against it under [Git Workflow](../CONTRIBUTING.md#git-workflow). Temporary
+  missing functionality is acceptable; completed slices must work and pass
+  relevant checks. Retain useful unaffected code, without backward
+  compatibility, legacy-data migration, or keeping the old backend operational.
+  Merge the integration branch into `main` only after a separate whole-migration
+  review and full verification against the completion criteria below, then
+  retire it.
+- **Starting commit:** `668e3729b94f42be4bc54f20c36fd78575a21155` (`main`).
+- **Completion:** Remove the old backend and projections. Verify all
+  [run modes](run-modes.md), sharing/source linking, offline behavior,
+  account/source cache isolation, and backup/restore. Treat related backlog
+  entries as ideas, not automatic scope; record deliberate behavior changes in
+  their owning specifications.
+- **Next PR:** Inspect the current branch, tests, and remaining gaps; propose
+  one cohesive scope with explicit exclusions and acceptance checks. Favor early
+  end-to-end functionality and validation of risky integrations over completing
+  architectural layers in isolation. Keep remaining gaps current after each
+  slice.
+
 ### Documentation
 
 - **Remaining agent-flow specification alignment.** Reassess [`remdo-verify-change`](specs/agents/skills/remdo-verify-change.md)
