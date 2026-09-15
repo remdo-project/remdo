@@ -39,7 +39,7 @@ async function signIn(auth: ServerAuth, email: string, password: string): Promis
 }
 
 async function shareDocument(
-  runtime: ReturnType<typeof createServerRuntime>,
+  runtime: Awaited<ReturnType<typeof createServerRuntime>>,
   session: Headers,
   documentId: string,
   email: string,
@@ -56,7 +56,7 @@ async function shareDocument(
 }
 
 async function readProjectedDocuments(
-  runtime: ReturnType<typeof createServerRuntime>,
+  runtime: Awaited<ReturnType<typeof createServerRuntime>>,
   userId: string,
 ): Promise<Array<{ accessUserIds: string[]; id: string }>> {
   const userDataDocument = await runtime.registry.getUserDocumentByKind(userId, 'user-data-projection');
@@ -84,10 +84,9 @@ async function readProjectedDocuments(
 
 describe('development data reset', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('recreates stable users and their documents while preserving unrelated data', async () => {
-    const runtime = createServerRuntime();
+    const runtime = await createServerRuntime();
 
     try {
-      await runtime.auth.ensureReady();
       const initialFixture = await readFixtureState('basic');
       await resetDevelopmentData(runtime, new Map([['reset-contract', initialFixture]]));
 

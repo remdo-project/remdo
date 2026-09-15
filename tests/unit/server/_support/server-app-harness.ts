@@ -23,7 +23,7 @@ export const TEST_ADMIN_SECRET = 'test-admin-secret-0123456789';
 // env APP_ORIGIN, so tests exercise instance-scoped baseURL wiring.
 const TEST_BASE_URL = 'http://127.0.0.1:4000';
 
-export function createServerAppHarness({
+export async function createServerAppHarness({
   adminSecret = TEST_ADMIN_SECRET,
   allowSignup = false,
   baseURL = TEST_BASE_URL,
@@ -60,9 +60,9 @@ export function createServerAppHarness({
     trustedOrigins,
   };
   const swappable = swappableAuth
-    ? createSwappableServerAuth(authOptions)
+    ? await createSwappableServerAuth(authOptions)
     : null;
-  const auth = swappable?.auth ?? createServerAuth(authOptions);
+  const auth = swappable?.auth ?? await createServerAuth(authOptions);
   const registry = createDocumentRegistry({ client });
   const collabDocuments = new Map<string, Uint8Array>();
   const tokenManager: YSweetDocumentTokenManager = {
@@ -109,7 +109,6 @@ export function createServerAppHarness({
     database: client,
     registry,
     async createSessionHeaders(user: CreateAuthUserInput = TEST_USER) {
-      await auth.ensureReady();
       // Self-enrollment is the secret-gated account-creation path that works with
       // signup disabled; it also grants the admin role. Test users are therefore
       // admins, which is irrelevant to the ownership/grant behaviors these
@@ -205,7 +204,6 @@ export function createServerAppHarness({
       }
     },
     async cleanup() {
-      await auth.ensureReady();
       await client.close();
     },
   };

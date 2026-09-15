@@ -55,7 +55,6 @@ export async function resolveActor(request: Request, auth: ServerAuth): Promise<
  * by every authenticated route.
  */
 export async function requireActorResolution(c: Context, auth: ServerAuth): Promise<ActorResolution | Response> {
-  await auth.ensureReady();
   const actorResolution = await resolveActorResolution(c.req.raw, auth);
   if (!actorResolution) {
     return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);

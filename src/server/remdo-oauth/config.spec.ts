@@ -19,7 +19,7 @@ const SOURCE_SERVER = {
 // genericOAuth provider config is the only place that proves what actually gets
 // sent to Better Auth, so assert on it directly rather than on inputs.
 function genericOAuthProviderConfigs(
-  auth: ReturnType<typeof createServerAuth>['auth'],
+  auth: Awaited<ReturnType<typeof createServerAuth>>['auth'],
 ): { clientSecret?: string | null; pkce?: boolean; providerId: string }[] {
   const options = auth.options as { plugins?: { id?: string; options?: { config?: { clientSecret?: string | null; pkce?: boolean; providerId: string }[] } }[] };
   const genericOAuth = options.plugins?.find((plugin) => plugin.id === 'generic-oauth');
@@ -78,11 +78,11 @@ describe('deriveSourceId', () => {
 // alone, per docs/specs/access/source-linking.md#linking-a-source.
 describe('genericOAuth provider for a public-client source', () => {
   let database: SqliteServerDatabaseClient;
-  let serverAuth: ReturnType<typeof createServerAuth>;
+  let serverAuth: Awaited<ReturnType<typeof createServerAuth>>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     database = createServerDatabaseClient({ dbPath: ':memory:' });
-    serverAuth = createServerAuth({
+    serverAuth = await createServerAuth({
       allowSignup: false,
       baseURL: HOME_ORIGIN,
       database,
@@ -92,7 +92,6 @@ describe('genericOAuth provider for a public-client source', () => {
   });
 
   afterEach(async () => {
-    await serverAuth.ensureReady();
     await database.close();
     vi.unstubAllGlobals();
   });
@@ -155,7 +154,6 @@ describe('genericOAuth provider for a public-client source', () => {
   });
 
   it('does not implicitly link a same-email source account during normal sign-in', async () => {
-    await serverAuth.ensureReady();
     const authContext = await serverAuth.auth.$context;
     using _loggerErrorSpy = vi.spyOn(authContext.logger, 'error').mockImplementation(() => {});
     const email = 'same-email@example.com';
@@ -180,7 +178,6 @@ describe('genericOAuth provider for a public-client source', () => {
   });
 
   it('explicitly links a source account with a different email', async () => {
-    await serverAuth.ensureReady();
     const homeEmail = 'home@example.com';
     const sourceEmail = 'source@example.com';
     const createUser = await createLocalUser(homeEmail);

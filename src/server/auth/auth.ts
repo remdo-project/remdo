@@ -5,6 +5,7 @@ import {
 } from '@better-auth/oauth-provider';
 import { isLoopbackHost } from '@better-auth/core/utils/host';
 import { betterAuth } from 'better-auth';
+import type { BetterAuthOptions } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import { admin, genericOAuth, jwt } from 'better-auth/plugins';
 import type { GenericOAuthConfig } from 'better-auth/plugins';
@@ -54,7 +55,7 @@ interface OAuthClientCredentials {
   clientSecret: string;
 }
 
-function createBetterAuthInstance({
+function createBetterAuthOptions({
   allowSignup,
   baseURL,
   database,
@@ -74,7 +75,7 @@ function createBetterAuthInstance({
   const serverUrl = new URL(baseURL);
   const serverOrigin = serverUrl.origin;
   const publicPort = serverUrl.port || (serverUrl.protocol === 'https:' ? '443' : '80');
-  return betterAuth({
+  return {
     basePath: '/api/auth',
     baseURL,
     trustedOrigins: [...trustedOrigins],
@@ -190,10 +191,10 @@ function createBetterAuthInstance({
         }),
       }),
     ],
-  });
+  } satisfies BetterAuthOptions;
 }
 
-type BetterAuthInstance = ReturnType<typeof createBetterAuthInstance>;
+type BetterAuthInstance = ReturnType<typeof betterAuth<ReturnType<typeof createBetterAuthOptions>>>;
 
 export interface CreateAuthUserInput {
   email: string;
@@ -218,7 +219,6 @@ export interface ServerAuth {
   sourceServers: readonly StoredSourceServer[];
   createUser: (user: CreateAuthUserInput, headers: Headers) => Promise<Response>;
   deleteUser: (userId: string) => Promise<void>;
-  ensureReady: () => Promise<void>;
   findUserByEmail: (email: string) => Promise<ServerAuthUser | null>;
   grantAdminRole: (userId: string) => Promise<void>;
   handleAuthServerMetadata: (request: Request) => Promise<Response>;
@@ -231,7 +231,7 @@ export interface ServerAuth {
   resolveBearerUser: (authorization: string | null) => Promise<ServerAuthUser | null>;
 }
 
-export function createServerAuth({
+export async function createServerAuth({
   allowSignup = config.env.ALLOW_SIGNUP,
   baseURL = config.env.APP_ORIGIN,
   database,
@@ -239,7 +239,7 @@ export function createServerAuth({
   oauthClientCredentials,
   secret = config.env.AUTH_SECRET,
   trustedOrigins,
-}: CreateServerAuthOptions): ServerAuth {
+}: CreateServerAuthOptions): Promise<ServerAuth> {
   if (!baseURL) {
     throw new Error('A canonical public URL is required for auth.');
   }
@@ -257,7 +257,7 @@ export function createServerAuth({
     previewPort: config.env.PREVIEW_PORT,
   });
 
-  const auth = createBetterAuthInstance({
+  const instanceOptions = {
     allowSignup,
     baseURL,
     database,
@@ -265,22 +265,25 @@ export function createServerAuth({
     oauthClientCredentials,
     secret,
     trustedOrigins: resolvedTrustedOrigins,
-  });
+  };
+  const options = createBetterAuthOptions(instanceOptions);
+  // Prepare schema before Better Auth starts plugin initialization.
+  backfillAccountIssuers(database.sqlite, sourceServers);
+  const { runMigrations } = await getMigrations(options);
+  await runMigrations();
+
+  const auth = betterAuth(options);
   const userProvisioningAuth = allowSignup
     ? auth
-    : createBetterAuthInstance({
-        allowSignup: true,
-        baseURL,
-        database,
-        sourceServers,
-        oauthClientCredentials,
-        secret,
-        trustedOrigins: resolvedTrustedOrigins,
-      });
+    : betterAuth(createBetterAuthOptions({ ...instanceOptions, allowSignup: true }));
+  // Drain every started context before reporting failure to the database owner.
+  const results = await Promise.allSettled([auth.$context, userProvisioningAuth.$context]);
+  const failure = results.find((result) => result.status === 'rejected');
+  if (failure) {
+    throw failure.reason;
+  }
   const handleAuthServerMetadata = oauthProviderAuthServerMetadata(auth);
   const handleOpenIdConfigMetadata = oauthProviderOpenIdConfigMetadata(auth);
-
-  let readyPromise: Promise<void> | null = null;
 
   return {
     allowSignup,
@@ -297,33 +300,6 @@ export function createServerAuth({
     async deleteUser(userId) {
       const context = await auth.$context;
       await context.internalAdapter.deleteUser(userId);
-    },
-    async ensureReady() {
-      if (!readyPromise) {
-        readyPromise = (async () => {
-          backfillAccountIssuers(database.sqlite, sourceServers);
-          // Better Auth starts plugin initialization at construction time. Keep
-          // every instance that shares this database inside RemDo's readiness
-          // boundary so resource seeding cannot outlive the database owner.
-          const results = await Promise.allSettled([
-            (async () => {
-              const { runMigrations } = await getMigrations(auth.options);
-              await runMigrations();
-            })(),
-            auth.$context,
-            userProvisioningAuth.$context,
-          ]);
-          const failure = results.find((result) => result.status === 'rejected');
-          if (failure) {
-            throw failure.reason;
-          }
-        })().catch((error) => {
-          readyPromise = null;
-          throw error;
-        });
-      }
-
-      return readyPromise;
     },
     async findUserByEmail(email) {
       const normalizedEmail = email.trim().toLowerCase();
@@ -444,10 +420,10 @@ export interface SwappableServerAuth {
   waitForIdle: () => Promise<void>;
 }
 
-export function createSwappableServerAuth(
+export async function createSwappableServerAuth(
   options: CreateServerAuthOptions,
-): SwappableServerAuth {
-  let current = createServerAuth(options);
+): Promise<SwappableServerAuth> {
+  let current = await createServerAuth(options);
   let closing = false;
   let rebuildTail = Promise.resolve();
   // The Proxy target is only a structural placeholder; every access reads the
@@ -465,12 +441,10 @@ export function createSwappableServerAuth(
         return Promise.reject(new Error('Auth is shutting down.'));
       }
       const pending = rebuildTail.then(async () => {
-        await current.ensureReady();
-        const replacement = createServerAuth({
+        const replacement = await createServerAuth({
           ...options,
           sourceServers: readSourceServersSync(options.database),
         });
-        await replacement.ensureReady();
         current = replacement;
       });
       // A failed rebuild must reject its caller without poisoning later queued
@@ -481,7 +455,6 @@ export function createSwappableServerAuth(
     async waitForIdle() {
       closing = true;
       await rebuildTail;
-      await current.ensureReady();
     },
   };
 }

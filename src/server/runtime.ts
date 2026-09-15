@@ -36,7 +36,7 @@ interface ServerRuntime {
   tokenManager: YSweetDocumentTokenManager;
 }
 
-export function createServerRuntime({
+export async function createServerRuntime({
   adminSecret,
   allowSignup,
   baseURL,
@@ -46,18 +46,23 @@ export function createServerRuntime({
   oauthClientCredentials,
   secret,
   tokenManager = createYSweetDocumentTokenManager(),
-}: ServerRuntimeOptions = {}): ServerRuntime {
+}: ServerRuntimeOptions = {}): Promise<ServerRuntime> {
   const database = createServerDatabaseClient({ dbPath });
   // Swappable so a source self-registered this session becomes a live OAuth
   // provider without a restart (ensureSourceClient calls rebuildAuth after
   // persisting the cached client_id).
-  const swappableAuth = createSwappableServerAuth({
+  const swappableAuth = await createSwappableServerAuth({
     allowSignup,
     baseURL,
     database,
     sourceServers,
     oauthClientCredentials,
     secret,
+  }).catch(async (error: unknown) => {
+    // Failed construction never transfers database ownership to a runtime.
+    // Preserve the initialization error even if closing also fails.
+    await database.close().catch(() => {});
+    throw error;
   });
   const auth = swappableAuth.auth;
   const registry = createDocumentRegistry({ client: database });
@@ -77,13 +82,9 @@ export function createServerRuntime({
     database,
     registry,
     tokenManager,
-    close() {
-      return swappableAuth.waitForIdle().then(
-        () => database.close(),
-        (error) => database.close().finally(() => {
-          throw error;
-        }),
-      );
+    async close() {
+      await swappableAuth.waitForIdle();
+      await database.close();
     },
   };
 }

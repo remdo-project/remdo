@@ -29,7 +29,6 @@ export function createApiRoutes(dependencies: ServerRouteDependencies) {
   });
 
   routes.get('/health', async (c) => {
-    await dependencies.auth.ensureReady();
     return c.json({ ok: true });
   });
 

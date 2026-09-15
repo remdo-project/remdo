@@ -24,7 +24,7 @@ vi.mock('better-auth/db/migration', async (importOriginal) => {
 // The genericOAuth provider ids currently live on the auth instance. A source is
 // linkable only once its provider is registered here — the sourceServers array
 // flipping is not sufficient, so assert against the actual provider config.
-function liveProviderIds(swappable: ReturnType<typeof createSwappableServerAuth>): string[] {
+function liveProviderIds(swappable: Awaited<ReturnType<typeof createSwappableServerAuth>>): string[] {
   const options = swappable.auth.auth.options as { plugins?: { id?: string; options?: { config?: { providerId: string }[] } }[] };
   const genericOAuth = options.plugins?.find((plugin) => plugin.id === 'generic-oauth');
   return (genericOAuth?.options?.config ?? []).map((entry) => entry.providerId);
@@ -35,29 +35,26 @@ function liveProviderIds(swappable: ReturnType<typeof createSwappableServerAuth>
 // becomes a live OAuth provider.
 describe('createSwappableServerAuth', () => {
   let database: SqliteServerDatabaseClient;
-  let swappable: ReturnType<typeof createSwappableServerAuth> | undefined;
 
   beforeEach(() => {
     database = createServerDatabaseClient({ dbPath: ':memory:' });
   });
 
   afterEach(async () => {
-    await swappable?.auth.ensureReady();
     await database.close();
   });
 
   function build() {
-    swappable = createSwappableServerAuth({
+    return createSwappableServerAuth({
       allowSignup: false,
       baseURL: 'http://127.0.0.1:4000',
       database,
       secret: 'test-better-auth-secret-0123456789',
     });
-    return swappable;
   }
 
   it('rebuild() makes a source registered after construction a live provider', async () => {
-    const swappable = build();
+    const swappable = await build();
     expect(swappable.auth.sourceServers).toEqual([]);
     expect(liveProviderIds(swappable)).toEqual([]);
 
@@ -79,8 +76,7 @@ describe('createSwappableServerAuth', () => {
   });
 
   it('serializes overlapping rebuilds so an older snapshot cannot publish last', async () => {
-    const swappable = build();
-    await swappable.auth.ensureReady();
+    const swappable = await build();
     await ensureSourceServerRow(database, 'https://source.example');
     await claimSourceServerPublicClient(database, 'https://source.example', 'cid');
 
@@ -128,8 +124,7 @@ describe('createSwappableServerAuth', () => {
   });
 
   it('allows a later rebuild to recover after replacement initialization fails', async () => {
-    const swappable = build();
-    await swappable.auth.ensureReady();
+    const swappable = await build();
     await ensureSourceServerRow(database, 'https://source.example');
     await claimSourceServerPublicClient(database, 'https://source.example', 'cid');
 
@@ -153,7 +148,7 @@ describe('createSwappableServerAuth', () => {
     // The first link creates a credential-less row; no OAuth provider exists for
     // it (nothing to link against) until self-registration persists a client_id.
     await ensureSourceServerRow(database, 'https://source.example');
-    const swappable = build();
+    const swappable = await build();
     expect(swappable.auth.sourceServers).toHaveLength(1);
     expect(swappable.auth.sourceServers[0]?.credentials).toBeNull();
     expect(liveProviderIds(swappable)).toEqual([]);

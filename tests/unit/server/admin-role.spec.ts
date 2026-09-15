@@ -18,7 +18,7 @@ const OTHER_ENROLLEE = {
 } as const;
 
 function enroll(
-  app: ReturnType<typeof createHarness>['app'],
+  app: Awaited<ReturnType<typeof createHarness>>['app'],
   body: Record<string, unknown>,
   headers: Record<string, string> = {},
 ) {
@@ -31,7 +31,7 @@ function enroll(
 
 describe('admin self-enrollment', () => {
   it('rejects enrollment without the admin secret', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const response = await enroll(harness.app, { ...ENROLLEE, adminSecret: 'wrong' });
     expect(response.status).toBe(403);
     await expect(harness.auth.getUserCount()).resolves.toBe(0);
@@ -40,7 +40,7 @@ describe('admin self-enrollment', () => {
   it('bootstraps the first admin from an empty server with signup off', async () => {
     // The harness runs with allowSignup: false, so this proves the secret-gated
     // path creates the account even when public signup is disabled.
-    const harness = createHarness();
+    const harness = await createHarness();
     const response = await enroll(harness.app, { ...ENROLLEE, adminSecret: TEST_ADMIN_SECRET });
     expect(response.ok).toBe(true);
 
@@ -51,7 +51,7 @@ describe('admin self-enrollment', () => {
   });
 
   it('signs the new admin in (the response carries a session)', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const response = await enroll(harness.app, { ...ENROLLEE, adminSecret: TEST_ADMIN_SECRET });
     const headers = new Headers({ cookie: extractSessionCookie(response) });
     const session = await harness.auth.getSession(headers);
@@ -63,7 +63,7 @@ describe('admin self-enrollment', () => {
     // Enrollment is always account-registration: a signed-in non-admin who
     // enrolls creates a NEW admin account; their existing account is untouched
     // (promoting an existing user is the later, panel-gated capability).
-    const harness = createHarness({ allowSignup: true });
+    const harness = await createHarness({ allowSignup: true });
     const signUp = await harness.app.request('/api/auth/sign-up/email', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -95,7 +95,7 @@ describe('admin self-enrollment', () => {
   });
 
   it('creates distinct accounts when concurrent enrolls share one sqlite connection', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const responses = await Promise.all([
       enroll(harness.app, { ...ENROLLEE, adminSecret: TEST_ADMIN_SECRET }),
       enroll(harness.app, { ...OTHER_ENROLLEE, adminSecret: TEST_ADMIN_SECRET }),
@@ -108,7 +108,7 @@ describe('admin self-enrollment', () => {
   it('leaves a normally-signed-up user without the admin role', async () => {
     // A signup-enabled harness creates a plain (non-admin) user; only the
     // secret-gated enroll path grants the admin role.
-    const harness = createHarness({ allowSignup: true });
+    const harness = await createHarness({ allowSignup: true });
     const signUp = await harness.app.request('/api/auth/sign-up/email', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
