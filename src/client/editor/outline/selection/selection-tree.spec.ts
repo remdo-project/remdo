@@ -5,7 +5,6 @@ import type { LexicalEditor, LexicalNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
-import { meta } from '#tests';
 import { $normalizeNoteIdsOnLoad } from '#client/editor/runtime/note-ids/note-id-normalization';
 import { getLastDescendantListItem, getSubtreeItems, getSubtreeTail, isWithinBoundary } from '#client/editor/outline/selection/tree';
 
@@ -49,7 +48,7 @@ function $buildDeepNestedOutline(depth: number): ListNode {
 }
 
 describe('selection tree helpers', () => {
-  it('normalizes note ids in deep wrapper chains without stack overflow', meta({ fixture: 'flat' }), async () => {
+  it('normalizes note ids in deep wrapper chains without stack overflow', async () => {
     const depth = 2000;
     const leafNoteId = 'deepLeaf';
     const { editor, dispose } = createListEditor();
@@ -113,7 +112,7 @@ describe('selection tree helpers', () => {
     }
   });
 
-  it('handles deep content chains without stack overflow', meta({ fixture: 'flat' }), async () => {
+  it('handles deep content chains without stack overflow', async () => {
     const depth = 1000;
     const { editor, dispose } = createListEditor();
 
@@ -192,7 +191,7 @@ describe('isWithinBoundary', () => {
     return { root0, child0, outside0 };
   }
 
-  it('a null boundary means no limit — every item is within', meta({ fixture: 'flat' }), async () => {
+  it('a null boundary means no limit — every item is within', async () => {
     const { editor, dispose } = createListEditor();
     try {
       let results: boolean[] = [];
@@ -208,7 +207,7 @@ describe('isWithinBoundary', () => {
     }
   });
 
-  it('the boundary root and its descendants are within; outside notes are not', meta({ fixture: 'flat' }), async () => {
+  it('the boundary root and its descendants are within; outside notes are not', async () => {
     const { editor, dispose } = createListEditor();
     try {
       let rootWithin = false;

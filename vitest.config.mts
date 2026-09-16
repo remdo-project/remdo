@@ -43,6 +43,10 @@ const shared = defineProject({
 
 // These tests exercise Node boundaries and do not need a DOM or an editor.
 const nodeTests = [
+  'tests/unit/editor-state-defaults.spec.ts',
+  'src/client/editor/runtime/editor-state-persistence.spec.ts',
+  'src/client/editor/runtime/serialized-editor-state.spec.ts',
+
   'src/document-routes/document-routes.spec.ts',
   'src/note-sdk/note-sdk-core.spec.ts',
   'src/client/search/query-match.spec.ts',
@@ -87,8 +91,13 @@ const nodeTests = [
   'src/server/token-url-rewrite.spec.ts',
 ];
 
-// These tests render their own UI or exercise browser state without an editor.
+// These tests need a DOM but not the shared RemDo editor fixture.
 const domTests = [
+  'src/client/editor/outline/selection/selection-tree.spec.ts',
+  'src/client/editor/outline/selection/selection-rungs.spec.ts',
+  'src/client/editor/dev/vanilla-lexical-editor.spec.tsx',
+  'src/client/editor/dev/tree-view-plugin.spec.tsx',
+
   'src/collaboration/local-persistence-support.spec.ts',
   'src/collaboration/session-hydration.spec.ts',
   'src/collaboration/session-unsynced-documents.spec.ts',

@@ -5,7 +5,7 @@ import type { LexicalEditor } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
-import { $getListItemByKeyOrThrow, meta } from '#tests';
+import { $getListItemByKeyOrThrow } from '../../../../../tests/unit/_support/lib/note';
 import { $replayLadder, emptyLadder, popStep, pushStep } from '#client/editor/outline/selection/rungs';
 
 function createListEditor(): { editor: LexicalEditor; dispose: () => void } {
@@ -109,7 +109,6 @@ describe('selection rungs (pure algebra)', () => {
 describe('$replayLadder', () => {
   it(
     'stack [subtree] -> range note2..note3 (anchor + its subtree)',
-    meta({ fixture: 'flat' }),
     async () => {
       const { editor, dispose } = createListEditor();
       try {
@@ -140,7 +139,6 @@ describe('$replayLadder', () => {
 
   it(
     'stack [subtree, sibling(down)] -> range note2..note4 (adds sibling note4)',
-    meta({ fixture: 'flat' }),
     async () => {
       const { editor, dispose } = createListEditor();
       try {
@@ -175,7 +173,6 @@ describe('$replayLadder', () => {
 
   it(
     'sibling step hoists to the parent when siblings run out -> note1..note4',
-    meta({ fixture: 'flat' }),
     async () => {
       const { editor, dispose } = createListEditor();
       try {
