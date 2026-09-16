@@ -122,6 +122,23 @@ describe('review runner', () => {
     expect(notices.at(-1)).toMatchObject({ event: 'finished' });
   });
 
+  it.each(['missing', 'file'])('isolates an invalid working directory (%s) from healthy reviewers', (kind) => {
+    const dir = makeDir('review-runner-');
+    const cwd = path.join(dir, 'invalid-cwd');
+    if (kind === 'file') fs.writeFileSync(cwd, 'not a directory');
+    const plan = planFile(dir, [
+      { source: 'invalid-cwd', executable: process.execPath, args: ['-e', "console.log('must not run')"], cwd },
+      { source: 'healthy', executable: process.execPath, args: ['-e', "console.log('healthy review completed')"] },
+    ]);
+    expect(spawnSync(process.execPath, [runner, plan]).status).toBe(1);
+    expect(parse(fs.readFileSync(path.join(dir, 'output/results.yaml'), 'utf8')).reviews).toMatchObject([
+      { source: 'invalid-cwd', exit_code: null, signal: null, error: expect.any(String) },
+      { source: 'healthy', exit_code: 0, signal: null },
+    ]);
+    expect(fs.readFileSync(path.join(dir, 'output/invalid-cwd.log'), 'utf8')).toBe('');
+    expect(fs.readFileSync(path.join(dir, 'output/healthy.log'), 'utf8')).toBe('healthy review completed\n');
+  });
+
   it('succeeds with valid commands and refuses to overwrite an earlier run', () => {
     const dir = makeDir('review-runner-');
     const plan = planFile(dir, [{

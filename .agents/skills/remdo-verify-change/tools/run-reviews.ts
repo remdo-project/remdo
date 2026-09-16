@@ -35,11 +35,6 @@ async function main(): Promise<void> {
   if (process.argv.length !== 3) throw new Error('Usage: node run-reviews.ts <plan.yaml>');
   if (process.platform === 'win32') throw new Error('Review process groups require a POSIX host');
   const plan = planSchema.parse(parse(readFileSync(process.argv[2]!, 'utf8')));
-  for (const review of plan.reviews) {
-    if (review.cwd && !statSync(review.cwd).isDirectory()) {
-      throw new Error(`Not a review working directory: ${review.cwd}`);
-    }
-  }
   const outputDir = path.resolve(plan.output_dir);
   mkdirSync(path.dirname(outputDir), { recursive: true });
   // A new directory keeps every invocation's evidence immutable across reruns.
@@ -103,6 +98,9 @@ async function main(): Promise<void> {
         resolve(result);
       };
       try {
+        if (review.cwd && !statSync(review.cwd).isDirectory()) {
+          throw new Error(`Not a review working directory: ${review.cwd}`);
+        }
         const child = spawn(review.executable, review.args, {
           cwd: review.cwd,
           shell: false,
