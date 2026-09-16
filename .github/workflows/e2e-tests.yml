@@ -10,6 +10,10 @@ concurrency:
 
 jobs:
   e2e-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     permissions:
       contents: read
       actions: write
@@ -38,13 +42,13 @@ jobs:
       - name: Run Playwright E2E suite
         env:
           TEST_TIMEOUT: 900
-        run: pnpm run test:e2e
+        run: pnpm run test:e2e --shard=${{ matrix.shard }}/2
 
       - name: Upload Playwright failure evidence
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          name: playwright-failure-${{ github.run_id }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
           path: data/e2e-runtime/test-results/playwright
           if-no-files-found: ignore
           retention-days: 7
