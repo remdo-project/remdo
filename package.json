@@ -57,7 +57,7 @@
     "lint:md": "timeout ${TEST_TIMEOUT:-120}s pnpm run lint:md:raw",
     "lint:md:raw": "markdownlint-cli2",
     "test": "pnpm run test:unit",
-    "test:collab": "cross-env NODE_ENV=test DJANGO_SETTINGS_MODULE=remdo.verification COLLAB_ENABLED=true DATA_DIR=data/collab-test-runtime ./tools/env.sh --port-base-offset 30 timeout ${TEST_TIMEOUT:-120}s ./tools/test/vitest.sh run",
+    "test:collab": "cross-env NODE_ENV=test DJANGO_SETTINGS_MODULE=remdo.testing COLLAB_ENABLED=true DATA_DIR=data/collab-test-runtime ./tools/env.sh --port-base-offset 30 timeout ${TEST_TIMEOUT:-120}s ./tools/test/vitest.sh run",
     "test:collab:changed": "pnpm run test:collab --changed --passWithNoTests",
     "test:collab:repeat": "sh -c 'for i in $(seq 1 20); do echo \"===== collab run $i/20 =====\"; pnpm run test:collab || exit 1; done'",
     "test:e2e": "timeout ${TEST_TIMEOUT:-120}s ./tools/e2e/run.sh",

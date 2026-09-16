@@ -2,6 +2,6 @@
 set -eu
 cd "$(dirname "$0")/.."
 if [ "${1:-}" = test ]; then
-  export DJANGO_SETTINGS_MODULE=remdo.verification
+  export DJANGO_SETTINGS_MODULE=remdo.testing
 fi
 exec ./tools/env.sh uv run --locked python backend/manage.py "$@"

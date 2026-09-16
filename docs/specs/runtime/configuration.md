@@ -14,7 +14,7 @@ do not require Node or frontend dependencies. Frontend tooling owns browser buil
 configuration.
 
 Development launchers default to development settings; backend, collaboration,
-and browser E2E test launchers select verification settings. Production launchers
+and browser E2E test launchers select test settings. Production launchers
 and direct Django invocation select production settings.
 Selection uses Django's native `DJANGO_SETTINGS_MODULE`. `NODE_ENV` selects
 JavaScript behavior independently and does not select backend settings.

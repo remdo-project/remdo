@@ -99,11 +99,11 @@ class ConfigurationTests(SimpleTestCase):
         self.assertIn("http://localhost:5320", result["origins"])
         self.assertIn("http://127.0.0.1:5300", result["origins"])
 
-    def test_fast_password_hashing_is_confined_to_verification(self):
+    def test_fast_password_hashing_is_confined_to_test_settings(self):
         for module, algorithm in (
             ("remdo.settings", "pbkdf2_sha256"),
             ("remdo.development", "pbkdf2_sha256"),
-            ("remdo.verification", "md5"),
+            ("remdo.testing", "md5"),
         ):
             with self.subTest(module=module):
                 result = self.settings(

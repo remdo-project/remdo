@@ -12,7 +12,7 @@ const { scripts } = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 
   scripts: Record<string, string>;
 };
 
-describe('verification launcher settings', () => {
+describe('test launcher settings', () => {
   const directories: string[] = [];
   afterEach(() => {
     for (const directory of directories.splice(0)) {
@@ -21,12 +21,12 @@ describe('verification launcher settings', () => {
   });
 
   it.each([
-    ['backend tests', './tools/django.sh test remdo', 'remdo.development', 'remdo.verification'],
+    ['backend tests', './tools/django.sh test remdo', 'remdo.development', 'remdo.testing'],
     ['backend development', './tools/django.sh shell', '', 'remdo.development'],
-    ['collaboration tests', scripts['test:collab']!, 'remdo.development', 'remdo.verification'],
-    ['browser tests', './tools/e2e/run.sh', 'remdo.development', 'remdo.verification'],
+    ['collaboration tests', scripts['test:collab']!, 'remdo.development', 'remdo.testing'],
+    ['browser tests', './tools/e2e/run.sh', 'remdo.development', 'remdo.testing'],
   ])('selects the settings for %s before starting the runner', (_name, command, inherited, expected) => {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-verification-launcher-'));
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-test-launcher-'));
     directories.push(directory);
     // Copy the actual launchers so E2E cleanup only touches this test's data.
     for (const file of [

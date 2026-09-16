@@ -116,7 +116,7 @@ and Node-independent backend commands.
 
 Currently, development imports shared base settings and overrides them, but `DEBUG`
 is not read from `.env`. Non-production shell launchers preserve an explicit
-`DJANGO_SETTINGS_MODULE` so verification settings reach fixture commands and
+`DJANGO_SETTINGS_MODULE` so test settings reach fixture commands and
 services.
 Evaluate native Django settings-module selection versus a small set of explicit
 environment overrides; the mechanism remains open. Keep precedence clear and

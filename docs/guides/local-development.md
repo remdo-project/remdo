@@ -39,7 +39,7 @@ only the development API, use `./tools/env.sh ./tools/django-serve.sh`.
 With deployment variables already supplied, native
 `uv run --locked python backend/manage.py <command>` works without the shell launcher.
 The launcher defaults to Django's development settings independently of frontend
-build mode; `test` selects verification settings. Direct Django invocation
+build mode; `test` selects test settings. Direct Django invocation
 defaults to production settings.
 
 ## Update API Clients

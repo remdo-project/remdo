@@ -3,7 +3,7 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-/** Fixture commands are registered only in development and verification. */
+/** Fixture commands are registered only with development and test settings. */
 export async function provisionDjangoUser(account: { email: string; password: string; name: string; admin?: boolean }): Promise<void> {
   await execFileAsync('./tools/django.sh', [
     'provision_user',
