@@ -29,10 +29,21 @@ describe('development fixture setup', { timeout: 60_000 }, () => {
     const baseURL = resolveApiServerOrigin();
     const alice = await request.newContext({ baseURL });
     const charlie = await request.newContext({ baseURL });
+    const bob = await request.newContext({ baseURL });
     const unrelated = { email: 'fixture-charlie@example.test', name: 'Charlie', password: 'charlie-password-1234' };
     try {
       const initial = await readFixtureState('basic');
-      await resetDevelopmentData(new Map([['reset-contract', initial]]));
+      const second = await readFixtureState('flat');
+      expect(await resetDevelopmentData(new Map([
+        ['reset-contract', initial], ['second-fixture', second],
+      ]))).toEqual({ documentCount: 4, userCount: 2 });
+      await authenticateDjangoTestUser(bob, baseURL, STABLE_AUTH_USERS.bob);
+      const bobDocuments = await documents(bob);
+      expect(bobDocuments).toHaveLength(2);
+      for (const [title, content] of [['fixture: reset-contract', initial], ['fixture: second-fixture', second]] as const) {
+        const document = bobDocuments.find((entry) => entry.title === title)!;
+        expect(await readContent(document.id)).toEqual(stripEditorStateDefaults(content).root);
+      }
       await authenticateDjangoTestUser(alice, baseURL, STABLE_AUTH_USERS.alice);
       const first = (await documents(alice)).find(({ title }) => title === 'fixture: reset-contract')!;
       expect(await readContent(first.id)).toEqual(stripEditorStateDefaults(initial).root);
@@ -52,6 +63,7 @@ describe('development fixture setup', { timeout: 60_000 }, () => {
     } finally {
       await alice.dispose();
       await charlie.dispose();
+      await bob.dispose();
     }
   });
 

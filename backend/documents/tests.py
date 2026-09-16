@@ -206,15 +206,21 @@ class DocumentFlowTests(TestCase):
         title = '-- Research "notes" & ideas'
         output = io.StringIO()
         call_command(
-            "create_fixture_document",
-            "--email",
-            self.owner.email,
-            "--id",
-            "fixtureDoc",
-            f"--title={title}",
+            "create_fixture_documents",
+            json.dumps(
+                [
+                    {"email": self.owner.email, "id": "fixtureDoc", "title": title},
+                    {"email": self.other.email, "title": "Other fixture"},
+                ]
+            ),
             stdout=output,
         )
-        self.assertEqual(json.loads(output.getvalue()), {"id": "fixtureDoc"})
+        ids = json.loads(output.getvalue())
+        self.assertEqual(len(ids), 2)
+        self.assertEqual(ids[0], "fixtureDoc")
+        other_fixture = Document.objects.get(pk=ids[1])
+        self.assertEqual(other_fixture.owner, self.other)
+        self.assertEqual(other_fixture.title, "Other fixture")
         document = Document.objects.get(pk="fixtureDoc")
         self.assertEqual(document.title, title)
         self.assertEqual(document.owner, self.owner)
