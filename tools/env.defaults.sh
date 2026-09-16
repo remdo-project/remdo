@@ -119,7 +119,7 @@ remdo_configure_environment() {
   if [ "$1" = production ]; then
     DJANGO_SETTINGS_MODULE=remdo.settings
   else
-    DJANGO_SETTINGS_MODULE=remdo.development
+    : "${DJANGO_SETTINGS_MODULE:=remdo.development}"
   fi
   export DJANGO_SETTINGS_MODULE
 }

@@ -15,8 +15,8 @@ async function signIn(page: Page, account: { email: string; password: string }) 
 }
 
 test('Django sign-in, Home creation, collaboration, reopen, and account isolation', async ({ browser, contextOptions, page }) => {
-  // This full journey includes three form logins, two browsers, and document reloads.
-  test.slow();
+  // Three sign-ins and full-page reloads share this scenario's test budget.
+  test.setTimeout(60_000);
   const account = createTestAuthAccount();
   const otherAccount = createTestAuthAccount();
   await provisionDjangoUser(account);

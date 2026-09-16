@@ -87,8 +87,13 @@ same URL.
 
 ## Upgrade an Existing Instance
 
-An upgrade preserves accounts and documents. Schema changes apply on the first
+This procedure applies to existing Django deployments and preserves their
+accounts and documents. Schema changes apply on the first
 start of the new version.
+
+Instances using the previous Node backend have no supported data migration to
+Django. Keep their original image and data together; do not point the Django
+image at the old data root. See the [Django migration boundary](../django-migration.md#browser-document-flow-foundation).
 
 1. Stop the instance. A schema change can rewrite tables that authentication
    writes to.

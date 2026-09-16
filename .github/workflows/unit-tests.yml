@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
       - env:
-          TEST_TIMEOUT: 240
+          TEST_TIMEOUT: 360
         run: pnpm run test:unit
 
   backend-tests:

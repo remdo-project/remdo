@@ -10,6 +10,7 @@ fi
 
 # A short TMPDIR keeps tsx IPC socket paths valid in long worktrees.
 exec env -u NO_COLOR \
+  DJANGO_SETTINGS_MODULE=remdo.testing \
   HOST=127.0.0.1 \
   DATA_DIR="${ROOT_DIR}/data/e2e-runtime" \
   TMPDIR=/tmp \
