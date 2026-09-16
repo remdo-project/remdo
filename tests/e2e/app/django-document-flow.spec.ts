@@ -27,6 +27,7 @@ test('Django sign-in, Home creation, collaboration, reopen, and account isolatio
   const documentUrl = page.url();
   const docId = new URL(documentUrl).pathname.slice(3);
   const editor = page.locator('.editor-input');
+  await expect(editor).toBeEditable();
   await editor.click();
   await page.keyboard.type('Django document content');
 
