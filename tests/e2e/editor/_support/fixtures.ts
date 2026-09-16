@@ -42,7 +42,9 @@ export const isolatedTest = base.extend<
 
 // Account-wide UI tests use isolatedTest; ordinary editor tests only share the
 // login cookies. Every test still gets a new context and its own documents.
-export const test = isolatedTest.extend<Record<never, never>, {
+export const test = isolatedTest.extend<{
+  newWorkerContext: () => Promise<BrowserContext>;
+}, {
   workerStorageState: Awaited<ReturnType<BrowserContext['storageState']>>;
 }>({
   workerStorageState: [async ({ browser }, applyFixture) => {
@@ -53,8 +55,11 @@ export const test = isolatedTest.extend<Record<never, never>, {
       await context.close();
     }
   }, { scope: 'worker' }],
-  context: async ({ browser, contextOptions, workerStorageState }, applyFixture) => {
-    const context = await browser.newContext({ ...contextOptions, storageState: workerStorageState });
+  newWorkerContext: async ({ browser, contextOptions, workerStorageState }, applyFixture) => {
+    await applyFixture(() => browser.newContext({ ...contextOptions, storageState: workerStorageState }));
+  },
+  context: async ({ newWorkerContext }, applyFixture) => {
+    const context = await newWorkerContext();
     try {
       await applyFixture(context);
     } finally {
