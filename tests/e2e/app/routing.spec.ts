@@ -79,31 +79,21 @@ test.describe('Routing', () => {
       .getByRole('button', { name: 'Home', exact: true })).toBeVisible();
   });
 
-  unauthenticatedTest('shows sign-in at Home and preserves protected destinations when signed out', async ({ page }) => {
+  unauthenticatedTest('uses native sign-in and preserves protected destinations when signed out', async ({ page }) => {
     const userDataRequests = collectCurrentUserRequests(page);
-    await page.goto('/');
-
-    await expectPath(page, '/');
-    expect(new URL(page.url()).search).toBe('');
-    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
-    await page.waitForLoadState('networkidle');
-    expect(userDataRequests).toEqual([]);
-
-    await page.goto('/sharing');
-
-    await expectPath(page, '/');
-    expect(new URL(page.url()).searchParams.get('next')).toBe('/sharing');
-    await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Sharing' })).toHaveCount(0);
-    await page.waitForLoadState('networkidle');
-    expect(userDataRequests).toEqual([]);
-
-    await page.goto('/n/protectedDoc_note1');
-    await expectPath(page, '/');
-    expect(new URL(page.url()).searchParams.get('next')).toBe('/n/protectedDoc_note1');
-    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
-    expect(userDataRequests).toEqual([]);
+    for (const destination of ['/', '/sharing', '/n/protectedDoc_note1']) {
+      await page.goto(destination);
+      await expectPath(page, '/accounts/login/');
+      const next = new URL(page.url()).searchParams.get('next')!;
+      if (destination === '/') {
+        expect(next).toBe('/');
+      } else {
+        expect(new URL(next, page.url()).searchParams.get('next')).toBe(destination);
+      }
+      await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+      expect(userDataRequests).toEqual([]);
+    }
   });
 
   test('normalizes the default landing target to the authenticated root', async ({ page }) => {

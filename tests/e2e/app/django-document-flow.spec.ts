@@ -4,8 +4,8 @@ import { createTestAuthAccount } from '#tests-common/auth-account';
 import { provisionDjangoUser } from '../../../tools/lib/django-user';
 
 async function signIn(page: Page, account: { email: string; password: string }) {
-  await page.goto('/');
-  await page.getByRole('textbox', { name: 'Email', exact: true }).fill(account.email);
+  await page.goto('/accounts/login/');
+  await page.getByRole('textbox', { name: 'Email:', exact: true }).fill(account.email);
   await page.getByLabel(/^Password/u).fill(account.password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();

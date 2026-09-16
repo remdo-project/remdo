@@ -17,6 +17,11 @@ A Django session identifies the signed-in user. The server supports
 username/password, OAuth, and any other authentication method enabled by its
 configuration.
 
+Allauth renders sign-in at `/accounts/login/` and validates credentials.
+Successful sign-in returns to the requested same-origin app destination,
+defaulting to Home. The app keeps an in-place signed-out screen after logout
+so offline logout does not require a server-rendered page.
+
 The SQL-backed user role and [document registry](../../architecture.md#document-registry) are the
 authorization sources of truth. Session UI and [client metadata caches](../../architecture.md#document-registry) may expose
 their results but do not authorize a request.
@@ -92,7 +97,8 @@ visitors authenticate through Django's administration sign-in form.
 
 Session cookies use `SameSite=Lax` and are HTTP-only. Django's CSRF middleware
 protects session-authenticated mutation routes, including sign-in and logout.
-Browser requests send the CSRF token in `X-CSRFToken`; missing or invalid tokens
+Native forms submit Django's CSRF field; browser API requests send the token in
+`X-CSRFToken`. Missing or invalid tokens
 and untrusted origins are rejected before application handlers run. Tokens for
 cross-site credentialed APIs require a separate accepted authentication
 contract.

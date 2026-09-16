@@ -6,7 +6,7 @@ specifications remain the behavior owners. An approved direction does not make
 its implementation part of the current PR; proposed alternatives remain open
 until selected.
 
-## Current PR: browser document flow
+## Browser document flow foundation
 
 `feat/django-document-flow` targets `feat/django-backend`. An operator creates
 an account with Django; the account signs in through the existing frontend,
@@ -61,6 +61,24 @@ or disabled-command infrastructure.
    behavior; prior checks of the larger change do not verify the reduced
    slice.
 
+## Current PR: Django-rendered sign-in
+
+`feat/django-account-pages` builds on the browser-flow commit `fa822b6c` and
+targets `feat/django-backend` after that foundation lands. Allauth owns the
+login form and credential validation. The React editor retains session checks,
+offline reopening, and logout; a server-confirmed login clears the browser's
+pending logout and cached account context before returning to the app.
+
+Include native sign-in, safe return navigation, development and preview
+routing, and the small browser-state handoff. Exclude signup, password
+recovery, MFA, source linking, production packaging, and broader UI or
+developer-tooling redesign.
+
+Acceptance checks cover invalid credentials, return to Home or a requested
+document, an existing admin session, logout followed by another account's
+login, offline cached-document reopening, and preview sign-in. Run focused
+backend/session/browser checks and generated-schema verification.
+
 ## Approved decisions outside this PR
 
 These directions were accepted during the simplification discussion. Implement
@@ -94,16 +112,6 @@ frontend tooling. Remove the old enrollment endpoint/UI, `ADMIN_SECRET`, and
 Node backend with the corresponding obsolete production wiring and tests.
 Retaining their unused implementation during the split does not require
 keeping the old backend operational.
-
-### Account pages
-
-Use Django-rendered allauth account pages as the next step for account-flow
-migration, before expanding custom React account screens. Delegate forms and
-account-flow handling to allauth while retaining the React editor and RemDo's
-[offline session and logout behavior](specs/access/access-control.md#logout). Keep the current small headless session
-adapter in this PR; move the account UI in a separate slice and verify sign-in,
-return navigation, and session/cache isolation together. This direction does
-not add new authentication features to migration scope.
 
 ### Development instance setup
 
@@ -227,18 +235,6 @@ to implement every item.
 
 After the current browser flow passes its acceptance checks, inspect the
 branch and these gaps before proposing one next PR with exclusions and checks.
-The next proposed PR is Django-rendered sign-in, following the [account-page direction](#account-pages).
-Replace the React login form with allauth's page, wire development and preview
-routing, and retain only the session API integration the editor needs. Preserve
-the existing offline and logout contract. Exclude signup, password recovery,
-MFA, source linking, production packaging, and broader UI or developer-tooling
-redesign.
-
-Acceptance checks cover fresh sign-in, rejected credentials, safe return to Home
-or a requested document, an existing admin session, logout followed by sign-in,
-offline reopening of cached documents, and account-cache isolation. Run the
-focused backend/session/browser checks and generated-schema verification.
-
 Cross-server OAuth remains the next risky integration to validate after
 resolving the source-linking discussion. Production simplifications form their
 own coherent production slice.

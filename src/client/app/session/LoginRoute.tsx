@@ -1,116 +1,27 @@
-import { clearCurrentUserBootstrapCache } from '#client/app/user-data/current-user-bootstrap';
-import { resetUserData } from '#client/app/user-data/user-data';
-import { Alert, Button, PasswordInput, Stack, Text, TextInput } from '@mantine/core';
-import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { signIn, rememberAuthenticatedSession } from '#client/app/session/client';
-import { LOGGED_OUT_STATE_KEY } from '#client/app/session/useLogout';
+import { Alert, Button } from '@mantine/core';
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import CenteredCardPage from '#client/ui/CenteredCardPage';
-import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
-import { resolvePostAuthPath } from './post-auth-path';
-
-function readAuthErrorMessage(error: unknown, fallback: string): string {
-  if (error && typeof error === 'object') {
-    const maybeMessage = (error as { message?: unknown }).message;
-    if (typeof maybeMessage === 'string' && maybeMessage.length > 0) {
-      return maybeMessage;
-    }
-  }
-  return fallback;
-}
+import { createSignInPath } from './post-auth-path';
+import { LOGGED_OUT_STATE_KEY } from './useLogout';
 
 export default function LoginRoute() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [pending, setPending] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const signedOut = (location.state as Record<string, unknown> | null)?.[LOGGED_OUT_STATE_KEY] === true;
   const titleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    // Logout unmounts the control that triggered it, dropping focus to <body>.
-    if (signedOut) {
-      titleRef.current?.focus();
-    }
+    if (signedOut) titleRef.current?.focus();
   }, [signedOut]);
 
-  const completeAuth = () => {
-    resetUserData();
-    clearCurrentUserBootstrapCache();
-    rememberAuthenticatedSession();
-    if (isOAuthAuthorizeSearch(location.search)) {
-      globalThis.location.assign(`/api/auth/oauth2/authorize${location.search}`);
-      return;
-    }
-    const returnTo = resolvePostAuthPath(location.search, globalThis.location.origin);
-    void navigate(returnTo, { replace: true });
-  };
-
-  const handleLoginSubmit = async (event: { preventDefault: () => void }) => {
-    event.preventDefault();
-    setPending(true);
-    setErrorMessage(null);
-
-    try {
-      await signIn({
-        email: email.trim(),
-        password,
-      });
-      completeAuth();
-    } catch (error) {
-      setErrorMessage(readAuthErrorMessage(error, 'Failed to sign in.'));
-    } finally {
-      setPending(false);
-    }
-  };
-
   return (
-    <CenteredCardPage
-      description="Sign in to access your documents."
-      title="Sign in"
-      titleRef={signedOut ? titleRef : undefined}
-    >
-      {signedOut && !errorMessage && (
+    <CenteredCardPage description="Sign in to access your documents." title="Sign in" titleRef={signedOut ? titleRef : undefined}>
+      {signedOut && (
         <Alert color="blue" role="status" title="You're signed out">
           This device's local data was cleared.
         </Alert>
       )}
-      {errorMessage && (
-        <Alert color="red" title="Authentication failed">
-          {errorMessage}
-        </Alert>
-      )}
-
-      <form onSubmit={(event) => {
-        void handleLoginSubmit(event);
-      }}>
-        <Stack gap="md">
-          <TextInput
-            autoComplete="email"
-            label="Email"
-            onChange={(event) => setEmail(event.currentTarget.value)}
-            required
-            type="email"
-            value={email}
-          />
-          <PasswordInput
-            autoComplete="current-password"
-            label="Password"
-            onChange={(event) => setPassword(event.currentTarget.value)}
-            required
-            value={password}
-          />
-          <Button loading={pending} type="submit">
-            Sign in
-          </Button>
-        </Stack>
-      </form>
-
-      <Text c="dimmed" size="sm">
-        <a href="/admin/">Administration</a>
-      </Text>
+      <Button component="a" href={createSignInPath(location.search)}>Sign in</Button>
     </CenteredCardPage>
   );
 }

@@ -1,6 +1,5 @@
 import { getSession, signOut } from './session-http';
 import { clearStoredCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap-storage';
-export { signIn } from './session-http';
 
 const KNOWN_SESSION_STORAGE_KEY = 'remdo-authenticated-session';
 export const PENDING_SIGN_OUT_STORAGE_KEY = 'remdo-pending-sign-out';

@@ -2,13 +2,14 @@ import { createBrowserRouter, redirect, redirectDocument } from 'react-router-do
 import AppFrame from './AppFrame';
 import AuthenticatedRoute from './AuthenticatedRoute';
 import { devRoutes } from './devRoutes';
-import { resolveSessionGateState } from '#client/app/session/client';
+import { hasPendingSignOut, resolveSessionGateState } from '#client/app/session/client';
 import type { SessionGateState } from '#client/app/session/client';
 import { resolveAuthenticatedLoginRedirect } from '#client/app/session/login-redirect';
 import OAuthConsentRoute from '#client/app/session/OAuthConsentRoute';
 import OnlineGate from '#client/app/session/OnlineGate';
 import {
   createPostAuthNextSearch,
+  createSignInPath,
   resolvePostAuthPath,
 } from '#client/app/session/post-auth-path';
 import HomeRoute from './HomeRoute';
@@ -36,6 +37,9 @@ async function authenticatedSessionLoader({ request }: { request: Request }) {
 async function homeRouteLoader(request: Request): Promise<{ sessionState: SessionGateState }> {
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
+    if (!hasPendingSignOut()) {
+      throw redirectDocument(createSignInPath(new URL(request.url).search));
+    }
     return { sessionState };
   }
 

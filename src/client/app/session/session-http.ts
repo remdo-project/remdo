@@ -1,5 +1,4 @@
-import { accountApi, ApiError, getApiConfig, requireData } from '#platform/http/api-client';
-import type { components } from '#platform/http/auth-schema';
+import { accountApi, getApiConfig, requireData } from '#platform/http/api-client';
 
 export async function getSession() {
   await getApiConfig();
@@ -8,19 +7,6 @@ export async function getSession() {
     return null;
   }
   return requireData(result).data;
-}
-
-export async function signIn(credentials: components['schemas']['Login']) {
-  await getApiConfig();
-  const result = await accountApi.POST('/api/auth/browser/v1/auth/login', { body: credentials });
-  if (result.response.status === 409 && await getSession()) {
-    return;
-  }
-  if (result.error) {
-    const message = 'errors' in result.error ? result.error.errors?.[0]?.message : undefined;
-    throw new ApiError(result.response.status, message ?? 'Failed to sign in.');
-  }
-  requireData(result);
 }
 
 export async function signOut(): Promise<void> {

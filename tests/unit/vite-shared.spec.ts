@@ -13,6 +13,7 @@ describe('vite shared config', () => {
     ]));
     expect(serverProxy['/api']).toMatchObject({ changeOrigin: false });
     expect(serverProxy['/admin']).toEqual(serverProxy['/api']);
+    expect(serverProxy['/accounts']).toEqual(serverProxy['/api']);
     expect(serverProxy['/d']).toMatchObject({
       changeOrigin: true,
       ws: true,
@@ -33,6 +34,7 @@ describe('vite shared config', () => {
       xfwd: true,
     });
     expect(previewProxy['/api']).not.toHaveProperty('headers');
+    expect(previewProxy['/accounts']).toMatchObject({ target: resolveLocalGatewayOrigin() });
     expect(previewProxy['/d']).toMatchObject({
       changeOrigin: true,
       target: resolveLocalGatewayOrigin(),
@@ -48,6 +50,8 @@ describe('vite shared config', () => {
     expect(isDenied('/.well-known/openid-configuration')).toBe(true);
     expect(isDenied('/.well-known/oauth-authorization-server')).toBe(true);
     expect(isDenied('/api/current-user')).toBe(true);
+    expect(isDenied('/accounts/login/')).toBe(true);
+    expect(isDenied('/admin/login/')).toBe(true);
     expect(isDenied('/d/document-id')).toBe(true);
     expect(isDenied('/documents')).toBe(false);
   });

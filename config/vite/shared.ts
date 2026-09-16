@@ -12,12 +12,15 @@ const host = config.env.HOST;
 const collabServerTarget = resolveCollabServerOrigin();
 const mainGatewayTarget = resolveLocalGatewayOrigin();
 export const pwaNavigationFallbackDenylist = [
+  /^\/accounts(?:\/|$)/u,
+  /^\/admin(?:\/|$)/u,
   /^\/\.well-known(?:\/|$)/u,
   /^\/api(?:\/|$)/u,
   /^\/d(?:\/|$)/u,
 ];
 const apiProxy = { target: resolveApiServerOrigin(), changeOrigin: false };
 const devProxy = {
+  '/accounts': apiProxy,
   '/api': apiProxy,
   '/admin': apiProxy,
   '/django-static': apiProxy,
@@ -32,6 +35,9 @@ const mainGatewayProxy = {
   changeOrigin: true,
 } as const;
 const previewProxy = {
+  '/accounts': mainGatewayProxy,
+  '/admin': mainGatewayProxy,
+  '/django-static': mainGatewayProxy,
   '/.well-known': {
     ...mainGatewayProxy,
     xfwd: true,
