@@ -3,19 +3,16 @@ import path from "node:path";
 import { config } from './config/index.ts';
 import { VITEST_DEFAULT_TEST_TIMEOUT_MS } from './tests/unit/_support/timeouts.ts';
 import { createViteSharedConfig } from './config/vite/shared.ts';
-import { configDefaults, defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig, defineProject } from 'vitest/config';
 
 const isVitestUi = process.argv.includes('--ui');
 const isVitestList = process.argv.includes('list');
 const directlyRunsSkillTests = process.argv.some(argument =>
   /(?:^|[/\\])\.(?:agents|claude)[/\\]skills[/\\]/.test(argument));
 
-export default defineConfig({
+const shared = defineProject({
   ...createViteSharedConfig(),
   test: {
-    environment: 'jsdom',
-    globalSetup: isVitestList ? undefined : './tests/global/collab-test-runtime.ts',
-    setupFiles: ['./tests/unit/_support/setup/index.ts'],
     exclude: [
       ...configDefaults.exclude,
       '**/.agent/**',
@@ -39,15 +36,32 @@ export default defineConfig({
       LANG: 'en_US.UTF-8',
       TZ: 'UTC',
     },
+    testTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
+    hookTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
+  }
+});
+
+// These tests exercise Node boundaries and do not need a DOM or an editor.
+const nodeTests = [
+  'tests/unit/net.spec.ts',
+  'tests/unit/config-env.spec.ts',
+  'tests/unit/test-launchers.spec.ts',
+  'tests/unit/collab-test-runtime.spec.ts',
+  'tests/unit/docker-entrypoint-env.spec.ts',
+];
+
+export default defineConfig({
+  ...shared,
+  test: {
+    ...shared.test,
+    teardownTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
     slowTestThreshold: config.env.COLLAB_ENABLED ? 4000 : undefined,
+    globalSetup: isVitestList ? undefined : './tests/global/collab-test-runtime.ts',
     api: isVitestUi ? {
       host: config.env.HOST,
       port: config.env.VITEST_PORT,
       strictPort: true,
     } : undefined,
-    testTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
-    hookTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
-    teardownTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
     coverage: {
       provider: 'v8' as const,
       reportsDirectory: path.join(config.env.DATA_DIR || 'data', 'coverage'),
@@ -55,5 +69,27 @@ export default defineConfig({
       exclude: ['src/main.tsx'],
     },
     open: false,
-  }
+    projects: [
+      {
+        ...shared,
+        test: {
+          ...shared.test,
+          name: 'node',
+          environment: 'node',
+          include: nodeTests,
+          setupFiles: ['./tests/unit/_support/setup/_internal/assertions/console.ts'],
+        },
+      },
+      {
+        ...shared,
+        test: {
+          ...shared.test,
+          name: 'editor',
+          environment: 'jsdom',
+          exclude: [...shared.test!.exclude!, ...nodeTests],
+          setupFiles: ['./tests/unit/_support/setup/index.ts'],
+        },
+      },
+    ],
+  },
 });
