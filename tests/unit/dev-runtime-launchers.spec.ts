@@ -86,7 +86,6 @@ describe('development runtime launchers', () => {
 
   it('runs the local Docker app on the host network', () => {
     const { dataDir, result, dockerCalls } = runDockerLauncher({
-      ADMIN_SECRET: 'launcher-admin-secret',
       AUTH_SECRET: 'launcher-auth-secret',
       YSWEET_AUTH_KEY: 'launcher-ysweet-auth-key',
       YSWEET_SERVER_TOKEN: 'launcher-ysweet-server-token',
@@ -107,15 +106,15 @@ describe('development runtime launchers', () => {
     expect(dockerOptionValues(runArgs, '-v')).toEqual([`${dataDir}/docker-home:/data`]);
     expect(runArgs).not.toContain('-p');
     expect(dockerEnvironment(runArgs)).toEqual({
-      ADMIN_SECRET: 'launcher-admin-secret',
       APP_ORIGIN: 'http://localhost:4640',
-      ALLOW_SIGNUP: 'false',
       API_SERVER_PORT: '4651',
       COLLAB_SERVER_PORT: '4644',
+      DJANGO_SETTINGS_MODULE: 'remdo.development',
       REMDO_GATEWAY_BIND_ADDRESS: '127.0.0.1',
       REMDO_DEV_CONTAINER: 'true',
       AUTH_SECRET: 'launcher-auth-secret',
       YSWEET_AUTH_KEY: 'launcher-ysweet-auth-key',
+      YSWEET_CONNECTION_STRING: 'ys://127.0.0.1:4644',
       YSWEET_SERVER_TOKEN: 'launcher-ysweet-server-token',
     });
   });
