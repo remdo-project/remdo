@@ -22,6 +22,9 @@ Successful sign-in returns to the requested same-origin app destination,
 defaulting to Home. The app keeps an in-place signed-out screen after logout
 so offline logout does not require a server-rendered page.
 
+Sign-in remembers the session across browser restarts without a remember-me
+choice, subject to session expiry and logout.
+
 The SQL-backed user role and [document registry](../../architecture.md#document-registry) are the
 authorization sources of truth. Session UI and [client metadata caches](../../architecture.md#document-registry) may expose
 their results but do not authorize a request.

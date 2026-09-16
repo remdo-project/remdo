@@ -67,6 +67,13 @@ test('production admin, native login, collaboration, and restart use persistent 
     }, { timeout: 30_000 }).toBe(200);
     const reopened = await fresh.newPage();
     await reopened.goto(documentUrl);
+    await expect(reopened).toHaveURL(/\/accounts\/login\//u);
+    const stylesheet = reopened.locator('link[rel="stylesheet"]');
+    await expect(stylesheet).toHaveAttribute('href', /^\/app-assets\/shared-.*\.css$/u);
+    const styles = await fresh.request.get((await stylesheet.getAttribute('href'))!);
+    expect(styles.status()).toBe(200);
+    expect(styles.headers()['content-type']).toContain('text/css');
+    await expect(reopened.locator('body')).toHaveCSS('margin', '0px');
     await reopened.getByLabel('Email:', { exact: true }).fill(email);
     await reopened.getByLabel('Password:', { exact: true }).fill(password);
     await reopened.getByRole('button', { name: 'Sign in', exact: true }).click();

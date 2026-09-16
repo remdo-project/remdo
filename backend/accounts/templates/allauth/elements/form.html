@@ -1,0 +1,6 @@
+{% load allauth %}
+<form class="remdo-account-form remdo-stack" method="{{ attrs.method }}"
+  {% if attrs.action %}action="{{ attrs.action }}"{% endif %}>
+  {% slot body %}{% endslot %}
+  {% slot actions %}{% endslot %}
+</form>

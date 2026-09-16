@@ -15,12 +15,12 @@ export default function CenteredCardPage({
   titleRef,
 }: CenteredCardPageProps) {
   return (
-    <Container component="main" size="xs" py="xl">
-      <Paper withBorder p="xl" radius="md">
-        <Stack gap="md">
+    <Container component="main" className="remdo-card-page">
+      <Paper className="remdo-card">
+        <Stack className="remdo-stack">
           <div>
-            <Title order={1} ref={titleRef} tabIndex={titleRef ? -1 : undefined}>{title}</Title>
-            <Text c="dimmed" size="sm">
+            <Title className="remdo-title" order={1} ref={titleRef} tabIndex={titleRef ? -1 : undefined}>{title}</Title>
+            <Text className="remdo-description">
               {description}
             </Text>
           </div>

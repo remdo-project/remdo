@@ -1,0 +1,13 @@
+{% extends "allauth/layouts/base.html" %}
+{% block layout %}
+  <main class="remdo-card-page">
+    <div class="remdo-card remdo-stack">
+      {% if messages %}
+        <div role="status">
+          {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+        </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+{% endblock %}

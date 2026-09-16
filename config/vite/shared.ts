@@ -35,6 +35,7 @@ const mainGatewayProxy = {
   changeOrigin: true,
 } as const;
 const previewProxy = {
+  '/src/client/ui/styles/': mainGatewayProxy,
   '/accounts': mainGatewayProxy,
   '/admin': mainGatewayProxy,
   '/django-static': mainGatewayProxy,
