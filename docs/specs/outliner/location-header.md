@@ -37,7 +37,7 @@ Rename follows [Document Access](../access/access-control.md#document-access) an
   opening name closes the dialog without a write. While pending, editing,
   dismissal, and repeat submission are blocked. Success closes the dialog;
   failure retains the draft and shows an error for explicit retry.
-- **Commit.** Submission requires acceptance by the document's [source server](../access/source-linking.md#server-roles);
+- **Commit.** Submission requires acceptance by the server that owns the document;
   an unavailable source retains the draft for retry without queuing the rename.
   Concurrent renames resolve to the last server-committed whole name. Users with
   access see it in open document views and lists after synchronization.

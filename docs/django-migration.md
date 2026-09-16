@@ -109,10 +109,10 @@ targets `feat/django-backend`. Remove the unused Node HTTP launcher, runtime
 lifecycle, secret-based admin enrollment route, and their exclusive tests and
 dependencies. Django owns service startup and administrator creation.
 
-Retain the old in-process server and its auth/document helpers while their
-source-linking and sharing regression coverage awaits migration. Retained tests
-create accounts through their auth helper rather than the removed enrollment
-route. Snapshot tooling and the Y-Sweet helper used by headless consumers stay
+The old in-process server and its auth/document helpers remain reference code
+under the [post-migration redesign exception](todo.md#cross-server-linking-redesign). Retained tests create accounts
+through their auth helper rather than the removed enrollment route. Snapshot
+tooling and the Y-Sweet helper used by headless consumers stay
 with their pending replacement slices.
 
 Acceptance checks cover retained server tests, Django account/document behavior,
@@ -121,7 +121,7 @@ Exclude sharing/source-linking implementation, recovery, test-runtime redesign,
 and new document features. Document rename is post-migration feature work tracked
 in the [ordinary backlog](todo.md#ux-direction), not a migration completion gate.
 
-## Current PR: local document sharing
+## Local document sharing
 
 `feat/django-document-sharing` targets `feat/django-backend`. Django owns local
 document grants, lists owned and granted documents, and authorizes collaboration
@@ -137,6 +137,17 @@ from sharing through recipient collaboration and reopen.
 Exclude cross-server source linking, grant revocation, public signup, Home policy,
 rename, and broader cache/SDK redesign. Retain the current Home restriction until
 the [Home privacy decision](#home-privacy) is implemented with its companion changes.
+
+## Current PR: withdraw cross-server linking
+
+Withdraw the linking form, consent page, OAuth login-resume path, and
+advertised linking workflow. Preserve local document sharing and existing SDK,
+Home, collaboration, and backend internals. Verify local sharing and normal
+sign-in/navigation, with no linking or consent UI.
+
+The [post-migration redesign](todo.md#cross-server-linking-redesign) owns both replacement design and retirement of
+retained reference code. This explicit exception to migration cleanup avoids
+reviewing temporary internal changes twice.
 
 ## Approved decisions outside this PR
 
@@ -186,15 +197,6 @@ document has not been selected.
 
 ## Remaining migration gaps
 
-- **Linked sources:** Django source OAuth registration, consent,
-  account-token storage, refresh/relink behavior, source-authorized document
-  listing/token issuance remain unimplemented.
-  Preserve the capabilities in [source linking](specs/access/source-linking.md); port the source-linking consumer
-  and cross-server tests with that slice. Source/account cache isolation needs
-  end-to-end verification across independently authenticated servers.
-- **Account policy:** public-signup policy remains unimplemented. Native
-  administrative account management does
-  not settle public signup or the home/source role split.
 - **Offline and PWA behavior:** persistent offline metadata/Home inventory and
   full [offline application behavior](architecture.md#offline-application-behavior) remain incomplete. Retain offline content
   editing; verify cached document reopen, reconnect, remembered sessions,
@@ -204,7 +206,7 @@ document has not been selected.
 - **Production and Docker:** locally verify self-hosted startup and the hosted
   HTTP hop behind TLS termination with the Django image. Actual Render
   deployment, public-certificate issuance, and rootful Docker verification
-  remain external checks. Source-linking and full offline Docker scenarios still
+  remain external checks. Full offline Docker scenarios still
   contain old backend/projection assumptions and are outside the current
   production test selection.
 - **Import, exports, and recovery:** retained client-side import code is not
@@ -214,10 +216,9 @@ document has not been selected.
   is insufficient. The old scheduled exporter and cron are absent from the
   Django image; restore automated exports and scheduler supervision in the
   recovery slice.
-- **Obsolete code:** remove the remaining in-process Node backend,
-  Yjs app-resource projections, and their remaining
-  consumers/tests after replacement slices cover their responsibilities. Do
-  not add compatibility adapters or legacy-data migration to preserve them.
+- **Obsolete code:** linking reference code is retained under the
+  [redesign exception](todo.md#cross-server-linking-redesign). Retire other migration-only tooling as its replacement
+  slices land.
 
 ## Open questions and dependencies
 
@@ -234,21 +235,16 @@ to implement every item.
    clearing, cross-tab behavior, and server revocation before selecting
    changes. The proposed local logout/deferred revocation model was not
    separately approved by this discussion.
-3. **Source linking:** evaluate user-entered sources with dynamic OAuth
-   registration against operator-configured sources, including private-home
-   reachability and independent source identities. Do not reduce existing
-   capability without approval. Reconsider public signup/home/source coupling
-   here.
-4. **App-resource API:** after Home, offline, and source requirements are
+3. **App-resource API:** after Home, offline, and source requirements are
    clearer, evaluate generated records/query APIs versus note-shaped
    account/document/grant/source wrappers using real Home and Sharing
    consumers. The first slice's cache library does not settle the public SDK
    shape.
-5. **Test organization:** consider explicit fixtures and native Django/Vitest
+4. **Test organization:** consider explicit fixtures and native Django/Vitest
    suites for pure TypeScript, editor, backend, collaboration, and browser
    behavior. Preserve meaningful collaboration coverage; suite reorganization
    is separate from required fixture adaptation.
-6. **Production supervision, exports, and recovery:** explain existing
+5. **Production supervision, exports, and recovery:** explain existing
    mechanisms, then decide maintenance-failure behavior, optional readable
    JSON/Markdown exports, and coherent recovery. The
    [production infrastructure ADR](decisions/0001-production-infrastructure.md) remains an early draft; it does not select a
@@ -259,9 +255,9 @@ to implement every item.
 
 After the current browser flow passes its acceptance checks, inspect the
 branch and these gaps before proposing one next PR with exclusions and checks.
-Cross-server OAuth remains the next risky integration to validate after
-resolving the source-linking discussion. Production simplifications form their
-own coherent production slice.
+Cross-server linking and its internal cleanup are deferred to the
+post-migration redesign. Recovery and offline verification remain migration
+completion slices.
 
 Keep this ledger current after each slice. The [main TODO entry](todo.md#django-backend-replacement) owns the
 integration workflow and final completion gate. Retire this temporary ledger

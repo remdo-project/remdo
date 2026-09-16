@@ -47,15 +47,32 @@ and operational work through established libraries and services.
   review and full verification against the completion criteria below, then
   retire it.
 - **Starting commit:** `668e3729b94f42be4bc54f20c36fd78575a21155` (`main`).
-- **Completion:** Remove the old backend and projections. Verify all
-  [run modes](run-modes.md), sharing/source linking, offline behavior,
-  account/source cache isolation, and backup/restore. Treat related backlog
+- **Completion:** Retire the old runtime, except reference code retained for the
+  [cross-server redesign](#cross-server-linking-redesign). Verify all
+  [run modes](run-modes.md), local sharing, offline behavior,
+  account/instance cache isolation, and backup/restore. Treat related backlog
   entries as ideas, not automatic scope; record deliberate behavior changes in
   their owning specifications.
 - **Slices and decisions:** [Django migration](django-migration.md) records the
   current browser-flow PR, acceptance checks, approved deferred decisions,
   remaining gaps, and open questions. Inspect that record and the branch before
   selecting the next cohesive PR; keep the gaps current after each slice.
+
+### Cross-server linking redesign
+
+Redesign cross-server document access after the Django migration. Local
+sharing stays supported. Decide source discovery/registration, independent
+identities, consent scope, refresh/relink/unlink, private-instance
+reachability, failure reporting, and cache isolation together. Reconsider
+public signup independently of linking; preserve the [multi-origin direction](principles.md#multi-origin-direction)
+without committing to the previous OAuth topology.
+
+To avoid reviewing temporary architecture twice, retain the unused Node
+backend, source adapters, projections, linking scripts/tests, and their
+dependencies as reference code until this redesign. They do not provide supported
+cross-server functionality. Replace or remove them together with the redesign;
+do not migrate or extend them as a Django completion requirement. The
+withdrawn source-linking specification remains in Git history.
 
 ### Documentation
 

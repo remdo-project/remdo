@@ -15,11 +15,11 @@
   // live implementation details, not dead production code.
   "ignoreExportsUsedInFile": true,
   "entry": [
-    // Migration reference code for sharing/source linking, retained with its tests.
+    // Reference code retained for docs/todo.md#cross-server-linking-redesign.
     "src/server/{app,auth/auth,db/client,documents/document-registry}.ts!",
     // Retained Node migration tooling, removed after its remaining consumers are ported.
     "tools/snapshot/{cli,backup}.ts!",
-    // Retain the source-linking fixture while its Docker suite awaits Django migration.
+    // Retained source-linking fixture for the same post-migration redesign.
     "playwright.docker.config.ts",
     "tests/e2e/docker/_support/seed-source-user.ts",
     "tools/{check-pnpm-policy,collab-server,generate-api-client}.ts",

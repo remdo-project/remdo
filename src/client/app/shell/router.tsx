@@ -4,9 +4,6 @@ import AuthenticatedRoute from './AuthenticatedRoute';
 import { devRoutes } from './devRoutes';
 import { hasPendingSignOut, resolveSessionGateState } from '#client/app/session/client';
 import type { SessionGateState } from '#client/app/session/client';
-import { resolveAuthenticatedLoginRedirect } from '#client/app/session/login-redirect';
-import OAuthConsentRoute from '#client/app/session/OAuthConsentRoute';
-import OnlineGate from '#client/app/session/OnlineGate';
 import {
   createPostAuthNextSearch,
   createSignInPath,
@@ -48,20 +45,10 @@ async function homeRouteLoader(request: Request): Promise<{ sessionState: Sessio
   if (sessionState.status === 'offline-unavailable') {
     return { sessionState };
   }
-  let target: string;
-  if (sessionState.status === 'offline-remembered') {
-    const bootstrap = getCachedCurrentUserBootstrap();
-    if (!bootstrap) {
-      return { sessionState: { status: 'offline-unavailable' } };
-    }
-    target = resolvePostAuthPath(search, url.origin);
-  } else {
-    const redirectTarget = resolveAuthenticatedLoginRedirect(search, url.origin);
-    if (redirectTarget.kind === 'document-redirect') {
-      throw redirectDocument(redirectTarget.href);
-    }
-    target = redirectTarget.path;
+  if (sessionState.status === 'offline-remembered' && !getCachedCurrentUserBootstrap()) {
+    return { sessionState: { status: 'offline-unavailable' } };
   }
+  const target = resolvePostAuthPath(search, url.origin);
 
   if (target !== '/') {
     throw redirect(target);
@@ -110,18 +97,6 @@ const appRoutes = [
     path: '/',
     loader: ({ request }: { request: Request }) => homeRouteLoader(request),
     element: <HomeRoute />,
-    hydrateFallbackElement,
-  },
-  {
-    // Source-side consent screen: shown when a home's user authorizes the home to
-    // act on their behalf. Reachable only with a source session.
-    path: '/oauth/consent',
-    loader: authenticatedSessionLoader,
-    element: (
-      <OnlineGate>
-        <OAuthConsentRoute />
-      </OnlineGate>
-    ),
     hydrateFallbackElement,
   },
   {
