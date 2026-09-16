@@ -7,6 +7,13 @@ import sys
 import time
 
 suite, workers, shard = sys.argv[1:]
+candidates = json.loads(Path("tools/test/harness-candidates.json").read_text())
+config_path = Path("vitest.config.mts")
+config_text = config_path.read_text()
+for group, files in candidates.items():
+    marker = f"const {group}Tests = ["
+    config_text = config_text.replace(marker, marker + "\n" + "".join(f"  '{file}',\n" for file in files))
+config_path.write_text(config_text)
 output = Path(".agent/perf-results")
 output.mkdir(parents=True, exist_ok=True)
 results = []

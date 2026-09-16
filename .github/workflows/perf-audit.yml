@@ -1,4 +1,4 @@
-name: Temporary performance audit
+name: Temporary harness audit
 on: push
 permissions:
   contents: read
@@ -10,12 +10,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [unit, collab, e2e]
-        workers: [2, 3, 4]
+        suite: [unit, collab]
+        workers: [3]
         shard: ['all']
-        include:
-          - {suite: e2e, workers: 3, shard: '1/2'}
-          - {suite: e2e, workers: 3, shard: '2/2'}
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
