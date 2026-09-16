@@ -2,7 +2,7 @@ name: Lint
 permissions:
   contents: read
 
-on: push
+on: workflow_dispatch
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

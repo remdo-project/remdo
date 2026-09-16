@@ -1,0 +1,31 @@
+name: Temporary performance audit
+on: push
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    name: ${{ matrix.suite }} w${{ matrix.workers }} shard${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [unit, collab, e2e]
+        workers: [2, 3, 4]
+        shard: ['all']
+        include:
+          - {suite: e2e, workers: 3, shard: '1/2'}
+          - {suite: e2e, workers: 3, shard: '2/2'}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-pnpm
+      - if: matrix.suite == 'e2e'
+        run: pnpm exec playwright install chromium
+      - name: Benchmark two fresh invocations
+        run: python3 tools/test/perf-audit.py '${{ matrix.suite }}' '${{ matrix.workers }}' '${{ matrix.shard }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: perf-${{ matrix.suite }}-w${{ matrix.workers }}-${{ strategy.job-index }}
+          path: .agent/perf-results
+          retention-days: 7

@@ -16,10 +16,13 @@ function toApiUrl(pathname: string): string {
 }
 
 async function signInTestUser(): Promise<CollabTestAuthentication> {
+  const started = performance.now();
   await provisionDjangoUser(TEST_AUTH_ACCOUNT);
+  const provisioned = performance.now();
   const request = await playwrightRequest.newContext();
   try {
     const csrfToken = await authenticateDjangoTestUser(request, resolveApiServerOrigin(), TEST_AUTH_ACCOUNT);
+    console.info(`PERF_AUTH provision=${(provisioned - started).toFixed(1)} login=${(performance.now() - provisioned).toFixed(1)}`);
     const { cookies } = await request.storageState();
     return { cookie: cookies.map(({ name, value }) => `${name}=${value}`).join('; '), csrfToken };
   } finally {
