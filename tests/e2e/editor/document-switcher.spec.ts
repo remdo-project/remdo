@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer';
-import { expect, test } from '#editor/fixtures';
+import { expect, isolatedTest as test } from '#editor/fixtures';
 import { readFixture } from '#tools/fixtures';
 import { createUserDocument } from '../_support/documents';
 import { ensureReady, load, waitForSynced } from './_support/bridge';

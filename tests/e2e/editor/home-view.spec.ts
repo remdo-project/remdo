@@ -1,4 +1,4 @@
-import { expect, test } from '#editor/fixtures';
+import { expect, isolatedTest as test } from '#editor/fixtures';
 import { editorLocator, homeView, homeZoomBreadcrumb } from '#editor/locators';
 import { waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath } from './_support/routes';
