@@ -38,8 +38,8 @@ rules to those calls just as it does to the user's source session. The
 delegation does not grant one source user access belonging to another.
 
 Document sharing continues to target a local account on the document's source
-server. Once linked, the browser subscribes to the source-owned
-[user-data projection](../../architecture.md#document-registry) and merges its documents into the home document list.
+server. Once linked, the browser loads source-authorized [document metadata](../../architecture.md#document-registry) and
+merges its documents into the home document list.
 
 ## Linking a Source
 
@@ -57,7 +57,7 @@ client across home users.
 
 The source accepts unauthenticated dynamic client registration only while it is
 public. The client alone grants no document access: the source user signs in and
-consents before Better Auth stores the linked account on the home.
+consents before Django stores the linked account on the home.
 
 When a cached client predates the current registration contract, the home
 registers a replacement. Because refresh tokens are client-bound, linked

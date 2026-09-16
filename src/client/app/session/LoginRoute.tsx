@@ -1,7 +1,9 @@
-import { Alert, Anchor, Button, PasswordInput, Stack, Text, TextInput } from '@mantine/core';
+import { clearCurrentUserBootstrapCache } from '#client/app/user-data/current-user-bootstrap';
+import { resetUserData } from '#client/app/user-data/user-data';
+import { Alert, Button, PasswordInput, Stack, Text, TextInput } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLoaderData, useLocation, useNavigate } from 'react-router-dom';
-import { authClient, rememberAuthenticatedSession } from '#client/app/session/client';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { signIn, rememberAuthenticatedSession } from '#client/app/session/client';
 import { LOGGED_OUT_STATE_KEY } from '#client/app/session/useLogout';
 import CenteredCardPage from '#client/ui/CenteredCardPage';
 import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
@@ -20,9 +22,6 @@ function readAuthErrorMessage(error: unknown, fallback: string): string {
 export default function LoginRoute() {
   const location = useLocation();
   const navigate = useNavigate();
-  // The public-auth loader returns { publicServer } for unauthenticated visitors.
-  const loaderData = useLoaderData<{ publicServer?: boolean } | null>();
-  const publicServer = loaderData?.publicServer ?? false;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
@@ -38,6 +37,8 @@ export default function LoginRoute() {
   }, [signedOut]);
 
   const completeAuth = () => {
+    resetUserData();
+    clearCurrentUserBootstrapCache();
     rememberAuthenticatedSession();
     if (isOAuthAuthorizeSearch(location.search)) {
       globalThis.location.assign(`/api/auth/oauth2/authorize${location.search}`);
@@ -53,14 +54,10 @@ export default function LoginRoute() {
     setErrorMessage(null);
 
     try {
-      const result = await authClient.signIn.email({
+      await signIn({
         email: email.trim(),
         password,
       });
-      if (result.error) {
-        setErrorMessage(readAuthErrorMessage(result.error, 'Failed to sign in.'));
-        return;
-      }
       completeAuth();
     } catch (error) {
       setErrorMessage(readAuthErrorMessage(error, 'Failed to sign in.'));
@@ -111,15 +108,9 @@ export default function LoginRoute() {
         </Stack>
       </form>
 
-      {!publicServer && (
-        <Text c="dimmed" size="sm">
-          Setting up this server?{' '}
-          <Anchor component={Link} to={`/admin${location.search}`}>
-            Become admin
-          </Anchor>
-          .
-        </Text>
-      )}
+      <Text c="dimmed" size="sm">
+        <a href="/admin/">Administration</a>
+      </Text>
     </CenteredCardPage>
   );
 }

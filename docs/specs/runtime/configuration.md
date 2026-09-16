@@ -8,6 +8,16 @@ Runtime consumers obtain configuration only from the resolved result. Only
 explicitly projected values are available to the browser; all other values
 remain server-only.
 
+Shell launchers resolve shared deployment addresses and paths. Django reads
+environment variables and owns backend settings and validation; backend commands
+do not require Node or frontend dependencies. Frontend tooling owns browser build
+configuration.
+
+Development and verification launchers select Django's development settings;
+production launchers and direct Django invocation select production settings.
+Selection uses Django's native `DJANGO_SETTINGS_MODULE`. `NODE_ENV` selects
+JavaScript behavior independently and does not select backend settings.
+
 Missing or invalid configuration fails at the boundary that requires it.
 Server-only requirements do not apply to browser configuration or production utilities.
 
@@ -38,6 +48,9 @@ Server-only requirements do not apply to browser configuration or production uti
   effective port of `APP_ORIGIN`. It is not a self-hosted Docker input.
 - `PORT_BASE` selects the development or verification stack's port range.
   Shifting it shifts every derived port as one unit. It has no production role.
+  Independent working directories use distinct 100-port blocks and their own
+  data roots. A launcher refuses occupied service ports instead of selecting
+  another instance's services or silently changing ports.
 - `PUBLIC_HOST` selects the browser-visible hostname in development. It
   defaults to `HOST`; with `HOST=0.0.0.0`, it defaults to the machine hostname
   and must be set explicitly when that hostname is not browser-visible. It has
@@ -56,12 +69,13 @@ the repository; production containers use `/data` for the mounted root.
 
 ## Secret bootstrap
 
-Production [admin enrollment](../access/access-control.md#admin-role) requires
-an operator-supplied secret of at least 32 characters; startup never generates
-it.
+Production startup generates the application authentication secret and matched
+Y-Sweet authentication pair into one private `secrets.json` file under the
+[production persistence root](../../architecture.md#runtime-persistence-boundary).
+Python owns initialization and loading; Django management commands use the same
+bundle. Individual environment variables do not override production secrets.
 
-Production startup resolves the application authentication secret and matched
-Y-Sweet authentication pair from operator input, then persisted values,
-otherwise generates and persists them. Generated runtime secrets are accessible
-only to their owner. Startup refuses to generate replacements when the
-[production persistence root](../../architecture.md#runtime-persistence-boundary) already contains a dataset.
+An existing bundle is reused. Empty, malformed, or incomplete bundles fail
+without repair. When the bundle is absent, initialization refuses to generate
+replacements if the persistence root already contains a dataset. Restore the
+bundle with its dataset. Development and verification use fixture credentials.

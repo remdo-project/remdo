@@ -6,9 +6,7 @@ This guide owns the supported deployment and first-access procedures for the
 Architecture owns the [production instance](../architecture.md#production-instance-boundary),
 [gateway](../architecture.md#gateway), and [persistent storage root](../architecture.md#runtime-persistence-boundary).
 
-## Generate the Admin Secret
-
-Generate a unique random `ADMIN_SECRET` using the guidance in the [environment example](../../.env.example).
+See [migration gaps](../django-migration.md#remaining-migration-gaps) for current deployment availability.
 
 ## Deploy with Self-Hosted Docker
 
@@ -21,7 +19,7 @@ daemons are supported.
    cp .env.example .env
    ```
 
-2. In `.env`, set `ADMIN_SECRET` and optionally override
+2. In `.env`, optionally override
    [`DATA_DIR`](../specs/runtime/configuration.md#persistence). By default, the
    gateway is available at `https://remdo.localhost:8443` only through the
    Docker host's loopback interface.
@@ -69,7 +67,7 @@ daemons are supported.
 ## Deploy on Render
 
 1. Create a Render Blueprint deployment from [the repository blueprint](../../render.yaml).
-2. In the Render Dashboard, set `ADMIN_SECRET` and set `APP_ORIGIN` to the
+2. In the Render Dashboard, set `APP_ORIGIN` to the
    service's exact public origin.
 3. Keep the blueprint's persistent disk mounted at `/data` and its
    `ALLOW_SIGNUP=false` setting. Render supplies the container `PORT` and
@@ -109,7 +107,8 @@ start of the new version.
 
 1. Append `/health` to the application URL and confirm that the gateway reports
    a healthy service.
-2. Append `/admin` to the application URL and open it.
-3. Enter `ADMIN_SECRET` and the new administrator's name, email, and password to
-   complete [admin enrollment](../specs/access/access-control.md#admin-role).
-4. Open the application home with the enrolled administrator account.
+2. Run Django's `createsuperuser` management command in the deployed backend's
+   runtime, using its production settings and persistent data. Enter the
+   administrator's email and password, following the [administrator creation](../specs/access/access-control.md#admin-role) model.
+3. Open `/admin/` on the application origin and sign in with that account.
+4. Open the application home and sign in with the same account.

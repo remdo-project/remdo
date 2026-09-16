@@ -2,7 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ensureCollabTestDocument } from '#tests-collab/documents';
+import { createCollabTestDocument } from '#tests-collab/documents';
 import { EditorViewProvider, useDocumentSession } from '#client/editor/view/EditorViewProvider';
 import Editor from './Editor';
 
@@ -59,7 +59,7 @@ function EditorWithConsumer() {
 }
 
 beforeEach(async () => {
-  await ensureCollabTestDocument('sessionReadiness');
+  await createCollabTestDocument('sessionReadiness');
 });
 
 afterEach(() => {

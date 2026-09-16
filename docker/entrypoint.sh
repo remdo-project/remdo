@@ -10,6 +10,7 @@ export REMDO_ROOT
 
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/env.defaults.sh
+remdo_configure_environment production
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/entrypoint-env.sh
 

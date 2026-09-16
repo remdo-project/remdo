@@ -1,3 +1,4 @@
+import { apiFetch } from '#platform/http/api-fetch';
 import type { Provider } from '@lexical/yjs';
 import { createYjsProvider } from '@y-sweet/client';
 import type { ClientToken } from '@y-sweet/sdk';
@@ -275,7 +276,7 @@ function getAuthToken(
   const controller = new AbortController();
   const promise = (async () => {
     trace('collab', 'requesting auth token', { docId });
-    const response = await fetch(endpoints.token, {
+    const response = await apiFetch(endpoints.token, {
       signal: controller.signal,
       method: 'POST',
       headers: { 'content-type': 'application/json' },

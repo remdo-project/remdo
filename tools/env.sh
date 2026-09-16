@@ -5,9 +5,13 @@ set -eu
 ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
 _remdo_port_base_offset=""
+_remdo_environment=development
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --production)
+      _remdo_environment=production
+      shift ;;
     --port-base-offset)
       if [ "$#" -lt 2 ]; then
         echo "env.sh: --port-base-offset requires a non-negative integer" >&2
@@ -35,11 +39,13 @@ remdo_load_dotenv_file "${ENV_FILE}"
 export REMDO_ROOT="${REMDO_ROOT:-${ROOT_DIR}}"
 # shellcheck disable=SC1091 # shared defaults live in the repo.
 . "${ROOT_DIR}/tools/env.defaults.sh"
+remdo_configure_environment "${_remdo_environment}"
+unset _remdo_environment
 
 mkdir -p "${TMPDIR}"
 
 if [ "$#" -eq 0 ]; then
-  echo "Usage: env.sh [--port-base-offset <offset>] <command>" >&2
+  echo "Usage: env.sh [--production] [--port-base-offset <offset>] <command>" >&2
   exit 1
 fi
 

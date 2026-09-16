@@ -36,6 +36,7 @@ import { $getOrCreateChildList } from '#client/editor/outline/list-structure';
 import { $addNoteBody } from '#client/editor/features/note-body/note-body-ops';
 import { noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 import { renderRemdoEditor } from '#tests-collab/render-editor';
+import { createCollabTestDocument } from '#tests-collab/documents';
 
 function findSerializedListItem(node: SerializedLexicalNode, noteId: string): SerializedNoteListItemNode | null {
   return findSerializedNode([node], (candidate): candidate is SerializedNoteListItemNode => (
@@ -311,7 +312,7 @@ describe('note ids on paste', () => {
       expect(crossDocClipboardLink.docId).toBe('otherDoc');
 
       const destinationDocId = createUniqueNoteId();
-
+      await createCollabTestDocument(destinationDocId);
       const { api: destination, unmount } = await renderRemdoEditor(destinationDocId);
       try {
         const insertionNoteId = readOutline(destination).at(-1)!.noteId!;

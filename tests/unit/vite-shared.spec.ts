@@ -1,19 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
-import { isApiRequestPath } from '../../config/vite/remdo-api-dev-plugin';
 import { createViteSharedConfig, pwaNavigationFallbackDenylist } from '../../config/vite/shared';
 import { resolveLocalGatewayOrigin } from '../../src/platform/net/origins';
 
 describe('vite shared config', () => {
-  it('mounts the RemDo API in dev and proxies sync routes only', () => {
+  it('proxies Django and sync routes through the development gateway', () => {
     const config = createViteSharedConfig();
     const serverProxy = config.server.proxy;
     const previewProxy = config.preview.proxy;
 
     expect(config.plugins).toEqual(expect.arrayContaining([
-      expect.objectContaining({ name: 'remdo-api-dev' }),
       expect.objectContaining({ name: 'remdo-dev-spa-routes' }),
     ]));
-    expect(serverProxy).not.toHaveProperty('/api');
+    expect(serverProxy['/api']).toMatchObject({ changeOrigin: false });
+    expect(serverProxy['/admin']).toEqual(serverProxy['/api']);
     expect(serverProxy['/d']).toMatchObject({
       changeOrigin: true,
       ws: true,
@@ -56,6 +55,8 @@ describe('vite shared config', () => {
   it('routes preview traffic locally without replacing the browser origin', async () => {
     vi.stubEnv('HOST', '0.0.0.0');
     vi.stubEnv('PUBLIC_HOST', 'browser-visible.test');
+    vi.stubEnv('PORT', '4300');
+    vi.stubEnv('APP_ORIGIN', 'http://browser-visible.test:4300');
     vi.resetModules();
 
     try {
@@ -76,14 +77,4 @@ describe('vite shared config', () => {
     }
   });
 
-  it('recognizes only API request paths for the dev API middleware', () => {
-    expect(isApiRequestPath('/api')).toBe(true);
-    expect(isApiRequestPath('/api/health')).toBe(true);
-    expect(isApiRequestPath('/api/current-user?x=1')).toBe(true);
-    expect(isApiRequestPath('/.well-known/openid-configuration')).toBe(true);
-    expect(isApiRequestPath('/.well-known/oauth-authorization-server')).toBe(true);
-    expect(isApiRequestPath('/app/api/current-user')).toBe(false);
-    expect(isApiRequestPath('/apiary')).toBe(false);
-    expect(isApiRequestPath()).toBe(false);
-  });
 });

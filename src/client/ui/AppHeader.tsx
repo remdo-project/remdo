@@ -35,14 +35,9 @@ export default function AppHeader({ authState, onLogout, trailingNav }: AppHeade
         <nav aria-label="Primary" className={styles.navigation}>
           <Group className={styles.links} gap="md">
             {authState.status === 'authenticated' && authState.isAdmin && (
-              <NavLink className={navLinkClassName} to="/admin">
+              <a className={styles.link} href="/admin/">
                 Admin
-              </NavLink>
-            )}
-            {hasAppAccess && (
-              <NavLink className={navLinkClassName} to="/sharing">
-                Sharing
-              </NavLink>
+              </a>
             )}
             {hasAppAccess && (
               <UnstyledButton className={styles.link} onClick={onLogout}>

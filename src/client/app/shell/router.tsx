@@ -1,9 +1,6 @@
 import { createBrowserRouter, redirect, redirectDocument } from 'react-router-dom';
 import AppFrame from './AppFrame';
 import AuthenticatedRoute from './AuthenticatedRoute';
-import { getPublicClientConfig } from './config';
-import { adminRouteLoader } from '#client/app/admin/admin-route-loader';
-import AdminRoute from '#client/app/admin/AdminRoute';
 import { devRoutes } from './devRoutes';
 import { resolveSessionGateState } from '#client/app/session/client';
 import type { SessionGateState } from '#client/app/session/client';
@@ -36,14 +33,10 @@ async function authenticatedSessionLoader({ request }: { request: Request }) {
   return { sessionState: await requireAuthenticatedRoute(request) };
 }
 
-async function homeRouteLoader(request: Request): Promise<{ sessionState: SessionGateState; publicServer?: boolean }> {
+async function homeRouteLoader(request: Request): Promise<{ sessionState: SessionGateState }> {
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
-    // Carry the public-server flag so the login page can gate its admin link.
-    return {
-      publicServer: (await getPublicClientConfig()).publicServer,
-      sessionState,
-    };
+    return { sessionState };
   }
 
   const url = new URL(request.url);
@@ -113,20 +106,6 @@ const appRoutes = [
     path: '/',
     loader: ({ request }: { request: Request }) => homeRouteLoader(request),
     element: <HomeRoute />,
-    hydrateFallbackElement,
-  },
-  {
-    // Public: the enroll form for an unauthenticated / non-admin visitor (a
-    // first-time operator bootstraps here), and the panel wrapped in the app
-    // shell for an authenticated admin. The loader chooses; the action is
-    // ADMIN_SECRET-gated server-side either way.
-    path: '/admin',
-    loader: adminRouteLoader,
-    element: (
-      <OnlineGate>
-        <AdminRoute />
-      </OnlineGate>
-    ),
     hydrateFallbackElement,
   },
   {

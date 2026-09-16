@@ -4,6 +4,7 @@ import { afterEach, aroundEach } from 'vitest';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tools/fixtures';
 import { installAuthenticatedApiFetch } from '../../../../collab/_support/auth';
+import { createCollabTestDocument } from '../../../../collab/_support/documents';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
 import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
 
@@ -30,6 +31,7 @@ aroundEach<TestContext>(async (run, ctx) => {
     : normalizeNoteIdOrThrow(rawDocId, `Invalid collab doc id: ${rawDocId}`);
 
   const seedFixtureBeforeMount = Boolean(config.env.COLLAB_ENABLED && fixtureName);
+  await createCollabTestDocument(docId);
 
   if (seedFixtureBeforeMount) {
     // In collab mode the document must already contain the fixture before the

@@ -1,0 +1,14 @@
+{
+  "alice": {
+    "email": "alice@example.test",
+    "name": "Alice",
+    "password": "alice-password-1234",
+    "admin": true
+  },
+  "bob": {
+    "email": "bob@example.test",
+    "name": "Bob",
+    "password": "bob-password-1234",
+    "admin": false
+  }
+}

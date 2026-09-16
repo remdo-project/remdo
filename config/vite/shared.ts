@@ -3,8 +3,7 @@ import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
 import { config } from '../index.ts';
 import { onRollupWarning } from '../_internal/vite/onRollupWarning.ts';
-import { resolveCollabServerOrigin, resolveLocalGatewayOrigin } from '../../src/platform/net/origins.ts';
-import { remdoApiDevPlugin } from './remdo-api-dev-plugin.ts';
+import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveLocalGatewayOrigin } from '../../src/platform/net/origins.ts';
 import { remdoDevSpaRoutesPlugin } from './remdo-dev-spa-routes-plugin.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,7 +16,11 @@ export const pwaNavigationFallbackDenylist = [
   /^\/api(?:\/|$)/u,
   /^\/d(?:\/|$)/u,
 ];
+const apiProxy = { target: resolveApiServerOrigin(), changeOrigin: false };
 const devProxy = {
+  '/api': apiProxy,
+  '/admin': apiProxy,
+  '/django-static': apiProxy,
   '/d': {
     target: collabServerTarget,
     changeOrigin: true,
@@ -51,7 +54,6 @@ export function createViteSharedConfig() {
       },
     },
     plugins: [
-      remdoApiDevPlugin(),
       remdoDevSpaRoutesPlugin(),
       VitePWA({
         includeAssets: ['icons/*.svg', 'favicon.png'],

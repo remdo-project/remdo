@@ -1,9 +1,9 @@
-import { Alert, Container } from '@mantine/core';
+import { Alert, Button, Container } from '@mantine/core';
 import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createDocumentPath } from '#document-routes';
 import { APP_TITLE } from '#client/ui/navigation-label';
-import { useUserData } from '#client/app/user-data/user-data';
+import { useUserData, useUserDataStatus } from '#client/app/user-data/user-data';
 import { HomeView } from './document/HomeView';
 import { buildHomeContent } from './document/home-content';
 import { useDocumentActions } from './document/useDocumentActions';
@@ -11,6 +11,7 @@ import './DocumentRoute.css';
 
 export default function Home() {
   const userData = useUserData();
+  const status = useUserDataStatus();
   const navigate = useNavigate();
   const openDocument = useCallback((docId: string) => {
     void navigate(createDocumentPath(docId));
@@ -25,6 +26,11 @@ export default function Home() {
 
   return (
     <Container className="document-route-container" component="main" fluid py="xs">
+      {status.error && (
+        <Alert color="red" title="Could not load documents">
+          <Button onClick={status.retry}>Retry</Button>
+        </Alert>
+      )}
       {actions.createError && (
         <Alert closeButtonLabel="Dismiss" color="red" onClose={actions.dismissCreateError} title="Could not create document" withCloseButton>
           {actions.createError}

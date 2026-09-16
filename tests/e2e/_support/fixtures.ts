@@ -26,13 +26,21 @@ const allowUnauthorizedApiByPage = new WeakMap<Page, boolean>();
 
 export function allowUnauthorizedNetwork(page: Page): void {
   allowUnauthorizedApiByPage.set(page, true);
-  setExpectedConsoleIssues(page, ['status of 401'], { mode: 'allowContains' });
 }
 
-function isLogoutUnauthorizedPath(pathname: string): boolean {
-  return pathname === '/api/current-user'
-    || pathname.startsWith('/api/auth/')
-    || pathname.endsWith('/sync-tokens');
+function isLogoutUnauthorizedResponse(url: string, status: number): boolean {
+  if (!URL.canParse(url)) return false;
+  const { pathname } = new URL(url);
+  if (pathname.startsWith('/api/auth/')) return status === HTTP_STATUS.UNAUTHORIZED;
+  return status === HTTP_STATUS.FORBIDDEN && (
+    pathname === '/api/current-user'
+    || pathname === '/api/documents'
+    || /^\/api\/documents\/[^/]+\/sync-tokens$/u.test(pathname)
+  );
+}
+
+function isAccountSessionUrl(url: string): boolean {
+  return URL.canParse(url) && new URL(url).pathname === '/api/auth/browser/v1/auth/session';
 }
 
 function createIssueCounts(messages: string[]): Map<string, number> {
@@ -116,6 +124,8 @@ export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) =
     const url = response.url();
     if (url.startsWith('data:')) return true;
     if (url.includes('favicon') && response.status() === HTTP_STATUS.NOT_FOUND) return true;
+    // Allauth uses 401 to report an absent session and to acknowledge logout.
+    if (isAccountSessionUrl(url) && response.status() === HTTP_STATUS.UNAUTHORIZED) return true;
     return false;
   };
 
@@ -124,6 +134,11 @@ export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) =
     if (type !== 'warning' && type !== 'error') return;
 
     const issueMessage = message.text();
+    if (isAccountSessionUrl(message.location().url) && issueMessage.includes('status of 401')) return;
+    if (allowUnauthorizedApiByPage.get(page) && [HTTP_STATUS.UNAUTHORIZED, HTTP_STATUS.FORBIDDEN].some(
+      (status) => issueMessage.includes(`status of ${status}`)
+        && isLogoutUnauthorizedResponse(message.location().url, status),
+    )) return;
     const expected = issueExpectationsByPage.get(page);
     if (consumeExpectedIssue(expected, issueMessage)) {
       return;
@@ -141,8 +156,7 @@ export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) =
     const status = response.status();
     if (
       allowUnauthorizedApiByPage.get(page)
-      && status === HTTP_STATUS.UNAUTHORIZED
-      && isLogoutUnauthorizedPath(new URL(response.url()).pathname)
+      && isLogoutUnauthorizedResponse(response.url(), status)
     ) {
       return;
     }

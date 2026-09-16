@@ -22,3 +22,11 @@ jobs:
       - env:
           TEST_TIMEOUT: 240
         run: pnpm run test:unit
+
+  backend-tests:
+    timeout-minutes: 8
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-python
+      - run: ./tools/check-backend.sh && ./tools/django.sh test accounts documents fixtures remdo

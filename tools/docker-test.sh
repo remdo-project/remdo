@@ -25,7 +25,7 @@ SOURCE_PORT_SHIFT=70
 HOME_INTERNAL_PORT_SHIFT=50
 BOOTSTRAP_INTERNAL_PORT_SHIFT=60
 
-remdo_load_env_defaults "${ROOT_DIR}"
+remdo_load_env_defaults "${ROOT_DIR}" development
 # The containerized gateway runs on PORT_BASE+7 and the standalone source dev
 # server on a separate PORT_BASE+70 range. PORT is the single bind input now, so
 # pin the gateway port directly and re-validate it as browser-facing.

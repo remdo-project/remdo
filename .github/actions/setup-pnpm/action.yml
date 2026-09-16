@@ -1,5 +1,5 @@
-name: Setup pnpm workspace
-description: Configure pnpm and install dependencies
+name: Setup workspace
+description: Configure Node and Python and install locked dependencies
 runs:
   using: composite
   steps:
@@ -10,3 +10,4 @@ runs:
         cache: pnpm
     - run: pnpm install --frozen-lockfile --prefer-offline
       shell: bash
+    - uses: ./.github/actions/setup-python

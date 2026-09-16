@@ -35,56 +35,6 @@ function parseEnv(getValue: EnvGetter): ParsedEnv {
   return Object.fromEntries(entries) as ParsedEnv;
 }
 
-function validateDevHost(host: string): string {
-  if (!host || /[\s:/?#@]/u.test(host) || !URL.canParse(`http://${host}:1`)) {
-    throw new TypeError('HOST and PUBLIC_HOST must be a bare hostname or IPv4 address.');
-  }
-  return host;
-}
-
-function validateDevPublicHost(host: string): string {
-  const validated = validateDevHost(host);
-  if (validated === '0.0.0.0') {
-    throw new TypeError('PUBLIC_HOST must identify a browser-visible host, not 0.0.0.0.');
-  }
-  return validated;
-}
-
-function resolveDevPublicHost(parsed: ParsedEnv, machineHostname: string): string {
-  if (parsed.PUBLIC_HOST) {
-    return parsed.PUBLIC_HOST;
-  }
-  if (parsed.HOST !== '0.0.0.0') {
-    return parsed.HOST;
-  }
-  const normalizedHostname = machineHostname.trim().toLowerCase().replace(/\.$/u, '');
-  if (
-    !normalizedHostname
-    || normalizedHostname === 'localhost'
-    || normalizedHostname === 'localhost.localdomain'
-    || normalizedHostname === 'localdomain'
-  ) {
-    throw new Error(
-      'PUBLIC_HOST is required when HOST binds all interfaces and the machine hostname is not browser-visible.',
-    );
-  }
-  return normalizedHostname;
-}
-
-function resolveAppOrigin(
-  parsed: ParsedEnv,
-  machineHostname: string,
-): string {
-  if (parsed.NODE_ENV === 'production') {
-    return parsed.APP_ORIGIN;
-  }
-  if (!parsed.HOST || parsed.PORT === 0) {
-    return '';
-  }
-  validateDevHost(parsed.HOST);
-  return `http://${validateDevPublicHost(resolveDevPublicHost(parsed, machineHostname))}:${parsed.PORT}`;
-}
-
 function validateProdServer(parsed: ParsedEnv): void {
   // The app-server boundary is signalled by AUTH_SECRET being present: the
   // container bootstraps it for the API process, while operational utilities
@@ -138,7 +88,7 @@ export function resolveConfig(
   // on the server env so auth can re-derive trusted origins for an overridden
   // baseURL without re-reading node:os.
   const machineHostname = options.machineHostname ?? '';
-  const appOrigin = resolveAppOrigin(parsed, machineHostname);
+  const appOrigin = parsed.APP_ORIGIN;
   const server: ServerEnv = {
     ...parsed,
     APP_ORIGIN: appOrigin,

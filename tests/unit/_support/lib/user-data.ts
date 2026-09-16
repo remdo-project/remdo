@@ -115,7 +115,9 @@ function useTestDocumentSourcesLoading(): boolean {
 }
 
 export function mockUserDataModule() {
+  const getUserDataStatus = () => ({ error: null, retry: () => {} });
   return {
+    useUserDataStatus: getUserDataStatus,
     useDocumentSourcesLoading: useTestDocumentSourcesLoading,
     useUserData: useTestUserData,
   };

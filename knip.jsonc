@@ -23,7 +23,8 @@
     // never reaches its globalSetup. Name both until those origins resolve lazily.
     "playwright.docker.config.ts",
     "tests/e2e/docker/_support/seed-source-user.ts",
-    "tools/{check-pnpm-policy,collab-server}.ts",
+    "tools/{check-pnpm-policy,collab-server,generate-api-client}.ts",
+    // Django's launcher consumes the server configuration projection.
     "tools/dev/**/*.ts",
     "tests/perf/**/*.bench.ts",
     "tests/perf/generate-workload.ts",

@@ -1,6 +1,6 @@
-import { adminClient } from 'better-auth/client/plugins';
-import { createAuthClient } from 'better-auth/react';
+import { getSession, signOut } from './session-http';
 import { clearStoredCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap-storage';
+export { signIn } from './session-http';
 
 const KNOWN_SESSION_STORAGE_KEY = 'remdo-authenticated-session';
 export const PENDING_SIGN_OUT_STORAGE_KEY = 'remdo-pending-sign-out';
@@ -9,13 +9,7 @@ const CONFIRMED_SIGN_OUT_KEY = 'remdo-sign-out-confirmed';
 const PENDING_SIGN_OUT_STORAGE_VALUE = '1';
 const SERVER_SIGN_OUT_TIMEOUT_MS = 1500;
 
-export const authClient = createAuthClient({
-  basePath: '/api/auth',
-  plugins: [adminClient()],
-});
-
-type SessionResponse = Awaited<ReturnType<typeof authClient.getSession>>;
-type CurrentSession = Exclude<SessionResponse['data'], null | undefined>;
+type CurrentSession = NonNullable<Awaited<ReturnType<typeof getSession>>>;
 
 export type SessionGateState =
   | { status: 'authenticated'; session: CurrentSession }
@@ -141,21 +135,18 @@ export function isPendingSignOutStorageEvent(event: StorageEvent): boolean {
 }
 
 /**
- * Revoke the server session. A `{ error }` result is not confirmation. The
+ * Revoke the server session. A rejected request is not confirmation. The
  * shared pending marker stays until sign-in so a still-visible cookie cannot
  * resume the session; this tab stops retrying once the server confirms.
  */
 export async function revokeServerSession(): Promise<void> {
   try {
-    const result = await Promise.race([
-      authClient.signOut(),
+    await Promise.race([
+      signOut(),
       new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('Server sign-out timed out.')), SERVER_SIGN_OUT_TIMEOUT_MS);
       }),
     ]);
-    if (result.error) {
-      throw result.error;
-    }
     rememberConfirmedSignOut();
   } catch {
     rememberPendingSignOut();
@@ -191,31 +182,26 @@ export async function resolveSessionGateState(): Promise<SessionGateState> {
   }
 
   try {
-    const result = await authClient.getSession();
-    if (result.data) {
+    const session = await getSession();
+    if (session) {
       rememberAuthenticatedSession();
       return {
         status: 'authenticated',
-        session: result.data,
+        session,
       };
-    }
-
-    if (result.error) {
-      const status = readAuthErrorStatus(result.error);
-      if (status === 401 || status === 403) {
-        forgetAuthenticatedSession();
-        return { status: 'unauthenticated' };
-      }
-      return resolveUnavailableSessionGateState();
-    }
-
-    if (!navigator.onLine) {
-      return resolveUnavailableSessionGateState();
     }
 
     forgetAuthenticatedSession();
     return { status: 'unauthenticated' };
   } catch (error) {
+    const status = readAuthErrorStatus(error);
+    if (status === 401 || status === 403) {
+      forgetAuthenticatedSession();
+      return { status: 'unauthenticated' };
+    }
+    if (status !== null) {
+      return resolveUnavailableSessionGateState();
+    }
     if (!navigator.onLine || isLikelyFetchUnavailableError(error)) {
       return resolveUnavailableSessionGateState();
     }

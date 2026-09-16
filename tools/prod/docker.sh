@@ -48,7 +48,7 @@ if [[ "${HOST}" == "0.0.0.0" && "${PORT}" != "443" ]]; then
   echo "HOST=0.0.0.0 requires APP_ORIGIN to use the default HTTPS port 443." >&2
   exit 1
 fi
-remdo_load_env_defaults "${ROOT_DIR}"
+remdo_load_env_defaults "${ROOT_DIR}" production
 remdo_assert_browser_safe_port "${PORT}"
 
 if [[ "${LOOPBACK_HTTP}" == "true" ]]; then

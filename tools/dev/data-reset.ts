@@ -4,7 +4,6 @@ import path from 'node:path';
 import process from 'node:process';
 
 import { config } from '#config';
-import { createServerRuntime } from '#server/runtime';
 import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
 import { readFixtureState } from '#tools/fixtures';
 import { waitForPortOpen } from '../lib/net';
@@ -34,19 +33,13 @@ async function main(): Promise<void> {
   ));
   console.info(`Found ${fixtures.size} fixtures.`);
 
-  const runtime = createServerRuntime();
-  try {
-    await runtime.auth.ensureReady();
-    if (!(await collabReady)) {
-      throw new Error(
-        `Development collaboration service did not become ready on port ${config.env.COLLAB_SERVER_PORT}.`,
-      );
-    }
-    const result = await resetDevelopmentData(runtime, fixtures);
-    console.info(`Seeded ${result.documentCount} documents across ${result.userCount} users.`);
-  } finally {
-    await runtime.close();
+  if (!(await collabReady)) {
+    throw new Error(
+      `Development collaboration service did not become ready on port ${config.env.COLLAB_SERVER_PORT}.`,
+    );
   }
+  const result = await resetDevelopmentData(fixtures);
+  console.info(`Seeded ${result.documentCount} documents across ${result.userCount} users.`);
 }
 
 void main().catch((error) => {

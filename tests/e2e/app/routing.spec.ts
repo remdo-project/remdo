@@ -60,18 +60,18 @@ test.describe('Routing', () => {
     await expect(page.locator('.document-editor-shell')).toBeVisible();
   });
 
-  test('reloads Home while its background user-data token request is pending', async ({ page }) => {
+  test('reloads Home while its document listing is pending', async ({ page }) => {
     let heldFirstRequest = false;
-    await page.route('**/sync-tokens', async (route) => {
+    await page.route('**/api/documents', async (route) => {
       if (!heldFirstRequest) {
         heldFirstRequest = true;
         return;
       }
       await route.continue();
     });
-    const tokenRequested = page.waitForRequest('**/sync-tokens');
+    const documentsRequested = page.waitForRequest('**/api/documents');
     await page.goto('/');
-    await tokenRequested;
+    await documentsRequested;
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
     await page.reload();
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
@@ -114,7 +114,7 @@ test.describe('Routing', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
   });
 
-  test('keeps full authenticated navigation on the standalone consent route', async ({ page }) => {
+  test('keeps authenticated navigation on the standalone consent route', async ({ page }) => {
     const userDataRequests = collectCurrentUserRequests(page);
     await page.goto('/oauth/consent?client_id=test-client');
 
@@ -122,7 +122,6 @@ test.describe('Routing', () => {
     await expect(page.getByRole('main')).toBeVisible();
     await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Sharing' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible();
     await page.waitForLoadState('networkidle');
     expect(userDataRequests).toEqual([]);
@@ -138,22 +137,23 @@ test.describe('Routing', () => {
     expect(userDataRequests).toContain('/api/current-user');
   });
 
-  test('starts user data for a direct authenticated admin page', async ({ page }) => {
+  test('keeps native administration outside user data', async ({ page }) => {
     const userDataRequests = collectCurrentUserRequests(page);
     await page.goto('/admin');
 
     await expect(page.getByRole('main')).toBeVisible();
-    await expect(page.getByRole('heading', { level: 1, name: 'Admin' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Site administration' })).toBeVisible();
     await page.waitForLoadState('networkidle');
-    expect(userDataRequests).toContain('/api/current-user');
+    expect(userDataRequests).toEqual([]);
   });
 
-  unauthenticatedTest('keeps unauthenticated admin enrollment outside user data', async ({ page }) => {
+  unauthenticatedTest('keeps native admin sign-in outside user data', async ({ page }) => {
     const userDataRequests = collectCurrentUserRequests(page);
     await page.goto('/admin');
 
     await expect(page.getByRole('main')).toBeVisible();
-    await expect(page.getByRole('heading', { level: 1, name: 'Become admin' })).toBeVisible();
+    await expect(page.getByLabel('Email:', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Log in', exact: true })).toBeVisible();
     await page.waitForLoadState('networkidle');
     expect(userDataRequests).toEqual([]);
   });
@@ -173,8 +173,8 @@ test.describe('Routing', () => {
     await expect.poll(async () => hasIndexedDb(page, 'y-sweet-logout-test')).toBe(false);
     // Logout replaces the view in place; a reload would add a navigation entry.
     expect(await countNavigations(page)).toBe(navigations);
-    const bootstrapResponse = await page.request.get('/api/current-user');
-    expect(bootstrapResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
+    const bootstrapStatus = await page.evaluate(async () => (await fetch('/api/current-user')).status);
+    expect(bootstrapStatus).toBe(HTTP_STATUS.FORBIDDEN);
   });
 
   test('signs out every tab sharing the browser storage', async ({ page, context }) => {

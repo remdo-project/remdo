@@ -1,7 +1,7 @@
+import { api } from '#platform/http/api-client';
 import { useEffect, useState } from 'react';
 import { useDocumentSourcesLoading } from '#client/app/user-data/user-data';
 import { useOnlineState } from '#client/browser/useOnlineState';
-import { createDocumentSyncTokenApiPath } from '#document-routes';
 import type { DocumentSourceNote } from '#note-sdk';
 
 // True while the local-access probe for `docId` is still deciding. Nothing reads
@@ -24,11 +24,8 @@ function useLocalDocumentAccessProbing(docId: string, enabled: boolean): boolean
         setSettledDocId(docId);
       }
     };
-    void fetch(createDocumentSyncTokenApiPath(docId), {
-      body: JSON.stringify({ docId }),
-      credentials: 'same-origin',
-      headers: { 'content-type': 'application/json' },
-      method: 'POST',
+    void api.POST('/api/documents/{document_id}/sync-tokens', {
+      params: { path: { document_id: docId } },
       signal: abortController.signal,
     }).then(settle, settle);
 

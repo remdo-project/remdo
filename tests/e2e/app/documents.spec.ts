@@ -11,6 +11,5 @@ test.describe('Documents API', () => {
     });
 
     expect(response.status()).toBe(HTTP_STATUS.NOT_FOUND);
-    await expect(response.json()).resolves.toEqual({ error: 'Document not found.' });
   });
 });
