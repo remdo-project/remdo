@@ -20,7 +20,7 @@ print(json.dumps({
     'origins': settings.CSRF_TRUSTED_ORIGINS,
     'cookie': settings.SESSION_COOKIE_NAME,
     'secure': settings.SESSION_COOKIE_SECURE,
-    'fixtures': any(name in get_commands() for name in ('create_fixture_document', 'reset_fixture_users', 'provision_user', 'setup_development_users')),
+    'fixtures': any(name in get_commands() for name in ('create_fixture_documents', 'reset_fixture_users', 'provision_user', 'setup_development_users')),
 }))
 """
 PASSWORD_REPORT = """

@@ -1,6 +1,10 @@
+import io
+import json
+
 from accounts.models import User
 from allauth.account.models import EmailAddress
 from django.core.management import call_command
+from django.db import IntegrityError
 from django.test import TestCase
 from documents.models import Document
 
@@ -44,3 +48,23 @@ class DevelopmentUsersTests(TestCase):
         self.assertTrue(replacement.is_staff and replacement.is_superuser)
         self.assertFalse(Document.objects.filter(pk=document.pk).exists())
         self.assertTrue(Document.objects.filter(pk=preserved.pk, owner=other).exists())
+
+
+class FixtureDocumentsTests(TestCase):
+    def test_failed_batch_does_not_leave_partial_documents(self):
+        owner = User.objects.create_user("fixtures@example.test", "test-password")
+        existing = Document.objects.create(owner=owner, id="existing", title="Keep")
+        with self.assertRaises(IntegrityError):
+            call_command(
+                "create_fixture_documents",
+                json.dumps(
+                    [
+                        {"email": owner.email, "id": "fresh", "title": "New"},
+                        {"email": owner.email, "id": existing.id, "title": "Collision"},
+                    ]
+                ),
+                stdout=io.StringIO(),
+            )
+        self.assertFalse(Document.objects.filter(pk="fresh").exists())
+        existing.refresh_from_db()
+        self.assertEqual(existing.title, "Keep")

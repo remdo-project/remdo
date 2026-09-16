@@ -6,18 +6,24 @@ import { waitForEditorUpdate, withHeadlessCollabSession } from '../../src/headle
 
 const execute = promisify(execFile);
 
-/** Create a fresh fixture, optionally seeding content before any editor joins. */
-export async function createFixtureDocument(
-  document: { email: string; id?: string; title: string },
-  content?: SerializedEditorState,
-): Promise<string> {
+interface FixtureDocument {
+  email: string;
+  id?: string;
+  title: string;
+  content?: SerializedEditorState;
+}
+
+/** Create fresh fixtures in one Django process, then persist their content before returning. */
+export async function createFixtureDocuments(documents: FixtureDocument[]): Promise<string[]> {
+  if (documents.length === 0) return [];
   const { stdout } = await execute('./tools/django.sh', [
-    'create_fixture_document',
-    `--email=${document.email}`, `--title=${document.title}`,
-    ...(document.id === undefined ? [] : [`--id=${document.id}`]),
+    'create_fixture_documents',
+    JSON.stringify(documents.map(({ email, id, title }) => ({ email, id, title }))),
   ]);
-  const { id } = JSON.parse(stdout) as { id: string };
-  if (content) {
+  const ids = JSON.parse(stdout) as string[];
+  for (const [index, { content }] of documents.entries()) {
+    if (!content) continue;
+    const id = ids[index]!;
     await withHeadlessCollabSession(id, (editor) => {
       const state = prepareEditorStateForRuntime(content, id);
       const loaded = waitForEditorUpdate(editor);
@@ -25,5 +31,14 @@ export async function createFixtureDocument(
       return loaded;
     }, { waitForPersist: true });
   }
-  return id;
+  return ids;
+}
+
+/** Create a fresh fixture, optionally seeding content before any editor joins. */
+export async function createFixtureDocument(
+  document: Omit<FixtureDocument, 'content'>,
+  content?: SerializedEditorState,
+): Promise<string> {
+  const [id] = await createFixtureDocuments([{ ...document, content }]);
+  return id!;
 }
