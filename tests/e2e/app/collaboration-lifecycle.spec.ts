@@ -50,11 +50,13 @@ for (const phase of ['pending', 'connected'] as const) {
         const originalFetch = window.fetch;
         let tokenRequested!: () => void;
         const requested = new Promise<void>((resolve) => { tokenRequested = resolve; });
-        window.fetch = (_input, init) => {
+        window.fetch = (input, init) => {
+          const request = new Request(input, init);
+          if (!new URL(request.url).pathname.endsWith('/sync-tokens')) return originalFetch(request);
           window.fetch = originalFetch;
           tokenRequested();
           return new Promise<Response>((_resolve, reject) => {
-            init!.signal!.addEventListener('abort', () => reject(new DOMException('Page departed', 'AbortError')));
+            request.signal.addEventListener('abort', () => reject(new DOMException('Page departed', 'AbortError')));
           });
         };
         void provider.connect();

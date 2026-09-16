@@ -1,11 +1,15 @@
 import type { ReactNode } from 'react';
-import { useEffect } from 'react';
-import { startUserData } from './user-data';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { getUserDataRuntime } from './stored-user-data';
+import { UserDataContext } from './user-data';
 
-export default function UserDataRuntimeBoundary({ children }: { children: ReactNode }) {
-  useEffect(() => {
-    startUserData();
-  }, []);
-
-  return <>{children}</>;
+export default function UserDataRuntimeBoundary({ children, userId }: { children: ReactNode; userId: string }) {
+  const runtime = getUserDataRuntime(userId);
+  return (
+    <QueryClientProvider client={runtime.client}>
+      <UserDataContext value={runtime}>
+        {children}
+      </UserDataContext>
+    </QueryClientProvider>
+  );
 }

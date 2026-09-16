@@ -3,11 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const getSessionMock = vi.hoisted(() => vi.fn());
 const signOutMock = vi.hoisted(() => vi.fn());
 
-vi.mock('better-auth/react', () => ({
-  createAuthClient: () => ({
-    getSession: getSessionMock,
-    signOut: signOutMock,
-  }),
+vi.mock('./session-http', () => ({
+  getSession: getSessionMock,
+  signOut: signOutMock,
 }));
 
 describe('auth client session gate', () => {
@@ -25,7 +23,7 @@ describe('auth client session gate', () => {
 
   it('remembers authenticated sessions', async () => {
     const session = { user: { id: 'user1' } };
-    getSessionMock.mockResolvedValue({ data: session });
+    getSessionMock.mockResolvedValue(session);
     const { resolveSessionGateState } = await import('#client/app/session/client');
 
     await expect(resolveSessionGateState()).resolves.toEqual({
@@ -58,7 +56,7 @@ describe('auth client session gate', () => {
   });
 
   it('uses remembered auth when the auth API returns a server error', async () => {
-    getSessionMock.mockResolvedValue({ data: null, error: { status: 503 } });
+    getSessionMock.mockRejectedValue({ status: 503 });
     const { rememberAuthenticatedSession, resolveSessionGateState } = await import('#client/app/session/client');
 
     rememberAuthenticatedSession();
@@ -86,7 +84,7 @@ describe('auth client session gate', () => {
   });
 
   it('clears the remembered session when the auth API rejects it', async () => {
-    getSessionMock.mockResolvedValue({ data: null, error: { status: 401 } });
+    getSessionMock.mockRejectedValue({ status: 401 });
     localStorage.setItem('remdo-authenticated-session', '1');
     localStorage.setItem('remdo-current-user-bootstrap', JSON.stringify({
       userDataDocumentId: 'oldUserData',
@@ -100,19 +98,20 @@ describe('auth client session gate', () => {
     expect(localStorage.getItem('remdo-current-user-bootstrap')).toBeNull();
   });
 
-  it('keeps signed-out offline in the offline state when the auth client resolves locally', async () => {
-    getSessionMock.mockResolvedValue({ data: null });
+  it('honors a confirmed absent session when the browser reports offline', async () => {
+    getSessionMock.mockResolvedValue(null);
     Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       value: false,
     });
     const { resolveSessionGateState } = await import('#client/app/session/client');
 
-    await expect(resolveSessionGateState()).resolves.toEqual({ status: 'offline-unavailable' });
+    await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
   });
 
-  it('clears the durable bootstrap cache when the online session is gone', async () => {
-    getSessionMock.mockResolvedValue({ data: null });
+  it.each([true, false])('clears remembered state when the server confirms no session (online=%s)', async (online) => {
+    getSessionMock.mockResolvedValue(null);
+    Object.defineProperty(navigator, 'onLine', { configurable: true, value: online });
     localStorage.setItem('remdo-authenticated-session', '1');
     localStorage.setItem('remdo-current-user-bootstrap', JSON.stringify({
       userDataDocumentId: 'oldUserData',
@@ -188,8 +187,8 @@ describe('auth client session gate', () => {
   });
 
   it('does not resume a session after the server confirms sign-out', async () => {
-    signOutMock.mockResolvedValue({ data: { success: true }, error: null });
-    getSessionMock.mockResolvedValue({ data: { user: { id: 'user1' } } });
+    signOutMock.mockResolvedValue(undefined);
+    getSessionMock.mockResolvedValue({ user: { id: 'user1' } });
     localStorage.setItem('remdo-pending-sign-out', '1');
     const { resolveSessionGateState } = await import('#client/app/session/client');
 
@@ -202,7 +201,7 @@ describe('auth client session gate', () => {
   });
 
   it('retries revocation when a later logout replaces the pending marker', async () => {
-    signOutMock.mockResolvedValue({ data: { success: true }, error: null });
+    signOutMock.mockResolvedValue(undefined);
     localStorage.setItem('remdo-pending-sign-out', 'logout-1');
     const { resolveSessionGateState } = await import('#client/app/session/client');
 
@@ -215,8 +214,8 @@ describe('auth client session gate', () => {
 
   it('does not resume a session whose sign-out the server has not confirmed', async () => {
     const session = { user: { id: 'user1' } };
-    signOutMock.mockResolvedValue({ data: null, error: { message: 'nope' } });
-    getSessionMock.mockResolvedValue({ data: session });
+    signOutMock.mockRejectedValue(new Error('nope'));
+    getSessionMock.mockResolvedValue(session);
     localStorage.setItem('remdo-pending-sign-out', '1');
     const { resolveSessionGateState } = await import('#client/app/session/client');
 
@@ -253,4 +252,3 @@ describe('auth client session gate', () => {
     vi.useRealTimers();
   });
 });
-

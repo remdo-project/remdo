@@ -1,0 +1,250 @@
+import io
+import json
+import os
+from unittest.mock import patch
+
+from accounts.models import User
+from allauth.account.models import EmailAddress
+from django.conf import settings
+from django.core.management import call_command
+from django.test import Client, TestCase, override_settings
+
+from .models import Document
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"], CSRF_TRUSTED_ORIGINS=["http://testserver"])
+class DocumentFlowTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = User.objects.create_user("owner@example.test", "Owner-password-123")
+        cls.other = User.objects.create_user("other@example.test", "Other-password-123")
+        for user in (cls.owner, cls.other):
+            EmailAddress.objects.create(user=user, email=user.email, primary=True, verified=True)
+
+    def setUp(self):
+        self.client = Client(enforce_csrf_checks=True)
+
+    def post(self, path, body=None, **headers):
+        token = self.client.get("/api/config").json()["csrfToken"]
+        return self.client.post(
+            path,
+            json.dumps(body or {}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=token,
+            **headers,
+        )
+
+    def sign_out(self):
+        token = self.client.get("/api/config").json()["csrfToken"]
+        return self.client.delete("/api/auth/browser/v1/auth/session", HTTP_X_CSRFTOKEN=token)
+
+    def sign_in(self, email="owner@example.test", password="Owner-password-123"):
+        response = self.post(
+            "/api/auth/browser/v1/auth/login", {"email": email, "password": password}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["data"]["user"]["email"], email.lower())
+        return response
+
+    def test_sign_in_bootstrap_create_list_and_reopen(self):
+        self.sign_in()
+        bootstrap = self.client.get("/api/current-user").json()
+        self.assertEqual(bootstrap["userId"], str(self.owner.pk))
+        self.assertNotIn("userDataDocumentId", bootstrap)
+        self.assertEqual(self.client.get("/api/current-user").json(), bootstrap)
+        response = self.post("/api/documents", {"title": "Research"})
+        self.assertEqual(response.status_code, 201)
+        document = response.json()
+        self.assertRegex(document["id"], r"^[A-Za-z0-9]{20}$")
+        self.assertIn(document, self.client.get("/api/documents").json())
+        # A fresh HTTP client reads durable sessions and metadata, not process-local state.
+        reopened = Client()
+        reopened.cookies = self.client.cookies.copy()
+        self.assertIn(document, reopened.get("/api/documents").json())
+        self.assertEqual(Document.objects.filter(owner=self.owner, kind="home").count(), 1)
+
+    def test_another_account_cannot_list_or_access_documents(self):
+        document = Document.objects.create(owner=self.owner, title="Private")
+        self.sign_in("other@example.test", "Other-password-123")
+        self.assertEqual(self.client.get("/api/documents").json(), [])
+        with patch("documents.views.issue_token") as issue:
+            self.assertEqual(
+                self.post(f"/api/documents/{document.id}/sync-tokens").status_code, 403
+            )
+            self.assertEqual(self.post("/api/documents/unknown/sync-tokens").status_code, 404)
+            issue.assert_not_called()
+
+    def test_signed_out_requests_do_not_reach_collaboration(self):
+        document = Document.objects.create(owner=self.owner, title="Private")
+        self.assertEqual(self.client.get("/api/current-user").status_code, 403)
+        self.assertEqual(self.client.get("/api/documents").status_code, 403)
+        self.assertEqual(self.post("/api/documents", {"title": "No"}).status_code, 403)
+        with patch("documents.views.issue_token") as issue:
+            self.assertEqual(
+                self.post(f"/api/documents/{document.id}/sync-tokens").status_code, 403
+            )
+            issue.assert_not_called()
+
+    def test_logout_revokes_session_and_does_not_expose_other_user(self):
+        self.sign_in()
+        previous_session = self.client.cookies[settings.SESSION_COOKIE_NAME].value
+        self.assertEqual(self.sign_out().status_code, 401)
+        self.assertFalse(
+            self.client.get("/api/auth/browser/v1/auth/session").json()["meta"]["is_authenticated"]
+        )
+        old_client = Client()
+        old_client.cookies[settings.SESSION_COOKIE_NAME] = previous_session
+        self.assertEqual(old_client.get("/api/documents").status_code, 403)
+        self.sign_in("other@example.test", "Other-password-123")
+        self.assertEqual(
+            self.client.get("/api/auth/browser/v1/auth/session").json()["data"]["user"]["id"],
+            self.other.pk,
+        )
+
+    def test_login_and_document_mutations_enforce_csrf(self):
+        self.assertEqual(
+            self.client.post(
+                "/api/auth/browser/v1/auth/login", {}, content_type="application/json"
+            ).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.post(
+                "/api/auth/browser/v1/auth/login",
+                {"email": self.owner.email, "password": "Owner-password-123"},
+                HTTP_ORIGIN="https://untrusted.test",
+            ).status_code,
+            403,
+        )
+        self.sign_in()
+        self.assertEqual(self.client.delete("/api/auth/browser/v1/auth/session").status_code, 403)
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 200)
+        self.assertEqual(
+            self.post(
+                "/api/documents", {"title": "Bad"}, HTTP_ORIGIN="https://untrusted.test"
+            ).status_code,
+            403,
+        )
+        self.assertFalse(Document.objects.filter(title="Bad").exists())
+        self.assertEqual(
+            self.post(
+                "/api/documents", {"title": "Good"}, HTTP_ORIGIN="http://testserver"
+            ).status_code,
+            201,
+        )
+
+    def test_invalid_password_and_title_do_not_mutate_state(self):
+        self.assertEqual(
+            self.post(
+                "/api/auth/browser/v1/auth/login", {"email": self.owner.email, "password": "wrong"}
+            ).status_code,
+            400,
+        )
+        self.sign_in()
+        self.assertEqual(self.post("/api/documents", {"title": []}).status_code, 400)
+        self.assertEqual(self.post("/api/documents", {"title": "a" * 501}).status_code, 400)
+        token = self.client.get("/api/config").json()["csrfToken"]
+        for body, content_type, expected in [
+            ("{", "application/json", 400),
+            ("[]", "application/json", 400),
+            ("title=Invalid", "application/x-www-form-urlencoded", 415),
+        ]:
+            with self.subTest(body=body):
+                response = self.client.post(
+                    "/api/documents", body, content_type=content_type, HTTP_X_CSRFTOKEN=token
+                )
+                self.assertEqual(response.status_code, expected)
+        self.assertEqual(Document.objects.count(), 0)
+
+    def test_admin_requires_staff_and_exposes_django_models(self):
+        self.sign_in()
+        self.assertEqual(self.client.get("/admin/").status_code, 302)
+        self.sign_out()
+        with patch.dict(os.environ, {"DJANGO_SUPERUSER_PASSWORD": "Admin-password-123"}):
+            call_command(
+                "createsuperuser",
+                email="Admin@Example.test",
+                interactive=False,
+                stdout=io.StringIO(),
+            )
+        self.sign_in("admin@example.test", "Admin-password-123")
+        self.assertEqual(self.client.get("/admin/").status_code, 200)
+        self.assertTrue(
+            self.client.get("/api/auth/browser/v1/auth/session").json()["data"]["user"]["is_staff"]
+        )
+        other_document = Document.objects.create(owner=self.other)
+        self.assertEqual(
+            self.post(f"/api/documents/{other_document.id}/sync-tokens").status_code, 403
+        )
+        self.assertEqual(self.client.get("/admin/accounts/user/add/").status_code, 200)
+        self.assertEqual(self.client.get("/admin/documents/document/").status_code, 200)
+        token = self.client.get("/api/config").json()["csrfToken"]
+        response = self.client.post(
+            "/admin/accounts/user/add/",
+            {
+                "email": "Created@Example.test",
+                "password1": "Created-account-password-123",
+                "password2": "Created-account-password-123",
+                "csrfmiddlewaretoken": token,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.sign_out()
+        self.sign_in("created@example.test", "Created-account-password-123")
+
+    def test_private_signup_is_not_enabled_by_installing_allauth(self):
+        response = self.post(
+            "/api/auth/browser/v1/auth/signup",
+            {"email": "new@example.test", "password": "New-account-password-123"},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(User.objects.filter(email="new@example.test").exists())
+        flows = self.client.get("/api/auth/browser/v1/auth/session").json()["data"]["flows"]
+        self.assertNotIn({"id": "signup"}, flows)
+
+    def test_fixture_setup_creates_metadata_and_reset_preserves_unrelated_accounts(self):
+        title = '-- Research "notes" & ideas'
+        output = io.StringIO()
+        call_command(
+            "create_fixture_document",
+            "--email",
+            self.owner.email,
+            "--id",
+            "fixtureDoc",
+            f"--title={title}",
+            stdout=output,
+        )
+        self.assertEqual(json.loads(output.getvalue()), {"id": "fixtureDoc"})
+        document = Document.objects.get(pk="fixtureDoc")
+        self.assertEqual(document.title, title)
+        self.assertEqual(document.owner, self.owner)
+        unrelated = Document.objects.create(owner=self.other, title="Keep")
+        self.sign_in()
+        call_command("reset_fixture_users", "--email", self.owner.email)
+        self.assertFalse(User.objects.filter(pk=self.owner.pk).exists())
+        self.assertFalse(Document.objects.filter(pk=document.pk).exists())
+        self.assertTrue(Document.objects.filter(pk=unrelated.pk, owner=self.other).exists())
+        self.assertEqual(self.client.get("/api/current-user").status_code, 403)
+
+    def test_provisioned_account_uses_allauth_identity_and_keeps_existing_credentials(self):
+        call_command(
+            "provision_user",
+            "--email=Provisioned@Example.test",
+            "--password=Provisioned-password-123",
+            "--name=Provisioned",
+            "--admin",
+        )
+        user = User.objects.get(email="provisioned@example.test")
+        self.assertTrue(
+            EmailAddress.objects.filter(user=user, primary=True, verified=True).exists()
+        )
+        self.assertEqual(user.first_name, "Provisioned")
+        call_command(
+            "provision_user",
+            "--email=provisioned@example.test",
+            "--password=Replacement-password-123",
+        )
+        user.refresh_from_db()
+        self.assertEqual(user.first_name, "Provisioned")
+        response = self.sign_in("provisioned@example.test", "Provisioned-password-123")
+        self.assertTrue(response.json()["data"]["user"]["is_staff"])

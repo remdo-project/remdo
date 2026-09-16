@@ -30,10 +30,12 @@ branch prefix because the prefix describes the branch's combined outcome.
 
 ## Runtime Baseline
 
-RemDo's supported runtimes are declared in [`package.json`](package.json):
+RemDo's supported runtimes are declared by their executable owners:
 
-- **Node.js:** `engines.node`.
-- **Browsers:** `browserslist.production`.
+- **Node.js:** [`package.json`](package.json) `engines.node`.
+- **Browsers:** [`package.json`](package.json) `browserslist.production`.
+- **Python:** [`pyproject.toml`](pyproject.toml) `requires-python`; [`.python-version`](.python-version) selects the
+  development interpreter.
 
 Code uses runtime APIs available throughout its declared range directly.
 Compatibility code addresses differences within a supported range; it does not

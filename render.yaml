@@ -10,18 +10,15 @@ services:
   dockerContext: .
   dockerfilePath: ./docker/Dockerfile
   autoDeployTrigger: commit
+  healthCheckPath: /health
   envVars:
     # Render injects the container's internal PORT. Do not pin it.
-    # AUTH_SECRET and the Y-Sweet auth_key/server_token pair are bootstrapped
+    # Django and Y-Sweet secrets are bootstrapped
     # onto the persistent disk on first run, so they are not set here.
     - key: DATA_DIR
       value: /data
-    - key: ADMIN_SECRET
-      sync: false
     - key: APP_ORIGIN
       sync: false
-    - key: ALLOW_SIGNUP
-      value: "false"
   disk:
     name: remdo-data
     mountPath: /data

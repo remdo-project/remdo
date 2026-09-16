@@ -16,6 +16,7 @@ remdo_load_env_defaults() {
   export REMDO_ROOT="${REMDO_ROOT:-${root_dir}}"
   # shellcheck disable=SC1091 # shared defaults live in the repo.
   . "${root_dir}/tools/env.defaults.sh"
+  remdo_configure_environment "$2"
 }
 
 remdo_docker_build() {

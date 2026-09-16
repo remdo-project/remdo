@@ -11,8 +11,9 @@ until they are resolved or migrated.
 
 Record code-local follow-up in [tracked comments](../CONTRIBUTING.md#code-comments), long-horizon
 follow-up in the owning specification's [`Future`](documentation.md#future)
-section, and other work intended to be done soon in this backlog. Together,
-these locations form the tracking record; do not duplicate an item between them.
+section, and other work intended to be done soon in this backlog or a temporary
+migration ledger explicitly linked from it. Together, these locations form the
+tracking record; do not duplicate an item between them.
 
 Run `pnpm run todo:list` when selecting maintenance work or auditing tracked
 follow-up. It lists candidate `TODO` and `FIXME` occurrences in tracked
@@ -51,11 +52,10 @@ and operational work through established libraries and services.
   account/source cache isolation, and backup/restore. Treat related backlog
   entries as ideas, not automatic scope; record deliberate behavior changes in
   their owning specifications.
-- **Next PR:** Inspect the current branch, tests, and remaining gaps; propose
-  one cohesive scope with explicit exclusions and acceptance checks. Favor early
-  end-to-end functionality and validation of risky integrations over completing
-  architectural layers in isolation. Keep remaining gaps current after each
-  slice.
+- **Slices and decisions:** [Django migration](django-migration.md) records the
+  current browser-flow PR, acceptance checks, approved deferred decisions,
+  remaining gaps, and open questions. Inspect that record and the branch before
+  selecting the next cohesive PR; keep the gaps current after each slice.
 
 ### Documentation
 

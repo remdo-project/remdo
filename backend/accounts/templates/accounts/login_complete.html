@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>Signed in · RemDo</title></head>
+  <body>
+    {{ next_url|json_script:"next-url" }}
+    <script>
+      // A server-confirmed login supersedes pending logout and cached identity.
+      // These keys are shared with the frontend session and bootstrap storage.
+      try {
+        localStorage.removeItem('remdo-pending-sign-out');
+        localStorage.removeItem('remdo-current-user-bootstrap');
+      } catch {
+        // Browser storage can be unavailable; the Django session still works.
+      }
+      location.replace(JSON.parse(document.getElementById('next-url').textContent));
+    </script>
+  </body>
+</html>

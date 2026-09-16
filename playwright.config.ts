@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 import path from 'node:path';
 import { config } from './config';
-import { resolveLocalGatewayOrigin } from './src/platform/net/origins';
+import { resolveApiServerOrigin, resolveLocalGatewayOrigin } from './src/platform/net/origins';
 import { chromium, collaborationWebServer, playwrightBaseConfig } from './config/playwright/base';
 
 const baseURL = resolveLocalGatewayOrigin();
@@ -12,6 +12,11 @@ export default defineConfig({
   outputDir: path.join(config.env.DATA_DIR, 'test-results', 'playwright'),
   webServer: [
     collaborationWebServer,
+    {
+      command: 'pnpm run dev:api',
+      name: 'api',
+      url: new URL('/api/health', resolveApiServerOrigin()).href,
+    },
     {
       command: 'pnpm exec vite',
       name: 'app',

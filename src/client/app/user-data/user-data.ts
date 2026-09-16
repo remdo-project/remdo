@@ -1,44 +1,47 @@
-import { useSyncExternalStore } from 'react';
-import { getCachedCurrentUserBootstrap } from './current-user-bootstrap';
-import {
-  getDocumentSourcesLoading,
-  getCurrentUserData,
-  subscribeUserDataRuntime,
-  getUserDataVersion,
-} from './stored-user-data';
+import { createContext, use } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { UserDataNote } from '#note-sdk';
-export {
-  resetUserDataRuntime as resetUserData,
-  startUserDataRuntime as startUserData,
-} from './stored-user-data';
+import type { UserDataRuntime } from './stored-user-data';
 
-export function useUserData(): UserDataNote {
-  useSyncExternalStore(
-    subscribeUserDataRuntime,
-    getUserDataVersion,
-    getUserDataVersion,
-  );
+export { resetUserDataRuntime as resetUserData } from './stored-user-data';
+export const UserDataContext = createContext<UserDataRuntime | null>(null);
 
-  return getCurrentUserData();
+export function useUserDataRuntime(): UserDataRuntime {
+  const runtime = use(UserDataContext);
+  if (!runtime) {
+    throw new Error('User data requires an authenticated account.');
+  }
+  return runtime;
 }
 
-// Whether this server is public (open-signup). Reactive to the bootstrap load.
-// A public server is source-only and refuses to link out, so the UI hides the
-// link action when this is true.
-export function useCurrentUserPublicServer(): boolean | null {
-  useSyncExternalStore(
-    subscribeUserDataRuntime,
-    getUserDataVersion,
-    getUserDataVersion,
-  );
+export function useUserData(): UserDataNote {
+  const runtime = useUserDataRuntime();
+  // The adapter reads the same cache observed by React; it carries no mirror of
+  // query data or lifecycle state of its own.
+  useQuery({ ...runtime.documentsQuery, notifyOnChangeProps: ['data'] });
+  useQuery({ ...runtime.bootstrapQuery, notifyOnChangeProps: ['data'] });
+  return runtime.userData;
+}
 
-  return getCachedCurrentUserBootstrap()?.publicServer ?? null;
+export function useCurrentUserPublicServer(): boolean | null {
+  const runtime = useUserDataRuntime();
+  return useQuery(runtime.bootstrapQuery).data?.publicServer ?? null;
 }
 
 export function useDocumentSourcesLoading(): boolean {
-  return useSyncExternalStore(
-    subscribeUserDataRuntime,
-    getDocumentSourcesLoading,
-    getDocumentSourcesLoading,
-  );
+  const runtime = useUserDataRuntime();
+  return useQuery(runtime.documentsQuery).isPending;
+}
+
+export function useUserDataStatus() {
+  const runtime = useUserDataRuntime();
+  const bootstrap = useQuery(runtime.bootstrapQuery);
+  const documents = useQuery(runtime.documentsQuery);
+  return {
+    error: bootstrap.error ?? documents.error,
+    retry: () => {
+      void bootstrap.refetch();
+      void documents.refetch();
+    },
+  };
 }

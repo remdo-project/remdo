@@ -62,18 +62,20 @@ revalidation so replacing a file updates the same public URL.
 
 App-owned HTTP surface that sits in front of collaboration infrastructure.
 
-- Auth: Better Auth is mounted at `/api/auth/*`.
+- Auth: Django and allauth own browser session authentication at
+  `/api/auth/browser/v1` and administration
+  at `/admin/`.
 - Y-Sweet document client token issuance follows [Document Access](specs/access/access-control.md#document-access).
 - Y-Sweet access: the API connects with the Y-Sweet server token and passes only
   RemDo-issued Y-Sweet document client tokens to browsers.
-- [OAuth source linking](specs/access/source-linking.md#cross-server-source-linking): Better Auth stores OAuth account tokens for the source
+- [OAuth source linking](specs/access/source-linking.md#cross-server-source-linking): Django stores OAuth account tokens for the source
   servers a user has linked.
 
 ### Session User
 
 Signed-in user identity used by RemDo API decisions.
 
-- Mapping: Better Auth resolves the active session user.
+- Mapping: Django resolves the active session user.
 - Role: identify the user for ownership and document access decisions.
 
 ### Document identity
@@ -98,23 +100,29 @@ Server-owned document metadata store used by RemDo API before issuing Y-Sweet
 document client tokens.
 
 - Metadata: owner user id, document kind, title, and user-specific access grants.
-- Storage: RemDo metadata queries use Kysely inside the server persistence
-  boundary. Route, token, and bootstrap code depend on the `DocumentRegistry`
-  interface, not on SQL or query-builder APIs.
+- Storage: Django models and migrations own the server persistence boundary.
+  Request handlers authorize from ORM-backed identity and document metadata.
 - Data boundary: the registry is the durable source for document ownership,
   access-critical metadata, and the current per-user document list. Yjs
-  documents hold collaborative document content plus persisted, read-only
-  user-data projections for browser-facing app-resource note APIs.
-- User bootstrap: `/api/current-user` ensures the signed-in user's home and
-  user-data-projection registry rows, refreshes the read-only user-data
-  projection from the registry's current per-user document list, and returns
-  the bootstrap consumed under [Authenticated App Access](specs/access/access-control.md#authenticated-app-access).
+  documents hold collaborative document content. Browser-facing app resources
+  use authenticated HTTP reads and established server-state cache tooling.
+- User bootstrap: `/api/current-user` ensures the signed-in user's home registry
+  row and returns the account identity, home document identity, and server
+  policy consumed under [Authenticated App Access](specs/access/access-control.md#authenticated-app-access). `/api/documents` lists the
+  caller's accessible documents.
+- Client metadata caches are scoped by server origin and account identity.
+  Ending a session clears its metadata and cancels pending reads; a late
+  response cannot populate the next account's cache.
+- Document creation completes when the server acknowledges the new metadata
+  and the result is available to the client. A later list-refresh
+  failure does not turn that successful creation into a failed operation.
 
 ### Token vocabulary
 
-- Better Auth session token: browser session credential resolved by Better Auth.
+- Django session cookie: browser session credential resolved against server-side
+  session storage.
 - OAuth account tokens: access, refresh, and ID tokens for linked source-server
-  accounts, stored by Better Auth.
+  accounts, stored by Django.
 - Y-Sweet server token: RemDo API credential for Y-Sweet document-control calls.
 - Y-Sweet document client token: short-lived browser credential enforced by
   Y-Sweet on sync paths.

@@ -29,8 +29,7 @@ describe('app header', () => {
   it('shows full application navigation to an admin', () => {
     renderHeader({ status: 'authenticated', isAdmin: true });
 
-    expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/admin');
-    expect(screen.getByRole('link', { name: 'Sharing' })).toHaveAttribute('href', '/sharing');
+    expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/admin/');
     expect(screen.getByRole('button', { name: 'Logout' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Sign in' })).toBeNull();
   });
@@ -39,7 +38,6 @@ describe('app header', () => {
     renderHeader({ status: 'authenticated', isAdmin: false });
 
     expect(screen.queryByRole('link', { name: 'Admin' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Sharing' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Logout' })).toBeInTheDocument();
   });
 
@@ -47,7 +45,6 @@ describe('app header', () => {
     renderHeader({ status: 'offline-remembered' });
 
     expect(screen.queryByRole('link', { name: 'Admin' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Sharing' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Logout' })).toBeInTheDocument();
   });
 

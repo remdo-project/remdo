@@ -120,10 +120,10 @@ describe('document route', () => {
       expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'unreachableDoc');
       expect(screen.queryByRole('status')).toBeNull();
     });
-    expect(fetchMock).toHaveBeenCalledWith(
-      createDocumentSyncTokenApiPath('unreachableDoc'),
-      expect.objectContaining({ method: 'POST' }),
-    );
+    expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({
+      url: new URL(createDocumentSyncTokenApiPath('unreachableDoc'), location.origin).href,
+      method: 'POST',
+    }));
   });
 
   it('opens an authorized local document while source resolution is loading', async () => {
@@ -138,15 +138,12 @@ describe('document route', () => {
       expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', '');
       expect(screen.queryByRole('status')).toBeNull();
     });
-    expect(fetchMock).toHaveBeenCalledWith(
-      createDocumentSyncTokenApiPath('sharedDoc'),
-      expect.objectContaining({
-        body: JSON.stringify({ docId: 'sharedDoc' }),
-        credentials: 'same-origin',
-        headers: { 'content-type': 'application/json' },
-        method: 'POST',
-      }),
-    );
+    expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({
+      url: new URL(createDocumentSyncTokenApiPath('sharedDoc'), location.origin).href,
+      credentials: 'same-origin',
+      headers: expect.any(Headers),
+      method: 'POST',
+    }));
   });
 
   it('opens the editor offline while source resolution is loading', async () => {

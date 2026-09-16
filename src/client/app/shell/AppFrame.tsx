@@ -26,7 +26,7 @@ function resolveHeaderAuthState(sessionState: SessionGateState | null): AppHeade
   if (sessionState?.status === 'authenticated') {
     return {
       status: 'authenticated',
-      isAdmin: sessionState.session.user.role === 'admin',
+      isAdmin: sessionState.session.user.is_staff,
     };
   }
   if (sessionState?.status === 'offline-remembered') {

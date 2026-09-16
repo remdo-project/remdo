@@ -1,0 +1,13 @@
+{% extends "allauth/layouts/entrance.html" %}
+{% block head_title %}Sign in · RemDo{% endblock %}
+{% block content %}
+<main>
+  <h1>Sign in</h1>
+  <form method="post" action="{% url 'account_login' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    {{ redirect_field }}
+    <button type="submit">Sign in</button>
+  </form>
+</main>
+{% endblock %}

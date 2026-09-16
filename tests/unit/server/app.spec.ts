@@ -5,7 +5,7 @@ import { HTTP_STATUS } from '#platform/http/status';
 import { extractSessionCookie } from '#server/auth/session-cookie';
 import { listCurrentUserSourceServers } from '#server/documents/source-servers';
 import { deriveSourceId } from '#server/remdo-oauth/config';
-import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
+import STABLE_AUTH_USERS from '../../../backend/fixtures/development-users.json';
 import { createTestResource } from '../_support/test-resource';
 import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';
 

@@ -1,5 +1,6 @@
 /* eslint-disable node/no-process-env */
 import { execFileSync } from 'node:child_process';
+import { hostname } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import { resolveConfig } from '#config/env/resolve';
 import { CLIENT_KEY_LIST, envSchema } from '#config/env/schema';
@@ -11,16 +12,38 @@ function resolveTestConfig(values: EnvValues, options?: Parameters<typeof resolv
   return resolveConfig((key) => values[key], options);
 }
 
-function readEnvShValue(name: string, overrides: NodeJS.ProcessEnv): string {
-  const env = { ...process.env, ...overrides };
+function readEnvShValue(name: string, overrides: NodeJS.ProcessEnv, production = false): string {
+  const env = { ...process.env, PUBLIC_HOST: undefined, ...overrides };
 
-  return execFileSync('./tools/env.sh', ['sh', '-c', `printf '%s' "$${name}"`], {
+  return execFileSync('./tools/env.sh', [...(production ? ['--production'] : []), 'sh', '-c', `printf '%s' "$${name}"`], {
     env,
     encoding: 'utf8',
   });
 }
 
 describe('config env resolve', () => {
+  it('resolves the canonical development origin independently of frontend build mode', () => {
+    expect(readEnvShValue('APP_ORIGIN', {
+      NODE_ENV: 'production',
+      PORT_BASE: '5100', HOST: '0.0.0.0', PUBLIC_HOST: 'dev.example.test',
+      APP_ORIGIN: 'https://stale.example',
+    })).toBe('http://dev.example.test:5100');
+  });
+
+  it('uses the machine hostname for wildcard development binding', () => {
+    expect(readEnvShValue('APP_ORIGIN', {
+      PORT_BASE: '5100', HOST: '0.0.0.0',
+    })).toBe(`http://${hostname()}:5100`);
+  });
+
+  it.each(['https://dev.example.test', '0.0.0.0', '::1'])(
+    'rejects an invalid browser-visible development host: %s', (publicHost) => {
+      expect(() => readEnvShValue('APP_ORIGIN', {
+        PORT_BASE: '5100', PUBLIC_HOST: publicHost,
+      })).toThrow();
+    },
+  );
+
   it('reads DATA_DIR from env inputs', () => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'test',
@@ -42,36 +65,14 @@ describe('config env resolve', () => {
     );
   });
 
-  it('derives APP_ORIGIN from HOST and PORT outside production', () => {
-    const resolved = resolveTestConfig({
-      NODE_ENV: 'development',
-      HOST: '127.0.0.1',
-      PORT: '4000',
-    });
-
-    expect(resolved.server.APP_ORIGIN).toBe('http://127.0.0.1:4000');
-  });
-
-  it('uses the machine hostname when local services bind all IPv4 interfaces', () => {
+  it('uses the shell-resolved APP_ORIGIN without recomputing it', () => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'development',
       HOST: '0.0.0.0',
       PORT: '4000',
-    }, { machineHostname: 'dev-vm' });
-
-    expect(resolved.server.APP_ORIGIN).toBe('http://dev-vm:4000');
-  });
-
-  it('uses PUBLIC_HOST outside production and ignores production APP_ORIGIN input', () => {
-    const resolved = resolveTestConfig({
-      NODE_ENV: 'test',
-      HOST: '127.0.0.1',
-      PUBLIC_HOST: 'browser-visible.test',
-      PORT: '4000',
-      APP_ORIGIN: 'https://remdo.example.com',
+      APP_ORIGIN: 'http://browser-visible.test:4300',
     });
-
-    expect(resolved.server.APP_ORIGIN).toBe('http://browser-visible.test:4000');
+    expect(resolved.server.APP_ORIGIN).toBe('http://browser-visible.test:4300');
   });
 
   it.each([
@@ -94,6 +95,7 @@ describe('config env resolve', () => {
       HOST: '127.0.0.1',
       PORT: '4000',
       PREVIEW_PORT: '4020',
+      APP_ORIGIN: 'http://127.0.0.1:4000',
     }, { machineHostname: 'dev-vm' });
 
     expect(resolved.server.AUTH_TRUSTED_ORIGINS).toEqual([
@@ -103,47 +105,6 @@ describe('config env resolve', () => {
       'http://localhost:4020',
       'http://127.0.0.1:4020',
     ]);
-  });
-
-  it.each(['', 'localhost', 'localhost.localdomain', 'localdomain'])(
-    'fails clearly when wildcard binding has no browser-visible hostname: %s',
-    (machineHostname) => {
-      expect(() => resolveTestConfig({
-        NODE_ENV: 'development',
-        HOST: '0.0.0.0',
-        PORT: '4000',
-      }, { machineHostname })).toThrow('PUBLIC_HOST is required when HOST binds all interfaces');
-    },
-  );
-
-  it('rejects a URL-shaped PUBLIC_HOST', () => {
-    expect(() => resolveTestConfig({
-      NODE_ENV: 'development',
-      HOST: '127.0.0.1',
-      PUBLIC_HOST: 'https://dev.example.test',
-      PORT: '4000',
-    })).toThrow('HOST and PUBLIC_HOST must be a bare hostname or IPv4 address');
-  });
-
-  it('rejects the IPv4 wildcard as a browser-visible PUBLIC_HOST', () => {
-    expect(() => resolveTestConfig({
-      NODE_ENV: 'development',
-      HOST: '127.0.0.1',
-      PUBLIC_HOST: '0.0.0.0',
-      PORT: '4000',
-    })).toThrow('PUBLIC_HOST must identify a browser-visible host');
-  });
-
-  it.each([
-    { HOST: '::1' },
-    { HOST: '::1', PUBLIC_HOST: 'browser-visible.test' },
-    { HOST: '127.0.0.1', PUBLIC_HOST: '2001:db8::1' },
-  ])('rejects IPv6 development host inputs: %o', (hostInputs) => {
-    expect(() => resolveTestConfig({
-      NODE_ENV: 'development',
-      PORT: '4000',
-      ...hostInputs,
-    })).toThrow('HOST and PUBLIC_HOST must be a bare hostname or IPv4 address');
   });
 
   it('restricts auth trusted origins to the public origin in production', () => {
@@ -168,7 +129,6 @@ describe('config env resolve', () => {
       AUTH_SECRET: 'production-auth-secret-0123456789',
       APP_ORIGIN: 'https://remdo.example.com',
     })).toThrow('ADMIN_SECRET is required in production server config.');
-
   });
 
   it('rejects a production APP_ORIGIN that is not exact', () => {
@@ -265,7 +225,6 @@ describe('config env resolve', () => {
 
   it('matches tools/env.sh for derived collab port in dev', () => {
     const collabPort = readEnvShValue('COLLAB_SERVER_PORT', {
-      NODE_ENV: 'development',
       PORT_BASE: '4000',
       PORT: '4000',
     });
@@ -276,16 +235,14 @@ describe('config env resolve', () => {
   it('removes development stack inputs in production', () => {
     for (const name of ['PORT_BASE', 'PUBLIC_HOST']) {
       expect(readEnvShValue(name, {
-        NODE_ENV: 'production',
         [name]: 'development-only',
-      })).toBe('');
+      }, true)).toBe('');
     }
   });
 
   it('launches an entire local stack in an offset port range', () => {
     const env = {
       ...process.env,
-      NODE_ENV: 'development',
       PORT_BASE: '4000',
       PORT: '9000',
       COLLAB_SERVER_PORT: '9004',
@@ -321,7 +278,6 @@ describe('config env resolve', () => {
         encoding: 'utf8',
         env: {
           ...process.env,
-          NODE_ENV: 'development',
           PORT_BASE: '4300',
           PORT: '9000',
           VITEST_PORT: '9002',
@@ -359,7 +315,6 @@ describe('config env resolve', () => {
         encoding: 'utf8',
         env: {
           ...process.env,
-          NODE_ENV: 'development',
           PORT_BASE: '5980',
         },
       },

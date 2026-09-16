@@ -1,3 +1,5 @@
+import { spawn } from 'node:child_process';
+import process from 'node:process';
 import type { ChildProcess } from 'node:child_process';
 import path from 'node:path';
 import { setTimeout as wait } from 'node:timers/promises';
@@ -6,9 +8,9 @@ import { config } from '#config';
 import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
 import { attachManagedProcess, prepareManagedProcessLog, readRecentLog } from './managed-process';
 import { isPortOpen } from './net';
-import { spawnPnpm } from './process';
 
-const MAX_ATTEMPTS = 50;
+// Fresh test databases need migrations and fixture accounts before serving.
+const MAX_ATTEMPTS = 300;
 const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'remdo-api-server.log');
@@ -45,12 +47,13 @@ export async function startRemdoApiServer({
   }
 
   prepareManagedProcessLog(LOG_PATH);
-  const child = spawnPnpm(
-    ['exec', 'tsx', './tools/remdo-api-server.ts'],
+  const child = spawn(
+    './tools/env.sh', ['./tools/django-serve.sh', '--noreload'],
     {
       env: {
+        // eslint-disable-next-line node/no-process-env -- inherit the resolved stack environment
+        ...process.env,
         AUTH_SECRET: config.env.AUTH_SECRET,
-        ADMIN_SECRET: config.env.ADMIN_SECRET,
         APP_ORIGIN: config.env.APP_ORIGIN,
         HOST: INTERNAL_SERVICE_HOST,
         ALLOW_SIGNUP: String(config.env.ALLOW_SIGNUP),
@@ -60,7 +63,6 @@ export async function startRemdoApiServer({
         YSWEET_SERVER_TOKEN: config.env.YSWEET_SERVER_TOKEN,
       },
       detached: true,
-      forwardExit: false,
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   );

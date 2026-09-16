@@ -3,8 +3,7 @@ import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
 import { config } from '../index.ts';
 import { onRollupWarning } from '../_internal/vite/onRollupWarning.ts';
-import { resolveCollabServerOrigin, resolveLocalGatewayOrigin } from '../../src/platform/net/origins.ts';
-import { remdoApiDevPlugin } from './remdo-api-dev-plugin.ts';
+import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveLocalGatewayOrigin } from '../../src/platform/net/origins.ts';
 import { remdoDevSpaRoutesPlugin } from './remdo-dev-spa-routes-plugin.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -13,11 +12,18 @@ const host = config.env.HOST;
 const collabServerTarget = resolveCollabServerOrigin();
 const mainGatewayTarget = resolveLocalGatewayOrigin();
 export const pwaNavigationFallbackDenylist = [
+  /^\/accounts(?:\/|$)/u,
+  /^\/admin(?:\/|$)/u,
   /^\/\.well-known(?:\/|$)/u,
   /^\/api(?:\/|$)/u,
   /^\/d(?:\/|$)/u,
 ];
+const apiProxy = { target: resolveApiServerOrigin(), changeOrigin: false };
 const devProxy = {
+  '/accounts': apiProxy,
+  '/api': apiProxy,
+  '/admin': apiProxy,
+  '/django-static': apiProxy,
   '/d': {
     target: collabServerTarget,
     changeOrigin: true,
@@ -29,6 +35,9 @@ const mainGatewayProxy = {
   changeOrigin: true,
 } as const;
 const previewProxy = {
+  '/accounts': mainGatewayProxy,
+  '/admin': mainGatewayProxy,
+  '/django-static': mainGatewayProxy,
   '/.well-known': {
     ...mainGatewayProxy,
     xfwd: true,
@@ -51,7 +60,6 @@ export function createViteSharedConfig() {
       },
     },
     plugins: [
-      remdoApiDevPlugin(),
       remdoDevSpaRoutesPlugin(),
       VitePWA({
         includeAssets: ['icons/*.svg', 'favicon.png'],

@@ -13,6 +13,7 @@ unset AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY
 
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/env.defaults.sh
+remdo_configure_environment production
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/entrypoint-env.sh
 remdo_configure_internal_services

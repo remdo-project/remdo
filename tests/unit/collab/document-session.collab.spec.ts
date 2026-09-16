@@ -9,6 +9,7 @@ describe('document session collaboration', () => {
     collabDocId: 'sdkRemoteEdit',
     fixture: 'tree',
   }), async ({ remdo }) => {
+    await remdo.updateNoteText('note2', 'edited before join');
     await remdo.waitForSynced();
     const peer = await createCollabPeer(remdo);
     await peer.waitForSynced();
@@ -23,7 +24,8 @@ describe('document session collaboration', () => {
     const listener = vi.fn();
     note.subscribe(listener);
 
-    expect(note.getText()).toBe('note2');
+    expect(note.getText()).toBe('edited before join');
+    expect(peer.documentSession.noteRef('note2').getText()).toBe('edited before join');
     const options = { query: 'updated', limit: 10, childPreviewLimit: 2 };
     expect(await runtime.session.search(options)).toEqual({ flatResults: [], hasMore: false });
 

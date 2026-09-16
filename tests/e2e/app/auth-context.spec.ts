@@ -19,7 +19,7 @@ test('authenticates a context when its test account already exists', async ({
   }
 });
 
-test('reports both failures when an existing account cannot sign in', async ({
+test('reports sign-in failure for an existing account', async ({
   browser,
   contextOptions,
 }) => {
@@ -30,5 +30,5 @@ test('reports both failures when an existing account cannot sign in', async ({
   await expect(createAuthenticatedContext(browser, contextOptions, {
     ...account,
     password: `${account.password}-wrong`,
-  })).rejects.toThrow(/enrollment 422 .*; sign-in 401 /u);
+  })).rejects.toThrow(/sign-in 400 /u);
 });
