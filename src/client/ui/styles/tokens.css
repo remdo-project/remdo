@@ -1,0 +1,30 @@
+/* `--remdo-accent` is the app's single accent (links, brand mark). Violet-3 is
+   the softer accent chosen against the violet-tinted glass backdrop, so the
+   accent reads as distinct rather than merging with the backdrop hue.
+   `--remdo-accent-rgb` exposes the same colour as bare channels for the aurora
+   glows in the app shell. */
+:root {
+  --remdo-font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --remdo-font-family-monospace: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+  --mantine-font-family: var(--remdo-font-family);
+  --mantine-font-family-headings: var(--remdo-font-family);
+  --mantine-font-family-monospace: var(--remdo-font-family-monospace);
+  /* Cooler, slightly desaturated grey-violet so links/brand stay distinct from
+     the bold violet backdrop (a saturated violet accent would converge with it).
+     The aurora's primary glow still uses this hue via `--remdo-accent-rgb`. */
+  --remdo-accent-rgb: 165 161 232; /* muted grey-violet — the accent hue source */
+  --remdo-accent: rgb(var(--remdo-accent-rgb)); /* opaque form for links/brand */
+  --remdo-accent-hover: #c3bffb; /* separately tuned lighter hover, not a plain tint */
+  /* Cool second hue for the app-shell aurora's secondary glow (a deliberate
+     two-tone with the violet accent); as bare channels for rgb(... / a). */
+  --remdo-accent-secondary-rgb: 116 143 252;
+  --remdo-backdrop: #17151f; /* app-shell aurora base; shared by body + backdrop */
+  --remdo-glass-blur: 16px; /* shared frosted-glass blur (shell + header are one material) */
+}
+
+/* The page background matches the app-shell aurora base (faint-violet-black), so
+   overscroll and the inset gutter read as one seamless backdrop. */
+body {
+  background: var(--remdo-backdrop);
+}
+

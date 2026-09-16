@@ -1,7 +1,7 @@
 /* Inside the app-shell glass card the header is a denser frosted material than
    the body (69% over dark-6 vs the body's 55% over dark-7) so it still reads as
    chrome by elevation rather than a hard line — one continuous glass panel. */
-.header {
+.remdo-header {
   width: 100%;
   background-color: color-mix(in srgb, var(--mantine-color-dark-6) 69%, transparent);
   backdrop-filter: blur(var(--remdo-glass-blur));
@@ -10,10 +10,10 @@
 
 /* Align the header content to the document body's inline inset (`xl`), spanning
    the full card width, so the brand and nav line up with the "Document:" label
-   and status/cloud row directly below them — one shared spine. The `.header`
+   and status/cloud row directly below them — one shared spine. The `.remdo-header`
    qualifier makes this element+class rule outweigh Mantine Container's own
    single-class gutter + max-width (`.mantine-Container-root`). */
-.header .inner {
+.remdo-header .remdo-header-inner {
   display: flex;
   min-height: 4rem;
   align-items: center;
@@ -24,7 +24,7 @@
   max-width: none;
 }
 
-.brandLink {
+.remdo-header-brand-link {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -33,7 +33,7 @@
   text-decoration: none;
 }
 
-.brandIcon {
+.remdo-header-brand-icon {
   display: block;
   width: 2.25rem;
   height: 2.25rem;
@@ -44,16 +44,16 @@
   background-size: contain;
 }
 
-.navigation {
+.remdo-header-navigation {
   min-width: 0;
 }
 
-.links {
+.remdo-header-links {
   justify-content: flex-end;
   flex-wrap: wrap;
 }
 
-.link {
+.remdo-header-link {
   display: inline-flex;
   align-items: center;
   gap: var(--mantine-spacing-xs);
@@ -63,33 +63,33 @@
   transition: color 150ms ease;
 }
 
-.brandLink:hover,
-.brandLink:focus-visible,
-.link:hover,
-.link:focus-visible,
-.activeLink {
+.remdo-header-brand-link:hover,
+.remdo-header-brand-link:focus-visible,
+.remdo-header-link:hover,
+.remdo-header-link:focus-visible,
+.remdo-header-active-link {
   color: var(--mantine-color-gray-0);
 }
 
-.activeLink {
+.remdo-header-active-link {
   text-decoration: underline;
   text-underline-offset: 0.25rem;
 }
 
 @media (max-width: 48em) {
-  /* Same `.header .inner` specificity as the base rule so this override wins on
-     source order (a bare `.inner` would lose to the qualified base rule). */
-  .header .inner {
+  /* Same `.remdo-header .remdo-header-inner` specificity as the base rule so this override wins on
+     source order (a bare `.remdo-header-inner` would lose to the qualified base rule). */
+  .remdo-header .remdo-header-inner {
     align-items: flex-start;
     flex-direction: column;
     gap: var(--mantine-spacing-xs);
   }
 
-  .navigation {
+  .remdo-header-navigation {
     width: 100%;
   }
 
-  .links {
+  .remdo-header-links {
     justify-content: flex-start;
   }
 }

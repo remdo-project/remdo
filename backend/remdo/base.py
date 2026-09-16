@@ -65,6 +65,7 @@ ROOT_URLCONF = "remdo.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [Path(__file__).resolve().parents[1] / "accounts" / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -91,6 +92,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 STATIC_URL = "/django-static/"
 STATIC_ROOT = Path(__file__).resolve().parents[2] / "static"
+FRONTEND_MANIFEST = Path(__file__).resolve().parents[2] / "dist" / ".vite" / "manifest.json"
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
@@ -98,6 +100,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_ADAPTER = "accounts.adapters.AccountAdapter"

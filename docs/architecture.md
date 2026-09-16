@@ -21,6 +21,13 @@ Production, Development, and Verification run modes.
 
 Delivery surface choice does not alter outliner semantics.
 
+### Shared Presentation
+
+The SPA and server-rendered account pages share theme values and styles for
+branding, page chrome, and account cards and controls. React and Django retain
+their native rendering and interaction ownership; account pages load their
+presentation assets without the editor runtime.
+
 ## Production Bundle Boundary
 
 Development-only routes, UI, editor plugins, and test bridges are gated by

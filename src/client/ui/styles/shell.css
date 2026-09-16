@@ -9,7 +9,7 @@
    `--remdo-accent-rgb` is the shared accent (violet-3) as bare channels, so the
    aurora glows and other accent surfaces stay in one hue. */
 
-.backdrop {
+.remdo-backdrop {
   /* `dvh` tracks the visible viewport as mobile browser chrome collapses/expands,
      so a short route doesn't get a shell taller than the screen (which `vh` — the
      large viewport — would cause). */
@@ -30,7 +30,7 @@
     var(--remdo-backdrop);
 }
 
-.shell {
+.remdo-shell {
   max-width: 87.5rem; /* 1400px */
   margin: 0 auto;
   min-height: calc(100dvh - 2 * var(--app-shell-inset));
@@ -48,11 +48,11 @@
    the narrow width. The app fills the screen edge-to-edge. The glass fill and
    blur stay — the aurora backdrop still shows through. */
 @media (max-width: 48em) {
-  .backdrop {
+  .remdo-backdrop {
     --app-shell-inset: 0rem;
   }
 
-  .shell {
+  .remdo-shell {
     max-width: none;
     border-radius: 0;
     box-shadow: none;

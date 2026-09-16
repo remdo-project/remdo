@@ -1,0 +1,33 @@
+{% load frontend i18n %}
+{% get_current_language as language_code %}
+<!doctype html>
+<html lang="{{ language_code }}" data-mantine-color-scheme="dark">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>{% block head_title %}RemDo{% endblock %}</title>
+    <link rel="icon" href="/favicon.png">
+    {% shared_styles_urls as stylesheets %}
+    {% for stylesheet in stylesheets %}<link rel="stylesheet" href="{{ stylesheet }}">{% endfor %}
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body>
+    {% block body %}
+      <div class="remdo-backdrop">
+        <div class="remdo-shell">
+          <header class="remdo-header">
+            <div class="remdo-header-inner">
+              <a class="remdo-header-brand-link" href="/">
+                <span aria-hidden="true" class="remdo-header-brand-icon"></span>
+                <span class="remdo-brand-name">RemDo</span>
+              </a>
+            </div>
+          </header>
+          {% block layout %}{% block content %}{% endblock %}{% endblock %}
+        </div>
+      </div>
+    {% endblock %}
+    {% block extra_body %}{% endblock %}
+  </body>
+</html>

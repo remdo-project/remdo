@@ -17,6 +17,11 @@ export default defineConfig({
   ],
   build: {
     ...sharedConfig.build,
+    manifest: true,
+    rollupOptions: {
+      ...sharedConfig.build.rollupOptions,
+      input: ['index.html', 'src/client/ui/styles/shared.css'],
+    },
     outDir: "dist",
     assetsDir: "app-assets",
     emptyOutDir: true,

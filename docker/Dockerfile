@@ -56,6 +56,7 @@ RUN apk add --no-cache caddy libstdc++ \
 COPY --from=backend /app/.venv /app/.venv
 COPY backend /app/backend
 COPY --from=builder /app/dist /srv/remdo
+COPY --from=builder /app/dist/.vite/manifest.json /app/dist/.vite/manifest.json
 COPY --from=builder /app/node_modules/y-sweet/bin/y-sweet /usr/local/bin/y-sweet
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
