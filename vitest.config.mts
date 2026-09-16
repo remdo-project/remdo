@@ -48,6 +48,42 @@ const nodeTests = [
   'tests/unit/test-launchers.spec.ts',
   'tests/unit/collab-test-runtime.spec.ts',
   'tests/unit/docker-entrypoint-env.spec.ts',
+  'config/eslint/*.spec.ts',
+  'tests/unit/agent-instructions-gate.spec.ts',
+  'tests/unit/collab-auth.spec.ts',
+  'tests/unit/dev-runtime-launchers.spec.ts',
+  'tests/unit/docker-entrypoint-lifecycle.spec.ts',
+  'tests/unit/e2e-auth-context.spec.ts',
+  'tests/unit/linking-preflight.spec.ts',
+  'tests/unit/managed-process.spec.ts',
+  'tests/unit/markdownlint-line-length.spec.ts',
+  'tests/unit/prod-docker-launcher.spec.ts',
+  'tests/unit/provider-headless-lifecycle.spec.ts',
+  'tests/unit/server/**/*.spec.ts',
+  'tests/unit/skills/embedded.spec.ts',
+  'tests/unit/snapshot-backup.spec.ts',
+  'tests/unit/todo-list.spec.ts',
+  'tests/unit/vite-logger.spec.ts',
+  'tests/unit/vite-shared.spec.ts',
+  'src/server/auth/*.spec.ts',
+  'src/server/db/*.spec.ts',
+  'src/server/documents/*.spec.ts',
+  'src/server/projection/*.spec.ts',
+  'src/server/remdo-oauth/*.spec.ts',
+  'src/server/collab-token.spec.ts',
+  'src/server/token-url-rewrite.spec.ts',
+];
+
+// These tests render their own UI or exercise browser state without an editor.
+const domTests = [
+  'src/client/app/dev/*.spec.tsx',
+  'src/client/app/session/*.spec.{ts,tsx}',
+  'src/client/app/sharing/*.spec.tsx',
+  'src/client/app/user-data/*.spec.{ts,tsx}',
+  'src/client/app/workspace/document/home-view.spec.tsx',
+  'src/client/app/workspace/search-result-row.spec.tsx',
+  'src/client/dev/*.spec.tsx',
+  'src/client/ui/AppHeader.spec.tsx',
 ];
 
 export default defineConfig({
@@ -84,9 +120,19 @@ export default defineConfig({
         ...shared,
         test: {
           ...shared.test,
+          name: 'dom',
+          environment: 'jsdom',
+          include: domTests,
+          setupFiles: ['./tests/unit/_support/setup/dom.ts'],
+        },
+      },
+      {
+        ...shared,
+        test: {
+          ...shared.test,
           name: 'editor',
           environment: 'jsdom',
-          exclude: [...shared.test!.exclude!, ...nodeTests],
+          exclude: [...shared.test!.exclude!, ...nodeTests, ...domTests],
           setupFiles: ['./tests/unit/_support/setup/index.ts'],
         },
       },
