@@ -24,6 +24,7 @@
     "playwright.docker.config.ts",
     "tests/e2e/docker/_support/seed-source-user.ts",
     "tools/{check-pnpm-policy,collab-server}.ts",
+    ".agents/skills/remdo-verify-change/tools/run-reviews.ts",
     "tools/dev/**/*.ts",
     "tests/perf/**/*.bench.ts",
     "tests/perf/generate-workload.ts",
