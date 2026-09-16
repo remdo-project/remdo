@@ -43,6 +43,19 @@ const shared = defineProject({
 
 // These tests exercise Node boundaries and do not need a DOM or an editor.
 const nodeTests = [
+  'src/document-routes/document-routes.spec.ts',
+  'src/note-sdk/note-sdk-core.spec.ts',
+  'src/client/search/query-match.spec.ts',
+  'src/client/ui/navigation-label.spec.ts',
+  'src/platform/net/http-origin.spec.ts',
+  'src/client/editor/mobile-toolbar/mobile-toolbar-actions.spec.ts',
+  'src/client/editor/mobile-toolbar/mobile-toolbar-layout.spec.ts',
+  'src/client/editor/triggers/active-popup.spec.ts',
+  'src/client/editor/runtime/collaboration/collaboration-indicator.spec.ts',
+  'src/client/editor/runtime/collaboration/offline-document-unavailable.spec.ts',
+  'src/collaboration/y-sweet-indexeddb-lifecycle.spec.ts',
+  'tests/unit/internal/waitForSync.spec.ts',
+
   'tests/unit/net.spec.ts',
   'tests/unit/config-env.spec.ts',
   'tests/unit/test-launchers.spec.ts',
@@ -76,6 +89,16 @@ const nodeTests = [
 
 // These tests render their own UI or exercise browser state without an editor.
 const domTests = [
+  'src/collaboration/local-persistence-support.spec.ts',
+  'src/collaboration/session-hydration.spec.ts',
+  'src/collaboration/session-unsynced-documents.spec.ts',
+  'src/collaboration/unsynced-local-changes.spec.ts',
+  'src/platform/http/api-fetch.spec.ts',
+  'src/client/editor/keymap/keymap-plugin.spec.ts',
+  'src/client/editor/mobile-toolbar/MobileActionToolbar.spec.tsx',
+  'src/client/editor/view/editor-view-provider.spec.tsx',
+  'src/client/editor/features/zoom/zoom-breadcrumbs.spec.tsx',
+
   'src/client/app/dev/*.spec.tsx',
   'src/client/app/session/*.spec.{ts,tsx}',
   'src/client/app/sharing/*.spec.tsx',
