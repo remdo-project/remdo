@@ -61,7 +61,7 @@ or disabled-command infrastructure.
    behavior; prior checks of the larger change do not verify the reduced
    slice.
 
-## Current PR: Django-rendered sign-in
+## Django-rendered sign-in
 
 `feat/django-account-pages` builds on the browser-flow commit `fa822b6c` and
 targets `feat/django-backend` after that foundation lands. Allauth owns the
@@ -79,39 +79,33 @@ document, an existing admin session, logout followed by another account's
 login, offline cached-document reopening, and preview sign-in. Run focused
 backend/session/browser checks and generated-schema verification.
 
+## Current PR: Django production runtime
+
+`feat/django-production-runtime` builds on the sign-in commit `9334642d` and
+targets `feat/django-backend` after its prerequisites land. Deploy the existing
+account/document flow through Caddy, Gunicorn/Django, and native Y-Sweet, with
+no Node runtime in the image. Python owns the persistent secret bundle; Django
+owns migrations and administrator creation.
+
+Include self-hosted Docker and externally terminated HTTPS wiring, native
+sign-in/admin/static routes, startup health and process shutdown, and
+data/secret persistence across restart. Verify generated secrets with the real
+collaboration server, CSRF behind the gateway, private bundle permissions, and
+refusal to replace missing/corrupt secrets over existing data. The container
+verification suite covers this implemented slice; retained
+source-linking/offline suites need separate migration.
+
+Exclude sharing/source linking, backup/restore redesign, Home policy, and
+general unused-code cleanup. The old scheduled exporter reads the Node database
+and is not installed or started in this image. Automatic exports and the
+backup-scheduler part of the production failure-domain contract remain gaps
+until the recovery slice supplies their Django replacement. A stopped-instance
+copy of the complete data root remains the upgrade rollback procedure.
+
 ## Approved decisions outside this PR
 
 These directions were accepted during the simplification discussion. Implement
 them in cohesive later slices and keep their owning specifications aligned.
-
-### Production startup and secrets
-
-[Configuration](specs/runtime/configuration.md#secret-bootstrap) owns the approved production secret-bootstrap target.
-
-The Python bundle implementation and its Docker wiring are deferred together.
-The current slice retains the previous Node bootstrap, per-secret
-storage/overrides, and production launcher requirements. Current Django
-production settings read `AUTH_SECRET` and `YSWEET_SERVER_TOKEN` from
-environment inputs, while the retained Node image loads its existing two-file
-bootstrap. Django settings and management commands still need the shared
-bundle wired during the production slice. This is an implementation gap
-against the approved target, not a reversal of the decision.
-
-The reason for the change is one persistence/loading path and fewer
-configuration combinations. Keep development/test fixture credentials
-separate. Verify fresh generation, private permissions, reuse after restart,
-real Y-Sweet authentication, and rejection of missing or invalid secrets over
-existing data with the production runtime.
-
-### Administrator and backend ownership
-
-Native [administrator creation](specs/access/access-control.md#admin-role) and Node-independent [backend settings](specs/runtime/configuration.md#resolution-boundary) remain in
-the current browser slice. Carry those same boundaries into production
-packaging: Django owns account administration and backend commands; pnpm owns
-frontend tooling. Remove the old enrollment endpoint/UI, `ADMIN_SECRET`, and
-Node backend with the corresponding obsolete production wiring and tests.
-Retaining their unused implementation during the split does not require
-keeping the old backend operational.
 
 ### Development instance setup
 
@@ -120,7 +114,7 @@ Make backend settings such as `DEBUG` easy to override for one checkout without
 editing shared tracked settings. Preserve [independent working directories](specs/runtime/configuration.md#network-addressing)
 and Node-independent backend commands.
 
-Currently, development imports the base settings and overrides them, but `DEBUG`
+Currently, development imports shared base settings and overrides them, but `DEBUG`
 is not read from `.env`, and shell launchers replace `DJANGO_SETTINGS_MODULE`.
 Evaluate native Django settings-module selection versus a small set of explicit
 environment overrides; the mechanism remains open. Keep precedence clear and
@@ -169,27 +163,19 @@ document has not been selected.
   logout, and account isolation together before claiming parity. Existing
   logout guarantees remain with the [access owner](specs/access/access-control.md#logout) while the discussion below is
   open.
-- **Production and Docker:** the image, entrypoint, launchers, health checks,
-  and gateway still need the Django API and management commands. Restore the
-  approved Python secret bundle in that production slice and verify
-  self-hosted Docker and hosted deployment procedures. The current frontend
-  requires Django, while the production image retains the Node backend, so
-  this branch has no working production deployment. The
-  [deployment guide](guides/production-deployment.md) describes the accepted target.
-  Remove the obsolete `ADMIN_SECRET` requirements from the launchers,
-  [environment example](../.env.example), and [Render blueprint](../render.yaml).
-  Complete the guide's exact Docker and Render management-command invocations
-  once packaging is settled, and verify secret loading, administrator creation,
-  administration sign-in, and application sign-in in the deployed runtime.
-  Its upgrade procedure applies to Django deployments; migration of legacy
-  Node datasets is excluded. Production/Docker tests
-  still contain old backend, enrollment, and projection assumptions; they do
-  not establish Django production readiness.
+- **Production and Docker:** locally verify self-hosted startup and the hosted
+  HTTP hop behind TLS termination with the Django image. Actual Render
+  deployment, public-certificate issuance, and rootful Docker verification
+  remain external checks. Source-linking and full offline Docker scenarios still
+  contain old backend/projection assumptions and are outside the current
+  production test selection.
 - **Import, exports, and recovery:** retained client-side import code is not
   first-slice verification of import/export. Define and exercise coherent
   backup/restore of Django metadata, Y-Sweet content, and secrets before
   completing the migration; a database backup or readable content export alone
-  is insufficient.
+  is insufficient. The old scheduled exporter and cron are absent from the
+  Django image; restore automated exports and scheduler supervision in the
+  recovery slice.
 - **Obsolete code:** remove the unused Node backend, enrollment
   infrastructure, Yjs app-resource projections, and their remaining
   consumers/tests after replacement slices cover their responsibilities. Do

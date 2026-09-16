@@ -6,7 +6,7 @@ This guide owns the supported deployment and first-access procedures for the
 Architecture owns the [production instance](../architecture.md#production-instance-boundary),
 [gateway](../architecture.md#gateway), and [persistent storage root](../architecture.md#runtime-persistence-boundary).
 
-See [migration gaps](../django-migration.md#remaining-migration-gaps) for current deployment availability.
+See [migration gaps](../django-migration.md#remaining-migration-gaps) for incomplete migration capabilities.
 
 ## Deploy with Self-Hosted Docker
 
@@ -69,9 +69,8 @@ daemons are supported.
 1. Create a Render Blueprint deployment from [the repository blueprint](../../render.yaml).
 2. In the Render Dashboard, set `APP_ORIGIN` to the
    service's exact public origin.
-3. Keep the blueprint's persistent disk mounted at `/data` and its
-   `ALLOW_SIGNUP=false` setting. Render supplies the container `PORT` and
-   terminates public HTTPS.
+3. Keep the blueprint's persistent disk mounted at `/data`. Render supplies the
+   container `PORT` and terminates public HTTPS.
 4. Deploy the service and open its `APP_ORIGIN`.
 
 ## Publish a Public File
@@ -107,8 +106,22 @@ start of the new version.
 
 1. Append `/health` to the application URL and confirm that the gateway reports
    a healthy service.
-2. Run Django's `createsuperuser` management command in the deployed backend's
-   runtime, using its production settings and persistent data. Enter the
-   administrator's email and password, following the [administrator creation](../specs/access/access-control.md#admin-role) model.
+2. Create the administrator using Django's [administrator
+   creation](../specs/access/access-control.md#admin-role) command. For the
+   default Docker origin (use the container name printed by the launcher):
+
+   ```sh
+   docker exec -it remdo-8443 python manage.py createsuperuser
+   ```
+
+   On Render, open the service shell and run:
+
+   ```sh
+   cd /app/backend
+   python manage.py createsuperuser
+   ```
+
+   Enter the administrator's email and password. Management commands load the
+   same persisted secret bundle as the server.
 3. Open `/admin/` on the application origin and sign in with that account.
 4. Open the application home and sign in with the same account.

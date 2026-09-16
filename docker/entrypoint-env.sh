@@ -2,16 +2,18 @@
 # Shared Docker entrypoint environment derivation. Source from entrypoint/tests.
 
 remdo_origin_field() {
-  node -e '
-    try {
-      const url = new URL(process.argv[1]);
-      if (!["http:", "https:"].includes(url.protocol) || url.origin !== process.argv[1]) throw new Error();
-      console.log(url[process.argv[2]]);
-    } catch {
-      console.error("APP_ORIGIN must be an exact HTTP(S) origin.");
-      process.exit(1);
-    }
-  ' "$1" "$2"
+  python -c '
+import sys
+from urllib.parse import urlsplit
+try:
+    origin = sys.argv[1]
+    url = urlsplit(origin)
+    if url.scheme not in ("http", "https") or not url.hostname or url.username or url.password or origin != f"{url.scheme}://{url.netloc}":
+        raise ValueError
+    print(url.scheme + ":" if sys.argv[2] == "protocol" else url.hostname)
+except ValueError:
+    sys.exit("APP_ORIGIN must be an exact HTTP(S) origin.")
+' "$1" "$2"
 }
 
 remdo_configure_internal_services() {
@@ -56,15 +58,6 @@ remdo_configure_caddy_env() {
     esac
   fi
 
-  export APP_ORIGIN CADDY_SITE_ADDRESS
-}
-
-remdo_require_api_secrets() {
-  : "${AUTH_SECRET:?Set AUTH_SECRET}"
-  : "${ADMIN_SECRET:?Set ADMIN_SECRET}"
-  if [ "${REMDO_DEV_CONTAINER:-false}" = "true" ]; then
-    return
-  fi
-  [ "${#AUTH_SECRET}" -ge 32 ] || { echo "AUTH_SECRET must be at least 32 characters." >&2; return 1; }
-  [ "${#ADMIN_SECRET}" -ge 32 ] || { echo "ADMIN_SECRET must be at least 32 characters." >&2; return 1; }
+  CADDY_FORWARDED_PROTO="${app_origin_protocol%:}"
+  export APP_ORIGIN CADDY_SITE_ADDRESS CADDY_FORWARDED_PROTO
 }

@@ -2,8 +2,8 @@ import os
 import socket
 from urllib.parse import urlsplit
 
-from . import settings as base
-from .settings import *  # noqa: F403
+from . import base
+from .base import *  # noqa: F403
 
 DEBUG = True
 INSTALLED_APPS = [*base.INSTALLED_APPS, "fixtures"]
@@ -24,3 +24,8 @@ ALLOWED_HOSTS = [
     *dict.fromkeys(urlsplit(value).hostname for value in CSRF_TRUSTED_ORIGINS),
     "[::1]",
 ]
+
+SECRET_KEY = base.required("AUTH_SECRET")
+YSWEET_AUTH_KEY = base.required("YSWEET_AUTH_KEY")
+YSWEET_SERVER_TOKEN = base.required("YSWEET_SERVER_TOKEN")
+YSWEET_CONNECTION_STRING = base.required("YSWEET_CONNECTION_STRING")

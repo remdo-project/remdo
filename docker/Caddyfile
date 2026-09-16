@@ -9,7 +9,9 @@
 	route {
 		handle /health {
 			rewrite * /api/health
-			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
+			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT} {
+				header_up X-Forwarded-Proto {env.CADDY_FORWARDED_PROTO}
+			}
 		}
 
 		@app_favicon path /favicon.ico /favicon.png
@@ -24,9 +26,16 @@
 			respond 204
 		}
 
-		@api path /api /api/* /.well-known /.well-known/*
+		@api path /api /api/* /accounts /accounts/* /admin /admin/* /.well-known /.well-known/*
 		handle @api {
-			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
+			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT} {
+				header_up X-Forwarded-Proto {env.CADDY_FORWARDED_PROTO}
+			}
+		}
+
+		handle_path /django-static/* {
+			root * /app/static
+			file_server
 		}
 
 		handle_path /share/* {

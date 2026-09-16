@@ -141,14 +141,9 @@ describe('prod Docker launcher', () => {
     expect(runArgs).toContain('-d');
     expect(runArgs).not.toContain('--rm');
     expect(runArgs).not.toContain('--network=host');
-    expect(findDockerCall(dockerCalls, 'exec').join(' ')).toContain('AbortSignal.timeout(500)');
+    expect(findDockerCall(dockerCalls, 'exec').join(' ')).toContain('timeout=0.5');
     expect(dockerEnvironment(runArgs)).toEqual({
-      ADMIN_SECRET: 'production-admin-secret-0123456789',
       APP_ORIGIN: 'https://remdo.localhost:8443',
-      ALLOW_SIGNUP: 'false',
-      AUTH_SECRET: 'production-auth-secret-0123456789',
-      YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
-      YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
     });
     expect(result.stdout).toContain('Verify health: https://remdo.localhost:8443/health');
     expect(result.stdout).toContain('Follow logs: docker logs -f remdo-8443');
@@ -324,17 +319,10 @@ describe('prod Docker launcher', () => {
     ]);
   });
 
-  it('requires strong operator secrets before building', () => {
-    for (const [name, value, message] of [
-      ['ADMIN_SECRET', 'short', 'ADMIN_SECRET must be at least 32 characters'],
-      ['AUTH_SECRET', 'short', 'AUTH_SECRET must be at least 32 characters'],
-    ] as const) {
-      const { result, dockerCalls } = runLauncher({ [name]: value });
-
-      expect(result.status).not.toBe(0);
-      expect(result.stderr).toContain(message);
-      expect(dockerCalls).toEqual([]);
-    }
+  it('does not require operator-supplied secrets', () => {
+    const { result, dockerCalls } = runLauncher({ ADMIN_SECRET: '', AUTH_SECRET: 'ignored' });
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toEqual({ APP_ORIGIN: 'https://remdo.localhost:8443' });
   });
 
   it('rejects every production HOST except loopback and the IPv4 wildcard', () => {
@@ -376,9 +364,7 @@ describe('prod Docker launcher', () => {
 
     expect(result.status, result.stderr).toBe(0);
     expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toEqual({
-      ADMIN_SECRET: 'production-admin-secret-0123456789',
       APP_ORIGIN: 'https://remdo.localhost:8443',
-      ALLOW_SIGNUP: 'false',
     });
   });
 

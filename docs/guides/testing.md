@@ -32,8 +32,8 @@ Docker E2E resolves a writable Chromium cache as part of its command.
 
 ### Prepare Docker
 
-Docker E2E requires a running Docker daemon. When the daemon is rootless, it
-requires Docker Engine 29.5 or newer.
+Docker E2E requires a running Docker daemon and publishes its isolated test
+ports on loopback. Rootless and rootful daemons are supported.
 
 ## Run Verification
 
