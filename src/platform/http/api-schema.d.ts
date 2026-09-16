@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/documents/{document_id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["documents_access_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/documents/{document_id}/sync-tokens": {
         parameters: {
             query?: never;
@@ -116,8 +132,15 @@ export interface components {
             readonly id: string;
             /** @default  */
             title: string;
-            /** @default false */
             readonly shareable: boolean;
+            readonly access: components["schemas"]["DocumentAccess"][];
+        };
+        DocumentAccess: {
+            readonly documentId: string;
+            readonly granteeUserId: string;
+            /** Format: email */
+            readonly email: string;
+            readonly name: string;
         };
         DocumentRequest: {
             /** @default  */
@@ -125,6 +148,10 @@ export interface components {
         };
         Health: {
             ok: boolean;
+        };
+        ShareDocumentRequest: {
+            /** Format: email */
+            email: string;
         };
     };
     responses: never;
@@ -211,6 +238,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
+    documents_access_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareDocumentRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentAccess"];
                 };
             };
         };

@@ -68,6 +68,7 @@ Only the owner can grant a normal document to another local user. Sharing
 identifies the grantee by email; a grant is created only when that email matches
 an account on the document's server. A direct grant gives that user
 full document access. Home documents do not accept direct grants.
+Only the owner receives the document's recipient list.
 
 Users with full document access may [rename the document](../outliner/location-header.md#document-rename). The source authorizes
 each submission using the caller's current access; client metadata caches do not

@@ -1,6 +1,7 @@
 import { QueryClient, queryOptions } from '@tanstack/react-query';
 import { createUserDataRootNote } from '#note-sdk';
 import type { CollectionSource, UserDocument } from '#note-sdk';
+import type { DocumentAccessView } from '#domain/documents/access';
 import { api, requireData } from '#platform/http/api-client';
 import { currentUserBootstrapQuery } from './current-user-bootstrap';
 
@@ -42,7 +43,33 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
       void client.invalidateQueries({ queryKey: documentsQuery.queryKey });
     },
   };
+  const shareDocumentOptions = {
+    mutationKey: [globalThis.location.origin, userId, 'share-document'],
+    networkMode: 'always' as const,
+    mutationFn: async ({ documentId, email }: { documentId: string; email: string }): Promise<DocumentAccessView> => {
+      lifetime.signal.throwIfAborted();
+      const result = await api.POST('/api/documents/{document_id}/access', {
+        params: { path: { document_id: documentId } }, body: { email }, signal: lifetime.signal,
+      });
+      lifetime.signal.throwIfAborted();
+      if (result.response.status === 400) {
+        throw new Error('Use the email of another account on this server.');
+      }
+      return requireData(result);
+    },
+    onSuccess: async (access: DocumentAccessView) => {
+      await client.cancelQueries({ queryKey: documentsQuery.queryKey });
+      lifetime.signal.throwIfAborted();
+      client.setQueryData(documentsQuery.queryKey, (items = []) => items.map((document) => (
+        document.id === access.documentId
+          ? { ...document, access: [...(document.access ?? []).filter((grant) => grant.granteeUserId !== access.granteeUserId), access] }
+          : document
+      )));
+      void client.invalidateQueries({ queryKey: documentsQuery.queryKey });
+    },
+  };
   const userData = createUserDataRootNote(documents, {
+    shareDocument: (documentId, email) => client.getMutationCache().build(client, shareDocumentOptions).execute({ documentId, email }),
     getHomeDocumentId: () => client.getQueryData(bootstrapQuery.queryKey)?.homeDocumentId ?? null,
     createDocument: (title) => client.getMutationCache().build(client, createDocumentOptions).execute(title),
   });
