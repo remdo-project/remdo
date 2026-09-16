@@ -18,13 +18,11 @@ const TEST_USER = {
   name: 'Server Test User',
   password: 'server-password-1234',
 } as const;
-export const TEST_ADMIN_SECRET = 'test-admin-secret-0123456789';
 // The harness's own canonical origin — an explicit override, deliberately not the
 // env APP_ORIGIN, so tests exercise instance-scoped baseURL wiring.
 const TEST_BASE_URL = 'http://127.0.0.1:4000';
 
 export function createServerAppHarness({
-  adminSecret = TEST_ADMIN_SECRET,
   allowSignup = false,
   baseURL = TEST_BASE_URL,
   sourceServers = [],
@@ -32,7 +30,6 @@ export function createServerAppHarness({
   onUpdateDoc,
   logError = () => {},
 }: {
-  adminSecret?: string;
   allowSignup?: boolean;
   baseURL?: string;
   sourceServers?: readonly StoredSourceServer[];
@@ -93,7 +90,6 @@ export function createServerAppHarness({
     },
   };
   const app = createServerApp({
-    adminSecret,
     auth,
     database: client,
     rebuildAuth: swappable?.rebuild,
@@ -110,20 +106,7 @@ export function createServerAppHarness({
     registry,
     async createSessionHeaders(user: CreateAuthUserInput = TEST_USER) {
       await auth.ensureReady();
-      // Self-enrollment is the secret-gated account-creation path that works with
-      // signup disabled; it also grants the admin role. Test users are therefore
-      // admins, which is irrelevant to the ownership/grant behaviors these
-      // sessions exercise. Role-gating tests create their own non-admin users.
-      const provisionResponse = await app.request('/api/admin/enroll', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...user,
-          adminSecret: TEST_ADMIN_SECRET,
-        }),
-      });
+      const provisionResponse = await auth.createUser(user, new Headers());
       const response = provisionResponse.ok
         ? provisionResponse
         : await app.request('/api/auth/sign-in/email', {

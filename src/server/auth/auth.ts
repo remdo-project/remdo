@@ -220,7 +220,6 @@ export interface ServerAuth {
   deleteUser: (userId: string) => Promise<void>;
   ensureReady: () => Promise<void>;
   findUserByEmail: (email: string) => Promise<ServerAuthUser | null>;
-  grantAdminRole: (userId: string) => Promise<void>;
   handleAuthServerMetadata: (request: Request) => Promise<Response>;
   handleOpenIdConfigMetadata: (request: Request) => Promise<Response>;
   getSession: (headers: Headers) => Promise<Awaited<ReturnType<BetterAuthInstance['api']['getSession']>>>;
@@ -337,16 +336,6 @@ export function createServerAuth({
         .limit(1)
         .executeTakeFirst();
       return row ?? null;
-    },
-    async grantAdminRole(userId) {
-      // Direct write rather than the admin plugin's setRole: granting the FIRST
-      // admin has no existing admin caller to authorize setRole, and enrollment
-      // is gated by ADMIN_SECRET at the route, not by an admin session.
-      await database.db
-        .updateTable('user')
-        .set({ role: 'admin' })
-        .where('id', '=', userId)
-        .execute();
     },
     getSession(headers) {
       return auth.api.getSession({ headers });

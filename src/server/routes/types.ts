@@ -5,7 +5,6 @@ import type { DocumentRegistry } from '#server/documents/document-registry';
 import type { ServerDiagnosticReporter } from '#server/diagnostics';
 
 export interface ServerRouteDependencies {
-  adminSecret?: string;
   auth: ServerAuth;
   database: SqliteServerDatabaseClient;
   rebuildAuth: () => Promise<void>;

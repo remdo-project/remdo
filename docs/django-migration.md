@@ -79,7 +79,7 @@ document, an existing admin session, logout followed by another account's
 login, offline cached-document reopening, and preview sign-in. Run focused
 backend/session/browser checks and generated-schema verification.
 
-## Current PR: Django production runtime
+## Django production runtime
 
 `feat/django-production-runtime` builds on the sign-in commit `9334642d` and
 targets `feat/django-backend` after its prerequisites land. Deploy the existing
@@ -101,6 +101,25 @@ and is not installed or started in this image. Automatic exports and the
 backup-scheduler part of the production failure-domain contract remain gaps
 until the recovery slice supplies their Django replacement. A stopped-instance
 copy of the complete data root remains the upgrade rollback procedure.
+
+## Current PR: retire the Node API runtime and enrollment
+
+`refactor/retire-node-api-runtime` builds on the merged production runtime and
+targets `feat/django-backend`. Remove the unused Node HTTP launcher, runtime
+lifecycle, secret-based admin enrollment route, and their exclusive tests and
+dependencies. Django owns service startup and administrator creation.
+
+Retain the old in-process server and its auth/document helpers while their
+source-linking and sharing regression coverage awaits migration. Retained tests
+create accounts through their auth helper rather than the removed enrollment
+route. Snapshot tooling and the Y-Sweet helper used by headless consumers stay
+with their pending replacement slices.
+
+Acceptance checks cover retained server tests, Django account/document behavior,
+the browser document journey, type checking, and dependency/reference audits.
+Exclude sharing/source-linking implementation, recovery, test-runtime redesign,
+and new document features. Document rename is post-migration feature work tracked
+in the [ordinary backlog](todo.md#ux-direction), not a migration completion gate.
 
 ## Approved decisions outside this PR
 
@@ -154,8 +173,8 @@ document has not been selected.
   Preserve the capabilities in [source linking](specs/access/source-linking.md); port the Sharing consumer and
   cross-server tests with that slice. Source/account cache isolation needs
   end-to-end verification across independently authenticated servers.
-- **Document mutations and account policy:** document rename and public-signup
-  policy remain unimplemented. Native administrative account management does
+- **Account policy:** public-signup policy remains unimplemented. Native
+  administrative account management does
   not settle public signup or the home/source role split.
 - **Offline and PWA behavior:** persistent offline metadata/Home inventory and
   full [offline application behavior](architecture.md#offline-application-behavior) remain incomplete. Retain offline content
@@ -176,8 +195,8 @@ document has not been selected.
   is insufficient. The old scheduled exporter and cron are absent from the
   Django image; restore automated exports and scheduler supervision in the
   recovery slice.
-- **Obsolete code:** remove the unused Node backend, enrollment
-  infrastructure, Yjs app-resource projections, and their remaining
+- **Obsolete code:** remove the remaining in-process Node backend,
+  Yjs app-resource projections, and their remaining
   consumers/tests after replacement slices cover their responsibilities. Do
   not add compatibility adapters or legacy-data migration to preserve them.
 

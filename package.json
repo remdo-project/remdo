@@ -85,7 +85,6 @@
   "dependencies": {
     "@better-auth/core": "catalog:",
     "@better-auth/oauth-provider": "catalog:",
-    "@hono/node-server": "catalog:",
     "@internationalized/date": "catalog:",
     "@lexical/clipboard": "catalog:",
     "@lexical/link": "catalog:",
