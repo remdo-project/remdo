@@ -1,10 +1,16 @@
+import json
+import tempfile
+from pathlib import Path
+
 from django.conf import settings
 from django.test import Client, TestCase, override_settings
 
 from .models import User
 
 
-@override_settings(ALLOWED_HOSTS=["testserver"], CSRF_TRUSTED_ORIGINS=["http://testserver"])
+@override_settings(
+    ALLOWED_HOSTS=["testserver"], CSRF_TRUSTED_ORIGINS=["http://testserver"], DEBUG=True
+)
 class LoginPageTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -41,6 +47,16 @@ class LoginPageTests(TestCase):
         self.assertNotContains(response, "localStorage.removeItem")
         self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 401)
 
+    @override_settings(ACCOUNT_SESSION_COOKIE_AGE=3600)
+    def test_login_remembers_session_without_a_checkbox(self):
+        page = self.client.get("/accounts/login/")
+        self.assertNotContains(page, 'name="remember"')
+        response = self.login()
+        cookie = response.cookies[settings.SESSION_COOKIE_NAME]
+        self.assertEqual(cookie["max-age"], 3600)
+        self.assertTrue(cookie["expires"])
+        self.assertFalse(self.client.session.get_expire_at_browser_close())
+
     def test_login_requires_csrf_and_rejects_untrusted_origins(self):
         self.assertEqual(self.client.post("/accounts/login/", {}).status_code, 403)
         self.client.get("/accounts/login/")
@@ -68,3 +84,22 @@ class LoginPageTests(TestCase):
     def test_unscoped_account_features_are_not_routed(self):
         for path in ("signup", "logout", "password/reset"):
             self.assertEqual(self.client.get(f"/accounts/{path}/").status_code, 404)
+
+    def test_production_login_uses_built_styles_without_loading_the_spa(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = Path(directory) / "manifest.json"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "src/client/ui/styles/shared.css": {
+                            "file": "app-assets/shared-test.js",
+                            "css": ["app-assets/shared-test.css"],
+                        }
+                    }
+                )
+            )
+            with override_settings(DEBUG=False, FRONTEND_MANIFEST=manifest):
+                response = self.client.get("/accounts/login/")
+        self.assertContains(response, 'href="/app-assets/shared-test.css"')
+        self.assertNotContains(response, "<script")
+        self.assertContains(response, 'autocomplete="current-password"')

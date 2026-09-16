@@ -21,7 +21,7 @@ export default function LoginRoute() {
           This device's local data was cleared.
         </Alert>
       )}
-      <Button component="a" href={createSignInPath(location.search)}>Sign in</Button>
+      <Button className="remdo-account-button" component="a" href={createSignInPath(location.search)}>Sign in</Button>
     </CenteredCardPage>
   );
 }

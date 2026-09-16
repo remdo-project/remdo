@@ -4,10 +4,8 @@ import type { SessionGateState } from '#client/app/session/client';
 import { LogoutProvider, useLogout } from '#client/app/session/useLogout';
 import AppHeader from '#client/ui/AppHeader';
 import type { AppHeaderAuthState } from '#client/ui/AppHeader';
-import headerStyles from '#client/ui/AppHeader.module.css';
 import UnsyncedLogoutDialog from '#client/ui/UnsyncedLogoutDialog';
 import { DevToolbarLinksSeam } from './DevToolbarSeam';
-import styles from './AppFrame.module.css';
 
 interface SessionRouteData {
   sessionState: SessionGateState;
@@ -52,12 +50,12 @@ function AppFrameContent() {
   const logout = useLogout();
 
   return (
-    <div className={styles.backdrop}>
-      <div className={styles.shell}>
+    <div className="remdo-backdrop">
+      <div className="remdo-shell">
         <AppHeader
           authState={resolveHeaderAuthState(sessionState)}
           onLogout={logout.requestLogout}
-          trailingNav={<DevToolbarLinksSeam linkClassName={headerStyles.link} />}
+          trailingNav={<DevToolbarLinksSeam linkClassName="remdo-header-link" />}
         />
         <UnsyncedLogoutDialog
           onCancel={logout.cancelLogout}

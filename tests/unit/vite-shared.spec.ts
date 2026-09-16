@@ -35,6 +35,10 @@ describe('vite shared config', () => {
     });
     expect(previewProxy['/api']).not.toHaveProperty('headers');
     expect(previewProxy['/accounts']).toMatchObject({ target: resolveLocalGatewayOrigin() });
+    expect(previewProxy['/src/client/ui/styles/']).toMatchObject({
+      target: resolveLocalGatewayOrigin(),
+      changeOrigin: true,
+    });
     expect(previewProxy['/d']).toMatchObject({
       changeOrigin: true,
       target: resolveLocalGatewayOrigin(),
