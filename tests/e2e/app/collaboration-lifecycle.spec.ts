@@ -52,7 +52,7 @@ for (const phase of ['pending', 'connected'] as const) {
         const requested = new Promise<void>((resolve) => { tokenRequested = resolve; });
         window.fetch = (input, init) => {
           const request = new Request(input, init);
-          if (!new URL(request.url).pathname.endsWith('/sync-tokens')) return originalFetch(input, init);
+          if (!new URL(request.url).pathname.endsWith('/sync-tokens')) return originalFetch(request);
           window.fetch = originalFetch;
           tokenRequested();
           return new Promise<Response>((_resolve, reject) => {
