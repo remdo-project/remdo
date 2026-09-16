@@ -1,6 +1,7 @@
 import { expect, test as base } from '#e2e/fixtures';
 import type { Locator, Page } from '#e2e/fixtures';
 import type { BrowserContext } from '@playwright/test';
+import { createAuthenticatedContext } from '../../_support/auth-context';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { createUserDocument } from '../../_support/documents';
 import {
@@ -10,7 +11,7 @@ import {
 
 type EditorHarness = Awaited<ReturnType<typeof createEditorHarness>>;
 
-export const test = base.extend<
+export const isolatedTest = base.extend<
   {
     editor: EditorHarness;
     allocateEditorDocId: () => string;
@@ -36,6 +37,29 @@ export const test = base.extend<
     const document = await createUserDocument(page, `Editor ${Date.now()}`);
     const editor = await createEditorHarness(page, document.id);
     await applyFixture(editor);
+  },
+});
+
+// Account-wide UI tests use isolatedTest; ordinary editor tests only share the
+// login cookies. Every test still gets a new context and its own documents.
+export const test = isolatedTest.extend<Record<never, never>, {
+  workerStorageState: Awaited<ReturnType<BrowserContext['storageState']>>;
+}>({
+  workerStorageState: [async ({ browser }, applyFixture) => {
+    const context = await createAuthenticatedContext(browser, {});
+    try {
+      await applyFixture(await context.storageState());
+    } finally {
+      await context.close();
+    }
+  }, { scope: 'worker' }],
+  context: async ({ browser, contextOptions, workerStorageState }, applyFixture) => {
+    const context = await browser.newContext({ ...contextOptions, storageState: workerStorageState });
+    try {
+      await applyFixture(context);
+    } finally {
+      await context.close();
+    }
   },
 });
 
