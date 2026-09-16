@@ -115,7 +115,9 @@ editing shared tracked settings. Preserve [independent working directories](spec
 and Node-independent backend commands.
 
 Currently, development imports shared base settings and overrides them, but `DEBUG`
-is not read from `.env`, and shell launchers replace `DJANGO_SETTINGS_MODULE`.
+is not read from `.env`. Non-production shell launchers preserve an explicit
+`DJANGO_SETTINGS_MODULE` so verification settings reach fixture commands and
+services.
 Evaluate native Django settings-module selection versus a small set of explicit
 environment overrides; the mechanism remains open. Keep precedence clear and
 production defaults unchanged, and update the [configuration owner](specs/runtime/configuration.md#resolution-boundary)

@@ -10,5 +10,8 @@ runs:
       with:
         version: 0.12.15
         enable-cache: true
+        cache-dependency-glob: |
+          pyproject.toml
+          uv.lock
     - run: uv sync --locked
       shell: bash

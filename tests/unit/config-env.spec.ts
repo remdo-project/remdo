@@ -240,6 +240,20 @@ describe('config env resolve', () => {
     }
   });
 
+  it('preserves verification settings through nested launchers but forces production settings for deployment', () => {
+    const env = { ...process.env, DJANGO_SETTINGS_MODULE: 'remdo.verification' };
+    const output = execFileSync('./tools/env.sh', [
+      './tools/env.sh', 'sh', '-c', 'printf %s "$DJANGO_SETTINGS_MODULE"',
+    ], { env, encoding: 'utf8' });
+    expect(output).toBe('remdo.verification');
+    expect(readEnvShValue('DJANGO_SETTINGS_MODULE', env, true)).toBe('remdo.settings');
+  });
+
+  it('does not select backend verification settings through NODE_ENV', () => {
+    expect(readEnvShValue('DJANGO_SETTINGS_MODULE', { DJANGO_SETTINGS_MODULE: '', NODE_ENV: 'test' }))
+      .toBe('remdo.development');
+  });
+
   it('launches an entire local stack in an offset port range', () => {
     const env = {
       ...process.env,

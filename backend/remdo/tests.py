@@ -23,6 +23,16 @@ print(json.dumps({
     'fixtures': any(name in get_commands() for name in ('create_fixture_document', 'reset_fixture_users', 'provision_user', 'setup_development_users')),
 }))
 """
+PASSWORD_REPORT = """
+import json
+from django.contrib.auth.hashers import make_password, check_password
+password = make_password('configuration-test-password')
+print(json.dumps({
+    'algorithm': password.split('$')[0],
+    'valid': check_password('configuration-test-password', password),
+    'wrong_valid': check_password('wrong-password', password),
+}))
+"""
 
 
 class ConfigurationTests(SimpleTestCase):
@@ -50,7 +60,7 @@ class ConfigurationTests(SimpleTestCase):
         )
         bundle.chmod(0o600)
 
-    def settings(self, **overrides):
+    def settings(self, report=REPORT, **overrides):
         result = subprocess.run(
             [
                 sys.executable,
@@ -58,7 +68,7 @@ class ConfigurationTests(SimpleTestCase):
                 "shell",
                 "--no-imports",
                 "-c",
-                REPORT,
+                report,
             ],
             env={**self.env, **overrides},
             capture_output=True,
@@ -88,6 +98,22 @@ class ConfigurationTests(SimpleTestCase):
         self.assertEqual(result["cookie"], "remdo_session_5300")
         self.assertIn("http://localhost:5320", result["origins"])
         self.assertIn("http://127.0.0.1:5300", result["origins"])
+
+    def test_fast_password_hashing_is_confined_to_verification(self):
+        for module, algorithm in (
+            ("remdo.settings", "pbkdf2_sha256"),
+            ("remdo.development", "pbkdf2_sha256"),
+            ("remdo.verification", "md5"),
+        ):
+            with self.subTest(module=module):
+                result = self.settings(
+                    report=PASSWORD_REPORT,
+                    DJANGO_SETTINGS_MODULE=module,
+                    NODE_ENV="test",
+                )
+                self.assertEqual(result["algorithm"], algorithm)
+                self.assertTrue(result["valid"])
+                self.assertFalse(result["wrong_valid"])
 
     def test_separate_working_directories_resolve_isolated_stacks(self):
         results = []
