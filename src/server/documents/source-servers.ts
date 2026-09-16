@@ -10,7 +10,7 @@ export async function listCurrentUserSourceServers(
   // exposed across users: doing so would leak which sources others linked and let
   // one user seed another's Sharing page with a source to link (e.g. a look-alike
   // origin). A user links a new source by URL
-  // (docs/specs/access/source-linking.md#linking-a-source).
+  // (https://github.com/remdo-project/remdo/blob/21d0a0027d71abf6fa4966951b5f78496081f0c2/docs/specs/access/source-linking.md#linking-a-source).
   const linkedServerIds = await auth.listLinkedRemdoServerIds(headers);
   return auth.sourceServers
     .filter((server) => linkedServerIds.has(server.id))
