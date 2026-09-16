@@ -15,6 +15,8 @@ async function signIn(page: Page, account: { email: string; password: string }) 
 }
 
 test('Django sign-in, Home creation, collaboration, reopen, and account isolation', async ({ browser, contextOptions, page }) => {
+  // This full journey includes three form logins, two browsers, and document reloads.
+  test.slow();
   const account = createTestAuthAccount();
   const otherAccount = createTestAuthAccount();
   await provisionDjangoUser(account);
@@ -25,6 +27,7 @@ test('Django sign-in, Home creation, collaboration, reopen, and account isolatio
   const documentUrl = page.url();
   const docId = new URL(documentUrl).pathname.slice(3);
   const editor = page.locator('.editor-input');
+  await expect(editor).toBeEditable();
   await editor.click();
   await page.keyboard.type('Django document content');
 
