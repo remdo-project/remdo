@@ -104,22 +104,16 @@ canonical app origin may return to the main development frontend.
 
 ## Run Local Docker
 
-The [Django migration](../django-migration.md#remaining-migration-gaps) has not yet
-ported the Docker runtime. The recipes in this section retain the previous
-Node backend and enrollment flow; they do not run the current Django browser
-flow. [Production Deployment](production-deployment.md) records the same packaging limitation.
-
 Local Docker requires rootless Docker Engine 29.5 or newer.
-The development `ADMIN_SECRET` defaults to `development-admin-secret-0123456789`.
 Run:
 
 ```sh
 pnpm run dev:docker
 ```
 
-Open the printed home URL. In the previous runtime, a fresh Docker home used
-`/admin` and `ADMIN_SECRET` for enrollment. The Django replacement will use
-[native administrator creation](../specs/access/access-control.md#admin-role) once packaging is migrated.
+Open the printed home URL and sign in with a [development account](../../backend/fixtures/development-users.json).
+The Django container provisions these accounts on startup; Alice can also sign
+in at `/admin/`.
 
 Keep the command running while using the app. Stopping it removes the container
 and retains its development-owned data.
@@ -129,7 +123,7 @@ and retains its development-owned data.
 [Source linking](../specs/access/source-linking.md#linking-a-source) connects Main Development as a public source to a private
 Local Docker home. It uses the [Local Docker prerequisites](#run-local-docker).
 The workflow below is retained for the source-linking migration: Django source
-OAuth endpoints and Docker packaging are still missing, so it does not work
+OAuth endpoints are still missing, so it does not work
 end to end on this branch.
 
 1. Start the public source:
@@ -145,8 +139,8 @@ end to end on this branch.
    ```
 
    The command prints the home and source URLs.
-3. On a fresh Docker home, the previous runtime used `/admin` and
-   `ADMIN_SECRET` for enrollment, as described under [Local Docker](#run-local-docker).
+3. Sign in to the Docker home with a development account, as described under
+   [Local Docker](#run-local-docker).
 4. Open the home's Sharing page, choose **Link source**, and enter the printed
    source URL. When redirected to the source, sign in as a stable user.
 
