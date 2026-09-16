@@ -13,8 +13,8 @@ const collabServerTarget = resolveCollabServerOrigin();
 const mainGatewayTarget = resolveLocalGatewayOrigin();
 const pwaNavigationFallbackAllowlist = [
   /^\/(?:\?.*)?$/u,
-  /^\/n\/[^/?]+(?:\?.*)?$/u,
-  /^\/(?:sharing|oauth\/consent)(?:\?.*)?$/u,
+  /^\/n\/[^/?]+\/?(?:\?.*)?$/u,
+  /^\/(?:sharing|oauth\/consent)\/?(?:\?.*)?$/u,
 ];
 const apiProxy = { target: resolveApiServerOrigin(), changeOrigin: false };
 const devProxy = {

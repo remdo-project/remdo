@@ -22,11 +22,17 @@ test('returning browsers revalidate files and retain server navigation responses
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
   await page.getByRole('button', { name: 'New document', exact: true }).click();
   await expect(page.locator('.editor-input')).toBeVisible();
-  const documentResponse = await page.goto(`${page.url()}?freshness=probe`);
-  expect(documentResponse!.fromServiceWorker()).toBe(true);
-  await expect(page.locator('.editor-input')).toBeVisible();
+  const documentUrl = page.url();
+  for (const url of [`${documentUrl}?freshness=probe`, `${documentUrl}/?freshness=probe`]) {
+    const documentResponse = await page.goto(url);
+    expect(documentResponse!.fromServiceWorker()).toBe(true);
+    await expect(page.locator('.editor-input')).toBeVisible();
+  }
 
-  for (const url of ['/?next=/n/example', '/sharing?freshness=probe', '/oauth/consent?client_id=example']) {
+  for (const url of ['/?next=/n/example', '/sharing?freshness=probe', '/sharing/?freshness=probe', '/oauth/consent?client_id=example', '/oauth/consent/?client_id=example']) {
+    const gatewayResponse = await page.request.get(url);
+    expect(gatewayResponse.status(), url).toBe(200);
+    expect(await gatewayResponse.text()).toContain('<div id="root">');
     const response = await page.goto(url);
     expect(response!.fromServiceWorker(), url).toBe(true);
     expect(await response!.text()).toContain('<div id="root">');

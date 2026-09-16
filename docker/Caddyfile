@@ -53,7 +53,7 @@
 			}
 		}
 
-		@app_routes path / /n/* /sharing /oauth/consent
+		@app_routes path / /n/* /sharing /sharing/ /oauth/consent /oauth/consent/
 		handle @app_routes {
 			route {
 				root * /srv/remdo
