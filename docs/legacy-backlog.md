@@ -140,15 +140,6 @@ Deferred hardening; long-horizon items live in
   (The open-tab IndexedDB cleanup blocker is resolved: the provider closes its
   connection on teardown, and a cross-tab sign-out tears peers down.)
 
-## Admin enrollment follow-ups
-
-- Coverage gap: the enroll flow's `resetUserData()` (so a signed-in non-admin who
-  enrolls a NEW admin doesn't keep the prior user's live runtime) has no
-  regression test — the loader-only unit spec doesn't render the form, and a
-  component render hit shared-jsdom editor-mount friction. Add a dev e2e for
-  "signed-in non-admin enrolls → sees the new admin's data, not the prior user's"
-  (needs a non-admin session in the e2e setup, which today enrolls an admin).
-
 ## Document import / upload follow-ups
 
 The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-document-import.ts`).
