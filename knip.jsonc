@@ -15,8 +15,9 @@
   // live implementation details, not dead production code.
   "ignoreExportsUsedInFile": true,
   "entry": [
+    // Migration reference code for sharing/source linking, retained with its tests.
+    "src/server/{app,auth/auth,db/client,documents/document-registry}.ts!",
     // Retained Node migration tooling, removed after its remaining consumers are ported.
-    "tools/remdo-api-server.ts!",
     "tools/snapshot/{cli,backup}.ts!",
     // Retain the source-linking fixture while its Docker suite awaits Django migration.
     "playwright.docker.config.ts",
