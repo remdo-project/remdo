@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createViteSharedConfig, pwaNavigationFallbackDenylist } from '../../config/vite/shared';
+import { createViteSharedConfig } from '../../config/vite/shared';
 import { resolveLocalGatewayOrigin } from '../../src/platform/net/origins';
 
 describe('vite shared config', () => {
@@ -46,18 +46,6 @@ describe('vite shared config', () => {
     });
     expect(previewProxy['/d']).not.toHaveProperty('headers');
     expect(previewProxy).not.toHaveProperty('/doc');
-  });
-
-  it('keeps API-backed preview routes out of the PWA navigation fallback', () => {
-    const isDenied = (path: string) => pwaNavigationFallbackDenylist.some((pattern) => pattern.test(path));
-
-    expect(isDenied('/.well-known/openid-configuration')).toBe(true);
-    expect(isDenied('/.well-known/oauth-authorization-server')).toBe(true);
-    expect(isDenied('/api/current-user')).toBe(true);
-    expect(isDenied('/accounts/login/')).toBe(true);
-    expect(isDenied('/admin/login/')).toBe(true);
-    expect(isDenied('/d/document-id')).toBe(true);
-    expect(isDenied('/documents')).toBe(false);
   });
 
   it('routes preview traffic locally without replacing the browser origin', async () => {

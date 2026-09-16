@@ -36,6 +36,27 @@ it('distinguishes an absent session from an unavailable account server', async (
   await expect(getSession()).rejects.toMatchObject({ status: 503 });
 });
 
+it('reuses deployment configuration for session checks and logout while reading the current CSRF cookie', async () => {
+  let configRequests = 0;
+  vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
+    if (request.url.endsWith('/api/config')) {
+      configRequests += 1;
+      if (configRequests > 1) throw new TypeError('Configuration unavailable');
+      return configResponse();
+    }
+    if (request.method === 'DELETE') {
+      expect(request.headers.get('X-CSRFToken')).toBe('rotated');
+    }
+    return Response.json({ status: 401, meta: { is_authenticated: false } }, { status: 401 });
+  }));
+  const { getSession, signOut } = await import('./session-http');
+  await expect(getSession()).resolves.toBeNull();
+  await expect(getSession()).resolves.toBeNull();
+  document.cookie = 'remdo_csrf_test=rotated; Path=/';
+  await expect(signOut()).resolves.toBeUndefined();
+  expect(configRequests).toBe(1);
+});
+
 it('reports an offline first request so the session gate can use remembered state', async () => {
   const { onlineManager } = await import('@tanstack/query-core');
   onlineManager.setOnline(false);

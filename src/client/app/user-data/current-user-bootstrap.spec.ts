@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query';
+import { onlineManager, QueryClient, QueryObserver } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { currentUserBootstrapQuery, getCachedCurrentUserBootstrap, clearCurrentUserBootstrapCache } from './current-user-bootstrap';
 
@@ -26,9 +26,31 @@ beforeEach(() => {
 afterEach(() => {
   for (const instance of clients.splice(0)) { instance.clear(); }
   vi.unstubAllGlobals();
+  onlineManager.setOnline(true);
 });
 
 describe('current user bootstrap', () => {
+  it('revalidates a remembered offline result when connectivity returns', async () => {
+    await rememberBootstrap();
+    hasRememberedSessionMock.mockReturnValue(true);
+    onlineManager.setOnline(false);
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('offline'); }));
+    const queries = client();
+    queries.mount();
+    const observer = new QueryObserver(queries, currentUserBootstrapQuery('alice'));
+    const unsubscribe = observer.subscribe(() => {});
+    try {
+      await vi.waitFor(() => expect(observer.getCurrentResult().data).toEqual(BOOTSTRAP));
+      vi.stubGlobal('fetch', vi.fn(async () => Response.json({ ...BOOTSTRAP, publicServer: true })));
+      onlineManager.setOnline(true);
+      await vi.waitFor(() => expect(observer.getCurrentResult().data?.publicServer).toBe(true));
+      expect(getCachedCurrentUserBootstrap()?.publicServer).toBe(true);
+    } finally {
+      unsubscribe();
+      queries.unmount();
+    }
+  });
+
   it('stores a successful bootstrap and lets Query deduplicate subsequent reads', async () => {
     const fetchMock = vi.fn(async () => Response.json(BOOTSTRAP));
     vi.stubGlobal('fetch', fetchMock);

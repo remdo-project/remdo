@@ -21,6 +21,14 @@ Production, Development, and Verification run modes.
 
 Delivery surface choice does not alter outliner semantics.
 
+### Application Freshness
+
+The offline navigation fallback serves only application routes. Public downloads,
+server-rendered pages, and missing static assets retain their server responses.
+In Production, static HTTP responses require revalidation; dynamic and error
+responses are not stored in HTTP caches. Service-worker shell storage remains
+available offline.
+
 ### Shared Presentation
 
 The SPA and server-rendered account pages share theme values and styles for
@@ -120,6 +128,8 @@ document client tokens.
 - Client metadata caches are scoped by server origin and account identity.
   Ending a session clears its metadata and cancels pending reads; a late
   response cannot populate the next account's cache.
+- Cached bootstrap data is revalidated on online reads and reconnection;
+  using the offline fallback does not make it indefinitely fresh.
 - Document creation completes when the server acknowledges the new metadata
   and the result is available to the client. A later list-refresh
   failure does not turn that successful creation into a failed operation.
