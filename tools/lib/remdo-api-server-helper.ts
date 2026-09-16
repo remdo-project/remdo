@@ -9,7 +9,8 @@ import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
 import { attachManagedProcess, prepareManagedProcessLog, readRecentLog } from './managed-process';
 import { isPortOpen } from './net';
 
-const MAX_ATTEMPTS = 50;
+// Fresh test databases need migrations and fixture accounts before serving.
+const MAX_ATTEMPTS = 300;
 const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'remdo-api-server.log');
@@ -47,7 +48,7 @@ export async function startRemdoApiServer({
 
   prepareManagedProcessLog(LOG_PATH);
   const child = spawn(
-    './tools/env.sh', ['./tools/django-serve.sh'],
+    './tools/env.sh', ['./tools/django-serve.sh', '--noreload'],
     {
       env: {
         // eslint-disable-next-line node/no-process-env -- inherit the resolved stack environment
