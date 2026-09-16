@@ -9,7 +9,7 @@ export default defineConfig({
   ...playwrightBaseConfig,
   fullyParallel: false,
   workers: 1,
-  testMatch: /docker\/(?:production|cache-freshness)\.spec\.ts/u,
+  testMatch: /docker\/(?:production|cache-freshness|offline-documents)\.spec\.ts/u,
   use: {
     ...chromium,
     ...dockerBrowserUse,

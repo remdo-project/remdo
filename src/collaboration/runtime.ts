@@ -1,4 +1,5 @@
 import { apiFetch } from '#platform/http/api-fetch';
+import { getApiConfig } from '#platform/http/api-client';
 import type { Provider } from '@lexical/yjs';
 import { createYjsProvider } from '@y-sweet/client';
 import type { ClientToken } from '@y-sweet/sdk';
@@ -275,6 +276,10 @@ function getAuthToken(
 
   const controller = new AbortController();
   const promise = (async () => {
+    // A fresh offline page may reconnect before the session gate has loaded CSRF configuration.
+    if (typeof document !== 'undefined' && new URL(endpoints.token, location.href).origin === location.origin) {
+      await getApiConfig();
+    }
     trace('collab', 'requesting auth token', { docId });
     const response = await apiFetch(endpoints.token, {
       signal: controller.signal,

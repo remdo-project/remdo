@@ -30,8 +30,8 @@ async function clearLocalData(): Promise<void> {
 }
 
 /**
- * Sign out on this device. Always succeeds: every step is bounded, and a failure
- * to reach the server or to drop a database never leaves the user signed in.
+ * Clear local access with bounded work. Unconfirmed server logout remains
+ * visible as pending until the user explicitly finishes it or signs in again.
  */
 export async function logoutCurrentUser(): Promise<void> {
   rememberPendingSignOut();

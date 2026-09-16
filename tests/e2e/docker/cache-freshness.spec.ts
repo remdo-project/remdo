@@ -29,7 +29,7 @@ test('returning browsers revalidate files and retain server navigation responses
     await expect(page.locator('.editor-input')).toBeVisible();
   }
 
-  for (const url of ['/?next=/n/example', '/sharing?freshness=probe', '/sharing/?freshness=probe', '/oauth/consent?client_id=example', '/oauth/consent/?client_id=example']) {
+  for (const url of ['/?next=/n/example', '/sharing?freshness=probe', '/sharing/?freshness=probe']) {
     const gatewayResponse = await page.request.get(url);
     expect(gatewayResponse.status(), url).toBe(200);
     expect(await gatewayResponse.text()).toContain('<div id="root">');

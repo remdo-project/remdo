@@ -36,9 +36,10 @@ cache its last validated bootstrap for offline reopen.
 
 ## Logout
 
-Logout is a local act on one device. It always completes, including offline: no
-unreachable server and no undeletable database leaves the user signed in, and
-every step is bounded so the act cannot stall.
+Logout immediately ends local app access on one device, including offline.
+Local cleanup and the server request are bounded so an unreachable server or
+undeletable database cannot stall local logout. Full logout requires server
+confirmation.
 
 Logout clears the cached bootstrap and the device's local Yjs offline data.
 Deleting the offline encryption key satisfies that clearing: the remaining
@@ -48,10 +49,14 @@ leave readable user data behind.
 If this device holds edits the server has not acknowledged, logout asks
 before discarding them. Acknowledged work is not prompted.
 
-The server session is revoked as part of logout. A revocation the device could
-not deliver is retried until the server confirms it, and until then that device
-reports no session rather than resuming the one it failed to end. Signing in
-again supersedes an undelivered revocation.
+Logout attempts to revoke the server session. Until the server confirms,
+show “Local data cleared. Connect to finish signing out.” and provide an
+explicit “Finish signing out” action. Reconnecting or reopening the app does
+not retry revocation automatically or resume the old session. The pending state
+survives closing the app; Django-rendered pages may still recognize the session
+until revocation or expiry. Show “You're signed out” only after confirmation.
+Confirmation is shared across tabs. Signing in again supersedes an unfinished
+logout; its stale action must not revoke the new session.
 
 Signing out of one browser tab signs out every tab sharing its storage, which
 stops using the local data it is losing.

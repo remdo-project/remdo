@@ -7,7 +7,7 @@ export async function createUserDocument(page: Page, title: string): Promise<Use
   const config = await page.request.get('/api/config', { failOnStatusCode: true });
   const { csrfToken } = await config.json() as components['schemas']['Config'];
   const response = await page.request.post('/api/documents', {
-    headers: { 'X-CSRFToken': csrfToken },
+    headers: { 'X-CSRFToken': csrfToken, Origin: new URL(config.url()).origin },
     data: { title },
   });
   await expect(response).toBeOK();

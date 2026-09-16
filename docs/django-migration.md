@@ -199,10 +199,13 @@ document has not been selected.
 
 - **Offline and PWA behavior:** persistent offline metadata/Home inventory and
   full [offline application behavior](architecture.md#offline-application-behavior) remain incomplete. Retain offline content
-  editing; verify cached document reopen, reconnect, remembered sessions,
-  logout, and account isolation together before claiming parity. Existing
-  logout guarantees remain with the [access owner](specs/access/access-control.md#logout) while the discussion below is
-  open.
+  editing. The Django production Docker slice covers cached-document reopen,
+  persisted offline edits and reconnect, remembered sessions, offline logout
+  across tabs, explicit completion of pending server logout, and isolation
+  after another account signs in. Broader shell/cache-recovery scenarios still
+  need migration from the retained offline suite; this slice does not establish
+  full parity.
+  Existing logout guarantees remain with the [access owner](specs/access/access-control.md#logout).
 - **Production and Docker:** locally verify self-hosted startup and the hosted
   HTTP hop behind TLS termination with the Django image. Actual Render
   deployment, public-certificate issuance, and rootful Docker verification
@@ -232,9 +235,9 @@ to implement every item.
 2. **Offline operations and logout:** offline content editing stays. Decide
    whether metadata mutations require connectivity and whether to revise any
    existing logout guarantees; explain unsynchronized edits, local cache
-   clearing, cross-tab behavior, and server revocation before selecting
-   changes. The proposed local logout/deferred revocation model was not
-   separately approved by this discussion.
+   clearing and cross-tab behavior before selecting changes. The
+   [logout contract](specs/access/access-control.md#logout) now distinguishes immediate local cleanup from explicit
+   completion of unconfirmed server logout.
 3. **App-resource API:** after Home, offline, and source requirements are
    clearer, evaluate generated records/query APIs versus note-shaped
    account/document/grant/source wrappers using real Home and Sharing
