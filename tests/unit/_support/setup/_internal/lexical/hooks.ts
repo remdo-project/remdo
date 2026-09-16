@@ -1,5 +1,5 @@
 import { config } from '#config';
-import { createUniqueNoteId, normalizeNoteIdOrThrow } from '#domain/notes/ids';
+import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
 import { afterEach, aroundEach } from 'vitest';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tools/fixtures';
@@ -25,13 +25,12 @@ aroundEach<TestContext>(async (run, ctx) => {
   const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
   setExpectedConsoleIssues(meta.expectedConsoleIssues ?? null);
 
-  const rawDocId = meta.collabDocId ?? config.env.DEV_DOCUMENT_ID;
-  const docId = config.env.COLLAB_ENABLED && meta.collabDocId == null
-    ? createUniqueNoteId()
-    : normalizeNoteIdOrThrow(rawDocId, `Invalid collab doc id: ${rawDocId}`);
+  const rawDocId = meta.collabDocId ?? (config.env.COLLAB_ENABLED ? undefined : config.env.DEV_DOCUMENT_ID);
+  const docId = await createCollabTestDocument(rawDocId === undefined
+    ? undefined
+    : normalizeNoteIdOrThrow(rawDocId, `Invalid collab doc id: ${rawDocId}`));
 
   const seedFixtureBeforeMount = Boolean(config.env.COLLAB_ENABLED && fixtureName);
-  await createCollabTestDocument(docId);
 
   if (seedFixtureBeforeMount) {
     // In collab mode the document must already contain the fixture before the

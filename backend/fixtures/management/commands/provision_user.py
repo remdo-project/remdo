@@ -18,7 +18,7 @@ class Command(BaseCommand):
         user, _ = User.objects.get_or_create(
             email=email,
             defaults={
-                "password": make_password(password),
+                "password": lambda: make_password(password),
                 "first_name": name,
                 "is_staff": admin,
                 "is_superuser": admin,

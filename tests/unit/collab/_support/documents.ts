@@ -1,12 +1,23 @@
 import { config } from '#config';
 import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
+import type { components } from '#platform/http/api-schema';
 import { createFixtureDocument } from '#tools/fixture-document';
-import { getCollabTestAuthentication } from './auth';
+import { getCollabTestAuthentication, withTestAuthentication } from './auth';
 
-export async function createCollabTestDocument(docId: string): Promise<void> {
+export async function createCollabTestDocument(docId?: string): Promise<string> {
   if (!config.env.COLLAB_ENABLED) {
-    return;
+    return docId ?? config.env.DEV_DOCUMENT_ID;
   }
-  await getCollabTestAuthentication();
-  await createFixtureDocument({ email: TEST_AUTH_ACCOUNT.email, id: docId, title: docId });
+  const authentication = await getCollabTestAuthentication();
+  if (docId !== undefined) {
+    return createFixtureDocument({ email: TEST_AUTH_ACCOUNT.email, id: docId, title: docId });
+  }
+  const response = await fetch(withTestAuthentication('/api/documents', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: 'Collaboration test' }),
+  }, authentication));
+  if (!response.ok) throw new Error(`Cannot create collaboration document: ${response.status} ${await response.text()}`);
+  const document = await response.json() as components['schemas']['Document'];
+  return document.id;
 }

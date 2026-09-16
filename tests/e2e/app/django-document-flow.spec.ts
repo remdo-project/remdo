@@ -8,7 +8,8 @@ async function signIn(page: Page, account: { email: string; password: string }) 
   await page.getByRole('textbox', { name: 'Email:', exact: true }).fill(account.email);
   await page.getByLabel(/^Password/u).fill(account.password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await page.waitForURL(url => url.pathname === '/', { waitUntil: 'load' });
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('group', { name: 'Current Server', exact: true })
     .getByRole('button', { name: 'Home', exact: true })).toBeVisible();
 }
