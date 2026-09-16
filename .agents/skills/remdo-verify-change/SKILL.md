@@ -7,6 +7,8 @@ description: Verify a default or explicitly selected RemDo uncommitted or Git-ra
 
 Verify one scope under the authoritative [`remdo-verify-change`](../../../docs/specs/agents/skills/remdo-verify-change.md) contract.
 
+Use the shared [review-context procedure](../_shared/references/review-context.md) for scope and contract reads.
+
 ## Resolve the scope
 
 Accept an omitted scope, `uncommitted`, an explicit `<left>..HEAD` /
@@ -47,29 +49,33 @@ node --import=tsx .agents/skills/_shared/tools/resolve-agent-settings.ts
 Use the emitted document.
 
 Then attempt a fresh review for each configured `remdo-verify-change`
-reviewer concurrently through the runtime's managed parallel-call surface.
-Never shell-background a review process. Do not substitute another reviewer
-when one is missing or fails, and do not abort another review.
+reviewer using the [review runner](references/managed-collection.md). Launch the runner as one managed
+foreground call; it owns concurrent reviewer processes and output collection.
+Do not delegate process monitoring to an agent, substitute a failed reviewer,
+or abort another review.
 
-Use this review constraint for every configured reviewer:
+Use this briefing for every configured reviewer, followed by a compact factual
+summary of available check commands, outcomes, and limitations. Identify skipped
+checks rather than implying they passed; omit earlier review conclusions.
 
-> Repository verification is handled outside this review. Do not run or
-> manually reproduce repository tests or checks, including through ad hoc
-> commands. Inspect the complete requested scope; in the final response,
-> reproduce the complete consolidated findings report,
-> explicitly state whether inspection was complete and identify any material
+> Checks are handled by the coordinating workflow. Avoid rerunning routine tests,
+> lint, builds, or other checks. Run a targeted check when it would materially
+> resolve uncertainty or cover a gap; mention what you ran, why, and the results
+> in the final report.
+> Inspect the complete requested scope and return one consolidated findings
+> report, stating whether inspection was complete and identifying any material
 > gap. Review the implementation and test adequacy using repository evidence.
-> Pass these instructions to every delegated reviewer. Report any additional
-> runtime check needed and why; do not run it.
+> Follow `.agents/skills/_shared/references/review-context.md` for evidence reads.
+> Pass this briefing and the available check summary to every delegated reviewer.
 
 Invoke each configured reviewer from the dispatch below using that reviewer's
-resolved `model` and `effort` in a fresh session, requesting any required
-enclosing runtime escalation for normal provider transport and native session
-persistence when launching the managed call:
+resolved `model` and `effort` in a fresh session. Include all invocations in
+the runner plan and request any required enclosing runtime escalation for
+their provider transport and native session persistence when launching it:
 
 - `codex`: run `codex exec -s read-only --ignore-rules` with `--disable hooks`,
   `approval_policy="never"`, `notify=[]`, `model="<model>"`,
-  `model_reasoning_effort="<effort>"`, and the review constraint as
+  `model_reasoning_effort="<effort>"`, and the review briefing as
   `developer_instructions`; then pass `review --uncommitted` or
   `review --base <BASE>`.
 - `claude`: generate and retain a fresh UUID as `SESSION_ID`, then run
@@ -79,13 +85,13 @@ persistence when launching the managed call:
   '{"disableAllHooks":true}'`. Start its prompt with `/code-review
   <effort>`, followed by every resolved changed path as a quoted argument
   for `uncommitted`, or the exact `<BASE>..<HEAD>` range for a commit
-  range, then append the review constraint.
+  range, then append the review briefing.
 - `grok`: generate and retain a fresh UUID as `SESSION_ID`, then run
   `grok --model <model> --effort <effort> --session-id <SESSION_ID>
   --permission-mode dontAsk --sandbox read-only --disable-web-search
   --no-auto-update --no-plan --verbatim -p <prompt>`. Grok's `-p` takes
   the prompt as its next argument, unlike Claude's boolean `-p`. The
-  prompt is the review constraint, then every resolved changed path
+  prompt is the review briefing, then every resolved changed path
   JSON-quoted for `uncommitted`, or the exact `<BASE>..<HEAD>` range for
   a commit range, then: do not invoke skills.
 
@@ -94,34 +100,29 @@ NUL-delimited staged, unstaged, and untracked Git output. Deduplicate the exact
 path strings and append each with JSON string quoting; do not parse the
 resolver's display-oriented `FILES` lines.
 
-Construct the Claude and Grok prompts without evaluating path text as
-shell syntax. Capture each command's combined ordinary output and exit
-status through the runtime's managed call rather than a repository
-wrapper or response file. Retain each reviewer's session ID with its
-result. After each review finishes, use that ID to inspect its persisted
-native session and every delegated-review history to perform the
-specification's empirical command validation. For Grok, read
-`$GROK_HOME/sessions/<urlencoded-cwd>/<SESSION_ID>/chat_history.jsonl`
-(default `GROK_HOME` is `~/.grok`). Nested `subagents/*/meta.json` is
-only an index: follow each `child_session_id` to that sibling session's
-`chat_history.jsonl`. Tool-call arguments in those files are command
-evidence. A final report's description of its own activity is not
-command evidence.
+Pass executable arguments as literal strings in the runner plan; no shell
+evaluates them. The runner retains combined output and exit status for each
+invocation. Retain available session IDs for diagnostics or report recovery.
 
-Reviewer runtime is unspecified. Wait for each managed call's completion
-notification; do not poll it or interpret silence or elapsed time as failure.
+Reviewer runtime is unspecified. Wait for the runner's completion
+notification; do not inspect live histories, request agent status, or interpret
+silence or elapsed time as failure. When the runtime requires explicit wait
+calls, use the longest wait allowed by its tool and enclosing instructions,
+resuming the same call after a timeout. Do not interleave sleeps, log reads,
+or extra status calls. A required human progress update does not require a
+new reviewer inspection or a message through another agent.
 Cancel a review only when the caller or enclosing lifecycle explicitly abandons
 it.
 
-Classify each native result under the authoritative specification's
+After the runner finishes, classify each review under the authoritative specification's
 [`Reviews`](../../../docs/specs/agents/skills/remdo-verify-change.md#reviews)
 contract. For a successful command, retain a usable consolidated final report
-from the combined output or its identified persisted native session as review
-evidence, together with any available combined-output diagnostics; progress or
-diagnostics alone do not satisfy completion. For an unsuccessful command,
-retain its exit status and non-empty combined output as failure evidence. Judge
-complete scope inspection from the final report rather than provider progress
-events. Classify a missing executable, including shell exit status `127` with
+from its saved output as review evidence. Consult native session histories only
+to troubleshoot a concrete problem or recover a missing final report; progress
+or diagnostics alone do not satisfy completion. For an unsuccessful invocation,
+retain its exit status or launch or cleanup error and available combined output
+as failure evidence. Judge complete scope inspection from the final report.
+Classify a missing executable, including shell exit status `127` with
 command-not-found evidence, as `unavailable`.
 
 ## Validate findings

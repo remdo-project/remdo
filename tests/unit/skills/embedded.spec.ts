@@ -12,6 +12,7 @@ import '../../../.agents/skills/_shared/tests/create-branch-from-base.spec';
 import '../../../.agents/skills/_shared/tests/resolve-agent-settings.spec';
 import '../../../.agents/skills/_shared/tests/resolve-scope.spec';
 import '../../../.agents/skills/remdo-merge-main/tests/merge-main.spec';
+import '../../../.agents/skills/remdo-verify-change/tests/run-reviews.spec';
 
 describe('skill-local spec bridge', () => {
   it('imports every spec under canonical hidden skill roots', () => {

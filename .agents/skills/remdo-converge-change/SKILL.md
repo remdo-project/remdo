@@ -12,6 +12,9 @@ specification in full before repository work. Follow its
 algorithm for all ordering, decisions, transitions, and outcomes. The procedure
 below only binds its operations to repository mechanisms.
 
+Use the shared [review-context procedure](../_shared/references/review-context.md) for evidence reads throughout
+convergence and pass that procedure to its independent assessments.
+
 ## Repository bindings
 
 When [Convergence](../../../docs/specs/agents/skills/remdo-converge-change.md#convergence)
@@ -40,7 +43,10 @@ assessments:
   following the [`remdo-simplify` result](../../../docs/specs/agents/skills/remdo-simplify.md#result).
 
 When the specification requires a cleanup audit, run `pnpm run audit:cleanup`.
-At verification, invoke `$remdo-verify-change` with the retained scope.
+At verification, run `$remdo-verify-change` in the current coordinator with
+the retained scope. Its configured reviewers provide the independent
+contexts; do not create a verifier subagent that only adds another waiting
+and reporting layer.
 
 If repository permissions block commit-range persistence under the
 specification's [Authority](../../../docs/specs/agents/skills/remdo-converge-change.md#authority),
