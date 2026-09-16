@@ -117,6 +117,55 @@ describe('account metadata', () => {
     expect(runtime.userData.getSourceServers().getChildren()).toEqual([]);
   });
 
+  it('updates the observed document grants after sharing without duplicating a recipient', async () => {
+    const runtime = account();
+    const access = { documentId: 'shared', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' };
+    documentRequests((request) => request.method === 'POST'
+      ? Response.json(access)
+      : Response.json([{ id: 'shared', title: 'Shared', shareable: true, access: [] }]));
+    await runtime.client.query(runtime.documentsQuery);
+    await runtime.userData.getDocuments().getById('shared')!.shareWith(access.email);
+    await runtime.userData.getDocuments().getById('shared')!.shareWith(access.email);
+    expect(runtime.userData.getDocuments().getById('shared')!.getAccess().getChildren().map((grant) => grant.getEmail()))
+      .toEqual([access.email]);
+  });
+
+  it('explains a rejected recipient without changing document access', async () => {
+    const runtime = account();
+    runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true }]);
+    documentRequests(() => Response.json({ email: ['No account with this email exists on this server.'] }, { status: 400 }));
+    await expect(runtime.userData.getDocuments().getById('shared')!.shareWith('missing@example.test'))
+      .rejects.toThrow('Use the email of another account on this server.');
+    expect(runtime.userData.getDocuments().getById('shared')!.getAccess().getChildren()).toEqual([]);
+  });
+
+  it('rejects offline sharing without a queued grant or local access change', async () => {
+    const runtime = account();
+    runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true }]);
+    onlineManager.setOnline(false);
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('offline'); }));
+    await expect(runtime.userData.getDocuments().getById('shared')!.shareWith('bob@example.test'))
+      .rejects.toThrow('offline');
+    expect(runtime.userData.getDocuments().getById('shared')!.getAccess().getChildren()).toEqual([]);
+  });
+
+  it('does not restore grants when a sharing response arrives after account departure', async () => {
+    const runtime = account();
+    runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true }]);
+    const response = deferred<Response>();
+    const started = deferred<void>();
+    documentRequests(() => { started.resolve(); return response.promise; });
+    const sharing = runtime.userData.getDocuments().getById('shared')!.shareWith('bob@example.test');
+    const rejected = expect(sharing).rejects.toThrow();
+    await started.promise;
+    runtime.dispose();
+    const next = account('bob');
+    response.resolve(Response.json({ documentId: 'shared', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' }));
+    await rejected;
+    expect(runtime.userData.getDocuments().getChildren()).toEqual([]);
+    expect(next.userData.getDocuments().getChildren()).toEqual([]);
+  });
+
   it('keeps a successful creation when the following background listing fails', async () => {
     const runtime = account();
     let refreshFails = false;

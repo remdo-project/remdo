@@ -9,7 +9,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.test import Client, TestCase, override_settings
 
-from .models import Document
+from .models import Document, DocumentGrant
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"], CSRF_TRUSTED_ORIGINS=["http://testserver"])
@@ -73,6 +73,114 @@ class DocumentFlowTests(TestCase):
             )
             self.assertEqual(self.post("/api/documents/unknown/sync-tokens").status_code, 404)
             issue.assert_not_called()
+
+    def test_owner_shares_with_existing_account_and_grant_is_idempotent(self):
+        document = Document.objects.create(owner=self.owner, title="Shared research")
+        private = Document.objects.create(owner=self.owner, title="Private research")
+        self.sign_in()
+        path = f"/api/documents/{document.id}/access"
+        response = self.post(path, {"email": " OTHER@EXAMPLE.TEST "})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["granteeUserId"], str(self.other.pk))
+        self.assertEqual(response.json()["documentId"], document.id)
+        self.assertEqual(self.post(path, {"email": self.other.email}).json(), response.json())
+        self.assertEqual(DocumentGrant.objects.count(), 1)
+        listing = self.client.get("/api/documents").json()
+        shared = next(item for item in listing if item["id"] == document.id)
+        self.assertTrue(shared["shareable"])
+        self.assertEqual(shared["access"], [response.json()])
+        self.sign_out()
+        self.sign_in(self.other.email, "Other-password-123")
+        listing = self.client.get("/api/documents").json()
+        self.assertEqual([item["id"] for item in listing], [document.id])
+        self.assertFalse(listing[0]["shareable"])
+        with patch("documents.views.issue_token", return_value={"docId": document.id}) as issue:
+            self.assertEqual(
+                self.post(f"/api/documents/{document.id}/sync-tokens").status_code, 200
+            )
+            self.assertEqual(self.post(f"/api/documents/{private.id}/sync-tokens").status_code, 403)
+            issue.assert_called_once_with(document.id)
+
+    def test_only_owner_receives_recipient_details(self):
+        document = Document.objects.create(owner=self.owner)
+        third = User.objects.create_user("third@example.test")
+        for recipient in (self.other, third):
+            DocumentGrant.objects.create(document=document, user=recipient)
+        self.client.force_login(self.owner, backend="django.contrib.auth.backends.ModelBackend")
+        listing = self.client.get("/api/documents").json()
+        self.assertEqual([item["id"] for item in listing], [document.id])
+        self.assertCountEqual(
+            [grant["email"] for grant in listing[0]["access"]], [self.other.email, third.email]
+        )
+        for recipient in (self.other, third):
+            with self.subTest(recipient=recipient.email):
+                self.client.force_login(
+                    recipient, backend="django.contrib.auth.backends.ModelBackend"
+                )
+                listing = self.client.get("/api/documents").json()
+                self.assertEqual([item["id"] for item in listing], [document.id])
+                self.assertEqual(listing[0]["access"], [])
+
+    def test_sharing_rejects_unknown_self_home_and_invalid_email(self):
+        document = Document.objects.create(owner=self.owner)
+        self.sign_in()
+        for email in ("missing@example.test", self.owner.email, "invalid"):
+            with self.subTest(email=email):
+                response = self.post(f"/api/documents/{document.id}/access", {"email": email})
+                self.assertEqual(response.status_code, 400)
+        home = self.client.get("/api/current-user").json()["homeDocumentId"]
+        listing = {item["id"]: item for item in self.client.get("/api/documents").json()}
+        self.assertFalse(listing[home]["shareable"])
+        self.assertEqual(
+            self.post(f"/api/documents/{home}/access", {"email": self.other.email}).status_code,
+            400,
+        )
+        self.assertFalse(DocumentGrant.objects.exists())
+
+    def test_only_owner_can_grant_access_even_if_recipient_or_admin(self):
+        document = Document.objects.create(owner=self.owner)
+        DocumentGrant.objects.create(document=document, user=self.other)
+        self.other.is_staff = self.other.is_superuser = True
+        self.other.save()
+        self.sign_in(self.other.email, "Other-password-123")
+        self.assertEqual(
+            self.post(
+                f"/api/documents/{document.id}/access", {"email": self.owner.email}
+            ).status_code,
+            403,
+        )
+        self.assertEqual(DocumentGrant.objects.count(), 1)
+        self.sign_out()
+        self.assertEqual(
+            self.post(
+                f"/api/documents/{document.id}/access", {"email": self.other.email}
+            ).status_code,
+            403,
+        )
+
+    def test_grants_require_csrf_and_do_not_expose_document_to_unrelated_account(self):
+        document = Document.objects.create(owner=self.owner)
+        self.sign_in()
+        self.assertEqual(
+            self.client.post(
+                f"/api/documents/{document.id}/access",
+                {"email": self.other.email},
+                content_type="application/json",
+            ).status_code,
+            403,
+        )
+        self.assertFalse(DocumentGrant.objects.exists())
+        self.post(f"/api/documents/{document.id}/access", {"email": self.other.email})
+        stranger = User.objects.create_user("stranger@example.test")
+        self.client.force_login(stranger, backend="django.contrib.auth.backends.ModelBackend")
+        self.assertEqual(self.client.get("/api/documents").json(), [])
+        self.assertEqual(self.post(f"/api/documents/{document.id}/sync-tokens").status_code, 403)
+        self.assertEqual(
+            self.post(
+                f"/api/documents/{document.id}/access", {"email": self.other.email}
+            ).status_code,
+            403,
+        )
 
     def test_signed_out_requests_do_not_reach_collaboration(self):
         document = Document.objects.create(owner=self.owner, title="Private")

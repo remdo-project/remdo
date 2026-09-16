@@ -53,7 +53,7 @@ function AppFrameContent() {
     <div className="remdo-backdrop">
       <div className="remdo-shell">
         <AppHeader
-          authState={resolveHeaderAuthState(sessionState)}
+          authState={logout.signingOut ? { status: 'unavailable' } : resolveHeaderAuthState(sessionState)}
           onLogout={logout.requestLogout}
           trailingNav={<DevToolbarLinksSeam linkClassName="remdo-header-link" />}
         />
@@ -62,7 +62,7 @@ function AppFrameContent() {
           onConfirm={logout.confirmLogout}
           opened={logout.confirmingLoss}
         />
-        <Outlet />
+        {logout.signingOut ? <div role="status">Signing out…</div> : <Outlet />}
       </div>
     </div>
   );

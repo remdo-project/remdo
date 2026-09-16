@@ -102,7 +102,7 @@ backup-scheduler part of the production failure-domain contract remain gaps
 until the recovery slice supplies their Django replacement. A stopped-instance
 copy of the complete data root remains the upgrade rollback procedure.
 
-## Current PR: retire the Node API runtime and enrollment
+## Retire the Node API runtime and enrollment
 
 `refactor/retire-node-api-runtime` builds on the merged production runtime and
 targets `feat/django-backend`. Remove the unused Node HTTP launcher, runtime
@@ -120,6 +120,23 @@ the browser document journey, type checking, and dependency/reference audits.
 Exclude sharing/source-linking implementation, recovery, test-runtime redesign,
 and new document features. Document rename is post-migration feature work tracked
 in the [ordinary backlog](todo.md#ux-direction), not a migration completion gate.
+
+## Current PR: local document sharing
+
+`feat/django-document-sharing` targets `feat/django-backend`. Django owns local
+document grants, lists owned and granted documents, and authorizes collaboration
+tokens for either. The existing Sharing page grants access by local-account
+email and displays persisted recipients through the account-scoped query cache.
+Only owners can grant access; repeated grants are idempotent.
+
+Acceptance checks cover owner-only grants, invalid and unknown emails, duplicate
+submissions, CSRF, recipient listings and editing, unrelated-account denial, and
+late mutation responses after account departure. Verify the real browser flow
+from sharing through recipient collaboration and reopen.
+
+Exclude cross-server source linking, grant revocation, public signup, Home policy,
+rename, and broader cache/SDK redesign. Retain the current Home restriction until
+the [Home privacy decision](#home-privacy) is implemented with its companion changes.
 
 ## Approved decisions outside this PR
 
@@ -169,11 +186,11 @@ document has not been selected.
 
 ## Remaining migration gaps
 
-- **Sharing and linked sources:** Django source OAuth registration, consent,
+- **Linked sources:** Django source OAuth registration, consent,
   account-token storage, refresh/relink behavior, source-authorized document
-  listing/token issuance, and local sharing/grants remain unimplemented.
-  Preserve the capabilities in [source linking](specs/access/source-linking.md); port the Sharing consumer and
-  cross-server tests with that slice. Source/account cache isolation needs
+  listing/token issuance remain unimplemented.
+  Preserve the capabilities in [source linking](specs/access/source-linking.md); port the source-linking consumer
+  and cross-server tests with that slice. Source/account cache isolation needs
   end-to-end verification across independently authenticated servers.
 - **Account policy:** public-signup policy remains unimplemented. Native
   administrative account management does

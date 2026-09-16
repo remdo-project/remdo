@@ -37,8 +37,8 @@ export async function logoutCurrentUser(): Promise<void> {
   rememberPendingSignOut();
   clearUnsyncedLocalChanges();
 
-  // Stop the collaboration runtime first. It fetches document tokens against the
-  // session, so revoking while it is live races a request that then 401s.
+  // The logout controller has already unmounted the active route. Clear its
+  // account metadata before revoking the session and deleting offline data.
   resetUserData();
   forgetAuthenticatedSession();
   clearCurrentUserBootstrapCache();

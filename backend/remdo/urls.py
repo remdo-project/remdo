@@ -12,6 +12,7 @@ urlpatterns = [
     path("api/config", views.ConfigView.as_view()),
     path("api/current-user", views.CurrentUserView.as_view()),
     path("api/documents", views.DocumentListCreateView.as_view()),
+    path("api/documents/<str:document_id>/access", views.DocumentShareView.as_view()),
     path("api/documents/<str:document_id>/sync-tokens", views.SyncTokenView.as_view()),
     path("api/schema", SpectacularAPIView.as_view()),
 ]

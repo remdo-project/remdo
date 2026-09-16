@@ -39,9 +39,35 @@ for (const width of [1280, 390]) {
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByText('The email address and/or password you specified are not correct.')).toBeVisible();
     await page.getByLabel('Password:', { exact: true }).fill(alice.password);
+    // Keep the editor's first token request pending until logout has revoked the
+    // real session. Revocation must not leave a live provider to handle its 403.
+    let releaseToken!: () => void;
+    let deliverToken!: () => void;
+    const tokenReleased = new Promise<void>((resolve) => { releaseToken = resolve; });
+    const tokenDelivered = new Promise<void>((resolve) => { deliverToken = resolve; });
+    const tokenPath = `**/api/documents/${id}/sync-tokens`;
+    const tokenRequested = page.waitForRequest(tokenPath);
+    await page.route(tokenPath, async (route) => {
+      await tokenReleased;
+      const response = await route.fetch();
+      expect(response.status()).toBe(403);
+      await route.fulfill({ response });
+      deliverToken();
+    }, { times: 1 });
+    let revocationHeld = false;
+    await page.route('**/api/auth/browser/v1/auth/session', async (route) => {
+      if (route.request().method() !== 'DELETE' || revocationHeld) return route.continue();
+      revocationHeld = true;
+      expect(await page.locator('.editor-input').count()).toBe(0);
+      const response = await route.fetch();
+      releaseToken();
+      await tokenDelivered;
+      await route.fulfill({ response });
+    });
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/n/${id}$`, 'u'));
     await expect(page.locator('.editor-input')).toBeVisible();
+    await tokenRequested;
 
     allowUnauthorizedNetwork(page);
     await page.getByRole('button', { name: 'Logout', exact: true }).click();
