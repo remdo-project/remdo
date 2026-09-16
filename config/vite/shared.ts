@@ -11,12 +11,10 @@ const repoRoot = path.resolve(__dirname, '../..');
 const host = config.env.HOST;
 const collabServerTarget = resolveCollabServerOrigin();
 const mainGatewayTarget = resolveLocalGatewayOrigin();
-export const pwaNavigationFallbackDenylist = [
-  /^\/accounts(?:\/|$)/u,
-  /^\/admin(?:\/|$)/u,
-  /^\/\.well-known(?:\/|$)/u,
-  /^\/api(?:\/|$)/u,
-  /^\/d(?:\/|$)/u,
+const pwaNavigationFallbackAllowlist = [
+  /^\/(?:\?.*)?$/u,
+  /^\/n\/[^/?]+(?:\?.*)?$/u,
+  /^\/(?:sharing|oauth\/consent)(?:\?.*)?$/u,
 ];
 const apiProxy = { target: resolveApiServerOrigin(), changeOrigin: false };
 const devProxy = {
@@ -93,7 +91,7 @@ export function createViteSharedConfig() {
         },
         workbox: {
           navigateFallback: '/index.html',
-          navigateFallbackDenylist: pwaNavigationFallbackDenylist,
+          navigateFallbackAllowlist: pwaNavigationFallbackAllowlist,
           runtimeCaching: [
             {
               urlPattern: ({ url }) => url.pathname.startsWith('/d/'),

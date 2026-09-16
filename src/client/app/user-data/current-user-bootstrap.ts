@@ -14,7 +14,8 @@ export type CurrentUserBootstrap = components['schemas']['CurrentUser'];
 export function currentUserBootstrapQuery(userId: string) {
   return queryOptions({
     queryKey: [globalThis.location.origin, userId, 'current-user'],
-    staleTime: Infinity,
+    staleTime: 0,
+    refetchOnReconnect: true,
     // The first request must run offline too, so the remembered bootstrap can
     // open an already cached document without waiting for connectivity.
     networkMode: 'always',

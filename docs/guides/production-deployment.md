@@ -71,7 +71,9 @@ daemons are supported.
    service's exact public origin.
 3. Keep the blueprint's persistent disk mounted at `/data`. Render supplies the
    container `PORT` and terminates public HTTPS.
-4. Deploy the service and open its `APP_ORIGIN`.
+4. In Render's **Settings > Edge Caching**, set **Cacheable file types** to **None**
+   to preserve the [application freshness policy](../architecture.md#application-freshness).
+5. Deploy the service and open its `APP_ORIGIN`.
 
 ## Publish a Public File
 
@@ -84,6 +86,10 @@ scp -s ./report.pdf srv-abc123@ssh.frankfurt.render.com:/data/public-share/
 
 It is public at `APP_ORIGIN/share/report.pdf`; replacing the file updates the
 same URL.
+
+For replacements, upload under a temporary name and rename it over the published
+file after the upload finishes. Ensure the replacement has a new modification
+time, including for same-size files, so the file server's validators change.
 
 ## Upgrade an Existing Instance
 

@@ -30,12 +30,6 @@ test('production admin, native login, collaboration, and restart use persistent 
   await expect.poll(async () => {
     try { return (await page.request.get('/health')).status(); } catch { return 0; }
   }, { timeout: 30_000 }).toBe(200);
-  for (const content of ['first public version', 'replacement public version']) {
-    docker('exec', container, 'python', '-c', `from pathlib import Path; Path('/data/public-share/probe.txt').write_text('${content}')`);
-    const shared = await page.request.get('/share/probe.txt');
-    expect(await shared.text()).toBe(content);
-    expect(shared.headers()['cache-control']).toBe('no-cache');
-  }
   createAdmin(container);
   const originalBundle = bundleDigest();
   await page.goto('/admin/');

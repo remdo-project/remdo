@@ -32,7 +32,7 @@ const configuration = new QueryClient();
 export function getApiConfig() {
   return configuration.query({
     queryKey: ['api-config'],
-    staleTime: Infinity,
+    staleTime: 0,
     retry: false,
     // A fresh offline load must reach the session gate's remembered-state
     // fallback instead of pausing its configuration request until reconnect.

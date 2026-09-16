@@ -7,10 +7,12 @@
 	bind {$REMDO_GATEWAY_BIND_ADDRESS:0.0.0.0}
 
 	route {
+		header Cache-Control "no-cache"
 		handle /health {
 			rewrite * /api/health
 			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT} {
 				header_up X-Forwarded-Proto {env.CADDY_FORWARDED_PROTO}
+				header_down Cache-Control "no-store"
 			}
 		}
 
@@ -30,6 +32,7 @@
 		handle @api {
 			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT} {
 				header_up X-Forwarded-Proto {env.CADDY_FORWARDED_PROTO}
+				header_down Cache-Control "no-store"
 			}
 		}
 
@@ -40,24 +43,33 @@
 
 		handle_path /share/* {
 			root * /data/public-share
-			header Cache-Control "no-cache"
 			file_server
 		}
 
 		@collab path /d /d/*
 		handle @collab {
-			reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
+			reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT} {
+				header_down Cache-Control "no-store"
+			}
 		}
 
-		@app_routes not path /api /api/* /.well-known /.well-known/* /d /d/* /doc*
+		@app_routes path / /n/* /sharing /oauth/consent
 		handle @app_routes {
 			route {
 				root * /srv/remdo
-				try_files {path} {path}/ /index.html
+				rewrite * /index.html
 				file_server
 			}
 		}
 
-		respond 404
+		handle {
+			root * /srv/remdo
+			file_server
+		}
+	}
+
+	handle_errors {
+		header Cache-Control "no-store"
+		respond "{err.status_text}" {err.status_code}
 	}
 }
