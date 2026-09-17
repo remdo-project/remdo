@@ -6,7 +6,14 @@ import type { paths as AccountPaths } from './auth-schema';
 
 const options = {
   baseUrl: typeof location === 'undefined' ? undefined : location.origin,
-  fetch: (request: Request) => apiFetch(request),
+  fetch: async (request: Request) => {
+    // Offline reopening can reach mutations before the session gate loads configuration.
+    if (typeof document !== 'undefined' && new URL(request.url).origin === location.origin
+      && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      await getApiConfig();
+    }
+    return apiFetch(request);
+  },
 };
 
 export const api = createClient<ApiPaths>(options);

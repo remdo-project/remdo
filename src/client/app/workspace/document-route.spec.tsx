@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getApiConfig } from '#platform/http/api-client';
 import {
   getTestUserData,
   setTestDocumentSources,
@@ -15,6 +16,12 @@ import {
 } from '../../../../tests/unit/_support/document-route-harness';
 
 describe('document route', () => {
+  beforeAll(async () => {
+    // These routes run after the session gate has loaded deployment configuration.
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ csrfCookieName: 'remdo_csrf_test' })));
+    await getApiConfig();
+    vi.unstubAllGlobals();
+  });
 
   beforeEach(() => {
     resetDocumentRouteHarness();

@@ -11,9 +11,9 @@ export async function getSession() {
   return requireData(result).data;
 }
 
-export async function signOut(): Promise<void> {
+export async function signOut(signal?: AbortSignal): Promise<void> {
   await getApiConfig();
-  const result = await accountApi.DELETE('/api/auth/browser/v1/auth/session');
+  const result = await accountApi.DELETE('/api/auth/browser/v1/auth/session', { signal });
   // Allauth acknowledges revocation with its native unauthenticated response.
   if (result.response.status === 401 && result.error && 'meta' in result.error && !result.error.meta.is_authenticated) {
     return;
