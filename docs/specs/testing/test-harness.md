@@ -48,7 +48,10 @@ the next invocation.
 ## Docker E2E Tests
 
 Docker E2E builds and verifies standalone SQLite and hosted PostgreSQL production
-containers against their own runtime data. It also reaches a production-launcher
+containers against their own runtime data. Standalone document storage uses the
+filesystem; hosted document storage uses a disposable S3-compatible service.
+Persistence checks reopen document content after restart and hosted container
+replacement without browser caches. It also reaches a production-launcher
 container through its bridge-published port. The invocation removes its
 containers when it finishes or
 fails and retains its runtime data, which stays readable only to the user that

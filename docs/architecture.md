@@ -152,9 +152,12 @@ document client tokens.
 
 ## Runtime Persistence Boundary
 
-A production instance keeps its document content and
-[generated runtime secrets](specs/runtime/configuration.md#secret-bootstrap) in one persistent storage root belonging to one
-running instance and not shared concurrently. Metadata uses the
+A production instance keeps its
+[generated runtime secrets](specs/runtime/configuration.md#secret-bootstrap) in a persistent storage root.
+Document content uses the [configured store](specs/runtime/configuration.md#persistence):
+filesystem storage lives in that root; S3 persists independently. Each storage
+root and S3 prefix belongs to one running instance and is not shared concurrently;
+external storage does not enable multiple application replicas. Metadata uses the
 [configured database](specs/runtime/configuration.md#database): SQLite lives in
 that root; PostgreSQL persists independently. Recovery requires matching
 metadata, document content, and secrets.

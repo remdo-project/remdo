@@ -53,6 +53,9 @@ daemons are supported.
    container serving the same origin port. SQLite persists beneath `DATA_DIR`.
    To use an existing PostgreSQL database instead, configure `DATABASE_URL`
    with an address reachable from the app container.
+   Document content defaults to the filesystem. To opt into S3, configure the
+   [document storage environment](../specs/runtime/configuration.md#persistence)
+   in `.env` before running the launcher.
 
 5. Open the printed `Docker target`. For HTTPS, Caddy uses its internal CA for
    `.localhost` and manages a publicly trusted certificate for a public DNS
@@ -73,8 +76,20 @@ daemons are supported.
 2. Create a Render Blueprint deployment from [the repository blueprint](../../render.yaml),
    selecting the branch to deploy. Set `DATABASE_URL` to the database's internal
    URL and `APP_ORIGIN` to the service's exact public origin.
+   For S3 document storage, supply `Y_SWEET_STORE=s3://bucket/instance-prefix`,
+   `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION`. Create the
+   private bucket first and grant the credentials bucket access for Y-Sweet's
+   `HeadBucket` startup check and object read/write/delete access within that prefix.
+   Add optional endpoint, path-style, or session-token settings in the service
+   environment as described by [configuration](../specs/runtime/configuration.md#persistence).
+   Leave `Y_SWEET_STORE` empty to retain filesystem storage. On an existing
+   Blueprint service, add these environment values in the dashboard before
+   deploying; `sync: false` inputs are prompted only at initial creation.
 3. Keep the blueprint's persistent disk mounted at `/data`. Render supplies the
    container `PORT` and terminates public HTTPS.
+   The disk retains the secret bundle and public files even with external
+   document storage. Keep one instance; never run two instances against the same
+   S3 prefix. Retain the disk, database, bucket, and prefix across redeployments.
 4. In Render's **Settings > Edge Caching**, set **Cacheable file types** to **None**
    to preserve the [application freshness policy](../architecture.md#application-freshness).
 5. Deploy the service and open its `APP_ORIGIN`.
@@ -114,6 +129,8 @@ image at the old data root. See the [Django migration boundary](../django-migrat
    exports document content for reading and does not replace this copy.
    With PostgreSQL, separately preserve the matching database backup;
    copying `DATA_DIR` alone cannot restore metadata.
+   With S3 document storage, separately preserve matching bucket-prefix contents;
+   neither the disk copy nor the remote filesystem backup helper includes them.
 
    ```sh
    cp -a "${DATA_DIR}" "${DATA_DIR}.bak-$(date +%F)"
