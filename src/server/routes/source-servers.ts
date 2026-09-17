@@ -29,7 +29,6 @@ export function createSourceServerRoutes(dependencies: ServerRouteDependencies) 
     // origins, and source_servers is a global cache (any user's link adds a row),
     // so an unauthenticated caller must not be able to distinguish a known id
     // (someone linked that origin) from an unknown one via 404-vs-401.
-    await auth.ensureReady();
     const actor = await resolveActor(request, auth);
     if (!actor) {
       return { kind: 'unauthorized' as const };

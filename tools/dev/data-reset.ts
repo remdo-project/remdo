@@ -34,9 +34,8 @@ async function main(): Promise<void> {
   ));
   console.info(`Found ${fixtures.size} fixtures.`);
 
-  const runtime = createServerRuntime();
+  const runtime = await createServerRuntime();
   try {
-    await runtime.auth.ensureReady();
     if (!(await collabReady)) {
       throw new Error(
         `Development collaboration service did not become ready on port ${config.env.COLLAB_SERVER_PORT}.`,

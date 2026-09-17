@@ -33,7 +33,7 @@ function createHarnessWithSourceServer() {
 }
 
 async function insertDocumentForSession(
-  harness: ReturnType<typeof createServerAppHarness>,
+  harness: Awaited<ReturnType<typeof createServerAppHarness>>,
   headers: Headers,
   docId: string,
   title = docId,
@@ -52,8 +52,8 @@ function createJsonHeaders(headers: Headers = new Headers()): Headers {
 }
 
 describe('remdo api app', () => {
-  it('registers the browser-facing API route inventory', () => {
-    const harness = createHarness();
+  it('registers the browser-facing API route inventory', async () => {
+    const harness = await createHarness();
 
     expect(inspectRoutes(harness.app).map(({ method, path }) => `${method} ${path}`)).toEqual([
       'ALL /api/auth/callback/:providerId',
@@ -79,7 +79,7 @@ describe('remdo api app', () => {
   it('rejects source OAuth callbacks without revealing which sources are cached', async () => {
     const sourceId = deriveSourceId(TEST_SOURCE_SERVER.baseUrl);
     const unknownSourceId = deriveSourceId('https://unknown.example');
-    const harness = createHarness({
+    const harness = await createHarness({
       sourceServers: [{ ...TEST_SOURCE_SERVER, id: sourceId }],
     });
 
@@ -106,7 +106,7 @@ describe('remdo api app', () => {
   });
 
   it('rejects cross-site form-style browser mutations with Hono CSRF protection', async () => {
-    const harness = createHarnessWithSourceServer();
+    const harness = await createHarnessWithSourceServer();
     const mutatingRoutes = inspectRoutes(harness.app)
       .filter(({ method }) => !SAFE_HTTP_METHODS.has(method))
       .map(({ method, path }) => ({ key: `${method} ${path}`, method, path }));
@@ -137,7 +137,7 @@ describe('remdo api app', () => {
   });
 
   it('requires JSON content type for same-origin browser mutations', async () => {
-    const harness = createHarnessWithSourceServer();
+    const harness = await createHarnessWithSourceServer();
     const headers = await harness.createSessionHeaders();
     const mutatingRoutes = inspectRoutes(harness.app)
       .filter(({ method }) => !SAFE_HTTP_METHODS.has(method))
@@ -167,7 +167,7 @@ describe('remdo api app', () => {
   });
 
   it('returns 400 for malformed document ids before token issuance', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
 
     const response = await harness.app.request('/api/documents/bad%20doc/sync-tokens', {
       method: 'POST',
@@ -180,7 +180,7 @@ describe('remdo api app', () => {
   });
 
   it('returns 401 when issuing a Y-Sweet document client token without a session', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
 
     const response = await harness.app.request('/api/documents/main/sync-tokens', {
       method: 'POST',
@@ -193,18 +193,18 @@ describe('remdo api app', () => {
   });
 
   it('serves public config without a session', async () => {
-    const publicHarness = createHarness({ allowSignup: true });
+    const publicHarness = await createHarness({ allowSignup: true });
     const publicResponse = await publicHarness.app.request('/api/config');
     expect(publicResponse.status).toBe(HTTP_STATUS.OK);
     await expect(publicResponse.json()).resolves.toEqual({ publicServer: true });
 
-    const privateHarness = createHarness({ allowSignup: false });
+    const privateHarness = await createHarness({ allowSignup: false });
     await expect((await privateHarness.app.request('/api/config')).json())
       .resolves.toEqual({ publicServer: false });
   });
 
   it('returns 401 for current user without a session', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
 
     const response = await harness.app.request('/api/current-user');
 
@@ -213,7 +213,7 @@ describe('remdo api app', () => {
   });
 
   it('accepts bearer tokens for document mutations', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     harness.auth.resolveBearerUser = vi.fn(async () => ({
       email: STABLE_AUTH_USERS.bob.email,
       id: 'source-user',
@@ -241,7 +241,7 @@ describe('remdo api app', () => {
     // the projection must show a user only the sources THEY linked — never other
     // users' sources, which would leak origins and let one user seed another's
     // Sharing page with a source to link.
-    const harness = createHarness({
+    const harness = await createHarness({
       sourceServers: [
         TEST_SOURCE_SERVER,
         { id: 'other', label: 'Other Source', baseUrl: 'https://other.example', credentials: { clientId: 'other-client-id' } },
@@ -256,7 +256,7 @@ describe('remdo api app', () => {
   });
 
   it('proxies linked source current-user bootstrap with the stored source token', async () => {
-    const harness = createHarnessWithSourceServer();
+    const harness = await createHarnessWithSourceServer();
     harness.auth.getLinkedRemdoServerAccessToken = vi.fn(async () => 'source-token');
     const fetchMock = vi.fn(async () => ({
       ok: true,
@@ -287,7 +287,7 @@ describe('remdo api app', () => {
   it('does not leak source-row existence to an unauthenticated caller (401, not 404)', async () => {
     // source ids derive from origins; an unauthenticated probe of a KNOWN id must
     // not be distinguishable (401 vs 404) from an unknown one.
-    const harness = createHarnessWithSourceServer();
+    const harness = await createHarnessWithSourceServer();
 
     const known = await harness.app.request('/api/current-user/source-servers/source/current-user');
     const unknown = await harness.app.request('/api/current-user/source-servers/unknownsource/current-user');
@@ -297,7 +297,7 @@ describe('remdo api app', () => {
   });
 
   it('proxies linked source sync token requests with the stored source token', async () => {
-    const harness = createHarnessWithSourceServer();
+    const harness = await createHarnessWithSourceServer();
     harness.auth.getLinkedRemdoServerAccessToken = vi.fn(async () => 'source-token');
     const fetchMock = vi.fn(async () => ({
       ok: true,
@@ -337,7 +337,7 @@ describe('remdo api app', () => {
   });
 
   it('forwards a source server access denial as its own status, not 500', async () => {
-    const harness = createHarnessWithSourceServer();
+    const harness = await createHarnessWithSourceServer();
     harness.auth.getLinkedRemdoServerAccessToken = vi.fn(async () => 'source-token');
     const fetchMock = vi.fn(async () => ({
       ok: false,
@@ -357,7 +357,7 @@ describe('remdo api app', () => {
   });
 
   it('maps an unexpected source server failure to 500', async () => {
-    const harness = createHarnessWithSourceServer();
+    const harness = await createHarnessWithSourceServer();
     harness.auth.getLinkedRemdoServerAccessToken = vi.fn(async () => 'source-token');
     const fetchMock = vi.fn(async () => ({
       ok: false,
@@ -377,7 +377,7 @@ describe('remdo api app', () => {
   });
 
   it('does not create a registry row when issuing a token for a missing document', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const headers = await harness.createSessionHeaders();
 
     const response = await harness.app.request('/api/documents/main/sync-tokens', {
@@ -391,7 +391,7 @@ describe('remdo api app', () => {
   });
 
   it('reuses the existing registry row when issuing a token', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const headers = await harness.createSessionHeaders();
     const userId = await harness.getSessionUserId(headers);
     const existing = await harness.registry.insertDocument({
@@ -412,7 +412,7 @@ describe('remdo api app', () => {
   });
 
   it('ignores forwarded headers when issuing browser-visible token URLs', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const headers = await harness.createSessionHeaders();
     const userId = await harness.getSessionUserId(headers);
     await harness.registry.insertDocument({
@@ -437,7 +437,7 @@ describe('remdo api app', () => {
   });
 
   it('returns stable per-user bootstrap document ids and ensures owned registry rows', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const headers = await harness.createSessionHeaders();
     const userId = await harness.getSessionUserId(headers);
 
@@ -461,7 +461,7 @@ describe('remdo api app', () => {
   });
 
   it('reports the private-server flag without session identity in the bootstrap', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const headers = await harness.createSessionHeaders();
     const bootstrap = await (await harness.app.request('/api/current-user', { headers })).json();
     expect(bootstrap).toMatchObject({ publicServer: false });
@@ -469,7 +469,7 @@ describe('remdo api app', () => {
   });
 
   it('reports the public-server flag without session identity in the bootstrap', async () => {
-    const harness = createHarness({ allowSignup: true });
+    const harness = await createHarness({ allowSignup: true });
     const signUp = await harness.app.request('/api/auth/sign-up/email', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -482,7 +482,7 @@ describe('remdo api app', () => {
   });
 
   it('projects the user linked source servers during current-user bootstrap', async () => {
-    const harness = createHarness({
+    const harness = await createHarness({
       sourceServers: [
         {
           id: 'source',
@@ -509,7 +509,7 @@ describe('remdo api app', () => {
   });
 
   it('does not recurse into source server discovery or clear projected source servers for bearer current-user bootstrap', async () => {
-    const harness = createHarness({
+    const harness = await createHarness({
       sourceServers: [
         {
           id: 'source',
@@ -554,7 +554,7 @@ describe('remdo api app', () => {
   });
 
   it('returns different user data projection document ids for different users', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const aliceHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     const bobHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
 
@@ -570,7 +570,7 @@ describe('remdo api app', () => {
   });
 
   it('allows the private document owner to issue a token', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const headers = await harness.createSessionHeaders();
     await insertDocumentForSession(harness, headers, 'privateDoc');
 
@@ -587,7 +587,7 @@ describe('remdo api app', () => {
   });
 
   it('allows bearer actors to issue source document sync tokens', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     harness.auth.resolveBearerUser = vi.fn(async () => ({
       email: STABLE_AUTH_USERS.bob.email,
       id: 'source-user',
@@ -616,7 +616,7 @@ describe('remdo api app', () => {
   });
 
   it('issues read-only tokens for the projected user data document', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const headers = await harness.createSessionHeaders();
     const bootstrapResponse = await harness.app.request('/api/current-user', { headers });
     const bootstrap = await bootstrapResponse.json();
@@ -634,7 +634,7 @@ describe('remdo api app', () => {
   });
 
   it('rejects sharing projected user data documents', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const headers = await harness.createSessionHeaders();
     const bootstrapResponse = await harness.app.request('/api/current-user', { headers });
     const bootstrap = await bootstrapResponse.json();
@@ -650,7 +650,7 @@ describe('remdo api app', () => {
   });
 
   it('creates user documents through the validated user document endpoint', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const headers = await harness.createSessionHeaders();
     const bootstrapResponse = await harness.app.request('/api/current-user', { headers });
     const bootstrap = await bootstrapResponse.json();
@@ -672,10 +672,10 @@ describe('remdo api app', () => {
 
   it('bounds uncaught request diagnostics', async () => {
     const logError = vi.fn();
-    const harness = createHarness({ logError });
-    vi.spyOn(harness.auth, 'ensureReady').mockRejectedValueOnce(new Error('sentinel-confidential-value'));
+    const harness = await createHarness({ logError });
+    vi.spyOn(harness.auth, 'handleOpenIdConfigMetadata').mockRejectedValueOnce(new Error('sentinel-confidential-value'));
 
-    const response = await harness.app.request('/api/health');
+    const response = await harness.app.request('/.well-known/openid-configuration');
 
     expect(response.status).toBe(HTTP_STATUS.INTERNAL_SERVER_ERROR);
     await expect(response.json()).resolves.toEqual({ error: 'Internal server error.' });
@@ -686,7 +686,7 @@ describe('remdo api app', () => {
   it('returns created user documents when projection refresh fails after registry insert', async () => {
     let failProjectionRefresh = false;
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const harness = createHarness({
+    const harness = await createHarness({
       onUpdateDoc: () => {
         if (failProjectionRefresh) {
           throw new Error('projection refresh failed');
@@ -719,7 +719,7 @@ describe('remdo api app', () => {
   });
 
   it('rejects private Y-Sweet document client token issuance for a different user', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     const otherHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
     await insertDocumentForSession(harness, ownerHeaders, 'privateDoc');
@@ -734,7 +734,7 @@ describe('remdo api app', () => {
   });
 
   it('allows a document owner to share with a local user by email', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     const granteeHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
     await insertDocumentForSession(harness, ownerHeaders, 'shareDoc');
@@ -780,7 +780,7 @@ describe('remdo api app', () => {
   });
 
   it('allows a document owner to share with a local user by mixed-case email', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     const granteeHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
     await insertDocumentForSession(harness, ownerHeaders, 'mixedCaseShareDoc');
@@ -804,7 +804,7 @@ describe('remdo api app', () => {
   });
 
   it('rejects sharing with an unknown user email', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     await insertDocumentForSession(harness, ownerHeaders, 'shareDoc');
 
@@ -819,7 +819,7 @@ describe('remdo api app', () => {
   });
 
   it('rejects sharing documents with their owner', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     await insertDocumentForSession(harness, ownerHeaders, 'shareDoc');
 
@@ -834,7 +834,7 @@ describe('remdo api app', () => {
   });
 
   it('rejects document access grants for non-owners', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     const otherHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
     await insertDocumentForSession(harness, ownerHeaders, 'shareDoc');
@@ -850,7 +850,7 @@ describe('remdo api app', () => {
   });
 
   it('rejects direct grants for projected user data documents', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     const requesterHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
     const bootstrapResponse = await harness.app.request('/api/current-user', { headers: ownerHeaders });
@@ -872,7 +872,7 @@ describe('remdo api app', () => {
   });
 
   it('rejects admin provisioning with a missing or wrong admin secret', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
 
     const missingResponse = await harness.app.request('/api/admin/enroll', {
       method: 'POST',
@@ -900,7 +900,7 @@ describe('remdo api app', () => {
   });
 
   it('rejects admin provisioning when no admin secret is configured', async () => {
-    const harness = createHarness({ adminSecret: '' });
+    const harness = await createHarness({ adminSecret: '' });
 
     const response = await harness.app.request('/api/admin/enroll', {
       method: 'POST',
@@ -919,7 +919,7 @@ describe('remdo api app', () => {
   });
 
   it('keeps public signup disabled when admin provisioning is available', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
 
     const response = await harness.app.request('/api/auth/sign-up/email', {
       method: 'POST',
@@ -934,7 +934,7 @@ describe('remdo api app', () => {
   });
 
   it('allows proxied sign-in requests against the public auth origin', async () => {
-    const harness = createHarness({
+    const harness = await createHarness({
       baseURL: 'https://remdo.localhost:4007',
     });
 
@@ -968,7 +968,7 @@ describe('remdo api app', () => {
   });
 
   it('allows admin provisioning for additional users', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     await harness.createSessionHeaders();
 
     const response = await harness.app.request('/api/admin/enroll', {
@@ -987,7 +987,7 @@ describe('remdo api app', () => {
   });
 
   it('stores auth users and document registry rows in the shared database client', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     const headers = await harness.createSessionHeaders();
     const userId = await harness.getSessionUserId(headers);
 
@@ -1012,7 +1012,7 @@ describe('remdo api app', () => {
   });
 
   it('reports API readiness in the health response', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
 
     const response = await harness.app.request('/api/health');
 
@@ -1021,7 +1021,7 @@ describe('remdo api app', () => {
   });
 
   it('returns the API not found response for the bare API root', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
 
     const response = await harness.app.request('/api');
 

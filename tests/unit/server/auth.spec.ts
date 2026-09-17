@@ -8,7 +8,7 @@ const createHarness = createTestResource(createServerAppHarness);
 
 describe('server auth actor resolution', () => {
   it('returns null without a valid session', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
 
     const actor = await resolveActor(new Request('http://127.0.0.1/api/documents/main/sync-tokens'), harness.auth);
 
@@ -16,7 +16,7 @@ describe('server auth actor resolution', () => {
   });
 
   it('returns a local-user actor for a valid Better Auth session', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
 
     const headers = await harness.createSessionHeaders();
     const actor = await resolveActor(
@@ -33,7 +33,7 @@ describe('server auth actor resolution', () => {
   });
 
   it('resolves bearer actors without requiring a cookie session', async () => {
-    const harness = createHarness();
+    const harness = await createHarness();
     harness.auth.getSession = async () => {
       throw new Error('session lookup should not run for bearer requests');
     };
@@ -79,8 +79,8 @@ describe('server auth actor resolution', () => {
 
 describe('server auth cookie isolation', () => {
   it('keeps sessions for same-host stacks on different ports independent', async () => {
-    const source = createServerAppHarness({ baseURL: 'http://localhost:4000' });
-    const home = createServerAppHarness({ baseURL: 'http://localhost:4040' });
+    const source = await createServerAppHarness({ baseURL: 'http://localhost:4000' });
+    const home = await createServerAppHarness({ baseURL: 'http://localhost:4040' });
 
     try {
       const sourceCookie = (await source.createSessionHeaders()).get('cookie');

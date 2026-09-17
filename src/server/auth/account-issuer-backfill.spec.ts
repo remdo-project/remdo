@@ -46,14 +46,13 @@ function readIssuers(sqlite: ReturnType<typeof createServerDatabaseClient>['sqli
 let database: ReturnType<typeof createServerDatabaseClient>;
 
 async function readyAuthFor(sourceServers: { baseUrl: string; id: string }[] = []) {
-  const auth = createServerAuth({
+  await createServerAuth({
     allowSignup: false,
     baseURL: 'http://127.0.0.1:4000',
     database,
     secret: 'test-better-auth-secret-0123456789',
     sourceServers: sourceServers as never,
   });
-  await auth.ensureReady();
 }
 
 describe('account issuer backfill', () => {
@@ -66,6 +65,7 @@ describe('account issuer backfill', () => {
   });
 
   afterEach(async () => {
+    await database.close();
   });
 
   it('gives every existing account an issuer in its provider namespace', async () => {
