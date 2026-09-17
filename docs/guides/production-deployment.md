@@ -50,7 +50,9 @@ daemons are supported.
    ```
 
    Rerunning the launcher builds successfully before gracefully replacing the
-   container serving the same origin port.
+   container serving the same origin port. SQLite persists beneath `DATA_DIR`.
+   To use an existing PostgreSQL database instead, configure `DATABASE_URL`
+   with an address reachable from the app container.
 
 5. Open the printed `Docker target`. For HTTPS, Caddy uses its internal CA for
    `.localhost` and manages a publicly trusted certificate for a public DNS
@@ -66,9 +68,10 @@ daemons are supported.
 
 ## Deploy on Render
 
-1. Create a Render Blueprint deployment from [the repository blueprint](../../render.yaml).
-2. In the Render Dashboard, set `APP_ORIGIN` to the
-   service's exact public origin.
+1. Create a Render Blueprint deployment from [the repository blueprint](../../render.yaml),
+   selecting the branch to deploy.
+2. The blueprint connects the app to managed PostgreSQL. In the Render Dashboard,
+   set `APP_ORIGIN` to the service's exact public origin.
 3. Keep the blueprint's persistent disk mounted at `/data`. Render supplies the
    container `PORT` and terminates public HTTPS.
 4. In Render's **Settings > Edge Caching**, set **Cacheable file types** to **None**
@@ -94,7 +97,9 @@ time, including for same-size files, so the file server's validators change.
 ## Upgrade an Existing Instance
 
 This procedure applies to existing Django deployments and preserves their
-accounts and documents. Schema changes apply on the first
+accounts and documents within the same database engine. Changing from SQLite
+to PostgreSQL requires a fresh dataset; no data transfer is provided.
+Schema changes apply on the first
 start of the new version.
 
 Instances using the previous Node backend have no supported data migration to
@@ -106,6 +111,8 @@ image at the old data root. See the [Django migration boundary](../django-migrat
 2. Copy the [persistent storage root](../architecture.md#runtime-persistence-boundary),
    which is what a rollback restores. The [`backup` script](../../package.json)
    exports document content for reading and does not replace this copy.
+   With PostgreSQL, separately preserve the matching database backup;
+   copying `DATA_DIR` alone cannot restore metadata.
 
    ```sh
    cp -a "${DATA_DIR}" "${DATA_DIR}.bak-$(date +%F)"

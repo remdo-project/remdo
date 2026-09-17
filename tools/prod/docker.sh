@@ -83,7 +83,7 @@ if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
   fi
 fi
 
-DOCKER_ENV_ARGS=(-e APP_ORIGIN="${APP_ORIGIN}")
+DOCKER_ENV_ARGS=(-e APP_ORIGIN="${APP_ORIGIN}" -e DATABASE_URL="${DATABASE_URL:-}")
 if [[ "${LOOPBACK_HTTP}" == "true" ]]; then
   DOCKER_ENV_ARGS+=(-e REMDO_LAUNCHER_LOOPBACK_HTTP=true)
 fi

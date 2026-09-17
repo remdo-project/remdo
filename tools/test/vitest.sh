@@ -6,6 +6,11 @@
 # separator, matching tools/e2e/run.sh.
 set -eu
 
+# Only the verification wrapper may supply an external test database.
+if [ -z "${PG_RUNTIME:-}" ]; then
+  export DATABASE_URL=
+fi
+
 for argument in "$@"; do
   shift
   [ "$argument" = "--" ] && continue

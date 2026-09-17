@@ -22,6 +22,9 @@ describe('test launcher settings', () => {
 
   it.each([
     ['backend tests', './tools/django.sh test remdo', 'remdo.development', 'remdo.testing'],
+    ['backend checks', './tools/check-backend.sh', '', 'remdo.development'],
+    ['PostgreSQL backend tests', './tools/postgres.sh run ./tools/django.sh test remdo', '', 'remdo.testing'],
+    ['PostgreSQL upper port boundary', 'PORT_BASE=65515 ./tools/postgres.sh run ./tools/django.sh test remdo', '', 'remdo.testing'],
     ['backend development', './tools/django.sh shell', '', 'remdo.development'],
     ['collaboration tests', scripts['test:collab']!, 'remdo.development', 'remdo.testing'],
     ['browser tests', './tools/e2e/run.sh', 'remdo.development', 'remdo.testing'],
@@ -31,6 +34,7 @@ describe('test launcher settings', () => {
     // Copy the actual launchers so E2E cleanup only touches this test's data.
     for (const file of [
       'tools/django.sh', 'tools/e2e/run.sh', 'tools/test/vitest.sh',
+      'tools/check-backend.sh', 'tools/postgres.sh',
       'tools/env.sh', 'tools/env.defaults.sh', 'tools/lib/env-file.sh',
     ]) {
       const target = path.join(directory, file);
@@ -40,14 +44,18 @@ describe('test launcher settings', () => {
     const bin = path.join(directory, 'bin');
     fs.mkdirSync(bin);
     for (const runner of ['uv', 'pnpm']) {
-      writeFakeBin(bin, runner, 'printf \'%s\' "$DJANGO_SETTINGS_MODULE"');
+      writeFakeBin(bin, runner, 'if [ "$3" = ruff ]; then exit 0; fi; printf \'%s\' "$DJANGO_SETTINGS_MODULE|$DATABASE_URL"');
     }
+    writeFakeBin(bin, 'docker', 'exit 0');
     const result = spawnSync('sh', ['-c', command], {
       cwd: directory,
       encoding: 'utf8',
       env: {
         ...process.env,
         DJANGO_SETTINGS_MODULE: inherited,
+        DATABASE_URL: 'postgresql://staging.example/remdo',
+        PG_RUNTIME: '',
+        POSTGRES_PORT: '',
         DATA_DIR: path.join(directory, 'data'),
         TMPDIR: path.join(directory, 'tmp'),
         HOST: '127.0.0.1',
@@ -57,6 +65,10 @@ describe('test launcher settings', () => {
       },
     });
     expect(result.status, result.stderr).toBe(0);
-    expect(result.stdout).toBe(expected);
+    const url = _name === 'backend development'
+      ? 'postgresql://staging.example/remdo'
+      : _name === 'PostgreSQL backend tests' ? 'postgresql://remdo:development@127.0.0.1:4612/remdo'
+        : _name === 'PostgreSQL upper port boundary' ? 'postgresql://remdo:development@127.0.0.1:65527/remdo' : '';
+    expect(result.stdout).toBe(`${expected}|${url}`.repeat(_name === 'backend checks' ? 2 : 1));
   });
 });

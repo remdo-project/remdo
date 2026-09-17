@@ -103,6 +103,7 @@ describe('prod Docker launcher', () => {
         CADDY_BIND_DIRECTIVE: 'bind 0.0.0.0',
         CADDY_SITE_ADDRESS: 'http://:9998',
         DATA_DIR: dataDir,
+        DATABASE_URL: '',
         HOST: '',
         PATH: `${binDir}:${process.env.PATH}`,
         PORT: '9999',
@@ -144,6 +145,7 @@ describe('prod Docker launcher', () => {
     expect(findDockerCall(dockerCalls, 'exec').join(' ')).toContain('timeout=0.5');
     expect(dockerEnvironment(runArgs)).toEqual({
       APP_ORIGIN: 'https://remdo.localhost:8443',
+      DATABASE_URL: '',
     });
     expect(result.stdout).toContain('Verify health: https://remdo.localhost:8443/health');
     expect(result.stdout).toContain('Follow logs: docker logs -f remdo-8443');
@@ -319,10 +321,17 @@ describe('prod Docker launcher', () => {
     ]);
   });
 
+  it('forwards an external PostgreSQL connection to the app', () => {
+    const url = 'postgresql://fixture:testing@database.example/remdo';
+    const { result, dockerCalls } = runLauncher({ DATABASE_URL: url });
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run')).DATABASE_URL).toBe(url);
+  });
+
   it('does not require operator-supplied secrets', () => {
     const { result, dockerCalls } = runLauncher({ ADMIN_SECRET: '', AUTH_SECRET: 'ignored' });
     expect(result.status, result.stderr).toBe(0);
-    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toEqual({ APP_ORIGIN: 'https://remdo.localhost:8443' });
+    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toEqual({ APP_ORIGIN: 'https://remdo.localhost:8443', DATABASE_URL: '' });
   });
 
   it('rejects every production HOST except loopback and the IPv4 wildcard', () => {
@@ -365,6 +374,7 @@ describe('prod Docker launcher', () => {
     expect(result.status, result.stderr).toBe(0);
     expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toEqual({
       APP_ORIGIN: 'https://remdo.localhost:8443',
+      DATABASE_URL: '',
     });
   });
 

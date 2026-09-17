@@ -34,3 +34,5 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python
       - run: ./tools/check-backend.sh && ./tools/django.sh test accounts documents fixtures remdo
+      - name: Verify PostgreSQL backend
+        run: ./tools/postgres.sh run ./tools/django.sh test accounts documents fixtures remdo

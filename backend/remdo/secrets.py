@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+import psycopg
 from django.core.exceptions import ImproperlyConfigured
 
 FIELDS = ("auth_secret", "ysweet_auth_key", "ysweet_server_token")
@@ -36,6 +37,7 @@ def load_secrets(data_dir):
     if (
         (data_dir / "django.sqlite3").exists()
         or (data_dir / "remdo.sqlite").exists()
+        or database_has_data()
         or ((data_dir / "collab").exists() and any((data_dir / "collab").iterdir()))
     ):
         raise ImproperlyConfigured(
@@ -69,3 +71,13 @@ def load_secrets(data_dir):
     finally:
         os.unlink(temporary)
     return read_secrets(path)
+
+
+def database_has_data():
+    # Settings are still loading; the ORM cannot be initialized yet.
+    if not (url := os.environ.get("DATABASE_URL")):
+        return False
+    with psycopg.connect(url) as connection:
+        return connection.execute(
+            "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public')"
+        ).fetchone()[0]

@@ -14,6 +14,7 @@ import json
 from django.conf import settings
 from django.core.management import get_commands
 print(json.dumps({
+    'database': settings.DATABASES['default']['ENGINE'],
     'debug': settings.DEBUG,
     'data': str(settings.DATA_DIR),
     'origin': settings.APP_ORIGIN,
@@ -76,6 +77,13 @@ class ConfigurationTests(SimpleTestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
+
+    def test_database_selection(self):
+        self.assertEqual(self.settings()["database"], "django.db.backends.sqlite3")
+        self.assertEqual(
+            self.settings(DATABASE_URL="postgresql://test:testing@localhost/remdo")["database"],
+            "django.db.backends.postgresql",
+        )
 
     def test_native_management_defaults_to_production_without_node(self):
         result = self.settings(NODE_ENV="development", PREVIEW_PORT="4020")
@@ -149,6 +157,7 @@ class ConfigurationTests(SimpleTestCase):
     def test_invalid_backend_configuration_fails_at_startup(self):
         for overrides, message in (
             ({"DATA_DIR": ""}, "DATA_DIR is required"),
+            ({"DATABASE_URL": "mysql://localhost/remdo"}, "DATABASE_URL must select PostgreSQL"),
             ({"APP_ORIGIN": "https://remdo.example/path"}, "APP_ORIGIN must be an exact"),
             ({"APP_ORIGIN": "http://user:password@localhost"}, "APP_ORIGIN must be an exact"),
         ):

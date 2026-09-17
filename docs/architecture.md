@@ -47,7 +47,8 @@ production bundles, including production bundles run by development and test wor
 A production instance treats its gateway, API, collaboration server, and backup
 scheduler as one failure domain. An unexpected process exit identifies the
 failed service, stops the remaining processes, and ends the instance
-unsuccessfully so its environment can restart the complete instance.
+unsuccessfully so its environment can restart the complete instance. When selected,
+PostgreSQL runs as a separate service with its own lifecycle.
 
 ## Routing and Origin Boundary
 
@@ -151,9 +152,12 @@ document client tokens.
 
 ## Runtime Persistence Boundary
 
-A production instance keeps its dataset and [generated runtime secrets](specs/runtime/configuration.md#secret-bootstrap) in
-one persistent storage root. The root belongs to one running instance and is
-not shared concurrently.
+A production instance keeps its document content and
+[generated runtime secrets](specs/runtime/configuration.md#secret-bootstrap) in one persistent storage root belonging to one
+running instance and not shared concurrently. Metadata uses the
+[configured database](specs/runtime/configuration.md#database): SQLite lives in
+that root; PostgreSQL persists independently. Recovery requires matching
+metadata, document content, and secrets.
 
 ## Collaboration Runtime Building Blocks
 

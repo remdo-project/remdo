@@ -32,8 +32,10 @@ Docker E2E resolves a writable Chromium cache as part of its command.
 
 ### Prepare Docker
 
-Docker E2E requires a running Docker daemon and publishes its isolated test
-ports on loopback. Rootless and rootful daemons are supported.
+PostgreSQL verification and Docker E2E require Docker with Compose and initially
+download the official PostgreSQL image. Docker E2E publishes its isolated test
+ports on loopback. Rootless and rootful daemons are supported. Other checks use
+SQLite and require no database service.
 
 ## Run Verification
 
@@ -66,4 +68,18 @@ cannot discover; without one, it runs the complete group used by CI.
   production development-boundary check, backend checks, and generated API
   verification; use before a commit or handoff.
 
-CI runs all static checks configured in its workflows.
+### Verify PostgreSQL
+
+Run the backend suite against a disposable PostgreSQL database:
+
+```sh
+./tools/postgres.sh run ./tools/django.sh test accounts documents fixtures remdo
+```
+
+The wrapper starts PostgreSQL, supplies its connection, and removes its container
+and volume when the command exits. It can also wrap `pnpm run test:collab` or
+`pnpm run test:e2e` for a PostgreSQL-specific integration check.
+
+CI runs the backend suite with both databases. Docker E2E covers standalone
+SQLite and hosted PostgreSQL deployment. CI also runs all static checks
+configured in its workflows.
