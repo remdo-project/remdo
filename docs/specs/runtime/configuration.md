@@ -85,8 +85,10 @@ and an instance-exclusive prefix. Y-Sweet receives `AWS_ACCESS_KEY_ID`,
 `AWS_SESSION_TOKEN`. Compatible providers can set `AWS_ENDPOINT_URL_S3` and
 `AWS_S3_USE_PATH_STYLE=true`. These settings remain server-only. Invalid or
 unavailable storage fails startup without falling back to filesystem storage.
-Development and verification stacks use their isolated filesystem stores;
-Docker verification supplies its own S3 fixture for the hosted variant.
+Development and test settings ignore operator `Y_SWEET_STORE` and use
+filesystem storage.
+
+Omitting the prefix dedicates the bucket to one instance; trailing slashes are ignored.
 
 Storage selection does not transfer existing document content. Switching stores
 requires a fresh dataset or an operator-managed transfer while the instance is

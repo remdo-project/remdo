@@ -90,10 +90,13 @@ class ConfigurationTests(SimpleTestCase):
         local = str(Path(self.directory.name) / "collab")
         self.assertEqual(self.settings()["store"], local)
         self.assertEqual(self.settings(Y_SWEET_STORE="")["store"], local)
-        self.assertEqual(
-            self.settings(Y_SWEET_STORE="s3://private-bucket/instance/")["store"],
-            "s3://private-bucket/instance",
-        )
+        for supplied, expected in (
+            ("s3://private-bucket", "s3://private-bucket"),
+            ("s3://private-bucket/", "s3://private-bucket"),
+            ("s3://private-bucket/instance/", "s3://private-bucket/instance"),
+        ):
+            with self.subTest(store=supplied):
+                self.assertEqual(self.settings(Y_SWEET_STORE=supplied)["store"], expected)
         for module in ("remdo.development", "remdo.testing"):
             self.assertEqual(
                 self.settings(DJANGO_SETTINGS_MODULE=module, Y_SWEET_STORE="s3://operator/data")[
@@ -175,6 +178,7 @@ class ConfigurationTests(SimpleTestCase):
         for overrides, message in (
             ({"DATA_DIR": ""}, "DATA_DIR is required"),
             ({"Y_SWEET_STORE": "s3:/bucket"}, "Y_SWEET_STORE must be an s3://"),
+            ({"Y_SWEET_STORE": "S3://bucket/prefix"}, "Y_SWEET_STORE must be an s3://"),
             ({"Y_SWEET_STORE": "s3://user:secret@bucket"}, "Y_SWEET_STORE must be an s3://"),
             ({"DATABASE_URL": "mysql://localhost/remdo"}, "DATABASE_URL must select PostgreSQL"),
             ({"APP_ORIGIN": "https://remdo.example/path"}, "APP_ORIGIN must be an exact"),

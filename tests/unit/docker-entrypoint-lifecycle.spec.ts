@@ -35,6 +35,7 @@ finish() {
 
 trap 'finish INT' INT
 trap 'finish TERM' TERM
+printf '%s aws %s:%s:%s\\n' "$child_name" "\${AWS_ACCESS_KEY_ID-}" "\${AWS_SECRET_ACCESS_KEY-}" "\${AWS_SESSION_TOKEN-}" >> "$events"
 printf '%s start\\n' "$child_name" >> "$events"
 while :; do
   if [ "\${REMDO_FAKE_EXIT_CHILD:-}" = "$child_name" ] && [ -e "\${REMDO_FAKE_EXIT_TRIGGER:-}" ]; then
@@ -141,6 +142,9 @@ fi
       ADMIN_SECRET: 'production-admin-secret-0123456789',
       APP_ORIGIN: 'https://remdo.localhost:8443',
       AUTH_SECRET: 'production-auth-secret-0123456789',
+      AWS_ACCESS_KEY_ID: 'fixture-access',
+      AWS_SECRET_ACCESS_KEY: 'fixture-secret',
+      AWS_SESSION_TOKEN: 'fixture-session',
       DATA_DIR: dataDir,
       NODE_ENV: 'test',
       PATH: `${binDir}:${process.env.PATH}`,
@@ -170,6 +174,11 @@ fi
     await expect.poll(() => readEvents(eventsPath), { timeout: 3_000 })
       .toEqual(expect.arrayContaining(services.map(name => `${name} start`)));
     expect(child.exitCode, stderr).toBeNull();
+
+    expect(readEvents(eventsPath)).toEqual(expect.arrayContaining([
+      'caddy aws ::',
+      'y-sweet aws fixture-access:fixture-secret:fixture-session',
+    ]));
 
     if (lifecycleCase.type === 'signal') {
       expect(child.kill(lifecycleCase.signal)).toBe(true);
