@@ -10,6 +10,10 @@ concurrency:
 
 jobs:
   unit-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     permissions:
       contents: read
       actions: write
@@ -21,7 +25,7 @@ jobs:
       - uses: ./.github/actions/setup-pnpm
       - env:
           TEST_TIMEOUT: 360
-        run: pnpm run test:unit
+        run: pnpm run test:unit --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
   backend-tests:
     timeout-minutes: 8
