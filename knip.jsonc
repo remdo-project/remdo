@@ -23,6 +23,7 @@
     "playwright.docker.config.ts",
     "tests/e2e/docker/_support/seed-source-user.ts",
     "tools/{check-pnpm-policy,collab-server,generate-api-client}.ts",
+    ".agents/skills/remdo-verify-change/tools/run-reviews.ts",
     // Django's launcher consumes the server configuration projection.
     "tools/dev/**/*.ts",
     "tests/perf/**/*.bench.ts",

@@ -44,20 +44,17 @@ one consolidated final report containing all completed delegated review
 work, so a later lifecycle notification cannot replace that evidence.
 
 Each review inspects the complete resolved scope, repository guidance, Git
-context, and referenced files. **Empirical.** The verifier tells reviewers that
-repository verification is handled separately, to neither run nor manually
-reproduce repository tests or checks, to pass the constraint to delegated
-reviewers, and to report any needed runtime check and why without running it.
-Validation confirms from reviewer commands that no configured reviewer ran or
-manually reproduced a repository check, because forwarded guidance alone does
-not establish compliance. **Empirical.**
+context, and referenced files. **Empirical.** The verifier provides available
+check results and limitations so reviewers can avoid duplicating routine
+verification. Reviewers may run targeted checks to resolve uncertainty or cover
+a gap, and describe what they ran, why, and the results in their final report.
 
-A review is `completed` when its invocation and empirical command validation
-succeed and its final report establishes inspection of the complete selected
+A review is `completed` when its invocation succeeds and its final report
+establishes inspection of the complete selected
 scope without an unresolved material gap. The verifier includes that report in its
 [report](../protocol.md#reports). It marks a missing reviewer `unavailable`; an
-unsuccessful invocation, failed or unavailable empirical command validation,
-missing usable final report, or incomplete inspection is `failed`. The verifier
+unsuccessful invocation, missing usable final report, or incomplete inspection
+is `failed`. The verifier
 re-reports `unavailable` and `failed` as [concerns](../protocol.md#concerns)
 with their failure evidence.
 

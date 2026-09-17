@@ -27,6 +27,8 @@ the specification's outcome for its state.
 
 ## Assessment procedure
 
+Use the shared [review-context procedure](../_shared/references/review-context.md) for evidence reads.
+
 Assess the resolved [Target](../../../docs/specs/agents/skills/remdo-simplify.md#target)
 using only enough surrounding evidence to judge a simpler end state: applicable
 current contract owners, behavior-defining tests and fixtures, existing helpers
