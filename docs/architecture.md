@@ -83,8 +83,6 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
 - Y-Sweet document client token issuance follows [Document Access](specs/access/access-control.md#document-access).
 - Y-Sweet access: the API connects with the Y-Sweet server token and passes only
   RemDo-issued Y-Sweet document client tokens to browsers.
-- [OAuth source linking](specs/access/source-linking.md#cross-server-source-linking): Django stores OAuth account tokens for the source
-  servers a user has linked.
 
 ### Session User
 
@@ -138,8 +136,6 @@ document client tokens.
 
 - Django session cookie: browser session credential resolved against server-side
   session storage.
-- OAuth account tokens: access, refresh, and ID tokens for linked source-server
-  accounts, stored by Django.
 - Y-Sweet server token: RemDo API credential for Y-Sweet document-control calls.
 - Y-Sweet document client token: short-lived browser credential enforced by
   Y-Sweet on sync paths.

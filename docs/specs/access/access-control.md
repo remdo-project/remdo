@@ -6,16 +6,16 @@ collaboration credentials a user can receive.
 
 ## Access Scope
 
-User-facing document access is authenticated by a local session or a
-[delegated source account](source-linking.md#cross-server-source-linking).
+User-facing document access is authenticated by a session on the server that
+owns the document.
 RemDo does not expose anonymous documents, public documents, document-access
 links carrying bearer credentials, or a local-only no-login mode.
 
 ## Authenticated App Access
 
 A Django session identifies the signed-in user. The server supports
-username/password, OAuth, and any other authentication method enabled by its
-configuration.
+email/password authentication. Operators create accounts through Django
+administration or management commands; public signup is closed.
 
 Allauth renders sign-in at `/accounts/login/` and validates credentials.
 Successful sign-in returns to the requested same-origin app destination,
@@ -30,7 +30,7 @@ authorization sources of truth. Session UI and [client metadata caches](../../ar
 their results but do not authorize a request.
 
 The client metadata runtime starts only inside the authenticated app. Login,
-administration, offline, and OAuth consent surfaces render outside that runtime,
+administration and offline surfaces render outside that runtime,
 including when the surface requires an authenticated session. A browser may
 cache its last validated bootstrap for offline reopen.
 
@@ -90,7 +90,7 @@ permissions.
 
 An operator creates the initial administrator through Django's `createsuperuser`
 management command. Administrators manage subsequent accounts through Django
-administration, independently of the public-signup policy.
+administration.
 
 `/admin/` is the Django administration entry route. Django staff status permits
 entry; model permissions control the available administrative actions. An

@@ -75,7 +75,7 @@ describe('deriveSourceId', () => {
 
 // A source registered as a public client stores only a client_id (no secret);
 // the built genericOAuth provider must still exist and authenticate via PKCE
-// alone, per docs/specs/access/source-linking.md#linking-a-source.
+// alone, per https://github.com/remdo-project/remdo/blob/21d0a0027d71abf6fa4966951b5f78496081f0c2/docs/specs/access/source-linking.md#linking-a-source.
 describe('genericOAuth provider for a public-client source', () => {
   let database: SqliteServerDatabaseClient;
   let serverAuth: ReturnType<typeof createServerAuth>;

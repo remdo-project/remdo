@@ -14,8 +14,7 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 
 1. Home shows document navigation and actions, without a document editor or its
    toolbar. Its heading follows [Location header](./location-header.md).
-2. Home lists the user's documents grouped by source: the local server and each
-   linked [source server](../access/source-linking.md#server-roles), under a heading per group.
+2. Home lists the user's accessible documents under Current Server.
 3. Each listed document shows its display name and opens that document when
    activated, landing on its [document-root view](./zoom.md#visibility-and-editing-boundary).
 4. Home presents three additional entry-point groups alongside the document

@@ -1,7 +1,7 @@
 # Local Development
 
 This guide owns workspace setup and supported procedures for the
-[Development run mode](../run-modes.md#development), including [source-linking](../specs/access/source-linking.md#linking-a-source) workflows.
+[Development run mode](../run-modes.md#development).
 The [configuration specification](../specs/runtime/configuration.md) owns runtime inputs and derivation;
 the [package scripts](../../package.json) own executable commands and their variants.
 
@@ -99,7 +99,7 @@ pnpm run dev:pwa
 
 Open the URL printed by Vite. From a headless development machine, forward the
 working directory's port range with [`open-remdo-tunnel.sh`](../../tools/remote/open-remdo-tunnel.sh) and open the preview
-through `localhost`. Authentication and source-linking flows that need the
+through `localhost`. Authentication flows that need the
 canonical app origin may return to the main development frontend.
 
 ## Run Local Docker
@@ -117,32 +117,3 @@ in at `/admin/`.
 
 Keep the command running while using the app. Stopping it removes the container
 and retains its development-owned data.
-
-## Exercise Source Linking
-
-[Source linking](../specs/access/source-linking.md#linking-a-source) connects Main Development as a public source to a private
-Local Docker home. It uses the [Local Docker prerequisites](#run-local-docker).
-The workflow below is retained for the source-linking migration: Django source
-OAuth endpoints are still missing, so it does not work
-end to end on this branch.
-
-1. Start the public source:
-
-   ```sh
-   pnpm run dev
-   ```
-
-2. In another terminal, validate the source and start the private Docker home:
-
-   ```sh
-   pnpm run dev:linking
-   ```
-
-   The command prints the home and source URLs.
-3. Sign in to the Docker home with a development account, as described under
-   [Local Docker](#run-local-docker).
-4. Open the home's Sharing page, choose **Link source**, and enter the printed
-   source URL. When redirected to the source, sign in as a stable user.
-
-The [source-linking access model](../specs/access/source-linking.md#cross-server-source-linking) owns the resulting
-authorization and delegation behavior.

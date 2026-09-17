@@ -131,7 +131,7 @@ Repository defaults work without additional configuration. For local overrides,
 copy `.env.example` to `.env`.
 
 See [Local Development](docs/guides/local-development.md) for development data,
-PWA preview, Docker development, configuration, and source-linking workflows.
+PWA preview, Docker development, and configuration.
 
 ### Production
 
@@ -183,7 +183,6 @@ details. Useful starting points include:
 - [Links](docs/specs/outliner/links.md)
 - [Search](docs/specs/outliner/search.md)
 - [Access Control](docs/specs/access/access-control.md)
-- [Source Linking](docs/specs/access/source-linking.md)
 
 For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 

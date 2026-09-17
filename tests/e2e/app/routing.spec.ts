@@ -38,6 +38,15 @@ async function hasIndexedDb(page: Page, dbName: string): Promise<boolean> {
 }
 
 test.describe('Routing', () => {
+  test('ignores retired OAuth parameters during signed-in navigation', async ({ page }) => {
+    await page.goto('/?response_type=code&client_id=legacy&redirect_uri=https%3A%2F%2Fsource.test%2Fcallback&next=%2Fsharing');
+
+    await expectPath(page, '/sharing');
+    await expect(page.getByRole('heading', { level: 1, name: 'Sharing' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Link source' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Linked sources' })).toHaveCount(0);
+  });
+
   test('keeps Home and the default document at distinct reloadable URLs', async ({ page }) => {
     const bootstrapResponse = await page.request.get('/api/current-user');
     expect(bootstrapResponse.ok()).toBe(true);
@@ -102,19 +111,6 @@ test.describe('Routing', () => {
     await expectPath(page, '/');
     await expect.poll(() => new URL(page.url()).search).toBe('');
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
-  });
-
-  test('keeps authenticated navigation on the standalone consent route', async ({ page }) => {
-    const userDataRequests = collectCurrentUserRequests(page);
-    await page.goto('/oauth/consent?client_id=test-client');
-
-    await expect(page.getByRole('heading', { name: 'Authorize access' })).toBeVisible();
-    await expect(page.getByRole('main')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible();
-    await page.waitForLoadState('networkidle');
-    expect(userDataRequests).toEqual([]);
   });
 
   test('renders Sharing as a standard authenticated page', async ({ page }) => {

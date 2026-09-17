@@ -80,8 +80,8 @@ Rules:
 
 ## Source-linking follow-ups
 
-Deferred hardening; long-horizon items live in
-`docs/specs/access/access-control.md#future` and `docs/specs/access/source-linking.md#future`.
+Historical reference for the [post-migration redesign](todo.md#cross-server-linking-redesign); these
+implementation-specific ideas are not migration requirements.
 
 - Public-source registration abuse: the home self-registers unauthenticatedly,
   so the deleted per-account (userId-keyed) register limit can't be ported —

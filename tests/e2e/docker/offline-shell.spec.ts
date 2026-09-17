@@ -115,31 +115,6 @@ test.describe('Offline app shell', () => {
     });
   });
 
-  test('withholds consent actions until the authenticated session can be revalidated', async ({
-    page,
-    context,
-  }) => {
-    await page.goto('/');
-    await waitForServiceWorkerControl(page);
-    allowOfflineDisconnectedConsoleIssue(page);
-    await page.close();
-
-    await withOfflinePage(context, async (offlinePage) => {
-      const currentUserRequests = collectCurrentUserRequests(offlinePage);
-      await offlinePage.goto('/oauth/consent?client_id=test-client');
-
-      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/oauth/consent');
-      await expect(offlinePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
-      await expect(offlinePage.getByRole('button', { name: /^(?:Allow|Deny)$/u })).toHaveCount(0);
-      expect(currentUserRequests).toEqual([]);
-
-      await context.setOffline(false);
-      await expect(offlinePage.getByRole('heading', { name: 'Authorize access' })).toBeVisible();
-      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/oauth/consent');
-      expect(new URL(offlinePage.url()).searchParams.get('client_id')).toBe('test-client');
-    });
-  });
-
   test('withholds admin actions until the authenticated session can be revalidated', async ({
     page,
     context,

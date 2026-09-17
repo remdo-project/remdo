@@ -39,7 +39,6 @@
     "dev:collab": "./tools/env.sh tsx ./tools/collab-server.ts",
     "dev:pwa": "./tools/dev/pwa.sh",
     "dev:docker": "./tools/env.sh --port-base-offset 40 ./tools/dev/docker.sh",
-    "dev:linking": "./tools/dev/linking.sh",
     "dev:data-reset": "./tools/env.sh tsx ./tools/dev/data-reset.ts",
     "dev:web": "./tools/env.sh vite",
     "lint": "pnpm run lint:ast-grep-config && pnpm run lint:agent-instructions && cross-env CI=true pnpm run typecheck && pnpm run lint:code && pnpm run lint:deps && pnpm run lint:css && pnpm run lint:md",

@@ -23,11 +23,6 @@ export function useUserData(): UserDataNote {
   return runtime.userData;
 }
 
-export function useCurrentUserPublicServer(): boolean | null {
-  const runtime = useUserDataRuntime();
-  return useQuery(runtime.bootstrapQuery).data?.publicServer ?? null;
-}
-
 export function useDocumentSourcesLoading(): boolean {
   const runtime = useUserDataRuntime();
   return useQuery(runtime.documentsQuery).isPending;

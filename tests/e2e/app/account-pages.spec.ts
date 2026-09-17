@@ -30,7 +30,7 @@ for (const width of [1280, 390]) {
     await provisionDjangoUser(bob);
     const id = await createFixtureDocument({ email: alice.email, title: 'Alice private document' });
     await page.goto(`/n/${id}`);
-    await expect(page).toHaveURL(/\/accounts\/login\//u);
+    await page.waitForURL(/\/accounts\/login\//u);
     const loginPresentation = await presentation(page);
     expect(loginPresentation.body[0]).toContain('sans-serif');
     expect(loginPresentation.body[4]).toBe('0px');
@@ -65,7 +65,7 @@ for (const width of [1280, 390]) {
       await route.fulfill({ response });
     });
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`/n/${id}$`, 'u'));
+    await page.waitForURL(new RegExp(`/n/${id}$`, 'u'));
     await expect(page.locator('.editor-input')).toBeVisible();
     await tokenRequested;
 
@@ -87,7 +87,7 @@ test('native sign-in accepts an existing admin session from another tab', async 
   const account = createTestAuthAccount();
   await provisionDjangoUser({ ...account, admin: true });
   await page.goto('/');
-  await expect(page).toHaveURL(/\/accounts\/login\//u);
+  await page.waitForURL(/\/accounts\/login\//u);
   const admin = await context.newPage();
   await admin.goto('/admin/');
   await admin.getByLabel('Email:', { exact: true }).fill(account.email);
