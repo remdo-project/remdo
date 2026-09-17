@@ -29,7 +29,7 @@ test('returning browsers revalidate files and retain server navigation responses
     await expect(page.locator('.editor-input')).toBeVisible();
   }
 
-  for (const url of ['/?next=/n/example', '/sharing?freshness=probe', '/sharing/?freshness=probe', '/oauth/consent?client_id=example', '/oauth/consent/?client_id=example']) {
+  for (const url of ['/?next=/n/example', '/sharing?freshness=probe', '/sharing/?freshness=probe']) {
     const gatewayResponse = await page.request.get(url);
     expect(gatewayResponse.status(), url).toBe(200);
     expect(await gatewayResponse.text()).toContain('<div id="root">');
@@ -38,6 +38,23 @@ test('returning browsers revalidate files and retain server navigation responses
     expect(await response!.text()).toContain('<div id="root">');
   }
   await page.goto('/');
+
+  // This page expects HTTP errors; keep the ordinary page's error guards intact.
+  const retiredRoutePage = await page.context().newPage();
+  try {
+    for (const url of ['/oauth/consent?client_id=example', '/oauth/consent/?client_id=example']) {
+      const gatewayResponse = await page.request.get(url);
+      expect(gatewayResponse.status(), url).toBe(404);
+      expect(gatewayResponse.headers()['cache-control'], url).toContain('no-store');
+      const response = await retiredRoutePage.goto(url);
+      expect(response!.fromServiceWorker(), url).toBe(false);
+      expect(response!.status(), url).toBe(404);
+      expect(response!.headers()['cache-control'], url).toContain('no-store');
+      await expect(retiredRoutePage.locator('body')).toHaveText('Not Found');
+    }
+  } finally {
+    await retiredRoutePage.close();
+  }
 
   for (const url of ['/', '/index.html', '/sw.js', '/manifest.webmanifest', '/favicon.png', '/django-static/admin/css/base.css']) {
     const response = await page.request.get(url);
