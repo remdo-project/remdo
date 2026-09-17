@@ -1,0 +1,19 @@
+# Verification only. Each invocation owns a disposable database.
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: remdo
+      POSTGRES_PASSWORD: development
+      POSTGRES_DB: remdo
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:?}:5432"
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -h 127.0.0.1 -U remdo -d remdo]
+      interval: 1s
+      timeout: 5s
+      retries: 30
+volumes:
+  postgres:

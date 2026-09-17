@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from urllib.parse import urlsplit
 
+import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
 
@@ -83,6 +84,10 @@ DATABASES = {
         "OPTIONS": {"timeout": 20, "transaction_mode": "IMMEDIATE"},
     }
 }
+if database_url := os.environ.get("DATABASE_URL"):
+    DATABASES["default"] = dj_database_url.parse(database_url)
+    if DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":
+        raise ImproperlyConfigured("DATABASE_URL must select PostgreSQL.")
 AUTH_USER_MODEL = "accounts.User"
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

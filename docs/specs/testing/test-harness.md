@@ -7,6 +7,14 @@ The contributor [testing policy](../../dev/testing.md) separately owns coverage,
 automated test-level selection, and verification lifecycle.
 [Run Modes](../../run-modes.md) owns the supported run-mode set.
 
+## Database isolation
+
+Verification ignores operator-supplied database URLs. Default backend and
+application tests use SQLite; PostgreSQL verification owns a disposable service
+per invocation and removes it on exit. Concurrent working directories do not
+share databases. Django owns creation and removal of its test database.
+CI verifies backend behavior against both supported database engines.
+
 ## Unit Tests
 
 Unit tests run in-process without a service stack.
@@ -39,9 +47,10 @@ the next invocation.
 
 ## Docker E2E Tests
 
-Docker E2E builds and verifies the production container against its own runtime
-data. It also reaches a production-launcher container through its
-bridge-published port. The invocation removes its containers when it finishes or
+Docker E2E builds and verifies standalone SQLite and hosted PostgreSQL production
+containers against their own runtime data. It also reaches a production-launcher
+container through its bridge-published port. The invocation removes its
+containers when it finishes or
 fails and retains its runtime data, which stays readable only to the user that
 ran it.
 

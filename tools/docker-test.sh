@@ -5,6 +5,12 @@ ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "${ROOT_DIR}/tools/lib/docker.sh"
 remdo_load_dotenv "${ROOT_DIR}"
 remdo_load_env_defaults "${ROOT_DIR}" development
+POSTGRES_PORT="$((PORT_BASE + 9))"
+export POSTGRES_PORT
+if [ -z "${PG_RUNTIME:-}" ]; then
+  exec "${ROOT_DIR}/tools/postgres.sh" run "$0" "$@"
+fi
+docker exec "${PG_RUNTIME}" createdb -U remdo hosted
 : "${IMAGE_NAME:=remdo-test}"
 TEST_DATA_DIR="${ROOT_DIR}/data/docker-test-runtime"
 export DOCKER_TEST_CONTAINER="${IMAGE_NAME}-$((PORT_BASE + 7))"
@@ -31,7 +37,8 @@ remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}/home" -d --userns=host \
   -e APP_ORIGIN="${DOCKER_TEST_ORIGIN}"
 remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}/hosted" -d --userns=host \
   --name "${DOCKER_HOSTED_CONTAINER}" -p "127.0.0.1:${DOCKER_HOSTED_PORT}:8080" \
-  -e PORT=8080 -e APP_ORIGIN=https://remdo.onrender.com
+  -e PORT=8080 -e APP_ORIGIN=https://remdo.onrender.com --network "${PG_NETWORK}" \
+  -e DATABASE_URL="${DOCKER_DATABASE_URL%/remdo}/hosted"
 cd "${ROOT_DIR}"
 PLAYWRIGHT_BROWSERS_DIR="${PLAYWRIGHT_BROWSERS_PATH:-}"
 if [[ -n "${PLAYWRIGHT_BROWSERS_DIR}" ]]; then

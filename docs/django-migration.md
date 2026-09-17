@@ -200,6 +200,15 @@ and edit or reset data, while preserving backend ownership and supported
 workflows. Rewording the guide or hiding the same complexity behind more
 wrappers is not sufficient. This work is outside the current PR.
 
+### Production secret initialization
+
+Revisit [secret bootstrap](specs/runtime/configuration.md#secret-bootstrap) ownership in a separate slice. Generating the
+Django/Y-Sweet secret bundle while Django settings load requires direct
+PostgreSQL inspection before the ORM is available. Evaluate explicit instance
+initialization before Django startup, with normal startup only loading existing
+secrets. Preserve convenient first setup and refusal to replace missing secrets
+for an existing dataset; the mechanism remains open.
+
 ### Home privacy
 
 The user rejected a special privacy restriction for Home documents. Removing
@@ -207,6 +216,16 @@ that exception from the model, sharing behavior, and [access owner](specs/access
 until the starter-document choice below is settled. The retained slice still
 has the current special Home model; an empty workspace or an ordinary starter
 document has not been selected.
+
+## PostgreSQL adoption
+
+Render uses managed PostgreSQL; standalone production and ordinary development
+retain SQLite. Verification covers both engines, using Compose only for
+disposable PostgreSQL services. No SQLite-to-PostgreSQL data transfer is provided.
+Application models and migrations remain Django-owned.
+
+Recovery still needs a coherent database/content/secret restore procedure;
+managed PostgreSQL backups alone do not close that gap.
 
 ## Remaining migration gaps
 

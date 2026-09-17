@@ -3,8 +3,6 @@ services:
 - type: web
   name: remdo
   runtime: docker
-  repo: https://github.com/remdo-project/remdo
-  branch: main
   plan: starter
   region: frankfurt
   dockerContext: .
@@ -15,6 +13,10 @@ services:
     # Render injects the container's internal PORT. Do not pin it.
     # Django and Y-Sweet secrets are bootstrapped
     # onto the persistent disk on first run, so they are not set here.
+    - key: DATABASE_URL
+      fromDatabase:
+        name: remdo-postgres
+        property: connectionString
     - key: DATA_DIR
       value: /data
     - key: APP_ORIGIN
@@ -23,3 +25,9 @@ services:
     name: remdo-data
     mountPath: /data
     sizeGB: 1
+
+databases:
+- name: remdo-postgres
+  region: frankfurt
+  postgresMajorVersion: "18"
+  ipAllowList: []

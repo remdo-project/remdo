@@ -2,6 +2,11 @@
 # Run loopback-only E2E in the working directory's reserved +50 port range.
 set -eu
 
+# Only the verification wrapper may supply an external test database.
+if [ -z "${PG_RUNTIME:-}" ]; then
+  export DATABASE_URL=
+fi
+
 ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)"
 
 if [ "${1:-}" = "--" ]; then

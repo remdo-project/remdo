@@ -8,7 +8,10 @@ const execute = promisify(execFile);
 const check = process.argv.includes('--check');
 
 for (const [kind, name] of [['application', 'api'], ['account', 'auth']] as const) {
-  const { stdout } = await execute('./tools/django.sh', ['export_api_schema', '--kind', kind]);
+  const { stdout } = await execute('./tools/django.sh', ['export_api_schema', '--kind', kind], {
+    // eslint-disable-next-line node/no-process-env -- Tooling owns the subprocess environment.
+    env: { ...process.env, DATABASE_URL: '' },
+  });
   const schema = JSON.parse(stdout);
   const contents = COMMENT_HEADER + astToString(await openapiTS(schema));
   const path = `src/platform/http/${name}-schema.d.ts`;

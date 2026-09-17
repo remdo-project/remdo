@@ -60,6 +60,15 @@ Server-only requirements do not apply to browser configuration or production uti
 For self-hosted Docker, network mode and container addresses and ports are not
 operator settings.
 
+## Database
+
+Django defaults to SQLite under `DATA_DIR`, keeping standalone production and
+local development self-contained. `DATABASE_URL` selects an external PostgreSQL
+database; Render supplies its managed database URL.
+
+[Verification](../testing/test-harness.md#database-isolation) owns its databases
+and does not use an operator-supplied database URL.
+
 ## Persistence
 
 `DATA_DIR` selects the
@@ -78,5 +87,6 @@ bundle. Individual environment variables do not override production secrets.
 
 An existing bundle is reused. Empty, malformed, or incomplete bundles fail
 without repair. When the bundle is absent, initialization refuses to generate
-replacements if the persistence root already contains a dataset. Restore the
-bundle with its dataset. Development and verification use fixture credentials.
+replacements if the persistence root contains a dataset or the configured
+database contains metadata. Restore the bundle with its matching
+[dataset](../../architecture.md#runtime-persistence-boundary). Development and verification use fixture credentials.

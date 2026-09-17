@@ -13,6 +13,9 @@ from .secrets import load_secrets
 
 class SecretBundleTests(SimpleTestCase):
     def setUp(self):
+        database = patch("remdo.secrets.database_has_data", return_value=False)
+        self.database_has_data = database.start()
+        self.addCleanup(database.stop)
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
@@ -57,6 +60,12 @@ class SecretBundleTests(SimpleTestCase):
                     self.generate()
                 self.assertFalse(self.path.exists())
                 data.unlink()
+
+    def test_missing_bundle_refuses_existing_postgresql_metadata(self):
+        self.database_has_data.return_value = True
+        with self.assertRaisesMessage(ImproperlyConfigured, "existing dataset"):
+            self.generate()
+        self.assertFalse(self.path.exists())
 
     def test_generation_failure_does_not_publish_partial_bundle_or_secret_output(self):
         with patch(

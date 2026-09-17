@@ -148,3 +148,20 @@ test('startup refuses missing or corrupt secrets over an existing dataset', asyn
     fs.rmSync(temporary, { recursive: true, force: true });
   }
 });
+
+
+test('a fresh data root cannot regenerate secrets for an existing PostgreSQL database', async ({ request: api }) => {
+  await expect.poll(async () => {
+    try {
+      return (await api.get(`http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}/health`, {
+        headers: { Host: 'remdo.onrender.com' },
+      })).status();
+    } catch { return 0; }
+  }, { timeout: 30_000 }).toBe(200);
+  const image = docker('inspect', '--format', '{{.Config.Image}}', container);
+  const result = spawnSync('docker', ['run', '--rm', '--network', process.env.PG_NETWORK!,
+    '-e', `DATABASE_URL=${process.env.DOCKER_DATABASE_URL!.replace(/\/remdo$/, '/hosted')}`,
+    '-e', 'APP_ORIGIN=https://remdo.localhost', image], { encoding: 'utf8', timeout: 30_000 });
+  expect(result.status).not.toBe(0);
+  expect(result.stderr).toContain('Missing secrets.json for an existing dataset');
+});
