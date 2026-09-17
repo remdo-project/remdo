@@ -23,9 +23,3 @@ services:
     name: remdo-data
     mountPath: /data
     sizeGB: 1
-
-databases:
-- name: remdo-postgres
-  region: frankfurt
-  postgresMajorVersion: "18"
-  ipAllowList: []

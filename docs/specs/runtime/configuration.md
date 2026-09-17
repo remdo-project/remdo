@@ -64,7 +64,8 @@ operator settings.
 
 Django defaults to SQLite under `DATA_DIR`, keeping standalone production and
 local development self-contained. `DATABASE_URL` selects an external PostgreSQL
-database; Render supplies its managed database URL.
+database. Render deployments supply it as an operator-provided Blueprint input;
+when the database is hosted on Render, use its internal connection URL.
 
 [Verification](../testing/test-harness.md#database-isolation) owns its databases
 and does not use an operator-supplied database URL.

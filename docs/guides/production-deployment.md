@@ -68,10 +68,11 @@ daemons are supported.
 
 ## Deploy on Render
 
-1. Create a Render Blueprint deployment from [the repository blueprint](../../render.yaml),
-   selecting the branch to deploy.
-2. The blueprint connects the app to managed PostgreSQL. In the Render Dashboard,
-   set `APP_ORIGIN` to the service's exact public origin.
+1. Create a Render PostgreSQL database in the same region as the app and copy
+   its internal database URL.
+2. Create a Render Blueprint deployment from [the repository blueprint](../../render.yaml),
+   selecting the branch to deploy. Set `DATABASE_URL` to the database's internal
+   URL and `APP_ORIGIN` to the service's exact public origin.
 3. Keep the blueprint's persistent disk mounted at `/data`. Render supplies the
    container `PORT` and terminates public HTTPS.
 4. In Render's **Settings > Edge Caching**, set **Cacheable file types** to **None**
