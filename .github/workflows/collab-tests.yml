@@ -10,6 +10,10 @@ concurrency:
 
 jobs:
   collab-unit-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     permissions:
       contents: read
       actions: write
@@ -21,4 +25,4 @@ jobs:
       - uses: ./.github/actions/setup-pnpm
 
       - name: Run collaboration unit tests
-        run: TEST_TIMEOUT=$((60 * 10)) pnpm run test:collab
+        run: TEST_TIMEOUT=$((60 * 10)) pnpm run test:collab --shard=${{ matrix.shard }}/${{ strategy.job-total }}

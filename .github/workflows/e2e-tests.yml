@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
     permissions:
       contents: read
       actions: write
@@ -42,7 +42,7 @@ jobs:
       - name: Run Playwright E2E suite
         env:
           TEST_TIMEOUT: 900
-        run: pnpm run test:e2e --shard=${{ matrix.shard }}/2
+        run: pnpm run test:e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: Upload Playwright failure evidence
         if: failure()
