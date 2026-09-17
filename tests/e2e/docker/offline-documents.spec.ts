@@ -144,3 +144,29 @@ test('offline logout discards edits across tabs and isolates the next account', 
     await expect(offline.getByText('Owner private content', { exact: true })).toHaveCount(0);
   });
 });
+
+test('keeps an uncached document non-editable offline and loads its content on reconnect', async ({ page, browser }, testInfo) => {
+  await signIn(page);
+  const docId = await warmDocument(page, 'Content to recover');
+  const fresh = await browser.newContext({ baseURL: process.env.DOCKER_TEST_ORIGIN!, ignoreHTTPSErrors: true });
+  try {
+    // Warm only Home in a second browser: this document has never been cached there.
+    await withPageGuards(await fresh.newPage(), async (home) => {
+      await signIn(home);
+      await waitForServiceWorkerControl(home);
+      await home.close();
+    }, testInfo);
+    await withOfflinePage(fresh, async (offline) => {
+      await offline.goto(`/n/${docId}`);
+      await expect(offline).toHaveURL(new RegExp(`/n/${docId}$`, 'u'));
+      await expect(offline.getByText("This document isn't available offline yet.")).toBeVisible();
+      await expect(offline.locator('.editor-input')).toHaveCount(0);
+      await fresh.setOffline(false);
+      await expect(offline.locator('.editor-input')).toContainText('Content to recover');
+      await expect(offline.locator('.editor-input')).toHaveAttribute('contenteditable', 'true');
+      await expect(offline.locator('.editor-offline-empty-state')).toHaveCount(0);
+    });
+  } finally {
+    await fresh.close();
+  }
+});

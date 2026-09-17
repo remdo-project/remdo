@@ -138,7 +138,7 @@ Exclude cross-server source linking, grant revocation, public signup, Home polic
 rename, and broader cache/SDK redesign. Retain the current Home restriction until
 the [Home privacy decision](#home-privacy) is implemented with its companion changes.
 
-## Current PR: withdraw cross-server linking
+## Withdraw cross-server linking
 
 Withdraw the linking form, consent page, OAuth login-resume path, and
 advertised linking workflow. Preserve local document sharing and existing SDK,
@@ -148,6 +148,19 @@ sign-in/navigation, with no linking or consent UI.
 The [post-migration redesign](todo.md#cross-server-linking-redesign) owns both replacement design and retirement of
 retained reference code. This explicit exception to migration cleanup avoids
 reviewing temporary internal changes twice.
+
+## Offline verification
+
+The Django production suite covers cached-document reopen, persisted offline
+edits and reconnect, remembered sessions, cross-tab logout, explicit completion
+of pending server logout, and account isolation. It also verifies
+unavailable-session recovery through Django sign-in and non-editable uncached
+documents that load on reconnect.
+
+The retained offline shell tests now use Django navigation. Duplicate document
+checks and obsolete React administration expectations are retired. Offline Home
+inventory remains [future work](architecture.md#future); broader improvements remain in the
+[offline follow-ups](legacy-backlog.md#offline-and-local-persistence-follow-ups), outside migration completion.
 
 ## Approved decisions outside this PR
 
@@ -197,21 +210,10 @@ document has not been selected.
 
 ## Remaining migration gaps
 
-- **Offline and PWA behavior:** persistent offline metadata/Home inventory and
-  full [offline application behavior](architecture.md#offline-application-behavior) remain incomplete. Retain offline content
-  editing. The Django production Docker slice covers cached-document reopen,
-  persisted offline edits and reconnect, remembered sessions, offline logout
-  across tabs, explicit completion of pending server logout, and isolation
-  after another account signs in. Broader shell/cache-recovery scenarios still
-  need migration from the retained offline suite; this slice does not establish
-  full parity.
-  Existing logout guarantees remain with the [access owner](specs/access/access-control.md#logout).
 - **Production and Docker:** locally verify self-hosted startup and the hosted
   HTTP hop behind TLS termination with the Django image. Actual Render
   deployment, public-certificate issuance, and rootful Docker verification
-  remain external checks. Full offline Docker scenarios still
-  contain old backend/projection assumptions and are outside the current
-  production test selection.
+  remain external checks.
 - **Import, exports, and recovery:** retained client-side import code is not
   first-slice verification of import/export. Define and exercise coherent
   backup/restore of Django metadata, Y-Sweet content, and secrets before
@@ -232,22 +234,16 @@ to implement every item.
    starter document. Resolve the document kind, account bootstrap,
    listing/cache shape, and Home consumer together. Special Home privacy is
    already rejected.
-2. **Offline operations and logout:** offline content editing stays. Decide
-   whether metadata mutations require connectivity and whether to revise any
-   existing logout guarantees; explain unsynchronized edits, local cache
-   clearing and cross-tab behavior before selecting changes. The
-   [logout contract](specs/access/access-control.md#logout) now distinguishes immediate local cleanup from explicit
-   completion of unconfirmed server logout.
-3. **App-resource API:** after Home, offline, and source requirements are
+2. **App-resource API:** after Home, offline, and source requirements are
    clearer, evaluate generated records/query APIs versus note-shaped
    account/document/grant/source wrappers using real Home and Sharing
    consumers. The first slice's cache library does not settle the public SDK
    shape.
-4. **Test organization:** consider explicit fixtures and native Django/Vitest
+3. **Test organization:** consider explicit fixtures and native Django/Vitest
    suites for pure TypeScript, editor, backend, collaboration, and browser
    behavior. Preserve meaningful collaboration coverage; suite reorganization
    is separate from required fixture adaptation.
-5. **Production supervision, exports, and recovery:** explain existing
+4. **Production supervision, exports, and recovery:** explain existing
    mechanisms, then decide maintenance-failure behavior, optional readable
    JSON/Markdown exports, and coherent recovery. The
    [production infrastructure ADR](decisions/0001-production-infrastructure.md) remains an early draft; it does not select a
@@ -259,8 +255,7 @@ to implement every item.
 After the current browser flow passes its acceptance checks, inspect the
 branch and these gaps before proposing one next PR with exclusions and checks.
 Cross-server linking and its internal cleanup are deferred to the
-post-migration redesign. Recovery and offline verification remain migration
-completion slices.
+post-migration redesign. Recovery remains a migration completion slice.
 
 Keep this ledger current after each slice. The [main TODO entry](todo.md#django-backend-replacement) owns the
 integration workflow and final completion gate. Retire this temporary ledger
