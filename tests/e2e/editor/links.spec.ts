@@ -106,7 +106,7 @@ test.describe('note links', () => {
   test('clicking an external link opens a private tab', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
-    const url = new URL('/favicon.png', page.url()).toString();
+    const url = new URL('/logo.svg', page.url()).toString();
     await page.keyboard.type(` ${url}`);
 
     const link = editorLocator(page).getByRole('link', { name: url });

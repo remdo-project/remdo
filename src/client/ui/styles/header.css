@@ -38,10 +38,16 @@
   width: 2.25rem;
   height: 2.25rem;
   flex-shrink: 0;
-  background-image: url('/icon-192.png');
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
+  background-color: var(--remdo-accent);
+  transition: background-color 150ms ease;
+  mask-image: url('/logo.svg');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-image: url('/logo.svg');
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
 }
 
 .remdo-header-navigation {
@@ -69,6 +75,11 @@
 .remdo-header-link:focus-visible,
 .remdo-header-active-link {
   color: var(--mantine-color-gray-0);
+}
+
+.remdo-header-brand-link:hover .remdo-header-brand-icon,
+.remdo-header-brand-link:focus-visible .remdo-header-brand-icon {
+  background-color: var(--remdo-accent-hover);
 }
 
 .remdo-header-active-link {
