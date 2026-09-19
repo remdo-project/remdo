@@ -61,13 +61,13 @@ export function createViteSharedConfig() {
     plugins: [
       remdoDevSpaRoutesPlugin(),
       VitePWA({
-        includeAssets: ['icons/*.svg', 'favicon.png'],
+        includeAssets: ['icons/*.svg', 'logo.svg'],
         registerType: 'autoUpdate',
         manifest: {
           name: 'RemDo',
           short_name: 'RemDo',
-          background_color: '#1a1b1e',
-          theme_color: '#1a1b1e',
+          background_color: '#17151f',
+          theme_color: '#17151f',
           icons: [
             {
               src: 'icon-192.png',
@@ -82,7 +82,7 @@ export function createViteSharedConfig() {
               purpose: 'any',
             },
             {
-              src: 'icon-512.png',
+              src: 'icon-maskable-512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',

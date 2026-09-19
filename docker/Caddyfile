@@ -16,10 +16,10 @@
 			}
 		}
 
-		@app_favicon path /favicon.ico /favicon.png
+		@app_favicon path /favicon.ico
 		handle @app_favicon {
 			root * /srv/remdo
-			rewrite * /favicon.png
+			rewrite * /logo.svg
 			file_server
 		}
 

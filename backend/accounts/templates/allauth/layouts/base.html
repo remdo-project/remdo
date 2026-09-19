@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark">
     <title>{% block head_title %}RemDo{% endblock %}</title>
-    <link rel="icon" href="/favicon.png">
+    <link rel="icon" type="image/svg+xml" href="/logo.svg">
     {% shared_styles_urls as stylesheets %}
     {% for stylesheet in stylesheets %}<link rel="stylesheet" href="{{ stylesheet }}">{% endfor %}
     {% block extra_head %}{% endblock %}
