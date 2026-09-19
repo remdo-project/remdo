@@ -23,19 +23,6 @@
 			file_server
 		}
 
-		@options method OPTIONS
-		handle @options {
-			respond 204
-		}
-
-		@api path /api /api/* /accounts /accounts/* /admin /admin/* /.well-known /.well-known/*
-		handle @api {
-			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT} {
-				header_up X-Forwarded-Proto {env.CADDY_FORWARDED_PROTO}
-				header_down Cache-Control "no-store"
-			}
-		}
-
 		handle_path /django-static/* {
 			root * /app/static
 			file_server
@@ -62,9 +49,17 @@
 			}
 		}
 
-		handle {
+		@app_assets path /index.html /app-assets/* /icons/* /icon-192.png /icon-512.png /manifest.webmanifest /sw.js /workbox-*.js /registerSW.js
+		handle @app_assets {
 			root * /srv/remdo
 			file_server
+		}
+
+		handle {
+			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT} {
+				header_up X-Forwarded-Proto {env.CADDY_FORWARDED_PROTO}
+				header_down Cache-Control "no-store"
+			}
 		}
 	}
 

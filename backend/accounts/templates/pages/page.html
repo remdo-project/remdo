@@ -1,0 +1,14 @@
+{% extends "allauth/layouts/base.html" %}
+{% block head_title %}{{ title }} · RemDo{% endblock %}
+{% block extra_head %}
+  <meta name="description" content="{{ description }}">
+  <link rel="canonical" href="{{ canonical }}">
+{% endblock %}
+{% block content %}
+  <main class="remdo-public-page">
+    <article>
+      <h1>{{ title }}</h1>
+      {{ body|safe }}
+    </article>
+  </main>
+{% endblock %}

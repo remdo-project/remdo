@@ -182,3 +182,17 @@ test.describe('Routing', () => {
     await peer.close();
   });
 });
+
+unauthenticatedTest('renders repository public pages without loading the app', async ({ page }) => {
+  const userDataRequests = collectCurrentUserRequests(page);
+  const response = await page.goto('/about');
+  expect(response!.status()).toBe(200);
+  await expect(page).toHaveURL(/\/about\/$/u);
+  await expect(page).toHaveTitle('About RemDo · RemDo');
+  await expect(page.getByRole('heading', { level: 1, name: 'About RemDo' })).toBeVisible();
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', 'A keyboard-first collaborative outliner.');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new URL('/about/', page.url()).href);
+  await expect(page.locator('body')).toHaveCSS('margin', '0px');
+  await expect(page.locator('script[type="module"]')).toHaveCount(0);
+  expect(userDataRequests).toEqual([]);
+});

@@ -1,0 +1,20 @@
+.remdo-public-page {
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
+  padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.remdo-public-page img {
+  max-width: 100%;
+}
+
+.remdo-public-page pre {
+  overflow-x: auto;
+}
+
+.remdo-public-page a {
+  color: var(--remdo-accent);
+}

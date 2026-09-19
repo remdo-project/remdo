@@ -127,3 +127,5 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
 }
+
+PUBLIC_PAGES_DIR = Path(__file__).resolve().parents[2] / "content" / "pages"

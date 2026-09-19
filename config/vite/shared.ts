@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { config } from '../index.ts';
 import { onRollupWarning } from '../_internal/vite/onRollupWarning.ts';
 import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveLocalGatewayOrigin } from '../../src/platform/net/origins.ts';
-import { remdoDevSpaRoutesPlugin } from './remdo-dev-spa-routes-plugin.ts';
+import { shouldProxyToDjango } from './gateway-routes.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
@@ -18,14 +18,16 @@ const pwaNavigationFallbackAllowlist = [
 ];
 const apiProxy = { target: resolveApiServerOrigin(), changeOrigin: false };
 const devProxy = {
-  '/accounts': apiProxy,
-  '/api': apiProxy,
-  '/admin': apiProxy,
-  '/django-static': apiProxy,
-  '/d': {
+  '^/d(?:/|$|\\?)': {
     target: collabServerTarget,
     changeOrigin: true,
     ws: true,
+  },
+  '/': {
+    ...apiProxy,
+    bypass(req: { url?: string }) {
+      if (!shouldProxyToDjango(req.url ?? '/', 'development')) return req.url;
+    },
   },
 } as const;
 const mainGatewayProxy = {
@@ -34,20 +36,16 @@ const mainGatewayProxy = {
 } as const;
 const previewProxy = {
   '/src/client/ui/styles/': mainGatewayProxy,
-  '/accounts': mainGatewayProxy,
-  '/admin': mainGatewayProxy,
-  '/django-static': mainGatewayProxy,
-  '/.well-known': {
-    ...mainGatewayProxy,
-    xfwd: true,
-  },
-  '/api': {
-    ...mainGatewayProxy,
-    xfwd: true,
-  },
-  '/d': {
+  '^/d(?:/|$|\\?)': {
     ...mainGatewayProxy,
     ws: true,
+  },
+  '/': {
+    ...mainGatewayProxy,
+    xfwd: true,
+    bypass(req: { url?: string }) {
+      if (!shouldProxyToDjango(req.url ?? '/', 'preview')) return req.url;
+    },
   },
 } as const;
 
@@ -59,7 +57,6 @@ export function createViteSharedConfig() {
       },
     },
     plugins: [
-      remdoDevSpaRoutesPlugin(),
       VitePWA({
         includeAssets: ['icons/*.svg', 'logo.svg'],
         registerType: 'autoUpdate',
