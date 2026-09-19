@@ -16,6 +16,7 @@ def required(name):
 DEBUG = False
 DATA_DIR = Path(required("DATA_DIR")).resolve()
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+YSWEET_STORE = str(DATA_DIR / "collab")
 APP_ORIGIN = required("APP_ORIGIN")
 try:
     origin = urlsplit(APP_ORIGIN)

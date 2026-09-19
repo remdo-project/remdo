@@ -17,6 +17,7 @@ print(json.dumps({
     'database': settings.DATABASES['default']['ENGINE'],
     'debug': settings.DEBUG,
     'data': str(settings.DATA_DIR),
+    'store': settings.YSWEET_STORE,
     'origin': settings.APP_ORIGIN,
     'origins': settings.CSRF_TRUSTED_ORIGINS,
     'cookie': settings.SESSION_COOKIE_NAME,
@@ -84,6 +85,25 @@ class ConfigurationTests(SimpleTestCase):
             self.settings(DATABASE_URL="postgresql://test:testing@localhost/remdo")["database"],
             "django.db.backends.postgresql",
         )
+
+    def test_document_storage_selection(self):
+        local = str(Path(self.directory.name) / "collab")
+        self.assertEqual(self.settings()["store"], local)
+        self.assertEqual(self.settings(Y_SWEET_STORE="")["store"], local)
+        for supplied, expected in (
+            ("s3://private-bucket", "s3://private-bucket"),
+            ("s3://private-bucket/", "s3://private-bucket"),
+            ("s3://private-bucket/instance/", "s3://private-bucket/instance"),
+        ):
+            with self.subTest(store=supplied):
+                self.assertEqual(self.settings(Y_SWEET_STORE=supplied)["store"], expected)
+        for module in ("remdo.development", "remdo.testing"):
+            self.assertEqual(
+                self.settings(DJANGO_SETTINGS_MODULE=module, Y_SWEET_STORE="s3://operator/data")[
+                    "store"
+                ],
+                local,
+            )
 
     def test_native_management_defaults_to_production_without_node(self):
         result = self.settings(NODE_ENV="development", PREVIEW_PORT="4020")
@@ -157,6 +177,9 @@ class ConfigurationTests(SimpleTestCase):
     def test_invalid_backend_configuration_fails_at_startup(self):
         for overrides, message in (
             ({"DATA_DIR": ""}, "DATA_DIR is required"),
+            ({"Y_SWEET_STORE": "s3:/bucket"}, "Y_SWEET_STORE must be an s3://"),
+            ({"Y_SWEET_STORE": "S3://bucket/prefix"}, "Y_SWEET_STORE must be an s3://"),
+            ({"Y_SWEET_STORE": "s3://user:secret@bucket"}, "Y_SWEET_STORE must be an s3://"),
             ({"DATABASE_URL": "mysql://localhost/remdo"}, "DATABASE_URL must select PostgreSQL"),
             ({"APP_ORIGIN": "https://remdo.example/path"}, "APP_ORIGIN must be an exact"),
             ({"APP_ORIGIN": "http://user:password@localhost"}, "APP_ORIGIN must be an exact"),

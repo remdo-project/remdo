@@ -9,11 +9,27 @@ services:
   dockerfilePath: ./docker/Dockerfile
   autoDeployTrigger: commit
   healthCheckPath: /health
+  numInstances: 1
   envVars:
     # Render injects the container's internal PORT. Do not pin it.
     # Django and Y-Sweet secrets are bootstrapped
     # onto the persistent disk on first run, so they are not set here.
     - key: DATABASE_URL
+      sync: false
+    # Optional: s3://bucket/instance-prefix; empty keeps DATA_DIR/collab.
+    - key: Y_SWEET_STORE
+      sync: false
+    - key: AWS_ACCESS_KEY_ID
+      sync: false
+    - key: AWS_SECRET_ACCESS_KEY
+      sync: false
+    - key: AWS_SESSION_TOKEN
+      sync: false
+    - key: AWS_REGION
+      sync: false
+    - key: AWS_ENDPOINT_URL_S3
+      sync: false
+    - key: AWS_S3_USE_PATH_STYLE
       sync: false
     - key: DATA_DIR
       value: /data

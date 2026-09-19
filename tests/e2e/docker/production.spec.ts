@@ -1,10 +1,12 @@
 /* eslint-disable node/no-process-env */
+import { Buffer } from 'node:buffer';
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { expect, guardedTest as test } from '#e2e/fixtures';
 import { request } from '@playwright/test';
+import * as Y from 'yjs';
 
 const container = process.env.DOCKER_TEST_CONTAINER!;
 const password = 'production-fixture-password-1234';
@@ -116,6 +118,142 @@ test('hosted TLS termination preserves secure cookies and trusted-origin CSRF', 
   }
 });
 
+test('hosted S3 document content survives restart and container replacement', async () => {
+  test.setTimeout(90_000);
+  const hosted = process.env.DOCKER_HOSTED_CONTAINER!;
+  const origin = 'https://remdo.onrender.com';
+  const persistEmail = 's3-persist@production.example.test';
+  const api = await request.newContext({
+    baseURL: `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}`,
+    extraHTTPHeaders: { Host: 'remdo.onrender.com', Origin: origin },
+  });
+  try {
+    await expect.poll(async () => {
+      try { return (await api.get('/health')).status(); } catch { return 0; }
+    }, { timeout: 30_000 }).toBe(200);
+    docker('exec', '-e', `DJANGO_SUPERUSER_PASSWORD=${password}`, hosted,
+      'python', 'manage.py', 'createsuperuser', '--noinput', '--email', persistEmail);
+    const configResponse = await api.get('/api/config');
+    const config = await configResponse.json() as { csrfToken: string; csrfCookieName: string };
+    const login = await api.post('/api/auth/browser/v1/auth/login', {
+      headers: { Cookie: `${config.csrfCookieName}=${config.csrfToken}`, 'X-CSRFToken': config.csrfToken },
+      data: { email: persistEmail, password },
+    });
+    expect(login.status()).toBe(200);
+    const session = login.headersArray()
+      .find(header => header.name.toLowerCase() === 'set-cookie' && header.value.startsWith('remdo_session_443='))!;
+    const sessionCookie = session.value.split(';')[0]!;
+    const authedConfigResponse = await api.get('/api/config', { headers: { Cookie: sessionCookie } });
+    const authedConfig = await authedConfigResponse.json() as { csrfToken: string; csrfCookieName: string };
+    const authedHeaders = {
+      Cookie: `${sessionCookie}; ${authedConfig.csrfCookieName}=${authedConfig.csrfToken}`,
+      'X-CSRFToken': authedConfig.csrfToken,
+    };
+    const created = await api.post('/api/documents', { headers: authedHeaders, data: { title: 'S3 restart' } });
+    expect(created.status()).toBe(201);
+    const { id: docId } = await created.json() as { id: string };
+    const tokenResponse = await api.post(`/api/documents/${docId}/sync-tokens`, {
+      headers: authedHeaders, data: {},
+    });
+    expect(tokenResponse.status()).toBe(200);
+    const clientToken = await tokenResponse.json() as { token: string };
+    // Keep privileged readback credentials inside the container.
+    function documentUpdate(): string {
+      return docker('exec', hosted, 'python', '-c', `
+import base64, json, sys, urllib.request
+from django.conf import settings
+doc_id = sys.argv[1]
+def request(url, token, data=None):
+    headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
+    with urllib.request.urlopen(urllib.request.Request(url, data=data, headers=headers), timeout=5) as response:
+        return response.read()
+auth = json.loads(request("http://127.0.0.1:4004/doc/" + doc_id + "/auth", settings.YSWEET_SERVER_TOKEN, b"{}"))
+print(base64.b64encode(request(auth["baseUrl"].rstrip("/") + "/as-update", auth["token"])).decode())
+`, docId);
+    }
+    async function writeDocument(doc: Y.Doc): Promise<void> {
+      const response = await api.post(`/d/${docId}/update`, {
+        headers: { authorization: `Bearer ${clientToken.token}`, 'content-type': 'application/octet-stream' },
+        data: Buffer.from(Y.encodeStateAsUpdate(doc)),
+      });
+      expect(response.status()).toBe(200);
+    }
+    async function waitForCollaboration(): Promise<void> {
+      await expect.poll(async () => {
+        try { return (await api.get('/health')).status(); } catch { return 0; }
+      }, { timeout: 30_000 }).toBe(200);
+      await expect.poll(() => {
+        const result = spawnSync('docker', ['exec', hosted, 'python', '-c',
+          'import urllib.request; from django.conf import settings; urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:4004/check_store", data=b"{}", headers={"Authorization": "Bearer " + settings.YSWEET_SERVER_TOKEN, "Content-Type": "application/json"}), timeout=1)'],
+        { encoding: 'utf8' });
+        return result.status;
+      }, { timeout: 30_000 }).toBe(0);
+    }
+    function readDocument(): Y.Doc {
+      const doc = new Y.Doc();
+      Y.applyUpdate(doc, Buffer.from(documentUpdate(), 'base64'));
+      return doc;
+    }
+    await waitForCollaboration();
+    const original = new Y.Doc();
+    original.getText('content').insert(0, 'Persisted in S3');
+    await writeDocument(original);
+    original.destroy();
+
+    docker('restart', '--time', '15', hosted);
+    await waitForCollaboration();
+    const restored = readDocument();
+    expect(restored.getText('content').toString()).toBe('Persisted in S3');
+    restored.getText('content').insert(15, ' after restart');
+    await writeDocument(restored);
+    restored.destroy();
+
+    const [instance] = JSON.parse(docker('inspect', hosted)) as Array<{
+      Config: { Image: string; Env: string[] };
+      Mounts: Array<{ Source: string; Destination: string }>;
+    }>;
+    docker('stop', '--time', '15', hosted);
+    docker('rm', hosted);
+    docker('run', '-d', '--userns=host', '--name', hosted, '--network', process.env.PG_NETWORK!,
+      '-p', `127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}:8080`,
+      ...instance!.Config.Env.flatMap(value => ['-e', value]),
+      ...instance!.Mounts.flatMap(mount => ['-v', `${mount.Source}:${mount.Destination}`]),
+      instance!.Config.Image);
+    await waitForCollaboration();
+    const redeployed = readDocument();
+    expect(redeployed.getText('content').toString()).toBe('Persisted in S3 after restart');
+    redeployed.destroy();
+    // Recovery must come from the configured object prefix, never a local fallback.
+    expect(docker('exec', hosted, 'python', '-c', `
+from pathlib import Path
+import urllib.request
+assert not list(Path('/data/collab').iterdir())
+with urllib.request.urlopen('http://s3:9090/remdo/hosted/${docId}/data.ysweet') as response:
+    print(len(response.read()) > 0)
+`)).toBe('True');
+  } finally {
+    await api.dispose();
+  }
+});
+
+
+test('unavailable S3 storage fails startup instead of falling back to local storage', () => {
+  test.setTimeout(45_000);
+  const hosted = process.env.DOCKER_HOSTED_CONTAINER!;
+  const name = `${hosted}-missing-bucket`;
+  const image = docker('inspect', '--format', '{{.Config.Image}}', hosted);
+  try {
+    const result = spawnSync('docker', ['run', '--name', name, '--network', process.env.PG_NETWORK!,
+      '-e', 'APP_ORIGIN=https://remdo.example.test', '-e', 'Y_SWEET_STORE=s3://missing-bucket/instance',
+      '-e', 'AWS_ACCESS_KEY_ID=fixture', '-e', 'AWS_SECRET_ACCESS_KEY=fixture',
+      '-e', 'AWS_ENDPOINT_URL_S3=http://s3:9090', '-e', 'AWS_S3_USE_PATH_STYLE=true', image],
+    { encoding: 'utf8', timeout: 30_000 });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('Bucket does not exist');
+  } finally {
+    docker('rm', '-f', name);
+  }
+});
 
 test('startup refuses missing or corrupt secrets over an existing dataset', async () => {
   test.setTimeout(45_000);
