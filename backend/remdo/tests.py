@@ -200,3 +200,62 @@ class ConfigurationTests(SimpleTestCase):
                 )
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(message, result.stderr)
+
+    def test_production_request_errors_are_visible_without_confidential_data(self):
+        report = """
+import json
+import logging
+from types import ModuleType
+from django.http import HttpResponse
+from django.test import Client, override_settings
+from django.urls import path
+
+def fail(request, document):
+    confidential_local = 'private-local-value'
+    try:
+        raise ValueError('private-cause-message')
+    except ValueError as cause:
+        raise RuntimeError('private-exception-message') from cause
+
+def unavailable(request, document):
+    return HttpResponse('private-response-body', status=503)
+
+routes = ModuleType('diagnostic_routes')
+routes.urlpatterns = [path('fail/<str:document>', fail), path('unavailable/<str:document>', unavailable)]
+with override_settings(ROOT_URLCONF=routes):
+    client = Client(raise_request_exception=False)
+    client.cookies['private-cookie-name'] = 'private-cookie-value'
+    responses = [client.post(
+        '/' + route + '/private-document-id?private-query=value',
+        {'private-form-field': 'private-form-value'},
+        HTTP_HOST='remdo.example',
+        HTTP_AUTHORIZATION='Bearer private-token',
+    ).status_code for route in ('fail', 'unavailable')]
+    responses.append(client.get('/', HTTP_HOST='private-invalid-host.example').status_code)
+logging.getLogger('django.db.backends').warning('unrelated-django-warning')
+print(json.dumps(responses))
+"""
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "backend/manage.py"),
+                "shell",
+                "--no-imports",
+                "-c",
+                report,
+            ],
+            env=self.env,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), [500, 503, 400])
+        records = [json.loads(line) for line in result.stderr.splitlines()]
+        self.assertEqual(len(records), 3, records)
+        self.assertEqual([record["status"] for record in records], [500, 503, 400])
+        self.assertEqual(records[0]["exception"], "RuntimeError")
+        self.assertTrue(any(frame["function"] == "fail" for frame in records[0]["frames"]))
+        self.assertTrue(all(frame["line"] > 0 for frame in records[0]["frames"]))
+        self.assertEqual(records[1]["logger"], "django.request")
+        self.assertEqual(records[2]["exception"], "DisallowedHost")
+        self.assertNotIn("private-", result.stderr)

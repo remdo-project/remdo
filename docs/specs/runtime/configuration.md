@@ -104,3 +104,9 @@ without repair. When the bundle is absent, initialization refuses to generate
 replacements if the persistence root contains a dataset or the configured
 database contains metadata. Restore the bundle with its matching
 [dataset](../../architecture.md#runtime-persistence-boundary). Development and verification use fixture credentials.
+
+## Request diagnostics
+
+Production Django request errors reach standard error with status, exception type,
+and code locations when available. Diagnostics exclude request data, exception
+messages, local variables, and source excerpts under the [logging principle](../../principles.md#data-and-trust).
