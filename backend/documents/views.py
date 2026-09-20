@@ -116,7 +116,6 @@ class ConfigView(APIView):
     def get(self, request):
         return Response(
             {
-                "publicServer": False,
                 "csrfCookieName": settings.CSRF_COOKIE_NAME,
                 "buildRevision": settings.BUILD_REVISION,
                 "csrfToken": get_token(request),

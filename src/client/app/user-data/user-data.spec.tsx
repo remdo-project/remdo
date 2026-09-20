@@ -17,7 +17,7 @@ it('reactively shows metadata errors and recovers through the Home retry action'
   let unavailable = true;
   vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
     if (new URL(request.url).pathname === '/api/current-user') {
-      return Response.json({ userId: 'alice', publicServer: false });
+      return Response.json({ userId: 'alice' });
     }
     return unavailable
       ? new Response(null, { status: 503 })
