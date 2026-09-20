@@ -69,7 +69,7 @@ Simplification follow-up:
 1. [x] Delegate administration authentication to the [shared allauth sign-in](specs/access/access-control.md#admin-role),
    applying its rate limits and browser login handoff while retaining Django
    staff and model authorization.
-2. [ ] Move reference-only `@better-auth/core`, `@better-auth/oauth-provider`,
+2. [x] Move reference-only `@better-auth/core`, `@better-auth/oauth-provider`,
    `better-auth`, `better-sqlite3`, `hono`, and `kysely` to development dependencies
    and align production audit roots. Preserve the [retained reference code](#cross-server-linking-redesign)
    and active snapshot tooling.

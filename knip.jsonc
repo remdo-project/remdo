@@ -16,10 +16,11 @@
   "ignoreExportsUsedInFile": true,
   "entry": [
     // Reference code retained for docs/todo.md#cross-server-linking-redesign.
-    "src/server/{app,auth/auth,db/client,documents/document-registry}.ts!",
+    "src/server/{app,auth/auth,db/client,documents/document-registry}.ts",
     // Snapshot tooling still has consumers; the Node backup exporter is reference
     // code, not a supported Django command. See docs/todo.md#operations.
-    "tools/snapshot/{cli,backup}.ts!",
+    "tools/snapshot/cli.ts!",
+    "tools/snapshot/backup.ts",
     // Retained source-linking fixture for the same post-migration redesign.
     "playwright.docker.config.ts",
     "tests/e2e/docker/_support/seed-source-user.ts",
@@ -35,8 +36,13 @@
     // `!` marks the production graph used by `knip --production`.
     "src/**/*.{ts,tsx,mts}!",
     "!src/**/*.spec.{ts,tsx,mts}!",
-    // Shared by dev provisioning and tests, never by a production entry point.
-    "!src/server/auth/session-cookie.ts!",
+    // Retained backend and shared helpers have reference-only exports.
+    // Full-mode auditing covers them; live snapshot imports still resolve their dependencies.
+    "!src/server/**!",
+    "!src/domain/documents/special-documents.ts!",
+    "!src/projection/yjs-ordered-map-array.ts!",
+    "!src/platform/http/status.ts!",
+    "!src/platform/net/http-origin.ts!",
     "config/{index.ts,env/**/*.ts}!",
     "tests/**/*.{ts,tsx,mts}",
     "config/{_internal,eslint,playwright,vite}/**/*.{ts,tsx,mts}",
