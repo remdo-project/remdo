@@ -64,4 +64,7 @@ COPY docker/entrypoint.sh /entrypoint.sh
 COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh
 COPY docker/entrypoint-env.sh /usr/local/share/remdo/entrypoint-env.sh
 RUN chmod +x /entrypoint.sh /usr/local/bin/y-sweet
+ARG RENDER_GIT_COMMIT
+ARG BUILD_REVISION=${RENDER_GIT_COMMIT}
+ENV BUILD_REVISION=${BUILD_REVISION}
 CMD ["/entrypoint.sh"]

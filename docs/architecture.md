@@ -41,6 +41,10 @@ Django template without sign-in or editor JavaScript. Their canonical URLs use
 the [configured public origin](specs/runtime/configuration.md#network-addressing). Page sources, including inline HTML, are trusted like
 Django templates.
 
+About ends with the deployed build's source commit, linked to the full GitHub
+commit. It shows “Local development” in development and “Build unknown” when a
+production revision is unavailable.
+
 ## Production Bundle Boundary
 
 Development-only routes, UI, editor plugins, and test bridges are gated by

@@ -22,8 +22,11 @@ remdo_load_env_defaults() {
 remdo_docker_build() {
   local root_dir="$1"
   local image_name="$2"
+  local build_revision
+  build_revision="${BUILD_REVISION:-$(git -C "${root_dir}" rev-parse HEAD 2>/dev/null || true)}"
 
-  docker build -f "${root_dir}/docker/Dockerfile" -t "${image_name}" "${root_dir}"
+  docker build --build-arg "BUILD_REVISION=${build_revision}" \
+    -f "${root_dir}/docker/Dockerfile" -t "${image_name}" "${root_dir}"
 }
 
 remdo_docker_daemon_is_rootless() {
