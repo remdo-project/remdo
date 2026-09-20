@@ -14,7 +14,7 @@ const frontendFiles = new Set([
 
 export function shouldProxyToDjango(url: string, mode: 'development' | 'preview'): boolean {
   const pathname = url.split('?')[0]!;
-  if (pathname === '/' || pathname === '/sharing' || pathname === '/sharing/' || pathname.startsWith('/n/')) {
+  if (pathname === '/' || pathname === '/sign-out' || pathname === '/sign-out/' || pathname === '/sharing' || pathname === '/sharing/' || pathname.startsWith('/n/')) {
     return false;
   }
   if (frontendFiles.has(pathname) || pathname.startsWith('/app-assets/') || pathname.startsWith('/icons/')

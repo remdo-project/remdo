@@ -1,6 +1,7 @@
 /* eslint-disable node/no-process-env */
 import { execFileSync } from 'node:child_process';
-import { expect, guardedTest as test } from '#e2e/fixtures';
+import { allowUnauthorizedNetwork, expect, guardedTest as test } from '#e2e/fixtures';
+import { allowOfflineDisconnectedConsoleIssue } from './_support/helpers';
 
 const container = process.env.DOCKER_TEST_CONTAINER!;
 function python(script: string, ...args: string[]) {
@@ -108,4 +109,17 @@ test('returning browsers revalidate files and retain server navigation responses
     expect(response!.fromServiceWorker(), url).toBe(false);
     expect(response!.headers()['cache-control'], url).toContain('no-store');
   }
+  await page.goto('/about/');
+  await page.getByRole('link', { name: 'Sign out…', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible();
+  allowOfflineDisconnectedConsoleIssue(page);
+  await page.context().setOffline(true);
+  await page.reload();
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Local data cleared. Connect to finish signing out.');
+  await page.context().setOffline(false);
+  allowUnauthorizedNetwork(page);
+  await page.getByRole('button', { name: 'Finish signing out', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText("You're signed out");
+
 });

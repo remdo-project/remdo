@@ -40,7 +40,7 @@
 			}
 		}
 
-		@app_routes path / /n/* /sharing /sharing/
+		@app_routes path / /n/* /sharing /sharing/ /sign-out /sign-out/
 		handle @app_routes {
 			route {
 				root * /srv/remdo

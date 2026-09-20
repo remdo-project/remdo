@@ -31,6 +31,7 @@ for (const width of [1280, 390]) {
     const id = await createFixtureDocument({ email: alice.email, title: 'Alice private document' });
     await page.goto(`/n/${id}`);
     await page.waitForURL(/\/accounts\/login\//u);
+    await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Sign in', exact: true }).click();
     const loginPresentation = await presentation(page);
     expect(loginPresentation.body[0]).toContain('sans-serif');
     expect(loginPresentation.body[4]).toBe('0px');
@@ -73,13 +74,15 @@ for (const width of [1280, 390]) {
     await page.getByRole('button', { name: 'Logout', exact: true }).click();
     await expect(page.getByRole('status')).toContainText("You're signed out");
     expect(await presentation(page)).toEqual(loginPresentation);
-    await page.getByRole('link', { name: 'Sign in', exact: true }).last().click();
+    await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Sign in', exact: true }).click();
     await page.getByLabel('Email:', { exact: true }).fill(bob.email);
     await page.getByLabel('Password:', { exact: true }).fill(bob.password);
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Alice private document', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => localStorage.getItem('remdo-pending-sign-out'))).toBeNull();
+    await page.goto('/about/');
+    await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link')).toHaveText(['About', 'Sign out…']);
   });
 }
 

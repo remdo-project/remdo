@@ -15,6 +15,7 @@ const pwaNavigationFallbackAllowlist = [
   /^\/(?:\?.*)?$/u,
   /^\/n\/[^/?]+\/?(?:\?.*)?$/u,
   /^\/sharing\/?(?:\?.*)?$/u,
+  /^\/sign-out\/?(?:\?.*)?$/u,
 ];
 const apiProxy = { target: resolveApiServerOrigin(), changeOrigin: false };
 const devProxy = {

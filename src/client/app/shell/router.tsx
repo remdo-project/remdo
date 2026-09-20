@@ -10,6 +10,8 @@ import {
   resolvePostAuthPath,
 } from '#client/app/session/post-auth-path';
 import HomeRoute from './HomeRoute';
+import SignOutRoute from '#client/app/session/SignOutRoute';
+import OnlineGate from '#client/app/session/OnlineGate';
 import DocumentRoute from '#client/app/workspace/DocumentRoute';
 import SharingRoute from '#client/app/sharing/SharingRoute';
 import { getCachedCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap';
@@ -93,6 +95,16 @@ async function documentLoader({ request, params }: {
 const hydrateFallbackElement = <div aria-hidden="true" />;
 
 const appRoutes = [
+  {
+    path: 'sign-out',
+    loader: async () => {
+      const sessionState = await resolveSessionGateState();
+      if (sessionState.status === 'unauthenticated') throw redirect('/');
+      return { sessionState };
+    },
+    element: <OnlineGate allowOfflineSession><SignOutRoute /></OnlineGate>,
+    hydrateFallbackElement,
+  },
   {
     path: '/',
     loader: ({ request }: { request: Request }) => homeRouteLoader(request),

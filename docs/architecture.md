@@ -62,12 +62,12 @@ not from request forwarding headers.
 
 ### Gateway
 
-The gateway explicitly owns SPA routes (`/`, `/n/*`, and `/sharing`), frontend
-assets, Django static assets, public shared files, health probes, and
-collaboration endpoints. Django owns all other HTTP routes, including unknown
-routes and their 404 responses. Normal HTTP routes have the same owner in
-development and production; development additionally serves frontend tooling
-and development-only routes.
+The gateway explicitly owns SPA routes (`/`, `/n/*`, `/sharing`, and `/sign-
+out`), frontend assets, Django static assets, public shared files, health
+probes, and collaboration endpoints. Django owns all other HTTP routes,
+including unknown routes and their 404 responses. Normal HTTP routes have the
+same owner in development and production; development additionally serves
+frontend tooling and development-only routes.
 
 Development and production server runtimes expose only the gateway. The RemDo
 API and collaboration server remain loopback-only and are reached through it.

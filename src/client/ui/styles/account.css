@@ -30,11 +30,6 @@
   color: var(--mantine-color-dimmed);
 }
 
-.remdo-brand-name {
-  font-size: var(--mantine-font-size-xl);
-  font-weight: 700;
-}
-
 .remdo-account-form p {
   margin: 0;
 }

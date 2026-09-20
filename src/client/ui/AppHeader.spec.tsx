@@ -9,7 +9,7 @@ function renderHeader(authState: AppHeaderAuthState, onLogout = vi.fn()) {
   const result = render(
     <MantineProvider>
       <MemoryRouter>
-        <AppHeader authState={authState} onLogout={onLogout} />
+        <AppHeader authState={authState} onLogout={onLogout} signInHref="/accounts/login/?next=%2Fn%2Fexample" />
       </MemoryRouter>
     </MantineProvider>
   );
@@ -20,8 +20,9 @@ describe('app header', () => {
   it('shows sign-in navigation to an unauthenticated visitor', () => {
     renderHeader({ status: 'unauthenticated' });
 
-    expect(screen.getByRole('link', { name: 'RemDo' })).toHaveAttribute('href', '/');
-    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'RemDo home' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/accounts/login/?next=%2Fn%2Fexample');
+    expect(screen.getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about/');
     expect(screen.queryByRole('link', { name: 'Sharing' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Logout' })).toBeNull();
   });
@@ -62,7 +63,7 @@ describe('app header', () => {
   it('renders only the brand when session state is unavailable', () => {
     renderHeader({ status: 'unavailable' });
 
-    expect(screen.getByRole('link', { name: 'RemDo' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'RemDo home' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Primary' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /admin|sharing|logout|sign in/iu })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Logout' })).toBeNull();

@@ -207,7 +207,7 @@ unauthenticatedTest('renders repository public pages without loading the app', a
   expect(userDataRequests).toEqual([]);
 
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('link', { name: 'RemDo', exact: true })).toBeFocused();
+  await expect(page.getByRole('link', { name: 'RemDo home', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'About', exact: true })).toBeFocused();
 });
