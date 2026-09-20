@@ -28,14 +28,6 @@ export function createDocumentPath(docId: string, noteId: string | null = null):
   return createDocumentPathWithPrefix(APP_DOCUMENT_PATH_PREFIX, docId, noteId);
 }
 
-export function createDocumentSyncTokenApiPath(docId: string): string {
-  const normalizedDocId = normalizeNoteIdOrThrow(
-    docId,
-    'createDocumentSyncTokenApiPath requires a valid document id.',
-  );
-  return `/api/documents/${encodeURIComponent(normalizedDocId)}/sync-tokens`;
-}
-
 export function createSourceDocumentSyncTokenApiPath(sourceId: string, docId: string): string {
   const normalizedSourceId = normalizeSourceServerId(sourceId);
   if (!normalizedSourceId) {

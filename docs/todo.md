@@ -73,7 +73,7 @@ Simplification follow-up:
    `better-auth`, `better-sqlite3`, `hono`, and `kysely` to development dependencies
    and align production audit roots. Preserve the [retained reference code](#cross-server-linking-redesign)
    and active snapshot tooling.
-3. [ ] Remove the discarded sync-token probe and its document-route loading gate.
+3. [x] Remove the discarded sync-token probe and its document-route loading gate.
    Let the collaboration provider authorize access; use the generated API client
    for its local token request while preserving cancellation and offline editing.
 4. [x] Remove retired Node authentication checks and eager trusted-origin

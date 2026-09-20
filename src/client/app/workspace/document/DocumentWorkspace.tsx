@@ -12,7 +12,7 @@ import Editor from '#client/editor/shell/Editor';
 import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentSearchInput, DocumentSearchResults } from './DocumentSearch';
 import DocumentToolbar from './DocumentToolbar';
-import { useDocumentSourceResolution } from './useDocumentSourceResolution';
+import { resolveDocumentSource } from './resolveDocumentSource';
 import '../DocumentRoute.css';
 
 function isVisibleInCurrentView(element: HTMLElement): boolean {
@@ -47,7 +47,7 @@ export default function DocumentWorkspace({
   const zoomPath = useZoomPath();
   const userData = useUserData();
   const documentSources = userData.getDocumentSources().getChildren();
-  const source = useDocumentSourceResolution(docId, documentSources);
+  const source = resolveDocumentSource(docId, documentSources);
   const [importError, setImportError] = useState<{ docId: string; message: string } | null>(null);
   if (importError && importError.docId !== docId) {
     setImportError(null);
@@ -111,21 +111,15 @@ export default function DocumentWorkspace({
       <div className={search.searchModeActive
         ? 'document-editor-pane document-editor-pane--hidden'
         : 'document-editor-pane'}>
-        {source.pending ? (
-          <section className="document-editor-loading" role="status">
-            Loading document
-          </section>
-        ) : (
-          <Editor
-            key={`${source.sourceId ?? 'local'}:${docId}`}
-            docId={docId}
-            sourceOrigin={source.sourceOrigin}
-            sourceId={source.sourceId}
-            statusPortalRoot={statusHost}
-            onSelectHome={onSelectHome}
-            onPendingDocumentImportError={handleImportError}
-          />
-        )}
+        <Editor
+          key={`${source.sourceId ?? 'local'}:${docId}`}
+          docId={docId}
+          sourceOrigin={source.sourceOrigin}
+          sourceId={source.sourceId}
+          statusPortalRoot={statusHost}
+          onSelectHome={onSelectHome}
+          onPendingDocumentImportError={handleImportError}
+        />
       </div>
     </div>
   );
