@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { expect, guardedTest as test } from '#e2e/fixtures';
 import type { APIRequestContext } from '@playwright/test';
+import { waitForHealth } from './_support/helpers';
 import { request } from '@playwright/test';
 import * as Y from 'yjs';
 
@@ -34,13 +35,11 @@ test('retained Docker runtime data is private to the invoking user', () => {
 
 for (const hosted of [false, true]) {
   test(`${hosted ? 'Render' : 'standalone'} login limits separate clients and ignore forged forwarding headers`, async ({ request: api }) => {
-    await expect.poll(async () => {
-      try {
-        return (await api.get(hosted ? `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}/health` : '/health', {
-          headers: hosted ? { Host: 'remdo.onrender.com' } : {},
-        })).status();
-      } catch { return 0; }
-    }, { timeout: 30_000 }).toBe(200);
+    await waitForHealth(
+      api,
+      hosted ? `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}/health` : '/health',
+      hosted ? { Host: 'remdo.onrender.com' } : undefined,
+    );
     const result = docker('exec', hosted ? process.env.DOCKER_HOSTED_CONTAINER! : container, 'python', '-c', `
 import http.client, json, os, ssl
 from urllib.parse import urlsplit
@@ -100,9 +99,7 @@ print(json.dumps({'allowed': statuses, 'blocked': login(first, '192.0.2.100'),
 test('production launcher serves login, collaboration, and persistent data through its published port', async ({ page, browser }) => {
   test.setTimeout(90_000);
   const origin = process.env.DOCKER_TEST_ORIGIN!;
-  await expect.poll(async () => {
-    try { return (await page.request.get('/health')).status(); } catch { return 0; }
-  }, { timeout: 30_000 }).toBe(200);
+  await waitForHealth(page.request);
   createAdmin(container);
   const originalBundle = bundleDigest();
   await page.goto('/admin/');
@@ -148,9 +145,7 @@ test('production launcher serves login, collaboration, and persistent data throu
   // A fresh browser context cannot satisfy this check from its old IndexedDB.
   const fresh = await browser.newContext({ baseURL: origin, ignoreHTTPSErrors: true });
   try {
-    await expect.poll(async () => {
-      try { return (await fresh.request.get('/health')).status(); } catch { return 0; }
-    }, { timeout: 30_000 }).toBe(200);
+    await waitForHealth(fresh.request);
     const reopened = await fresh.newPage();
     await reopened.goto(documentUrl);
     await expect(reopened).toHaveURL(/\/accounts\/login\//u);
@@ -180,9 +175,7 @@ test('hosted TLS termination preserves secure cookies and trusted-origin CSRF', 
     extraHTTPHeaders: { Host: 'remdo.onrender.com', Origin: origin, 'CF-Connecting-IP': '198.51.100.10' },
   });
   try {
-    await expect.poll(async () => {
-      try { return (await api.get('/health')).status(); } catch { return 0; }
-    }, { timeout: 30_000 }).toBe(200);
+    await waitForHealth(api);
     createAdmin(hosted);
     const configResponse = await api.get('/api/config');
     const config = await configResponse.json() as { csrfToken: string; csrfCookieName: string };
@@ -237,9 +230,7 @@ test('hosted filesystem document content survives restart and container replacem
   }
   const api = await request.newContext(apiOptions);
   try {
-    await expect.poll(async () => {
-      try { return (await api.get('/health')).status(); } catch { return 0; }
-    }, { timeout: 30_000 }).toBe(200);
+    await waitForHealth(api);
     docker('exec', '-e', `DJANGO_SUPERUSER_PASSWORD=${password}`, hosted,
       'python', 'manage.py', 'createsuperuser', '--noinput', '--email', persistEmail);
     const authedHeaders = await signIn(api);
@@ -259,9 +250,7 @@ test('hosted filesystem document content survives restart and container replacem
       expect(response.status()).toBe(200);
     }
     async function waitForCollaboration(): Promise<void> {
-      await expect.poll(async () => {
-        try { return (await api.get('/health')).status(); } catch { return 0; }
-      }, { timeout: 30_000 }).toBe(200);
+      await waitForHealth(api);
       await expect.poll(() => {
         const result = spawnSync('docker', ['exec', hosted, 'python', '-c',
           'import urllib.request; from django.conf import settings; urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:4004/check_store", data=b"{}", headers={"Authorization": "Bearer " + settings.YSWEET_SERVER_TOKEN, "Content-Type": "application/json"}), timeout=1)'],
@@ -373,13 +362,7 @@ test('startup refuses missing or corrupt secrets over an existing dataset', asyn
 
 
 test('a fresh data root cannot regenerate secrets for an existing PostgreSQL database', async ({ request: api }) => {
-  await expect.poll(async () => {
-    try {
-      return (await api.get(`http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}/health`, {
-        headers: { Host: 'remdo.onrender.com' },
-      })).status();
-    } catch { return 0; }
-  }, { timeout: 30_000 }).toBe(200);
+  await waitForHealth(api, `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}/health`, { Host: 'remdo.onrender.com' });
   const image = docker('inspect', '--format', '{{.Config.Image}}', container);
   const result = spawnSync('docker', ['run', '--rm', '--network', process.env.PG_NETWORK!,
     '-e', `DATABASE_URL=${process.env.DOCKER_DATABASE_URL!.replace(/\/remdo$/, '/hosted')}`,

@@ -3,13 +3,31 @@ import json
 import os
 from unittest.mock import patch
 
+import httpx
 from accounts.models import User
 from allauth.account.models import EmailAddress
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.test import Client, SimpleTestCase, TestCase, override_settings
 
+from . import collaboration
+from .collaboration import issue_token
 from .models import Document, DocumentGrant
+
+
+def _mock_client(handler):
+    real_client = httpx.Client
+
+    def build(*, base_url, headers, timeout):
+        return real_client(
+            base_url=base_url,
+            headers=headers,
+            timeout=timeout,
+            transport=httpx.MockTransport(handler),
+        )
+
+    return build
 
 
 class ConfigurationTests(SimpleTestCase):
@@ -386,6 +404,73 @@ class DocumentFlowTests(TestCase):
         self.assertEqual(user.first_name, "Provisioned")
         response = self.sign_in("provisioned@example.test", "Provisioned-password-123")
         self.assertTrue(response.json()["data"]["user"]["is_staff"])
+
+
+class CollaborationTokenTests(SimpleTestCase):
+    def issue(self, document_id="doc1"):
+        requests = []
+
+        def handler(request):
+            requests.append(request)
+            if request.url.path.endswith("/doc/new"):
+                return httpx.Response(200, json={})
+            return httpx.Response(
+                200,
+                json={
+                    "url": "ws://ysweet.internal:8080/d/doc1",
+                    "baseUrl": "http://ysweet.internal:8080/d/doc1",
+                    "token": "issued-token",
+                },
+            )
+
+        with patch.object(collaboration.httpx, "Client", _mock_client(handler)):
+            return issue_token(document_id), requests
+
+    @override_settings(
+        YSWEET_CONNECTION_STRING="yss://server-token@ysweet.internal:8080/prefix",
+        APP_ORIGIN="https://remdo.example.com",
+    )
+    def test_rewrites_document_addresses_to_the_public_origin_over_tls(self):
+        result, requests = self.issue()
+
+        self.assertEqual(result["url"], "wss://remdo.example.com/d/doc1")
+        self.assertEqual(result["baseUrl"], "https://remdo.example.com/d/doc1")
+        self.assertEqual(result["token"], "issued-token")
+        self.assertEqual(
+            [str(request.url) for request in requests],
+            [
+                "https://ysweet.internal:8080/prefix/doc/new",
+                "https://ysweet.internal:8080/prefix/doc/doc1/auth",
+            ],
+        )
+        self.assertEqual(requests[0].headers["Authorization"], "Bearer server-token")
+
+    @override_settings(
+        YSWEET_CONNECTION_STRING="ys://ysweet.internal:8080",
+        YSWEET_SERVER_TOKEN="settings-token",
+        APP_ORIGIN="http://127.0.0.1:5000",
+    )
+    def test_falls_back_to_the_configured_token_over_plaintext(self):
+        result, requests = self.issue()
+
+        self.assertEqual(result["url"], "ws://127.0.0.1:5000/d/doc1")
+        self.assertEqual(result["baseUrl"], "http://127.0.0.1:5000/d/doc1")
+        self.assertEqual(requests[0].headers["Authorization"], "Bearer settings-token")
+        self.assertTrue(str(requests[0].url).startswith("http://ysweet.internal:8080/"))
+
+    def test_refuses_to_issue_without_a_usable_connection_string_and_token(self):
+        for connection, token in (
+            ("", "settings-token"),
+            ("ftp://ysweet.internal", "settings-token"),
+            ("ys:///prefix", "settings-token"),
+            ("ys://ysweet.internal:8080", ""),
+        ):
+            with self.subTest(connection=connection, token=token):
+                with override_settings(
+                    YSWEET_CONNECTION_STRING=connection, YSWEET_SERVER_TOKEN=token
+                ):
+                    with self.assertRaises(ImproperlyConfigured):
+                        issue_token("doc1")
 
 
 class StarterDocumentTests(TestCase):
