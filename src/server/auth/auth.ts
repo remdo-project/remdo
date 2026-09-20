@@ -1,3 +1,4 @@
+import { hostname } from 'node:os';
 import {
   oauthProvider,
   oauthProviderAuthServerMetadata,
@@ -10,12 +11,12 @@ import { admin, genericOAuth, jwt } from 'better-auth/plugins';
 import type { GenericOAuthConfig } from 'better-auth/plugins';
 import type { ExpressionBuilder } from 'kysely';
 import { config } from '#config';
-import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { RemdoDatabase } from '#server/db/schema';
 import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
 import { readSourceServersSync } from '#server/remdo-oauth/source-server-store';
 import { backfillAccountIssuers } from './account-issuer-backfill';
+import { deriveAuthTrustedOrigins } from './trusted-origins';
 
 interface CreateServerAuthOptions {
   allowSignup?: boolean;
@@ -252,7 +253,7 @@ export function createServerAuth({
   const resolvedTrustedOrigins = trustedOrigins ?? deriveAuthTrustedOrigins({
     baseURL,
     isProduction: config.isProd,
-    hostname: config.server.MACHINE_HOSTNAME,
+    hostname: hostname(),
     previewPort: config.env.PREVIEW_PORT,
   });
 

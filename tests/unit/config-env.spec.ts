@@ -8,8 +8,8 @@ import type { EnvKey } from '#config/env/schema';
 
 type EnvValues = Partial<Record<EnvKey, string | boolean>>;
 
-function resolveTestConfig(values: EnvValues, options?: Parameters<typeof resolveConfig>[1]) {
-  return resolveConfig((key) => values[key], options);
+function resolveTestConfig(values: EnvValues) {
+  return resolveConfig((key) => values[key]);
 }
 
 function readEnvShValue(name: string, overrides: NodeJS.ProcessEnv, production = false): string {
@@ -78,100 +78,20 @@ describe('config env resolve', () => {
   it.each([
     'https://remdo.example.com',
     'http://localhost:4040',
-  ])('uses an exact APP_ORIGIN in the production-built server: %s', (appOrigin) => {
-    const resolved = resolveTestConfig({
-      NODE_ENV: 'production',
-      AUTH_SECRET: 'production-auth-secret-0123456789',
-      ADMIN_SECRET: 'production-admin-secret-0123456789',
-      APP_ORIGIN: appOrigin,
-    });
+  ])('passes APP_ORIGIN through in the production-built server: %s', (appOrigin) => {
+    const resolved = resolveTestConfig({ NODE_ENV: 'production', APP_ORIGIN: appOrigin });
 
     expect(resolved.server.APP_ORIGIN).toBe(appOrigin);
   });
 
-  it('derives dev auth trusted origins for the gateway and loopback preview', () => {
-    const resolved = resolveTestConfig({
-      NODE_ENV: 'development',
-      HOST: '127.0.0.1',
-      PORT: '4000',
-      PREVIEW_PORT: '4020',
-      APP_ORIGIN: 'http://127.0.0.1:4000',
-    }, { machineHostname: 'dev-vm' });
+  it('resolves production utility config without the secrets Django requires', () => {
+    // Backup and snapshot tooling runs via `env -u AUTH_SECRET` and never
+    // reaches Django's settings, so resolution must not demand server secrets.
+    const resolved = resolveTestConfig({ NODE_ENV: 'production', DATA_DIR: '/data' });
 
-    expect(resolved.server.AUTH_TRUSTED_ORIGINS).toEqual([
-      'http://127.0.0.1:4000',
-      'http://localhost:4000',
-      'http://dev-vm:4000',
-      'http://localhost:4020',
-      'http://127.0.0.1:4020',
-    ]);
-  });
-
-  it('restricts auth trusted origins to the public origin in production', () => {
-    const resolved = resolveTestConfig({
-      NODE_ENV: 'production',
-      AUTH_SECRET: 'production-auth-secret-0123456789',
-      ADMIN_SECRET: 'production-admin-secret-0123456789',
-      APP_ORIGIN: 'https://remdo.example.com',
-    }, { machineHostname: 'dev-vm' });
-
-    expect(resolved.server.AUTH_TRUSTED_ORIGINS).toEqual(['https://remdo.example.com']);
-  });
-
-  it('requires production server secrets and a canonical public URL', () => {
-    expect(() => resolveTestConfig({
-      NODE_ENV: 'production',
-      AUTH_SECRET: 'production-auth-secret-0123456789',
-    })).toThrow('APP_ORIGIN is required in production server config.');
-
-    expect(() => resolveTestConfig({
-      NODE_ENV: 'production',
-      AUTH_SECRET: 'production-auth-secret-0123456789',
-      APP_ORIGIN: 'https://remdo.example.com',
-    })).toThrow('ADMIN_SECRET is required in production server config.');
-  });
-
-  it('rejects a production APP_ORIGIN that is not exact', () => {
-    expect(() => resolveTestConfig({
-      NODE_ENV: 'production',
-      APP_ORIGIN: 'https://remdo.example.com/path',
-      AUTH_SECRET: 'production-auth-secret-0123456789',
-      ADMIN_SECRET: 'production-admin-secret-0123456789',
-    })).toThrow('APP_ORIGIN must be an exact HTTP(S) origin in production server config.');
-  });
-
-  it('does not require the auto-bootstrapped Y-Sweet pair in production server config', () => {
-    // Both Y-Sweet secrets are bootstrapped, and the API process is started
-    // without YSWEET_AUTH_KEY, so neither is validated at the config boundary.
-    const resolved = resolveTestConfig({
-      NODE_ENV: 'production',
-      AUTH_SECRET: 'production-auth-secret-0123456789',
-      ADMIN_SECRET: 'production-admin-secret-0123456789',
-      APP_ORIGIN: 'https://remdo.example.com',
-    });
-
-    expect(resolved.server.YSWEET_AUTH_KEY).toBe('');
-    expect(resolved.server.YSWEET_SERVER_TOKEN).toBe('');
-  });
-
-  it('allows production utility config without app auth secrets', () => {
-    const resolved = resolveTestConfig({
-      NODE_ENV: 'production',
-    });
-
-    expect(resolved.runtime.mode).toBe('production');
     expect(resolved.runtime.isProd).toBe(true);
-    expect(resolved.runtime.isDev).toBe(false);
-    expect(resolved.server.APP_ORIGIN).toBe('');
-  });
-
-  it('skips server-only auth validation for browser config loading', () => {
-    const resolved = resolveTestConfig({
-      NODE_ENV: 'production',
-      AUTH_SECRET: 'too-short',
-    }, { server: false });
-
-    expect(resolved.runtime.mode).toBe('production');
+    expect(resolved.server.DATA_DIR).toBe('/data');
+    expect(resolved.server.AUTH_SECRET).toBe('');
   });
 
   it('exposes exactly the CLIENT_KEYS subset to the client config', () => {

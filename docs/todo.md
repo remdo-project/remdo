@@ -76,7 +76,7 @@ Simplification follow-up:
 3. [ ] Remove the discarded sync-token probe and its document-route loading gate.
    Let the collaboration provider authorize access; use the generated API client
    for its local token request while preserving cancellation and offline editing.
-4. [ ] Remove retired Node authentication checks and eager trusted-origin
+4. [x] Remove retired Node authentication checks and eager trusted-origin
    calculation from active frontend configuration. Keep Django responsible for
    live authentication settings, including its development secret, and localize
    reference-only configuration to retained code.

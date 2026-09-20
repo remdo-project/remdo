@@ -1,4 +1,3 @@
-import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
 import { createServerApp } from '#server/app';
 import {
   createServerAuth,
@@ -6,6 +5,7 @@ import {
 } from '#server/auth/auth';
 import type { CreateAuthUserInput } from '#server/auth/auth';
 import { extractSessionCookie } from '#server/auth/session-cookie';
+import { deriveAuthTrustedOrigins } from '#server/auth/trusted-origins';
 import type { YSweetDocumentTokenManager } from '#server/collab-token';
 import { createServerDatabaseClient } from '#server/db/client';
 import type { ServerDiagnosticReporter } from '#server/diagnostics';

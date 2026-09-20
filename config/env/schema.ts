@@ -25,7 +25,7 @@ export const envSchema = {
   YSWEET_AUTH_KEY: str,
   // Y-Sweet server token used by RemDo API and backup tools.
   YSWEET_SERVER_TOKEN: str,
-  // Better Auth application secret.
+  // Django's SECRET_KEY; tools/env.defaults.sh supplies the development value.
   AUTH_SECRET: str,
   // Operator secret for admin provisioning actions.
   ADMIN_SECRET: str,
