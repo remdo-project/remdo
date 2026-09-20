@@ -51,11 +51,10 @@ class DocumentSerializer(serializers.ModelSerializer):
 
 class CurrentUserSerializer(serializers.ModelSerializer):
     userId = serializers.CharField(source="pk", read_only=True)
-    publicServer = serializers.BooleanField(read_only=True, default=False)
 
     class Meta:
         model = get_user_model()
-        fields = ["userId", "publicServer"]
+        fields = ["userId"]
 
 
 class ClientTokenSerializer(serializers.Serializer):
@@ -68,7 +67,6 @@ class ClientTokenSerializer(serializers.Serializer):
 
 class ConfigSerializer(serializers.Serializer):
     buildRevision = serializers.CharField(allow_blank=True)
-    publicServer = serializers.BooleanField()
     csrfCookieName = serializers.CharField()
     csrfToken = serializers.CharField()
 

@@ -7,7 +7,7 @@ vi.mock('#client/app/session/client', () => ({
   hasRememberedSession: hasRememberedSessionMock,
   isLikelyFetchUnavailableError: (error: unknown) => error instanceof TypeError,
 }));
-const BOOTSTRAP = { userId: 'alice', publicServer: false };
+const BOOTSTRAP = { userId: 'alice' };
 const clients: QueryClient[] = [];
 function client() {
   const instance = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -41,10 +41,12 @@ describe('current user bootstrap', () => {
     const unsubscribe = observer.subscribe(() => {});
     try {
       await vi.waitFor(() => expect(observer.getCurrentResult().data).toEqual(BOOTSTRAP));
-      vi.stubGlobal('fetch', vi.fn(async () => Response.json({ ...BOOTSTRAP, publicServer: true })));
+      const revalidate = vi.fn(async () => Response.json(BOOTSTRAP));
+      vi.stubGlobal('fetch', revalidate);
       onlineManager.setOnline(true);
-      await vi.waitFor(() => expect(observer.getCurrentResult().data?.publicServer).toBe(true));
-      expect(getCachedCurrentUserBootstrap()?.publicServer).toBe(true);
+      await vi.waitFor(() => expect(revalidate).toHaveBeenCalled());
+      await vi.waitFor(() => expect(observer.getCurrentResult().isFetching).toBe(false));
+      expect(observer.getCurrentResult().status).toBe('success');
     } finally {
       unsubscribe();
       queries.unmount();

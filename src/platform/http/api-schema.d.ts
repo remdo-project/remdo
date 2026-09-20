@@ -119,14 +119,11 @@ export interface components {
         };
         Config: {
             buildRevision: string;
-            publicServer: boolean;
             csrfCookieName: string;
             csrfToken: string;
         };
         CurrentUser: {
             readonly userId: string;
-            /** @default false */
-            readonly publicServer: boolean;
         };
         Document: {
             readonly id: string;
