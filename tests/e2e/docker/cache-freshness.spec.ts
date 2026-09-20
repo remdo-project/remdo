@@ -115,7 +115,10 @@ test('returning browsers revalidate files and retain server navigation responses
   allowOfflineDisconnectedConsoleIssue(page);
   await page.context().setOffline(true);
   await page.reload();
+  // Exercise offline cleanup with unsaved data regardless of earlier sync timing.
+  await page.evaluate(() => localStorage.setItem('remdo-unsynced:document:closed-tab', '1'));
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign out and discard', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Local data cleared. Connect to finish signing out.');
   await page.context().setOffline(false);
   allowUnauthorizedNetwork(page);

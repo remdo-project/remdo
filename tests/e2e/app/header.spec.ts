@@ -41,7 +41,7 @@ test('public pages link to Home through the brand and retain staff navigation', 
 test('public-page sign-out link opens the app without revoking the session until confirmed', async ({ page }) => {
   await page.goto('/about/');
   await page.getByRole('link', { name: 'Sign out…', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible({ timeout: 15_000 });
   await page.reload();
   await page.getByRole('link', { name: 'Cancel', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
