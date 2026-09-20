@@ -34,12 +34,13 @@ remdo_configure_environment() {
     case "${PORT_BASE}" in
       *[!0-9]* | 0*) echo "PORT_BASE must be a positive decimal integer without leading zeros." >&2; exit 1 ;;
     esac
-    [ "${PORT_BASE}" -le 65515 ] || { echo "PORT_BASE must leave room for the derived service ports." >&2; exit 1; }
-
     # Shift complete local stacks before deriving their ports.
     if [ -n "${_remdo_port_base_offset:-}" ]; then
       PORT_BASE="$((PORT_BASE + _remdo_port_base_offset))"
     fi
+    # Checked after the shift: the derived service ports are what must fit, and
+    # only PORT among them reaches the browser-safe check below.
+    [ "${PORT_BASE}" -le 65515 ] || { echo "PORT_BASE must leave room for the derived service ports." >&2; exit 1; }
 
     PORT="$((PORT_BASE + 0))"
     # Offsets +7..+10 are intentionally reserved for the Docker E2E containers
