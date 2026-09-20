@@ -29,12 +29,16 @@ async function requireAuthenticatedRoute(request: Request): Promise<SessionGateS
   throw redirect(`/${createPostAuthNextSearch(request)}`);
 }
 
+function withBootstrapAvailability(sessionState: SessionGateState): SessionGateState {
+  if (sessionState.status === 'offline-remembered' && !getCachedCurrentUserBootstrap()) {
+    return { status: 'offline-unavailable' };
+  }
+  return sessionState;
+}
+
 async function authenticatedSessionLoader({ request }: { request: Request }) {
   const sessionState = await requireAuthenticatedRoute(request);
-  if (sessionState.status === 'offline-remembered' && !getCachedCurrentUserBootstrap()) {
-    return { sessionState: { status: 'offline-unavailable' } as const };
-  }
-  return { sessionState };
+  return { sessionState: withBootstrapAvailability(sessionState) };
 }
 
 async function homeRouteLoader(request: Request): Promise<{ sessionState: SessionGateState }> {
@@ -51,8 +55,9 @@ async function homeRouteLoader(request: Request): Promise<{ sessionState: Sessio
   if (sessionState.status === 'offline-unavailable') {
     return { sessionState };
   }
-  if (sessionState.status === 'offline-remembered' && !getCachedCurrentUserBootstrap()) {
-    return { sessionState: { status: 'offline-unavailable' } };
+  const availableSessionState = withBootstrapAvailability(sessionState);
+  if (availableSessionState.status === 'offline-unavailable') {
+    return { sessionState: availableSessionState };
   }
   const target = resolvePostAuthPath(search, url.origin);
 
@@ -82,11 +87,9 @@ async function documentLoader({ request, params }: {
     throw redirect(`/${url.search}`);
   }
 
-  const bootstrap = sessionState.status === 'offline-remembered'
-    ? getCachedCurrentUserBootstrap()
-    : null;
-  if (sessionState.status === 'offline-remembered' && !bootstrap) {
-    return { sessionState: { status: 'offline-unavailable' } as const };
+  const availableSessionState = withBootstrapAvailability(sessionState);
+  if (availableSessionState.status === 'offline-unavailable') {
+    return { sessionState: availableSessionState };
   }
   const canonicalPath = createDocumentPath(parsed.docId, parsed.noteId);
   if (url.pathname !== canonicalPath) {

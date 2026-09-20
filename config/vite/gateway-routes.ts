@@ -1,4 +1,5 @@
 import { DEV_LEXICAL_DEMO_ROUTE } from '../../src/client/app/shell/dev-route.ts';
+import { isAppShellPath } from '../../src/document-routes/app-shell-routes.ts';
 
 const frontendFiles = new Set([
   '/index.html',
@@ -14,7 +15,7 @@ const frontendFiles = new Set([
 
 export function shouldProxyToDjango(url: string, mode: 'development' | 'preview'): boolean {
   const pathname = url.split('?')[0]!;
-  if (pathname === '/' || pathname === '/sign-out' || pathname === '/sign-out/' || pathname === '/sharing' || pathname === '/sharing/' || pathname.startsWith('/n/')) {
+  if (isAppShellPath(pathname)) {
     return false;
   }
   if (frontendFiles.has(pathname) || pathname.startsWith('/app-assets/') || pathname.startsWith('/icons/')

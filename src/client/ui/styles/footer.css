@@ -1,12 +1,3 @@
-.remdo-shell {
-  display: flex;
-  flex-direction: column;
-}
-
-.remdo-shell > main {
-  width: 100%;
-}
-
 .remdo-footer {
   margin-top: auto;
   padding: 24px 32px;

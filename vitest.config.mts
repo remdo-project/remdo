@@ -102,7 +102,7 @@ const domTests = [
   'src/collaboration/session-hydration.spec.ts',
   'src/collaboration/session-unsynced-documents.spec.ts',
   'src/collaboration/unsynced-local-changes.spec.ts',
-  'src/platform/http/api-fetch.spec.ts',
+  'src/platform/http/*.spec.ts',
   'src/client/editor/keymap/keymap-plugin.spec.ts',
   'src/client/editor/mobile-toolbar/MobileActionToolbar.spec.tsx',
   'src/client/editor/view/editor-view-provider.spec.tsx',
@@ -115,7 +115,7 @@ const domTests = [
   'src/client/app/workspace/document/home-view.spec.tsx',
   'src/client/app/workspace/search-result-row.spec.tsx',
   'src/client/dev/*.spec.tsx',
-  'src/client/ui/AppHeader.spec.tsx',
+  'src/client/ui/*.spec.tsx',
 ];
 
 export default defineConfig({
