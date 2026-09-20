@@ -182,10 +182,6 @@ Application models and migrations remain Django-owned.
   HTTP hop behind TLS termination with the Django image. Actual Render
   deployment, public-certificate issuance, and rootful Docker verification
   remain external checks.
-- **Production integration coverage:** after hosted container replacement,
-  authenticate afresh, list the original document, obtain a new Django token,
-  and read its content through the gateway; privileged Y-Sweet readback alone
-  misses the metadata/authorization boundary.
 - **Import/export:** retained client-side import code is not verification of
   supported user-facing import/export paths. Check those independently of the
   deferred [recovery work](todo.md#operations).
