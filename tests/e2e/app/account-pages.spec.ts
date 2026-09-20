@@ -70,8 +70,12 @@ for (const width of [1280, 390]) {
     await expect(page.locator('.editor-input')).toBeVisible();
     await tokenRequested;
 
+    // The held sync request can leave initialization changes unsaved; make the
+    // discard confirmation deterministic while testing session revocation.
+    await page.evaluate(() => localStorage.setItem('remdo-unsynced:document:closed-tab', '1'));
     allowUnauthorizedNetwork(page);
     await page.getByRole('button', { name: 'Logout', exact: true }).click();
+    await page.getByRole('button', { name: 'Sign out and discard', exact: true }).click();
     await expect(page.getByRole('status')).toContainText("You're signed out");
     expect(await presentation(page)).toEqual(loginPresentation);
     await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Sign in', exact: true }).click();
