@@ -185,11 +185,6 @@ Application models and migrations remain Django-owned.
   administrator email. Verify useful diagnostics without arbitrary exception
   messages, request data, or other confidential content under the
   [logging principle](principles.md#data-and-trust).
-- **Production client addresses:** configure allauth's trusted proxy boundary
-  for the actual standalone and hosted gateway chains. Current IP-based login
-  limits treat unrelated clients as loopback; development disables those limits.
-  Verify distinct clients through Caddy and the hosted proxy, retaining the
-  framework limiter.
 - **Production and Docker:** locally verify self-hosted startup and the hosted
   HTTP hop behind TLS termination with the Django image. Actual Render
   deployment, public-certificate issuance, and rootful Docker verification

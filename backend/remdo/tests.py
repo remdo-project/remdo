@@ -34,6 +34,26 @@ print(json.dumps({
     'wrong_valid': check_password('wrong-password', password),
 }))
 """
+CLIENT_IP_REPORT = """
+import json
+from allauth.account.adapter import get_adapter
+from django.core.exceptions import PermissionDenied
+from django.test import RequestFactory
+
+def address(headers):
+    request = RequestFactory().get('/', REMOTE_ADDR='127.0.0.1', headers=headers)
+    try:
+        return get_adapter().get_client_ip(request)
+    except PermissionDenied:
+        return 'denied'
+
+print(json.dumps([
+    address({'X-Forwarded-For': '192.0.2.99, 198.51.100.1',
+             'CF-Connecting-IP': '203.0.113.1'}),
+    address({'X-Forwarded-For': '198.51.100.1'}),
+    address({'X-Forwarded-For': '198.51.100.1', 'CF-Connecting-IP': 'invalid'}),
+]))
+"""
 
 
 class ConfigurationTests(SimpleTestCase):
@@ -84,6 +104,16 @@ class ConfigurationTests(SimpleTestCase):
             self.settings(DATABASE_URL="postgresql://test:testing@localhost/remdo")["database"],
             "django.db.backends.postgresql",
         )
+
+    def test_production_client_address_trust_matches_the_hosting_boundary(self):
+        for environment, expected in (
+            ({}, ["198.51.100.1"] * 3),
+            ({"PORT": "8080"}, ["198.51.100.1"] * 3),
+            ({"RENDER": "true", "PORT": "8080"}, ["203.0.113.1", "denied", "denied"]),
+            ({"RENDER": "true", "DJANGO_SETTINGS_MODULE": "remdo.development"}, ["127.0.0.1"] * 3),
+        ):
+            with self.subTest(environment=environment):
+                self.assertEqual(self.settings(report=CLIENT_IP_REPORT, **environment), expected)
 
     def test_native_management_defaults_to_production_without_node(self):
         result = self.settings(NODE_ENV="development", PREVIEW_PORT="4020")

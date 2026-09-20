@@ -31,6 +31,62 @@ test('retained Docker runtime data is private to the invoking user', () => {
   expect(directory.mode & 0o077).toBe(0);
 });
 
+for (const hosted of [false, true]) {
+  test(`${hosted ? 'Render' : 'standalone'} login limits separate clients and ignore forged forwarding headers`, async ({ request: api }) => {
+    await expect.poll(async () => {
+      try {
+        return (await api.get(hosted ? `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}/health` : '/health', {
+          headers: hosted ? { Host: 'remdo.onrender.com' } : {},
+        })).status();
+      } catch { return 0; }
+    }, { timeout: 30_000 }).toBe(200);
+    const result = docker('exec', hosted ? process.env.DOCKER_HOSTED_CONTAINER! : container, 'python', '-c', `
+import http.client, json, os, ssl
+from urllib.parse import urlsplit
+
+origin = os.environ['APP_ORIGIN']
+url = urlsplit(origin)
+hosted = os.environ.get('RENDER') == 'true'
+port = int(os.environ['PORT']) if hosted else url.port or 443
+
+def request(method, path, client, forged, body=None, csrf=None):
+    # Separate socket addresses reach the actual Caddy gateway in standalone mode.
+    # Hosted requests emulate the documented, edge-overwritten Cloudflare header.
+    kwargs = dict(source_address=(client if not hosted else '127.0.0.1', 0), timeout=5)
+    connection = http.client.HTTPConnection('127.0.0.1', port, **kwargs)
+    if not hosted:
+        connection.connect()
+        connection.sock = ssl._create_unverified_context().wrap_socket(
+            connection.sock, server_hostname=url.hostname)
+    headers = {'Host': url.netloc, 'Origin': origin, 'Content-Type': 'application/json',
+               'X-Forwarded-For': forged, 'X-Real-IP': forged,
+               'CF-Connecting-IP': client if hosted else forged}
+    if csrf:
+        headers.update({'Cookie': csrf['csrfCookieName'] + '=' + csrf['csrfToken'],
+                        'X-CSRFToken': csrf['csrfToken']})
+    connection.request(method, path, body, headers)
+    response = connection.getresponse()
+    status, data = response.status, response.read()
+    connection.close()
+    return status, data
+
+first, second = ('198.51.100.20', '198.51.100.21') if hosted else ('127.0.0.2', '127.0.0.3')
+status, body = request('GET', '/api/config', first, '192.0.2.1')
+assert status == 200, (status, body)
+csrf = json.loads(body)
+def login(client, forged):
+    # Missing credentials avoid password hashing; the real login endpoint still
+    # consumes allauth's default 30/minute IP allowance before input validation.
+    return request('POST', '/api/auth/browser/v1/auth/login', client, forged, '{}', csrf)[0]
+
+statuses = [login(first, '192.0.2.' + str(i + 1)) for i in range(30)]
+print(json.dumps({'allowed': statuses, 'blocked': login(first, '192.0.2.100'),
+                  'other': login(second, '192.0.2.100')}))
+`);
+    expect(JSON.parse(result)).toEqual({ allowed: Array.from({ length: 30 }).fill(400), blocked: 429, other: 400 });
+  });
+}
+
 test('production admin, native login, collaboration, and restart use persistent Django data', async ({ page, browser }) => {
   test.setTimeout(90_000);
   const origin = process.env.DOCKER_TEST_ORIGIN!;
@@ -92,7 +148,7 @@ test('hosted TLS termination preserves secure cookies and trusted-origin CSRF', 
   const origin = 'https://remdo.onrender.com';
   const api = await request.newContext({
     baseURL: `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}`,
-    extraHTTPHeaders: { Host: 'remdo.onrender.com', Origin: origin },
+    extraHTTPHeaders: { Host: 'remdo.onrender.com', Origin: origin, 'CF-Connecting-IP': '198.51.100.10' },
   });
   try {
     await expect.poll(async () => {
@@ -130,7 +186,7 @@ test('hosted filesystem document content survives restart and container replacem
   const persistEmail = 'disk-persist@production.example.test';
   const api = await request.newContext({
     baseURL: `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}`,
-    extraHTTPHeaders: { Host: 'remdo.onrender.com', Origin: origin },
+    extraHTTPHeaders: { Host: 'remdo.onrender.com', Origin: origin, 'CF-Connecting-IP': '198.51.100.10' },
   });
   try {
     await expect.poll(async () => {

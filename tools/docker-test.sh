@@ -37,7 +37,7 @@ remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}/home" -d --userns=host \
   -e APP_ORIGIN="${DOCKER_TEST_ORIGIN}"
 remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}/hosted" -d --userns=host \
   --name "${DOCKER_HOSTED_CONTAINER}" -p "127.0.0.1:${DOCKER_HOSTED_PORT}:8080" \
-  -e PORT=8080 -e APP_ORIGIN=https://remdo.onrender.com --network "${PG_NETWORK}" \
+  -e PORT=8080 -e RENDER=true -e APP_ORIGIN=https://remdo.onrender.com --network "${PG_NETWORK}" \
   -e DATABASE_URL="${DOCKER_DATABASE_URL%/remdo}/hosted"
 cd "${ROOT_DIR}"
 PLAYWRIGHT_BROWSERS_DIR="${PLAYWRIGHT_BROWSERS_PATH:-}"
