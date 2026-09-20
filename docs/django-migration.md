@@ -1,10 +1,10 @@
 # Django Migration
 
-This temporary, informative ledger preserves the current slice, deferred
-decisions, and remaining gaps for the [Django backend replacement](todo.md#django-backend-replacement). Existing
-specifications remain the behavior owners. An approved direction does not make
-its implementation part of the current PR; proposed alternatives remain open
-until selected.
+This temporary, informative ledger records implementation slices and remaining
+merge checks for the [Django backend replacement](todo.md#django-backend-replacement). That entry owns the completion
+milestone; independent follow-up lives in the normal backlog. Existing
+specifications remain the behavior owners. The slice sections describe their
+original scope, not additional requirements for closing the integration.
 
 ## Browser document flow foundation
 
@@ -96,11 +96,9 @@ verification suite covers this implemented slice; retained
 source-linking/offline suites need separate migration.
 
 Exclude sharing/source linking, backup/restore redesign, Home policy, and
-general unused-code cleanup. The old scheduled exporter reads the Node database
-and is not installed or started in this image. Automatic exports and the
-backup-scheduler part of the production failure-domain contract remain gaps
-until the recovery slice supplies their Django replacement. A stopped-instance
-copy of the complete data root remains the upgrade rollback procedure.
+general unused-code cleanup. Backup and export follow-up is tracked under
+[Operations](todo.md#operations). The existing [upgrade rollback procedure](guides/production-deployment.md#upgrade-an-existing-instance) remains separate from that
+work.
 
 ## Retire the Node API runtime and enrollment
 
@@ -136,7 +134,7 @@ from sharing through recipient collaboration and reopen.
 
 Exclude cross-server source linking, grant revocation, public signup, Home policy,
 rename, and broader cache/SDK redesign. Retain the current Home restriction until
-the [Home privacy decision](#home-privacy) is implemented with its companion changes.
+the [Home and initial-document follow-up](todo.md#ux-direction) is implemented with its companion changes.
 
 ## Withdraw cross-server linking
 
@@ -162,61 +160,6 @@ checks and obsolete React administration expectations are retired. Offline Home
 inventory remains [future work](architecture.md#future); broader improvements remain in the
 [offline follow-ups](legacy-backlog.md#offline-and-local-persistence-follow-ups), outside migration completion.
 
-## Approved decisions outside this PR
-
-These directions were accepted during the simplification discussion. Implement
-them in cohesive later slices and keep their owning specifications aligned.
-
-### Development instance setup
-
-Simplify per-instance development setup in a separate slice, outside this PR.
-Make backend settings such as `DEBUG` easy to override for one checkout without
-editing shared tracked settings. Preserve [independent working directories](specs/runtime/configuration.md#network-addressing)
-and Node-independent backend commands.
-
-Currently, development imports shared base settings and overrides them, but `DEBUG`
-is not read from `.env`. Non-production shell launchers preserve an explicit
-`DJANGO_SETTINGS_MODULE` so test settings reach fixture commands and
-services.
-Evaluate native Django settings-module selection versus a small set of explicit
-environment overrides; the mechanism remains open. Keep precedence clear and
-production defaults unchanged, and update the [configuration owner](specs/runtime/configuration.md#resolution-boundary)
-and [setup guide](guides/local-development.md) with the chosen approach.
-
-### Developer workflow simplification
-
-Alongside per-instance settings, revisit the machinery behind the
-[local development guide](guides/local-development.md) in a later slice. Its length is a signal to investigate,
-not proof of complexity: it also covers optional workflows and temporary
-migration limitations. The goal is fewer developer responsibilities, with a
-shorter guide as a consequence.
-
-Assess dependency setup, first-account creation, launch commands, fixture reset,
-API generation, and preview startup together. Reduce avoidable configuration
-choices, launcher layers, and manual sequencing; prefer established tools over
-adding a custom orchestration framework. Judge proposals by the steps and
-decisions needed to start a fresh checkout, run a second independent instance,
-and edit or reset data, while preserving backend ownership and supported
-workflows. Rewording the guide or hiding the same complexity behind more
-wrappers is not sufficient. This work is outside the current PR.
-
-### Production secret initialization
-
-Revisit [secret bootstrap](specs/runtime/configuration.md#secret-bootstrap) ownership in a separate slice. Generating the
-Django/Y-Sweet secret bundle while Django settings load requires direct
-PostgreSQL inspection before the ORM is available. Evaluate explicit instance
-initialization before Django startup, with normal startup only loading existing
-secrets. Preserve convenient first setup and refusal to replace missing secrets
-for an existing dataset; the mechanism remains open.
-
-### Home privacy
-
-The user rejected a special privacy restriction for Home documents. Removing
-that exception from the model, sharing behavior, and [access owner](specs/access/access-control.md#document-access) is deferred
-until the starter-document choice below is settled. The retained slice still
-has the current special Home model; an empty workspace or an ordinary starter
-document has not been selected.
-
 ## PostgreSQL adoption
 
 Render uses managed PostgreSQL; standalone production and ordinary development
@@ -224,59 +167,24 @@ retain SQLite. Verification covers both engines, using Compose only for
 disposable PostgreSQL services. No SQLite-to-PostgreSQL data transfer is provided.
 Application models and migrations remain Django-owned.
 
-Recovery still needs a coherent database/content/secret restore procedure;
-managed PostgreSQL backups alone do not close that gap.
-
 ## Remaining migration gaps
 
 - **Production and Docker:** locally verify self-hosted startup and the hosted
   HTTP hop behind TLS termination with the Django image. Actual Render
   deployment, public-certificate issuance, and rootful Docker verification
   remain external checks.
-- **Import, exports, and recovery:** retained client-side import code is not
-  first-slice verification of import/export. Define and exercise coherent
-  backup/restore of Django metadata, Y-Sweet content, and secrets before
-  completing the migration; a database backup or readable content export alone
-  is insufficient. The old scheduled exporter and cron are absent from the
-  Django image; restore automated exports and scheduler supervision in the
-  recovery slice.
+- **Import/export:** retained client-side import code is not verification of
+  supported user-facing import/export paths. Check those independently of the
+  deferred [recovery work](todo.md#operations).
 - **Obsolete code:** linking reference code is retained under the
   [redesign exception](todo.md#cross-server-linking-redesign). Retire other migration-only tooling as its replacement
   slices land.
 
-## Open questions and dependencies
-
-Discuss these independently; the alternatives are proposals, not instructions
-to implement every item.
-
-1. **Home and initial documents:** choose an empty workspace or one ordinary
-   starter document. Resolve the document kind, account bootstrap,
-   listing/cache shape, and Home consumer together. Special Home privacy is
-   already rejected.
-2. **App-resource API:** after Home, offline, and source requirements are
-   clearer, evaluate generated records/query APIs versus note-shaped
-   account/document/grant/source wrappers using real Home and Sharing
-   consumers. The first slice's cache library does not settle the public SDK
-   shape.
-3. **Test organization:** consider explicit fixtures and native Django/Vitest
-   suites for pure TypeScript, editor, backend, collaboration, and browser
-   behavior. Preserve meaningful collaboration coverage; suite reorganization
-   is separate from required fixture adaptation.
-4. **Production supervision, exports, and recovery:** explain existing
-   mechanisms, then decide maintenance-failure behavior, optional readable
-   JSON/Markdown exports, and coherent recovery. The
-   [production infrastructure ADR](decisions/0001-production-infrastructure.md) remains an early draft; it does not select a
-   provider, external storage, multiple instances, or zero-downtime
-   deployment.
-
 ## Slice selection and retirement
 
-After the current browser flow passes its acceptance checks, inspect the
-branch and these gaps before proposing one next PR with exclusions and checks.
-Cross-server linking and its internal cleanup are deferred to the
-post-migration redesign. Recovery remains a migration completion slice.
+Review the integration branch as a whole and close the remaining merge checks
+under the [completion criteria](todo.md#django-backend-replacement). Keep independent redesign and recovery work in
+the normal backlog rather than extending the integration branch.
 
-Keep this ledger current after each slice. The [main TODO entry](todo.md#django-backend-replacement) owns the
-integration workflow and final completion gate. Retire this temporary ledger
-after whole-migration review and integration into `main`, moving any surviving
-independent follow-up into the normal tracking record.
+Retire this temporary ledger after whole-migration review and integration into
+`main`, preserving any surviving independent follow-up in [RemDo TODO](todo.md#tracked-follow-up).

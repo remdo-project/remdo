@@ -47,16 +47,20 @@ and operational work through established libraries and services.
   review and full verification against the completion criteria below, then
   retire it.
 - **Starting commit:** `668e3729b94f42be4bc54f20c36fd78575a21155` (`main`).
-- **Completion:** Retire the old runtime, except reference code retained for the
-  [cross-server redesign](#cross-server-linking-redesign). Verify all
-  [run modes](run-modes.md), local sharing, offline behavior,
-  account/instance cache isolation, and backup/restore. Treat related backlog
-  entries as ideas, not automatic scope; record deliberate behavior changes in
-  their owning specifications.
-- **Slices and decisions:** [Django migration](django-migration.md) records the
-  current browser-flow PR, acceptance checks, approved deferred decisions,
-  remaining gaps, and open questions. Inspect that record and the branch before
-  selecting the next cohesive PR; keep the gaps current after each slice.
+- **Completion:** Deliver a working development baseline. Retire the old
+  runtime, except reference code retained for the [cross-server redesign](#cross-server-linking-redesign). Verify
+  all [run modes](run-modes.md), local sharing, offline behavior, account/instance cache
+  isolation, and ordinary data/secret persistence through restart and
+  redeployment. Record deliberate behavior changes in their owning
+  specifications.
+- **Milestone boundary:** Merging into `main` does not establish public-release
+  readiness or the final data reset; further destructive resets remain
+  permitted. [Hocuspocus migration, backup/recovery, and public-release readiness](#operations)
+  are separate post-merge milestones. Other backlog entries do not expand
+  migration scope.
+- **Slices and decisions:** [Django migration](django-migration.md) records implementation slices and
+  remaining merge checks. Independent follow-up lives in this backlog; reassess
+  its scope and design when selecting it.
 
 ### Cross-server linking redesign
 
@@ -132,10 +136,25 @@ withdrawn source-linking specification remains in Git history.
 
 ### Operations
 
-- **Hosted production backups.** Define the scheduled backup and recovery
-  workflow for hosted deployments, then align `docker/Dockerfile`,
-  `docker/backup.sh`, `tools/snapshot/backup.ts`, and
-  `tools/remote/make-backup.sh` with it.
+- **Hocuspocus migration.** Replace Y-Sweet with Hocuspocus after the Django
+  integration merges. Reassess collaboration, persistence, and runtime
+  boundaries when scoping the work.
+
+- **Backup and recovery.** After Hocuspocus, define and verify coherent recovery
+  for [supported deployments](guides/production-deployment.md), covering application metadata, document content,
+  and secrets. The Django image has no scheduled exporter or backup scheduler.
+  Reassess readable exports, scheduling, maintenance-failure behavior, and
+  legacy backup tooling together rather than carrying forward the old design as
+  requirements.
+
+- **Production secret initialization.** Revisit [secret bootstrap](specs/runtime/configuration.md#secret-bootstrap) ownership
+  alongside runtime changes. Evaluate explicit initialization before Django
+  startup rather than generation during settings loading; keep the mechanism
+  open and preserve convenient first setup and refusal to replace missing
+  secrets for an existing dataset.
+
+- **Public-release readiness.** Reassess the remaining requirements for
+  admitting public users after collaboration and recovery work.
 
 ### SDK
 
@@ -147,8 +166,10 @@ withdrawn source-linking specification remains in Git history.
 - **SDK API validation.** Evaluate completion and unavailable-target outcomes
   when a consumer needs to
   know whether an operation took effect. Evaluate query and app-resource reads
-  in their own workflows using the [design principles and references](dev/sdk.md); choosing
-  app-resource cache tooling remains a separate task.
+  in their own workflows using the [design principles and references](dev/sdk.md). Reassess
+  generated record/query APIs versus note-shaped application resources with Home
+  and Sharing consumers as Home, offline, and source requirements become
+  clearer; the cache library does not settle the public SDK shape.
 
   Keep model and API choices open to revision throughout this SDK initiative.
   Revisit them when consumer evidence reveals friction or a better fit, and
@@ -257,6 +278,10 @@ until accepted in their behavioral owners. Defer a command palette and action
 menus on every breadcrumb until improving the existing surfaces leaves a
 concrete unmet need.
 
+- **Home and initial documents.** Choose an empty workspace or one ordinary
+  starter document, then remove the rejected special Home privacy restriction
+  and align the affected [access contract](specs/access/access-control.md#document-access).
+
 - **Location header and document actions.** Deliver the [document rename capability](specs/outliner/location-header.md#document-rename),
   then document-root and Home menus, then the [persistent menu target](specs/outliner/menu.md#entry). The
   [legacy implementation gaps](legacy-backlog.md#home-and-location-header-follow-ups) track the missing surfaces and storage path.
@@ -327,6 +352,15 @@ concrete unmet need.
   is insufficient.
 
 ### Tooling
+
+- **Development setup and workflow.** Allow per-checkout backend settings
+  overrides and reduce setup and launcher complexity in [local development](guides/local-development.md).
+  Preserve independent instances and Node-independent backend commands; reassess
+  mechanisms when resuming.
+
+- **Test organization.** Reassess fixture and suite boundaries without reducing
+  meaningful collaboration coverage; keep reorganization separate from
+  migration-required test adaptation.
 
 - **Upstream ast-grep project-config validation.** Contribute upstream support
   for rejecting unknown project-config keys or shipping version-matched schemas
