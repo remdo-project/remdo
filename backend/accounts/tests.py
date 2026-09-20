@@ -1,9 +1,12 @@
 import json
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
+from urllib.parse import parse_qs, urlsplit
 
 from allauth.account.models import EmailAddress
 from django.conf import settings
+from django.core.cache import cache
 from django.test import Client, TestCase, override_settings
 
 from .models import User
@@ -92,44 +95,84 @@ class LoginPageTests(TestCase):
         self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 200)
 
     def admin_login(self, **fields):
-        self.client.get("/admin/login/")
-        return self.client.post(
-            "/admin/login/",
-            {
-                "username": self.user.email,
-                "password": "alice-password-1234",
-                "csrfmiddlewaretoken": self.client.cookies[settings.CSRF_COOKIE_NAME].value,
-                **fields,
-            },
-        )
+        response = self.client.get("/admin/login/", {"next": fields.pop("next", "/admin/")})
+        self.assertEqual(response.status_code, 302)
+        destination = urlsplit(response.url)
+        self.assertEqual(destination.path, "/accounts/login/")
+        return self.login(next=parse_qs(destination.query)["next"][0], **fields)
 
     def test_admin_login_completes_browser_handoff_with_safe_return_target(self):
         self.user.is_staff = True
+        self.user.is_superuser = True
         self.user.save()
         for target, expected in (
             ("/admin/accounts/user/", "/admin/accounts/user/"),
-            ("https://unrelated.example/", "/"),
+            ("https://unrelated.example/", "/admin/"),
         ):
             with self.subTest(target=target):
                 self.client.logout()
                 response = self.admin_login(next=target)
                 self.assertTemplateUsed(response, "accounts/login_complete.html")
-                self.assertEqual(response.context["next_url"], expected)
+                destination = response.context["next_url"]
+                self.assertFalse(urlsplit(destination).netloc)
+                landed = self.client.get(destination, follow=True)
+                self.assertEqual(landed.status_code, 200)
+                self.assertEqual(landed.request["PATH_INFO"], expected)
                 self.assertIn("no-store", response.headers["Cache-Control"])
                 self.assertEqual(self.client.get("/admin/").status_code, 200)
 
-    def test_admin_login_preserves_native_staff_and_password_checks(self):
-        for staff, password in ((False, "alice-password-1234"), (True, "wrong")):
-            with self.subTest(staff=staff, password=password):
-                self.user.is_staff = staff
-                self.user.save()
-                response = self.admin_login(password=password)
-                self.assertTemplateUsed(response, "admin/login.html")
-                self.assertTrue(response.context["form"].errors)
-                self.assertNotContains(response, "localStorage.removeItem")
-                self.assertEqual(
-                    self.client.get("/api/auth/browser/v1/auth/session").status_code, 401
-                )
+    def test_admin_login_rejects_invalid_credentials_through_allauth(self):
+        self.user.is_staff = True
+        self.user.save()
+        response = self.admin_login(password="wrong")
+        self.assertTemplateUsed(response, "accounts/login.html")
+        self.assertTrue(response.context["form"].errors)
+        self.assertNotContains(response, "localStorage.removeItem")
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 401)
+
+    def test_admin_denies_nonstaff_without_ending_their_app_session(self):
+        response = self.admin_login()
+        self.assertTemplateUsed(response, "accounts/login_complete.html")
+        self.assertEqual(self.client.get("/admin/", follow=True).status_code, 403)
+        self.assertEqual(self.client.get("/admin/login/").status_code, 403)
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 200)
+
+    def test_admin_entry_cannot_switch_an_authenticated_staff_session(self):
+        self.user.is_staff = True
+        self.user.save()
+        other = User.objects.create_superuser("other@example.test", "other-password-1234")
+        self.login()
+        response = self.client.post(
+            "/admin/login/",
+            {
+                "username": other.email,
+                "password": "other-password-1234",
+                "csrfmiddlewaretoken": self.client.cookies[settings.CSRF_COOKIE_NAME].value,
+            },
+        )
+        self.assertEqual(response.status_code, 405)
+        session = self.client.get("/api/auth/browser/v1/auth/session").json()
+        self.assertEqual(session["data"]["user"]["email"], self.user.email)
+
+    @override_settings(ACCOUNT_RATE_LIMITS={"login_failed": "2/m/key", "login": "100/m/ip"})
+    @patch("time.time", return_value=1_700_000_000)
+    def test_admin_login_uses_the_shared_allauth_failure_limit(self, _time):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.user.is_staff = True
+        self.user.save()
+        for expected in (
+            "email_password_mismatch",
+            "email_password_mismatch",
+            "too_many_login_attempts",
+        ):
+            response = self.admin_login(password="wrong")
+            errors = response.context["form"].non_field_errors().as_data()
+            self.assertEqual([error.code for error in errors], [expected])
+        response = self.admin_login()
+        errors = response.context["form"].non_field_errors().as_data()
+        self.assertEqual([error.code for error in errors], ["too_many_login_attempts"])
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 401)
 
     def test_admin_login_handoff_requires_csrf(self):
         self.assertEqual(self.client.post("/admin/login/", {}).status_code, 403)

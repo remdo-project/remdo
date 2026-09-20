@@ -160,13 +160,14 @@ test.describe('Routing', () => {
     expect(userDataRequests).toEqual([]);
   });
 
-  unauthenticatedTest('keeps native admin sign-in outside user data', async ({ page }) => {
+  unauthenticatedTest('uses shared sign-in for administration outside user data', async ({ page }) => {
     const userDataRequests = collectCurrentUserRequests(page);
     await page.goto('/admin');
 
+    await expect(page).toHaveURL(/\/accounts\/login\//u);
     await expect(page.getByRole('main')).toBeVisible();
     await expect(page.getByLabel('Email:', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Log in', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
     await page.waitForLoadState('networkidle');
     expect(userDataRequests).toEqual([]);
   });

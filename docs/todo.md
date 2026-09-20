@@ -64,6 +64,26 @@ and operational work through established libraries and services.
   Complete the whole-migration review and verification, including an audit of
   migration-only tooling outside the [retained reference-code exception](#cross-server-linking-redesign).
 
+Simplification follow-up:
+
+1. [x] Delegate administration authentication to the [shared allauth sign-in](specs/access/access-control.md#admin-role),
+   applying its rate limits and browser login handoff while retaining Django
+   staff and model authorization.
+2. [ ] Move reference-only `@better-auth/core`, `@better-auth/oauth-provider`,
+   `better-auth`, `better-sqlite3`, `hono`, and `kysely` to development dependencies
+   and align production audit roots. Preserve the [retained reference code](#cross-server-linking-redesign)
+   and active snapshot tooling.
+3. [ ] Remove the discarded sync-token probe and its document-route loading gate.
+   Let the collaboration provider authorize access; use the generated API client
+   for its local token request while preserving cancellation and offline editing.
+4. [ ] Remove retired Node authentication checks and eager trusted-origin
+   calculation from active frontend configuration. Keep Django responsible for
+   live authentication settings, including its development secret, and localize
+   reference-only configuration to retained code.
+5. [ ] Remove the unused `publicServer` flag from active Django responses,
+   generated types, bootstrap storage, and fixtures. Preserve reference-code
+   consumers and the still-used CSRF fields.
+
 ### Cross-server linking redesign
 
 Redesign cross-server document access after the Django migration. Local

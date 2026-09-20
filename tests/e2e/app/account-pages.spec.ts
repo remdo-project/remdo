@@ -99,7 +99,7 @@ test('native sign-in accepts an existing admin session from another tab', async 
   await admin.goto('/admin/');
   await admin.getByLabel('Email:', { exact: true }).fill(account.email);
   await admin.getByLabel('Password:', { exact: true }).fill(account.password);
-  await admin.getByRole('button', { name: 'Log in', exact: true }).click();
+  await admin.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(admin.getByRole('heading', { name: 'Site administration' })).toBeVisible();
   // Django rotates the CSRF token at login; reload the old form to reuse the session.
   await page.reload();
@@ -119,7 +119,12 @@ test('admin sign-in supersedes an unfinished logout in another tab', async ({ pa
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
   setExpectedConsoleIssues(page, ['net::ERR_FAILED'], { mode: 'allowContains' });
   await page.route('**/api/auth/browser/v1/auth/session', async (route) => {
-    if (route.request().method() === 'DELETE') return route.abort('failed');
+    if (route.request().method() === 'DELETE') {
+      // Revocation succeeds, but its lost response leaves this device's logout
+      // pending. The next admin visit can authenticate through shared sign-in.
+      await route.fetch();
+      return route.abort('failed');
+    }
     return route.continue();
   });
   await page.getByRole('button', { name: 'Logout', exact: true }).click();
@@ -135,7 +140,7 @@ test('admin sign-in supersedes an unfinished logout in another tab', async ({ pa
   await admin.goto('/admin/login/?next=/admin/accounts/user/');
   await admin.getByLabel('Email:', { exact: true }).fill(administrator.email);
   await admin.getByLabel('Password:', { exact: true }).fill(administrator.password);
-  await admin.getByRole('button', { name: 'Log in', exact: true }).click();
+  await admin.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(admin).toHaveURL(/\/admin\/accounts\/user\/$/u);
   expect(await admin.evaluate(() => localStorage.getItem('remdo-pending-sign-out'))).toBeNull();
   // The storage event removes the old tab's revocation action without sending it.
