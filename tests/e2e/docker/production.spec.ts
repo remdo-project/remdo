@@ -26,6 +26,11 @@ function bundleDigest(): string {
     "import hashlib; from pathlib import Path; p=Path('/data/secrets.json'); assert p.stat().st_mode & 0o777 == 0o600; print(hashlib.sha256(p.read_bytes()).hexdigest())");
 }
 
+test('retained Docker runtime data is private to the invoking user', () => {
+  const directory = fs.statSync(path.resolve('data/docker-test-runtime'));
+  expect(directory.mode & 0o077).toBe(0);
+});
+
 test('production admin, native login, collaboration, and restart use persistent Django data', async ({ page, browser }) => {
   test.setTimeout(90_000);
   const origin = process.env.DOCKER_TEST_ORIGIN!;

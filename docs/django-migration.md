@@ -191,14 +191,6 @@ Application models and migrations remain Django-owned.
   limits treat unrelated clients as loopback; development disables those limits.
   Verify distinct clients through Caddy and the hosted proxy, retaining the
   framework limiter.
-- **Advertised migration leftovers:** use the bounded cleanup in [PR #608](https://github.com/remdo-project/remdo/pull/608) to
-  correct README, architecture, onboarding, and deployment claims about the
-  retired backend, linking, exporter, and scheduler. Remove unsupported backup
-  entry points while retaining live snapshot tooling and explicitly retained
-  reference code/tests. Do not implement deferred recovery here.
-- **Retained test data:** restore the [Docker harness](specs/testing/test-harness.md#docker-e2e-tests) guarantee that retained
-  runtime data is readable only by its invoking user; ordinary directory
-  creation currently inherits the caller's umask.
 - **Production and Docker:** locally verify self-hosted startup and the hosted
   HTTP hop behind TLS termination with the Django image. Actual Render
   deployment, public-certificate issuance, and rootful Docker verification

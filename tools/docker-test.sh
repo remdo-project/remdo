@@ -25,7 +25,7 @@ cleanup() {
   docker rm -f "${DOCKER_TEST_CONTAINER}" "${DOCKER_HOSTED_CONTAINER}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT INT TERM
-mkdir -p "${TEST_DATA_DIR}"
+install -d -m 700 "${TEST_DATA_DIR}"
 # Each run creates fresh accounts; retained previous output remains available until this point.
 docker run --rm -v "${TEST_DATA_DIR}:/data" --entrypoint python "${IMAGE_NAME}" -c '
 import shutil
