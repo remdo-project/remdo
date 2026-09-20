@@ -206,7 +206,10 @@ test.describe('Routing', () => {
     // login view follows a loader round-trip, so allow for a slow one.
     await expect(peer.getByRole('button', { name: 'Logout' })).toBeHidden({ timeout: 15_000 });
     await expect(peer.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible({ timeout: 15_000 });
-    await expect(peer.getByRole('status')).toContainText(/signed out/i);
+    // The peer reaches the login view on the sign-out broadcast, which precedes
+    // revocation; until it is confirmed the status reports an incomplete
+    // sign-out, so allow for that confirmation round-trip.
+    await expect(peer.getByRole('status')).toContainText(/signed out/i, { timeout: 15_000 });
     await peer.close();
   });
 });
