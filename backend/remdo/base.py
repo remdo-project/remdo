@@ -67,10 +67,7 @@ ROOT_URLCONF = "remdo.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [
-            Path(__file__).resolve().parents[1] / "templates",
-            Path(__file__).resolve().parents[1] / "accounts" / "templates",
-        ],
+        "DIRS": [Path(__file__).resolve().parents[1] / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
