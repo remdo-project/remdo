@@ -145,6 +145,55 @@ test('offline logout discards edits across tabs and isolates the next account', 
   });
 });
 
+test('native admin logout clears cached content and peer editors before another account signs in', async ({ page, context }, testInfo) => {
+  await signIn(page);
+  const title = 'Admin owner private content';
+  const docId = await warmDocument(page, title);
+  allowOfflineDisconnectedConsoleIssue(page);
+  // Establish that the old account's content really is readable from this cache.
+  await withOfflinePage(context, async (offline) => {
+    await offline.goto(`/n/${docId}`);
+    await expect(offline.locator('.editor-input')).toContainText(title);
+  });
+
+  const peer = await context.newPage();
+  await withPageGuards(peer, async () => {
+    await peer.goto(`/n/${docId}`);
+    await expect(peer.locator('.editor-input')).toContainText(title);
+    await expect(peer.locator('.collab-status')).toHaveAttribute('aria-label', /Saved to server.*Server connected/u);
+    await page.getByRole('link', { name: 'Admin', exact: true }).click();
+    await page.getByRole('button', { name: 'Log out', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible();
+    expect((await context.request.get('/api/auth/browser/v1/auth/session')).status()).toBe(200);
+
+    // A closed dirty tab's mark must be honored even from native administration.
+    await page.evaluate(() => localStorage.setItem('remdo-unsynced:document:closed-tab', '1'));
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(peer.locator('.editor-input')).toContainText(title);
+    expect((await context.request.get('/api/auth/browser/v1/auth/session')).status()).toBe(200);
+
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await page.getByRole('button', { name: 'Sign out and discard', exact: true }).click();
+    await expect(page.getByText("You're signed out", { exact: true })).toBeVisible();
+    await expect(peer.getByText("You're signed out", { exact: true })).toBeVisible();
+    await expect(peer.locator('.editor-input')).toHaveCount(0);
+    expect((await context.request.get('/api/auth/browser/v1/auth/session')).status()).toBe(401);
+  }, testInfo);
+  await peer.close();
+
+  await signIn(page, otherEmail);
+  await expect(page.getByRole('button', { name: title, exact: true })).toHaveCount(0);
+  await page.close();
+  await withOfflinePage(context, async (offline) => {
+    await offline.goto(`/n/${docId}`);
+    await expect(offline.locator('.editor-offline-empty-state')).toBeVisible();
+    await expect(offline.locator('.editor-input')).toHaveCount(0);
+    await expect(offline.getByText(title, { exact: true })).toHaveCount(0);
+  });
+});
+
 test('keeps an uncached document non-editable offline and loads its content on reconnect', async ({ page, browser }, testInfo) => {
   await signIn(page);
   const docId = await warmDocument(page, 'Content to recover');

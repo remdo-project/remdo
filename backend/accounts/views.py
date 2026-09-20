@@ -1,8 +1,16 @@
 from allauth.account.views import LoginView as AllauthLoginView
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST
+
+
+@never_cache
+@require_POST
+def admin_logout(request):
+    # Browser cleanup and unsynced-edit confirmation must precede revocation.
+    return redirect("/sign-out/")
 
 
 @method_decorator(never_cache, name="dispatch")

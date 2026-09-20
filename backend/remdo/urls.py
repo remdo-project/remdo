@@ -1,4 +1,4 @@
-from accounts.views import LoginView
+from accounts.views import LoginView, admin_logout
 from allauth.account.views import AccountInactiveView
 from django.contrib import admin
 from django.urls import include, path, re_path
@@ -10,6 +10,7 @@ from .public_pages import public_page
 urlpatterns = [
     path("accounts/login/", LoginView.as_view(), name="account_login"),
     path("accounts/inactive/", AccountInactiveView.as_view(), name="account_inactive"),
+    path("admin/logout/", admin_logout),
     path("admin/", admin.site.urls),
     path("api/auth/", include("accounts.headless_urls")),
     path("api/health", views.HealthView.as_view()),
