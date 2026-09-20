@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { APP_TITLE } from './navigation-label';
 
 export type AppHeaderAuthState =
@@ -35,9 +35,9 @@ export default function AppHeader({ authState, onLogout, signInHref, trailingNav
               </a>
             )}
             {hasAppAccess && (
-              <Link className="remdo-header-link" to="/sharing">
+              <NavLink className="remdo-header-link" to="/sharing">
                 Sharing
-              </Link>
+              </NavLink>
             )}
             {authState.status === 'authenticated' && authState.isAdmin && (
               <a className="remdo-header-link" href="/admin/">

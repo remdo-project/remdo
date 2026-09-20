@@ -3,7 +3,7 @@
 Add or edit a Markdown file in `content/pages/`. Anyone can read these pages
 without signing in.
 
-Use lowercase letters, digits, and hyphens in the filename. For example,
+Use lowercase letters and digits, optionally separated by single hyphens. For example,
 `privacy.md` is served at `/privacy/`. Existing application and infrastructure
 routes take precedence; choose an unused name.
 
