@@ -85,9 +85,6 @@ remdo_configure_environment() {
   if [ -z "${AUTH_SECRET:-}" ] && [ "${1}" != "production" ]; then
     AUTH_SECRET="development-auth-secret-0123456789"
   fi
-  if [ -z "${ADMIN_SECRET:-}" ] && [ "${1}" != "production" ]; then
-    ADMIN_SECRET="development-admin-secret-0123456789"
-  fi
   if [ -z "${YSWEET_AUTH_KEY:-}" ] && [ "${1}" != "production" ]; then
     YSWEET_AUTH_KEY="WLo8wx1G1lGKpIDaDjky9npTrV_fW8jCpRVtB8rd"
   fi
@@ -115,7 +112,7 @@ remdo_configure_environment() {
 
   export NODE_ENV HOST PUBLIC_HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI TMPDIR
   export VITEST_PORT COLLAB_SERVER_PORT API_SERVER_PORT PREVIEW_PORT YSWEET_CONNECTION_STRING
-  export AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_ORIGIN ALLOW_SIGNUP
+  export AUTH_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_ORIGIN ALLOW_SIGNUP
   if [ "$1" = production ]; then
     DJANGO_SETTINGS_MODULE=remdo.settings
   else

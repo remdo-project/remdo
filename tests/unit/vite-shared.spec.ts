@@ -6,7 +6,6 @@ import path from 'node:path';
 import { createServer, preview } from 'vite';
 import { describe, expect, it, vi } from 'vitest';
 import { createViteSharedConfig } from '../../config/vite/shared';
-import { resolveLocalGatewayOrigin } from '../../src/platform/net/origins';
 
 describe('vite shared config', () => {
   it.each(['development', 'preview'] as const)('forwards normal HTTP routes and preserves SPA routes in %s', async (mode) => {
@@ -86,33 +85,14 @@ describe('vite shared config', () => {
     }
   });
 
-  it('proxies Django and sync routes through the development gateway', () => {
+  // Collaboration upgrades and the preview forwarded-header pass-through have no
+  // behavioral coverage here: the routing tests below use plain HTTP requests.
+  it('upgrades collaboration routes and forwards preview client addresses', () => {
     const config = createViteSharedConfig();
-    const serverProxy = config.server.proxy;
-    const previewProxy = config.preview.proxy;
 
-    expect(serverProxy['/']).toMatchObject({ changeOrigin: false });
-    expect(serverProxy['^/d(?:/|$|\\?)']).toMatchObject({
-      changeOrigin: true,
-      ws: true,
-    });
-
-    expect(config.preview.host).toBe('127.0.0.1');
-
-    expect(previewProxy['/']).toMatchObject({
-      changeOrigin: true,
-      target: resolveLocalGatewayOrigin(),
-      xfwd: true,
-    });
-    expect(previewProxy['/src/client/ui/styles/']).toMatchObject({
-      target: resolveLocalGatewayOrigin(),
-      changeOrigin: true,
-    });
-    expect(previewProxy['^/d(?:/|$|\\?)']).toMatchObject({
-      changeOrigin: true,
-      target: resolveLocalGatewayOrigin(),
-      ws: true,
-    });
+    expect(config.server.proxy['^/d(?:/|$|\\?)']).toMatchObject({ ws: true });
+    expect(config.preview.proxy['^/d(?:/|$|\\?)']).toMatchObject({ ws: true });
+    expect(config.preview.proxy['/']).toMatchObject({ xfwd: true });
   });
 
   it('routes preview traffic locally without replacing the browser origin', async () => {

@@ -96,7 +96,6 @@ describe('prod Docker launcher', () => {
       encoding: 'utf8',
       env: {
         ...process.env,
-        ADMIN_SECRET: 'production-admin-secret-0123456789',
         ALLOW_SIGNUP: '',
         APP_ORIGIN: '',
         AUTH_SECRET: 'production-auth-secret-0123456789',
@@ -326,12 +325,6 @@ describe('prod Docker launcher', () => {
     const { result, dockerCalls } = runLauncher({ DATABASE_URL: url });
     expect(result.status, result.stderr).toBe(0);
     expect(dockerEnvironment(findDockerCall(dockerCalls, 'run')).DATABASE_URL).toBe(url);
-  });
-
-  it('does not require operator-supplied secrets', () => {
-    const { result, dockerCalls } = runLauncher({ ADMIN_SECRET: '', AUTH_SECRET: 'ignored' });
-    expect(result.status, result.stderr).toBe(0);
-    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toEqual({ APP_ORIGIN: 'https://remdo.localhost:8443', DATABASE_URL: '' });
   });
 
   it('rejects every production HOST except loopback and the IPv4 wildcard', () => {

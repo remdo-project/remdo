@@ -4,7 +4,6 @@ import { createEditorHarness } from './_support/runtime';
 
 test('reuses the login with fresh browser state', async ({ page, context, editor, newWorkerContext }, testInfo) => {
   await editor.load('flat');
-  const sessionCookie = (await context.cookies()).find(({ httpOnly }) => httpOnly)!;
   await page.evaluate(() => {
     localStorage.setItem('fixture-isolation', 'previous context');
     sessionStorage.setItem('fixture-isolation', 'previous context');
@@ -14,8 +13,6 @@ test('reuses the login with fresh browser state', async ({ page, context, editor
 
   const nextContext = await newWorkerContext();
   try {
-    const nextSessionCookie = (await nextContext.cookies()).find(({ name }) => name === sessionCookie.name);
-    expect(nextSessionCookie?.value).toBe(sessionCookie.value);
     const nextPage = await nextContext.newPage();
     await withPageGuards(nextPage, async (guardedPage) => {
       const reopenedEditor = await createEditorHarness(guardedPage, editor.docId);

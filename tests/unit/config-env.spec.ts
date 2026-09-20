@@ -85,8 +85,8 @@ describe('config env resolve', () => {
   });
 
   it('resolves production utility config without the secrets Django requires', () => {
-    // Backup and snapshot tooling runs via `env -u AUTH_SECRET` and never
-    // reaches Django's settings, so resolution must not demand server secrets.
+    // The production frontend build resolves configuration without Django's
+    // server secrets, so resolution must not demand them.
     const resolved = resolveTestConfig({ NODE_ENV: 'production', DATA_DIR: '/data' });
 
     expect(resolved.runtime.isProd).toBe(true);
@@ -104,7 +104,6 @@ describe('config env resolve', () => {
       COLLAB_ENABLED: 'true',
       YSWEET_SERVER_TOKEN: 'test-ysweet-server-token',
       AUTH_SECRET: 'test-auth-secret-0123456789',
-      ADMIN_SECRET: 'test-admin-secret-0123456789',
       APP_ORIGIN: 'https://remdo.example.com',
     });
 
