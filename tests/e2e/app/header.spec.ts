@@ -5,7 +5,11 @@ test('header controls are reachable by keyboard on a narrow screen', async ({ pa
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
 
-  for (const control of await page.getByRole('banner').locator('a, button').all()) {
+  const controls = page.getByRole('banner').locator('a, button');
+  // Losing the implicit banner role would empty the loop and pass vacuously.
+  await expect(controls.first()).toBeVisible();
+
+  for (const control of await controls.all()) {
     await control.focus();
     await page.keyboard.press('Shift+Tab');
     await page.keyboard.press('Tab');

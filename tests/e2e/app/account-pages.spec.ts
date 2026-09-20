@@ -5,6 +5,10 @@ import { createFixtureDocument } from '../../../tools/lib/fixture-document';
 import type { Page } from '@playwright/test';
 
 async function presentation(page: Page) {
+  // Computed styles read before the stylesheet applies report the UA defaults,
+  // so the font assertions below would see "Times New Roman" intermittently.
+  await page.waitForFunction(() => document.fonts.status === 'loaded'
+    && !getComputedStyle(document.body).fontFamily.includes('Times New Roman'));
   return page.evaluate(() => {
     const style = (selector: string, properties: string[]) => {
       const computed = getComputedStyle(document.querySelector(selector)!);
@@ -84,6 +88,12 @@ for (const width of [1280, 390]) {
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await page.waitForURL('/');
     await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+    // Anchor on Bob's own starter document so the listing has resolved; the
+    // heading alone renders before it, making the absence check vacuous.
+    await expect(
+      page.getByRole('group', { name: 'Current Server', exact: true })
+        .getByRole('button', { name: 'New Document', exact: true }),
+    ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Alice private document', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => localStorage.getItem('remdo-pending-sign-out'))).toBeNull();
     await page.goto('/about/');
