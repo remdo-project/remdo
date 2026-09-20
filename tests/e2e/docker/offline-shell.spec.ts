@@ -11,7 +11,7 @@ test('preserves the requested route during an API outage and retries through Dja
   await page.goto('/sharing');
   await expect(page).toHaveURL(/\/sharing$/u);
   await expect(page.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'RemDo', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'RemDo home', exact: true })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link', {
     name: /^(?:Admin|Sharing|Logout|Sign in)$/u,
   })).toHaveCount(0);

@@ -2,6 +2,7 @@ import json
 import tempfile
 from pathlib import Path
 
+from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.test import Client, TestCase, override_settings
 
@@ -85,7 +86,36 @@ class LoginPageTests(TestCase):
         for path in ("signup", "logout", "password/reset"):
             self.assertEqual(self.client.get(f"/accounts/{path}/").status_code, 404)
 
-    def test_production_login_uses_built_styles_without_loading_the_spa(self):
+    def test_account_cannot_rewrite_its_sharing_identity(self):
+        self.login()
+        for method in (self.client.post, self.client.patch):
+            response = method(
+                "/api/auth/browser/v1/account/email",
+                json.dumps({"email": "someone-else@example.test", "primary": True}),
+                content_type="application/json",
+                HTTP_X_CSRFTOKEN=self.client.cookies[settings.CSRF_COOKIE_NAME].value,
+            )
+            self.assertEqual(response.status_code, 404)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "alice@example.test")
+        self.assertFalse(EmailAddress.objects.filter(email="someone-else@example.test").exists())
+
+    def test_inactive_account_cannot_sign_in_through_native_or_headless_login(self):
+        self.user.is_active = False
+        self.user.save()
+        response = self.login()
+        self.assertRedirects(response, "/accounts/inactive/")
+        self.assertContains(self.client.get("/accounts/inactive/"), "This account is inactive.")
+        response = self.client.post(
+            "/api/auth/browser/v1/auth/login",
+            json.dumps({"email": self.user.email, "password": "alice-password-1234"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=self.client.cookies[settings.CSRF_COOKIE_NAME].value,
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 401)
+
+    def test_built_frontend_uses_manifest_styles_even_with_django_debug(self):
         with tempfile.TemporaryDirectory() as directory:
             manifest = Path(directory) / "manifest.json"
             manifest.write_text(
@@ -98,7 +128,7 @@ class LoginPageTests(TestCase):
                     }
                 )
             )
-            with override_settings(DEBUG=False, FRONTEND_MANIFEST=manifest):
+            with override_settings(FRONTEND_USE_SOURCE_STYLES=False, FRONTEND_MANIFEST=manifest):
                 response = self.client.get("/accounts/login/")
         self.assertContains(response, 'href="/app-assets/shared-test.css"')
         self.assertNotContains(response, "<script")

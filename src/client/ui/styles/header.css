@@ -8,12 +8,7 @@
   -webkit-backdrop-filter: blur(var(--remdo-glass-blur));
 }
 
-/* Align the header content to the document body's inline inset (`xl`), spanning
-   the full card width, so the brand and nav line up with the "Document:" label
-   and status/cloud row directly below them — one shared spine. The `.remdo-header`
-   qualifier makes this element+class rule outweigh Mantine Container's own
-   single-class gutter + max-width (`.mantine-Container-root`). */
-.remdo-header .remdo-header-inner {
+.remdo-header-inner {
   display: flex;
   min-height: 4rem;
   align-items: center;
@@ -21,7 +16,6 @@
   gap: var(--mantine-spacing-lg);
   padding-block: var(--mantine-spacing-sm);
   padding-inline: var(--mantine-spacing-xl);
-  max-width: none;
 }
 
 .remdo-header-brand-link {
@@ -55,8 +49,16 @@
 }
 
 .remdo-header-links {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-md);
   justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+.remdo-brand-name {
+  font-size: var(--mantine-font-size-xl);
+  font-weight: 700;
 }
 
 .remdo-header-link {
@@ -69,11 +71,28 @@
   transition: color 150ms ease;
 }
 
+.remdo-header-brand-link,
+.remdo-header-link {
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+}
+
+button.remdo-header-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
 .remdo-header-brand-link:hover,
 .remdo-header-brand-link:focus-visible,
 .remdo-header-link:hover,
 .remdo-header-link:focus-visible,
-.remdo-header-active-link {
+.remdo-header-link[aria-current="page"] {
   color: var(--mantine-color-gray-0);
 }
 
@@ -82,15 +101,19 @@
   background-color: var(--remdo-accent-hover);
 }
 
-.remdo-header-active-link {
+.remdo-header-brand-link:focus-visible,
+.remdo-header-link:focus-visible {
+  outline: 2px solid var(--remdo-accent);
+  outline-offset: 2px;
+}
+
+.remdo-header-link[aria-current="page"] {
   text-decoration: underline;
   text-underline-offset: 0.25rem;
 }
 
 @media (max-width: 48em) {
-  /* Same `.remdo-header .remdo-header-inner` specificity as the base rule so this override wins on
-     source order (a bare `.remdo-header-inner` would lose to the qualified base rule). */
-  .remdo-header .remdo-header-inner {
+  .remdo-header-inner {
     align-items: flex-start;
     flex-direction: column;
     gap: var(--mantine-spacing-xs);

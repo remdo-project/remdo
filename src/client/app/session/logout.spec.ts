@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  forgetAuthenticatedSession,
-  rememberPendingSignOut,
-  revokeServerSession,
+  hasConfirmedSignOut,
+  hasPendingSignOut,
+  hasRememberedSession,
+  rememberAuthenticatedSession,
 } from '#client/app/session/client';
+import { signOut } from '#client/app/session/session-http';
 import { clearLocalUserData } from '#client/app/session/local-data';
 import { logoutCurrentUser } from '#client/app/session/logout';
 import { resetUserData } from '#client/app/user-data/user-data';
@@ -15,10 +17,8 @@ import {
   markDocumentUnsynced,
 } from '#collaboration/unsynced-local-changes';
 
-vi.mock('#client/app/session/client', () => ({
-  forgetAuthenticatedSession: vi.fn(),
-  rememberPendingSignOut: vi.fn(),
-  revokeServerSession: vi.fn(),
+vi.mock('#client/app/session/session-http', () => ({
+  signOut: vi.fn(),
 }));
 
 vi.mock('#client/app/session/local-data', () => ({
@@ -34,7 +34,7 @@ vi.mock('#client/app/user-data/current-user-bootstrap', () => ({
 }));
 
 function expectSignedOutLocally() {
-  expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
+  expect(hasRememberedSession()).toBe(false);
   expect(clearCurrentUserBootstrapCache).toHaveBeenCalledTimes(1);
   expect(resetUserData).toHaveBeenCalledTimes(1);
   expect(clearLocalUserData).toHaveBeenCalledTimes(1);
@@ -43,23 +43,21 @@ function expectSignedOutLocally() {
 describe('logout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(signOut).mockResolvedValue();
     vi.mocked(clearLocalUserData).mockResolvedValue();
+    rememberAuthenticatedSession();
     clearUnsyncedLocalChanges();
   });
 
   it('signs out locally after the server confirms', async () => {
-    vi.mocked(revokeServerSession).mockResolvedValue();
-
     await logoutCurrentUser();
 
-    expect(rememberPendingSignOut).toHaveBeenCalled();
-    expect(revokeServerSession).toHaveBeenCalledTimes(1);
+    expect(hasConfirmedSignOut()).toBe(true);
     expectSignedOutLocally();
   });
 
   it('drops origin-wide unsynced marks so the next session does not inherit them', async () => {
     markDocumentUnsynced('doc-a');
-    vi.mocked(revokeServerSession).mockResolvedValue();
 
     await logoutCurrentUser();
 
@@ -68,36 +66,36 @@ describe('logout', () => {
 
   it('signs out locally when the server never answers', async () => {
     vi.useFakeTimers();
-    vi.mocked(revokeServerSession).mockReturnValue(new Promise(() => {}));
+    vi.mocked(signOut).mockReturnValue(new Promise(() => {}));
 
     const logout = logoutCurrentUser();
     await vi.advanceTimersByTimeAsync(5000);
     await logout;
 
     expectSignedOutLocally();
+    expect(hasPendingSignOut()).toBe(true);
+    expect(hasConfirmedSignOut()).toBe(false);
     vi.useRealTimers();
   });
 
   it('signs out locally when clearing local databases fails', async () => {
-    vi.mocked(revokeServerSession).mockResolvedValue();
     vi.mocked(clearLocalUserData).mockRejectedValue(new Error('blocked'));
 
     await logoutCurrentUser();
 
-    expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
+    expect(hasRememberedSession()).toBe(false);
     expect(clearCurrentUserBootstrapCache).toHaveBeenCalledTimes(1);
   });
 
   it('never leaves the session remembered when local cleanup hangs', async () => {
     vi.useFakeTimers();
-    vi.mocked(revokeServerSession).mockResolvedValue();
     vi.mocked(clearLocalUserData).mockReturnValue(new Promise(() => {}));
 
     const logout = logoutCurrentUser();
     await vi.advanceTimersByTimeAsync(5000);
     await logout;
 
-    expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
+    expect(hasRememberedSession()).toBe(false);
     vi.useRealTimers();
   });
 });

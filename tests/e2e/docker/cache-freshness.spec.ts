@@ -1,6 +1,7 @@
 /* eslint-disable node/no-process-env */
 import { execFileSync } from 'node:child_process';
-import { expect, guardedTest as test } from '#e2e/fixtures';
+import { allowUnauthorizedNetwork, expect, guardedTest as test } from '#e2e/fixtures';
+import { allowOfflineDisconnectedConsoleIssue } from './_support/helpers';
 
 const container = process.env.DOCKER_TEST_CONTAINER!;
 function python(script: string, ...args: string[]) {
@@ -37,6 +38,12 @@ test('returning browsers revalidate files and retain server navigation responses
     expect(response!.fromServiceWorker(), url).toBe(true);
     expect(await response!.text()).toContain('<div id="root">');
   }
+  const publicPage = await page.goto('/about/');
+  expect(publicPage!.status()).toBe(200);
+  expect(publicPage!.fromServiceWorker()).toBe(false);
+  expect(publicPage!.headers()['cache-control']).toContain('no-store');
+  await expect(page.getByRole('article')).toBeVisible();
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new URL('/about/', page.url()).href);
   await page.goto('/');
 
   // This page expects HTTP errors; keep the ordinary page's error guards intact.
@@ -50,7 +57,7 @@ test('returning browsers revalidate files and retain server navigation responses
       expect(response!.fromServiceWorker(), url).toBe(false);
       expect(response!.status(), url).toBe(404);
       expect(response!.headers()['cache-control'], url).toContain('no-store');
-      await expect(retiredRoutePage.locator('body')).toHaveText('Not Found');
+      await expect(retiredRoutePage.getByRole('heading', { name: 'Not Found' })).toBeVisible();
     }
   } finally {
     await retiredRoutePage.close();
@@ -102,4 +109,20 @@ test('returning browsers revalidate files and retain server navigation responses
     expect(response!.fromServiceWorker(), url).toBe(false);
     expect(response!.headers()['cache-control'], url).toContain('no-store');
   }
+  await page.goto('/about/');
+  await page.getByRole('link', { name: 'Sign out…', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible();
+  allowOfflineDisconnectedConsoleIssue(page);
+  await page.context().setOffline(true);
+  await page.reload();
+  // Exercise offline cleanup with unsaved data regardless of earlier sync timing.
+  await page.evaluate(() => localStorage.setItem('remdo-unsynced:document:closed-tab', '1'));
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign out and discard', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Local data cleared. Connect to finish signing out.');
+  await page.context().setOffline(false);
+  allowUnauthorizedNetwork(page);
+  await page.getByRole('button', { name: 'Finish signing out', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText("You're signed out");
+
 });

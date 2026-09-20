@@ -1,6 +1,7 @@
 import { expect, test, withPageGuards } from '#e2e/fixtures';
 import { createAuthenticatedContext } from '../_support/auth-context';
 import { createUserDocument } from '../_support/documents';
+import { ensureReady, waitForSynced } from '../editor/_support/bridge';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 
 test('owner shares with a local account; recipient edits and unrelated account is denied', async ({ page, browser, contextOptions }, testInfo) => {
@@ -12,11 +13,13 @@ test('owner shares with a local account; recipient edits and unrelated account i
     const document = await createUserDocument(page, 'Shared research');
     await page.goto(`/n/${document.id}`);
     const editor = page.locator('.editor-input');
+    await ensureReady(page);
     await expect(editor).toBeEditable();
     await editor.click();
     await page.keyboard.type('Owner content');
-    await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Saved to server.*Server connected/u);
-    await page.goto('/sharing');
+    await waitForSynced(page);
+    await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Sharing', exact: true }).click();
+    await expect(page.getByRole('link', { name: 'Sharing', exact: true })).toHaveAttribute('aria-current', 'page');
     await page.getByRole('combobox', { name: 'Document', exact: true }).click();
     await page.getByRole('option', { name: 'Shared research', exact: true }).click();
     await page.getByLabel('User email').fill(recipient.email);
@@ -34,11 +37,13 @@ test('owner shares with a local account; recipient edits and unrelated account i
       await peer.getByRole('group', { name: 'Current Server', exact: true })
         .getByRole('button', { name: 'Shared research', exact: true }).click();
       const peerEditor = peer.locator('.editor-input');
+      await ensureReady(peer);
       await expect(peerEditor).toContainText('Owner content');
       await expect(peerEditor).toBeEditable();
       await peerEditor.click();
       await peer.keyboard.press('ControlOrMeta+End');
       await peer.keyboard.type(' and recipient content');
+      await waitForSynced(peer);
       await page.goto(`/n/${document.id}`);
       await expect(editor).toContainText('Owner content and recipient content');
       await peer.goto('/sharing');

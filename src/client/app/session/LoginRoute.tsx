@@ -20,6 +20,8 @@ export default function LoginRoute() {
       }
     };
     globalThis.addEventListener('storage', refreshSignOutState);
+    // Confirmation can arrive between rendering and installing the listener.
+    void revalidate();
     return () => globalThis.removeEventListener('storage', refreshSignOutState);
   }, [revalidate]);
 

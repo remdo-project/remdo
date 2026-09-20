@@ -8,14 +8,11 @@ with their outliner owners.
 ## Delivery Surfaces
 
 Delivery surfaces describe architectural forms; [Run Modes](run-modes.md) owns the supported
-Production, Development, and Verification run modes.
+run modes.
 
 - **Hosted Web:** SPA served from server/CDN and loaded by browser.
-- **PWA Shell:** Hosted web plus service worker/manifest for offline app-shell
-  entry. In production builds, the service worker caches shell/navigation
-  assets so routes can open offline, but collaboration/auth HTTP endpoints stay
-  network-only. Offline doc editing still works for previously cached docs via
-  collaboration local persistence (IndexedDB), not via service-worker endpoint caching.
+- **PWA Shell:** Hosted web with a manifest and service worker for
+  [offline app-shell entry](#application-freshness). [Offline document editing](#offline-application-behavior) uses local persistence.
 - **Desktop Shell:** Native wrapper (for example Electron/Tauri) hosting the
   same SPA with OS integration.
 
@@ -27,14 +24,22 @@ The offline navigation fallback serves only application routes. Public downloads
 server-rendered pages, and missing static assets retain their server responses.
 In Production, static HTTP responses require revalidation; dynamic and error
 responses are not stored in HTTP caches. Service-worker shell storage remains
-available offline.
+available offline. Collaboration and authentication HTTP endpoints remain
+network-only.
 
 ### Shared Presentation
 
-The SPA and server-rendered account pages share theme values and styles for
+The SPA and server-rendered pages share theme values and styles for
 branding, page chrome, and account cards and controls. React and Django retain
 their native rendering and interaction ownership; account pages load their
 presentation assets without the editor runtime.
+
+### Public Pages
+
+[Public pages](guides/public-pages.md) render repository Markdown through a shared
+Django template without sign-in or editor JavaScript. Their canonical URLs use
+the [configured public origin](specs/runtime/configuration.md#network-addressing). Page sources, including inline HTML, are trusted like
+Django templates.
 
 ## Production Bundle Boundary
 
@@ -57,22 +62,17 @@ not from request forwarding headers.
 
 ### Gateway
 
-Single HTTP entrypoint that can:
-
-1. serve the SPA
-2. route RemDo API endpoints
-3. proxy collaboration endpoints to the hub
-4. optionally expose auth endpoints
-
-Using a gateway keeps origin/routing behavior simple and reduces CORS/auth
-drift between app and collab endpoints.
+The gateway explicitly owns SPA routes (`/`, `/n/*`, `/sharing`, and
+`/sign-out`), frontend assets, Django static assets, public shared files, health
+probes, and collaboration endpoints. Django owns all other HTTP routes,
+including unknown routes and their 404 responses. Normal HTTP routes have the
+same owner in development and production; development additionally serves
+frontend tooling and development-only routes.
 
 Development and production server runtimes expose only the gateway. The RemDo
 API and collaboration server remain loopback-only and are reached through it.
 
-In Production, the gateway serves `/data/public-share` at `/share/*` without
-authentication. Startup creates the directory, and responses require cache
-revalidation so replacing a file updates the same public URL.
+In Production, the gateway serves [public shared files](specs/runtime/configuration.md#persistence) at `/share/*` without authentication.
 
 ### RemDo API boundary
 
@@ -85,12 +85,8 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
 - Y-Sweet access: the API connects with the Y-Sweet server token and passes only
   RemDo-issued Y-Sweet document client tokens to browsers.
 
-### Session User
-
-Signed-in user identity used by RemDo API decisions.
-
-- Mapping: Django resolves the active session user.
-- Role: identify the user for ownership and document access decisions.
+Django resolves the signed-in user from the session for ownership and document
+access decisions.
 
 ### Document identity
 
@@ -185,10 +181,8 @@ others. Genuine synchronization failures remain observable.
 
 ### Local Persistence
 
-Client-side storage for collaboration state.
-
-- Web/webview default: IndexedDB.
-- Native desktop options: filesystem or SQLite-backed store.
+Client-side storage for collaboration state defaults to IndexedDB in web and
+webview surfaces. Native desktop options are filesystem or SQLite-backed stores.
 
 ### Hydration vs sync
 
@@ -218,9 +212,9 @@ Client-side storage for collaboration state.
 
 ### Offline Cache Recovery
 
-- Local persistence is best-effort. If browser storage is cleared or evicted,
-  the document behaves as uncached on the next offline open.
-- Reconnect rehydrates from the hub and returns the document to normal editing.
+Local persistence is best-effort. If browser storage is cleared or evicted,
+the document behaves as uncached on the next offline open. Reconnect rehydrates
+from the hub and returns the document to normal editing.
 
 ### Future
 
@@ -253,10 +247,8 @@ The terms below describe the target vocabulary for multi-hub document access.
 
 ## Code modules
 
-Implementation owners are the `src/` elements declared in
-[`config/eslint/boundaries.ts`](../config/eslint/boundaries.ts). That file holds
-the coarse src graph, the editor-internal graph, and the app product-module
-graph. A new unowned directory is granted nothing, so its imports fail lint.
+[`config/eslint/boundaries.ts`](../config/eslint/boundaries.ts) owns source-module boundaries. Undeclared source
+directories have no import permissions.
 
 ## References
 

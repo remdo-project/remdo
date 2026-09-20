@@ -1,7 +1,8 @@
-import { Outlet, useMatches } from 'react-router-dom';
+import { Outlet, useLocation, useMatches } from 'react-router-dom';
 import type { UIMatch } from 'react-router-dom';
 import type { SessionGateState } from '#client/app/session/client';
 import { LogoutProvider, useLogout } from '#client/app/session/useLogout';
+import { createSignInPath } from '#client/app/session/post-auth-path';
 import AppHeader from '#client/ui/AppHeader';
 import type { AppHeaderAuthState } from '#client/ui/AppHeader';
 import UnsyncedLogoutDialog from '#client/ui/UnsyncedLogoutDialog';
@@ -46,6 +47,7 @@ export default function AppFrame() {
 
 function AppFrameContent() {
   const matches = useMatches();
+  const location = useLocation();
   const sessionState = matches.findLast(hasSessionState)?.loaderData.sessionState ?? null;
   const logout = useLogout();
 
@@ -55,6 +57,7 @@ function AppFrameContent() {
         <AppHeader
           authState={logout.signingOut ? { status: 'unavailable' } : resolveHeaderAuthState(sessionState)}
           onLogout={logout.requestLogout}
+          signInHref={createSignInPath(location.search)}
           trailingNav={<DevToolbarLinksSeam linkClassName="remdo-header-link" />}
         />
         <UnsyncedLogoutDialog

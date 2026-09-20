@@ -55,6 +55,7 @@ RUN apk add --no-cache caddy libstdc++ \
   && mkdir -p /data /etc/caddy /srv/remdo /usr/local/share/remdo
 COPY --from=backend /app/.venv /app/.venv
 COPY backend /app/backend
+COPY content /app/content
 COPY --from=builder /app/dist /srv/remdo
 COPY --from=builder /app/dist/.vite/manifest.json /app/dist/.vite/manifest.json
 COPY --from=builder /app/node_modules/y-sweet/bin/y-sweet /usr/local/bin/y-sweet

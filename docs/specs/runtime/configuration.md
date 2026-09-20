@@ -78,6 +78,8 @@ Development defaults it to `data` inside the repository. The self-hosted
 production launcher defaults its host directory to `data/production` inside
 the repository; production containers use `/data` for the mounted root.
 
+Production [public shared files](../../architecture.md#gateway) live in `/data/public-share`.
+
 Production document storage defaults to `DATA_DIR/collab`. Optional
 `Y_SWEET_STORE=s3://bucket/prefix` selects an existing private S3-compatible bucket
 and an instance-exclusive prefix. Y-Sweet receives `AWS_ACCESS_KEY_ID`,

@@ -67,7 +67,10 @@ ROOT_URLCONF = "remdo.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [Path(__file__).resolve().parents[1] / "accounts" / "templates"],
+        "DIRS": [
+            Path(__file__).resolve().parents[1] / "templates",
+            Path(__file__).resolve().parents[1] / "accounts" / "templates",
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -99,6 +102,7 @@ AUTH_PASSWORD_VALIDATORS = [
 STATIC_URL = "/django-static/"
 STATIC_ROOT = Path(__file__).resolve().parents[2] / "static"
 FRONTEND_MANIFEST = Path(__file__).resolve().parents[2] / "dist" / ".vite" / "manifest.json"
+FRONTEND_USE_SOURCE_STYLES = False
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
@@ -127,3 +131,5 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
 }
+
+PUBLIC_PAGES_DIR = Path(__file__).resolve().parents[2] / "content" / "pages"

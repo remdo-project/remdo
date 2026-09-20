@@ -10,7 +10,9 @@ dependencies = [
     "drf-spectacular>=0.30.0",
     "gunicorn>=26.2.0",
     "httpx>=0.28.1",
+    "markdown>=3.10.3",
     "psycopg[binary]>=3.3.5",
+    "pyyaml>=6.0.3",
 ]
 
 [tool.ruff]
