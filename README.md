@@ -6,10 +6,10 @@ RemDo is an open-source workspace for finding, connecting, and working with
 information across different sources.
 
 The project currently provides a structured, collaborative outliner with stable
-note identity, linking, search, offline support, sharing, and the ability to
-connect documents from multiple RemDo servers. The longer-term direction is to
-extend the same model to information that already lives in email, calendars,
-files, and other tools.
+note identity, linking, search, offline support, and sharing between accounts on
+one RemDo server. The longer-term direction is to extend the same model across
+RemDo servers and information that already lives in email, calendars, files, and
+other tools.
 
 ## Overview
 
@@ -44,11 +44,13 @@ RemDo currently includes:
 - realtime collaborative editing;
 - offline editing with local persistence;
 - authenticated users and document ownership;
-- document sharing between users;
-- linking another RemDo server as a source;
+- document sharing between users on the same server;
 - PWA support;
 - self-hosted Docker deployment;
 - deployment on Render.
+
+Cross-server linking is not part of the supported Django runtime. Its earlier
+implementation is retained as reference for the [cross-server linking redesign](docs/todo.md#cross-server-linking-redesign).
 
 The broader cross-tool model — including sources such as email, calendars, and
 external files — is still under development.
@@ -86,15 +88,16 @@ The current application uses:
 - **Lexical** for editing;
 - **Yjs + Y-Sweet** for collaborative document state;
 - **IndexedDB** for local/offline document persistence;
-- **Better Auth** for authentication;
-- **SQLite + Kysely** for server-owned metadata;
-- **Hono** for server APIs and gateway functionality;
+- **Django + django-allauth** for authentication and administration;
+- **Django REST Framework** for application APIs;
+- **Django ORM + SQLite/PostgreSQL** for server-owned metadata;
+- **TanStack Query** for account-scoped browser metadata caches;
+- **Caddy** for the production gateway;
 - **Vite** for the web application and PWA build;
 - **Vitest + Playwright** for testing.
 
-A RemDo instance owns its users and documents. Another RemDo instance can be
-linked as a source while remaining authoritative for its own accounts, access
-rules, and document state.
+A RemDo instance owns its users and documents. Django owns identity, document
+metadata, and access decisions; Yjs holds collaborative document content.
 
 See [Architecture](docs/architecture.md) for the detailed boundaries and
 terminology.
@@ -107,8 +110,8 @@ RemDo supports separate production, development, and verification workflows.
 
 Requirements:
 
-- Node.js 24
-- pnpm
+- Node.js and pnpm at the versions declared in [package.json](package.json)
+- uv for the locked Python backend environment
 - a modern browser
 
 Install dependencies:
@@ -123,9 +126,9 @@ Start the application:
 pnpm run dev
 ```
 
-On a fresh data directory, keep development running and run
-`pnpm run dev:data-reset` in another terminal before signing in.
-See [Reset Development Data](docs/guides/local-development.md#reset-development-data) for details.
+Startup creates the [development accounts](docs/guides/local-development.md#run-main-development) and prepares the backend environment. A
+data reset is not required before signing in. Use [Reset Development Data](docs/guides/local-development.md#reset-development-data) only to
+recreate the fixture users and documents.
 
 Repository defaults work without additional configuration. For local overrides,
 copy `.env.example` to `.env`.
@@ -190,9 +193,9 @@ For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 RemDo is under active development.
 
-The core RemDo-native workspace, collaboration, access model, offline behavior,
-and multi-server source model are implemented. Broader integration with external
-information sources is part of the project's ongoing development.
+The core RemDo-native workspace, collaboration, local access model, and offline
+behavior are implemented. Cross-server access and broader integration with
+external information sources remain follow-up work.
 
 Interfaces, data models, and deployment details may still change as the project
 evolves.

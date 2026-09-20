@@ -49,8 +49,8 @@ production bundles, including production bundles run by development and test wor
 
 ## Production Instance Boundary
 
-A production instance treats its gateway, API, collaboration server, and backup
-scheduler as one failure domain. An unexpected process exit identifies the
+A production instance treats its gateway, API, and collaboration server as one
+failure domain. An unexpected process exit identifies the
 failed service, stops the remaining processes, and ends the instance
 unsuccessfully so its environment can restart the complete instance. When selected,
 PostgreSQL runs as a separate service with its own lifecycle.
