@@ -5,10 +5,13 @@ import { createFixtureDocument } from '../../../tools/lib/fixture-document';
 import type { Page } from '@playwright/test';
 
 async function presentation(page: Page) {
-  // Computed styles read before the stylesheet applies report the UA defaults,
-  // so the font assertions below would see "Times New Roman" intermittently.
-  await page.waitForFunction(() => document.fonts.status === 'loaded'
-    && !getComputedStyle(document.body).fontFamily.includes('Times New Roman'));
+  // Computed styles read before the stylesheet applies report the UA default
+  // serif, so the font assertions below would see it intermittently. Wait for the
+  // property the assertions depend on rather than for the absence of one runner's
+  // particular default.
+  await page.waitForFunction(
+    () => getComputedStyle(document.body).fontFamily.includes('sans-serif'),
+  );
   return page.evaluate(() => {
     const style = (selector: string, properties: string[]) => {
       const computed = getComputedStyle(document.querySelector(selector)!);
