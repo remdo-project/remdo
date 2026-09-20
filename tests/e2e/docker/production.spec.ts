@@ -87,7 +87,7 @@ print(json.dumps({'allowed': statuses, 'blocked': login(first, '192.0.2.100'),
   });
 }
 
-test('production admin, native login, collaboration, and restart use persistent Django data', async ({ page, browser }) => {
+test('production launcher serves login, collaboration, and persistent data through its published port', async ({ page, browser }) => {
   test.setTimeout(90_000);
   const origin = process.env.DOCKER_TEST_ORIGIN!;
   await expect.poll(async () => {
@@ -301,6 +301,9 @@ test('startup refuses missing or corrupt secrets over an existing dataset', asyn
   const saved = path.join(temporary, 'saved.json');
   const corrupt = path.join(temporary, 'corrupt.json');
   docker('cp', `${container}:/data/secrets.json`, saved);
+  const restartPolicy = docker('inspect', '--format', '{{.HostConfig.RestartPolicy.Name}}', container);
+  // Observe terminal startup failure without the launcher's automatic restarts.
+  docker('update', '--restart=no', container);
   try {
     docker('exec', container, 'python', '-c', "from pathlib import Path; Path('/data/secrets.json').unlink()");
     docker('restart', '--time', '15', container);
@@ -322,6 +325,7 @@ test('startup refuses missing or corrupt secrets over an existing dataset', asyn
     expect(fs.readFileSync(observed, 'utf8')).toBe('{}');
   } finally {
     docker('cp', saved, `${container}:/data/secrets.json`);
+    docker('update', '--restart', restartPolicy, container);
     docker('start', container);
     fs.rmSync(temporary, { recursive: true, force: true });
   }

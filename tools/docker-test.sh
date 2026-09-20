@@ -13,11 +13,16 @@ fi
 docker exec "${PG_RUNTIME}" createdb -U remdo hosted
 : "${IMAGE_NAME:=remdo-test}"
 TEST_DATA_DIR="${ROOT_DIR}/data/docker-test-runtime"
-export DOCKER_TEST_CONTAINER="${IMAGE_NAME}-$((PORT_BASE + 7))"
+export DOCKER_TEST_CONTAINER="remdo-$((PORT_BASE + 7))"
 export DOCKER_TEST_ORIGIN="https://remdo.localhost:$((PORT_BASE + 7))"
 export DOCKER_HOSTED_CONTAINER="${IMAGE_NAME}-$((PORT_BASE + 10))"
 export DOCKER_HOSTED_PORT="$((PORT_BASE + 10))"
 remdo_assert_browser_safe_port "$((PORT_BASE + 7))"
+# The production launcher replaces its named container; tests must own that name.
+if docker container inspect "${DOCKER_TEST_CONTAINER}" >/dev/null 2>&1; then
+  echo "Container ${DOCKER_TEST_CONTAINER} already exists; choose another PORT_BASE." >&2
+  exit 1
+fi
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 cleanup() {
   docker logs "${DOCKER_TEST_CONTAINER}" > "${TEST_DATA_DIR}/container.log" 2>&1 || true
@@ -32,9 +37,9 @@ import shutil
 for name in ("home", "hosted"):
     shutil.rmtree("/data/" + name, ignore_errors=True)
 '
-remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}/home" -d --userns=host \
-  --name "${DOCKER_TEST_CONTAINER}" -p "127.0.0.1:$((PORT_BASE + 7)):$((PORT_BASE + 7))" \
-  -e APP_ORIGIN="${DOCKER_TEST_ORIGIN}"
+IMAGE_NAME="${IMAGE_NAME}" DATA_DIR="${TEST_DATA_DIR}/home" \
+  APP_ORIGIN="${DOCKER_TEST_ORIGIN}" HOST=127.0.0.1 DATABASE_URL= \
+  "${ROOT_DIR}/tools/prod/docker.sh"
 remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}/hosted" -d --userns=host \
   --name "${DOCKER_HOSTED_CONTAINER}" -p "127.0.0.1:${DOCKER_HOSTED_PORT}:8080" \
   -e PORT=8080 -e RENDER=true -e APP_ORIGIN=https://remdo.onrender.com --network "${PG_NETWORK}" \
