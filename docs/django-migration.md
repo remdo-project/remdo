@@ -169,16 +169,59 @@ Application models and migrations remain Django-owned.
 
 ## Remaining migration gaps
 
+- **Stale logout dispatch:** keep the [logout generation](specs/access/access-control.md#logout) valid through
+  asynchronous CSRF/config prerequisites, checking immediately before sending
+  revocation. A newer sign-in must supersede an old Finish signing out action.
+  Cover the real HTTP helper rather than mocking away its prerequisite await;
+  also assess already-dispatched response ordering.
+- **Administration invariants:** restrict edits to existing document ownership
+  and kind unless explicit transfer/conversion semantics are accepted.
+  Converting a shared normal document into Home currently preserves grants and
+  recipient token access; retain the existing Home rule without implementing its
+  deferred redesign.
+- **Production diagnostics:** configure privacy-safe Django request-error
+  output. Unexpected 500 responses currently reach neither stderr nor
+  administrator email. Verify useful diagnostics without arbitrary exception
+  messages, request data, or other confidential content under the
+  [logging principle](principles.md#data-and-trust).
+- **Production client addresses:** configure allauth's trusted proxy boundary
+  for the actual standalone and hosted gateway chains. Current IP-based login
+  limits treat unrelated clients as loopback; development disables those limits.
+  Verify distinct clients through Caddy and the hosted proxy, retaining the
+  framework limiter.
+- **Session HTTP simplification:** use [PR #607](https://github.com/remdo-project/remdo/pull/607) as inspiration: remove the
+  session read's unnecessary config prerequisite and let the shared mutation
+  transport own CSRF initialization. Preserve direct collaboration-fetch
+  initialization. This simplification alone does not fix stale logout dispatch.
+- **Advertised migration leftovers:** use the bounded cleanup in [PR #608](https://github.com/remdo-project/remdo/pull/608) to
+  correct README, architecture, onboarding, and deployment claims about the
+  retired backend, linking, exporter, and scheduler. Remove unsupported backup
+  entry points while retaining live snapshot tooling and explicitly retained
+  reference code/tests. Do not implement deferred recovery here.
+- **Retained test data:** restore the [Docker harness](specs/testing/test-harness.md#docker-e2e-tests) guarantee that retained
+  runtime data is readable only by its invoking user; ordinary directory
+  creation currently inherits the caller's umask.
 - **Production and Docker:** locally verify self-hosted startup and the hosted
   HTTP hop behind TLS termination with the Django image. Actual Render
   deployment, public-certificate issuance, and rootful Docker verification
   remain external checks.
+- **Production integration coverage:** restore one real supported-launcher smoke
+  through its published bridge origin. After hosted container replacement,
+  authenticate afresh, list the original document, obtain a new Django token,
+  and read its content through the gateway; privileged Y-Sweet readback alone
+  misses the metadata/authorization boundary.
 - **Import/export:** retained client-side import code is not verification of
   supported user-facing import/export paths. Check those independently of the
   deferred [recovery work](todo.md#operations).
 - **Obsolete code:** linking reference code is retained under the
   [redesign exception](todo.md#cross-server-linking-redesign). Retire other migration-only tooling as its replacement
   slices land.
+
+Post-merge proposals from the same review are tracked under
+[account administration](todo.md#account-administration) and [Operations](todo.md#operations). Before retiring this ledger, triage its
+excluded grant-revocation and password-change topics into the normal backlog if
+wanted; exclusions alone do not commit new features. Recovery and
+account/document deletion remain with their existing follow-up.
 
 ## Slice selection and retirement
 

@@ -78,6 +78,15 @@ cross-server functionality. Replace or remove them together with the redesign;
 do not migrate or extend them as a Django completion requirement. The
 withdrawn source-linking specification remains in Git history.
 
+### Account administration
+
+- **Coherent email editing after Django integration.** Constrain operator email
+  changes to one identity model across `User.email`, allauth primary/login
+  addresses, session display, and local sharing lookup. Editing the user alone
+  can leave the old primary address usable for login while sharing uses the new
+  address. Align fixture provisioning with production account creation; prefer
+  restricting duplicate writers over adding public email management.
+
 ### Documentation
 
 - **Remaining agent-flow specification alignment.** Reassess [`remdo-verify-change`](specs/agents/skills/remdo-verify-change.md)
@@ -135,6 +144,11 @@ withdrawn source-linking specification remains in Git history.
   presupposing an index, worker, or library.
 
 ### Operations
+
+- **Expired Django sessions after integration.** Define how supported
+  deployments invoke Django's existing expired-session cleanup. Reuse framework
+  maintenance without introducing a general worker or scheduler architecture for
+  this task.
 
 - **Hocuspocus migration.** Replace Y-Sweet with Hocuspocus after the Django
   integration merges. Reassess collaboration, persistence, and runtime

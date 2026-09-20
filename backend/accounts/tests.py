@@ -78,6 +78,31 @@ class LoginPageTests(TestCase):
         self.assertTemplateUsed(response, "accounts/login_complete.html")
         self.assertEqual(response.context["next_url"], "/n/exampleDoc")
 
+    def test_admin_logout_hands_off_before_revoking_the_session(self):
+        self.user.is_staff = True
+        self.user.save()
+        self.login()
+        response = self.client.post(
+            "/admin/logout/",
+            {"csrfmiddlewaretoken": self.client.cookies[settings.CSRF_COOKIE_NAME].value},
+        )
+        self.assertRedirects(response, "/sign-out/", fetch_redirect_response=False)
+        self.assertIn("no-store", response.headers["Cache-Control"])
+        # The browser must confirm discarded edits and clear local data first.
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 200)
+
+    def test_admin_logout_handoff_requires_a_csrf_protected_post(self):
+        self.login()
+        self.assertEqual(self.client.get("/admin/logout/").status_code, 405)
+        self.assertEqual(self.client.post("/admin/logout/", {}).status_code, 403)
+        response = self.client.post(
+            "/admin/logout/",
+            {"csrfmiddlewaretoken": self.client.cookies[settings.CSRF_COOKIE_NAME].value},
+            HTTP_ORIGIN="http://unrelated.example",
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 200)
+
     def test_external_return_url_is_rejected(self):
         response = self.login(next="https://unrelated.example/")
         self.assertEqual(response.context["next_url"], "/")
