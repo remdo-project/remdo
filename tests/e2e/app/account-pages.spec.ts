@@ -90,6 +90,12 @@ for (const width of [1280, 390]) {
     await page.waitForURL('/');
     // Signing in as the second account cold-loads the app shell again.
     await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible({ timeout: 15_000 });
+    // Anchor on Bob's own starter document so the listing has resolved; the
+    // heading alone renders before it, making the absence check vacuous.
+    await expect(
+      page.getByRole('group', { name: 'Current Server', exact: true })
+        .getByRole('button', { name: 'New Document', exact: true }),
+    ).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('button', { name: 'Alice private document', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => localStorage.getItem('remdo-pending-sign-out'))).toBeNull();
     await page.goto('/about/');

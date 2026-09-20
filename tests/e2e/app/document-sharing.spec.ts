@@ -56,6 +56,8 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     }, testInfo);
 
     const response = await strangerContext.request.get('/api/documents');
+    // Without the status check an error response satisfies the absence assertion.
+    expect(response.status()).toBe(200);
     expect(await response.json()).not.toEqual(expect.arrayContaining([expect.objectContaining({ id: document.id })]));
     const config = await strangerContext.request.get('/api/config');
     const { csrfToken } = await config.json() as { csrfToken: string };

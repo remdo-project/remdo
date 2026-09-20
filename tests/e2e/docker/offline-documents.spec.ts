@@ -135,6 +135,12 @@ test('offline logout discards edits across tabs and isolates the next account', 
   await peer.close();
 
   await signIn(page, otherEmail);
+  // The starter document proves this account's listing rendered; bootstrap alone
+  // completes before it, which would make the absence check vacuous.
+  await expect(
+    page.getByRole('group', { name: 'Current Server', exact: true })
+      .getByRole('button', { name: 'New Document', exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Owner private content', exact: true })).toHaveCount(0);
   await page.close();
   await withOfflinePage(context, async (offline) => {
@@ -184,6 +190,10 @@ test('native admin logout clears cached content and peer editors before another 
   await peer.close();
 
   await signIn(page, otherEmail);
+  await expect(
+    page.getByRole('group', { name: 'Current Server', exact: true })
+      .getByRole('button', { name: 'New Document', exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: title, exact: true })).toHaveCount(0);
   await page.close();
   await withOfflinePage(context, async (offline) => {
