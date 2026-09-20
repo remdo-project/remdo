@@ -60,6 +60,14 @@ Server-only requirements do not apply to browser configuration or production uti
 For self-hosted Docker, network mode and container addresses and ports are not
 operator settings.
 
+Production trusts one Caddy forwarding hop for [sign-in rate limits](../access/access-control.md#authenticated-app-access).
+On Render (`RENDER=true`), it instead trusts the edge-overwritten
+`CF-Connecting-IP` header; the public hosting edge and services able to reach the
+gateway over Render's private network form the trusted ingress boundary. `PORT`
+alone does not enable this header trust. Development and verification settings
+disable allauth rate limits for shared-address fixtures; production-container
+verification retains them.
+
 ## Database
 
 Django defaults to SQLite under `DATA_DIR`, keeping standalone production and

@@ -43,6 +43,15 @@ daemons are supported.
    and allow inbound port 443. Rootless Docker requires the host to permit its
    daemon to publish that privileged port. The loopback example instead uses
    unprivileged port 8443.
+
+   Preserve source IP addresses through Docker's published port so
+   [sign-in rate limits](../specs/access/access-control.md#authenticated-app-access) can distinguish clients.
+   With rootless Docker and RootlessKit 3 or newer,
+   merge `"userland-proxy": false` into `~/.config/docker/daemon.json` and restart
+   the daemon during a maintenance window. Follow
+   [Docker's source-IP propagation instructions](https://docs.docker.com/engine/security/rootless/troubleshoot/#docker-run--p-does-not-propagate-source-ip-addresses)
+   for kernel prerequisites or older RootlessKit versions. NAT and SSH tunnels
+   that merge client addresses necessarily share one IP allowance.
 4. Run the [production Docker launcher](../../tools/prod/docker.sh):
 
    ```sh
