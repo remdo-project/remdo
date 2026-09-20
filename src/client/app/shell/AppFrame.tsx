@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { getApiConfig } from '#platform/http/api-client';
+import { useQuery } from '@tanstack/react-query';
+import { apiConfiguration } from '#platform/http/api-client';
 import { Outlet, useLocation, useMatches } from 'react-router-dom';
 import type { UIMatch } from 'react-router-dom';
 import type { SessionGateState } from '#client/app/session/client';
@@ -49,17 +49,7 @@ export default function AppFrame() {
 }
 
 function AppFrameContent() {
-  const [serverRevision, setServerRevision] = useState('');
-  useEffect(() => {
-    let active = true;
-    void getApiConfig().then((configuration) => {
-      if (active) setServerRevision(configuration.buildRevision);
-    }).catch(() => {
-      // Unavailable configuration cannot establish a build mismatch.
-    });
-    return () => { active = false; };
-  }, []);
-
+  const { data: configuration } = useQuery(apiConfiguration.query, apiConfiguration.client);
   const matches = useMatches();
   const location = useLocation();
   const sessionState = matches.findLast(hasSessionState)?.loaderData.sessionState ?? null;
@@ -80,7 +70,7 @@ function AppFrameContent() {
           opened={logout.confirmingLoss}
         />
         {logout.signingOut ? <div role="status">Signing out…</div> : <Outlet />}
-        <AppFooter serverRevision={serverRevision} />
+        <AppFooter serverRevision={configuration?.buildRevision ?? ''} />
       </div>
     </div>
   );

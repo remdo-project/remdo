@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/query-core';
+import type { QueryFunctionContext } from '@tanstack/query-core';
 import createClient from 'openapi-fetch';
 import { apiFetch, setCsrfCookieName } from './api-fetch';
 import type { paths as ApiPaths } from './api-schema';
@@ -38,20 +39,23 @@ export function requireData<T>({ data, response }: { data?: T; response: Respons
 }
 
 // Public deployment configuration has a different lifetime from account data.
-const configuration = new QueryClient();
-
-export function getApiConfig() {
-  return configuration.query({
+export const apiConfiguration = {
+  client: new QueryClient(),
+  query: {
     queryKey: ['api-config'],
     staleTime: Infinity,
     retry: false,
     // A fresh offline load must reach the session gate's remembered-state
     // fallback instead of pausing its configuration request until reconnect.
-    networkMode: 'always',
-    queryFn: async ({ signal }) => {
+    networkMode: 'always' as const,
+    queryFn: async ({ signal }: QueryFunctionContext) => {
       const config = requireData(await api.GET('/api/config', { signal }));
       setCsrfCookieName(config.csrfCookieName);
       return config;
     },
-  });
+  },
+};
+
+export function getApiConfig() {
+  return apiConfiguration.client.query(apiConfiguration.query);
 }
