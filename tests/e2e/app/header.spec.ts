@@ -29,7 +29,9 @@ unauthenticatedTest('opens About from the native sign-in header', async ({ page 
 test('public pages link to Home through the brand and retain staff navigation', async ({ page }) => {
   await page.goto('/about/');
   const navigation = page.getByRole('navigation', { name: 'Primary' });
-  await expect(navigation.getByRole('link')).toHaveText(['About', 'Admin', 'Sign out…']);
+  await expect(navigation.getByRole('link')).toHaveText(['About', 'Sharing', 'Admin', 'Sign out…']);
+  await navigation.getByRole('link', { name: 'Sharing', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Sharing' })).toBeVisible();
   await page.getByRole('link', { name: 'RemDo home', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
 });

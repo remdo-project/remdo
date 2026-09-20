@@ -16,7 +16,7 @@ test('owner shares with a local account; recipient edits and unrelated account i
     await editor.click();
     await page.keyboard.type('Owner content');
     await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Saved to server.*Server connected/u);
-    await page.goto('/sharing');
+    await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Sharing', exact: true }).click();
     await page.getByRole('combobox', { name: 'Document', exact: true }).click();
     await page.getByRole('option', { name: 'Shared research', exact: true }).click();
     await page.getByLabel('User email').fill(recipient.email);

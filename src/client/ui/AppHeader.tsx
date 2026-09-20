@@ -34,6 +34,11 @@ export default function AppHeader({ authState, onLogout, signInHref, trailingNav
                 About
               </a>
             )}
+            {hasAppAccess && (
+              <Link className="remdo-header-link" to="/sharing">
+                Sharing
+              </Link>
+            )}
             {authState.status === 'authenticated' && authState.isAdmin && (
               <a className="remdo-header-link" href="/admin/">
                 Admin
