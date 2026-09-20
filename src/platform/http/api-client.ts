@@ -6,15 +6,19 @@ import type { paths as AccountPaths } from './auth-schema';
 
 const options = {
   baseUrl: typeof location === 'undefined' ? undefined : location.origin,
-  fetch: async (request: Request) => {
-    // Offline reopening can reach mutations before the session gate loads configuration.
-    if (typeof document !== 'undefined' && new URL(request.url).origin === location.origin
-      && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
-      await getApiConfig();
-    }
-    return apiFetch(request);
-  },
+  fetch: (request: Request) => fetchApi(request),
 };
+
+export async function fetchApi(request: Request, beforeDispatch?: () => void): Promise<Response> {
+  // Offline reopening can reach mutations before configuration has loaded.
+  if (typeof document !== 'undefined' && new URL(request.url).origin === location.origin
+    && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+    await getApiConfig();
+  }
+  // Identity guards must run after prerequisites, with no further await before fetch.
+  beforeDispatch?.();
+  return apiFetch(request);
+}
 
 export const api = createClient<ApiPaths>(options);
 export const accountApi = createClient<AccountPaths>(options);
