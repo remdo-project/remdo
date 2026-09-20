@@ -127,7 +127,11 @@ export async function revokeServerSession(): Promise<void> {
   if (!generation || hasConfirmedSignOut() || !navigator.onLine) return;
   try {
     await Promise.race([
-      signOut(AbortSignal.timeout(SERVER_SIGN_OUT_TIMEOUT_MS)),
+      signOut(AbortSignal.timeout(SERVER_SIGN_OUT_TIMEOUT_MS), () => {
+        if (pendingSignOutGeneration() !== generation) {
+          throw new DOMException('Sign-out superseded.', 'AbortError');
+        }
+      }),
       new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('Server sign-out timed out.')), SERVER_SIGN_OUT_TIMEOUT_MS);
       }),

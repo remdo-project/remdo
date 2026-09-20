@@ -169,11 +169,13 @@ Application models and migrations remain Django-owned.
 
 ## Remaining migration gaps
 
-- **Stale logout dispatch:** keep the [logout generation](specs/access/access-control.md#logout) valid through
-  asynchronous CSRF/config prerequisites, checking immediately before sending
-  revocation. A newer sign-in must supersede an old Finish signing out action.
-  Cover the real HTTP helper rather than mocking away its prerequisite await;
-  also assess already-dispatched response ordering.
+- **In-flight logout responses:** complete [logout supersession](specs/access/access-control.md#logout) across native
+  sign-in and already-dispatched revocation. A real-browser check held Django's
+  logout response, completed another account's native login, then delivered the
+  old response within the logout deadline: its session-cookie deletion made the
+  new browser session unauthenticated. The pre-dispatch generation guard cannot
+  prevent this response effect. Resolve cookie-response ordering or coordinate
+  session transitions; client result checks alone are insufficient.
 - **Administration invariants:** restrict edits to existing document ownership
   and kind unless explicit transfer/conversion semantics are accepted.
   Converting a shared normal document into Home currently preserves grants and
@@ -189,10 +191,6 @@ Application models and migrations remain Django-owned.
   limits treat unrelated clients as loopback; development disables those limits.
   Verify distinct clients through Caddy and the hosted proxy, retaining the
   framework limiter.
-- **Session HTTP simplification:** use [PR #607](https://github.com/remdo-project/remdo/pull/607) as inspiration: remove the
-  session read's unnecessary config prerequisite and let the shared mutation
-  transport own CSRF initialization. Preserve direct collaboration-fetch
-  initialization. This simplification alone does not fix stale logout dispatch.
 - **Advertised migration leftovers:** use the bounded cleanup in [PR #608](https://github.com/remdo-project/remdo/pull/608) to
   correct README, architecture, onboarding, and deployment claims about the
   retired backend, linking, exporter, and scheduler. Remove unsupported backup
