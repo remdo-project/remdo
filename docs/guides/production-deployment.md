@@ -108,11 +108,13 @@ Instances using the previous Node backend have no supported data migration to
 Django. Keep their original image and data together; do not point the Django
 image at the old data root. See the [Django migration boundary](../django-migration.md#browser-document-flow-foundation).
 
+The retained [Node backup exporter](../../tools/snapshot/backup.ts) does not support Django datasets. Application
+backup and recovery tooling is [separate follow-up](../todo.md#operations) .
+
 1. Stop the instance. A schema change can rewrite tables that authentication
    writes to.
 2. Copy the [persistent storage root](../architecture.md#runtime-persistence-boundary),
-   which is what a rollback restores. The [`backup` script](../../package.json)
-   exports document content for reading and does not replace this copy.
+   which is what a rollback restores.
    With PostgreSQL, separately preserve the matching database backup;
    copying `DATA_DIR` alone cannot restore metadata.
 

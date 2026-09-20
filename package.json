@@ -31,7 +31,6 @@
     "audit:security": "timeout ${TEST_TIMEOUT:-120}s pnpm audit --audit-level=high --prod",
     "audit:unused": "timeout ${TEST_TIMEOUT:-120}s ./tools/env.sh env NODE_OPTIONS=--import=tsx pnpm exec knip -c knip.jsonc --no-progress --max-issues 0",
     "audit:unused:prod": "timeout ${TEST_TIMEOUT:-120}s ./tools/env.sh env NODE_OPTIONS=--import=tsx pnpm exec knip -c knip.jsonc --production --exclude types,binaries --no-progress --max-issues 0",
-    "backup": "./tools/env.sh tsx ./tools/snapshot/backup.ts --md",
     "build": "./tools/env.sh vite build",
     "build:watch": "./tools/env.sh vite build --watch",
     "check:dev-boundary": "sh ./tools/check-dev-boundary.sh",
