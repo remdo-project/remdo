@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models, router, transaction
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class UserManager(BaseUserManager):
@@ -23,15 +25,18 @@ class User(AbstractUser):
     objects = UserManager()
 
     def save(self, **kwargs):
-        from documents.models import Document
-
-        creating = self._state.adding
         using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
         with transaction.atomic(using=using):
             super().save(**kwargs)
-            if creating:
-                Document.objects.using(using).create(owner=self, title="New Document")
 
     def clean(self):
         super().clean()
         self.email = self.email.lower()
+
+
+@receiver(post_save, sender=User)
+def create_starter_document(sender, instance, created, raw, using, **kwargs):
+    if created and not raw:
+        from documents.models import Document
+
+        Document.objects.using(using).create(owner=instance, title="New Document")

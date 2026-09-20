@@ -388,6 +388,14 @@ class StarterDocumentTests(TestCase):
         user.save()
         self.assertEqual(list(Document.objects.filter(owner=user)), [document])
 
+    def test_saving_reconstructed_account_preserves_document_inventory(self):
+        user = User.objects.create_user("reconstructed@example.test", "password")
+        document = Document.objects.get(owner=user)
+        User(pk=user.pk, email=user.email, password=user.password, first_name="Changed").save()
+        user.refresh_from_db()
+        self.assertEqual(user.first_name, "Changed")
+        self.assertEqual(list(Document.objects.filter(owner=user)), [document])
+
     def test_failed_document_creation_rolls_back_account(self):
         with patch(
             "django.db.models.query.QuerySet.create", side_effect=RuntimeError("unavailable")
