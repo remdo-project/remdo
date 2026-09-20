@@ -19,7 +19,7 @@ os.execvpe(
         "--port",
         os.environ["COLLAB_SERVER_PORT"],
         "--prod",
-        settings.YSWEET_STORE,
+        str(settings.DATA_DIR / "collab"),
     ],
     environment,
 )

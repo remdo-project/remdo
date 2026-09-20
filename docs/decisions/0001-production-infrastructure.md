@@ -1,6 +1,8 @@
 # ADR: Initial Production Infrastructure & Launch Architecture
 
-- **Status:** Proposed — for human review and decision
+- **Status:** Proposed — for human review and decision; the S3 document-storage
+  direction is withdrawn. The [current persistence contract](../specs/runtime/configuration.md#persistence) retains filesystem
+  storage; the analysis below is historical.
 - **Date:** 2026-09-15
 - **Deciders:** RemDo maintainers (human review)
 - **Author of draft:** agent research + synthesis (advisory; decisions are the

@@ -118,11 +118,11 @@ test('hosted TLS termination preserves secure cookies and trusted-origin CSRF', 
   }
 });
 
-test('hosted S3 document content survives restart and container replacement', async () => {
+test('hosted filesystem document content survives restart and container replacement', async () => {
   test.setTimeout(90_000);
   const hosted = process.env.DOCKER_HOSTED_CONTAINER!;
   const origin = 'https://remdo.onrender.com';
-  const persistEmail = 's3-persist@production.example.test';
+  const persistEmail = 'disk-persist@production.example.test';
   const api = await request.newContext({
     baseURL: `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}`,
     extraHTTPHeaders: { Host: 'remdo.onrender.com', Origin: origin },
@@ -149,7 +149,7 @@ test('hosted S3 document content survives restart and container replacement', as
       Cookie: `${sessionCookie}; ${authedConfig.csrfCookieName}=${authedConfig.csrfToken}`,
       'X-CSRFToken': authedConfig.csrfToken,
     };
-    const created = await api.post('/api/documents', { headers: authedHeaders, data: { title: 'S3 restart' } });
+    const created = await api.post('/api/documents', { headers: authedHeaders, data: { title: 'Disk restart' } });
     expect(created.status()).toBe(201);
     const { id: docId } = await created.json() as { id: string };
     const tokenResponse = await api.post(`/api/documents/${docId}/sync-tokens`, {
@@ -196,15 +196,15 @@ print(base64.b64encode(request(auth["baseUrl"].rstrip("/") + "/as-update", auth[
     }
     await waitForCollaboration();
     const original = new Y.Doc();
-    original.getText('content').insert(0, 'Persisted in S3');
+    original.getText('content').insert(0, 'Persisted on disk');
     await writeDocument(original);
     original.destroy();
 
     docker('restart', '--time', '15', hosted);
     await waitForCollaboration();
     const restored = readDocument();
-    expect(restored.getText('content').toString()).toBe('Persisted in S3');
-    restored.getText('content').insert(15, ' after restart');
+    expect(restored.getText('content').toString()).toBe('Persisted on disk');
+    restored.getText('content').insert(restored.getText('content').length, ' after restart');
     await writeDocument(restored);
     restored.destroy();
 
@@ -221,39 +221,18 @@ print(base64.b64encode(request(auth["baseUrl"].rstrip("/") + "/as-update", auth[
       instance!.Config.Image);
     await waitForCollaboration();
     const redeployed = readDocument();
-    expect(redeployed.getText('content').toString()).toBe('Persisted in S3 after restart');
+    expect(redeployed.getText('content').toString()).toBe('Persisted on disk after restart');
     redeployed.destroy();
-    // Recovery must come from the configured object prefix, never a local fallback.
     expect(docker('exec', hosted, 'python', '-c', `
 from pathlib import Path
-import urllib.request
-assert not list(Path('/data/collab').iterdir())
-with urllib.request.urlopen('http://s3:9090/remdo/hosted/${docId}/data.ysweet') as response:
-    print(len(response.read()) > 0)
-`)).toBe('True');
+import sys
+print((Path('/data/collab') / sys.argv[1] / 'data.ysweet').stat().st_size > 0)
+`, docId)).toBe('True');
   } finally {
     await api.dispose();
   }
 });
 
-
-test('unavailable S3 storage fails startup instead of falling back to local storage', () => {
-  test.setTimeout(45_000);
-  const hosted = process.env.DOCKER_HOSTED_CONTAINER!;
-  const name = `${hosted}-missing-bucket`;
-  const image = docker('inspect', '--format', '{{.Config.Image}}', hosted);
-  try {
-    const result = spawnSync('docker', ['run', '--name', name, '--network', process.env.PG_NETWORK!,
-      '-e', 'APP_ORIGIN=https://remdo.example.test', '-e', 'Y_SWEET_STORE=s3://missing-bucket/instance',
-      '-e', 'AWS_ACCESS_KEY_ID=fixture', '-e', 'AWS_SECRET_ACCESS_KEY=fixture',
-      '-e', 'AWS_ENDPOINT_URL_S3=http://s3:9090', '-e', 'AWS_S3_USE_PATH_STYLE=true', image],
-    { encoding: 'utf8', timeout: 30_000 });
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('Bucket does not exist');
-  } finally {
-    docker('rm', '-f', name);
-  }
-});
 
 test('startup refuses missing or corrupt secrets over an existing dataset', async () => {
   test.setTimeout(45_000);
