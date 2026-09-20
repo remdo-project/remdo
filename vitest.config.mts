@@ -80,6 +80,7 @@ const nodeTests = [
   'tests/unit/skills/embedded.spec.ts',
   'tests/unit/snapshot-backup.spec.ts',
   'tests/unit/todo-list.spec.ts',
+  'tests/unit/django-template-storage-keys.spec.ts',
   'tests/unit/vite-logger.spec.ts',
   'tests/unit/vite-shared.spec.ts',
   'src/server/auth/*.spec.ts',

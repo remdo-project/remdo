@@ -1,4 +1,4 @@
-const CURRENT_USER_BOOTSTRAP_STORAGE_KEY = 'remdo-current-user-bootstrap';
+export const CURRENT_USER_BOOTSTRAP_STORAGE_KEY = 'remdo-current-user-bootstrap';
 
 function getCurrentUserBootstrapStorage(): Storage | null {
   try {
