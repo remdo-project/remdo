@@ -305,7 +305,7 @@ class DocumentFlowTests(TestCase):
             "/api/auth/browser/v1/auth/signup",
             {"email": "new@example.test", "password": "New-account-password-123"},
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
         self.assertFalse(User.objects.filter(email="new@example.test").exists())
         flows = self.client.get("/api/auth/browser/v1/auth/session").json()["data"]["flows"]
         self.assertNotIn({"id": "signup"}, flows)

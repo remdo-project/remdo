@@ -9,7 +9,7 @@ SHARED_STYLES = "src/client/ui/styles/shared.css"
 
 @register.simple_tag
 def shared_styles_urls():
-    if settings.DEBUG:
+    if settings.FRONTEND_USE_SOURCE_STYLES:
         return [f"/{SHARED_STYLES}"]
     manifest = json.loads(settings.FRONTEND_MANIFEST.read_text())
     return [f"/{asset}" for asset in manifest[SHARED_STYLES]["css"]]

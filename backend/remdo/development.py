@@ -6,6 +6,7 @@ from . import base
 from .base import *  # noqa: F403
 
 DEBUG = True
+FRONTEND_USE_SOURCE_STYLES = os.environ.get("REMDO_DEV_CONTAINER") != "true"
 INSTALLED_APPS = [*base.INSTALLED_APPS, "fixtures"]
 # Fixture workers share one loopback address and authenticate independently.
 ACCOUNT_RATE_LIMITS = False

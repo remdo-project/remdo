@@ -1,6 +1,7 @@
 import {
   allowUnauthorizedNetwork,
   collectCurrentUserRequests,
+  setExpectedConsoleIssues,
   expect,
   test,
   unauthenticatedTest,
@@ -8,6 +9,22 @@ import {
 import type { Page } from '#e2e/fixtures';
 import type { CurrentUserBootstrap } from '#domain/documents/user-data';
 import { HTTP_STATUS } from '#platform/http/status';
+
+test('Sharing remains recoverable when a remembered session has no offline bootstrap', async ({ page }) => {
+  await page.goto('/about/');
+  await page.evaluate(() => {
+    localStorage.setItem('remdo-authenticated-session', '1');
+    localStorage.removeItem('remdo-current-user-bootstrap');
+  });
+  setExpectedConsoleIssues(page, ['net::ERR_FAILED'], { mode: 'allowContains' });
+  await page.route('**/api/**', (route) => route.abort());
+  await page.goto('/sharing');
+  await expect(page).toHaveURL(/\/sharing$/u);
+  await expect(page.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
+  await page.unroute('**/api/**');
+  await page.getByRole('button', { name: 'Retry', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Sharing', exact: true })).toBeVisible();
+});
 
 async function expectPath(page: Page, pathname: string): Promise<void> {
   await expect.poll(() => new URL(page.url()).pathname).toBe(pathname);

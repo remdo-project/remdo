@@ -30,7 +30,11 @@ async function requireAuthenticatedRoute(request: Request): Promise<SessionGateS
 }
 
 async function authenticatedSessionLoader({ request }: { request: Request }) {
-  return { sessionState: await requireAuthenticatedRoute(request) };
+  const sessionState = await requireAuthenticatedRoute(request);
+  if (sessionState.status === 'offline-remembered' && !getCachedCurrentUserBootstrap()) {
+    return { sessionState: { status: 'offline-unavailable' } as const };
+  }
+  return { sessionState };
 }
 
 async function homeRouteLoader(request: Request): Promise<{ sessionState: SessionGateState }> {

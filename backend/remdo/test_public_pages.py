@@ -42,7 +42,13 @@ class PublicPageTests(SimpleTestCase):
 
     def test_missing_and_non_page_paths_are_not_rendered(self):
         self.write_page()
-        for url in ("/missing/", "/nested/privacy/", "/privacy.md", "/..%2Fprivacy/"):
+        for url in (
+            "/missing/",
+            "/nested/privacy/",
+            "/privacy.md",
+            "/..%2Fprivacy/",
+            f"/{'a' * 256}/",
+        ):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 404)
 

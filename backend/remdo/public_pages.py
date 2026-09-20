@@ -1,3 +1,5 @@
+import errno
+
 import markdown
 import yaml
 from django.conf import settings
@@ -13,7 +15,9 @@ from django.views.decorators.http import require_safe
 def public_page(request, slug):
     try:
         source = (settings.PUBLIC_PAGES_DIR / f"{slug}.md").read_text(encoding="utf-8")
-    except FileNotFoundError as error:
+    except OSError as error:
+        if error.errno not in (errno.ENOENT, errno.ENAMETOOLONG):
+            raise
         raise Http404 from error
 
     lines = source.splitlines()
