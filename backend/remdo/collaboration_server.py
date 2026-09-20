@@ -6,7 +6,7 @@ from django.conf import settings
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "remdo.settings")
 environment = dict(os.environ)
-for key in ("AUTH_SECRET", "ADMIN_SECRET", "YSWEET_AUTH_KEY", "YSWEET_SERVER_TOKEN"):
+for key in ("AUTH_SECRET", "YSWEET_AUTH_KEY", "YSWEET_SERVER_TOKEN"):
     environment.pop(key, None)
 environment.update(Y_SWEET_AUTH=settings.YSWEET_AUTH_KEY, RUST_LOG="error")
 os.execvpe(

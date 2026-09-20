@@ -28,8 +28,6 @@ export const envSchema = {
   YSWEET_SERVER_TOKEN: str,
   // Django's SECRET_KEY; tools/env.defaults.sh supplies the development value.
   AUTH_SECRET: str,
-  // Operator secret for admin provisioning actions.
-  ADMIN_SECRET: str,
   // Canonical public app URL. Derived in development; required in production.
   APP_ORIGIN: str,
   // Product signup policy. tools/env.defaults.sh sets true outside production.

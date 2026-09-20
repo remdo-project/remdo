@@ -15,8 +15,18 @@ function toApiUrl(pathname: string): string {
   return `${resolveApiServerOrigin()}${pathname}`;
 }
 
+let provisioningPromise: Promise<void> | null = null;
+
+export async function ensureCollabTestUser(): Promise<void> {
+  provisioningPromise ??= provisionDjangoUser(TEST_AUTH_ACCOUNT).catch((error: unknown) => {
+    provisioningPromise = null;
+    throw error;
+  });
+  return provisioningPromise;
+}
+
 async function signInTestUser(): Promise<CollabTestAuthentication> {
-  await provisionDjangoUser(TEST_AUTH_ACCOUNT);
+  await ensureCollabTestUser();
   const request = await playwrightRequest.newContext();
   try {
     const csrfToken = await authenticateDjangoTestUser(request, resolveApiServerOrigin(), TEST_AUTH_ACCOUNT);

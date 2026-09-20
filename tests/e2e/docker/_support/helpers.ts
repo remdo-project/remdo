@@ -1,9 +1,6 @@
 import type { Page } from '#e2e/fixtures';
 import { attachPageGuards, expect, setExpectedConsoleIssues } from '#e2e/fixtures';
-import { config } from '#config';
 import type { BrowserContext } from '@playwright/test';
-
-export const DOCKER_TEST_ADMIN_SECRET = config.env.ADMIN_SECRET;
 
 export function allowTransientTokenFetchConsoleIssue(page: Page): void {
   setExpectedConsoleIssues(page, ['Failed to get client token'], { mode: 'allowContains' });
