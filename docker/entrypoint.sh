@@ -95,7 +95,7 @@ trap 'stop_children TERM; exit 143' TERM
 
 start_child y-sweet python -m remdo.collaboration_server
 start_child api gunicorn remdo.wsgi --bind "127.0.0.1:${API_SERVER_PORT}" --threads 4 --graceful-timeout 8
-start_child caddy env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY -u YSWEET_SERVER_TOKEN \
+start_child caddy env -u AUTH_SECRET -u YSWEET_AUTH_KEY -u YSWEET_SERVER_TOKEN \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 
 while :; do

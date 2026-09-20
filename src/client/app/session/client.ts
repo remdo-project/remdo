@@ -32,6 +32,18 @@ function getTabStorage(): Storage | null {
   }
 }
 
+function withSessionStorage(mutate: (storage: Storage) => void): void {
+  try {
+    const storage = getSessionStorage();
+    if (storage) {
+      mutate(storage);
+    }
+  } catch {
+    // A quota or permission failure must not strand the shell mid-logout: the
+    // server session is revoked next, and peers fall back to their own checks.
+  }
+}
+
 function withTabStorage(mutate: (storage: Storage) => void): void {
   try {
     const storage = getTabStorage();
@@ -82,10 +94,11 @@ export function rememberPendingSignOut() {
   withTabStorage((storage) => {
     storage.setItem(PENDING_SIGN_OUT_ORIGIN_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
   });
-  const storage = getSessionStorage();
-  if (storage && !storage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)) {
-    storage.setItem(PENDING_SIGN_OUT_STORAGE_KEY, newPendingSignOutGeneration());
-  }
+  withSessionStorage((storage) => {
+    if (!storage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)) {
+      storage.setItem(PENDING_SIGN_OUT_STORAGE_KEY, newPendingSignOutGeneration());
+    }
+  });
 }
 
 export function forgetPendingSignOut() {
