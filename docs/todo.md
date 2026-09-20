@@ -292,10 +292,6 @@ until accepted in their behavioral owners. Defer a command palette and action
 menus on every breadcrumb until improving the existing surfaces leaves a
 concrete unmet need.
 
-- **Home and initial documents.** Choose an empty workspace or one ordinary
-  starter document, then remove the rejected special Home privacy restriction
-  and align the affected [access contract](specs/access/access-control.md#document-access).
-
 - **Location header and document actions.** Deliver the [document rename capability](specs/outliner/location-header.md#document-rename),
   then document-root and Home menus, then the [persistent menu target](specs/outliner/menu.md#entry). The
   [legacy implementation gaps](legacy-backlog.md#home-and-location-header-follow-ups) track the missing surfaces and storage path.

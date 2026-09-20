@@ -14,7 +14,7 @@ function account(userId = 'alice') {
 function documentRequests(handler: (request: Request) => Response | Promise<Response>, userId = 'alice') {
   vi.stubGlobal('fetch', vi.fn((request: Request) => {
     if (new URL(request.url).pathname === '/api/current-user') {
-      return Promise.resolve(Response.json({ userId, homeDocumentId: `${userId}Home`, publicServer: false }));
+      return Promise.resolve(Response.json({ userId, publicServer: false }));
     }
     return Promise.resolve(handler(request));
   }));
@@ -37,55 +37,17 @@ afterEach(() => {
 });
 
 describe('account metadata', () => {
-  it('lists a fresh account only after bootstrap creates its home document', async () => {
+  it('lists documents while the account bootstrap is still pending', async () => {
     const runtime = account();
     const bootstrapResponse = deferred<Response>();
-    const bootstrapStarted = deferred<void>();
-    let homeCreated = false;
-    vi.stubGlobal('fetch', vi.fn((request: Request) => {
-      if (new URL(request.url).pathname === '/api/current-user') {
-        bootstrapStarted.resolve();
-        return bootstrapResponse.promise;
-      }
-      return Promise.resolve(Response.json(homeCreated ? [{ id: 'aliceHome', title: 'Home', shareable: false }] : []));
-    }));
+    vi.stubGlobal('fetch', vi.fn((request: Request) => new URL(request.url).pathname === '/api/current-user'
+      ? bootstrapResponse.promise
+      : Promise.resolve(Response.json([{ id: 'starter', title: 'New Document', shareable: true }]))));
     const bootstrap = runtime.client.query(runtime.bootstrapQuery);
-    const listing = runtime.client.query(runtime.documentsQuery);
-    await bootstrapStarted.promise;
-    homeCreated = true;
-    bootstrapResponse.resolve(Response.json({ userId: 'alice', homeDocumentId: 'aliceHome', publicServer: false }));
-    await Promise.all([bootstrap, listing]);
-    expect(runtime.userData.getHomeDocument().getId()).toBe('aliceHome');
-    expect(runtime.userData.getDocuments().getChildren().map((document) => document.getText())).toEqual(['Home']);
-  });
-
-  it('does not start a cancelled listing when its shared bootstrap later completes', async () => {
-    const runtime = account();
-    const bootstrapResponse = deferred<Response>();
-    const bootstrapStarted = deferred<void>();
-    const listingSettled = deferred<void>();
-    let documentRequestsStarted = 0;
-    vi.stubGlobal('fetch', vi.fn((request: Request) => {
-      if (new URL(request.url).pathname === '/api/current-user') {
-        bootstrapStarted.resolve();
-        return bootstrapResponse.promise;
-      }
-      documentRequestsStarted += 1;
-      return Promise.resolve(Response.json([]));
-    }));
-    const query = runtime.documentsQuery.queryFn!;
-    const listing = runtime.client.query({
-      ...runtime.documentsQuery,
-      queryFn: async (context) => {
-        try { return await query(context); } finally { listingSettled.resolve(); }
-      },
-    }).catch(() => {});
-    const bootstrap = runtime.client.query(runtime.bootstrapQuery);
-    await bootstrapStarted.promise;
-    await runtime.client.cancelQueries({ queryKey: runtime.documentsQuery.queryKey });
-    bootstrapResponse.resolve(Response.json({ userId: 'alice', homeDocumentId: 'aliceHome', publicServer: false }));
-    await Promise.all([bootstrap, listing, listingSettled.promise]);
-    expect(documentRequestsStarted).toBe(0);
+    await runtime.client.query(runtime.documentsQuery);
+    expect(runtime.userData.getDocuments().getById('starter')?.getText()).toBe('New Document');
+    bootstrapResponse.resolve(Response.json({ userId: 'alice', publicServer: false }));
+    await bootstrap;
   });
 
   it('recovers from a failed initial listing using the same query and SDK adapter', async () => {
@@ -94,10 +56,10 @@ describe('account metadata', () => {
     await expect(runtime.client.query(runtime.documentsQuery)).rejects.toThrow('Request failed: 503');
     expect(runtime.client.getQueryState(runtime.documentsQuery.queryKey)?.error).not.toBeNull();
 
-    documentRequests(() => Response.json([{ id: 'aliceHome', title: 'Home', shareable: false }]));
+    documentRequests(() => Response.json([{ id: 'aliceDoc', title: 'Research', shareable: false }]));
     await runtime.client.query(runtime.documentsQuery);
     expect(runtime.client.getQueryState(runtime.documentsQuery.queryKey)?.error).toBeNull();
-    expect(runtime.userData.getDocuments().getById('aliceHome')?.getText()).toBe('Home');
+    expect(runtime.userData.getDocuments().getById('aliceDoc')?.getText()).toBe('Research');
   });
 
   it('uses the same cache for query subscribers and the note SDK, including creation', async () => {
@@ -107,10 +69,9 @@ describe('account metadata', () => {
         const { title } = await request.json() as { title: string };
         return Response.json({ id: 'created', title, shareable: false }, { status: 201 });
       }
-      return Response.json([{ id: 'aliceHome', title: 'Home', shareable: false }]);
+      return Response.json([{ id: 'aliceDoc', title: 'Research', shareable: false }]);
     });
     await Promise.all([runtime.client.query(runtime.bootstrapQuery), runtime.client.query(runtime.documentsQuery)]);
-    expect(runtime.userData.getHomeDocument().getId()).toBe('aliceHome');
     const created = await runtime.userData.getDocuments().create('Research');
     expect(created.getText()).toBe('Research');
     expect(runtime.userData.getDocuments().getById('created')?.getText()).toBe('Research');
@@ -207,7 +168,7 @@ describe('account metadata', () => {
     const bob = account('bob');
     documentRequests(() => Response.json([{ id: 'bobHome', title: 'Bob', shareable: false }]), 'bob');
     await bob.client.query(bob.documentsQuery);
-    response.resolve(Response.json([{ id: 'aliceHome', title: 'Alice', shareable: false }]));
+    response.resolve(Response.json([{ id: 'aliceDoc', title: 'Alice', shareable: false }]));
     await load;
     expect(alice.userData.getDocuments().getChildren()).toEqual([]);
     expect(bob.userData.getDocuments().getChildren().map((doc) => doc.getId())).toEqual(['bobHome']);

@@ -1,6 +1,5 @@
 import { queryOptions } from '@tanstack/react-query';
 import { hasRememberedSession, isLikelyFetchUnavailableError } from '#client/app/session/client';
-import { normalizeDocumentId } from '#domain/documents/ids';
 import { api, requireData } from '#platform/http/api-client';
 import type { components } from '#platform/http/api-schema';
 import {
@@ -51,9 +50,8 @@ export function getCachedCurrentUserBootstrap(): CurrentUserBootstrap | null {
   }
   try {
     const body = JSON.parse(rawBootstrap) as Partial<CurrentUserBootstrap>;
-    const homeDocumentId = normalizeDocumentId(body.homeDocumentId);
-    if (typeof body.userId === 'string' && body.userId && homeDocumentId) {
-      return { userId: body.userId, homeDocumentId, publicServer: body.publicServer === true };
+    if (typeof body.userId === 'string' && body.userId) {
+      return { userId: body.userId, publicServer: body.publicServer === true };
     }
   } catch {
     // Browser storage is untrusted; an invalid record cannot establish identity.

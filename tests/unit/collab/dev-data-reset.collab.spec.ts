@@ -39,7 +39,9 @@ describe('development fixture setup', { timeout: 60_000 }, () => {
       ]))).toEqual({ documentCount: 4, userCount: 2 });
       await authenticateDjangoTestUser(bob, baseURL, STABLE_AUTH_USERS.bob);
       const bobDocuments = await documents(bob);
-      expect(bobDocuments).toHaveLength(2);
+      expect(bobDocuments.map(({ title }) => title).sort()).toEqual([
+        'New Document', 'fixture: reset-contract', 'fixture: second-fixture',
+      ]);
       for (const [title, content] of [['fixture: reset-contract', initial], ['fixture: second-fixture', second]] as const) {
         const document = bobDocuments.find((entry) => entry.title === title)!;
         expect(await readContent(document.id)).toEqual(stripEditorStateDefaults(content).root);

@@ -21,7 +21,7 @@ async function signIn(page: Page, email = ownerEmail) {
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
   // Account bootstrap must finish before a fresh offline page can remember it.
-  await expect(page.locator('[data-home-document-ref]').first()).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('remdo-current-user-bootstrap'))).not.toBeNull();
 }
 
 async function warmDocument(page: Page, title: string) {

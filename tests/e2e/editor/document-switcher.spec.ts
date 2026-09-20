@@ -73,7 +73,7 @@ test.describe('Document switcher', () => {
 
     const createdDocId = await captureCreatedDoc(page, async () => {
       await homeZoomBreadcrumb(page).click();
-      await homeView(page).getByRole('button', { name: 'New document' }).click();
+      await homeView(page).getByRole('button', { name: 'New document', exact: true }).click();
     });
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
     await ensureReady(page);
@@ -87,7 +87,8 @@ test.describe('Document switcher', () => {
     await waitForSynced(page);
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
 
-    await chooseDocument(page, 'New Document');
+    await documentPickerButton(page).click();
+    await page.getByRole('listbox').locator(`[data-key="${createdDocId}"]`).click();
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await ensureReady(page);
@@ -108,7 +109,7 @@ test.describe('Document switcher', () => {
 
     await captureCreatedDoc(page, async () => {
       await homeZoomBreadcrumb(page).click();
-      await homeView(page).getByRole('button', { name: 'New document' }).click();
+      await homeView(page).getByRole('button', { name: 'New document', exact: true }).click();
     });
 
     await documentPickerButton(page).click();

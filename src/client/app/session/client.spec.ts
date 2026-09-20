@@ -87,8 +87,8 @@ describe('auth client session gate', () => {
     getSessionMock.mockRejectedValue({ status: 401 });
     localStorage.setItem('remdo-authenticated-session', '1');
     localStorage.setItem('remdo-current-user-bootstrap', JSON.stringify({
-      userDataDocumentId: 'oldUserData',
-      homeDocumentId: 'oldHome',
+      userId: 'oldUser',
+      publicServer: false,
     }));
     const { resolveSessionGateState } = await import('#client/app/session/client');
 
@@ -114,8 +114,8 @@ describe('auth client session gate', () => {
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: online });
     localStorage.setItem('remdo-authenticated-session', '1');
     localStorage.setItem('remdo-current-user-bootstrap', JSON.stringify({
-      userDataDocumentId: 'oldUserData',
-      homeDocumentId: 'oldHome',
+      userId: 'oldUser',
+      publicServer: false,
     }));
     const { resolveSessionGateState } = await import('#client/app/session/client');
 

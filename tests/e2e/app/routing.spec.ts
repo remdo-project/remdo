@@ -7,7 +7,7 @@ import {
   unauthenticatedTest,
 } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
-import type { CurrentUserBootstrap } from '#domain/documents/user-data';
+import { createUserDocument } from '../_support/documents';
 import { HTTP_STATUS } from '#platform/http/status';
 
 test('Sharing remains recoverable when a remembered session has no offline bootstrap', async ({ page }) => {
@@ -64,11 +64,9 @@ test.describe('Routing', () => {
     await expect(page.getByRole('heading', { name: 'Linked sources' })).toHaveCount(0);
   });
 
-  test('keeps Home and the default document at distinct reloadable URLs', async ({ page }) => {
-    const bootstrapResponse = await page.request.get('/api/current-user');
-    expect(bootstrapResponse.ok()).toBe(true);
-    const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
-    const documentPath = `/n/${bootstrap.homeDocumentId}`;
+  test('keeps Home and a document at distinct reloadable URLs', async ({ page }) => {
+    const document = await createUserDocument(page, 'Routing document');
+    const documentPath = `/n/${document.id}`;
 
     await page.goto('/');
     await expectPath(page, '/');
@@ -87,10 +85,9 @@ test.describe('Routing', () => {
   });
 
   test('opens server-rendered About from Home and document navigation', async ({ page }) => {
-    const response = await page.request.get('/api/current-user');
-    const { homeDocumentId } = await response.json() as CurrentUserBootstrap;
+    const document = await createUserDocument(page, 'About navigation');
 
-    for (const path of ['/', `/n/${homeDocumentId}`]) {
+    for (const path of ['/', `/n/${document.id}`]) {
       await page.goto(path);
       await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'About', exact: true }).click();
       await expectPath(page, '/about/');
@@ -115,7 +112,7 @@ test.describe('Routing', () => {
     await page.reload();
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
     await expect(page.getByRole('group', { name: 'Current Server', exact: true })
-      .getByRole('button', { name: 'Home', exact: true })).toBeVisible();
+      .getByRole('button', { name: 'New Document', exact: true })).toBeVisible();
   });
 
   unauthenticatedTest('uses native sign-in and preserves protected destinations when signed out', async ({ page }) => {

@@ -12,10 +12,10 @@ async function signIn(page: Page, account: { email: string; password: string }) 
   await page.waitForURL(url => url.pathname === '/', { waitUntil: 'load' });
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('group', { name: 'Current Server', exact: true })
-    .getByRole('button', { name: 'Home', exact: true })).toBeVisible();
+    .getByRole('button', { name: 'New Document', exact: true }).first()).toBeVisible();
 }
 
-test('Django sign-in, Home creation, collaboration, reopen, and account isolation', async ({ browser, contextOptions, page }) => {
+test('Django sign-in, document creation, collaboration, reopen, and account isolation', async ({ browser, contextOptions, page }) => {
   // Three sign-ins and full-page reloads share this scenario's test budget.
   test.setTimeout(60_000);
   const account = createTestAuthAccount();

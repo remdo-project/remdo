@@ -57,7 +57,6 @@ const userData = createUserDataRootNote(documents, {
     return document;
   },
   documentSources,
-  getHomeDocumentId: () => TEST_USER_DATA_DOCUMENT.id,
 });
 
 export function resetTestUserData(): void {

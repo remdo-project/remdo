@@ -40,7 +40,7 @@ class DocumentSerializer(serializers.ModelSerializer):
         return DocumentAccessSerializer(document.grants.all(), many=True).data
 
     def get_shareable(self, document) -> bool:
-        return document.kind == "document" and document.owner_id == self.context["request"].user.pk
+        return document.owner_id == self.context["request"].user.pk
 
     class Meta:
         model = Document
@@ -50,13 +50,12 @@ class DocumentSerializer(serializers.ModelSerializer):
 
 
 class CurrentUserSerializer(serializers.ModelSerializer):
-    userId = serializers.CharField(source="owner_id", read_only=True)
-    homeDocumentId = serializers.CharField(source="id", read_only=True)
+    userId = serializers.CharField(source="pk", read_only=True)
     publicServer = serializers.BooleanField(read_only=True, default=False)
 
     class Meta:
-        model = Document
-        fields = ["userId", "homeDocumentId", "publicServer"]
+        model = get_user_model()
+        fields = ["userId", "publicServer"]
 
 
 class ClientTokenSerializer(serializers.Serializer):
