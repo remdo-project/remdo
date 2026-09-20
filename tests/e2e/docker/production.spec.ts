@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { expect, guardedTest as test } from '#e2e/fixtures';
+import type { APIRequestContext } from '@playwright/test';
 import { request } from '@playwright/test';
 import * as Y from 'yjs';
 
@@ -184,16 +185,11 @@ test('hosted filesystem document content survives restart and container replacem
   const hosted = process.env.DOCKER_HOSTED_CONTAINER!;
   const origin = 'https://remdo.onrender.com';
   const persistEmail = 'disk-persist@production.example.test';
-  const api = await request.newContext({
+  const apiOptions = {
     baseURL: `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}`,
     extraHTTPHeaders: { Host: 'remdo.onrender.com', Origin: origin, 'CF-Connecting-IP': '198.51.100.10' },
-  });
-  try {
-    await expect.poll(async () => {
-      try { return (await api.get('/health')).status(); } catch { return 0; }
-    }, { timeout: 30_000 }).toBe(200);
-    docker('exec', '-e', `DJANGO_SUPERUSER_PASSWORD=${password}`, hosted,
-      'python', 'manage.py', 'createsuperuser', '--noinput', '--email', persistEmail);
+  };
+  async function signIn(api: APIRequestContext): Promise<Record<string, string>> {
     const configResponse = await api.get('/api/config');
     const config = await configResponse.json() as { csrfToken: string; csrfCookieName: string };
     const login = await api.post('/api/auth/browser/v1/auth/login', {
@@ -206,10 +202,19 @@ test('hosted filesystem document content survives restart and container replacem
     const sessionCookie = session.value.split(';')[0]!;
     const authedConfigResponse = await api.get('/api/config', { headers: { Cookie: sessionCookie } });
     const authedConfig = await authedConfigResponse.json() as { csrfToken: string; csrfCookieName: string };
-    const authedHeaders = {
+    return {
       Cookie: `${sessionCookie}; ${authedConfig.csrfCookieName}=${authedConfig.csrfToken}`,
       'X-CSRFToken': authedConfig.csrfToken,
     };
+  }
+  const api = await request.newContext(apiOptions);
+  try {
+    await expect.poll(async () => {
+      try { return (await api.get('/health')).status(); } catch { return 0; }
+    }, { timeout: 30_000 }).toBe(200);
+    docker('exec', '-e', `DJANGO_SUPERUSER_PASSWORD=${password}`, hosted,
+      'python', 'manage.py', 'createsuperuser', '--noinput', '--email', persistEmail);
+    const authedHeaders = await signIn(api);
     const created = await api.post('/api/documents', { headers: authedHeaders, data: { title: 'Disk restart' } });
     expect(created.status()).toBe(201);
     const { id: docId } = await created.json() as { id: string };
@@ -218,20 +223,6 @@ test('hosted filesystem document content survives restart and container replacem
     });
     expect(tokenResponse.status()).toBe(200);
     const clientToken = await tokenResponse.json() as { token: string };
-    // Keep privileged readback credentials inside the container.
-    function documentUpdate(): string {
-      return docker('exec', hosted, 'python', '-c', `
-import base64, json, sys, urllib.request
-from django.conf import settings
-doc_id = sys.argv[1]
-def request(url, token, data=None):
-    headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
-    with urllib.request.urlopen(urllib.request.Request(url, data=data, headers=headers), timeout=5) as response:
-        return response.read()
-auth = json.loads(request("http://127.0.0.1:4004/doc/" + doc_id + "/auth", settings.YSWEET_SERVER_TOKEN, b"{}"))
-print(base64.b64encode(request(auth["baseUrl"].rstrip("/") + "/as-update", auth["token"])).decode())
-`, docId);
-    }
     async function writeDocument(doc: Y.Doc): Promise<void> {
       const response = await api.post(`/d/${docId}/update`, {
         headers: { authorization: `Bearer ${clientToken.token}`, 'content-type': 'application/octet-stream' },
@@ -250,9 +241,13 @@ print(base64.b64encode(request(auth["baseUrl"].rstrip("/") + "/as-update", auth[
         return result.status;
       }, { timeout: 30_000 }).toBe(0);
     }
-    function readDocument(): Y.Doc {
+    async function readDocument(client: APIRequestContext, token: string): Promise<Y.Doc> {
+      const response = await client.get(`/d/${docId}/as-update`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(response.status()).toBe(200);
       const doc = new Y.Doc();
-      Y.applyUpdate(doc, Buffer.from(documentUpdate(), 'base64'));
+      Y.applyUpdate(doc, await response.body());
       return doc;
     }
     await waitForCollaboration();
@@ -263,7 +258,7 @@ print(base64.b64encode(request(auth["baseUrl"].rstrip("/") + "/as-update", auth[
 
     docker('restart', '--time', '15', hosted);
     await waitForCollaboration();
-    const restored = readDocument();
+    const restored = await readDocument(api, clientToken.token);
     expect(restored.getText('content').toString()).toBe('Persisted on disk');
     restored.getText('content').insert(restored.getText('content').length, ' after restart');
     await writeDocument(restored);
@@ -281,9 +276,26 @@ print(base64.b64encode(request(auth["baseUrl"].rstrip("/") + "/as-update", auth[
       ...instance!.Mounts.flatMap(mount => ['-v', `${mount.Source}:${mount.Destination}`]),
       instance!.Config.Image);
     await waitForCollaboration();
-    const redeployed = readDocument();
-    expect(redeployed.getText('content').toString()).toBe('Persisted on disk after restart');
-    redeployed.destroy();
+    // A fresh request context carries no session or collaboration token from before replacement.
+    const fresh = await request.newContext(apiOptions);
+    try {
+      const freshHeaders = await signIn(fresh);
+      const documents = await fresh.get('/api/documents', { headers: freshHeaders });
+      expect(documents.status()).toBe(200);
+      expect(await documents.json()).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: docId, title: 'Disk restart' }),
+      ]));
+      const freshTokenResponse = await fresh.post(`/api/documents/${docId}/sync-tokens`, {
+        headers: freshHeaders, data: {},
+      });
+      expect(freshTokenResponse.status()).toBe(200);
+      const freshToken = await freshTokenResponse.json() as { token: string };
+      const redeployed = await readDocument(fresh, freshToken.token);
+      expect(redeployed.getText('content').toString()).toBe('Persisted on disk after restart');
+      redeployed.destroy();
+    } finally {
+      await fresh.dispose();
+    }
     expect(docker('exec', hosted, 'python', '-c', `
 from pathlib import Path
 import sys
