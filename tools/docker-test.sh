@@ -17,7 +17,10 @@ export DOCKER_TEST_CONTAINER="remdo-$((PORT_BASE + 7))"
 export DOCKER_TEST_ORIGIN="https://remdo.localhost:$((PORT_BASE + 7))"
 export DOCKER_HOSTED_CONTAINER="${IMAGE_NAME}-$((PORT_BASE + 10))"
 export DOCKER_HOSTED_PORT="$((PORT_BASE + 10))"
+# Both ports serve a Chromium baseURL, so an unsafe value must fail here rather
+# than as an opaque net error inside the suite.
 remdo_assert_browser_safe_port "$((PORT_BASE + 7))"
+remdo_assert_browser_safe_port "$((PORT_BASE + 10))"
 # The production launcher replaces its named container; tests must own that name.
 if docker container inspect "${DOCKER_TEST_CONTAINER}" >/dev/null 2>&1; then
   echo "Container ${DOCKER_TEST_CONTAINER} already exists; choose another PORT_BASE." >&2
