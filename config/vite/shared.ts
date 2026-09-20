@@ -5,18 +5,14 @@ import { config } from '../index.ts';
 import { onRollupWarning } from '../_internal/vite/onRollupWarning.ts';
 import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveLocalGatewayOrigin } from '../../src/platform/net/origins.ts';
 import { shouldProxyToDjango } from './gateway-routes.ts';
+import { APP_SHELL_ROUTE_PATTERNS } from '../../src/document-routes/app-shell-routes.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 const host = config.env.HOST;
 const collabServerTarget = resolveCollabServerOrigin();
 const mainGatewayTarget = resolveLocalGatewayOrigin();
-const pwaNavigationFallbackAllowlist = [
-  /^\/(?:\?.*)?$/u,
-  /^\/n\/[^/?]+\/?(?:\?.*)?$/u,
-  /^\/sharing\/?(?:\?.*)?$/u,
-  /^\/sign-out\/?(?:\?.*)?$/u,
-];
+const pwaNavigationFallbackAllowlist = [...APP_SHELL_ROUTE_PATTERNS];
 const apiProxy = { target: resolveApiServerOrigin(), changeOrigin: false };
 const devProxy = {
   '^/d(?:/|$|\\?)': {

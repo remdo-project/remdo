@@ -72,11 +72,13 @@ describe('vite shared config', () => {
       const page = await fetch(new URL('/about/', origin));
       expect(page.status).toBe(200);
       expect(await page.text()).toBe('Public page from Django');
-      for (const url of ['/', '/sharing', '/n/example', '/sign-out', '/sign-out/']) {
+      for (const url of ['/', '/?next=%2Fsharing', '/sharing', '/n/example', '/n/example?note=1', '/sign-out', '/sign-out/']) {
         const response = await fetch(new URL(url, origin), { headers: { Accept: 'text/html' } });
         expect(response.status, url).toBe(200);
         expect(await response.text(), url).toContain('<div id="root">App shell</div>');
       }
+      const documentPrefix = await fetch(new URL('/n/', origin), { headers: { Accept: 'text/html' } });
+      expect(documentPrefix.status).toBe(404);
     } finally {
       await server.close();
       await new Promise<void>((resolve, reject) => backend.close((error) => error ? reject(error) : resolve()));
