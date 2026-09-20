@@ -7,7 +7,7 @@ import type { paths as AccountPaths } from './auth-schema';
 const options = {
   baseUrl: typeof location === 'undefined' ? undefined : location.origin,
   fetch: async (request: Request) => {
-    // Offline reopening can reach mutations before the session gate loads configuration.
+    // This shared boundary owns CSRF configuration for same-origin mutations.
     if (typeof document !== 'undefined' && new URL(request.url).origin === location.origin
       && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
       await getApiConfig();
@@ -41,8 +41,7 @@ export function getApiConfig() {
     queryKey: ['api-config'],
     staleTime: Infinity,
     retry: false,
-    // A fresh offline load must reach the session gate's remembered-state
-    // fallback instead of pausing its configuration request until reconnect.
+    // Surface an offline configuration failure instead of pausing until reconnect.
     networkMode: 'always',
     queryFn: async ({ signal }) => {
       const config = requireData(await api.GET('/api/config', { signal }));
