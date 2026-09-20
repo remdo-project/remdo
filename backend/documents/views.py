@@ -118,6 +118,7 @@ class ConfigView(APIView):
             {
                 "publicServer": False,
                 "csrfCookieName": settings.CSRF_COOKIE_NAME,
+                "buildRevision": settings.BUILD_REVISION,
                 "csrfToken": get_token(request),
             }
         )

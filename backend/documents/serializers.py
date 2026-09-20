@@ -67,6 +67,7 @@ class ClientTokenSerializer(serializers.Serializer):
 
 
 class ConfigSerializer(serializers.Serializer):
+    buildRevision = serializers.CharField(allow_blank=True)
     publicServer = serializers.BooleanField()
     csrfCookieName = serializers.CharField()
     csrfToken = serializers.CharField()

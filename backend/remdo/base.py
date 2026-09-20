@@ -14,6 +14,7 @@ def required(name):
 
 
 DEBUG = False
+BUILD_REVISION = os.environ.get("BUILD_REVISION", "").strip()
 DATA_DIR = Path(required("DATA_DIR")).resolve()
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 APP_ORIGIN = required("APP_ORIGIN")

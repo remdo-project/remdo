@@ -7,9 +7,19 @@ from accounts.models import User
 from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.core.management import call_command
-from django.test import Client, TestCase, override_settings
+from django.test import Client, SimpleTestCase, TestCase, override_settings
 
 from .models import Document, DocumentGrant
+
+
+class ConfigurationTests(SimpleTestCase):
+    def test_public_configuration_identifies_running_build(self):
+        for revision in ("0123456789abcdef0123456789abcdef01234567", ""):
+            with self.subTest(revision=revision), override_settings(BUILD_REVISION=revision):
+                response = self.client.get("/api/config")
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()["buildRevision"], revision)
+                self.assertIn("no-store", response.headers["Cache-Control"])
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"], CSRF_TRUSTED_ORIGINS=["http://testserver"])

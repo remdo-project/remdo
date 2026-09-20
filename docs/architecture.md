@@ -34,6 +34,14 @@ branding, page chrome, and account cards and controls. React and Django retain
 their native rendering and interaction ownership; account pages load their
 presentation assets without the editor runtime.
 
+The shared footer shows a source link and “Build #revision” in readable
+secondary text, with the revision linked to its commit. It identifies the loaded
+frontend on app pages and the backend on server-rendered pages; absent metadata
+shows “Local development” or “Build unknown”. When startup configuration reports
+a different server revision, the app shows a prominent mismatch warning with
+both commit links. Missing revisions or unavailable configuration do not imply a
+mismatch. The comparison does not monitor subsequent deployments.
+
 ### Public Pages
 
 [Public pages](guides/public-pages.md) render repository Markdown through a shared

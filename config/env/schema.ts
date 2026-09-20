@@ -10,6 +10,7 @@ const str = z.string().default('');
 
 export const envSchema = {
   NODE_ENV: str,
+  BUILD_REVISION: str,
   DATA_DIR: str,
   HOST: str,
   PUBLIC_HOST: str,
@@ -40,5 +41,5 @@ export const envSchema = {
 export type EnvKey = keyof typeof envSchema;
 
 // Browser-exposed keys (mirrors the previous spec's client:true flags). Keep in sync with envSchema above.
-export const CLIENT_KEY_LIST = ['COLLAB_ENABLED', 'DEV_DOCUMENT_ID'] as const satisfies readonly EnvKey[];
+export const CLIENT_KEY_LIST = ['COLLAB_ENABLED', 'DEV_DOCUMENT_ID', 'BUILD_REVISION'] as const satisfies readonly EnvKey[];
 export type ClientKey = (typeof CLIENT_KEY_LIST)[number];

@@ -113,6 +113,26 @@ test('production launcher serves login, collaboration, and persistent data throu
   expect((await page.request.get('/django-static/admin/css/base.css')).status()).toBe(200);
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  const revision = process.env.BUILD_REVISION || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  const buildLink = page.getByRole('link', { name: `#${revision.slice(0, 8)}`, exact: true });
+  await expect(buildLink).toHaveAttribute('href', `https://github.com/remdo-project/remdo/commit/${revision}`);
+  const otherRevision = 'abcdef0123456789abcdef0123456789abcdef0123';
+  await page.route('**/api/config', async (route) => {
+    const response = await route.fetch();
+    const configuration = await response.json();
+    expect(configuration.buildRevision).toBe(revision);
+    await route.fulfill({ response, json: { ...configuration, buildRevision: otherRevision } });
+  });
+  await page.reload();
+  const warning = page.getByRole('status').filter({ hasText: 'App and server builds differ' });
+  await expect(warning).toBeVisible();
+  await expect(warning.getByRole('link', { name: '#abcdef01', exact: true }))
+    .toHaveAttribute('href', `https://github.com/remdo-project/remdo/commit/${otherRevision}`);
+  await page.unroute('**/api/config');
+  await page.getByRole('link', { name: 'About', exact: true }).click();
+  await expect(page.getByRole('contentinfo').getByRole('link', { name: `#${revision.slice(0, 8)}`, exact: true }))
+    .toHaveAttribute('href', `https://github.com/remdo-project/remdo/commit/${revision}`);
+  await page.getByRole('link', { name: 'RemDo home' }).click();
   await page.getByRole('button', { name: 'New document', exact: true }).click();
   const editor = page.locator('.editor-input');
   await expect(editor).toBeVisible();
