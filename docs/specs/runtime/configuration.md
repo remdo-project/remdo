@@ -80,21 +80,8 @@ the repository; production containers use `/data` for the mounted root.
 
 Production [public shared files](../../architecture.md#gateway) live in `/data/public-share`.
 
-Production document storage defaults to `DATA_DIR/collab`. Optional
-`Y_SWEET_STORE=s3://bucket/prefix` selects an existing private S3-compatible bucket
-and an instance-exclusive prefix. Y-Sweet receives `AWS_ACCESS_KEY_ID`,
-`AWS_SECRET_ACCESS_KEY`, and `AWS_REGION`; temporary credentials also use
-`AWS_SESSION_TOKEN`. Compatible providers can set `AWS_ENDPOINT_URL_S3` and
-`AWS_S3_USE_PATH_STYLE=true`. These settings remain server-only. Invalid or
-unavailable storage fails startup without falling back to filesystem storage.
-Development and test settings ignore operator `Y_SWEET_STORE` and use
-filesystem storage.
-
-Omitting the prefix dedicates the bucket to one instance; trailing slashes are ignored.
-
-Storage selection does not transfer existing document content. Switching stores
-requires a fresh dataset or an operator-managed transfer while the instance is
-stopped. Keep the same store and prefix across restarts and redeployments.
+Document content persists on the filesystem under `DATA_DIR/collab` in every
+run mode.
 
 ## Secret bootstrap
 

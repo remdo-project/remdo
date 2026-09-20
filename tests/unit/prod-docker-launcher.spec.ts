@@ -104,13 +104,6 @@ describe('prod Docker launcher', () => {
         CADDY_SITE_ADDRESS: 'http://:9998',
         DATA_DIR: dataDir,
         DATABASE_URL: '',
-        Y_SWEET_STORE: '',
-        AWS_ACCESS_KEY_ID: '',
-        AWS_SECRET_ACCESS_KEY: '',
-        AWS_SESSION_TOKEN: '',
-        AWS_REGION: '',
-        AWS_ENDPOINT_URL_S3: '',
-        AWS_S3_USE_PATH_STYLE: '',
         HOST: '',
         PATH: `${binDir}:${process.env.PATH}`,
         PORT: '9999',
@@ -135,10 +128,7 @@ describe('prod Docker launcher', () => {
   }
 
   it('defaults to the canonical loopback origin without requiring host Node', () => {
-    const { dataDir, result, dockerCalls, sleepCalls } = runLauncher({
-      AWS_ACCESS_KEY_ID: 'unrelated-host-access',
-      AWS_SECRET_ACCESS_KEY: 'unrelated-host-secret',
-    });
+    const { dataDir, result, dockerCalls, sleepCalls } = runLauncher();
 
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain('Docker target: https://remdo.localhost:8443');
@@ -170,23 +160,6 @@ describe('prod Docker launcher', () => {
     expect(mkdirCalls).toEqual([['-p', path.resolve('data/production')]]);
     const runArgs = findDockerCall(dockerCalls, 'run');
     expect(dockerOptionValues(runArgs, '-v')).toEqual([`${path.resolve('data/production')}:/data`]);
-  });
-
-  it('passes optional S3 configuration through the environment without credentials in arguments', () => {
-    const storage = {
-      Y_SWEET_STORE: 's3://bucket/self-hosted',
-      AWS_ACCESS_KEY_ID: 'fixture-access',
-      AWS_SECRET_ACCESS_KEY: 'fixture-secret',
-      AWS_SESSION_TOKEN: 'fixture-session',
-      AWS_REGION: 'eu-central-1',
-      AWS_ENDPOINT_URL_S3: 'https://storage.example.test',
-      AWS_S3_USE_PATH_STYLE: 'true',
-    };
-    const { result, dockerCalls } = runLauncher(storage);
-    expect(result.status, result.stderr).toBe(0);
-    const passed = dockerOptionValues(findDockerCall(dockerCalls, 'run'), '-e');
-    expect(passed).toEqual(expect.arrayContaining(Object.keys(storage)));
-    expect(JSON.stringify(dockerCalls)).not.toContain(storage.AWS_SECRET_ACCESS_KEY);
   });
 
   it('starts cleanly without stopping a container that does not exist', () => {
