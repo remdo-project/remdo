@@ -82,6 +82,7 @@ for (const width of [1280, 390]) {
     await page.getByLabel('Email:', { exact: true }).fill(bob.email);
     await page.getByLabel('Password:', { exact: true }).fill(bob.password);
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await page.waitForURL('/');
     await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Alice private document', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => localStorage.getItem('remdo-pending-sign-out'))).toBeNull();
@@ -116,6 +117,7 @@ test('admin sign-in supersedes an unfinished logout in another tab', async ({ pa
   await page.getByLabel('Email:', { exact: true }).fill(previous.email);
   await page.getByLabel('Password:', { exact: true }).fill(previous.password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.waitForURL('/');
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
   setExpectedConsoleIssues(page, ['net::ERR_FAILED'], { mode: 'allowContains' });
   await page.route('**/api/auth/browser/v1/auth/session', async (route) => {

@@ -31,8 +31,6 @@
 }
 
 .remdo-shell {
-  display: flex;
-  flex-direction: column;
   max-width: 87.5rem; /* 1400px */
   margin: 0 auto;
   min-height: calc(100dvh - 2 * var(--app-shell-inset));
@@ -44,10 +42,6 @@
   border-radius: var(--mantine-radius-lg);
   box-shadow: 0 1px 3px rgb(0 0 0 / 25%), 0 16px 44px rgb(0 0 0 / 30%);
   overflow: hidden;
-}
-
-.remdo-shell > main {
-  width: 100%;
 }
 
 /* On phones the card dissolves to full-bleed: the inset and rounded shadow waste
