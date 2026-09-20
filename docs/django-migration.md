@@ -168,13 +168,6 @@ Application models and migrations remain Django-owned.
 
 ## Remaining migration gaps
 
-- **In-flight logout responses:** complete [logout supersession](specs/access/access-control.md#logout) across native
-  sign-in and already-dispatched revocation. A real-browser check held Django's
-  logout response, completed another account's native login, then delivered the
-  old response within the logout deadline: its session-cookie deletion made the
-  new browser session unauthenticated. The pre-dispatch generation guard cannot
-  prevent this response effect. Resolve cookie-response ordering or coordinate
-  session transitions; client result checks alone are insufficient.
 - **Administration invariants:** restrict edits to existing document ownership
   and kind unless explicit transfer/conversion semantics are accepted.
   Converting a shared normal document into Home currently preserves grants and

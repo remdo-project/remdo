@@ -63,7 +63,9 @@ not retry revocation automatically or resume the old session. The pending state
 survives closing the app; Django-rendered pages may still recognize the session
 until revocation or expiry. Show “You're signed out” only after confirmation.
 Confirmation is shared across tabs. Signing in again supersedes an unfinished
-logout; its stale action must not revoke the new session.
+logout: the app must not send or retry its stale revocation action.
+Responses to session requests already in flight follow Django's normal cookie
+handling and may clear a newer login, requiring the user to sign in again.
 
 Signing out of one browser tab signs out every tab sharing its storage, which
 stops using the local data it is losing.
