@@ -76,8 +76,13 @@ describe('vite shared config', () => {
         expect(response.status, url).toBe(200);
         expect(await response.text(), url).toContain('<div id="root">App shell</div>');
       }
-      const documentPrefix = await fetch(new URL('/n/', origin), { headers: { Accept: 'text/html' } });
-      expect(documentPrefix.status).toBe(404);
+      // Production Caddy serves the shell for every `/n/` suffix; the router
+      // renders its own miss. Dev and preview must not diverge from it.
+      for (const url of ['/n/', '/n/a/b']) {
+        const response = await fetch(new URL(url, origin), { headers: { Accept: 'text/html' } });
+        expect(response.status, url).toBe(200);
+        expect(await response.text(), url).toContain('<div id="root">App shell</div>');
+      }
     } finally {
       await server.close();
       await new Promise<void>((resolve, reject) => backend.close((error) => error ? reject(error) : resolve()));
