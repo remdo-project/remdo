@@ -1,16 +1,19 @@
+.remdo-shell {
+  display: flex;
+  flex-direction: column;
+}
+
+.remdo-shell > main {
+  width: 100%;
+}
+
 .remdo-footer {
   margin-top: auto;
   padding: 24px 32px;
   font-size: 14px;
   line-height: 1.5;
   color: var(--mantine-color-dark-1);
-}
-
-.remdo-footer-links {
-  display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px 16px;
+  text-align: right;
 }
 
 .remdo-footer a {
@@ -20,5 +23,4 @@
 
 .remdo-footer-mismatch {
   color: var(--mantine-color-yellow-4);
-  text-align: right;
 }

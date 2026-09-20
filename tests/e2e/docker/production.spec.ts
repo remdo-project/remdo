@@ -120,10 +120,9 @@ test('production launcher serves login, collaboration, and persistent data throu
   await expect(warning.getByRole('link', { name: '#abcdef01', exact: true }))
     .toHaveAttribute('href', `https://github.com/remdo-project/remdo/commit/${otherRevision}`);
   await page.unroute('**/api/config');
-  await page.getByRole('link', { name: 'About', exact: true }).click();
-  await expect(page.getByRole('contentinfo').getByRole('link', { name: `#${revision.slice(0, 8)}`, exact: true }))
-    .toHaveAttribute('href', `https://github.com/remdo-project/remdo/commit/${revision}`);
-  await page.getByRole('link', { name: 'RemDo home' }).click();
+  await page.reload();
+  await expect(warning).toHaveCount(0);
+  await expect(buildLink).toBeVisible();
   await page.getByRole('button', { name: 'New document', exact: true }).click();
   const editor = page.locator('.editor-input');
   await expect(editor).toBeVisible();
