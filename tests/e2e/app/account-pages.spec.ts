@@ -5,6 +5,9 @@ import { createFixtureDocument } from '../../../tools/lib/fixture-document';
 import type { Page } from '@playwright/test';
 
 async function presentation(page: Page) {
+  // The computed styles below are read once, so a snapshot taken before the
+  // stylesheet applies would compare unstyled defaults against styled ones.
+  await expect(page.locator('body')).toHaveCSS('font-family', /sans-serif/u);
   return page.evaluate(() => {
     const style = (selector: string, properties: string[]) => {
       const computed = getComputedStyle(document.querySelector(selector)!);
@@ -23,6 +26,8 @@ async function presentation(page: Page) {
 // Use the actual native form so redirect and browser-storage behavior are covered together.
 for (const width of [1280, 390]) {
   test(`native sign-in preserves a document target, logout, and account isolation at ${width}px`, async ({ page }) => {
+    // Two accounts, a held sync token and two sign-ins that each cold-load the app.
+    test.slow();
     await page.setViewportSize({ width, height: 900 });
     const alice = createTestAuthAccount();
     const bob = createTestAuthAccount();
@@ -33,7 +38,6 @@ for (const width of [1280, 390]) {
     await page.waitForURL(/\/accounts\/login\//u);
     await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Sign in', exact: true }).click();
     const loginPresentation = await presentation(page);
-    expect(loginPresentation.body[0]).toContain('sans-serif');
     expect(loginPresentation.body[4]).toBe('0px');
     await page.getByLabel('Email:', { exact: true }).fill(alice.email);
     await page.getByLabel('Password:', { exact: true }).fill('wrong-password');
@@ -67,7 +71,8 @@ for (const width of [1280, 390]) {
     });
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await page.waitForURL(new RegExp(`/n/${id}$`, 'u'));
-    await expect(page.locator('.editor-input')).toBeVisible();
+    // Signing in leaves the login page, so the editor follows a cold SPA load.
+    await expect(page.locator('.editor-input')).toBeVisible({ timeout: 15_000 });
     await tokenRequested;
 
     // The held sync request can leave initialization changes unsaved; make the
@@ -83,7 +88,8 @@ for (const width of [1280, 390]) {
     await page.getByLabel('Password:', { exact: true }).fill(bob.password);
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await page.waitForURL('/');
-    await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+    // Signing in as the second account cold-loads the app shell again.
+    await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('button', { name: 'Alice private document', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => localStorage.getItem('remdo-pending-sign-out'))).toBeNull();
     await page.goto('/about/');
@@ -104,7 +110,7 @@ test('native sign-in accepts an existing admin session from another tab', async 
   await expect(admin.getByRole('heading', { name: 'Site administration' })).toBeVisible();
   // Django rotates the CSRF token at login; reload the old form to reuse the session.
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible({ timeout: 15_000 });
   await admin.close();
 });
 
@@ -118,7 +124,7 @@ test('admin sign-in supersedes an unfinished logout in another tab', async ({ pa
   await page.getByLabel('Password:', { exact: true }).fill(previous.password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.waitForURL('/');
-  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible({ timeout: 15_000 });
   setExpectedConsoleIssues(page, ['net::ERR_FAILED'], { mode: 'allowContains' });
   await page.route('**/api/auth/browser/v1/auth/session', async (route) => {
     if (route.request().method() === 'DELETE') {
