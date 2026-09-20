@@ -1,10 +1,43 @@
 .remdo-public-page {
   width: 100%;
-  max-width: 760px;
-  margin-inline: auto;
-  padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
+  padding: 40px 24px;
+  font-size: 18px;
   line-height: 1.65;
   overflow-wrap: anywhere;
+}
+
+.remdo-public-page article {
+  max-width: 640px;
+  margin-inline: auto;
+}
+
+.remdo-public-page h1 {
+  font-size: var(--mantine-h1-font-size);
+  margin-top: 0;
+}
+
+.remdo-public-page h2 {
+  font-size: var(--mantine-h2-font-size);
+}
+
+.remdo-public-page h3 {
+  font-size: var(--mantine-h3-font-size);
+}
+
+.remdo-public-page h4 {
+  font-size: var(--mantine-h4-font-size);
+}
+
+.remdo-public-page h5 {
+  font-size: var(--mantine-h5-font-size);
+}
+
+.remdo-public-page h6 {
+  font-size: var(--mantine-h6-font-size);
+}
+
+.remdo-public-page p {
+  margin-block: 18px;
 }
 
 .remdo-public-page img {

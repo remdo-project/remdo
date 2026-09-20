@@ -3,9 +3,10 @@ import { DEV_LEXICAL_DEMO_ROUTE } from '../../src/client/app/shell/dev-route.ts'
 const frontendFiles = new Set([
   '/index.html',
   '/favicon.ico',
-  '/favicon.png',
+  '/logo.svg',
   '/icon-192.png',
   '/icon-512.png',
+  '/icon-maskable-512.png',
   '/manifest.webmanifest',
   '/sw.js',
   '/registerSW.js',

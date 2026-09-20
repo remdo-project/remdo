@@ -4,6 +4,11 @@
   <meta name="description" content="{{ description }}">
   <link rel="canonical" href="{{ canonical }}">
 {% endblock %}
+{% block header_navigation %}
+  <nav aria-label="Primary" class="remdo-header-navigation">
+    <a class="remdo-header-link" href="/about/">About</a>
+  </nav>
+{% endblock %}
 {% block content %}
   <main class="remdo-public-page">
     <article>

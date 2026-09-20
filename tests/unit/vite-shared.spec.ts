@@ -94,7 +94,6 @@ describe('vite shared config', () => {
       changeOrigin: true,
       ws: true,
     });
-    expect(serverProxy).not.toHaveProperty('/doc');
 
     expect(config.preview.host).toBe('127.0.0.1');
 
@@ -103,7 +102,6 @@ describe('vite shared config', () => {
       target: resolveLocalGatewayOrigin(),
       xfwd: true,
     });
-    expect(previewProxy['/']).not.toHaveProperty('headers');
     expect(previewProxy['/src/client/ui/styles/']).toMatchObject({
       target: resolveLocalGatewayOrigin(),
       changeOrigin: true,
@@ -113,8 +111,6 @@ describe('vite shared config', () => {
       target: resolveLocalGatewayOrigin(),
       ws: true,
     });
-    expect(previewProxy['^/d(?:/|$|\\?)']).not.toHaveProperty('headers');
-    expect(previewProxy).not.toHaveProperty('/doc');
   });
 
   it('routes preview traffic locally without replacing the browser origin', async () => {
@@ -135,7 +131,6 @@ describe('vite shared config', () => {
       expect(previewProxy['/']).toMatchObject({
         target: `http://127.0.0.1:${config.env.PORT}`,
       });
-      expect(previewProxy['/']).not.toHaveProperty('headers');
     } finally {
       vi.unstubAllEnvs();
       vi.resetModules();

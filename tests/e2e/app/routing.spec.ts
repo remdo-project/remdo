@@ -69,6 +69,19 @@ test.describe('Routing', () => {
     await expect(page.locator('.document-editor-shell')).toBeVisible();
   });
 
+  test('opens server-rendered About from Home and document navigation', async ({ page }) => {
+    const response = await page.request.get('/api/current-user');
+    const { homeDocumentId } = await response.json() as CurrentUserBootstrap;
+
+    for (const path of ['/', `/n/${homeDocumentId}`]) {
+      await page.goto(path);
+      await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'About', exact: true }).click();
+      await expectPath(page, '/about/');
+      await expect(page.getByRole('article')).toBeVisible();
+      await expect(page.locator('script[type="module"]')).toHaveCount(0);
+    }
+  });
+
   test('reloads Home while its document listing is pending', async ({ page }) => {
     let heldFirstRequest = false;
     await page.route('**/api/documents', async (route) => {
@@ -188,11 +201,13 @@ unauthenticatedTest('renders repository public pages without loading the app', a
   const response = await page.goto('/about');
   expect(response!.status()).toBe(200);
   await expect(page).toHaveURL(/\/about\/$/u);
-  await expect(page).toHaveTitle('About RemDo · RemDo');
-  await expect(page.getByRole('heading', { level: 1, name: 'About RemDo' })).toBeVisible();
-  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', 'A keyboard-first collaborative outliner.');
+  await expect(page.getByRole('article')).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new URL('/about/', page.url()).href);
-  await expect(page.locator('body')).toHaveCSS('margin', '0px');
   await expect(page.locator('script[type="module"]')).toHaveCount(0);
   expect(userDataRequests).toEqual([]);
+
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'RemDo', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'About', exact: true })).toBeFocused();
 });

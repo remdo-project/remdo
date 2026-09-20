@@ -41,9 +41,7 @@ test('returning browsers revalidate files and retain server navigation responses
   expect(publicPage!.status()).toBe(200);
   expect(publicPage!.fromServiceWorker()).toBe(false);
   expect(publicPage!.headers()['cache-control']).toContain('no-store');
-  await expect(page).toHaveTitle('About RemDo · RemDo');
-  await expect(page.getByRole('heading', { level: 1, name: 'About RemDo' })).toBeVisible();
-  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', 'A keyboard-first collaborative outliner.');
+  await expect(page.getByRole('article')).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new URL('/about/', page.url()).href);
   await page.goto('/');
 

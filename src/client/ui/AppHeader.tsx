@@ -33,6 +33,11 @@ export default function AppHeader({ authState, onLogout, trailingNav }: AppHeade
 
         <nav aria-label="Primary" className="remdo-header-navigation">
           <Group className="remdo-header-links" gap="md">
+            {hasAppAccess && (
+              <a className="remdo-header-link" href="/about/">
+                About
+              </a>
+            )}
             {authState.status === 'authenticated' && authState.isAdmin && (
               <a className="remdo-header-link" href="/admin/">
                 Admin
