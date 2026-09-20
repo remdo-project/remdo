@@ -104,6 +104,18 @@ class DocumentFlowTests(TestCase):
             self.assertEqual(self.post("/api/documents/unknown/sync-tokens").status_code, 404)
             issue.assert_not_called()
 
+    def test_unreachable_collaboration_service_reports_a_gateway_failure(self):
+        document = Document.objects.get(owner=self.owner)
+        self.sign_in()
+
+        with patch(
+            "documents.views.issue_token", side_effect=httpx.ConnectError("refused")
+        ) as issue:
+            response = self.post(f"/api/documents/{document.id}/sync-tokens")
+
+        self.assertEqual(response.status_code, 502)
+        issue.assert_called_once_with(document.id)
+
     def test_owner_shares_with_existing_account_and_grant_is_idempotent(self):
         document = Document.objects.get(owner=self.owner)
         private = Document.objects.create(owner=self.owner, title="Private research")
