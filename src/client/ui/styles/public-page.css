@@ -6,16 +6,9 @@
   overflow-wrap: anywhere;
 }
 
-.remdo-public-page article,
-.remdo-build-revision {
+.remdo-public-page article {
   max-width: 640px;
   margin-inline: auto;
-}
-
-.remdo-build-revision {
-  margin-top: 32px;
-  font-size: var(--mantine-font-size-xs);
-  color: var(--mantine-color-dimmed);
 }
 
 .remdo-public-page h1 {

@@ -41,22 +41,24 @@ class PublicPageTests(SimpleTestCase):
         self.assertContains(self.client.get("/privacy/"), "Updated privacy")
 
     @override_settings(DEBUG=False, BUILD_REVISION="0123456789abcdef0123456789abcdef01234567")
-    def test_about_shows_deployed_revision_without_authentication(self):
-        self.write_page(name="about")
-        response = self.client.get("/about/")
-        self.assertContains(response, "Build 01234567")
+    def test_shared_footer_shows_server_revision_without_authentication(self):
+        self.write_page()
+        response = self.client.get("/privacy/")
+        self.assertContains(response, "#01234567")
         self.assertContains(
             response,
             'href="https://github.com/remdo-project/remdo/commit/0123456789abcdef0123456789abcdef01234567"',
         )
-        self.write_page()
-        self.assertNotContains(self.client.get("/privacy/"), "Build 01234567")
+        self.assertContains(self.client.get("/accounts/login/"), "#01234567")
 
-    def test_about_keeps_build_status_visible_without_revision(self):
-        self.write_page(name="about")
-        for debug, label in ((True, "Local development"), (False, "Build unknown")):
+    def test_shared_footer_keeps_build_status_visible_without_revision(self):
+        self.write_page()
+        for debug, label in (
+            (True, "Local development"),
+            (False, "Build unknown"),
+        ):
             with self.subTest(debug=debug), override_settings(DEBUG=debug, BUILD_REVISION=""):
-                response = self.client.get("/about/")
+                response = self.client.get("/privacy/")
                 self.assertContains(response, label)
                 self.assertNotContains(response, "github.com/remdo-project/remdo/commit/")
 

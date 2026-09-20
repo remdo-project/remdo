@@ -7,6 +7,11 @@ register = template.Library()
 SHARED_STYLES = "src/client/ui/styles/shared.css"
 
 
+@register.inclusion_tag("footer.html")
+def app_footer():
+    return {"build_revision": settings.BUILD_REVISION, "local_development": settings.DEBUG}
+
+
 @register.simple_tag
 def shared_styles_urls():
     if settings.FRONTEND_USE_SOURCE_STYLES:

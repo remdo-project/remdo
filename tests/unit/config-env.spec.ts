@@ -178,6 +178,7 @@ describe('config env resolve', () => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'test',
       DEV_DOCUMENT_ID: 'testDevDoc',
+      BUILD_REVISION: '0123456789abcdef0123456789abcdef01234567',
       HOST: '127.0.0.1',
       PORT: '4000',
       COLLAB_ENABLED: 'true',
@@ -190,7 +191,8 @@ describe('config env resolve', () => {
     // Assert against a hardcoded literal, not CLIENT_KEY_LIST: pickClientEnv
     // builds the client from CLIENT_KEY_LIST, so comparing against it would be
     // tautological and could not catch a server secret wrongly added to the list.
-    expect(Object.keys(resolved.client).sort()).toEqual(['COLLAB_ENABLED', 'DEV_DOCUMENT_ID']);
+    expect(Object.keys(resolved.client).sort()).toEqual(['BUILD_REVISION', 'COLLAB_ENABLED', 'DEV_DOCUMENT_ID']);
+    expect(resolved.client.BUILD_REVISION).toBe('0123456789abcdef0123456789abcdef01234567');
     expect(resolved.client.DEV_DOCUMENT_ID).toBe('testDevDoc');
     expect(resolved.client.COLLAB_ENABLED).toBe(true);
     // No server-only value may reach the client config (it feeds the browser

@@ -118,6 +118,7 @@ export interface components {
             authorization?: components["schemas"]["AuthorizationEnum"];
         };
         Config: {
+            buildRevision: string;
             publicServer: boolean;
             csrfCookieName: string;
             csrfToken: string;

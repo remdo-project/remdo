@@ -10,16 +10,5 @@
       <h1>{{ title }}</h1>
       {{ body|safe }}
     </article>
-    {% if show_build_revision %}
-      <footer class="remdo-build-revision">
-        {% if local_development %}
-          Local development
-        {% elif build_revision %}
-          <a href="https://github.com/remdo-project/remdo/commit/{{ build_revision }}" target="_blank" rel="noreferrer" title="{{ build_revision }}">Build {{ build_revision|slice:":8" }}</a>
-        {% else %}
-          Build unknown
-        {% endif %}
-      </footer>
-    {% endif %}
   </main>
 {% endblock %}

@@ -38,9 +38,6 @@ def public_page(request, slug):
         request,
         "pages/page.html",
         {
-            "show_build_revision": slug == "about",
-            "build_revision": settings.BUILD_REVISION,
-            "local_development": settings.DEBUG,
             "title": metadata["title"],
             "description": metadata["description"],
             "canonical": f"{settings.APP_ORIGIN}/{slug}/",

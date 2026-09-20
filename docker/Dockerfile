@@ -1,3 +1,6 @@
+ARG RENDER_GIT_COMMIT
+ARG BUILD_REVISION=${RENDER_GIT_COMMIT}
+
 ###############################
 # Builder: compile SPA assets #
 ###############################
@@ -31,8 +34,10 @@ RUN attempt=1 \
     echo "pnpm install failed; retrying in ${delay}s"; \
     sleep "$delay"; \
     attempt=$((attempt + 1)); \
-  done \
-  && NODE_ENV=production ./tools/env.sh pnpm run build
+  done
+
+ARG BUILD_REVISION
+RUN BUILD_REVISION="${BUILD_REVISION}" NODE_ENV=production ./tools/env.sh pnpm run build
 
 ############################
 # Python dependencies      #
@@ -64,7 +69,6 @@ COPY docker/entrypoint.sh /entrypoint.sh
 COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh
 COPY docker/entrypoint-env.sh /usr/local/share/remdo/entrypoint-env.sh
 RUN chmod +x /entrypoint.sh /usr/local/bin/y-sweet
-ARG RENDER_GIT_COMMIT
-ARG BUILD_REVISION=${RENDER_GIT_COMMIT}
+ARG BUILD_REVISION
 ENV BUILD_REVISION=${BUILD_REVISION}
 CMD ["/entrypoint.sh"]
