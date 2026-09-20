@@ -49,9 +49,6 @@ RemDo currently includes:
 - self-hosted Docker deployment;
 - deployment on Render.
 
-Cross-server linking is not part of the supported Django runtime. Its earlier
-implementation is retained as reference for the [cross-server linking redesign](docs/todo.md#cross-server-linking-redesign).
-
 The broader cross-tool model — including sources such as email, calendars, and
 external files — is still under development.
 

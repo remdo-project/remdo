@@ -33,17 +33,16 @@ For independent checkouts, set one `PORT_BASE` in each checkout's `.env`, such a
 and default `data/` root. Use a fresh shell or explicit environment overrides
 when switching checkouts: process environment values take precedence over `.env`.
 
-For development data from the retired backend or incompatible early Django
-schemas, select a fresh [`DATA_DIR`](../specs/runtime/configuration.md#persistence) before startup, following the [compatibility policy](../../CONTRIBUTING.md#backward-compatibility-pre-10).
+Select a fresh [`DATA_DIR`](../specs/runtime/configuration.md#persistence) before
+startup for development data that predates the current schema, following the
+[compatibility policy](../../CONTRIBUTING.md#backward-compatibility-pre-10).
 
 Run backend management commands with `./tools/django.sh <command>`. This shell
 entry point reads checkout configuration and invokes Python directly. To run
-only the development API, use `./tools/env.sh ./tools/django-serve.sh`.
+only the development API, use `pnpm run dev:api`.
 With deployment variables already supplied, native
 `uv run --locked python backend/manage.py <command>` works without the shell launcher.
-The launcher defaults to Django's development settings independently of frontend
-build mode; `test` selects test settings. Direct Django invocation
-defaults to production settings.
+Each entry point follows [settings selection](../specs/runtime/configuration.md#resolution-boundary).
 
 ## Update API Clients
 
