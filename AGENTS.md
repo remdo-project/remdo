@@ -66,11 +66,9 @@ change. Do not add update-tracking sections to durable documents.
 
 ## Isolation
 
-- The developer owns background processes in the shared root workdir. Agents
-  own the worktrees and worktree processes they create.
-- Parallel work that can mutate runtime state uses an isolated worktree, data
-  directory, and unique 100-port `PORT_BASE` block. Read-only work may share the
-  coordinating agent's workdir. Keep worktrees outside the repository.
+- The developer owns background processes in the shared root workdir.
+- Parallel runtimes use separate data directories and unique 100-port
+  `PORT_BASE` blocks.
 - Diagnose a stale service by process, command, port, and port block before
   restarting a process owned by the current workdir or worktree.
 - Use `.agent/` for per-workdir scratch rather than versioned paths.

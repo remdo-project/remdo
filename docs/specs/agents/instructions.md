@@ -94,11 +94,8 @@ require explicit user authority.
 
 #### Isolation
 
-- The developer owns background processes in the shared root workdir. Agents
-  own the worktrees and worktree processes they create.
-- Parallel work that can mutate runtime state uses an isolated worktree, data
-  directory, and 100-port block. Read-only work may share the coordinating
-  agent's workdir.
+The shared entry point owns [isolation rules](../../../AGENTS.md#isolation), covering developer-owned
+processes, runtime data and port separation, and scratch files.
 
 #### Execution and verification
 
