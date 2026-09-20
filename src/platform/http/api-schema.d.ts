@@ -124,7 +124,6 @@ export interface components {
         };
         CurrentUser: {
             readonly userId: string;
-            readonly homeDocumentId: string;
             /** @default false */
             readonly publicServer: boolean;
         };

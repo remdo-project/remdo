@@ -49,8 +49,7 @@ class DocumentFlowTests(TestCase):
     def test_sign_in_bootstrap_create_list_and_reopen(self):
         self.sign_in()
         bootstrap = self.client.get("/api/current-user").json()
-        self.assertEqual(bootstrap["userId"], str(self.owner.pk))
-        self.assertNotIn("userDataDocumentId", bootstrap)
+        self.assertEqual(bootstrap, {"userId": str(self.owner.pk), "publicServer": False})
         self.assertEqual(self.client.get("/api/current-user").json(), bootstrap)
         response = self.post("/api/documents", {"title": "Research"})
         self.assertEqual(response.status_code, 201)
@@ -61,12 +60,15 @@ class DocumentFlowTests(TestCase):
         reopened = Client()
         reopened.cookies = self.client.cookies.copy()
         self.assertIn(document, reopened.get("/api/documents").json())
-        self.assertEqual(Document.objects.filter(owner=self.owner, kind="home").count(), 1)
+        self.assertEqual(Document.objects.filter(owner=self.owner).count(), 2)
 
     def test_another_account_cannot_list_or_access_documents(self):
         document = Document.objects.create(owner=self.owner, title="Private")
         self.sign_in("other@example.test", "Other-password-123")
-        self.assertEqual(self.client.get("/api/documents").json(), [])
+        self.assertEqual(
+            [item["id"] for item in self.client.get("/api/documents").json()],
+            [Document.objects.get(owner=self.other).id],
+        )
         with patch("documents.views.issue_token") as issue:
             self.assertEqual(
                 self.post(f"/api/documents/{document.id}/sync-tokens").status_code, 403
@@ -75,7 +77,7 @@ class DocumentFlowTests(TestCase):
             issue.assert_not_called()
 
     def test_owner_shares_with_existing_account_and_grant_is_idempotent(self):
-        document = Document.objects.create(owner=self.owner, title="Shared research")
+        document = Document.objects.get(owner=self.owner)
         private = Document.objects.create(owner=self.owner, title="Private research")
         self.sign_in()
         path = f"/api/documents/{document.id}/access"
@@ -92,8 +94,11 @@ class DocumentFlowTests(TestCase):
         self.sign_out()
         self.sign_in(self.other.email, "Other-password-123")
         listing = self.client.get("/api/documents").json()
-        self.assertEqual([item["id"] for item in listing], [document.id])
-        self.assertFalse(listing[0]["shareable"])
+        self.assertCountEqual(
+            [item["id"] for item in listing],
+            [Document.objects.get(owner=self.other).id, document.id],
+        )
+        self.assertFalse(next(item for item in listing if item["id"] == document.id)["shareable"])
         with patch("documents.views.issue_token", return_value={"docId": document.id}) as issue:
             self.assertEqual(
                 self.post(f"/api/documents/{document.id}/sync-tokens").status_code, 200
@@ -108,9 +113,13 @@ class DocumentFlowTests(TestCase):
             DocumentGrant.objects.create(document=document, user=recipient)
         self.client.force_login(self.owner, backend="django.contrib.auth.backends.ModelBackend")
         listing = self.client.get("/api/documents").json()
-        self.assertEqual([item["id"] for item in listing], [document.id])
         self.assertCountEqual(
-            [grant["email"] for grant in listing[0]["access"]], [self.other.email, third.email]
+            [item["id"] for item in listing],
+            list(Document.objects.filter(owner=self.owner).values_list("id", flat=True)),
+        )
+        shared = next(item for item in listing if item["id"] == document.id)
+        self.assertCountEqual(
+            [grant["email"] for grant in shared["access"]], [self.other.email, third.email]
         )
         for recipient in (self.other, third):
             with self.subTest(recipient=recipient.email):
@@ -118,23 +127,19 @@ class DocumentFlowTests(TestCase):
                     recipient, backend="django.contrib.auth.backends.ModelBackend"
                 )
                 listing = self.client.get("/api/documents").json()
-                self.assertEqual([item["id"] for item in listing], [document.id])
-                self.assertEqual(listing[0]["access"], [])
+                self.assertCountEqual(
+                    [item["id"] for item in listing],
+                    [Document.objects.get(owner=recipient).id, document.id],
+                )
+                self.assertTrue(all(item["access"] == [] for item in listing))
 
-    def test_sharing_rejects_unknown_self_home_and_invalid_email(self):
+    def test_sharing_rejects_unknown_self_and_invalid_email(self):
         document = Document.objects.create(owner=self.owner)
         self.sign_in()
         for email in ("missing@example.test", self.owner.email, "invalid"):
             with self.subTest(email=email):
                 response = self.post(f"/api/documents/{document.id}/access", {"email": email})
                 self.assertEqual(response.status_code, 400)
-        home = self.client.get("/api/current-user").json()["homeDocumentId"]
-        listing = {item["id"]: item for item in self.client.get("/api/documents").json()}
-        self.assertFalse(listing[home]["shareable"])
-        self.assertEqual(
-            self.post(f"/api/documents/{home}/access", {"email": self.other.email}).status_code,
-            400,
-        )
         self.assertFalse(DocumentGrant.objects.exists())
 
     def test_only_owner_can_grant_access_even_if_recipient_or_admin(self):
@@ -173,7 +178,10 @@ class DocumentFlowTests(TestCase):
         self.post(f"/api/documents/{document.id}/access", {"email": self.other.email})
         stranger = User.objects.create_user("stranger@example.test")
         self.client.force_login(stranger, backend="django.contrib.auth.backends.ModelBackend")
-        self.assertEqual(self.client.get("/api/documents").json(), [])
+        self.assertEqual(
+            [item["id"] for item in self.client.get("/api/documents").json()],
+            [Document.objects.get(owner=stranger).id],
+        )
         self.assertEqual(self.post(f"/api/documents/{document.id}/sync-tokens").status_code, 403)
         self.assertEqual(
             self.post(
@@ -262,7 +270,7 @@ class DocumentFlowTests(TestCase):
                     "/api/documents", body, content_type=content_type, HTTP_X_CSRFTOKEN=token
                 )
                 self.assertEqual(response.status_code, expected)
-        self.assertEqual(Document.objects.count(), 0)
+        self.assertEqual(Document.objects.count(), 2)
 
     def test_admin_requires_staff_and_exposes_django_models(self):
         self.sign_in()
@@ -275,6 +283,9 @@ class DocumentFlowTests(TestCase):
                 interactive=False,
                 stdout=io.StringIO(),
             )
+        self.assertEqual(
+            Document.objects.get(owner__email="admin@example.test").title, "New Document"
+        )
         self.sign_in("admin@example.test", "Admin-password-123")
         self.assertEqual(self.client.get("/admin/").status_code, 200)
         self.assertTrue(
@@ -299,6 +310,9 @@ class DocumentFlowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.sign_out()
         self.sign_in("created@example.test", "Created-account-password-123")
+        self.assertEqual(
+            Document.objects.get(owner__email="created@example.test").title, "New Document"
+        )
 
     def test_private_signup_is_not_enabled_by_installing_allauth(self):
         response = self.post(
@@ -362,3 +376,43 @@ class DocumentFlowTests(TestCase):
         self.assertEqual(user.first_name, "Provisioned")
         response = self.sign_in("provisioned@example.test", "Provisioned-password-123")
         self.assertTrue(response.json()["data"]["user"]["is_staff"])
+
+
+class StarterDocumentTests(TestCase):
+    def test_account_creation_supplies_one_document_and_updates_preserve_it(self):
+        user = User.objects.create_user("starter@example.test", "password")
+        document = Document.objects.get(owner=user)
+        self.assertEqual(document.title, "New Document")
+        self.assertFalse(document.grants.exists())
+        user.first_name = "Changed"
+        user.save()
+        self.assertEqual(list(Document.objects.filter(owner=user)), [document])
+
+    def test_failed_document_creation_rolls_back_account(self):
+        with patch(
+            "django.db.models.query.QuerySet.create", side_effect=RuntimeError("unavailable")
+        ):
+            with self.assertRaisesMessage(RuntimeError, "unavailable"):
+                User.objects.create_user("failed@example.test", "password")
+        self.assertFalse(User.objects.filter(email="failed@example.test").exists())
+
+    def test_reads_and_sign_in_preserve_an_empty_workspace(self):
+        user = User.objects.create_user("empty@example.test", "password")
+        Document.objects.filter(owner=user).delete()
+        self.client.force_login(user, backend="django.contrib.auth.backends.ModelBackend")
+        for _ in range(2):
+            self.assertEqual(
+                self.client.get("/api/current-user").json(),
+                {"userId": str(user.pk), "publicServer": False},
+            )
+            self.assertEqual(self.client.get("/api/documents").json(), [])
+        self.assertFalse(Document.objects.filter(owner=user).exists())
+
+    def test_fixture_provisioning_creates_once_and_preserves_empty_workspace(self):
+        for _ in range(2):
+            call_command("provision_user", email="fixture@example.test", password="password")
+        user = User.objects.get(email="fixture@example.test")
+        self.assertEqual(Document.objects.get(owner=user).title, "New Document")
+        Document.objects.filter(owner=user).delete()
+        call_command("provision_user", email=user.email, password="password")
+        self.assertFalse(Document.objects.filter(owner=user).exists())

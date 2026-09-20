@@ -11,8 +11,6 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
   const documentsQuery = queryOptions({
     queryKey: [globalThis.location.origin, userId, 'documents'],
     queryFn: async ({ signal }): Promise<UserDocument[]> => {
-      // Bootstrap ensures the account's home document exists before listing.
-      await client.query(bootstrapQuery);
       signal.throwIfAborted();
       return requireData(await api.GET('/api/documents', { signal }));
     },
@@ -70,7 +68,6 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
   };
   const userData = createUserDataRootNote(documents, {
     shareDocument: (documentId, email) => client.getMutationCache().build(client, shareDocumentOptions).execute({ documentId, email }),
-    getHomeDocumentId: () => client.getQueryData(bootstrapQuery.queryKey)?.homeDocumentId ?? null,
     createDocument: (title) => client.getMutationCache().build(client, createDocumentOptions).execute(title),
   });
 

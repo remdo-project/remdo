@@ -1,5 +1,5 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
-from django.db import models
+from django.db import models, router, transaction
 
 
 class UserManager(BaseUserManager):
@@ -21,6 +21,16 @@ class User(AbstractUser):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = UserManager()
+
+    def save(self, **kwargs):
+        from documents.models import Document
+
+        creating = self._state.adding
+        using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
+        with transaction.atomic(using=using):
+            super().save(**kwargs)
+            if creating:
+                Document.objects.using(using).create(owner=self, title="New Document")
 
     def clean(self):
         super().clean()

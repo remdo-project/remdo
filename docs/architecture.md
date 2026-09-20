@@ -109,15 +109,14 @@ Collaboration and local-persistence layers may key document state by canonical `
 Server-owned document metadata store used by RemDo API before issuing Y-Sweet
 document client tokens.
 
-- Metadata: owner user id, document kind, title, and user-specific access grants.
+- Metadata: owner user id, title, and user-specific access grants.
 - Storage: Django models and migrations own the server persistence boundary.
   Request handlers authorize from ORM-backed identity and document metadata.
 - Data boundary: the registry is the durable source for document ownership,
   access-critical metadata, and the current per-user document list. Yjs
   documents hold collaborative document content. Browser-facing app resources
   use authenticated HTTP reads and established server-state cache tooling.
-- User bootstrap: `/api/current-user` ensures the signed-in user's home registry
-  row and returns the account identity, home document identity, and server
+- User bootstrap: `/api/current-user` returns the account identity and server
   policy consumed under [Authenticated App Access](specs/access/access-control.md#authenticated-app-access). `/api/documents` lists the
   caller's accessible documents.
 - Client metadata caches are scoped by server origin and account identity.

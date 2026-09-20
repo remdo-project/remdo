@@ -16,6 +16,9 @@ links carrying bearer credentials, or a local-only no-login mode.
 A Django session identifies the signed-in user. The server supports
 email/password authentication. Operators create accounts through Django
 administration or management commands; public signup is closed.
+Creating an account also creates one empty document titled **New Document**.
+Account and document creation succeed together. Later account updates and reads
+leave the document inventory unchanged.
 
 Allauth renders sign-in at `/accounts/login/` and validates credentials.
 Successful sign-in returns to the requested same-origin app destination,
@@ -65,14 +68,14 @@ stops using the local data it is losing.
 
 These rules apply to each user authenticated by the server.
 
-Every document has one owner. A normal document may have zero or more direct
+Every document has one owner. A document may have zero or more direct
 grants; a new one has none. Its URL only locates it; ownership or a grant
 authorizes access.
 
-Only the owner can grant a normal document to another local user. Sharing
+Only the owner can grant a document to another local user. Sharing
 identifies the grantee by email; a grant is created only when that email matches
 an account on the document's server. A direct grant gives that user
-full document access. Home documents do not accept direct grants.
+full document access.
 Only the owner receives the document's recipient list.
 
 Users with full document access may [rename the document](../outliner/location-header.md#document-rename). The source authorizes
@@ -82,8 +85,7 @@ authorize changes.
 The server issues [Y-Sweet document client tokens](../../architecture.md#token-vocabulary) according to the resulting
 access:
 
-- A normal-document owner or direct grantee receives full access.
-- A home-document owner receives full access.
+- A document owner or direct grantee receives full access.
 - Other users receive no document client token.
 
 ## Admin Role

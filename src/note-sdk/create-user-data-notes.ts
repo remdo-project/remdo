@@ -25,7 +25,6 @@ const USER_DOCUMENTS_TITLE = 'Documents';
 interface UserDataNoteActions {
   createDocument?: (title: string) => Promise<UserDocument>;
   documentSources?: CollectionSource<DocumentSource>;
-  getHomeDocumentId?: () => NoteId | null;
   shareDocument?: (documentId: NoteId, email: string) => Promise<DocumentAccessView>;
 }
 
@@ -293,23 +292,11 @@ export function createUserDataRootNote(
   );
   const userSourceServers = createSourceServersHandle(sourceServers);
 
-  function homeDocument(): DocumentNote {
-    const homeDocumentId = resolvedActions.getHomeDocumentId?.() ?? null;
-    const document = homeDocumentId
-      ? userDocumentsSource.getById(homeDocumentId)
-      : userDocumentsSource.getChildren()[0];
-    if (!document) {
-      throw new Error('Home document is not available.');
-    }
-    return createProjectedDocumentHandle(document, resolvedActions);
-  }
-
   const handle: UserDataNote = {
     getId: () => noteId,
     getKind: kind,
     getText: () => USER_DATA_TITLE,
     getChildren: () => [documentSources, userDocuments, userSourceServers],
-    getHomeDocument: homeDocument,
     getDocumentSources: () => documentSources,
     getDocuments: () => userDocuments,
     getSourceServers: () => userSourceServers,

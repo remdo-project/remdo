@@ -7,7 +7,7 @@ vi.mock('#client/app/session/client', () => ({
   hasRememberedSession: hasRememberedSessionMock,
   isLikelyFetchUnavailableError: (error: unknown) => error instanceof TypeError,
 }));
-const BOOTSTRAP = { userId: 'alice', homeDocumentId: 'aliceHome', publicServer: false };
+const BOOTSTRAP = { userId: 'alice', publicServer: false };
 const clients: QueryClient[] = [];
 function client() {
   const instance = new QueryClient({ defaultOptions: { queries: { retry: false } } });

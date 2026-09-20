@@ -35,7 +35,7 @@ Retain:
   metadata and persisted editor content together.
 
 Exclude production packaging and secret migration, cleanup of the unused Node
-backend, Home/starter-document redesign, new offline/logout policy,
+backend, new offline/logout policy,
 source-linking decisions, app-resource API redesign, test-suite
 reorganization, and backup/supervision work. Further fixture redesign is
 separate; retaining the direct development reset adaptation avoids replacement
@@ -95,7 +95,7 @@ refusal to replace missing/corrupt secrets over existing data. The container
 verification suite covers this implemented slice; retained
 source-linking/offline suites need separate migration.
 
-Exclude sharing/source linking, backup/restore redesign, Home policy, and
+Exclude sharing/source linking, backup/restore redesign, and
 general unused-code cleanup. Backup and export follow-up is tracked under
 [Operations](todo.md#operations). The existing [upgrade rollback procedure](guides/production-deployment.md#upgrade-an-existing-instance) remains separate from that
 work.
@@ -132,9 +132,8 @@ submissions, CSRF, recipient listings and editing, unrelated-account denial, and
 late mutation responses after account departure. Verify the real browser flow
 from sharing through recipient collaboration and reopen.
 
-Exclude cross-server source linking, grant revocation, public signup, Home policy,
-rename, and broader cache/SDK redesign. Retain the current Home restriction until
-the [Home and initial-document follow-up](todo.md#ux-direction) is implemented with its companion changes.
+Exclude cross-server source linking, grant revocation, public signup,
+rename, and broader cache/SDK redesign.
 
 ## Withdraw cross-server linking
 

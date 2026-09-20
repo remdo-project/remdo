@@ -1,5 +1,5 @@
 import type { Page } from '#editor/fixtures';
-import type { CurrentUserBootstrap } from '#domain/documents/user-data';
+import { createUserDocument } from '../_support/documents';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, homeView, zoomBreadcrumbs } from '#editor/locators';
 import { load, waitForSynced } from './_support/bridge';
@@ -18,11 +18,9 @@ async function expectCaretAtStart(page: Page, text: string) {
   })).toEqual({ text, offset: 0, collapsed: true });
 }
 
-test('Zoom out passes through the default document root before Home', async ({ page }) => {
-  const response = await page.request.get('/api/current-user');
-  expect(response.ok()).toBe(true);
-  const { homeDocumentId } = await response.json() as CurrentUserBootstrap;
-  const documentPath = createEditorDocumentPath(homeDocumentId);
+test('Zoom out passes through a document root before Home', async ({ page }) => {
+  const document = await createUserDocument(page, 'Zoom document');
+  const documentPath = createEditorDocumentPath(document.id);
   await page.goto(documentPath);
   await load(page, 'tree-complex');
   const search = page.getByRole('combobox', { name: 'Search document' });

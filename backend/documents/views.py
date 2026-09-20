@@ -7,7 +7,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions
-from rest_framework.exceptions import APIException, ValidationError
+from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -50,10 +50,7 @@ class CurrentUserView(generics.RetrieveAPIView):
     serializer_class = CurrentUserSerializer
 
     def get_object(self):
-        home, _ = Document.objects.get_or_create(
-            owner=self.request.user, kind="home", defaults={"title": "Home"}
-        )
-        return home
+        return self.request.user
 
 
 @method_decorator(never_cache, name="dispatch")
@@ -77,8 +74,6 @@ class DocumentShareView(generics.GenericAPIView):
     @extend_schema(responses=DocumentAccessSerializer)
     def post(self, request, *args, **kwargs):
         document = self.get_object()
-        if document.kind != "document":
-            raise ValidationError("Home documents cannot be shared.")
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         grant, _ = DocumentGrant.objects.get_or_create(

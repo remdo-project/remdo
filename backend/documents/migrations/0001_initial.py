@@ -29,14 +29,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("title", models.CharField(blank=True, max_length=500)),
-                (
-                    "kind",
-                    models.CharField(
-                        choices=[("document", "Document"), ("home", "Home")],
-                        default="document",
-                        max_length=8,
-                    ),
-                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 (
                     "owner",
@@ -47,13 +39,6 @@ class Migration(migrations.Migration):
             ],
             options={
                 "ordering": ["created_at", "id"],
-                "constraints": [
-                    models.UniqueConstraint(
-                        condition=models.Q(("kind", "home")),
-                        fields=("owner",),
-                        name="one_home_per_user",
-                    )
-                ],
             },
         ),
     ]

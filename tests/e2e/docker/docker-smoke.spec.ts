@@ -1,6 +1,7 @@
 import { expect, guardedTest as test } from '#e2e/fixtures';
 import { config } from '#config';
-import type { CurrentUserBootstrap, UserDocument } from '#domain/documents/user-data';
+import type { UserDocument } from '#domain/documents/user-data';
+import type { CurrentUserBootstrap } from '#server/documents/current-user';
 import type { ClientToken } from '@y-sweet/sdk';
 import { HTTP_STATUS } from '#platform/http/status';
 import { request as playwrightRequest } from '@playwright/test';
