@@ -17,3 +17,19 @@ ALLAUTH_TRUSTED_PROXY_COUNT = 1
 # https://render.com/articles/host-pocketbase-on-render
 if os.environ.get("RENDER") == "true":
     ALLAUTH_TRUSTED_CLIENT_IP_HEADER = "CF-Connecting-IP"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"request_error": {"()": "remdo.logging.RequestErrorFormatter"}},
+    "handlers": {
+        "stderr": {
+            "class": "logging.StreamHandler",
+            "formatter": "request_error",
+        },
+    },
+    "loggers": {
+        "django.request": {"handlers": ["stderr"], "level": "WARNING", "propagate": False},
+        "django.security": {"handlers": ["stderr"], "level": "WARNING", "propagate": False},
+    },
+}
