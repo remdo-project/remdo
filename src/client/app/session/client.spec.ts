@@ -165,6 +165,23 @@ describe('auth client session gate', () => {
     }
   });
 
+  it('resolves the session gate when shared storage rejects the session mark', async () => {
+    // resolveSessionGateState rethrows an error with no HTTP status and no
+    // offline signal, so an unguarded write here blanks every route.
+    const session = { user: { id: 'user1' } };
+    getSessionMock.mockResolvedValue(session);
+    const { resolveSessionGateState } = await import('#client/app/session/client');
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+    });
+
+    try {
+      await expect(resolveSessionGateState()).resolves.toEqual({ status: 'authenticated', session });
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
   it('continues logout when shared storage rejects the pending marker', async () => {
     // The caller commits a route gate before this write and navigates after it,
     // so a propagating quota failure leaves the shell stuck on "Signing out…".

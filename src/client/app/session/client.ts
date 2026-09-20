@@ -66,7 +66,9 @@ function newPendingSignOutGeneration(): string {
 }
 
 export function rememberAuthenticatedSession() {
-  getSessionStorage()?.setItem(KNOWN_SESSION_STORAGE_KEY, '1');
+  withSessionStorage((storage) => {
+    storage.setItem(KNOWN_SESSION_STORAGE_KEY, '1');
+  });
   // A fresh session supersedes any sign-out this device never delivered;
   // replaying it later would revoke the new session instead.
   forgetPendingSignOut();
