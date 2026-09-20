@@ -33,6 +33,9 @@ For independent checkouts, set one `PORT_BASE` in each checkout's `.env`, such a
 and default `data/` root. Use a fresh shell or explicit environment overrides
 when switching checkouts: process environment values take precedence over `.env`.
 
+For development data from the retired backend or incompatible early Django
+schemas, select a fresh [`DATA_DIR`](../specs/runtime/configuration.md#persistence) before startup, following the [compatibility policy](../../CONTRIBUTING.md#backward-compatibility-pre-10).
+
 Run backend management commands with `./tools/django.sh <command>`. This shell
 entry point reads checkout configuration and invokes Python directly. To run
 only the development API, use `./tools/env.sh ./tools/django-serve.sh`.

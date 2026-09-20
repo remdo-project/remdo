@@ -131,6 +131,8 @@ browser hostname.
 
 ## Future
 
+- Consider grant revocation when extending sharing management.
+- Consider password changes when adding account self-service.
 - Add audit logging and rate limiting to future public-policy changes.
 - Define anonymous access and public documents.
 - Define bearer-link access and its revocation, regeneration, and invalid-link behavior.

@@ -58,9 +58,11 @@ and operational work through established libraries and services.
   permitted. [Hocuspocus migration, backup/recovery, and public-release readiness](#operations)
   are separate post-merge milestones. Other backlog entries do not expand
   migration scope.
-- **Slices and decisions:** [Django migration](django-migration.md) records implementation slices and
-  remaining merge checks. Independent follow-up lives in this backlog; reassess
-  its scope and design when selecting it.
+- **Remaining checks:** verify actual Render deployment and public-certificate
+  issuance using [Production Deployment](guides/production-deployment.md), and confirm rootful Docker coverage
+  from CI.
+  Complete the whole-migration review and verification, including an audit of
+  migration-only tooling outside the [retained reference-code exception](#cross-server-linking-redesign).
 
 ### Cross-server linking redesign
 

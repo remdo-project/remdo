@@ -6,7 +6,7 @@ This guide owns the supported deployment and first-access procedures for the
 Architecture owns the [production instance](../architecture.md#production-instance-boundary),
 [gateway](../architecture.md#gateway), and [persistent storage root](../architecture.md#runtime-persistence-boundary).
 
-See [migration gaps](../django-migration.md#remaining-migration-gaps) for incomplete migration capabilities.
+See the [Django integration checks](../todo.md#django-backend-replacement) for outstanding deployment verification.
 
 ## Deploy with Self-Hosted Docker
 
@@ -115,7 +115,7 @@ start of the new version.
 
 Instances using the previous Node backend have no supported data migration to
 Django. Keep their original image and data together; do not point the Django
-image at the old data root. See the [Django migration boundary](../django-migration.md#browser-document-flow-foundation).
+image at the old data root.
 
 The retained [Node backup exporter](../../tools/snapshot/backup.ts) does not support Django datasets. Application
 backup and recovery tooling is [separate follow-up](../todo.md#operations).
