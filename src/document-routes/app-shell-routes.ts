@@ -3,9 +3,11 @@
 // offline or only in production. Workbox matches pathname plus search, so each
 // pattern tolerates a query string. Vite config bundles this module outside the
 // package-imports resolver, so it must stay dependency-free.
+// `/n/...` mirrors production Caddy's `path /n/*`, which serves the shell for
+// every suffix: the router renders its own miss for an unmatched document ref.
 const APP_SHELL_PATH_BODIES: readonly string[] = [
   '/',
-  '/n/[^/?]+/?',
+  '/n/[^?]*',
   '/sharing/?',
   '/sign-out/?',
 ];
