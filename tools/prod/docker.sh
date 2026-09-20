@@ -84,14 +84,6 @@ if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
 fi
 
 DOCKER_ENV_ARGS=(-e APP_ORIGIN="${APP_ORIGIN}" -e DATABASE_URL="${DATABASE_URL:-}")
-if [[ -n "${Y_SWEET_STORE:-}" ]]; then
-  for storage_variable in Y_SWEET_STORE AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION AWS_ENDPOINT_URL_S3 AWS_S3_USE_PATH_STYLE; do
-    if [[ -n "${!storage_variable:-}" ]]; then
-      export "${storage_variable}=${!storage_variable}"
-      DOCKER_ENV_ARGS+=(-e "${storage_variable}")
-    fi
-  done
-fi
 if [[ "${LOOPBACK_HTTP}" == "true" ]]; then
   DOCKER_ENV_ARGS+=(-e REMDO_LAUNCHER_LOOPBACK_HTTP=true)
 fi
