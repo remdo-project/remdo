@@ -123,8 +123,8 @@ document client tokens.
   access-critical metadata, and the current per-user document list. Yjs
   documents hold collaborative document content. Browser-facing app resources
   use authenticated HTTP reads and established server-state cache tooling.
-- User bootstrap: `/api/current-user` returns the account identity and server
-  policy consumed under [Authenticated App Access](specs/access/access-control.md#authenticated-app-access). `/api/documents` lists the
+- User bootstrap: `/api/current-user` returns the account identity consumed
+  under [Authenticated App Access](specs/access/access-control.md#authenticated-app-access). `/api/documents` lists the
   caller's accessible documents.
 - Client metadata caches are scoped by server origin and account identity.
   Ending a session clears its metadata and cancels pending reads; a late
