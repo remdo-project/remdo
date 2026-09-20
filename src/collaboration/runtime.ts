@@ -1,9 +1,7 @@
-import { apiFetch } from '#platform/http/api-fetch';
-import { getApiConfig } from '#platform/http/api-client';
+import { api, fetchApi } from '#platform/http/api-client';
 import type { Provider } from '@lexical/yjs';
 import { createYjsProvider } from '@y-sweet/client';
 import type { ClientToken } from '@y-sweet/sdk';
-import { createDocumentSyncTokenApiPath } from '#document-routes';
 import { trace } from '#platform/log';
 import { guardYSweetIndexedDbProviderLifecycle } from './y-sweet-indexeddb-lifecycle';
 import * as Y from 'yjs';
@@ -180,10 +178,10 @@ interface CollaborationEndpointOptions {
 
 export function createProviderFactory({
   apiOrigin,
-  createSyncTokenPath = createDocumentSyncTokenApiPath,
+  createSyncTokenPath,
   visibleOrigin,
 }: CollaborationEndpointOptions = {}): ProviderFactory {
-  const resolveEndpoints = createEndpointResolver(apiOrigin, createSyncTokenPath);
+  const resolveTokenRequest = createTokenRequestResolver(apiOrigin, createSyncTokenPath);
 
   return async (id: string, docMap: Map<string, Y.Doc>) => {
     let doc = docMap.get(id);
@@ -197,10 +195,10 @@ export function createProviderFactory({
     // Lexical expects the `root` XmlText to always be present.
     doc.get('root', Y.XmlText);
 
-    const endpoints = resolveEndpoints(id);
+    const tokenRequest = resolveTokenRequest(id);
 
     const authEndpoint = async (): Promise<ClientToken> =>
-      rewriteTokenHost(await getAuthToken(id, endpoints), visibleOrigin);
+      rewriteTokenHost(await getAuthToken(id, tokenRequest), visibleOrigin);
 
     const localPersistenceSupport = await getLocalPersistenceSupportDecision();
     trace(
@@ -253,22 +251,42 @@ export function createProviderFactory({
   };
 }
 
-function createEndpointResolver(origin: string | undefined, createSyncTokenPath: (docId: string) => string) {
-  const normalizedOrigin = origin ? origin.replace(TRAILING_SLASH_PATTERN, '') : '';
-  const base = normalizedOrigin;
+interface TokenRequest {
+  cacheKey: string;
+  send: (signal: AbortSignal) => Promise<{ data?: ClientToken; response: Response }>;
+}
 
-  return (docId: string) => {
+function createTokenRequestResolver(
+  origin: string | undefined,
+  createSyncTokenPath: ((docId: string) => string) | undefined,
+) {
+  const base = origin ? origin.replace(TRAILING_SLASH_PATTERN, '') : '';
+
+  if (!createSyncTokenPath) {
+    return (docId: string): TokenRequest => ({
+      cacheKey: `${base}\0${docId}`,
+      send: (signal) => api.POST('/api/documents/{document_id}/sync-tokens', {
+        baseUrl: base || undefined,
+        params: { path: { document_id: docId } },
+        signal,
+      }),
+    });
+  }
+
+  return (docId: string): TokenRequest => {
+    const url = `${base}${createSyncTokenPath(docId)}`;
     return {
-      token: `${base}${createSyncTokenPath(docId)}`,
+      cacheKey: url,
+      send: async (signal) => {
+        const response = await fetchApi(new Request(url, { signal, method: 'POST' }));
+        return { data: response.ok ? (await response.json()) as ClientToken : undefined, response };
+      },
     };
   };
 }
 
-function getAuthToken(
-  docId: string,
-  endpoints: { token: string },
-): Promise<ClientToken> {
-  const cacheKey = `${endpoints.token}\0${docId}`;
+function getAuthToken(docId: string, tokenRequest: TokenRequest): Promise<ClientToken> {
+  const { cacheKey } = tokenRequest;
   const existing = docTokenInFlight.get(cacheKey);
   if (existing) {
     return existing.promise;
@@ -276,24 +294,15 @@ function getAuthToken(
 
   const controller = new AbortController();
   const promise = (async () => {
-    // A fresh offline page may reconnect before the session gate has loaded CSRF configuration.
-    if (typeof document !== 'undefined' && new URL(endpoints.token, location.href).origin === location.origin) {
-      await getApiConfig();
-    }
     trace('collab', 'requesting auth token', { docId });
-    const response = await apiFetch(endpoints.token, {
-      signal: controller.signal,
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ docId }),
-    });
-    if (!response.ok) {
+    const { data, response } = await tokenRequest.send(controller.signal);
+    if (data === undefined) {
       trace('collab', 'auth token request failed', { docId, status: response.status });
       throw new Error(`Failed to auth doc ${docId}: ${response.status} ${response.statusText}`);
     }
 
     trace('collab', 'auth token ready', { docId });
-    return (await response.json()) as ClientToken;
+    return data;
   })();
 
   const request = { promise, controller };

@@ -1,7 +1,6 @@
 import { MantineProvider } from '@mantine/core';
 import { render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createDocumentSyncTokenApiPath } from '#document-routes';
 import { getCollabTestAuthentication, withTestAuthentication } from './_support/auth';
 import { createCollabTestDocument } from './_support/documents';
 import { renderRemdoEditor } from './_support/render-editor';
@@ -42,7 +41,7 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
         expect.arrayContaining([
           expect.objectContaining({
             method: 'POST',
-            url: expect.stringContaining(createDocumentSyncTokenApiPath(docId)),
+            url: expect.stringContaining(`/api/documents/${docId}/sync-tokens`),
           }),
         ])
       );
@@ -64,7 +63,7 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
     const warnSpy = vi.mocked(console.warn);
 
     const originalFetch = globalThis.fetch.bind(globalThis);
-    const tokenPath = createDocumentSyncTokenApiPath(docId);
+    const tokenPath = `/api/documents/${docId}/sync-tokens`;
     // Fail the pending request after teardown. The patched client must ignore
     // the rejection belonging to the destroyed provider's connection attempt.
     let failTokenRequest: (() => void) | undefined;
@@ -108,7 +107,7 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
     });
 
     const originalFetch = globalThis.fetch.bind(globalThis);
-    const tokenPath = createDocumentSyncTokenApiPath(docId);
+    const tokenPath = `/api/documents/${docId}/sync-tokens`;
     // Hold the token request until we release it *successfully*, after teardown.
     let resolveTokenRequest: (() => void) | undefined;
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {

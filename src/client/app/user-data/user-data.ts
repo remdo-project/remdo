@@ -23,11 +23,6 @@ export function useUserData(): UserDataNote {
   return runtime.userData;
 }
 
-export function useDocumentSourcesLoading(): boolean {
-  const runtime = useUserDataRuntime();
-  return useQuery(runtime.documentsQuery).isPending;
-}
-
 export function useUserDataStatus() {
   const runtime = useUserDataRuntime();
   const bootstrap = useQuery(runtime.bootstrapQuery);
