@@ -165,6 +165,22 @@ describe('auth client session gate', () => {
     }
   });
 
+  it('continues logout when shared storage rejects the pending marker', async () => {
+    // The caller commits a route gate before this write and navigates after it,
+    // so a propagating quota failure leaves the shell stuck on "Signing out…".
+    const { PENDING_SIGN_OUT_STORAGE_KEY, rememberPendingSignOut } = await import('#client/app/session/client');
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+    });
+
+    try {
+      expect(() => rememberPendingSignOut()).not.toThrow();
+      expect(setItem).toHaveBeenCalledWith(PENDING_SIGN_OUT_STORAGE_KEY, expect.any(String));
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
   it('exposes the pending-sign-out write as a storage event peers can observe', async () => {
     const {
       isPendingSignOutStorageEvent,
