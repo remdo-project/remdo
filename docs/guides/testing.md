@@ -44,8 +44,8 @@ Git-based dependency heuristics and pass when they find no tests. Use an
 unsuffixed command with a file or filter for known relationships the heuristic
 cannot discover; without one, it runs the complete group used by CI.
 
-- `./tools/django.sh test accounts documents fixtures remdo` — run Django
-  authentication, CSRF, document ownership, administration and configuration tests.
+- `./tools/django.sh test` — run Django authentication, CSRF, document
+  ownership, administration and configuration tests.
 - `./tools/check-backend.sh` — check Python formatting, Django configuration, and
   migration consistency.
 - `pnpm run api:check` — check generated browser types against the application
@@ -73,13 +73,13 @@ cannot discover; without one, it runs the complete group used by CI.
 Run the backend suite against a disposable PostgreSQL database:
 
 ```sh
-./tools/postgres.sh run ./tools/django.sh test accounts documents fixtures remdo
+./tools/postgres.sh run ./tools/django.sh test
 ```
 
 The wrapper starts PostgreSQL, supplies its connection, and removes its container
 and volume when the command exits. It can also wrap `pnpm run test:collab` or
 `pnpm run test:e2e` for a PostgreSQL-specific integration check.
 
-CI runs the backend suite with both databases. Docker E2E covers standalone
-SQLite and hosted PostgreSQL deployment. CI also runs all static checks
-configured in its workflows.
+CI runs all static checks configured in its workflows, and verifies the
+[database isolation](../specs/testing/test-harness.md#database-isolation) and
+deployment coverage the test harness owns.

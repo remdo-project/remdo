@@ -33,6 +33,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python
-      - run: ./tools/check-backend.sh && ./tools/django.sh test accounts documents fixtures remdo
+      - run: ./tools/check-backend.sh && ./tools/django.sh test
       - name: Verify PostgreSQL backend
-        run: ./tools/postgres.sh run ./tools/django.sh test accounts documents fixtures remdo
+        run: ./tools/postgres.sh run ./tools/django.sh test
