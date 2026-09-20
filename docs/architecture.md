@@ -62,8 +62,8 @@ not from request forwarding headers.
 
 ### Gateway
 
-The gateway explicitly owns SPA routes (`/`, `/n/*`, `/sharing`, and `/sign-
-out`), frontend assets, Django static assets, public shared files, health
+The gateway explicitly owns SPA routes (`/`, `/n/*`, `/sharing`, and
+`/sign-out`), frontend assets, Django static assets, public shared files, health
 probes, and collaboration endpoints. Django owns all other HTTP routes,
 including unknown routes and their 404 responses. Normal HTTP routes have the
 same owner in development and production; development additionally serves
