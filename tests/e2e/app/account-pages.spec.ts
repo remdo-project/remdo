@@ -1,4 +1,4 @@
-import { expect, guardedTest as test, allowUnauthorizedNetwork } from '#e2e/fixtures';
+import { expect, guardedTest as test, allowUnauthorizedNetwork, setExpectedConsoleIssues } from '#e2e/fixtures';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 import { provisionDjangoUser } from '../../../tools/lib/django-user';
 import { createFixtureDocument } from '../../../tools/lib/fixture-document';
@@ -104,5 +104,47 @@ test('native sign-in accepts an existing admin session from another tab', async 
   // Django rotates the CSRF token at login; reload the old form to reuse the session.
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await admin.close();
+});
+
+test('admin sign-in supersedes an unfinished logout in another tab', async ({ page, context }) => {
+  const previous = createTestAuthAccount();
+  const administrator = createTestAuthAccount();
+  await provisionDjangoUser(previous);
+  await provisionDjangoUser({ ...administrator, admin: true });
+  await page.goto('/accounts/login/');
+  await page.getByLabel('Email:', { exact: true }).fill(previous.email);
+  await page.getByLabel('Password:', { exact: true }).fill(previous.password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  setExpectedConsoleIssues(page, ['net::ERR_FAILED'], { mode: 'allowContains' });
+  await page.route('**/api/auth/browser/v1/auth/session', async (route) => {
+    if (route.request().method() === 'DELETE') return route.abort('failed');
+    return route.continue();
+  });
+  await page.getByRole('button', { name: 'Logout', exact: true }).click();
+  const finish = page.getByRole('button', { name: 'Finish signing out', exact: true });
+  await expect(finish).toBeVisible();
+  await page.unroute('**/api/auth/browser/v1/auth/session');
+  const revocations: string[] = [];
+  page.on('request', (request) => {
+    if (request.method() === 'DELETE') revocations.push(request.url());
+  });
+
+  const admin = await context.newPage();
+  await admin.goto('/admin/login/?next=/admin/accounts/user/');
+  await admin.getByLabel('Email:', { exact: true }).fill(administrator.email);
+  await admin.getByLabel('Password:', { exact: true }).fill(administrator.password);
+  await admin.getByRole('button', { name: 'Log in', exact: true }).click();
+  await expect(admin).toHaveURL(/\/admin\/accounts\/user\/$/u);
+  expect(await admin.evaluate(() => localStorage.getItem('remdo-pending-sign-out'))).toBeNull();
+  // The storage event removes the old tab's revocation action without sending it.
+  await expect(finish).toHaveCount(0);
+  expect(revocations).toEqual([]);
+  const session = await context.request.get('/api/auth/browser/v1/auth/session');
+  expect(session.status()).toBe(200);
+  expect((await session.json()).data.user.email).toBe(administrator.email);
+  await admin.reload();
+  await expect(admin).toHaveURL(/\/admin\/accounts\/user\/$/u);
   await admin.close();
 });

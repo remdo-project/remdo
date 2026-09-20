@@ -1,9 +1,21 @@
 from allauth.account.views import LoginView as AllauthLoginView
+from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
+
+
+def complete_login(request, response):
+    if request.user.is_authenticated and isinstance(response, HttpResponseRedirect):
+        return render(request, "accounts/login_complete.html", {"next_url": response.url})
+    return response
+
+
+@never_cache
+def admin_login(request):
+    return complete_login(request, admin.site.login(request))
 
 
 @never_cache
@@ -18,7 +30,4 @@ class LoginView(AllauthLoginView):
     template_name = "accounts/login.html"
 
     def dispatch(self, request, *args, **kwargs):
-        response = super().dispatch(request, *args, **kwargs)
-        if request.user.is_authenticated and isinstance(response, HttpResponseRedirect):
-            return render(request, "accounts/login_complete.html", {"next_url": response.url})
-        return response
+        return complete_login(request, super().dispatch(request, *args, **kwargs))

@@ -91,6 +91,49 @@ class LoginPageTests(TestCase):
         # The browser must confirm discarded edits and clear local data first.
         self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 200)
 
+    def admin_login(self, **fields):
+        self.client.get("/admin/login/")
+        return self.client.post(
+            "/admin/login/",
+            {
+                "username": self.user.email,
+                "password": "alice-password-1234",
+                "csrfmiddlewaretoken": self.client.cookies[settings.CSRF_COOKIE_NAME].value,
+                **fields,
+            },
+        )
+
+    def test_admin_login_completes_browser_handoff_with_safe_return_target(self):
+        self.user.is_staff = True
+        self.user.save()
+        for target, expected in (
+            ("/admin/accounts/user/", "/admin/accounts/user/"),
+            ("https://unrelated.example/", "/"),
+        ):
+            with self.subTest(target=target):
+                self.client.logout()
+                response = self.admin_login(next=target)
+                self.assertTemplateUsed(response, "accounts/login_complete.html")
+                self.assertEqual(response.context["next_url"], expected)
+                self.assertIn("no-store", response.headers["Cache-Control"])
+                self.assertEqual(self.client.get("/admin/").status_code, 200)
+
+    def test_admin_login_preserves_native_staff_and_password_checks(self):
+        for staff, password in ((False, "alice-password-1234"), (True, "wrong")):
+            with self.subTest(staff=staff, password=password):
+                self.user.is_staff = staff
+                self.user.save()
+                response = self.admin_login(password=password)
+                self.assertTemplateUsed(response, "admin/login.html")
+                self.assertTrue(response.context["form"].errors)
+                self.assertNotContains(response, "localStorage.removeItem")
+                self.assertEqual(
+                    self.client.get("/api/auth/browser/v1/auth/session").status_code, 401
+                )
+
+    def test_admin_login_handoff_requires_csrf(self):
+        self.assertEqual(self.client.post("/admin/login/", {}).status_code, 403)
+
     def test_admin_logout_handoff_requires_a_csrf_protected_post(self):
         self.login()
         self.assertEqual(self.client.get("/admin/logout/").status_code, 405)
