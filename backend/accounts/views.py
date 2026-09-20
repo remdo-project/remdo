@@ -1,5 +1,4 @@
 from allauth.account.views import LoginView as AllauthLoginView
-from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.utils.decorators import method_decorator
@@ -11,11 +10,6 @@ def complete_login(request, response):
     if request.user.is_authenticated and isinstance(response, HttpResponseRedirect):
         return render(request, "accounts/login_complete.html", {"next_url": response.url})
     return response
-
-
-@never_cache
-def admin_login(request):
-    return complete_login(request, admin.site.login(request))
 
 
 @never_cache

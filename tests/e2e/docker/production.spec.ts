@@ -50,7 +50,8 @@ url = urlsplit(origin)
 hosted = os.environ.get('RENDER') == 'true'
 port = int(os.environ['PORT']) if hosted else url.port or 443
 
-def request(method, path, client, forged, body=None, csrf=None):
+def request(method, path, client, forged, body=None, csrf=None,
+            content_type='application/json'):
     # Separate socket addresses reach the actual Caddy gateway in standalone mode.
     # Hosted requests emulate the documented, edge-overwritten Cloudflare header.
     kwargs = dict(source_address=(client if not hosted else '127.0.0.1', 0), timeout=5)
@@ -59,7 +60,7 @@ def request(method, path, client, forged, body=None, csrf=None):
         connection.connect()
         connection.sock = ssl._create_unverified_context().wrap_socket(
             connection.sock, server_hostname=url.hostname)
-    headers = {'Host': url.netloc, 'Origin': origin, 'Content-Type': 'application/json',
+    headers = {'Host': url.netloc, 'Origin': origin, 'Content-Type': content_type,
                'X-Forwarded-For': forged, 'X-Real-IP': forged,
                'CF-Connecting-IP': client if hosted else forged}
     if csrf:
@@ -81,10 +82,18 @@ def login(client, forged):
     return request('POST', '/api/auth/browser/v1/auth/login', client, forged, '{}', csrf)[0]
 
 statuses = [login(first, '192.0.2.' + str(i + 1)) for i in range(30)]
+def admin_login(client):
+    return request('POST', '/accounts/login/?next=/admin/', client, '192.0.2.100',
+                   '', csrf, 'application/x-www-form-urlencoded')[0]
+
 print(json.dumps({'allowed': statuses, 'blocked': login(first, '192.0.2.100'),
-                  'other': login(second, '192.0.2.100')}))
+                  'other': login(second, '192.0.2.100'),
+                  'adminBlocked': admin_login(first), 'adminOther': admin_login(second)}))
 `);
-    expect(JSON.parse(result)).toEqual({ allowed: Array.from({ length: 30 }).fill(400), blocked: 429, other: 400 });
+    expect(JSON.parse(result)).toEqual({
+      allowed: Array.from({ length: 30 }).fill(400), blocked: 429, other: 400,
+      adminBlocked: 429, adminOther: 200,
+    });
   });
 }
 
@@ -99,7 +108,7 @@ test('production launcher serves login, collaboration, and persistent data throu
   await page.goto('/admin/');
   await page.getByLabel('Email:', { exact: true }).fill(email);
   await page.getByLabel('Password:', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Log in', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Site administration' })).toBeVisible();
   expect((await page.request.get('/django-static/admin/css/base.css')).status()).toBe(200);
   await page.goto('/');
