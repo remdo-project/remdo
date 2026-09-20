@@ -80,7 +80,7 @@ Simplification follow-up:
    calculation from active frontend configuration. Keep Django responsible for
    live authentication settings, including its development secret, and localize
    reference-only configuration to retained code.
-5. [ ] Remove the unused `publicServer` flag from active Django responses,
+5. [x] Remove the unused `publicServer` flag from active Django responses,
    generated types, bootstrap storage, and fixtures. Preserve reference-code
    consumers and the still-used CSRF fields.
 

@@ -14,7 +14,7 @@ function account(userId = 'alice') {
 function documentRequests(handler: (request: Request) => Response | Promise<Response>, userId = 'alice') {
   vi.stubGlobal('fetch', vi.fn((request: Request) => {
     if (new URL(request.url).pathname === '/api/current-user') {
-      return Promise.resolve(Response.json({ userId, publicServer: false }));
+      return Promise.resolve(Response.json({ userId }));
     }
     return Promise.resolve(handler(request));
   }));
@@ -46,7 +46,7 @@ describe('account metadata', () => {
     const bootstrap = runtime.client.query(runtime.bootstrapQuery);
     await runtime.client.query(runtime.documentsQuery);
     expect(runtime.userData.getDocuments().getById('starter')?.getText()).toBe('New Document');
-    bootstrapResponse.resolve(Response.json({ userId: 'alice', publicServer: false }));
+    bootstrapResponse.resolve(Response.json({ userId: 'alice' }));
     await bootstrap;
   });
 

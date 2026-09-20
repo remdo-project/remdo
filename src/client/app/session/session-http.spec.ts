@@ -12,7 +12,7 @@ afterEach(() => {
 
 function configResponse() {
   document.cookie = 'remdo_csrf_test=initial; Path=/';
-  return Response.json({ publicServer: false, csrfCookieName: 'remdo_csrf_test', csrfToken: 'initial' });
+  return Response.json({ csrfCookieName: 'remdo_csrf_test', csrfToken: 'initial' });
 }
 
 it('acknowledges allauth logout while rejecting failed revocation', async () => {

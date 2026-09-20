@@ -86,10 +86,7 @@ describe('auth client session gate', () => {
   it('clears the remembered session when the auth API rejects it', async () => {
     getSessionMock.mockRejectedValue({ status: 401 });
     localStorage.setItem('remdo-authenticated-session', '1');
-    localStorage.setItem('remdo-current-user-bootstrap', JSON.stringify({
-      userId: 'oldUser',
-      publicServer: false,
-    }));
+    localStorage.setItem('remdo-current-user-bootstrap', JSON.stringify({ userId: 'oldUser' }));
     const { resolveSessionGateState } = await import('#client/app/session/client');
 
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
@@ -113,10 +110,7 @@ describe('auth client session gate', () => {
     getSessionMock.mockResolvedValue(null);
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: online });
     localStorage.setItem('remdo-authenticated-session', '1');
-    localStorage.setItem('remdo-current-user-bootstrap', JSON.stringify({
-      userId: 'oldUser',
-      publicServer: false,
-    }));
+    localStorage.setItem('remdo-current-user-bootstrap', JSON.stringify({ userId: 'oldUser' }));
     const { resolveSessionGateState } = await import('#client/app/session/client');
 
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });

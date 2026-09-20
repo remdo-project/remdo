@@ -51,7 +51,7 @@ export function getCachedCurrentUserBootstrap(): CurrentUserBootstrap | null {
   try {
     const body = JSON.parse(rawBootstrap) as Partial<CurrentUserBootstrap>;
     if (typeof body.userId === 'string' && body.userId) {
-      return { userId: body.userId, publicServer: body.publicServer === true };
+      return { userId: body.userId };
     }
   } catch {
     // Browser storage is untrusted; an invalid record cannot establish identity.
