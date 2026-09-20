@@ -6,8 +6,16 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 
-def complete_login(request, response):
-    if request.user.is_authenticated and isinstance(response, HttpResponseRedirect):
+def complete_login(request, response, authenticated_before):
+    # The handoff clears the pending-sign-out marker, so only an actual
+    # authentication may render it. allauth redirects a visitor who already has a
+    # session without asking for credentials, which must not supersede a pending
+    # logout on this device.
+    if (
+        request.user.is_authenticated
+        and not authenticated_before
+        and isinstance(response, HttpResponseRedirect)
+    ):
         return render(request, "accounts/login_complete.html", {"next_url": response.url})
     return response
 
@@ -24,4 +32,7 @@ class LoginView(AllauthLoginView):
     template_name = "accounts/login.html"
 
     def dispatch(self, request, *args, **kwargs):
-        return complete_login(request, super().dispatch(request, *args, **kwargs))
+        authenticated_before = request.user.is_authenticated
+        return complete_login(
+            request, super().dispatch(request, *args, **kwargs), authenticated_before
+        )

@@ -69,8 +69,14 @@ test('returning browsers revalidate files and retain server navigation responses
   const asset = await page.locator('script[type="module"]').getAttribute('src');
   expect((await page.request.get(asset!)).headers()['cache-control']).toBe('no-cache');
   for (const url of ['/health', '/api/current-user', '/api/schema', '/accounts/login/', '/api/not-a-route', '/d/missing/as-update']) {
-    expect((await page.request.get(url)).headers()['cache-control'], url).toContain('no-store');
+    // maxRedirects: 0 keeps the header the route itself returns; an authenticated
+    // visit to /accounts/login/ redirects to a shell route served with no-cache.
+    const response = await page.request.get(url, { maxRedirects: 0 });
+    expect(response.headers()['cache-control'], url).toContain('no-store');
   }
+  // The gateway proxies /d/* to Y-Sweet without its own authorization, so the
+  // document service must reject a caller presenting no bearer token.
+  expect((await page.request.get('/d/missing/as-update')).status()).toBe(401);
   const missing = await page.request.get('/app-assets/missing.js');
   expect(missing.status()).toBe(404);
   expect(missing.headers()['cache-control']).toContain('no-store');
