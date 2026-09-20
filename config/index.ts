@@ -6,26 +6,16 @@ import { resolveConfig } from './env/resolve.ts';
 // eslint-disable-next-line ts/no-unnecessary-condition -- in browser process is a stub with no versions
 const isNodeRuntime = Boolean(globalThis.process?.versions?.node);
 
-const loaded = (() => {
-  if (isNodeRuntime) {
-    // The machine hostname feeds dev auth trusted-origin aliases. Accessed via
-    // process.getBuiltinModule (Node-only) rather than a static import or
-    // require: a static node:os import would pull into the browser bundle, and a
-    // require() mixed with this module graph's top-level await breaks ESM/CJS
-    // format detection under tsx.
-    const machineHostname = process.getBuiltinModule('node:os').hostname();
-    return resolveConfig((key) => process.env[key], { machineHostname });
-  }
+const loaded = isNodeRuntime
+  ? resolveConfig((key) => process.env[key])
+  : resolveConfig((key) => {
+      if (key === 'NODE_ENV') {
+        return import.meta.env.MODE;
+      }
 
-  return resolveConfig((key) => {
-    if (key === 'NODE_ENV') {
-      return import.meta.env.MODE;
-    }
-
-    const viteKey = `VITE_${key}`;
-    return viteKey in import.meta.env ? import.meta.env[viteKey] : import.meta.env[key];
-  }, { server: false });
-})();
+      const viteKey = `VITE_${key}`;
+      return viteKey in import.meta.env ? import.meta.env[viteKey] : import.meta.env[key];
+    });
 
 const runtime = loaded.runtime;
 const serverEnv = loaded.server;

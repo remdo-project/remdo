@@ -16,7 +16,7 @@
   "ignoreExportsUsedInFile": true,
   "entry": [
     // Reference code retained for docs/todo.md#cross-server-linking-redesign.
-    "src/server/{app,auth/auth,db/client,documents/document-registry}.ts",
+    "src/server/{app,auth/auth,auth/trusted-origins,db/client,documents/document-registry}.ts",
     // Snapshot tooling still has consumers; the Node backup exporter is reference
     // code, not a supported Django command. See docs/todo.md#operations.
     "tools/snapshot/cli.ts!",
