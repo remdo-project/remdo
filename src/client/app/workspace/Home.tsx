@@ -1,4 +1,4 @@
-import { Alert, Button, Container } from '@mantine/core';
+import { Alert, Button, Container, Stack } from '@mantine/core';
 import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createDocumentPath } from '#document-routes';
@@ -28,7 +28,10 @@ export default function Home() {
     <Container className="document-route-container" component="main" fluid py="xs">
       {status.error && (
         <Alert color="red" title="Could not load documents">
-          <Button onClick={status.retry}>Retry</Button>
+          <Stack align="flex-start" gap="xs">
+            {status.error}
+            <Button onClick={status.retry}>Retry</Button>
+          </Stack>
         </Alert>
       )}
       {actions.createError && (

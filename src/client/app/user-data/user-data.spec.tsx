@@ -34,7 +34,8 @@ it('reactively shows metadata errors and recovers through the Home retry action'
     const data = useUserData();
     return { titles: data.getDocuments().getChildren().map((document) => document.getText()), status: useUserDataStatus() };
   }, { wrapper: Wrapper });
-  await waitFor(() => { expect(result.current.status.error?.message).toBe('Request failed: 503'); });
+  // The status reports a message the alert can render, not the raw error.
+  await waitFor(() => { expect(result.current.status.error).toBe('Request failed: 503'); });
   expect(result.current.titles).toEqual([]);
   unavailable = false;
   act(() => { result.current.status.retry(); });
