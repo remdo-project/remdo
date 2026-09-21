@@ -77,17 +77,36 @@ daemons are supported.
 
 ## Deploy on Render
 
-1. Create a Render PostgreSQL database in the same region as the app and copy
-   its internal database URL.
-2. Create a Render Blueprint deployment from [the repository blueprint](../../render.yaml),
-   selecting the branch to deploy. Set `DATABASE_URL` to the database's internal
-   URL and `APP_ORIGIN` to the service's exact public origin.
-3. Keep the blueprint's persistent disk mounted at `/data`. Render supplies the
-   container `PORT` and terminates public HTTPS.
-   Keep one instance and retain the disk and database across redeployments.
-4. In Render's **Settings > Edge Caching**, set **Cacheable file types** to **None**
-   to preserve the [application freshness policy](../architecture.md#application-freshness).
-5. Deploy the service and open its `APP_ORIGIN`.
+Deploy both environments from [the repository blueprint](../../render.yaml).
+
+1. Create a Render Blueprint deployment from it.
+2. Point DNS at each service as Render's domain settings instruct and wait for
+   its certificate.
+3. For each service, set **Settings > Edge Caching > Cacheable file types** to
+   **None**, preserving the [application freshness policy](../architecture.md#application-freshness).
+4. For each service, complete
+   [Verify and Complete First Access](#verify-and-complete-first-access).
+
+Release production from Render's dashboard.
+
+### Reset the Staging Sandbox
+
+Staging's data is disposable, and its free database expires. Reset it before
+the expiry deletes the database: the service cannot reach a deleted database,
+and clearing the data root needs its shell, which needs a running instance.
+
+Clear the data root, with no editor connected so that collaboration state is
+not rewritten behind the deletion:
+
+```sh
+rm -rf /data/..?* /data/.[!.]* /data/*
+```
+
+Then delete the database and sync the blueprint, which recreates it and
+redeploys. Clearing the data root without also replacing the database leaves
+the service unable to start, because
+[secret bootstrap](../specs/runtime/configuration.md#secret-bootstrap) refuses
+to generate a bundle for an existing dataset.
 
 ## Publish a Public File
 

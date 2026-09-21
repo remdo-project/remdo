@@ -61,6 +61,10 @@ and operational work through established libraries and services.
 - **Remaining checks:** verify actual Render deployment and public-certificate
   issuance using [Production Deployment](guides/production-deployment.md), and confirm rootful Docker coverage
   from CI.
+  The two-environment [blueprint](../render.yaml) is authored but not applied,
+  and both its environments deploy `main`, so the Render deployment check runs
+  after the merge: delete the superseded Render resources before merging, then
+  apply the blueprint. Whether that check gates the merge is unresolved.
   Complete the whole-migration review and verification, including an audit of
   migration-only tooling outside the [retained reference-code exception](#cross-server-linking-redesign).
 
@@ -174,7 +178,11 @@ withdrawn source-linking specification remains in Git history.
 
 - **Hocuspocus migration.** Replace Y-Sweet with Hocuspocus after the Django
   integration merges. Reassess collaboration, persistence, and runtime
-  boundaries when scoping the work.
+  boundaries when scoping the work. If document content stops living on the
+  persistent disk, revisit the staging reset in
+  [Production Deployment](guides/production-deployment.md): its steps exist
+  only because disk-resident collaboration state and the database must be
+  cleared together.
 
 - **Backup and recovery.** After Hocuspocus, define and verify coherent recovery
   for [supported deployments](guides/production-deployment.md), covering application metadata, document content,
