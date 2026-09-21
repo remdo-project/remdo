@@ -76,18 +76,10 @@ class ConfigurationTests(SimpleTestCase):
         self.env = {
             "PATH": "",
             "DATA_DIR": self.directory.name,
-            "AUTH_SECRET": "configuration-test-secret",
+            "AUTH_SECRET": "configuration-test-auth-" + "x" * 32,
             "APP_ORIGIN": "https://remdo.example",
-            "COLLAB_INTERNAL_SECRET": "configuration-test-secret",
+            "COLLAB_INTERNAL_SECRET": "configuration-test-collab-" + "x" * 32,
         }
-
-        bundle = Path(self.directory.name) / "secrets.json"
-        bundle.write_text(
-            json.dumps(
-                {key: "fixture-" + "x" * 48 for key in ("auth_secret", "collaboration_secret")}
-            )
-        )
-        bundle.chmod(0o600)
 
     def settings(self, report=REPORT, **overrides):
         result = subprocess.run(

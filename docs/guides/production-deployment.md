@@ -92,11 +92,13 @@ Release production from Render's dashboard.
 
 Staging's data is disposable, and its free database expires. Stop the
 application, delete the database, and sync the blueprint to recreate it and
-redeploy. Metadata and document content reset together. Keep the persistent data
-root and its secret bundle; the database reset does not require shell access to
-erase separate collaboration files.
+redeploy. Metadata and document content reset together. The reset does not
+require shell access.
 
 ## Publish a Public File
+
+A deployment retains published files only when it stores
+[`/data/public-share`](../specs/runtime/configuration.md#persistence) durably.
 
 After the first startup, use the service ID shown by Render's
 [SSH connection instructions](https://render.com/docs/ssh#starting-an-ssh-session):
@@ -154,7 +156,7 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
    python manage.py createsuperuser
    ```
 
-   Enter the administrator's email and password. Management commands load the
-   same persisted secret bundle as the server.
+   Enter the administrator's email and password. Management commands resolve the
+   same [secret bundle](../specs/runtime/configuration.md#secret-bootstrap) as the server.
 3. Open `/admin/` on the application origin and sign in with that account.
 4. Open the application home and sign in with the same account.

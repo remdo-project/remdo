@@ -156,10 +156,11 @@ deleted with its registry entry. An existing document without saved content
 starts empty; missing registry entries and database failures do not become empty
 documents.
 
-One active instance owns collaboration writes. Its [generated runtime secrets](specs/runtime/configuration.md#secret-bootstrap),
-SQLite database when selected, and public shared files use its persistent
-storage root. PostgreSQL persists independently. Recovery requires the matching
-database and secrets, plus public shared files when used.
+One active instance owns collaboration writes. Its SQLite database when
+selected and its public shared files use its persistent storage root; its
+[runtime secrets](specs/runtime/configuration.md#secret-bootstrap) use that root
+only when it stores them. PostgreSQL persists independently. Recovery requires
+the matching database and secrets, plus public shared files when used.
 
 ## Collaboration Runtime Building Blocks
 

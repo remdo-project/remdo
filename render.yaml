@@ -28,17 +28,23 @@ projects:
       - remdo.com
       envVars:
         # Render injects the container's internal PORT. Do not pin it.
-        # Django and collaboration secrets are bootstrapped
-        # onto the persistent disk on first run, so they are not set here.
+        # Generated once when the service first receives these variables, then
+        # reused by every later deploy.
+        - key: AUTH_SECRET
+          generateValue: true
+        - key: COLLAB_INTERNAL_SECRET
+          generateValue: true
         - key: DATABASE_URL
           fromDatabase:
             name: remdo-db
             property: connectionString
         - key: APP_ORIGIN
           value: https://remdo.com
+      # Mounted at the published-file directory rather than the data root, so
+      # only uploads survive a deploy and runtime scratch stays off the volume.
       disk:
-        name: remdo-data
-        mountPath: /data
+        name: remdo-share
+        mountPath: /data/public-share
         sizeGB: 1
 
   - name: staging
@@ -50,7 +56,6 @@ projects:
     - type: web
       name: remdo-staging
       runtime: docker
-      # A persistent disk requires a paid instance, so staging cannot run free.
       plan: starter
       region: frankfurt
       branch: main
@@ -63,13 +68,14 @@ projects:
       domains:
       - staging.remdo.com
       envVars:
+        # Staging keeps no disk, so the environment is the only secret source.
+        - key: AUTH_SECRET
+          generateValue: true
+        - key: COLLAB_INTERNAL_SECRET
+          generateValue: true
         - key: DATABASE_URL
           fromDatabase:
             name: remdo-staging-db
             property: connectionString
         - key: APP_ORIGIN
           value: https://staging.remdo.com
-      disk:
-        name: remdo-staging-data
-        mountPath: /data
-        sizeGB: 1

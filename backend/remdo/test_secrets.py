@@ -14,24 +14,61 @@ class SecretBundleTests(SimpleTestCase):
         database = patch("remdo.secrets.database_has_data", return_value=False)
         self.database_has_data = database.start()
         self.addCleanup(database.stop)
+        environment = patch.dict(os.environ, AUTH_SECRET="", COLLAB_INTERNAL_SECRET="")
+        environment.start()
+        self.addCleanup(environment.stop)
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
         self.path = self.root / "secrets.json"
+        self.supplied = {
+            key: key + "-" + "s" * 48 for key in ("auth_secret", "collaboration_secret")
+        }
 
     def generate(self):
         return load_secrets(self.root)
 
-    def test_fresh_bundle_is_private_and_reused_ignoring_environment(self):
+    def environment(self, **overrides):
+        supplied = {
+            "AUTH_SECRET": self.supplied["auth_secret"],
+            "COLLAB_INTERNAL_SECRET": self.supplied["collaboration_secret"],
+        }
+        return patch.dict(os.environ, {**supplied, **overrides})
+
+    def test_fresh_bundle_is_private_and_reused(self):
         original = self.generate()
         self.assertGreaterEqual(len(original["auth_secret"]), 48)
         self.assertGreaterEqual(len(original["collaboration_secret"]), 48)
         self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
-        with (
-            patch.dict(os.environ, AUTH_SECRET="different", COLLAB_INTERNAL_SECRET="different"),
-            patch("remdo.secrets.secrets.token_urlsafe", side_effect=AssertionError("must reuse")),
+        with patch("remdo.secrets.secrets.token_urlsafe", side_effect=AssertionError("must reuse")):
+            self.assertEqual(self.generate(), original)
+
+    def test_environment_bundle_is_used_without_touching_the_data_root(self):
+        missing = self.root / "absent"
+        with self.environment():
+            self.assertEqual(load_secrets(missing), self.supplied)
+        self.assertFalse(missing.exists())
+        self.database_has_data.assert_not_called()
+
+    def test_environment_bundle_outranks_a_stored_bundle(self):
+        self.generate()
+        with self.environment():
+            self.assertEqual(self.generate(), self.supplied)
+
+    def test_partial_or_weak_environment_bundle_fails_without_generating(self):
+        for overrides in (
+            {"AUTH_SECRET": ""},
+            {"COLLAB_INTERNAL_SECRET": ""},
+            {"AUTH_SECRET": "short"},
+            {"AUTH_SECRET": "a" * 20 + "\n" + "b" * 20},
         ):
-            self.assertEqual(load_secrets(self.root), original)
+            with self.subTest(overrides=overrides):
+                with (
+                    self.environment(**overrides),
+                    self.assertRaisesMessage(ImproperlyConfigured, "single line"),
+                ):
+                    self.generate()
+                self.assertFalse(self.path.exists())
 
     def test_corrupt_or_incomplete_bundle_fails_without_repair(self):
         for content in ("", "not-json", "{}", "[]", '{"auth_secret":"short"}'):
@@ -43,15 +80,10 @@ class SecretBundleTests(SimpleTestCase):
                 self.assertEqual(self.path.read_text(), content)
 
     def test_missing_bundle_refuses_existing_database(self):
-        for name in ("django.sqlite3",):
-            with self.subTest(name=name):
-                data = self.root / name
-                data.parent.mkdir(exist_ok=True)
-                data.touch()
-                with self.assertRaisesMessage(ImproperlyConfigured, "existing dataset"):
-                    self.generate()
-                self.assertFalse(self.path.exists())
-                data.unlink()
+        (self.root / "django.sqlite3").touch()
+        with self.assertRaisesMessage(ImproperlyConfigured, "existing dataset"):
+            self.generate()
+        self.assertFalse(self.path.exists())
 
     def test_missing_bundle_refuses_existing_postgresql_metadata(self):
         self.database_has_data.return_value = True

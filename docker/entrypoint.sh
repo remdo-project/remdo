@@ -32,8 +32,14 @@ if [ "${REMDO_DEV_CONTAINER:-false}" = "true" ]; then
   python manage.py setup_development_users
 fi
 mkdir -p "${TMPDIR:-/tmp}" "${DATA_DIR%/}/public-share"
-COLLAB_INTERNAL_SECRET="$(python -c 'from django.conf import settings; print(settings.COLLAB_INTERNAL_SECRET)')"
-export COLLAB_INTERNAL_SECRET
+# env.defaults.sh exports both names unconditionally, so assigning one alone
+# would leave the next settings load with an incomplete bundle, which it
+# rejects. Read the pair from one interpreter and assign only once both exist.
+resolved_secrets="$(python -c 'from django.conf import settings; print(settings.SECRET_KEY); print(settings.COLLAB_INTERNAL_SECRET)')"
+AUTH_SECRET="$(printf '%s\n' "${resolved_secrets}" | head -n 1)"
+COLLAB_INTERNAL_SECRET="$(printf '%s\n' "${resolved_secrets}" | tail -n 1)"
+unset resolved_secrets
+export AUTH_SECRET COLLAB_INTERNAL_SECRET
 
 managed_children=""
 
