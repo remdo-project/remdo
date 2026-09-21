@@ -5,9 +5,9 @@ import { HTTP_STATUS } from '#platform/http/status';
 import { extractSessionCookie } from '#server/auth/session-cookie';
 import { listCurrentUserSourceServers } from '#server/documents/source-servers';
 import { deriveSourceId } from '#server/remdo-oauth/config';
-import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
+import STABLE_AUTH_USERS from '../../../backend/fixtures/development-users.json';
 import { createTestResource } from '../_support/test-resource';
-import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';
+import { createServerAppHarness } from './_support/server-app-harness';
 
 const createHarness = createTestResource(createServerAppHarness);
 
@@ -72,7 +72,6 @@ describe('remdo api app', () => {
       'POST /api/documents',
       'POST /api/documents/:docId/access',
       'POST /api/documents/:docId/sync-tokens',
-      'POST /api/admin/enroll',
     ]);
   });
 
@@ -871,54 +870,7 @@ describe('remdo api app', () => {
     await expect(response.json()).resolves.toEqual({ error: 'Document access denied.' });
   });
 
-  it('rejects admin provisioning with a missing or wrong admin secret', async () => {
-    const harness = createHarness();
-
-    const missingResponse = await harness.app.request('/api/admin/enroll', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(STABLE_AUTH_USERS.alice),
-    });
-    const wrongResponse = await harness.app.request('/api/admin/enroll', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        adminSecret: 'wrong-admin-secret',
-        ...STABLE_AUTH_USERS.alice,
-      }),
-    });
-
-    expect(missingResponse.status).toBe(HTTP_STATUS.FORBIDDEN);
-    await expect(missingResponse.json()).resolves.toEqual({ error: 'Admin secret is invalid.' });
-    expect(wrongResponse.status).toBe(HTTP_STATUS.FORBIDDEN);
-    await expect(wrongResponse.json()).resolves.toEqual({ error: 'Admin secret is invalid.' });
-    await expect(harness.auth.getUserCount()).resolves.toBe(0);
-  });
-
-  it('rejects admin provisioning when no admin secret is configured', async () => {
-    const harness = createHarness({ adminSecret: '' });
-
-    const response = await harness.app.request('/api/admin/enroll', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        adminSecret: TEST_ADMIN_SECRET,
-        ...STABLE_AUTH_USERS.alice,
-      }),
-    });
-
-    expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
-    await expect(response.json()).resolves.toEqual({ error: 'Admin secret is invalid.' });
-    await expect(harness.auth.getUserCount()).resolves.toBe(0);
-  });
-
-  it('keeps public signup disabled when admin provisioning is available', async () => {
+  it('keeps public signup disabled', async () => {
     const harness = createHarness();
 
     const response = await harness.app.request('/api/auth/sign-up/email', {
@@ -938,16 +890,7 @@ describe('remdo api app', () => {
       baseURL: 'https://remdo.localhost:4007',
     });
 
-    await harness.app.request('/api/admin/enroll', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        adminSecret: TEST_ADMIN_SECRET,
-        ...STABLE_AUTH_USERS.alice,
-      }),
-    });
+    await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
 
     const response = await harness.app.fetch(new Request('http://127.0.0.1:4018/api/auth/sign-in/email', {
       method: 'POST',
@@ -965,25 +908,6 @@ describe('remdo api app', () => {
     }));
 
     expect(response.status).toBe(HTTP_STATUS.OK);
-  });
-
-  it('allows admin provisioning for additional users', async () => {
-    const harness = createHarness();
-    await harness.createSessionHeaders();
-
-    const response = await harness.app.request('/api/admin/enroll', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        adminSecret: TEST_ADMIN_SECRET,
-        ...STABLE_AUTH_USERS.alice,
-      }),
-    });
-
-    expect(response.status).toBe(HTTP_STATUS.OK);
-    await expect(harness.auth.getUserCount()).resolves.toBe(2);
   });
 
   it('stores auth users and document registry rows in the shared database client', async () => {

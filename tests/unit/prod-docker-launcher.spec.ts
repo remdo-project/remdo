@@ -96,13 +96,13 @@ describe('prod Docker launcher', () => {
       encoding: 'utf8',
       env: {
         ...process.env,
-        ADMIN_SECRET: 'production-admin-secret-0123456789',
         ALLOW_SIGNUP: '',
         APP_ORIGIN: '',
         AUTH_SECRET: 'production-auth-secret-0123456789',
         CADDY_BIND_DIRECTIVE: 'bind 0.0.0.0',
         CADDY_SITE_ADDRESS: 'http://:9998',
         DATA_DIR: dataDir,
+        DATABASE_URL: '',
         HOST: '',
         PATH: `${binDir}:${process.env.PATH}`,
         PORT: '9999',
@@ -141,14 +141,10 @@ describe('prod Docker launcher', () => {
     expect(runArgs).toContain('-d');
     expect(runArgs).not.toContain('--rm');
     expect(runArgs).not.toContain('--network=host');
-    expect(findDockerCall(dockerCalls, 'exec').join(' ')).toContain('AbortSignal.timeout(500)');
+    expect(findDockerCall(dockerCalls, 'exec').join(' ')).toContain('timeout=0.5');
     expect(dockerEnvironment(runArgs)).toEqual({
-      ADMIN_SECRET: 'production-admin-secret-0123456789',
       APP_ORIGIN: 'https://remdo.localhost:8443',
-      ALLOW_SIGNUP: 'false',
-      AUTH_SECRET: 'production-auth-secret-0123456789',
-      YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
-      YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
+      DATABASE_URL: '',
     });
     expect(result.stdout).toContain('Verify health: https://remdo.localhost:8443/health');
     expect(result.stdout).toContain('Follow logs: docker logs -f remdo-8443');
@@ -324,17 +320,11 @@ describe('prod Docker launcher', () => {
     ]);
   });
 
-  it('requires strong operator secrets before building', () => {
-    for (const [name, value, message] of [
-      ['ADMIN_SECRET', 'short', 'ADMIN_SECRET must be at least 32 characters'],
-      ['AUTH_SECRET', 'short', 'AUTH_SECRET must be at least 32 characters'],
-    ] as const) {
-      const { result, dockerCalls } = runLauncher({ [name]: value });
-
-      expect(result.status).not.toBe(0);
-      expect(result.stderr).toContain(message);
-      expect(dockerCalls).toEqual([]);
-    }
+  it('forwards an external PostgreSQL connection to the app', () => {
+    const url = 'postgresql://fixture:testing@database.example/remdo';
+    const { result, dockerCalls } = runLauncher({ DATABASE_URL: url });
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run')).DATABASE_URL).toBe(url);
   });
 
   it('rejects every production HOST except loopback and the IPv4 wildcard', () => {
@@ -376,9 +366,8 @@ describe('prod Docker launcher', () => {
 
     expect(result.status, result.stderr).toBe(0);
     expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toEqual({
-      ADMIN_SECRET: 'production-admin-secret-0123456789',
       APP_ORIGIN: 'https://remdo.localhost:8443',
-      ALLOW_SIGNUP: 'false',
+      DATABASE_URL: '',
     });
   });
 

@@ -1,90 +1,71 @@
-import { config } from '#config';
-import { HTTP_STATUS } from '#platform/http/status';
+import { request as playwrightRequest } from 'playwright';
 import { resolveApiServerOrigin } from '#platform/net/origins';
-import { extractSessionCookie } from '#server/auth/session-cookie';
 import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
+import { authenticateDjangoTestUser } from '#tests-common/django-auth';
+import { provisionDjangoUser } from '#tools/django-user';
 
-let sessionCookiePromise: Promise<string> | null = null;
+interface CollabTestAuthentication {
+  cookie: string;
+  csrfToken: string;
+}
+
+let authenticationPromise: Promise<CollabTestAuthentication> | null = null;
 
 function toApiUrl(pathname: string): string {
   return `${resolveApiServerOrigin()}${pathname}`;
 }
 
-async function createOrSignInTestUser(): Promise<string> {
-  const provisionResponse = await fetch(toApiUrl('/api/admin/enroll'), {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      ...TEST_AUTH_ACCOUNT,
-      adminSecret: config.env.ADMIN_SECRET,
-    }),
-  });
-  if (provisionResponse.ok) {
-    return extractSessionCookie(provisionResponse);
-  }
-  if (provisionResponse.status !== HTTP_STATUS.UNPROCESSABLE_ENTITY) {
-    throw new Error(`Failed to provision collab test user: ${provisionResponse.status} ${provisionResponse.statusText}`);
-  }
+let provisioningPromise: Promise<void> | null = null;
 
-  const signInResponse = await fetch(toApiUrl('/api/auth/sign-in/email'), {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      email: TEST_AUTH_ACCOUNT.email,
-      password: TEST_AUTH_ACCOUNT.password,
-    }),
+export async function ensureCollabTestUser(): Promise<void> {
+  provisioningPromise ??= provisionDjangoUser(TEST_AUTH_ACCOUNT).catch((error: unknown) => {
+    provisioningPromise = null;
+    throw error;
   });
-  if (signInResponse.ok) {
-    return extractSessionCookie(signInResponse);
-  }
-
-  throw new Error(
-    `Failed to authenticate collab test user: enrollment ${provisionResponse.status} ${provisionResponse.statusText}; sign-in ${signInResponse.status} ${signInResponse.statusText}`,
-  );
+  return provisioningPromise;
 }
 
-export async function getCollabTestSessionCookie(): Promise<string> {
-  if (!sessionCookiePromise) {
-    sessionCookiePromise = createOrSignInTestUser().catch((error) => {
-      sessionCookiePromise = null;
-      throw error;
-    });
+async function signInTestUser(): Promise<CollabTestAuthentication> {
+  await ensureCollabTestUser();
+  const request = await playwrightRequest.newContext();
+  try {
+    const csrfToken = await authenticateDjangoTestUser(request, resolveApiServerOrigin(), TEST_AUTH_ACCOUNT);
+    const { cookies } = await request.storageState();
+    return { cookie: cookies.map(({ name, value }) => `${name}=${value}`).join('; '), csrfToken };
+  } finally {
+    await request.dispose();
   }
-  return sessionCookiePromise;
 }
 
-function createApiRequest(input: RequestInfo | URL, init: RequestInit | undefined): Request {
-  return typeof input === 'string'
+export async function getCollabTestAuthentication(): Promise<CollabTestAuthentication> {
+  authenticationPromise ??= signInTestUser().catch((error: unknown) => {
+    authenticationPromise = null;
+    throw error;
+  });
+  return authenticationPromise;
+}
+
+export function withTestAuthentication(
+  input: RequestInfo | URL,
+  init: RequestInit | undefined,
+  authentication: CollabTestAuthentication,
+): Request {
+  const request = typeof input === 'string'
     ? new Request(new URL(input, toApiUrl('/')), init)
     : new Request(input, init);
-}
-
-export function withSessionCookie(input: RequestInfo | URL, init: RequestInit | undefined, sessionCookie: string): Request {
-  const request = createApiRequest(input, init);
-  const apiOrigin = new URL(toApiUrl('/')).origin;
   const url = new URL(request.url);
-  if (url.origin !== apiOrigin || !url.pathname.startsWith('/api/')) {
+  if (url.origin !== new URL(toApiUrl('/')).origin || !url.pathname.startsWith('/api/')) {
     return request;
   }
-
   const headers = new Headers(request.headers);
-  headers.set('cookie', sessionCookie);
+  headers.set('cookie', authentication.cookie);
+  headers.set('X-CSRFToken', authentication.csrfToken);
   return new Request(request, { headers });
 }
 
 export async function installAuthenticatedApiFetch(): Promise<() => void> {
-  const sessionCookie = await getCollabTestSessionCookie();
+  const authentication = await getCollabTestAuthentication();
   const originalFetch = globalThis.fetch.bind(globalThis);
-
-  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
-    return originalFetch(withSessionCookie(input, init, sessionCookie));
-  });
-
-  return () => {
-    globalThis.fetch = originalFetch;
-  };
+  globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => originalFetch(withTestAuthentication(input, init, authentication));
+  return () => { globalThis.fetch = originalFetch; };
 }

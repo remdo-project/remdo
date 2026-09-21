@@ -1,20 +1,17 @@
 import { createBrowserRouter, redirect, redirectDocument } from 'react-router-dom';
 import AppFrame from './AppFrame';
 import AuthenticatedRoute from './AuthenticatedRoute';
-import { getPublicClientConfig } from './config';
-import { adminRouteLoader } from '#client/app/admin/admin-route-loader';
-import AdminRoute from '#client/app/admin/AdminRoute';
 import { devRoutes } from './devRoutes';
-import { resolveSessionGateState } from '#client/app/session/client';
+import { hasPendingSignOut, resolveSessionGateState } from '#client/app/session/client';
 import type { SessionGateState } from '#client/app/session/client';
-import { resolveAuthenticatedLoginRedirect } from '#client/app/session/login-redirect';
-import OAuthConsentRoute from '#client/app/session/OAuthConsentRoute';
-import OnlineGate from '#client/app/session/OnlineGate';
 import {
   createPostAuthNextSearch,
+  createSignInPath,
   resolvePostAuthPath,
 } from '#client/app/session/post-auth-path';
 import HomeRoute from './HomeRoute';
+import SignOutRoute from '#client/app/session/SignOutRoute';
+import OnlineGate from '#client/app/session/OnlineGate';
 import DocumentRoute from '#client/app/workspace/DocumentRoute';
 import SharingRoute from '#client/app/sharing/SharingRoute';
 import { getCachedCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap';
@@ -32,18 +29,25 @@ async function requireAuthenticatedRoute(request: Request): Promise<SessionGateS
   throw redirect(`/${createPostAuthNextSearch(request)}`);
 }
 
-async function authenticatedSessionLoader({ request }: { request: Request }) {
-  return { sessionState: await requireAuthenticatedRoute(request) };
+function withBootstrapAvailability(sessionState: SessionGateState): SessionGateState {
+  if (sessionState.status === 'offline-remembered' && !getCachedCurrentUserBootstrap()) {
+    return { status: 'offline-unavailable' };
+  }
+  return sessionState;
 }
 
-async function homeRouteLoader(request: Request): Promise<{ sessionState: SessionGateState; publicServer?: boolean }> {
+async function authenticatedSessionLoader({ request }: { request: Request }) {
+  const sessionState = await requireAuthenticatedRoute(request);
+  return { sessionState: withBootstrapAvailability(sessionState) };
+}
+
+async function homeRouteLoader(request: Request): Promise<{ sessionState: SessionGateState }> {
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
-    // Carry the public-server flag so the login page can gate its admin link.
-    return {
-      publicServer: (await getPublicClientConfig()).publicServer,
-      sessionState,
-    };
+    if (!hasPendingSignOut()) {
+      throw redirectDocument(createSignInPath(new URL(request.url).search));
+    }
+    return { sessionState };
   }
 
   const url = new URL(request.url);
@@ -51,20 +55,11 @@ async function homeRouteLoader(request: Request): Promise<{ sessionState: Sessio
   if (sessionState.status === 'offline-unavailable') {
     return { sessionState };
   }
-  let target: string;
-  if (sessionState.status === 'offline-remembered') {
-    const bootstrap = getCachedCurrentUserBootstrap();
-    if (!bootstrap) {
-      return { sessionState: { status: 'offline-unavailable' } };
-    }
-    target = resolvePostAuthPath(search, url.origin);
-  } else {
-    const redirectTarget = resolveAuthenticatedLoginRedirect(search, url.origin);
-    if (redirectTarget.kind === 'document-redirect') {
-      throw redirectDocument(redirectTarget.href);
-    }
-    target = redirectTarget.path;
+  const availableSessionState = withBootstrapAvailability(sessionState);
+  if (availableSessionState.status === 'offline-unavailable') {
+    return { sessionState: availableSessionState };
   }
+  const target = resolvePostAuthPath(search, url.origin);
 
   if (target !== '/') {
     throw redirect(target);
@@ -92,11 +87,9 @@ async function documentLoader({ request, params }: {
     throw redirect(`/${url.search}`);
   }
 
-  const bootstrap = sessionState.status === 'offline-remembered'
-    ? getCachedCurrentUserBootstrap()
-    : null;
-  if (sessionState.status === 'offline-remembered' && !bootstrap) {
-    return { sessionState: { status: 'offline-unavailable' } as const };
+  const availableSessionState = withBootstrapAvailability(sessionState);
+  if (availableSessionState.status === 'offline-unavailable') {
+    return { sessionState: availableSessionState };
   }
   const canonicalPath = createDocumentPath(parsed.docId, parsed.noteId);
   if (url.pathname !== canonicalPath) {
@@ -110,35 +103,19 @@ const hydrateFallbackElement = <div aria-hidden="true" />;
 
 const appRoutes = [
   {
+    path: 'sign-out',
+    loader: async () => {
+      const sessionState = await resolveSessionGateState();
+      if (sessionState.status === 'unauthenticated') throw redirect('/');
+      return { sessionState };
+    },
+    element: <OnlineGate allowOfflineSession><SignOutRoute /></OnlineGate>,
+    hydrateFallbackElement,
+  },
+  {
     path: '/',
     loader: ({ request }: { request: Request }) => homeRouteLoader(request),
     element: <HomeRoute />,
-    hydrateFallbackElement,
-  },
-  {
-    // Public: the enroll form for an unauthenticated / non-admin visitor (a
-    // first-time operator bootstraps here), and the panel wrapped in the app
-    // shell for an authenticated admin. The loader chooses; the action is
-    // ADMIN_SECRET-gated server-side either way.
-    path: '/admin',
-    loader: adminRouteLoader,
-    element: (
-      <OnlineGate>
-        <AdminRoute />
-      </OnlineGate>
-    ),
-    hydrateFallbackElement,
-  },
-  {
-    // Source-side consent screen: shown when a home's user authorizes the home to
-    // act on their behalf. Reachable only with a source session.
-    path: '/oauth/consent',
-    loader: authenticatedSessionLoader,
-    element: (
-      <OnlineGate>
-        <OAuthConsentRoute />
-      </OnlineGate>
-    ),
     hydrateFallbackElement,
   },
   {

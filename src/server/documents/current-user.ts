@@ -1,6 +1,6 @@
 import type { YSweetDocumentTokenManager } from '#server/collab-token';
 import type { DocumentKind } from '#server/db/schema';
-import type { CurrentUserBootstrap, UserDocument } from '#domain/documents/user-data';
+import type { UserDocument } from '#domain/documents/user-data';
 import type { SourceServer } from '#domain/source-servers';
 import type { ServerAuth } from '#server/auth/auth';
 import { reportServerDiagnostic } from '#server/diagnostics';
@@ -20,6 +20,13 @@ const SOURCE_SERVERS_KEY = 'source-servers';
 const DOCUMENT_ID_ALLOCATION_ATTEMPTS = 64;
 
 type UserSpecialDocumentKind = Exclude<DocumentKind, 'document'>;
+
+export interface CurrentUserBootstrap {
+  homeDocumentId: string;
+  userDataDocumentId: string;
+  // Whether the server allows open signup. Gates the login-page admin link.
+  publicServer: boolean;
+}
 
 interface CurrentUserBootstrapDocuments {
   userDataDocument: RegisteredDocument;

@@ -10,15 +10,19 @@ concurrency:
 
 jobs:
   collab-unit-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     permissions:
       contents: read
       actions: write
-    # Leave one minute for setup and cleanup after the test deadline.
-    timeout-minutes: 8
+    # Dependency setup can take over a minute; keep the test deadline in control.
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
 
       - name: Run collaboration unit tests
-        run: TEST_TIMEOUT=$((60 * 7)) pnpm run test:collab
+        run: TEST_TIMEOUT=$((60 * 10)) pnpm run test:collab --shard=${{ matrix.shard }}/${{ strategy.job-total }}

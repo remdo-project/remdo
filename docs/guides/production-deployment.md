@@ -6,9 +6,6 @@ This guide owns the supported deployment and first-access procedures for the
 Architecture owns the [production instance](../architecture.md#production-instance-boundary),
 [gateway](../architecture.md#gateway), and [persistent storage root](../architecture.md#runtime-persistence-boundary).
 
-## Generate the Admin Secret
-
-Generate a unique random `ADMIN_SECRET` using the guidance in the [environment example](../../.env.example).
 
 ## Deploy with Self-Hosted Docker
 
@@ -21,7 +18,7 @@ daemons are supported.
    cp .env.example .env
    ```
 
-2. In `.env`, set `ADMIN_SECRET` and optionally override
+2. In `.env`, optionally override
    [`DATA_DIR`](../specs/runtime/configuration.md#persistence). By default, the
    gateway is available at `https://remdo.localhost:8443` only through the
    Docker host's loopback interface.
@@ -45,6 +42,15 @@ daemons are supported.
    and allow inbound port 443. Rootless Docker requires the host to permit its
    daemon to publish that privileged port. The loopback example instead uses
    unprivileged port 8443.
+
+   Preserve source IP addresses through Docker's published port so
+   [sign-in rate limits](../specs/access/access-control.md#authenticated-app-access) can distinguish clients.
+   With rootless Docker and RootlessKit 3 or newer,
+   merge `"userland-proxy": false` into `~/.config/docker/daemon.json` and restart
+   the daemon during a maintenance window. Follow
+   [Docker's source-IP propagation instructions](https://docs.docker.com/engine/security/rootless/troubleshoot/#docker-run--p-does-not-propagate-source-ip-addresses)
+   for kernel prerequisites or older RootlessKit versions. NAT and SSH tunnels
+   that merge client addresses necessarily share one IP allowance.
 4. Run the [production Docker launcher](../../tools/prod/docker.sh):
 
    ```sh
@@ -52,7 +58,9 @@ daemons are supported.
    ```
 
    Rerunning the launcher builds successfully before gracefully replacing the
-   container serving the same origin port.
+   container serving the same origin port. SQLite persists beneath `DATA_DIR`.
+   To use an existing PostgreSQL database instead, configure `DATABASE_URL`
+   with an address reachable from the app container.
 
 5. Open the printed `Docker target`. For HTTPS, Caddy uses its internal CA for
    `.localhost` and manages a publicly trusted certificate for a public DNS
@@ -68,13 +76,36 @@ daemons are supported.
 
 ## Deploy on Render
 
-1. Create a Render Blueprint deployment from [the repository blueprint](../../render.yaml).
-2. In the Render Dashboard, set `ADMIN_SECRET` and set `APP_ORIGIN` to the
-   service's exact public origin.
-3. Keep the blueprint's persistent disk mounted at `/data` and its
-   `ALLOW_SIGNUP=false` setting. Render supplies the container `PORT` and
-   terminates public HTTPS.
-4. Deploy the service and open its `APP_ORIGIN`.
+Deploy both environments from [the repository blueprint](../../render.yaml).
+
+1. Create a Render Blueprint deployment from it.
+2. Point DNS at each service as Render's domain settings instruct and wait for
+   its certificate.
+3. For each service, set **Settings > Edge Caching > Cacheable file types** to
+   **None**, preserving the [application freshness policy](../architecture.md#application-freshness).
+4. For each service, complete
+   [Verify and Complete First Access](#verify-and-complete-first-access).
+
+Release production from Render's dashboard.
+
+### Reset the Staging Sandbox
+
+Staging's data is disposable, and its free database expires. Reset it before
+the expiry deletes the database: the service cannot reach a deleted database,
+and clearing the data root needs its shell, which needs a running instance.
+
+Clear the data root, with no editor connected so that collaboration state is
+not rewritten behind the deletion:
+
+```sh
+rm -rf /data/..?* /data/.[!.]* /data/*
+```
+
+Then delete the database and sync the blueprint, which recreates it and
+redeploys. Clearing the data root without also replacing the database leaves
+the service unable to start, because
+[secret bootstrap](../specs/runtime/configuration.md#secret-bootstrap) refuses
+to generate a bundle for an existing dataset.
 
 ## Publish a Public File
 
@@ -88,16 +119,31 @@ scp -s ./report.pdf srv-abc123@ssh.frankfurt.render.com:/data/public-share/
 It is public at `APP_ORIGIN/share/report.pdf`; replacing the file updates the
 same URL.
 
+For replacements, upload under a temporary name and rename it over the published
+file after the upload finishes. Ensure the replacement has a new modification
+time, including for same-size files, so the file server's validators change.
+
 ## Upgrade an Existing Instance
 
-An upgrade preserves accounts and documents. Schema changes apply on the first
+This procedure applies to existing Django deployments and preserves their
+accounts and documents within the same database engine. Changing from SQLite
+to PostgreSQL requires a fresh dataset; no data transfer is provided.
+Schema changes apply on the first
 start of the new version.
+
+Instances using the previous Node backend have no supported data migration to
+Django. Keep their original image and data together; do not point the Django
+image at the old data root.
+
+The retained [Node backup exporter](../../tools/snapshot/backup.ts) does not support Django datasets. Application
+backup and recovery tooling is [separate follow-up](../todo.md#operations).
 
 1. Stop the instance. A schema change can rewrite tables that authentication
    writes to.
 2. Copy the [persistent storage root](../architecture.md#runtime-persistence-boundary),
-   which is what a rollback restores. The [`backup` script](../../package.json)
-   exports document content for reading and does not replace this copy.
+   which is what a rollback restores.
+   With PostgreSQL, separately preserve the matching database backup;
+   copying `DATA_DIR` alone cannot restore metadata.
 
    ```sh
    cp -a "${DATA_DIR}" "${DATA_DIR}.bak-$(date +%F)"
@@ -109,7 +155,22 @@ start of the new version.
 
 1. Append `/health` to the application URL and confirm that the gateway reports
    a healthy service.
-2. Append `/admin` to the application URL and open it.
-3. Enter `ADMIN_SECRET` and the new administrator's name, email, and password to
-   complete [admin enrollment](../specs/access/access-control.md#admin-role).
-4. Open the application home with the enrolled administrator account.
+2. Create the administrator using Django's [administrator
+   creation](../specs/access/access-control.md#admin-role) command. For the
+   default Docker origin (use the container name printed by the launcher):
+
+   ```sh
+   docker exec -it remdo-8443 python manage.py createsuperuser
+   ```
+
+   On Render, open the service shell and run:
+
+   ```sh
+   cd /app/backend
+   python manage.py createsuperuser
+   ```
+
+   Enter the administrator's email and password. Management commands load the
+   same persisted secret bundle as the server.
+3. Open `/admin/` on the application origin and sign in with that account.
+4. Open the application home and sign in with the same account.

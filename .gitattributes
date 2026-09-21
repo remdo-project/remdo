@@ -1,0 +1,3 @@
+backend/accounts/migrations/0001_initial.py linguist-generated=true
+backend/documents/migrations/0001_initial.py linguist-generated=true
+src/platform/http/*-schema.d.ts linguist-generated=true

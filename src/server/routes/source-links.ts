@@ -17,7 +17,7 @@ export function createSourceLinkRoutes(dependencies: ServerRouteDependencies) {
 
   routes.post('/source-links', async (c) => {
     // A public server acts only as a source and refuses to initiate linking (see
-    // docs/specs/access/source-linking.md): this confines linking's outbound-fetch
+    // https://github.com/remdo-project/remdo/blob/21d0a0027d71abf6fa4966951b5f78496081f0c2/docs/specs/access/source-linking.md): this confines linking's outbound-fetch
     // (SSRF) surface
     // to private homes, whose users are the operator's own.
     if (auth.allowSignup) {

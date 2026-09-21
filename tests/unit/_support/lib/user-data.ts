@@ -15,7 +15,6 @@ export const TEST_USER_DATA_DOCUMENT = { id: 'testDoc', title: 'Test Document' }
 const listeners = new Set<() => void>();
 const documents: UserDocument[] = [TEST_USER_DATA_DOCUMENT];
 const extraDocumentSources: DocumentSource[] = [];
-let documentSourcesLoading = false;
 let version = 0;
 
 const localDocumentSource: DocumentSource = {
@@ -57,24 +56,17 @@ const userData = createUserDataRootNote(documents, {
     return document;
   },
   documentSources,
-  getHomeDocumentId: () => TEST_USER_DATA_DOCUMENT.id,
 });
 
 export function resetTestUserData(): void {
   documents.splice(0, documents.length, TEST_USER_DATA_DOCUMENT);
   extraDocumentSources.splice(0);
-  documentSourcesLoading = false;
   bumpVersion();
 }
 
 export function setTestDocumentSources(sources: readonly DocumentSource[]): void {
   extraDocumentSources.splice(0);
   extraDocumentSources.push(...sources);
-  bumpVersion();
-}
-
-export function setTestDocumentSourcesLoading(loading: boolean): void {
-  documentSourcesLoading = loading;
   bumpVersion();
 }
 
@@ -93,10 +85,6 @@ function getTestUserDataVersion(): number {
   return version;
 }
 
-function getTestDocumentSourcesLoading(): boolean {
-  return documentSourcesLoading;
-}
-
 function useTestUserData(): UserDataNote {
   useSyncExternalStore(
     subscribeTestUserDataRuntime,
@@ -106,17 +94,10 @@ function useTestUserData(): UserDataNote {
   return userData;
 }
 
-function useTestDocumentSourcesLoading(): boolean {
-  return useSyncExternalStore(
-    subscribeTestUserDataRuntime,
-    getTestDocumentSourcesLoading,
-    getTestDocumentSourcesLoading,
-  );
-}
-
 export function mockUserDataModule() {
+  const getUserDataStatus = () => ({ error: null, retry: () => {} });
   return {
-    useDocumentSourcesLoading: useTestDocumentSourcesLoading,
+    useUserDataStatus: getUserDataStatus,
     useUserData: useTestUserData,
   };
 }

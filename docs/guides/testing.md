@@ -32,8 +32,10 @@ Docker E2E resolves a writable Chromium cache as part of its command.
 
 ### Prepare Docker
 
-Docker E2E requires a running Docker daemon. When the daemon is rootless, it
-requires Docker Engine 29.5 or newer.
+PostgreSQL verification and Docker E2E require Docker with Compose and initially
+download the official PostgreSQL image. Docker E2E publishes its isolated test
+ports on loopback. Rootless and rootful daemons are supported. Other checks use
+SQLite and require no database service.
 
 ## Run Verification
 
@@ -42,6 +44,12 @@ Git-based dependency heuristics and pass when they find no tests. Use an
 unsuffixed command with a file or filter for known relationships the heuristic
 cannot discover; without one, it runs the complete group used by CI.
 
+- `./tools/django.sh test` — run Django authentication, CSRF, document
+  ownership, administration and configuration tests.
+- `./tools/check-backend.sh` — check Python formatting, Django configuration, and
+  migration consistency.
+- `pnpm run api:check` — check generated browser types against the application
+  and account OpenAPI schemas.
 - `pnpm run test:unit:changed` / `pnpm run test:unit` — run ordinary tests with
   collaboration disabled; use for the default code feedback.
 - `pnpm run test:collab:changed` / `pnpm run test:collab` — run ordinary and
@@ -56,7 +64,22 @@ cannot discover; without one, it runs the complete group used by CI.
 - `pnpm run lint` — check the source as written: types, code, styles,
   documentation, agent instructions, and the dependency graph; use for the
   default static feedback.
-- `pnpm run verify` — run `lint`, then the checks that resolve the lockfile or
-  build the production bundle; use before a commit or handoff.
+- `pnpm run verify` — run lint, dependency-policy and unused-code checks, the
+  production development-boundary check, backend checks, and generated API
+  verification; use before a commit or handoff.
 
-CI runs all static checks configured in its workflows.
+### Verify PostgreSQL
+
+Run the backend suite against a disposable PostgreSQL database:
+
+```sh
+./tools/postgres.sh run ./tools/django.sh test
+```
+
+The wrapper starts PostgreSQL, supplies its connection, and removes its container
+and volume when the command exits. It can also wrap `pnpm run test:collab` or
+`pnpm run test:e2e` for a PostgreSQL-specific integration check.
+
+CI runs all static checks configured in its workflows, and verifies the
+[database isolation](../specs/testing/test-harness.md#database-isolation) and
+deployment coverage the test harness owns.

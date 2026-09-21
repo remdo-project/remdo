@@ -3,7 +3,6 @@ import { render } from '@testing-library/react';
 import type { RemdoTestApi } from '#client/editor/dev';
 import { getTestBridgeRegistry } from '#client/editor/dev/testBridgeRegistry';
 import type { EditorViewBindings } from '#client/editor/view/EditorViewProvider';
-import { ensureCollabTestDocument } from './documents';
 import { TestEditorView } from './test-editor-view';
 
 /**
@@ -18,8 +17,6 @@ export async function renderRemdoEditor(
   api: RemdoTestApi;
   unmount: () => void;
 }> {
-  await ensureCollabTestDocument(docId);
-
   // Register before rendering so this render captures the bridge its own editor
   // mounts, not one from a previously or concurrently rendered editor.
   const bridgeReady = getTestBridgeRegistry().waitForNext();

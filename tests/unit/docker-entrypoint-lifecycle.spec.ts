@@ -59,7 +59,7 @@ function killIfRunning(pid: number): void {
   }
 }
 
-const services = ['api', 'caddy', 'crond', 'y-sweet'] as const;
+const services = ['api', 'caddy', 'y-sweet'] as const;
 const lifecycleCases = [
   {
     exitCode: 130,
@@ -91,13 +91,6 @@ const lifecycleCases = [
     type: 'exit',
   },
   {
-    exitCode: 23,
-    failedService: 'crond',
-    failedStatus: 23,
-    title: 'fails the instance when crond exits unexpectedly',
-    type: 'exit',
-  },
-  {
     exitCode: 42,
     failedService: 'y-sweet',
     failedStatus: 42,
@@ -121,13 +114,16 @@ it.each(lifecycleCases)('$title', async (lifecycleCase) => {
   fs.mkdirSync(pidDir);
   writeManagedChild(childPath);
 
-  for (const name of ['caddy', 'crond', 'y-sweet']) {
+  for (const name of ['caddy', 'y-sweet']) {
     writeFakeBin(binDir, name, `exec "\${REMDO_FAKE_CHILD:?}" ${name}\n`);
   }
-  writeFakeBin(binDir, 'node', `if [ "\${1:-}" = -e ]; then
-  exec "\${REMDO_REAL_NODE:?}" "$@"
+  writeFakeBin(binDir, 'gunicorn', `exec "\${REMDO_FAKE_CHILD:?}" api\n`);
+  writeFakeBin(binDir, 'python', `if [ "\${1:-}" = -c ]; then
+  exec python3 "$@"
 fi
-exec "\${REMDO_FAKE_CHILD:?}" api
+if [ "\${1:-}" = -m ]; then
+  exec "\${REMDO_FAKE_CHILD:?}" y-sweet
+fi
 `);
 
   // The image installs these two repository files at absolute paths. Adjust
@@ -142,7 +138,6 @@ exec "\${REMDO_FAKE_CHILD:?}" api
     env: {
       ...process.env,
       _remdo_port_base_offset: '',
-      ADMIN_SECRET: 'production-admin-secret-0123456789',
       APP_ORIGIN: 'https://remdo.localhost:8443',
       AUTH_SECRET: 'production-auth-secret-0123456789',
       DATA_DIR: dataDir,
@@ -156,7 +151,6 @@ exec "\${REMDO_FAKE_CHILD:?}" api
       REMDO_FAKE_EXIT_TRIGGER: exitTriggerPath,
       REMDO_FAKE_PID_DIR: pidDir,
       REMDO_FAKE_RELEASE: releasePath,
-      REMDO_REAL_NODE: process.execPath,
       REMDO_DEV_CONTAINER: 'false',
       REMDO_ROOT: process.cwd(),
       YSWEET_AUTH_KEY: 'production-ysweet-auth-key',

@@ -1,4 +1,4 @@
-import { expect, test } from '#editor/fixtures';
+import { expect, isolatedTest as test } from '#editor/fixtures';
 import { editorLocator, homeView, homeZoomBreadcrumb } from '#editor/locators';
 import { waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath } from './_support/routes';
@@ -60,9 +60,9 @@ test.describe('Home', () => {
     await editor.load('basic');
     await homeZoomBreadcrumb(page).click();
     const home = homeView(page);
-    await expect(home.getByRole('button', { name: 'New document' })).toBeVisible();
+    await expect(home.getByRole('button', { name: 'New document', exact: true })).toBeVisible();
     await expect(home.getByRole('button', { name: 'Upload document' })).toBeVisible();
-    await home.getByRole('button', { name: 'New document' }).click();
+    await home.getByRole('button', { name: 'New document', exact: true }).click();
     await expect(page).toHaveURL(/\/n\/[^/_]+$/);
     await waitForSynced(page);
     await expect(editorLocator(page)).toBeVisible();

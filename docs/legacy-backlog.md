@@ -80,8 +80,8 @@ Rules:
 
 ## Source-linking follow-ups
 
-Deferred hardening; long-horizon items live in
-`docs/specs/access/access-control.md#future` and `docs/specs/access/source-linking.md#future`.
+Historical reference for the [post-migration redesign](todo.md#cross-server-linking-redesign); these
+implementation-specific ideas are not migration requirements.
 
 - Public-source registration abuse: the home self-registers unauthenticatedly,
   so the deleted per-account (userId-keyed) register limit can't be ported —
@@ -139,15 +139,6 @@ Deferred hardening; long-horizon items live in
   the related UX, including unsynced local edits and server-offline behavior.
   (The open-tab IndexedDB cleanup blocker is resolved: the provider closes its
   connection on teardown, and a cross-tab sign-out tears peers down.)
-
-## Admin enrollment follow-ups
-
-- Coverage gap: the enroll flow's `resetUserData()` (so a signed-in non-admin who
-  enrolls a NEW admin doesn't keep the prior user's live runtime) has no
-  regression test — the loader-only unit spec doesn't render the form, and a
-  component render hit shared-jsdom editor-mount friction. Add a dev e2e for
-  "signed-in non-admin enrolls → sees the new admin's data, not the prior user's"
-  (needs a non-admin session in the e2e setup, which today enrolls an admin).
 
 ## Document import / upload follow-ups
 

@@ -1,13 +1,30 @@
 import {
   allowUnauthorizedNetwork,
   collectCurrentUserRequests,
+  setExpectedConsoleIssues,
   expect,
   test,
   unauthenticatedTest,
 } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
-import type { CurrentUserBootstrap } from '#domain/documents/user-data';
+import { createUserDocument } from '../_support/documents';
 import { HTTP_STATUS } from '#platform/http/status';
+
+test('Sharing remains recoverable when a remembered session has no offline bootstrap', async ({ page }) => {
+  await page.goto('/about/');
+  await page.evaluate(() => {
+    localStorage.setItem('remdo-authenticated-session', '1');
+    localStorage.removeItem('remdo-current-user-bootstrap');
+  });
+  setExpectedConsoleIssues(page, ['net::ERR_FAILED'], { mode: 'allowContains' });
+  await page.route('**/api/**', (route) => route.abort());
+  await page.goto('/sharing');
+  await expect(page).toHaveURL(/\/sharing$/u);
+  await expect(page.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
+  await page.unroute('**/api/**');
+  await page.getByRole('button', { name: 'Retry', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Sharing', exact: true })).toBeVisible();
+});
 
 async function expectPath(page: Page, pathname: string): Promise<void> {
   await expect.poll(() => new URL(page.url()).pathname).toBe(pathname);
@@ -38,11 +55,18 @@ async function hasIndexedDb(page: Page, dbName: string): Promise<boolean> {
 }
 
 test.describe('Routing', () => {
-  test('keeps Home and the default document at distinct reloadable URLs', async ({ page }) => {
-    const bootstrapResponse = await page.request.get('/api/current-user');
-    expect(bootstrapResponse.ok()).toBe(true);
-    const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
-    const documentPath = `/n/${bootstrap.homeDocumentId}`;
+  test('ignores retired OAuth parameters during signed-in navigation', async ({ page }) => {
+    await page.goto('/?response_type=code&client_id=legacy&redirect_uri=https%3A%2F%2Fsource.test%2Fcallback&next=%2Fsharing');
+
+    await expectPath(page, '/sharing');
+    await expect(page.getByRole('heading', { level: 1, name: 'Sharing' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Link source' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Linked sources' })).toHaveCount(0);
+  });
+
+  test('keeps Home and a document at distinct reloadable URLs', async ({ page }) => {
+    const document = await createUserDocument(page, 'Routing document');
+    const documentPath = `/n/${document.id}`;
 
     await page.goto('/');
     await expectPath(page, '/');
@@ -60,50 +84,52 @@ test.describe('Routing', () => {
     await expect(page.locator('.document-editor-shell')).toBeVisible();
   });
 
-  test('reloads Home while its background user-data token request is pending', async ({ page }) => {
+  test('opens server-rendered About from Home and document navigation', async ({ page }) => {
+    const document = await createUserDocument(page, 'About navigation');
+
+    for (const path of ['/', `/n/${document.id}`]) {
+      await page.goto(path);
+      await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'About', exact: true }).click();
+      await expectPath(page, '/about/');
+      await expect(page.getByRole('article')).toBeVisible();
+      await expect(page.locator('script[type="module"]')).toHaveCount(0);
+    }
+  });
+
+  test('reloads Home while its document listing is pending', async ({ page }) => {
     let heldFirstRequest = false;
-    await page.route('**/sync-tokens', async (route) => {
+    await page.route('**/api/documents', async (route) => {
       if (!heldFirstRequest) {
         heldFirstRequest = true;
         return;
       }
       await route.continue();
     });
-    const tokenRequested = page.waitForRequest('**/sync-tokens');
+    const documentsRequested = page.waitForRequest('**/api/documents');
     await page.goto('/');
-    await tokenRequested;
+    await documentsRequested;
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
     await page.reload();
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
     await expect(page.getByRole('group', { name: 'Current Server', exact: true })
-      .getByRole('button', { name: 'Home', exact: true })).toBeVisible();
+      .getByRole('button', { name: 'New Document', exact: true })).toBeVisible();
   });
 
-  unauthenticatedTest('shows sign-in at Home and preserves protected destinations when signed out', async ({ page }) => {
+  unauthenticatedTest('uses native sign-in and preserves protected destinations when signed out', async ({ page }) => {
     const userDataRequests = collectCurrentUserRequests(page);
-    await page.goto('/');
-
-    await expectPath(page, '/');
-    expect(new URL(page.url()).search).toBe('');
-    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
-    await page.waitForLoadState('networkidle');
-    expect(userDataRequests).toEqual([]);
-
-    await page.goto('/sharing');
-
-    await expectPath(page, '/');
-    expect(new URL(page.url()).searchParams.get('next')).toBe('/sharing');
-    await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Sharing' })).toHaveCount(0);
-    await page.waitForLoadState('networkidle');
-    expect(userDataRequests).toEqual([]);
-
-    await page.goto('/n/protectedDoc_note1');
-    await expectPath(page, '/');
-    expect(new URL(page.url()).searchParams.get('next')).toBe('/n/protectedDoc_note1');
-    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
-    expect(userDataRequests).toEqual([]);
+    for (const destination of ['/', '/sharing', '/n/protectedDoc_note1']) {
+      await page.goto(destination);
+      await expectPath(page, '/accounts/login/');
+      const next = new URL(page.url()).searchParams.get('next')!;
+      if (destination === '/') {
+        expect(next).toBe('/');
+      } else {
+        expect(new URL(next, page.url()).searchParams.get('next')).toBe(destination);
+      }
+      await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+      expect(userDataRequests).toEqual([]);
+    }
   });
 
   test('normalizes the default landing target to the authenticated root', async ({ page }) => {
@@ -112,20 +138,6 @@ test.describe('Routing', () => {
     await expectPath(page, '/');
     await expect.poll(() => new URL(page.url()).search).toBe('');
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
-  });
-
-  test('keeps full authenticated navigation on the standalone consent route', async ({ page }) => {
-    const userDataRequests = collectCurrentUserRequests(page);
-    await page.goto('/oauth/consent?client_id=test-client');
-
-    await expect(page.getByRole('heading', { name: 'Authorize access' })).toBeVisible();
-    await expect(page.getByRole('main')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Sharing' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible();
-    await page.waitForLoadState('networkidle');
-    expect(userDataRequests).toEqual([]);
   });
 
   test('renders Sharing as a standard authenticated page', async ({ page }) => {
@@ -138,22 +150,24 @@ test.describe('Routing', () => {
     expect(userDataRequests).toContain('/api/current-user');
   });
 
-  test('starts user data for a direct authenticated admin page', async ({ page }) => {
+  test('keeps native administration outside user data', async ({ page }) => {
     const userDataRequests = collectCurrentUserRequests(page);
     await page.goto('/admin');
 
     await expect(page.getByRole('main')).toBeVisible();
-    await expect(page.getByRole('heading', { level: 1, name: 'Admin' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Site administration' })).toBeVisible();
     await page.waitForLoadState('networkidle');
-    expect(userDataRequests).toContain('/api/current-user');
+    expect(userDataRequests).toEqual([]);
   });
 
-  unauthenticatedTest('keeps unauthenticated admin enrollment outside user data', async ({ page }) => {
+  unauthenticatedTest('uses shared sign-in for administration outside user data', async ({ page }) => {
     const userDataRequests = collectCurrentUserRequests(page);
     await page.goto('/admin');
 
+    await expect(page).toHaveURL(/\/accounts\/login\//u);
     await expect(page.getByRole('main')).toBeVisible();
-    await expect(page.getByRole('heading', { level: 1, name: 'Become admin' })).toBeVisible();
+    await expect(page.getByLabel('Email:', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
     await page.waitForLoadState('networkidle');
     expect(userDataRequests).toEqual([]);
   });
@@ -173,8 +187,8 @@ test.describe('Routing', () => {
     await expect.poll(async () => hasIndexedDb(page, 'y-sweet-logout-test')).toBe(false);
     // Logout replaces the view in place; a reload would add a navigation entry.
     expect(await countNavigations(page)).toBe(navigations);
-    const bootstrapResponse = await page.request.get('/api/current-user');
-    expect(bootstrapResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
+    const bootstrapStatus = await page.evaluate(async () => (await fetch('/api/current-user')).status);
+    expect(bootstrapStatus).toBe(HTTP_STATUS.FORBIDDEN);
   });
 
   test('signs out every tab sharing the browser storage', async ({ page, context }) => {
@@ -192,7 +206,26 @@ test.describe('Routing', () => {
     // login view follows a loader round-trip, so allow for a slow one.
     await expect(peer.getByRole('button', { name: 'Logout' })).toBeHidden({ timeout: 15_000 });
     await expect(peer.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible({ timeout: 15_000 });
-    await expect(peer.getByRole('status')).toContainText(/signed out/i);
+    // The peer reaches the login view on the sign-out broadcast, which precedes
+    // revocation; until it is confirmed the status reports an incomplete
+    // sign-out, so allow for that confirmation round-trip.
+    await expect(peer.getByRole('status')).toContainText(/signed out/i, { timeout: 15_000 });
     await peer.close();
   });
+});
+
+unauthenticatedTest('renders repository public pages without loading the app', async ({ page }) => {
+  const userDataRequests = collectCurrentUserRequests(page);
+  const response = await page.goto('/about');
+  expect(response!.status()).toBe(200);
+  await expect(page).toHaveURL(/\/about\/$/u);
+  await expect(page.getByRole('article')).toBeVisible();
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new URL('/about/', page.url()).href);
+  await expect(page.locator('script[type="module"]')).toHaveCount(0);
+  expect(userDataRequests).toEqual([]);
+
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'RemDo home', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'About', exact: true })).toBeFocused();
 });

@@ -1,3 +1,6 @@
+ARG RENDER_GIT_COMMIT
+ARG BUILD_REVISION=${RENDER_GIT_COMMIT}
+
 ###############################
 # Builder: compile SPA assets #
 ###############################
@@ -31,92 +34,41 @@ RUN attempt=1 \
     echo "pnpm install failed; retrying in ${delay}s"; \
     sleep "$delay"; \
     attempt=$((attempt + 1)); \
-  done \
-  && NODE_ENV=production ./tools/env.sh pnpm run build
+  done
 
-# Bundle server tools for runtime use (no pnpm dependency in runner).
-RUN mkdir -p /usr/local/bin \
-  && pnpm dlx esbuild tools/remdo-api-server.ts \
-    --platform=node \
-    --format=cjs \
-    --bundle \
-    --external:better-sqlite3 \
-    --target=node22 \
-    --tsconfig=tsconfig.json \
-    --banner:js='#!/usr/bin/env node' \
-    --outfile=/app/remdo-api-server.cjs \
-  && pnpm dlx esbuild tools/snapshot/cli.ts \
-    --platform=node \
-    --format=esm \
-    --bundle \
-    --external:ws \
-    --target=node22 \
-    --tsconfig=tsconfig.json \
-    --banner:js='#!/usr/bin/env node' \
-    --outfile=/app/snapshot.mjs \
-  && pnpm dlx esbuild tools/snapshot/backup.ts \
-    --platform=node \
-    --format=esm \
-    --bundle \
-    --external:better-sqlite3 \
-    --external:ws \
-    --target=node22 \
-    --tsconfig=tsconfig.json \
-    --banner:js='#!/usr/bin/env node' \
-    --outfile=/app/backup.mjs \
-  && pnpm dlx esbuild tools/bootstrap-secrets.ts \
-    --platform=node \
-    --format=cjs \
-    --bundle \
-    --target=node22 \
-    --tsconfig=tsconfig.json \
-    --banner:js='#!/usr/bin/env node' \
-    --outfile=/app/bootstrap-secrets.cjs
+ARG BUILD_REVISION
+RUN BUILD_REVISION="${BUILD_REVISION}" NODE_ENV=production ./tools/env.sh --production pnpm run build
 
 ############################
-# Runner: serve SPA + YJS  #
+# Python dependencies      #
 ############################
-FROM node:24.21-alpine AS runner
-
-ENV NODE_ENV=production
-ENV DATA_DIR=/data
-
+FROM python:3.14-alpine AS backend
+COPY --from=ghcr.io/astral-sh/uv:0.12.15 /uv /bin/uv
 WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN uv sync --locked --no-dev --no-install-project
 
-ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
-
+############################
+# Production runtime       #
+############################
+FROM python:3.14-alpine AS runner
+ENV DATA_DIR=/data DJANGO_SETTINGS_MODULE=remdo.settings
+ENV PATH=/app/.venv/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
+WORKDIR /app/backend
 # hadolint ignore=DL3018
-RUN apk add --no-cache caddy \
-  && mkdir -p /data /etc/caddy /root/.ssh /srv/remdo /var/log /usr/local/share/remdo \
-  && chmod 0700 /root/.ssh
-
-# Install backup script and cron schedule (runs every minute).
-COPY docker/backup.sh /usr/local/bin/backup.sh
-RUN chmod +x /usr/local/bin/backup.sh \
-  && echo "* * * * * cd /app && /usr/local/bin/backup.sh >> /var/log/backup.log 2>&1" > /etc/crontabs/root \
-  && chmod 600 /etc/crontabs/root \
-  && touch /var/log/backup.log
-
+RUN apk add --no-cache caddy libstdc++ \
+  && mkdir -p /data /etc/caddy /srv/remdo /usr/local/share/remdo
+COPY --from=backend /app/.venv /app/.venv
+COPY backend /app/backend
+COPY content /app/content
 COPY --from=builder /app/dist /srv/remdo
-COPY --from=builder /app/node_modules /app/node_modules
-# The package's JavaScript launcher does not forward shutdown signals. Expose
-# the downloaded native server at the stable command path used by RemDo.
-RUN ln -s /app/node_modules/y-sweet/bin/y-sweet /usr/local/bin/y-sweet \
-  && test -x /usr/local/bin/y-sweet
+COPY --from=builder /app/dist/.vite/manifest.json /app/dist/.vite/manifest.json
+COPY --from=builder /app/node_modules/y-sweet/bin/y-sweet /usr/local/bin/y-sweet
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh
 COPY docker/entrypoint-env.sh /usr/local/share/remdo/entrypoint-env.sh
-COPY --from=builder /app/remdo-api-server.cjs /app/remdo-api-server.cjs
-COPY --from=builder /app/snapshot.mjs /app/snapshot.mjs
-COPY --from=builder /app/backup.mjs /app/backup.mjs
-COPY --from=builder /app/bootstrap-secrets.cjs /app/bootstrap-secrets.cjs
-
-RUN chmod +x \
-  /entrypoint.sh \
-  /app/remdo-api-server.cjs \
-  /app/snapshot.mjs \
-  /app/backup.mjs \
-  /app/bootstrap-secrets.cjs
-
+RUN chmod +x /entrypoint.sh /usr/local/bin/y-sweet
+ARG BUILD_REVISION
+ENV BUILD_REVISION=${BUILD_REVISION}
 CMD ["/entrypoint.sh"]

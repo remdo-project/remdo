@@ -1,124 +1,101 @@
-import { Alert, Anchor, Button, PasswordInput, Stack, Text, TextInput } from '@mantine/core';
-import { useEffect, useRef, useState } from 'react';
-import { Link, useLoaderData, useLocation, useNavigate } from 'react-router-dom';
-import { authClient, rememberAuthenticatedSession } from '#client/app/session/client';
-import { LOGGED_OUT_STATE_KEY } from '#client/app/session/useLogout';
+import { Alert, Button } from '@mantine/core';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useRevalidator } from 'react-router-dom';
 import CenteredCardPage from '#client/ui/CenteredCardPage';
-import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
-import { resolvePostAuthPath } from './post-auth-path';
-
-function readAuthErrorMessage(error: unknown, fallback: string): string {
-  if (error && typeof error === 'object') {
-    const maybeMessage = (error as { message?: unknown }).message;
-    if (typeof maybeMessage === 'string' && maybeMessage.length > 0) {
-      return maybeMessage;
-    }
-  }
-  return fallback;
-}
+import { createSignInPath } from './post-auth-path';
+import { LOGGED_OUT_STATE_KEY } from './useLogout';
+import { CONFIRMED_SIGN_OUT_KEY, PENDING_SIGN_OUT_STORAGE_KEY, hasConfirmedSignOut, hasPendingSignOut, revokeServerSession } from './client';
 
 export default function LoginRoute() {
   const location = useLocation();
-  const navigate = useNavigate();
-  // The public-auth loader returns { publicServer } for unauthenticated visitors.
-  const loaderData = useLoaderData<{ publicServer?: boolean } | null>();
-  const publicServer = loaderData?.publicServer ?? false;
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [pending, setPending] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { revalidate } = useRevalidator();
+
+  const [signingIn, setSigningIn] = useState(false);
+  const [revokeFailed, setRevokeFailed] = useState(false);
+  const [online, setOnline] = useState(() => navigator.onLine);
+  const pending = hasPendingSignOut() && !hasConfirmedSignOut();
+  const signInPath = createSignInPath(location.search);
+
+  useEffect(() => {
+    const refreshSignOutState = (event: StorageEvent) => {
+      if (event.key === PENDING_SIGN_OUT_STORAGE_KEY || event.key === CONFIRMED_SIGN_OUT_KEY) {
+        void revalidate();
+      }
+    };
+    globalThis.addEventListener('storage', refreshSignOutState);
+    // Confirmation can arrive between rendering and installing the listener.
+    void revalidate();
+    return () => globalThis.removeEventListener('storage', refreshSignOutState);
+  }, [revalidate]);
+
+  useEffect(() => {
+    const syncOnline = () => {
+      setOnline(navigator.onLine);
+      setRevokeFailed(false);
+    };
+    globalThis.addEventListener('online', syncOnline);
+    globalThis.addEventListener('offline', syncOnline);
+    return () => {
+      globalThis.removeEventListener('online', syncOnline);
+      globalThis.removeEventListener('offline', syncOnline);
+    };
+  }, []);
+
+  // An unfinished logout leaves the session cookie valid, and the session gate
+  // refuses to contact the server while the marker is set, so the server-rendered
+  // form would redirect straight back here. Finish the sign-out the user already
+  // asked for, then hand off to it.
+  const signIn = useCallback(async () => {
+    setSigningIn(true);
+    setRevokeFailed(false);
+    try {
+      if (await revokeServerSession()) {
+        // A full document load, not a client route: the credential form is
+        // server-rendered by Django.
+        globalThis.location.href = signInPath;
+        return;
+      }
+      setRevokeFailed(true);
+      await revalidate();
+    } finally {
+      setSigningIn(false);
+    }
+  }, [revalidate, signInPath]);
+
   const signedOut = (location.state as Record<string, unknown> | null)?.[LOGGED_OUT_STATE_KEY] === true;
   const titleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    // Logout unmounts the control that triggered it, dropping focus to <body>.
-    if (signedOut) {
-      titleRef.current?.focus();
-    }
+    if (signedOut) titleRef.current?.focus();
   }, [signedOut]);
 
-  const completeAuth = () => {
-    rememberAuthenticatedSession();
-    if (isOAuthAuthorizeSearch(location.search)) {
-      globalThis.location.assign(`/api/auth/oauth2/authorize${location.search}`);
-      return;
-    }
-    const returnTo = resolvePostAuthPath(location.search, globalThis.location.origin);
-    void navigate(returnTo, { replace: true });
-  };
-
-  const handleLoginSubmit = async (event: { preventDefault: () => void }) => {
-    event.preventDefault();
-    setPending(true);
-    setErrorMessage(null);
-
-    try {
-      const result = await authClient.signIn.email({
-        email: email.trim(),
-        password,
-      });
-      if (result.error) {
-        setErrorMessage(readAuthErrorMessage(result.error, 'Failed to sign in.'));
-        return;
-      }
-      completeAuth();
-    } catch (error) {
-      setErrorMessage(readAuthErrorMessage(error, 'Failed to sign in.'));
-    } finally {
-      setPending(false);
-    }
-  };
-
   return (
-    <CenteredCardPage
-      description="Sign in to access your documents."
-      title="Sign in"
-      titleRef={signedOut ? titleRef : undefined}
-    >
-      {signedOut && !errorMessage && (
+    <CenteredCardPage description="Sign in to access your documents." title="Sign in" titleRef={signedOut ? titleRef : undefined}>
+      {pending ? (
+        <Alert color="yellow" role="status" title="Sign-out incomplete">
+          {online
+            ? revokeFailed
+              ? 'The server could not be reached. Try signing in again.'
+              : 'Local data cleared. Signing in finishes signing out first.'
+            : 'Local data cleared. Connect to finish signing out.'}
+        </Alert>
+      ) : (signedOut || hasConfirmedSignOut()) && (
         <Alert color="blue" role="status" title="You're signed out">
           This device's local data was cleared.
         </Alert>
       )}
-      {errorMessage && (
-        <Alert color="red" title="Authentication failed">
-          {errorMessage}
-        </Alert>
-      )}
-
-      <form onSubmit={(event) => {
-        void handleLoginSubmit(event);
-      }}>
-        <Stack gap="md">
-          <TextInput
-            autoComplete="email"
-            label="Email"
-            onChange={(event) => setEmail(event.currentTarget.value)}
-            required
-            type="email"
-            value={email}
-          />
-          <PasswordInput
-            autoComplete="current-password"
-            label="Password"
-            onChange={(event) => setPassword(event.currentTarget.value)}
-            required
-            value={password}
-          />
-          <Button loading={pending} type="submit">
-            Sign in
-          </Button>
-        </Stack>
-      </form>
-
-      {!publicServer && (
-        <Text c="dimmed" size="sm">
-          Setting up this server?{' '}
-          <Anchor component={Link} to={`/admin${location.search}`}>
-            Become admin
-          </Anchor>
-          .
-        </Text>
+      {pending ? (
+        <Button
+          className="remdo-account-button"
+          disabled={!online}
+          loading={signingIn}
+          onClick={() => { void signIn(); }}
+          type="button"
+        >
+          Sign in
+        </Button>
+      ) : (
+        <Button className="remdo-account-button" component="a" href={signInPath}>Sign in</Button>
       )}
     </CenteredCardPage>
   );

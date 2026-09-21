@@ -1,0 +1,17 @@
+.remdo-footer {
+  margin-top: auto;
+  padding: 24px 32px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--mantine-color-dark-1);
+  text-align: right;
+}
+
+.remdo-footer a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.remdo-footer-mismatch {
+  color: var(--mantine-color-yellow-4);
+}

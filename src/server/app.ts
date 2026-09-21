@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { config } from '#config';
 import { HTTP_STATUS } from '#platform/http/status';
 import type { ServerAuth } from './auth/auth';
 import { createYSweetDocumentTokenManager } from './collab-token';
@@ -14,7 +13,6 @@ import { createAuthRoutes } from './routes/auth';
 import { createWellKnownRoutes } from './routes/well-known';
 
 interface ServerAppOptions {
-  adminSecret?: string;
   auth: ServerAuth;
   database: SqliteServerDatabaseClient;
   rebuildAuth?: () => Promise<void>;
@@ -24,7 +22,6 @@ interface ServerAppOptions {
 }
 
 export function createServerApp({
-  adminSecret = config.env.ADMIN_SECRET,
   auth,
   database,
   rebuildAuth = async () => {},
@@ -34,7 +31,6 @@ export function createServerApp({
 }: ServerAppOptions) {
   const app = new Hono();
   const dependencies = {
-    adminSecret,
     auth,
     database,
     logError,

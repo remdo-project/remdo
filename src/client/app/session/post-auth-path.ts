@@ -2,6 +2,10 @@ import { createPath, resolvePath } from 'react-router-dom';
 import { createDocumentPath } from '#document-routes';
 import { normalizeDocumentId } from '#domain/documents/ids';
 
+export function createSignInPath(search: string): string {
+  return `/accounts/login/?${new URLSearchParams({ next: `/${search}` })}`;
+}
+
 export function createPostAuthNextSearch(request: Request): string {
   const url = new URL(request.url);
   const searchParams = new URLSearchParams();

@@ -11,8 +11,9 @@ until they are resolved or migrated.
 
 Record code-local follow-up in [tracked comments](../CONTRIBUTING.md#code-comments), long-horizon
 follow-up in the owning specification's [`Future`](documentation.md#future)
-section, and other work intended to be done soon in this backlog. Together,
-these locations form the tracking record; do not duplicate an item between them.
+section, and other work intended to be done soon in this backlog or a temporary
+migration ledger explicitly linked from it. Together, these locations form the
+tracking record; do not duplicate an item between them.
 
 Run `pnpm run todo:list` when selecting maintenance work or auditing tracked
 follow-up. It lists candidate `TODO` and `FIXME` occurrences in tracked
@@ -24,6 +25,149 @@ record covers the reported gap. Within this backlog, group related items under
 short topic headings. Remove rejected or obsolete items and empty sections.
 
 ## Backlog
+
+### Django backend replacement
+
+Rebuild the application backend around Django, minimizing custom infrastructure
+and operational work through established libraries and services.
+
+- **Target:** Django owns authentication, authorization, application metadata,
+  migrations, administration, and Y-Sweet token issuance. Retain the existing
+  frontend/editor and Yjs/Y-Sweet document collaboration. Replace Yjs
+  app-resource projections with established server-state/cache tooling; TanStack
+  Query/DB are candidates, not commitments.
+- **Approach:** Create temporary integration branch `feat/django-backend` from
+  `main`, recording the starting commit as the behavioral reference. Create
+  small implementation branches from it; their PRs target and are reviewed
+  against it under [Git Workflow](../CONTRIBUTING.md#git-workflow). Temporary
+  missing functionality is acceptable; completed slices must work and pass
+  relevant checks. Retain useful unaffected code, without backward
+  compatibility, legacy-data migration, or keeping the old backend operational.
+  Merge the integration branch into `main` only after a separate whole-migration
+  review and full verification against the completion criteria below, then
+  retire it.
+- **Starting commit:** `668e3729b94f42be4bc54f20c36fd78575a21155` (`main`).
+- **Completion:** Deliver a working development baseline. Retire the old
+  runtime, except reference code retained for the [cross-server redesign](#cross-server-linking-redesign). Verify
+  all [run modes](run-modes.md), local sharing, offline behavior, account/instance cache
+  isolation, and ordinary data/secret persistence through restart and
+  redeployment. Record deliberate behavior changes in their owning
+  specifications.
+- **Milestone boundary:** Merging into `main` does not establish public-release
+  readiness or the final data reset; further destructive resets remain
+  permitted. [Hocuspocus migration, backup/recovery, and public-release readiness](#operations)
+  are separate post-merge milestones. Other backlog entries do not expand
+  migration scope.
+- **Remaining checks:** verify actual Render deployment and public-certificate
+  issuance using [Production Deployment](guides/production-deployment.md). Docker
+  E2E covers a rootful daemon: its launcher requires no daemon mode, so the
+  workflow's default runner exercises that path on every run.
+  The two-environment [blueprint](../render.yaml) is authored but not applied,
+  and both its environments deploy `main`, so the Render deployment check runs
+  after the merge: delete the superseded Render resources before merging, then
+  apply the blueprint. Whether that check gates the merge is unresolved.
+  Complete the whole-migration review and verification, including an audit of
+  migration-only tooling outside the [retained reference-code exception](#cross-server-linking-redesign).
+
+Simplification follow-up:
+
+1. [x] Delegate administration authentication to the [shared allauth sign-in](specs/access/access-control.md#admin-role),
+   applying its rate limits and browser login handoff while retaining Django
+   staff and model authorization.
+2. [x] Move reference-only `@better-auth/core`, `@better-auth/oauth-provider`,
+   `better-auth`, `better-sqlite3`, `hono`, and `kysely` to development dependencies
+   and align production audit roots. Preserve the [retained reference code](#cross-server-linking-redesign)
+   and active snapshot tooling.
+3. [x] Remove the discarded sync-token probe and its document-route loading gate.
+   Let the collaboration provider authorize access; use the generated API client
+   for its local token request while preserving cancellation and offline editing.
+4. [x] Remove retired Node authentication checks and eager trusted-origin
+   calculation from active frontend configuration. Keep Django responsible for
+   live authentication settings, including its development secret, and localize
+   reference-only configuration to retained code.
+5. [x] Remove the unused `publicServer` flag from active Django responses,
+   generated types, bootstrap storage, and fixtures. Preserve reference-code
+   consumers and the still-used CSRF fields.
+
+Convergence follow-up, from the whole-branch review:
+
+1. [x] Decide the pending sign-out page's presentation. Signing in now finishes
+   the revocation the user already asked for and then hands off to the credential
+   form, so one control replaces the previous pair and no ordering has to be
+   inferred. A device that cannot reach the server withholds the action and says
+   why, and a failed revocation reports itself instead of looping. The
+   [logout contract](specs/access/access-control.md#authenticated-app-access) now
+   states the requirement as one explicit finishing action rather than a named
+   button.
+2. [x] Give the gateway's `/doc/{id}/auth` block an owning assertion. Docker E2E
+   now asserts that the gateway answers Y-Sweet's control surface from Django
+   rather than proxying it, so widening the `/d/*` matcher or reordering the
+   handlers fails a check instead of exposing privileged token minting.
+3. [x] Confirm `ALLOWED_HOSTS`, derived from `APP_ORIGIN`, accepts Render's
+   health prober. This cannot be settled here: the blueprint is unapplied and both
+   its environments deploy `main`, so it belongs to the Render deployment check
+   under Remaining checks above rather than to this list.
+4. [x] Restore `./tools/django.sh test --parallel N`. Python 3.14 defaults
+   `multiprocessing` to `forkserver`, whose authentication handshake fails under
+   Django's parallel runner; forcing `fork` runs the suite clean. Not applied:
+   `fork` is the default 3.14 moved away from, no script or workflow passes
+   `--parallel`, and the serial suite takes about five seconds. Reconsider if the
+   suite grows enough for parallelism to matter.
+5. [x] Resolve document rename, specified as live behavior by
+   [Location header](specs/outliner/location-header.md#document-rename) with no
+   API endpoint and no client implementation. Accepted as temporary missing
+   functionality under this entry's approach, which permits it; delivering the
+   capability is tracked with the [location header work](#ux-direction).
+6. [x] Settle `startRemdoApiServer({ port })`. The helper now reads the resolved
+   configuration, so the launcher's `PORT_BASE`-derived port is the only one, and
+   no per-call argument competes with that isolation contract. Honoring preset
+   service ports in `tools/env.defaults.sh` was considered and rejected: `PORT`
+   derives from `PORT_BASE`, whose shift moves
+   [every derived port as one unit](specs/runtime/configuration.md#network-addressing),
+   so an individually preset port would fall outside its block. The assignments
+   now say so where a reader would otherwise read them as an oversight.
+7. [x] Route the collaboration-failure log through `RequestErrorFormatter`. The
+   `documents` logger now shares the framework loggers' handler. A root handler
+   would cover future modules without enumeration but also captures
+   `django.db.backends`, adding a production log stream the request-error test
+   rejects.
+
+Withheld simplifications, non-blocking. Each was assessed during convergence and
+left unapplied because no alternative was clearly preferred; none gates the merge.
+Reconsider individually rather than as a batch: `CenteredCardPage` dropping
+Mantine for plain markup, which argues against the
+[UI library default](../CONTRIBUTING.md#ui-libraries); the coupled `remdo.sqlite`
+secret-bootstrap probe and its Node-upgrade guide paragraph; the completed
+checklist above; the architecture document's SPA route enumeration; port-rule
+ownership between agent instructions and
+[configuration](specs/runtime/configuration.md#network-addressing); the
+always-Python `setup-pnpm` composite; the Docker build-revision mismatch block;
+splitting the long Docker specs; and `revokeServerSession`'s two-phase bound.
+
+### Cross-server linking redesign
+
+Redesign cross-server document access after the Django migration. Local
+sharing stays supported. Decide source discovery/registration, independent
+identities, consent scope, refresh/relink/unlink, private-instance
+reachability, failure reporting, and cache isolation together. Reconsider
+public signup independently of linking; preserve the [multi-origin direction](principles.md#multi-origin-direction)
+without committing to the previous OAuth topology.
+
+To avoid reviewing temporary architecture twice, retain the unused Node
+backend, source adapters, projections, linking scripts/tests, and their
+dependencies as reference code until this redesign. They do not provide supported
+cross-server functionality. Replace or remove them together with the redesign;
+do not migrate or extend them as a Django completion requirement. The
+withdrawn source-linking specification remains in Git history.
+
+### Account administration
+
+- **Coherent email editing after Django integration.** Constrain operator email
+  changes to one identity model across `User.email`, allauth primary/login
+  addresses, session display, and local sharing lookup. Editing the user alone
+  can leave the old primary address usable for login while sharing uses the new
+  address. Align fixture provisioning with production account creation; prefer
+  restricting duplicate writers over adding public email management.
 
 ### Documentation
 
@@ -83,10 +227,34 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ### Operations
 
-- **Hosted production backups.** Define the scheduled backup and recovery
-  workflow for hosted deployments, then align `docker/Dockerfile`,
-  `docker/backup.sh`, `tools/snapshot/backup.ts`, and
-  `tools/remote/make-backup.sh` with it.
+- **Expired Django sessions after integration.** Define how supported
+  deployments invoke Django's existing expired-session cleanup. Reuse framework
+  maintenance without introducing a general worker or scheduler architecture for
+  this task.
+
+- **Hocuspocus migration.** Replace Y-Sweet with Hocuspocus after the Django
+  integration merges. Reassess collaboration, persistence, and runtime
+  boundaries when scoping the work. If document content stops living on the
+  persistent disk, revisit the staging reset in
+  [Production Deployment](guides/production-deployment.md): its steps exist
+  only because disk-resident collaboration state and the database must be
+  cleared together.
+
+- **Backup and recovery.** After Hocuspocus, define and verify coherent recovery
+  for [supported deployments](guides/production-deployment.md), covering application metadata, document content,
+  and secrets. The Django image has no scheduled exporter or backup scheduler.
+  Reassess readable exports, scheduling, maintenance-failure behavior, and
+  legacy backup tooling together rather than carrying forward the old design as
+  requirements.
+
+- **Production secret initialization.** Revisit [secret bootstrap](specs/runtime/configuration.md#secret-bootstrap) ownership
+  alongside runtime changes. Evaluate explicit initialization before Django
+  startup rather than generation during settings loading; keep the mechanism
+  open and preserve convenient first setup and refusal to replace missing
+  secrets for an existing dataset.
+
+- **Public-release readiness.** Reassess the remaining requirements for
+  admitting public users after collaboration and recovery work.
 
 ### SDK
 
@@ -98,8 +266,10 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 - **SDK API validation.** Evaluate completion and unavailable-target outcomes
   when a consumer needs to
   know whether an operation took effect. Evaluate query and app-resource reads
-  in their own workflows using the [design principles and references](dev/sdk.md); choosing
-  app-resource cache tooling remains a separate task.
+  in their own workflows using the [design principles and references](dev/sdk.md). Reassess
+  generated record/query APIs versus note-shaped application resources with Home
+  and Sharing consumers as Home, offline, and source requirements become
+  clearer; the cache library does not settle the public SDK shape.
 
   Keep model and API choices open to revision throughout this SDK initiative.
   Revisit them when consumer evidence reveals friction or a better fit, and
@@ -220,6 +390,23 @@ concrete unmet need.
   explicit inline Edit/Done only if those tasks expose a persistent problem; a
   rich-note draft modal is outside this work.
 
+- **Session end while the app is open.** Decide what a mounted app shows when the
+  server session expires or is revoked. Today the document listing keeps
+  rendering its cached contents, then an alert offers a Retry that refetches
+  against the ended session and fails again; the stale list stays clickable, and
+  opening a document is what incidentally reaches the route loader's redirect.
+  The alert now carries the failure's message, so an expired session reads
+  differently from an unreachable server. Still to decide: whether an
+  authentication failure gets its own surface with a route to sign-in rather than
+  a Retry that cannot succeed, and whether that surface replaces the stale
+  listing. Server-side [expired-session cleanup](#operations) is separate.
+
+- **Sharing surfaces.** Decide three presentations the Django review left alone:
+  a failed document load rendering as an empty state indistinguishable from
+  having nothing to share, a no-op document reselect clearing in-progress email
+  input, and share `400` responses flattened to one message that contradicts the
+  self-share and malformed-address cases.
+
 - **Document deletion.** Decide permissions, effects on collaborators and
   linked sources, and recovery or confirmation before adding deletion to
   document menus. Deliver rename first; document destruction is separate from
@@ -278,6 +465,15 @@ concrete unmet need.
   is insufficient.
 
 ### Tooling
+
+- **Development setup and workflow.** Allow per-checkout backend settings
+  overrides and reduce setup and launcher complexity in [local development](guides/local-development.md).
+  Preserve independent instances and Node-independent backend commands; reassess
+  mechanisms when resuming.
+
+- **Test organization.** Reassess fixture and suite boundaries without reducing
+  meaningful collaboration coverage; keep reorganization separate from
+  migration-required test adaptation.
 
 - **Upstream ast-grep project-config validation.** Contribute upstream support
   for rejecting unknown project-config keys or shipping version-matched schemas

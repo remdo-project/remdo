@@ -4,7 +4,7 @@ import { createDeferred } from '../_support/deferred';
 import { asCollaborationProviderEvents, createProviderFactory, waitForSync } from '#collaboration/runtime';
 import type { ProviderFactoryResult } from '#collaboration/runtime';
 import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
-import { ensureCollabTestDocument } from './_support/documents';
+import { createCollabTestDocument } from './_support/documents';
 import { installAuthenticatedApiFetch } from './_support/auth';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
@@ -19,7 +19,6 @@ const providers: ProviderFactoryResult[] = [];
 let restoreFetch: (() => void) | undefined;
 
 async function createProvider(id: string) {
-  await ensureCollabTestDocument(id);
   const result = await createProviderFactory({
     apiOrigin: resolveApiServerOrigin(),
     visibleOrigin: resolveCollabServerOrigin(),
@@ -59,6 +58,7 @@ describe('provider page lifecycle', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const sockets = vi.spyOn(globalThis, 'WebSocket').mockImplementation(function createSocket(url, protocols) {
       return new RealWebSocket(url, protocols);
     });
+    await createCollabTestDocument(`late${outcome}${timing}`);
     const { provider, doc } = await createProvider(`late${outcome}${timing}`);
     restoreFetch = await installAuthenticatedApiFetch();
     const originalFetch = globalThis.fetch;
@@ -100,6 +100,7 @@ describe('provider page lifecycle', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('reconnects an established provider across repeated page restorations', async () => {
+    await createCollabTestDocument('pagerestore');
     const { provider, doc } = await createProvider('pagerestore');
     restoreFetch = await installAuthenticatedApiFetch();
     await provider.connect();
@@ -123,6 +124,7 @@ describe('provider page lifecycle', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       socketCreated.resolve();
       return socket;
     });
+    await createCollabTestDocument('pagehandshake');
     const { provider } = await createProvider('pagehandshake');
     restoreFetch = await installAuthenticatedApiFetch();
     const connecting = provider.connect();
@@ -136,6 +138,7 @@ describe('provider page lifecycle', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('clears remote awareness on disconnect and restores live peers on reconnect', async () => {
+    await createCollabTestDocument('pageawareness');
     const first = await createProvider('pageawareness');
     const second = await createProvider('pageawareness');
     restoreFetch = await installAuthenticatedApiFetch();
@@ -156,6 +159,7 @@ describe('provider page lifecycle', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('keeps an intentionally disconnected provider offline on restoration', async () => {
+    await createCollabTestDocument('pageoffline');
     const { provider } = await createProvider('pageoffline');
     restoreFetch = await installAuthenticatedApiFetch();
     await provider.connect();
@@ -168,6 +172,7 @@ describe('provider page lifecycle', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('does not revive a destroyed provider on restoration', async () => {
+    await createCollabTestDocument('pagedestroy');
     const { provider } = await createProvider('pagedestroy');
     restoreFetch = await installAuthenticatedApiFetch();
     await provider.connect();
@@ -181,6 +186,7 @@ describe('provider page lifecycle', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('keeps the restored shared request when a departed request settles later', async () => {
+    await createCollabTestDocument('pagerequest');
     const first = await createProvider('pagerequest');
     const second = await createProvider('pagerequest');
     restoreFetch = await installAuthenticatedApiFetch();
@@ -208,6 +214,7 @@ describe('provider page lifecycle', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('synchronizes the live consumer when a shared token succeeds after the other is destroyed', async () => {
+    await createCollabTestDocument('pagesharedsuccess');
     const first = await createProvider('pagesharedsuccess');
     const second = await createProvider('pagesharedsuccess');
     restoreFetch = await installAuthenticatedApiFetch();
@@ -234,6 +241,7 @@ describe('provider page lifecycle', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
   it('reports a shared token failure for the live consumer after the other is destroyed',
     meta({ expectedConsoleIssues: ['Failed to get client token'] }), async () => {
+    await createCollabTestDocument('pageshared');
     const first = await createProvider('pageshared');
     const second = await createProvider('pageshared');
     const token = deferred<Response>();

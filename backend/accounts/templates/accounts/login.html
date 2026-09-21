@@ -1,0 +1,20 @@
+{% extends "allauth/layouts/entrance.html" %}
+{% load allauth %}
+{% block head_title %}Sign in · RemDo{% endblock %}
+{% block content %}
+  <div>
+    <h1 class="remdo-title">Sign in</h1>
+    <p class="remdo-description">Sign in to access your documents.</p>
+  </div>
+  {% url 'account_login' as login_url %}
+  {% element form form=form method="post" action=login_url %}
+    {% slot body %}
+      {% csrf_token %}
+      {% element fields form=form %}{% endelement %}
+      {{ redirect_field }}
+    {% endslot %}
+    {% slot actions %}
+      {% element button type="submit" %}Sign in{% endelement %}
+    {% endslot %}
+  {% endelement %}
+{% endblock %}

@@ -8,18 +8,45 @@ with their outliner owners.
 ## Delivery Surfaces
 
 Delivery surfaces describe architectural forms; [Run Modes](run-modes.md) owns the supported
-Production, Development, and Verification run modes.
+run modes.
 
 - **Hosted Web:** SPA served from server/CDN and loaded by browser.
-- **PWA Shell:** Hosted web plus service worker/manifest for offline app-shell
-  entry. In production builds, the service worker caches shell/navigation
-  assets so routes can open offline, but collaboration/auth HTTP endpoints stay
-  network-only. Offline doc editing still works for previously cached docs via
-  collaboration local persistence (IndexedDB), not via service-worker endpoint caching.
+- **PWA Shell:** Hosted web with a manifest and service worker for
+  [offline app-shell entry](#application-freshness). [Offline document editing](#offline-application-behavior) uses local persistence.
 - **Desktop Shell:** Native wrapper (for example Electron/Tauri) hosting the
   same SPA with OS integration.
 
 Delivery surface choice does not alter outliner semantics.
+
+### Application Freshness
+
+The offline navigation fallback serves only application routes. Public downloads,
+server-rendered pages, and missing static assets retain their server responses.
+In Production, static HTTP responses require revalidation; dynamic and error
+responses are not stored in HTTP caches. Service-worker shell storage remains
+available offline. Collaboration and authentication HTTP endpoints remain
+network-only.
+
+### Shared Presentation
+
+The SPA and server-rendered pages share theme values and styles for
+branding, page chrome, and account cards and controls. React and Django retain
+their native rendering and interaction ownership; account pages load their
+presentation assets without the editor runtime.
+
+The app footer identifies the loaded frontend with “Build #revision” in readable
+secondary text, linking the revision to its commit. Absent metadata shows
+“Local development” or “Build unknown”. When startup configuration reports
+a different server revision, the app shows a prominent mismatch warning with
+both commit links. Missing revisions or unavailable configuration do not imply a
+mismatch. The comparison does not monitor subsequent deployments.
+
+### Public Pages
+
+[Public pages](guides/public-pages.md) render repository Markdown through a shared
+Django template without sign-in or editor JavaScript. Their canonical URLs use
+the [configured public origin](specs/runtime/configuration.md#network-addressing). Page sources, including inline HTML, are trusted like
+Django templates.
 
 ## Production Bundle Boundary
 
@@ -29,10 +56,11 @@ production bundles, including production bundles run by development and test wor
 
 ## Production Instance Boundary
 
-A production instance treats its gateway, API, collaboration server, and backup
-scheduler as one failure domain. An unexpected process exit identifies the
+A production instance treats its gateway, API, and collaboration server as one
+failure domain. An unexpected process exit identifies the
 failed service, stops the remaining processes, and ends the instance
-unsuccessfully so its environment can restart the complete instance.
+unsuccessfully so its environment can restart the complete instance. When selected,
+PostgreSQL runs as a separate service with its own lifecycle.
 
 ## Routing and Origin Boundary
 
@@ -41,40 +69,31 @@ not from request forwarding headers.
 
 ### Gateway
 
-Single HTTP entrypoint that can:
-
-1. serve the SPA
-2. route RemDo API endpoints
-3. proxy collaboration endpoints to the hub
-4. optionally expose auth endpoints
-
-Using a gateway keeps origin/routing behavior simple and reduces CORS/auth
-drift between app and collab endpoints.
+The gateway explicitly owns SPA routes (`/`, `/n/*`, `/sharing`, and
+`/sign-out`), frontend assets, Django static assets, public shared files, health
+probes, and collaboration endpoints. Django owns all other HTTP routes,
+including unknown routes and their 404 responses. Normal HTTP routes have the
+same owner in development and production; development additionally serves
+frontend tooling and development-only routes.
 
 Development and production server runtimes expose only the gateway. The RemDo
 API and collaboration server remain loopback-only and are reached through it.
 
-In Production, the gateway serves `/data/public-share` at `/share/*` without
-authentication. Startup creates the directory, and responses require cache
-revalidation so replacing a file updates the same public URL.
+In Production, the gateway serves [public shared files](specs/runtime/configuration.md#persistence) at `/share/*` without authentication.
 
 ### RemDo API boundary
 
 App-owned HTTP surface that sits in front of collaboration infrastructure.
 
-- Auth: Better Auth is mounted at `/api/auth/*`.
+- Auth: Django and allauth own browser session authentication at
+  `/api/auth/browser/v1` and administration
+  at `/admin/`.
 - Y-Sweet document client token issuance follows [Document Access](specs/access/access-control.md#document-access).
 - Y-Sweet access: the API connects with the Y-Sweet server token and passes only
   RemDo-issued Y-Sweet document client tokens to browsers.
-- [OAuth source linking](specs/access/source-linking.md#cross-server-source-linking): Better Auth stores OAuth account tokens for the source
-  servers a user has linked.
 
-### Session User
-
-Signed-in user identity used by RemDo API decisions.
-
-- Mapping: Better Auth resolves the active session user.
-- Role: identify the user for ownership and document access decisions.
+Django resolves the signed-in user from the session for ownership and document
+access decisions.
 
 ### Document identity
 
@@ -97,24 +116,29 @@ Collaboration and local-persistence layers may key document state by canonical `
 Server-owned document metadata store used by RemDo API before issuing Y-Sweet
 document client tokens.
 
-- Metadata: owner user id, document kind, title, and user-specific access grants.
-- Storage: RemDo metadata queries use Kysely inside the server persistence
-  boundary. Route, token, and bootstrap code depend on the `DocumentRegistry`
-  interface, not on SQL or query-builder APIs.
+- Metadata: owner user id, title, and user-specific access grants.
+- Storage: Django models and migrations own the server persistence boundary.
+  Request handlers authorize from ORM-backed identity and document metadata.
 - Data boundary: the registry is the durable source for document ownership,
   access-critical metadata, and the current per-user document list. Yjs
-  documents hold collaborative document content plus persisted, read-only
-  user-data projections for browser-facing app-resource note APIs.
-- User bootstrap: `/api/current-user` ensures the signed-in user's home and
-  user-data-projection registry rows, refreshes the read-only user-data
-  projection from the registry's current per-user document list, and returns
-  the bootstrap consumed under [Authenticated App Access](specs/access/access-control.md#authenticated-app-access).
+  documents hold collaborative document content. Browser-facing app resources
+  use authenticated HTTP reads and established server-state cache tooling.
+- User bootstrap: `/api/current-user` returns the account identity consumed
+  under [Authenticated App Access](specs/access/access-control.md#authenticated-app-access). `/api/documents` lists the
+  caller's accessible documents.
+- Client metadata caches are scoped by server origin and account identity.
+  Ending a session clears its metadata and cancels pending reads; a late
+  response cannot populate the next account's cache.
+- Cached bootstrap data is revalidated on online reads and reconnection;
+  using the offline fallback does not make it indefinitely fresh.
+- Document creation completes when the server acknowledges the new metadata
+  and the result is available to the client. A later list-refresh
+  failure does not turn that successful creation into a failed operation.
 
 ### Token vocabulary
 
-- Better Auth session token: browser session credential resolved by Better Auth.
-- OAuth account tokens: access, refresh, and ID tokens for linked source-server
-  accounts, stored by Better Auth.
+- Django session cookie: browser session credential resolved against server-side
+  session storage.
 - Y-Sweet server token: RemDo API credential for Y-Sweet document-control calls.
 - Y-Sweet document client token: short-lived browser credential enforced by
   Y-Sweet on sync paths.
@@ -130,9 +154,12 @@ document client tokens.
 
 ## Runtime Persistence Boundary
 
-A production instance keeps its dataset and [generated runtime secrets](specs/runtime/configuration.md#secret-bootstrap) in
-one persistent storage root. The root belongs to one running instance and is
-not shared concurrently.
+A production instance keeps its document content and
+[generated runtime secrets](specs/runtime/configuration.md#secret-bootstrap) in one persistent storage root belonging to one
+running instance and not shared concurrently. Metadata uses the
+[configured database](specs/runtime/configuration.md#database): SQLite lives in
+that root; PostgreSQL persists independently. Recovery requires matching
+metadata, document content, and secrets.
 
 ## Collaboration Runtime Building Blocks
 
@@ -157,10 +184,8 @@ others. Genuine synchronization failures remain observable.
 
 ### Local Persistence
 
-Client-side storage for collaboration state.
-
-- Web/webview default: IndexedDB.
-- Native desktop options: filesystem or SQLite-backed store.
+Client-side storage for collaboration state defaults to IndexedDB in web and
+webview surfaces. Native desktop options are filesystem or SQLite-backed stores.
 
 ### Hydration vs sync
 
@@ -190,9 +215,9 @@ Client-side storage for collaboration state.
 
 ### Offline Cache Recovery
 
-- Local persistence is best-effort. If browser storage is cleared or evicted,
-  the document behaves as uncached on the next offline open.
-- Reconnect rehydrates from the hub and returns the document to normal editing.
+Local persistence is best-effort. If browser storage is cleared or evicted,
+the document behaves as uncached on the next offline open. Reconnect rehydrates
+from the hub and returns the document to normal editing.
 
 ### Future
 
@@ -225,10 +250,8 @@ The terms below describe the target vocabulary for multi-hub document access.
 
 ## Code modules
 
-Implementation owners are the `src/` elements declared in
-[`config/eslint/boundaries.ts`](../config/eslint/boundaries.ts). That file holds
-the coarse src graph, the editor-internal graph, and the app product-module
-graph. A new unowned directory is granted nothing, so its imports fail lint.
+[`config/eslint/boundaries.ts`](../config/eslint/boundaries.ts) owns source-module boundaries. Undeclared source
+directories have no import permissions.
 
 ## References
 

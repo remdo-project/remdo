@@ -24,3 +24,8 @@ Thumbs.db
 
 # generated playground explorers, served by the dev server over HTTP
 /public/playground/
+
+# Python
+/.venv/
+__pycache__/
+/.ruff_cache/

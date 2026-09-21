@@ -1,7 +1,5 @@
-import { Container, Group, Text, UnstyledButton } from '@mantine/core';
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import styles from './AppHeader.module.css';
 import { APP_TITLE } from './navigation-label';
 
 export type AppHeaderAuthState =
@@ -13,51 +11,53 @@ export type AppHeaderAuthState =
 export interface AppHeaderProps {
   authState: AppHeaderAuthState;
   onLogout: () => void;
+  signInHref: string;
   trailingNav?: ReactNode;
 }
 
-function navLinkClassName({ isActive }: { isActive: boolean }): string {
-  return [styles.link, isActive && styles.activeLink].filter(Boolean).join(' ');
-}
-
-export default function AppHeader({ authState, onLogout, trailingNav }: AppHeaderProps) {
+export default function AppHeader({ authState, onLogout, signInHref, trailingNav }: AppHeaderProps) {
   const hasAppAccess = authState.status === 'authenticated'
     || authState.status === 'offline-remembered';
 
   return (
-    <header className={styles.header}>
-      <Container className={styles.inner} size="xl">
-        <Link className={styles.brandLink} to="/">
-          <span aria-hidden="true" className={styles.brandIcon} />
-          <Text component="span" fw={700} size="xl">{APP_TITLE}</Text>
+    <header className="remdo-header">
+      <div className="remdo-header-inner">
+        <Link aria-label={`${APP_TITLE} home`} className="remdo-header-brand-link" to="/">
+          <span aria-hidden="true" className="remdo-header-brand-icon" />
+          <span className="remdo-brand-name">{APP_TITLE}</span>
         </Link>
 
-        <nav aria-label="Primary" className={styles.navigation}>
-          <Group className={styles.links} gap="md">
-            {authState.status === 'authenticated' && authState.isAdmin && (
-              <NavLink className={navLinkClassName} to="/admin">
-                Admin
-              </NavLink>
+        <nav aria-label="Primary" className="remdo-header-navigation">
+          <div className="remdo-header-links">
+            {authState.status !== 'unavailable' && (
+              <a className="remdo-header-link" href="/about/">
+                About
+              </a>
             )}
             {hasAppAccess && (
-              <NavLink className={navLinkClassName} to="/sharing">
+              <NavLink className="remdo-header-link" to="/sharing">
                 Sharing
               </NavLink>
             )}
+            {authState.status === 'authenticated' && authState.isAdmin && (
+              <a className="remdo-header-link" href="/admin/">
+                Admin
+              </a>
+            )}
             {hasAppAccess && (
-              <UnstyledButton className={styles.link} onClick={onLogout}>
+              <button className="remdo-header-link" type="button" onClick={onLogout}>
                 Logout
-              </UnstyledButton>
+              </button>
             )}
             {authState.status === 'unauthenticated' && (
-              <NavLink className={navLinkClassName} to="/">
+              <a className="remdo-header-link" href={signInHref}>
                 Sign in
-              </NavLink>
+              </a>
             )}
             {trailingNav}
-          </Group>
+          </div>
         </nav>
-      </Container>
+      </div>
     </header>
   );
 }

@@ -7,7 +7,7 @@ import {
   forEachSerializedNode,
   getSerializedNodeChildren,
   getSerializedRootNodes,
-} from '#tests';
+} from '../../../../tests/unit/_support/lib/serialized';
 import { transformSerializedEditorState } from '#client/editor/runtime/serialized-editor-state';
 
 type NodeWithChildren = SerializedLexicalNode & { children: SerializedLexicalNode[] };

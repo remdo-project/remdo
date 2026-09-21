@@ -3,25 +3,28 @@ import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
 import { config } from '../index.ts';
 import { onRollupWarning } from '../_internal/vite/onRollupWarning.ts';
-import { resolveCollabServerOrigin, resolveLocalGatewayOrigin } from '../../src/platform/net/origins.ts';
-import { remdoApiDevPlugin } from './remdo-api-dev-plugin.ts';
-import { remdoDevSpaRoutesPlugin } from './remdo-dev-spa-routes-plugin.ts';
+import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveLocalGatewayOrigin } from '../../src/platform/net/origins.ts';
+import { shouldProxyToDjango } from './gateway-routes.ts';
+import { APP_SHELL_ROUTE_PATTERNS } from '../../src/document-routes/app-shell-routes.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 const host = config.env.HOST;
 const collabServerTarget = resolveCollabServerOrigin();
 const mainGatewayTarget = resolveLocalGatewayOrigin();
-export const pwaNavigationFallbackDenylist = [
-  /^\/\.well-known(?:\/|$)/u,
-  /^\/api(?:\/|$)/u,
-  /^\/d(?:\/|$)/u,
-];
+const pwaNavigationFallbackAllowlist = [...APP_SHELL_ROUTE_PATTERNS];
+const apiProxy = { target: resolveApiServerOrigin(), changeOrigin: false };
 const devProxy = {
-  '/d': {
+  '^/d(?:/|$|\\?)': {
     target: collabServerTarget,
     changeOrigin: true,
     ws: true,
+  },
+  '/': {
+    ...apiProxy,
+    bypass(req: { url?: string }) {
+      if (!shouldProxyToDjango(req.url ?? '/', 'development')) return req.url;
+    },
   },
 } as const;
 const mainGatewayProxy = {
@@ -29,17 +32,17 @@ const mainGatewayProxy = {
   changeOrigin: true,
 } as const;
 const previewProxy = {
-  '/.well-known': {
-    ...mainGatewayProxy,
-    xfwd: true,
-  },
-  '/api': {
-    ...mainGatewayProxy,
-    xfwd: true,
-  },
-  '/d': {
+  '/src/client/ui/styles/': mainGatewayProxy,
+  '^/d(?:/|$|\\?)': {
     ...mainGatewayProxy,
     ws: true,
+  },
+  '/': {
+    ...mainGatewayProxy,
+    xfwd: true,
+    bypass(req: { url?: string }) {
+      if (!shouldProxyToDjango(req.url ?? '/', 'preview')) return req.url;
+    },
   },
 } as const;
 
@@ -51,16 +54,14 @@ export function createViteSharedConfig() {
       },
     },
     plugins: [
-      remdoApiDevPlugin(),
-      remdoDevSpaRoutesPlugin(),
       VitePWA({
-        includeAssets: ['icons/*.svg', 'favicon.png'],
+        includeAssets: ['icons/*.svg', 'logo.svg'],
         registerType: 'autoUpdate',
         manifest: {
           name: 'RemDo',
           short_name: 'RemDo',
-          background_color: '#1a1b1e',
-          theme_color: '#1a1b1e',
+          background_color: '#17151f',
+          theme_color: '#17151f',
           icons: [
             {
               src: 'icon-192.png',
@@ -75,7 +76,7 @@ export function createViteSharedConfig() {
               purpose: 'any',
             },
             {
-              src: 'icon-512.png',
+              src: 'icon-maskable-512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
@@ -84,7 +85,7 @@ export function createViteSharedConfig() {
         },
         workbox: {
           navigateFallback: '/index.html',
-          navigateFallbackDenylist: pwaNavigationFallbackDenylist,
+          navigateFallbackAllowlist: pwaNavigationFallbackAllowlist,
           runtimeCaching: [
             {
               urlPattern: ({ url }) => url.pathname.startsWith('/d/'),

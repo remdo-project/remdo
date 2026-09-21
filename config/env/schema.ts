@@ -10,6 +10,7 @@ const str = z.string().default('');
 
 export const envSchema = {
   NODE_ENV: str,
+  BUILD_REVISION: str,
   DATA_DIR: str,
   HOST: str,
   PUBLIC_HOST: str,
@@ -25,10 +26,8 @@ export const envSchema = {
   YSWEET_AUTH_KEY: str,
   // Y-Sweet server token used by RemDo API and backup tools.
   YSWEET_SERVER_TOKEN: str,
-  // Better Auth application secret.
+  // Django's SECRET_KEY; tools/env.defaults.sh supplies the development value.
   AUTH_SECRET: str,
-  // Operator secret for admin provisioning actions.
-  ADMIN_SECRET: str,
   // Canonical public app URL. Derived in development; required in production.
   APP_ORIGIN: str,
   // Product signup policy. tools/env.defaults.sh sets true outside production.
@@ -40,5 +39,5 @@ export const envSchema = {
 export type EnvKey = keyof typeof envSchema;
 
 // Browser-exposed keys (mirrors the previous spec's client:true flags). Keep in sync with envSchema above.
-export const CLIENT_KEY_LIST = ['COLLAB_ENABLED', 'DEV_DOCUMENT_ID'] as const satisfies readonly EnvKey[];
+export const CLIENT_KEY_LIST = ['COLLAB_ENABLED', 'DEV_DOCUMENT_ID', 'BUILD_REVISION'] as const satisfies readonly EnvKey[];
 export type ClientKey = (typeof CLIENT_KEY_LIST)[number];

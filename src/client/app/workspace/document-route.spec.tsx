@@ -1,11 +1,7 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  getTestUserData,
-  setTestDocumentSources,
-  setTestDocumentSourcesLoading,
-} from '#tests';
-import { createDocumentPath, createDocumentSyncTokenApiPath } from '#document-routes';
+import { getTestUserData, setTestDocumentSources } from '#tests';
+import { createDocumentPath } from '#document-routes';
 import {
   createDocumentCollectionSource,
   renderDocumentRoute,
@@ -15,7 +11,6 @@ import {
 } from '../../../../tests/unit/_support/document-route-harness';
 
 describe('document route', () => {
-
   beforeEach(() => {
     resetDocumentRouteHarness();
   });
@@ -75,16 +70,15 @@ describe('document route', () => {
     });
   });
 
-  it('waits for source resolution before opening a source-only plain document route', async () => {
-    // Keep the local-access probe in flight so the workspace stays on "Loading
-    // document" until source resolution completes, not because the probe failed.
-    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
-    setTestDocumentSourcesLoading(true);
-
+  it('remounts a source-only plain document route against its source once resolution completes', async () => {
     renderDocumentRoute(createDocumentPath('sourceDoc'));
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Loading document');
-    expect(screen.queryByTestId('editor-probe')).toBeNull();
+    // The collaboration provider authorizes access, so the editor mounts against
+    // the local source immediately instead of waiting for source resolution.
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'sourceDoc');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', '');
+    });
 
     act(() => {
       setTestDocumentSources([{
@@ -94,7 +88,6 @@ describe('document route', () => {
         label: 'Source Server',
         local: false,
       }]);
-      setTestDocumentSourcesLoading(false);
     });
 
     await waitFor(() => {
@@ -102,67 +95,6 @@ describe('document route', () => {
       expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', 'source');
       expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-origin', 'https://source.example');
     });
-  });
-
-  it('opens the editor when the local-access probe fails while source resolution is loading', async () => {
-    // Server unreachable: the sync-token probe rejects. The workspace must mount
-    // the editor (letting the collaboration layer surface the connection state)
-    // instead of hanging on "Loading document" forever.
-    const fetchMock = vi.fn(async () => {
-      throw new TypeError('Failed to fetch');
-    });
-    vi.stubGlobal('fetch', fetchMock);
-    setTestDocumentSourcesLoading(true);
-
-    renderDocumentRoute(createDocumentPath('unreachableDoc'));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'unreachableDoc');
-      expect(screen.queryByRole('status')).toBeNull();
-    });
-    expect(fetchMock).toHaveBeenCalledWith(
-      createDocumentSyncTokenApiPath('unreachableDoc'),
-      expect.objectContaining({ method: 'POST' }),
-    );
-  });
-
-  it('opens an authorized local document while source resolution is loading', async () => {
-    const fetchMock = vi.fn(async () => ({ ok: true }));
-    vi.stubGlobal('fetch', fetchMock);
-    setTestDocumentSourcesLoading(true);
-
-    renderDocumentRoute(createDocumentPath('sharedDoc'));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'sharedDoc');
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', '');
-      expect(screen.queryByRole('status')).toBeNull();
-    });
-    expect(fetchMock).toHaveBeenCalledWith(
-      createDocumentSyncTokenApiPath('sharedDoc'),
-      expect.objectContaining({
-        body: JSON.stringify({ docId: 'sharedDoc' }),
-        credentials: 'same-origin',
-        headers: { 'content-type': 'application/json' },
-        method: 'POST',
-      }),
-    );
-  });
-
-  it('opens the editor offline while source resolution is loading', async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-    vi.spyOn(globalThis.navigator, 'onLine', 'get').mockReturnValue(false);
-    setTestDocumentSourcesLoading(true);
-
-    renderDocumentRoute(createDocumentPath('offlineDoc'));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'offlineDoc');
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', '');
-      expect(screen.queryByRole('status')).toBeNull();
-    });
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('sets the page title from the current zoom note when zoomed', async () => {

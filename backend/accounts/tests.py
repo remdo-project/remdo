@@ -1,0 +1,253 @@
+import json
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+from urllib.parse import parse_qs, urlsplit
+
+from allauth.account.models import EmailAddress
+from django.conf import settings
+from django.core.cache import cache
+from django.test import Client, TestCase, override_settings
+
+from .models import User
+
+
+@override_settings(
+    ALLOWED_HOSTS=["testserver"], CSRF_TRUSTED_ORIGINS=["http://testserver"], DEBUG=True
+)
+class LoginPageTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user("alice@example.test", "alice-password-1234")
+
+    def setUp(self):
+        self.client = Client(enforce_csrf_checks=True)
+
+    def login(self, **fields):
+        page = self.client.get("/accounts/login/")
+        self.assertEqual(page.status_code, 200)
+        return self.client.post(
+            "/accounts/login/",
+            {
+                "login": self.user.email,
+                "password": "alice-password-1234",
+                "csrfmiddlewaretoken": self.client.cookies[settings.CSRF_COOKIE_NAME].value,
+                **fields,
+            },
+        )
+
+    def test_native_form_signs_in_and_completes_at_requested_document(self):
+        response = self.login(next="/n/exampleDoc")
+        self.assertTemplateUsed(response, "accounts/login_complete.html")
+        self.assertEqual(response.context["next_url"], "/n/exampleDoc")
+        self.assertIn("no-store", response.headers["Cache-Control"])
+        session = self.client.get("/api/auth/browser/v1/auth/session").json()
+        self.assertEqual(session["data"]["user"]["email"], self.user.email)
+
+    def test_invalid_credentials_keep_the_form_without_completing_login(self):
+        response = self.login(password="wrong")
+        self.assertTemplateUsed(response, "accounts/login.html")
+        self.assertTrue(response.context["form"].errors)
+        self.assertNotContains(response, "localStorage.removeItem")
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 401)
+
+    @override_settings(ACCOUNT_SESSION_COOKIE_AGE=3600)
+    def test_login_remembers_session_without_a_checkbox(self):
+        page = self.client.get("/accounts/login/")
+        self.assertNotContains(page, 'name="remember"')
+        response = self.login()
+        cookie = response.cookies[settings.SESSION_COOKIE_NAME]
+        self.assertEqual(cookie["max-age"], 3600)
+        self.assertTrue(cookie["expires"])
+        self.assertFalse(self.client.session.get_expire_at_browser_close())
+
+    def test_login_requires_csrf_and_rejects_untrusted_origins(self):
+        self.assertEqual(self.client.post("/accounts/login/", {}).status_code, 403)
+        self.client.get("/accounts/login/")
+        response = self.client.post(
+            "/accounts/login/",
+            {
+                "login": self.user.email,
+                "password": "alice-password-1234",
+                "csrfmiddlewaretoken": self.client.cookies[settings.CSRF_COOKIE_NAME].value,
+            },
+            HTTP_ORIGIN="http://unrelated.example",
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_an_existing_session_reaches_its_destination_without_completing_a_login(self):
+        # The handoff clears this device's pending-sign-out marker, so only a
+        # credentialed sign-in may render it; allauth redirects a visitor who
+        # already has a session without asking for a password, which must not
+        # supersede an unfinished logout.
+        self.client.force_login(self.user, backend="django.contrib.auth.backends.ModelBackend")
+
+        response = self.client.get("/accounts/login/?next=/n/exampleDoc")
+
+        self.assertTemplateNotUsed(response, "accounts/login_complete.html")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/n/exampleDoc")
+
+    def test_admin_logout_hands_off_before_revoking_the_session(self):
+        self.user.is_staff = True
+        self.user.save()
+        self.login()
+        response = self.client.post(
+            "/admin/logout/",
+            {"csrfmiddlewaretoken": self.client.cookies[settings.CSRF_COOKIE_NAME].value},
+        )
+        self.assertRedirects(response, "/sign-out/", fetch_redirect_response=False)
+        self.assertIn("no-store", response.headers["Cache-Control"])
+        # The browser must confirm discarded edits and clear local data first.
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 200)
+
+    def admin_login(self, **fields):
+        response = self.client.get("/admin/login/", {"next": fields.pop("next", "/admin/")})
+        self.assertEqual(response.status_code, 302)
+        destination = urlsplit(response.url)
+        self.assertEqual(destination.path, "/accounts/login/")
+        return self.login(next=parse_qs(destination.query)["next"][0], **fields)
+
+    def test_admin_login_completes_browser_handoff_with_safe_return_target(self):
+        self.user.is_staff = True
+        self.user.is_superuser = True
+        self.user.save()
+        for target, expected in (
+            ("/admin/accounts/user/", "/admin/accounts/user/"),
+            ("https://unrelated.example/", "/admin/"),
+        ):
+            with self.subTest(target=target):
+                self.client.logout()
+                response = self.admin_login(next=target)
+                self.assertTemplateUsed(response, "accounts/login_complete.html")
+                destination = response.context["next_url"]
+                self.assertFalse(urlsplit(destination).netloc)
+                landed = self.client.get(destination, follow=True)
+                self.assertEqual(landed.status_code, 200)
+                self.assertEqual(landed.request["PATH_INFO"], expected)
+                self.assertIn("no-store", response.headers["Cache-Control"])
+                self.assertEqual(self.client.get("/admin/").status_code, 200)
+
+    def test_admin_login_rejects_invalid_credentials_through_allauth(self):
+        self.user.is_staff = True
+        self.user.save()
+        response = self.admin_login(password="wrong")
+        self.assertTemplateUsed(response, "accounts/login.html")
+        self.assertTrue(response.context["form"].errors)
+        self.assertNotContains(response, "localStorage.removeItem")
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 401)
+
+    def test_admin_denies_nonstaff_without_ending_their_app_session(self):
+        response = self.admin_login()
+        self.assertTemplateUsed(response, "accounts/login_complete.html")
+        self.assertEqual(self.client.get("/admin/", follow=True).status_code, 403)
+        self.assertEqual(self.client.get("/admin/login/").status_code, 403)
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 200)
+
+    def test_admin_entry_cannot_switch_an_authenticated_staff_session(self):
+        self.user.is_staff = True
+        self.user.save()
+        other = User.objects.create_superuser("other@example.test", "other-password-1234")
+        self.login()
+        response = self.client.post(
+            "/admin/login/",
+            {
+                "username": other.email,
+                "password": "other-password-1234",
+                "csrfmiddlewaretoken": self.client.cookies[settings.CSRF_COOKIE_NAME].value,
+            },
+        )
+        self.assertEqual(response.status_code, 405)
+        session = self.client.get("/api/auth/browser/v1/auth/session").json()
+        self.assertEqual(session["data"]["user"]["email"], self.user.email)
+
+    @override_settings(ACCOUNT_RATE_LIMITS={"login_failed": "2/m/key", "login": "100/m/ip"})
+    @patch("time.time", return_value=1_700_000_000)
+    def test_admin_login_uses_the_shared_allauth_failure_limit(self, _time):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.user.is_staff = True
+        self.user.save()
+        for expected in (
+            "email_password_mismatch",
+            "email_password_mismatch",
+            "too_many_login_attempts",
+        ):
+            response = self.admin_login(password="wrong")
+            errors = response.context["form"].non_field_errors().as_data()
+            self.assertEqual([error.code for error in errors], [expected])
+        response = self.admin_login()
+        errors = response.context["form"].non_field_errors().as_data()
+        self.assertEqual([error.code for error in errors], ["too_many_login_attempts"])
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 401)
+
+    def test_admin_login_handoff_requires_csrf(self):
+        self.assertEqual(self.client.post("/admin/login/", {}).status_code, 403)
+
+    def test_admin_logout_handoff_requires_a_csrf_protected_post(self):
+        self.login()
+        self.assertEqual(self.client.get("/admin/logout/").status_code, 405)
+        self.assertEqual(self.client.post("/admin/logout/", {}).status_code, 403)
+        response = self.client.post(
+            "/admin/logout/",
+            {"csrfmiddlewaretoken": self.client.cookies[settings.CSRF_COOKIE_NAME].value},
+            HTTP_ORIGIN="http://unrelated.example",
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 200)
+
+    def test_external_return_url_is_rejected(self):
+        response = self.login(next="https://unrelated.example/")
+        self.assertEqual(response.context["next_url"], "/")
+
+    def test_unscoped_account_features_are_not_routed(self):
+        for path in ("signup", "logout", "password/reset"):
+            self.assertEqual(self.client.get(f"/accounts/{path}/").status_code, 404)
+
+    def test_account_cannot_rewrite_its_sharing_identity(self):
+        self.login()
+        for method in (self.client.post, self.client.patch):
+            response = method(
+                "/api/auth/browser/v1/account/email",
+                json.dumps({"email": "someone-else@example.test", "primary": True}),
+                content_type="application/json",
+                HTTP_X_CSRFTOKEN=self.client.cookies[settings.CSRF_COOKIE_NAME].value,
+            )
+            self.assertEqual(response.status_code, 404)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "alice@example.test")
+        self.assertFalse(EmailAddress.objects.filter(email="someone-else@example.test").exists())
+
+    def test_inactive_account_cannot_sign_in_through_native_or_headless_login(self):
+        self.user.is_active = False
+        self.user.save()
+        response = self.login()
+        self.assertRedirects(response, "/accounts/inactive/")
+        self.assertContains(self.client.get("/accounts/inactive/"), "This account is inactive.")
+        response = self.client.post(
+            "/api/auth/browser/v1/auth/login",
+            json.dumps({"email": self.user.email, "password": "alice-password-1234"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=self.client.cookies[settings.CSRF_COOKIE_NAME].value,
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(self.client.get("/api/auth/browser/v1/auth/session").status_code, 401)
+
+    def test_built_frontend_uses_manifest_styles_even_with_django_debug(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = Path(directory) / "manifest.json"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "src/client/ui/styles/shared.css": {
+                            "file": "app-assets/shared-test.js",
+                            "css": ["app-assets/shared-test.css"],
+                        }
+                    }
+                )
+            )
+            with override_settings(FRONTEND_USE_SOURCE_STYLES=False, FRONTEND_MANIFEST=manifest):
+                response = self.client.get("/accounts/login/")
+        self.assertContains(response, 'href="/app-assets/shared-test.css"')
+        self.assertNotContains(response, "<script")
+        self.assertContains(response, 'autocomplete="current-password"')

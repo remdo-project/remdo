@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { csrf } from 'hono/csrf';
 import { HTTP_STATUS } from '#platform/http/status';
-import { createAdminRoutes } from './admin';
 import { createCurrentUserRoutes } from './current-user';
 import { createDocumentRoutes } from './documents';
 import type { ServerRouteDependencies } from './types';
@@ -41,7 +40,6 @@ export function createApiRoutes(dependencies: ServerRouteDependencies) {
 
   routes.route('/current-user', createCurrentUserRoutes(dependencies));
   routes.route('/documents', createDocumentRoutes(dependencies));
-  routes.route('/admin', createAdminRoutes(dependencies));
 
   routes.notFound((c) => c.json({ error: 'API route not found.' }, HTTP_STATUS.NOT_FOUND));
 

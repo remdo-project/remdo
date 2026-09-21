@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { createContext, use, useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { createContext, use, useCallback, useEffect, useEffectEvent, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { resetUserData } from '#client/app/user-data/user-data';
 import { hasUnsyncedLocalChanges } from '#collaboration/unsynced-local-changes';
 import { forgetAuthenticatedSession } from './client';
@@ -10,6 +11,8 @@ import { subscribeToSignOut } from './logout-broadcast';
 export const LOGGED_OUT_STATE_KEY = 'loggedOut';
 
 export interface LogoutController {
+  /** The departing route must unmount before session revocation starts. */
+  signingOut: boolean;
   /** Whether logout is waiting for the user to accept losing local edits. */
   confirmingLoss: boolean;
   /** Starts logout, or asks for confirmation when local edits would be lost. */
@@ -35,14 +38,23 @@ export function useLogout(): LogoutController {
 
 function useLogoutController(): LogoutController {
   const navigate = useNavigate();
+  const { key: locationKey } = useLocation();
+  // Keep the old route unmounted until navigation commits its replacement.
+  const [departingLocationKey, setDepartingLocationKey] = useState<string | null>(null);
   const [confirmingLoss, setConfirmingLoss] = useState(false);
 
+  const leaveCurrentRoute = useCallback(() => {
+    // eslint-disable-next-line react/dom-no-flush-sync -- Editor cleanup must finish before session revocation starts.
+    flushSync(() => setDepartingLocationKey(locationKey));
+  }, [locationKey]);
+
   const signOut = useCallback(async () => {
+    leaveCurrentRoute();
     // `logoutCurrentUser` writes the pending-sign-out marker first, so peers
     // tear down while this tab is still healthy.
     await logoutCurrentUser();
     await navigate('/', { replace: true, state: { [LOGGED_OUT_STATE_KEY]: true } });
-  }, [navigate]);
+  }, [leaveCurrentRoute, navigate]);
 
   const requestLogout = useCallback(() => {
     // Work the server has acknowledged survives signing back in, so it gets no
@@ -63,15 +75,17 @@ function useLogoutController(): LogoutController {
     setConfirmingLoss(false);
   }, []);
 
-  useEffect(() => subscribeToSignOut(() => {
+  const onPeerSignOut = useEffectEvent(() => {
     // Another tab is clearing this origin's storage. Tear the runtime down
     // before a further edit hits a provider whose database is already going away.
+    leaveCurrentRoute();
     resetUserData();
     forgetAuthenticatedSession();
     void navigate('/', { replace: true, state: { [LOGGED_OUT_STATE_KEY]: true } });
-  }), [navigate]);
+  });
+  useEffect(() => subscribeToSignOut(onPeerSignOut), []);
 
-  return { confirmingLoss, requestLogout, confirmLogout, cancelLogout };
+  return { signingOut: departingLocationKey === locationKey, confirmingLoss, requestLogout, confirmLogout, cancelLogout };
 }
 
 export function LogoutProvider({ children }: { children: ReactNode }) {

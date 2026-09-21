@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createDocumentPath,
-  createDocumentSyncTokenApiPath,
   createSourceDocumentSyncTokenApiPath,
   createNoteAddress,
   parseDocumentRef,
@@ -12,7 +11,6 @@ import { normalizeDocumentId } from '#domain/documents/ids';
 describe('document route refs', () => {
   it('creates and parses root document refs', () => {
     expect(createDocumentPath('main')).toBe('/n/main');
-    expect(createDocumentSyncTokenApiPath('main')).toBe('/api/documents/main/sync-tokens');
     expect(parseDocumentRef('main')).toEqual({ docId: 'main', noteId: null });
   });
 
@@ -46,7 +44,6 @@ describe('document route refs', () => {
 
   it('throws when creating paths from invalid ids', () => {
     expect(() => createDocumentPath('bad doc')).toThrow();
-    expect(() => createDocumentSyncTokenApiPath('bad doc')).toThrow();
     expect(() => createSourceDocumentSyncTokenApiPath('bad source', 'main')).toThrow();
     expect(() => createSourceDocumentSyncTokenApiPath('local', 'main')).toThrow();
     expect(() => createDocumentPath('main', 'bad note')).toThrow();

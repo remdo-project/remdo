@@ -1,9 +1,8 @@
 import { MantineProvider } from '@mantine/core';
 import { render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createDocumentSyncTokenApiPath } from '#document-routes';
-import { getCollabTestSessionCookie, withSessionCookie } from './_support/auth';
-import { ensureCollabTestDocument } from './_support/documents';
+import { getCollabTestAuthentication, withTestAuthentication } from './_support/auth';
+import { createCollabTestDocument } from './_support/documents';
 import { renderRemdoEditor } from './_support/render-editor';
 import { TestEditorView } from './_support/test-editor-view';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
@@ -23,10 +22,11 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
     const requests: RecordedRequest[] = [];
     const originalFetch = globalThis.fetch.bind(globalThis);
     const docId = 'tokenroute';
-    const sessionCookie = await getCollabTestSessionCookie();
+    await createCollabTestDocument(docId);
+    const authentication = await getCollabTestAuthentication();
 
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      const request = withSessionCookie(input, init, sessionCookie);
+      const request = withTestAuthentication(input, init, authentication);
       requests.push({
         method: request.method,
         url: request.url,
@@ -41,7 +41,7 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
         expect.arrayContaining([
           expect.objectContaining({
             method: 'POST',
-            url: expect.stringContaining(createDocumentSyncTokenApiPath(docId)),
+            url: expect.stringContaining(`/api/documents/${docId}/sync-tokens`),
           }),
         ])
       );
@@ -58,17 +58,17 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
 
   it('does not warn when a token fetch fails after teardown mid-connect', async () => {
     const docId = 'tokenabort';
-    await ensureCollabTestDocument(docId);
-    const sessionCookie = await getCollabTestSessionCookie();
+    await createCollabTestDocument(docId);
+    const authentication = await getCollabTestAuthentication();
     const warnSpy = vi.mocked(console.warn);
 
     const originalFetch = globalThis.fetch.bind(globalThis);
-    const tokenPath = createDocumentSyncTokenApiPath(docId);
+    const tokenPath = `/api/documents/${docId}/sync-tokens`;
     // Fail the pending request after teardown. The patched client must ignore
     // the rejection belonging to the destroyed provider's connection attempt.
     let failTokenRequest: (() => void) | undefined;
     vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
-      const request = withSessionCookie(input, init, sessionCookie);
+      const request = withTestAuthentication(input, init, authentication);
       if (request.url.includes(tokenPath)) {
         return new Promise<Response>((_resolve, reject) => {
           failTokenRequest = () => reject(new TypeError('Failed to fetch'));
@@ -96,8 +96,8 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
   it('does not open a websocket when a token fetch resolves after teardown', async () => {
     // A token arriving after destroy must not revive the departed connection.
     const docId = 'tokenlateok';
-    await ensureCollabTestDocument(docId);
-    const sessionCookie = await getCollabTestSessionCookie();
+    await createCollabTestDocument(docId);
+    const authentication = await getCollabTestAuthentication();
 
     const RealWebSocket = globalThis.WebSocket;
     const wsUrls: string[] = [];
@@ -107,11 +107,11 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
     });
 
     const originalFetch = globalThis.fetch.bind(globalThis);
-    const tokenPath = createDocumentSyncTokenApiPath(docId);
+    const tokenPath = `/api/documents/${docId}/sync-tokens`;
     // Hold the token request until we release it *successfully*, after teardown.
     let resolveTokenRequest: (() => void) | undefined;
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      const request = withSessionCookie(input, init, sessionCookie);
+      const request = withTestAuthentication(input, init, authentication);
       if (request.url.includes(tokenPath)) {
         // Fetch the real token once released, so the resolved value is valid.
         await new Promise<void>((resolve) => {

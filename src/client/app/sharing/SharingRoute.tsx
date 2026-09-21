@@ -1,7 +1,6 @@
-import { Alert, Button, Container, Divider, Grid, Select, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Button, Container, Grid, Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useState } from 'react';
-import { linkSourceByUrl } from '#client/app/sharing/source-server-linking-client';
-import { useCurrentUserPublicServer, useUserData } from '#client/app/user-data/user-data';
+import { useUserData } from '#client/app/user-data/user-data';
 
 type ShareState =
   | { status: 'idle' | 'pending' | 'success' }
@@ -9,12 +8,8 @@ type ShareState =
 
 export default function SharingRoute() {
   const userData = useUserData();
-  // A public server is source-only and refuses to link out (the link route 403s),
-  // so hide the link form there rather than advertise an action it rejects.
-  const publicServer = useCurrentUserPublicServer();
   const documents = userData.getDocuments().getChildren();
   const userDataReady = documents.length > 0;
-  const sourceServers = userData.getSourceServers().getChildren();
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const shareableDocuments = documents.filter((document) => document.canShareWith());
   const documentOptions = shareableDocuments.map((document) => ({
@@ -23,12 +18,9 @@ export default function SharingRoute() {
   }));
   const activeDocument = shareableDocuments.find((document) => document.getId() === selectedDocId);
   const [shareEmail, setShareEmail] = useState('');
-  const [sourceUrl, setSourceUrl] = useState('');
   const [shareState, setShareState] = useState<ShareState>({ status: 'idle' });
-  const [sourceErrorMessage, setSourceErrorMessage] = useState<string | null>(null);
   const sharePending = shareState.status === 'pending';
   const visibleAccess = activeDocument?.getAccess().getChildren() ?? [];
-  const showSourceSection = publicServer === false || sourceServers.length > 0;
 
   const selectDocument = (docId: string | null) => {
     setSelectedDocId(docId);
@@ -52,15 +44,6 @@ export default function SharingRoute() {
         message: error instanceof Error ? error.message : 'Failed to share document.',
         status: 'error',
       });
-    }
-  };
-
-  const linkByUrl = async () => {
-    setSourceErrorMessage(null);
-    try {
-      await linkSourceByUrl(sourceUrl.trim());
-    } catch (error) {
-      setSourceErrorMessage(error instanceof Error ? error.message : 'Failed to link source.');
     }
   };
 
@@ -131,55 +114,6 @@ export default function SharingRoute() {
           )}
         </Stack>
 
-        {showSourceSection && (
-          <>
-            <Divider />
-            <Stack aria-labelledby="linked-sources-heading" component="section" gap="md">
-              <Title id="linked-sources-heading" order={2}>Linked sources</Title>
-              {sourceErrorMessage && (
-                <Alert color="red" title="Could not link source">
-                  {sourceErrorMessage}
-                </Alert>
-              )}
-
-              {publicServer === false && (
-                <form onSubmit={(event) => {
-                  event.preventDefault();
-                  void linkByUrl();
-                }}>
-                  <Grid align="flex-end" gap="sm">
-                    <Grid.Col span={{ base: 12, sm: 9 }}>
-                      <TextInput
-                        label="Source URL"
-                        required
-                        type="url"
-                        value={sourceUrl}
-                        onChange={(event) => setSourceUrl(event.currentTarget.value)}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ base: 12, sm: 3 }}>
-                      <Button fullWidth type="submit">Link source</Button>
-                    </Grid.Col>
-                  </Grid>
-                </form>
-              )}
-
-              {userDataReady && sourceServers.length === 0 ? (
-                <Text c="dimmed" size="sm">No linked sources.</Text>
-              ) : (
-                <Stack gap="xs">
-                  {sourceServers.map((server) => (
-                    <Stack key={server.getId()} gap={0}>
-                      <Text>{server.getText()}</Text>
-                      <Text c="dimmed" size="sm">{server.getBaseUrl()}</Text>
-                    </Stack>
-                  ))}
-                </Stack>
-              )}
-
-            </Stack>
-          </>
-        )}
       </Stack>
     </Container>
   );

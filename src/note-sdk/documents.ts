@@ -1,8 +1,6 @@
 import type { AddressableNote, CollectionNote } from './notes';
 
 export interface UserDataNote extends AddressableNote<'user-data'> {
-  /** Returns the user's home document note. */
-  getHomeDocument: () => DocumentNote;
   /** Returns document lists grouped by current and linked source servers. */
   getDocumentSources: () => DocumentSourcesNote;
   /** Returns the user-documents child note. */

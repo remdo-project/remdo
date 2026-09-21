@@ -5,38 +5,25 @@ import SharingRoute from '#client/app/sharing/SharingRoute';
 import { createUserDataRootNote } from '#note-sdk';
 import type { UserDataNote, UserDocument } from '#note-sdk';
 import type { DocumentAccessView } from '#domain/documents/access';
-import type { SourceServer } from '#domain/source-servers';
 
 const routeState = vi.hoisted(() => ({
-  isPublicServer: null as boolean | null,
-  linkSourceByUrl: vi.fn(),
   userData: null as UserDataNote | null,
 }));
 
 vi.mock('#client/app/user-data/user-data', () => ({
-  useCurrentUserPublicServer: () => routeState.isPublicServer,
   useUserData: () => routeState.userData,
-}));
-
-vi.mock('#client/app/sharing/source-server-linking-client', () => ({
-  linkSourceByUrl: routeState.linkSourceByUrl,
 }));
 
 interface SharingRouteFixture {
   documents?: readonly UserDocument[];
-  isPublicServer?: boolean | null;
   shareDocument?: NonNullable<Parameters<typeof createUserDataRootNote>[2]>['shareDocument'];
-  sourceServers?: readonly SourceServer[];
 }
 
 function renderSharingRoute({
   documents = [],
-  isPublicServer = false,
   shareDocument,
-  sourceServers = [],
 }: SharingRouteFixture = {}) {
-  routeState.isPublicServer = isPublicServer;
-  routeState.userData = createUserDataRootNote(documents, sourceServers, { shareDocument });
+  routeState.userData = createUserDataRootNote(documents, { shareDocument });
 
   return render(
     <MantineProvider>
@@ -72,7 +59,7 @@ describe('sharing route', () => {
     expect(screen.queryByRole('option', { hidden: true, name: 'Shared with me' })).toBeNull();
   });
 
-  it('keeps document and source management explicit when nothing is selected or linked', () => {
+  it('keeps document access explicit when nothing is selected', () => {
     renderSharingRoute({
       documents: [{ id: 'owned', shareable: true, title: 'Owned' }],
     });
@@ -81,8 +68,8 @@ describe('sharing route', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Document access' })).toBeInTheDocument();
     expect(screen.getByText('Choose a document to manage access.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Share' })).toBeDisabled();
-    expect(screen.getByRole('heading', { level: 2, name: 'Linked sources' })).toBeInTheDocument();
-    expect(screen.getByText('No linked sources.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Linked sources' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Link source' })).toBeNull();
   });
 
   it('explains when no owned documents are shareable', () => {
@@ -91,35 +78,6 @@ describe('sharing route', () => {
     });
 
     expect(screen.getByText('No documents you own can be shared.')).toBeInTheDocument();
-  });
-
-  it('separates server policy readiness from user-data projection readiness', () => {
-    const route = renderSharingRoute({ isPublicServer: null });
-
-    expect(screen.queryByText('No documents you own can be shared.')).toBeNull();
-    expect(screen.queryByText('No linked sources.')).toBeNull();
-    expect(screen.queryByRole('heading', { level: 2, name: 'Linked sources' })).toBeNull();
-
-    routeState.isPublicServer = false;
-    route.rerender(
-      <MantineProvider>
-        <SharingRoute />
-      </MantineProvider>
-    );
-
-    expect(screen.getByRole('heading', { level: 2, name: 'Linked sources' })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Source URL' })).toBeInTheDocument();
-    expect(screen.queryByText('No linked sources.')).toBeNull();
-
-    routeState.isPublicServer = true;
-    route.rerender(
-      <MantineProvider>
-        <SharingRoute />
-      </MantineProvider>
-    );
-
-    expect(screen.queryByRole('heading', { level: 2, name: 'Linked sources' })).toBeNull();
-    expect(screen.queryByRole('textbox', { name: 'Source URL' })).toBeNull();
   });
 
   it('shows the selected document access state', () => {
@@ -156,54 +114,6 @@ describe('sharing route', () => {
 
     expect(screen.getByText('Only you have access.')).toBeInTheDocument();
     expect(emailInput).toHaveValue('reader@example.com');
-  });
-
-  it('omits source management on a public server without linked sources', () => {
-    renderSharingRoute({ isPublicServer: true });
-
-    expect(screen.queryByRole('heading', { level: 2, name: 'Linked sources' })).toBeNull();
-    expect(screen.queryByRole('textbox', { name: 'Source URL' })).toBeNull();
-  });
-
-  it('lists existing sources without a link form on a public server', () => {
-    renderSharingRoute({
-      isPublicServer: true,
-      sourceServers: [{
-        baseUrl: 'https://source.example',
-        id: 'source',
-        label: 'Source Server',
-      }],
-    });
-
-    expect(screen.getByRole('heading', { level: 2, name: 'Linked sources' })).toBeInTheDocument();
-    expect(screen.getByText('Source Server')).toBeInTheDocument();
-    expect(screen.getByText('https://source.example')).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', { name: 'Source URL' })).toBeNull();
-  });
-
-  it('submits a normalized source URL', () => {
-    routeState.linkSourceByUrl.mockResolvedValue(undefined);
-    renderSharingRoute();
-
-    fireEvent.change(screen.getByRole('textbox', { name: 'Source URL' }), {
-      target: { value: ' https://source.example ' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Link source' }));
-
-    expect(routeState.linkSourceByUrl).toHaveBeenCalledWith('https://source.example');
-  });
-
-  it('reports a source-linking error within the linked-sources section', async () => {
-    routeState.linkSourceByUrl.mockRejectedValue(new Error('Source unavailable.'));
-    renderSharingRoute();
-
-    fireEvent.change(screen.getByRole('textbox', { name: 'Source URL' }), {
-      target: { value: 'https://source.example' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Link source' }));
-
-    expect(await screen.findByRole('alert', { name: 'Could not link source' }))
-      .toHaveTextContent('Source unavailable.');
   });
 
   it('locks document sharing while the request is pending', async () => {

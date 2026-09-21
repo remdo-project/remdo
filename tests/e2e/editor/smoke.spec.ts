@@ -13,7 +13,7 @@ test.describe('Editor visibility', () => {
     await expect(input).toBeVisible();
     await expect(editorLocator(page).locator('li.list-item')).toHaveCount(3);
 
-    await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'RemDo home' })).toBeVisible();
   });
 
   test('loads flat fixture and shows expected notes', async ({ editor, page }) => {

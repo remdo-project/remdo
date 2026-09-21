@@ -10,6 +10,12 @@ export REMDO_ROOT
 
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/env.defaults.sh
+if [ "${REMDO_DEV_CONTAINER:-false}" = "true" ]; then
+  # Docker development receives its resolved addresses and fixture credentials.
+  export DJANGO_SETTINGS_MODULE=remdo.development
+else
+  remdo_configure_environment production
+fi
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/entrypoint-env.sh
 
@@ -20,26 +26,12 @@ export XDG_DATA_HOME XDG_CONFIG_HOME
 remdo_configure_internal_services
 remdo_configure_caddy_env
 
-# Bootstrap secrets (production only). Resolves AUTH_SECRET and the Y-Sweet
-# auth_key/server_token pair from env -> persisted DATA_DIR/secrets -> generate,
-# so operators only set ADMIN_SECRET (+ APP_ORIGIN). The tool emits
-# `export VAR='...'` lines on stdout only; we eval them so secrets never reach a
-# log. ADMIN_SECRET is never generated and is still asserted below.
-if [ "${NODE_ENV}" = "production" ]; then
-  # Capture into a variable first so a non-zero exit (e.g. the persistence
-  # guard) aborts the entrypoint; `eval "$(...)"` would swallow the status.
-  bootstrap_exports="$(node /app/bootstrap-secrets.cjs)"
-  eval "${bootstrap_exports}"
-  unset bootstrap_exports
-  export AUTH_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN
+python manage.py migrate --noinput
+python manage.py collectstatic --noinput
+if [ "${REMDO_DEV_CONTAINER:-false}" = "true" ]; then
+  python manage.py setup_development_users
 fi
-
-remdo_require_api_secrets
-
-COLLAB_DATA_DIR="${DATA_DIR%/}/collab"
-mkdir -p "$COLLAB_DATA_DIR" "${DATA_DIR%/}/public-share"
-: "${YSWEET_AUTH_KEY:?Set YSWEET_AUTH_KEY}"
-: "${YSWEET_SERVER_TOKEN:?Set YSWEET_SERVER_TOKEN}"
+mkdir -p "${TMPDIR:-/tmp}" "${DATA_DIR%/}/collab" "${DATA_DIR%/}/public-share"
 
 managed_children=""
 
@@ -101,19 +93,9 @@ stop_children() {
 trap 'stop_children INT; exit 130' INT
 trap 'stop_children TERM; exit 143' TERM
 
-# Start production cron for periodic backups. Backup needs the Y-Sweet server
-# token, not app auth secrets or the Y-Sweet private auth key.
-if [ "${REMDO_DEV_CONTAINER:-false}" != "true" ]; then
-  start_child crond env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY \
-    crond -f -l 2 -L /var/log/cron.log
-fi
-
-start_child y-sweet env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_SERVER_TOKEN \
-  RUST_LOG=error Y_SWEET_AUTH="${YSWEET_AUTH_KEY}" y-sweet serve --host 127.0.0.1 \
-  --port "${COLLAB_SERVER_PORT}" --prod "$COLLAB_DATA_DIR"
-start_child api env -u YSWEET_AUTH_KEY node /app/remdo-api-server.cjs
-
-start_child caddy env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY -u YSWEET_SERVER_TOKEN \
+start_child y-sweet python -m remdo.collaboration_server
+start_child api gunicorn remdo.wsgi --bind "127.0.0.1:${API_SERVER_PORT}" --threads 4 --graceful-timeout 8
+start_child caddy env -u AUTH_SECRET -u YSWEET_AUTH_KEY -u YSWEET_SERVER_TOKEN \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 
 while :; do

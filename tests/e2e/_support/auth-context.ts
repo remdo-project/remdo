@@ -1,8 +1,8 @@
 import type { Browser, BrowserContext, BrowserContextOptions } from '@playwright/test';
-import { config } from '#config';
-import { HTTP_STATUS } from '#platform/http/status';
 import { resolveLocalGatewayOrigin } from '#platform/net/origins';
 import { createTestAuthAccount } from '#tests-common/auth-account';
+import { authenticateDjangoTestUser } from '#tests-common/django-auth';
+import { provisionDjangoUser } from '../../../tools/lib/django-user';
 
 type AuthAccount = Record<keyof ReturnType<typeof createTestAuthAccount>, string>;
 
@@ -11,50 +11,18 @@ export async function createAuthenticatedContext(
   contextOptions: BrowserContextOptions,
   account: AuthAccount = createTestAuthAccount(),
 ): Promise<BrowserContext> {
+  await provisionDjangoUser({ ...account, admin: true });
   const context = await browser.newContext(contextOptions);
   const appOrigin = resolveLocalGatewayOrigin();
-
   try {
-    // Authentication is harness control-plane setup, not behavior under test.
-    // Recover one ECONNRESET; a second exposes a persistent stack failure. Reuse
-    // the account so an enrollment committed before the reset can sign in below.
-    let response = await context.request.post(
-      new URL('/api/admin/enroll', appOrigin).href,
-      {
-        data: {
-          ...account,
-          adminSecret: config.env.ADMIN_SECRET,
-        },
-        maxRetries: 1,
-      },
-    );
-    if (response.status() === HTTP_STATUS.UNPROCESSABLE_ENTITY) {
-      const signInResponse = await context.request.post(
-        new URL('/api/auth/sign-in/email', appOrigin).href,
-        {
-          data: {
-            email: account.email,
-            password: account.password,
-          },
-          maxRetries: 1,
-        },
-      );
-      if (!signInResponse.ok()) {
-        throw new Error(
-          `Failed to authenticate e2e user: enrollment ${response.status()} ${response.statusText()}; sign-in ${signInResponse.status()} ${signInResponse.statusText()}`,
-        );
-      }
-      response = signInResponse;
-    }
-    if (!response.ok()) {
-      throw new Error(`Failed to authenticate e2e user: ${response.status()} ${response.statusText()}`);
-    }
+    const csrfToken = await authenticateDjangoTestUser(context.request, appOrigin, account);
+    await context.setExtraHTTPHeaders({ 'X-CSRFToken': csrfToken });
     return context;
   } catch (error) {
     try {
       await context.close();
     } catch {
-      // Preserve the authentication failure that made cleanup necessary.
+      // Preserve the original authentication failure.
     }
     throw error;
   }

@@ -1,38 +1,25 @@
-import { vi } from 'vitest';
 import { config } from '#config';
-import { createServerDatabaseClient } from '#server/db/client';
-import { createDocumentRegistry } from '#server/documents/document-registry';
 import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
-import { getCollabTestSessionCookie } from './auth';
+import type { components } from '#platform/http/api-schema';
+import { createFixtureDocument } from '#tools/fixture-document';
+import { ensureCollabTestUser, getCollabTestAuthentication, withTestAuthentication } from './auth';
 
-async function insertCollabTestDocument(docId: string): Promise<void> {
-  const client = createServerDatabaseClient();
-  try {
-    const owner = client.sqlite
-      .prepare('SELECT id FROM "user" WHERE email = ? LIMIT 1')
-      .get(TEST_AUTH_ACCOUNT.email) as { id: string } | undefined;
-    if (!owner) {
-      throw new Error(`Collab test user ${TEST_AUTH_ACCOUNT.email} missing from auth DB.`);
-    }
-
-    const registry = createDocumentRegistry({ client });
-    await registry.insertDocument({
-      id: docId,
-      ownerUserId: owner.id,
-      title: docId,
-    });
-  } finally {
-    await client.close();
-  }
-}
-
-export async function ensureCollabTestDocument(docId: string): Promise<void> {
+export async function createCollabTestDocument(docId?: string): Promise<string> {
   if (!config.env.COLLAB_ENABLED) {
-    return;
+    return docId ?? config.env.DEV_DOCUMENT_ID;
   }
-
-  await getCollabTestSessionCookie();
-  await vi.waitFor(async () => {
-    await insertCollabTestDocument(docId);
-  });
+  if (docId !== undefined) {
+    // createFixtureDocument looks the owner up by email, so the account must exist.
+    await ensureCollabTestUser();
+    return createFixtureDocument({ email: TEST_AUTH_ACCOUNT.email, id: docId, title: docId });
+  }
+  const authentication = await getCollabTestAuthentication();
+  const response = await fetch(withTestAuthentication('/api/documents', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: 'Collaboration test' }),
+  }, authentication));
+  if (!response.ok) throw new Error(`Cannot create collaboration document: ${response.status} ${await response.text()}`);
+  const document = await response.json() as components['schemas']['Document'];
+  return document.id;
 }

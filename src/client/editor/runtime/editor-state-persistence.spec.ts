@@ -4,7 +4,7 @@ import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { prepareEditorStateForPersistence, prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
-import { collectSerializedNodes, getSerializedRootNodes } from '#tests';
+import { collectSerializedNodes, getSerializedRootNodes } from '../../../../tests/unit/_support/lib/serialized';
 
 function collectNoteLinkNodes(state: SerializedEditorState): Array<Record<string, unknown>> {
   return collectSerializedNodes(

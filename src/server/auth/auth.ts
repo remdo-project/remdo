@@ -1,3 +1,4 @@
+import { hostname } from 'node:os';
 import {
   oauthProvider,
   oauthProviderAuthServerMetadata,
@@ -10,12 +11,12 @@ import { admin, genericOAuth, jwt } from 'better-auth/plugins';
 import type { GenericOAuthConfig } from 'better-auth/plugins';
 import type { ExpressionBuilder } from 'kysely';
 import { config } from '#config';
-import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { RemdoDatabase } from '#server/db/schema';
 import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
 import { readSourceServersSync } from '#server/remdo-oauth/source-server-store';
 import { backfillAccountIssuers } from './account-issuer-backfill';
+import { deriveAuthTrustedOrigins } from './trusted-origins';
 
 interface CreateServerAuthOptions {
   allowSignup?: boolean;
@@ -36,8 +37,8 @@ export const REMDO_SERVER_OAUTH_SCOPES = [
 
 // Better Auth upgrades non-loopback HTTP issuers to HTTPS. The home's callback
 // issuer guard must normalize with the same exported host classifier or it can
-// reject a valid callback. Preferred long-term fix (see
-// docs/specs/access/source-linking.md#future):
+// reject a valid callback. The withdrawn design proposed (see
+// https://github.com/remdo-project/remdo/blob/21d0a0027d71abf6fa4966951b5f78496081f0c2/docs/specs/access/source-linking.md#future):
 // reject non-loopback http sources at add time so every stored origin is one
 // upstream leaves alone, making this normalization deletable.
 
@@ -139,7 +140,7 @@ function createBetterAuthInstance({
         // registration outright. (allowUnauthenticatedClientRegistration is the
         // supported option for this today; its eventual replacement is CIMD, which
         // does not fit RemDo's private-home topology — see
-        // docs/specs/access/source-linking.md.)
+        // https://github.com/remdo-project/remdo/blob/21d0a0027d71abf6fa4966951b5f78496081f0c2/docs/specs/access/source-linking.md.)
         allowDynamicClientRegistration: allowSignup,
         allowUnauthenticatedClientRegistration: allowSignup,
         clientRegistrationDefaultScopes: [...REMDO_SERVER_OAUTH_SCOPES],
@@ -220,7 +221,6 @@ export interface ServerAuth {
   deleteUser: (userId: string) => Promise<void>;
   ensureReady: () => Promise<void>;
   findUserByEmail: (email: string) => Promise<ServerAuthUser | null>;
-  grantAdminRole: (userId: string) => Promise<void>;
   handleAuthServerMetadata: (request: Request) => Promise<Response>;
   handleOpenIdConfigMetadata: (request: Request) => Promise<Response>;
   getSession: (headers: Headers) => Promise<Awaited<ReturnType<BetterAuthInstance['api']['getSession']>>>;
@@ -253,7 +253,7 @@ export function createServerAuth({
   const resolvedTrustedOrigins = trustedOrigins ?? deriveAuthTrustedOrigins({
     baseURL,
     isProduction: config.isProd,
-    hostname: config.server.MACHINE_HOSTNAME,
+    hostname: hostname(),
     previewPort: config.env.PREVIEW_PORT,
   });
 
@@ -337,16 +337,6 @@ export function createServerAuth({
         .limit(1)
         .executeTakeFirst();
       return row ?? null;
-    },
-    async grantAdminRole(userId) {
-      // Direct write rather than the admin plugin's setRole: granting the FIRST
-      // admin has no existing admin caller to authorize setRole, and enrollment
-      // is gated by ADMIN_SECRET at the route, not by an admin session.
-      await database.db
-        .updateTable('user')
-        .set({ role: 'admin' })
-        .where('id', '=', userId)
-        .execute();
     },
     getSession(headers) {
       return auth.api.getSession({ headers });

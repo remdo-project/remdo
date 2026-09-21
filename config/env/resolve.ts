@@ -1,20 +1,13 @@
 import type { z } from 'zod';
-import { isExactHttpOrigin } from '../../src/platform/net/http-origin.ts';
-import { deriveAuthTrustedOrigins } from './auth-origins.ts';
 import type { ClientKey, EnvKey } from './schema.ts';
 import { CLIENT_KEY_LIST, envSchema } from './schema.ts';
 
 type EnvGetter = (key: EnvKey) => string | boolean | undefined;
 
-type ParsedEnv = {
+type ServerEnv = {
   [K in EnvKey]: z.infer<(typeof envSchema)[K]>;
 };
-
-type ServerEnv = ParsedEnv & {
-  AUTH_TRUSTED_ORIGINS: string[];
-  MACHINE_HOSTNAME: string;
-};
-type ClientEnv = Pick<ParsedEnv, ClientKey>;
+type ClientEnv = Pick<ServerEnv, ClientKey>;
 
 function parseValue(key: EnvKey, raw: string | boolean | undefined) {
   // Empty (or whitespace-only) strings fall back to the schema default, so a
@@ -29,89 +22,10 @@ function parseValue(key: EnvKey, raw: string | boolean | undefined) {
   return result.data;
 }
 
-function parseEnv(getValue: EnvGetter): ParsedEnv {
+function parseEnv(getValue: EnvGetter): ServerEnv {
   const keys = Object.keys(envSchema) as EnvKey[];
   const entries = keys.map((key) => [key, parseValue(key, getValue(key))] as const);
-  return Object.fromEntries(entries) as ParsedEnv;
-}
-
-function validateDevHost(host: string): string {
-  if (!host || /[\s:/?#@]/u.test(host) || !URL.canParse(`http://${host}:1`)) {
-    throw new TypeError('HOST and PUBLIC_HOST must be a bare hostname or IPv4 address.');
-  }
-  return host;
-}
-
-function validateDevPublicHost(host: string): string {
-  const validated = validateDevHost(host);
-  if (validated === '0.0.0.0') {
-    throw new TypeError('PUBLIC_HOST must identify a browser-visible host, not 0.0.0.0.');
-  }
-  return validated;
-}
-
-function resolveDevPublicHost(parsed: ParsedEnv, machineHostname: string): string {
-  if (parsed.PUBLIC_HOST) {
-    return parsed.PUBLIC_HOST;
-  }
-  if (parsed.HOST !== '0.0.0.0') {
-    return parsed.HOST;
-  }
-  const normalizedHostname = machineHostname.trim().toLowerCase().replace(/\.$/u, '');
-  if (
-    !normalizedHostname
-    || normalizedHostname === 'localhost'
-    || normalizedHostname === 'localhost.localdomain'
-    || normalizedHostname === 'localdomain'
-  ) {
-    throw new Error(
-      'PUBLIC_HOST is required when HOST binds all interfaces and the machine hostname is not browser-visible.',
-    );
-  }
-  return normalizedHostname;
-}
-
-function resolveAppOrigin(
-  parsed: ParsedEnv,
-  machineHostname: string,
-): string {
-  if (parsed.NODE_ENV === 'production') {
-    return parsed.APP_ORIGIN;
-  }
-  if (!parsed.HOST || parsed.PORT === 0) {
-    return '';
-  }
-  validateDevHost(parsed.HOST);
-  return `http://${validateDevPublicHost(resolveDevPublicHost(parsed, machineHostname))}:${parsed.PORT}`;
-}
-
-function validateProdServer(parsed: ParsedEnv): void {
-  // The app-server boundary is signalled by AUTH_SECRET being present: the
-  // container bootstraps it for the API process, while operational utilities
-  // (backup/snapshot, run via `env -u AUTH_SECRET` in the entrypoint) load this
-  // same config without it and must skip the server-only requirement checks.
-  // This is intentional, not a "secret happens to be set" coincidence.
-  if (parsed.NODE_ENV !== 'production' || !parsed.AUTH_SECRET) {
-    return;
-  }
-
-  if (!parsed.APP_ORIGIN) {
-    throw new Error('APP_ORIGIN is required in production server config.');
-  }
-
-  if (!parsed.ADMIN_SECRET) {
-    throw new Error('ADMIN_SECRET is required in production server config.');
-  }
-
-  // The Y-Sweet auth_key/server_token pair is auto-bootstrapped (never an operator
-  // input), so it is not validated here. The Docker entrypoint asserts the
-  // bootstrap produced both before splitting them across processes — and the API
-  // process is deliberately started without YSWEET_AUTH_KEY (it only needs the
-  // server token), so requiring either key at this boundary would be wrong.
-
-  if (!isExactHttpOrigin(parsed.APP_ORIGIN)) {
-    throw new Error('APP_ORIGIN must be an exact HTTP(S) origin in production server config.');
-  }
+  return Object.fromEntries(entries) as ServerEnv;
 }
 
 function pickClientEnv(server: ServerEnv): ClientEnv {
@@ -119,40 +33,15 @@ function pickClientEnv(server: ServerEnv): ClientEnv {
   return Object.fromEntries(entries) as ClientEnv;
 }
 
-export function resolveConfig(
-  getValue: EnvGetter,
-  options: { server?: boolean; machineHostname?: string } = {},
-) {
-  const parsed = parseEnv(getValue);
+export function resolveConfig(getValue: EnvGetter) {
+  const server = parseEnv(getValue);
 
-  if (!parsed.NODE_ENV) {
+  if (!server.NODE_ENV) {
     throw new Error('NODE_ENV is required; run via tools/env.sh.');
   }
 
-  if (options.server !== false) {
-    validateProdServer(parsed);
-  }
-
-  // The machine hostname (a Node-only value) is injected by the caller so this
-  // resolver stays runtime-agnostic; the browser passes none. It is also exposed
-  // on the server env so auth can re-derive trusted origins for an overridden
-  // baseURL without re-reading node:os.
-  const machineHostname = options.machineHostname ?? '';
-  const appOrigin = resolveAppOrigin(parsed, machineHostname);
-  const server: ServerEnv = {
-    ...parsed,
-    APP_ORIGIN: appOrigin,
-    MACHINE_HOSTNAME: machineHostname,
-    AUTH_TRUSTED_ORIGINS: deriveAuthTrustedOrigins({
-      baseURL: appOrigin,
-      isProduction: parsed.NODE_ENV === 'production',
-      hostname: machineHostname,
-      previewPort: parsed.PREVIEW_PORT,
-    }),
-  };
   const client = pickClientEnv(server);
-
-  const mode = parsed.NODE_ENV;
+  const mode = server.NODE_ENV;
 
   return {
     server,

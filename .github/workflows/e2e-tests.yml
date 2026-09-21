@@ -10,12 +10,16 @@ concurrency:
 
 jobs:
   e2e-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     permissions:
       contents: read
       actions: write
     # Stays above the suite's own TEST_TIMEOUT below, so an overrun surfaces as
     # that command's exit 124 rather than the runner killing the job first.
-    timeout-minutes: 15
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     env:
       PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
@@ -37,14 +41,14 @@ jobs:
 
       - name: Run Playwright E2E suite
         env:
-          TEST_TIMEOUT: 600
-        run: pnpm run test:e2e
+          TEST_TIMEOUT: 900
+        run: pnpm run test:e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: Upload Playwright failure evidence
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          name: playwright-failure-${{ github.run_id }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
           path: data/e2e-runtime/test-results/playwright
           if-no-files-found: ignore
           retention-days: 7

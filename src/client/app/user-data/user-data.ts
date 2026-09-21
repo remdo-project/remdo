@@ -1,44 +1,41 @@
-import { useSyncExternalStore } from 'react';
-import { getCachedCurrentUserBootstrap } from './current-user-bootstrap';
-import {
-  getDocumentSourcesLoading,
-  getCurrentUserData,
-  subscribeUserDataRuntime,
-  getUserDataVersion,
-} from './stored-user-data';
+import { createContext, use } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { UserDataNote } from '#note-sdk';
-export {
-  resetUserDataRuntime as resetUserData,
-  startUserDataRuntime as startUserData,
-} from './stored-user-data';
+import type { UserDataRuntime } from './stored-user-data';
+
+export { resetUserDataRuntime as resetUserData } from './stored-user-data';
+export const UserDataContext = createContext<UserDataRuntime | null>(null);
+
+export function useUserDataRuntime(): UserDataRuntime {
+  const runtime = use(UserDataContext);
+  if (!runtime) {
+    throw new Error('User data requires an authenticated account.');
+  }
+  return runtime;
+}
 
 export function useUserData(): UserDataNote {
-  useSyncExternalStore(
-    subscribeUserDataRuntime,
-    getUserDataVersion,
-    getUserDataVersion,
-  );
-
-  return getCurrentUserData();
+  const runtime = useUserDataRuntime();
+  // The adapter reads the same cache observed by React; it carries no mirror of
+  // query data or lifecycle state of its own.
+  useQuery({ ...runtime.documentsQuery, notifyOnChangeProps: ['data'] });
+  useQuery({ ...runtime.bootstrapQuery, notifyOnChangeProps: ['data'] });
+  return runtime.userData;
 }
 
-// Whether this server is public (open-signup). Reactive to the bootstrap load.
-// A public server is source-only and refuses to link out, so the UI hides the
-// link action when this is true.
-export function useCurrentUserPublicServer(): boolean | null {
-  useSyncExternalStore(
-    subscribeUserDataRuntime,
-    getUserDataVersion,
-    getUserDataVersion,
-  );
-
-  return getCachedCurrentUserBootstrap()?.publicServer ?? null;
-}
-
-export function useDocumentSourcesLoading(): boolean {
-  return useSyncExternalStore(
-    subscribeUserDataRuntime,
-    getDocumentSourcesLoading,
-    getDocumentSourcesLoading,
-  );
+export function useUserDataStatus() {
+  const runtime = useUserDataRuntime();
+  const bootstrap = useQuery(runtime.bootstrapQuery);
+  const documents = useQuery(runtime.documentsQuery);
+  const error = bootstrap.error ?? documents.error;
+  return {
+    // Reported rather than only detected: a bare title leaves the reader without
+    // the one detail that distinguishes an expired session from an unreachable
+    // server, and both render the same otherwise.
+    error: error === null ? null : (error instanceof Error ? error.message : 'Failed to load documents.'),
+    retry: () => {
+      void bootstrap.refetch();
+      void documents.refetch();
+    },
+  };
 }

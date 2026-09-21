@@ -79,7 +79,7 @@ export default antfu(
   {
     react: true,
     typescript: true,
-    ignores: ['node_modules/**', 'data/**', 'public/**', '.agent/**', '.remember/**'],
+    ignores: ['node_modules/**', 'data/**', 'public/**', '.agent/**', '.remember/**', 'src/platform/http/*-schema.d.ts'],
     stylistic: false,
     // disable as they slow down changes a lot (ai assitants in particular)
     rules: {

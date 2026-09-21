@@ -8,7 +8,6 @@ import {
   revokeServerSession,
 } from './client';
 
-const SERVER_SIGN_OUT_TIMEOUT_MS = 1500;
 const LOCAL_CLEANUP_TIMEOUT_MS = 2000;
 
 function withTimeout(work: Promise<void>, timeoutMs: number): Promise<void> {
@@ -30,15 +29,15 @@ async function clearLocalData(): Promise<void> {
 }
 
 /**
- * Sign out on this device. Always succeeds: every step is bounded, and a failure
- * to reach the server or to drop a database never leaves the user signed in.
+ * Clear local access with bounded work. Unconfirmed server logout remains
+ * visible as pending until the user explicitly finishes it or signs in again.
  */
 export async function logoutCurrentUser(): Promise<void> {
   rememberPendingSignOut();
   clearUnsyncedLocalChanges();
 
-  // Stop the collaboration runtime first. It fetches document tokens against the
-  // session, so revoking while it is live races a request that then 401s.
+  // The logout controller has already unmounted the active route. Clear its
+  // account metadata before revoking the session and deleting offline data.
   resetUserData();
   forgetAuthenticatedSession();
   clearCurrentUserBootstrapCache();
@@ -46,7 +45,7 @@ export async function logoutCurrentUser(): Promise<void> {
   // Revocation and local cleanup share no data, so the device is not kept
   // waiting for the sum of both budgets.
   await Promise.all([
-    withTimeout(revokeServerSession(), SERVER_SIGN_OUT_TIMEOUT_MS),
+    revokeServerSession(),
     withTimeout(clearLocalData(), LOCAL_CLEANUP_TIMEOUT_MS),
   ]);
 }

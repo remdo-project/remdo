@@ -1,9 +1,21 @@
 import type { Page } from '#e2e/fixtures';
 import { attachPageGuards, expect, setExpectedConsoleIssues } from '#e2e/fixtures';
-import { config } from '#config';
-import type { BrowserContext } from '@playwright/test';
+import type { APIRequestContext, BrowserContext } from '@playwright/test';
 
-export const DOCKER_TEST_ADMIN_SECRET = config.env.ADMIN_SECRET;
+/** A container reports ready once its gateway answers /health, which it refuses while starting. */
+export async function waitForHealth(
+  probe: APIRequestContext,
+  url = '/health',
+  headers?: Record<string, string>,
+): Promise<void> {
+  await expect.poll(async () => {
+    try {
+      return (await probe.get(url, headers ? { headers } : undefined)).status();
+    } catch {
+      return 0;
+    }
+  }, { timeout: 30_000 }).toBe(200);
+}
 
 export function allowTransientTokenFetchConsoleIssue(page: Page): void {
   setExpectedConsoleIssues(page, ['Failed to get client token'], { mode: 'allowContains' });

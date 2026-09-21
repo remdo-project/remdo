@@ -7,48 +7,64 @@
 	bind {$REMDO_GATEWAY_BIND_ADDRESS:0.0.0.0}
 
 	route {
+		header Cache-Control "no-cache"
 		handle /health {
 			rewrite * /api/health
-			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
+			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT} {
+				header_up X-Forwarded-Proto {env.CADDY_FORWARDED_PROTO}
+				header_down Cache-Control "no-store"
+			}
 		}
 
-		@app_favicon path /favicon.ico /favicon.png
+		@app_favicon path /favicon.ico
 		handle @app_favicon {
 			root * /srv/remdo
-			rewrite * /favicon.png
+			rewrite * /logo.svg
 			file_server
 		}
 
-		@options method OPTIONS
-		handle @options {
-			respond 204
-		}
-
-		@api path /api /api/* /.well-known /.well-known/*
-		handle @api {
-			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
+		handle_path /django-static/* {
+			root * /app/static
+			file_server
 		}
 
 		handle_path /share/* {
 			root * /data/public-share
-			header Cache-Control "no-cache"
 			file_server
 		}
 
 		@collab path /d /d/*
 		handle @collab {
-			reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
+			reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT} {
+				header_down Cache-Control "no-store"
+			}
 		}
 
-		@app_routes not path /api /api/* /.well-known /.well-known/* /d /d/* /doc*
+		@app_routes path / /n/* /sharing /sharing/ /sign-out /sign-out/
 		handle @app_routes {
 			route {
 				root * /srv/remdo
-				try_files {path} {path}/ /index.html
+				rewrite * /index.html
 				file_server
 			}
 		}
 
-		respond 404
+		@app_assets path /index.html /app-assets/* /icons/* /logo.svg /icon-192.png /icon-512.png /icon-maskable-512.png /manifest.webmanifest /sw.js /workbox-*.js /registerSW.js
+		handle @app_assets {
+			root * /srv/remdo
+			file_server
+		}
+
+		handle {
+			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT} {
+				header_up X-Forwarded-Proto {env.CADDY_FORWARDED_PROTO}
+				header_down Cache-Control "no-store"
+			}
+		}
+	}
+
+	handle_errors {
+		header Cache-Control "no-store"
+		respond "{err.status_text}" {err.status_code}
 	}
 }

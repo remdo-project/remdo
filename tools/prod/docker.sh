@@ -48,7 +48,7 @@ if [[ "${HOST}" == "0.0.0.0" && "${PORT}" != "443" ]]; then
   echo "HOST=0.0.0.0 requires APP_ORIGIN to use the default HTTPS port 443." >&2
   exit 1
 fi
-remdo_load_env_defaults "${ROOT_DIR}"
+remdo_load_env_defaults "${ROOT_DIR}" production
 remdo_assert_browser_safe_port "${PORT}"
 
 if [[ "${LOOPBACK_HTTP}" == "true" ]]; then
@@ -62,19 +62,6 @@ if [[ "${LOOPBACK_HTTP}" == "true" ]]; then
     echo "Loopback HTTP requires Docker Engine 28.0 or newer (found ${docker_server_version})." >&2
     exit 1
   fi
-fi
-
-# Operators set only ADMIN_SECRET (never auto-generated). AUTH_SECRET and the
-# Y-Sweet auth_key/server_token pair are bootstrapped inside the container from
-# the persistent DATA_DIR mount; pass them through only when explicitly provided.
-: "${ADMIN_SECRET:?Set ADMIN_SECRET in .env}"
-if [[ "${#ADMIN_SECRET}" -lt 32 ]]; then
-  echo "ADMIN_SECRET must be at least 32 characters." >&2
-  exit 1
-fi
-if [[ -n "${AUTH_SECRET:-}" && "${#AUTH_SECRET}" -lt 32 ]]; then
-  echo "AUTH_SECRET must be at least 32 characters when set." >&2
-  exit 1
 fi
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
@@ -96,25 +83,9 @@ if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
   fi
 fi
 
-DOCKER_ENV_ARGS=(
-  -e ADMIN_SECRET="${ADMIN_SECRET}"
-  -e APP_ORIGIN="${APP_ORIGIN}"
-  -e ALLOW_SIGNUP="${ALLOW_SIGNUP}"
-)
+DOCKER_ENV_ARGS=(-e APP_ORIGIN="${APP_ORIGIN}" -e DATABASE_URL="${DATABASE_URL:-}")
 if [[ "${LOOPBACK_HTTP}" == "true" ]]; then
   DOCKER_ENV_ARGS+=(-e REMDO_LAUNCHER_LOOPBACK_HTTP=true)
-fi
-
-# Forward bootstrap-managed secrets only when the operator set them explicitly,
-# so empty values never shadow the in-container bootstrap.
-if [[ -n "${AUTH_SECRET:-}" ]]; then
-  DOCKER_ENV_ARGS+=(-e AUTH_SECRET="${AUTH_SECRET}")
-fi
-if [[ -n "${YSWEET_AUTH_KEY:-}" ]]; then
-  DOCKER_ENV_ARGS+=(-e YSWEET_AUTH_KEY="${YSWEET_AUTH_KEY}")
-fi
-if [[ -n "${YSWEET_SERVER_TOKEN:-}" ]]; then
-  DOCKER_ENV_ARGS+=(-e YSWEET_SERVER_TOKEN="${YSWEET_SERVER_TOKEN}")
 fi
 
 DOCKER_RUN_ARGS=(-d --restart unless-stopped --userns=host --name "${CONTAINER_NAME}")
@@ -122,11 +93,12 @@ DOCKER_RUN_ARGS+=(-p "${HOST}:${PORT}:${PORT}")
 remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" "${DOCKER_RUN_ARGS[@]}" "${DOCKER_ENV_ARGS[@]}"
 
 container_is_healthy() {
-  docker exec "${CONTAINER_NAME}" node -e '
-    fetch("http://127.0.0.1:4011/api/health", { signal: AbortSignal.timeout(500) })
-      .then(response => process.exit(response.ok ? 0 : 1))
-      .catch(() => process.exit(1));
-  ' >/dev/null 2>&1
+  docker exec "${CONTAINER_NAME}" python -c '
+import os, urllib.request
+request = urllib.request.Request("http://127.0.0.1:4011/api/health", headers={"Host": os.environ["APP_ORIGIN"].split("://", 1)[1]})
+with urllib.request.urlopen(request, timeout=0.5) as response:
+    assert response.status == 200
+' >/dev/null 2>&1
 }
 
 startup_ready=false
@@ -166,3 +138,5 @@ echo "Docker target: ${APP_ORIGIN}"
 echo "Verify health: ${APP_ORIGIN%/}/health"
 echo "Follow logs: docker logs -f ${CONTAINER_NAME}"
 echo "Stop RemDo: docker stop ${CONTAINER_NAME}"
+
+echo "Create administrator: docker exec -it ${CONTAINER_NAME} python manage.py createsuperuser"

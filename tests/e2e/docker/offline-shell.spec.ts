@@ -1,239 +1,47 @@
+import { expect, unauthenticatedTest as test } from '#e2e/fixtures';
 import {
-  attachPageGuards,
-  collectCurrentUserRequests,
-  expect,
-  guardedTest as test,
-  unauthenticatedTest,
-} from '#e2e/fixtures';
-import { createUniqueNoteId } from '#domain/notes/ids';
-import type { Page } from '@playwright/test';
-import { createUserDocument } from '../_support/documents';
-import {
-  allowOfflineDisconnectedConsoleIssue,
   allowServerUnavailableConsoleIssue,
-  cleanupOfflineTest,
-  withOfflinePage,
-  waitForEditableEditor,
   waitForServiceWorkerControl,
+  withOfflinePage,
 } from './_support/helpers';
 
-test.describe('Offline app shell', () => {
-  test('opens the cached Home while offline', async ({ page, context }) => {
-    await page.goto('/');
-    await waitForServiceWorkerControl(page);
-    await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
-    await expect(page.locator('[data-home-document-ref]').first()).toBeVisible();
-    allowOfflineDisconnectedConsoleIssue(page);
-    await page.close();
+test('preserves the requested route during an API outage and retries through Django sign-in', async ({ page, context }) => {
+  allowServerUnavailableConsoleIssue(page);
+  await context.route('**/api/**', (route) => route.abort());
+  await page.goto('/sharing');
+  await expect(page).toHaveURL(/\/sharing$/u);
+  await expect(page.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'RemDo home', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link', {
+    name: /^(?:Admin|Sharing|Logout|Sign in)$/u,
+  })).toHaveCount(0);
 
-    await withOfflinePage(context, async (offlinePage) => {
-      await offlinePage.goto('/');
-      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/');
-      await expect(offlinePage.getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
-      await expect(offlinePage.locator('.document-editor-shell')).toHaveCount(0);
-      await expect(offlinePage.locator('[data-home-document-ref]').first()).toBeVisible();
-    });
-  });
+  await context.unroute('**/api/**');
+  await page.getByRole('button', { name: 'Retry', exact: true }).click();
+  await expect(page.getByLabel('Email:', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/accounts\/login\//u);
+  expect(new URL(new URL(page.url()).searchParams.get('next')!, page.url()).searchParams.get('next')).toBe('/sharing');
+});
 
-  test('opens the cached Home when the API server is unavailable', async ({ page, context }) => {
-    await page.goto('/');
-    await waitForServiceWorkerControl(page);
-    await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
-    await expect(page.locator('[data-home-document-ref]').first()).toBeVisible();
-    allowServerUnavailableConsoleIssue(page);
-    await page.close();
+test('revalidates an offline shell without a remembered session when connectivity returns', async ({ page, context }) => {
+  // Warm the app shell without a session; a normal online visit redirects to Django.
+  allowServerUnavailableConsoleIssue(page);
+  await context.route('**/api/**', (route) => route.abort());
+  await page.goto('/sharing');
+  await expect(page.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
+  await waitForServiceWorkerControl(page);
+  await page.close();
+  await context.unroute('**/api/**');
 
-    let unavailablePage: Page | undefined;
-    let detachUnavailableGuards: (() => void) | undefined;
-    await context.route('**/api/**', (route) => {
-      void route.abort();
-    });
-    try {
-      unavailablePage = await context.newPage();
-      detachUnavailableGuards = attachPageGuards(unavailablePage);
-      allowServerUnavailableConsoleIssue(unavailablePage);
-      await unavailablePage.goto('/');
-      await expect.poll(() => new URL(unavailablePage!.url()).pathname).toBe('/');
-      await expect(unavailablePage.getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
-      await expect(unavailablePage.locator('.document-editor-shell')).toHaveCount(0);
-      await expect(unavailablePage.locator('[data-home-document-ref]').first()).toBeVisible();
-    } finally {
-      await context.unroute('**/api/**');
-      await cleanupOfflineTest(context, unavailablePage, detachUnavailableGuards);
-    }
-  });
+  await withOfflinePage(context, async (offline) => {
+    await offline.goto('/sharing');
+    await expect(offline).toHaveURL(/\/sharing$/u);
+    await expect(offline.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
+    await expect(offline.locator('.editor-input')).toHaveCount(0);
 
-  unauthenticatedTest(
-    'keeps the signed-out route while the app server is unavailable and retries in place',
-    async ({ page, context }) => {
-      const currentUserRequests = collectCurrentUserRequests(page);
-      allowServerUnavailableConsoleIssue(page);
-      await context.route('**/api/**', (route) => {
-        void route.abort();
-      });
-      try {
-        await page.goto('/');
-
-        await expect.poll(() => new URL(page.url()).pathname).toBe('/');
-        expect(new URL(page.url()).search).toBe('');
-        await expect(page.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
-        await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
-        const navigation = page.getByRole('navigation', { name: 'Primary' });
-        await expect(navigation.getByRole('link', {
-          name: /^(?:Admin|Sharing|Logout|Sign in)$/u,
-        })).toHaveCount(0);
-        expect(currentUserRequests).toEqual([]);
-
-        await context.unroute('**/api/**');
-        await page.getByRole('button', { name: 'Retry' }).click();
-        await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
-        await expect.poll(() => new URL(page.url()).pathname).toBe('/');
-      } finally {
-        await context.unroute('**/api/**');
-      }
-    },
-  );
-
-  unauthenticatedTest('revalidates the preserved route when browser connectivity returns', async ({
-    page,
-    context,
-  }) => {
-    await page.goto('/');
-    await waitForServiceWorkerControl(page);
-    await page.close();
-
-    await withOfflinePage(context, async (offlinePage) => {
-      await offlinePage.goto('/sharing');
-
-      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/sharing');
-      await expect(offlinePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
-
-      await context.setOffline(false);
-      await expect(offlinePage.getByRole('heading', { name: 'Sign in' })).toBeVisible();
-      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/');
-      await expect.poll(() => new URL(offlinePage.url()).searchParams.get('next')).toBe('/sharing');
-    });
-  });
-
-  test('withholds consent actions until the authenticated session can be revalidated', async ({
-    page,
-    context,
-  }) => {
-    await page.goto('/');
-    await waitForServiceWorkerControl(page);
-    allowOfflineDisconnectedConsoleIssue(page);
-    await page.close();
-
-    await withOfflinePage(context, async (offlinePage) => {
-      const currentUserRequests = collectCurrentUserRequests(offlinePage);
-      await offlinePage.goto('/oauth/consent?client_id=test-client');
-
-      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/oauth/consent');
-      await expect(offlinePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
-      await expect(offlinePage.getByRole('button', { name: /^(?:Allow|Deny)$/u })).toHaveCount(0);
-      expect(currentUserRequests).toEqual([]);
-
-      await context.setOffline(false);
-      await expect(offlinePage.getByRole('heading', { name: 'Authorize access' })).toBeVisible();
-      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/oauth/consent');
-      expect(new URL(offlinePage.url()).searchParams.get('client_id')).toBe('test-client');
-    });
-  });
-
-  test('withholds admin actions until the authenticated session can be revalidated', async ({
-    page,
-    context,
-  }) => {
-    await page.goto('/');
-    await waitForServiceWorkerControl(page);
-    allowOfflineDisconnectedConsoleIssue(page);
-    await page.close();
-
-    await withOfflinePage(context, async (offlinePage) => {
-      const currentUserRequests = collectCurrentUserRequests(offlinePage);
-      await offlinePage.goto('/admin');
-
-      await expect.poll(() => new URL(offlinePage.url()).pathname).toBe('/admin');
-      await expect(offlinePage.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
-      await expect(offlinePage.getByRole('heading', { name: /^(?:Admin|Become admin)$/u })).toHaveCount(0);
-      expect(currentUserRequests).toEqual([]);
-    });
-  });
-
-  test('opens the app shell while offline after an online warm-up', async ({ page, context }) => {
-    const { id: warmedDocId } = await createUserDocument(page, 'Offline Warmed Document');
-    await page.goto(`/n/${warmedDocId}`);
-    await expect(page.locator('.document-editor-shell')).toBeVisible();
-    await waitForServiceWorkerControl(page);
-    allowOfflineDisconnectedConsoleIssue(page);
-    await page.close();
-
-    await withOfflinePage(context, async (offlinePage) => {
-      await offlinePage.goto(`/n/${warmedDocId}`);
-      await expect(offlinePage.getByRole('link', { name: 'RemDo' })).toBeVisible();
-      await expect(offlinePage.locator('.document-editor-shell')).toBeVisible();
-      await expect(offlinePage.locator('.editor-container')).toBeVisible();
-    });
-  });
-
-  test('shows offline empty state for a document without local cache', async ({ page, context }) => {
-    const { id: warmedDocId } = await createUserDocument(page, 'Offline Shell Cache Warmup');
-    await page.goto(`/n/${warmedDocId}`);
-    await waitForServiceWorkerControl(page);
-    allowOfflineDisconnectedConsoleIssue(page);
-    await page.close();
-
-    await withOfflinePage(context, async (offlinePage) => {
-      const uncachedDocId = createUniqueNoteId();
-      await offlinePage.goto(`/n/${uncachedDocId}`);
-      await expect(offlinePage.locator('.editor-offline-empty-state')).toBeVisible();
-      await expect(
-        offlinePage.getByRole('heading', { name: 'Connection unavailable' })
-      ).toBeVisible();
-      await expect(
-        offlinePage.getByText("This document isn't available offline yet.")
-      ).toBeVisible();
-      await expect(offlinePage.locator('.editor-input')).toHaveCount(0);
-    });
-  });
-
-  test('reopens a cached document offline, accepts edits, and reconnects', async ({ page, context }) => {
-    const { id: docId } = await createUserDocument(page, 'Offline Cached Document');
-    const onlineSeedText = `online-seed-${docId.slice(0, 8)}`;
-    const offlineEditText = `offline-edit-${docId.slice(0, 8)}`;
-
-    await page.goto(`/n/${docId}`);
-    await waitForEditableEditor(page);
-    const editorInput = page.locator('.editor-input').first();
-    await editorInput.click();
-    await page.keyboard.type(onlineSeedText);
-    await expect(page.locator('li.list-item').filter({ hasText: onlineSeedText })).toHaveCount(1);
-    await waitForServiceWorkerControl(page);
-    await waitForEditableEditor(page);
-    await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
-    await expect(page.locator('li.list-item').filter({ hasText: onlineSeedText })).toHaveCount(1);
-    allowOfflineDisconnectedConsoleIssue(page);
-    await page.close();
-
-    await withOfflinePage(context, async (offlinePage) => {
-      await offlinePage.goto(`/n/${docId}`);
-      await waitForEditableEditor(offlinePage);
-      const unsavedNotice = offlinePage.getByText('Unsaved · syncs when reconnected');
-      // Reading a document offline risks nothing, so it claims no unsaved work.
-      await expect(unsavedNotice).toHaveCount(0);
-      const offlineEditorInput = offlinePage.locator('.editor-input').first();
-      await expect(offlinePage.locator('li.list-item').filter({ hasText: onlineSeedText })).toHaveCount(1);
-
-      await offlineEditorInput.click();
-      await offlinePage.keyboard.press('Enter');
-      await offlinePage.keyboard.type(offlineEditText);
-      await expect(offlinePage.locator('li.list-item').filter({ hasText: offlineEditText })).toHaveCount(1);
-      await expect(unsavedNotice).toBeVisible();
-
-      await context.setOffline(false);
-      await expect(offlinePage.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
-      await expect(unsavedNotice).toHaveCount(0);
-      await expect(offlinePage.locator('li.list-item').filter({ hasText: offlineEditText })).toHaveCount(1);
-    });
+    await context.setOffline(false);
+    await expect(offline.getByLabel('Email:', { exact: true })).toBeVisible();
+    await expect(offline).toHaveURL(/\/accounts\/login\//u);
+    expect(new URL(new URL(offline.url()).searchParams.get('next')!, offline.url()).searchParams.get('next')).toBe('/sharing');
   });
 });
