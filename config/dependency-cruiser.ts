@@ -1,9 +1,11 @@
+import type { IConfiguration } from 'dependency-cruiser';
+
 /**
  * Graph-wide checks `eslint-plugin-boundaries` cannot make: it inspects imports
  * one file at a time and so cannot see a cycle. Also the source of the coupling
  * metrics used to assess module ownership.
  */
-module.exports = {
+export default {
   forbidden: [
     {
       name: 'no-circular',
@@ -30,4 +32,4 @@ module.exports = {
       text: { highlightFocused: true },
     },
   },
-};
+} satisfies IConfiguration;

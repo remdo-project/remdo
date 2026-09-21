@@ -1,17 +1,18 @@
 import { execFileSync } from 'node:child_process';
+import type { Buffer } from 'node:buffer';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
 const PROJECT_LIMIT_BYTES = 32 * 1024;
-let failed = false;
+const failures: string[] = [];
 
-function fail(message) {
+function fail(message: string) {
   console.error(`agent-instructions: ${message}`);
-  failed = true;
+  failures.push(message);
 }
 
-function gitOutput(args, cwd) {
+function gitOutput(args: readonly string[], cwd: string): string {
   try {
     return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   } catch {
@@ -43,10 +44,10 @@ function repositoryFiles() {
     .filter((file) => file && !deleted.has(file));
 }
 
-const contentsByFile = new Map();
+const contentsByFile = new Map<string, Buffer | null>();
 
-function readRepositoryFile(file) {
-  if (contentsByFile.has(file)) return contentsByFile.get(file);
+function readRepositoryFile(file: string): Buffer | null {
+  if (contentsByFile.has(file)) return contentsByFile.get(file) ?? null;
   try {
     const contents = readFileSync(path.join(ROOT, file));
     contentsByFile.set(file, contents);
@@ -58,10 +59,10 @@ function readRepositoryFile(file) {
   }
 }
 
-function activeMarkdownLines(buffer) {
+function activeMarkdownLines(buffer: Buffer): string[] {
   const lines = buffer.toString('utf8').split(/\r?\n/);
-  const active = [];
-  let fence = null;
+  const active: string[] = [];
+  let fence: { marker: string, length: number } | null = null;
 
   for (const line of lines) {
     if (fence !== null) {
@@ -74,7 +75,7 @@ function activeMarkdownLines(buffer) {
 
     const opening = line.match(/^\s{0,3}(`{3,}|~{3,})/u)?.[1];
     if (opening) {
-      fence = { marker: opening[0], length: opening.length };
+      fence = { marker: opening.slice(0, 1), length: opening.length };
       continue;
     }
     active.push(line);
@@ -132,7 +133,7 @@ for (const directory of [...candidateDirectories].sort()) {
     ancestors.push(segments.slice(0, index).join('/'));
   }
 
-  const chain = [];
+  const chain: string[] = [];
   for (const ancestor of ancestors) {
     const prefix = ancestor === '.' ? '' : `${ancestor}/`;
     const override = `${prefix}AGENTS.override.md`;
@@ -155,7 +156,7 @@ for (const directory of [...candidateDirectories].sort()) {
   }
 }
 
-if (failed) {
+if (failures.length > 0) {
   process.exitCode = 1;
 } else {
   console.info(
