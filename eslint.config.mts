@@ -32,7 +32,6 @@ const checklistStateRestrictions = [
 ] as const;
 const clientImportPattern = String.raw`\#client/*`;
 const clientAppImportPattern = String.raw`\#client/app/*`;
-const serverImportPattern = String.raw`\#server/*`;
 const noteSdkImportPattern = String.raw`\#note-sdk`;
 const noteSdkDeepImportPattern = String.raw`\#note-sdk/*`;
 const collaborationImportPattern = String.raw`\#collaboration/*`;
@@ -178,7 +177,7 @@ export default antfu(
     files: ['src/collaboration/**/*.{ts,tsx,mts,cts}'],
     rules: {
       'no-restricted-imports': restrictedImports({
-        group: [clientImportPattern, serverImportPattern, noteSdkImportPattern, noteSdkDeepImportPattern],
+        group: [clientImportPattern, noteSdkImportPattern, noteSdkDeepImportPattern],
         message: 'Collaboration runtime code must stay independent of client, server, and Note SDK modules.',
       }),
     },
@@ -189,7 +188,6 @@ export default antfu(
       'no-restricted-imports': restrictedImports({
         group: [
           clientImportPattern,
-          serverImportPattern,
           noteSdkImportPattern,
           noteSdkDeepImportPattern,
           collaborationImportPattern,
@@ -199,7 +197,7 @@ export default antfu(
     },
   },
   {
-    files: ['src/server/**/*.{ts,tsx,mts,cts}'],
+    files: ['src/collaboration-server/**/*.{ts,tsx,mts,cts}'],
     rules: {
       'no-restricted-imports': restrictedImports({
         group: [clientImportPattern, noteSdkImportPattern, noteSdkDeepImportPattern],
@@ -211,7 +209,7 @@ export default antfu(
     files: ['src/note-sdk/**/*.{ts,tsx,mts,cts}'],
     rules: {
       'no-restricted-imports': restrictedImports({
-        group: [clientImportPattern, serverImportPattern],
+        group: [clientImportPattern],
         message: 'Note SDK code must stay independent of client and server runtime modules.',
       }),
     },
@@ -219,12 +217,11 @@ export default antfu(
   {
     files: [
       'src/domain/**/*.{ts,tsx,mts,cts}',
-      'src/projection/**/*.{ts,tsx,mts,cts}',
     ],
     rules: {
       'no-restricted-imports': restrictedImports({
-        group: [clientImportPattern, serverImportPattern],
-        message: 'Domain and projection helpers must stay independent of client and server runtime modules.',
+        group: [clientImportPattern],
+        message: 'Domain helpers must stay independent of client and server runtime modules.',
       }),
     },
   },
@@ -232,14 +229,10 @@ export default antfu(
     files: ['src/client/**/*.{ts,tsx,mts,cts}'],
     // Dev directories are the dev side of the boundary and may import dev
     // modules; co-located specs drive dev/test tooling. Both are exempt from the
-    // dev-import restriction (they keep every other rule via the block below).
+    // dev-import restriction (they inherit the universal restrictions).
     ignores: ['src/client/**/dev/**', colocatedSpecGlob],
     rules: {
       'no-restricted-imports': restrictedImports(
-        {
-          group: [serverImportPattern],
-          message: 'Client code must not import server runtime modules.',
-        },
         devImportRestriction,
       ),
     },
@@ -249,10 +242,6 @@ export default antfu(
     ignores: ['src/client/app/**/dev/**', colocatedSpecGlob],
     rules: {
       'no-restricted-imports': restrictedImports(
-        {
-          group: [serverImportPattern],
-          message: 'Client code must not import server runtime modules.',
-        },
         devImportRestriction,
         {
           regex: String.raw`#client/editor/(?!view/|shell/)`,
@@ -262,25 +251,10 @@ export default antfu(
     },
   },
   {
-    // Client dev directories and client co-located specs: excluded above, kept
-    // under the client server-import restriction (they may import dev modules).
-    files: ['src/client/**/dev/**/*.{ts,tsx,mts,cts}', 'src/client/**/*.spec.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': restrictedImports({
-        group: [serverImportPattern],
-        message: 'Client code must not import server runtime modules.',
-      }),
-    },
-  },
-  {
     files: ['src/client/editor/**/*.{ts,tsx,mts,cts}'],
     ignores: ['src/client/editor/**/dev/**', colocatedSpecGlob],
     rules: {
       'no-restricted-imports': restrictedImports(
-        {
-          group: [serverImportPattern],
-          message: 'Client code must not import server runtime modules.',
-        },
         {
           group: [clientAppImportPattern],
           message: 'Editor code must not import app internals; move shared client code under #client/ui or another shared client component.',
@@ -294,10 +268,6 @@ export default antfu(
     ignores: [colocatedSpecGlob],
     rules: {
       'no-restricted-imports': restrictedImports(
-        {
-          group: [serverImportPattern],
-          message: 'Client code must not import server runtime modules.',
-        },
         {
           group: [clientAppImportPattern],
           message: 'Editor code must not import app internals; move shared client code under #client/ui or another shared client component.',

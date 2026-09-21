@@ -1,20 +1,14 @@
-import logging
-
-import httpx
 from django.conf import settings
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions
-from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .collaboration import issue_token
 from .models import Document, DocumentGrant
 from .serializers import (
-    ClientTokenSerializer,
     ConfigSerializer,
     CurrentUserSerializer,
     DocumentAccessSerializer,
@@ -23,26 +17,12 @@ from .serializers import (
     ShareDocumentSerializer,
 )
 
-logger = logging.getLogger(__name__)
-
 
 class IsDocumentOwner(permissions.BasePermission):
     message = "Document access denied."
 
     def has_object_permission(self, request, view, document):
         return document.owner_id == request.user.pk
-
-
-class HasDocumentAccess(permissions.BasePermission):
-    message = "Document access denied."
-
-    def has_object_permission(self, request, view, document):
-        return Document.objects.accessible_to(request.user).filter(pk=document.pk).exists()
-
-
-class CollaborationUnavailable(APIException):
-    status_code = 502
-    default_detail = "Collaboration service unavailable."
 
 
 @method_decorator(never_cache, name="dispatch")
@@ -80,22 +60,6 @@ class DocumentShareView(generics.GenericAPIView):
             document=document, user=serializer.validated_data["email"]
         )
         return Response(DocumentAccessSerializer(grant).data)
-
-
-@method_decorator(never_cache, name="dispatch")
-class SyncTokenView(generics.GenericAPIView):
-    queryset = Document.objects.all()
-    lookup_url_kwarg = "document_id"
-    permission_classes = [permissions.IsAuthenticated, HasDocumentAccess]
-
-    @extend_schema(request=None, responses=ClientTokenSerializer)
-    def post(self, request, *args, **kwargs):
-        document = self.get_object()
-        try:
-            return Response(issue_token(document.id))
-        except httpx.HTTPError as error:
-            logger.exception("collaboration.token-issuance-failed")
-            raise CollaborationUnavailable() from error
 
 
 class HealthView(APIView):

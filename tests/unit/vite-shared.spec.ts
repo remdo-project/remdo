@@ -4,6 +4,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { createServer, preview } from 'vite';
+import WebSocket, { WebSocketServer } from 'ws';
 import { describe, expect, it, vi } from 'vitest';
 import { createViteSharedConfig } from '../../config/vite/shared';
 
@@ -19,7 +20,9 @@ describe('vite shared config', () => {
     }
     fs.writeFileSync(path.join(root, 'index.html'), html);
     fs.writeFileSync(path.join(root, 'dist/index.html'), html);
+    const receivedHeaders: http.IncomingHttpHeaders[] = [];
     const backend = http.createServer((req, res) => {
+      receivedHeaders.push(req.headers);
       res.statusCode = req.url === '/about/' ? 200 : 404;
       res.setHeader('Cache-Control', 'no-store');
       res.end(req.url === '/about/' ? 'Public page from Django' : 'Django not found');
@@ -68,7 +71,20 @@ describe('vite shared config', () => {
       }
       const manifest = await fetch(new URL('/manifest.webmanifest?version=1', origin));
       expect(await manifest.json()).toEqual({ name: 'Test app' });
-      const page = await fetch(new URL('/about/', origin));
+      for (const url of ['/internal/collaboration/flush/private', '/%69nternal/collaboration/documents/private/content']) {
+        const before = receivedHeaders.length;
+        const response = await fetch(new URL(url, origin));
+        expect(response.status).toBe(404);
+        expect(receivedHeaders).toHaveLength(before);
+      }
+      const page = await fetch(new URL('/about/', origin), { headers: {
+        'X-Remdo-Collaboration-Secret': 'must-not-forward',
+        'X-Remdo-Collaboration-Operator': 'must-not-forward',
+        Origin: origin,
+      } });
+      expect(receivedHeaders.at(-1)?.['x-remdo-collaboration-secret']).toBeUndefined();
+      expect(receivedHeaders.at(-1)?.['x-remdo-collaboration-operator']).toBeUndefined();
+      expect(receivedHeaders.at(-1)?.origin).toBe(origin);
       expect(page.status).toBe(200);
       expect(await page.text()).toBe('Public page from Django');
       for (const url of ['/', '/?next=%2Fsharing', '/sharing', '/n/example', '/n/example?note=1', '/sign-out', '/sign-out/']) {
@@ -90,14 +106,52 @@ describe('vite shared config', () => {
     }
   });
 
-  // Collaboration upgrades and the preview forwarded-header pass-through have no
-  // behavioral coverage here: the routing tests below use plain HTTP requests.
-  it('upgrades collaboration routes and forwards preview client addresses', () => {
-    const config = createViteSharedConfig();
-
-    expect(config.server.proxy['^/d(?:/|$|\\?)']).toMatchObject({ ws: true });
-    expect(config.preview.proxy['^/d(?:/|$|\\?)']).toMatchObject({ ws: true });
-    expect(config.preview.proxy['/']).toMatchObject({ xfwd: true });
+  it.each(['development', 'preview'] as const)('protects collaboration upgrade headers in %s', async (mode) => {
+    const backend = http.createServer();
+    const sockets = new WebSocketServer({ server: backend });
+    sockets.on('connection', (socket, request) => socket.send(JSON.stringify(request.headers)));
+    await new Promise<void>((resolve) => backend.listen(0, '127.0.0.1', resolve));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-vite-upgrade-'));
+    fs.mkdirSync(path.join(root, 'dist'));
+    fs.writeFileSync(path.join(root, 'dist/index.html'), '<!doctype html>');
+    const shared = createViteSharedConfig();
+    const proxy = Object.fromEntries(Object.entries(mode === 'development' ? shared.server.proxy : shared.preview.proxy)
+      .map(([route, options]) => [route, { ...options, target: `http://127.0.0.1:${(backend.address() as AddressInfo).port}` }]));
+    const options = {
+      ...shared, configFile: false as const, root,
+      optimizeDeps: { noDiscovery: true, include: [] },
+      server: { proxy, host: '127.0.0.1', port: 0, watch: null, hmr: false as const },
+      preview: { proxy, host: '127.0.0.1', port: 0 },
+    };
+    const gateway = mode === 'development' ? await createServer(options) : await preview(options);
+    let client: WebSocket | undefined;
+    try {
+      if ('listen' in gateway) await gateway.listen();
+      const origin = gateway.resolvedUrls!.local[0]!;
+      const url = new URL('/collaboration', origin);
+      url.protocol = 'ws:';
+      client = new WebSocket(url, { headers: {
+        Origin: origin,
+        Cookie: 'sessionid=browser-session',
+        'X-Remdo-Collaboration-Secret': 'untrusted',
+        'X-Remdo-Collaboration-Operator': 'untrusted',
+      } });
+      const headers = await new Promise<http.IncomingHttpHeaders>((resolve, reject) => {
+        client!.once('message', (data) => resolve(JSON.parse(String(data)) as http.IncomingHttpHeaders));
+        client!.once('error', reject);
+      });
+      expect(headers.origin).toBe(origin);
+      expect(headers.cookie).toBe('sessionid=browser-session');
+      expect(headers['x-remdo-collaboration-secret']).toBeUndefined();
+      expect(headers['x-remdo-collaboration-operator']).toBeUndefined();
+    } finally {
+      client?.terminate();
+      for (const socket of sockets.clients) socket.terminate();
+      await gateway.close();
+      await new Promise<void>((resolve) => sockets.close(() => resolve()));
+      await new Promise<void>((resolve) => backend.close(() => resolve()));
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it('routes preview traffic locally without replacing the browser origin', async () => {

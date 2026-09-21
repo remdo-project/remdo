@@ -16,7 +16,7 @@ vi.mock('#client/app/user-data/user-data', () => ({
 
 interface SharingRouteFixture {
   documents?: readonly UserDocument[];
-  shareDocument?: NonNullable<Parameters<typeof createUserDataRootNote>[2]>['shareDocument'];
+  shareDocument?: NonNullable<Parameters<typeof createUserDataRootNote>[1]>['shareDocument'];
 }
 
 function renderSharingRoute({

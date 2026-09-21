@@ -21,7 +21,7 @@ Unit tests run in-process without a service stack.
 
 ## Collaboration Tests
 
-Each collaboration-test invocation starts fresh loopback-only Y-Sweet and RemDo
+Each collaboration-test invocation starts fresh loopback-only Hocuspocus and RemDo
 API services. One collaboration-test invocation runs in a working directory at
 a time. Full and filtered invocations use the same lifecycle. Occupied required
 ports cause startup to fail and preserve the previous diagnostic runtime.
@@ -48,7 +48,8 @@ the next invocation.
 ## Docker E2E Tests
 
 Docker E2E builds and verifies standalone SQLite and hosted PostgreSQL production
-containers against their own runtime data. Both use filesystem document storage.
+containers against their own runtime data. Each stores document content in its
+selected database.
 Persistence checks reopen document content after restart and hosted container
 replacement without browser caches. It also reaches a production-launcher
 container through its bridge-published port. The invocation removes its

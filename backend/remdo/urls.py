@@ -4,7 +4,7 @@ from allauth.account.views import AccountInactiveView
 from django.contrib import admin
 from django.urls import include, path, re_path
 from django.views.decorators.http import require_safe
-from documents import views
+from documents import internal, views
 from drf_spectacular.views import SpectacularAPIView
 
 from .public_pages import public_page
@@ -22,7 +22,8 @@ urlpatterns = [
     path("api/current-user", views.CurrentUserView.as_view()),
     path("api/documents", views.DocumentListCreateView.as_view()),
     path("api/documents/<str:document_id>/access", views.DocumentShareView.as_view()),
-    path("api/documents/<str:document_id>/sync-tokens", views.SyncTokenView.as_view()),
+    path("internal/collaboration/documents/<str:document_id>/authorize", internal.authorize),
+    path("internal/collaboration/documents/<str:document_id>/content", internal.content),
     path("api/schema", SpectacularAPIView.as_view()),
     re_path(r"^(?P<slug>[a-z0-9]+(?:-[a-z0-9]+)*)/$", public_page, name="public_page"),
 ]

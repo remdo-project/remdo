@@ -1,5 +1,4 @@
 import type { ChildProcess } from 'node:child_process';
-import fs from 'node:fs';
 import path from 'node:path';
 import { setTimeout as wait } from 'node:timers/promises';
 
@@ -19,7 +18,6 @@ const STOP_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'collab-server.log');
-const COLLAB_DATA_DIR = path.join(config.env.DATA_DIR, 'collab');
 const reusedServerStop = () => Promise.resolve();
 
 async function waitForPort(host: string, port: number, child: ChildProcess): Promise<void> {
@@ -67,21 +65,8 @@ export async function ensureCollabServer({
     throw new Error(`Collaboration websocket already running on ws://${INTERNAL_SERVICE_HOST}:${port}`);
   }
 
-  fs.mkdirSync(COLLAB_DATA_DIR, { recursive: true });
   prepareManagedProcessLog(LOG_PATH);
-  const args = [
-    'exec',
-    'y-sweet',
-    'serve',
-    '--host',
-    INTERNAL_SERVICE_HOST,
-    '--port',
-    String(port),
-  ];
-  if (config.env.YSWEET_AUTH_KEY) {
-    args.push('--auth', config.env.YSWEET_AUTH_KEY);
-  }
-  args.push(COLLAB_DATA_DIR);
+  const args = ['exec', 'tsx', 'src/collaboration-server/main.ts'];
 
   const child = spawnPnpm(
     args,
@@ -89,8 +74,7 @@ export async function ensureCollabServer({
       env: {
         COLLAB_SERVER_PORT: String(port),
         COLLAB_ENABLED: 'true',
-        YSWEET_AUTH_KEY: config.env.YSWEET_AUTH_KEY,
-        YSWEET_SERVER_TOKEN: config.env.YSWEET_SERVER_TOKEN,
+        COLLAB_INTERNAL_SECRET: config.env.COLLAB_INTERNAL_SECRET,
       },
       detached: true,
       forwardExit: false,

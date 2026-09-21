@@ -1,3 +1,4 @@
+import { expectCollaborationDenied } from '../_support/documents';
 import { expect, guardedTest as test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { createTestAuthAccount } from '#tests-common/auth-account';
@@ -53,16 +54,12 @@ test('Django sign-in, document creation, collaboration, reopen, and account isol
   await page.reload();
   await expect(editor).toContainText('Django document content');
   await expect(editor).toContainText('from peer');
+  await waitForSynced(page);
   await page.goto('/');
   await expect(page.locator(`[data-home-document-ref="${docId}"]`).first()).toBeVisible();
   await page.getByRole('button', { name: 'Logout', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible();
   await signIn(page, otherAccount);
   await expect(page.locator(`[data-home-document-ref="${docId}"]`)).toHaveCount(0);
-  const session = await page.request.get('/api/config');
-  const { csrfToken } = await session.json() as { csrfToken: string };
-  const denied = await page.request.post(`/api/documents/${docId}/sync-tokens`, {
-    headers: { 'X-CSRFToken': csrfToken }, data: {},
-  });
-  expect(denied.status()).toBe(403);
+  await expectCollaborationDenied(page, docId);
 });

@@ -9,7 +9,5 @@ export function resolveDocumentSource(
 
   return {
     documentLabel: currentDocument?.getText() ?? docId,
-    sourceId: currentSource?.getLocal() === false ? currentSource.getId() : null,
-    sourceOrigin: currentSource?.getBaseUrl() ?? null,
   };
 }

@@ -1,3 +1,4 @@
+import { LOCAL_CACHE_ORIGIN } from './local-persistence';
 import type * as Y from 'yjs';
 
 import {
@@ -13,8 +14,8 @@ import type {
   CollaborationProviderInstance,
   CollaborationSessionProvider,
   MinimalProviderEvents,
+  LocalPersistenceStatus,
   ProviderFactory,
-  ProviderFactoryResult,
 } from './runtime';
 
 interface CollabSnapshot {
@@ -27,6 +28,7 @@ interface CollabSnapshot {
    */
   hasLocalChanges: boolean;
   localCacheHydrated: boolean;
+  localPersistenceStatus: LocalPersistenceStatus;
   connectionStatus: CollaborationConnectionStatus;
   docEpoch: number;
   enabled: boolean;
@@ -36,8 +38,7 @@ type Listener = () => void;
 
 interface SessionOptions {
   origin?: string;
-  apiOrigin?: string;
-  createSyncTokenPath?: (docId: string) => string;
+  accountId?: string;
   enabled: boolean;
   docId: string;
   providerFactory?: ProviderFactory;
@@ -54,29 +55,6 @@ function isLocalCacheHydratedDoc(doc: Y.Doc): boolean {
   return doc.store.clients.size > 0;
 }
 
-function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function isLocalCacheUpdateOrigin(origin: unknown, provider: CollaborationSessionProvider): boolean {
-  const indexedDBProvider = (provider as { indexedDBProvider?: unknown }).indexedDBProvider;
-  if (indexedDBProvider !== undefined && origin === indexedDBProvider) {
-    return true;
-  }
-
-  if (!isObjectRecord(origin)) {
-    return false;
-  }
-
-  return origin.source === 'local-cache';
-}
-
-function isProviderFactoryPromise(
-  value: ProviderFactoryResult | Promise<ProviderFactoryResult>
-): value is Promise<ProviderFactoryResult> {
-  return typeof (value as Promise<ProviderFactoryResult>).then === 'function';
-}
-
 /**
  * Headless collaboration session that owns provider lifecycle and readiness state.
  * React components subscribe via `subscribe` / `snapshot`; headless callers can use
@@ -90,23 +68,22 @@ export class CollabSession {
   private listeners = new Set<Listener>();
   private awaitController: AbortController | null = null;
   private cleanup: (() => void) | null = null;
-  private attachTask: Promise<void> | null = null;
-  private attachVersion = 0;
   private providerHadLocalChanges = false;
   private sawProviderAck = false;
   private unsavedLocalEdits = false;
   private state: CollabSnapshot;
 
   constructor(options: SessionOptions) {
-    const { origin, apiOrigin, createSyncTokenPath, enabled, docId, providerFactory } = options;
+    const { origin, accountId, enabled, docId, providerFactory } = options;
     this.enabled = enabled;
-    this.providerFactory = providerFactory ?? createProviderFactory({ apiOrigin, createSyncTokenPath, visibleOrigin: origin });
+    this.providerFactory = providerFactory ?? createProviderFactory({ accountId, visibleOrigin: origin });
     this.state = {
       docId,
       hydrated: !enabled,
       hasLocalChanges: false,
       synced: !enabled,
       localCacheHydrated: !enabled,
+      localPersistenceStatus: 'disabled',
       connectionStatus: enabled ? 'connecting' : 'disconnected',
       docEpoch: 0,
       enabled,
@@ -138,6 +115,7 @@ export class CollabSession {
       hydrated: !this.enabled,
       synced: !this.enabled,
       localCacheHydrated: !this.enabled,
+      localPersistenceStatus: 'disabled',
       connectionStatus: this.enabled ? 'connecting' : 'disconnected',
       docEpoch: this.state.docEpoch, // increment on attach
     };
@@ -150,15 +128,10 @@ export class CollabSession {
     }
 
     this.teardown();
-    const attachVersion = this.attachVersion + 1;
-    this.attachVersion = attachVersion;
     const docId = this.state.docId;
     trace('collab', 'session attach', { docId });
 
     const handleAttachFailure = (error: unknown) => {
-      if (attachVersion !== this.attachVersion) {
-        return;
-      }
       trace('collab', 'session attach failed', {
         docId,
         message: error instanceof Error ? error.message : String(error),
@@ -174,12 +147,8 @@ export class CollabSession {
       this.notify();
     };
 
-    const applyProviderResult = ({ provider, doc }: ProviderFactoryResult) => {
-      if (attachVersion !== this.attachVersion) {
-        provider.destroy();
-        return;
-      }
-
+    try {
+      const { provider, doc } = this.providerFactory(docId, docMap);
       const events = asCollaborationProviderEvents(provider);
       this.provider = events;
       this.awaitController = new AbortController();
@@ -194,18 +163,22 @@ export class CollabSession {
         const synced = options.forceUnsynced ? false : computedSynced;
         const providerUnacked = events.hasLocalChanges === true;
         if (!providerUnacked) {
-          this.sawProviderAck = true;
+          if (events.synced === true) this.sawProviderAck = true;
           this.unsavedLocalEdits = false;
         }
         const hasLocalChanges = this.unsavedLocalEdits || (this.sawProviderAck && providerUnacked);
         this.recordProviderLocalChanges(hasLocalChanges);
-        const nextState: CollabSnapshot = { ...base, hasLocalChanges, hydrated, synced };
+        const nextState: CollabSnapshot = {
+          ...base, hasLocalChanges, hydrated, synced,
+          localPersistenceStatus: events.localPersistenceStatus ?? 'disabled',
+        };
         if (
           nextState.docId === this.state.docId &&
           nextState.hydrated === this.state.hydrated &&
           nextState.synced === this.state.synced &&
           nextState.hasLocalChanges === this.state.hasLocalChanges &&
           nextState.localCacheHydrated === this.state.localCacheHydrated &&
+          nextState.localPersistenceStatus === this.state.localPersistenceStatus &&
           nextState.connectionStatus === this.state.connectionStatus &&
           nextState.docEpoch === this.state.docEpoch &&
           nextState.enabled === this.state.enabled
@@ -217,7 +190,7 @@ export class CollabSession {
       };
 
       const handleDocUpdate = (_update: Uint8Array, origin: unknown) => {
-        const fromCache = isLocalCacheUpdateOrigin(origin, provider);
+        const fromCache = origin === LOCAL_CACHE_ORIGIN;
         if (!fromCache && origin !== provider) {
           this.unsavedLocalEdits = true;
           recomputeState();
@@ -257,6 +230,7 @@ export class CollabSession {
       doc.on('update', handleDocUpdate);
       events.on('sync', updateFromProvider);
       events.on('local-changes', updateFromProvider);
+      events.on('local-persistence-status', updateFromProvider);
       events.on('connection-status', handleConnectionStatus);
       events.on('connection-close', handleConnectionClose);
       events.on('connection-error', handleConnectionError);
@@ -265,6 +239,7 @@ export class CollabSession {
         doc.off('update', handleDocUpdate);
         events.off('sync', updateFromProvider);
         events.off('local-changes', updateFromProvider);
+        events.off('local-persistence-status', updateFromProvider);
         events.off('connection-status', handleConnectionStatus);
         events.off('connection-close', handleConnectionClose);
         events.off('connection-error', handleConnectionError);
@@ -278,25 +253,9 @@ export class CollabSession {
         connectionStatus: toCollaborationConnectionStatus(provider.status),
         docEpoch: this.state.docEpoch + 1,
       });
-    };
-
-    const result = this.providerFactory(docId, docMap);
-    if (!isProviderFactoryPromise(result)) {
-      try {
-        applyProviderResult(result);
-      } catch (error) {
-        handleAttachFailure(error);
-      }
-      return;
+    } catch (error) {
+      handleAttachFailure(error);
     }
-
-    const task = result.then(applyProviderResult).catch(handleAttachFailure);
-    const trackedTask = task.finally(() => {
-      if (this.attachTask === trackedTask) {
-        this.attachTask = null;
-      }
-    });
-    this.attachTask = trackedTask;
   }
 
   detach() {
@@ -308,15 +267,13 @@ export class CollabSession {
       hasLocalChanges: false,
       synced: false,
       localCacheHydrated: false,
+      localPersistenceStatus: 'disabled',
       connectionStatus: 'disconnected',
     };
     this.notify();
   }
 
   async awaitHydrated(): Promise<void> {
-    if (this.attachTask) {
-      await this.attachTask;
-    }
     if (this.state.hydrated) {
       return;
     }
@@ -348,9 +305,6 @@ export class CollabSession {
     if (!this.enabled) {
       return;
     }
-    if (this.attachTask) {
-      await this.attachTask;
-    }
     if (!this.provider || !this.awaitController) {
       throw new Error('Collaboration provider unavailable');
     }
@@ -379,8 +333,6 @@ export class CollabSession {
   }
 
   private teardown(abortAwait = false) {
-    this.attachVersion += 1;
-    this.attachTask = null;
     this.cleanup?.();
     this.cleanup = null;
     // Drop the in-memory edge tracker only. A still-dirty document stays in

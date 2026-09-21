@@ -90,22 +90,11 @@ Release production from Render's dashboard.
 
 ### Reset the Staging Sandbox
 
-Staging's data is disposable, and its free database expires. Reset it before
-the expiry deletes the database: the service cannot reach a deleted database,
-and clearing the data root needs its shell, which needs a running instance.
-
-Clear the data root, with no editor connected so that collaboration state is
-not rewritten behind the deletion:
-
-```sh
-rm -rf /data/..?* /data/.[!.]* /data/*
-```
-
-Then delete the database and sync the blueprint, which recreates it and
-redeploys. Clearing the data root without also replacing the database leaves
-the service unable to start, because
-[secret bootstrap](../specs/runtime/configuration.md#secret-bootstrap) refuses
-to generate a bundle for an existing dataset.
+Staging's data is disposable, and its free database expires. Stop the
+application, delete the database, and sync the blueprint to recreate it and
+redeploy. Metadata and document content reset together. Keep the persistent data
+root and its secret bundle; the database reset does not require shell access to
+erase separate collaboration files.
 
 ## Publish a Public File
 
@@ -131,19 +120,14 @@ to PostgreSQL requires a fresh dataset; no data transfer is provided.
 Schema changes apply on the first
 start of the new version.
 
-Instances using the previous Node backend have no supported data migration to
-Django. Keep their original image and data together; do not point the Django
-image at the old data root.
-
-The retained [Node backup exporter](../../tools/snapshot/backup.ts) does not support Django datasets. Application
-backup and recovery tooling is [separate follow-up](../todo.md#operations).
+Application backup and recovery tooling is [separate follow-up](../todo.md#operations).
 
 1. Stop the instance. A schema change can rewrite tables that authentication
    writes to.
 2. Copy the [persistent storage root](../architecture.md#runtime-persistence-boundary),
    which is what a rollback restores.
    With PostgreSQL, separately preserve the matching database backup;
-   copying `DATA_DIR` alone cannot restore metadata.
+   copying `DATA_DIR` alone cannot restore metadata or document content.
 
    ```sh
    cp -a "${DATA_DIR}" "${DATA_DIR}.bak-$(date +%F)"

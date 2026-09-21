@@ -3,14 +3,13 @@
 import json
 import os
 import secrets
-import subprocess
 import tempfile
 from pathlib import Path
 
 import psycopg
 from django.core.exceptions import ImproperlyConfigured
 
-FIELDS = ("auth_secret", "ysweet_auth_key", "ysweet_server_token")
+FIELDS = ("auth_secret", "collaboration_secret")
 
 
 def read_secrets(path):
@@ -34,27 +33,11 @@ def load_secrets(data_dir):
     path = data_dir / "secrets.json"
     if path.exists():
         return read_secrets(path)
-    if (
-        (data_dir / "django.sqlite3").exists()
-        or (data_dir / "remdo.sqlite").exists()
-        or database_has_data()
-        or ((data_dir / "collab").exists() and any((data_dir / "collab").iterdir()))
-    ):
+    if (data_dir / "django.sqlite3").exists() or database_has_data():
         raise ImproperlyConfigured(
             "Missing secrets.json for an existing dataset; restore its secret bundle."
         )
-    try:
-        result = subprocess.run(
-            ["y-sweet", "gen-auth", "--json"], capture_output=True, text=True, check=True
-        )
-        pair = json.loads(result.stdout)
-        values = {
-            "auth_secret": secrets.token_urlsafe(48),
-            "ysweet_auth_key": pair["private_key"],
-            "ysweet_server_token": pair["server_token"],
-        }
-    except (OSError, subprocess.SubprocessError, ValueError, KeyError) as error:
-        raise ImproperlyConfigured("Y-Sweet secret generation failed.") from error
+    values = {key: secrets.token_urlsafe(48) for key in FIELDS}
     # Publish only a complete, private file; concurrent first readers reuse the winner.
     data_dir.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(dir=data_dir)

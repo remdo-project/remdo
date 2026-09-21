@@ -1,3 +1,4 @@
+import { LOCAL_CACHE_ORIGIN } from '#collaboration/local-persistence';
 import { describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
 
@@ -75,8 +76,6 @@ describe('collaboration session hydration persistence', { timeout: COLLAB_LONG_T
     const doc = new Y.Doc();
     const docMap = new Map<string, Y.Doc>([[docId, doc]]);
     const provider = createMockProvider();
-    const indexedDBProvider = { source: 'indexeddb' };
-    provider.indexedDBProvider = indexedDBProvider;
     const factory = createMockProviderFactory(provider);
     const session = new CollabSession({ enabled: true, docId, providerFactory: factory });
 
@@ -88,7 +87,7 @@ describe('collaboration session hydration persistence', { timeout: COLLAB_LONG_T
 
     doc.transact(() => {
       doc.getText('offline').insert(0, 'cached');
-    }, indexedDBProvider);
+    }, LOCAL_CACHE_ORIGIN);
 
     expect(session.snapshot().hydrated).toBe(true);
     expect(session.snapshot().localCacheHydrated).toBe(true);

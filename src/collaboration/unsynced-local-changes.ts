@@ -1,5 +1,5 @@
 /**
- * Origin-wide unsynced documents. Y-Sweet's IndexedDB cache has no ack
+ * Origin-wide unsynced documents. The encrypted IndexedDB cache has no ack
  * watermark, so logout cannot inspect it. Each (document, tab) pair is its own
  * storage key so one tab's ack cannot drop another tab's mark. A session that
  * dies still dirty leaves its key; only that tab's ack or logout removes it.

@@ -1,3 +1,4 @@
+import { LOCAL_CACHE_ORIGIN } from '#collaboration/local-persistence';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 import { CollabSession } from '#collaboration/session';
@@ -29,7 +30,7 @@ describe('collaboration session hydration', () => {
     const { doc, session } = createSession();
     const hydrate = () => doc.transact(() => {
       doc.getMap('user-data').set('title', 'Cached document');
-    }, { source: 'local-cache' });
+    }, LOCAL_CACHE_ORIGIN);
     if (timing === 'before') {
       hydrate();
     }
@@ -41,6 +42,7 @@ describe('collaboration session hydration', () => {
     await ready;
     expect(doc.getMap('user-data').get('title')).toBe('Cached document');
     expect(session.snapshot().synced).toBe(false);
+    expect(session.snapshot().hasLocalChanges).toBe(false);
   });
 
   it('waits for the server when there is no cached content', async () => {
@@ -54,6 +56,22 @@ describe('collaboration session hydration', () => {
     mock.emit('sync', true);
     await ready;
     expect(hydrated).toHaveBeenCalledOnce();
+  });
+
+  it('reports cache failure without losing server synchronization', () => {
+    const { mock, session } = createSession();
+    mock.status = 'connected';
+    mock.synced = true;
+    Object.assign(mock, { localPersistenceStatus: 'enabled' });
+    mock.emit('connection-status', 'connected');
+    mock.emit('sync', true);
+    expect(session.snapshot().localPersistenceStatus).toBe('enabled');
+
+    Object.assign(mock, { localPersistenceStatus: 'error' });
+    mock.emit('local-persistence-status', 'error');
+    expect(session.snapshot()).toMatchObject({
+      localPersistenceStatus: 'error', connectionStatus: 'connected', hydrated: true, synced: true,
+    });
   });
 
   it('cancels a pending read when its session is destroyed', async () => {

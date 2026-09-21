@@ -1,12 +1,9 @@
-import { api, fetchApi } from '#platform/http/api-client';
 import type { Provider } from '@lexical/yjs';
-import { createYjsProvider } from '@y-sweet/client';
-import type { ClientToken } from '@y-sweet/sdk';
+import { HocuspocusProvider, HocuspocusProviderWebsocket, WebSocketStatus } from '@hocuspocus/provider';
 import { trace } from '#platform/log';
-import { guardYSweetIndexedDbProviderLifecycle } from './y-sweet-indexeddb-lifecycle';
+import { createLocalPersistence } from './local-persistence';
+import type { LocalPersistence } from './local-persistence';
 import * as Y from 'yjs';
-
-const TRAILING_SLASH_PATTERN = /\/$/;
 
 export type CollaborationProviderInstance = Provider & { destroy: () => void };
 type CollaborationProviderConnectionStatus =
@@ -29,10 +26,13 @@ export interface MinimalProviderEvents {
   hasLocalChanges?: boolean;
 }
 
+export type LocalPersistenceStatus = 'disabled' | 'loading' | 'enabled' | 'error';
+
 export interface CollaborationSessionProvider extends CollaborationProviderInstance {
   synced?: boolean;
   hasLocalChanges?: boolean;
   status: CollaborationProviderConnectionStatus;
+  localPersistenceStatus?: LocalPersistenceStatus;
 }
 
 export type CollaborationProviderEventsView = CollaborationSessionProvider & MinimalProviderEvents;
@@ -45,7 +45,7 @@ export interface ProviderFactoryResult {
 export type ProviderFactory = (
   id: string,
   docMap: Map<string, Y.Doc>
-) => ProviderFactoryResult | Promise<ProviderFactoryResult>;
+) => ProviderFactoryResult;
 
 export function asCollaborationProviderEvents(provider: CollaborationSessionProvider): CollaborationProviderEventsView {
   return provider as CollaborationProviderEventsView;
@@ -55,33 +55,6 @@ export function toCollaborationConnectionStatus(
   status: CollaborationProviderConnectionStatus
 ): CollaborationConnectionStatus {
   return status === 'offline' ? 'disconnected' : status;
-}
-
-const docTokenInFlight = new Map<string, { promise: Promise<ClientToken>; controller: AbortController }>();
-const pageProviders = new Set<{ provider: ReturnType<typeof createYjsProvider>; reconnectOnRestore: boolean }>();
-
-function onPageHide() {
-  // A browser may run promise callbacks between pagehide listeners. Disconnect
-  // every consumer together before aborting any shared token request.
-  for (const entry of pageProviders) {
-    entry.reconnectOnRestore ||= entry.provider.status !== 'offline';
-    entry.provider.disconnect();
-  }
-  const requests = [...docTokenInFlight.values()];
-  docTokenInFlight.clear();
-  for (const request of requests) {
-    request.controller.abort();
-  }
-}
-
-function onPageShow(event: PageTransitionEvent) {
-  if (!event.persisted) return;
-  for (const entry of pageProviders) {
-    if (entry.reconnectOnRestore) {
-      entry.reconnectOnRestore = false;
-      void entry.provider.connect();
-    }
-  }
 }
 
 export interface LocalPersistenceSupportDecision {
@@ -114,6 +87,15 @@ async function evaluateLocalPersistenceSupportDecision(): Promise<LocalPersisten
     return { enabled: false, reason: 'crypto.subtle.generateKey unavailable' };
   }
 
+  if (typeof navigator === 'undefined' || !('locks' in navigator) || typeof BroadcastChannel === 'undefined') {
+    return { enabled: false, reason: 'storage coordination unavailable' };
+  }
+  try {
+    localStorage.setItem(LOCAL_PERSISTENCE_PROBE_DB, '1');
+    localStorage.removeItem(LOCAL_PERSISTENCE_PROBE_DB);
+  } catch {
+    return { enabled: false, reason: 'localStorage unavailable' };
+  }
   const indexedDbOpenable = await canOpenIndexedDb(indexedDb);
   if (!indexedDbOpenable) {
     return { enabled: false, reason: 'indexedDB open failed' };
@@ -127,10 +109,8 @@ async function canOpenIndexedDb(indexedDb: IDBFactory): Promise<boolean> {
   try {
     db = await openIndexedDbProbe(indexedDb);
     return true;
-  } catch (error) {
-    trace('collab', 'local persistence probe failed', {
-      message: error instanceof Error ? error.message : String(error),
-    });
+  } catch {
+    trace('collab', 'local persistence probe failed');
     return false;
   } finally {
     db?.close();
@@ -171,176 +151,195 @@ function tryDeleteIndexedDbProbe(indexedDb: IDBFactory) {
 }
 
 interface CollaborationEndpointOptions {
-  apiOrigin?: string;
-  createSyncTokenPath?: (docId: string) => string;
   visibleOrigin?: string;
+  accountId?: string;
+  WebSocketPolyfill?: typeof WebSocket;
 }
 
-export function createProviderFactory({
-  apiOrigin,
-  createSyncTokenPath,
-  visibleOrigin,
-}: CollaborationEndpointOptions = {}): ProviderFactory {
-  const resolveTokenRequest = createTokenRequestResolver(apiOrigin, createSyncTokenPath);
+class LexicalNetworkProvider extends HocuspocusProvider {
+  notify(event: string, payload: unknown) {
+    this.emit(event, payload);
+  }
+}
 
-  return async (id: string, docMap: Map<string, Y.Doc>) => {
+class SessionWebsocket extends HocuspocusProviderWebsocket {
+  // TODO: Remove when Hocuspocus reconciles queued updates with its reset sync
+  // counter. Probe: reconnect acknowledgement browser regression. Full sync and
+  // awareness on open already reconstruct the current document and presence.
+  override send(message: Parameters<HocuspocusProviderWebsocket['send']>[0]) {
+    if (this.webSocket?.readyState === 1) super.send(message);
+  }
+
+  // TODO: Remove when Hocuspocus safely detaches pending sockets. Probe: native
+  // and ws transports in provider-headless-lifecycle.spec.ts and browser departure.
+  override cleanupWebSocket() {
+    const socket = this.webSocket;
+    if (!socket) return;
+    const handlers = this.webSocketHandlers[socket.identifier] as Record<string, EventListener>;
+    for (const [event, handler] of Object.entries(handlers)) socket.removeEventListener(event, handler);
+    delete this.webSocketHandlers[socket.identifier];
+    this.webSocket = null;
+    socket.addEventListener('error', () => {}, { once: true });
+    if (socket.readyState === 0 && typeof window !== 'undefined' && !('terminate' in socket)) {
+      socket.addEventListener('open', () => socket.close(), { once: true });
+    } else socket.close();
+  }
+
+  override disconnect() {
+    this.shouldConnect = false;
+    this.stopConnectionAttempt();
+    this.cleanupWebSocket();
+    this.status = WebSocketStatus.Disconnected;
+    this.emit('close', { event: { code: 1000, reason: '' } });
+  }
+}
+
+export function createProviderFactory({ visibleOrigin, accountId, WebSocketPolyfill }: CollaborationEndpointOptions = {}): ProviderFactory {
+  return (id, docMap) => {
     let doc = docMap.get(id);
     if (!doc) {
       doc = new Y.Doc();
       docMap.set(id, doc);
     }
-
-    // Ensure the shared root exists before the provider starts syncing. Yjs warns when
-    // collaborative types are accessed prior to being attached to a document, and
-    // Lexical expects the `root` XmlText to always be present.
     doc.get('root', Y.XmlText);
-
-    const tokenRequest = resolveTokenRequest(id);
-
-    const authEndpoint = async (): Promise<ClientToken> =>
-      rewriteTokenHost(await getAuthToken(id, tokenRequest), visibleOrigin);
-
-    const localPersistenceSupport = await getLocalPersistenceSupportDecision();
-    trace(
-      'collab',
-      localPersistenceSupport.enabled ? 'local persistence enabled' : 'local persistence disabled',
-      { docId: id, ...(localPersistenceSupport.reason ? { reason: localPersistenceSupport.reason } : {}) }
-    );
-
-    const provider = createYjsProvider(doc, id, authEndpoint, {
-      connect: false,
-      offlineSupport: localPersistenceSupport.enabled,
-      showDebuggerLink: false,
+    const url = new URL('/collaboration', visibleOrigin ?? location.origin);
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+    const websocket = new SessionWebsocket({
+      url: url.href,
+      autoConnect: false,
+      ...(WebSocketPolyfill ? { WebSocketPolyfill } : {}),
     });
-    const destroyIndexedDbProvider = guardYSweetIndexedDbProviderLifecycle(
-      provider as unknown as CollaborationProviderInstance & { indexedDBProvider?: unknown }
-    );
-
+    const network = new LexicalNetworkProvider({ name: id, document: doc, websocketProvider: websocket });
+    let status: CollaborationProviderConnectionStatus = 'offline';
+    let localPersistenceStatus: LocalPersistenceStatus = accountId ? 'loading' : 'disabled';
     let destroyed = false;
-    const pageEntry = { provider, reconnectOnRestore: false };
-    if (typeof window !== 'undefined') {
-      pageProviders.add(pageEntry);
-      window.addEventListener('pagehide', onPageHide);
-      window.addEventListener('pageshow', onPageShow);
-    }
-
-    const originalDestroy = provider.destroy.bind(provider);
-    const destroy = () => {
-      if (destroyed) {
+    const isDestroyed = () => destroyed;
+    let active = false;
+    let restore = false;
+    let persistence: LocalPersistence | undefined;
+    let persistenceReady: Promise<void> | undefined;
+    let pendingConnection: Promise<void> | null = null;
+    let cancelConnection: (() => void) | undefined;
+    const originalDestroy = network.destroy.bind(network);
+    const provider = Object.assign(network, {
+      connect: () => {
+        if (destroyed) return Promise.resolve();
+        if (pendingConnection) return pendingConnection;
+        active = true;
+        let wasCancelled = false;
+        const cancelled = new Promise<void>((resolve) => {
+          cancelConnection = () => { wasCancelled = true; resolve(); };
+        });
+        // Lexical installs its Yjs observer before calling connect. Hydrating in
+        // the factory would make the editor miss the cached tree entirely.
+        persistenceReady ??= initializePersistence();
+        const connection = persistenceReady.then(() => {
+          if (!wasCancelled && !destroyed) return websocket.connect();
+        }).catch(() => {
+          if (!wasCancelled && !destroyed) {
+            status = 'error';
+            network.notify('connection-error', { reason: 'Collaboration connection failed.' });
+          }
+        });
+        const attempt = Promise.race([connection, cancelled]).then(() => {}).finally(() => {
+          if (pendingConnection === attempt) {
+            pendingConnection = null;
+            cancelConnection = undefined;
+          }
+        });
+        pendingConnection = attempt;
+        return attempt;
+      },
+      disconnect: () => {
+        active = false;
+        cancelConnection?.();
+        pendingConnection = null;
+        websocket.disconnect();
+        status = 'offline';
+        network.notify('connection-status', status);
+      },
+      destroy: () => {
+        if (destroyed) return;
+        destroyed = true;
+        active = false;
+        cancelConnection?.();
+        pendingConnection = null;
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('pagehide', pageHide);
+          window.removeEventListener('pageshow', pageShow);
+        }
+        originalDestroy();
+        websocket.destroy();
+        void persistence?.destroy().catch(() => trace('collab', 'local persistence close failed'));
+      },
+    });
+    Object.defineProperties(provider, {
+      status: { get: () => status },
+      localPersistenceStatus: { get: () => localPersistenceStatus },
+      hasLocalChanges: { get: () => network.hasUnsyncedChanges },
+    });
+    network.on('synced', ({ state }: { state: boolean }) => network.notify('sync', state));
+    network.on('unsyncedChanges', () => network.notify('local-changes', network.hasUnsyncedChanges));
+    network.on('status', ({ status: next }: { status: string }) => {
+      status = next === 'disconnected' ? 'offline' : next === 'connected' ? 'connected' : 'connecting';
+      network.notify('connection-status', status);
+    });
+    network.on('close', (event: unknown) => network.notify('connection-close', event));
+    network.on('authenticationFailed', ({ reason }: { reason: string }) => {
+      if (reason === 'collaboration.service-unavailable') {
+        // Keep the native reconnect policy active for temporary Django outages.
+        websocket.webSocket?.close();
         return;
       }
-      destroyed = true;
-      if (typeof window !== 'undefined') {
-        pageProviders.delete(pageEntry);
-        if (pageProviders.size === 0) {
-          window.removeEventListener('pagehide', onPageHide);
-          window.removeEventListener('pageshow', onPageShow);
-        }
-      }
-      provider.connect = () => Promise.resolve();
-      destroyIndexedDbProvider();
-      originalDestroy();
-    };
-
-    return {
-      provider: Object.assign(provider as unknown as Provider, {
-        destroy,
-      }) as CollaborationSessionProvider,
-      doc,
-    };
-  };
-}
-
-interface TokenRequest {
-  cacheKey: string;
-  send: (signal: AbortSignal) => Promise<{ data?: ClientToken; response: Response }>;
-}
-
-function createTokenRequestResolver(
-  origin: string | undefined,
-  createSyncTokenPath: ((docId: string) => string) | undefined,
-) {
-  const base = origin ? origin.replace(TRAILING_SLASH_PATTERN, '') : '';
-
-  if (!createSyncTokenPath) {
-    return (docId: string): TokenRequest => ({
-      cacheKey: `${base}\0${docId}`,
-      send: (signal) => api.POST('/api/documents/{document_id}/sync-tokens', {
-        baseUrl: base || undefined,
-        params: { path: { document_id: docId } },
-        signal,
-      }),
+      websocket.disconnect();
+      status = 'error';
+      network.notify('connection-error', { reason: 'Document access denied.' });
     });
-  }
-
-  return (docId: string): TokenRequest => {
-    const url = `${base}${createSyncTokenPath(docId)}`;
-    return {
-      cacheKey: url,
-      send: async (signal) => {
-        const response = await fetchApi(new Request(url, { signal, method: 'POST' }));
-        return { data: response.ok ? (await response.json()) as ClientToken : undefined, response };
-      },
-    };
-  };
-}
-
-function getAuthToken(docId: string, tokenRequest: TokenRequest): Promise<ClientToken> {
-  const { cacheKey } = tokenRequest;
-  const existing = docTokenInFlight.get(cacheKey);
-  if (existing) {
-    return existing.promise;
-  }
-
-  const controller = new AbortController();
-  const promise = (async () => {
-    trace('collab', 'requesting auth token', { docId });
-    const { data, response } = await tokenRequest.send(controller.signal);
-    if (data === undefined) {
-      trace('collab', 'auth token request failed', { docId, status: response.status });
-      throw new Error(`Failed to auth doc ${docId}: ${response.status} ${response.statusText}`);
+    function pageHide() {
+      restore = active;
+      provider.disconnect();
     }
-
-    trace('collab', 'auth token ready', { docId });
-    return data;
-  })();
-
-  const request = { promise, controller };
-  docTokenInFlight.set(cacheKey, request);
-  return promise.finally(() => {
-    if (docTokenInFlight.get(cacheKey) === request) {
-      docTokenInFlight.delete(cacheKey);
+    function pageShow(event: PageTransitionEvent) {
+      if (event.persisted && restore) {
+        restore = false;
+        void provider.connect();
+      }
     }
-  });
-}
-
-function rewriteTokenHost(token: ClientToken, visibleOrigin?: string): ClientToken {
-  const baseOrigin = typeof location === 'undefined' ? undefined : location.origin;
-  const targetOrigin = visibleOrigin ?? baseOrigin;
-  if (!targetOrigin) {
-    return token;
-  }
-
-  const browserVisibleUrl = new URL(targetOrigin, baseOrigin);
-  if (browserVisibleUrl.hostname.length === 0) {
-    return token;
-  }
-
-  const rewrite = (raw: string) => {
-    const url = new URL(raw);
-    url.hostname = browserVisibleUrl.hostname;
-    url.port = browserVisibleUrl.port;
-    const needsUpgrade = browserVisibleUrl.protocol === 'https:' && (url.protocol === 'ws:' || url.protocol === 'http:');
-    if (needsUpgrade) {
-      url.protocol = url.protocol === 'ws:' ? 'wss:' : 'https:';
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pagehide', pageHide);
+      window.addEventListener('pageshow', pageShow);
     }
-    return url.toString();
-  };
-
-  return {
-    ...token,
-    url: rewrite(token.url),
-    baseUrl: rewrite(token.baseUrl),
+    function updatePersistenceStatus(next: LocalPersistenceStatus) {
+      localPersistenceStatus = next;
+      network.notify('local-persistence-status', next);
+    }
+    async function initializePersistence() {
+      if (!accountId || destroyed) return;
+      try {
+        if (!(await getLocalPersistenceSupportDecision()).enabled) {
+          updatePersistenceStatus('disabled');
+          return;
+        }
+        if (isDestroyed()) return;
+        persistence = createLocalPersistence(id, doc!, {
+          accountId,
+          onRevoked: () => provider.destroy(),
+          onError: () => {
+            updatePersistenceStatus('error');
+            trace('collab', 'local persistence failed');
+          },
+        });
+        await persistence.whenSynced;
+        if (!isDestroyed()) updatePersistenceStatus('enabled');
+      } catch {
+        updatePersistenceStatus('error');
+        await persistence?.destroy().catch(() => {});
+        // Local storage is best-effort. Leave corrupt bytes untouched and allow
+        // the authorized server to synchronize independently of storage.
+      }
+    }
+    network.attach();
+    return { provider: provider as unknown as CollaborationSessionProvider, doc };
   };
 }
 

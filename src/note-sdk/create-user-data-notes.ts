@@ -1,13 +1,10 @@
 import type { DocumentAccessView } from '#domain/documents/access';
-import type { SourceServer } from '#domain/source-servers';
 import type { UserDocument } from '#domain/documents/user-data';
 import type {
   DocumentAccessNote,
   DocumentSourceNote,
   DocumentSourcesNote,
   DocumentNote,
-  SourceServerNote,
-  SourceServersNote,
   UserDataNote,
   UserDocumentsNote,
 } from './documents';
@@ -236,70 +233,32 @@ function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends No
   return handle;
 }
 
-function createSourceServerHandle(
-  sourceServer: SourceServer,
-): SourceServerNote {
-  const noteId = sourceServer.id;
-  const kind = () => 'source-server' as const;
-  const handle: SourceServerNote = {
-    getId: () => noteId,
-    getKind: kind,
-    getText: () => sourceServer.label,
-    getChildren: () => [],
-    getBaseUrl: () => sourceServer.baseUrl,
-    as: createNoteAs(noteId, kind, () => handle),
-  };
-
-  return handle;
-}
-
-function createSourceServersHandle(
-  sourceServers: CollectionSource<SourceServer>,
-): SourceServersNote {
-  return createCollectionHandle({
-    createItemNote: (sourceServer) => createSourceServerHandle(sourceServer),
-    items: sourceServers,
-    noteId: 'source-servers',
-    text: 'Source Servers',
-  });
-}
-
 export function createUserDataRootNote(
   documents: CollectionSourceInput<UserDocument>,
-  sourceServersOrActions: CollectionSourceInput<SourceServer> | UserDataNoteActions = [],
   actions: UserDataNoteActions = {},
 ): UserDataNote {
   const noteId = USER_DATA_ROOT_ID;
   const kind = () => 'user-data' as const;
   const userDocumentsSource = resolveCollectionSource(documents);
-  let sourceServers: CollectionSource<SourceServer> = createArrayCollectionSource([]);
-  let resolvedActions: UserDataNoteActions = actions;
-  if (Array.isArray(sourceServersOrActions) || isCollectionSource<SourceServer>(sourceServersOrActions)) {
-    sourceServers = resolveCollectionSource(sourceServersOrActions);
-  } else {
-    resolvedActions = sourceServersOrActions as UserDataNoteActions;
-  }
-  const userDocuments = createUserDocumentsHandle(userDocumentsSource, resolvedActions);
+  const userDocuments = createUserDocumentsHandle(userDocumentsSource, actions);
   const documentSources = createDocumentSourcesHandle(
-    resolvedActions.documentSources ?? createArrayCollectionSource([{
+    actions.documentSources ?? createArrayCollectionSource([{
       baseUrl: null,
       documents: userDocumentsSource,
       id: LOCAL_DOCUMENT_SOURCE_ID,
       label: 'Current Server',
       local: true,
     }]),
-    resolvedActions,
+    actions,
   );
-  const userSourceServers = createSourceServersHandle(sourceServers);
 
   const handle: UserDataNote = {
     getId: () => noteId,
     getKind: kind,
     getText: () => USER_DATA_TITLE,
-    getChildren: () => [documentSources, userDocuments, userSourceServers],
+    getChildren: () => [documentSources, userDocuments],
     getDocumentSources: () => documentSources,
     getDocuments: () => userDocuments,
-    getSourceServers: () => userSourceServers,
     as: createNoteAs(noteId, kind, () => handle),
   };
 

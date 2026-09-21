@@ -78,18 +78,13 @@ class ConfigurationTests(SimpleTestCase):
             "DATA_DIR": self.directory.name,
             "AUTH_SECRET": "configuration-test-secret",
             "APP_ORIGIN": "https://remdo.example",
-            "YSWEET_CONNECTION_STRING": "ys://127.0.0.1:4004",
-            "YSWEET_SERVER_TOKEN": "configuration-test-token",
-            "YSWEET_AUTH_KEY": "configuration-test-key",
+            "COLLAB_INTERNAL_SECRET": "configuration-test-secret",
         }
 
         bundle = Path(self.directory.name) / "secrets.json"
         bundle.write_text(
             json.dumps(
-                {
-                    key: "fixture-" + "x" * 48
-                    for key in ("auth_secret", "ysweet_auth_key", "ysweet_server_token")
-                }
+                {key: "fixture-" + "x" * 48 for key in ("auth_secret", "collaboration_secret")}
             )
         )
         bundle.chmod(0o600)

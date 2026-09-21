@@ -1,6 +1,5 @@
 import type { ConsoleMessage, Page, Response, TestInfo } from '@playwright/test';
 import { expect, test as base } from '@playwright/test';
-import { HTTP_STATUS } from '#platform/http/status';
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
 import { createAuthenticatedContext } from './auth-context';
@@ -31,11 +30,10 @@ export function allowUnauthorizedNetwork(page: Page): void {
 function isLogoutUnauthorizedResponse(url: string, status: number): boolean {
   if (!URL.canParse(url)) return false;
   const { pathname } = new URL(url);
-  if (pathname.startsWith('/api/auth/')) return status === HTTP_STATUS.UNAUTHORIZED;
-  return status === HTTP_STATUS.FORBIDDEN && (
+  if (pathname.startsWith('/api/auth/')) return status === 401;
+  return status === 403 && (
     pathname === '/api/current-user'
     || pathname === '/api/documents'
-    || /^\/api\/documents\/[^/]+\/sync-tokens$/u.test(pathname)
   );
 }
 
@@ -123,9 +121,9 @@ export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) =
   const allowResponse = (response: Response) => {
     const url = response.url();
     if (url.startsWith('data:')) return true;
-    if (url.includes('favicon') && response.status() === HTTP_STATUS.NOT_FOUND) return true;
+    if (url.includes('favicon') && response.status() === 404) return true;
     // Allauth uses 401 to report an absent session and to acknowledge logout.
-    if (isAccountSessionUrl(url) && response.status() === HTTP_STATUS.UNAUTHORIZED) return true;
+    if (isAccountSessionUrl(url) && response.status() === 401) return true;
     return false;
   };
 
@@ -135,7 +133,7 @@ export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) =
 
     const issueMessage = message.text();
     if (isAccountSessionUrl(message.location().url) && issueMessage.includes('status of 401')) return;
-    if (allowUnauthorizedApiByPage.get(page) && [HTTP_STATUS.UNAUTHORIZED, HTTP_STATUS.FORBIDDEN].some(
+    if (allowUnauthorizedApiByPage.get(page) && [401, 403].some(
       (status) => issueMessage.includes(`status of ${status}`)
         && isLogoutUnauthorizedResponse(message.location().url, status),
     )) return;
@@ -160,7 +158,7 @@ export function attachPageGuards(page: Page): (verifyExpectedIssues?: boolean) =
     ) {
       return;
     }
-    if (status >= HTTP_STATUS.BAD_REQUEST && !allowResponse(response)) {
+    if (status >= 400 && !allowResponse(response)) {
       throw new Error(`response ${status}: ${response.url()}`);
     }
   };

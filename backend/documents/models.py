@@ -27,6 +27,11 @@ class Document(models.Model):
         ordering = ["created_at", "id"]
 
 
+class DocumentContent(models.Model):
+    document = models.OneToOneField(Document, primary_key=True, on_delete=models.CASCADE)
+    state = models.BinaryField()
+
+
 class DocumentGrant(models.Model):
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="grants")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

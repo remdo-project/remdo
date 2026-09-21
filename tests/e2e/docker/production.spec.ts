@@ -1,5 +1,4 @@
 /* eslint-disable node/no-process-env */
-import { Buffer } from 'node:buffer';
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -9,6 +8,8 @@ import type { APIRequestContext } from '@playwright/test';
 import { waitForHealth } from './_support/helpers';
 import { request } from '@playwright/test';
 import * as Y from 'yjs';
+import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
+import WebSocket from 'ws';
 
 const container = process.env.DOCKER_TEST_CONTAINER!;
 const password = 'production-fixture-password-1234';
@@ -16,6 +17,44 @@ const email = 'admin@production.example.test';
 
 function docker(...args: string[]): string {
   return execFileSync('docker', args, { encoding: 'utf8' }).trim();
+}
+
+function flushDocument(name: string, docId: string): void {
+  docker('exec', name, 'python', '-c', `
+import sys
+from urllib.request import Request, urlopen
+from urllib.parse import quote
+from django.conf import settings
+request = Request('http://127.0.0.1:4004/internal/collaboration/flush/' + quote(sys.argv[1], safe=''),
+                  data=b'', headers={'X-Remdo-Collaboration-Secret': settings.COLLAB_INTERNAL_SECRET})
+with urlopen(request, timeout=15) as response:
+    assert response.status == 204
+`, docId);
+}
+
+async function openDocument(url: string, docId: string, headers: Record<string, string>) {
+  class SessionWebSocket extends WebSocket {
+    constructor(address: string | URL) {
+      super(address, { headers, rejectUnauthorized: false });
+    }
+  }
+  const endpoint = new URL('/collaboration', url);
+  endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:';
+  const socket = new HocuspocusProviderWebsocket({
+    url: endpoint.href,
+    WebSocketPolyfill: SessionWebSocket,
+  });
+  const document = new Y.Doc();
+  const provider = new HocuspocusProvider({ name: docId, document, websocketProvider: socket });
+  provider.attach();
+  const close = () => { provider.destroy(); socket.destroy(); document.destroy(); };
+  try {
+    await expect.poll(() => provider.synced, { timeout: 20_000 }).toBe(true);
+  } catch (error) {
+    close();
+    throw error;
+  }
+  return { document, provider, close };
 }
 
 function createAdmin(name: string): void {
@@ -144,6 +183,7 @@ test('production launcher serves login, collaboration, and persistent data throu
   await expect(editor).toContainText('Persisted through Django production restart');
   await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Saved to server.*Server connected/u);
   const documentUrl = page.url();
+  flushDocument(container, new URL(documentUrl).pathname.split('/').at(-1)!);
   await page.close();
   docker('restart', '--time', '15', container);
   expect(bundleDigest()).toBe(originalBundle);
@@ -207,14 +247,16 @@ test('hosted TLS termination preserves secure cookies and trusted-origin CSRF', 
   }
 });
 
-test('hosted filesystem document content survives restart and container replacement', async () => {
-  test.setTimeout(90_000);
-  const hosted = process.env.DOCKER_HOSTED_CONTAINER!;
-  const origin = 'https://remdo.onrender.com';
-  const persistEmail = 'disk-persist@production.example.test';
+for (const hostedMode of [false, true]) {
+test(`${hostedMode ? 'PostgreSQL' : 'SQLite'} document content survives restart and container replacement`, async () => {
+  test.setTimeout(120_000);
+  const hosted = hostedMode ? process.env.DOCKER_HOSTED_CONTAINER! : container;
+  const origin = hostedMode ? 'https://remdo.onrender.com' : process.env.DOCKER_TEST_ORIGIN!;
+  const persistEmail = 'database-persist@production.example.test';
   const apiOptions = {
-    baseURL: `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}`,
-    extraHTTPHeaders: { Host: 'remdo.onrender.com', Origin: origin, 'CF-Connecting-IP': '198.51.100.10' },
+    baseURL: hostedMode ? `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}` : origin,
+    ignoreHTTPSErrors: true,
+    extraHTTPHeaders: { Host: new URL(origin).host, Origin: origin, 'CF-Connecting-IP': '198.51.100.10' },
   };
   async function signIn(api: APIRequestContext): Promise<Record<string, string>> {
     const configResponse = await api.get('/api/config');
@@ -225,7 +267,7 @@ test('hosted filesystem document content survives restart and container replacem
     });
     expect(login.status()).toBe(200);
     const session = login.headersArray()
-      .find(header => header.name.toLowerCase() === 'set-cookie' && header.value.startsWith('remdo_session_443='))!;
+      .find(header => header.name.toLowerCase() === 'set-cookie' && header.value.startsWith('remdo_session_'))!;
     const sessionCookie = session.value.split(';')[0]!;
     const authedConfigResponse = await api.get('/api/config', { headers: { Cookie: sessionCookie } });
     const authedConfig = await authedConfigResponse.json() as { csrfToken: string; csrfCookieName: string };
@@ -240,94 +282,80 @@ test('hosted filesystem document content survives restart and container replacem
     docker('exec', '-e', `DJANGO_SUPERUSER_PASSWORD=${password}`, hosted,
       'python', 'manage.py', 'createsuperuser', '--noinput', '--email', persistEmail);
     const authedHeaders = await signIn(api);
-    const created = await api.post('/api/documents', { headers: authedHeaders, data: { title: 'Disk restart' } });
+    const created = await api.post('/api/documents', { headers: authedHeaders, data: { title: 'Database restart' } });
     expect(created.status()).toBe(201);
     const { id: docId } = await created.json() as { id: string };
-    const tokenResponse = await api.post(`/api/documents/${docId}/sync-tokens`, {
-      headers: authedHeaders, data: {},
+    const connect = (headers: Record<string, string>) => openDocument(apiOptions.baseURL, docId, {
+      ...apiOptions.extraHTTPHeaders, Cookie: headers.Cookie!,
     });
-    expect(tokenResponse.status()).toBe(200);
-    const clientToken = await tokenResponse.json() as { token: string };
-    async function writeDocument(doc: Y.Doc): Promise<void> {
-      const response = await api.post(`/d/${docId}/update`, {
-        headers: { authorization: `Bearer ${clientToken.token}`, 'content-type': 'application/octet-stream' },
-        data: Buffer.from(Y.encodeStateAsUpdate(doc)),
-      });
-      expect(response.status()).toBe(200);
+    const original = await connect(authedHeaders);
+    try {
+      original.document.getText('content').insert(0, 'Persisted in SQL plus removed suffix');
+      await expect.poll(() => original.provider.hasUnsyncedChanges).toBe(false);
+      flushDocument(hosted, docId);
+      // A deletion-only update has no new Yjs state-vector clock. The explicit
+      // save barrier must still commit it before the process exits.
+      original.document.getText('content').delete('Persisted in SQL'.length, ' plus removed suffix'.length);
+      await expect.poll(() => original.provider.hasUnsyncedChanges).toBe(false);
+      flushDocument(hosted, docId);
+    } finally {
+      original.close();
     }
-    async function waitForCollaboration(): Promise<void> {
-      await waitForHealth(api);
-      await expect.poll(() => {
-        const result = spawnSync('docker', ['exec', hosted, 'python', '-c',
-          'import urllib.request; from django.conf import settings; urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:4004/check_store", data=b"{}", headers={"Authorization": "Bearer " + settings.YSWEET_SERVER_TOKEN, "Content-Type": "application/json"}), timeout=1)'],
-        { encoding: 'utf8' });
-        return result.status;
-      }, { timeout: 30_000 }).toBe(0);
-    }
-    async function readDocument(client: APIRequestContext, token: string): Promise<Y.Doc> {
-      const response = await client.get(`/d/${docId}/as-update`, {
-        headers: { authorization: `Bearer ${token}` },
-      });
-      expect(response.status()).toBe(200);
-      const doc = new Y.Doc();
-      Y.applyUpdate(doc, await response.body());
-      return doc;
-    }
-    await waitForCollaboration();
-    const original = new Y.Doc();
-    original.getText('content').insert(0, 'Persisted on disk');
-    await writeDocument(original);
-    original.destroy();
 
-    docker('restart', '--time', '15', hosted);
-    await waitForCollaboration();
-    const restored = await readDocument(api, clientToken.token);
-    expect(restored.getText('content').toString()).toBe('Persisted on disk');
-    restored.getText('content').insert(restored.getText('content').length, ' after restart');
-    await writeDocument(restored);
-    restored.destroy();
+    docker('restart', '--time', '30', hosted);
+    await waitForHealth(api);
+    const restored = await connect(await signIn(api));
+    try {
+      expect(restored.document.getText('content').toString()).toBe('Persisted in SQL');
+      restored.document.getText('content').insert(restored.document.getText('content').length, ' after restart');
+      await expect.poll(() => restored.provider.hasUnsyncedChanges).toBe(false);
+      flushDocument(hosted, docId);
+    } finally {
+      restored.close();
+    }
 
     const [instance] = JSON.parse(docker('inspect', hosted)) as Array<{
       Config: { Image: string; Env: string[] };
+      HostConfig: { NetworkMode: string; PortBindings: Record<string, Array<{ HostIp: string; HostPort: string }>> };
       Mounts: Array<{ Source: string; Destination: string }>;
     }>;
-    docker('stop', '--time', '15', hosted);
+    docker('stop', '--time', '30', hosted);
     docker('rm', hosted);
-    docker('run', '-d', '--userns=host', '--name', hosted, '--network', process.env.PG_NETWORK!,
-      '-p', `127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}:8080`,
+    docker('run', '-d', '--userns=host', '--name', hosted, '--network', instance!.HostConfig.NetworkMode,
+      ...Object.entries(instance!.HostConfig.PortBindings).flatMap(([port, bindings]) =>
+        bindings.flatMap(binding => ['-p', `${binding.HostIp}:${binding.HostPort}:${port}`])),
       ...instance!.Config.Env.flatMap(value => ['-e', value]),
       ...instance!.Mounts.flatMap(mount => ['-v', `${mount.Source}:${mount.Destination}`]),
       instance!.Config.Image);
-    await waitForCollaboration();
-    // A fresh request context carries no session or collaboration token from before replacement.
     const fresh = await request.newContext(apiOptions);
     try {
+      await waitForHealth(fresh);
       const freshHeaders = await signIn(fresh);
       const documents = await fresh.get('/api/documents', { headers: freshHeaders });
       expect(documents.status()).toBe(200);
       expect(await documents.json()).toEqual(expect.arrayContaining([
-        expect.objectContaining({ id: docId, title: 'Disk restart' }),
+        expect.objectContaining({ id: docId, title: 'Database restart' }),
       ]));
-      const freshTokenResponse = await fresh.post(`/api/documents/${docId}/sync-tokens`, {
-        headers: freshHeaders, data: {},
-      });
-      expect(freshTokenResponse.status()).toBe(200);
-      const freshToken = await freshTokenResponse.json() as { token: string };
-      const redeployed = await readDocument(fresh, freshToken.token);
-      expect(redeployed.getText('content').toString()).toBe('Persisted on disk after restart');
-      redeployed.destroy();
+      const redeployed = await connect(freshHeaders);
+      try {
+        expect(redeployed.document.getText('content').toString()).toBe('Persisted in SQL after restart');
+      } finally {
+        redeployed.close();
+      }
     } finally {
       await fresh.dispose();
     }
     expect(docker('exec', hosted, 'python', '-c', `
-from pathlib import Path
-import sys
-print((Path('/data/collab') / sys.argv[1] / 'data.ysweet').stat().st_size > 0)
+import django, sys
+django.setup()
+from documents.models import DocumentContent
+print(len(DocumentContent.objects.get(document_id=sys.argv[1]).state) > 0)
 `, docId)).toBe('True');
   } finally {
     await api.dispose();
   }
 });
+}
 
 
 test('startup refuses missing or corrupt secrets over an existing dataset', async () => {
@@ -375,4 +403,67 @@ test('a fresh data root cannot regenerate secrets for an existing PostgreSQL dat
     '-e', 'APP_ORIGIN=https://remdo.localhost', image], { encoding: 'utf8', timeout: 30_000 });
   expect(result.status).not.toBe(0);
   expect(result.stderr).toContain('Missing secrets.json for an existing dataset');
+});
+
+test('public collaboration strips privileged credentials instead of granting operator access', async ({ request: api }) => {
+  await waitForHealth(api);
+  const documentId = docker('exec', container, 'python', '-c', `
+import django
+from django.conf import settings
+from urllib.request import Request, urlopen
+from urllib.parse import urlsplit
+django.setup()
+from accounts.models import User
+from documents.models import Document
+user = User.objects.create_user('gateway-credential@example.test')
+document = Document.objects.get(owner=user)
+request = Request('http://127.0.0.1:4011/internal/collaboration/documents/' + document.pk + '/authorize', headers={
+    'Host': urlsplit(settings.APP_ORIGIN).netloc,
+    'X-Remdo-Collaboration-Secret': settings.COLLAB_INTERNAL_SECRET,
+    'X-Remdo-Collaboration-Operator': '1',
+})
+with urlopen(request) as response:
+    assert response.status == 200
+print(document.pk)
+`);
+  // This generated fixture credential stays in the Node process, outside
+  // browser traces and request attachments. Never print it in diagnostics.
+  const secret = docker('exec', container, 'python', '-c',
+    'from django.conf import settings; print(settings.COLLAB_INTERNAL_SECRET)');
+  const origin = process.env.DOCKER_TEST_ORIGIN!;
+  class PrivilegedWebSocket extends WebSocket {
+    constructor(address: string | URL) {
+      super(address, {
+        rejectUnauthorized: false,
+        headers: {
+          Origin: origin,
+          'X-Remdo-Collaboration-Secret': secret,
+          'X-Remdo-Collaboration-Operator': '1',
+        },
+      });
+    }
+  }
+  const socket = new HocuspocusProviderWebsocket({
+    url: `${origin.replace('https:', 'wss:')}/collaboration`,
+    WebSocketPolyfill: PrivilegedWebSocket,
+  });
+  const document = new Y.Doc();
+  let resolveOutcome!: (value: string) => void;
+  const outcome = new Promise<string>(resolve => { resolveOutcome = resolve; });
+  const provider = new HocuspocusProvider({
+    name: documentId,
+    document,
+    websocketProvider: socket,
+    onAuthenticationFailed: ({ reason }) => resolveOutcome(reason),
+    onSynced: ({ state }) => { if (state) resolveOutcome('unexpected operator access'); },
+  });
+  try {
+    provider.attach();
+    expect(await outcome).toBe('permission-denied');
+    expect(provider.synced).toBe(false);
+  } finally {
+    provider.destroy();
+    socket.destroy();
+    document.destroy();
+  }
 });

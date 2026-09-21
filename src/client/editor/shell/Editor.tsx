@@ -36,18 +36,16 @@ import './Editor.css';
 
 interface EditorProps {
   docId: string;
+  accountId?: string;
   onSelectHome: () => void;
   statusPortalRoot: HTMLElement | null;
-  sourceOrigin?: string | null;
-  sourceId?: string | null;
   onPendingDocumentImportError?: (error: Error) => void;
 }
 
 export default function Editor({
   docId,
+  accountId,
   statusPortalRoot,
-  sourceOrigin = null,
-  sourceId = null,
   onPendingDocumentImportError,
   onSelectHome,
 }: EditorProps) {
@@ -56,7 +54,7 @@ export default function Editor({
   return (
     <div className="editor-container">
       <LexicalComposer initialConfig={editorInitialConfig}>
-        <CollaborationPlugin docId={docId} sourceOrigin={sourceOrigin} sourceId={sourceId}>
+        <CollaborationPlugin docId={docId} accountId={accountId}>
           <EditorRuntime
             docId={docId}
             statusPortalRoot={statusPortalRoot}

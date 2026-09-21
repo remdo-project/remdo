@@ -11,7 +11,7 @@ if [[ "$#" -ne 0 ]]; then
   exit 1
 fi
 
-HOME_ORIGIN="$(pnpm exec tsx ./tools/dev/print-app-origin.ts)"
+HOME_ORIGIN="$(node --import tsx ./tools/dev/print-app-origin.ts)"
 HOME_DATA_DIR="${DATA_DIR%/}/docker-home"
 HOME_CONTAINER_NAME="remdo-dev-docker-${PORT}"
 
@@ -43,7 +43,5 @@ remdo_docker_run "${IMAGE_NAME}" "${HOME_DATA_DIR}" \
   -e COLLAB_SERVER_PORT="${COLLAB_SERVER_PORT}" \
   -e REMDO_DEV_CONTAINER=true \
   -e DJANGO_SETTINGS_MODULE=remdo.development \
-  -e YSWEET_CONNECTION_STRING="${YSWEET_CONNECTION_STRING}" \
   -e AUTH_SECRET="${AUTH_SECRET}" \
-  -e YSWEET_AUTH_KEY="${YSWEET_AUTH_KEY}" \
-  -e YSWEET_SERVER_TOKEN="${YSWEET_SERVER_TOKEN}"
+  -e COLLAB_INTERNAL_SECRET="${COLLAB_INTERNAL_SECRET}"

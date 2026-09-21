@@ -7,6 +7,13 @@
 	bind {$REMDO_GATEWAY_BIND_ADDRESS:0.0.0.0}
 
 	route {
+		request_header -X-Remdo-Collaboration-Secret
+		request_header -X-Remdo-Collaboration-Operator
+		@internal path /internal /internal/*
+		handle @internal {
+			header Cache-Control "no-store"
+			respond 404
+		}
 		header Cache-Control "no-cache"
 		handle /health {
 			rewrite * /api/health
@@ -33,7 +40,7 @@
 			file_server
 		}
 
-		@collab path /d /d/*
+		@collab path /collaboration
 		handle @collab {
 			reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT} {
 				header_down Cache-Control "no-store"

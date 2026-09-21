@@ -26,123 +26,16 @@ short topic headings. Remove rejected or obsolete items and empty sections.
 
 ## Backlog
 
-### Django backend replacement
+### Backend follow-up
 
-Rebuild the application backend around Django, minimizing custom infrastructure
-and operational work through established libraries and services.
-
-- **Target:** Django owns authentication, authorization, application metadata,
-  migrations, administration, and Y-Sweet token issuance. Retain the existing
-  frontend/editor and Yjs/Y-Sweet document collaboration. Replace Yjs
-  app-resource projections with established server-state/cache tooling; TanStack
-  Query/DB are candidates, not commitments.
-- **Approach:** Create temporary integration branch `feat/django-backend` from
-  `main`, recording the starting commit as the behavioral reference. Create
-  small implementation branches from it; their PRs target and are reviewed
-  against it under [Git Workflow](../CONTRIBUTING.md#git-workflow). Temporary
-  missing functionality is acceptable; completed slices must work and pass
-  relevant checks. Retain useful unaffected code, without backward
-  compatibility, legacy-data migration, or keeping the old backend operational.
-  Merge the integration branch into `main` only after a separate whole-migration
-  review and full verification against the completion criteria below, then
-  retire it.
-- **Starting commit:** `668e3729b94f42be4bc54f20c36fd78575a21155` (`main`).
-- **Completion:** Deliver a working development baseline. Retire the old
-  runtime, except reference code retained for the [cross-server redesign](#cross-server-linking-redesign). Verify
-  all [run modes](run-modes.md), local sharing, offline behavior, account/instance cache
-  isolation, and ordinary data/secret persistence through restart and
-  redeployment. Record deliberate behavior changes in their owning
-  specifications.
-- **Milestone boundary:** Merging into `main` does not establish public-release
-  readiness or the final data reset; further destructive resets remain
-  permitted. [Hocuspocus migration, backup/recovery, and public-release readiness](#operations)
-  are separate post-merge milestones. Other backlog entries do not expand
-  migration scope.
-- **Remaining checks:** verify actual Render deployment and public-certificate
-  issuance using [Production Deployment](guides/production-deployment.md). Docker
-  E2E covers a rootful daemon: its launcher requires no daemon mode, so the
-  workflow's default runner exercises that path on every run.
-  The two-environment [blueprint](../render.yaml) is authored but not applied,
-  and both its environments deploy `main`, so the Render deployment check runs
-  after the merge: delete the superseded Render resources before merging, then
-  apply the blueprint. Whether that check gates the merge is unresolved.
-  Complete the whole-migration review and verification, including an audit of
-  migration-only tooling outside the [retained reference-code exception](#cross-server-linking-redesign).
-
-Simplification follow-up:
-
-1. [x] Delegate administration authentication to the [shared allauth sign-in](specs/access/access-control.md#admin-role),
-   applying its rate limits and browser login handoff while retaining Django
-   staff and model authorization.
-2. [x] Move reference-only `@better-auth/core`, `@better-auth/oauth-provider`,
-   `better-auth`, `better-sqlite3`, `hono`, and `kysely` to development dependencies
-   and align production audit roots. Preserve the [retained reference code](#cross-server-linking-redesign)
-   and active snapshot tooling.
-3. [x] Remove the discarded sync-token probe and its document-route loading gate.
-   Let the collaboration provider authorize access; use the generated API client
-   for its local token request while preserving cancellation and offline editing.
-4. [x] Remove retired Node authentication checks and eager trusted-origin
-   calculation from active frontend configuration. Keep Django responsible for
-   live authentication settings, including its development secret, and localize
-   reference-only configuration to retained code.
-5. [x] Remove the unused `publicServer` flag from active Django responses,
-   generated types, bootstrap storage, and fixtures. Preserve reference-code
-   consumers and the still-used CSRF fields.
-
-Convergence follow-up, from the whole-branch review:
-
-1. [x] Decide the pending sign-out page's presentation. Signing in now finishes
-   the revocation the user already asked for and then hands off to the credential
-   form, so one control replaces the previous pair and no ordering has to be
-   inferred. A device that cannot reach the server withholds the action and says
-   why, and a failed revocation reports itself instead of looping. The
-   [logout contract](specs/access/access-control.md#authenticated-app-access) now
-   states the requirement as one explicit finishing action rather than a named
-   button.
-2. [x] Give the gateway's `/doc/{id}/auth` block an owning assertion. Docker E2E
-   now asserts that the gateway answers Y-Sweet's control surface from Django
-   rather than proxying it, so widening the `/d/*` matcher or reordering the
-   handlers fails a check instead of exposing privileged token minting.
-3. [x] Confirm `ALLOWED_HOSTS`, derived from `APP_ORIGIN`, accepts Render's
-   health prober. This cannot be settled here: the blueprint is unapplied and both
-   its environments deploy `main`, so it belongs to the Render deployment check
-   under Remaining checks above rather than to this list.
-4. [x] Restore `./tools/django.sh test --parallel N`. Python 3.14 defaults
-   `multiprocessing` to `forkserver`, whose authentication handshake fails under
-   Django's parallel runner; forcing `fork` runs the suite clean. Not applied:
-   `fork` is the default 3.14 moved away from, no script or workflow passes
-   `--parallel`, and the serial suite takes about five seconds. Reconsider if the
-   suite grows enough for parallelism to matter.
-5. [x] Resolve document rename, specified as live behavior by
-   [Location header](specs/outliner/location-header.md#document-rename) with no
-   API endpoint and no client implementation. Accepted as temporary missing
-   functionality under this entry's approach, which permits it; delivering the
-   capability is tracked with the [location header work](#ux-direction).
-6. [x] Settle `startRemdoApiServer({ port })`. The helper now reads the resolved
-   configuration, so the launcher's `PORT_BASE`-derived port is the only one, and
-   no per-call argument competes with that isolation contract. Honoring preset
-   service ports in `tools/env.defaults.sh` was considered and rejected: `PORT`
-   derives from `PORT_BASE`, whose shift moves
-   [every derived port as one unit](specs/runtime/configuration.md#network-addressing),
-   so an individually preset port would fall outside its block. The assignments
-   now say so where a reader would otherwise read them as an oversight.
-7. [x] Route the collaboration-failure log through `RequestErrorFormatter`. The
-   `documents` logger now shares the framework loggers' handler. A root handler
-   would cover future modules without enumeration but also captures
-   `django.db.backends`, adding a production log stream the request-error test
-   rejects.
-
-Withheld simplifications, non-blocking. Each was assessed during convergence and
-left unapplied because no alternative was clearly preferred; none gates the merge.
-Reconsider individually rather than as a batch: `CenteredCardPage` dropping
-Mantine for plain markup, which argues against the
-[UI library default](../CONTRIBUTING.md#ui-libraries); the coupled `remdo.sqlite`
-secret-bootstrap probe and its Node-upgrade guide paragraph; the completed
-checklist above; the architecture document's SPA route enumeration; port-rule
-ownership between agent instructions and
-[configuration](specs/runtime/configuration.md#network-addressing); the
-always-Python `setup-pnpm` composite; the Docker build-revision mismatch block;
-splitting the long Docker specs; and `revokeServerSession`'s two-phase bound.
+- Verify actual Render deployment and public-certificate issuance using
+  [Production Deployment](guides/production-deployment.md), including health-prober compatibility with
+  `ALLOWED_HOSTS`. Rootful Docker coverage is exercised by the default CI runner.
+- Reconsider the remaining simplifications withheld by the Django review:
+  `CenteredCardPage` and the [UI library default](../CONTRIBUTING.md#ui-libraries), SPA route enumeration,
+  port-rule ownership, the always-Python `setup-pnpm` composite, the Docker
+  build-revision mismatch block, long Docker specs, and `revokeServerSession`'s
+  two-phase bound.
 
 ### Cross-server linking redesign
 
@@ -153,12 +46,94 @@ reachability, failure reporting, and cache isolation together. Reconsider
 public signup independently of linking; preserve the [multi-origin direction](principles.md#multi-origin-direction)
 without committing to the previous OAuth topology.
 
-To avoid reviewing temporary architecture twice, retain the unused Node
-backend, source adapters, projections, linking scripts/tests, and their
-dependencies as reference code until this redesign. They do not provide supported
-cross-server functionality. Replace or remove them together with the redesign;
-do not migrate or extend them as a Django completion requirement. The
-withdrawn source-linking specification remains in Git history.
+The withdrawn Node backend, source adapters, projections, linking
+implementation, and specification remain available in Git history as reference.
+Their future redesign does not require maintaining an operational legacy
+implementation.
+
+### Post-Hocuspocus simplification proposals
+
+Proposals from a read-only assessment of what the Hocuspocus migration leaves
+over-general, given a full data reset with no migration or backward-compatibility
+obligation. Each was filtered by whether it would exist in a from-scratch
+Hocuspocus and Django design. They are candidates, not accepted work; resolve
+each against its current owner before acting, and remove entries that assessment
+rejects. Evidence and the rejected alternatives are recorded in
+`.agent/post-ysweet-simplifications.md`.
+
+Code items assume no contract change:
+
+1. **Collaboration state and provider adapter.** `sawProviderAck` masks
+   Y-Sweet's unacknowledged-at-construction sentinel, which Hocuspocus cannot
+   reproduce; the `handshaking` connection status has no writer; `setDocId` and
+   `awaitHydrated` have no production callers; and the neutral provider-event
+   vocabulary abstracts over a single provider. Rewrite the specs that pin the
+   masked state to the real invariant rather than deleting them.
+2. **Launcher attaches to an occupied collaboration port.** `ensureCollabServer`
+   defaults to reusing a server already listening, so a second working directory
+   runs against another instance's collaboration server. This contradicts the
+   launcher rule in [Configuration](specs/runtime/configuration.md#network-addressing)
+   and defeats `PORT_BASE` isolation. Resolve before the broader launcher work
+   under [Tooling](#tooling); it is a behavior gap, not only simplification.
+3. **Collaboration launcher asymmetry.** The development collaboration script
+   spawns a detached child rather than executing the server directly as the API
+   script does, which also routes its output to a log file instead of the
+   aggregated development output. Collapsing it removes the spawn helper and one
+   of four copies of the wait-for-port loop. Coordinate with
+   [Tooling](#tooling)'s launcher-complexity entry.
+4. **Browser collaboration origin selection.** The client still chooses which
+   origin hosts collaboration, including a fallback that cannot resolve because
+   its configuration keys are not browser-exposed. [Architecture](architecture.md#routing-and-origin-boundary)
+   already states that browser collaboration uses the current same-origin
+   endpoint; the client has not caught up.
+5. **Single-source document residue.** Production supplies exactly one hard-coded
+   document source, leaving statically false branches in the toolbar's label
+   qualification, the source-local action split, and the workspace source
+   lookup. Removing the dead branches is independent of the visible grouping in
+   the Current Server decision below.
+6. **Duplicated server contract types.** The hand-written user-document and
+   document-access interfaces mirror serializers that the generated API schema
+   already describes, following the precedent already used for the current-user
+   payload. Aligning optionality removes a hand-maintained drift risk.
+7. **Test-only flexibility in product code.** The collection-source input
+   normalization exists so tests can pass plain arrays; production always passes
+   a live source.
+8. **Repeated internal-service constants and helpers.** The container port pair
+   is hard-coded in three places after its configuration helper lost its
+   Y-Sweet job; three credential-injecting WebSocket subclasses differ only by
+   header; and two origin-printing scripts spawn a runtime to echo values their
+   caller already exports. Test-support consolidation belongs with
+   [Tooling](#tooling)'s test-organization entry.
+
+Decisions requiring a contract owner's judgement:
+
+1. **Encrypted local persistence.** The browser cache reimplements offline
+   encryption that Y-Sweet previously supplied, as a hand-owned store combining
+   AES-GCM, key-generation epochs, two lock mechanisms, cross-tab notification,
+   and compaction. [Logout](specs/access/access-control.md#logout) requires both
+   bounded local completion and cleared local Yjs data, and key deletion
+   currently satisfies both. Replacing it with an established IndexedDB provider
+   requires accepting that an undeletable database leaves readable data on the
+   device, which is a [privacy-first](principles.md#non-negotiables) decision
+   rather than cleanup. Decide the threat model before the implementation.
+2. **Current Server grouping.** Collapsing the remaining source abstraction
+   depends on whether [Home](specs/outliner/home.md) keeps a visible source
+   grouping and its local-source document action. Decide Home's shape first;
+   the [multi-origin direction](principles.md#multi-origin-direction) does not
+   require the present implementation.
+3. **Collaboration database access boundary.** Routing content load and store
+   through Django costs a bespoke loopback HTTP client preserving the canonical
+   host, paired constant-time secret checks, and gateway header stripping.
+   Direct database access from the collaboration server would remove that
+   plumbing but place credentials in a second writer, which the
+   [architecture test](principles.md#architecture-test) disfavors. The narrower
+   question is whether the canonical-host workaround still earns its place.
+4. **Withdrawn federation vocabulary.** [Architecture](architecture.md) still
+   presents source-server and multi-hub vocabulary as current architecture
+   although its implementation, specifications, and tests were withdrawn. Trim
+   it to the retained principle and let the [linking redesign](#cross-server-linking-redesign)
+   introduce vocabulary when it lands. This is the doc prose only, not the
+   redesign that entry tracks.
 
 ### Account administration
 
@@ -232,15 +207,14 @@ withdrawn source-linking specification remains in Git history.
   maintenance without introducing a general worker or scheduler architecture for
   this task.
 
-- **Hocuspocus migration.** Replace Y-Sweet with Hocuspocus after the Django
-  integration merges. Reassess collaboration, persistence, and runtime
-  boundaries when scoping the work. If document content stops living on the
-  persistent disk, revisit the staging reset in
-  [Production Deployment](guides/production-deployment.md): its steps exist
-  only because disk-resident collaboration state and the database must be
-  cleared together.
+- **Durable collaboration acknowledgements.** [Synced](architecture.md#hydration-vs-sync) currently acknowledges
+  receipt in the collaboration server before SQL persistence. The accepted crash
+  window can lose acknowledged edits and grows during database outages. Design
+  durable-save acknowledgements and their browser/logout semantics when stronger
+  guarantees are required; headless writes already require a committed
+  persistence barrier.
 
-- **Backup and recovery.** After Hocuspocus, define and verify coherent recovery
+- **Backup and recovery.** Define and verify coherent recovery
   for [supported deployments](guides/production-deployment.md), covering application metadata, document content,
   and secrets. The Django image has no scheduled exporter or backup scheduler.
   Reassess readable exports, scheduling, maintenance-failure behavior, and
@@ -294,13 +268,10 @@ withdrawn source-linking specification remains in Git history.
   [consumer API principles](principles.md#consumer-apis) and the session's ownership boundaries. Preserve each
   operation's owning behavior while reconsidering the SDK shape.
 
-  Reassess whether app-resource projections need Yjs or would be simpler with
-  established server-state/cache tooling, including its observation API. The
-  [document registry](architecture.md#document-registry) owns the current storage boundary; this comparison
-  concerns app resources, not replacement of collaborative document storage.
-  Choose tools against a concrete consumer and the [performance work](#performance), not the
-  existing projection layout. Coordinate resource-read changes with the
-  [offline document-inventory follow-up](architecture.md#future), and non-current-document access and
+  Keep resource reads aligned with the [document registry](architecture.md#document-registry) and choose tools
+  against a concrete consumer and the [performance work](#performance). Coordinate
+  resource-read changes with the [offline document-inventory follow-up](architecture.md#future), and
+  non-current-document access and
   cross-document query/loading with the
   [legacy Note-first SDK follow-ups](legacy-backlog.md#note-first-sdk-follow-ups).
 
@@ -357,19 +328,6 @@ withdrawn source-linking specification remains in Git history.
   update listener dispatching a mutating command would now defer silently
   instead of warning. File the upstream report, then drop the patch once a
   release fixes it.
-
-- **Report Y-Sweet's pending-connection cancellation bug upstream.** In
-  `@y-sweet/client` 0.9.1, start `connect()` with a deferred token callback, call
-  `disconnect()`, then resolve or reject the callback. The departed attempt can
-  still open a socket or report a token failure and retry; calling `connect()`
-  again before it settles is refused because the old loop remains active. This
-  breaks page departure and Back/Forward-cache restoration.
-
-  File an upstream issue with a minimal reproduction and propose the
-  cancellation fix in the [registered client patch](../patches/@y-sweet__client@0.9.1.patch). Preserve genuine failures
-  for active attempts. The [provider lifecycle regressions](../tests/unit/collab/provider-page-lifecycle.collab.spec.ts) and
-  [native cache tests](../tests/e2e/app/collaboration-lifecycle.spec.ts) cover the behavior, including shared token consumers.
-  Remove the patch when a released client passes that coverage without it.
 
 ### UX direction
 

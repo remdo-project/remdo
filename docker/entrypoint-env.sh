@@ -21,9 +21,8 @@ remdo_configure_internal_services() {
     API_SERVER_PORT=4011
     COLLAB_SERVER_PORT=4004
   fi
-  YSWEET_CONNECTION_STRING="ys://127.0.0.1:${COLLAB_SERVER_PORT}"
 
-  export API_SERVER_PORT COLLAB_SERVER_PORT YSWEET_CONNECTION_STRING
+  export API_SERVER_PORT COLLAB_SERVER_PORT
 }
 
 remdo_configure_caddy_env() {

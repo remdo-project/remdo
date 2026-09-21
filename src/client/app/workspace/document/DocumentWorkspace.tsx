@@ -1,6 +1,6 @@
 import { Alert } from '@mantine/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useUserData } from '#client/app/user-data/user-data';
+import { useUserData, useUserDataRuntime } from '#client/app/user-data/user-data';
 import {
   useDocumentSearchModel,
 } from '#client/app/workspace/useDocumentSearchModel';
@@ -46,6 +46,7 @@ export default function DocumentWorkspace({
   const { requestZoomNoteId } = useEditorViewActions();
   const zoomPath = useZoomPath();
   const userData = useUserData();
+  const { userId } = useUserDataRuntime();
   const documentSources = userData.getDocumentSources().getChildren();
   const source = resolveDocumentSource(docId, documentSources);
   const [importError, setImportError] = useState<{ docId: string; message: string } | null>(null);
@@ -112,10 +113,9 @@ export default function DocumentWorkspace({
         ? 'document-editor-pane document-editor-pane--hidden'
         : 'document-editor-pane'}>
         <Editor
-          key={`${source.sourceId ?? 'local'}:${docId}`}
+          key={docId}
           docId={docId}
-          sourceOrigin={source.sourceOrigin}
-          sourceId={source.sourceId}
+          accountId={userId}
           statusPortalRoot={statusHost}
           onSelectHome={onSelectHome}
           onPendingDocumentImportError={handleImportError}
