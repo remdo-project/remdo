@@ -59,8 +59,9 @@ and operational work through established libraries and services.
   are separate post-merge milestones. Other backlog entries do not expand
   migration scope.
 - **Remaining checks:** verify actual Render deployment and public-certificate
-  issuance using [Production Deployment](guides/production-deployment.md), and confirm rootful Docker coverage
-  from CI.
+  issuance using [Production Deployment](guides/production-deployment.md). Docker
+  E2E covers a rootful daemon: its launcher requires no daemon mode, so the
+  workflow's default runner exercises that path on every run.
   The two-environment [blueprint](../render.yaml) is authored but not applied,
   and both its environments deploy `main`, so the Render deployment check runs
   after the merge: delete the superseded Render resources before merging, then
@@ -102,20 +103,22 @@ Convergence follow-up, from the whole-branch review:
    now asserts that the gateway answers Y-Sweet's control surface from Django
    rather than proxying it, so widening the `/d/*` matcher or reordering the
    handlers fails a check instead of exposing privileged token minting.
-3. [ ] Confirm `ALLOWED_HOSTS`, derived from `APP_ORIGIN`, accepts Render's
-   health prober while verifying the [deployment](guides/production-deployment.md).
-4. [ ] Restore `./tools/django.sh test --parallel N`, which fails under Python
-   3.14 with a multiprocessing `ConnectionResetError`. The failure predates the
-   migration branch and is unrelated to its test-label defaulting.
-5. [ ] Resolve document rename, specified as live behavior by
-   [Location header](specs/outliner/location-header.md) with no client code or
-   API endpoint, and equally absent before the branch. Either implement it or
-   record it as accepted temporary missing functionality.
-6. [ ] Decide the sharing surfaces this review left alone: a failed document load
-   rendering as an indistinguishable empty state, a no-op document reselect
-   clearing in-progress email input, and share `400` responses flattened to one
-   message that contradicts the self-share and malformed-address cases.
-7. [x] Settle `startRemdoApiServer({ port })`. The helper now reads the resolved
+3. [x] Confirm `ALLOWED_HOSTS`, derived from `APP_ORIGIN`, accepts Render's
+   health prober. This cannot be settled here: the blueprint is unapplied and both
+   its environments deploy `main`, so it belongs to the Render deployment check
+   under Remaining checks above rather than to this list.
+4. [x] Restore `./tools/django.sh test --parallel N`. Python 3.14 defaults
+   `multiprocessing` to `forkserver`, whose authentication handshake fails under
+   Django's parallel runner; forcing `fork` runs the suite clean. Not applied:
+   `fork` is the default 3.14 moved away from, no script or workflow passes
+   `--parallel`, and the serial suite takes about five seconds. Reconsider if the
+   suite grows enough for parallelism to matter.
+5. [x] Resolve document rename, specified as live behavior by
+   [Location header](specs/outliner/location-header.md#document-rename) with no
+   API endpoint and no client implementation. Accepted as temporary missing
+   functionality under this entry's approach, which permits it; delivering the
+   capability is tracked with the [location header work](#ux-direction).
+6. [x] Settle `startRemdoApiServer({ port })`. The helper now reads the resolved
    configuration, so the launcher's `PORT_BASE`-derived port is the only one, and
    no per-call argument competes with that isolation contract. Honoring preset
    service ports in `tools/env.defaults.sh` was considered and rejected: `PORT`
@@ -123,21 +126,23 @@ Convergence follow-up, from the whole-branch review:
    [every derived port as one unit](specs/runtime/configuration.md#network-addressing),
    so an individually preset port would fall outside its block. The assignments
    now say so where a reader would otherwise read them as an oversight.
-8. [ ] Reconsider the simplifications this review withheld: `CenteredCardPage`
-   dropping Mantine for plain markup, which argues against the
-   [UI library default](../CONTRIBUTING.md#ui-libraries); the coupled
-   `remdo.sqlite` secret-bootstrap probe and its Node-upgrade guide paragraph;
-   the completed checklist above; the architecture document's SPA route
-   enumeration; port-rule ownership between agent instructions and
-   [configuration](specs/runtime/configuration.md#network-addressing); the
-   always-Python `setup-pnpm` composite; the Docker build-revision mismatch
-   block; splitting the long Docker specs; and `revokeServerSession`'s two-phase
-   bound.
-9. [x] Route the collaboration-failure log through `RequestErrorFormatter`. The
+7. [x] Route the collaboration-failure log through `RequestErrorFormatter`. The
    `documents` logger now shares the framework loggers' handler. A root handler
    would cover future modules without enumeration but also captures
    `django.db.backends`, adding a production log stream the request-error test
    rejects.
+
+Withheld simplifications, non-blocking. Each was assessed during convergence and
+left unapplied because no alternative was clearly preferred; none gates the merge.
+Reconsider individually rather than as a batch: `CenteredCardPage` dropping
+Mantine for plain markup, which argues against the
+[UI library default](../CONTRIBUTING.md#ui-libraries); the coupled `remdo.sqlite`
+secret-bootstrap probe and its Node-upgrade guide paragraph; the completed
+checklist above; the architecture document's SPA route enumeration; port-rule
+ownership between agent instructions and
+[configuration](specs/runtime/configuration.md#network-addressing); the
+always-Python `setup-pnpm` composite; the Docker build-revision mismatch block;
+splitting the long Docker specs; and `revokeServerSession`'s two-phase bound.
 
 ### Cross-server linking redesign
 
@@ -395,6 +400,12 @@ concrete unmet need.
   authentication failure gets its own surface with a route to sign-in rather than
   a Retry that cannot succeed, and whether that surface replaces the stale
   listing. Server-side [expired-session cleanup](#operations) is separate.
+
+- **Sharing surfaces.** Decide three presentations the Django review left alone:
+  a failed document load rendering as an empty state indistinguishable from
+  having nothing to share, a no-op document reselect clearing in-progress email
+  input, and share `400` responses flattened to one message that contradicts the
+  self-share and malformed-address cases.
 
 - **Document deletion.** Decide permissions, effects on collaborators and
   linked sources, and recovery or confirmation before adding deletion to
