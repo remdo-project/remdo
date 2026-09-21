@@ -117,9 +117,12 @@ Convergence follow-up, from the whole-branch review:
    message that contradicts the self-share and malformed-address cases.
 7. [x] Settle `startRemdoApiServer({ port })`. The helper now reads the resolved
    configuration, so the launcher's `PORT_BASE`-derived port is the only one, and
-   no per-call argument competes with that isolation contract. Making
-   `tools/env.defaults.sh` honor preset service ports generally — rather than
-   re-deriving over them — remains open and affects every launcher.
+   no per-call argument competes with that isolation contract. Honoring preset
+   service ports in `tools/env.defaults.sh` was considered and rejected: `PORT`
+   derives from `PORT_BASE`, whose shift moves
+   [every derived port as one unit](specs/runtime/configuration.md#network-addressing),
+   so an individually preset port would fall outside its block. The assignments
+   now say so where a reader would otherwise read them as an oversight.
 8. [ ] Reconsider the simplifications this review withheld: `CenteredCardPage`
    dropping Mantine for plain markup, which argues against the
    [UI library default](../CONTRIBUTING.md#ui-libraries); the coupled
@@ -384,13 +387,14 @@ concrete unmet need.
 
 - **Session end while the app is open.** Decide what a mounted app shows when the
   server session expires or is revoked. Today the document listing keeps
-  rendering its cached contents, then an alert reports only "Could not load
-  documents" and offers a Retry that refetches against the ended session and
-  fails again; the stale list stays clickable, and opening a document is what
-  incidentally reaches the route loader's redirect. Distinguish an
-  authentication failure from an ordinary fetch failure, carry the error a
-  reader needs, and decide whether the surface replaces the listing or leaves it
-  in place. Server-side [expired-session cleanup](#operations) is separate.
+  rendering its cached contents, then an alert offers a Retry that refetches
+  against the ended session and fails again; the stale list stays clickable, and
+  opening a document is what incidentally reaches the route loader's redirect.
+  The alert now carries the failure's message, so an expired session reads
+  differently from an unreachable server. Still to decide: whether an
+  authentication failure gets its own surface with a route to sign-in rather than
+  a Retry that cannot succeed, and whether that surface replaces the stale
+  listing. Server-side [expired-session cleanup](#operations) is separate.
 
 - **Document deletion.** Decide permissions, effects on collaborators and
   linked sources, and recovery or confirmation before adding deletion to

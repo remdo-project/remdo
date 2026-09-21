@@ -27,8 +27,12 @@ export function useUserDataStatus() {
   const runtime = useUserDataRuntime();
   const bootstrap = useQuery(runtime.bootstrapQuery);
   const documents = useQuery(runtime.documentsQuery);
+  const error = bootstrap.error ?? documents.error;
   return {
-    error: bootstrap.error ?? documents.error,
+    // Reported rather than only detected: a bare title leaves the reader without
+    // the one detail that distinguishes an expired session from an unreachable
+    // server, and both render the same otherwise.
+    error: error === null ? null : (error instanceof Error ? error.message : 'Failed to load documents.'),
     retry: () => {
       void bootstrap.refetch();
       void documents.refetch();
