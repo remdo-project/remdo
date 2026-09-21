@@ -34,14 +34,17 @@ async function waitForPort(host: string, port: number, child: ChildProcess): Pro
 export type StopRemdoApiServer = () => Promise<void>;
 
 interface RemdoApiServerOptions {
-  port?: number;
   ySweetConnectionString?: string;
 }
 
+// The port comes from the resolved configuration rather than a caller argument:
+// the launcher derives it from this checkout's PORT_BASE block, so an argument
+// could only disagree with the server that actually starts. Runtimes needing a
+// different port shift PORT_BASE, which every other launcher already honors.
 export async function startRemdoApiServer({
-  port = config.env.API_SERVER_PORT,
   ySweetConnectionString = config.env.YSWEET_CONNECTION_STRING,
 }: RemdoApiServerOptions = {}): Promise<StopRemdoApiServer> {
+  const port = config.env.API_SERVER_PORT;
   if (await isPortOpen(INTERNAL_SERVICE_HOST, port)) {
     throw new Error(`RemDo API server already running on http://${INTERNAL_SERVICE_HOST}:${port}`);
   }

@@ -91,7 +91,6 @@ export default async function collabTestRuntime() {
 
   try {
     const stopApi = await startRemdoApiServer({
-      port: config.env.API_SERVER_PORT,
       ySweetConnectionString: config.env.YSWEET_CONNECTION_STRING,
     });
     return () => stopAll([stopApi, stopCollab]);
