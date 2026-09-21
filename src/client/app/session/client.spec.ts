@@ -198,6 +198,29 @@ describe('auth client session gate', () => {
     }
   });
 
+  it('still revokes the server session when the pending marker cannot be stored', async () => {
+    // A missing generation reads as "already settled", so an unwritable marker
+    // would skip the logout request and let the next revalidation restore access.
+    const { hasPendingSignOut, rememberPendingSignOut, resolveSessionGateState, revokeServerSession } =
+      await import('#client/app/session/client');
+    signOutMock.mockResolvedValue(undefined);
+    getSessionMock.mockResolvedValue({ user: { id: 'user1' } });
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+    });
+
+    try {
+      rememberPendingSignOut();
+
+      expect(hasPendingSignOut()).toBe(true);
+      await expect(revokeServerSession()).resolves.toBe(true);
+      expect(signOutMock).toHaveBeenCalledOnce();
+      await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
   it('exposes the pending-sign-out write as a storage event peers can observe', async () => {
     const {
       isPendingSignOutStorageEvent,

@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useLayoutEffect } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
-import { CONFIRMED_SIGN_OUT_KEY, PENDING_SIGN_OUT_STORAGE_KEY } from './client';
+import { CONFIRMED_SIGN_OUT_KEY, PENDING_SIGN_OUT_STORAGE_KEY, forgetPendingSignOut } from './client';
 import LoginRoute from './LoginRoute';
 
 const signOutMock = vi.hoisted(() => vi.fn());
@@ -14,6 +14,9 @@ afterEach(() => {
   signOutMock.mockReset();
   vi.restoreAllMocks();
   Object.defineProperty(navigator, 'onLine', { configurable: true, value: true });
+  // The session module keeps an in-memory sign-out generation for storage that
+  // refuses writes, so clearing browser storage alone leaves it set.
+  forgetPendingSignOut();
 });
 
 it('observes logout confirmation arriving between render and subscription', async () => {
