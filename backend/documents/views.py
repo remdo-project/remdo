@@ -94,7 +94,7 @@ class SyncTokenView(generics.GenericAPIView):
         try:
             return Response(issue_token(document.id))
         except httpx.HTTPError as error:
-            logger.error("collaboration.token-issuance-failed")
+            logger.exception("collaboration.token-issuance-failed")
             raise CollaborationUnavailable() from error
 
 

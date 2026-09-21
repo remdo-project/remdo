@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.test import Client, SimpleTestCase, TestCase, override_settings
+from remdo.logging import RequestErrorFormatter
 
 from . import collaboration
 from .collaboration import issue_token
@@ -108,13 +109,21 @@ class DocumentFlowTests(TestCase):
         document = Document.objects.get(owner=self.owner)
         self.sign_in()
 
-        with patch(
-            "documents.views.issue_token", side_effect=httpx.ConnectError("refused")
-        ) as issue:
+        def unavailable(request):
+            raise httpx.ConnectError("private-upstream-details", request=request)
+
+        with (
+            patch.object(collaboration.httpx, "Client", _mock_client(unavailable)),
+            self.assertLogs("documents.views", level="ERROR") as logs,
+        ):
             response = self.post(f"/api/documents/{document.id}/sync-tokens")
 
         self.assertEqual(response.status_code, 502)
-        issue.assert_called_once_with(document.id)
+        diagnostic = RequestErrorFormatter().format(logs.records[0])
+        fields = json.loads(diagnostic)
+        self.assertEqual(fields["exception"], "ConnectError")
+        self.assertTrue(any(frame["function"] == "issue_token" for frame in fields["frames"]))
+        self.assertNotIn("private-upstream-details", diagnostic)
 
     def test_owner_shares_with_existing_account_and_grant_is_idempotent(self):
         document = Document.objects.get(owner=self.owner)
