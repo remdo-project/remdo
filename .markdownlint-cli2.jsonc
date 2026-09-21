@@ -37,7 +37,7 @@
   // external and absolute paths ignored.
   "customRules": [
     "markdownlint-rule-relative-links",
-    "./tools/markdownlint-rules/link-aware-line-length.mjs"
+    "./tools/markdownlint-rules/link-aware-line-length.ts"
   ],
   "config": {
     "default": true,

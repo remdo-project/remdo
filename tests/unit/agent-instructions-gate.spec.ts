@@ -5,7 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const checker = path.resolve('tools/check-agent-instructions.mjs');
+const checker = path.resolve('tools/check-agent-instructions.ts');
 const repositories: string[] = [];
 
 function repository() {

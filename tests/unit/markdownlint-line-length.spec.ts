@@ -1,6 +1,6 @@
 import { lint } from 'markdownlint-cli2/markdownlint/promise';
 import { describe, expect, it } from 'vitest';
-import linkAwareLineLength from '../../tools/markdownlint-rules/link-aware-line-length.mjs';
+import linkAwareLineLength from '../../tools/markdownlint-rules/link-aware-line-length.ts';
 
 async function violations(markdown: string, lineLength = 80): Promise<number[]> {
   const results = await lint({
