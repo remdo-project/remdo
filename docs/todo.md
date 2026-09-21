@@ -98,29 +98,26 @@ Convergence follow-up, from the whole-branch review:
    [logout contract](specs/access/access-control.md#authenticated-app-access) now
    states the requirement as one explicit finishing action rather than a named
    button.
-2. [ ] Define how a session that expires or is revoked while the app is mounted
-   recovers. The document-listing alert drops its error and offers a Retry that
-   re-runs a permanently failing query, with no route to sign-in.
-3. [ ] Give the gateway's `/doc/{id}/auth` block an owning assertion. Only
+2. [ ] Give the gateway's `/doc/{id}/auth` block an owning assertion. Only
    `/doc/new` survives in the current suite, and that route mints
    full-authorization tokens with the privileged server token.
-4. [ ] Confirm `ALLOWED_HOSTS`, derived from `APP_ORIGIN`, accepts Render's
+3. [ ] Confirm `ALLOWED_HOSTS`, derived from `APP_ORIGIN`, accepts Render's
    health prober while verifying the [deployment](guides/production-deployment.md).
-5. [ ] Restore `./tools/django.sh test --parallel N`, which fails under Python
+4. [ ] Restore `./tools/django.sh test --parallel N`, which fails under Python
    3.14 with a multiprocessing `ConnectionResetError`. The failure predates the
    migration branch and is unrelated to its test-label defaulting.
-6. [ ] Resolve document rename, specified as live behavior by
+5. [ ] Resolve document rename, specified as live behavior by
    [Location header](specs/outliner/location-header.md) with no client code or
    API endpoint, and equally absent before the branch. Either implement it or
    record it as accepted temporary missing functionality.
-7. [ ] Decide the sharing surfaces this review left alone: a failed document load
+6. [ ] Decide the sharing surfaces this review left alone: a failed document load
    rendering as an indistinguishable empty state, a no-op document reselect
    clearing in-progress email input, and share `400` responses flattened to one
    message that contradicts the self-share and malformed-address cases.
-8. [ ] Settle `startRemdoApiServer({ port })`, honored by its preflight and
+7. [ ] Settle `startRemdoApiServer({ port })`, honored by its preflight and
    readiness probes while the spawned server takes the launcher's
    `PORT_BASE`-derived port. Either let preset ports win or narrow the signature.
-9. [ ] Reconsider the simplifications this review withheld: `CenteredCardPage`
+8. [ ] Reconsider the simplifications this review withheld: `CenteredCardPage`
    dropping Mantine for plain markup, which argues against the
    [UI library default](../CONTRIBUTING.md#ui-libraries); the coupled
    `remdo.sqlite` secret-bootstrap probe and its Node-upgrade guide paragraph;
@@ -130,8 +127,8 @@ Convergence follow-up, from the whole-branch review:
    always-Python `setup-pnpm` composite; the Docker build-revision mismatch
    block; splitting the long Docker specs; and `revokeServerSession`'s two-phase
    bound.
-10. [ ] Route the collaboration-failure log through `RequestErrorFormatter`, or
-    accept that `documents.views` emits through Django's last-resort handler.
+9. [ ] Route the collaboration-failure log through `RequestErrorFormatter`, or
+   accept that `documents.views` emits through Django's last-resort handler.
 
 ### Cross-server linking redesign
 
@@ -378,6 +375,16 @@ concrete unmet need.
   discoverability before replacing the existing zoom-root row. Reconsider
   explicit inline Edit/Done only if those tasks expose a persistent problem; a
   rich-note draft modal is outside this work.
+
+- **Session end while the app is open.** Decide what a mounted app shows when the
+  server session expires or is revoked. Today the document listing keeps
+  rendering its cached contents, then an alert reports only "Could not load
+  documents" and offers a Retry that refetches against the ended session and
+  fails again; the stale list stays clickable, and opening a document is what
+  incidentally reaches the route loader's redirect. Distinguish an
+  authentication failure from an ordinary fetch failure, carry the error a
+  reader needs, and decide whether the surface replaces the listing or leaves it
+  in place. Server-side [expired-session cleanup](#operations) is separate.
 
 - **Document deletion.** Decide permissions, effects on collaborators and
   linked sources, and recovery or confirmation before adding deletion to
