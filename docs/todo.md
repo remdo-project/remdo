@@ -98,9 +98,10 @@ Convergence follow-up, from the whole-branch review:
    [logout contract](specs/access/access-control.md#authenticated-app-access) now
    states the requirement as one explicit finishing action rather than a named
    button.
-2. [ ] Give the gateway's `/doc/{id}/auth` block an owning assertion. Only
-   `/doc/new` survives in the current suite, and that route mints
-   full-authorization tokens with the privileged server token.
+2. [x] Give the gateway's `/doc/{id}/auth` block an owning assertion. Docker E2E
+   now asserts that the gateway answers Y-Sweet's control surface from Django
+   rather than proxying it, so widening the `/d/*` matcher or reordering the
+   handlers fails a check instead of exposing privileged token minting.
 3. [ ] Confirm `ALLOWED_HOSTS`, derived from `APP_ORIGIN`, accepts Render's
    health prober while verifying the [deployment](guides/production-deployment.md).
 4. [ ] Restore `./tools/django.sh test --parallel N`, which fails under Python
@@ -114,9 +115,11 @@ Convergence follow-up, from the whole-branch review:
    rendering as an indistinguishable empty state, a no-op document reselect
    clearing in-progress email input, and share `400` responses flattened to one
    message that contradicts the self-share and malformed-address cases.
-7. [ ] Settle `startRemdoApiServer({ port })`, honored by its preflight and
-   readiness probes while the spawned server takes the launcher's
-   `PORT_BASE`-derived port. Either let preset ports win or narrow the signature.
+7. [x] Settle `startRemdoApiServer({ port })`. The helper now reads the resolved
+   configuration, so the launcher's `PORT_BASE`-derived port is the only one, and
+   no per-call argument competes with that isolation contract. Making
+   `tools/env.defaults.sh` honor preset service ports generally — rather than
+   re-deriving over them — remains open and affects every launcher.
 8. [ ] Reconsider the simplifications this review withheld: `CenteredCardPage`
    dropping Mantine for plain markup, which argues against the
    [UI library default](../CONTRIBUTING.md#ui-libraries); the coupled
@@ -127,8 +130,11 @@ Convergence follow-up, from the whole-branch review:
    always-Python `setup-pnpm` composite; the Docker build-revision mismatch
    block; splitting the long Docker specs; and `revokeServerSession`'s two-phase
    bound.
-9. [ ] Route the collaboration-failure log through `RequestErrorFormatter`, or
-   accept that `documents.views` emits through Django's last-resort handler.
+9. [x] Route the collaboration-failure log through `RequestErrorFormatter`. The
+   `documents` logger now shares the framework loggers' handler. A root handler
+   would cover future modules without enumeration but also captures
+   `django.db.backends`, adding a production log stream the request-error test
+   rejects.
 
 ### Cross-server linking redesign
 
