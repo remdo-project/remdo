@@ -1,3 +1,5 @@
+import WebSocket from 'ws';
+import { config } from '#config';
 import { request as playwrightRequest } from 'playwright';
 import { resolveApiServerOrigin } from '#platform/net/origins';
 import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
@@ -65,7 +67,14 @@ export function withTestAuthentication(
 
 export async function installAuthenticatedApiFetch(): Promise<() => void> {
   const authentication = await getCollabTestAuthentication();
+  const originalWebSocket = globalThis.WebSocket;
+  class AuthenticatedWebSocket extends WebSocket {
+    constructor(url: string | URL) {
+      super(url, { headers: { Cookie: authentication.cookie, Origin: config.env.APP_ORIGIN } });
+    }
+  }
+  globalThis.WebSocket = AuthenticatedWebSocket as unknown as typeof globalThis.WebSocket;
   const originalFetch = globalThis.fetch.bind(globalThis);
   globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => originalFetch(withTestAuthentication(input, init, authentication));
-  return () => { globalThis.fetch = originalFetch; };
+  return () => { globalThis.fetch = originalFetch; globalThis.WebSocket = originalWebSocket; };
 }

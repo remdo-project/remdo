@@ -8,7 +8,6 @@ import {
 } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { createUserDocument } from '../_support/documents';
-import { HTTP_STATUS } from '#platform/http/status';
 
 test('Sharing remains recoverable when a remembered session has no offline bootstrap', async ({ page }) => {
   await page.goto('/about/');
@@ -175,7 +174,7 @@ test.describe('Routing', () => {
   test('logs out the active session from the app header', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
-    await createIndexedDb(page, 'y-sweet-logout-test');
+    await createIndexedDb(page, 'remdo-encrypted-v1-logout-test');
     const navigations = await countNavigations(page);
 
     allowUnauthorizedNetwork(page);
@@ -184,11 +183,11 @@ test.describe('Routing', () => {
     await expectPath(page, '/');
     await expect(page.getByRole('status')).toContainText(/signed out/i);
     await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeFocused();
-    await expect.poll(async () => hasIndexedDb(page, 'y-sweet-logout-test')).toBe(false);
+    await expect.poll(async () => hasIndexedDb(page, 'remdo-encrypted-v1-logout-test')).toBe(false);
     // Logout replaces the view in place; a reload would add a navigation entry.
     expect(await countNavigations(page)).toBe(navigations);
     const bootstrapStatus = await page.evaluate(async () => (await fetch('/api/current-user')).status);
-    expect(bootstrapStatus).toBe(HTTP_STATUS.FORBIDDEN);
+    expect(bootstrapStatus).toBe(403);
   });
 
   test('signs out every tab sharing the browser storage', async ({ page, context }) => {

@@ -11,6 +11,7 @@ import { createMockProvider, createMockProviderFactory } from '#tests-collab/moc
 function createSession(docId: string) {
   const docMap = new Map<string, Y.Doc>([[docId, new Y.Doc()]]);
   const mock = createMockProvider();
+  mock.synced = true;
   const session = new CollabSession({
     docId,
     enabled: true,
@@ -46,6 +47,24 @@ describe('collaboration session unsynced document ledger', () => {
     });
     session.attach(docMap);
     sessions.push(session);
+
+    expect(session.snapshot().hasLocalChanges).toBe(false);
+    expect(hasUnsyncedLocalChanges()).toBe(false);
+  });
+
+  it('does not treat cached updates before the first sync as newly unsaved work', () => {
+    const docId = 'cached-doc';
+    const mock = createMockProvider();
+    const session = new CollabSession({
+      docId,
+      enabled: true,
+      providerFactory: createMockProviderFactory(mock),
+    });
+    session.attach(new Map([[docId, new Y.Doc()]]));
+    sessions.push(session);
+
+    mock.hasLocalChanges = true;
+    mock.emit('local-changes', true);
 
     expect(session.snapshot().hasLocalChanges).toBe(false);
     expect(hasUnsyncedLocalChanges()).toBe(false);

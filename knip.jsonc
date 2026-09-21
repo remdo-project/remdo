@@ -3,8 +3,6 @@
   "vite": true,
   "vitest": true,
   "playwright": true,
-  // Docker copies this native binary; Python starts it without importing its JS launcher.
-  "ignoreDependencies": ["y-sweet"],
   "ignoreUnresolved": [
     // Shell scripts invoked at runtime via spawnSync/execFileSync from specs, not module imports.
     "./tools/env.sh",
@@ -15,15 +13,11 @@
   // live implementation details, not dead production code.
   "ignoreExportsUsedInFile": true,
   "entry": [
-    // Reference code retained for docs/todo.md#cross-server-linking-redesign.
-    "src/server/{app,auth/auth,auth/trusted-origins,db/client,documents/document-registry}.ts",
-    // Snapshot tooling still has consumers; the Node backup exporter is reference
-    // code, not a supported Django command. See docs/todo.md#operations.
     "tools/snapshot/cli.ts!",
-    "tools/snapshot/backup.ts",
-    // Retained source-linking fixture for the same post-migration redesign.
+    "src/collaboration-server/main.ts!",
     "playwright.docker.config.ts",
-    "tests/e2e/docker/_support/seed-source-user.ts",
+    // Browser tests import this fixture through Vite URLs inside page.evaluate.
+    "tests/e2e/_support/local-persistence-browser.ts",
     "tools/{check-pnpm-policy,collab-server,generate-api-client}.ts",
     ".agents/skills/remdo-verify-change/tools/run-reviews.ts",
     // Vite config is the only importer of the shared app-shell route declaration.
@@ -38,13 +32,6 @@
     // `!` marks the production graph used by `knip --production`.
     "src/**/*.{ts,tsx,mts}!",
     "!src/**/*.spec.{ts,tsx,mts}!",
-    // Retained backend and shared helpers have reference-only exports.
-    // Full-mode auditing covers them; live snapshot imports still resolve their dependencies.
-    "!src/server/**!",
-    "!src/domain/documents/special-documents.ts!",
-    "!src/projection/yjs-ordered-map-array.ts!",
-    "!src/platform/http/status.ts!",
-    "!src/platform/net/http-origin.ts!",
     "config/{index.ts,env/**/*.ts}!",
     "tests/**/*.{ts,tsx,mts}",
     "config/{_internal,eslint,playwright,vite}/**/*.{ts,tsx,mts}",

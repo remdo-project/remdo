@@ -96,7 +96,6 @@ describe('prod Docker launcher', () => {
       encoding: 'utf8',
       env: {
         ...process.env,
-        ALLOW_SIGNUP: '',
         APP_ORIGIN: '',
         AUTH_SECRET: 'production-auth-secret-0123456789',
         CADDY_BIND_DIRECTIVE: 'bind 0.0.0.0',
@@ -114,8 +113,7 @@ describe('prod Docker launcher', () => {
         REMDO_FAKE_MKDIR_LOG: mkdirLog,
         REMDO_FAKE_SLEEP_LOG: sleepLog,
         REMDO_GATEWAY_BIND_ADDRESS: '127.0.0.1',
-        YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
-        YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
+        COLLAB_INTERNAL_SECRET: 'production-collab-secret',
         ...overrides,
       },
     });
@@ -136,6 +134,7 @@ describe('prod Docker launcher', () => {
 
     expect(dockerOptionValues(runArgs, '--name')).toEqual(['remdo-8443']);
     expect(dockerOptionValues(runArgs, '--restart')).toEqual(['unless-stopped']);
+    expect(dockerOptionValues(runArgs, '--stop-timeout')).toEqual(['55']);
     expect(dockerOptionValues(runArgs, '-p')).toEqual(['127.0.0.1:8443:8443']);
     expect(dockerOptionValues(runArgs, '-v')).toEqual([`${dataDir}:/data`]);
     expect(runArgs).toContain('-d');
@@ -191,7 +190,7 @@ describe('prod Docker launcher', () => {
       'inspect',
       'exec',
     ]);
-    expect(findDockerCall(dockerCalls, 'stop')).toEqual(['stop', 'remdo-8443']);
+    expect(findDockerCall(dockerCalls, 'stop')).toEqual(['stop', '--timeout', '55', 'remdo-8443']);
     expect(findDockerCall(dockerCalls, 'rm')).toEqual(['rm', 'remdo-8443']);
     expect(dockerOptionValues(findDockerCall(dockerCalls, 'run'), '--name')).toEqual(['remdo-8443']);
   });
@@ -301,13 +300,13 @@ describe('prod Docker launcher', () => {
 
   it('stops an instance that fails before the restart policy activates', () => {
     const { result, dockerCalls } = runLauncher({
-      REMDO_FAKE_CONTAINER_LOGS: 'Production service y-sweet exited unexpectedly with status 42.',
+      REMDO_FAKE_CONTAINER_LOGS: 'Production service collaboration exited unexpectedly with status 42.',
       REMDO_FAKE_CONTAINER_STATE: 'false 0',
     });
 
     expect(result.status).not.toBe(0);
     expect(result.stdout).not.toContain('Docker target:');
-    expect(result.stderr).toContain('Production service y-sweet exited unexpectedly with status 42.');
+    expect(result.stderr).toContain('Production service collaboration exited unexpectedly with status 42.');
     expect(result.stderr).toContain('RemDo failed to become healthy; container remdo-8443 was stopped.');
     expect(dockerCalls.map(([command]) => command)).toEqual([
       'build',
@@ -360,8 +359,7 @@ describe('prod Docker launcher', () => {
   it('omits bootstrap-managed secrets when unset', () => {
     const { result, dockerCalls } = runLauncher({
       AUTH_SECRET: '',
-      YSWEET_AUTH_KEY: '',
-      YSWEET_SERVER_TOKEN: '',
+      COLLAB_INTERNAL_SECRET: '',
     });
 
     expect(result.status, result.stderr).toBe(0);

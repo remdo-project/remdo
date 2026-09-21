@@ -101,8 +101,7 @@ describe('development runtime launchers', () => {
   it('runs the local Docker app on the host network', () => {
     const { dataDir, result, dockerCalls } = runDockerLauncher({
       AUTH_SECRET: 'launcher-auth-secret',
-      YSWEET_AUTH_KEY: 'launcher-ysweet-auth-key',
-      YSWEET_SERVER_TOKEN: 'launcher-ysweet-server-token',
+      COLLAB_INTERNAL_SECRET: 'launcher-collab-secret',
     });
 
     expect(result.status, result.stderr).toBe(0);
@@ -127,9 +126,7 @@ describe('development runtime launchers', () => {
       REMDO_GATEWAY_BIND_ADDRESS: '127.0.0.1',
       REMDO_DEV_CONTAINER: 'true',
       AUTH_SECRET: 'launcher-auth-secret',
-      YSWEET_AUTH_KEY: 'launcher-ysweet-auth-key',
-      YSWEET_CONNECTION_STRING: 'ys://127.0.0.1:4644',
-      YSWEET_SERVER_TOKEN: 'launcher-ysweet-server-token',
+      COLLAB_INTERNAL_SECRET: 'launcher-collab-secret',
     });
   });
 

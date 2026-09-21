@@ -57,14 +57,6 @@ class CurrentUserSerializer(serializers.ModelSerializer):
         fields = ["userId"]
 
 
-class ClientTokenSerializer(serializers.Serializer):
-    docId = serializers.CharField()
-    url = serializers.CharField()
-    baseUrl = serializers.CharField()
-    token = serializers.CharField(required=False)
-    authorization = serializers.ChoiceField(choices=["full", "read-only"], required=False)
-
-
 class ConfigSerializer(serializers.Serializer):
     buildRevision = serializers.CharField(allow_blank=True)
     csrfCookieName = serializers.CharField()

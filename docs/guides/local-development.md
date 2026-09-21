@@ -82,14 +82,13 @@ resetting shared working-directory data because the command deletes every
 email-matched stable user and their documents before creating fresh users and documents.
 
 The command creates fresh document IDs, loads the fixture contents, and waits
-for collaboration persistence before completing. Fixture management commands
+for the collaboration persistence barrier to commit content to the database
+before completing. Fixture management commands
 are available only in Development and Verification; Production uses Django's
 normal account administration.
 
 The reset revokes the stable users' sessions. It preserves unrelated local users
-and their data. Removed document
-IDs remain inaccessible, but the live collaboration service does not reclaim
-their underlying storage.
+and their data. Deleting the old documents also deletes their persisted content.
 
 ### Run PWA Preview
 

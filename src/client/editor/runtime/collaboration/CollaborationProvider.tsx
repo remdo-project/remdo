@@ -2,10 +2,8 @@ import type { ReactNode } from 'react';
 import { createContext, useMemo, use, useEffect, useSyncExternalStore } from 'react';
 import { config } from '#config';
 import { CollabSession } from '#collaboration/session';
-import { createSourceDocumentSyncTokenApiPath } from '#document-routes';
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
 import {
-  resolveApiServerOrigin,
   resolveCollabServerOrigin,
   resolveLocalGatewayOrigin,
 } from '#platform/net/origins';
@@ -38,27 +36,23 @@ export function useCollaborationStatus(): CollaborationStatusValue {
 export function CollaborationProvider({
   children,
   docId,
-  sourceOrigin = null,
-  sourceId = null,
+  accountId,
 }: {
   children: ReactNode;
   docId: string;
-  sourceOrigin?: string | null;
-  sourceId?: string | null;
+  accountId?: string;
 }) {
-  const value = useCollaborationRuntimeValue({ docId, sourceOrigin, sourceId });
+  const value = useCollaborationRuntimeValue({ docId, accountId });
 
   return <CollaborationStatusContext value={value}>{children}</CollaborationStatusContext>;
 }
 
 function useCollaborationRuntimeValue({
   docId,
-  sourceOrigin,
-  sourceId,
+  accountId,
 }: {
   docId: string;
-  sourceOrigin: string | null;
-  sourceId: string | null;
+  accountId?: string;
 }): CollaborationStatusValue {
   const enabled = config.env.COLLAB_ENABLED;
   const resolvedDocId = useMemo(
@@ -75,27 +69,15 @@ function useCollaborationRuntimeValue({
     }
     return resolveLocalGatewayOrigin();
   }, []);
-  const resolvedApiOrigin = useMemo(() => {
-    if (config.env.NODE_ENV === 'test') {
-      return resolveApiServerOrigin();
-    }
-    if (location.origin && location.origin !== 'null') {
-      return location.origin;
-    }
-    return resolveLocalGatewayOrigin();
-  }, []);
 
   const session = useMemo(
     () => new CollabSession({
-      origin: sourceOrigin ?? resolvedOrigin,
-      apiOrigin: resolvedApiOrigin,
-      createSyncTokenPath: sourceId
-        ? (tokenDocId) => createSourceDocumentSyncTokenApiPath(sourceId, tokenDocId)
-        : undefined,
+      origin: resolvedOrigin,
+      accountId,
       enabled,
       docId: resolvedDocId,
     }),
-    [resolvedApiOrigin, resolvedOrigin, enabled, resolvedDocId, sourceOrigin, sourceId]
+    [resolvedOrigin, accountId, enabled, resolvedDocId]
   );
 
   useEffect(() => () => session.destroy(), [session]);

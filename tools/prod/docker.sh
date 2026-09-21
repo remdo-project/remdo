@@ -67,7 +67,7 @@ fi
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
 if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
-  docker stop "${CONTAINER_NAME}"
+  docker stop --timeout 55 "${CONTAINER_NAME}"
   docker rm "${CONTAINER_NAME}" >/dev/null 2>&1 || true
   container_removed=false
   for _ in {1..100}; do
@@ -129,7 +129,7 @@ fi
 
 if [[ "${startup_ready}" != "true" ]]; then
   docker logs "${CONTAINER_NAME}" >&2 || true
-  docker stop "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+  docker stop --timeout 55 "${CONTAINER_NAME}" >/dev/null 2>&1 || true
   echo "RemDo failed to become healthy; container ${CONTAINER_NAME} was stopped." >&2
   exit 1
 fi

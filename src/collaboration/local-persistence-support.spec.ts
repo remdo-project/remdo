@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 async function loadRuntime() {
   vi.resetModules();
@@ -48,6 +48,10 @@ function createDeleteRequest(): IDBOpenDBRequest {
     },
   } as unknown as IDBOpenDBRequest;
 }
+
+beforeEach(() => {
+  vi.stubGlobal('navigator', { locks: {} });
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();

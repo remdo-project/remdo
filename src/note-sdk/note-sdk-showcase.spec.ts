@@ -193,32 +193,10 @@ describe('note SDK showcase', () => {
       expect(shared.getText()).toBe('Bob');
     });
 
-    it('reads source servers through the same projected collection shape', () => {
-      const userData = createUserDataRootNote([], [{
-        id: 'source',
-        label: 'Source Server',
-        baseUrl: 'https://source.example',
-      }], {});
-
-      const sourceServers = userData.getSourceServers();
-
-      expect(sourceServers.getId()).toBe('source-servers');
-      expect(sourceServers.getKind()).toBe('collection');
-      expect(sourceServers.getChildren().map((server) => ({
-        id: server.getId(),
-        text: server.getText(),
-        baseUrl: server.getBaseUrl(),
-      }))).toEqual([{
-        id: 'source',
-        text: 'Source Server',
-        baseUrl: 'https://source.example',
-      }]);
-    });
-
     it('reads grouped document sources as collection notes', () => {
       const localDocuments = [{ id: 'localDoc', title: 'Local Document' }];
       const remoteDocuments = [{ id: 'sourceDoc', title: 'Source Document' }];
-      const userData = createUserDataRootNote(localDocuments, [], {
+      const userData = createUserDataRootNote(localDocuments, {
         documentSources: {
           getById: (sourceId) => sourceId === 'source'
             ? {

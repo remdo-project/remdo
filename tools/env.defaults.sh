@@ -50,7 +50,6 @@ remdo_configure_environment() {
     COLLAB_SERVER_PORT="$((PORT_BASE + 4))"
     API_SERVER_PORT="$((PORT_BASE + 11))"
     PREVIEW_PORT="$((PORT_BASE + 20))"
-    YSWEET_CONNECTION_STRING="ys://127.0.0.1:${COLLAB_SERVER_PORT}"
 
     if [ -z "${PUBLIC_HOST:-}" ] && [ "${HOST}" = "0.0.0.0" ]; then
       PUBLIC_HOST="$(hostname)"
@@ -86,21 +85,9 @@ remdo_configure_environment() {
   if [ -z "${AUTH_SECRET:-}" ] && [ "${1}" != "production" ]; then
     AUTH_SECRET="development-auth-secret-0123456789"
   fi
-  if [ -z "${YSWEET_AUTH_KEY:-}" ] && [ "${1}" != "production" ]; then
-    YSWEET_AUTH_KEY="WLo8wx1G1lGKpIDaDjky9npTrV_fW8jCpRVtB8rd"
+  if [ -z "${COLLAB_INTERNAL_SECRET:-}" ] && [ "${1}" != "production" ]; then
+    COLLAB_INTERNAL_SECRET="development-collaboration-secret-0123456789"
   fi
-  if [ -z "${YSWEET_SERVER_TOKEN:-}" ] && [ "${1}" != "production" ]; then
-    YSWEET_SERVER_TOKEN="AAAgOkIiPro6W2lCzxyW6BDQkuOmTVSfs0MZh-4PGTM_st0"
-  fi
-
-  case "${1}" in
-    production)
-      : "${ALLOW_SIGNUP:=false}"
-      ;;
-    *)
-      : "${ALLOW_SIGNUP:=true}"
-      ;;
-  esac
 
   # Development and verification derive every browser-facing port here. Hosted
   # production PORT is container-internal; the self-hosted launcher validates its
@@ -112,8 +99,8 @@ remdo_configure_environment() {
   fi
 
   export NODE_ENV HOST PUBLIC_HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI TMPDIR
-  export VITEST_PORT COLLAB_SERVER_PORT API_SERVER_PORT PREVIEW_PORT YSWEET_CONNECTION_STRING
-  export AUTH_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_ORIGIN ALLOW_SIGNUP
+  export VITEST_PORT COLLAB_SERVER_PORT API_SERVER_PORT PREVIEW_PORT
+  export AUTH_SECRET COLLAB_INTERNAL_SECRET APP_ORIGIN
   if [ "$1" = production ]; then
     DJANGO_SETTINGS_MODULE=remdo.settings
   else

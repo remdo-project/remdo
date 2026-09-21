@@ -87,13 +87,13 @@ the repository; production containers use `/data` for the mounted root.
 
 Production [public shared files](../../architecture.md#gateway) live in `/data/public-share`.
 
-Document content persists on the filesystem under `DATA_DIR/collab` in every
+Document content persists alongside metadata in the configured database in every
 run mode.
 
 ## Secret bootstrap
 
-Production startup generates the application authentication secret and matched
-Y-Sweet authentication pair into one private `secrets.json` file under the
+Production startup generates the application authentication secret and internal
+collaboration secret into one private `secrets.json` file under the
 [production persistence root](../../architecture.md#runtime-persistence-boundary).
 Python owns initialization and loading; Django management commands use the same
 bundle. Individual environment variables do not override production secrets.

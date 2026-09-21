@@ -1,6 +1,6 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
-import { setExpectedConsoleIssues, withPageGuards } from '#e2e/fixtures';
+import { withPageGuards } from '#e2e/fixtures';
 import { clearZoom, editorLocator, homeZoomBreadcrumb, noteRow, zoomBreadcrumbs } from '#editor/locators';
 import { load, waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
@@ -141,27 +141,34 @@ for (const target of ['note7', 'missingNote'] as const) {
       await peerContext.close();
     }
 
-    let releaseToken!: () => void;
-    const tokenGate = new Promise<void>((resolve) => { releaseToken = resolve; });
+    let releaseConnection!: () => void;
+    const connectionGate = new Promise<void>((resolve) => { releaseConnection = resolve; });
     let releaseRetry!: () => void;
     const retryGate = new Promise<void>((resolve) => { releaseRetry = resolve; });
     let failConnection = true;
-    setExpectedConsoleIssues(page, ['net::ERR_FAILED', 'Failed to get client token'], { mode: 'allowContains' });
-    await page.route(`**/api/documents/${editor.docId}/sync-tokens`, async (route) => {
-      await tokenGate;
-      if (failConnection) {
-        await route.abort('failed');
-      } else {
-        await retryGate;
-        await route.continue();
-      }
+    await page.routeWebSocket('**/collaboration', (socket) => {
+      const server = socket.connectToServer();
+      const interrupt = failConnection;
+      let closed = false;
+      server.onMessage(async (message) => {
+        await connectionGate;
+        if (interrupt) {
+          if (closed) return;
+          closed = true;
+          await socket.close({ code: 1000, reason: 'test interruption' });
+          await server.close();
+        } else {
+          await retryGate;
+          socket.send(message);
+        }
+      });
     });
     try {
       await page.goto(createEditorDocumentPath(editor.docId, target));
       await expect(editorLocator(page).locator('.editor-input')).toBeEditable();
       await expect(noteRow(page, 'note1')).toBeVisible();
       await expect(page).toHaveURL(createEditorDocumentPath(editor.docId, target));
-      releaseToken();
+      releaseConnection();
       await expect(page.getByLabel(/Server disconnected/)).toBeVisible();
       failConnection = false;
       await expect(page).toHaveURL(createEditorDocumentPath(editor.docId, target));
@@ -177,7 +184,7 @@ for (const target of ['note7', 'missingNote'] as const) {
       }
     } finally {
       failConnection = false;
-      releaseToken();
+      releaseConnection();
       releaseRetry();
     }
   });

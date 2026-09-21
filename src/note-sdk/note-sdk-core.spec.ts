@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { SourceServer } from '#domain/source-servers';
 import type { CollectionSource, DocumentSource, UserDocument } from '#note-sdk';
 import { createUserDataRootNote } from '#note-sdk';
 
-function createFixture(): { documents: UserDocument[]; sourceServers: SourceServer[] } {
+function createFixture(): { documents: UserDocument[] } {
   return {
     documents: [
       {
@@ -19,11 +18,6 @@ function createFixture(): { documents: UserDocument[]; sourceServers: SourceServ
       },
       { id: 'flat', shareable: false, title: 'Flat' },
     ],
-    sourceServers: [{
-      id: 'source',
-      label: 'Source Server',
-      baseUrl: 'https://source.example',
-    }],
   };
 }
 
@@ -82,7 +76,7 @@ describe('note SDK user-data core', () => {
         local: false,
       }],
     };
-    const userData = createUserDataRootNote(fixture.documents, fixture.sourceServers, {
+    const userData = createUserDataRootNote(fixture.documents, {
       documentSources,
     });
 
@@ -163,24 +157,4 @@ describe('note SDK user-data core', () => {
     expect(access.getText()).toBe('reader@example.test');
   });
 
-  it('lists source servers through user-data collection traversal', () => {
-    const fixture = createFixture();
-    const sourceServers = createUserDataRootNote(fixture.documents, fixture.sourceServers, {})
-      .getSourceServers();
-    const sourceServer = sourceServers.getById('source')!;
-
-    expect(sourceServers.getKind()).toBe('collection');
-    expect(sourceServers.getChildren().map((server) => ({
-      id: server.getId(),
-      kind: server.getKind(),
-      text: server.getText(),
-      baseUrl: server.getBaseUrl(),
-    }))).toEqual([{
-      id: 'source',
-      kind: 'source-server',
-      text: 'Source Server',
-      baseUrl: 'https://source.example',
-    }]);
-    expect(sourceServer.as('source-server')).toBe(sourceServer);
-  });
 });

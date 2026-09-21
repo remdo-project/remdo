@@ -1,23 +1,40 @@
-import { existsSync, statSync } from 'node:fs';
-import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { waitFor } from '@testing-library/react';
+import * as Y from 'yjs';
 import { config } from '#config';
-import { runPnpm } from '#tools/process';
+import { createProviderFactory, asCollaborationProviderEvents, waitForSync } from '#collaboration/runtime';
+import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
+import { createCollabTestDocument } from './_support/documents';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
-describe('collab persistence', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
-  const docId = 'persistCollabTest';
-  const docDir = path.join(config.env.DATA_DIR, 'collab', docId);
-  const dataFile = path.join(docDir, 'data.ysweet');
-  const snapshotPath = path.join(config.env.DATA_DIR, `${docId}.json`);
+const headers = { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET };
 
-  it('writes collaboration data to disk via y-sweet', async () => {
-    expect(existsSync(dataFile)).toBe(false);
-    await runPnpm(['exec', 'tsx', 'tools/snapshot/cli.ts', 'save', '--doc', docId, snapshotPath]);
-    await waitFor(() => {
-      expect(existsSync(dataFile)).toBe(true);
-      expect(statSync(dataFile).size).toBeGreaterThan(0);
-    });
+describe('database collaboration persistence', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
+  it('commits insertions and deletion-only edits before the explicit flush returns', async () => {
+    const id = 'persistCollabTest';
+    await createCollabTestDocument(id);
+    const { provider, doc } = createProviderFactory({ visibleOrigin: resolveCollabServerOrigin() })(id, new Map());
+    const persisted = async () => {
+      await waitForSync(asCollaborationProviderEvents(provider));
+      const flushed = await fetch(`${resolveCollabServerOrigin()}/internal/collaboration/flush/${id}`, { method: 'POST', headers });
+      expect(flushed.status).toBe(204);
+      const response = await fetch(`${resolveApiServerOrigin()}/internal/collaboration/documents/${id}/content`, { headers });
+      expect(response.status).toBe(200);
+      const stored = new Y.Doc();
+      Y.applyUpdate(stored, new Uint8Array(await response.arrayBuffer()));
+      const text = stored.getText('persistence-test').toString();
+      stored.destroy();
+      return text;
+    };
+    try {
+      await provider.connect();
+      await waitForSync(asCollaborationProviderEvents(provider));
+      doc.getText('persistence-test').insert(0, 'durable');
+      expect(await persisted()).toBe('durable');
+      doc.getText('persistence-test').delete(0, 7);
+      expect(await persisted()).toBe('');
+    } finally {
+      provider.destroy();
+      doc.destroy();
+    }
   });
 });

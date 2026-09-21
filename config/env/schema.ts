@@ -21,17 +21,11 @@ export const envSchema = {
   COLLAB_SERVER_PORT: port,
   API_SERVER_PORT: port,
   DEV_DOCUMENT_ID: str,
-  YSWEET_CONNECTION_STRING: str,
-  // Private key passed to Y-Sweet so it can verify document client tokens.
-  YSWEET_AUTH_KEY: str,
-  // Y-Sweet server token used by RemDo API and backup tools.
-  YSWEET_SERVER_TOKEN: str,
+  COLLAB_INTERNAL_SECRET: str,
   // Django's SECRET_KEY; tools/env.defaults.sh supplies the development value.
   AUTH_SECRET: str,
   // Canonical public app URL. Derived in development; required in production.
   APP_ORIGIN: str,
-  // Product signup policy. tools/env.defaults.sh sets true outside production.
-  ALLOW_SIGNUP: boolish,
   VITEST_PORT: port,
   CI: boolish,
 } as const;

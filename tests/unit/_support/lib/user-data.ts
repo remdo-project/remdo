@@ -8,34 +8,13 @@
 import { useSyncExternalStore } from 'react';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { createUserDataRootNote } from '#note-sdk';
-import type { CollectionSource, DocumentSource, UserDataNote, UserDocument } from '#note-sdk';
+import type { UserDataNote, UserDocument } from '#note-sdk';
 
 export const TEST_USER_DATA_DOCUMENT = { id: 'testDoc', title: 'Test Document' } as const;
 
 const listeners = new Set<() => void>();
 const documents: UserDocument[] = [TEST_USER_DATA_DOCUMENT];
-const extraDocumentSources: DocumentSource[] = [];
 let version = 0;
-
-const localDocumentSource: DocumentSource = {
-  baseUrl: null,
-  documents: createMutableCollectionSource(documents),
-  id: 'local',
-  label: 'Current Server',
-  local: true,
-};
-
-const documentSources: CollectionSource<DocumentSource> = {
-  getChildren: () => [localDocumentSource, ...extraDocumentSources],
-  getById: (sourceId) => documentSources.getChildren().find((source) => source.id === sourceId) ?? null,
-};
-
-function createMutableCollectionSource<Item extends { id: string }>(items: readonly Item[]): CollectionSource<Item> {
-  return {
-    getChildren: () => items,
-    getById: (itemId) => items.find((item) => item.id === itemId) ?? null,
-  };
-}
 
 function notifyListeners() {
   for (const listener of listeners) {
@@ -55,18 +34,10 @@ const userData = createUserDataRootNote(documents, {
     bumpVersion();
     return document;
   },
-  documentSources,
 });
 
 export function resetTestUserData(): void {
   documents.splice(0, documents.length, TEST_USER_DATA_DOCUMENT);
-  extraDocumentSources.splice(0);
-  bumpVersion();
-}
-
-export function setTestDocumentSources(sources: readonly DocumentSource[]): void {
-  extraDocumentSources.splice(0);
-  extraDocumentSources.push(...sources);
   bumpVersion();
 }
 
@@ -96,8 +67,10 @@ function useTestUserData(): UserDataNote {
 
 export function mockUserDataModule() {
   const getUserDataStatus = () => ({ error: null, retry: () => {} });
+  const getUserDataRuntime = () => ({ userId: 'test-user' });
   return {
     useUserDataStatus: getUserDataStatus,
     useUserData: useTestUserData,
+    useUserDataRuntime: getUserDataRuntime,
   };
 }

@@ -79,7 +79,7 @@ describe('collaboration test runtime', () => {
     await expect(fs.readFile(sentinelPath, 'utf8')).resolves.toBe('preserve me');
   });
 
-  it('refuses to reuse an occupied Y-Sweet port', async () => {
+  it('refuses to reuse an occupied collaboration port', async () => {
     const probeHost = INTERNAL_SERVICE_HOST;
     await withOccupiedPort(probeHost, async (port) => {
       await expect(ensureCollabServer({ port, reuseExisting: false })).rejects.toThrow(

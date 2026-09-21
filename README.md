@@ -83,7 +83,7 @@ The current application uses:
 
 - **React + TypeScript** for the application;
 - **Lexical** for editing;
-- **Yjs + Y-Sweet** for collaborative document state;
+- **Yjs + Hocuspocus** for collaborative document state;
 - **IndexedDB** for local/offline document persistence;
 - **Django + django-allauth** for authentication and administration;
 - **Django REST Framework** for application APIs;

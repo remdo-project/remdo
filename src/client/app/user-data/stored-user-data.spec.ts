@@ -75,7 +75,6 @@ describe('account metadata', () => {
     const created = await runtime.userData.getDocuments().create('Research');
     expect(created.getText()).toBe('Research');
     expect(runtime.userData.getDocuments().getById('created')?.getText()).toBe('Research');
-    expect(runtime.userData.getSourceServers().getChildren()).toEqual([]);
   });
 
   it('updates the observed document grants after sharing without duplicating a recipient', async () => {

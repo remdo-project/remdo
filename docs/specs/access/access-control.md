@@ -2,7 +2,7 @@
 
 Access control combines authenticated identity, administrative authority, and
 document ownership or grants. These boundaries determine which app state and
-collaboration credentials a user can receive.
+collaborative document state a user can access.
 
 ## Access Scope
 
@@ -91,11 +91,9 @@ Users with full document access may [rename the document](../outliner/location-h
 each submission using the caller's current access; client metadata caches do not
 authorize changes.
 
-The server issues [Y-Sweet document client tokens](../../architecture.md#token-vocabulary) according to the resulting
-access:
-
-- A document owner or direct grantee receives full access.
-- Other users receive no document client token.
+Django authorizes each [collaboration connection](../../architecture.md#collaboration-credentials-and-paths) using its session and trusted
+browser origin. Owners and direct grantees receive full document access; other
+users are denied before document content loads.
 
 ## Admin Role
 

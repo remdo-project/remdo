@@ -1,15 +1,8 @@
-import { expect, test } from '#e2e/fixtures';
+import { test } from '#e2e/fixtures';
 import { createUniqueNoteId } from '#domain/notes/ids';
-import { HTTP_STATUS } from '#platform/http/status';
+import { expectCollaborationDenied } from '../_support/documents';
 
-test.describe('Documents API', () => {
-  test('does not issue Y-Sweet document client tokens for unregistered ids', async ({ page }) => {
-    const docId = createUniqueNoteId();
-
-    const response = await page.request.post(`/api/documents/${docId}/sync-tokens`, {
-      data: {},
-    });
-
-    expect(response.status()).toBe(HTTP_STATUS.NOT_FOUND);
-  });
+test('denies collaboration access for an unregistered document', async ({ page }) => {
+  await page.goto('/');
+  await expectCollaborationDenied(page, createUniqueNoteId());
 });

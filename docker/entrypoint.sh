@@ -31,7 +31,9 @@ python manage.py collectstatic --noinput
 if [ "${REMDO_DEV_CONTAINER:-false}" = "true" ]; then
   python manage.py setup_development_users
 fi
-mkdir -p "${TMPDIR:-/tmp}" "${DATA_DIR%/}/collab" "${DATA_DIR%/}/public-share"
+mkdir -p "${TMPDIR:-/tmp}" "${DATA_DIR%/}/public-share"
+COLLAB_INTERNAL_SECRET="$(python -c 'from django.conf import settings; print(settings.COLLAB_INTERNAL_SECRET)')"
+export COLLAB_INTERNAL_SECRET
 
 managed_children=""
 
@@ -50,52 +52,49 @@ stop_children() {
   child_signal="$1"
   trap - INT TERM
 
-  for managed_child in $managed_children; do
-    child_name="${managed_child%%:*}"
-    child_pid="${managed_child#*:}"
-    signal="$child_signal"
-    # Y-Sweet flushes persistent state through its SIGINT shutdown path.
-    if [ "$child_name" = "y-sweet" ]; then
-      signal="INT"
-    fi
-    kill "-${signal}" "$child_pid" 2>/dev/null || true
-  done
-
-  shutdown_attempts=100
-  while [ "$shutdown_attempts" -gt 0 ]; do
-    children_running=false
+  # Keep Django alive until collaboration has finished its SQL persistence.
+  for stopping_name in caddy collaboration api; do
     for managed_child in $managed_children; do
+      child_name="${managed_child%%:*}"
       child_pid="${managed_child#*:}"
+      [ "$child_name" = "$stopping_name" ] || continue
+      kill "-${child_signal}" "$child_pid" 2>/dev/null || true
+      shutdown_attempts=100
+      # Collaboration allows an in-flight request, a final save, and cleanup.
+      [ "$child_name" != collaboration ] || shutdown_attempts=300
+      while kill -0 "$child_pid" 2>/dev/null && [ "$shutdown_attempts" -gt 0 ]; do
+        sleep 0.1
+        shutdown_attempts="$((shutdown_attempts - 1))"
+      done
       if kill -0 "$child_pid" 2>/dev/null; then
-        children_running=true
-        break
+        echo "Production service ${child_name} exceeded its shutdown deadline." >&2
+        kill -KILL "$child_pid" 2>/dev/null || true
       fi
+      wait "$child_pid" 2>/dev/null || true
     done
-    if [ "$children_running" = "false" ]; then
-      break
-    fi
-    sleep 0.1
-    shutdown_attempts="$((shutdown_attempts - 1))"
-  done
-
-  for managed_child in $managed_children; do
-    child_pid="${managed_child#*:}"
-    if kill -0 "$child_pid" 2>/dev/null; then
-      kill -KILL "$child_pid" 2>/dev/null || true
-    fi
-  done
-  for managed_child in $managed_children; do
-    child_pid="${managed_child#*:}"
-    wait "$child_pid" 2>/dev/null || true
   done
 }
 
 trap 'stop_children INT; exit 130' INT
 trap 'stop_children TERM; exit 143' TERM
 
-start_child y-sweet python -m remdo.collaboration_server
 start_child api gunicorn remdo.wsgi --bind "127.0.0.1:${API_SERVER_PORT}" --threads 4 --graceful-timeout 8
-start_child caddy env -u AUTH_SECRET -u YSWEET_AUTH_KEY -u YSWEET_SERVER_TOKEN \
+python - <<'PYREADY' || { stop_children TERM; exit 1; }
+import os
+import time
+from urllib.request import Request, urlopen
+from urllib.parse import urlsplit
+for attempt in range(100):
+    try:
+        with urlopen(Request(f"http://127.0.0.1:{os.environ['API_SERVER_PORT']}/api/health", headers={"Host": urlsplit(os.environ["APP_ORIGIN"]).netloc}), timeout=1):
+            break
+    except OSError:
+        time.sleep(0.1)
+else:
+    raise SystemExit("Django did not become ready.")
+PYREADY
+start_child collaboration env -u AUTH_SECRET -u DATABASE_URL node /app/collaboration.mjs
+start_child caddy env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 
 while :; do

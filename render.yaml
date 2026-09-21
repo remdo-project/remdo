@@ -22,12 +22,13 @@ projects:
       # YAML 1.1 boolean.
       autoDeploy: false
       healthCheckPath: /health
+      maxShutdownDelaySeconds: 55
       numInstances: 1
       domains:
       - remdo.com
       envVars:
         # Render injects the container's internal PORT. Do not pin it.
-        # Django and Y-Sweet secrets are bootstrapped
+        # Django and collaboration secrets are bootstrapped
         # onto the persistent disk on first run, so they are not set here.
         - key: DATABASE_URL
           fromDatabase:
@@ -57,6 +58,7 @@ projects:
       dockerfilePath: ./docker/Dockerfile
       autoDeployTrigger: checksPass
       healthCheckPath: /health
+      maxShutdownDelaySeconds: 55
       numInstances: 1
       domains:
       - staging.remdo.com

@@ -28,7 +28,7 @@ it('uses the rotated CSRF token independently of cookie names', () => {
 
 it.each([
   'https://another-source.example/api/documents',
-  `${resolveApiServerOrigin()}/d/document/auth`,
+  `${resolveApiServerOrigin()}/internal/collaboration/documents/document/authorize`,
 ])('does not send fixture credentials outside the local API: %s', (url) => {
   const request = withTestAuthentication(url, undefined, {
     cookie: 'session=authenticated',

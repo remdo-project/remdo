@@ -1,22 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
-import type { CollaborationConnectionStatus } from '#collaboration/runtime';
+import type { CollaborationConnectionStatus, LocalPersistenceStatus } from '#collaboration/runtime';
 import { buildCollaborationIndicatorViewModel } from '#client/editor/runtime/collaboration/useCollaborationIndicator';
 
 function resolveView({
   enabled = true,
-  localPersistenceSupported = true,
+  localPersistenceStatus = 'enabled',
   connectionStatus = 'connected',
   hasLocalChanges = false,
 }: {
   enabled?: boolean;
-  localPersistenceSupported?: boolean;
+  localPersistenceStatus?: LocalPersistenceStatus;
   connectionStatus?: CollaborationConnectionStatus;
   hasLocalChanges?: boolean;
 }) {
   return buildCollaborationIndicatorViewModel({
     enabled,
-    localPersistenceSupported,
+    localPersistenceStatus,
     connectionStatus,
     hasLocalChanges,
   });
@@ -32,21 +32,29 @@ describe('collaboration indicator status mapping', () => {
   });
 
   it('returns healthy only when server is connected and local persistence is enabled', () => {
-    expect(resolveStatus({ enabled: true, localPersistenceSupported: true, connectionStatus: 'connected' })).toBe('healthy');
+    expect(resolveStatus({ enabled: true, localPersistenceStatus: 'enabled', connectionStatus: 'connected' })).toBe('healthy');
   });
 
   it('returns degraded when local persistence is disabled', () => {
-    expect(resolveStatus({ enabled: true, localPersistenceSupported: false, connectionStatus: 'connected' })).toBe('degraded');
+    expect(resolveStatus({ enabled: true, localPersistenceStatus: 'disabled', connectionStatus: 'connected' })).toBe('degraded');
+  });
+
+  it('reports a failed cache while server synchronization remains connected', () => {
+    const view = resolveView({ localPersistenceStatus: 'error', connectionStatus: 'connected' });
+    expect(view.localPersistence).toBe('error');
+    expect(view.server).toBe('connected');
+    expect(view.status).toBe('degraded');
+    expect(view.unsaved).toBe(false);
   });
 
   it('returns degraded while server is connecting', () => {
-    expect(resolveStatus({ enabled: true, localPersistenceSupported: true, connectionStatus: 'connecting' })).toBe('degraded');
+    expect(resolveStatus({ enabled: true, localPersistenceStatus: 'enabled', connectionStatus: 'connecting' })).toBe('degraded');
   });
 
   it('returns degraded when server is disconnected', () => {
-    expect(resolveStatus({ enabled: true, localPersistenceSupported: true, connectionStatus: 'disconnected' })).toBe('degraded');
-    expect(resolveStatus({ enabled: true, localPersistenceSupported: true, connectionStatus: 'error' })).toBe('degraded');
-    expect(resolveStatus({ enabled: true, localPersistenceSupported: true, connectionStatus: 'handshaking' })).toBe('degraded');
+    expect(resolveStatus({ enabled: true, localPersistenceStatus: 'enabled', connectionStatus: 'disconnected' })).toBe('degraded');
+    expect(resolveStatus({ enabled: true, localPersistenceStatus: 'enabled', connectionStatus: 'error' })).toBe('degraded');
+    expect(resolveStatus({ enabled: true, localPersistenceStatus: 'enabled', connectionStatus: 'handshaking' })).toBe('degraded');
   });
 });
 
