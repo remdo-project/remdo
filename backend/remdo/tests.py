@@ -28,6 +28,15 @@ print(json.dumps({
     'rate_limits': bool(app_settings.RATE_LIMITS),
 }))
 """
+LOGGING_REPORT = """
+import json, logging
+app = logging.getLogger('documents.views')
+while app and not app.handlers:
+    app = app.parent
+print(json.dumps({
+    'app_formatter': [type(h.formatter).__name__ for h in (app.handlers if app else [])],
+}))
+"""
 PASSWORD_REPORT = """
 import json
 from django.contrib.auth.hashers import make_password, check_password
@@ -118,6 +127,14 @@ class ConfigurationTests(SimpleTestCase):
         ):
             with self.subTest(environment=environment):
                 self.assertEqual(self.settings(report=CLIENT_IP_REPORT, **environment), expected)
+
+    def test_application_diagnostics_reach_the_request_error_formatter(self):
+        # Without a root handler an application logger falls through to Django's
+        # last-resort handler, which emits unformatted text beside the JSON
+        # diagnostics every other production log line uses.
+        result = self.settings(report=LOGGING_REPORT)
+
+        self.assertEqual(result["app_formatter"], ["RequestErrorFormatter"])
 
     def test_native_management_defaults_to_production_without_node(self):
         result = self.settings(NODE_ENV="development", PREVIEW_PORT="4020")

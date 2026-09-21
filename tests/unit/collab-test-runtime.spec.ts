@@ -5,6 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import type { Server } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
+import { config } from '#config';
+import { isPortOpen } from '#tools/net';
 import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
 import { ensureCollabServer } from '#tools/collab-server-helper';
 import { startRemdoApiServer } from '#tools/remdo-api-server-helper';
@@ -88,10 +90,24 @@ describe('collaboration test runtime', () => {
 
   it('refuses to reuse an occupied RemDo API port', async () => {
     const probeHost = INTERNAL_SERVICE_HOST;
-    await withOccupiedPort(probeHost, async (port) => {
-      await expect(startRemdoApiServer({ port })).rejects.toThrow(
+    const port = config.env.API_SERVER_PORT;
+    // The helper takes its port from the resolved configuration, so the preflight
+    // has to be provoked on that port. Under `test:collab` the runtime's own API
+    // server already holds it; otherwise stand in for it.
+    const occupied = (await isPortOpen(probeHost, port)) ? null : createServer();
+    if (occupied) {
+      occupied.listen(port, probeHost);
+      await once(occupied, 'listening');
+    }
+
+    try {
+      await expect(startRemdoApiServer()).rejects.toThrow(
         `RemDo API server already running on http://${probeHost}:${port}`,
       );
-    });
+    } finally {
+      if (occupied) {
+        await closeServer(occupied);
+      }
+    }
   });
 });
