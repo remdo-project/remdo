@@ -132,6 +132,10 @@ test('offline logout discards edits across tabs and isolates the next account', 
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(peer.getByText("You're signed out", { exact: true })).toBeVisible();
     await expect.poll(async () => (await context.request.get('/api/auth/browser/v1/auth/session')).status()).toBe(401);
+    // That click navigates to the credential form; let it land before the next
+    // sign-in issues its own navigation to the same route.
+    await page.waitForURL(/\/accounts\/login\//u);
+    await expect(page.getByLabel('Email:', { exact: true })).toBeVisible();
   }, testInfo);
   await peer.close();
 
