@@ -31,5 +31,9 @@ LOGGING = {
     "loggers": {
         "django.request": {"handlers": ["stderr"], "level": "WARNING", "propagate": False},
         "django.security": {"handlers": ["stderr"], "level": "WARNING", "propagate": False},
+        # Application diagnostics share the formatter rather than falling through
+        # to Django's last-resort handler and its unformatted output. Scoped to
+        # this project's packages so framework loggers keep their own levels.
+        "documents": {"handlers": ["stderr"], "level": "WARNING", "propagate": False},
     },
 }
