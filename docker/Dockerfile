@@ -37,7 +37,7 @@ RUN attempt=1 \
   done
 
 ARG BUILD_REVISION
-RUN BUILD_REVISION="${BUILD_REVISION}" NODE_ENV=production ./tools/env.sh pnpm run build
+RUN BUILD_REVISION="${BUILD_REVISION}" NODE_ENV=production ./tools/env.sh --production pnpm run build
 
 ############################
 # Python dependencies      #

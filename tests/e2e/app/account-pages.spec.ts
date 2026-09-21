@@ -90,6 +90,12 @@ for (const width of [1280, 390]) {
     await page.waitForURL('/');
     // Signing in as the second account cold-loads the app shell again.
     await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible({ timeout: 15_000 });
+    // Anchor on Bob's own starter document so the listing has resolved; the
+    // heading alone renders before it, making the absence check vacuous.
+    await expect(
+      page.getByRole('group', { name: 'Current Server', exact: true })
+        .getByRole('button', { name: 'New Document', exact: true }),
+    ).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('button', { name: 'Alice private document', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => localStorage.getItem('remdo-pending-sign-out'))).toBeNull();
     await page.goto('/about/');
@@ -136,8 +142,8 @@ test('admin sign-in supersedes an unfinished logout in another tab', async ({ pa
     return route.continue();
   });
   await page.getByRole('button', { name: 'Logout', exact: true }).click();
-  const finish = page.getByRole('button', { name: 'Finish signing out', exact: true });
-  await expect(finish).toBeVisible();
+  const pendingNotice = page.getByText('Local data cleared. Signing in finishes signing out first.');
+  await expect(pendingNotice).toBeVisible();
   await page.unroute('**/api/auth/browser/v1/auth/session');
   const revocations: string[] = [];
   page.on('request', (request) => {
@@ -151,8 +157,9 @@ test('admin sign-in supersedes an unfinished logout in another tab', async ({ pa
   await admin.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(admin).toHaveURL(/\/admin\/accounts\/user\/$/u);
   expect(await admin.evaluate(() => localStorage.getItem('remdo-pending-sign-out'))).toBeNull();
-  // The storage event removes the old tab's revocation action without sending it.
-  await expect(finish).toHaveCount(0);
+  // The storage event clears the old tab's pending state without sending its
+  // stale revocation.
+  await expect(pendingNotice).toHaveCount(0);
   expect(revocations).toEqual([]);
   const session = await context.request.get('/api/auth/browser/v1/auth/session');
   expect(session.status()).toBe(200);

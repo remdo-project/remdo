@@ -138,7 +138,6 @@ fi
     env: {
       ...process.env,
       _remdo_port_base_offset: '',
-      ADMIN_SECRET: 'production-admin-secret-0123456789',
       APP_ORIGIN: 'https://remdo.localhost:8443',
       AUTH_SECRET: 'production-auth-secret-0123456789',
       DATA_DIR: dataDir,

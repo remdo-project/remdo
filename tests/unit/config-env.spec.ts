@@ -1,7 +1,9 @@
 /* eslint-disable node/no-process-env */
 import { execFileSync } from 'node:child_process';
-import { hostname } from 'node:os';
-import { describe, expect, it } from 'vitest';
+import fs from 'node:fs';
+import os, { hostname } from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
 import { resolveConfig } from '#config/env/resolve';
 import { CLIENT_KEY_LIST, envSchema } from '#config/env/schema';
 import type { EnvKey } from '#config/env/schema';
@@ -22,6 +24,13 @@ function readEnvShValue(name: string, overrides: NodeJS.ProcessEnv, production =
 }
 
 describe('config env resolve', () => {
+  const directories: string[] = [];
+  afterEach(() => {
+    for (const directory of directories.splice(0)) {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   it('resolves the canonical development origin independently of frontend build mode', () => {
     expect(readEnvShValue('APP_ORIGIN', {
       NODE_ENV: 'production',
@@ -35,6 +44,26 @@ describe('config env resolve', () => {
       PORT_BASE: '5100', HOST: '0.0.0.0',
     })).toBe(`http://${hostname()}:5100`);
   });
+
+  it.each(['', 'localhost', 'localhost.localdomain', 'localdomain'])(
+    'fails clearly when wildcard binding has no browser-visible hostname: %s', (machineHostname) => {
+      // The launcher derives PUBLIC_HOST from `hostname`, so a machine named
+      // localhost would otherwise yield an origin no other device can reach.
+      const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-hostname-'));
+      directories.push(directory);
+      fs.writeFileSync(
+        path.join(directory, 'hostname'),
+        `#!/bin/sh\nprintf '%s' '${machineHostname}'\n`,
+        { mode: 0o755 },
+      );
+
+      expect(() => readEnvShValue('APP_ORIGIN', {
+        PORT_BASE: '5100',
+        HOST: '0.0.0.0',
+        PATH: `${directory}:${process.env.PATH}`,
+      })).toThrow(/PUBLIC_HOST is required when HOST binds all interfaces/u);
+    },
+  );
 
   it.each(['https://dev.example.test', '0.0.0.0', '::1'])(
     'rejects an invalid browser-visible development host: %s', (publicHost) => {
@@ -85,8 +114,8 @@ describe('config env resolve', () => {
   });
 
   it('resolves production utility config without the secrets Django requires', () => {
-    // Backup and snapshot tooling runs via `env -u AUTH_SECRET` and never
-    // reaches Django's settings, so resolution must not demand server secrets.
+    // The production frontend build resolves configuration without Django's
+    // server secrets, so resolution must not demand them.
     const resolved = resolveTestConfig({ NODE_ENV: 'production', DATA_DIR: '/data' });
 
     expect(resolved.runtime.isProd).toBe(true);
@@ -104,7 +133,6 @@ describe('config env resolve', () => {
       COLLAB_ENABLED: 'true',
       YSWEET_SERVER_TOKEN: 'test-ysweet-server-token',
       AUTH_SECRET: 'test-auth-secret-0123456789',
-      ADMIN_SECRET: 'test-admin-secret-0123456789',
       APP_ORIGIN: 'https://remdo.example.com',
     });
 

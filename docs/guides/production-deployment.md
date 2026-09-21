@@ -6,7 +6,6 @@ This guide owns the supported deployment and first-access procedures for the
 Architecture owns the [production instance](../architecture.md#production-instance-boundary),
 [gateway](../architecture.md#gateway), and [persistent storage root](../architecture.md#runtime-persistence-boundary).
 
-See the [Django integration checks](../todo.md#django-backend-replacement) for outstanding deployment verification.
 
 ## Deploy with Self-Hosted Docker
 

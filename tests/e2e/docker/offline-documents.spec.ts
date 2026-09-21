@@ -125,16 +125,27 @@ test('offline logout discards edits across tabs and isolates the next account', 
     }
     // Reconnect and reload cannot silently finish logout or restore the session.
     await page.reload();
-    await expect(page.getByText('Local data cleared. Connect to finish signing out.')).toBeVisible();
+    await expect(page.getByText('Local data cleared. Signing in finishes signing out first.')).toBeVisible();
     expect((await context.request.get('/api/auth/browser/v1/auth/session')).status()).toBe(200);
-    await page.getByRole('button', { name: 'Finish signing out', exact: true }).click();
-    await expect(page.getByText("You're signed out", { exact: true })).toBeVisible();
+    // Signing in revokes first, so the peer observes confirmation and the server
+    // rejects the old cookie before any credential form is reached.
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(peer.getByText("You're signed out", { exact: true })).toBeVisible();
-    expect((await context.request.get('/api/auth/browser/v1/auth/session')).status()).toBe(401);
+    await expect.poll(async () => (await context.request.get('/api/auth/browser/v1/auth/session')).status()).toBe(401);
+    // That click navigates to the credential form; let it land before the next
+    // sign-in issues its own navigation to the same route.
+    await page.waitForURL(/\/accounts\/login\//u);
+    await expect(page.getByLabel('Email:', { exact: true })).toBeVisible();
   }, testInfo);
   await peer.close();
 
   await signIn(page, otherEmail);
+  // The starter document proves this account's listing rendered; bootstrap alone
+  // completes before it, which would make the absence check vacuous.
+  await expect(
+    page.getByRole('group', { name: 'Current Server', exact: true })
+      .getByRole('button', { name: 'New Document', exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Owner private content', exact: true })).toHaveCount(0);
   await page.close();
   await withOfflinePage(context, async (offline) => {
@@ -184,6 +195,10 @@ test('native admin logout clears cached content and peer editors before another 
   await peer.close();
 
   await signIn(page, otherEmail);
+  await expect(
+    page.getByRole('group', { name: 'Current Server', exact: true })
+      .getByRole('button', { name: 'New Document', exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: title, exact: true })).toHaveCount(0);
   await page.close();
   await withOfflinePage(context, async (offline) => {

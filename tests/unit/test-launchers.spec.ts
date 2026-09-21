@@ -21,14 +21,14 @@ describe('test launcher settings', () => {
   });
 
   it.each([
-    ['backend tests', './tools/django.sh test remdo', 'remdo.development', 'remdo.testing'],
-    ['backend checks', './tools/check-backend.sh', '', 'remdo.development'],
-    ['PostgreSQL backend tests', './tools/postgres.sh run ./tools/django.sh test remdo', '', 'remdo.testing'],
-    ['PostgreSQL upper port boundary', 'PORT_BASE=65515 ./tools/postgres.sh run ./tools/django.sh test remdo', '', 'remdo.testing'],
-    ['backend development', './tools/django.sh shell', '', 'remdo.development'],
-    ['collaboration tests', scripts['test:collab']!, 'remdo.development', 'remdo.testing'],
-    ['browser tests', './tools/e2e/run.sh', 'remdo.development', 'remdo.testing'],
-  ])('selects the settings for %s before starting the runner', (_name, command, inherited, expected) => {
+    ['backend tests', './tools/django.sh test remdo', 'remdo.development', 'remdo.testing', '', 1],
+    ['backend checks', './tools/check-backend.sh', '', 'remdo.development', '', 2],
+    ['PostgreSQL backend tests', './tools/postgres.sh run ./tools/django.sh test remdo', '', 'remdo.testing', 'postgresql://remdo:development@127.0.0.1:4612/remdo', 1],
+    ['PostgreSQL upper port boundary', 'PORT_BASE=65515 ./tools/postgres.sh run ./tools/django.sh test remdo', '', 'remdo.testing', 'postgresql://remdo:development@127.0.0.1:65527/remdo', 1],
+    ['backend development', './tools/django.sh shell', '', 'remdo.development', 'postgresql://staging.example/remdo', 1],
+    ['collaboration tests', scripts['test:collab']!, 'remdo.development', 'remdo.testing', '', 1],
+    ['browser tests', './tools/e2e/run.sh', 'remdo.development', 'remdo.testing', '', 1],
+  ])('selects the settings for %s before starting the runner', (_name, command, inherited, expected, expectedUrl, repeat) => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-test-launcher-'));
     directories.push(directory);
     // Copy the actual launchers so E2E cleanup only touches this test's data.
@@ -65,10 +65,6 @@ describe('test launcher settings', () => {
       },
     });
     expect(result.status, result.stderr).toBe(0);
-    const url = _name === 'backend development'
-      ? 'postgresql://staging.example/remdo'
-      : _name === 'PostgreSQL backend tests' ? 'postgresql://remdo:development@127.0.0.1:4612/remdo'
-        : _name === 'PostgreSQL upper port boundary' ? 'postgresql://remdo:development@127.0.0.1:65527/remdo' : '';
-    expect(result.stdout).toBe(`${expected}|${url}`.repeat(_name === 'backend checks' ? 2 : 1));
+    expect(result.stdout).toBe(`${expected}|${expectedUrl}`.repeat(repeat));
   });
 });

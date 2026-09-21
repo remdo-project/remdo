@@ -18,7 +18,10 @@ jobs:
       contents: read
       actions: write
     name: Unit Tests
-    timeout-minutes: 8
+    # Stays above the suite's own TEST_TIMEOUT below plus dependency setup, so an
+    # overrun surfaces as that command's exit 124 rather than the runner killing
+    # the job first.
+    timeout-minutes: 12
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -33,6 +36,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python
-      - run: ./tools/check-backend.sh && ./tools/django.sh test accounts documents fixtures remdo
+      - run: ./tools/check-backend.sh && ./tools/django.sh test
       - name: Verify PostgreSQL backend
-        run: ./tools/postgres.sh run ./tools/django.sh test accounts documents fixtures remdo
+        run: ./tools/postgres.sh run ./tools/django.sh test

@@ -32,6 +32,18 @@ function getTabStorage(): Storage | null {
   }
 }
 
+function withSessionStorage(mutate: (storage: Storage) => void): void {
+  try {
+    const storage = getSessionStorage();
+    if (storage) {
+      mutate(storage);
+    }
+  } catch {
+    // A quota or permission failure must not strand the shell mid-logout: the
+    // server session is revoked next, and peers fall back to their own checks.
+  }
+}
+
 function withTabStorage(mutate: (storage: Storage) => void): void {
   try {
     const storage = getTabStorage();
@@ -54,7 +66,9 @@ function newPendingSignOutGeneration(): string {
 }
 
 export function rememberAuthenticatedSession() {
-  getSessionStorage()?.setItem(KNOWN_SESSION_STORAGE_KEY, '1');
+  withSessionStorage((storage) => {
+    storage.setItem(KNOWN_SESSION_STORAGE_KEY, '1');
+  });
   // A fresh session supersedes any sign-out this device never delivered;
   // replaying it later would revoke the new session instead.
   forgetPendingSignOut();
@@ -75,6 +89,9 @@ export function hasRememberedSession() {
  * the app locked until a successful sign-in. Server confirmation is shared
  * across tabs and survives reopening the app.
  */
+let volatilePendingSignOut: string | null = null;
+let volatileConfirmedSignOut: string | null = null;
+
 export function rememberPendingSignOut() {
   // Mark this tab first so its own peer-sign-out poll does not treat the write
   // as another tab's broadcast. Keep an existing generation so a failed revoke
@@ -82,13 +99,25 @@ export function rememberPendingSignOut() {
   withTabStorage((storage) => {
     storage.setItem(PENDING_SIGN_OUT_ORIGIN_KEY, PENDING_SIGN_OUT_STORAGE_VALUE);
   });
-  const storage = getSessionStorage();
-  if (storage && !storage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)) {
-    storage.setItem(PENDING_SIGN_OUT_STORAGE_KEY, newPendingSignOutGeneration());
+  const generation = newPendingSignOutGeneration();
+  withSessionStorage((storage) => {
+    if (!storage.getItem(PENDING_SIGN_OUT_STORAGE_KEY)) {
+      storage.setItem(PENDING_SIGN_OUT_STORAGE_KEY, generation);
+    }
+  });
+  // Storage that refuses the write would otherwise leave no generation at all,
+  // and revocation treats a missing one as already settled — so an unwritable
+  // marker would skip the logout request and let the next revalidation restore
+  // the session. This copy keeps the logout in force for the current document;
+  // it cannot survive a reload, which is what the durable marker is for.
+  if (!pendingSignOutGeneration()) {
+    volatilePendingSignOut = generation;
   }
 }
 
 export function forgetPendingSignOut() {
+  volatilePendingSignOut = null;
+  volatileConfirmedSignOut = null;
   getSessionStorage()?.removeItem(PENDING_SIGN_OUT_STORAGE_KEY);
   getSessionStorage()?.removeItem(CONFIRMED_SIGN_OUT_KEY);
   withTabStorage((storage) => {
@@ -98,7 +127,7 @@ export function forgetPendingSignOut() {
 
 function pendingSignOutGeneration(): string | null {
   const value = getSessionStorage()?.getItem(PENDING_SIGN_OUT_STORAGE_KEY);
-  return value && value.length > 0 ? value : null;
+  return value && value.length > 0 ? value : volatilePendingSignOut;
 }
 
 export function hasPendingSignOut() {
@@ -111,8 +140,11 @@ export function originatedPendingSignOut() {
 
 export function hasConfirmedSignOut() {
   const generation = pendingSignOutGeneration();
-  return generation !== null
-    && getSessionStorage()?.getItem(CONFIRMED_SIGN_OUT_KEY) === generation;
+  if (generation === null) {
+    return false;
+  }
+  return getSessionStorage()?.getItem(CONFIRMED_SIGN_OUT_KEY) === generation
+    || volatileConfirmedSignOut === generation;
 }
 
 export function isPendingSignOutStorageEvent(event: StorageEvent): boolean {
@@ -121,10 +153,15 @@ export function isPendingSignOutStorageEvent(event: StorageEvent): boolean {
     && event.newValue.length > 0;
 }
 
-/** Revoke only on an explicit logout action; route loads never retry it. */
-export async function revokeServerSession(): Promise<void> {
+/**
+ * Revoke only on an explicit logout action; route loads never retry it. Reports
+ * whether the sign-out is now settled, so a caller offering sign-in can tell an
+ * unreachable server from a completed revocation instead of silently continuing.
+ */
+export async function revokeServerSession(): Promise<boolean> {
   const generation = pendingSignOutGeneration();
-  if (!generation || hasConfirmedSignOut() || !navigator.onLine) return;
+  if (!generation || hasConfirmedSignOut()) return true;
+  if (!navigator.onLine) return false;
   try {
     await Promise.race([
       signOut(AbortSignal.timeout(SERVER_SIGN_OUT_TIMEOUT_MS), () => {
@@ -138,10 +175,18 @@ export async function revokeServerSession(): Promise<void> {
     ]);
     // A newer sign-in or logout supersedes this request's local result.
     if (pendingSignOutGeneration() === generation) {
-      getSessionStorage()?.setItem(CONFIRMED_SIGN_OUT_KEY, generation);
+      // Storage that refused the pending marker refuses this too, so record the
+      // confirmation in memory as well; otherwise the revoked session would keep
+      // reporting an unfinished sign-out.
+      volatileConfirmedSignOut = generation;
+      withSessionStorage((storage) => {
+        storage.setItem(CONFIRMED_SIGN_OUT_KEY, generation);
+      });
     }
+    return true;
   } catch {
     // Keep the existing marker; a failed request must not recreate it after sign-in.
+    return false;
   }
 }
 

@@ -1,7 +1,7 @@
 /* eslint-disable node/no-process-env */
 import { execFileSync } from 'node:child_process';
-import { allowUnauthorizedNetwork, expect, guardedTest as test } from '#e2e/fixtures';
-import { allowOfflineDisconnectedConsoleIssue } from './_support/helpers';
+import { expect, guardedTest as test } from '#e2e/fixtures';
+import { allowOfflineDisconnectedConsoleIssue, waitForHealth } from './_support/helpers';
 
 const container = process.env.DOCKER_TEST_CONTAINER!;
 function python(script: string, ...args: string[]) {
@@ -10,9 +10,7 @@ function python(script: string, ...args: string[]) {
 
 test('returning browsers revalidate files and retain server navigation responses', async ({ page }, testInfo) => {
   test.setTimeout(120_000);
-  await expect.poll(async () => {
-    try { return (await page.request.get('/health')).status(); } catch { return 0; }
-  }, { timeout: 30_000 }).toBe(200);
+  await waitForHealth(page.request);
   const email = `cache-${testInfo.testId}@example.test`;
   python("import sys, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'remdo.settings'); import django; django.setup(); from accounts.models import User; User.objects.create_superuser(sys.argv[1], 'cache-password-1234')", email);
   await page.goto('/');
@@ -71,8 +69,14 @@ test('returning browsers revalidate files and retain server navigation responses
   const asset = await page.locator('script[type="module"]').getAttribute('src');
   expect((await page.request.get(asset!)).headers()['cache-control']).toBe('no-cache');
   for (const url of ['/health', '/api/current-user', '/api/schema', '/accounts/login/', '/api/not-a-route', '/d/missing/as-update']) {
-    expect((await page.request.get(url)).headers()['cache-control'], url).toContain('no-store');
+    // maxRedirects: 0 keeps the header the route itself returns; an authenticated
+    // visit to /accounts/login/ redirects to a shell route served with no-cache.
+    const response = await page.request.get(url, { maxRedirects: 0 });
+    expect(response.headers()['cache-control'], url).toContain('no-store');
   }
+  // The gateway proxies /d/* to Y-Sweet without its own authorization, so the
+  // document service must reject a caller presenting no bearer token.
+  expect((await page.request.get('/d/missing/as-update')).status()).toBe(401);
   const missing = await page.request.get('/app-assets/missing.js');
   expect(missing.status()).toBe(404);
   expect(missing.headers()['cache-control']).toContain('no-store');
@@ -112,17 +116,10 @@ test('returning browsers revalidate files and retain server navigation responses
   await page.goto('/about/');
   await page.getByRole('link', { name: 'Sign out…', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible();
+  // The offline discard and completion flow is owned by offline-documents.spec.ts;
+  // this file covers only that the shell itself is served from the cache offline.
   allowOfflineDisconnectedConsoleIssue(page);
   await page.context().setOffline(true);
   await page.reload();
-  // Exercise offline cleanup with unsaved data regardless of earlier sync timing.
-  await page.evaluate(() => localStorage.setItem('remdo-unsynced:document:closed-tab', '1'));
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-  await page.getByRole('button', { name: 'Sign out and discard', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Local data cleared. Connect to finish signing out.');
-  await page.context().setOffline(false);
-  allowUnauthorizedNetwork(page);
-  await page.getByRole('button', { name: 'Finish signing out', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText("You're signed out");
-
+  await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible();
 });

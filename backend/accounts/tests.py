@@ -75,11 +75,18 @@ class LoginPageTests(TestCase):
         )
         self.assertEqual(response.status_code, 403)
 
-    def test_existing_admin_session_completes_login_without_a_second_form(self):
+    def test_an_existing_session_reaches_its_destination_without_completing_a_login(self):
+        # The handoff clears this device's pending-sign-out marker, so only a
+        # credentialed sign-in may render it; allauth redirects a visitor who
+        # already has a session without asking for a password, which must not
+        # supersede an unfinished logout.
         self.client.force_login(self.user, backend="django.contrib.auth.backends.ModelBackend")
+
         response = self.client.get("/accounts/login/?next=/n/exampleDoc")
-        self.assertTemplateUsed(response, "accounts/login_complete.html")
-        self.assertEqual(response.context["next_url"], "/n/exampleDoc")
+
+        self.assertTemplateNotUsed(response, "accounts/login_complete.html")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/n/exampleDoc")
 
     def test_admin_logout_hands_off_before_revoking_the_session(self):
         self.user.is_staff = True

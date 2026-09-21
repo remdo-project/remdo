@@ -56,10 +56,13 @@ leave readable user data behind.
 If this device holds edits the server has not acknowledged, logout asks
 before discarding them. Acknowledged work is not prompted.
 
-Logout attempts to revoke the server session. Until the server confirms,
-show “Local data cleared. Connect to finish signing out.” and provide an
-explicit “Finish signing out” action. Reconnecting or reopening the app does
-not retry revocation automatically or resume the old session. The pending state
+Logout attempts to revoke the server session. Until the server confirms, report
+that local data is cleared and that sign-out is unfinished, and require one
+explicit action to finish it. Offering sign-in satisfies that requirement when it
+finishes the revocation before presenting credentials; a device that cannot reach
+the server reports the wait instead of offering an action that cannot succeed.
+Reconnecting or reopening the app does not retry revocation automatically or
+resume the old session. The pending state
 survives closing the app; Django-rendered pages may still recognize the session
 until revocation or expiry. Show “You're signed out” only after confirmation.
 Confirmation is shared across tabs. Signing in again supersedes an unfinished

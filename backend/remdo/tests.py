@@ -8,9 +8,12 @@ from pathlib import Path
 
 from django.test import SimpleTestCase
 
+from .testing import DEFAULT_TEST_LABELS, DefaultLabelTestRunner
+
 ROOT = Path(__file__).resolve().parents[2]
 REPORT = """
 import json
+from allauth.account import app_settings
 from django.conf import settings
 from django.core.management import get_commands
 print(json.dumps({
@@ -22,6 +25,7 @@ print(json.dumps({
     'cookie': settings.SESSION_COOKIE_NAME,
     'secure': settings.SESSION_COOKIE_SECURE,
     'fixtures': any(name in get_commands() for name in ('create_fixture_documents', 'reset_fixture_users', 'provision_user', 'setup_development_users')),
+    'rate_limits': bool(app_settings.RATE_LIMITS),
 }))
 """
 PASSWORD_REPORT = """
@@ -119,6 +123,8 @@ class ConfigurationTests(SimpleTestCase):
         result = self.settings(NODE_ENV="development", PREVIEW_PORT="4020")
         self.assertFalse(result["debug"])
         self.assertFalse(result["fixtures"])
+        # Production sign-in retains allauth's rate limits; development disables them.
+        self.assertTrue(result["rate_limits"])
         self.assertTrue(result["secure"])
         self.assertEqual(result["origins"], ["https://remdo.example"])
         self.assertEqual(result["cookie"], "remdo_session_443")
@@ -132,6 +138,7 @@ class ConfigurationTests(SimpleTestCase):
         )
         self.assertTrue(result["debug"])
         self.assertTrue(result["fixtures"])
+        self.assertFalse(result["rate_limits"])
         self.assertFalse(result["secure"])
         self.assertEqual(result["cookie"], "remdo_session_5300")
         self.assertIn("http://localhost:5320", result["origins"])
@@ -259,3 +266,25 @@ print(json.dumps(responses))
         self.assertEqual(records[1]["logger"], "django.request")
         self.assertEqual(records[2]["exception"], "DisallowedHost")
         self.assertNotIn("private-", result.stderr)
+
+
+class DefaultTestLabelTests(SimpleTestCase):
+    # Discovery from the repository root finds no tests and still exits 0, so an
+    # invocation without a label must fall back to the application suites rather
+    # than report success having verified nothing.
+    def test_an_invocation_without_a_label_verifies_the_application_suites(self):
+        runner = DefaultLabelTestRunner()
+
+        self.assertGreater(runner.build_suite([]).countTestCases(), 0)
+        self.assertEqual(
+            runner.build_suite([]).countTestCases(),
+            runner.build_suite(list(DEFAULT_TEST_LABELS)).countTestCases(),
+        )
+
+    def test_an_explicit_label_is_not_replaced_by_the_default(self):
+        runner = DefaultLabelTestRunner()
+
+        selected = runner.build_suite(["remdo"]).countTestCases()
+
+        self.assertGreater(selected, 0)
+        self.assertLess(selected, runner.build_suite([]).countTestCases())

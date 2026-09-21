@@ -84,6 +84,20 @@ describe('development runtime launchers', () => {
     return { dataDir, result, dockerCalls };
   }
 
+  it('rejects a port block whose derived service ports would not fit', () => {
+    // Only PORT reaches the browser-safe range check, so the block must be
+    // validated after the offset shifts it or COLLAB/API can exceed 65535.
+    const result = spawnSync('./tools/env.sh', ['--port-base-offset', '40', 'sh', '-c', 'echo started'], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      env: { ...process.env, PORT_BASE: '65515' },
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('PORT_BASE must leave room for the derived service ports.');
+    expect(result.stdout).not.toContain('started');
+  });
+
   it('runs the local Docker app on the host network', () => {
     const { dataDir, result, dockerCalls } = runDockerLauncher({
       AUTH_SECRET: 'launcher-auth-secret',
