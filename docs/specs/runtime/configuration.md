@@ -83,7 +83,7 @@ and does not use an operator-supplied database URL.
 [persistent runtime data root](../../architecture.md#runtime-persistence-boundary).
 Development defaults it to `data` inside the repository. The self-hosted
 production launcher defaults its host directory to `data/production` inside
-the repository; production containers use `/data` for the mounted root.
+the repository; production containers use `/data` for that root.
 
 Production [public shared files](../../architecture.md#gateway) live in `/data/public-share`.
 
@@ -92,16 +92,19 @@ run mode.
 
 ## Secret bootstrap
 
-Production startup generates the application authentication secret and internal
-collaboration secret into one private `secrets.json` file under the
-[production persistence root](../../architecture.md#runtime-persistence-boundary).
-Python owns initialization and loading; Django management commands use the same
-bundle. Individual environment variables do not override production secrets.
+Production resolves the application authentication secret and internal
+collaboration secret as one bundle. Python owns resolution; Django management
+commands use the same bundle. The environment supplies the complete bundle or
+none of it; a partial or too-short environment bundle fails. An environment
+bundle takes precedence over a stored one.
 
-An existing bundle is reused. Empty, malformed, or incomplete bundles fail
-without repair. When the bundle is absent, initialization refuses to generate
-replacements if the persistence root contains a dataset or the configured
-database contains metadata. Restore the bundle with its matching
+Without an environment bundle, startup generates one into a private
+`secrets.json` file under the
+[production persistence root](../../architecture.md#runtime-persistence-boundary).
+An existing bundle is reused. Empty, malformed, or incomplete
+bundles fail without repair. When the bundle is absent, initialization refuses
+to generate replacements if the persistence root contains a dataset or the
+configured database contains metadata. Restore the bundle with its matching
 [dataset](../../architecture.md#runtime-persistence-boundary). Development and verification use fixture credentials.
 
 ## Request diagnostics
