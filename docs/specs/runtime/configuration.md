@@ -93,16 +93,14 @@ run mode.
 ## Secret bootstrap
 
 Production resolves the application authentication secret and internal
-collaboration secret as one bundle. Python owns resolution; Django management
-commands use the same bundle. The environment supplies the complete bundle or
-none of it; a partial or too-short environment bundle fails. An environment
-bundle takes precedence over a stored one.
+collaboration secret as one bundle, shared by every process that needs them.
+The environment supplies the whole bundle or none of it, and takes precedence
+over a stored one. Empty, malformed, or unusable bundles fail without repair.
 
 Without an environment bundle, startup generates one into a private
 `secrets.json` file under the
 [production persistence root](../../architecture.md#runtime-persistence-boundary).
-An existing bundle is reused. Empty, malformed, or incomplete
-bundles fail without repair. When the bundle is absent, initialization refuses
+An existing bundle is reused. When the bundle is absent, initialization refuses
 to generate replacements if the persistence root contains a dataset or the
 configured database contains metadata. Restore the bundle with its matching
 [dataset](../../architecture.md#runtime-persistence-boundary). Development and verification use fixture credentials.

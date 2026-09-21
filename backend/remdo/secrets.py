@@ -17,8 +17,13 @@ ENVIRONMENT_VARIABLES = {
 
 
 def complete(values):
+    # A line break would not survive the single-line transfers that carry these
+    # values between processes.
     return isinstance(values, dict) and all(
-        isinstance(values.get(key), str) and len(values[key].strip()) >= 32 for key in FIELDS
+        isinstance(values.get(key), str)
+        and len(values[key].strip()) >= 32
+        and "\n" not in values[key].strip()
+        for key in FIELDS
     )
 
 
@@ -30,7 +35,8 @@ def read_environment_secrets():
         return None
     if not complete(values):
         raise ImproperlyConfigured(
-            f"Set both {' and '.join(ENVIRONMENT_VARIABLES.values())} to at least 32 characters."
+            f"Set both {' and '.join(ENVIRONMENT_VARIABLES.values())} to a single line "
+            "of at least 32 characters."
         )
     return values
 

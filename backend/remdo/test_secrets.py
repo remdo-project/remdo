@@ -60,11 +60,12 @@ class SecretBundleTests(SimpleTestCase):
             {"AUTH_SECRET": ""},
             {"COLLAB_INTERNAL_SECRET": ""},
             {"AUTH_SECRET": "short"},
+            {"AUTH_SECRET": "a" * 20 + "\n" + "b" * 20},
         ):
             with self.subTest(overrides=overrides):
                 with (
                     self.environment(**overrides),
-                    self.assertRaisesMessage(ImproperlyConfigured, "at least 32 characters"),
+                    self.assertRaisesMessage(ImproperlyConfigured, "single line"),
                 ):
                     self.generate()
                 self.assertFalse(self.path.exists())
