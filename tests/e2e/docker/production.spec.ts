@@ -35,6 +35,9 @@ with urlopen(request, timeout=15) as response:
 async function openDocument(url: string, docId: string, headers: Record<string, string>) {
   class SessionWebSocket extends WebSocket {
     constructor(address: string | URL) {
+      // The Docker harness connects only to local test containers with disposable
+      // accounts. Standalone HTTPS uses Caddy's locally issued certificate; these
+      // persistence tests do not verify certificate trust.
       super(address, { headers, rejectUnauthorized: false });
     }
   }
@@ -434,6 +437,9 @@ print(document.pk)
   class PrivilegedWebSocket extends WebSocket {
     constructor(address: string | URL) {
       super(address, {
+        // This local Docker fixture uses Caddy's locally issued certificate and
+        // a disposable service credential. The assertion checks gateway credential
+        // stripping, not certificate trust.
         rejectUnauthorized: false,
         headers: {
           Origin: origin,
