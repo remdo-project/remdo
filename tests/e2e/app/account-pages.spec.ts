@@ -143,8 +143,8 @@ test('admin sign-in supersedes an unfinished logout in another tab', async ({ pa
     return route.continue();
   });
   await page.getByRole('button', { name: 'Logout', exact: true }).click();
-  const finish = page.getByRole('button', { name: 'Finish signing out', exact: true });
-  await expect(finish).toBeVisible();
+  const pendingNotice = page.getByText('Local data cleared. Signing in finishes signing out first.');
+  await expect(pendingNotice).toBeVisible();
   await page.unroute('**/api/auth/browser/v1/auth/session');
   const revocations: string[] = [];
   page.on('request', (request) => {
@@ -158,8 +158,9 @@ test('admin sign-in supersedes an unfinished logout in another tab', async ({ pa
   await admin.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(admin).toHaveURL(/\/admin\/accounts\/user\/$/u);
   expect(await admin.evaluate(() => localStorage.getItem('remdo-pending-sign-out'))).toBeNull();
-  // The storage event removes the old tab's revocation action without sending it.
-  await expect(finish).toHaveCount(0);
+  // The storage event clears the old tab's pending state without sending its
+  // stale revocation.
+  await expect(pendingNotice).toHaveCount(0);
   expect(revocations).toEqual([]);
   const session = await context.request.get('/api/auth/browser/v1/auth/session');
   expect(session.status()).toBe(200);
