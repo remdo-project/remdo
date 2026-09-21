@@ -1,34 +1,36 @@
+import type { MicromarkToken, Rule } from 'markdownlint';
+
 // Keep Markdown prose lines readable without charging hidden link syntax to
 // their length. The rule removes link/image label markers, destinations,
 // titles, and reference identifiers before measuring. Visible autolink URLs
 // remain part of the measured text.
 
-/**
- * Walk every token in a Micromark tree.
- *
- * @param {import("markdownlint").MicromarkToken[]} tokens
- * @param {(token: import("markdownlint").MicromarkToken, insideLink: boolean) => void} visit
- * @param {boolean} insideLink
- */
-const walk = (tokens, visit, insideLink = false) => {
+// markdownlint parses with the GFM table and autolink-literal extensions, whose
+// token types `MicromarkToken['type']` does not carry: they are declared by
+// `micromark-extension-gfm-*`, which reaches us only transitively and so cannot
+// be augmented from here. Widening the matched type keeps these two comparisons
+// honest instead of asserting the token shape.
+type TokenType = MicromarkToken['type'] | 'table' | 'literalAutolink';
+
+const tokenType = (token: MicromarkToken): TokenType => token.type;
+
+type Visitor = (token: MicromarkToken, insideLink: boolean) => void;
+
+type Range = [start: number, end: number];
+
+const walk = (tokens: readonly MicromarkToken[], visit: Visitor, insideLink = false): void => {
   for (const token of tokens) {
     const childInsideLink = insideLink
       || token.type === 'link'
       || token.type === 'image'
       || token.type === 'autolink'
-      || token.type === 'literalAutolink';
+      || tokenType(token) === 'literalAutolink';
     visit(token, childInsideLink);
     walk(token.children, visit, childInsideLink);
   }
 };
 
-/**
- * Add all 1-based source lines covered by a token to a set.
- *
- * @param {Set<number>} lines
- * @param {import("markdownlint").MicromarkToken} token
- */
-const addTokenLines = (lines, token) => {
+const addTokenLines = (lines: Set<number>, token: MicromarkToken): void => {
   for (let line = token.startLine; line <= token.endLine; line += 1) {
     lines.add(line);
   }
@@ -37,12 +39,12 @@ const addTokenLines = (lines, token) => {
 /**
  * Add the source interval occupied by a token to each covered line. Intervals
  * use zero-based, end-exclusive string indices.
- *
- * @param {Map<number, [number, number][]>} ignored
- * @param {import("markdownlint").MicromarkToken} token
- * @param {string[]} sourceLines
  */
-const ignoreToken = (ignored, token, sourceLines) => {
+const ignoreToken = (
+  ignored: Map<number, Range[]>,
+  token: MicromarkToken,
+  sourceLines: readonly string[],
+): void => {
   for (let lineNumber = token.startLine; lineNumber <= token.endLine; lineNumber += 1) {
     const source = sourceLines[lineNumber - 1];
     if (source === undefined) {
@@ -58,13 +60,7 @@ const ignoreToken = (ignored, token, sourceLines) => {
   }
 };
 
-/**
- * Remove ignored source intervals.
- *
- * @param {string} source
- * @param {[number, number][]} ranges
- */
-const measuredLine = (source, ranges) => {
+const measuredLine = (source: string, ranges: readonly Range[]): string => {
   const ignored = new Uint8Array(source.length);
   for (const [rawStart, rawEnd] of ranges) {
     const start = Math.max(0, rawStart);
@@ -81,8 +77,7 @@ const measuredLine = (source, ranges) => {
   return text;
 };
 
-/** @type {import("markdownlint").Rule} */
-export default {
+const rule: Rule = {
   names: ['remdo-link-aware-line-length'],
   description: 'Line length counts link labels but not destinations',
   tags: ['line_length', 'remdo'],
@@ -90,16 +85,16 @@ export default {
   function: (params, onError) => {
     const lineLength = Number(params.config.line_length ?? 80);
 
-    const codeBlocks = new Set();
-    const tables = new Set();
-    const definitions = new Set();
-    const ignored = new Map();
+    const codeBlocks = new Set<number>();
+    const tables = new Set<number>();
+    const definitions = new Set<number>();
+    const ignored = new Map<number, Range[]>();
 
     const { tokens } = params.parsers.micromark;
     walk(tokens, (token, insideLink) => {
       if (token.type === 'codeFenced' || token.type === 'codeIndented') {
         addTokenLines(codeBlocks, token);
-      } else if (token.type === 'table') {
+      } else if (tokenType(token) === 'table') {
         addTokenLines(tables, token);
       } else if (token.type === 'definition') {
         addTokenLines(definitions, token);
@@ -114,8 +109,7 @@ export default {
       }
     });
 
-    for (let lineIndex = 0; lineIndex < params.lines.length; lineIndex += 1) {
-      const source = params.lines[lineIndex];
+    for (const [lineIndex, source] of params.lines.entries()) {
       const lineNumber = lineIndex + 1;
       const inCode = codeBlocks.has(lineNumber);
       const inTable = tables.has(lineNumber);
@@ -141,3 +135,5 @@ export default {
     }
   },
 };
+
+export default rule;

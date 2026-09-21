@@ -1,8 +1,5 @@
-// Ambient types for the markdownlint entry points used by product custom-rule
-// specs. markdownlint ships types, but only as a transitive
-// dependency under markdownlint-cli2, whose subpath exports carry no
-// declarations. The custom rules are plain `.mjs` because cli2 loads them by
-// dynamic import at runtime.
+// Ambient types for the markdownlint-cli2 subpath entry point used by
+// custom-rule specs: its subpath exports carry no declarations of their own.
 
 declare module 'markdownlint-cli2/markdownlint/promise' {
   interface LintError {
@@ -14,9 +11,4 @@ declare module 'markdownlint-cli2/markdownlint/promise' {
     config: Record<string, unknown>;
   }
   export function lint(options: LintOptions): Promise<Record<string, LintError[]>>;
-}
-
-declare module '*/markdownlint-rules/link-aware-line-length.mjs' {
-  const rule: unknown;
-  export default rule;
 }
