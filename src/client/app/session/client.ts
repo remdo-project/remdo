@@ -136,10 +136,15 @@ export function isPendingSignOutStorageEvent(event: StorageEvent): boolean {
     && event.newValue.length > 0;
 }
 
-/** Revoke only on an explicit logout action; route loads never retry it. */
-export async function revokeServerSession(): Promise<void> {
+/**
+ * Revoke only on an explicit logout action; route loads never retry it. Reports
+ * whether the sign-out is now settled, so a caller offering sign-in can tell an
+ * unreachable server from a completed revocation instead of silently continuing.
+ */
+export async function revokeServerSession(): Promise<boolean> {
   const generation = pendingSignOutGeneration();
-  if (!generation || hasConfirmedSignOut() || !navigator.onLine) return;
+  if (!generation || hasConfirmedSignOut()) return true;
+  if (!navigator.onLine) return false;
   try {
     await Promise.race([
       signOut(AbortSignal.timeout(SERVER_SIGN_OUT_TIMEOUT_MS), () => {
@@ -155,8 +160,10 @@ export async function revokeServerSession(): Promise<void> {
     if (pendingSignOutGeneration() === generation) {
       getSessionStorage()?.setItem(CONFIRMED_SIGN_OUT_KEY, generation);
     }
+    return true;
   } catch {
     // Keep the existing marker; a failed request must not recreate it after sign-in.
+    return false;
   }
 }
 

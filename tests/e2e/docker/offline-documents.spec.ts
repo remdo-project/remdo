@@ -125,12 +125,13 @@ test('offline logout discards edits across tabs and isolates the next account', 
     }
     // Reconnect and reload cannot silently finish logout or restore the session.
     await page.reload();
-    await expect(page.getByText('Local data cleared. Connect to finish signing out.')).toBeVisible();
+    await expect(page.getByText('Local data cleared. Signing in finishes signing out first.')).toBeVisible();
     expect((await context.request.get('/api/auth/browser/v1/auth/session')).status()).toBe(200);
-    await page.getByRole('button', { name: 'Finish signing out', exact: true }).click();
-    await expect(page.getByText("You're signed out", { exact: true })).toBeVisible();
+    // Signing in revokes first, so the peer observes confirmation and the server
+    // rejects the old cookie before any credential form is reached.
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(peer.getByText("You're signed out", { exact: true })).toBeVisible();
-    expect((await context.request.get('/api/auth/browser/v1/auth/session')).status()).toBe(401);
+    await expect.poll(async () => (await context.request.get('/api/auth/browser/v1/auth/session')).status()).toBe(401);
   }, testInfo);
   await peer.close();
 
