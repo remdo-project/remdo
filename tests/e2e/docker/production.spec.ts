@@ -4,7 +4,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { expect, guardedTest as test } from '#e2e/fixtures';
+import { expect, guardedTest as test, setExpectedConsoleIssues } from '#e2e/fixtures';
 import type { APIRequestContext } from '@playwright/test';
 import { waitForHealth } from './_support/helpers';
 import { request } from '@playwright/test';
@@ -27,6 +27,11 @@ function bundleDigest(): string {
   return docker('exec', container, 'python', '-c',
     "import hashlib; from pathlib import Path; p=Path('/data/secrets.json'); assert p.stat().st_mode & 0o777 == 0o600; print(hashlib.sha256(p.read_bytes()).hexdigest())");
 }
+
+// page.route cannot intercept a request the service worker's fetch handler
+// answers, and `/api/` is a NetworkOnly runtime-caching route. Once the worker
+// claims the page, the build-revision override below is bypassed at random.
+test.use({ serviceWorkers: 'block' });
 
 test('retained Docker runtime data is private to the invoking user', () => {
   const directory = fs.statSync(path.resolve('data/docker-test-runtime'));
@@ -98,6 +103,7 @@ print(json.dumps({'allowed': statuses, 'blocked': login(first, '192.0.2.100'),
 
 test('production launcher serves login, collaboration, and persistent data through its published port', async ({ page, browser }) => {
   test.setTimeout(90_000);
+  setExpectedConsoleIssues(page, ['Service Worker registration blocked by Playwright'], { mode: 'allowContains' });
   const origin = process.env.DOCKER_TEST_ORIGIN!;
   await waitForHealth(page.request);
   createAdmin(container);
