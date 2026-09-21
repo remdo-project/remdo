@@ -77,6 +77,15 @@ test('returning browsers revalidate files and retain server navigation responses
   // The gateway proxies /d/* to Y-Sweet without its own authorization, so the
   // document service must reject a caller presenting no bearer token.
   expect((await page.request.get('/d/missing/as-update')).status()).toBe(401);
+  // Y-Sweet's control surface mints full-authorization tokens with the privileged
+  // server token, so the gateway must not proxy it at all: widening the /d/*
+  // matcher or reordering the handlers would expose it. Django answering proves
+  // the request never reached Y-Sweet, which a 401 alone would not.
+  for (const url of ['/doc/new', '/doc/missing/auth']) {
+    const control = await page.request.post(url, { data: {}, failOnStatusCode: false });
+    expect(control.status(), url).toBe(404);
+    expect(await control.text(), url).toContain('Not Found');
+  }
   const missing = await page.request.get('/app-assets/missing.js');
   expect(missing.status()).toBe(404);
   expect(missing.headers()['cache-control']).toContain('no-store');
