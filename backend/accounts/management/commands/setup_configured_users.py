@@ -3,7 +3,6 @@ import os
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
-
 _CONFIGURED_USERS = (
     (
         "REMDO_ADMIN_PASSWORD",
