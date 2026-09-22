@@ -19,7 +19,7 @@ class DeploymentAccountTests(TestCase):
         with patch.dict(
             os.environ,
             {
-                "REMDO_ADMIN_PASSWORD": "generated-admin-password",
+                "REMDO_ADMIN_PASSWORD": "first-admin-password",
                 "REMDO_USER_PASSWORD": "",
             },
         ):
@@ -27,7 +27,7 @@ class DeploymentAccountTests(TestCase):
 
         admin = User.objects.get(email="admin@example.test")
         self.assertTrue(admin.is_staff and admin.is_superuser)
-        self.assertTrue(admin.check_password("generated-admin-password"))
+        self.assertTrue(admin.check_password("first-admin-password"))
         self.assertFalse(User.objects.filter(email="user@example.test").exists())
 
         admin.set_password("changed-admin-password")
@@ -37,7 +37,7 @@ class DeploymentAccountTests(TestCase):
             os.environ,
             {
                 "REMDO_ADMIN_PASSWORD": "replacement-admin-password",
-                "REMDO_USER_PASSWORD": "generated-user-password",
+                "REMDO_USER_PASSWORD": "first-user-password",
             },
         ):
             call_command("setup_configured_users")
@@ -47,7 +47,7 @@ class DeploymentAccountTests(TestCase):
         self.assertFalse(admin.is_staff or admin.is_superuser)
         self.assertTrue(admin.check_password("changed-admin-password"))
         self.assertFalse(user.is_staff or user.is_superuser)
-        self.assertTrue(user.check_password("generated-user-password"))
+        self.assertTrue(user.check_password("first-user-password"))
 
     def test_render_accounts_use_the_service_origin_domain(self):
         with patch.dict(
@@ -55,7 +55,7 @@ class DeploymentAccountTests(TestCase):
             {
                 "RENDER": "true",
                 "APP_ORIGIN": "https://staging.remdo.com",
-                "REMDO_ADMIN_PASSWORD": "generated-admin-password",
+                "REMDO_ADMIN_PASSWORD": "first-admin-password",
             },
         ):
             call_command("setup_configured_users")
