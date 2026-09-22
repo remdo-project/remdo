@@ -153,6 +153,4 @@ echo "Stop RemDo: docker stop ${CONTAINER_NAME}"
 
 if [[ -n "${REMDO_ADMIN_PASSWORD:-}" ]]; then
   echo "Administrator: admin@example.test, created on first start with REMDO_ADMIN_PASSWORD"
-else
-  echo "Create administrator: docker exec -it ${CONTAINER_NAME} python manage.py createsuperuser"
 fi

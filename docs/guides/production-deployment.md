@@ -132,21 +132,6 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
    On Render, sign in as `admin@` the service's own domain, such as
    `admin@remdo.com`, with the service's generated value. Self-hosted
    deployments sign in as `admin@example.test` with the value the launcher
-   generated in `.env`. Where the variable is empty, create the administrator
-   manually instead. On Render, open the service shell and run:
-
-   ```sh
-   cd /app/backend
-   python manage.py createsuperuser
-   ```
-
-   For self-hosted Docker, use the container name printed by the launcher:
-
-   ```sh
-   docker exec -it remdo-8443 python manage.py createsuperuser
-   ```
-
-   Management commands resolve the same
-   [secret bundle](../specs/runtime/configuration.md#secret-bootstrap) as the server.
+   generated in `.env`.
 3. Open `/admin/` on the application origin and sign in with that account.
 4. Open the application home and sign in with the same account.
