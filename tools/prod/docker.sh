@@ -83,7 +83,14 @@ if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
   fi
 fi
 
+remdo_seed_admin_password "${ROOT_DIR}"
+
 DOCKER_ENV_ARGS=(-e APP_ORIGIN="${APP_ORIGIN}" -e DATABASE_URL="${DATABASE_URL:-}")
+for password_variable in REMDO_ADMIN_PASSWORD REMDO_USER_PASSWORD; do
+  if [[ -n "${!password_variable:-}" ]]; then
+    DOCKER_ENV_ARGS+=(-e "${password_variable}=${!password_variable}")
+  fi
+done
 if [[ "${LOOPBACK_HTTP}" == "true" ]]; then
   DOCKER_ENV_ARGS+=(-e REMDO_LAUNCHER_LOOPBACK_HTTP=true)
 fi

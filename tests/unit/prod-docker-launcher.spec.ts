@@ -103,6 +103,7 @@ describe('prod Docker launcher', () => {
         DATA_DIR: dataDir,
         DATABASE_URL: '',
         HOST: '',
+        REMDO_ADMIN_PASSWORD: '',
         PATH: `${binDir}:${process.env.PATH}`,
         PORT: '9999',
         PORT_BASE: '9000',
@@ -366,6 +367,19 @@ describe('prod Docker launcher', () => {
     expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toEqual({
       APP_ORIGIN: 'https://remdo.localhost:8443',
       DATABASE_URL: '',
+    });
+  });
+
+  it('forwards configured deployment account passwords to the container', () => {
+    const { result, dockerCalls } = runLauncher({
+      REMDO_ADMIN_PASSWORD: 'launcher-admin-password',
+      REMDO_USER_PASSWORD: 'launcher-user-password',
+    });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toMatchObject({
+      REMDO_ADMIN_PASSWORD: 'launcher-admin-password',
+      REMDO_USER_PASSWORD: 'launcher-user-password',
     });
   });
 

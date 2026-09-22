@@ -42,6 +42,7 @@ for name in ("home", "hosted"):
 '
 IMAGE_NAME="${IMAGE_NAME}" DATA_DIR="${TEST_DATA_DIR}/home" \
   APP_ORIGIN="${DOCKER_TEST_ORIGIN}" HOST=127.0.0.1 DATABASE_URL= \
+  REMDO_ADMIN_PASSWORD= \
   "${ROOT_DIR}/tools/prod/docker.sh"
 remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}/hosted" -d --userns=host \
   --name "${DOCKER_HOSTED_CONTAINER}" -p "127.0.0.1:${DOCKER_HOSTED_PORT}:8080" \

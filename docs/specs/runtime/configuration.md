@@ -115,6 +115,11 @@ address that is invalid in an email. On Render, where the platform guarantees a
 real public hostname, the domain is the [`APP_ORIGIN`](#network-addressing) host
 instead, pairing a per-instance address with the per-instance generated password.
 
+Each deployment generates the administrator password where its operator already
+reads secrets: Render's service environment, or `.env` for the self-hosted
+launcher, which appends one on the first start that finds the variable unset.
+Assigning the variable an empty value declines the account.
+
 Provisioning creates only missing
 accounts and never replaces an existing account's password, role, or documents.
 A deleted account is provisioned again on the next startup while its variable

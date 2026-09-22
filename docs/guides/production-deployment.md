@@ -131,9 +131,9 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
    [`REMDO_ADMIN_PASSWORD`](../specs/runtime/configuration.md#deployment-accounts).
    On Render, sign in as `admin@` the service's own domain, such as
    `admin@remdo.com`, with the service's generated value. Self-hosted
-   deployments set the password in the container environment and sign in as
-   `admin@example.test`. Without the variable, create the administrator
-   manually (use the container name printed by the launcher):
+   deployments sign in as `admin@example.test` with the value the launcher
+   generated in `.env`. Where the variable is empty, create the administrator
+   manually instead (use the container name printed by the launcher):
 
    ```sh
    docker exec -it remdo-8443 python manage.py createsuperuser
