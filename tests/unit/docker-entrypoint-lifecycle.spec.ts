@@ -66,6 +66,7 @@ const lifecycleCases = [
     exitCode: 130,
     signal: 'SIGINT',
     signalName: 'INT',
+    publicShareOrigin: 'https://share.example.test',
     title: 'handles SIGINT, drains collaboration before Django, and waits for every service',
     type: 'signal',
   },
@@ -148,6 +149,8 @@ fi
       NODE_ENV: 'test',
       PATH: `${binDir}:${process.env.PATH}`,
       PORT_BASE: '4100',
+      PUBLIC_SHARE_ORIGIN: 'publicShareOrigin' in lifecycleCase ? lifecycleCase.publicShareOrigin : '',
+      TMPDIR: tempDir,
       REMDO_FAKE_CHILD: childPath,
       REMDO_FAKE_EVENTS: eventsPath,
       REMDO_FAKE_EXIT_CHILD: lifecycleCase.type === 'exit' ? lifecycleCase.failedService : '',
@@ -175,6 +178,16 @@ fi
       'collaboration credentials auth= database= collaboration=x',
     ]));
     expect(child.exitCode, stderr).toBeNull();
+
+    const publicShareConfig = fs.readFileSync(path.join(tempDir, 'remdo-public-share.caddy'), 'utf8');
+    if ('publicShareOrigin' in lifecycleCase) {
+      expect(publicShareConfig).toContain('reverse_proxy https://share.example.test');
+      expect(publicShareConfig).toContain('header_down Cache-Control "no-cache"');
+      expect(publicShareConfig).not.toContain('root * /data/public-share');
+    } else {
+      expect(publicShareConfig).toContain('root * /data/public-share');
+      expect(publicShareConfig).not.toContain('reverse_proxy');
+    }
 
     if (lifecycleCase.type === 'signal') {
       expect(child.kill(lifecycleCase.signal)).toBe(true);

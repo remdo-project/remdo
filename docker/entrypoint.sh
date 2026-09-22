@@ -32,6 +32,27 @@ if [ "${REMDO_DEV_CONTAINER:-false}" = "true" ]; then
   python manage.py setup_development_users
 fi
 mkdir -p "${TMPDIR:-/tmp}" "${DATA_DIR%/}/public-share"
+
+REMDO_PUBLIC_SHARE_CONFIG="${TMPDIR:-/tmp}/remdo-public-share.caddy"
+export REMDO_PUBLIC_SHARE_CONFIG
+if [ -n "${REMDO_PUBLIC_SHARE_ORIGIN:-}" ]; then
+  cat > "${REMDO_PUBLIC_SHARE_CONFIG}" <<EOF
+handle_path /share/* {
+	reverse_proxy ${REMDO_PUBLIC_SHARE_ORIGIN} {
+		header_up Host {upstream_hostport}
+		header_down Cache-Control "no-cache"
+	}
+}
+EOF
+else
+  cat > "${REMDO_PUBLIC_SHARE_CONFIG}" <<'EOF'
+handle_path /share/* {
+	root * /data/public-share
+	file_server
+}
+EOF
+fi
+
 # env.defaults.sh exports both names unconditionally, so assigning one alone
 # would leave the next settings load with an incomplete bundle, which it
 # rejects. Read the pair from one interpreter and assign only once both exist.

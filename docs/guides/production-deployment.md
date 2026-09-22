@@ -97,22 +97,16 @@ require shell access.
 
 ## Publish a Public File
 
-A deployment retains published files only when it stores
-[`/data/public-share`](../specs/runtime/configuration.md#persistence) durably.
+Render deployments proxy [public shared files](../architecture.md#gateway) from
+the separate [remdo-share repository](https://github.com/remdo-project/remdo-share).
+Add or replace a file under its `public/` directory and merge it to that
+repository's `main` branch. For example, `public/report.pdf` is published at
+`https://share.remdo.com/report.pdf` and remains available through the
+application origin at `APP_ORIGIN/share/report.pdf`.
 
-After the first startup, use the service ID shown by Render's
-[SSH connection instructions](https://render.com/docs/ssh#starting-an-ssh-session):
-
-```sh
-scp -s ./report.pdf srv-abc123@ssh.frankfurt.render.com:/data/public-share/
-```
-
-It is public at `APP_ORIGIN/share/report.pdf`; replacing the file updates the
-same URL.
-
-For replacements, upload under a temporary name and rename it over the published
-file after the upload finishes. Ensure the replacement has a new modification
-time, including for same-size files, so the file server's validators change.
+Self-hosted Docker serves public shared files from
+[`DATA_DIR/public-share`](../specs/runtime/configuration.md#persistence). Copy a
+file there to publish it at `APP_ORIGIN/share/<name>`.
 
 ## Upgrade an Existing Instance
 

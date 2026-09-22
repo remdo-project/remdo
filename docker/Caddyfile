@@ -35,10 +35,7 @@
 			file_server
 		}
 
-		handle_path /share/* {
-			root * /data/public-share
-			file_server
-		}
+		import {$REMDO_PUBLIC_SHARE_CONFIG}
 
 		@collab path /collaboration
 		handle @collab {
