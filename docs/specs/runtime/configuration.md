@@ -124,7 +124,9 @@ Assigning the variable an empty value declines the account.
 Provisioning creates only missing
 accounts and never replaces an existing account's password, role, or documents.
 A deleted account is provisioned again on the next startup while its variable
-remains set; remove the variable to retire the account permanently.
+remains set. Retire it permanently by removing the variable on Render, or by
+assigning it an empty value for the self-hosted launcher, which otherwise
+generates a replacement on the next start.
 Startup removes the password variables from the environment it passes to the
 long-running services; the platform's own record of them is outside its control.
 

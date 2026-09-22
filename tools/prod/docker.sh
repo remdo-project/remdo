@@ -3,8 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 IMAGE_NAME="${IMAGE_NAME:-remdo}"
-# REMDO_ROOT relocates the settings file, as it already relocates the default
-# persistence root; the build context and library paths stay with the checkout.
+# REMDO_ROOT relocates only the settings file here; DATA_DIR is pinned below,
+# and the build context and library paths stay with the checkout.
 ENV_ROOT="${REMDO_ROOT:-${ROOT_DIR}}"
 
 # shellcheck disable=SC1091 # shared helper lives in the repo.
@@ -150,7 +150,7 @@ echo "Follow logs: docker logs -f ${CONTAINER_NAME}"
 echo "Stop RemDo: docker stop ${CONTAINER_NAME}"
 
 if [[ -n "${REMDO_ADMIN_PASSWORD:-}" ]]; then
-  echo "Administrator: admin@example.test, created on first start with REMDO_ADMIN_PASSWORD from ${ENV_ROOT}/.env"
+  echo "Administrator: admin@example.test, created on first start with REMDO_ADMIN_PASSWORD"
 else
   echo "Create administrator: docker exec -it ${CONTAINER_NAME} python manage.py createsuperuser"
 fi

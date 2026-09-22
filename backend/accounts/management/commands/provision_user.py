@@ -16,9 +16,13 @@ class Command(BaseCommand):
 
     def handle(self, email, password, name, admin, **options):
         email = email.strip().lower()
-        # An operator who edits only User.email leaves this address behind on
-        # another account; recreating it would abort every later startup.
-        if EmailAddress.objects.filter(email=email).exists():
+        # Editing User.email or the allauth address alone desynchronizes them.
+        # Either record already holding this address makes the pair below a
+        # uniqueness violation, which would abort every later startup.
+        if (
+            User.objects.filter(email=email).exists()
+            or EmailAddress.objects.filter(email=email).exists()
+        ):
             return
         user, _ = User.objects.get_or_create(
             email=email,
