@@ -95,25 +95,6 @@ application, delete the database, and sync the blueprint to recreate it and
 redeploy. Metadata and document content reset together. The reset does not
 require shell access.
 
-## Publish a Public File
-
-A deployment retains published files only when it stores
-[`/data/public-share`](../specs/runtime/configuration.md#persistence) durably.
-
-After the first startup, use the service ID shown by Render's
-[SSH connection instructions](https://render.com/docs/ssh#starting-an-ssh-session):
-
-```sh
-scp -s ./report.pdf srv-abc123@ssh.frankfurt.render.com:/data/public-share/
-```
-
-It is public at `APP_ORIGIN/share/report.pdf`; replacing the file updates the
-same URL.
-
-For replacements, upload under a temporary name and rename it over the published
-file after the upload finishes. Ensure the replacement has a new modification
-time, including for same-size files, so the file server's validators change.
-
 ## Upgrade an Existing Instance
 
 This procedure applies to existing Django deployments and preserves their

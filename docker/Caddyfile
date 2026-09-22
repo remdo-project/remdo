@@ -35,11 +35,6 @@
 			file_server
 		}
 
-		handle_path /share/* {
-			root * /data/public-share
-			file_server
-		}
-
 		@collab path /collaboration
 		handle @collab {
 			reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT} {

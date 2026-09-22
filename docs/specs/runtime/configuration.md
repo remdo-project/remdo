@@ -85,8 +85,6 @@ Development defaults it to `data` inside the repository. The self-hosted
 production launcher defaults its host directory to `data/production` inside
 the repository; production containers use `/data` for that root.
 
-Production [public shared files](../../architecture.md#gateway) live in `/data/public-share`.
-
 Document content persists alongside metadata in the configured database in every
 run mode.
 

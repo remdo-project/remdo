@@ -31,7 +31,7 @@ python manage.py collectstatic --noinput
 if [ "${REMDO_DEV_CONTAINER:-false}" = "true" ]; then
   python manage.py setup_development_users
 fi
-mkdir -p "${TMPDIR:-/tmp}" "${DATA_DIR%/}/public-share"
+mkdir -p "${TMPDIR:-/tmp}"
 # env.defaults.sh exports both names unconditionally, so assigning one alone
 # would leave the next settings load with an incomplete bundle, which it
 # rejects. Read the pair from one interpreter and assign only once both exist.

@@ -40,12 +40,6 @@ projects:
             property: connectionString
         - key: APP_ORIGIN
           value: https://remdo.com
-      # Mounted at the published-file directory rather than the data root, so
-      # only uploads survive a deploy and runtime scratch stays off the volume.
-      disk:
-        name: remdo-share
-        mountPath: /data/public-share
-        sizeGB: 1
 
   - name: staging
     databases:
