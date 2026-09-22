@@ -30,6 +30,9 @@ python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 if [ "${REMDO_DEV_CONTAINER:-false}" = "true" ]; then
   python manage.py setup_development_users
+else
+  python manage.py setup_configured_users
+  unset REMDO_ADMIN_PASSWORD REMDO_USER_PASSWORD
 fi
 mkdir -p "${TMPDIR:-/tmp}"
 # env.defaults.sh exports both names unconditionally, so assigning one alone

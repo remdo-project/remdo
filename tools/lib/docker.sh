@@ -5,9 +5,35 @@ remdo_load_dotenv() {
   local root_dir="$1"
   local env_file="${root_dir}/.env"
 
-  # shellcheck disable=SC1091 # shared helper lives in the repo.
-  . "${root_dir}/tools/lib/env-file.sh"
+  # shellcheck disable=SC1091 # shared helper sits beside this file.
+  . "$(dirname -- "${BASH_SOURCE[0]}")/env-file.sh"
   remdo_load_dotenv_file "${env_file}"
+}
+
+remdo_seed_admin_password() {
+  local root_dir="$1"
+  local env_file="${root_dir}/.env"
+  local generated
+
+  # An assignment of any form, including an empty one, is the operator's answer:
+  # empty declines the bootstrap account that docker/entrypoint.sh would create.
+  if [[ -n "${REMDO_ADMIN_PASSWORD+x}" ]]; then
+    return 0
+  fi
+
+  # Reading a fixed block keeps tr from being killed by SIGPIPE, which would
+  # otherwise fail the launcher under pipefail.
+  generated="$(LC_ALL=C tr -dc 'A-Za-z0-9' < <(head -c 512 /dev/urandom) | cut -c1-32)"
+  # The file holds a credential, and an unterminated last line would otherwise
+  # absorb the assignment appended after it.
+  (umask 077 && touch "${env_file}")
+  chmod go-rwx "${env_file}"
+  if [[ -s "${env_file}" && -n "$(tail -c 1 "${env_file}")" ]]; then
+    printf '\n' >> "${env_file}"
+  fi
+  printf 'REMDO_ADMIN_PASSWORD=%s\n' "${generated}" >> "${env_file}"
+  export REMDO_ADMIN_PASSWORD="${generated}"
+  echo "Generated REMDO_ADMIN_PASSWORD in ${env_file} for admin@example.test." >&2
 }
 
 remdo_load_env_defaults() {

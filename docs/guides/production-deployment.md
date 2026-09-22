@@ -79,11 +79,15 @@ daemons are supported.
 Deploy both environments from [the repository blueprint](../../render.yaml).
 
 1. Create a Render Blueprint deployment from it.
-2. Point DNS at each service as Render's domain settings instruct and wait for
+2. In each service's **Environment** view, copy its generated
+   `REMDO_ADMIN_PASSWORD` into the password manager. Staging also generates
+   `REMDO_USER_PASSWORD`. Render preserves these generated values across later
+   Blueprint syncs.
+3. Point DNS at each service as Render's domain settings instruct and wait for
    its certificate.
-3. For each service, set **Settings > Edge Caching > Cacheable file types** to
+4. For each service, set **Settings > Edge Caching > Cacheable file types** to
    **None**, preserving the [application freshness policy](../architecture.md#application-freshness).
-4. For each service, complete
+5. For each service, complete
    [Verify and Complete First Access](#verify-and-complete-first-access).
 
 Release production from Render's dashboard.
@@ -122,22 +126,12 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
 
 1. Append `/health` to the application URL and confirm that the gateway reports
    a healthy service.
-2. Create the administrator using Django's [administrator
-   creation](../specs/access/access-control.md#admin-role) command. For the
-   default Docker origin (use the container name printed by the launcher):
-
-   ```sh
-   docker exec -it remdo-8443 python manage.py createsuperuser
-   ```
-
-   On Render, open the service shell and run:
-
-   ```sh
-   cd /app/backend
-   python manage.py createsuperuser
-   ```
-
-   Enter the administrator's email and password. Management commands resolve the
-   same [secret bundle](../specs/runtime/configuration.md#secret-bootstrap) as the server.
+2. Establish the [administrator](../specs/access/access-control.md#admin-role).
+   Container production startup provisions it from
+   [`REMDO_ADMIN_PASSWORD`](../specs/runtime/configuration.md#deployment-accounts).
+   On Render, sign in as `admin@` the service's own domain, such as
+   `admin@remdo.com`, with the service's generated value. Self-hosted
+   deployments sign in as `admin@example.test` with the value the launcher
+   generated in `.env`.
 3. Open `/admin/` on the application origin and sign in with that account.
 4. Open the application home and sign in with the same account.

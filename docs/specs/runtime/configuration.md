@@ -103,6 +103,35 @@ to generate replacements if the persistence root contains a dataset or the
 configured database contains metadata. Restore the bundle with its matching
 [dataset](../../architecture.md#runtime-persistence-boundary). Development and verification use fixture credentials.
 
+## Deployment accounts
+
+Container production startup optionally provisions stable accounts from server-only
+password variables. `REMDO_ADMIN_PASSWORD` creates the `admin` account as an
+administrator; `REMDO_USER_PASSWORD` creates the `user` account as a regular
+user. Missing variables create no account.
+
+The account domain is `example.test`, because a self-hosted origin may be a bare
+address that is invalid in an email. On Render (`RENDER=true`), where the platform
+guarantees a real public hostname, the domain is the
+[`APP_ORIGIN`](#network-addressing) host instead, pairing a per-instance address
+with the per-instance generated password. Changing a service's origin therefore
+provisions an account at the new domain and leaves the previous one in place.
+
+Each deployment generates the administrator password where its operator already
+reads secrets: Render's service environment, or `.env` for the self-hosted
+launcher, which appends one on the first start that finds the variable unset.
+Assigning the variable an empty value declines the account.
+
+Provisioning creates only missing
+accounts and never replaces an existing account's password, role, or documents.
+A deleted account is provisioned again on the next startup while its variable
+remains set. Retire it permanently by assigning the variable an empty value
+rather than deleting it: the self-hosted launcher otherwise generates a
+replacement on the next start, and the blueprint declares the Render keys, so a
+deleted one returns on the next sync.
+Startup removes the password variables from the environment it passes to the
+long-running services; the platform's own record of them is outside its control.
+
 ## Request diagnostics
 
 Production Django request errors reach standard error with status, exception type,

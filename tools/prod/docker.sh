@@ -3,10 +3,13 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 IMAGE_NAME="${IMAGE_NAME:-remdo}"
+# REMDO_ROOT relocates only the settings file here; DATA_DIR is pinned below,
+# and the build context and library paths stay with the checkout.
+ENV_ROOT="${REMDO_ROOT:-${ROOT_DIR}}"
 
 # shellcheck disable=SC1091 # shared helper lives in the repo.
 . "${ROOT_DIR}/tools/lib/docker.sh"
-remdo_load_dotenv "${ROOT_DIR}"
+remdo_load_dotenv "${ENV_ROOT}"
 NODE_ENV=production
 export NODE_ENV
 
@@ -66,6 +69,10 @@ fi
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
+# Seed before the running container is replaced, so a settings file that cannot
+# be written leaves the existing deployment up.
+remdo_seed_admin_password "${ENV_ROOT}"
+
 if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
   docker stop --timeout 55 "${CONTAINER_NAME}"
   docker rm "${CONTAINER_NAME}" >/dev/null 2>&1 || true
@@ -84,6 +91,11 @@ if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
 fi
 
 DOCKER_ENV_ARGS=(-e APP_ORIGIN="${APP_ORIGIN}" -e DATABASE_URL="${DATABASE_URL:-}")
+for password_variable in REMDO_ADMIN_PASSWORD REMDO_USER_PASSWORD; do
+  if [[ -n "${!password_variable:-}" ]]; then
+    DOCKER_ENV_ARGS+=(-e "${password_variable}=${!password_variable}")
+  fi
+done
 if [[ "${LOOPBACK_HTTP}" == "true" ]]; then
   DOCKER_ENV_ARGS+=(-e REMDO_LAUNCHER_LOOPBACK_HTTP=true)
 fi
@@ -139,4 +151,6 @@ echo "Verify health: ${APP_ORIGIN%/}/health"
 echo "Follow logs: docker logs -f ${CONTAINER_NAME}"
 echo "Stop RemDo: docker stop ${CONTAINER_NAME}"
 
-echo "Create administrator: docker exec -it ${CONTAINER_NAME} python manage.py createsuperuser"
+if [[ -n "${REMDO_ADMIN_PASSWORD:-}" ]]; then
+  echo "Administrator: admin@example.test, created on first start with REMDO_ADMIN_PASSWORD"
+fi

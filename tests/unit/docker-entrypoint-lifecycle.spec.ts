@@ -36,7 +36,7 @@ finish() {
 trap 'finish INT' INT
 trap 'finish TERM' TERM
 printf '%s start\\n' "$child_name" >> "$events"
-printf '%s credentials auth=%s database=%s collaboration=%s\\n' "$child_name" "\${AUTH_SECRET+x}" "\${DATABASE_URL+x}" "\${COLLAB_INTERNAL_SECRET+x}" >> "$events"
+printf '%s credentials auth=%s database=%s collaboration=%s admin=%s user=%s\\n' "$child_name" "\${AUTH_SECRET+x}" "\${DATABASE_URL+x}" "\${COLLAB_INTERNAL_SECRET+x}" "\${REMDO_ADMIN_PASSWORD+x}" "\${REMDO_USER_PASSWORD+x}" >> "$events"
 while :; do
   if [ "\${REMDO_FAKE_EXIT_CHILD:-}" = "$child_name" ] && [ -e "\${REMDO_FAKE_EXIT_TRIGGER:-}" ]; then
     exit_status="\${REMDO_FAKE_EXIT_STATUS:-0}"
@@ -120,7 +120,11 @@ it.each(lifecycleCases)('$title', async (lifecycleCase) => {
   }
   writeFakeBin(binDir, 'node', `exec "\${REMDO_FAKE_CHILD:?}" collaboration\n`);
   writeFakeBin(binDir, 'gunicorn', `exec "\${REMDO_FAKE_CHILD:?}" api\n`);
-  writeFakeBin(binDir, 'python', `if [ "\${1:-}" = -c ]; then
+  writeFakeBin(binDir, 'python', `if [ "\${1:-}" = manage.py ]; then
+  printf 'django %s admin=%s user=%s\\n' "\${2:-}" "\${REMDO_ADMIN_PASSWORD+x}" "\${REMDO_USER_PASSWORD+x}" >> "\${REMDO_FAKE_EVENTS:?}"
+  exit 0
+fi
+if [ "\${1:-}" = -c ]; then
   case "\${2:-}" in
     *settings.COLLAB_INTERNAL_SECRET*) echo test-internal-secret ;;
     *) exec python3 "$@" ;;
@@ -155,7 +159,9 @@ fi
       REMDO_FAKE_EXIT_TRIGGER: exitTriggerPath,
       REMDO_FAKE_PID_DIR: pidDir,
       REMDO_FAKE_RELEASE: releasePath,
+      REMDO_ADMIN_PASSWORD: 'admin-password',
       REMDO_DEV_CONTAINER: 'false',
+      REMDO_USER_PASSWORD: 'user-password',
       REMDO_ROOT: process.cwd(),
     },
     stdio: ['ignore', 'ignore', 'pipe'],
@@ -171,8 +177,9 @@ fi
     await expect.poll(() => readEvents(eventsPath), { timeout: 3_000 })
       .toEqual(expect.arrayContaining(services.map(name => `${name} start`)));
     await expect.poll(() => readEvents(eventsPath)).toEqual(expect.arrayContaining([
-      'api credentials auth=x database=x collaboration=x',
-      'collaboration credentials auth= database= collaboration=x',
+      'django setup_configured_users admin=x user=x',
+      'api credentials auth=x database=x collaboration=x admin= user=',
+      'collaboration credentials auth= database= collaboration=x admin= user=',
     ]));
     expect(child.exitCode, stderr).toBeNull();
 

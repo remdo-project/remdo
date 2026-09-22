@@ -63,9 +63,9 @@ pnpm run dev
 
 The command starts the web gateway, Django API, and collaboration server. Django
 applies pending migrations before listening and reloads when Python code changes.
-Startup creates missing [development accounts](../../backend/fixtures/development-users.json): Alice is an administrator and
-Bob is a regular user. Sign in with `alice@example.test` / `alice-password-1234`
-or `bob@example.test` / `bob-password-1234`. Restarting preserves accounts and
+Startup creates missing [development accounts](../../backend/fixtures/development-users.json): Admin is an administrator and
+User is a regular user. Sign in with `admin@example.test` / `admin-password-1234`
+or `user@example.test` / `user-password-1234`. Restarting preserves accounts and
 documents. The app opens allauth's sign-in page at `/accounts/login/`. After
 logout, choose **Sign in** to open that page again. Use `/admin/` to manage
 accounts and Home to create or open documents.
@@ -113,7 +113,7 @@ pnpm run dev:docker
 ```
 
 Open the printed home URL and sign in with a [development account](../../backend/fixtures/development-users.json).
-The Django container provisions these accounts on startup; Alice can also sign
+The Django container provisions these accounts on startup; Admin can also sign
 in at `/admin/`.
 
 Keep the command running while using the app. Stopping it removes the container

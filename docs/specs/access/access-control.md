@@ -14,8 +14,10 @@ links carrying bearer credentials, or a local-only no-login mode.
 ## Authenticated App Access
 
 A Django session identifies the signed-in user. The server supports
-email/password authentication. Operators create accounts through Django
-administration or management commands; public signup is closed.
+email/password authentication. The
+[deployment account bootstrap](../runtime/configuration.md#deployment-accounts)
+creates the configured accounts at startup, and operators create further
+accounts through Django administration. Public signup is closed.
 Creating an account also creates one empty document titled **New Document**.
 Account and document creation succeed together. Later account updates and reads
 leave the document inventory unchanged.
@@ -102,9 +104,9 @@ server administration. The client may expose the role for UI, but Django
 authorizes every administrative request from the caller's session and
 permissions.
 
-An operator creates the initial administrator through Django's `createsuperuser`
-management command. Administrators manage subsequent accounts through Django
-administration.
+The [deployment account bootstrap](../runtime/configuration.md#deployment-accounts)
+creates the initial administrator. Administrators manage subsequent accounts
+through Django administration.
 
 `/admin/` is the Django administration entry route. Django staff status permits
 entry; model permissions control the available administrative actions. An
