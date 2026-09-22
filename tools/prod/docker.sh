@@ -69,6 +69,10 @@ fi
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
+# Seed before the running container is replaced, so a settings file that cannot
+# be written leaves the existing deployment up.
+remdo_seed_admin_password "${ENV_ROOT}"
+
 if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
   docker stop --timeout 55 "${CONTAINER_NAME}"
   docker rm "${CONTAINER_NAME}" >/dev/null 2>&1 || true
@@ -85,8 +89,6 @@ if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
     exit 1
   fi
 fi
-
-remdo_seed_admin_password "${ENV_ROOT}"
 
 DOCKER_ENV_ARGS=(-e APP_ORIGIN="${APP_ORIGIN}" -e DATABASE_URL="${DATABASE_URL:-}")
 for password_variable in REMDO_ADMIN_PASSWORD REMDO_USER_PASSWORD; do
