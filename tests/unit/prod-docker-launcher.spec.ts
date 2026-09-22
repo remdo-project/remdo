@@ -387,6 +387,16 @@ describe('prod Docker launcher', () => {
     });
   });
 
+  it('declines the bootstrap account when the operator emptied the password', () => {
+    const { envRoot, result, dockerCalls } = runLauncher({ REMDO_ADMIN_PASSWORD: '' });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).not.toHaveProperty(
+      'REMDO_ADMIN_PASSWORD',
+    );
+    expect(fs.existsSync(path.join(envRoot, '.env'))).toBe(false);
+  });
+
   it('generates a persistent admin password when the operator set none', () => {
     const envRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-prod-docker-env-root-'));
     tempDirs.push(envRoot);

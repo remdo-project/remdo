@@ -3,8 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 IMAGE_NAME="${IMAGE_NAME:-remdo}"
-# The build context and library paths stay with the checkout; only operator
-# settings follow REMDO_ROOT, so a test run keeps its .env out of the repository.
+# REMDO_ROOT relocates the settings file, as it already relocates the default
+# persistence root; the build context and library paths stay with the checkout.
 ENV_ROOT="${REMDO_ROOT:-${ROOT_DIR}}"
 
 # shellcheck disable=SC1091 # shared helper lives in the repo.

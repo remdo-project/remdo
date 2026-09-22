@@ -49,6 +49,19 @@ class DeploymentAccountTests(TestCase):
         self.assertFalse(user.is_staff or user.is_superuser)
         self.assertTrue(user.check_password("first-user-password"))
 
+    def test_startup_survives_an_address_held_by_a_renamed_account(self):
+        with patch.dict(os.environ, {"REMDO_ADMIN_PASSWORD": "first-admin-password"}):
+            call_command("setup_configured_users")
+        renamed = User.objects.get(email="admin@example.test")
+        renamed.email = "operator@example.test"
+        renamed.save()
+
+        with patch.dict(os.environ, {"REMDO_ADMIN_PASSWORD": "first-admin-password"}):
+            call_command("setup_configured_users")
+
+        self.assertEqual(User.objects.count(), 1)
+        self.assertEqual(EmailAddress.objects.get().email, "admin@example.test")
+
     @override_settings(APP_ORIGIN="https://staging.remdo.com")
     def test_render_accounts_use_the_service_origin_domain(self):
         with patch.dict(
