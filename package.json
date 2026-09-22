@@ -40,6 +40,7 @@
     "dev:docker": "./tools/env.sh --port-base-offset 40 ./tools/dev/docker.sh",
     "dev:data-reset": "./tools/env.sh tsx ./tools/dev/data-reset.ts",
     "dev:web": "./tools/env.sh vite",
+    "deploy:test": "sh ./tools/deploy-test.sh",
     "lint": "pnpm run lint:ast-grep-config && pnpm run lint:agent-instructions && cross-env CI=true pnpm run typecheck && pnpm run lint:code && pnpm run lint:deps && pnpm run lint:css && pnpm run lint:md",
     "lint:agent-instructions": "timeout ${TEST_TIMEOUT:-120}s tsx ./tools/check-agent-instructions.ts",
     "lint:ast-grep-config": "timeout ${TEST_TIMEOUT:-120}s tsx ./tools/check-ast-grep-config.ts",

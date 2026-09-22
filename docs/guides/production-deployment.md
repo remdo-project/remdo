@@ -76,13 +76,13 @@ daemons are supported.
 
 ## Deploy on Render
 
-Deploy both environments from [the repository blueprint](../../render.yaml).
+Deploy the Render environments from [the repository blueprint](../../render.yaml).
 
 1. Create a Render Blueprint deployment from it.
 2. In each service's **Environment** view, copy its generated
-   `REMDO_ADMIN_PASSWORD` into the password manager. Staging also generates
-   `REMDO_USER_PASSWORD`. Render preserves these generated values across later
-   Blueprint syncs.
+   `REMDO_ADMIN_PASSWORD` into the password manager. Staging and test also
+   generate `REMDO_USER_PASSWORD`. Render preserves these generated values
+   across later Blueprint syncs.
 3. Point DNS at each service as Render's domain settings instruct and wait for
    its certificate.
 4. For each service, set **Settings > Edge Caching > Cacheable file types** to
@@ -92,11 +92,27 @@ Deploy both environments from [the repository blueprint](../../render.yaml).
 
 Release production from Render's dashboard.
 
-### Reset the Staging Sandbox
+### Deploy to the Test Sandbox
 
-Staging's data is disposable, and its free database expires. Stop the
-application, delete the database, and sync the blueprint to recreate it and
-redeploy. Metadata and document content reset together. The reset does not
+The test service tracks the [deployment pointer](../../CONTRIBUTING.md#git-workflow)
+and deploys every update without waiting for CI. Deploy the current committed
+state with:
+
+```sh
+pnpm deploy:test
+```
+
+The command refuses a dirty working tree, reads the remote deployment pointer,
+then moves it to `HEAD` with a force-with-lease push. It creates the pointer when
+missing; a concurrent move after the read makes the push fail instead of
+overwriting it. Render starts the deployment automatically.
+
+### Reset a Hosted Sandbox
+
+Staging data is disposable and its free database expires. Test uses a paid
+database so demo data persists across ordinary deploys. To reset either sandbox,
+stop the application, delete its database, and sync the blueprint to recreate it
+and redeploy. Metadata and document content reset together. The reset does not
 require shell access.
 
 ## Upgrade an Existing Instance
