@@ -2,6 +2,7 @@ import { QueryClient, queryOptions } from '@tanstack/react-query';
 import { createUserDataRootNote } from '#note-sdk';
 import type { CollectionSource, UserDocument } from '#note-sdk';
 import type { DocumentAccessView } from '#domain/documents/access';
+import { DOCUMENT_TITLE_MAX_LENGTH } from '#domain/documents/user-data';
 import { api, requireData } from '#platform/http/api-client';
 import { currentUserBootstrapQuery } from './current-user-bootstrap';
 
@@ -54,6 +55,11 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
       lifetime.signal.throwIfAborted();
       if (result.response.status === 404) {
         throw new Error('This document is no longer available.');
+      }
+      if (result.response.status === 400) {
+        // The dialog already rejects an empty name, so a rejected submission
+        // is too long. Say so instead of inviting an identical retry.
+        throw new Error(`Use a shorter name, up to ${DOCUMENT_TITLE_MAX_LENGTH} characters.`);
       }
       if (!result.response.ok) {
         throw new Error('Could not rename the document. Please retry.');

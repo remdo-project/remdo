@@ -117,6 +117,18 @@ describe('account metadata', () => {
     expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
   });
 
+  it('explains a rejected over-long name instead of inviting an identical retry', async () => {
+    const runtime = account();
+    documentRequests((request) => request.method === 'PUT'
+      ? Response.json({ title: ['Ensure this field has no more than 500 characters.'] }, { status: 400 })
+      : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
+    await runtime.client.query(runtime.documentsQuery);
+
+    await expect(runtime.userData.getDocuments().getById('shared')!.rename('x'.repeat(501)))
+      .rejects.toThrow('Use a shorter name, up to 500 characters.');
+    expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
+  });
+
   it('reports an unexpected rename failure in readable terms', async () => {
     const runtime = account();
     documentRequests((request) => request.method === 'PUT'

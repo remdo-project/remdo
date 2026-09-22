@@ -1,5 +1,6 @@
 import { Button as FormButton, Group, Modal, Stack, TextInput } from '@mantine/core';
 import { useRef, useState } from 'react';
+import { DOCUMENT_TITLE_MAX_LENGTH } from '#domain/documents/user-data';
 import type { DocumentNote } from '#note-sdk';
 
 export function DocumentRenameDialog({
@@ -56,6 +57,7 @@ export function DocumentRenameDialog({
             error={error}
             errorProps={{ role: 'alert' }}
             label="Document name"
+            maxLength={DOCUMENT_TITLE_MAX_LENGTH}
             onChange={(event) => { setDraft(event.currentTarget.value); setError(null); }}
             // Only the opening focus selects, so returning to the field keeps the caret.
             onFocus={(event) => {
