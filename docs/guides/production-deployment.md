@@ -127,9 +127,13 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
 1. Append `/health` to the application URL and confirm that the gateway reports
    a healthy service.
 2. Establish the [administrator](../specs/access/access-control.md#admin-role).
-   On Render, sign in as `admin@example.test` with the service's generated
-   `REMDO_ADMIN_PASSWORD`. For the default self-hosted Docker origin, create
-   the administrator manually (use the container name printed by the launcher):
+   Every non-development container provisions it from
+   [`REMDO_ADMIN_PASSWORD`](../specs/runtime/configuration.md#deployment-accounts).
+   On Render, sign in as `admin@` the service's own domain, such as
+   `admin@remdo.com`, with the service's generated value. Self-hosted
+   deployments set the password in the container environment and sign in as
+   `admin@example.test`. Without the variable, create the administrator
+   manually (use the container name printed by the launcher):
 
    ```sh
    docker exec -it remdo-8443 python manage.py createsuperuser

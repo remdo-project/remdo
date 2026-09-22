@@ -49,6 +49,20 @@ class DeploymentAccountTests(TestCase):
         self.assertFalse(user.is_staff or user.is_superuser)
         self.assertTrue(user.check_password("generated-user-password"))
 
+    def test_render_accounts_use_the_service_origin_domain(self):
+        with patch.dict(
+            os.environ,
+            {
+                "RENDER": "true",
+                "APP_ORIGIN": "https://staging.remdo.com",
+                "REMDO_ADMIN_PASSWORD": "generated-admin-password",
+            },
+        ):
+            call_command("setup_configured_users")
+
+        self.assertTrue(User.objects.filter(email="admin@staging.remdo.com").exists())
+        self.assertFalse(User.objects.filter(email="admin@example.test").exists())
+
 
 @override_settings(
     ALLOWED_HOSTS=["testserver"], CSRF_TRUSTED_ORIGINS=["http://testserver"], DEBUG=True

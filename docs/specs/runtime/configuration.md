@@ -106,10 +106,19 @@ configured database contains metadata. Restore the bundle with its matching
 ## Deployment accounts
 
 Container production startup optionally provisions stable accounts from server-only
-password variables. `REMDO_ADMIN_PASSWORD` creates `admin@example.test` as an
-administrator; `REMDO_USER_PASSWORD` creates `user@example.test` as a regular
-user. Missing variables create no account. Provisioning creates only missing
+password variables. `REMDO_ADMIN_PASSWORD` creates the `admin` account as an
+administrator; `REMDO_USER_PASSWORD` creates the `user` account as a regular
+user. Missing variables create no account.
+
+The account domain is `example.test`, because a self-hosted origin may be a bare
+address that is invalid in an email. On Render, where the platform guarantees a
+real public hostname, the domain is the [`APP_ORIGIN`](#network-addressing) host
+instead, pairing a per-instance address with the per-instance generated password.
+
+Provisioning creates only missing
 accounts and never replaces an existing account's password, role, or documents.
+A deleted account is provisioned again on the next startup while its variable
+remains set; remove the variable to retire the account permanently.
 Startup removes the password variables before starting long-running services.
 
 ## Request diagnostics

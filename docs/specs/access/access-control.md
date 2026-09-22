@@ -14,8 +14,9 @@ links carrying bearer credentials, or a local-only no-login mode.
 ## Authenticated App Access
 
 A Django session identifies the signed-in user. The server supports
-email/password authentication. Operators create accounts through Django administration or management commands;
-supported deployments may automate those commands through the
+email/password authentication. Operators create accounts through Django
+administration or management commands; supported deployments may automate those
+commands through the
 [deployment account bootstrap](../runtime/configuration.md#deployment-accounts).
 Public signup is closed.
 Creating an account also creates one empty document titled **New Document**.
