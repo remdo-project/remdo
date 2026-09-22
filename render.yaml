@@ -79,3 +79,39 @@ projects:
             property: connectionString
         - key: APP_ORIGIN
           value: https://staging.remdo.com
+
+  - name: test
+    databases:
+    - name: remdo-test-db
+      plan: free
+      region: frankfurt
+    services:
+    - type: web
+      name: remdo-test
+      runtime: docker
+      plan: starter
+      region: frankfurt
+      branch: deploy-test
+      dockerContext: .
+      dockerfilePath: ./docker/Dockerfile
+      autoDeployTrigger: commit
+      healthCheckPath: /health
+      maxShutdownDelaySeconds: 55
+      numInstances: 1
+      domains:
+      - test.remdo.com
+      envVars:
+        - key: AUTH_SECRET
+          generateValue: true
+        - key: COLLAB_INTERNAL_SECRET
+          generateValue: true
+        - key: REMDO_ADMIN_PASSWORD
+          generateValue: true
+        - key: REMDO_USER_PASSWORD
+          generateValue: true
+        - key: DATABASE_URL
+          fromDatabase:
+            name: remdo-test-db
+            property: connectionString
+        - key: APP_ORIGIN
+          value: https://test.remdo.com
