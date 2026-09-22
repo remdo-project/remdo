@@ -3,9 +3,11 @@ import { Button, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover } fro
 import type { DocumentNote } from '#note-sdk';
 
 export function DocumentMenu({
+  label,
   note,
   onRename,
 }: {
+  label: string;
   note: DocumentNote;
   onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
 }) {
@@ -14,16 +16,15 @@ export function DocumentMenu({
   return (
     <MenuTrigger>
       <Button
-        aria-label={`Actions for ${note.getText()}`}
-        className="remdo-menu-button document-menu-button"
-        data-document-menu-ref={note.getId()}
+        aria-label={`Actions for ${label}`}
+        className="document-menu-button"
         ref={triggerRef}
       />
       <Popover offset={4} placement="bottom start">
         <Menu aria-label="Document actions" className="remdo-menu">
           <MenuSection>
             <Header>Note</Header>
-            <MenuItem data-document-menu-item="rename" onAction={() => onRename(note, triggerRef.current)}>
+            <MenuItem onAction={() => onRename(note, triggerRef.current)}>
               Rename…
             </MenuItem>
           </MenuSection>

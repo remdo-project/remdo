@@ -340,7 +340,7 @@ concrete unmet need.
   the document-root header and its menu remain, then the
   [persistent menu target](specs/outliner/menu.md#entry), which Home rows approximate with a
   hover- and focus-revealed button in a reserved gutter. The
-  [legacy implementation gaps](legacy-backlog.md#home-and-location-header-follow-ups) track the missing surfaces and storage path.
+  [legacy implementation gaps](legacy-backlog.md#home-and-location-header-follow-ups) track the missing surfaces.
 
 - **Zoomed-note location header.** Complete the rich editable header and its
   applicable note, children, and view actions, preserving the
@@ -369,8 +369,8 @@ concrete unmet need.
 
 - **Document deletion.** Decide permissions, effects on collaborators and
   linked sources, and recovery or confirmation before adding deletion to
-  document menus. Deliver rename first; document destruction is separate from
-  structural note deletion.
+  document menus. Document destruction is separate from structural note
+  deletion.
 
 - **Contextual menus across desktop and touch.** Keep the [note menu](specs/outliner/menu.md) available
   on both, with discoverable keyboard entry and an easily reachable More action.

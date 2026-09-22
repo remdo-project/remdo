@@ -50,13 +50,13 @@ class DocumentSerializer(serializers.ModelSerializer):
 
 
 class RenameDocumentSerializer(serializers.ModelSerializer):
-    # Renaming rejects an empty name, while creation defaults to one.
-    title = serializers.CharField(allow_blank=False, max_length=500)
+    # The model allows a blank title so creation can default it; renaming
+    # requires a name, so the field is redeclared rather than relaxed.
+    title = serializers.CharField(allow_blank=False)
 
     class Meta:
         model = Document
         fields = ["id", "title"]
-        read_only_fields = ["id"]
 
 
 class CurrentUserSerializer(serializers.ModelSerializer):

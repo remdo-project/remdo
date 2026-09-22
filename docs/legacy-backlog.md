@@ -170,8 +170,8 @@ ships.
   (`document-switcher.spec.ts`, the picker cases in
   `document-toolbar.spec.tsx`/`document-route.spec.tsx`).
 
-The location header and document actions are specified but not yet built; the
-entries below track implementation gaps against their rules.
+The location headers are not yet built; the entries below track implementation
+gaps against their rules.
 
 - No document-root location header is rendered; the document name remains in
   the breadcrumb picker, so rename is reachable only from a Home row menu.

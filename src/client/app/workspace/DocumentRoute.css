@@ -395,14 +395,33 @@ main.document-route-container {
   background: var(--mantine-color-dark-6);
 }
 
+/* The More icon is painted by background-color through a mask, so the fill must
+   stay opaque in every state or the icon disappears. */
 .document-menu-button {
   flex: none;
   width: 1.25rem;
   height: 1.25rem;
+  padding: 0;
+  border: none;
+  background-color: var(--mantine-color-dark-2);
+  mask-image: url('/icons/menu-2.svg');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-image: url('/icons/menu-2.svg');
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  cursor: pointer;
   /* Reserved gutter space keeps the row from shifting as the button appears.
      Opacity rather than visibility keeps the button focusable while hidden. */
   opacity: 0;
   transition: opacity 120ms ease, background-color 120ms ease;
+}
+
+.document-menu-button:hover,
+.document-menu-button:focus-visible {
+  background-color: var(--indicator-highlight-color);
 }
 
 .document-menu-button:focus-visible,

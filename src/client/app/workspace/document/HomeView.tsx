@@ -33,16 +33,17 @@ function DocumentGroup({
       <ul className="home-doc-list">
         {documents.map((document) => {
           const note = resolveDocument(document.id);
+          const label = formatNavigationLabel(document.label);
           return (
             <li className="home-doc-row" key={document.id}>
-              {note && <DocumentMenu note={note} onRename={onRename} />}
+              {note && <DocumentMenu label={label} note={note} onRename={onRename} />}
               <button
                 className="home-doc remdo-interaction-surface"
                 data-home-document-ref={document.id}
                 onClick={() => onSelectDocument(document.id)}
                 type="button"
               >
-                {formatNavigationLabel(document.label)}
+                {label}
               </button>
             </li>
           );

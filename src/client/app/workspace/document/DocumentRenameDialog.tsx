@@ -16,7 +16,6 @@ export function DocumentRenameDialog({
   const selectedOnOpenRef = useRef(false);
 
   const submit = async () => {
-    if (pending) return;
     const title = draft.trim();
     if (!title) {
       setError('Enter a document name.');

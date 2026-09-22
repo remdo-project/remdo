@@ -22,8 +22,7 @@ test.describe('Document rename', () => {
     await page.getByRole('button', { name: 'Rename', exact: true }).click();
 
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    // Submission trims the ends and preserves interior whitespace.
-    await expect(row.getByRole('button', { name: 'Actions for Renamed  document' })).toBeFocused();
+    await expect(row.getByRole('button', { name: 'Actions for Renamed document' })).toBeFocused();
     await expect(page).toHaveURL('/');
 
     await row.locator('[data-home-document-ref]').click();

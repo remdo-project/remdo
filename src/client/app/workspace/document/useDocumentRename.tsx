@@ -8,7 +8,8 @@ export function useDocumentRename(fallbackRef: { current: HTMLElement | null }) 
   const close = () => {
     const trigger = target?.trigger;
     setTarget(null);
-    // Focus restoration waits for the row to re-render under its new name.
+    // Focus lands after the modal's own focus handling runs on unmount,
+    // which would otherwise move it away from the invoking button.
     requestAnimationFrame(() => {
       const destination = trigger?.isConnected ? trigger : fallbackRef.current;
       destination?.focus({ preventScroll: true });

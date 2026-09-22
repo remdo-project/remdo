@@ -34,9 +34,9 @@ class DocumentFlowTests(TestCase):
     def setUp(self):
         self.client = Client(enforce_csrf_checks=True)
 
-    def post(self, path, body=None, **headers):
+    def send(self, method, path, body=None, **headers):
         token = self.client.get("/api/config").json()["csrfToken"]
-        return self.client.post(
+        return getattr(self.client, method)(
             path,
             json.dumps(body or {}),
             content_type="application/json",
@@ -44,15 +44,11 @@ class DocumentFlowTests(TestCase):
             **headers,
         )
 
+    def post(self, path, body=None, **headers):
+        return self.send("post", path, body, **headers)
+
     def put(self, path, body=None, **headers):
-        token = self.client.get("/api/config").json()["csrfToken"]
-        return self.client.put(
-            path,
-            json.dumps(body or {}),
-            content_type="application/json",
-            HTTP_X_CSRFTOKEN=token,
-            **headers,
-        )
+        return self.send("put", path, body, **headers)
 
     def authorize(self, document_id):
         return self.client.get(
@@ -169,7 +165,6 @@ class DocumentFlowTests(TestCase):
         self.sign_in()
         response = self.put(path, {"title": "  Quarterly  plan  "})
         self.assertEqual(response.status_code, 200)
-        # Submission trims the ends and preserves interior whitespace.
         self.assertEqual(response.json()["title"], "Quarterly  plan")
         self.sign_out()
 

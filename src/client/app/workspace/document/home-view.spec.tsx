@@ -5,12 +5,21 @@ import type { DocumentNote } from '#note-sdk';
 import { HomeView } from './HomeView';
 import type { HomeViewProps } from './HomeView';
 
-const renamableDocument = (id: string, title: string, rename = vi.fn()): DocumentNote => ({
+const documentNote = (
+  { id, title, rename = vi.fn(), canRename = true }:
+  { id: string; title: string; rename?: () => unknown; canRename?: boolean },
+): DocumentNote => ({
   getId: () => id,
   getText: () => title,
-  canRename: () => true,
+  canRename: () => canRename,
   rename,
 } as unknown as DocumentNote);
+
+const openRenameDialog = async (name: string) => {
+  fireEvent.click(screen.getAllByRole('button', { name: `Actions for ${name}` })[0]!);
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Rename…' }));
+  return screen.getByLabelText('Document name');
+};
 
 const baseProps = (): HomeViewProps => ({
   sources: [
@@ -34,7 +43,7 @@ const baseProps = (): HomeViewProps => ({
   onSelectDocument: vi.fn(),
   onCreateDocument: vi.fn(),
   onUploadDocument: vi.fn(),
-  resolveDocument: (docId) => renamableDocument(docId, docId),
+  resolveDocument: (docId) => documentNote({ id: docId, title: docId }),
 });
 
 const renderHome = (props: HomeViewProps) =>
@@ -96,12 +105,11 @@ describe('home view', () => {
   it('submits a trimmed new name through the row menu', async () => {
     const rename = vi.fn().mockResolvedValue(undefined);
     const props = baseProps();
-    props.resolveDocument = (docId) => renamableDocument(docId, 'Ideas', rename);
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
     renderHome(props);
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Ideas' })[0]!);
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Rename…' }));
-    fireEvent.change(screen.getByLabelText('Document name'), { target: { value: '  Renamed Ideas  ' } });
+    const input = await openRenameDialog('Ideas');
+    fireEvent.change(input, { target: { value: '  Renamed Ideas  ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
 
     await waitFor(() => expect(rename).toHaveBeenCalledWith('Renamed Ideas'));
@@ -110,12 +118,11 @@ describe('home view', () => {
   it('rejects an empty name without calling the source', async () => {
     const rename = vi.fn();
     const props = baseProps();
-    props.resolveDocument = (docId) => renamableDocument(docId, 'Ideas', rename);
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
     renderHome(props);
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Ideas' })[0]!);
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Rename…' }));
-    fireEvent.change(screen.getByLabelText('Document name'), { target: { value: '   ' } });
+    const input = await openRenameDialog('Ideas');
+    fireEvent.change(input, { target: { value: '   ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Enter a document name.');
@@ -125,12 +132,11 @@ describe('home view', () => {
   it('keeps the draft and shows the failure when the source rejects the rename', async () => {
     const rename = vi.fn().mockRejectedValue(new Error('Document is no longer available.'));
     const props = baseProps();
-    props.resolveDocument = (docId) => renamableDocument(docId, 'Ideas', rename);
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
     renderHome(props);
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Ideas' })[0]!);
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Rename…' }));
-    fireEvent.change(screen.getByLabelText('Document name'), { target: { value: 'Renamed' } });
+    const input = await openRenameDialog('Ideas');
+    fireEvent.change(input, { target: { value: 'Renamed' } });
     fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Document is no longer available.');
@@ -140,12 +146,11 @@ describe('home view', () => {
   it('closes without a write when the opening name is submitted unchanged', async () => {
     const rename = vi.fn();
     const props = baseProps();
-    props.resolveDocument = (docId) => renamableDocument(docId, 'Ideas', rename);
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
     renderHome(props);
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Ideas' })[0]!);
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Rename…' }));
-    fireEvent.change(screen.getByLabelText('Document name'), { target: { value: '  Ideas  ' } });
+    const input = await openRenameDialog('Ideas');
+    fireEvent.change(input, { target: { value: '  Ideas  ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
 
     await waitFor(() => expect(screen.queryByLabelText('Document name')).toBeNull());
@@ -156,12 +161,10 @@ describe('home view', () => {
     let settle!: () => void;
     const rename = vi.fn().mockReturnValue(new Promise<void>((resolve) => { settle = resolve; }));
     const props = baseProps();
-    props.resolveDocument = (docId) => renamableDocument(docId, 'Ideas', rename);
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
     renderHome(props);
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Ideas' })[0]!);
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Rename…' }));
-    const input = screen.getByLabelText('Document name');
+    const input = await openRenameDialog('Ideas');
     fireEvent.change(input, { target: { value: 'Renamed' } });
     fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
 
@@ -177,12 +180,7 @@ describe('home view', () => {
 
   it('omits the menu for a document that cannot be renamed', () => {
     const props = baseProps();
-    props.resolveDocument = () => ({
-      getId: () => 'doc-b',
-      getText: () => 'Ideas',
-      canRename: () => false,
-      rename: vi.fn(),
-    } as unknown as DocumentNote);
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canRename: false });
     renderHome(props);
 
     expect(screen.queryByRole('button', { name: /^Actions for/ })).toBeNull();
