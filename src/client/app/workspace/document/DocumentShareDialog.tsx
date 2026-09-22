@@ -1,6 +1,7 @@
-import { Alert, Button, Group, Modal, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Button, Group, Stack, Text, TextInput } from '@mantine/core';
 import { useState } from 'react';
 import { useUserData } from '#client/app/user-data/user-data';
+import { RemdoDialog } from '#client/ui/RemdoDialog';
 
 type ShareState =
   | { status: 'idle' | 'pending' }
@@ -35,14 +36,7 @@ export function DocumentShareDialog({ docId, onClose }: { docId: string; onClose
   const recipients = document?.getAccess().getChildren() ?? [];
 
   return (
-    <Modal
-      centered
-      onClose={onClose}
-      opened
-      size="lg"
-      title={document ? `Share “${document.getText()}”` : 'Share'}
-      transitionProps={{ duration: 0 }}
-    >
+    <RemdoDialog onClose={onClose} title={document ? `Share “${document.getText()}”` : 'Share'} wide>
       <Stack gap="lg">
         <Stack component="section" gap="sm">
           <Text component="h3" fw={600} size="sm">People with access</Text>
@@ -62,7 +56,7 @@ export function DocumentShareDialog({ docId, onClose }: { docId: string; onClose
           <form aria-busy={pending} onSubmit={(event) => { event.preventDefault(); void submit(); }}>
             <Group align="flex-end" gap="sm" wrap="nowrap">
               <TextInput
-                data-autofocus
+                autoFocus
                 disabled={pending}
                 label="Invite by email"
                 onChange={(event) => { setEmail(event.currentTarget.value); setState({ status: 'idle' }); }}
@@ -91,6 +85,6 @@ export function DocumentShareDialog({ docId, onClose }: { docId: string; onClose
           <Button onClick={onClose} variant="default">Done</Button>
         </Group>
       </Stack>
-    </Modal>
+    </RemdoDialog>
   );
 }

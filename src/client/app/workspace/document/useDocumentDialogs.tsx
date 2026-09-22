@@ -16,12 +16,11 @@ export function useDocumentDialogs(fallbackRef: { current: HTMLElement | null })
   const close = () => {
     const trigger = target?.trigger;
     setTarget(null);
-    // Focus lands after the modal's own focus handling runs on unmount,
-    // which would otherwise move it away from the invoking button.
-    requestAnimationFrame(() => {
-      const destination = trigger?.isConnected ? trigger : fallbackRef.current;
-      destination?.focus({ preventScroll: true });
-    });
+    // The dialog's focus scope restores the invoking button on its own. Only
+    // a button that no longer exists needs the heading fallback that
+    // docs/specs/outliner/menu.md requires.
+    if (trigger?.isConnected) return;
+    requestAnimationFrame(() => fallbackRef.current?.focus({ preventScroll: true }));
   };
 
   const open = (kind: DialogKind) => (note: DocumentNote, trigger: HTMLButtonElement | null) => {

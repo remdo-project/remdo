@@ -1,4 +1,5 @@
-import { Button, Group, Modal, Stack, Text } from '@mantine/core';
+import { Button, Group, Stack, Text } from '@mantine/core';
+import { RemdoDialog } from './RemdoDialog';
 
 interface UnsyncedLogoutDialogProps {
   onCancel: () => void;
@@ -11,16 +12,9 @@ export default function UnsyncedLogoutDialog({
   onConfirm,
   opened,
 }: UnsyncedLogoutDialogProps) {
+  if (!opened) return null;
   return (
-    <Modal
-      centered
-      onClose={onCancel}
-      opened={opened}
-      title="Sign out and discard unsaved changes?"
-      // The dialog appears only to confirm irreversible loss, so it opens at
-      // once rather than fading in ahead of the choice.
-      transitionProps={{ duration: 0 }}
-    >
+    <RemdoDialog onClose={onCancel} title="Sign out and discard unsaved changes?">
       <Stack gap="md">
         <Text size="sm">
           {`Some changes have not reached the server. Signing out erases this device's local copy, and they cannot be recovered.`}
@@ -34,6 +28,6 @@ export default function UnsyncedLogoutDialog({
           </Button>
         </Group>
       </Stack>
-    </Modal>
+    </RemdoDialog>
   );
 }

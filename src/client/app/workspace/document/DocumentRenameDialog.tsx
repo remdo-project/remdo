@@ -1,7 +1,8 @@
-import { Button as FormButton, Group, Modal, Stack, TextInput } from '@mantine/core';
+import { Button as FormButton, Group, Stack, TextInput } from '@mantine/core';
 import { useRef, useState } from 'react';
 import { DOCUMENT_TITLE_MAX_LENGTH } from '#domain/documents/user-data';
 import type { DocumentNote } from '#note-sdk';
+import { RemdoDialog } from '#client/ui/RemdoDialog';
 
 export function DocumentRenameDialog({
   note,
@@ -40,19 +41,11 @@ export function DocumentRenameDialog({
   };
 
   return (
-    <Modal
-      centered
-      // A pending submission blocks every dismissal path, including the
-      // header close button.
-      onClose={() => { if (!pending) onClose(); }}
-      opened
-      title="Rename document"
-      transitionProps={{ duration: 0 }}
-    >
+    <RemdoDialog isDismissable={!pending} onClose={onClose} title="Rename document">
       <form onSubmit={(event) => { event.preventDefault(); void submit(); }}>
         <Stack gap="md">
           <TextInput
-            data-autofocus
+            autoFocus
             disabled={pending}
             error={error}
             errorProps={{ role: 'alert' }}
@@ -74,6 +67,6 @@ export function DocumentRenameDialog({
           </Group>
         </Stack>
       </form>
-    </Modal>
+    </RemdoDialog>
   );
 }
