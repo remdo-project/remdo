@@ -81,8 +81,8 @@ Deploy the Render environments from [the repository blueprint](../../render.yaml
 1. Create a Render Blueprint deployment from it.
 2. In each service's **Environment** view, copy its generated
    `REMDO_ADMIN_PASSWORD` into the password manager. Staging and test also
-   generate `REMDO_USER_PASSWORD`. Render preserves these generated values across later
-   Blueprint syncs.
+   generate `REMDO_USER_PASSWORD`. Render preserves these generated values
+   across later Blueprint syncs.
 3. Point DNS at each service as Render's domain settings instruct and wait for
    its certificate.
 4. For each service, set **Settings > Edge Caching > Cacheable file types** to
