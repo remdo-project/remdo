@@ -112,9 +112,13 @@ export function NoteMenuPlugin({ session }: { session: DocumentSession }) {
       }
       doubleShiftHandlerRef.current?.(event);
     };
-    document.addEventListener('keydown', handleDocumentKeyDown);
+    // Capture phase: editor commands stop propagation on the keys they consume
+    // (an arrow inside a body, for example), so a bubble-phase listener would
+    // see the Shift presses around them but not the keys between. The double-tap
+    // detector would then read two ordinary shifted shortcuts as a double-Shift.
+    document.addEventListener('keydown', handleDocumentKeyDown, true);
     return () => {
-      document.removeEventListener('keydown', handleDocumentKeyDown);
+      document.removeEventListener('keydown', handleDocumentKeyDown, true);
     };
   }, []);
 

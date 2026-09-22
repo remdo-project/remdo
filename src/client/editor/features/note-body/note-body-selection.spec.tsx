@@ -139,3 +139,55 @@ describe('note body selection contract (docs/specs/outliner/body.md)', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
   });
 });
+
+// A caret or inline text selection inside a body targets its owning editor note
+// for commands that act on a note (docs/specs/outliner/body.md "Selection and
+// structural targeting"). The inline selection case is the regression: a
+// body-local range yields no structural heads by design — so paste edits the
+// body rather than replacing the note — and the owner must be recovered
+// explicitly for note-level commands.
+describe('note body command targeting (docs/specs/outliner/body.md)', () => {
+  it('indents the owning note from a caret in its body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await addBody(remdo, 'note2', 'bodytwo');
+    await collapseDomSelectionAtNode(getNoteBodyTextNode(remdo, 'note2'), 3);
+
+    await pressKey(remdo, { key: 'Tab' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', children: [{ noteId: 'note2', text: 'note2', body: 'bodytwo' }] },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('indents the owning note from an inline selection in its body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await addBody(remdo, 'note2', 'bodytwo');
+    const body = getNoteBodyTextNode(remdo, 'note2');
+    await collapseDomSelectionAtNode(body, 0);
+    await extendDomSelectionToNode(body, 4);
+
+    await pressKey(remdo, { key: 'Tab' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', children: [{ noteId: 'note2', text: 'note2', body: 'bodytwo' }] },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('outdents the owning note from an inline selection in its body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await addBody(remdo, 'note2', 'bodytwo');
+    await collapseDomSelectionAtNode(getNoteBodyTextNode(remdo, 'note2'), 0);
+    await pressKey(remdo, { key: 'Tab' });
+
+    const body = getNoteBodyTextNode(remdo, 'note2');
+    await collapseDomSelectionAtNode(body, 0);
+    await extendDomSelectionToNode(body, 4);
+    await pressKey(remdo, { key: 'Tab', shift: true });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', body: 'bodytwo' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+});

@@ -16,7 +16,8 @@ import {
   meta,
 } from '#tests';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
+import { DELETE_SELECTED_NOTES_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
+import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 import { $setNoteFolded } from '#client/editor/outline/fold-state';
 
 // Coverage gaps (handled in e2e instead of unit tests):
@@ -85,6 +86,29 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
 
       expect(remdo).toMatchEditorState(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+    });
+
+    it('reports note deletion as unavailable on the zoom root', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+      // The zoom root supplies no delete target (docs/specs/outliner/mobile-toolbar.md),
+      // so availability must say so rather than offering an action that would
+      // remove the view the user is inside.
+      await placeCaretAtNote(remdo, 'note2', 0);
+
+      expect(remdo.editor.getEditorState().read(
+        () => $canDeleteFocusedOrSelectedNotes(remdo.editor),
+        { editor: remdo.editor }
+      )).toBe(false);
+    });
+
+    it('leaves the document unchanged when note deletion is applied on the zoom root', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+      // Availability and application agree: the delegated command is a no-op on
+      // the zoom root rather than removing it.
+      const before = remdo.getEditorState();
+      await placeCaretAtNote(remdo, 'note2', 0);
+
+      await remdo.dispatchCommand(DELETE_SELECTED_NOTES_COMMAND, undefined, { expect: 'noop' });
+
+      expect(remdo).toMatchEditorState(before);
     });
 
     it('delete at the end of a zoom-subtree tail note does not merge with notes outside the zoom boundary', meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {

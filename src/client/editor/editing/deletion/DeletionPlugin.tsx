@@ -3,6 +3,7 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
+  $createLineBreakNode,
   $createTextNode,
   $getSelection,
   $isRangeSelection,
@@ -57,14 +58,31 @@ function getParentNote(list: ListNode): ListItemNode | null {
   return getPreviousContentSibling(wrapper);
 }
 
-// Before `removed` is deleted in a merge, carry its body (if any) to `survivor`.
-// The both-bodies case is rejected earlier, so the survivor has no body here; the
-// body-wrapper sits immediately after the survivor's content item.
+// Before `removed` is deleted in a merge, carry its body (if any) to `survivor`
+// (docs/specs/outliner/body.md "Note merge"). With one body between them the
+// wrapper moves to sit immediately after the survivor's content item. With two,
+// the removed note's lines append to the survivor's body after a line break, so
+// merging never silently drops text; undo restores both notes as one step.
 function $carryBodyToSurvivor(removed: ListItemNode, survivor: ListItemNode): void {
   const bodyWrapper = getBodyWrapper(removed);
-  if (bodyWrapper) {
-    survivor.insertAfter(bodyWrapper);
+  if (!bodyWrapper) {
+    return;
   }
+
+  const removedBody = getNoteBody(removed);
+  const survivingBody = getNoteBody(survivor);
+  if (!removedBody || !survivingBody) {
+    survivor.insertAfter(bodyWrapper);
+    return;
+  }
+
+  if (!isNoteBodyEmpty(removedBody)) {
+    if (!isNoteBodyEmpty(survivingBody)) {
+      survivingBody.append($createLineBreakNode());
+    }
+    survivingBody.append(...removedBody.getChildren());
+  }
+  bodyWrapper.remove();
 }
 
 function getFirstChildContentItem(item: ListItemNode): ListItemNode | null {
@@ -321,14 +339,6 @@ export function DeletionPlugin() {
     const $mergeAtStartOfNote = (selection: ReturnType<typeof $getSelection>, current: ListItemNode): boolean => {
       const target = getPreviousNoteInDocumentOrder(current);
       if (!target) {
-        return true;
-      }
-
-      // Body merge contract (docs/specs/outliner/body.md "Note merge"): if both notes
-      // have a body the merge is a no-op so no body is lost. Otherwise the merge
-      // proceeds and the surviving note keeps the single body, carrying it over
-      // from the removed note when needed.
-      if (getBodyWrapper(current) && getBodyWrapper(target)) {
         return true;
       }
 

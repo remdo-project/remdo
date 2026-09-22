@@ -251,6 +251,17 @@
   padding: 0 0.05rem;
 }
 
+/* Body preview: one line of the matched note's body, windowed onto the match.
+   Dim and small like the editor's own body rendering, and clipped rather than
+   wrapped so every row keeps the same height. */
+.document-search-result-body {
+  overflow: hidden;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Ancestor subline: the location path under the matched note — small, dim, and
    on a single line; crumbs shrink with ellipsis to share the available width. */
 .document-search-result-breadcrumb {

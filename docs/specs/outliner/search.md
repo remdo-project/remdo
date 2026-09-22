@@ -44,10 +44,12 @@ zooming to a result.
 5. Typing in the search box filters flat results by query matching. The query is
    a plain-text field split on whitespace into tokens (order-independent; extra
    whitespace ignored). A note matches when every token is a case-insensitive
-   substring of some entry in the note's [note path](./note-model.md#definitions),
-   and at least one token matches the note's own text. Results stay in
+   substring of some entry in the note's [note path](./note-model.md#definitions)
+   or its own [body](./body.md), and at least one token matches the note's own
+   text or its body. An ancestor's body never contributes to either test, so a
+   crumb keeps meaning where the note lives. Results stay in
    [document order](./note-model.md#definitions). Matched tokens are highlighted
-   wherever they occur — in the note label or an ancestor crumb.
+   wherever they occur — in the note label, an ancestor crumb, or the body preview.
 6. Flat results are capped at the first ten matches in document order. When at
    least one match exists beyond the shown results, a non-interactive trailing
    row reports that more matches exist (the shown count, with no exact total) and
@@ -65,22 +67,32 @@ zooming to a result.
 15. Search input exposes combobox semantics for assistive tech, including popup
     state and active descendant linkage.
 16. Search results expose listbox semantics and mark the highlighted result as selected.
-17. Each result's accessible name includes its ancestor path context, so results
-    that share the same note text are still distinguishable without sight (the
-    same disambiguation the visible row provides).
+17. Each result's accessible name includes its body preview and its ancestor path
+    context, so results that share the same note text are still distinguishable
+    without sight, and a note matched on its body announces why (the same
+    disambiguation the visible row provides).
 
 ## Result row context
 
 Result rows carry enough structural context to tell apart matches that share the
 same text. Every row uses the same layout regardless of highlight.
 
-1. Every result row shows the matched note as a primary label line, a dim
-   ancestor-path subline beneath it, then a preview of the match's first two
+1. Every result row shows the matched note as a primary label line, a body
+   preview when the note has a [body](./body.md), a dim
+   ancestor-path subline beneath those, then a preview of the match's first two
    direct children.
 2. The matched note's text is the primary label, and its text formatting is
    preserved (for example a checked note is struck through). The label shows no
    list marker — no bullet, number, or checkbox.
-3. The subline lists the full ancestor chain (excluding the matched note),
+3. The body preview is a single line of plain text, shown whenever the matched
+   note has a non-empty body. Hard line breaks and whitespace runs collapse to
+   single spaces, and inline formatting is not preserved — unlike the label,
+   since a windowed preview carries no formatting. When the query matches the
+   body, the preview is a window around the first match, so the matched text is
+   visible; other matches in the body may fall outside it. Otherwise it shows
+   the body's opening. A `…` marks each end the window does not reach, and the
+   window prefers whole words over an exact character budget.
+4. The subline lists the full ancestor chain (excluding the matched note),
    separated by `/`, including the top-level note for context. A match with no
    ancestors (itself top-level) shows no subline. The subline stays on a single
    line, fitting under a combined budget that sacrifices depth before width:
@@ -92,12 +104,12 @@ same text. Every row uses the same layout regardless of highlight.
      with an ellipsis rather than wrapping, so the subline uses more of a wide
      results pane and tightens on a narrow one (adjusting on resize). A crumb
      truncated by width exposes its full label as a tooltip.
-4. Ancestor crumbs are visually subordinate to the match — muted in colour and
+5. Ancestor crumbs are visually subordinate to the match — muted in colour and
    smaller, with an underline only on hover — so the matched note reads as the
    row's subject.
-5. Every ancestor crumb is activatable; activating it zooms that ancestor and
+6. Every ancestor crumb is activatable; activating it zooms that ancestor and
    ends Search Mode, exactly like accepting a result.
-6. The child preview shows the first two direct children of the match rendered
+7. The child preview shows the first two direct children of the match rendered
    with the outline's own list markers (bullet, number, or checkbox per child's
    list type, checked children struck through), matching how they look in the
    editor. A match with no children shows no preview; a match with more than two

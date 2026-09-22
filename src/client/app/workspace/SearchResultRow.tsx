@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { ChildPreview as SearchChildPreview, EditorNoteSnapshot, NoteListType, SearchResult } from '#note-sdk';
+import { bodySnippet } from '#client/search/body-snippet';
 import { queryMatchRanges } from '#client/search/query-match';
 import { UNTITLED_LABEL, formatNavigationLabel, normalizeNavigationLabel } from '#client/ui/navigation-label';
 
@@ -176,6 +177,7 @@ export function SearchResultRow({
       >
         <HighlightedText query={query} text={matchText} />
       </div>
+      <BodySnippet body={note.body} query={query} />
       <ResultBreadcrumb
         ancestorPath={path}
         onSelectAncestor={onSelectAncestor}
@@ -185,6 +187,25 @@ export function SearchResultRow({
         <ChildPreview preview={childPreview} />
       ) : null}
     </>
+  );
+}
+
+// A one-line preview of the note's body, windowed onto the query match when the
+// body is what matched — otherwise a row whose label lacks the query would look
+// like a mistake. Rendered as plain text: unlike the label, inline formatting is
+// dropped, since windowing rich content is not worth it for a preview.
+function BodySnippet({ body, query }: { body: string | null; query: string }) {
+  if (!body) {
+    return null;
+  }
+  const snippet = bodySnippet(body, query);
+  if (snippet.length === 0) {
+    return null;
+  }
+  return (
+    <div className="document-search-result-body" data-search-result-body>
+      <HighlightedText query={query} text={snippet} />
+    </div>
   );
 }
 

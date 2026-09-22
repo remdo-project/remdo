@@ -79,21 +79,55 @@ describe('lexical document search', () => {
       });
     });
 
-  it('excludes body text and wrappers without losing child notes', meta({ fixture: 'basic' }), async ({ remdo }) => {
+  it('keeps a body out of the note list while matching its text', meta({ fixture: 'basic' }), async ({ remdo }) => {
     await remdo.mutate(() => {
       $addNoteBody($findNoteById('note1')!).append($createTextNode('body-only-token'));
     });
 
     const { flatResults } = collectLexicalDocumentSearchResults(remdo.editor, ALL);
 
+    // A body is not a note: it never appears as its own result or child, and it
+    // never becomes part of a note's label.
     expect(flatResults.map(({ note }) => ({ id: note.id, text: note.text }))).toEqual([
       { id: 'note1', text: 'note1' },
       { id: 'note2', text: 'note2' },
       { id: 'note3', text: 'note3' },
     ]);
     expect(flatResults[0]!.childPreview.notes.map(({ id }) => id)).toEqual(['note2']);
-    expect(collectLexicalDocumentSearchResults(remdo.editor, { ...ALL, query: 'body-only-token' }))
-      .toEqual({ flatResults: [], hasMore: false });
+
+    // Body text is still findable — it is where a note's detail lives.
+    const matched = collectLexicalDocumentSearchResults(remdo.editor, { ...ALL, query: 'body-only-token' });
+    expect(matched.flatResults.map(({ note }) => note.id)).toEqual(['note1']);
+    expect(matched.flatResults[0]!.note.body).toBe('body-only-token');
+  });
+
+  it('exposes a null body for a note that has none', meta({ fixture: 'flat' }), ({ remdo }) => {
+    const { flatResults } = collectLexicalDocumentSearchResults(remdo.editor, ALL);
+    expect(flatResults.every(({ note }) => note.body === null)).toBe(true);
+  });
+
+  it('does not let an ancestor body satisfy the leaf-first guard', meta({ fixture: 'basic' }), async ({ remdo }) => {
+    // note1's body holds the token; note2 is its child. A body belongs to its
+    // own note, so it must not pull the whole subtree into the results the way
+    // an ancestor label legitimately can.
+    await remdo.mutate(() => {
+      $addNoteBody($findNoteById('note1')!).append($createTextNode('ancestoronly'));
+    });
+
+    expect(collectLexicalDocumentSearchResults(remdo.editor, { ...ALL, query: 'ancestoronly' })
+      .flatResults.map(({ note }) => note.id)).toEqual(['note1']);
+  });
+
+  it('matches one token on a body and another on an ancestor label', meta({ fixture: 'basic' }), async ({ remdo }) => {
+    await remdo.updateNoteText('note1', 'Work');
+    await remdo.mutate(() => {
+      $addNoteBody($findNoteById('note2')!).append($createTextNode('quarterly review'));
+    });
+
+    // Path scoping is unchanged: 'work' comes from the ancestor label, while
+    // 'quarterly' satisfies the leaf-first guard from note2's own body.
+    expect(collectLexicalDocumentSearchResults(remdo.editor, { ...ALL, query: 'work quarterly' })
+      .flatResults.map(({ note }) => note.id)).toEqual(['note2']);
   });
 
   it('requires an own-text token and matches other tokens against ancestors', meta({ fixture: 'basic' }), async ({ remdo }) => {

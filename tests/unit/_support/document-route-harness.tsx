@@ -32,7 +32,7 @@ export function createSearchResult(
   text: string,
   fields: Partial<Pick<SearchResult, 'path' | 'childPreview'>> = {},
 ): SearchResult {
-  const note: EditorNoteSnapshot = { id, text, checked: false, folded: false, children: null };
+  const note: EditorNoteSnapshot = { id, text, body: null, checked: false, folded: false, children: null };
   return {
     note,
     path: [note],

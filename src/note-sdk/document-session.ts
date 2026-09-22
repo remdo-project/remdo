@@ -13,6 +13,9 @@ export interface ChildListSnapshot {
 export interface EditorNoteSnapshot {
   readonly id: NoteId;
   readonly text: string;
+  /** The note's body text, or null when it has none. Separate from `text`,
+   *  which stays the note's own short label. */
+  readonly body: string | null;
   readonly checked: boolean;
   readonly folded: boolean;
   readonly children: ChildListSnapshot | null;

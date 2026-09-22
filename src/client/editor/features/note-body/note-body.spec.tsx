@@ -97,7 +97,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     ]);
   });
 
-  it('shift+Enter on a note that already has a body focuses the existing body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('shift+Enter on a note that already has a body appends at the end of it', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'first');
@@ -107,8 +107,10 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'X');
 
+    // The gesture means "add to this note's body", so typing continues the
+    // existing text rather than fusing onto its front.
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'Xfirst' },
+      { noteId: 'note1', text: 'note1', body: 'firstX' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -389,7 +391,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     ]);
   });
 
-  it('merging two notes that both have a body is a no-op', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('merging two notes that both have a body joins the bodies with a line break', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'note1 body');
@@ -400,10 +402,49 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await placeCaretAtNote(remdo, 'note2', 0);
     await pressKey(remdo, { key: 'Backspace' });
 
-    // Nothing merges — both notes and both bodies are intact.
+    // The merge proceeds rather than silently doing nothing: the labels join as
+    // usual and the survivor keeps both bodies' text.
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'note1 body' },
-      { noteId: 'note2', text: 'note2', body: 'note2 body' },
+      { noteId: 'note1', text: 'note1 note2', body: 'note1 body\nnote2 body' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('merging an empty-label note that has a body keeps its body text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // An empty *label* routes through the empty-leaf branch, which removes the
+    // note outright. Its body still carries content, so the text must move to
+    // the survivor rather than being dropped with the note.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'note1 body');
+
+    await selectEntireNote(remdo, 'note2');
+    await pressKey(remdo, { key: 'Backspace' });
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'orphan body');
+
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Backspace' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'note1 body\norphan body' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('merging into a note with an empty body keeps the removed note body text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'note2 body');
+
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Backspace' });
+
+    // No leading blank line: an empty surviving body contributes no separator.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1 note2', body: 'note2 body' },
       { noteId: 'note3', text: 'note3' },
     ]);
   });
@@ -839,6 +880,22 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1', body: 'b' },
       { noteId: null, text: 'X' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('escape in a body returns the caret to the end of its note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'body text');
+
+    await pressKey(remdo, { key: 'Escape' });
+    // Typing proves where the caret landed: appended to the note, not the body.
+    await typeText(remdo, '!');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1!', body: 'body text' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);

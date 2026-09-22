@@ -181,6 +181,23 @@ describe('document search', () => {
     await screen.findByRole('option', { name: 'Plan, in Home' });
   });
 
+  it('announces the body preview so a body-only match explains itself', async () => {
+    // The option's aria-label replaces its contents for assistive tech, so a
+    // note whose label lacks the query would otherwise be announced with no
+    // sign of why it matched.
+    const result = createSearchResult('note1', 'Send report');
+    mockDocumentSearch('routeDoc').mockResolvedValue({
+      flatResults: [{ ...result, note: { ...result.note, body: 'cc the finance team' } }],
+      hasMore: false,
+    });
+    renderDocumentRoute();
+
+    const searchInput = await openSearch();
+    fireEvent.change(searchInput, { target: { value: 'finance' } });
+
+    await screen.findByRole('option', { name: 'Send report, cc the finance team' });
+  });
+
   it('marks non-leaf flat results with a children hint flag', async () => {
     renderDocumentRoute();
 

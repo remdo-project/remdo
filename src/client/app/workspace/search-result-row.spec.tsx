@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { EditorNoteSnapshot, NoteListType } from '#note-sdk';
 import { SearchResultRow } from '#client/app/workspace/SearchResultRow';
 
-function note(id: string, text: string, checked = false): EditorNoteSnapshot {
-  return { id, text, checked, folded: false, children: null };
+function note(id: string, text: string, checked = false, body: string | null = null): EditorNoteSnapshot {
+  return { id, text, body, checked, folded: false, children: null };
 }
 
 const ancestorPath = [
@@ -30,6 +30,7 @@ function renderRow({
   listType = 'bullet',
   query = 'refine',
   text = 'TODO refine estimates',
+  body = null,
 }: {
   path?: readonly EditorNoteSnapshot[];
   checked?: boolean;
@@ -38,12 +39,13 @@ function renderRow({
   listType?: NoteListType;
   query?: string;
   text?: string;
+  body?: string | null;
 } = {}) {
   const onSelectAncestor = vi.fn();
   const result = render(
     <SearchResultRow
       result={{
-        note: note('match', text, checked),
+        note: note('match', text, checked, body),
         path,
         childPreview: { notes: children, totalCount: childCount, listType },
       }}
@@ -174,5 +176,39 @@ describe('search result row', () => {
   it('prevents ancestor mousedown from moving focus', () => {
     renderRow();
     expect(fireEvent.mouseDown(screen.getByRole('button', { name: 'Q3 planning' }))).toBe(false);
+  });
+
+  it('renders no body line for a note without a body', () => {
+    const { container } = renderRow();
+    expect(container.querySelector('[data-search-result-body]')).toBeNull();
+  });
+
+  it('previews the body beneath the label', () => {
+    const { container } = renderRow({ body: 'finance needs the draft' });
+    expect(container.querySelector('[data-search-result-body]')?.textContent)
+      .toBe('finance needs the draft');
+  });
+
+  it('highlights a query match inside the body preview', () => {
+    const { container } = renderRow({ body: 'finance needs the draft', query: 'draft' });
+    const marks = Array.from(
+      container.querySelectorAll('[data-search-result-body] .document-search-result-mark')
+    ).map((mark) => mark.textContent);
+    expect(marks).toEqual(['draft']);
+  });
+
+  it('windows a long body onto the match rather than showing its opening', () => {
+    const body = `${'filler word '.repeat(20)}needle${' trailing word'.repeat(20)}`;
+    const { container } = renderRow({ body, query: 'needle' });
+    const preview = container.querySelector('[data-search-result-body]')?.textContent ?? '';
+
+    expect(preview).toContain('needle');
+    expect(preview.startsWith('…')).toBe(true);
+  });
+
+  it('collapses body line breaks so the preview stays on one line', () => {
+    const { container } = renderRow({ body: 'first line\nsecond line' });
+    expect(container.querySelector('[data-search-result-body]')?.textContent)
+      .toBe('first line second line');
   });
 });
