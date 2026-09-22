@@ -432,6 +432,26 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     ]);
   });
 
+  it('keeps document order when the removed empty-label note precedes the survivor', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // An empty preceding label makes the *earlier* note the one removed, so its
+    // body text must come first in the survivor's body.
+    await selectEntireNote(remdo, 'note1');
+    await pressKey(remdo, { key: 'Backspace' });
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'first body');
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'second body');
+
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Backspace' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note2', text: 'note2', body: 'first body\nsecond body' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
   it('merging into a note with an empty body keeps the removed note body text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter', shift: true });

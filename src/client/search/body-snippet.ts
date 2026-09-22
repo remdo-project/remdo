@@ -61,11 +61,14 @@ export function bodySnippet(body: string, query: string, budget = BODY_SNIPPET_B
   let end = budget;
   if (firstMatch) {
     // Centre the window on the match, then pull it back inside the text so a
-    // match near either end still fills the budget.
+    // match near either end still fills the budget. The budget is soft: a match
+    // longer than it widens the window rather than being cut, since a partial
+    // match would neither highlight nor explain why the note matched.
     const matchLength = firstMatch.end - firstMatch.start;
-    start = Math.max(0, firstMatch.start - Math.floor((budget - matchLength) / 2));
-    end = Math.min(text.length, start + budget);
-    start = Math.max(0, end - budget);
+    const padding = Math.max(0, Math.floor((budget - matchLength) / 2));
+    start = Math.max(0, firstMatch.start - padding);
+    end = Math.min(text.length, Math.max(start + budget, firstMatch.end));
+    start = Math.max(0, Math.min(firstMatch.start, end - budget));
   }
 
   if (start > 0) {

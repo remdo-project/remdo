@@ -54,6 +54,16 @@ describe('bodySnippet', () => {
     expect(snippet.replaceAll('…', '').length).toBe(80);
   });
 
+  it('widens the window to keep a match longer than the budget whole', () => {
+    // Overlapping occurrences merge into one long range; the budget is soft, so
+    // the preview must still contain the whole match to explain the result.
+    const run = 'ab'.repeat(60);
+    const body = `${'filler word '.repeat(20)}${run}${' trailing word'.repeat(20)}`;
+    const snippet = bodySnippet(body, 'abab');
+
+    expect(snippet).toContain(run);
+  });
+
   it('matches case-insensitively when choosing the window', () => {
     const body = `${'filler word '.repeat(20)}Needle${' trailing word'.repeat(20)}`;
 

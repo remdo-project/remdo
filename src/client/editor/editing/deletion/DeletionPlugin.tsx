@@ -61,9 +61,14 @@ function getParentNote(list: ListNode): ListItemNode | null {
 // Before `removed` is deleted in a merge, carry its body (if any) to `survivor`
 // (docs/specs/outliner/body.md "Note merge"). With one body between them the
 // wrapper moves to sit immediately after the survivor's content item. With two,
-// the removed note's lines append to the survivor's body after a line break, so
-// merging never silently drops text; undo restores both notes as one step.
-function $carryBodyToSurvivor(removed: ListItemNode, survivor: ListItemNode): void {
+// the removed note's lines join the survivor's body across a line break in
+// document order — before it when `removed` precedes the survivor — so merging
+// never silently drops or reorders text; undo restores both notes as one step.
+function $carryBodyToSurvivor(
+  removed: ListItemNode,
+  survivor: ListItemNode,
+  removedPosition: 'before' | 'after'
+): void {
   const bodyWrapper = getBodyWrapper(removed);
   if (!bodyWrapper) {
     return;
@@ -77,10 +82,13 @@ function $carryBodyToSurvivor(removed: ListItemNode, survivor: ListItemNode): vo
   }
 
   if (!isNoteBodyEmpty(removedBody)) {
-    if (!isNoteBodyEmpty(survivingBody)) {
-      survivingBody.append($createLineBreakNode());
+    const carried = removedBody.getChildren();
+    const separator = isNoteBodyEmpty(survivingBody) ? [] : [$createLineBreakNode()];
+    if (removedPosition === 'before') {
+      survivingBody.splice(0, 0, [...carried, ...separator]);
+    } else {
+      survivingBody.append(...separator, ...carried);
     }
-    survivingBody.append(...removedBody.getChildren());
   }
   bodyWrapper.remove();
 }
@@ -352,14 +360,14 @@ export function DeletionPlugin() {
       const targetIsEmptyLeaf = !targetHasChildren && hasNoContentText(target);
 
       if (targetIsEmptyLeaf) {
-        $carryBodyToSurvivor(target, current);
+        $carryBodyToSurvivor(target, current, 'before');
         removeNoteSubtree(target);
         $selectItemEdge(current, 'start');
         return true;
       }
 
       if (currentIsEmptyLeaf) {
-        $carryBodyToSurvivor(current, target);
+        $carryBodyToSurvivor(current, target, 'after');
         removeNoteSubtree(current);
         $selectItemEdge(target, 'end');
         return true;
@@ -378,7 +386,7 @@ export function DeletionPlugin() {
         }
       }
 
-      $carryBodyToSurvivor(current, target);
+      $carryBodyToSurvivor(current, target, 'after');
       removeNoteSubtree(current);
       if ($isRangeSelection(selection)) {
         selection.dirty = true;
