@@ -57,6 +57,7 @@ esac
 
 interface LauncherRun {
   dataDir: string;
+  envRoot: string;
   result: SpawnSyncReturns<string>;
   dockerCalls: string[][];
   mkdirCalls: string[][];
@@ -76,11 +77,13 @@ describe('prod Docker launcher', () => {
     }
   });
 
-  function runLauncher(overrides: Record<string, string> = {}): LauncherRun {
+  function runLauncher(overrides: Record<string, string | undefined> = {}): LauncherRun {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-prod-docker-launcher-'));
     tempDirs.push(tempDir);
     const binDir = path.join(tempDir, 'bin');
     const dataDir = path.join(tempDir, 'data');
+    const envRoot = path.join(tempDir, 'env-root');
+    fs.mkdirSync(envRoot);
     const dockerLog = path.join(tempDir, 'docker.log');
     const dockerStopped = path.join(tempDir, 'docker.stopped');
     const mkdirLog = path.join(tempDir, 'mkdir.log');
@@ -114,6 +117,7 @@ describe('prod Docker launcher', () => {
         REMDO_FAKE_MKDIR_LOG: mkdirLog,
         REMDO_FAKE_SLEEP_LOG: sleepLog,
         REMDO_GATEWAY_BIND_ADDRESS: '127.0.0.1',
+        REMDO_ROOT: envRoot,
         COLLAB_INTERNAL_SECRET: 'production-collab-secret',
         ...overrides,
       },
@@ -122,7 +126,7 @@ describe('prod Docker launcher', () => {
     const dockerCalls = fs.existsSync(dockerLog) ? parseDockerCalls(fs.readFileSync(dockerLog, 'utf8')) : [];
     const mkdirCalls = fs.existsSync(mkdirLog) ? parseDockerCalls(fs.readFileSync(mkdirLog, 'utf8')) : [];
     const sleepCalls = fs.existsSync(sleepLog) ? parseDockerCalls(fs.readFileSync(sleepLog, 'utf8')) : [];
-    return { dataDir, result, dockerCalls, mkdirCalls, sleepCalls };
+    return { dataDir, envRoot, result, dockerCalls, mkdirCalls, sleepCalls };
   }
 
   it('defaults to the canonical loopback origin without requiring host Node', () => {
@@ -381,6 +385,27 @@ describe('prod Docker launcher', () => {
       REMDO_ADMIN_PASSWORD: 'launcher-admin-password',
       REMDO_USER_PASSWORD: 'launcher-user-password',
     });
+  });
+
+  it('generates a persistent admin password when the operator set none', () => {
+    const envRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-prod-docker-env-root-'));
+    tempDirs.push(envRoot);
+    fs.writeFileSync(path.join(envRoot, '.env'), 'HOST=127.0.0.1', { mode: 0o644 });
+
+    const first = runLauncher({ REMDO_ADMIN_PASSWORD: undefined, REMDO_ROOT: envRoot });
+
+    expect(first.result.status, first.result.stderr).toBe(0);
+    const generated = dockerEnvironment(findDockerCall(first.dockerCalls, 'run')).REMDO_ADMIN_PASSWORD;
+    expect(generated).toMatch(/^[a-z0-9]{32}$/i);
+
+    const envFile = path.join(envRoot, '.env');
+    expect(fs.readFileSync(envFile, 'utf8')).toBe(`HOST=127.0.0.1\nREMDO_ADMIN_PASSWORD=${generated}\n`);
+    expect(fs.statSync(envFile).mode & 0o777).toBe(0o600);
+
+    const second = runLauncher({ REMDO_ADMIN_PASSWORD: undefined, REMDO_ROOT: envRoot });
+
+    expect(second.result.status, second.result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(second.dockerCalls, 'run')).REMDO_ADMIN_PASSWORD).toBe(generated);
   });
 
   it('rejects a browser-blocked port derived from the public origin', () => {
