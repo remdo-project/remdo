@@ -149,7 +149,7 @@ fi
       NODE_ENV: 'test',
       PATH: `${binDir}:${process.env.PATH}`,
       PORT_BASE: '4100',
-      PUBLIC_SHARE_ORIGIN: 'publicShareOrigin' in lifecycleCase ? lifecycleCase.publicShareOrigin : '',
+      REMDO_PUBLIC_SHARE_ORIGIN: 'publicShareOrigin' in lifecycleCase ? lifecycleCase.publicShareOrigin : '',
       TMPDIR: tempDir,
       REMDO_FAKE_CHILD: childPath,
       REMDO_FAKE_EVENTS: eventsPath,
