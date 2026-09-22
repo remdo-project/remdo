@@ -216,6 +216,61 @@ test('production launcher serves login, collaboration, and persistent data throu
   }
 });
 
+test('hosted startup provisions the administrator at the service origin', async () => {
+  test.setTimeout(120_000);
+  const hosted = process.env.DOCKER_HOSTED_CONTAINER!;
+  const origin = 'https://remdo.onrender.com';
+  const bootstrapEmail = 'admin@remdo.onrender.com';
+  const bootstrapPassword = process.env.DOCKER_TEST_BOOTSTRAP_PASSWORD!;
+  const api = await request.newContext({
+    baseURL: `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}`,
+    extraHTTPHeaders: { Host: 'remdo.onrender.com', Origin: origin, 'CF-Connecting-IP': '198.51.100.10' },
+  });
+
+  async function signIn(): Promise<number> {
+    const config = await (await api.get('/api/config')).json() as {
+      csrfToken: string;
+      csrfCookieName: string;
+    };
+    const response = await api.post('/api/auth/browser/v1/auth/login', {
+      headers: {
+        Cookie: `${config.csrfCookieName}=${config.csrfToken}`,
+        'X-CSRFToken': config.csrfToken,
+      },
+      data: { email: bootstrapEmail, password: bootstrapPassword },
+    });
+    return response.status();
+  }
+
+  try {
+    await waitForHealth(api);
+    expect(await signIn()).toBe(200);
+    // The password reaches provisioning but must not outlive it in a service.
+    // PID 1 and this probe are excluded: /proc reports the environment each was
+    // exec'd with, which `unset` in the entrypoint shell does not rewrite.
+    expect(docker('exec', hosted, 'sh', '-c',
+      // A pipeline would run the loop in a subshell, whose own pid then escapes
+      // the exclusion below, so collect first and count afterwards.
+      'self=$$; for p in /proc/[0-9]*; do pid=$(basename "$p");'
+      + ' [ "$pid" = 1 ] || [ "$pid" = "$self" ] ||'
+      + ' tr "\\0" "\\n" < "$p/environ" 2>/dev/null; done > /tmp/environs;'
+      + ' grep -c ^REMDO_ADMIN_PASSWORD= /tmp/environs || true')).toBe('0');
+
+    docker('restart', hosted);
+    await waitForHealth(api);
+
+    expect(await signIn()).toBe(200);
+    expect(docker('exec', hosted, 'python', '-c', `
+import django
+django.setup()
+from accounts.models import User
+print(User.objects.filter(email='${bootstrapEmail}', is_superuser=True).count())
+`)).toBe('1');
+  } finally {
+    await api.dispose();
+  }
+});
+
 test('hosted TLS termination preserves secure cookies and trusted-origin CSRF', async () => {
   const hosted = process.env.DOCKER_HOSTED_CONTAINER!;
   const origin = 'https://remdo.onrender.com';
