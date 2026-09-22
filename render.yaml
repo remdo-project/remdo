@@ -51,7 +51,6 @@ projects:
       dockerfilePath: ./docker/Dockerfile
       autoDeployTrigger: commit
       healthCheckPath: /health
-      maxShutdownDelaySeconds: 55
       numInstances: 1
       domains:
       - test.remdo.com
