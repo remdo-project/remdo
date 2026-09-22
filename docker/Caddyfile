@@ -35,8 +35,6 @@
 			file_server
 		}
 
-		import {$REMDO_PUBLIC_SHARE_CONFIG}
-
 		@collab path /collaboration
 		handle @collab {
 			reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT} {

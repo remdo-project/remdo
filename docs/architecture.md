@@ -70,16 +70,14 @@ validates browser origins against the [configured trusted origins](specs/access/
 ### Gateway
 
 The gateway explicitly owns SPA routes (`/`, `/n/*`, `/sharing`, and
-`/sign-out`), frontend assets, Django static assets, public shared files, health
-probes, and collaboration endpoints. Django owns all other HTTP routes,
+`/sign-out`), frontend assets, Django static assets, health probes, and
+collaboration endpoints. Django owns all other HTTP routes,
 including unknown routes and their 404 responses. Normal HTTP routes have the
 same owner in development and production; development additionally serves
 frontend tooling and development-only routes.
 
 Development and production server runtimes expose only the gateway. The RemDo
 API and collaboration server remain loopback-only and are reached through it.
-
-In Production, the gateway serves [public shared files](specs/runtime/configuration.md#persistence) at `/share/*` without authentication. A deployment may proxy those requests to an external public-share origin; otherwise the gateway serves them from local persistence.
 
 ### RemDo API boundary
 
@@ -157,11 +155,10 @@ starts empty; missing registry entries and database failures do not become empty
 documents.
 
 One active instance owns collaboration writes. Its SQLite database when
-selected and locally served public shared files use its persistent storage root;
-its [runtime secrets](specs/runtime/configuration.md#secret-bootstrap) use that
-root only when it stores them. PostgreSQL and externally hosted public shared
-files persist independently. Recovery requires the matching database and secrets,
-plus local public shared files when used.
+selected uses its persistent storage root; its
+[runtime secrets](specs/runtime/configuration.md#secret-bootstrap) use that root
+only when it stores them. PostgreSQL persists independently. Recovery requires
+the matching database and secrets.
 
 ## Collaboration Runtime Building Blocks
 

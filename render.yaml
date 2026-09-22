@@ -40,8 +40,6 @@ projects:
             property: connectionString
         - key: APP_ORIGIN
           value: https://remdo.com
-        - key: REMDO_PUBLIC_SHARE_ORIGIN
-          value: https://share.remdo.com
 
   - name: staging
     databases:
@@ -75,5 +73,3 @@ projects:
             property: connectionString
         - key: APP_ORIGIN
           value: https://staging.remdo.com
-        - key: REMDO_PUBLIC_SHARE_ORIGIN
-          value: https://share.remdo.com

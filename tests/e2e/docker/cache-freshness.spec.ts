@@ -93,32 +93,6 @@ test('returning browsers revalidate files and retain server navigation responses
   expect(missing.headers()['cache-control']).toContain('no-store');
   expect(await missing.text()).not.toContain('<html');
 
-  const publish = (content: string, modified: string) => python(
-    "import os, sys; from pathlib import Path; p=Path('/data/public-share/freshness.txt.next'); p.write_text(sys.argv[1]); os.utime(p, (int(sys.argv[2]), int(sys.argv[2]))); p.replace(p.with_suffix(''))",
-    content, modified,
-  );
-  publish('first version', '1700000000');
-  const first = await page.goto('/share/freshness.txt');
-  expect(first!.fromServiceWorker()).toBe(false);
-  expect(first!.headers()['cache-control']).toBe('no-cache');
-  expect(first!.headers()['content-type']).toContain('text/plain');
-  await expect(page.locator('body')).toContainText('first version');
-  const etag = first!.headers().etag!;
-  const modified = first!.headers()['last-modified']!;
-  const unchanged = await page.request.get('/share/freshness.txt', { headers: { 'If-None-Match': etag } });
-  expect(unchanged.status()).toBe(304);
-  publish('other version', '1700000002'); // Same byte length, changed validators.
-  const replacement = await page.request.get('/share/freshness.txt', {
-    headers: { 'If-None-Match': etag, 'If-Modified-Since': modified },
-  });
-  expect(replacement.status()).toBe(200);
-  expect(await replacement.text()).toBe('other version');
-  const range = await page.request.get('/share/freshness.txt', { headers: { Range: 'bytes=0-4' } });
-  expect(range.status()).toBe(206);
-  expect(await range.text()).toBe('other');
-  await page.goto('/');
-  await page.goto('/share/freshness.txt');
-  await expect(page.locator('body')).toContainText('other version');
   for (const url of ['/health', '/admin/']) {
     const response = await page.goto(url);
     expect(response!.fromServiceWorker(), url).toBe(false);

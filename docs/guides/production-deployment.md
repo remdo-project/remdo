@@ -95,19 +95,6 @@ application, delete the database, and sync the blueprint to recreate it and
 redeploy. Metadata and document content reset together. The reset does not
 require shell access.
 
-## Publish a Public File
-
-Render deployments proxy [public shared files](../architecture.md#gateway) from
-the separate [remdo-share repository](https://github.com/remdo-project/remdo-share).
-Add or replace a file under its `public/` directory and merge it to that
-repository's `main` branch. For example, `public/report.pdf` is published at
-`https://share.remdo.com/report.pdf` and remains available through the
-application origin at `APP_ORIGIN/share/report.pdf`.
-
-Self-hosted Docker serves public shared files from
-[`DATA_DIR/public-share`](../specs/runtime/configuration.md#persistence). Copy a
-file there to publish it at `APP_ORIGIN/share/<name>`.
-
 ## Upgrade an Existing Instance
 
 This procedure applies to existing Django deployments and preserves their
