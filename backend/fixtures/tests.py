@@ -12,39 +12,39 @@ from documents.models import Document
 class DevelopmentUsersTests(TestCase):
     def test_startup_creates_roles_and_preserves_existing_accounts_and_documents(self):
         call_command("setup_development_users")
-        alice = User.objects.get(email="alice@example.test")
-        bob = User.objects.get(email="bob@example.test")
-        self.assertTrue(alice.is_staff and alice.is_superuser)
-        self.assertFalse(bob.is_staff or bob.is_superuser)
-        self.assertTrue(alice.check_password("alice-password-1234"))
-        self.assertTrue(bob.check_password("bob-password-1234"))
-        self.assertTrue(EmailAddress.objects.filter(user=alice, verified=True).exists())
-        document = Document.objects.create(owner=alice, title="Keep")
-        alice.set_password("changed-password")
-        alice.is_staff = alice.is_superuser = False
-        alice.save()
+        admin = User.objects.get(email="admin@example.test")
+        user = User.objects.get(email="user@example.test")
+        self.assertTrue(admin.is_staff and admin.is_superuser)
+        self.assertFalse(user.is_staff or user.is_superuser)
+        self.assertTrue(admin.check_password("admin-password-1234"))
+        self.assertTrue(user.check_password("user-password-1234"))
+        self.assertTrue(EmailAddress.objects.filter(user=admin, verified=True).exists())
+        document = Document.objects.create(owner=admin, title="Keep")
+        admin.set_password("changed-password")
+        admin.is_staff = admin.is_superuser = False
+        admin.save()
 
         call_command("setup_development_users")
 
-        alice.refresh_from_db()
-        self.assertTrue(alice.check_password("changed-password"))
-        self.assertFalse(alice.is_staff or alice.is_superuser)
-        self.assertTrue(Document.objects.filter(pk=document.pk, owner=alice).exists())
+        admin.refresh_from_db()
+        self.assertTrue(admin.check_password("changed-password"))
+        self.assertFalse(admin.is_staff or admin.is_superuser)
+        self.assertTrue(Document.objects.filter(pk=document.pk, owner=admin).exists())
         self.assertEqual(User.objects.count(), 2)
 
     def test_reset_restores_roles_and_preserves_unrelated_accounts(self):
         call_command("setup_development_users")
-        alice = User.objects.get(email="alice@example.test")
-        alice.is_staff = alice.is_superuser = False
-        alice.save()
-        document = Document.objects.create(owner=alice, title="Replace")
+        admin = User.objects.get(email="admin@example.test")
+        admin.is_staff = admin.is_superuser = False
+        admin.save()
+        document = Document.objects.create(owner=admin, title="Replace")
         other = User.objects.create_user("other@example.test", "other-password")
         preserved = Document.objects.create(owner=other, title="Keep")
 
         call_command("setup_development_users", reset=True)
 
-        replacement = User.objects.get(email="alice@example.test")
-        self.assertNotEqual(replacement.pk, alice.pk)
+        replacement = User.objects.get(email="admin@example.test")
+        self.assertNotEqual(replacement.pk, admin.pk)
         self.assertTrue(replacement.is_staff and replacement.is_superuser)
         self.assertFalse(Document.objects.filter(pk=document.pk).exists())
         self.assertTrue(Document.objects.filter(pk=preserved.pk, owner=other).exists())

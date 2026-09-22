@@ -103,6 +103,15 @@ to generate replacements if the persistence root contains a dataset or the
 configured database contains metadata. Restore the bundle with its matching
 [dataset](../../architecture.md#runtime-persistence-boundary). Development and verification use fixture credentials.
 
+## Deployment accounts
+
+Container production startup optionally provisions stable accounts from server-only
+password variables. `REMDO_ADMIN_PASSWORD` creates `admin@example.test` as an
+administrator; `REMDO_USER_PASSWORD` creates `user@example.test` as a regular
+user. Missing variables create no account. Provisioning creates only missing
+accounts and never replaces an existing account's password, role, or documents.
+Startup removes the password variables before starting long-running services.
+
 ## Request diagnostics
 
 Production Django request errors reach standard error with status, exception type,

@@ -141,8 +141,7 @@ Decisions requiring a contract owner's judgement:
   changes to one identity model across `User.email`, allauth primary/login
   addresses, session display, and local sharing lookup. Editing the user alone
   can leave the old primary address usable for login while sharing uses the new
-  address. Align fixture provisioning with production account creation; prefer
-  restricting duplicate writers over adding public email management.
+  address. Prefer restricting duplicate writers over adding public email management.
 
 ### Documentation
 

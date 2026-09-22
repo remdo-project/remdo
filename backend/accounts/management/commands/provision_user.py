@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Create a fixture account. Existing accounts are unchanged."
+    help = "Create an account if it does not already exist. Existing accounts are unchanged."
 
     def add_arguments(self, parser):
         parser.add_argument("--email", required=True)

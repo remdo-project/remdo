@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -7,9 +8,46 @@ from urllib.parse import parse_qs, urlsplit
 from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.core.cache import cache
+from django.core.management import call_command
 from django.test import Client, TestCase, override_settings
 
 from .models import User
+
+
+class DeploymentAccountTests(TestCase):
+    def test_configured_accounts_are_created_once_from_present_passwords(self):
+        with patch.dict(
+            os.environ,
+            {
+                "REMDO_ADMIN_PASSWORD": "generated-admin-password",
+                "REMDO_USER_PASSWORD": "",
+            },
+        ):
+            call_command("setup_configured_users")
+
+        admin = User.objects.get(email="admin@example.test")
+        self.assertTrue(admin.is_staff and admin.is_superuser)
+        self.assertTrue(admin.check_password("generated-admin-password"))
+        self.assertFalse(User.objects.filter(email="user@example.test").exists())
+
+        admin.set_password("changed-admin-password")
+        admin.is_staff = admin.is_superuser = False
+        admin.save()
+        with patch.dict(
+            os.environ,
+            {
+                "REMDO_ADMIN_PASSWORD": "replacement-admin-password",
+                "REMDO_USER_PASSWORD": "generated-user-password",
+            },
+        ):
+            call_command("setup_configured_users")
+
+        admin.refresh_from_db()
+        user = User.objects.get(email="user@example.test")
+        self.assertFalse(admin.is_staff or admin.is_superuser)
+        self.assertTrue(admin.check_password("changed-admin-password"))
+        self.assertFalse(user.is_staff or user.is_superuser)
+        self.assertTrue(user.check_password("generated-user-password"))
 
 
 @override_settings(
