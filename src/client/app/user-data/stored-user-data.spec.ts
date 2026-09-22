@@ -117,6 +117,18 @@ describe('account metadata', () => {
     expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
   });
 
+  it('reports an unexpected rename failure in readable terms', async () => {
+    const runtime = account();
+    documentRequests((request) => request.method === 'PUT'
+      ? new Response(null, { status: 500 })
+      : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
+    await runtime.client.query(runtime.documentsQuery);
+
+    await expect(runtime.userData.getDocuments().getById('shared')!.rename('Quarterly plan'))
+      .rejects.toThrow('Could not rename the document. Please retry.');
+    expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
+  });
+
   it('explains a rejected recipient without changing document access', async () => {
     const runtime = account();
     runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true }]);

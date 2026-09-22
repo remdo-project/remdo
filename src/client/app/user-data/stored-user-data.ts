@@ -55,6 +55,9 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
       if (result.response.status === 404) {
         throw new Error('This document is no longer available.');
       }
+      if (!result.response.ok) {
+        throw new Error('Could not rename the document. Please retry.');
+      }
       const renamed = requireData(result);
       // The rename response carries only identity and name; the listing owns
       // the document's access and sharing state.

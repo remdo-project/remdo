@@ -157,6 +157,20 @@ describe('home view', () => {
     expect(rename).not.toHaveBeenCalled();
   });
 
+  it('closes without a write when a stored name carrying edge whitespace is resubmitted', async () => {
+    const rename = vi.fn();
+    const props = baseProps();
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: '  Ideas  ', rename });
+    renderHome(props);
+
+    const input = await openRenameDialog('Ideas');
+    fireEvent.change(input, { target: { value: 'Ideas' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+
+    await waitFor(() => expect(screen.queryByLabelText('Document name')).toBeNull());
+    expect(rename).not.toHaveBeenCalled();
+  });
+
   it('blocks dismissal and repeat submission while a rename is pending', async () => {
     let settle!: () => void;
     const rename = vi.fn().mockReturnValue(new Promise<void>((resolve) => { settle = resolve; }));

@@ -5,6 +5,8 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
+DOCUMENT_TITLE_MAX_LENGTH = 500
+
 
 def document_id():
     # Match the canonical note-ID alphabet and length ceiling; 20 characters provide 119 bits.
@@ -19,7 +21,7 @@ class DocumentQuerySet(models.QuerySet):
 class Document(models.Model):
     id = models.CharField(primary_key=True, max_length=20, default=document_id, editable=False)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    title = models.CharField(max_length=500, blank=True)
+    title = models.CharField(max_length=DOCUMENT_TITLE_MAX_LENGTH, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     objects = DocumentQuerySet.as_manager()
 

@@ -9,7 +9,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.test import Client, SimpleTestCase, TestCase, override_settings
 
-from .models import Document, DocumentGrant
+from .models import DOCUMENT_TITLE_MAX_LENGTH, Document, DocumentGrant
 
 
 class ConfigurationTests(SimpleTestCase):
@@ -172,6 +172,15 @@ class DocumentFlowTests(TestCase):
         self.assertEqual(self.put(path, {"title": "Grantee name"}).status_code, 200)
         document.refresh_from_db()
         self.assertEqual(document.title, "Grantee name")
+        self.sign_out()
+
+        # Users with access see the committed name in their own listing.
+        self.sign_in()
+        listing = self.client.get("/api/documents").json()
+        self.assertEqual(
+            next(item for item in listing if item["id"] == document.id)["title"],
+            "Grantee name",
+        )
 
     def test_rename_rejects_an_empty_name_and_an_inaccessible_document(self):
         document = Document.objects.create(owner=self.owner, title="Draft")
@@ -183,6 +192,10 @@ class DocumentFlowTests(TestCase):
         )
         self.assertEqual(
             self.put(f"/api/documents/{unreachable.id}", {"title": "Taken"}).status_code, 404
+        )
+        over_limit = "x" * (DOCUMENT_TITLE_MAX_LENGTH + 1)
+        self.assertEqual(
+            self.put(f"/api/documents/{document.id}", {"title": over_limit}).status_code, 400
         )
 
         document.refresh_from_db()

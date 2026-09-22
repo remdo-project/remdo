@@ -21,7 +21,9 @@ export function DocumentRenameDialog({
       setError('Enter a document name.');
       return;
     }
-    if (title === openingName) {
+    // Stored names keep their edge whitespace, so compare what a resubmission
+    // of the opening name would send rather than the raw stored value.
+    if (title === openingName.trim()) {
       onClose();
       return;
     }

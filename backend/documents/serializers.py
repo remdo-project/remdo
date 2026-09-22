@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from .models import Document, DocumentGrant
+from .models import DOCUMENT_TITLE_MAX_LENGTH, Document, DocumentGrant
 
 
 class DocumentAccessSerializer(serializers.ModelSerializer):
@@ -52,7 +52,7 @@ class DocumentSerializer(serializers.ModelSerializer):
 class RenameDocumentSerializer(serializers.ModelSerializer):
     # The model allows a blank title so creation can default it; renaming
     # requires a name, so the field is redeclared rather than relaxed.
-    title = serializers.CharField(allow_blank=False)
+    title = serializers.CharField(allow_blank=False, max_length=DOCUMENT_TITLE_MAX_LENGTH)
 
     class Meta:
         model = Document
