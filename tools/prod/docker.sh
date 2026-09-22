@@ -150,7 +150,7 @@ echo "Follow logs: docker logs -f ${CONTAINER_NAME}"
 echo "Stop RemDo: docker stop ${CONTAINER_NAME}"
 
 if [[ -n "${REMDO_ADMIN_PASSWORD:-}" ]]; then
-  echo "Sign in as admin@example.test with REMDO_ADMIN_PASSWORD"
+  echo "Administrator: admin@example.test, created on first start with REMDO_ADMIN_PASSWORD from ${ENV_ROOT}/.env"
 else
   echo "Create administrator: docker exec -it ${CONTAINER_NAME} python manage.py createsuperuser"
 fi
