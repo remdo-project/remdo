@@ -15,7 +15,6 @@ projects:
       plan: starter
       region: frankfurt
       branch: main
-      dockerContext: .
       dockerfilePath: ./docker/Dockerfile
       # Render reads this as autoDeployTrigger: off. The string "off" cannot be
       # written here: quoting it fails yaml/plain-scalar, and unquoted it is a
@@ -27,9 +26,6 @@ projects:
       domains:
       - remdo.com
       envVars:
-        # Render injects the container's internal PORT. Do not pin it.
-        # Generated once when the service first receives these variables, then
-        # reused by every later deploy.
         - key: AUTH_SECRET
           generateValue: true
         - key: COLLAB_INTERNAL_SECRET
@@ -52,10 +48,9 @@ projects:
     - type: web
       name: remdo-staging
       runtime: docker
-      plan: starter
+      plan: free
       region: frankfurt
       branch: main
-      dockerContext: .
       dockerfilePath: ./docker/Dockerfile
       autoDeployTrigger: checksPass
       healthCheckPath: /health
@@ -64,7 +59,6 @@ projects:
       domains:
       - staging.remdo.com
       envVars:
-        # Staging keeps no disk, so the environment is the only secret source.
         - key: AUTH_SECRET
           generateValue: true
         - key: COLLAB_INTERNAL_SECRET
@@ -83,16 +77,15 @@ projects:
   - name: test
     databases:
     - name: remdo-test-db
-      plan: free
+      plan: 0.1c-256mb
       region: frankfurt
     services:
     - type: web
       name: remdo-test
       runtime: docker
-      plan: starter
+      plan: free
       region: frankfurt
       branch: deploy-test
-      dockerContext: .
       dockerfilePath: ./docker/Dockerfile
       autoDeployTrigger: commit
       healthCheckPath: /health

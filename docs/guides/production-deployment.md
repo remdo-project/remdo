@@ -109,9 +109,10 @@ overwriting it. Render starts the deployment automatically.
 
 ### Reset a Hosted Sandbox
 
-Staging and test data are disposable, and their free databases expire. Stop the
-application, delete its database, and sync the blueprint to recreate it and
-redeploy. Metadata and document content reset together. The reset does not
+Staging data is disposable and its free database expires. Test uses a paid
+database so demo data persists across ordinary deploys. To reset either sandbox,
+stop the application, delete its database, and sync the blueprint to recreate it
+and redeploy. Metadata and document content reset together. The reset does not
 require shell access.
 
 ## Upgrade an Existing Instance
