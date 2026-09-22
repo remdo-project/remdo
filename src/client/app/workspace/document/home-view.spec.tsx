@@ -6,12 +6,13 @@ import { HomeView } from './HomeView';
 import type { HomeViewProps } from './HomeView';
 
 const documentNote = (
-  { id, title, rename = vi.fn(), canRename = true }:
-  { id: string; title: string; rename?: () => unknown; canRename?: boolean },
+  { id, title, rename = vi.fn(), canRename = true, canShareWith = false }:
+  { id: string; title: string; rename?: () => unknown; canRename?: boolean; canShareWith?: boolean },
 ): DocumentNote => ({
   getId: () => id,
   getText: () => title,
   canRename: () => canRename,
+  canShareWith: () => canShareWith,
   rename,
 } as unknown as DocumentNote);
 
@@ -192,9 +193,23 @@ describe('home view', () => {
     await waitFor(() => expect(screen.queryByLabelText('Document name')).toBeNull());
   });
 
+  it('offers sharing only for a document the user can share', async () => {
+    const props = baseProps();
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canShareWith: docId === 'doc-b' });
+    renderHome(props);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Ideas' })[0]!);
+    expect(await screen.findByRole('menuitem', { name: 'Share…' })).toBeInTheDocument();
+
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Project Roadmap' })[0]!);
+    expect(await screen.findByRole('menuitem', { name: 'Rename…' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Share…' })).toBeNull();
+  });
+
   it('omits the menu for a document that cannot be renamed', () => {
     const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canRename: false });
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canRename: false, canShareWith: false });
     renderHome(props);
 
     expect(screen.queryByRole('button', { name: /^Actions for/ })).toBeNull();

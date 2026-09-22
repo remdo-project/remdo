@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import type { DocumentNote } from '#note-sdk';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentMenu } from './DocumentMenu';
-import { useDocumentRename } from './useDocumentRename';
+import { useDocumentDialogs } from './useDocumentDialogs';
 import type { HomeContent, HomeDocumentEntry } from './home-content';
 
 export interface HomeViewProps extends HomeContent {
@@ -19,12 +19,14 @@ function DocumentGroup({
   documents,
   onSelectDocument,
   onRename,
+  onShare,
   resolveDocument,
 }: {
   label: string;
   documents: readonly HomeDocumentEntry[];
   onSelectDocument: (docId: string) => void;
   onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
+  onShare: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   resolveDocument: (docId: string) => DocumentNote | null;
 }) {
   return (
@@ -36,7 +38,7 @@ function DocumentGroup({
           const label = formatNavigationLabel(document.label);
           return (
             <li className="home-doc-row" key={document.id}>
-              {note && <DocumentMenu label={label} note={note} onRename={onRename} />}
+              {note && <DocumentMenu label={label} note={note} onRename={onRename} onShare={onShare} />}
               <button
                 className="home-doc remdo-interaction-surface"
                 data-home-document-ref={document.id}
@@ -65,7 +67,7 @@ export function HomeView({
 }: HomeViewProps) {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
-  const { openRename, renameDialog } = useDocumentRename(headingRef);
+  const { documentDialog, openRename, openShare } = useDocumentDialogs(headingRef);
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -101,6 +103,7 @@ export function HomeView({
             label={group.label}
             onRename={openRename}
             onSelectDocument={onSelectDocument}
+            onShare={openShare}
             resolveDocument={resolveDocument}
           />
         ))}
@@ -127,7 +130,7 @@ export function HomeView({
           type="file"
         />
       </div>
-      {renameDialog}
+      {documentDialog}
     </section>
   );
 }

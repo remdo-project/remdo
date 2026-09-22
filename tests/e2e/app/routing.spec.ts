@@ -9,7 +9,7 @@ import {
 import type { Page } from '#e2e/fixtures';
 import { createUserDocument } from '../_support/documents';
 
-test('Sharing remains recoverable when a remembered session has no offline bootstrap', async ({ page }) => {
+test('the app remains recoverable when a remembered session has no offline bootstrap', async ({ page }) => {
   await page.goto('/about/');
   await page.evaluate(() => {
     localStorage.setItem('remdo-authenticated-session', '1');
@@ -17,12 +17,12 @@ test('Sharing remains recoverable when a remembered session has no offline boots
   });
   setExpectedConsoleIssues(page, ['net::ERR_FAILED'], { mode: 'allowContains' });
   await page.route('**/api/**', (route) => route.abort());
-  await page.goto('/sharing');
-  await expect(page).toHaveURL(/\/sharing$/u);
+  await page.goto('/');
+  await expect(page).toHaveURL('/');
   await expect(page.getByRole('heading', { name: 'Connection unavailable' })).toBeVisible();
   await page.unroute('**/api/**');
   await page.getByRole('button', { name: 'Retry', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Sharing', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
 });
 
 async function expectPath(page: Page, pathname: string): Promise<void> {
@@ -55,10 +55,10 @@ async function hasIndexedDb(page: Page, dbName: string): Promise<boolean> {
 
 test.describe('Routing', () => {
   test('ignores retired OAuth parameters during signed-in navigation', async ({ page }) => {
-    await page.goto('/?response_type=code&client_id=legacy&redirect_uri=https%3A%2F%2Fsource.test%2Fcallback&next=%2Fsharing');
+    await page.goto('/?response_type=code&client_id=legacy&redirect_uri=https%3A%2F%2Fsource.test%2Fcallback&next=%2F');
 
-    await expectPath(page, '/sharing');
-    await expect(page.getByRole('heading', { level: 1, name: 'Sharing' })).toBeVisible();
+    await expectPath(page, '/');
+    await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Link source' })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Linked sources' })).toHaveCount(0);
   });
@@ -116,7 +116,7 @@ test.describe('Routing', () => {
 
   unauthenticatedTest('uses native sign-in and preserves protected destinations when signed out', async ({ page }) => {
     const userDataRequests = collectCurrentUserRequests(page);
-    for (const destination of ['/', '/sharing', '/n/protectedDoc_note1']) {
+    for (const destination of ['/', '/n/protectedDoc_note1']) {
       await page.goto(destination);
       await expectPath(page, '/accounts/login/');
       const next = new URL(page.url()).searchParams.get('next')!;
@@ -139,15 +139,6 @@ test.describe('Routing', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
   });
 
-  test('renders Sharing as a standard authenticated page', async ({ page }) => {
-    const userDataRequests = collectCurrentUserRequests(page);
-    await page.goto('/sharing');
-
-    await expect(page.getByRole('main')).toBeVisible();
-    await expect(page.getByRole('heading', { level: 1, name: 'Sharing' })).toBeVisible();
-    await page.waitForLoadState('networkidle');
-    expect(userDataRequests).toContain('/api/current-user');
-  });
 
   test('keeps native administration outside user data', async ({ page }) => {
     const userDataRequests = collectCurrentUserRequests(page);
