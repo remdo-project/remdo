@@ -15,13 +15,15 @@ from .models import User
 
 
 class DeploymentAccountTests(TestCase):
+    # The command reads the process environment, so each case states every
+    # variable it depends on rather than inheriting the developer's shell.
+    SELF_HOSTED = {"RENDER": "", "REMDO_USER_PASSWORD": ""}
+    BOOTSTRAP_ADMIN_ONLY = {**SELF_HOSTED, "REMDO_ADMIN_PASSWORD": "first-admin-password"}
+
     def test_configured_accounts_are_created_once_from_present_passwords(self):
         with patch.dict(
             os.environ,
-            {
-                "REMDO_ADMIN_PASSWORD": "first-admin-password",
-                "REMDO_USER_PASSWORD": "",
-            },
+            self.BOOTSTRAP_ADMIN_ONLY,
         ):
             call_command("setup_configured_users")
 
@@ -36,6 +38,7 @@ class DeploymentAccountTests(TestCase):
         with patch.dict(
             os.environ,
             {
+                **self.SELF_HOSTED,
                 "REMDO_ADMIN_PASSWORD": "replacement-admin-password",
                 "REMDO_USER_PASSWORD": "first-user-password",
             },
@@ -50,24 +53,26 @@ class DeploymentAccountTests(TestCase):
         self.assertTrue(user.check_password("first-user-password"))
 
     def test_startup_survives_an_address_held_by_a_renamed_account(self):
-        with patch.dict(os.environ, {"REMDO_ADMIN_PASSWORD": "first-admin-password"}):
+        with patch.dict(os.environ, self.BOOTSTRAP_ADMIN_ONLY):
             call_command("setup_configured_users")
         renamed = User.objects.get(email="admin@example.test")
         renamed.email = "operator@example.test"
         renamed.save()
 
-        with patch.dict(os.environ, {"REMDO_ADMIN_PASSWORD": "first-admin-password"}):
+        with patch.dict(os.environ, self.BOOTSTRAP_ADMIN_ONLY):
             call_command("setup_configured_users")
 
         self.assertEqual(User.objects.count(), 1)
         self.assertEqual(EmailAddress.objects.get().email, "admin@example.test")
 
     def test_startup_survives_a_renamed_sign_in_address(self):
-        with patch.dict(os.environ, {"REMDO_ADMIN_PASSWORD": "first-admin-password"}):
+        with patch.dict(os.environ, self.BOOTSTRAP_ADMIN_ONLY):
             call_command("setup_configured_users")
-        EmailAddress.objects.update(email="operator@example.test")
+        EmailAddress.objects.filter(email="admin@example.test").update(
+            email="operator@example.test"
+        )
 
-        with patch.dict(os.environ, {"REMDO_ADMIN_PASSWORD": "first-admin-password"}):
+        with patch.dict(os.environ, self.BOOTSTRAP_ADMIN_ONLY):
             call_command("setup_configured_users")
 
         self.assertEqual(User.objects.count(), 1)
@@ -77,7 +82,7 @@ class DeploymentAccountTests(TestCase):
     def test_render_accounts_use_the_service_origin_domain(self):
         with patch.dict(
             os.environ,
-            {"RENDER": "true", "REMDO_ADMIN_PASSWORD": "first-admin-password"},
+            {**self.BOOTSTRAP_ADMIN_ONLY, "RENDER": "true"},
         ):
             call_command("setup_configured_users")
 
