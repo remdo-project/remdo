@@ -78,7 +78,7 @@ class DeploymentAccountTests(TestCase):
         self.assertEqual(User.objects.count(), 1)
         self.assertEqual(EmailAddress.objects.get().email, "operator@example.test")
 
-    @override_settings(APP_ORIGIN="https://staging.remdo.com")
+    @override_settings(APP_ORIGIN="https://test.remdo.com")
     def test_render_accounts_use_the_service_origin_domain(self):
         with patch.dict(
             os.environ,
@@ -86,7 +86,7 @@ class DeploymentAccountTests(TestCase):
         ):
             call_command("setup_configured_users")
 
-        self.assertTrue(User.objects.filter(email="admin@staging.remdo.com").exists())
+        self.assertTrue(User.objects.filter(email="admin@test.remdo.com").exists())
         self.assertFalse(User.objects.filter(email="admin@example.test").exists())
 
 

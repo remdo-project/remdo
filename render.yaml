@@ -16,10 +16,7 @@ projects:
       region: frankfurt
       branch: main
       dockerfilePath: ./docker/Dockerfile
-      # Render reads this as autoDeployTrigger: off. The string "off" cannot be
-      # written here: quoting it fails yaml/plain-scalar, and unquoted it is a
-      # YAML 1.1 boolean.
-      autoDeploy: false
+      autoDeployTrigger: checksPass
       healthCheckPath: /health
       maxShutdownDelaySeconds: 55
       numInstances: 1
@@ -39,45 +36,10 @@ projects:
         - key: APP_ORIGIN
           value: https://remdo.com
 
-  - name: staging
-    databases:
-    - name: remdo-staging-db
-      plan: free
-      region: frankfurt
-    services:
-    - type: web
-      name: remdo-staging
-      runtime: docker
-      plan: free
-      region: frankfurt
-      branch: main
-      dockerfilePath: ./docker/Dockerfile
-      autoDeployTrigger: checksPass
-      healthCheckPath: /health
-      maxShutdownDelaySeconds: 55
-      numInstances: 1
-      domains:
-      - staging.remdo.com
-      envVars:
-        - key: AUTH_SECRET
-          generateValue: true
-        - key: COLLAB_INTERNAL_SECRET
-          generateValue: true
-        - key: REMDO_ADMIN_PASSWORD
-          generateValue: true
-        - key: REMDO_USER_PASSWORD
-          generateValue: true
-        - key: DATABASE_URL
-          fromDatabase:
-            name: remdo-staging-db
-            property: connectionString
-        - key: APP_ORIGIN
-          value: https://staging.remdo.com
-
   - name: test
     databases:
     - name: remdo-test-db
-      plan: 0.1c-256mb
+      plan: free
       region: frankfurt
     services:
     - type: web
