@@ -1,6 +1,7 @@
 import os
 from urllib.parse import urlsplit
 
+from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
@@ -12,11 +13,9 @@ _FIXED_DOMAIN = "example.test"
 
 
 def _account_domain():
-    """Render guarantees a real public hostname; other deployments may serve an
-    address that is invalid in an email, such as a bare IP or `*.localhost`."""
-    if not os.environ.get("RENDER"):
+    if os.environ.get("RENDER") != "true":
         return _FIXED_DOMAIN
-    return urlsplit(os.environ.get("APP_ORIGIN", "")).hostname or _FIXED_DOMAIN
+    return urlsplit(settings.APP_ORIGIN).hostname
 
 
 class Command(BaseCommand):

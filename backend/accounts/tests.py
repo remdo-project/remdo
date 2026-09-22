@@ -49,14 +49,11 @@ class DeploymentAccountTests(TestCase):
         self.assertFalse(user.is_staff or user.is_superuser)
         self.assertTrue(user.check_password("first-user-password"))
 
+    @override_settings(APP_ORIGIN="https://staging.remdo.com")
     def test_render_accounts_use_the_service_origin_domain(self):
         with patch.dict(
             os.environ,
-            {
-                "RENDER": "true",
-                "APP_ORIGIN": "https://staging.remdo.com",
-                "REMDO_ADMIN_PASSWORD": "first-admin-password",
-            },
+            {"RENDER": "true", "REMDO_ADMIN_PASSWORD": "first-admin-password"},
         ):
             call_command("setup_configured_users")
 

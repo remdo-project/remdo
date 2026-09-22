@@ -17,8 +17,7 @@ remdo_seed_admin_password() {
 
   # An assignment of any form, including an empty one, is the operator's answer:
   # empty declines the bootstrap account that docker/entrypoint.sh would create.
-  if [[ -n "${REMDO_ADMIN_PASSWORD+x}" ]] ||
-    { [[ -f "${env_file}" ]] && grep -qE '^[[:space:]]*(export[[:space:]]+)?REMDO_ADMIN_PASSWORD=' "${env_file}"; }; then
+  if [[ -n "${REMDO_ADMIN_PASSWORD+x}" ]]; then
     return 0
   fi
 

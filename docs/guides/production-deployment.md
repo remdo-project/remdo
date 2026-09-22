@@ -127,7 +127,7 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
 1. Append `/health` to the application URL and confirm that the gateway reports
    a healthy service.
 2. Establish the [administrator](../specs/access/access-control.md#admin-role).
-   Every non-development container provisions it from
+   Container production startup provisions it from
    [`REMDO_ADMIN_PASSWORD`](../specs/runtime/configuration.md#deployment-accounts).
    On Render, sign in as `admin@` the service's own domain, such as
    `admin@remdo.com`, with the service's generated value. Self-hosted

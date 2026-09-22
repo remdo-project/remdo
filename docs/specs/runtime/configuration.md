@@ -111,9 +111,10 @@ administrator; `REMDO_USER_PASSWORD` creates the `user` account as a regular
 user. Missing variables create no account.
 
 The account domain is `example.test`, because a self-hosted origin may be a bare
-address that is invalid in an email. On Render, where the platform guarantees a
-real public hostname, the domain is the [`APP_ORIGIN`](#network-addressing) host
-instead, pairing a per-instance address with the per-instance generated password.
+address that is invalid in an email. On Render (`RENDER=true`), where the platform
+guarantees a real public hostname, the domain is the
+[`APP_ORIGIN`](#network-addressing) host instead, pairing a per-instance address
+with the per-instance generated password.
 
 Each deployment generates the administrator password where its operator already
 reads secrets: Render's service environment, or `.env` for the self-hosted
