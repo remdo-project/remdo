@@ -57,9 +57,11 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
         throw new Error('This document is no longer available.');
       }
       if (result.response.status === 400) {
-        // The dialog already rejects an empty name, so a rejected submission
-        // is too long. Say so instead of inviting an identical retry.
-        throw new Error(`Use a shorter name, up to ${DOCUMENT_TITLE_MAX_LENGTH} characters.`);
+        // A rejected name is corrected in the dialog, so name the limit the
+        // caller can act on rather than inviting an identical retry.
+        throw new Error(title.length > DOCUMENT_TITLE_MAX_LENGTH
+          ? `Use a shorter name, up to ${DOCUMENT_TITLE_MAX_LENGTH} characters.`
+          : 'That name was rejected. Try a different one.');
       }
       if (!result.response.ok) {
         throw new Error('Could not rename the document. Please retry.');

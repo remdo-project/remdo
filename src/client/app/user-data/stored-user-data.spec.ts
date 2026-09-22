@@ -129,6 +129,17 @@ describe('account metadata', () => {
     expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
   });
 
+  it('reports a rejection it cannot attribute to length without blaming length', async () => {
+    const runtime = account();
+    documentRequests((request) => request.method === 'PUT'
+      ? Response.json({ title: ['This field may not be blank.'] }, { status: 400 })
+      : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
+    await runtime.client.query(runtime.documentsQuery);
+
+    await expect(runtime.userData.getDocuments().getById('shared')!.rename('Quarterly plan'))
+      .rejects.toThrow('That name was rejected. Try a different one.');
+  });
+
   it('reports an unexpected rename failure in readable terms', async () => {
     const runtime = account();
     documentRequests((request) => request.method === 'PUT'
