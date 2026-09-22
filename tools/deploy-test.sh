@@ -6,8 +6,8 @@ if [ -n "$(git status --porcelain=v1 --untracked-files=normal)" ]; then
   exit 1
 fi
 
-git fetch --no-tags origin +refs/heads/deploy-test:refs/remotes/origin/deploy-test
-expected="$(git rev-parse refs/remotes/origin/deploy-test)"
+remote_ref="$(git ls-remote --refs origin refs/heads/deploy-test)"
+expected="${remote_ref%%[[:space:]]*}"
 git push --force-with-lease="refs/heads/deploy-test:${expected}" origin HEAD:refs/heads/deploy-test
 
 printf 'Test deployment requested for %s: https://test.remdo.com\n' "$(git rev-parse --short HEAD)"

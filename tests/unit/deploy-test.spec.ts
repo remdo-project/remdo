@@ -11,7 +11,7 @@ function git(cwd: string, ...args: string[]): string {
   return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 }
 
-function repository() {
+function repository(seedPointer = true) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-deploy-test-'));
   temporaryRoots.push(root);
   const remote = path.join(root, 'remote.git');
@@ -24,7 +24,9 @@ function repository() {
   git(work, 'add', 'state.txt');
   git(work, 'commit', '-qm', 'initial');
   git(work, 'remote', 'add', 'origin', remote);
-  git(work, 'push', '-q', 'origin', 'HEAD:refs/heads/deploy-test');
+  if (seedPointer) {
+    git(work, 'push', '-q', 'origin', 'HEAD:refs/heads/deploy-test');
+  }
   return { remote, work };
 }
 
@@ -51,6 +53,15 @@ it('moves the deployment pointer to a clean committed HEAD', () => {
   expect(result.status, result.stderr).toBe(0);
   expect(remoteHead(remote)).toBe(git(work, 'rev-parse', 'HEAD'));
   expect(result.stdout).toContain('https://test.remdo.com');
+});
+
+it('creates the deployment pointer when it is absent', () => {
+  const { remote, work } = repository(false);
+
+  const result = spawnSync('sh', [deployScript], { cwd: work, encoding: 'utf8' });
+
+  expect(result.status, result.stderr).toBe(0);
+  expect(remoteHead(remote)).toBe(git(work, 'rev-parse', 'HEAD'));
 });
 
 it('refuses to deploy a dirty working tree', () => {

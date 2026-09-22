@@ -102,10 +102,10 @@ state with:
 pnpm deploy:test
 ```
 
-The command refuses a dirty working tree, refreshes the remote deployment pointer,
-then moves it to `HEAD` with a force-with-lease push. A concurrent move after the
-refresh makes the push fail instead of overwriting it. Render starts the deployment
-automatically.
+The command refuses a dirty working tree, reads the remote deployment pointer,
+then moves it to `HEAD` with a force-with-lease push. It creates the pointer when
+missing; a concurrent move after the read makes the push fail instead of
+overwriting it. Render starts the deployment automatically.
 
 ### Reset a Hosted Sandbox
 
