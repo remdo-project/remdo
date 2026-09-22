@@ -1,3 +1,4 @@
+import { expectCollaborationDenied } from '../_support/documents';
 import { expect, test, withPageGuards } from '#e2e/fixtures';
 import { createAuthenticatedContext } from '../_support/auth-context';
 import { ensureReady, waitForSynced } from '../editor/_support/bridge';
@@ -59,12 +60,11 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     // Without the status check an error response satisfies the absence assertion.
     expect(response.status()).toBe(200);
     expect(await response.json()).not.toEqual(expect.arrayContaining([expect.objectContaining({ id: document.id })]));
-    const config = await strangerContext.request.get('/api/config');
-    const { csrfToken } = await config.json() as { csrfToken: string };
-    const denied = await strangerContext.request.post(`/api/documents/${document.id}/sync-tokens`, {
-      headers: { 'X-CSRFToken': csrfToken }, data: {},
-    });
-    expect(denied.status()).toBe(403);
+    const stranger = await strangerContext.newPage();
+    await withPageGuards(stranger, async () => {
+      await stranger.goto('/');
+      await expectCollaborationDenied(stranger, document.id);
+    }, testInfo);
   } finally {
     await peerContext.close();
     await strangerContext.close();

@@ -39,9 +39,12 @@ test.describe('Document switcher', () => {
     const sourceDocument = await createUserDocument(page, `Picker Filter ${Date.now()}`);
     let releaseHydration!: () => void;
     const hydrationHeld = new Promise<void>((resolve) => { releaseHydration = resolve; });
-    await page.route(`**/api/documents/${sourceDocument.id}/sync-tokens`, async (route) => {
-      await hydrationHeld;
-      await route.continue();
+    await page.routeWebSocket('**/collaboration', (socket) => {
+      const server = socket.connectToServer();
+      server.onMessage(async (message) => {
+        await hydrationHeld;
+        socket.send(message);
+      });
     });
     try {
       await page.goto(createEditorDocumentPath(sourceDocument.id));

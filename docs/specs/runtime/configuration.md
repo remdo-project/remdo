@@ -83,26 +83,54 @@ and does not use an operator-supplied database URL.
 [persistent runtime data root](../../architecture.md#runtime-persistence-boundary).
 Development defaults it to `data` inside the repository. The self-hosted
 production launcher defaults its host directory to `data/production` inside
-the repository; production containers use `/data` for the mounted root.
+the repository; production containers use `/data` for that root.
 
-Production [public shared files](../../architecture.md#gateway) live in `/data/public-share`.
-
-Document content persists on the filesystem under `DATA_DIR/collab` in every
+Document content persists alongside metadata in the configured database in every
 run mode.
 
 ## Secret bootstrap
 
-Production startup generates the application authentication secret and matched
-Y-Sweet authentication pair into one private `secrets.json` file under the
-[production persistence root](../../architecture.md#runtime-persistence-boundary).
-Python owns initialization and loading; Django management commands use the same
-bundle. Individual environment variables do not override production secrets.
+Production resolves the application authentication secret and internal
+collaboration secret as one bundle, shared by every process that needs them.
+The environment supplies the whole bundle or none of it, and takes precedence
+over a stored one. Empty, malformed, or unusable bundles fail without repair.
 
-An existing bundle is reused. Empty, malformed, or incomplete bundles fail
-without repair. When the bundle is absent, initialization refuses to generate
-replacements if the persistence root contains a dataset or the configured
-database contains metadata. Restore the bundle with its matching
+Without an environment bundle, startup generates one into a private
+`secrets.json` file under the
+[production persistence root](../../architecture.md#runtime-persistence-boundary).
+An existing bundle is reused. When the bundle is absent, initialization refuses
+to generate replacements if the persistence root contains a dataset or the
+configured database contains metadata. Restore the bundle with its matching
 [dataset](../../architecture.md#runtime-persistence-boundary). Development and verification use fixture credentials.
+
+## Deployment accounts
+
+Container production startup optionally provisions stable accounts from server-only
+password variables. `REMDO_ADMIN_PASSWORD` creates the `admin` account as an
+administrator; `REMDO_USER_PASSWORD` creates the `user` account as a regular
+user. Missing variables create no account.
+
+The account domain is `example.test`, because a self-hosted origin may be a bare
+address that is invalid in an email. On Render (`RENDER=true`), where the platform
+guarantees a real public hostname, the domain is the
+[`APP_ORIGIN`](#network-addressing) host instead, pairing a per-instance address
+with the per-instance generated password. Changing a service's origin therefore
+provisions an account at the new domain and leaves the previous one in place.
+
+Each deployment generates the administrator password where its operator already
+reads secrets: Render's service environment, or `.env` for the self-hosted
+launcher, which appends one on the first start that finds the variable unset.
+Assigning the variable an empty value declines the account.
+
+Provisioning creates only missing
+accounts and never replaces an existing account's password, role, or documents.
+A deleted account is provisioned again on the next startup while its variable
+remains set. Retire it permanently by assigning the variable an empty value
+rather than deleting it: the self-hosted launcher otherwise generates a
+replacement on the next start, and the blueprint declares the Render keys, so a
+deleted one returns on the next sync.
+Startup removes the password variables from the environment it passes to the
+long-running services; the platform's own record of them is outside its control.
 
 ## Request diagnostics
 

@@ -11,7 +11,6 @@ type Handler = (payload: unknown) => void;
 export interface MockProvider extends MinimalProviderEvents {
   synced: boolean;
   hasLocalChanges: boolean;
-  indexedDBProvider?: unknown;
   status: CollaborationSessionProvider['status'];
   emit: (event: string, payload?: unknown) => void;
   destroy: () => void;

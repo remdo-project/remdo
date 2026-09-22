@@ -2,7 +2,6 @@ import type {
   DocumentAccessNote,
   DocumentSourceNote,
   DocumentNote,
-  SourceServerNote,
   UserDataNote,
 } from './documents';
 
@@ -13,8 +12,7 @@ export type NoteKind =
   | 'document'
   | 'document-access'
   | 'document-source'
-  | 'collection'
-  | 'source-server';
+  | 'collection';
 
 export interface Note<K extends NoteKind = NoteKind> {
   /** Runtime discriminator for note shape/role. */
@@ -30,7 +28,6 @@ export interface Note<K extends NoteKind = NoteKind> {
     (kind: 'document-access'): DocumentAccessNote;
     (kind: 'document-source'): DocumentSourceNote;
     (kind: 'collection'): CollectionNote;
-    (kind: 'source-server'): SourceServerNote;
     (kind: NoteKind): Note;
   };
 }

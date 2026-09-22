@@ -63,9 +63,9 @@ pnpm run dev
 
 The command starts the web gateway, Django API, and collaboration server. Django
 applies pending migrations before listening and reloads when Python code changes.
-Startup creates missing [development accounts](../../backend/fixtures/development-users.json): Alice is an administrator and
-Bob is a regular user. Sign in with `alice@example.test` / `alice-password-1234`
-or `bob@example.test` / `bob-password-1234`. Restarting preserves accounts and
+Startup creates missing [development accounts](../../backend/fixtures/development-users.json): Admin is an administrator and
+User is a regular user. Sign in with `admin@example.test` / `admin-password-1234`
+or `user@example.test` / `user-password-1234`. Restarting preserves accounts and
 documents. The app opens allauth's sign-in page at `/accounts/login/`. After
 logout, choose **Sign in** to open that page again. Use `/admin/` to manage
 accounts and Home to create or open documents.
@@ -82,14 +82,13 @@ resetting shared working-directory data because the command deletes every
 email-matched stable user and their documents before creating fresh users and documents.
 
 The command creates fresh document IDs, loads the fixture contents, and waits
-for collaboration persistence before completing. Fixture management commands
+for the collaboration persistence barrier to commit content to the database
+before completing. Fixture management commands
 are available only in Development and Verification; Production uses Django's
 normal account administration.
 
 The reset revokes the stable users' sessions. It preserves unrelated local users
-and their data. Removed document
-IDs remain inaccessible, but the live collaboration service does not reclaim
-their underlying storage.
+and their data. Deleting the old documents also deletes their persisted content.
 
 ### Run PWA Preview
 
@@ -114,7 +113,7 @@ pnpm run dev:docker
 ```
 
 Open the printed home URL and sign in with a [development account](../../backend/fixtures/development-users.json).
-The Django container provisions these accounts on startup; Alice can also sign
+The Django container provisions these accounts on startup; Admin can also sign
 in at `/admin/`.
 
 Keep the command running while using the app. Stopping it removes the container

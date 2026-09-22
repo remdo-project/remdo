@@ -73,7 +73,7 @@ export default async function collabTestRuntime() {
     requiredPorts: [
       {
         host: INTERNAL_SERVICE_HOST,
-        label: 'Y-Sweet',
+        label: 'Hocuspocus',
         port: config.env.COLLAB_SERVER_PORT,
       },
       {
@@ -84,17 +84,16 @@ export default async function collabTestRuntime() {
     ],
   });
 
-  const stopCollab = await ensureCollabServer({
-    port: config.env.COLLAB_SERVER_PORT,
-    reuseExisting: false,
-  });
-
+  const stopApi = await startRemdoApiServer();
   try {
-    const stopApi = await startRemdoApiServer();
-    return () => stopAll([stopApi, stopCollab]);
+    const stopCollab = await ensureCollabServer({
+      port: config.env.COLLAB_SERVER_PORT,
+      reuseExisting: false,
+    });
+    return () => stopAll([stopCollab, stopApi]);
   } catch (error) {
     try {
-      await stopCollab();
+      await stopApi();
     } catch (stopError) {
       throw new AggregateError([error, stopError], 'Collaboration test runtime startup failed');
     }

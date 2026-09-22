@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -7,9 +8,86 @@ from urllib.parse import parse_qs, urlsplit
 from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.core.cache import cache
+from django.core.management import call_command
 from django.test import Client, TestCase, override_settings
 
 from .models import User
+
+
+class DeploymentAccountTests(TestCase):
+    # The command reads the process environment, so each case states every
+    # variable it depends on rather than inheriting the developer's shell.
+    SELF_HOSTED = {"RENDER": "", "REMDO_USER_PASSWORD": ""}
+    BOOTSTRAP_ADMIN_ONLY = {**SELF_HOSTED, "REMDO_ADMIN_PASSWORD": "first-admin-password"}
+
+    def test_configured_accounts_are_created_once_from_present_passwords(self):
+        with patch.dict(
+            os.environ,
+            self.BOOTSTRAP_ADMIN_ONLY,
+        ):
+            call_command("setup_configured_users")
+
+        admin = User.objects.get(email="admin@example.test")
+        self.assertTrue(admin.is_staff and admin.is_superuser)
+        self.assertTrue(admin.check_password("first-admin-password"))
+        self.assertFalse(User.objects.filter(email="user@example.test").exists())
+
+        admin.set_password("changed-admin-password")
+        admin.is_staff = admin.is_superuser = False
+        admin.save()
+        with patch.dict(
+            os.environ,
+            {
+                **self.SELF_HOSTED,
+                "REMDO_ADMIN_PASSWORD": "replacement-admin-password",
+                "REMDO_USER_PASSWORD": "first-user-password",
+            },
+        ):
+            call_command("setup_configured_users")
+
+        admin.refresh_from_db()
+        user = User.objects.get(email="user@example.test")
+        self.assertFalse(admin.is_staff or admin.is_superuser)
+        self.assertTrue(admin.check_password("changed-admin-password"))
+        self.assertFalse(user.is_staff or user.is_superuser)
+        self.assertTrue(user.check_password("first-user-password"))
+
+    def test_startup_survives_an_address_held_by_a_renamed_account(self):
+        with patch.dict(os.environ, self.BOOTSTRAP_ADMIN_ONLY):
+            call_command("setup_configured_users")
+        renamed = User.objects.get(email="admin@example.test")
+        renamed.email = "operator@example.test"
+        renamed.save()
+
+        with patch.dict(os.environ, self.BOOTSTRAP_ADMIN_ONLY):
+            call_command("setup_configured_users")
+
+        self.assertEqual(User.objects.count(), 1)
+        self.assertEqual(EmailAddress.objects.get().email, "admin@example.test")
+
+    def test_startup_survives_a_renamed_sign_in_address(self):
+        with patch.dict(os.environ, self.BOOTSTRAP_ADMIN_ONLY):
+            call_command("setup_configured_users")
+        EmailAddress.objects.filter(email="admin@example.test").update(
+            email="operator@example.test"
+        )
+
+        with patch.dict(os.environ, self.BOOTSTRAP_ADMIN_ONLY):
+            call_command("setup_configured_users")
+
+        self.assertEqual(User.objects.count(), 1)
+        self.assertEqual(EmailAddress.objects.get().email, "operator@example.test")
+
+    @override_settings(APP_ORIGIN="https://test.remdo.com")
+    def test_render_accounts_use_the_service_origin_domain(self):
+        with patch.dict(
+            os.environ,
+            {**self.BOOTSTRAP_ADMIN_ONLY, "RENDER": "true"},
+        ):
+            call_command("setup_configured_users")
+
+        self.assertTrue(User.objects.filter(email="admin@test.remdo.com").exists())
+        self.assertFalse(User.objects.filter(email="admin@example.test").exists())
 
 
 @override_settings(

@@ -33,41 +33,24 @@ async function openLifecycleFixture(page: Page) {
   await page.goto(fixturePath);
 }
 
-for (const phase of ['pending', 'connected'] as const) {
-  test(`restores a ${phase} collaboration connection from the browser back-forward cache`, async ({ page }) => {
+test('restores collaboration connections from the browser back-forward cache', async ({ page }) => {
     const { id } = await createUserDocument(page, 'Cache restoration');
     await openLifecycleFixture(page);
-    await page.evaluate(async ({ docId, phase }) => {
+    await page.evaluate(async (docId) => {
       const runtimePath = '/src/collaboration/runtime.ts';
       const { createProviderFactory, waitForSync } = await import(runtimePath);
-      const { provider, doc } = await createProviderFactory()(docId, new Map());
-      const { provider: peer } = await createProviderFactory()(docId, new Map());
+      const { provider, doc } = createProviderFactory({ accountId: 'lifecycle-test-account' })(docId, new Map());
+      const { provider: peer } = createProviderFactory({ accountId: 'lifecycle-test-account' })(docId, new Map());
       window.__collaborationLifecycle = { provider, peer, doc, restores: 0 };
       window.addEventListener('pageshow', (event) => {
         if (event.persisted) window.__collaborationLifecycle!.restores += 1;
       });
-      if (phase === 'pending') {
-        const originalFetch = window.fetch;
-        let tokenRequested!: () => void;
-        const requested = new Promise<void>((resolve) => { tokenRequested = resolve; });
-        window.fetch = (input, init) => {
-          const request = new Request(input, init);
-          if (!new URL(request.url).pathname.endsWith('/sync-tokens')) return originalFetch(request);
-          window.fetch = originalFetch;
-          tokenRequested();
-          return new Promise<Response>((_resolve, reject) => {
-            request.signal.addEventListener('abort', () => reject(new DOMException('Page departed', 'AbortError')));
-          });
-        };
-        void provider.connect();
-        void peer.connect();
-        await requested;
-      } else {
-        await Promise.all([provider.connect(), peer.connect()]);
-      }
+      provider.connect();
+      peer.connect();
+      await Promise.all([waitForSync(provider), waitForSync(peer)]);
       doc.getMap('lifecycle').set('value', 'before departure');
-      if (phase === 'connected') await waitForSync(provider);
-    }, { docId: id, phase });
+      await waitForSync(provider);
+    }, id);
 
     await page.goto('/icon-192.png');
     // A cached document fires pageshow again, not another load event.
@@ -91,8 +74,7 @@ for (const phase of ['pending', 'connected'] as const) {
       peerStatus: window.__collaborationLifecycle!.peer.status,
       pending: window.__collaborationLifecycle!.provider.hasLocalChanges,
     }))).toEqual({ status: 'connected', peerStatus: 'connected', pending: false });
-  });
-}
+});
 
 test('cancels a native socket handshake and restores without a browser warning', async ({ page }) => {
   const { id } = await createUserDocument(page, 'Handshake departure');
@@ -124,7 +106,7 @@ test('cancels a native socket handshake and restores without a browser warning',
     };
     const runtimePath = '/src/collaboration/runtime.ts';
     const { createProviderFactory, waitForSync } = await import(runtimePath);
-    const { provider, doc } = await createProviderFactory()(docId, new Map());
+    const { provider, doc } = createProviderFactory({ accountId: 'lifecycle-test-account' })(docId, new Map());
     try {
       await provider.connect();
       await waitForSync(provider);
@@ -152,5 +134,153 @@ test('cancels a native socket handshake and restores without a browser warning',
     departedSent: false,
     status: 'connected',
     pending: false,
+  });
+});
+
+test('reconnects a native browser socket after a temporary authorization outage', async ({ page }) => {
+  const { id } = await createUserDocument(page, 'Authorization recovery');
+  await openLifecycleFixture(page);
+  const result = await page.evaluate(async (docId) => {
+    const runtimePath = '/src/collaboration/runtime.ts';
+    const { createProviderFactory, waitForSync } = await import(runtimePath);
+    const { provider, doc } = createProviderFactory()(docId, new Map());
+    try {
+      await provider.connect();
+      await waitForSync(provider);
+      const closed = new Promise<void>((resolve) => provider.on('connection-close', () => resolve()));
+      provider.emit('authenticationFailed', { reason: 'collaboration.service-unavailable' });
+      await closed;
+      doc.getMap('recovery').set('value', 'written during reconnect');
+      await waitForSync(provider);
+      const peer = createProviderFactory()(docId, new Map());
+      try {
+        await peer.provider.connect();
+        await waitForSync(peer.provider);
+        return {
+          status: provider.status,
+          pending: provider.hasLocalChanges,
+          content: peer.doc.getMap('recovery').get('value'),
+        };
+      } finally {
+        peer.provider.destroy();
+        peer.doc.destroy();
+      }
+    } finally {
+      provider.destroy();
+      doc.destroy();
+    }
+  }, id);
+  expect(result).toEqual({ status: 'connected', pending: false, content: 'written during reconnect' });
+});
+
+test('keeps offline edits unsaved until reconnect acknowledges the complete document', async ({ page }) => {
+  const { id } = await createUserDocument(page, 'Reconnect acknowledgement');
+  await openLifecycleFixture(page);
+  const result = await page.evaluate(async (docId) => {
+    const runtimePath = '/src/collaboration/runtime.ts';
+    const sessionPath = '/src/collaboration/session.ts';
+    const { createProviderFactory, waitForSync } = await import(runtimePath);
+    const { CollabSession } = await import(sessionPath);
+    const NativeWebSocket = WebSocket;
+    let reconnecting = false;
+    let blocked = false;
+    let sentIncremental = false;
+    const held: Array<() => void> = [];
+    let receivedServerReply!: () => void;
+    const serverReply = new Promise<void>((resolve) => { receivedServerReply = resolve; });
+    const messageType = (data: ArrayBuffer | Uint8Array) => {
+      const bytes = new Uint8Array(data);
+      let offset = 0;
+      const readUint = () => {
+        let value = 0;
+        let shift = 0;
+        let byte: number;
+        do {
+          byte = bytes[offset++]!;
+          value += (byte & 127) * 2 ** shift;
+          shift += 7;
+        } while (byte & 128);
+        return value;
+      };
+      const nameLength = readUint();
+      offset += nameLength;
+      const type = readUint();
+      return { type, subtype: type === 0 ? readUint() : -1 };
+    };
+    class OrderedSocket extends NativeWebSocket {
+      constructor(url: string | URL, protocols?: string | string[]) {
+        super(url, protocols);
+        this.addEventListener('message', (event) => {
+          if (!reconnecting) return;
+          const { type, subtype } = messageType(event.data);
+          // Run after the provider processes this server message. Old queued
+          // increments produce an early ack; full sync only gets server Step2.
+          if ((sentIncremental && type === 8) || (!sentIncremental && type === 0 && subtype === 1)) {
+            setTimeout(receivedServerReply, 0);
+          }
+        });
+      }
+      override send(data: Parameters<WebSocket['send']>[0]) {
+        if (reconnecting) {
+          const { type, subtype } = messageType(data as Uint8Array);
+          if (blocked || (type === 0 && subtype === 1)) {
+            blocked = true;
+            held.push(() => super.send(data));
+            return;
+          }
+          if (type === 0 && subtype === 2) {
+            sentIncremental = true;
+            blocked = true;
+          }
+        }
+        super.send(data);
+      }
+    }
+    const connection = createProviderFactory({ WebSocketPolyfill: OrderedSocket })(docId, new Map());
+    const { provider, doc } = connection;
+    const session = new CollabSession({ enabled: true, docId, providerFactory: () => connection });
+    session.attach(new Map());
+    try {
+      await provider.connect();
+      await waitForSync(provider);
+      doc.getMap('content').set('remove', 'previously saved');
+      await waitForSync(provider);
+      provider.disconnect();
+      doc.getMap('content').set('one', 1);
+      doc.getMap('content').set('two', 2);
+      doc.getMap('content').delete('remove');
+      reconnecting = true;
+      void provider.connect();
+      await serverReply;
+      const before = session.snapshot().hasLocalChanges;
+      const peer = createProviderFactory()(docId, new Map());
+      try {
+        await peer.provider.connect();
+        await waitForSync(peer.provider);
+        const beforeContent = peer.doc.getMap('content').toJSON();
+        const received = new Promise<void>((resolve) => {
+          peer.doc.on('update', () => {
+            const content = peer.doc.getMap('content');
+            if (content.get('two') === 2 && !content.has('remove')) resolve();
+          });
+        });
+        reconnecting = false;
+        for (const send of held) send();
+        await Promise.all([received, waitForSync(provider)]);
+        return { before, beforeContent, after: session.snapshot().hasLocalChanges, content: peer.doc.getMap('content').toJSON() };
+      } finally {
+        peer.provider.destroy();
+        peer.doc.destroy();
+      }
+    } finally {
+      session.destroy();
+      doc.destroy();
+    }
+  }, id);
+  expect(result).toMatchObject({
+    before: true,
+    beforeContent: { remove: 'previously saved' },
+    after: false,
+    content: { one: 1, two: 2 },
   });
 });

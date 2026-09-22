@@ -1,6 +1,5 @@
 import { normalizeDocumentId } from '#domain/documents/ids';
 import { normalizeNoteId, normalizeNoteIdOrThrow } from '#domain/notes/ids';
-import { normalizeSourceServerId } from '#domain/source-servers';
 
 const NOTE_ADDRESS_SEPARATOR = '_';
 const APP_DOCUMENT_PATH_PREFIX = '/n';
@@ -26,20 +25,6 @@ function createDocumentPathWithPrefix(prefix: string, docId: string, noteId: str
 
 export function createDocumentPath(docId: string, noteId: string | null = null): string {
   return createDocumentPathWithPrefix(APP_DOCUMENT_PATH_PREFIX, docId, noteId);
-}
-
-export function createSourceDocumentSyncTokenApiPath(sourceId: string, docId: string): string {
-  const normalizedSourceId = normalizeSourceServerId(sourceId);
-  if (!normalizedSourceId) {
-    throw new Error('createSourceDocumentSyncTokenApiPath requires a valid source id.');
-  }
-  const normalizedDocId = normalizeNoteIdOrThrow(
-    docId,
-    'createSourceDocumentSyncTokenApiPath requires a valid document id.',
-  );
-  return `/api/current-user/source-servers/${encodeURIComponent(normalizedSourceId)}/documents/${
-    encodeURIComponent(normalizedDocId)
-  }/sync-tokens`;
 }
 
 export interface ParsedDocumentRef {

@@ -76,52 +76,43 @@ daemons are supported.
 
 ## Deploy on Render
 
-Deploy both environments from [the repository blueprint](../../render.yaml).
+Deploy the Render environments from [the repository blueprint](../../render.yaml).
 
 1. Create a Render Blueprint deployment from it.
-2. Point DNS at each service as Render's domain settings instruct and wait for
+2. In each service's **Environment** view, copy its generated
+   `REMDO_ADMIN_PASSWORD` into the password manager. Test also generates
+   `REMDO_USER_PASSWORD`. Render preserves these generated values
+   across later Blueprint syncs.
+3. Point DNS at each service as Render's domain settings instruct and wait for
    its certificate.
-3. For each service, set **Settings > Edge Caching > Cacheable file types** to
+4. For each service, set **Settings > Edge Caching > Cacheable file types** to
    **None**, preserving the [application freshness policy](../architecture.md#application-freshness).
-4. For each service, complete
+5. For each service, complete
    [Verify and Complete First Access](#verify-and-complete-first-access).
 
-Release production from Render's dashboard.
+Production tracks `main` and deploys automatically after its CI checks pass.
 
-### Reset the Staging Sandbox
+### Deploy to the Test Sandbox
 
-Staging's data is disposable, and its free database expires. Reset it before
-the expiry deletes the database: the service cannot reach a deleted database,
-and clearing the data root needs its shell, which needs a running instance.
-
-Clear the data root, with no editor connected so that collaboration state is
-not rewritten behind the deletion:
+The test service tracks the [deployment pointer](../../CONTRIBUTING.md#git-workflow)
+and deploys every update without waiting for CI. Deploy the current committed
+state with:
 
 ```sh
-rm -rf /data/..?* /data/.[!.]* /data/*
+pnpm deploy:test
 ```
 
-Then delete the database and sync the blueprint, which recreates it and
-redeploys. Clearing the data root without also replacing the database leaves
-the service unable to start, because
-[secret bootstrap](../specs/runtime/configuration.md#secret-bootstrap) refuses
-to generate a bundle for an existing dataset.
+The command refuses a dirty working tree, reads the remote deployment pointer,
+then moves it to `HEAD` with a force-with-lease push. It creates the pointer when
+missing; a concurrent move after the read makes the push fail instead of
+overwriting it. Render starts the deployment automatically.
 
-## Publish a Public File
+### Reset the Test Sandbox
 
-After the first startup, use the service ID shown by Render's
-[SSH connection instructions](https://render.com/docs/ssh#starting-an-ssh-session):
-
-```sh
-scp -s ./report.pdf srv-abc123@ssh.frankfurt.render.com:/data/public-share/
-```
-
-It is public at `APP_ORIGIN/share/report.pdf`; replacing the file updates the
-same URL.
-
-For replacements, upload under a temporary name and rename it over the published
-file after the upload finishes. Ensure the replacement has a new modification
-time, including for same-size files, so the file server's validators change.
+Test data is disposable and its free database expires. To reset it, stop the
+application, delete its database, and sync the blueprint to recreate it and
+redeploy. Metadata and document content reset together. The reset does not
+require shell access.
 
 ## Upgrade an Existing Instance
 
@@ -131,19 +122,14 @@ to PostgreSQL requires a fresh dataset; no data transfer is provided.
 Schema changes apply on the first
 start of the new version.
 
-Instances using the previous Node backend have no supported data migration to
-Django. Keep their original image and data together; do not point the Django
-image at the old data root.
-
-The retained [Node backup exporter](../../tools/snapshot/backup.ts) does not support Django datasets. Application
-backup and recovery tooling is [separate follow-up](../todo.md#operations).
+Application backup and recovery tooling is [separate follow-up](../todo.md#operations).
 
 1. Stop the instance. A schema change can rewrite tables that authentication
    writes to.
 2. Copy the [persistent storage root](../architecture.md#runtime-persistence-boundary),
    which is what a rollback restores.
    With PostgreSQL, separately preserve the matching database backup;
-   copying `DATA_DIR` alone cannot restore metadata.
+   copying `DATA_DIR` alone cannot restore metadata or document content.
 
    ```sh
    cp -a "${DATA_DIR}" "${DATA_DIR}.bak-$(date +%F)"
@@ -155,22 +141,12 @@ backup and recovery tooling is [separate follow-up](../todo.md#operations).
 
 1. Append `/health` to the application URL and confirm that the gateway reports
    a healthy service.
-2. Create the administrator using Django's [administrator
-   creation](../specs/access/access-control.md#admin-role) command. For the
-   default Docker origin (use the container name printed by the launcher):
-
-   ```sh
-   docker exec -it remdo-8443 python manage.py createsuperuser
-   ```
-
-   On Render, open the service shell and run:
-
-   ```sh
-   cd /app/backend
-   python manage.py createsuperuser
-   ```
-
-   Enter the administrator's email and password. Management commands load the
-   same persisted secret bundle as the server.
+2. Establish the [administrator](../specs/access/access-control.md#admin-role).
+   Container production startup provisions it from
+   [`REMDO_ADMIN_PASSWORD`](../specs/runtime/configuration.md#deployment-accounts).
+   On Render, sign in as `admin@` the service's own domain, such as
+   `admin@remdo.com`, with the service's generated value. Self-hosted
+   deployments sign in as `admin@example.test` with the value the launcher
+   generated in `.env`.
 3. Open `/admin/` on the application origin and sign in with that account.
 4. Open the application home and sign in with the same account.

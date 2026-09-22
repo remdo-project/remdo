@@ -36,6 +36,8 @@ RUN attempt=1 \
     attempt=$((attempt + 1)); \
   done
 
+RUN pnpm exec esbuild src/collaboration-server/main.ts --bundle --platform=node --target=node24 --format=esm --banner:js="import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" --outfile=collaboration.mjs
+
 ARG BUILD_REVISION
 RUN BUILD_REVISION="${BUILD_REVISION}" NODE_ENV=production ./tools/env.sh --production pnpm run build
 
@@ -63,12 +65,13 @@ COPY backend /app/backend
 COPY content /app/content
 COPY --from=builder /app/dist /srv/remdo
 COPY --from=builder /app/dist/.vite/manifest.json /app/dist/.vite/manifest.json
-COPY --from=builder /app/node_modules/y-sweet/bin/y-sweet /usr/local/bin/y-sweet
+COPY --from=builder /usr/local/bin/node /usr/local/bin/node
+COPY --from=builder /app/collaboration.mjs /app/collaboration.mjs
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh
 COPY docker/entrypoint-env.sh /usr/local/share/remdo/entrypoint-env.sh
-RUN chmod +x /entrypoint.sh /usr/local/bin/y-sweet
+RUN chmod +x /entrypoint.sh
 ARG BUILD_REVISION
 ENV BUILD_REVISION=${BUILD_REVISION}
 CMD ["/entrypoint.sh"]

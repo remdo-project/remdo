@@ -1,3 +1,5 @@
+import { revokeLocalPersistenceKeys } from '#collaboration/local-persistence';
+import { trace } from '#platform/log';
 import type { ReactNode } from 'react';
 import { createContext, use, useCallback, useEffect, useEffectEvent, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -79,6 +81,7 @@ function useLogoutController(): LogoutController {
     // Another tab is clearing this origin's storage. Tear the runtime down
     // before a further edit hits a provider whose database is already going away.
     leaveCurrentRoute();
+    void revokeLocalPersistenceKeys().catch(() => trace('collab', 'peer offline cache cleanup failed'));
     resetUserData();
     forgetAuthenticatedSession();
     void navigate('/', { replace: true, state: { [LOGGED_OUT_STATE_KEY]: true } });

@@ -1,9 +1,8 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getTestUserData, setTestDocumentSources } from '#tests';
+import { getTestUserData } from '#tests';
 import { createDocumentPath } from '#document-routes';
 import {
-  createDocumentCollectionSource,
   renderDocumentRoute,
   renderDocumentRouteWithResult,
   resetDocumentRouteHarness,
@@ -37,27 +36,6 @@ describe('document route', () => {
     });
   });
 
-  it('opens linked source documents through plain document routes', async () => {
-    setTestDocumentSources([{
-      baseUrl: 'https://source.example',
-      documents: createDocumentCollectionSource([{ id: 'sourceDoc', title: 'Source Document' }]),
-      id: 'source',
-      label: 'Source Server',
-      local: false,
-    }]);
-    const router = renderDocumentRoute(createDocumentPath('testDoc'));
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Source Server · Source Document' }));
-
-    await waitFor(() => {
-      expect(router.state.location.pathname).toBe(createDocumentPath('sourceDoc'));
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'sourceDoc');
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', 'source');
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-origin', 'https://source.example');
-    });
-  });
-
   it('navigates to the default document using its document URL', async () => {
     const router = renderDocumentRoute();
 
@@ -67,33 +45,6 @@ describe('document route', () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe(createDocumentPath('testDoc'));
       expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'testDoc');
-    });
-  });
-
-  it('remounts a source-only plain document route against its source once resolution completes', async () => {
-    renderDocumentRoute(createDocumentPath('sourceDoc'));
-
-    // The collaboration provider authorizes access, so the editor mounts against
-    // the local source immediately instead of waiting for source resolution.
-    await waitFor(() => {
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'sourceDoc');
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', '');
-    });
-
-    act(() => {
-      setTestDocumentSources([{
-        baseUrl: 'https://source.example',
-        documents: createDocumentCollectionSource([{ id: 'sourceDoc', title: 'Source Document' }]),
-        id: 'source',
-        label: 'Source Server',
-        local: false,
-      }]);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'sourceDoc');
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', 'source');
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-origin', 'https://source.example');
     });
   });
 

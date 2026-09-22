@@ -43,6 +43,7 @@ const shared = defineProject({
 
 // These tests exercise Node boundaries and do not need a DOM or an editor.
 const nodeTests = [
+  'src/collaboration-server/server.spec.ts',
   'tests/unit/editor-state-defaults.spec.ts',
   'src/client/editor/runtime/editor-state-persistence.spec.ts',
   'src/client/editor/runtime/serialized-editor-state.spec.ts',
@@ -51,13 +52,11 @@ const nodeTests = [
   'src/note-sdk/note-sdk-core.spec.ts',
   'src/client/search/query-match.spec.ts',
   'src/client/ui/navigation-label.spec.ts',
-  'src/platform/net/http-origin.spec.ts',
   'src/client/editor/mobile-toolbar/mobile-toolbar-actions.spec.ts',
   'src/client/editor/mobile-toolbar/mobile-toolbar-layout.spec.ts',
   'src/client/editor/triggers/active-popup.spec.ts',
   'src/client/editor/runtime/collaboration/collaboration-indicator.spec.ts',
   'src/client/editor/runtime/collaboration/offline-document-unavailable.spec.ts',
-  'src/collaboration/y-sweet-indexeddb-lifecycle.spec.ts',
   'tests/unit/internal/waitForSync.spec.ts',
 
   'tests/unit/net.spec.ts',
@@ -71,25 +70,15 @@ const nodeTests = [
   'tests/unit/dev-runtime-launchers.spec.ts',
   'tests/unit/docker-entrypoint-lifecycle.spec.ts',
   'tests/unit/e2e-auth-context.spec.ts',
-  'tests/unit/linking-preflight.spec.ts',
   'tests/unit/managed-process.spec.ts',
   'tests/unit/markdownlint-line-length.spec.ts',
   'tests/unit/prod-docker-launcher.spec.ts',
   'tests/unit/provider-headless-lifecycle.spec.ts',
-  'tests/unit/server/**/*.spec.ts',
   'tests/unit/skills/embedded.spec.ts',
-  'tests/unit/snapshot-backup.spec.ts',
   'tests/unit/todo-list.spec.ts',
   'tests/unit/django-template-storage-keys.spec.ts',
   'tests/unit/vite-logger.spec.ts',
   'tests/unit/vite-shared.spec.ts',
-  'src/server/auth/*.spec.ts',
-  'src/server/db/*.spec.ts',
-  'src/server/documents/*.spec.ts',
-  'src/server/projection/*.spec.ts',
-  'src/server/remdo-oauth/*.spec.ts',
-  'src/server/collab-token.spec.ts',
-  'src/server/token-url-rewrite.spec.ts',
 ];
 
 // These tests need a DOM but not the shared RemDo editor fixture.

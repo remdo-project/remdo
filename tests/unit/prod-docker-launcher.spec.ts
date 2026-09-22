@@ -57,6 +57,7 @@ esac
 
 interface LauncherRun {
   dataDir: string;
+  envRoot: string;
   result: SpawnSyncReturns<string>;
   dockerCalls: string[][];
   mkdirCalls: string[][];
@@ -76,11 +77,13 @@ describe('prod Docker launcher', () => {
     }
   });
 
-  function runLauncher(overrides: Record<string, string> = {}): LauncherRun {
+  function runLauncher(overrides: Record<string, string | undefined> = {}): LauncherRun {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-prod-docker-launcher-'));
     tempDirs.push(tempDir);
     const binDir = path.join(tempDir, 'bin');
     const dataDir = path.join(tempDir, 'data');
+    const envRoot = path.join(tempDir, 'env-root');
+    fs.mkdirSync(envRoot);
     const dockerLog = path.join(tempDir, 'docker.log');
     const dockerStopped = path.join(tempDir, 'docker.stopped');
     const mkdirLog = path.join(tempDir, 'mkdir.log');
@@ -96,7 +99,6 @@ describe('prod Docker launcher', () => {
       encoding: 'utf8',
       env: {
         ...process.env,
-        ALLOW_SIGNUP: '',
         APP_ORIGIN: '',
         AUTH_SECRET: 'production-auth-secret-0123456789',
         CADDY_BIND_DIRECTIVE: 'bind 0.0.0.0',
@@ -104,6 +106,7 @@ describe('prod Docker launcher', () => {
         DATA_DIR: dataDir,
         DATABASE_URL: '',
         HOST: '',
+        REMDO_ADMIN_PASSWORD: '',
         PATH: `${binDir}:${process.env.PATH}`,
         PORT: '9999',
         PORT_BASE: '9000',
@@ -114,8 +117,8 @@ describe('prod Docker launcher', () => {
         REMDO_FAKE_MKDIR_LOG: mkdirLog,
         REMDO_FAKE_SLEEP_LOG: sleepLog,
         REMDO_GATEWAY_BIND_ADDRESS: '127.0.0.1',
-        YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
-        YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
+        REMDO_ROOT: envRoot,
+        COLLAB_INTERNAL_SECRET: 'production-collab-secret',
         ...overrides,
       },
     });
@@ -123,7 +126,7 @@ describe('prod Docker launcher', () => {
     const dockerCalls = fs.existsSync(dockerLog) ? parseDockerCalls(fs.readFileSync(dockerLog, 'utf8')) : [];
     const mkdirCalls = fs.existsSync(mkdirLog) ? parseDockerCalls(fs.readFileSync(mkdirLog, 'utf8')) : [];
     const sleepCalls = fs.existsSync(sleepLog) ? parseDockerCalls(fs.readFileSync(sleepLog, 'utf8')) : [];
-    return { dataDir, result, dockerCalls, mkdirCalls, sleepCalls };
+    return { dataDir, envRoot, result, dockerCalls, mkdirCalls, sleepCalls };
   }
 
   it('defaults to the canonical loopback origin without requiring host Node', () => {
@@ -136,6 +139,7 @@ describe('prod Docker launcher', () => {
 
     expect(dockerOptionValues(runArgs, '--name')).toEqual(['remdo-8443']);
     expect(dockerOptionValues(runArgs, '--restart')).toEqual(['unless-stopped']);
+    expect(dockerOptionValues(runArgs, '--stop-timeout')).toEqual(['55']);
     expect(dockerOptionValues(runArgs, '-p')).toEqual(['127.0.0.1:8443:8443']);
     expect(dockerOptionValues(runArgs, '-v')).toEqual([`${dataDir}:/data`]);
     expect(runArgs).toContain('-d');
@@ -191,7 +195,7 @@ describe('prod Docker launcher', () => {
       'inspect',
       'exec',
     ]);
-    expect(findDockerCall(dockerCalls, 'stop')).toEqual(['stop', 'remdo-8443']);
+    expect(findDockerCall(dockerCalls, 'stop')).toEqual(['stop', '--timeout', '55', 'remdo-8443']);
     expect(findDockerCall(dockerCalls, 'rm')).toEqual(['rm', 'remdo-8443']);
     expect(dockerOptionValues(findDockerCall(dockerCalls, 'run'), '--name')).toEqual(['remdo-8443']);
   });
@@ -301,13 +305,13 @@ describe('prod Docker launcher', () => {
 
   it('stops an instance that fails before the restart policy activates', () => {
     const { result, dockerCalls } = runLauncher({
-      REMDO_FAKE_CONTAINER_LOGS: 'Production service y-sweet exited unexpectedly with status 42.',
+      REMDO_FAKE_CONTAINER_LOGS: 'Production service collaboration exited unexpectedly with status 42.',
       REMDO_FAKE_CONTAINER_STATE: 'false 0',
     });
 
     expect(result.status).not.toBe(0);
     expect(result.stdout).not.toContain('Docker target:');
-    expect(result.stderr).toContain('Production service y-sweet exited unexpectedly with status 42.');
+    expect(result.stderr).toContain('Production service collaboration exited unexpectedly with status 42.');
     expect(result.stderr).toContain('RemDo failed to become healthy; container remdo-8443 was stopped.');
     expect(dockerCalls.map(([command]) => command)).toEqual([
       'build',
@@ -360,8 +364,7 @@ describe('prod Docker launcher', () => {
   it('omits bootstrap-managed secrets when unset', () => {
     const { result, dockerCalls } = runLauncher({
       AUTH_SECRET: '',
-      YSWEET_AUTH_KEY: '',
-      YSWEET_SERVER_TOKEN: '',
+      COLLAB_INTERNAL_SECRET: '',
     });
 
     expect(result.status, result.stderr).toBe(0);
@@ -369,6 +372,50 @@ describe('prod Docker launcher', () => {
       APP_ORIGIN: 'https://remdo.localhost:8443',
       DATABASE_URL: '',
     });
+  });
+
+  it('forwards configured deployment account passwords to the container', () => {
+    const { result, dockerCalls } = runLauncher({
+      REMDO_ADMIN_PASSWORD: 'launcher-admin-password',
+      REMDO_USER_PASSWORD: 'launcher-user-password',
+    });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toMatchObject({
+      REMDO_ADMIN_PASSWORD: 'launcher-admin-password',
+      REMDO_USER_PASSWORD: 'launcher-user-password',
+    });
+  });
+
+  it('declines the bootstrap account when the operator emptied the password', () => {
+    const { envRoot, result, dockerCalls } = runLauncher({ REMDO_ADMIN_PASSWORD: '' });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).not.toHaveProperty(
+      'REMDO_ADMIN_PASSWORD',
+    );
+    expect(fs.existsSync(path.join(envRoot, '.env'))).toBe(false);
+  });
+
+  it('generates a persistent admin password when the operator set none', () => {
+    const envRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-prod-docker-env-root-'));
+    tempDirs.push(envRoot);
+    fs.writeFileSync(path.join(envRoot, '.env'), 'HOST=127.0.0.1', { mode: 0o644 });
+
+    const first = runLauncher({ REMDO_ADMIN_PASSWORD: undefined, REMDO_ROOT: envRoot });
+
+    expect(first.result.status, first.result.stderr).toBe(0);
+    const generated = dockerEnvironment(findDockerCall(first.dockerCalls, 'run')).REMDO_ADMIN_PASSWORD;
+    expect(generated).toMatch(/^[a-z0-9]{32}$/i);
+
+    const envFile = path.join(envRoot, '.env');
+    expect(fs.readFileSync(envFile, 'utf8')).toBe(`HOST=127.0.0.1\nREMDO_ADMIN_PASSWORD=${generated}\n`);
+    expect(fs.statSync(envFile).mode & 0o777).toBe(0o600);
+
+    const second = runLauncher({ REMDO_ADMIN_PASSWORD: undefined, REMDO_ROOT: envRoot });
+
+    expect(second.result.status, second.result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(second.dockerCalls, 'run')).REMDO_ADMIN_PASSWORD).toBe(generated);
   });
 
   it('rejects a browser-blocked port derived from the public origin', () => {

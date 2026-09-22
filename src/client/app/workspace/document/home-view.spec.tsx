@@ -1,8 +1,25 @@
 import { MantineProvider } from '@mantine/core';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { DocumentNote } from '#note-sdk';
 import { HomeView } from './HomeView';
 import type { HomeViewProps } from './HomeView';
+
+const documentNote = (
+  { id, title, rename = vi.fn(), canRename = true }:
+  { id: string; title: string; rename?: () => unknown; canRename?: boolean },
+): DocumentNote => ({
+  getId: () => id,
+  getText: () => title,
+  canRename: () => canRename,
+  rename,
+} as unknown as DocumentNote);
+
+const openRenameDialog = async (name: string) => {
+  fireEvent.click(screen.getAllByRole('button', { name: `Actions for ${name}` })[0]!);
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Rename…' }));
+  return screen.getByLabelText('Document name');
+};
 
 const baseProps = (): HomeViewProps => ({
   sources: [
@@ -26,6 +43,7 @@ const baseProps = (): HomeViewProps => ({
   onSelectDocument: vi.fn(),
   onCreateDocument: vi.fn(),
   onUploadDocument: vi.fn(),
+  resolveDocument: (docId) => documentNote({ id: docId, title: docId }),
 });
 
 const renderHome = (props: HomeViewProps) =>
@@ -82,6 +100,104 @@ describe('home view', () => {
     fireEvent.click(screen.getByRole('button', { name: /new document/i }));
 
     expect(props.onCreateDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it('submits a trimmed new name through the row menu', async () => {
+    const rename = vi.fn().mockResolvedValue(undefined);
+    const props = baseProps();
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
+    renderHome(props);
+
+    const input = await openRenameDialog('Ideas');
+    fireEvent.change(input, { target: { value: '  Renamed Ideas  ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+
+    await waitFor(() => expect(rename).toHaveBeenCalledWith('Renamed Ideas'));
+  });
+
+  it('rejects an empty name without calling the source', async () => {
+    const rename = vi.fn();
+    const props = baseProps();
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
+    renderHome(props);
+
+    const input = await openRenameDialog('Ideas');
+    fireEvent.change(input, { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter a document name.');
+    expect(rename).not.toHaveBeenCalled();
+  });
+
+  it('keeps the draft and shows the failure when the source rejects the rename', async () => {
+    const rename = vi.fn().mockRejectedValue(new Error('Document is no longer available.'));
+    const props = baseProps();
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
+    renderHome(props);
+
+    const input = await openRenameDialog('Ideas');
+    fireEvent.change(input, { target: { value: 'Renamed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Document is no longer available.');
+    expect(screen.getByLabelText('Document name')).toHaveValue('Renamed');
+  });
+
+  it('closes without a write when the opening name is submitted unchanged', async () => {
+    const rename = vi.fn();
+    const props = baseProps();
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
+    renderHome(props);
+
+    const input = await openRenameDialog('Ideas');
+    fireEvent.change(input, { target: { value: '  Ideas  ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+
+    await waitFor(() => expect(screen.queryByLabelText('Document name')).toBeNull());
+    expect(rename).not.toHaveBeenCalled();
+  });
+
+  it('closes without a write when a stored name carrying edge whitespace is resubmitted', async () => {
+    const rename = vi.fn();
+    const props = baseProps();
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: '  Ideas  ', rename });
+    renderHome(props);
+
+    const input = await openRenameDialog('Ideas');
+    fireEvent.change(input, { target: { value: 'Ideas' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+
+    await waitFor(() => expect(screen.queryByLabelText('Document name')).toBeNull());
+    expect(rename).not.toHaveBeenCalled();
+  });
+
+  it('blocks dismissal and repeat submission while a rename is pending', async () => {
+    let settle!: () => void;
+    const rename = vi.fn().mockReturnValue(new Promise<void>((resolve) => { settle = resolve; }));
+    const props = baseProps();
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
+    renderHome(props);
+
+    const input = await openRenameDialog('Ideas');
+    fireEvent.change(input, { target: { value: 'Renamed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+
+    await waitFor(() => expect(rename).toHaveBeenCalledTimes(1));
+    fireEvent.keyDown(input, { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+    expect(screen.getByLabelText('Document name')).toBeInTheDocument();
+    expect(rename).toHaveBeenCalledTimes(1);
+
+    settle();
+    await waitFor(() => expect(screen.queryByLabelText('Document name')).toBeNull());
+  });
+
+  it('omits the menu for a document that cannot be renamed', () => {
+    const props = baseProps();
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canRename: false });
+    renderHome(props);
+
+    expect(screen.queryByRole('button', { name: /^Actions for/ })).toBeNull();
   });
 
   it('uploads the chosen file via the Upload action', () => {

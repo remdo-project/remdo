@@ -22,6 +22,7 @@ test('returning browsers revalidate files and retain server navigation responses
   await page.getByRole('button', { name: 'New document', exact: true }).click();
   await expect(page.locator('.editor-input')).toBeVisible();
   const documentUrl = page.url();
+  const documentId = new URL(documentUrl).pathname.split('/').at(-1)!;
   for (const url of [`${documentUrl}?freshness=probe`, `${documentUrl}/?freshness=probe`]) {
     const documentResponse = await page.goto(url);
     expect(documentResponse!.fromServiceWorker()).toBe(true);
@@ -68,55 +69,30 @@ test('returning browsers revalidate files and retain server navigation responses
   }
   const asset = await page.locator('script[type="module"]').getAttribute('src');
   expect((await page.request.get(asset!)).headers()['cache-control']).toBe('no-cache');
-  for (const url of ['/health', '/api/current-user', '/api/schema', '/accounts/login/', '/api/not-a-route', '/d/missing/as-update']) {
+  for (const url of ['/health', '/api/current-user', '/api/schema', '/accounts/login/', '/api/not-a-route']) {
     // maxRedirects: 0 keeps the header the route itself returns; an authenticated
     // visit to /accounts/login/ redirects to a shell route served with no-cache.
     const response = await page.request.get(url, { maxRedirects: 0 });
     expect(response.headers()['cache-control'], url).toContain('no-store');
   }
-  // The gateway proxies /d/* to Y-Sweet without its own authorization, so the
-  // document service must reject a caller presenting no bearer token.
-  expect((await page.request.get('/d/missing/as-update')).status()).toBe(401);
-  // Y-Sweet's control surface mints full-authorization tokens with the privileged
-  // server token, so the gateway must not proxy it at all: widening the /d/*
-  // matcher or reordering the handlers would expose it. Django answering proves
-  // the request never reached Y-Sweet, which a 401 alone would not.
-  for (const url of ['/doc/new', '/doc/missing/auth']) {
-    const control = await page.request.post(url, { data: {}, failOnStatusCode: false });
-    expect(control.status(), url).toBe(404);
-    expect(await control.text(), url).toContain('Not Found');
+  // These are real Django routes for an existing document: without the gateway
+  // block they return403, so a missing upstream route cannot satisfy this check.
+  for (const operation of ['content', 'authorize']) {
+    const response = await page.request.get(`/internal/collaboration/documents/${documentId}/${operation}`);
+    expect(response.status()).toBe(404);
+    expect(response.headers()['cache-control']).toContain('no-store');
   }
+  const internalWrite = await page.request.put(`/internal/collaboration/documents/${documentId}/content`, {
+    data: 'untrusted state',
+    headers: { 'Content-Type': 'application/octet-stream' },
+  });
+  expect(internalWrite.status()).toBe(404);
+  expect(internalWrite.headers()['cache-control']).toContain('no-store');
   const missing = await page.request.get('/app-assets/missing.js');
   expect(missing.status()).toBe(404);
   expect(missing.headers()['cache-control']).toContain('no-store');
   expect(await missing.text()).not.toContain('<html');
 
-  const publish = (content: string, modified: string) => python(
-    "import os, sys; from pathlib import Path; p=Path('/data/public-share/freshness.txt.next'); p.write_text(sys.argv[1]); os.utime(p, (int(sys.argv[2]), int(sys.argv[2]))); p.replace(p.with_suffix(''))",
-    content, modified,
-  );
-  publish('first version', '1700000000');
-  const first = await page.goto('/share/freshness.txt');
-  expect(first!.fromServiceWorker()).toBe(false);
-  expect(first!.headers()['cache-control']).toBe('no-cache');
-  expect(first!.headers()['content-type']).toContain('text/plain');
-  await expect(page.locator('body')).toContainText('first version');
-  const etag = first!.headers().etag!;
-  const modified = first!.headers()['last-modified']!;
-  const unchanged = await page.request.get('/share/freshness.txt', { headers: { 'If-None-Match': etag } });
-  expect(unchanged.status()).toBe(304);
-  publish('other version', '1700000002'); // Same byte length, changed validators.
-  const replacement = await page.request.get('/share/freshness.txt', {
-    headers: { 'If-None-Match': etag, 'If-Modified-Since': modified },
-  });
-  expect(replacement.status()).toBe(200);
-  expect(await replacement.text()).toBe('other version');
-  const range = await page.request.get('/share/freshness.txt', { headers: { Range: 'bytes=0-4' } });
-  expect(range.status()).toBe(206);
-  expect(await range.text()).toBe('other');
-  await page.goto('/');
-  await page.goto('/share/freshness.txt');
-  await expect(page.locator('body')).toContainText('other version');
   for (const url of ['/health', '/admin/']) {
     const response = await page.goto(url);
     expect(response!.fromServiceWorker(), url).toBe(false);

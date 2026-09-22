@@ -1,23 +1,11 @@
 catalogMode: prefer
 
 minimumReleaseAgeExcludePrune: true
-
-minimumReleaseAgeExclude:
-  - '@better-auth/core@1.7.0'
-  - '@better-auth/drizzle-adapter@1.7.0'
-  - '@better-auth/kysely-adapter@1.7.0'
-  - '@better-auth/memory-adapter@1.7.0'
-  - '@better-auth/mongo-adapter@1.7.0'
-  - '@better-auth/oauth-provider@1.7.0'
-  - '@better-auth/prisma-adapter@1.7.0'
-  - '@better-auth/telemetry@1.7.0'
-  - better-auth@1.7.0
 trustPolicy: no-downgrade
 
 trustPolicyExclude:
   - rollup@2.80.0
   - serialize-javascript@7.0.5
-  - undici-types@6.21.0
   - semver@6.3.1
 
 shellEmulator: true
@@ -72,12 +60,6 @@ patchedDependencies:
   # Lexical V2 must ignore remote cursors mapped only to deleted text nodes.
   # Regression: tests/unit/collab/lexical-yjs-cursor-sync.collab.spec.ts.
   '@lexical/yjs@0.49.0': patches/@lexical__yjs@0.49.0.patch
-  # Cancel pending connections and close connecting sockets without Chromium warnings.
-  # Upstream follow-up: docs/todo.md#upstream-reports.
-  # Probe: remove patch; run tests/unit/provider-headless-lifecycle.spec.ts,
-  # tests/unit/collab/provider-page-lifecycle.collab.spec.ts
-  # and tests/e2e/app/collaboration-lifecycle.spec.ts.
-  '@y-sweet/client@0.9.1': patches/@y-sweet__client@0.9.1.patch
   # Lexical must not warn when its own commit machinery dispatches a mutating
   # command: $updateDOMSelection sets the DOM selection during a commit, the
   # browser fires selectionchange, and Lexical dispatches
@@ -90,17 +72,16 @@ patchedDependencies:
   lexical@0.49.0: patches/lexical@0.49.0.patch
 allowBuilds:
   '@ast-grep/cli': true
-  better-sqlite3: true
   esbuild: true
   unrs-resolver: true
-  y-sweet: true
 
 catalog:
   '@antfu/eslint-config': 9.5.1
   '@ast-grep/cli': ^0.45.3
-  '@better-auth/core': 1.7.0
-  '@better-auth/oauth-provider': 1.7.0
   '@eslint-react/eslint-plugin': ^5.19.0
+  '@hocuspocus/extension-database': 4.7.0
+  '@hocuspocus/provider': 4.7.0
+  '@hocuspocus/server': 4.7.0
   '@internationalized/date': ^3.12.4
   '@lexical/clipboard': ^0.49.0
   '@lexical/eslint-plugin': ^0.49.0
@@ -118,7 +99,6 @@ catalog:
   '@tanstack/react-query': 5.102.8
   '@testing-library/jest-dom': ^7.0.1
   '@testing-library/react': ^16.3.3
-  '@types/better-sqlite3': ^9.6.0
   '@types/estree': ^1.0.9
   '@types/jsdom': ^30.0.0
   '@types/linkify-it': ^5.0.0
@@ -128,26 +108,21 @@ catalog:
   '@types/ws': ^8.18.1
   '@vitest/coverage-v8': 4.1.11
   '@vitest/ui': 4.1.11
-  '@y-sweet/client': ^0.9.1
-  '@y-sweet/sdk': ^0.9.1
-  better-auth: 1.7.0
-  better-sqlite3: ^12.11.1
   chokidar-cli: ^3.0.0
   concurrently: ^10.0.5
   cross-env: ^10.1.0
   csstree-validator: ^4.0.1
   dependency-cruiser: ^18.2.0
+  esbuild: ^0.27.4
   eslint: ^10.10.0
   eslint-import-resolver-typescript: ^4.4.5
   eslint-plugin-boundaries: ^7.2.0
   eslint-plugin-compat: ^7.0.2
   eslint-plugin-react-refresh: ^0.5.6
-  hono: ^4.13.7
   jiti: ^2.7.0
   jscpd: ^5.2.0
   jsdom: ^30.0.1
   knip: ^6.35.1
-  kysely: 0.29.5
   lexical: ^0.49.0
   linkify-it: ^5.0.2
   markdownlint: ^0.41.1
@@ -173,7 +148,6 @@ catalog:
   workbox-build: 7.4.0
   workbox-window: ^7.4.1
   ws: 8.21.3
-  y-sweet: ^0.9.1
   yaml: ^2.9.1
   yjs: ^13.6.32
   zod: ^4.6.4

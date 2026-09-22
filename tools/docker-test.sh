@@ -17,6 +17,8 @@ export DOCKER_TEST_CONTAINER="remdo-$((PORT_BASE + 7))"
 export DOCKER_TEST_ORIGIN="https://remdo.localhost:$((PORT_BASE + 7))"
 export DOCKER_HOSTED_CONTAINER="${IMAGE_NAME}-$((PORT_BASE + 10))"
 export DOCKER_HOSTED_PORT="$((PORT_BASE + 10))"
+# The hosted container provisions its administrator from this, as Render does.
+export DOCKER_TEST_BOOTSTRAP_PASSWORD="bootstrap-fixture-password-1234"
 # Both ports serve a Chromium baseURL, so an unsafe value must fail here rather
 # than as an opaque net error inside the suite.
 remdo_assert_browser_safe_port "$((PORT_BASE + 7))"
@@ -42,10 +44,12 @@ for name in ("home", "hosted"):
 '
 IMAGE_NAME="${IMAGE_NAME}" DATA_DIR="${TEST_DATA_DIR}/home" \
   APP_ORIGIN="${DOCKER_TEST_ORIGIN}" HOST=127.0.0.1 DATABASE_URL= \
+  REMDO_ADMIN_PASSWORD= REMDO_USER_PASSWORD= \
   "${ROOT_DIR}/tools/prod/docker.sh"
 remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}/hosted" -d --userns=host \
   --name "${DOCKER_HOSTED_CONTAINER}" -p "127.0.0.1:${DOCKER_HOSTED_PORT}:8080" \
   -e PORT=8080 -e RENDER=true -e APP_ORIGIN=https://remdo.onrender.com --network "${PG_NETWORK}" \
+  -e REMDO_ADMIN_PASSWORD="${DOCKER_TEST_BOOTSTRAP_PASSWORD}" \
   -e DATABASE_URL="${DOCKER_DATABASE_URL%/remdo}/hosted"
 cd "${ROOT_DIR}"
 PLAYWRIGHT_BROWSERS_DIR="${PLAYWRIGHT_BROWSERS_PATH:-}"

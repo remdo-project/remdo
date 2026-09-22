@@ -59,8 +59,6 @@ function defaultResults(): SearchResult[] {
 
 interface MockEditorProps {
   docId: string;
-  sourceId?: string | null;
-  sourceOrigin?: string | null;
 }
 
 let mockEditorInstanceCounter = 0;
@@ -71,8 +69,6 @@ let zoomPaths: Record<string, Record<string, NotePathItem[]>> = {};
 
 function MockEditor({
   docId,
-  sourceId = null,
-  sourceOrigin = null,
 }: MockEditorProps) {
   const zoomNoteId = useZoomNoteId();
   const { setZoomPath } = useEditorViewActions();
@@ -140,8 +136,6 @@ function MockEditor({
       <div
         data-doc-id={docId}
         data-instance-id={instanceId}
-        data-source-id={sourceId ?? ''}
-        data-source-origin={sourceOrigin ?? ''}
         data-testid="editor-probe"
       />
       <div data-testid="editor-search-probe" data-zoom-note-id={zoomNoteId ?? ''} />
@@ -261,8 +255,3 @@ export function getResultByLabel(label: string) {
 }
 
 export const findResultByLabel = (label: string) => waitFor(() => getResultByLabel(label));
-
-export const createDocumentCollectionSource = (documents: Array<{ id: string; title: string }>) => ({
-  getChildren: () => documents,
-  getById: (documentId: string) => documents.find((document) => document.id === documentId) ?? null,
-});

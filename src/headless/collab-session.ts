@@ -1,7 +1,4 @@
-import path from 'node:path';
-import fs from 'node:fs';
-
-import { createYjsProvider } from '@y-sweet/client';
+import { createProviderFactory } from '#collaboration/runtime';
 import {
   createBindingV2__EXPERIMENTAL,
   syncLexicalUpdateToYjsV2__EXPERIMENTAL,
@@ -10,18 +7,13 @@ import {
 } from '@lexical/yjs';
 import { createEditor } from 'lexical';
 import WebSocket from 'ws';
-import * as Y from 'yjs';
 import { UndoManager } from 'yjs';
 import type { Doc, Transaction } from 'yjs';
-import type { Provider } from '@lexical/yjs';
 import type { CreateEditorArgs, LexicalEditor } from 'lexical';
 
 import { config } from '#config';
-import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
+import { resolveCollabServerOrigin } from '#platform/net/origins';
 import { CollabSession } from '#collaboration/session';
-import { waitForSessionAttachment } from '#collaboration/wait-for-session-attachment';
-import { createYSweetDocumentTokenManager } from '#server/collab-token';
-import type { CollaborationSessionProvider } from '#collaboration/runtime';
 import { createEditorInitialConfig } from '#client/editor/runtime/config';
 
 type SharedRootObserver = (
@@ -34,47 +26,16 @@ interface SharedRoot {
   unobserveDeep: (callback: SharedRootObserver) => void;
 }
 
-type ConnectableProvider = Provider & { connect: () => void; destroy: () => void };
-type ConnectableProviderWithWebSocket = ConnectableProvider & { _WS?: typeof globalThis.WebSocket };
-
 function createInternalProviderFactory() {
-  const manager = createYSweetDocumentTokenManager();
-
-  return async (docId: string, docMap: Map<string, Doc>) => {
-    let doc = docMap.get(docId);
-    if (!doc) {
-      doc = new Y.Doc();
-      docMap.set(docId, doc);
+  class OperatorWebSocket extends WebSocket {
+    constructor(url: string | URL) {
+      super(url, { headers: { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET } });
     }
-
-    doc.get('root', Y.XmlText);
-
-    const token = await manager.getOrCreateDocAndToken(docId, {
-      authorization: 'full',
-    });
-    const provider = createYjsProvider(doc, docId, async () => token, {
-      connect: false,
-      offlineSupport: false,
-      showDebuggerLink: false,
-    });
-    let destroyed = false;
-    const originalDestroy = provider.destroy.bind(provider);
-
-    return {
-      doc,
-      provider: Object.assign(provider as unknown as Provider, {
-        destroy: () => {
-          if (destroyed) {
-            return;
-          }
-          destroyed = true;
-          provider.connect = () => Promise.resolve();
-          provider.disconnect();
-          originalDestroy();
-        },
-      }) as CollaborationSessionProvider,
-    };
-  };
+  }
+  return createProviderFactory({
+    visibleOrigin: resolveCollabServerOrigin(),
+    WebSocketPolyfill: OperatorWebSocket as unknown as typeof globalThis.WebSocket,
+  });
 }
 
 /**
@@ -90,26 +51,17 @@ export function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {
   });
 }
 
-async function waitForPersistedData(docId: string, timeoutMs = 15_000): Promise<void> {
-  const target = path.join(config.env.DATA_DIR, 'collab', docId, 'data.ysweet');
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (fs.existsSync(target)) {
-      return;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-  throw new Error(`Timed out waiting for ${target}`);
+async function waitForPersistedData(docId: string): Promise<void> {
+  const response = await fetch(new URL(`/internal/collaboration/flush/${encodeURIComponent(docId)}`, resolveCollabServerOrigin()), {
+    method: 'POST',
+    headers: { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET },
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!response.ok) throw new Error('Collaboration persistence failed.');
 }
 
 interface HeadlessCollabSessionOptions {
-  /**
-   * After `run` resolves, wait for the collab server to flush the document to
-   * disk (`data.ysweet`). Set this for write sessions (dev data seeding) where
-   * the caller needs durability before exit. Leave `false` for read-only
-   * sessions (snapshot): the read already produced its output, and a doc whose
-   * `data.ysweet` is not yet on disk would otherwise make the read time out.
-   */
+  /** Wait for a database commit before closing a write session. */
   waitForPersist?: boolean;
 }
 
@@ -123,8 +75,8 @@ interface HeadlessCollabSessionOptions {
  * `setEditorState`), it should return a promise that resolves once that update
  * has flushed (see `waitForEditorUpdate`); the session awaits `run`'s result
  * before the final sync, so the write reaches the server. Pass
- * `{ waitForPersist: true }` to additionally block until the server has flushed
- * the document to disk.
+ * `{ waitForPersist: true }` to additionally block until the server has committed
+ * the document to the database.
  */
 export async function withHeadlessCollabSession<T>(
   docId: string,
@@ -136,14 +88,15 @@ export async function withHeadlessCollabSession<T>(
     enabled: true,
     docId,
     origin: resolveCollabServerOrigin(),
-    apiOrigin: resolveApiServerOrigin(),
     providerFactory: createInternalProviderFactory(),
   });
   session.attach(docMap);
-  const attached = await waitForSessionAttachment(session, docMap, docId);
-  const provider = attached.provider as ConnectableProviderWithWebSocket;
-  provider._WS = WebSocket as unknown as typeof globalThis.WebSocket;
-  const syncDoc = attached.doc;
+  const provider = session.getProvider();
+  const syncDoc = docMap.get(docId);
+  if (!provider || !syncDoc) {
+    session.destroy();
+    throw new Error('Collaboration provider unavailable');
+  }
   const editor = createEditor(createEditorInitialConfig() as CreateEditorArgs);
   const binding = createBindingV2__EXPERIMENTAL(editor, docId, syncDoc, docMap);
   const sharedRoot = binding.root as SharedRoot;
@@ -184,6 +137,7 @@ export async function withHeadlessCollabSession<T>(
 
     result = await run(editor);
     await session.awaitSynced();
+    if (waitForPersist) await waitForPersistedData(docId);
   } finally {
     sharedRoot.unobserveDeep(observer);
     removeUpdateListener();
@@ -193,8 +147,5 @@ export async function withHeadlessCollabSession<T>(
     }
   }
 
-  if (waitForPersist) {
-    await waitForPersistedData(docId);
-  }
   return result;
 }

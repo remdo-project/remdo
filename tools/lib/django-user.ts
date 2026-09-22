@@ -3,7 +3,6 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-/** Fixture commands are registered only with development and test settings. */
 export async function provisionDjangoUser(account: { email: string; password: string; name: string; admin?: boolean }): Promise<void> {
   await execFileAsync('./tools/django.sh', [
     'provision_user',
@@ -12,6 +11,7 @@ export async function provisionDjangoUser(account: { email: string; password: st
   ]);
 }
 
+/** Development fixture reset is available only with development and test settings. */
 export async function resetDevelopmentUsers(): Promise<void> {
   await execFileAsync('./tools/django.sh', ['setup_development_users', '--reset']);
 }

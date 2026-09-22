@@ -44,6 +44,7 @@ export default function Home() {
         onCreateDocument={() => { void actions.createDocument(); }}
         onSelectDocument={openDocument}
         onUploadDocument={(file) => { void actions.uploadDocument(file); }}
+        resolveDocument={(docId) => userData.getDocuments().getById(docId)}
       />
     </Container>
   );

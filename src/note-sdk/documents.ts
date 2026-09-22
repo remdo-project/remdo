@@ -5,8 +5,6 @@ export interface UserDataNote extends AddressableNote<'user-data'> {
   getDocumentSources: () => DocumentSourcesNote;
   /** Returns the user-documents child note. */
   getDocuments: () => UserDocumentsNote;
-  /** Returns the user's linkable source-server notes. */
-  getSourceServers: () => SourceServersNote;
 }
 
 export interface UserDocumentsNote extends CollectionNote<DocumentNote> {
@@ -32,6 +30,10 @@ export interface DocumentNote extends AddressableNote<'document'> {
   canShareWith: () => boolean;
   /** Grants document access to a user email. */
   shareWith: (email: string) => Promise<DocumentAccessNote>;
+  /** Returns whether this document's name can be changed. */
+  canRename: () => boolean;
+  /** Changes this document's name through its source server. */
+  rename: (title: string) => Promise<DocumentNote>;
 }
 
 export interface DocumentAccessNote extends AddressableNote<'document-access'> {
@@ -41,11 +43,4 @@ export interface DocumentAccessNote extends AddressableNote<'document-access'> {
   getGranteeUserId: () => string;
   /** Returns the shared user's display name, when available. */
   getName: () => string | null;
-}
-
-export type SourceServersNote = CollectionNote<SourceServerNote>;
-
-export interface SourceServerNote extends AddressableNote<'source-server'> {
-  /** Returns the source server origin. */
-  getBaseUrl: () => string;
 }

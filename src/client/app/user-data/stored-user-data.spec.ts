@@ -75,7 +75,6 @@ describe('account metadata', () => {
     const created = await runtime.userData.getDocuments().create('Research');
     expect(created.getText()).toBe('Research');
     expect(runtime.userData.getDocuments().getById('created')?.getText()).toBe('Research');
-    expect(runtime.userData.getSourceServers().getChildren()).toEqual([]);
   });
 
   it('updates the observed document grants after sharing without duplicating a recipient', async () => {
@@ -89,6 +88,68 @@ describe('account metadata', () => {
     await runtime.userData.getDocuments().getById('shared')!.shareWith(access.email);
     expect(runtime.userData.getDocuments().getById('shared')!.getAccess().getChildren().map((grant) => grant.getEmail()))
       .toEqual([access.email]);
+  });
+
+  it('shows the new name in the listing after a rename, keeping the document grants', async () => {
+    const runtime = account();
+    const access = { documentId: 'shared', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' };
+    documentRequests((request) => request.method === 'PUT'
+      ? Response.json({ id: 'shared', title: 'Quarterly plan' })
+      : Response.json([{ id: 'shared', title: 'Shared', shareable: true, access: [access] }]));
+    await runtime.client.query(runtime.documentsQuery);
+
+    await runtime.userData.getDocuments().getById('shared')!.rename('Quarterly plan');
+
+    const renamed = runtime.userData.getDocuments().getById('shared')!;
+    expect(renamed.getText()).toBe('Quarterly plan');
+    expect(renamed.getAccess().getChildren().map((grant) => grant.getEmail())).toEqual([access.email]);
+  });
+
+  it('keeps the stored name when the source rejects a rename', async () => {
+    const runtime = account();
+    documentRequests((request) => request.method === 'PUT'
+      ? new Response(null, { status: 404 })
+      : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
+    await runtime.client.query(runtime.documentsQuery);
+
+    await expect(runtime.userData.getDocuments().getById('shared')!.rename('Quarterly plan'))
+      .rejects.toThrow('This document is no longer available.');
+    expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
+  });
+
+  it('explains a rejected over-long name instead of inviting an identical retry', async () => {
+    const runtime = account();
+    documentRequests((request) => request.method === 'PUT'
+      ? Response.json({ title: ['Ensure this field has no more than 500 characters.'] }, { status: 400 })
+      : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
+    await runtime.client.query(runtime.documentsQuery);
+
+    await expect(runtime.userData.getDocuments().getById('shared')!.rename('x'.repeat(501)))
+      .rejects.toThrow('Use a shorter name, up to 500 characters.');
+    expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
+  });
+
+  it('reports a rejection it cannot attribute to length without blaming length', async () => {
+    const runtime = account();
+    documentRequests((request) => request.method === 'PUT'
+      ? Response.json({ title: ['This field may not be blank.'] }, { status: 400 })
+      : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
+    await runtime.client.query(runtime.documentsQuery);
+
+    await expect(runtime.userData.getDocuments().getById('shared')!.rename('Quarterly plan'))
+      .rejects.toThrow('That name was rejected. Try a different one.');
+  });
+
+  it('reports an unexpected rename failure in readable terms', async () => {
+    const runtime = account();
+    documentRequests((request) => request.method === 'PUT'
+      ? new Response(null, { status: 500 })
+      : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
+    await runtime.client.query(runtime.documentsQuery);
+
+    await expect(runtime.userData.getDocuments().getById('shared')!.rename('Quarterly plan'))
+      .rejects.toThrow('Could not rename the document. Please retry.');
+    expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
   });
 
   it('explains a rejected recipient without changing document access', async () => {

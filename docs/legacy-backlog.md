@@ -98,12 +98,6 @@ implementation-specific ideas are not migration requirements.
   user-scoped route that removes the account link, and — if a source ends up with
   no linked users — optionally drops the cached source client), restoring
   `removeSourceServer` + its coverage against a real caller at that point.
-- The two source-proxy routes in `source-servers.ts` (`:id/current-user`,
-  `:id/documents/:docId/sync-tokens`) duplicate the same shape:
-  `requireSourceAccess` → authenticated `fetch` → `!ok` forward via
-  `resolveSourceErrorStatus` → try/catch 500. Extract a `proxyToSource` helper
-  (pre-existing duplication, not from this work; fold in when next touching these
-  routes, e.g. with the unlink route).
 - Unreachable linked source floods the console + is silent to the user. When a
   linked source is down or its OAuth token can't refresh,
   `/source-servers/:id/current-user` fails and the client's `DelayedRetry`
@@ -119,22 +113,14 @@ implementation-specific ideas are not migration requirements.
 
 ## Offline and local persistence follow-ups
 
-- Access-denied vs connection copy: a 403 sync-token response while online
-  (authenticated user opens a document they can't access by direct URL) settles
-  the probe in `useDocumentSourceResolution`, mounts the editor, and the collab
-  attach 403 surfaces the "Connection unavailable" empty state — misdescribing an
-  authorization denial as a connectivity failure. Distinguish denied from
-  unreachable and show an access-denied state instead.
+- Access-denied vs connection copy: distinguish collaboration authorization
+  denial from an unreachable server when a user opens an inaccessible document
+  directly.
 - Connectivity recovery feedback: visibly confirm when synchronization resumes;
   coordinate the copy with the pending-local-changes signal below so it does not
   claim that edits are server-synced before the collaboration layer confirms it.
-- Offline collaboration retry follow-up: reduce Y-Sweet document client token
-  fetch and websocket reconnect noise when the app *server* or collaboration
-  server is genuinely unavailable. The editor should keep showing a clear
-  disconnected state, but repeated retries should avoid flooding the console and
-  test guards. Teardown cancellation is handled by the [client patch](../patches/@y-sweet__client@0.9.1.patch), covered by
-  [provider lifecycle regressions](../tests/unit/collab/provider-page-lifecycle.collab.spec.ts). Its [upstream follow-up](todo.md#upstream-reports) is tracked separately;
-  this item concerns retries on a live session.
+- Offline collaboration retry follow-up: keep live-session reconnect retries
+  from flooding diagnostics while preserving a clear disconnected state.
 - Local data wipe follow-up: add a separate "wipe this device" flow and design
   the related UX, including unsynced local edits and server-offline behavior.
   (The open-tab IndexedDB cleanup blocker is resolved: the provider closes its
@@ -184,13 +170,11 @@ ships.
   (`document-switcher.spec.ts`, the picker cases in
   `document-toolbar.spec.tsx`/`document-route.spec.tsx`).
 
-The location header and document actions are specified but not yet built; the
-entries below track implementation gaps against their rules.
+The location headers are not yet built; the entries below track implementation
+gaps against their rules.
 
 - No document-root location header is rendered; the document name remains in
-  the breadcrumb picker. Home rows have no document action menu.
-- Document rename has no SDK operation or source-authorized endpoint, and no
-  submitted-name dialog. Implement [Document rename](specs/outliner/location-header.md#document-rename) before document deletion.
+  the breadcrumb picker, so rename is reachable only from a Home row menu.
 - Menu buttons do not share the [persistent active target](specs/outliner/menu.md#entry) across the document
   header, Home rows, and editor notes.
 - No zoomed-note location header is rendered: the zoom root remains the
@@ -207,41 +191,10 @@ entries below track implementation gaps against their rules.
 
 ## Note-first SDK follow-ups
 
-- Current app-resource SDK: note collections read server-written user-data
-  projections and mutations use HTTP commands. The [document registry](architecture.md#document-registry) owns the
-  current storage boundary; backing-store reconsideration is tracked in the
-  [SDK consumer work](todo.md#sdk).
-- Current source-server slice status: projection-backed source-server SDK/UI
-  reads are in place, and account linking remains an HTTP command.
-- Current sharing/access slice status: document access reads are exposed as
-  `document.getAccess()` from the user-data projection, and `document.shareWith()`
-  remains an HTTP command. The duplicate document-access `GET` read route is removed.
-- Projection/note mapping review follow-up: review server-side projection
-  builders plus SDK-level mapping and helper logic so projected app resources
-  expose well-shaped note kinds instead of flattened DTO-shaped records. Start
-  with document access: consider modeling access as a relationship note with
-  `document()` and `grantee()` where the grantee is a public user/person note.
-- Next note-resource cleanup:
-  1. ✅ Done: introduce a generic collection-note role for ordered projected
-     collections keyed by stable child note id.
-  2. ✅ Done: make `getDocuments()` and `getSourceServers()` return typed collection
-     facades instead of adding one SDK note kind per collection.
-  3. Keep entity note kinds explicit where they carry entity-specific behavior:
-     `DocumentNote` for documents and `SourceServerNote` for source servers.
-  4. Collection note ids identify resource sections such as
-     `user-documents` and `source-servers`; avoid a separate resource-key API
-     unless a later slice needs it.
-  5. Keep projected collection invariants consistent: child identity keyed by
-     note id, sibling order owned by the collection, and browser state derived
-     from projections rather than local command-result appends.
-  6. After the collection role lands, use it as the default shape for future
-     current-user resources before adding sharing/access-grant resources.
-  7. ✅ Done: replace per-resource client arrays with a projection-backed
-     collection adapter so note-sdk handles can read from Yjs containers while
-     preserving the public note API and HTTP-only mutation boundary.
-  8. ✅ Done: remove duplicate `GET` read routes once projection-backed UI and
-     e2e coverage no longer depend on them, keeping `/api/current-user` as the
-     bootstrap endpoint.
+The projection-backed app-resource implementation is retired. Its historical
+design is available in Git; [SDK consumer work](todo.md#sdk) owns future app-resource decisions
+against the [document registry](architecture.md#document-registry).
+
 - Persisted user-data handles and document-specific resource kinds remain a
   separate SDK slice. Remaining work:
   1. Settle long-term `DocumentNote` semantics for non-current documents:
@@ -382,17 +335,6 @@ entries below track implementation gaps against their rules.
   6. Review current install-time warnings and classify each as `fix`, `track`,
      or `ignore`, especially:
      `glob@11.1.0`, `source-map@0.8.0-beta.0`, and `sourcemap-codec@1.4.8`.
-
-## Dev environment: inotify watch exhaustion
-
-`data/collab/` grows unbounded (one dir per ephemeral dev/test doc), and editors
-watch it, exhausting `fs.inotify.max_user_watches` across worktrees so the Vite
-e2e dev server can't start (`ENOSPC`). Durable fixes:
-
-- Add `files.watcherExclude` for `**/data/**` and `**/node_modules/**` (editor
-  config; `.gitignore` is not honored by watchers).
-- Cap or rotate the development `data/collab/` store so it cannot grow
-  unbounded; collab tests use their own resettable runtime.
 
 ## Note body follow-ups
 

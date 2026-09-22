@@ -11,12 +11,12 @@ export default defineConfig({
   ...playwrightBaseConfig,
   outputDir: path.join(config.env.DATA_DIR, 'test-results', 'playwright'),
   webServer: [
-    collaborationWebServer,
     {
       command: 'pnpm run dev:api',
       name: 'api',
       url: new URL('/api/health', resolveApiServerOrigin()).href,
     },
+    collaborationWebServer,
     {
       command: 'pnpm exec vite',
       name: 'app',

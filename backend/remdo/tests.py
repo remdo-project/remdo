@@ -24,7 +24,8 @@ print(json.dumps({
     'origins': settings.CSRF_TRUSTED_ORIGINS,
     'cookie': settings.SESSION_COOKIE_NAME,
     'secure': settings.SESSION_COOKIE_SECURE,
-    'fixtures': any(name in get_commands() for name in ('create_fixture_documents', 'reset_fixture_users', 'provision_user', 'setup_development_users')),
+    'fixtures': any(name in get_commands() for name in ('create_fixture_documents', 'reset_fixture_users', 'setup_development_users')),
+    'deployment_accounts': all(name in get_commands() for name in ('provision_user', 'setup_configured_users')),
     'rate_limits': bool(app_settings.RATE_LIMITS),
 }))
 """
@@ -76,23 +77,10 @@ class ConfigurationTests(SimpleTestCase):
         self.env = {
             "PATH": "",
             "DATA_DIR": self.directory.name,
-            "AUTH_SECRET": "configuration-test-secret",
+            "AUTH_SECRET": "configuration-test-auth-" + "x" * 32,
             "APP_ORIGIN": "https://remdo.example",
-            "YSWEET_CONNECTION_STRING": "ys://127.0.0.1:4004",
-            "YSWEET_SERVER_TOKEN": "configuration-test-token",
-            "YSWEET_AUTH_KEY": "configuration-test-key",
+            "COLLAB_INTERNAL_SECRET": "configuration-test-collab-" + "x" * 32,
         }
-
-        bundle = Path(self.directory.name) / "secrets.json"
-        bundle.write_text(
-            json.dumps(
-                {
-                    key: "fixture-" + "x" * 48
-                    for key in ("auth_secret", "ysweet_auth_key", "ysweet_server_token")
-                }
-            )
-        )
-        bundle.chmod(0o600)
 
     def settings(self, report=REPORT, **overrides):
         result = subprocess.run(
@@ -140,6 +128,7 @@ class ConfigurationTests(SimpleTestCase):
         result = self.settings(NODE_ENV="development", PREVIEW_PORT="4020")
         self.assertFalse(result["debug"])
         self.assertFalse(result["fixtures"])
+        self.assertTrue(result["deployment_accounts"])
         # Production sign-in retains allauth's rate limits; development disables them.
         self.assertTrue(result["rate_limits"])
         self.assertTrue(result["secure"])
@@ -155,6 +144,7 @@ class ConfigurationTests(SimpleTestCase):
         )
         self.assertTrue(result["debug"])
         self.assertTrue(result["fixtures"])
+        self.assertTrue(result["deployment_accounts"])
         self.assertFalse(result["rate_limits"])
         self.assertFalse(result["secure"])
         self.assertEqual(result["cookie"], "remdo_session_5300")

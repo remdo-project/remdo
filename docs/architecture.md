@@ -64,22 +64,20 @@ PostgreSQL runs as a separate service with its own lifecycle.
 
 ## Routing and Origin Boundary
 
-Browser-visible collaboration URLs derive from the [configured canonical public origin](specs/runtime/configuration.md#network-addressing),
-not from request forwarding headers.
+Browser collaboration uses the current same-origin WebSocket endpoint. Django
+validates browser origins against the [configured trusted origins](specs/access/access-control.md#csrf-protection).
 
 ### Gateway
 
 The gateway explicitly owns SPA routes (`/`, `/n/*`, `/sharing`, and
-`/sign-out`), frontend assets, Django static assets, public shared files, health
-probes, and collaboration endpoints. Django owns all other HTTP routes,
+`/sign-out`), frontend assets, Django static assets, health probes, and
+collaboration endpoints. Django owns all other HTTP routes,
 including unknown routes and their 404 responses. Normal HTTP routes have the
 same owner in development and production; development additionally serves
 frontend tooling and development-only routes.
 
 Development and production server runtimes expose only the gateway. The RemDo
 API and collaboration server remain loopback-only and are reached through it.
-
-In Production, the gateway serves [public shared files](specs/runtime/configuration.md#persistence) at `/share/*` without authentication.
 
 ### RemDo API boundary
 
@@ -88,9 +86,9 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
 - Auth: Django and allauth own browser session authentication at
   `/api/auth/browser/v1` and administration
   at `/admin/`.
-- Y-Sweet document client token issuance follows [Document Access](specs/access/access-control.md#document-access).
-- Y-Sweet access: the API connects with the Y-Sweet server token and passes only
-  RemDo-issued Y-Sweet document client tokens to browsers.
+- Django authorizes each collaboration document connection under [Document Access](specs/access/access-control.md#document-access).
+- Private collaboration operations use an internal service credential, isolated
+  from public gateway traffic.
 
 Django resolves the signed-in user from the session for ownership and document
 access decisions.
@@ -113,8 +111,8 @@ Collaboration and local-persistence layers may key document state by canonical `
 
 ### Document registry
 
-Server-owned document metadata store used by RemDo API before issuing Y-Sweet
-document client tokens.
+Server-owned document metadata store used for application reads and
+collaboration authorization.
 
 - Metadata: owner user id, title, and user-specific access grants.
 - Storage: Django models and migrations own the server persistence boundary.
@@ -135,38 +133,46 @@ document client tokens.
   and the result is available to the client. A later list-refresh
   failure does not turn that successful creation into a failed operation.
 
-### Token vocabulary
+### Collaboration credentials and paths
 
-- Django session cookie: browser session credential resolved against server-side
-  session storage.
-- Y-Sweet server token: RemDo API credential for Y-Sweet document-control calls.
-- Y-Sweet document client token: short-lived browser credential enforced by
-  Y-Sweet on sync paths.
+The Django session cookie authenticates browser connections to `/collaboration`.
+Hocuspocus forwards the cookie and browser origin to Django before loading
+each requested document. Reconnecting repeats authorization; an established
+connection retains its authorization until disconnect.
 
-### Browser-facing collaboration paths
-
-- `POST /api/documents/:docId/sync-tokens`: browser-facing Y-Sweet document client
-  token issuance path owned by RemDo API.
-- `/d/*`: browser-facing Y-Sweet sync path used by issued Y-Sweet document
-  client tokens; the Y-Sweet server enforces each client token's authorization.
-- Y-Sweet document-control routes such as `/doc*` are not routed through the
-  app gateway.
+Private authorization, binary content load/store, and explicit persistence
+operations are loopback-only and require the internal collaboration secret.
+Public gateways block internal routes and remove internal credential headers
+from browser traffic. Operator tools use the internal credential without a
+browser session, and may open only registered documents.
 
 ## Runtime Persistence Boundary
 
-A production instance keeps its document content and
-[generated runtime secrets](specs/runtime/configuration.md#secret-bootstrap) in one persistent storage root belonging to one
-running instance and not shared concurrently. Metadata uses the
-[configured database](specs/runtime/configuration.md#database): SQLite lives in
-that root; PostgreSQL persists independently. Recovery requires matching
-metadata, document content, and secrets.
+Django owns document metadata and binary Yjs state in the [configured database](specs/runtime/configuration.md#database).
+Each document's content is stored separately from metadata queries and is
+deleted with its registry entry. An existing document without saved content
+starts empty; missing registry entries and database failures do not become empty
+documents.
+
+One active instance owns collaboration writes. Its SQLite database when
+selected uses its persistent storage root; its
+[runtime secrets](specs/runtime/configuration.md#secret-bootstrap) use that root
+only when it stores them. PostgreSQL persists independently. Recovery requires
+the matching database and secrets.
 
 ## Collaboration Runtime Building Blocks
 
 ### Collab Hub
 
 Backend service clients connect to for realtime sync and persisted document
-state. The runtime uses Y-Sweet.
+state. The runtime uses Hocuspocus, with Django as its sole database accessor.
+
+The hub saves complete binary Yjs state and serializes saves per document.
+Temporary save failures retain dirty state for retries; dirty documents remain
+loaded. A missing registry row terminates its document connections and releases
+the cached state without retrying or acknowledging a commit.
+Graceful shutdown attempts every loaded document save while Django remains
+available and reports any persistence failure.
 
 ### Provider
 
@@ -184,14 +190,28 @@ others. Genuine synchronization failures remain observable.
 
 ### Local Persistence
 
-Client-side storage for collaboration state defaults to IndexedDB in web and
-webview surfaces. Native desktop options are filesystem or SQLite-backed stores.
+Browser persistence stores encrypted Yjs updates and compacted checkpoints in
+IndexedDB, scoped to account and cache generation. A separately stored local key
+makes ciphertext unreadable after [logout](specs/access/access-control.md#logout). Concurrent tabs preserve one
+another's updates during compaction. Closing persistence drains pending writes
+and releases database handles. Storage failures remain observable.
+
+Network synchronization and browser persistence have independent lifetimes;
+headless consumers attach only the network provider.
 
 ### Hydration vs sync
 
 - **Hydrated:** document state is ready for editing (from local persistence or
   server sync).
-- **Synced:** provider is connected and has no pending unsent local changes.
+- **Synced:** provider is connected and the collaboration server has
+  acknowledged local changes. This does not imply a committed SQL save; a
+  process crash can lose acknowledged edits before a save completes. Database
+  outages can extend that window.
+
+Headless writers require an explicit persistence barrier after synchronization
+while the document remains attached. It completes only after Django commits the
+full current state, including deletion-only changes, and rejects on persistence
+failure.
 
 ## Offline Application Behavior
 
@@ -223,8 +243,7 @@ from the hub and returns the document to normal editing.
 
 - Provide a locally persisted document inventory so a fresh offline launch can
   list and switch among cached documents from the current server and linked
-  sources. Introduce that inventory with the replacement for projected
-  app-resource reads rather than extending the projection format.
+  sources, using the server-owned metadata boundary.
 - Support offline document creation and import through durable local intents
   that reconcile with the server after reconnect. Other server-owned actions
   expose resumable pending state where their authorization semantics permit it.

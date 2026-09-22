@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createDocumentPath,
-  createSourceDocumentSyncTokenApiPath,
   createNoteAddress,
   parseDocumentRef,
 } from '#document-routes';
@@ -17,13 +16,6 @@ describe('document route refs', () => {
   it('creates and parses zoom document refs', () => {
     expect(createDocumentPath('main', 'note2')).toBe('/n/main_note2');
     expect(parseDocumentRef('main_note2')).toEqual({ docId: 'main', noteId: 'note2' });
-  });
-
-  it('keeps source ids out of browser document refs', () => {
-    expect(createDocumentPath('main')).toBe('/n/main');
-    expect(createDocumentPath('main', 'note2')).toBe('/n/main_note2');
-    expect(createSourceDocumentSyncTokenApiPath('source-server', 'main'))
-      .toBe('/api/current-user/source-servers/source-server/documents/main/sync-tokens');
   });
 
   it('rejects refs with additional separators or invalid characters', () => {
@@ -44,8 +36,6 @@ describe('document route refs', () => {
 
   it('throws when creating paths from invalid ids', () => {
     expect(() => createDocumentPath('bad doc')).toThrow();
-    expect(() => createSourceDocumentSyncTokenApiPath('bad source', 'main')).toThrow();
-    expect(() => createSourceDocumentSyncTokenApiPath('local', 'main')).toThrow();
     expect(() => createDocumentPath('main', 'bad note')).toThrow();
     expect(() => createDocumentPath('main', '')).toThrow();
   });

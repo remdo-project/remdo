@@ -27,17 +27,11 @@
       "#note-sdk/*": [
         "./src/note-sdk/*"
       ],
-      "#projection/*": [
-        "./src/projection/*"
-      ],
       "#platform/*": [
         "./src/platform/*"
       ],
       "#document-routes": [
         "./src/document-routes/index.ts"
-      ],
-      "#server/*": [
-        "./src/server/*"
       ],
       "#e2e/*": [
         "./tests/e2e/_support/*"

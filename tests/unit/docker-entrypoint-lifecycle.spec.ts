@@ -36,6 +36,7 @@ finish() {
 trap 'finish INT' INT
 trap 'finish TERM' TERM
 printf '%s start\\n' "$child_name" >> "$events"
+printf '%s credentials auth=%s database=%s collaboration=%s admin=%s user=%s\\n' "$child_name" "\${AUTH_SECRET+x}" "\${DATABASE_URL+x}" "\${COLLAB_INTERNAL_SECRET+x}" "\${REMDO_ADMIN_PASSWORD+x}" "\${REMDO_USER_PASSWORD+x}" >> "$events"
 while :; do
   if [ "\${REMDO_FAKE_EXIT_CHILD:-}" = "$child_name" ] && [ -e "\${REMDO_FAKE_EXIT_TRIGGER:-}" ]; then
     exit_status="\${REMDO_FAKE_EXIT_STATUS:-0}"
@@ -59,20 +60,20 @@ function killIfRunning(pid: number): void {
   }
 }
 
-const services = ['api', 'caddy', 'y-sweet'] as const;
+const services = ['api', 'caddy', 'collaboration'] as const;
 const lifecycleCases = [
   {
     exitCode: 130,
     signal: 'SIGINT',
     signalName: 'INT',
-    title: 'handles SIGINT, stops y-sweet with SIGINT, and waits for every service',
+    title: 'handles SIGINT, drains collaboration before Django, and waits for every service',
     type: 'signal',
   },
   {
     exitCode: 143,
     signal: 'SIGTERM',
     signalName: 'TERM',
-    title: 'handles SIGTERM, stops y-sweet with SIGINT, and waits for every service',
+    title: 'handles SIGTERM, drains collaboration before Django, and waits for every service',
     type: 'signal',
   },
   {
@@ -92,9 +93,9 @@ const lifecycleCases = [
   },
   {
     exitCode: 42,
-    failedService: 'y-sweet',
+    failedService: 'collaboration',
     failedStatus: 42,
-    title: 'fails the instance when y-sweet exits unexpectedly',
+    title: 'fails the instance when collaboration exits unexpectedly',
     type: 'exit',
   },
 ] as const;
@@ -114,15 +115,20 @@ it.each(lifecycleCases)('$title', async (lifecycleCase) => {
   fs.mkdirSync(pidDir);
   writeManagedChild(childPath);
 
-  for (const name of ['caddy', 'y-sweet']) {
+  for (const name of ['caddy']) {
     writeFakeBin(binDir, name, `exec "\${REMDO_FAKE_CHILD:?}" ${name}\n`);
   }
+  writeFakeBin(binDir, 'node', `exec "\${REMDO_FAKE_CHILD:?}" collaboration\n`);
   writeFakeBin(binDir, 'gunicorn', `exec "\${REMDO_FAKE_CHILD:?}" api\n`);
-  writeFakeBin(binDir, 'python', `if [ "\${1:-}" = -c ]; then
-  exec python3 "$@"
+  writeFakeBin(binDir, 'python', `if [ "\${1:-}" = manage.py ]; then
+  printf 'django %s admin=%s user=%s\\n' "\${2:-}" "\${REMDO_ADMIN_PASSWORD+x}" "\${REMDO_USER_PASSWORD+x}" >> "\${REMDO_FAKE_EVENTS:?}"
+  exit 0
 fi
-if [ "\${1:-}" = -m ]; then
-  exec "\${REMDO_FAKE_CHILD:?}" y-sweet
+if [ "\${1:-}" = -c ]; then
+  case "\${2:-}" in
+    *settings.COLLAB_INTERNAL_SECRET*) echo test-internal-secret ;;
+    *) exec python3 "$@" ;;
+  esac
 fi
 `);
 
@@ -131,7 +137,8 @@ fi
   const entrypoint = fs.readFileSync('docker/entrypoint.sh', 'utf8')
     .replace('/usr/local/share/remdo/env.defaults.sh', path.resolve('tools/env.defaults.sh'))
     .replace('/usr/local/share/remdo/entrypoint-env.sh', path.resolve('docker/entrypoint-env.sh'))
-    .replace('shutdown_attempts=100', 'shutdown_attempts=10');
+    .replace('shutdown_attempts=100', 'shutdown_attempts=10')
+    .replace('shutdown_attempts=300', 'shutdown_attempts=30');
   fs.writeFileSync(entrypointPath, entrypoint);
 
   const child = spawn('/usr/bin/env', ['--default-signal=INT', 'bash', entrypointPath], {
@@ -140,6 +147,7 @@ fi
       _remdo_port_base_offset: '',
       APP_ORIGIN: 'https://remdo.localhost:8443',
       AUTH_SECRET: 'production-auth-secret-0123456789',
+      DATABASE_URL: 'postgresql://fixture:fixture@database.invalid/remdo',
       DATA_DIR: dataDir,
       NODE_ENV: 'test',
       PATH: `${binDir}:${process.env.PATH}`,
@@ -151,10 +159,10 @@ fi
       REMDO_FAKE_EXIT_TRIGGER: exitTriggerPath,
       REMDO_FAKE_PID_DIR: pidDir,
       REMDO_FAKE_RELEASE: releasePath,
+      REMDO_ADMIN_PASSWORD: 'admin-password',
       REMDO_DEV_CONTAINER: 'false',
+      REMDO_USER_PASSWORD: 'user-password',
       REMDO_ROOT: process.cwd(),
-      YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
-      YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
     },
     stdio: ['ignore', 'ignore', 'pipe'],
   });
@@ -168,39 +176,35 @@ fi
     expect(stderr).toBe('');
     await expect.poll(() => readEvents(eventsPath), { timeout: 3_000 })
       .toEqual(expect.arrayContaining(services.map(name => `${name} start`)));
+    await expect.poll(() => readEvents(eventsPath)).toEqual(expect.arrayContaining([
+      'django setup_configured_users admin=x user=x',
+      'api credentials auth=x database=x collaboration=x admin= user=',
+      'collaboration credentials auth= database= collaboration=x admin= user=',
+    ]));
     expect(child.exitCode, stderr).toBeNull();
 
     if (lifecycleCase.type === 'signal') {
       expect(child.kill(lifecycleCase.signal)).toBe(true);
       await expect.poll(() => readEvents(eventsPath), { timeout: 3_000 })
-        .toEqual(expect.arrayContaining(services.map(name =>
-          `${name} signal ${name === 'y-sweet' ? 'INT' : lifecycleCase.signalName}`,
-        )));
-    }
-    else {
+        .toContain(`caddy signal ${lifecycleCase.signalName}`);
+      expect(readEvents(eventsPath)).not.toContain(`api signal ${lifecycleCase.signalName}`);
+      expect(child.exitCode, stderr).toBeNull();
+    } else {
       fs.writeFileSync(exitTriggerPath, '');
       await expect.poll(() => stderr, { timeout: 3_000 })
         .toContain(`Production service ${lifecycleCase.failedService} exited unexpectedly with status ${lifecycleCase.failedStatus}.`);
-      const survivingServices = services.filter(name => name !== lifecycleCase.failedService);
-      await expect.poll(() => readEvents(eventsPath), { timeout: 3_000 })
-        .toEqual(expect.arrayContaining(survivingServices.map(name =>
-          `${name} signal ${name === 'y-sweet' ? 'INT' : 'TERM'}`,
-        )));
     }
+    if (!forceSurvivors) fs.writeFileSync(releasePath, '');
 
-    // Every surviving child has received its signal but deliberately remains
-    // alive. The entrypoint must therefore still be waiting rather than
-    // exiting early.
-    expect(child.exitCode, stderr).toBeNull();
-    if (!forceSurvivors) {
-      fs.writeFileSync(releasePath, '');
+    await expect.poll(() => child.exitCode, { timeout: 6_000 }).toBe(lifecycleCase.exitCode);
+    if (forceSurvivors) {
+      expect(stderr).toContain('Production service caddy exceeded its shutdown deadline.');
+      expect(stderr).toContain('Production service collaboration exceeded its shutdown deadline.');
     }
-
-    await expect.poll(() => child.exitCode, { timeout: 3_000 }).toBe(lifecycleCase.exitCode);
     if (lifecycleCase.type === 'signal') {
-      expect(readEvents(eventsPath)).toEqual(expect.arrayContaining(
-        services.map(name => `${name} exit`),
-      ));
+      const events = readEvents(eventsPath);
+      expect(events).toEqual(expect.arrayContaining(services.map(name => `${name} exit`)));
+      expect(events.indexOf('collaboration exit')).toBeLessThan(events.indexOf(`api signal ${lifecycleCase.signalName}`));
     }
     else {
       const survivingServices = services.filter(name => name !== lifecycleCase.failedService);

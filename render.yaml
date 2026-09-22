@@ -15,59 +15,57 @@ projects:
       plan: starter
       region: frankfurt
       branch: main
-      dockerContext: .
       dockerfilePath: ./docker/Dockerfile
-      # Render reads this as autoDeployTrigger: off. The string "off" cannot be
-      # written here: quoting it fails yaml/plain-scalar, and unquoted it is a
-      # YAML 1.1 boolean.
-      autoDeploy: false
+      autoDeployTrigger: checksPass
       healthCheckPath: /health
+      maxShutdownDelaySeconds: 55
       numInstances: 1
       domains:
       - remdo.com
       envVars:
-        # Render injects the container's internal PORT. Do not pin it.
-        # Django and Y-Sweet secrets are bootstrapped
-        # onto the persistent disk on first run, so they are not set here.
+        - key: AUTH_SECRET
+          generateValue: true
+        - key: COLLAB_INTERNAL_SECRET
+          generateValue: true
+        - key: REMDO_ADMIN_PASSWORD
+          generateValue: true
         - key: DATABASE_URL
           fromDatabase:
             name: remdo-db
             property: connectionString
         - key: APP_ORIGIN
           value: https://remdo.com
-      disk:
-        name: remdo-data
-        mountPath: /data
-        sizeGB: 1
 
-  - name: staging
+  - name: test
     databases:
-    - name: remdo-staging-db
+    - name: remdo-test-db
       plan: free
       region: frankfurt
     services:
     - type: web
-      name: remdo-staging
+      name: remdo-test
       runtime: docker
-      # A persistent disk requires a paid instance, so staging cannot run free.
-      plan: starter
+      plan: free
       region: frankfurt
-      branch: main
-      dockerContext: .
+      branch: deploy-test
       dockerfilePath: ./docker/Dockerfile
-      autoDeployTrigger: checksPass
+      autoDeployTrigger: commit
       healthCheckPath: /health
       numInstances: 1
       domains:
-      - staging.remdo.com
+      - test.remdo.com
       envVars:
+        - key: AUTH_SECRET
+          generateValue: true
+        - key: COLLAB_INTERNAL_SECRET
+          generateValue: true
+        - key: REMDO_ADMIN_PASSWORD
+          generateValue: true
+        - key: REMDO_USER_PASSWORD
+          generateValue: true
         - key: DATABASE_URL
           fromDatabase:
-            name: remdo-staging-db
+            name: remdo-test-db
             property: connectionString
         - key: APP_ORIGIN
-          value: https://staging.remdo.com
-      disk:
-        name: remdo-staging-data
-        mountPath: /data
-        sizeGB: 1
+          value: https://test.remdo.com

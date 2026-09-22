@@ -142,19 +142,18 @@ const srcElements = [
   element('client-browser', `${CLIENT}/browser`),
   element('client-search', `${CLIENT}/search`),
   element('client-dev', `${CLIENT}/dev`),
-  element('server', `${SRC}/server`),
+  element('collaboration-server', `${SRC}/collaboration-server`),
   element('domain', `${SRC}/domain`),
   element('note-sdk', `${SRC}/note-sdk`),
   element('collaboration', `${SRC}/collaboration`),
   element('platform', `${SRC}/platform`),
-  element('projection', `${SRC}/projection`),
   element('headless', `${SRC}/headless`),
   element('document-routes', `${SRC}/document-routes`),
   element('unowned', SRC),
 ] as const;
 
 export const appBoundaries = {
-  // Same src universe as the coarse graph so app → projection/headless/server
+  // Same src universe as the coarse graph so app → headless/collaboration-server
   // is a denied owner, not an ignored unknown. ESLint `files` still limits
   // which modules this graph checks as sources.
   include: [`${SRC}/**`],
@@ -211,8 +210,8 @@ export const srcBoundaries = {
     { from: { element: { type: 'client-dev' } },
       allow: { to: { element: { type: ['client-dev', ...CLIENT_SHARED] } } } },
 
-    { from: { element: { type: 'server' } },
-      allow: { to: { element: { type: ['server', 'domain', 'platform', 'projection'] } } } },
+    { from: { element: { type: 'collaboration-server' } },
+      allow: { to: { element: { type: ['collaboration-server', 'domain', 'platform'] } } } },
     { from: { element: { type: 'domain' } },
       allow: { to: { element: { type: ['domain'] } } } },
     { from: { element: { type: 'note-sdk' } },
@@ -221,20 +220,17 @@ export const srcBoundaries = {
       allow: { to: { element: { type: ['collaboration', 'platform', 'document-routes'] } } } },
     { from: { element: { type: 'platform' } },
       allow: { to: { element: { type: ['platform'] } } } },
-    { from: { element: { type: 'projection' } },
-      allow: { to: { element: { type: ['projection'] } } } },
     { from: { element: { type: 'document-routes' } },
       allow: { to: { element: { type: ['document-routes', 'domain'] } } } },
 
     // Headless collab is a composition owner: it binds collaboration, the
-    // editor initial config, and the server token manager in one process.
+    // editor initial config, and operator authentication in one process.
     { from: { element: { type: 'headless' } },
       allow: { to: { element: { type: [
         'headless',
         'collaboration',
         'client-editor',
         'platform',
-        'server',
       ] } } } },
   ],
 } as const;

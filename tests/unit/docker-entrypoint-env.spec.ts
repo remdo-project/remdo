@@ -125,7 +125,7 @@ describe('docker entrypoint Caddy environment', () => {
 describe('docker entrypoint internal services', () => {
   function resolveInternalServices(overrides: NodeJS.ProcessEnv): string[] {
     return String(runEntryPointEnv(
-      String.raw`remdo_configure_internal_services; printf "%s\n%s\n%s" "$API_SERVER_PORT" "$COLLAB_SERVER_PORT" "$YSWEET_CONNECTION_STRING"`,
+      String.raw`remdo_configure_internal_services; printf "%s\n%s" "$API_SERVER_PORT" "$COLLAB_SERVER_PORT"`,
       overrides,
     ).stdout).trim().split('\n');
   }
@@ -138,7 +138,6 @@ describe('docker entrypoint internal services', () => {
     })).toEqual([
       '4011',
       '4004',
-      'ys://127.0.0.1:4004',
     ]);
   });
 
@@ -150,7 +149,6 @@ describe('docker entrypoint internal services', () => {
     })).toEqual([
       '4651',
       '4644',
-      'ys://127.0.0.1:4644',
     ]);
   });
 });

@@ -1,16 +1,13 @@
 import { IconCloudCheck, IconCloudX } from '@tabler/icons-react';
 import type { IconComponent } from '#client/ui/Icon';
 import type { StatusDescriptor } from '#client/editor/foundation/status-descriptor';
-import { useEffect, useState } from 'react';
 import { useCollaborationStatus } from './CollaborationProvider';
-import { getLocalPersistenceSupportDecision } from '#collaboration/runtime';
-import type { CollaborationConnectionStatus } from '#collaboration/runtime';
+import type { CollaborationConnectionStatus, LocalPersistenceStatus } from '#collaboration/runtime';
 
 type StatusKey = 'healthy' | 'degraded';
-type LocalPersistenceState = 'enabled' | 'disabled';
 type ServerState = 'connected' | 'connecting' | 'disconnected' | 'disabled';
 interface IndicatorViewModel {
-  localPersistence: LocalPersistenceState;
+  localPersistence: LocalPersistenceStatus;
   server: ServerState;
   status: StatusKey;
   /** Edits exist that the server has not acknowledged. */
@@ -21,7 +18,7 @@ interface IndicatorViewModel {
 
 interface CollaborationStatusSnapshot {
   enabled: boolean;
-  localPersistenceSupported: boolean;
+  localPersistenceStatus: LocalPersistenceStatus;
   connectionStatus: CollaborationConnectionStatus;
   /** Edits the server has not acknowledged; a disconnect alone does not set it. */
   hasLocalChanges: boolean;
@@ -45,15 +42,8 @@ function resolveServerState({ enabled, connectionStatus }: CollaborationStatusSn
   return 'connecting';
 }
 
-function resolveLocalPersistenceState({
-  enabled,
-  localPersistenceSupported,
-}: CollaborationStatusSnapshot): LocalPersistenceState {
-  return enabled && localPersistenceSupported ? 'enabled' : 'disabled';
-}
-
 export function buildCollaborationIndicatorViewModel(snapshot: CollaborationStatusSnapshot): IndicatorViewModel {
-  const localPersistence = resolveLocalPersistenceState(snapshot);
+  const localPersistence = snapshot.enabled ? snapshot.localPersistenceStatus : 'disabled';
   const server = resolveServerState(snapshot);
   // A disconnect alone is not unsaved work: the question a reader is asking is
   // whether their edits are safe, not whether a socket is open.
@@ -83,25 +73,11 @@ function buildAriaLabel(view: IndicatorViewModel): string {
 }
 
 export function useCollaborationIndicator(): StatusDescriptor {
-  const { enabled, connectionStatus, hasLocalChanges } = useCollaborationStatus();
-  const [localPersistenceSupported, setLocalPersistenceSupported] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    void getLocalPersistenceSupportDecision().then((decision) => {
-      if (!active) {
-        return;
-      }
-      setLocalPersistenceSupported(decision.enabled);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { enabled, connectionStatus, hasLocalChanges, localPersistenceStatus } = useCollaborationStatus();
 
   const snapshot = {
     enabled,
-    localPersistenceSupported,
+    localPersistenceStatus,
     connectionStatus,
     hasLocalChanges,
   } satisfies CollaborationStatusSnapshot;
@@ -110,7 +86,7 @@ export function useCollaborationIndicator(): StatusDescriptor {
   const classNames = [
     'collab-status',
     `collab-status--${view.status}`,
-    view.unsavedOffline && 'collab-status--interrupted',
+    (view.unsavedOffline || view.localPersistence === 'error') && 'collab-status--interrupted',
   ].filter(Boolean).join(' ');
 
   return {
@@ -119,7 +95,9 @@ export function useCollaborationIndicator(): StatusDescriptor {
     icon,
     ariaLabel: buildAriaLabel(view),
     title: buildStatusTitle(view),
-    text: view.unsavedOffline ? 'Unsaved · syncs when reconnected' : undefined,
+    text: view.localPersistence === 'error'
+      ? (view.unsavedOffline ? 'Unsaved · offline copy unavailable' : 'Offline copy unavailable')
+      : (view.unsavedOffline ? 'Unsaved · syncs when reconnected' : undefined),
     className: classNames,
   };
 }

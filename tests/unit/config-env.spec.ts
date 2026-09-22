@@ -131,7 +131,7 @@ describe('config env resolve', () => {
       HOST: '127.0.0.1',
       PORT: '4000',
       COLLAB_ENABLED: 'true',
-      YSWEET_SERVER_TOKEN: 'test-ysweet-server-token',
+      COLLAB_INTERNAL_SECRET: 'test-collaboration-secret',
       AUTH_SECRET: 'test-auth-secret-0123456789',
       APP_ORIGIN: 'https://remdo.example.com',
     });
@@ -211,7 +211,6 @@ describe('config env resolve', () => {
       PORT: '9000',
       COLLAB_SERVER_PORT: '9004',
       API_SERVER_PORT: '9011',
-      YSWEET_CONNECTION_STRING: 'ys://127.0.0.1:9004',
     };
     const output = execFileSync(
       './tools/env.sh',
@@ -220,7 +219,7 @@ describe('config env resolve', () => {
         '50',
         'sh',
         '-c',
-        'printf \'%s\\n\' "$PORT_BASE" "$PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT" "$YSWEET_CONNECTION_STRING"',
+        'printf \'%s\\n\' "$PORT_BASE" "$PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT"',
       ],
       { env, encoding: 'utf8' },
     );
@@ -230,14 +229,13 @@ describe('config env resolve', () => {
       '4050',
       '4054',
       '4061',
-      'ys://127.0.0.1:4054',
     ]);
   });
 
   it('recomputes every derived dev port instead of inheriting stale values', () => {
     const output = execFileSync(
       './tools/env.sh',
-      ['sh', '-c', 'printf \'%s\\n\' "$PORT" "$VITEST_PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT" "$PREVIEW_PORT" "$YSWEET_CONNECTION_STRING"'],
+      ['sh', '-c', 'printf \'%s\\n\' "$PORT" "$VITEST_PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT" "$PREVIEW_PORT"'],
       {
         encoding: 'utf8',
         env: {
@@ -248,7 +246,6 @@ describe('config env resolve', () => {
           COLLAB_SERVER_PORT: '9004',
           API_SERVER_PORT: '9011',
           PREVIEW_PORT: '9020',
-          YSWEET_CONNECTION_STRING: 'ys://127.0.0.1:9004',
         },
       },
     );
@@ -259,7 +256,6 @@ describe('config env resolve', () => {
       '4304',
       '4311',
       '4320',
-      'ys://127.0.0.1:4304',
     ]);
   });
 

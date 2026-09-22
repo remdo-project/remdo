@@ -1,4 +1,5 @@
 import path from "node:path";
+import type { Plugin, ProxyOptions } from 'vite';
 import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
 import { config } from '../index.ts';
@@ -13,11 +14,44 @@ const host = config.env.HOST;
 const collabServerTarget = resolveCollabServerOrigin();
 const mainGatewayTarget = resolveLocalGatewayOrigin();
 const pwaNavigationFallbackAllowlist = [...APP_SHELL_ROUTE_PATTERNS];
-const apiProxy = { target: resolveApiServerOrigin(), changeOrigin: false };
+const stripInternalHeaders: ProxyOptions['configure'] = (proxy) => {
+  const strip = (request: { removeHeader: (name: string) => void }) => {
+    request.removeHeader('X-Remdo-Collaboration-Secret');
+    request.removeHeader('X-Remdo-Collaboration-Operator');
+  };
+  proxy.on('proxyReq', strip);
+  proxy.on('proxyReqWs', strip);
+};
+const privateRouteGuard: Plugin = {
+  name: 'private-collaboration-routes',
+  configureServer(server) { installPrivateRouteGuard(server); },
+  configurePreviewServer(server) { installPrivateRouteGuard(server); },
+};
+function installPrivateRouteGuard(server: Pick<import('vite').ViteDevServer, 'middlewares'>) {
+  server.middlewares.use((req, res, next) => {
+    let pathname: string;
+    try {
+      pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
+    } catch {
+      res.statusCode = 400;
+      res.end();
+      return;
+    }
+    if (pathname === '/internal' || pathname.startsWith('/internal/')) {
+      res.statusCode = 404;
+      res.setHeader('Cache-Control', 'no-store');
+      res.end();
+      return;
+    }
+    next();
+  });
+}
+const apiProxy = { target: resolveApiServerOrigin(), changeOrigin: false, configure: stripInternalHeaders };
 const devProxy = {
-  '^/d(?:/|$|\\?)': {
+  '^/collaboration(?:$|\\?)': {
     target: collabServerTarget,
-    changeOrigin: true,
+    changeOrigin: false,
+    configure: stripInternalHeaders,
     ws: true,
   },
   '/': {
@@ -29,11 +63,12 @@ const devProxy = {
 } as const;
 const mainGatewayProxy = {
   target: mainGatewayTarget,
-  changeOrigin: true,
+  changeOrigin: false,
+  configure: stripInternalHeaders,
 } as const;
 const previewProxy = {
   '/src/client/ui/styles/': mainGatewayProxy,
-  '^/d(?:/|$|\\?)': {
+  '^/collaboration(?:$|\\?)': {
     ...mainGatewayProxy,
     ws: true,
   },
@@ -54,6 +89,7 @@ export function createViteSharedConfig() {
       },
     },
     plugins: [
+      privateRouteGuard,
       VitePWA({
         includeAssets: ['icons/*.svg', 'logo.svg'],
         registerType: 'autoUpdate',
@@ -88,7 +124,7 @@ export function createViteSharedConfig() {
           navigateFallbackAllowlist: pwaNavigationFallbackAllowlist,
           runtimeCaching: [
             {
-              urlPattern: ({ url }) => url.pathname.startsWith('/d/'),
+              urlPattern: ({ url }) => url.pathname === '/collaboration',
               handler: 'NetworkOnly',
             },
             {
@@ -123,7 +159,6 @@ export function createViteSharedConfig() {
     // now-stale module graph and ends up with two copies of a package (for Lexical: "cannot find a
     // LexicalComposerContext"). Recovery needs a cache wipe plus a restart.
     cacheDir: `node_modules/.vite/${config.env.PORT}`,
-    assetsInclude: ['**/*.ysweet'],
     define: Object.fromEntries(
       Object.entries(config.browser).map(([key, value]) => [
         `import.meta.env.VITE_${key}`,
@@ -145,9 +180,7 @@ export function createViteSharedConfig() {
         "#domain": path.resolve(repoRoot, "./src/domain"),
         "#note-sdk": path.resolve(repoRoot, "./src/note-sdk/index.ts"),
         "#platform": path.resolve(repoRoot, "./src/platform"),
-        "#projection": path.resolve(repoRoot, "./src/projection"),
         "#document-routes": path.resolve(repoRoot, "./src/document-routes/index.ts"),
-        "#server": path.resolve(repoRoot, "./src/server"),
         "#tools": path.resolve(repoRoot, "./tools/lib"),
       },
     },
