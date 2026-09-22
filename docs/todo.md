@@ -336,8 +336,10 @@ until accepted in their behavioral owners. Defer a command palette and action
 menus on every breadcrumb until improving the existing surfaces leaves a
 concrete unmet need.
 
-- **Location header and document actions.** Deliver the [document rename capability](specs/outliner/location-header.md#document-rename),
-  then document-root and Home menus, then the [persistent menu target](specs/outliner/menu.md#entry). The
+- **Location header and document actions.** Rename and the Home row menu ship;
+  the document-root header and its menu remain, then the
+  [persistent menu target](specs/outliner/menu.md#entry), which Home rows approximate with a
+  hover- and focus-revealed button in a reserved gutter. The
   [legacy implementation gaps](legacy-backlog.md#home-and-location-header-follow-ups) track the missing surfaces and storage path.
 
 - **Zoomed-note location header.** Complete the rich editable header and its

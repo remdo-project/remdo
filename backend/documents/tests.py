@@ -44,6 +44,16 @@ class DocumentFlowTests(TestCase):
             **headers,
         )
 
+    def put(self, path, body=None, **headers):
+        token = self.client.get("/api/config").json()["csrfToken"]
+        return self.client.put(
+            path,
+            json.dumps(body or {}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=token,
+            **headers,
+        )
+
     def authorize(self, document_id):
         return self.client.get(
             f"/internal/collaboration/documents/{document_id}/authorize",
@@ -150,6 +160,40 @@ class DocumentFlowTests(TestCase):
                 response = self.post(f"/api/documents/{document.id}/access", {"email": email})
                 self.assertEqual(response.status_code, 400)
         self.assertFalse(DocumentGrant.objects.exists())
+
+    def test_owner_and_grantee_rename_the_document(self):
+        document = Document.objects.create(owner=self.owner, title="Draft")
+        DocumentGrant.objects.create(document=document, user=self.other)
+        path = f"/api/documents/{document.id}"
+
+        self.sign_in()
+        response = self.put(path, {"title": "  Quarterly  plan  "})
+        self.assertEqual(response.status_code, 200)
+        # Submission trims the ends and preserves interior whitespace.
+        self.assertEqual(response.json()["title"], "Quarterly  plan")
+        self.sign_out()
+
+        self.sign_in(self.other.email, "Other-password-123")
+        self.assertEqual(self.put(path, {"title": "Grantee name"}).status_code, 200)
+        document.refresh_from_db()
+        self.assertEqual(document.title, "Grantee name")
+
+    def test_rename_rejects_an_empty_name_and_an_inaccessible_document(self):
+        document = Document.objects.create(owner=self.owner, title="Draft")
+        unreachable = Document.objects.create(owner=self.other, title="Theirs")
+        self.sign_in()
+
+        self.assertEqual(
+            self.put(f"/api/documents/{document.id}", {"title": "   "}).status_code, 400
+        )
+        self.assertEqual(
+            self.put(f"/api/documents/{unreachable.id}", {"title": "Taken"}).status_code, 404
+        )
+
+        document.refresh_from_db()
+        unreachable.refresh_from_db()
+        self.assertEqual(document.title, "Draft")
+        self.assertEqual(unreachable.title, "Theirs")
 
     def test_only_owner_can_grant_access_even_if_recipient_or_admin(self):
         document = Document.objects.create(owner=self.owner)

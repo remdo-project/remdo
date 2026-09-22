@@ -372,9 +372,16 @@ main.document-route-container {
   gap: calc(var(--mantine-spacing-xs) / 2);
 }
 
+.home-doc-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--mantine-spacing-xs) / 2);
+}
+
 .home-doc {
   display: block;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   text-align: start;
   background: none;
   border: none;
@@ -386,6 +393,29 @@ main.document-route-container {
 
 .home-doc:hover {
   background: var(--mantine-color-dark-6);
+}
+
+.document-menu-button {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  /* Reserved gutter space keeps the row from shifting as the button appears.
+     Opacity rather than visibility keeps the button focusable while hidden. */
+  opacity: 0;
+  transition: opacity 120ms ease, background-color 120ms ease;
+}
+
+.document-menu-button:focus-visible,
+.document-menu-button[data-pressed],
+.document-menu-button[aria-expanded='true'],
+.home-doc-row:hover .document-menu-button {
+  opacity: 1;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .document-menu-button {
+    opacity: 1;
+  }
 }
 
 .home-actions {

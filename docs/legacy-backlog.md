@@ -174,9 +174,7 @@ The location header and document actions are specified but not yet built; the
 entries below track implementation gaps against their rules.
 
 - No document-root location header is rendered; the document name remains in
-  the breadcrumb picker. Home rows have no document action menu.
-- Document rename has no SDK operation or source-authorized endpoint, and no
-  submitted-name dialog. Implement [Document rename](specs/outliner/location-header.md#document-rename) before document deletion.
+  the breadcrumb picker, so rename is reachable only from a Home row menu.
 - Menu buttons do not share the [persistent active target](specs/outliner/menu.md#entry) across the document
   header, Home rows, and editor notes.
 - No zoomed-note location header is rendered: the zoom root remains the

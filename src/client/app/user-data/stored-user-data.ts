@@ -41,6 +41,34 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
       void client.invalidateQueries({ queryKey: documentsQuery.queryKey });
     },
   };
+  const renameDocumentOptions = {
+    mutationKey: [globalThis.location.origin, userId, 'rename-document'],
+    // A rename is an explicit submission with a retryable dialog, so a failed
+    // request is reported instead of queued for reconnect.
+    networkMode: 'always' as const,
+    mutationFn: async ({ documentId, title }: { documentId: string; title: string }): Promise<UserDocument> => {
+      lifetime.signal.throwIfAborted();
+      const result = await api.PUT('/api/documents/{document_id}', {
+        params: { path: { document_id: documentId } }, body: { title }, signal: lifetime.signal,
+      });
+      lifetime.signal.throwIfAborted();
+      if (result.response.status === 404) {
+        throw new Error('This document is no longer available.');
+      }
+      const renamed = requireData(result);
+      // The rename response carries only identity and name; the listing owns
+      // the document's access and sharing state.
+      return { ...documents.getById(renamed.id), ...renamed };
+    },
+    onSuccess: async (renamed: UserDocument) => {
+      await client.cancelQueries({ queryKey: documentsQuery.queryKey });
+      lifetime.signal.throwIfAborted();
+      client.setQueryData(documentsQuery.queryKey, (items = []) => items.map((document) => (
+        document.id === renamed.id ? { ...document, title: renamed.title } : document
+      )));
+      void client.invalidateQueries({ queryKey: documentsQuery.queryKey });
+    },
+  };
   const shareDocumentOptions = {
     mutationKey: [globalThis.location.origin, userId, 'share-document'],
     networkMode: 'always' as const,
@@ -69,6 +97,7 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
   const userData = createUserDataRootNote(documents, {
     shareDocument: (documentId, email) => client.getMutationCache().build(client, shareDocumentOptions).execute({ documentId, email }),
     createDocument: (title) => client.getMutationCache().build(client, createDocumentOptions).execute(title),
+    renameDocument: (documentId, title) => client.getMutationCache().build(client, renameDocumentOptions).execute({ documentId, title }),
   });
 
   return {

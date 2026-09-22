@@ -90,6 +90,33 @@ describe('account metadata', () => {
       .toEqual([access.email]);
   });
 
+  it('shows the new name in the listing after a rename, keeping the document grants', async () => {
+    const runtime = account();
+    const access = { documentId: 'shared', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' };
+    documentRequests((request) => request.method === 'PUT'
+      ? Response.json({ id: 'shared', title: 'Quarterly plan' })
+      : Response.json([{ id: 'shared', title: 'Shared', shareable: true, access: [access] }]));
+    await runtime.client.query(runtime.documentsQuery);
+
+    await runtime.userData.getDocuments().getById('shared')!.rename('Quarterly plan');
+
+    const renamed = runtime.userData.getDocuments().getById('shared')!;
+    expect(renamed.getText()).toBe('Quarterly plan');
+    expect(renamed.getAccess().getChildren().map((grant) => grant.getEmail())).toEqual([access.email]);
+  });
+
+  it('keeps the stored name when the source rejects a rename', async () => {
+    const runtime = account();
+    documentRequests((request) => request.method === 'PUT'
+      ? new Response(null, { status: 404 })
+      : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
+    await runtime.client.query(runtime.documentsQuery);
+
+    await expect(runtime.userData.getDocuments().getById('shared')!.rename('Quarterly plan'))
+      .rejects.toThrow('This document is no longer available.');
+    expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
+  });
+
   it('explains a rejected recipient without changing document access', async () => {
     const runtime = account();
     runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true }]);

@@ -10,6 +10,7 @@ export type {
   SearchResult,
 } from './document-session';
 export type {
+  DocumentNote,
   DocumentSourceNote,
   UserDataNote,
 } from './documents';

@@ -49,6 +49,16 @@ class DocumentSerializer(serializers.ModelSerializer):
         extra_kwargs = {"title": {"default": "", "trim_whitespace": False}}
 
 
+class RenameDocumentSerializer(serializers.ModelSerializer):
+    # Renaming rejects an empty name, while creation defaults to one.
+    title = serializers.CharField(allow_blank=False, max_length=500)
+
+    class Meta:
+        model = Document
+        fields = ["id", "title"]
+        read_only_fields = ["id"]
+
+
 class CurrentUserSerializer(serializers.ModelSerializer):
     userId = serializers.CharField(source="pk", read_only=True)
 

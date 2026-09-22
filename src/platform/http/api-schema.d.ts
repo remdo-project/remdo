@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["documents_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/documents/{document_id}/access": {
         parameters: {
             query?: never;
@@ -116,6 +132,13 @@ export interface components {
         };
         Health: {
             ok: boolean;
+        };
+        RenameDocument: {
+            readonly id: string;
+            title: string;
+        };
+        RenameDocumentRequest: {
+            title: string;
         };
         ShareDocumentRequest: {
             /** Format: email */
@@ -206,6 +229,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
+    documents_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameDocumentRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenameDocument"];
                 };
             };
         };
