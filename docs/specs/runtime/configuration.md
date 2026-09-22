@@ -114,7 +114,8 @@ The account domain is `example.test`, because a self-hosted origin may be a bare
 address that is invalid in an email. On Render (`RENDER=true`), where the platform
 guarantees a real public hostname, the domain is the
 [`APP_ORIGIN`](#network-addressing) host instead, pairing a per-instance address
-with the per-instance generated password.
+with the per-instance generated password. Changing a service's origin therefore
+provisions an account at the new domain and leaves the previous one in place.
 
 Each deployment generates the administrator password where its operator already
 reads secrets: Render's service environment, or `.env` for the self-hosted

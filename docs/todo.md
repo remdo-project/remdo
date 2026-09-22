@@ -143,6 +143,13 @@ Decisions requiring a contract owner's judgement:
   can leave the old primary address usable for login while sharing uses the new
   address. Prefer restricting duplicate writers over adding public email management.
 
+- **End-to-end coverage for deployment account provisioning.** The Docker suite
+  launches its containers with the password variables emptied, so the
+  [bootstrap](specs/runtime/configuration.md#deployment-accounts) is covered only
+  by Django unit tests and a launcher test whose `python` is a stub. No test
+  exercises provisioning, the Render domain derivation, or the entrypoint
+  ordering inside a live container.
+
 ### Documentation
 
 - **Remaining agent-flow specification alignment.** Reassess [`remdo-verify-change`](specs/agents/skills/remdo-verify-change.md)
