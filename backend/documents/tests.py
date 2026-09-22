@@ -9,7 +9,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.test import Client, SimpleTestCase, TestCase, override_settings
 
-from .models import Document, DocumentGrant
+from .models import DOCUMENT_TITLE_MAX_LENGTH, Document, DocumentGrant
 
 
 class ConfigurationTests(SimpleTestCase):
@@ -34,15 +34,21 @@ class DocumentFlowTests(TestCase):
     def setUp(self):
         self.client = Client(enforce_csrf_checks=True)
 
-    def post(self, path, body=None, **headers):
+    def send(self, method, path, body=None, **headers):
         token = self.client.get("/api/config").json()["csrfToken"]
-        return self.client.post(
+        return getattr(self.client, method)(
             path,
             json.dumps(body or {}),
             content_type="application/json",
             HTTP_X_CSRFTOKEN=token,
             **headers,
         )
+
+    def post(self, path, body=None, **headers):
+        return self.send("post", path, body, **headers)
+
+    def put(self, path, body=None, **headers):
+        return self.send("put", path, body, **headers)
 
     def authorize(self, document_id):
         return self.client.get(
@@ -150,6 +156,75 @@ class DocumentFlowTests(TestCase):
                 response = self.post(f"/api/documents/{document.id}/access", {"email": email})
                 self.assertEqual(response.status_code, 400)
         self.assertFalse(DocumentGrant.objects.exists())
+
+    def test_owner_and_grantee_rename_the_document(self):
+        document = Document.objects.create(owner=self.owner, title="Draft")
+        DocumentGrant.objects.create(document=document, user=self.other)
+        path = f"/api/documents/{document.id}"
+
+        self.sign_in()
+        response = self.put(path, {"title": "  Quarterly  plan  "})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["title"], "Quarterly  plan")
+        self.sign_out()
+
+        self.sign_in(self.other.email, "Other-password-123")
+        self.assertEqual(self.put(path, {"title": "Grantee name"}).status_code, 200)
+        document.refresh_from_db()
+        self.assertEqual(document.title, "Grantee name")
+        self.sign_out()
+
+        # Users with access see the committed name in their own listing.
+        self.sign_in()
+        listing = self.client.get("/api/documents").json()
+        self.assertEqual(
+            next(item for item in listing if item["id"] == document.id)["title"],
+            "Grantee name",
+        )
+
+    def test_rename_accepts_a_name_at_the_title_limit(self):
+        document = Document.objects.create(owner=self.owner, title="Draft")
+        at_limit = "x" * DOCUMENT_TITLE_MAX_LENGTH
+        self.sign_in()
+
+        self.assertEqual(
+            self.put(f"/api/documents/{document.id}", {"title": at_limit}).status_code, 200
+        )
+        document.refresh_from_db()
+        self.assertEqual(document.title, at_limit)
+
+    def test_rename_requires_a_session_and_a_whole_name(self):
+        document = Document.objects.create(owner=self.owner, title="Draft")
+        path = f"/api/documents/{document.id}"
+        self.assertEqual(self.put(path, {"title": "Unauthenticated"}).status_code, 403)
+
+        self.sign_in()
+        # Rename submits a complete name, so the partial-update verb stays off.
+        self.assertEqual(self.send("patch", path, {"title": "Partial"}).status_code, 405)
+
+        document.refresh_from_db()
+        self.assertEqual(document.title, "Draft")
+
+    def test_rename_rejects_an_empty_name_and_an_inaccessible_document(self):
+        document = Document.objects.create(owner=self.owner, title="Draft")
+        unreachable = Document.objects.create(owner=self.other, title="Theirs")
+        self.sign_in()
+
+        self.assertEqual(
+            self.put(f"/api/documents/{document.id}", {"title": "   "}).status_code, 400
+        )
+        self.assertEqual(
+            self.put(f"/api/documents/{unreachable.id}", {"title": "Taken"}).status_code, 404
+        )
+        over_limit = "x" * (DOCUMENT_TITLE_MAX_LENGTH + 1)
+        self.assertEqual(
+            self.put(f"/api/documents/{document.id}", {"title": over_limit}).status_code, 400
+        )
+
+        document.refresh_from_db()
+        unreachable.refresh_from_db()
+        self.assertEqual(document.title, "Draft")
+        self.assertEqual(unreachable.title, "Theirs")
 
     def test_only_owner_can_grant_access_even_if_recipient_or_admin(self):
         document = Document.objects.create(owner=self.owner)

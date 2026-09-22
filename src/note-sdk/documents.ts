@@ -30,6 +30,10 @@ export interface DocumentNote extends AddressableNote<'document'> {
   canShareWith: () => boolean;
   /** Grants document access to a user email. */
   shareWith: (email: string) => Promise<DocumentAccessNote>;
+  /** Returns whether this document's name can be changed. */
+  canRename: () => boolean;
+  /** Changes this document's name through its source server. */
+  rename: (title: string) => Promise<DocumentNote>;
 }
 
 export interface DocumentAccessNote extends AddressableNote<'document-access'> {

@@ -2,6 +2,7 @@ import { QueryClient, queryOptions } from '@tanstack/react-query';
 import { createUserDataRootNote } from '#note-sdk';
 import type { CollectionSource, UserDocument } from '#note-sdk';
 import type { DocumentAccessView } from '#domain/documents/access';
+import { DOCUMENT_TITLE_MAX_LENGTH } from '#domain/documents/user-data';
 import { api, requireData } from '#platform/http/api-client';
 import { currentUserBootstrapQuery } from './current-user-bootstrap';
 
@@ -41,6 +42,44 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
       void client.invalidateQueries({ queryKey: documentsQuery.queryKey });
     },
   };
+  const renameDocumentOptions = {
+    mutationKey: [globalThis.location.origin, userId, 'rename-document'],
+    // A rename is an explicit submission with a retryable dialog, so a failed
+    // request is reported instead of queued for reconnect.
+    networkMode: 'always' as const,
+    mutationFn: async ({ documentId, title }: { documentId: string; title: string }): Promise<UserDocument> => {
+      lifetime.signal.throwIfAborted();
+      const result = await api.PUT('/api/documents/{document_id}', {
+        params: { path: { document_id: documentId } }, body: { title }, signal: lifetime.signal,
+      });
+      lifetime.signal.throwIfAborted();
+      if (result.response.status === 404) {
+        throw new Error('This document is no longer available.');
+      }
+      if (result.response.status === 400) {
+        // A rejected name is corrected in the dialog, so name the limit the
+        // caller can act on rather than inviting an identical retry.
+        throw new Error(title.length > DOCUMENT_TITLE_MAX_LENGTH
+          ? `Use a shorter name, up to ${DOCUMENT_TITLE_MAX_LENGTH} characters.`
+          : 'That name was rejected. Try a different one.');
+      }
+      if (!result.response.ok) {
+        throw new Error('Could not rename the document. Please retry.');
+      }
+      const renamed = requireData(result);
+      // The rename response carries only identity and name; the listing owns
+      // the document's access and sharing state.
+      return { ...documents.getById(renamed.id), ...renamed };
+    },
+    onSuccess: async (renamed: UserDocument) => {
+      await client.cancelQueries({ queryKey: documentsQuery.queryKey });
+      lifetime.signal.throwIfAborted();
+      client.setQueryData(documentsQuery.queryKey, (items = []) => items.map((document) => (
+        document.id === renamed.id ? { ...document, title: renamed.title } : document
+      )));
+      void client.invalidateQueries({ queryKey: documentsQuery.queryKey });
+    },
+  };
   const shareDocumentOptions = {
     mutationKey: [globalThis.location.origin, userId, 'share-document'],
     networkMode: 'always' as const,
@@ -69,6 +108,7 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
   const userData = createUserDataRootNote(documents, {
     shareDocument: (documentId, email) => client.getMutationCache().build(client, shareDocumentOptions).execute({ documentId, email }),
     createDocument: (title) => client.getMutationCache().build(client, createDocumentOptions).execute(title),
+    renameDocument: (documentId, title) => client.getMutationCache().build(client, renameDocumentOptions).execute({ documentId, title }),
   });
 
   return {

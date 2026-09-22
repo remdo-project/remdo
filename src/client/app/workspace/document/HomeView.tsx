@@ -1,40 +1,53 @@
 import { IconPlus, IconUpload } from '@tabler/icons-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef } from 'react';
+import type { DocumentNote } from '#note-sdk';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
+import { DocumentMenu } from './DocumentMenu';
+import { useDocumentRename } from './useDocumentRename';
 import type { HomeContent, HomeDocumentEntry } from './home-content';
 
 export interface HomeViewProps extends HomeContent {
   onSelectDocument: (docId: string) => void;
   onCreateDocument: () => void;
   onUploadDocument: (file: File) => void;
+  resolveDocument: (docId: string) => DocumentNote | null;
 }
 
 function DocumentGroup({
   label,
   documents,
   onSelectDocument,
+  onRename,
+  resolveDocument,
 }: {
   label: string;
   documents: readonly HomeDocumentEntry[];
   onSelectDocument: (docId: string) => void;
+  onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
+  resolveDocument: (docId: string) => DocumentNote | null;
 }) {
   return (
     <section aria-label={label} className="home-group" role="group">
       <h2 className="home-group-label">{label}</h2>
       <ul className="home-doc-list">
-        {documents.map((document) => (
-          <li key={document.id}>
-            <button
-              className="home-doc remdo-interaction-surface"
-              data-home-document-ref={document.id}
-              onClick={() => onSelectDocument(document.id)}
-              type="button"
-            >
-              {formatNavigationLabel(document.label)}
-            </button>
-          </li>
-        ))}
+        {documents.map((document) => {
+          const note = resolveDocument(document.id);
+          const label = formatNavigationLabel(document.label);
+          return (
+            <li className="home-doc-row" key={document.id}>
+              {note && <DocumentMenu label={label} note={note} onRename={onRename} />}
+              <button
+                className="home-doc remdo-interaction-surface"
+                data-home-document-ref={document.id}
+                onClick={() => onSelectDocument(document.id)}
+                type="button"
+              >
+                {label}
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
@@ -46,11 +59,13 @@ export function HomeView({
   onSelectDocument,
   onUploadDocument,
   recents,
+  resolveDocument,
   sources,
   tags,
 }: HomeViewProps) {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
+  const { openRename, renameDialog } = useDocumentRename(headingRef);
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -84,7 +99,9 @@ export function HomeView({
             documents={group.documents}
             key={group.key}
             label={group.label}
+            onRename={openRename}
             onSelectDocument={onSelectDocument}
+            resolveDocument={resolveDocument}
           />
         ))}
 
@@ -110,6 +127,7 @@ export function HomeView({
           type="file"
         />
       </div>
+      {renameDialog}
     </section>
   );
 }

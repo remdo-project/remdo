@@ -14,6 +14,7 @@ from .serializers import (
     DocumentAccessSerializer,
     DocumentSerializer,
     HealthSerializer,
+    RenameDocumentSerializer,
     ShareDocumentSerializer,
 )
 
@@ -42,6 +43,17 @@ class DocumentListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+
+@method_decorator(never_cache, name="dispatch")
+class DocumentRenameView(generics.UpdateAPIView):
+    # Rename submits a complete name, so the partial-update verb stays off.
+    http_method_names = ["put"]
+    serializer_class = RenameDocumentSerializer
+    lookup_url_kwarg = "document_id"
+
+    def get_queryset(self):
+        return Document.objects.accessible_to(self.request.user)
 
 
 @method_decorator(never_cache, name="dispatch")

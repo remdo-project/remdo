@@ -22,6 +22,7 @@ const USER_DOCUMENTS_TITLE = 'Documents';
 interface UserDataNoteActions {
   createDocument?: (title: string) => Promise<UserDocument>;
   documentSources?: CollectionSource<DocumentSource>;
+  renameDocument?: (documentId: NoteId, title: string) => Promise<UserDocument>;
   shareDocument?: (documentId: NoteId, email: string) => Promise<DocumentAccessView>;
 }
 
@@ -120,6 +121,16 @@ function createProjectedDocumentHandle(
     return createDocumentAccessNoteHandle(toDocumentAccessItem(await actions.shareDocument(noteId, email)));
   }
 
+  async function rename(title: string): Promise<DocumentNote> {
+    if (!actions.renameDocument) {
+      throw new Error('Renaming is not available for this document.');
+    }
+    if (typeof title !== 'string') {
+      throw new TypeError('document.rename(title) requires a document title.');
+    }
+    return createProjectedDocumentHandle(await actions.renameDocument(noteId, title), actions);
+  }
+
   const handle: DocumentNote = {
     getId: () => noteId,
     getKind: kind,
@@ -128,6 +139,8 @@ function createProjectedDocumentHandle(
     getChildren: () => [],
     canShareWith: () => document.shareable === true,
     shareWith,
+    canRename: () => Boolean(actions.renameDocument),
+    rename,
     as: createNoteAs(noteId, kind, () => handle),
   };
 

@@ -20,6 +20,8 @@
   --remdo-accent-secondary-rgb: 116 143 252;
   --remdo-backdrop: #17151f; /* app-shell aurora base; shared by body + backdrop */
   --remdo-glass-blur: 16px; /* shared frosted-glass blur (shell + header are one material) */
+  /* Active-affordance fill, shared by surfaces outside the editor container. */
+  --indicator-highlight-color: var(--mantine-color-blue-3);
 }
 
 /* The page background matches the app-shell aurora base (faint-violet-black), so
