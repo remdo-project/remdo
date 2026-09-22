@@ -24,6 +24,13 @@ remdo_seed_admin_password() {
   # Reading a fixed block keeps tr from being killed by SIGPIPE, which would
   # otherwise fail the launcher under pipefail.
   generated="$(LC_ALL=C tr -dc 'A-Za-z0-9' < <(head -c 512 /dev/urandom) | cut -c1-32)"
+  # The file holds a credential, and an unterminated last line would otherwise
+  # absorb the assignment appended after it.
+  (umask 077 && touch "${env_file}")
+  chmod go-rwx "${env_file}"
+  if [[ -s "${env_file}" && -n "$(tail -c 1 "${env_file}")" ]]; then
+    printf '\n' >> "${env_file}"
+  fi
   printf 'REMDO_ADMIN_PASSWORD=%s\n' "${generated}" >> "${env_file}"
   export REMDO_ADMIN_PASSWORD="${generated}"
   echo "Generated REMDO_ADMIN_PASSWORD in ${env_file} for admin@example.test." >&2

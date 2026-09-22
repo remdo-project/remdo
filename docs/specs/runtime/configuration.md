@@ -125,7 +125,8 @@ Provisioning creates only missing
 accounts and never replaces an existing account's password, role, or documents.
 A deleted account is provisioned again on the next startup while its variable
 remains set; remove the variable to retire the account permanently.
-Startup removes the password variables before starting long-running services.
+Startup removes the password variables from the environment it passes to the
+long-running services; the platform's own record of them is outside its control.
 
 ## Request diagnostics
 

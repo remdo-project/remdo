@@ -146,4 +146,8 @@ echo "Verify health: ${APP_ORIGIN%/}/health"
 echo "Follow logs: docker logs -f ${CONTAINER_NAME}"
 echo "Stop RemDo: docker stop ${CONTAINER_NAME}"
 
-echo "Create administrator: docker exec -it ${CONTAINER_NAME} python manage.py createsuperuser"
+if [[ -n "${REMDO_ADMIN_PASSWORD:-}" ]]; then
+  echo "Sign in as admin@example.test with REMDO_ADMIN_PASSWORD from .env"
+else
+  echo "Create administrator: docker exec -it ${CONTAINER_NAME} python manage.py createsuperuser"
+fi
