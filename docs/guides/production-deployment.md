@@ -80,8 +80,8 @@ Deploy the Render environments from [the repository blueprint](../../render.yaml
 
 1. Create a Render Blueprint deployment from it.
 2. In each service's **Environment** view, copy its generated
-   `REMDO_ADMIN_PASSWORD` into the password manager. Staging and test also
-   generate `REMDO_USER_PASSWORD`. Render preserves these generated values
+   `REMDO_ADMIN_PASSWORD` into the password manager. Test also generates
+   `REMDO_USER_PASSWORD`. Render preserves these generated values
    across later Blueprint syncs.
 3. Point DNS at each service as Render's domain settings instruct and wait for
    its certificate.
@@ -90,7 +90,7 @@ Deploy the Render environments from [the repository blueprint](../../render.yaml
 5. For each service, complete
    [Verify and Complete First Access](#verify-and-complete-first-access).
 
-Release production from Render's dashboard.
+Production tracks `main` and deploys automatically after its CI checks pass.
 
 ### Deploy to the Test Sandbox
 
@@ -107,12 +107,11 @@ then moves it to `HEAD` with a force-with-lease push. It creates the pointer whe
 missing; a concurrent move after the read makes the push fail instead of
 overwriting it. Render starts the deployment automatically.
 
-### Reset a Hosted Sandbox
+### Reset the Test Sandbox
 
-Staging data is disposable and its free database expires. Test uses a paid
-database so demo data persists across ordinary deploys. To reset either sandbox,
-stop the application, delete its database, and sync the blueprint to recreate it
-and redeploy. Metadata and document content reset together. The reset does not
+Test data is disposable and its free database expires. To reset it, stop the
+application, delete its database, and sync the blueprint to recreate it and
+redeploy. Metadata and document content reset together. The reset does not
 require shell access.
 
 ## Upgrade an Existing Instance
