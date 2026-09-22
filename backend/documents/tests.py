@@ -182,6 +182,29 @@ class DocumentFlowTests(TestCase):
             "Grantee name",
         )
 
+    def test_rename_accepts_a_name_at_the_title_limit(self):
+        document = Document.objects.create(owner=self.owner, title="Draft")
+        at_limit = "x" * DOCUMENT_TITLE_MAX_LENGTH
+        self.sign_in()
+
+        self.assertEqual(
+            self.put(f"/api/documents/{document.id}", {"title": at_limit}).status_code, 200
+        )
+        document.refresh_from_db()
+        self.assertEqual(document.title, at_limit)
+
+    def test_rename_requires_a_session_and_a_whole_name(self):
+        document = Document.objects.create(owner=self.owner, title="Draft")
+        path = f"/api/documents/{document.id}"
+        self.assertEqual(self.put(path, {"title": "Unauthenticated"}).status_code, 403)
+
+        self.sign_in()
+        # Rename submits a complete name, so the partial-update verb stays off.
+        self.assertEqual(self.send("patch", path, {"title": "Partial"}).status_code, 405)
+
+        document.refresh_from_db()
+        self.assertEqual(document.title, "Draft")
+
     def test_rename_rejects_an_empty_name_and_an_inaccessible_document(self):
         document = Document.objects.create(owner=self.owner, title="Draft")
         unreachable = Document.objects.create(owner=self.other, title="Theirs")
