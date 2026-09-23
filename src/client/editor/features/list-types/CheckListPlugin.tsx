@@ -14,6 +14,7 @@ import type { SetNoteCheckedPayload } from '#client/editor/foundation/commands';
 import { isBulletHit, isCheckboxHit } from '#client/editor/outline/bullet-hit-test';
 import { getPreviousContentSibling, isChildrenWrapper, isContentItem } from '#client/editor/outline/list-structure';
 import { $resolveNoteIdFromDOMNode } from '#client/editor/outline/note-context';
+import { $resolveNoteForSelectionPoint } from '#client/editor/outline/selection/body-region';
 import { $resolveStructuralItemsFromRange } from '#client/editor/outline/selection/range';
 import { requireContentItemFromNode, resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { getNestedList, getParentContentItem, getWrapperForContent } from '#client/editor/outline/selection/tree';
@@ -140,8 +141,8 @@ const $resolveToggleTargets = (
   if (!$isRangeSelection(selection)) {
     return [];
   }
-  const contentItem = resolveContentItemFromNode(selection.focus.getNode()) ??
-    resolveContentItemFromNode(selection.anchor.getNode());
+  const contentItem = $resolveNoteForSelectionPoint(selection.focus.getNode()) ??
+    $resolveNoteForSelectionPoint(selection.anchor.getNode());
   if (!contentItem) {
     return [];
   }

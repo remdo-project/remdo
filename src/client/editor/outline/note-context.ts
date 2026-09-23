@@ -16,7 +16,10 @@ export function $resolveContentNoteFromDOMNode(node: Node | null): ListItemNode 
 }
 
 // The Lexical key of the focus note: the outline selection's focus, falling back
-// to the DOM selection's focus/anchor. Call inside editor.read/update.
+// to the DOM selection's focus/anchor. A focus inside a body resolves to the
+// body's owning editor note, the targeting rule for commands that act on a note
+// (docs/specs/outliner/body.md "Selection and structural targeting").
+// Call inside editor.read/update.
 export function $resolveFocusNoteKey(editor: LexicalEditor): string | null {
   const focusKey = editor.selection.get()?.focusKey;
   if (focusKey) {
@@ -24,7 +27,10 @@ export function $resolveFocusNoteKey(editor: LexicalEditor): string | null {
   }
   const domSelection = globalThis.getSelection();
   const focusNode = domSelection?.focusNode ?? domSelection?.anchorNode ?? null;
-  return $resolveContentNoteFromDOMNode(focusNode)?.getKey() ?? null;
+  if (!focusNode) {
+    return null;
+  }
+  return $resolveNoteForSelectionPoint($getNearestNodeFromDOMNode(focusNode))?.getKey() ?? null;
 }
 
 export function $resolveNoteIdFromNode(node: LexicalNode | null): string | null {

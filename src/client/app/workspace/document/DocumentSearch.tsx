@@ -6,18 +6,29 @@ import {
   normalizeNavigationLabel,
 } from '#client/ui/navigation-label';
 import { SearchResultRow } from '../SearchResultRow';
+import { bodySnippet } from '#client/search/body-snippet';
 import type { DocumentSearchModel } from '../useDocumentSearchModel';
 
-function buildSearchResultAccessibleName(text: string, path: readonly EditorNoteSnapshot[]): string {
+function buildSearchResultAccessibleName(
+  text: string,
+  path: readonly EditorNoteSnapshot[],
+  body: string | null,
+  query: string,
+): string {
   const name = normalizeNavigationLabel(text) || UNTITLED_LABEL;
   const ancestors = path.slice(0, -1);
+  // The visible body preview is inside this option, whose aria-label replaces
+  // its contents for assistive tech — so a note matched only on its body would
+  // otherwise be announced with no sign of why it matched.
+  const preview = body ? bodySnippet(body, query) : '';
+  const withBody = preview.length > 0 ? `${name}, ${preview}` : name;
   if (ancestors.length === 0) {
-    return name;
+    return withBody;
   }
   const context = ancestors
     .map((item) => normalizeNavigationLabel(item.text) || UNTITLED_LABEL)
     .join(' / ');
-  return `${name}, in ${context}`;
+  return `${withBody}, in ${context}`;
 }
 
 export function DocumentSearchInput({ model }: { model: DocumentSearchModel }) {
@@ -69,7 +80,7 @@ export function DocumentSearchResults({ model }: { model: DocumentSearchModel })
           const isActive = result.note.id === model.highlightedResultNoteId;
           return (
             <li
-              aria-label={buildSearchResultAccessibleName(result.note.text, result.path)}
+              aria-label={buildSearchResultAccessibleName(result.note.text, result.path, result.note.body, model.searchQuery)}
               aria-selected={isActive}
               className="document-search-results-item"
               data-search-result-active={isActive ? 'true' : undefined}

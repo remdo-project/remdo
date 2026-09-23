@@ -3,6 +3,7 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
+  $createLineBreakNode,
   $createTextNode,
   $getSelection,
   $isRangeSelection,
@@ -57,14 +58,39 @@ function getParentNote(list: ListNode): ListItemNode | null {
   return getPreviousContentSibling(wrapper);
 }
 
-// Before `removed` is deleted in a merge, carry its body (if any) to `survivor`.
-// The both-bodies case is rejected earlier, so the survivor has no body here; the
-// body-wrapper sits immediately after the survivor's content item.
-function $carryBodyToSurvivor(removed: ListItemNode, survivor: ListItemNode): void {
+// Before `removed` is deleted in a merge, carry its body (if any) to `survivor`
+// (docs/specs/outliner/body.md "Note merge"). With one body between them the
+// wrapper moves to sit immediately after the survivor's content item. With two,
+// the removed note's lines join the survivor's body across a line break in
+// document order — before it when `removed` precedes the survivor — so merging
+// never silently drops or reorders text; undo restores both notes as one step.
+function $carryBodyToSurvivor(
+  removed: ListItemNode,
+  survivor: ListItemNode,
+  removedPosition: 'before' | 'after'
+): void {
   const bodyWrapper = getBodyWrapper(removed);
-  if (bodyWrapper) {
-    survivor.insertAfter(bodyWrapper);
+  if (!bodyWrapper) {
+    return;
   }
+
+  const removedBody = getNoteBody(removed);
+  const survivingBody = getNoteBody(survivor);
+  if (!removedBody || !survivingBody) {
+    survivor.insertAfter(bodyWrapper);
+    return;
+  }
+
+  if (!isNoteBodyEmpty(removedBody)) {
+    const carried = removedBody.getChildren();
+    const separator = isNoteBodyEmpty(survivingBody) ? [] : [$createLineBreakNode()];
+    if (removedPosition === 'before') {
+      survivingBody.splice(0, 0, [...carried, ...separator]);
+    } else {
+      survivingBody.append(...separator, ...carried);
+    }
+  }
+  bodyWrapper.remove();
 }
 
 function getFirstChildContentItem(item: ListItemNode): ListItemNode | null {
@@ -324,14 +350,6 @@ export function DeletionPlugin() {
         return true;
       }
 
-      // Body merge contract (docs/specs/outliner/body.md "Note merge"): if both notes
-      // have a body the merge is a no-op so no body is lost. Otherwise the merge
-      // proceeds and the surviving note keeps the single body, carrying it over
-      // from the removed note when needed.
-      if (getBodyWrapper(current) && getBodyWrapper(target)) {
-        return true;
-      }
-
       const currentHasChildren = noteHasChildren(current);
       const targetHasChildren = noteHasChildren(target);
       const targetIsParent = getParentContentItem(current) === target;
@@ -342,14 +360,14 @@ export function DeletionPlugin() {
       const targetIsEmptyLeaf = !targetHasChildren && hasNoContentText(target);
 
       if (targetIsEmptyLeaf) {
-        $carryBodyToSurvivor(target, current);
+        $carryBodyToSurvivor(target, current, 'before');
         removeNoteSubtree(target);
         $selectItemEdge(current, 'start');
         return true;
       }
 
       if (currentIsEmptyLeaf) {
-        $carryBodyToSurvivor(current, target);
+        $carryBodyToSurvivor(current, target, 'after');
         removeNoteSubtree(current);
         $selectItemEdge(target, 'end');
         return true;
@@ -368,7 +386,7 @@ export function DeletionPlugin() {
         }
       }
 
-      $carryBodyToSurvivor(current, target);
+      $carryBodyToSurvivor(current, target, 'after');
       removeNoteSubtree(current);
       if ($isRangeSelection(selection)) {
         selection.dirty = true;

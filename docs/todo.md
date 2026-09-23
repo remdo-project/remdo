@@ -289,24 +289,13 @@ Decisions requiring a contract owner's judgement:
 
 ### Outliner
 
-- **Body-local command targets.** Target behavior ([Body](specs/outliner/body.md#selection-and-structural-targeting), [Indentation](specs/outliner/indentation.md#target-resolution), [Reordering](specs/outliner/reordering.md#target-resolution),
-  [List types](specs/outliner/list-types.md#toggling), [Mobile toolbar](specs/outliner/mobile-toolbar.md#actions), and [Menu](specs/outliner/menu.md#behavior)): a caret or inline text selection
-  inside a body targets its owning editor note for commands that act on a note.
-  The structural resolver handles a collapsed body caret, but a body-local
-  inline selection produces no range, leaving indentation, reordering, and
-  toolbar deletion as no-ops. `$resolveToggleTargets` and
-  `$resolveFocusNoteKey` use body-rejecting content resolution, leaving
-  checked-state toggles, focus-note toolbar actions, and the double-Shift menu
-  as no-ops. Align shared body-to-owner resolution and add focused coverage for
-  each affected command path.
-
-- **Zoom-root toolbar deletion.** Target behavior
-  ([Mobile toolbar](specs/outliner/mobile-toolbar.md#actions)): the current zoom
-  root supplies no delete target. `$resolveSelectedNotesDeletion` currently
-  resolves that note, so toolbar availability reports Delete as enabled and
-  command application can use the same target. Reject the zoom root in the
-  deletion owner's target resolution so availability and application agree,
-  then cover both the owner seam and toolbar delegation.
+- **Touch and menu entry for note bodies.** [Body](specs/outliner/body.md#core-behavior)
+  creation is reachable only through `Shift+Enter`, so touch devices cannot add
+  a body at all, and iOS hardware keyboards can report `Enter` as
+  `Shift+Enter` when auto-capitalization fires. Add an add/focus-body action to
+  the [note menu](specs/outliner/menu.md) and the
+  [mobile toolbar](specs/outliner/mobile-toolbar.md#actions) with the same
+  add-or-focus semantics as the key gesture, and cover both surfaces.
 
 ### Upstream reports
 

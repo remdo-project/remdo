@@ -8,7 +8,8 @@ navigation, lifecycle, and merge behavior.
 
 1. **Add gesture.** `Shift+Enter` on a note adds a body below that note's content
    and moves the caret into it. If the note already has a body, the gesture moves
-   the caret to the start of the existing body instead of adding another. The
+   the caret to the end of the existing body instead of adding another, so typing
+   continues that body rather than fusing onto its front. The
    gesture applies to a [caret or inline text selection](./selection.md#selection-states) in the note's
    content and leaves that content text unchanged.
 2. **Ownership.** A note has at most one body, and a body belongs to that one
@@ -18,7 +19,12 @@ navigation, lifecycle, and merge behavior.
    to the fresh note holding the trailing text.
 3. **Visually distinct.** A body renders set apart from the note's content. If
    its owning note is [checked](./list-types.md#checked-state), the body text is crossed out with the note.
-4. **Inline content.** Body text supports the same key-driven inline content as
+4. **Visibility follows the note.** A body is displayed exactly when its owning
+   note is displayed. [Folding](./folding.md) a note hides its descendants, so a
+   descendant's body hides with it, while the folded note keeps its own body.
+   A body outside the current [zoom boundary](./zoom.md#definitions) is hidden
+   with its note. A body is never independently collapsed.
+5. **Inline content.** Body text supports the same key-driven inline content as
    note content — inline formatting (no separate formatting UI) and `@` note
    links (see [Links](./links.md)).
 
@@ -64,6 +70,10 @@ Within a body, keys behave as follows:
    body is multi-line), rather than creating a note as it does in note content.
 3. **`Cmd/Ctrl+A` is local.** Inside a body it selects that body's text only and
    never advances the [selection ladder](./selection.md#the-selection-ladder).
+4. **`Esc` leaves the body.** Inside a body it returns the caret to the end of
+   the owning note's content — the deliberate way out, since arrows only leave
+   across a boundary. A pending [structural selection](./selection.md#selection-states)
+   collapses first.
 
 ## Lifecycle
 
@@ -87,4 +97,7 @@ When two notes merge into one (see [Deletion](./deletion.md) for when a
 1. **Neither has a body.** The notes merge as usual.
 2. **Exactly one has a body.** The merge proceeds and the surviving note ends up
    with that body.
-3. **Both have a body.** The merge is a no-op.
+3. **Both have a body.** The merge proceeds and the surviving note's body keeps
+   both texts, joined by a line break. An empty body contributes no text and no
+   separator. A merge never silently discards body text, and undo restores both
+   notes and their bodies as a single step.

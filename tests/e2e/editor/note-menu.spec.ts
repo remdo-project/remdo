@@ -110,6 +110,22 @@ test.describe('Note menu', () => {
     await expect(editorLocator(page).locator('[data-note-menu]')).toHaveCount(0);
   });
 
+  test('repeated shifted shortcuts do not open the menu', async ({ page, editor }) => {
+    await editor.load('tree');
+
+    // Two shifted shortcuts in a row put the Shift presses within the double-tap
+    // window with a key between them that an editor command consumes. Inside a
+    // body the arrow is handled and its propagation stopped, so a bubble-phase
+    // detector never sees it and reads the pair as a deliberate double-Shift.
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('a body long enough to wrap onto a second visual line of text');
+    await page.keyboard.press('Shift+ArrowDown');
+    await page.keyboard.press('Shift+ArrowDown');
+
+    await expect(editorLocator(page).locator('[data-note-menu]')).toHaveCount(0);
+  });
+
   test('fold actions close the menu and toggle state', async ({ page, editor }) => {
     await editor.load('tree');
 

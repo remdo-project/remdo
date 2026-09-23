@@ -39,7 +39,17 @@ function $resolveDeletionForRange(
   const selection = $getSelection();
   const viewRoot = $resolveViewRoot(editor);
   const targets = $resolveStructuralDeletionTargets(range, selection, viewRoot);
-  return targets ? { targets, selection, viewRoot } : null;
+  if (!targets) {
+    return null;
+  }
+  // The current zoom root supplies no delete target: removing it would destroy
+  // the view the user is inside (docs/specs/outliner/mobile-toolbar.md). Reject
+  // it here so availability and application agree — otherwise the toolbar
+  // reports Delete as enabled and then acts on the root.
+  if (viewRoot && targets.heads.some((head) => head.is(viewRoot))) {
+    return null;
+  }
+  return { targets, selection, viewRoot };
 }
 
 // Keyboard Backspace/Delete path: only a note range removes

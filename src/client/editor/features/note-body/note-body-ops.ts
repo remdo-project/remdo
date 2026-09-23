@@ -275,7 +275,10 @@ export function $skipBodyForHorizontalNav(direction: 'left' | 'right', boundaryR
 export function $addNoteBody(note: ListItemNode): NoteBodyNode {
   const existing = getNoteBody(note);
   if (existing) {
-    existing.selectStart();
+    // Land at the end: the gesture means "add to this note's body", so typing
+    // appends. Landing at the start would fuse the new text onto the existing
+    // text with no separator.
+    existing.selectEnd();
     return existing;
   }
 

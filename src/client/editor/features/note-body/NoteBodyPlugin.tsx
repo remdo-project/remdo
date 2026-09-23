@@ -16,6 +16,7 @@ import {
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
   KEY_ENTER_COMMAND,
+  KEY_ESCAPE_COMMAND,
   SELECT_ALL_COMMAND,
 } from 'lexical';
 import type { LexicalEditor, Point } from 'lexical';
@@ -36,7 +37,7 @@ import {
   $skipBodyForVerticalNav,
   isNoteBodyEmpty,
 } from './note-body-ops';
-import { $getNoteBodyFromNode, $getSelectionBody } from '#client/editor/outline/selection/body-region';
+import { $getNoteBodyFromNode, $getNoteForBody, $getSelectionBody } from '#client/editor/outline/selection/body-region';
 import './note-body.css';
 
 /**
@@ -266,6 +267,26 @@ export function NoteBodyPlugin() {
             return false;
           }
           $addNoteBody(contentItem);
+          return stopKeyboardEvent(event);
+        },
+        COMMAND_PRIORITY_HIGH
+      ),
+      // Escape inside a body returns the caret to the end of its owning note —
+      // the deliberate way out, since arrows only leave across a boundary and a
+      // body is otherwise reachable only by gesture or click. Registered at HIGH
+      // so a structural collapse (CRITICAL) still wins when one is pending.
+      editor.registerCommand(
+        KEY_ESCAPE_COMMAND,
+        (event) => {
+          const body = $getActiveNoteBody();
+          if (!body) {
+            return false;
+          }
+          const note = $getNoteForBody(body);
+          if (!note) {
+            return false;
+          }
+          note.selectEnd();
           return stopKeyboardEvent(event);
         },
         COMMAND_PRIORITY_HIGH
