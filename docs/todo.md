@@ -101,7 +101,7 @@ Code items assume no contract change:
 8. **Repeated internal-service constants and helpers.** The container port pair
    is hard-coded in three places after its configuration helper lost its
    Y-Sweet job; three credential-injecting WebSocket subclasses differ only by
-   header; and two origin-printing scripts spawn a runtime to echo values their
+   header; and an origin-printing script spawns a runtime to echo a value its
    caller already exports. Test-support consolidation belongs with
    [Tooling](#tooling)'s test-organization entry.
 

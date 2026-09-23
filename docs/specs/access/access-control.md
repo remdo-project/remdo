@@ -123,7 +123,8 @@ through Django administration.
 
 `/admin/` is the Django administration entry route. Django staff status permits
 entry; model permissions control the available administrative actions. An
-authenticated staff user sees an **Admin** link in the app toolbar. Anonymous
+authenticated staff user sees an **Admin** link in the
+[page header](../../architecture.md#shared-presentation). Anonymous
 visitors authenticate through the [shared allauth sign-in](#authenticated-app-access), preserving the
 requested same-origin administration destination. Authenticated nonstaff users
 are denied administration without ending their ordinary app session.
