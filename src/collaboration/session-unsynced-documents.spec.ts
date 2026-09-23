@@ -102,6 +102,46 @@ describe('collaboration session unsynced document ledger', () => {
     expect(hasUnsyncedLocalChanges()).toBe(false);
   });
 
+  it('reports cached edits another tab left unacknowledged without clearing its mark', () => {
+    const otherTabMark = 'remdo-unsynced:shared-doc:other-tab';
+    localStorage.setItem(otherTabMark, '1');
+    const mock = createMockProvider();
+    const session = new CollabSession({
+      docId: 'shared-doc',
+      enabled: true,
+      providerFactory: createMockProviderFactory(mock),
+    });
+    session.attach(new Map([['shared-doc', new Y.Doc()]]));
+    sessions.push(session);
+
+    mock.hasLocalChanges = true;
+    mock.emit('local-changes', true);
+    expect(session.snapshot().hasLocalChanges).toBe(true);
+
+    mock.synced = true;
+    mock.hasLocalChanges = false;
+    mock.emit('local-changes', false);
+    expect(session.snapshot().hasLocalChanges).toBe(false);
+    // That tab may still hold edits made after this one hydrated the cache.
+    expect(localStorage.getItem(otherTabMark)).toBe('1');
+  });
+
+  it('does not count a mark for a document whose id extends this one', () => {
+    localStorage.setItem('remdo-unsynced:doc-ab:other-tab', '1');
+    const mock = createMockProvider();
+    const session = new CollabSession({
+      docId: 'doc-a',
+      enabled: true,
+      providerFactory: createMockProviderFactory(mock),
+    });
+    session.attach(new Map([['doc-a', new Y.Doc()]]));
+    sessions.push(session);
+
+    mock.hasLocalChanges = true;
+    mock.emit('local-changes', true);
+    expect(session.snapshot().hasLocalChanges).toBe(false);
+  });
+
   it('records a document when the provider reports local changes', () => {
     const { mock, session } = createSession('doc-a');
     sessions.push(session);

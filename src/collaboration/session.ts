@@ -72,8 +72,8 @@ export class CollabSession {
   private sawProviderAck = false;
   private unsavedLocalEdits = false;
   // The provider counts cached updates as pending whether or not the server
-  // already holds them, so only this tab's persisted mark distinguishes cached
-  // edits that were never acknowledged.
+  // already holds them, so only the persisted marks distinguish cached edits
+  // that were never acknowledged.
   private restoredUnsyncedEdits = false;
   private state: CollabSnapshot;
 

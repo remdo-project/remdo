@@ -71,6 +71,8 @@ test('reopens persisted content offline and delivers offline edits after reconne
       allowOfflineDisconnectedConsoleIssue(localReader);
       await localReader.goto(`/n/${docId}`);
       await expect(localReader.locator('.editor-input')).toContainText('with offline edits');
+      // Another tab's edits reach this tab only through the shared cache.
+      await expect(localReader.getByText('Unsaved · syncs when reconnected')).toBeVisible();
       await localReader.close();
     }, testInfo);
     await offline.reload();
