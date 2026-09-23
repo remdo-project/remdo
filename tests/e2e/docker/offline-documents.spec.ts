@@ -71,10 +71,14 @@ test('reopens persisted content offline and delivers offline edits after reconne
       allowOfflineDisconnectedConsoleIssue(localReader);
       await localReader.goto(`/n/${docId}`);
       await expect(localReader.locator('.editor-input')).toContainText('with offline edits');
+      // Another tab's edits reach this tab only through the shared cache.
+      await expect(localReader.getByText('Unsaved · syncs when reconnected')).toBeVisible();
       await localReader.close();
     }, testInfo);
     await offline.reload();
     await expect(offline.locator('.editor-input')).toContainText('with offline edits');
+    // Otherwise reconnecting reports the edits saved before the handshake sends them.
+    await expect(unsaved).toBeVisible();
     await context.setOffline(false);
     await expect(offline.locator('.collab-status')).toHaveAttribute('aria-label', /Saved to server.*Server connected/u);
     await expect(unsaved).toHaveCount(0);

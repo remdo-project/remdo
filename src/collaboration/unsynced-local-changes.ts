@@ -58,6 +58,17 @@ export function markDocumentUnsynced(docId: string): void {
   getLocalStorage()?.setItem(unsyncedKey(docId), '1');
 }
 
+// Any tab's mark counts: tabs share the cache, so one tab can hydrate another's
+// unacknowledged edits.
+export function isDocumentUnsynced(docId: string): boolean {
+  const storage = getLocalStorage();
+  if (!storage) {
+    return false;
+  }
+  const documentPrefix = `${KEY_PREFIX}${docId}:`;
+  return unsyncedKeys(storage).some(key => key.startsWith(documentPrefix));
+}
+
 export function markDocumentSynced(docId: string): void {
   getLocalStorage()?.removeItem(unsyncedKey(docId));
 }
@@ -74,5 +85,5 @@ export function clearUnsyncedLocalChanges(): void {
 
 export function hasUnsyncedLocalChanges(): boolean {
   const storage = getLocalStorage();
-  return storage !== null && unsyncedKeys(storage).length > 0;
+  return !!storage && unsyncedKeys(storage).length > 0;
 }
