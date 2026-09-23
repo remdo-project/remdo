@@ -87,7 +87,7 @@ describe('vite shared config', () => {
       expect(receivedHeaders.at(-1)?.origin).toBe(origin);
       expect(page.status).toBe(200);
       expect(await page.text()).toBe('Public page from Django');
-      for (const url of ['/', '/?next=%2Fsharing', '/sharing', '/n/example', '/n/example?note=1', '/sign-out', '/sign-out/']) {
+      for (const url of ['/', '/?next=%2Fn%2Fexample', '/n/example', '/n/example?note=1', '/sign-out', '/sign-out/']) {
         const response = await fetch(new URL(url, origin), { headers: { Accept: 'text/html' } });
         expect(response.status, url).toBe(200);
         expect(await response.text(), url).toContain('<div id="root">App shell</div>');

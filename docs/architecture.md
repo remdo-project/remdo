@@ -69,7 +69,7 @@ validates browser origins against the [configured trusted origins](specs/access/
 
 ### Gateway
 
-The gateway explicitly owns SPA routes (`/`, `/n/*`, `/sharing`, and
+The gateway explicitly owns SPA routes (`/`, `/n/*`, and
 `/sign-out`), frontend assets, Django static assets, health probes, and
 collaboration endpoints. Django owns all other HTTP routes,
 including unknown routes and their 404 responses. Normal HTTP routes have the

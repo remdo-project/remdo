@@ -8,7 +8,6 @@
 const APP_SHELL_PATH_BODIES: readonly string[] = [
   '/',
   '/n/[^?]*',
-  '/sharing/?',
   '/sign-out/?',
 ];
 

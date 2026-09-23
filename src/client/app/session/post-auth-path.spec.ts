@@ -17,7 +17,6 @@ describe('post-auth paths', () => {
 
   it('allows relative post-auth targets', () => {
     expect(resolvePostAuthTargetPath('/', CURRENT_ORIGIN)).toBe('/');
-    expect(resolvePostAuthTargetPath('/sharing', CURRENT_ORIGIN)).toBe('/sharing');
     expect(resolvePostAuthTargetPath('/n/main', CURRENT_ORIGIN)).toBe('/n/main');
     expect(resolvePostAuthTargetPath(DEV_LEXICAL_DEMO_ROUTE, CURRENT_ORIGIN)).toBe(DEV_LEXICAL_DEMO_ROUTE);
     expect(resolvePostAuthTargetPath('/api/current-user', CURRENT_ORIGIN)).toBe('/api/current-user');

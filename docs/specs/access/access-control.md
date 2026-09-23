@@ -97,6 +97,18 @@ Django authorizes each [collaboration connection](../../architecture.md#collabor
 browser origin. Owners and direct grantees receive full document access; other
 users are denied before document content loads.
 
+### Document sharing
+
+An owner manages one document's access from that document's [quick action menu](../outliner/menu.md).
+The surface names the document it acts on and presents current recipients
+before the controls that change them. Each change applies on its own; the
+surface has no combined submission and closes without discarding applied
+changes.
+
+Granting takes an email address and reports a rejected address against the
+address it was given. A grant appears among the recipients once the source
+accepts it, without reopening the surface.
+
 ## Admin Role
 
 Django user permissions are the authorization source of truth for

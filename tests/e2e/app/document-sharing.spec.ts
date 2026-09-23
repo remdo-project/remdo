@@ -21,18 +21,19 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     await editor.click();
     await page.keyboard.type('Owner content');
     await waitForSynced(page);
-    await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Sharing', exact: true }).click();
-    await expect(page.getByRole('link', { name: 'Sharing', exact: true })).toHaveAttribute('aria-current', 'page');
-    await page.getByRole('combobox', { name: 'Document', exact: true }).click();
-    await page.getByRole('option', { name: 'New Document', exact: true }).click();
-    await page.getByLabel('User email').fill(recipient.email);
-    await page.getByRole('button', { name: 'Share', exact: true }).click();
-    await expect(page.getByText('Document shared.', { exact: true })).toBeVisible();
-    await expect(page.getByText(recipient.email, { exact: true })).toBeVisible();
-    await page.reload();
-    await page.getByRole('combobox', { name: 'Document', exact: true }).click();
-    await page.getByRole('option', { name: 'New Document', exact: true }).click();
-    await expect(page.getByText(recipient.email, { exact: true })).toBeVisible();
+    await page.goto('/');
+    const row = page.getByRole('group', { name: 'Current Server', exact: true })
+      .locator(`[data-home-document-ref="${document.id}"]`).locator('..');
+    await row.hover();
+    await row.getByRole('button', { name: /^Actions for/u }).click();
+    await page.getByRole('menuitem', { name: 'Share…' }).click();
+    const shareDialog = page.getByRole('dialog', { name: /Share/u });
+    await shareDialog.getByLabel(/Invite by email/u).fill(recipient.email);
+    await shareDialog.getByRole('button', { name: 'Invite', exact: true }).click();
+    // The grant appears without reopening the dialog.
+    await expect(shareDialog.getByText(recipient.email, { exact: true })).toBeVisible();
+    await shareDialog.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
 
     const peer = await peerContext.newPage();
     await withPageGuards(peer, async () => {

@@ -13,7 +13,6 @@ import HomeRoute from './HomeRoute';
 import SignOutRoute from '#client/app/session/SignOutRoute';
 import OnlineGate from '#client/app/session/OnlineGate';
 import DocumentRoute from '#client/app/workspace/DocumentRoute';
-import SharingRoute from '#client/app/sharing/SharingRoute';
 import { getCachedCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap';
 import {
   createDocumentPath,
@@ -133,10 +132,6 @@ const appRoutes = [
     loader: authenticatedSessionLoader,
     hydrateFallbackElement,
     children: [
-      {
-        path: 'sharing',
-        element: <SharingRoute />,
-      },
       ...devRoutes,
     ],
   },
