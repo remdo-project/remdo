@@ -32,12 +32,10 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   [Production Deployment](guides/production-deployment.md), including health-prober compatibility with
   `ALLOWED_HOSTS`. Rootful Docker coverage is exercised by the default CI runner.
 - Reconsider the remaining simplifications withheld by the Django review:
-  `CenteredCardPage` and the [UI library default](../CONTRIBUTING.md#ui-libraries), SPA route enumeration,
+  `CenteredCardPage` and the [UI library default](../CONTRIBUTING.md#ui-libraries), app route enumeration,
   port-rule ownership, the always-Python `setup-pnpm` composite, the Docker
   build-revision mismatch block, long Docker specs, and `revokeServerSession`'s
   two-phase bound.
-- The [Desktop Shell](architecture.md#delivery-surfaces) needs a start page
-  without Django, since Django renders the app page.
 
 ### Cross-server linking redesign
 

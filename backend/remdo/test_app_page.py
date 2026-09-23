@@ -88,4 +88,4 @@ class AppPageTests(TestCase):
             content.index("/app-assets/chunk.css"), content.index("/app-assets/main-test.css")
         )
         self.assertNotIn("/@vite/client", content)
-        self.assertEqual(content.count("/app-assets/shared-test.css"), 0)
+        self.assertNotIn("/app-assets/shared-test.css", content)

@@ -3,9 +3,6 @@
 {% block styles %}
   {% app_assets as assets %}
   {% for stylesheet in assets.stylesheets %}<link rel="stylesheet" href="{{ stylesheet }}">{% endfor %}
-{% endblock %}
-{% block extra_head %}
-  {% app_assets as assets %}
   <link rel="apple-touch-icon" href="/icon-512.png">
   {% if assets.manifest %}<link rel="manifest" href="{{ assets.manifest }}">{% endif %}
   {% for script in assets.scripts %}<script type="module" src="{{ script }}"></script>{% endfor %}

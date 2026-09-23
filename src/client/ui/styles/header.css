@@ -71,6 +71,7 @@
   transition: color 150ms ease;
 }
 
+.remdo-header-links[hidden],
 .remdo-header-link[hidden] {
   display: none;
 }
@@ -80,16 +81,6 @@
   min-width: 44px;
   min-height: 44px;
   justify-content: center;
-}
-
-button.remdo-header-link {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-  cursor: pointer;
 }
 
 .remdo-header-brand-link:hover,

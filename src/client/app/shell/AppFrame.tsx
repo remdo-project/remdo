@@ -43,12 +43,14 @@ function AppFrameContent() {
   const location = useLocation();
   const sessionState = matches.findLast(hasSessionState)?.loaderData.sessionState ?? null;
   const signedOut = sessionState?.status === 'unauthenticated';
+  const connectionUnavailable = sessionState?.status === 'offline-unavailable';
   const logout = useLogout();
   const navigate = useNavigate();
 
   useEffect(() => {
     pageElement('[data-app-sign-out]').hidden = signedOut;
-  }, [signedOut]);
+    pageElement('.remdo-header-links').hidden = connectionUnavailable;
+  }, [signedOut, connectionUnavailable]);
 
   // Server-rendered header links to app routes stay inside the running app
   // rather than reloading it.

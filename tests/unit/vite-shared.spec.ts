@@ -13,7 +13,7 @@ describe('vite shared config', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-vite-routes-'));
     fs.mkdirSync(path.join(root, 'public/playground'), { recursive: true });
     fs.writeFileSync(path.join(root, 'public/playground/index.html'), '<h1>Explorer</h1>');
-    fs.writeFileSync(path.join(root, 'public/manifest.webmanifest'), '{"name":"Test app"}');
+    fs.writeFileSync(path.join(root, 'public/logo.svg'), '<svg/>');
     const receivedHeaders: http.IncomingHttpHeaders[] = [];
     const djangoPages: Record<string, string> = { '/about/': 'Public page from Django' };
     for (const url of ['/', '/n/example', '/sign-out', '/dev/lexical-demo']) djangoPages[url] = 'App page from Django';
@@ -48,8 +48,8 @@ describe('vite shared config', () => {
       const explorer = await fetch(new URL('/playground/index.html', origin));
       expect(explorer.status).toBe(200);
       expect(await explorer.text()).toContain('<h1>Explorer</h1>');
-      const manifest = await fetch(new URL('/manifest.webmanifest?version=1', origin));
-      expect(await manifest.json()).toEqual({ name: 'Test app' });
+      const logo = await fetch(new URL('/logo.svg?version=1', origin));
+      expect(await logo.text()).toBe('<svg/>');
       for (const url of ['/internal/collaboration/flush/private', '/%69nternal/collaboration/documents/private/content']) {
         const before = receivedHeaders.length;
         const response = await fetch(new URL(url, origin));

@@ -255,9 +255,9 @@ against the [document registry](architecture.md#document-registry).
 
 ## App-shell layout container follow-up
 
-- The header (`AppHeader.tsx` `Container size="xl"` + `.header .inner`) and the
-  document route (`DocumentRoute.tsx` `Container fluid` + `main.document-route-container`)
-  both use a Mantine `Container` whose max-width/gutter is then cancelled in CSS
+- The document route (`DocumentRoute.tsx` `Container fluid` +
+  `main.document-route-container`) uses a Mantine `Container` whose
+  max-width/gutter is then cancelled in CSS
   (`max-width: none` / `padding-inline: 0`), needing an element+class selector to
   outrank `.mantine-Container-root`. The Container contributes only its block
   padding. Consider dropping `Container` for a plain `<div>`/`<main>` and owning

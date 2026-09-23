@@ -45,7 +45,8 @@ cache its last validated bootstrap for offline reopen.
 
 ## Logout
 
-Logout immediately ends local app access on one device, including offline.
+Users start logout from a sign-out confirmation. Logout immediately ends local
+app access on one device, including offline.
 Local cleanup and the server request are bounded so an unreachable server or
 undeletable database cannot stall local logout. Full logout requires server
 confirmation.
@@ -139,8 +140,7 @@ contract.
 
 Django enforces trusted origins supplied by the resolved [runtime configuration](../runtime/configuration.md#network-addressing).
 Production trusts only that origin. Development additionally trusts local
-aliases and the loopback PWA preview origin. Preview requests retain their
-browser-supplied `Origin`, so unrelated origins remain rejected.
+aliases.
 
 A server's canonical public port namespaces its session and CSRF cookies. Local
 stacks on shifted port ranges keep independent sessions while sharing one

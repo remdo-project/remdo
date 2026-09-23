@@ -14,16 +14,18 @@ run modes.
 - **PWA Shell:** Hosted web with a manifest and service worker for
   [offline app-shell entry](#application-freshness). [Offline document editing](#offline-application-behavior) uses local persistence.
 - **Desktop Shell:** Native wrapper (for example Electron/Tauri) hosting the
-  same SPA with OS integration.
+  same SPA with OS integration. It needs its own start page, since Django
+  renders the app page.
 
 Delivery surface choice does not alter outliner semantics.
 
 ### Application Freshness
 
 The service worker stores the app page and serves it as the offline navigation
-fallback for application routes only. The app page's HTML is identical for every
-visitor, so the stored copy is valid for any account. Public downloads,
-server-rendered pages, and missing static assets retain their server responses.
+fallback for [app routes](#gateway) only. The app page's HTML is identical for
+every visitor, so the stored copy is valid for any account. Public downloads,
+other server-rendered pages, and missing static assets retain their server
+responses.
 In Production, static HTTP responses require revalidation; dynamic and error
 responses are not stored in HTTP caches. Service-worker shell storage remains
 available offline. Collaboration and authentication HTTP endpoints remain
@@ -31,17 +33,19 @@ network-only.
 
 ### Shared Presentation
 
-Django renders every page, including the app page, and owns their header and
-footer. On the app page, the SPA renders state only it knows into designated
-header and footer regions. The SPA and server-rendered pages share theme values
+Django owns every page's header and footer, including the app page's. On the
+app page, the SPA renders state only it knows into designated header and footer
+regions. The SPA and server-rendered pages share theme values
 and styles; account pages load their presentation assets without the editor
 runtime.
 
-The header links to About and to the current session action. Django pages
-link Admin for staff, then “Sign out…” when Django recognizes a session and
-“Sign in” otherwise. The app page shows “Sign out…” until the app reaches its
-[signed-out screen](specs/access/access-control.md#authenticated-app-access), which shows
-“Sign in” instead. “Sign out…” opens the app's sign-out confirmation.
+The header links to About and to the current session action. Pages other than
+the app page link Admin for staff, then “Sign out…” when Django recognizes a
+session and “Sign in” otherwise. The app page shows “Sign out…” until the app
+reaches its [signed-out screen](specs/access/access-control.md#authenticated-app-access), which shows “Sign in” instead. Its
+[connection-unavailable state](#offline-application-behavior) without
+remembered session state hides these links. “Sign out…” opens the
+[sign-out confirmation](specs/access/access-control.md#logout).
 
 The footer links the [privacy policy](../content/pages/privacy.md) and the source repository. The app footer
 also identifies the loaded frontend with “Build #revision” in readable secondary
