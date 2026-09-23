@@ -33,9 +33,15 @@ describe('auth client session gate', () => {
     expect(localStorage.getItem('remdo-authenticated-session')).toBe('1');
   });
 
-  it('bounds the sign-out session check when the server stalls', async () => {
+  it('cancels a stalled sign-out session check', async () => {
     vi.useFakeTimers();
-    getSessionMock.mockReturnValue(new Promise(() => {}));
+    let requestSignal: AbortSignal | undefined;
+    getSessionMock.mockImplementation((signal: AbortSignal) => {
+      requestSignal = signal;
+      return new Promise((_, reject) => {
+        signal.addEventListener('abort', () => reject(signal.reason));
+      });
+    });
     const { rememberAuthenticatedSession, resolveSignOutSessionGateState } = await import('#client/app/session/client');
     rememberAuthenticatedSession();
 
@@ -43,6 +49,7 @@ describe('auth client session gate', () => {
     await vi.advanceTimersByTimeAsync(1500);
 
     await expect(sessionState).resolves.toEqual({ status: 'offline-remembered' });
+    expect(requestSignal?.aborted).toBe(true);
   });
 
   it('uses remembered auth for offline session state', async () => {

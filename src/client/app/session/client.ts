@@ -213,24 +213,27 @@ function readAuthErrorStatus(error: unknown): number | null {
 
 /**
  * Logout must stay reachable when the server stalls, so a session check that
- * outlasts the bound resolves as if the server were unreachable.
+ * outlasts the bound is cancelled and resolves as if the server were
+ * unreachable. Cancelling, rather than racing, keeps a late response from
+ * remembering the session and superseding the sign-out that follows.
  */
-export function resolveSignOutSessionGateState(): Promise<SessionGateState> {
-  return Promise.race([
-    resolveSessionGateState(),
-    new Promise<SessionGateState>((resolve) => {
-      setTimeout(() => resolve(resolveUnavailableSessionGateState()), SIGN_OUT_SESSION_CHECK_TIMEOUT_MS);
-    }),
-  ]);
+export async function resolveSignOutSessionGateState(): Promise<SessionGateState> {
+  const signal = AbortSignal.timeout(SIGN_OUT_SESSION_CHECK_TIMEOUT_MS);
+  try {
+    return await resolveSessionGateState(signal);
+  } catch (error) {
+    if (signal.aborted) return resolveUnavailableSessionGateState();
+    throw error;
+  }
 }
 
-export async function resolveSessionGateState(): Promise<SessionGateState> {
+export async function resolveSessionGateState(signal?: AbortSignal): Promise<SessionGateState> {
   if (hasPendingSignOut()) {
     return { status: 'unauthenticated' };
   }
 
   try {
-    const session = await getSession();
+    const session = await getSession(signal);
     if (session) {
       rememberAuthenticatedSession();
       return {
