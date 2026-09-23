@@ -25,4 +25,17 @@ first-class option. You can inspect the code and choose where your data lives.
 As we connect more sources, respecting their privacy and access boundaries
 remains a guiding principle.
 
+##Team:
+
+- <a href="https://www.linkedin.com/in/lewalski/" target="_blank"
+  rel="noopener">**Piotr Lewalski**<img src="/icons/linkedin.svg"
+  alt="LinkedIn" width="16" height="16"
+  style="margin-left: .3em; vertical-align: -0.125em"></a>: Founder —
+  ex-NVIDIA, Amazon, Intel. Focused on tech and product.
+- <a href="https://www.linkedin.com/in/bartlomiejjacekbucki/" target="_blank"
+  rel="noopener">**Bartłomiej Bucki**<img src="/icons/linkedin.svg"
+  alt="LinkedIn" width="16" height="16"
+  style="margin-left: .3em; vertical-align: -0.125em"></a>: Business & Growth —
+  focused on users, marketing, GTM and operations.
+
 [Explore RemDo on GitHub](https://github.com/remdo-project/remdo)
