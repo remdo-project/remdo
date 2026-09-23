@@ -34,7 +34,9 @@ branding, page chrome, and account cards and controls. React and Django retain
 their native rendering and interaction ownership; account pages load their
 presentation assets without the editor runtime.
 
-The app footer identifies the loaded frontend with “Build #revision” in readable
+The SPA and server-rendered pages share a footer linking the
+[privacy policy](../content/pages/privacy.md) and the source repository.
+The app footer also identifies the loaded frontend with “Build #revision” in readable
 secondary text, linking the revision to its commit. Absent metadata shows
 “Local development” or “Build unknown”. When startup configuration reports
 a different server revision, the app shows a prominent mismatch warning with

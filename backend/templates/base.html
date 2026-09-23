@@ -37,6 +37,15 @@
             </div>
           </header>
           {% block layout %}{% block content %}{% endblock %}{% endblock %}
+          <footer class="remdo-footer">
+            <div class="remdo-footer-start">
+              <span>© {% now "Y" %} RemDo</span>
+              <nav aria-label="Footer" class="remdo-footer-links">
+                <a href="/privacy/"{% if request.path == '/privacy/' %} aria-current="page"{% endif %}>Privacy</a>
+                <a href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">Source</a>
+              </nav>
+            </div>
+          </footer>
         </div>
       </div>
     {% endblock %}

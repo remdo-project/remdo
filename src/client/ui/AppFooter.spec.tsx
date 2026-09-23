@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import AppFooter from './AppFooter';
 
@@ -11,6 +11,13 @@ const serverRevision = '01234567abcdef0123456789abcdef0123456789';
 beforeEach(() => {
   settings.dev = false;
   settings.browser.BUILD_REVISION = appRevision;
+});
+
+it('links the privacy policy and source repository', () => {
+  render(<AppFooter serverRevision={appRevision} />);
+  const links = screen.getByRole('navigation', { name: 'Footer' });
+  expect(within(links).getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy/');
+  expect(within(links).getByRole('link', { name: 'Source' })).toHaveAttribute('href', 'https://github.com/remdo-project/remdo');
 });
 
 it('links only the short hash when the builds match', () => {

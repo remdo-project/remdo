@@ -33,6 +33,9 @@ class PublicPageTests(SimpleTestCase):
         self.assertContains(response, "<h1>Privacy &amp; data</h1>", html=True)
         self.assertContains(response, "<h2>Your data</h2>", html=True)
         self.assertContains(response, "<strong>control</strong>", html=True)
+        self.assertContains(
+            response, '<a href="/privacy/" aria-current="page">Privacy</a>', html=True
+        )
         self.assertIn("no-store", response.headers["Cache-Control"])
         self.assertEqual(self.client.head("/privacy/").content, b"")
         self.assertEqual(self.client.post("/privacy/").status_code, 405)
