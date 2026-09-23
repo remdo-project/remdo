@@ -31,7 +31,7 @@ remains a guiding principle.
   rel="noopener">**Piotr Lewalski**<img src="/icons/linkedin.svg"
   alt="LinkedIn" width="16" height="16"
   style="margin-left: .3em; vertical-align: -0.125em"></a>: Founder —
-  ex-NVIDIA, Amazon, Intel. Focused on tech and product.
+  ex-NVIDIA, Amazon, Intel — focused on tech and product.
 - <a href="https://www.linkedin.com/in/bartlomiejjacekbucki/" target="_blank"
   rel="noopener">**Bartłomiej Bucki**<img src="/icons/linkedin.svg"
   alt="LinkedIn" width="16" height="16"
