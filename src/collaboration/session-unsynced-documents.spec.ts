@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { LOCAL_CACHE_ORIGIN } from '#collaboration/local-persistence';
 import * as Y from 'yjs';
 import { CollabSession } from '#collaboration/session';
 import {
@@ -124,6 +125,26 @@ describe('collaboration session unsynced document ledger', () => {
     expect(session.snapshot().hasLocalChanges).toBe(false);
     // That tab may still hold edits made after this one hydrated the cache.
     expect(localStorage.getItem(otherTabMark)).toBe('1');
+  });
+
+  it('reports edits another open tab caches after this one attached', () => {
+    const doc = new Y.Doc();
+    const mock = createMockProvider();
+    const session = new CollabSession({
+      docId: 'shared-doc',
+      enabled: true,
+      providerFactory: createMockProviderFactory(mock),
+    });
+    session.attach(new Map([['shared-doc', doc]]));
+    sessions.push(session);
+
+    localStorage.setItem('remdo-unsynced:shared-doc:other-tab', '1');
+    // The provider counts the cached update before the session observes it.
+    mock.hasLocalChanges = true;
+    mock.emit('local-changes', true);
+    doc.transact(() => doc.getText('probe').insert(0, 'from other tab'), LOCAL_CACHE_ORIGIN);
+
+    expect(session.snapshot().hasLocalChanges).toBe(true);
   });
 
   it('does not count a mark for a document whose id extends this one', () => {

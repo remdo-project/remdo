@@ -200,6 +200,12 @@ export class CollabSession {
 
       const handleDocUpdate = (_update: Uint8Array, origin: unknown) => {
         const fromCache = origin === LOCAL_CACHE_ORIGIN;
+        // Another open tab's edits arrive through the cache after attach, and
+        // that tab marks them before its cache write can reach this one.
+        if (fromCache && !this.restoredUnsyncedEdits && isDocumentUnsynced(this.state.docId)) {
+          this.restoredUnsyncedEdits = true;
+          recomputeState();
+        }
         if (!fromCache && origin !== provider) {
           this.unsavedLocalEdits = true;
           recomputeState();
