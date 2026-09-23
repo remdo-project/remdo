@@ -36,7 +36,6 @@
     "check:dev-boundary": "sh ./tools/check-dev-boundary.sh",
     "dev": "concurrently --kill-others-on-fail --names web,api,collab \"pnpm run dev:web\" \"pnpm run dev:api\" \"pnpm run dev:collab\"",
     "dev:collab": "./tools/env.sh tsx ./tools/collab-server.ts",
-    "dev:pwa": "./tools/dev/pwa.sh",
     "dev:docker": "./tools/env.sh --port-base-offset 40 ./tools/dev/docker.sh",
     "dev:data-reset": "./tools/env.sh tsx ./tools/dev/data-reset.ts",
     "dev:web": "./tools/env.sh vite",

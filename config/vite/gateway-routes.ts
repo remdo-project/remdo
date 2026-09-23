@@ -1,8 +1,4 @@
-import { DEV_LEXICAL_DEMO_ROUTE } from '../../src/client/app/shell/dev-route.ts';
-import { isAppShellPath } from '../../src/document-routes/app-shell-routes.ts';
-
 const frontendFiles = new Set([
-  '/index.html',
   '/favicon.ico',
   '/logo.svg',
   '/icon-192.png',
@@ -13,22 +9,14 @@ const frontendFiles = new Set([
   '/registerSW.js',
 ]);
 
-export function shouldProxyToDjango(url: string, mode: 'development' | 'preview'): boolean {
+export function shouldProxyToDjango(url: string): boolean {
   const pathname = url.split('?')[0]!;
-  if (isAppShellPath(pathname)) {
-    return false;
-  }
   if (frontendFiles.has(pathname) || pathname.startsWith('/app-assets/') || pathname.startsWith('/icons/')
     || /^\/workbox-[^/]+\.js$/u.test(pathname)) {
     return false;
   }
-  if (mode === 'development') {
-    if (pathname === DEV_LEXICAL_DEMO_ROUTE || pathname === '/playground' || pathname.startsWith('/playground/')) {
-      return false;
-    }
-    if (['/@', '/src/', '/node_modules/', '/config/', '/tests/', '/tools/'].some((prefix) => pathname.startsWith(prefix))) {
-      return false;
-    }
+  if (pathname === '/playground' || pathname.startsWith('/playground/')) {
+    return false;
   }
-  return true;
+  return !['/@', '/src/', '/node_modules/', '/config/', '/tests/', '/tools/'].some((prefix) => pathname.startsWith(prefix));
 }

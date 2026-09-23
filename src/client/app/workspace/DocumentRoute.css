@@ -4,7 +4,7 @@
    notes, and the wide space is better spent by real components (a sidebar, a
    second doc pane) once they exist — at which point the document narrows because
    something is there, not because of an artificial limit. The card surface and
-   elevation come from AppFrame; the document body just adds its own inset. */
+   elevation come from the page shell; the document body just adds its own inset. */
 .document-editor-shell {
   padding-block: var(--mantine-spacing-sm) var(--mantine-spacing-md);
 }

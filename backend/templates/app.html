@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load frontend %}
+{% block styles %}
+  {% app_assets as assets %}
+  {% for stylesheet in assets.stylesheets %}<link rel="stylesheet" href="{{ stylesheet }}">{% endfor %}
+{% endblock %}
+{% block extra_head %}
+  {% app_assets as assets %}
+  <link rel="apple-touch-icon" href="/icon-512.png">
+  {% if assets.manifest %}<link rel="manifest" href="{{ assets.manifest }}">{% endif %}
+  {% for script in assets.scripts %}<script type="module" src="{{ script }}"></script>{% endfor %}
+{% endblock %}
+{% block header_session %}
+  <a class="remdo-header-link" data-app-sign-out href="/sign-out/">Sign out…</a>
+  <span class="remdo-slot" data-slot="header-session"></span>
+{% endblock %}
+{% block content %}<div class="remdo-slot" id="root"></div>{% endblock %}
+{% block footer_end %}<span class="remdo-slot" data-slot="footer-status"></span>{% endblock %}

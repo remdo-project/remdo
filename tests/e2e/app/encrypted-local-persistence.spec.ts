@@ -1,4 +1,4 @@
-import { expect, test } from '#e2e/fixtures';
+import { expect, signOutFromHeader, test } from '#e2e/fixtures';
 import { createUserDocument } from '../_support/documents';
 import { ensureReady, waitForSynced } from '../editor/_support/bridge';
 
@@ -196,7 +196,7 @@ test('peer logout revokes a destroyed cache before its first key exists', async 
     const fixturePath = '/tests/e2e/_support/local-persistence-browser.ts';
     await (await import(fixturePath)).openDeferredCache(crypto.randomUUID());
   });
-  await page.getByRole('button', { name: 'Logout', exact: true }).click();
+  await signOutFromHeader(page);
   await expect(peer.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible();
   const result = await peer.evaluate(async () => {
     const fixturePath = '/tests/e2e/_support/local-persistence-browser.ts';

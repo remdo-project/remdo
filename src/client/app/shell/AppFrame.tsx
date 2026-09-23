@@ -1,13 +1,14 @@
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiConfiguration } from '#platform/http/api-client';
-import { Outlet, useLocation, useMatches } from 'react-router-dom';
+import { Outlet, useLocation, useMatches, useNavigate } from 'react-router-dom';
+import { isAppShellPath } from '#document-routes';
 import type { UIMatch } from 'react-router-dom';
 import type { SessionGateState } from '#client/app/session/client';
 import { LogoutProvider, useLogout } from '#client/app/session/useLogout';
 import { createSignInPath } from '#client/app/session/post-auth-path';
-import AppHeader from '#client/ui/AppHeader';
-import AppFooter from '#client/ui/AppFooter';
-import type { AppHeaderAuthState } from '#client/ui/AppHeader';
+import BuildStatus from '#client/ui/BuildStatus';
 import UnsyncedLogoutDialog from '#client/ui/UnsyncedLogoutDialog';
 import { DevToolbarLinksSeam } from './DevToolbarSeam';
 
@@ -24,20 +25,8 @@ function hasSessionState(
     && 'sessionState' in loaderData;
 }
 
-function resolveHeaderAuthState(sessionState: SessionGateState | null): AppHeaderAuthState {
-  if (sessionState?.status === 'authenticated') {
-    return {
-      status: 'authenticated',
-      isAdmin: sessionState.session.user.is_staff,
-    };
-  }
-  if (sessionState?.status === 'offline-remembered') {
-    return { status: 'offline-remembered' };
-  }
-  if (sessionState?.status === 'unauthenticated') {
-    return { status: 'unauthenticated' };
-  }
-  return { status: 'unavailable' };
+function pageElement(selector: string): HTMLElement {
+  return document.querySelector<HTMLElement>(selector)!;
 }
 
 export default function AppFrame() {
@@ -53,25 +42,58 @@ function AppFrameContent() {
   const matches = useMatches();
   const location = useLocation();
   const sessionState = matches.findLast(hasSessionState)?.loaderData.sessionState ?? null;
+  const signedOut = sessionState?.status === 'unauthenticated';
   const logout = useLogout();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    pageElement('[data-app-sign-out]').hidden = signedOut;
+  }, [signedOut]);
+
+  // Server-rendered header links to app routes stay inside the running app
+  // rather than reloading it.
+  useEffect(() => {
+    const header = pageElement('.remdo-header');
+    const followInApp = (event: MouseEvent) => {
+      const link = (event.target as Element).closest('a');
+      if (!link || event.defaultPrevented || event.button !== 0
+        || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+      const url = new URL(link.href);
+      if (url.origin !== globalThis.location.origin || !isAppShellPath(`${url.pathname}${url.search}`)) {
+        return;
+      }
+      event.preventDefault();
+      void navigate(`${url.pathname}${url.search}`);
+    };
+    header.addEventListener('click', followInApp);
+    return () => header.removeEventListener('click', followInApp);
+  }, [navigate]);
 
   return (
-    <div className="remdo-backdrop">
-      <div className="remdo-shell">
-        <AppHeader
-          authState={logout.signingOut ? { status: 'unavailable' } : resolveHeaderAuthState(sessionState)}
-          onLogout={logout.requestLogout}
-          signInHref={createSignInPath(location.search)}
-          trailingNav={<DevToolbarLinksSeam linkClassName="remdo-header-link" />}
-        />
-        <UnsyncedLogoutDialog
-          onCancel={logout.cancelLogout}
-          onConfirm={logout.confirmLogout}
-          opened={logout.confirmingLoss}
-        />
-        {logout.signingOut ? <div role="status">Signing out…</div> : <Outlet />}
-        <AppFooter serverRevision={configuration?.buildRevision ?? ''} />
-      </div>
-    </div>
+    <>
+      {createPortal(
+        <>
+          {signedOut && (
+            <a className="remdo-header-link" href={createSignInPath(location.search)}>
+              Sign in
+            </a>
+          )}
+          <DevToolbarLinksSeam linkClassName="remdo-header-link" />
+        </>,
+        pageElement('[data-slot="header-session"]'),
+      )}
+      {createPortal(
+        <BuildStatus serverRevision={configuration?.buildRevision ?? ''} />,
+        pageElement('[data-slot="footer-status"]'),
+      )}
+      <UnsyncedLogoutDialog
+        onCancel={logout.cancelLogout}
+        onConfirm={logout.confirmLogout}
+        opened={logout.confirmingLoss}
+      />
+      {logout.signingOut ? <div role="status">Signing out…</div> : <Outlet />}
+    </>
   );
 }

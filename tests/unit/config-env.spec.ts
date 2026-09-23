@@ -235,7 +235,7 @@ describe('config env resolve', () => {
   it('recomputes every derived dev port instead of inheriting stale values', () => {
     const output = execFileSync(
       './tools/env.sh',
-      ['sh', '-c', 'printf \'%s\\n\' "$PORT" "$VITEST_PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT" "$PREVIEW_PORT"'],
+      ['sh', '-c', 'printf \'%s\\n\' "$PORT" "$VITEST_PORT" "$COLLAB_SERVER_PORT" "$API_SERVER_PORT"'],
       {
         encoding: 'utf8',
         env: {
@@ -245,7 +245,6 @@ describe('config env resolve', () => {
           VITEST_PORT: '9002',
           COLLAB_SERVER_PORT: '9004',
           API_SERVER_PORT: '9011',
-          PREVIEW_PORT: '9020',
         },
       },
     );
@@ -255,7 +254,6 @@ describe('config env resolve', () => {
       '4302',
       '4304',
       '4311',
-      '4320',
     ]);
   });
 
@@ -264,20 +262,6 @@ describe('config env resolve', () => {
       './tools/env.sh',
       ['--port-base-offset', '08', 'true'],
       { encoding: 'utf8' },
-    )).toThrow();
-  });
-
-  it('rejects a derived PWA preview port blocked by Chromium', () => {
-    expect(() => execFileSync(
-      './tools/env.sh',
-      ['true'],
-      {
-        encoding: 'utf8',
-        env: {
-          ...process.env,
-          PORT_BASE: '5980',
-        },
-      },
     )).toThrow();
   });
 });

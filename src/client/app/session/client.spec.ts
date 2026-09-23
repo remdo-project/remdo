@@ -33,6 +33,18 @@ describe('auth client session gate', () => {
     expect(localStorage.getItem('remdo-authenticated-session')).toBe('1');
   });
 
+  it('bounds the sign-out session check when the server stalls', async () => {
+    vi.useFakeTimers();
+    getSessionMock.mockReturnValue(new Promise(() => {}));
+    const { rememberAuthenticatedSession, resolveSignOutSessionGateState } = await import('#client/app/session/client');
+    rememberAuthenticatedSession();
+
+    const sessionState = resolveSignOutSessionGateState();
+    await vi.advanceTimersByTimeAsync(1500);
+
+    await expect(sessionState).resolves.toEqual({ status: 'offline-remembered' });
+  });
+
   it('uses remembered auth for offline session state', async () => {
     getSessionMock.mockRejectedValue(new TypeError('network unavailable'));
     Object.defineProperty(navigator, 'onLine', {

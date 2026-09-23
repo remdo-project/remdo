@@ -1,7 +1,7 @@
 /* eslint-disable node/no-process-env */
 import { execFileSync } from 'node:child_process';
 import type { Page } from '@playwright/test';
-import { expect, guardedTest as test, withPageGuards } from '#e2e/fixtures';
+import { expect, guardedTest as test, signOutFromHeader, withPageGuards } from '#e2e/fixtures';
 import { createUserDocument } from '../_support/documents';
 import {
   allowOfflineDisconnectedConsoleIssue,
@@ -113,11 +113,12 @@ test('offline logout discards edits across tabs and isolates the next account', 
       await page.locator('.editor-input').click();
       await page.keyboard.type(' discard this edit');
       await expect(page.getByText('Unsaved · syncs when reconnected')).toBeVisible();
-      await page.getByRole('button', { name: 'Logout', exact: true }).click();
+      await signOutFromHeader(page);
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await page.goBack();
       await expect(page.locator('.editor-input')).toContainText('discard this edit');
-      await page.getByRole('button', { name: 'Logout', exact: true }).click();
+      await signOutFromHeader(page);
       await page.getByRole('button', { name: 'Sign out and discard', exact: true }).click();
       await expect(page.getByText('Sign-out incomplete', { exact: true })).toBeVisible();
       await expect(peer.getByText('Sign-out incomplete', { exact: true })).toBeVisible();
@@ -176,7 +177,7 @@ test('native admin logout clears cached content and peer editors before another 
     await peer.goto(`/n/${docId}`);
     await expect(peer.locator('.editor-input')).toContainText(title);
     await expect(peer.locator('.collab-status')).toHaveAttribute('aria-label', /Saved to server.*Server connected/u);
-    await page.getByRole('link', { name: 'Admin', exact: true }).click();
+    await page.goto('/admin/');
     await page.getByRole('button', { name: 'Log out', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible();
     expect((await context.request.get('/api/auth/browser/v1/auth/session')).status()).toBe(200);

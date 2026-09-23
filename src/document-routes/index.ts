@@ -1,5 +1,6 @@
 import { normalizeDocumentId } from '#domain/documents/ids';
 import { normalizeNoteId, normalizeNoteIdOrThrow } from '#domain/notes/ids';
+export { isAppShellPath } from './app-shell-routes';
 
 const NOTE_ADDRESS_SEPARATOR = '_';
 const APP_DOCUMENT_PATH_PREFIX = '/n';

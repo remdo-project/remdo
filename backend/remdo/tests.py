@@ -125,7 +125,7 @@ class ConfigurationTests(SimpleTestCase):
         self.assertEqual(result["app_formatter"], ["RequestErrorFormatter"])
 
     def test_native_management_defaults_to_production_without_node(self):
-        result = self.settings(NODE_ENV="development", PREVIEW_PORT="4020")
+        result = self.settings(NODE_ENV="development")
         self.assertFalse(result["debug"])
         self.assertFalse(result["fixtures"])
         self.assertTrue(result["deployment_accounts"])
@@ -140,7 +140,6 @@ class ConfigurationTests(SimpleTestCase):
             DJANGO_SETTINGS_MODULE="remdo.development",
             NODE_ENV="production",
             APP_ORIGIN="http://browser-visible.test:5300",
-            PREVIEW_PORT="5320",
         )
         self.assertTrue(result["debug"])
         self.assertTrue(result["fixtures"])
@@ -148,7 +147,6 @@ class ConfigurationTests(SimpleTestCase):
         self.assertFalse(result["rate_limits"])
         self.assertFalse(result["secure"])
         self.assertEqual(result["cookie"], "remdo_session_5300")
-        self.assertIn("http://localhost:5320", result["origins"])
         self.assertIn("http://127.0.0.1:5300", result["origins"])
 
     def test_fast_password_hashing_is_confined_to_test_settings(self):

@@ -10,7 +10,7 @@ with their outliner owners.
 Delivery surfaces describe architectural forms; [Run Modes](run-modes.md) owns the supported
 run modes.
 
-- **Hosted Web:** SPA served from server/CDN and loaded by browser.
+- **Hosted Web:** Server-rendered app page that loads the SPA in the browser.
 - **PWA Shell:** Hosted web with a manifest and service worker for
   [offline app-shell entry](#application-freshness). [Offline document editing](#offline-application-behavior) uses local persistence.
 - **Desktop Shell:** Native wrapper (for example Electron/Tauri) hosting the
@@ -20,7 +20,9 @@ Delivery surface choice does not alter outliner semantics.
 
 ### Application Freshness
 
-The offline navigation fallback serves only application routes. Public downloads,
+The service worker stores the app page and serves it as the offline navigation
+fallback for application routes only. The app page's HTML is identical for every
+visitor, so the stored copy is valid for any account. Public downloads,
 server-rendered pages, and missing static assets retain their server responses.
 In Production, static HTTP responses require revalidation; dynamic and error
 responses are not stored in HTTP caches. Service-worker shell storage remains
@@ -29,19 +31,25 @@ network-only.
 
 ### Shared Presentation
 
-The SPA and server-rendered pages share theme values and styles for
-branding, page chrome, and account cards and controls. React and Django retain
-their native rendering and interaction ownership; account pages load their
-presentation assets without the editor runtime.
+Django renders every page, including the app page, and owns their header and
+footer. On the app page, the SPA renders state only it knows into designated
+header and footer regions. The SPA and server-rendered pages share theme values
+and styles; account pages load their presentation assets without the editor
+runtime.
 
-The SPA and server-rendered pages share a footer linking the
-[privacy policy](../content/pages/privacy.md) and the source repository.
-The app footer also identifies the loaded frontend with “Build #revision” in readable
-secondary text, linking the revision to its commit. Absent metadata shows
-“Local development” or “Build unknown”. When startup configuration reports
-a different server revision, the app shows a prominent mismatch warning with
-both commit links. Missing revisions or unavailable configuration do not imply a
-mismatch. The comparison does not monitor subsequent deployments.
+The header links to About and to the current session action. Django pages
+link Admin for staff, then “Sign out…” when Django recognizes a session and
+“Sign in” otherwise. The app page shows “Sign out…” until the app reaches its
+[signed-out screen](specs/access/access-control.md#authenticated-app-access), which shows
+“Sign in” instead. “Sign out…” opens the app's sign-out confirmation.
+
+The footer links the [privacy policy](../content/pages/privacy.md) and the source repository. The app footer
+also identifies the loaded frontend with “Build #revision” in readable secondary
+text, linking the revision to its commit. Absent metadata shows “Local
+development” or “Build unknown”. When startup configuration reports a different
+server revision, the app shows a prominent mismatch warning with both commit
+links. Missing revisions or unavailable configuration do not imply a mismatch.
+The comparison does not monitor subsequent deployments.
 
 ### Public Pages
 
@@ -71,10 +79,10 @@ validates browser origins against the [configured trusted origins](specs/access/
 
 ### Gateway
 
-The gateway explicitly owns SPA routes (`/`, `/n/*`, and
-`/sign-out`), frontend assets, Django static assets, health probes, and
-collaboration endpoints. Django owns all other HTTP routes,
-including unknown routes and their 404 responses. Normal HTTP routes have the
+The gateway explicitly owns frontend assets, Django static assets, health
+probes, and collaboration endpoints. Django owns all other HTTP routes,
+including the app page at every app route (`/`, `/n/*`, and `/sign-out`),
+unknown routes, and their 404 responses. Normal HTTP routes have the
 same owner in development and production; development additionally serves
 frontend tooling and development-only routes.
 

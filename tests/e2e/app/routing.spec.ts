@@ -2,6 +2,7 @@ import {
   allowUnauthorizedNetwork,
   collectCurrentUserRequests,
   setExpectedConsoleIssues,
+  signOutFromHeader,
   expect,
   test,
   unauthenticatedTest,
@@ -169,7 +170,7 @@ test.describe('Routing', () => {
     const navigations = await countNavigations(page);
 
     allowUnauthorizedNetwork(page);
-    await page.getByRole('button', { name: 'Logout' }).click();
+    await signOutFromHeader(page);
 
     await expectPath(page, '/');
     await expect(page.getByRole('status')).toContainText(/signed out/i);
@@ -181,6 +182,20 @@ test.describe('Routing', () => {
     expect(bootstrapStatus).toBe(403);
   });
 
+  test('opens the sign-out confirmation while the session check stalls', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
+    await page.route('**/api/auth/browser/v1/auth/session', async (route) => {
+      if (route.request().method() !== 'GET') return route.continue();
+      await new Promise(() => {});
+    });
+
+    await page.getByRole('link', { name: 'Sign out…', exact: true }).click();
+
+    await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible();
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
   test('signs out every tab sharing the browser storage', async ({ page, context }) => {
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
@@ -190,11 +205,11 @@ test.describe('Routing', () => {
     await expect(peer.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
 
     allowUnauthorizedNetwork(page);
-    await page.getByRole('button', { name: 'Logout' }).click();
+    await signOutFromHeader(page);
 
     // The peer stops using its local data as soon as the broadcast lands; the
     // login view follows a loader round-trip, so allow for a slow one.
-    await expect(peer.getByRole('button', { name: 'Logout' })).toBeHidden({ timeout: 15_000 });
+    await expect(peer.getByRole('link', { name: 'Sign out…' })).toBeHidden({ timeout: 15_000 });
     await expect(peer.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible({ timeout: 15_000 });
     // The peer reaches the login view on the sign-out broadcast, which precedes
     // revocation; until it is confirmed the status reports an incomplete

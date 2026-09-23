@@ -27,7 +27,7 @@ remdo_configure_environment() {
 
   : "${NODE_ENV:=${1}}"
   if [ "${1}" = "production" ]; then
-    unset PORT_BASE PUBLIC_HOST VITEST_PORT PREVIEW_PORT
+    unset PORT_BASE PUBLIC_HOST VITEST_PORT
   else
     : "${HOST:=localhost}"
     : "${PORT_BASE:=4000}"
@@ -49,7 +49,6 @@ remdo_configure_environment() {
     VITEST_PORT="$((PORT_BASE + 2))"
     COLLAB_SERVER_PORT="$((PORT_BASE + 4))"
     API_SERVER_PORT="$((PORT_BASE + 11))"
-    PREVIEW_PORT="$((PORT_BASE + 20))"
 
     if [ -z "${PUBLIC_HOST:-}" ] && [ "${HOST}" = "0.0.0.0" ]; then
       PUBLIC_HOST="$(hostname)"
@@ -95,11 +94,10 @@ remdo_configure_environment() {
   if [ "${1}" != "production" ]; then
     remdo_assert_browser_safe_port "${PORT}"
     remdo_assert_browser_safe_port "${VITEST_PORT}"
-    remdo_assert_browser_safe_port "${PREVIEW_PORT}"
   fi
 
   export NODE_ENV HOST PUBLIC_HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI TMPDIR
-  export VITEST_PORT COLLAB_SERVER_PORT API_SERVER_PORT PREVIEW_PORT
+  export VITEST_PORT COLLAB_SERVER_PORT API_SERVER_PORT
   export AUTH_SECRET COLLAB_INTERNAL_SECRET APP_ORIGIN
   if [ "$1" = production ]; then
     DJANGO_SETTINGS_MODULE=remdo.settings

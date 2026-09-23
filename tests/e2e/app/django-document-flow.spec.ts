@@ -1,5 +1,5 @@
 import { expectCollaborationDenied } from '../_support/documents';
-import { expect, guardedTest as test } from '#e2e/fixtures';
+import { expect, guardedTest as test, signOutFromHeader } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 import { provisionDjangoUser } from '../../../tools/lib/django-user';
@@ -57,7 +57,7 @@ test('Django sign-in, document creation, collaboration, reopen, and account isol
   await waitForSynced(page);
   await page.goto('/');
   await expect(page.locator(`[data-home-document-ref="${docId}"]`).first()).toBeVisible();
-  await page.getByRole('button', { name: 'Logout', exact: true }).click();
+  await signOutFromHeader(page);
   await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible();
   await signIn(page, otherAccount);
   await expect(page.locator(`[data-home-document-ref="${docId}"]`)).toHaveCount(0);

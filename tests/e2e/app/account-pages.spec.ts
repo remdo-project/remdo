@@ -1,4 +1,4 @@
-import { expect, guardedTest as test, allowUnauthorizedNetwork, setExpectedConsoleIssues } from '#e2e/fixtures';
+import { expect, guardedTest as test, allowUnauthorizedNetwork, setExpectedConsoleIssues, signOutFromHeader } from '#e2e/fixtures';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 import { provisionDjangoUser } from '../../../tools/lib/django-user';
 import { createFixtureDocument } from '../../../tools/lib/fixture-document';
@@ -61,7 +61,7 @@ for (const width of [1280, 390]) {
     // Model edits left by a closed tab to exercise explicit discard on logout.
     await page.evaluate(() => localStorage.setItem('remdo-unsynced:document:closed-tab', '1'));
     allowUnauthorizedNetwork(page);
-    await page.getByRole('button', { name: 'Logout', exact: true }).click();
+    await signOutFromHeader(page);
     await page.getByRole('button', { name: 'Sign out and discard', exact: true }).click();
     await expect(page.getByRole('status')).toContainText("You're signed out");
     expect(await presentation(page)).toEqual(loginPresentation);
@@ -123,7 +123,7 @@ test('admin sign-in supersedes an unfinished logout in another tab', async ({ pa
     }
     return route.continue();
   });
-  await page.getByRole('button', { name: 'Logout', exact: true }).click();
+  await signOutFromHeader(page);
   const pendingNotice = page.getByText('Local data cleared. Signing in finishes signing out first.');
   await expect(pendingNotice).toBeVisible();
   await page.unroute('**/api/auth/browser/v1/auth/session');

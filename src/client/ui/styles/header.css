@@ -71,6 +71,10 @@
   transition: color 150ms ease;
 }
 
+.remdo-header-link[hidden] {
+  display: none;
+}
+
 .remdo-header-brand-link,
 .remdo-header-link {
   min-width: 44px;

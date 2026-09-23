@@ -7,6 +7,7 @@ const PENDING_SIGN_OUT_ORIGIN_KEY = 'remdo-pending-sign-out-origin';
 export const CONFIRMED_SIGN_OUT_KEY = 'remdo-sign-out-confirmed';
 const PENDING_SIGN_OUT_STORAGE_VALUE = '1';
 const SERVER_SIGN_OUT_TIMEOUT_MS = 1500;
+const SIGN_OUT_SESSION_CHECK_TIMEOUT_MS = 1500;
 
 type CurrentSession = NonNullable<Awaited<ReturnType<typeof getSession>>>;
 
@@ -208,6 +209,19 @@ function readAuthErrorStatus(error: unknown): number | null {
   }
   const status = (error).status;
   return typeof status === 'number' ? status : null;
+}
+
+/**
+ * Logout must stay reachable when the server stalls, so a session check that
+ * outlasts the bound resolves as if the server were unreachable.
+ */
+export function resolveSignOutSessionGateState(): Promise<SessionGateState> {
+  return Promise.race([
+    resolveSessionGateState(),
+    new Promise<SessionGateState>((resolve) => {
+      setTimeout(() => resolve(resolveUnavailableSessionGateState()), SIGN_OUT_SESSION_CHECK_TIMEOUT_MS);
+    }),
+  ]);
 }
 
 export async function resolveSessionGateState(): Promise<SessionGateState> {

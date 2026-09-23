@@ -270,5 +270,10 @@ expect.extend({
   },
 });
 
+export async function signOutFromHeader(page: Page): Promise<void> {
+  await page.getByRole('link', { name: 'Sign out…', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+}
+
 export { expect };
 export type { Page, Locator } from '@playwright/test';

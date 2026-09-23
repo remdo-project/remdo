@@ -1,19 +1,14 @@
 import { expect, test } from '#editor/fixtures';
-import { createUserDocument } from '../_support/documents';
-import { editorLocator } from './_support/locators';
-import { createEditorDocumentPath } from './_support/routes';
 
-test.describe('Admin link in the top toolbar', () => {
-  test('an admin sees the Admin link and it opens the admin panel', async ({ page }) => {
-    const document = await createUserDocument(page, `Admin Link ${Date.now()}`);
-    await page.goto(createEditorDocumentPath(document.id));
-    await editorLocator(page).locator('.editor-input').first().waitFor();
-    await expect(page.getByLabel(/Server connected/i)).toBeVisible();
+test.describe('Admin link', () => {
+  test('an admin opens the admin panel from a server-rendered page, not the app header', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
+    const navigation = page.getByRole('navigation', { name: 'Primary' });
+    await expect(navigation.getByRole('link')).toHaveText(['About', 'Sign out…']);
 
-    const adminLink = page.getByRole('link', { name: 'Admin' });
-    await expect(adminLink).toBeVisible();
-
-    await adminLink.click();
+    await navigation.getByRole('link', { name: 'About', exact: true }).click();
+    await navigation.getByRole('link', { name: 'Admin', exact: true }).click();
     await expect(page).toHaveURL(/\/admin\/$/u);
     await expect(page.getByRole('heading', { name: 'Site administration', exact: true })).toBeVisible();
   });

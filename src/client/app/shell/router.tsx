@@ -2,7 +2,7 @@ import { createBrowserRouter, redirect, redirectDocument } from 'react-router-do
 import AppFrame from './AppFrame';
 import AuthenticatedRoute from './AuthenticatedRoute';
 import { devRoutes } from './devRoutes';
-import { hasPendingSignOut, resolveSessionGateState } from '#client/app/session/client';
+import { hasPendingSignOut, resolveSessionGateState, resolveSignOutSessionGateState } from '#client/app/session/client';
 import type { SessionGateState } from '#client/app/session/client';
 import {
   createPostAuthNextSearch,
@@ -104,7 +104,7 @@ const appRoutes = [
   {
     path: 'sign-out',
     loader: async () => {
-      const sessionState = await resolveSessionGateState();
+      const sessionState = await resolveSignOutSessionGateState();
       if (sessionState.status === 'unauthenticated') throw redirect('/');
       return { sessionState };
     },
