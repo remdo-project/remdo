@@ -70,6 +70,38 @@ describe('collaboration session unsynced document ledger', () => {
     expect(hasUnsyncedLocalChanges()).toBe(false);
   });
 
+  it('reports cached edits this tab left unacknowledged until the provider acknowledges them', () => {
+    const docId = 'cached-doc';
+    markDocumentUnsynced(docId);
+    const docMap = new Map([[docId, new Y.Doc()]]);
+    const mock = createMockProvider();
+    const session = new CollabSession({
+      docId,
+      enabled: true,
+      providerFactory: createMockProviderFactory(mock),
+    });
+    session.attach(docMap);
+    sessions.push(session);
+
+    mock.hasLocalChanges = true;
+    mock.emit('local-changes', true);
+    expect(session.snapshot().hasLocalChanges).toBe(true);
+
+    // The server's sync step arrives before it acknowledges the client's state.
+    mock.synced = true;
+    mock.emit('sync', true);
+    expect(session.snapshot().hasLocalChanges).toBe(true);
+
+    session.attach(docMap);
+    mock.emit('local-changes', true);
+    expect(session.snapshot().hasLocalChanges).toBe(true);
+
+    mock.hasLocalChanges = false;
+    mock.emit('local-changes', false);
+    expect(session.snapshot().hasLocalChanges).toBe(false);
+    expect(hasUnsyncedLocalChanges()).toBe(false);
+  });
+
   it('records a document when the provider reports local changes', () => {
     const { mock, session } = createSession('doc-a');
     sessions.push(session);

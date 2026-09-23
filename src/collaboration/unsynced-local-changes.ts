@@ -58,6 +58,10 @@ export function markDocumentUnsynced(docId: string): void {
   getLocalStorage()?.setItem(unsyncedKey(docId), '1');
 }
 
+export function isDocumentUnsynced(docId: string): boolean {
+  return (getLocalStorage()?.getItem(unsyncedKey(docId)) ?? null) !== null;
+}
+
 export function markDocumentSynced(docId: string): void {
   getLocalStorage()?.removeItem(unsyncedKey(docId));
 }

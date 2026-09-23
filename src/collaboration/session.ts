@@ -7,7 +7,7 @@ import {
   toCollaborationConnectionStatus,
   waitForSync,
 } from './runtime';
-import { markDocumentSynced, markDocumentUnsynced } from './unsynced-local-changes';
+import { isDocumentUnsynced, markDocumentSynced, markDocumentUnsynced } from './unsynced-local-changes';
 import { trace } from '#platform/log';
 import type {
   CollaborationConnectionStatus,
@@ -71,6 +71,10 @@ export class CollabSession {
   private providerHadLocalChanges = false;
   private sawProviderAck = false;
   private unsavedLocalEdits = false;
+  // The provider counts cached updates as pending whether or not the server
+  // already holds them, so only this tab's persisted mark distinguishes cached
+  // edits that were never acknowledged.
+  private restoredUnsyncedEdits = false;
   private state: CollabSnapshot;
 
   constructor(options: SessionOptions) {
@@ -129,6 +133,7 @@ export class CollabSession {
 
     this.teardown();
     const docId = this.state.docId;
+    this.restoredUnsyncedEdits = isDocumentUnsynced(docId);
     trace('collab', 'session attach', { docId });
 
     const handleAttachFailure = (error: unknown) => {
@@ -163,10 +168,14 @@ export class CollabSession {
         const synced = options.forceUnsynced ? false : computedSynced;
         const providerUnacked = events.hasLocalChanges === true;
         if (!providerUnacked) {
-          if (events.synced === true) this.sawProviderAck = true;
+          if (events.synced === true) {
+            this.sawProviderAck = true;
+            this.restoredUnsyncedEdits = false;
+          }
           this.unsavedLocalEdits = false;
         }
-        const hasLocalChanges = this.unsavedLocalEdits || (this.sawProviderAck && providerUnacked);
+        const hasLocalChanges = this.unsavedLocalEdits
+          || ((this.sawProviderAck || this.restoredUnsyncedEdits) && providerUnacked);
         this.recordProviderLocalChanges(hasLocalChanges);
         const nextState: CollabSnapshot = {
           ...base, hasLocalChanges, hydrated, synced,
@@ -340,6 +349,7 @@ export class CollabSession {
     this.providerHadLocalChanges = false;
     this.sawProviderAck = false;
     this.unsavedLocalEdits = false;
+    this.restoredUnsyncedEdits = false;
 
     if (abortAwait) {
       this.awaitController?.abort(new Error('Collaboration session destroyed'));

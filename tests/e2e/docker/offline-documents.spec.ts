@@ -75,6 +75,8 @@ test('reopens persisted content offline and delivers offline edits after reconne
     }, testInfo);
     await offline.reload();
     await expect(offline.locator('.editor-input')).toContainText('with offline edits');
+    // Otherwise reconnecting reports the edits saved before the handshake sends them.
+    await expect(unsaved).toBeVisible();
     await context.setOffline(false);
     await expect(offline.locator('.collab-status')).toHaveAttribute('aria-label', /Saved to server.*Server connected/u);
     await expect(unsaved).toHaveCount(0);
