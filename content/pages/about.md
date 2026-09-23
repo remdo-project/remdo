@@ -25,7 +25,7 @@ first-class option. You can inspect the code and choose where your data lives.
 As we connect more sources, respecting their privacy and access boundaries
 remains a guiding principle.
 
-##Team:
+## Team
 
 - <a href="https://www.linkedin.com/in/lewalski/" target="_blank"
   rel="noopener">**Piotr Lewalski**<img src="/icons/linkedin.svg"
