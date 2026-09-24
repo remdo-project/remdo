@@ -4,30 +4,55 @@
   <link rel="canonical" href="{{ canonical }}">
 {% endblock %}
 {% block content %}
-  <main class="remdo-home-hero">
-    <div>
-      <h1 class="remdo-home-hero-title">RemDo</h1>
-      <p class="remdo-home-hero-tagline">Keyboard-first collaborative outliner.</p>
+  <main class="remdo-home">
+    <div class="remdo-home-intro">
+      <p class="remdo-home-eyebrow">Keyboard-first collaborative outliner</p>
+      <h1 class="remdo-home-title">RemDo</h1>
+      <p class="remdo-home-lead">
+        An open-source workspace for people whose work depends on information spread across many
+        tools. Start with whatever part you remember and follow its connections to related
+        information.
+      </p>
+      <p class="remdo-home-lead">
+        Today, RemDo is a keyboard-first collaborative outliner: structure information, link notes and
+        documents, search within documents, edit together in real time, and work offline.
+      </p>
+      <p class="remdo-home-lead">Fully open source and designed to keep self-hosting a first-class option.</p>
+      <ul class="remdo-home-features">
+        <li>Keyboard-first outlining</li>
+        <li>Links between notes and documents</li>
+        <li>Real-time collaboration</li>
+        <li>Works offline</li>
+      </ul>
+      <div class="remdo-home-actions">
+        <a class="remdo-account-button remdo-account-button-accent" href="{% url 'account_login' %}">Sign in</a>
+        <a class="remdo-account-button" href="/about/">Learn more</a>
+      </div>
     </div>
-    <p>
-      RemDo is an open-source workspace for people whose work depends on information spread across
-      many tools. Start with whatever part you remember and follow its connections to related
-      information.
-    </p>
-    <p>
-      Today, RemDo is a keyboard-first collaborative outliner: structure information, link notes and
-      documents, search within documents, edit together in real time, and work offline.
-    </p>
-    <p>Fully open source and designed to keep self-hosting a first-class option.</p>
-    <ul>
-      <li>Keyboard-first outlining</li>
-      <li>Links between notes and documents</li>
-      <li>Real-time collaboration</li>
-      <li>Works offline</li>
-    </ul>
-    <div class="remdo-home-hero-actions">
-      <a class="remdo-account-button remdo-account-button-accent" href="{% url 'account_login' %}">Sign in</a>
-      <a href="/about/">Learn more about RemDo →</a>
-    </div>
+    <figure aria-label="Example RemDo outline" class="remdo-home-preview" role="img">
+      <div class="remdo-home-preview-bar">Home / <strong>Today</strong></div>
+      <ul class="remdo-home-outline">
+        <li>
+          <strong>Today</strong> · <span class="remdo-home-date">Sep 23, 2026</span>
+          <ul>
+            <li class="remdo-home-task">Review the opening scene with Maya</li>
+            <li class="remdo-home-task">Send Nina the Aster concepts</li>
+          </ul>
+        </li>
+        <li>
+          <strong>This week</strong>
+          <ul>
+            <li><u>Atlas launch</u> · Prepare for October 2</li>
+            <li>Writing · <u>The cost of lost context</u></li>
+          </ul>
+        </li>
+        <li>
+          <strong>Already done</strong>
+          <ul>
+            <li class="remdo-home-task" data-done>Synthesize the customer conversations</li>
+          </ul>
+        </li>
+      </ul>
+    </figure>
   </main>
 {% endblock %}

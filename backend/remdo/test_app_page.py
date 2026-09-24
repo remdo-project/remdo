@@ -91,7 +91,7 @@ class AppPageTests(TestCase):
 class HomePageTests(TestCase):
     def test_signed_out_visitors_get_the_public_home(self):
         response = self.client.get("/?utm_source=test")
-        self.assertContains(response, '<h1 class="remdo-home-hero-title">RemDo</h1>', html=True)
+        self.assertContains(response, '<h1 class="remdo-home-title">RemDo</h1>', html=True)
         self.assertContains(
             response, f'<link rel="canonical" href="{settings.APP_ORIGIN}/">', html=True
         )
