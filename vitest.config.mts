@@ -131,7 +131,6 @@ export default defineConfig({
     open: false,
     projects: [
       {
-        ...shared,
         test: {
           ...shared.test,
           name: 'node',
@@ -141,7 +140,6 @@ export default defineConfig({
         },
       },
       {
-        ...shared,
         test: {
           ...shared.test,
           name: 'dom',
@@ -151,7 +149,6 @@ export default defineConfig({
         },
       },
       {
-        ...shared,
         test: {
           ...shared.test,
           name: 'editor',
