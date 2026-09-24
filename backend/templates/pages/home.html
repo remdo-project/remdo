@@ -24,11 +24,7 @@
         <li>Real-time collaboration</li>
         <li>Works offline</li>
       </ul>
-      <div class="remdo-home-actions">
-        <a class="remdo-account-button remdo-account-button-accent" href="{% url 'account_login' %}">Sign in</a>
-        {% include "accounts/google_login.html" %}
-        <a class="remdo-account-button" href="/about/">Learn more</a>
-      </div>
+      {% include "accounts/google_login.html" %}
     </div>
     <figure aria-label="Example RemDo outline" class="remdo-home-preview" role="img">
       <div class="remdo-home-preview-bar">Home / <strong>Today</strong></div>
