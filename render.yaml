@@ -35,6 +35,10 @@ projects:
             property: connectionString
         - key: APP_ORIGIN
           value: https://remdo.com
+        - key: GOOGLE_CLIENT_ID
+          sync: false
+        - key: GOOGLE_CLIENT_SECRET
+          sync: false
 
   - name: test
     databases:
@@ -69,3 +73,7 @@ projects:
             property: connectionString
         - key: APP_ORIGIN
           value: https://test.remdo.com
+        - key: GOOGLE_CLIENT_ID
+          sync: false
+        - key: GOOGLE_CLIENT_SECRET
+          sync: false

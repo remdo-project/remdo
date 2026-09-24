@@ -1,6 +1,9 @@
-from accounts.views import LoginView, admin_logout
+from accounts.views import LoginView, admin_logout, google_callback
 from allauth.account.decorators import secure_admin_login
 from allauth.account.views import AccountInactiveView
+from allauth.socialaccount.providers.google.views import oauth2_login
+from allauth.socialaccount.views import login_cancelled
+from django.apps import apps
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path, re_path
@@ -34,5 +37,15 @@ urlpatterns = [
     path("api/schema", SpectacularAPIView.as_view()),
     re_path(r"^(?P<slug>[a-z0-9]+(?:-[a-z0-9]+)*)/$", public_page, name="public_page"),
 ]
+if apps.is_installed("allauth.socialaccount.providers.google"):
+    urlpatterns += [
+        path("accounts/google/login/", oauth2_login, name="google_login"),
+        path("accounts/google/login/callback/", google_callback, name="google_callback"),
+        path(
+            "accounts/social/login/cancelled/",
+            login_cancelled,
+            name="socialaccount_login_cancelled",
+        ),
+    ]
 if settings.DEBUG:
     urlpatterns.append(path("dev/lexical-demo", app_page))

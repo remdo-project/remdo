@@ -36,7 +36,7 @@ finish() {
 trap 'finish INT' INT
 trap 'finish TERM' TERM
 printf '%s start\\n' "$child_name" >> "$events"
-printf '%s credentials auth=%s database=%s collaboration=%s admin=%s user=%s\\n' "$child_name" "\${AUTH_SECRET+x}" "\${DATABASE_URL+x}" "\${COLLAB_INTERNAL_SECRET+x}" "\${REMDO_ADMIN_PASSWORD+x}" "\${REMDO_USER_PASSWORD+x}" >> "$events"
+printf '%s credentials auth=%s database=%s collaboration=%s admin=%s user=%s google=%s\\n' "$child_name" "\${AUTH_SECRET+x}" "\${DATABASE_URL+x}" "\${COLLAB_INTERNAL_SECRET+x}" "\${REMDO_ADMIN_PASSWORD+x}" "\${REMDO_USER_PASSWORD+x}" "\${GOOGLE_CLIENT_SECRET+x}" >> "$events"
 while :; do
   if [ "\${REMDO_FAKE_EXIT_CHILD:-}" = "$child_name" ] && [ -e "\${REMDO_FAKE_EXIT_TRIGGER:-}" ]; then
     exit_status="\${REMDO_FAKE_EXIT_STATUS:-0}"
@@ -159,6 +159,7 @@ fi
       REMDO_FAKE_EXIT_TRIGGER: exitTriggerPath,
       REMDO_FAKE_PID_DIR: pidDir,
       REMDO_FAKE_RELEASE: releasePath,
+      GOOGLE_CLIENT_SECRET: 'google-secret',
       REMDO_ADMIN_PASSWORD: 'admin-password',
       REMDO_DEV_CONTAINER: 'false',
       REMDO_USER_PASSWORD: 'user-password',
@@ -178,8 +179,9 @@ fi
       .toEqual(expect.arrayContaining(services.map(name => `${name} start`)));
     await expect.poll(() => readEvents(eventsPath)).toEqual(expect.arrayContaining([
       'django setup_configured_users admin=x user=x',
-      'api credentials auth=x database=x collaboration=x admin= user=',
-      'collaboration credentials auth= database= collaboration=x admin= user=',
+      'api credentials auth=x database=x collaboration=x admin= user= google=x',
+      'collaboration credentials auth= database= collaboration=x admin= user= google=',
+      'caddy credentials auth= database=x collaboration= admin= user= google=',
     ]));
     expect(child.exitCode, stderr).toBeNull();
 

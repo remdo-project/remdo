@@ -105,6 +105,8 @@ describe('prod Docker launcher', () => {
         CADDY_SITE_ADDRESS: 'http://:9998',
         DATA_DIR: dataDir,
         DATABASE_URL: '',
+        GOOGLE_CLIENT_ID: '',
+        GOOGLE_CLIENT_SECRET: '',
         HOST: '',
         REMDO_ADMIN_PASSWORD: '',
         PATH: `${binDir}:${process.env.PATH}`,
@@ -384,6 +386,19 @@ describe('prod Docker launcher', () => {
     expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toMatchObject({
       REMDO_ADMIN_PASSWORD: 'launcher-admin-password',
       REMDO_USER_PASSWORD: 'launcher-user-password',
+    });
+  });
+
+  it('forwards configured Google sign-in credentials to the container', () => {
+    const { result, dockerCalls } = runLauncher({
+      GOOGLE_CLIENT_ID: 'launcher-google-client',
+      GOOGLE_CLIENT_SECRET: 'launcher-google-secret',
+    });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toMatchObject({
+      GOOGLE_CLIENT_ID: 'launcher-google-client',
+      GOOGLE_CLIENT_SECRET: 'launcher-google-secret',
     });
   });
 

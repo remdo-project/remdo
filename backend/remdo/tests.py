@@ -16,6 +16,14 @@ import json
 from allauth.account import app_settings
 from django.conf import settings
 from django.core.management import get_commands
+from django.urls import NoReverseMatch, reverse
+
+def google_login_url():
+    try:
+        return reverse('google_login')
+    except NoReverseMatch:
+        return None
+
 print(json.dumps({
     'database': settings.DATABASES['default']['ENGINE'],
     'debug': settings.DEBUG,
@@ -27,6 +35,7 @@ print(json.dumps({
     'fixtures': any(name in get_commands() for name in ('create_fixture_documents', 'reset_fixture_users', 'setup_development_users')),
     'deployment_accounts': all(name in get_commands() for name in ('provision_user', 'setup_configured_users')),
     'rate_limits': bool(app_settings.RATE_LIMITS),
+    'google_login': google_login_url(),
 }))
 """
 LOGGING_REPORT = """
@@ -124,6 +133,13 @@ class ConfigurationTests(SimpleTestCase):
 
         self.assertEqual(result["app_formatter"], ["RequestErrorFormatter"])
 
+    def test_google_sign_in_is_routed_only_with_credentials(self):
+        self.assertIsNone(self.settings()["google_login"])
+        self.assertEqual(
+            self.settings(GOOGLE_CLIENT_ID="client", GOOGLE_CLIENT_SECRET="secret")["google_login"],
+            "/accounts/google/login/",
+        )
+
     def test_native_management_defaults_to_production_without_node(self):
         result = self.settings(NODE_ENV="development")
         self.assertFalse(result["debug"])
@@ -202,6 +218,8 @@ class ConfigurationTests(SimpleTestCase):
             ({"DATABASE_URL": "mysql://localhost/remdo"}, "DATABASE_URL must select PostgreSQL"),
             ({"APP_ORIGIN": "https://remdo.example/path"}, "APP_ORIGIN must be an exact"),
             ({"APP_ORIGIN": "http://user:password@localhost"}, "APP_ORIGIN must be an exact"),
+            ({"GOOGLE_CLIENT_ID": "client"}, "must be set together"),
+            ({"GOOGLE_CLIENT_SECRET": "secret"}, "must be set together"),
         ):
             with self.subTest(overrides=overrides):
                 result = subprocess.run(

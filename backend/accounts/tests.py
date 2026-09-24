@@ -6,6 +6,8 @@ from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
 from allauth.account.models import EmailAddress
+from allauth.socialaccount.models import SocialAccount, SocialToken
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from django.conf import settings
 from django.core.cache import cache
 from django.core.management import call_command
@@ -329,3 +331,123 @@ class LoginPageTests(TestCase):
         self.assertContains(response, 'href="/app-assets/shared-test.css"')
         self.assertNotContains(response, "<script")
         self.assertContains(response, 'autocomplete="current-password"')
+
+
+@override_settings(
+    ALLOWED_HOSTS=["testserver"], CSRF_TRUSTED_ORIGINS=["http://testserver"], DEBUG=True
+)
+class GoogleLoginTests(TestCase):
+    def setUp(self):
+        self.client = Client(enforce_csrf_checks=True)
+
+    def start_google_login(self, next_url="/n/exampleDoc"):
+        self.client.get("/accounts/login/")
+        start = self.client.post(
+            "/accounts/google/login/",
+            {
+                "next": next_url,
+                "csrfmiddlewaretoken": self.client.cookies[settings.CSRF_COOKIE_NAME].value,
+            },
+        )
+        self.assertEqual(start.status_code, 302)
+        authorization = parse_qs(urlsplit(start["Location"]).query)
+        self.assertEqual(set(authorization["scope"][0].split()), {"openid", "email", "profile"})
+        return authorization["state"][0]
+
+    def google_login(self, email, email_verified=True, next_url="/n/exampleDoc"):
+        state = self.start_google_login(next_url)
+        claims = {
+            "sub": f"google-{email.lower()}",
+            "email": email,
+            "email_verified": email_verified,
+        }
+        token = {"access_token": "access", "refresh_token": "refresh", "id_token": "id"}
+        with (
+            patch.object(GoogleOAuth2Adapter, "get_access_token_data", return_value=token),
+            patch.object(GoogleOAuth2Adapter, "_decode_id_token", return_value=claims),
+        ):
+            return self.client.get(
+                "/accounts/google/login/callback/",
+                {"code": "code", "state": state},
+            )
+
+    def session_email(self):
+        session = self.client.get("/api/auth/browser/v1/auth/session")
+        return session.json()["data"]["user"]["email"] if session.status_code == 200 else None
+
+    def test_sign_in_entries_offer_google(self):
+        for path in ("/", "/accounts/login/?next=/n/exampleDoc"):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertContains(response, 'action="/accounts/google/login/"')
+                self.assertContains(response, "Sign in with Google")
+        self.assertContains(response, 'name="next" value="/n/exampleDoc"')
+
+    def test_new_verified_google_user_registers_without_stored_tokens(self):
+        response = self.google_login("New@Example.test")
+
+        self.assertTemplateUsed(response, "accounts/login_complete.html")
+        self.assertEqual(response.context["next_url"], "/n/exampleDoc")
+        user = User.objects.get(email="new@example.test")
+        self.assertEqual(self.session_email(), user.email)
+        self.assertFalse(user.has_usable_password())
+        self.assertEqual(list(user.document_set.values_list("title", flat=True)), ["New Document"])
+        self.assertEqual(SocialAccount.objects.get().user, user)
+        self.assertFalse(SocialToken.objects.exists())
+
+    def test_matching_verified_email_signs_in_to_the_existing_account(self):
+        user = User.objects.create_user("alice@example.test", "alice-password-1234")
+
+        self.google_login("Alice@Example.test")
+
+        self.assertEqual(self.session_email(), user.email)
+        self.assertEqual(User.objects.count(), 1)
+        self.assertEqual(SocialAccount.objects.get().user, user)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password("alice-password-1234"))
+
+        self.client.logout()
+        self.google_login("alice@example.test")
+        self.assertEqual(self.session_email(), user.email)
+        self.assertEqual(SocialAccount.objects.count(), 1)
+
+    def test_unverified_google_email_neither_registers_nor_matches(self):
+        User.objects.create_user("alice@example.test", "alice-password-1234")
+        for email in ("new@example.test", "alice@example.test"):
+            with self.subTest(email=email):
+                response = self.google_login(email, email_verified=False)
+                self.assertContains(response, "Google sign-in unavailable")
+                self.assertIsNone(self.session_email())
+        self.assertEqual(User.objects.count(), 1)
+        self.assertFalse(SocialAccount.objects.exists())
+
+    def test_staff_accounts_are_not_linked_by_email(self):
+        for email, role in (
+            ("staff@example.test", {"is_staff": True}),
+            ("root@example.test", {"is_superuser": True}),
+        ):
+            with self.subTest(email=email):
+                User.objects.create_user(email, "staff-password-1234", **role)
+                response = self.google_login(email)
+                self.assertContains(response, "Google sign-in unavailable")
+                self.assertIsNone(self.session_email())
+                self.assertTrue(User.objects.get(email=email).check_password("staff-password-1234"))
+        self.assertEqual(User.objects.count(), 2)
+        self.assertFalse(SocialAccount.objects.exists())
+
+    def test_external_return_url_is_rejected(self):
+        response = self.google_login("new@example.test", next_url="https://unrelated.example/")
+        self.assertEqual(response.context["next_url"], "/")
+
+    def test_only_google_sign_in_routes_are_mounted(self):
+        for path in ("social/connections/", "social/signup/", "google/login/token/"):
+            self.assertEqual(self.client.get(f"/accounts/{path}").status_code, 404)
+
+    def test_cancelled_google_sign_in_offers_sign_in_again(self):
+        response = self.client.get(
+            "/accounts/google/login/callback/",
+            {"error": "access_denied", "state": self.start_google_login()},
+            follow=True,
+        )
+        self.assertContains(response, 'href="/accounts/login/"')
+        self.assertIsNone(self.session_email())

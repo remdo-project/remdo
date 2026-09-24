@@ -27,6 +27,7 @@
     </ul>
     <div class="remdo-home-hero-actions">
       <a class="remdo-account-button remdo-account-button-accent" href="{% url 'account_login' %}">Sign in</a>
+      {% include "accounts/google_login.html" %}
       <a href="/about/">Learn more about RemDo →</a>
     </div>
   </main>

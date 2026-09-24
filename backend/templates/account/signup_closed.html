@@ -1,0 +1,10 @@
+{% extends "allauth/layouts/entrance.html" %}
+{% block head_title %}Google sign-in unavailable · RemDo{% endblock %}
+{% block content %}
+  <h1 class="remdo-title">Google sign-in unavailable</h1>
+  <p class="remdo-description">
+    This Google account can't sign in to RemDo: either Google hasn't verified its email
+    address, or the address belongs to an administrator account, which must
+    <a href="{% url 'account_login' %}">sign in</a> with its RemDo password.
+  </p>
+{% endblock %}

@@ -132,6 +132,14 @@ deleted one returns on the next sync.
 Startup removes the password variables from the environment it passes to the
 long-running services; the platform's own record of them is outside its control.
 
+## Google sign-in
+
+`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are OAuth client credentials that
+enable [Google sign-in](../access/access-control.md#authenticated-app-access).
+Both unset leaves it disabled and unrouted; setting only one fails at startup.
+Google must allow `<APP_ORIGIN>/accounts/google/login/callback/` as a redirect
+URI.
+
 ## Request diagnostics
 
 Production Django request errors reach standard error with status, exception type,
