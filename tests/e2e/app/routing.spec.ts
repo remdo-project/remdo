@@ -122,9 +122,9 @@ test.describe('Routing', () => {
     await expectPath(page, '/');
     await expect(page.getByRole('heading', { level: 1, name: 'RemDo' })).toBeVisible();
     await expect(page.locator('script[type="module"]')).toHaveCount(0);
-    await page.getByRole('main').getByRole('link', { name: 'Sign in', exact: true }).click();
+    await page.getByRole('navigation').getByRole('link', { name: 'Sign in', exact: true }).click();
     await expectPath(page, '/accounts/login/');
-    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
     expect(userDataRequests).toEqual([]);
   });
 
@@ -149,8 +149,8 @@ test.describe('Routing', () => {
     await expectPath(page, '/accounts/login/');
     const next = new URL(page.url()).searchParams.get('next')!;
     expect(new URL(next, page.url()).searchParams.get('next')).toBe(destination);
-    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Sign in', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
     expect(userDataRequests).toEqual([]);
   });
 
@@ -196,7 +196,7 @@ test.describe('Routing', () => {
 
     await expectPath(page, '/');
     await expect(page.getByRole('status')).toContainText(/signed out/i);
-    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeFocused();
+    await expect(page.getByRole('heading', { level: 1, name: 'Sign in', exact: true })).toBeFocused();
     await expect.poll(async () => hasIndexedDb(page, 'remdo-encrypted-v1-logout-test')).toBe(false);
     // Logout replaces the view in place; a reload would add a navigation entry.
     expect(await countNavigations(page)).toBe(navigations);
@@ -232,7 +232,7 @@ test.describe('Routing', () => {
     // The peer stops using its local data as soon as the broadcast lands; the
     // login view follows a loader round-trip, so allow for a slow one.
     await expect(peer.getByRole('link', { name: 'Logout' })).toBeHidden({ timeout: 15_000 });
-    await expect(peer.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible({ timeout: 15_000 });
+    await expect(peer.getByRole('heading', { level: 1, name: 'Sign in', exact: true })).toBeVisible({ timeout: 15_000 });
     // The peer reaches the login view on the sign-out broadcast, which precedes
     // revocation; until it is confirmed the status reports an incomplete
     // sign-out, so allow for that confirmation round-trip.
