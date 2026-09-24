@@ -48,7 +48,8 @@ on its [signed-out screen](specs/access/access-control.md#authenticated-app-acce
 remembered session state hides the header links. “Logout” opens the
 [sign-out confirmation](specs/access/access-control.md#logout).
 
-The footer links the [privacy policy](../content/pages/privacy.md) and the source repository. The app footer
+The footer links the [privacy policy](../content/pages/privacy.md), the
+[terms of use](../content/pages/terms.md), and the source repository. The app footer
 also identifies the loaded frontend with “Build #revision” in readable secondary
 text, linking the revision to its commit. Absent metadata shows “Local
 development” or “Build unknown”. When startup configuration reports a different
