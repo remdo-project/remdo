@@ -27,9 +27,10 @@ Google sign-in signs in to the account it is linked to. Otherwise it uses only
 an email address Google reports as verified: it signs in to the account whose
 email matches, case-insensitively, and links Google to it; that account keeps
 its password. Without a match, it creates an account for that email without a
-password. A staff or superuser account is never linked by email; its match
-neither signs in nor creates an account. RemDo requests only basic identity and
-does not store Google access or refresh tokens.
+password. A staff or superuser account never signs in with Google, including an
+account linked before its promotion, and its email match creates no account.
+RemDo requests only basic identity and does not store Google access or refresh
+tokens.
 
 Allauth renders sign-in at `/accounts/login/` and validates credentials.
 Sign-in and the public home offer **Sign in with Google**. Successful sign-in

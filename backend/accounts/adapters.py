@@ -2,8 +2,10 @@ from dataclasses import dataclass
 
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.utils import filter_users_by_email
+from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.headless.adapter import DefaultHeadlessAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+from django.shortcuts import render
 
 
 class AccountAdapter(DefaultAccountAdapter):
@@ -22,22 +24,25 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
     # Account emails are assigned by operators or verified by the provider, so a
     # verified match identifies the owner. allauth's own email authentication
     # would instead disable the password of accounts without a verified
-    # EmailAddress row, which operator-created accounts lack. Staff accounts are
-    # never linked this way: control of their mailbox must not grant
-    # administration.
+    # EmailAddress row, which operator-created accounts lack. Staff accounts
+    # never use Google, even when linked before a promotion: control of a Google
+    # account must not grant administration.
     def pre_social_login(self, request, sociallogin):
-        if sociallogin.is_existing or not (email := verified_email(sociallogin)):
+        if sociallogin.is_existing:
+            user = sociallogin.user
+        elif email := verified_email(sociallogin):
+            user = next(iter(filter_users_by_email(email)), None)
+        else:
             return
-        user = next(iter(filter_users_by_email(email)), None)
-        if user and not (user.is_staff or user.is_superuser):
+        if user and (user.is_staff or user.is_superuser):
+            raise ImmediateHttpResponse(render(request, "account/signup_closed.html"))
+        if user and not sociallogin.is_existing:
             sociallogin.connect(request, user)
 
     # An unverified address could claim another person's email and receive
-    # documents shared with it. A remaining match is an account excluded from
-    # linking, whose address a new account cannot take.
+    # documents shared with it.
     def is_open_for_signup(self, request, sociallogin):
-        email = verified_email(sociallogin)
-        return email is not None and not filter_users_by_email(email)
+        return verified_email(sociallogin) is not None
 
 
 class HeadlessAdapter(DefaultHeadlessAdapter):

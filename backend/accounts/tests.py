@@ -435,6 +435,18 @@ class GoogleLoginTests(TestCase):
         self.assertEqual(User.objects.count(), 2)
         self.assertFalse(SocialAccount.objects.exists())
 
+    def test_linked_account_promoted_to_staff_stops_signing_in_with_google(self):
+        self.google_login("promoted@example.test")
+        user = User.objects.get(email="promoted@example.test")
+        user.is_staff = True
+        user.save()
+        self.client.logout()
+
+        response = self.google_login("promoted@example.test")
+
+        self.assertContains(response, "Google sign-in unavailable")
+        self.assertIsNone(self.session_email())
+
     def test_external_return_url_is_rejected(self):
         response = self.google_login("new@example.test", next_url="https://unrelated.example/")
         self.assertEqual(response.context["next_url"], "/")
