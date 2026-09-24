@@ -362,10 +362,14 @@ concrete unmet need.
   Grant revocation is unbuilt, so the surface lists recipients without removing
   them.
 
-- **Document deletion.** Decide permissions, effects on collaborators and
-  linked sources, and recovery or confirmation before adding deletion to
-  document menus. Document destruction is separate from structural note
-  deletion.
+- **Document deletion in open sessions.** [Document deletion](specs/access/access-control.md#document-deletion) ships from
+  Home row menus, but other sessions do not learn of it as specified. Django
+  does not notify the collaboration hub, which closes a deleted document's
+  connections only when its next store fails, and hub authorization maps a
+  missing document to the same denial as refused access. An open editor
+  therefore shows a connection error instead of leaving for Home, which has no
+  notice surface. Devices keep their encrypted local copy, since local
+  persistence has no per-document purge.
 
 - **Contextual menus across desktop and touch.** Keep the [note menu](specs/outliner/menu.md) available
   on both, with discoverable keyboard entry and an easily reachable More action.

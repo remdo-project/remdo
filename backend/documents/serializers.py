@@ -31,6 +31,7 @@ class ShareDocumentSerializer(serializers.Serializer):
 
 class DocumentSerializer(serializers.ModelSerializer):
     shareable = serializers.SerializerMethodField()
+    deletable = serializers.SerializerMethodField()
     access = serializers.SerializerMethodField()
 
     @extend_schema_field(DocumentAccessSerializer(many=True))
@@ -42,9 +43,12 @@ class DocumentSerializer(serializers.ModelSerializer):
     def get_shareable(self, document) -> bool:
         return document.owner_id == self.context["request"].user.pk
 
+    def get_deletable(self, document) -> bool:
+        return document.owner_id == self.context["request"].user.pk
+
     class Meta:
         model = Document
-        fields = ["id", "title", "shareable", "access"]
+        fields = ["id", "title", "shareable", "deletable", "access"]
         read_only_fields = ["id"]
         extra_kwargs = {"title": {"default": "", "trim_whitespace": False}}
 

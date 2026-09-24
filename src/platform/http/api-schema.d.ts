@@ -62,7 +62,7 @@ export interface paths {
         get?: never;
         put: operations["documents_update"];
         post?: never;
-        delete?: never;
+        delete: operations["documents_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -117,6 +117,7 @@ export interface components {
             /** @default  */
             title: string;
             readonly shareable: boolean;
+            readonly deletable: boolean;
             readonly access: components["schemas"]["DocumentAccess"][];
         };
         DocumentAccess: {
@@ -255,6 +256,26 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RenameDocument"];
                 };
+            };
+        };
+    };
+    documents_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

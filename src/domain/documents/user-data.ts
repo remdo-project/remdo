@@ -5,6 +5,7 @@ export const DOCUMENT_TITLE_MAX_LENGTH = 500;
 
 export interface UserDocument {
   access?: readonly DocumentAccessView[];
+  deletable?: boolean;
   id: string;
   shareable?: boolean;
   title: string;

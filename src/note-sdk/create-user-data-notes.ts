@@ -21,6 +21,7 @@ const USER_DOCUMENTS_TITLE = 'Documents';
 
 interface UserDataNoteActions {
   createDocument?: (title: string) => Promise<UserDocument>;
+  deleteDocument?: (documentId: NoteId) => Promise<void>;
   documentSources?: CollectionSource<DocumentSource>;
   renameDocument?: (documentId: NoteId, title: string) => Promise<UserDocument>;
   shareDocument?: (documentId: NoteId, email: string) => Promise<DocumentAccessView>;
@@ -131,6 +132,13 @@ function createProjectedDocumentHandle(
     return createProjectedDocumentHandle(await actions.renameDocument(noteId, title), actions);
   }
 
+  async function deleteDocument(): Promise<void> {
+    if (!actions.deleteDocument) {
+      throw new Error('Deletion is not available for this document.');
+    }
+    await actions.deleteDocument(noteId);
+  }
+
   const handle: DocumentNote = {
     getId: () => noteId,
     getKind: kind,
@@ -141,6 +149,8 @@ function createProjectedDocumentHandle(
     shareWith,
     canRename: () => Boolean(actions.renameDocument),
     rename,
+    canDelete: () => document.deletable === true && Boolean(actions.deleteDocument),
+    delete: deleteDocument,
     as: createNoteAs(noteId, kind, () => handle),
   };
 

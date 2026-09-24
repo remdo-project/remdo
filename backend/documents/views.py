@@ -46,14 +46,19 @@ class DocumentListCreateView(generics.ListCreateAPIView):
 
 
 @method_decorator(never_cache, name="dispatch")
-class DocumentRenameView(generics.UpdateAPIView):
+class DocumentView(generics.UpdateAPIView, generics.DestroyAPIView):
     # Rename submits a complete name, so the partial-update verb stays off.
-    http_method_names = ["put"]
+    http_method_names = ["put", "delete"]
     serializer_class = RenameDocumentSerializer
     lookup_url_kwarg = "document_id"
 
     def get_queryset(self):
         return Document.objects.accessible_to(self.request.user)
+
+    def get_permissions(self):
+        if self.request.method == "DELETE":
+            return [*super().get_permissions(), IsDocumentOwner()]
+        return super().get_permissions()
 
 
 @method_decorator(never_cache, name="dispatch")

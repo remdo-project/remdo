@@ -152,6 +152,39 @@ describe('account metadata', () => {
     expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
   });
 
+  it('drops a deleted document from the listing, including one already gone', async () => {
+    const runtime = account();
+    const listing = [
+      { id: 'kept', title: 'Kept', shareable: true, deletable: true },
+      { id: 'draft', title: 'Draft', shareable: true, deletable: true },
+      { id: 'gone', title: 'Gone', shareable: true, deletable: true },
+    ];
+    documentRequests((request) => {
+      if (request.method !== 'DELETE') return Response.json(listing);
+      return new Response(null, { status: new URL(request.url).pathname.endsWith('/gone') ? 404 : 204 });
+    });
+    await runtime.client.query(runtime.documentsQuery);
+
+    expect(runtime.userData.getDocuments().getById('draft')!.canDelete()).toBe(true);
+    await runtime.userData.getDocuments().getById('draft')!.delete();
+    await runtime.userData.getDocuments().getById('gone')!.delete();
+
+    expect(runtime.userData.getDocuments().getChildren().map((document) => document.getId())).toEqual(['kept']);
+  });
+
+  it('keeps a document the source refuses to delete', async () => {
+    const runtime = account();
+    documentRequests((request) => request.method === 'DELETE'
+      ? new Response(null, { status: 403 })
+      : Response.json([{ id: 'shared', title: 'Shared', shareable: false, deletable: false }]));
+    await runtime.client.query(runtime.documentsQuery);
+
+    expect(runtime.userData.getDocuments().getById('shared')!.canDelete()).toBe(false);
+    await expect(runtime.userData.getDocuments().getById('shared')!.delete())
+      .rejects.toThrow('Could not delete the document. Please retry.');
+    expect(runtime.userData.getDocuments().getById('shared')).not.toBeNull();
+  });
+
   it('explains a rejected recipient without changing document access', async () => {
     const runtime = account();
     runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true }]);

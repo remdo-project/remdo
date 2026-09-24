@@ -80,6 +80,26 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
       void client.invalidateQueries({ queryKey: documentsQuery.queryKey });
     },
   };
+  const deleteDocumentOptions = {
+    mutationKey: [globalThis.location.origin, userId, 'delete-document'],
+    networkMode: 'always' as const,
+    mutationFn: async (documentId: string): Promise<void> => {
+      lifetime.signal.throwIfAborted();
+      const result = await api.DELETE('/api/documents/{document_id}', {
+        params: { path: { document_id: documentId } }, signal: lifetime.signal,
+      });
+      lifetime.signal.throwIfAborted();
+      // A document that is already gone satisfies the request.
+      if (result.response.ok || result.response.status === 404) return;
+      throw new Error('Could not delete the document. Please retry.');
+    },
+    onSuccess: async (_: void, deletedId: string) => {
+      await client.cancelQueries({ queryKey: documentsQuery.queryKey });
+      lifetime.signal.throwIfAborted();
+      client.setQueryData(documentsQuery.queryKey, (items = []) => items.filter((document) => document.id !== deletedId));
+      void client.invalidateQueries({ queryKey: documentsQuery.queryKey });
+    },
+  };
   const shareDocumentOptions = {
     mutationKey: [globalThis.location.origin, userId, 'share-document'],
     networkMode: 'always' as const,
@@ -109,6 +129,7 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     shareDocument: (documentId, email) => client.getMutationCache().build(client, shareDocumentOptions).execute({ documentId, email }),
     createDocument: (title) => client.getMutationCache().build(client, createDocumentOptions).execute(title),
     renameDocument: (documentId, title) => client.getMutationCache().build(client, renameDocumentOptions).execute({ documentId, title }),
+    deleteDocument: (documentId) => client.getMutationCache().build(client, deleteDocumentOptions).execute(documentId),
   });
 
   return {

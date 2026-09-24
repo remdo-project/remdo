@@ -9,7 +9,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.test import Client, SimpleTestCase, TestCase, override_settings
 
-from .models import DOCUMENT_TITLE_MAX_LENGTH, Document, DocumentGrant
+from .models import DOCUMENT_TITLE_MAX_LENGTH, Document, DocumentContent, DocumentGrant
 
 
 class ConfigurationTests(SimpleTestCase):
@@ -225,6 +225,55 @@ class DocumentFlowTests(TestCase):
         unreachable.refresh_from_db()
         self.assertEqual(document.title, "Draft")
         self.assertEqual(unreachable.title, "Theirs")
+
+    def test_owner_deletes_a_shared_document_with_its_content_and_grants(self):
+        document = Document.objects.create(owner=self.owner, title="Draft")
+        DocumentGrant.objects.create(document=document, user=self.other)
+        DocumentContent.objects.create(document=document, state=b"state")
+        path = f"/api/documents/{document.id}"
+
+        self.sign_in()
+        listed = next(
+            item for item in self.client.get("/api/documents").json() if item["id"] == document.id
+        )
+        self.assertTrue(listed["deletable"])
+        self.assertEqual(self.send("delete", path).status_code, 204)
+        self.assertFalse(Document.objects.filter(pk=document.id).exists())
+        self.assertFalse(DocumentGrant.objects.filter(document_id=document.id).exists())
+        self.assertFalse(DocumentContent.objects.filter(document_id=document.id).exists())
+        self.assertEqual(self.send("delete", path).status_code, 404)
+        self.sign_out()
+
+        self.sign_in(self.other.email, "Other-password-123")
+        listing = self.client.get("/api/documents").json()
+        self.assertNotIn(document.id, [item["id"] for item in listing])
+        self.assertEqual(self.authorize(document.id).status_code, 404)
+
+    def test_only_the_owner_deletes_a_document(self):
+        document = Document.objects.create(owner=self.owner, title="Draft")
+        DocumentGrant.objects.create(document=document, user=self.other)
+        unreachable = Document.objects.create(owner=self.owner, title="Private")
+        self.assertEqual(self.send("delete", f"/api/documents/{document.id}").status_code, 403)
+
+        self.sign_in(self.other.email, "Other-password-123")
+        listed = next(
+            item for item in self.client.get("/api/documents").json() if item["id"] == document.id
+        )
+        self.assertFalse(listed["deletable"])
+        self.assertEqual(self.send("delete", f"/api/documents/{document.id}").status_code, 403)
+        self.assertEqual(self.send("delete", f"/api/documents/{unreachable.id}").status_code, 404)
+
+        self.assertTrue(Document.objects.filter(pk=document.id).exists())
+        self.assertTrue(DocumentGrant.objects.filter(document=document, user=self.other).exists())
+        self.assertTrue(Document.objects.filter(pk=unreachable.id).exists())
+
+    def test_deleting_the_last_document_leaves_an_empty_workspace(self):
+        Document.objects.filter(owner=self.owner).delete()
+        document = Document.objects.create(owner=self.owner, title="Only")
+        self.sign_in()
+
+        self.assertEqual(self.send("delete", f"/api/documents/{document.id}").status_code, 204)
+        self.assertEqual(self.client.get("/api/documents").json(), [])
 
     def test_only_owner_can_grant_access_even_if_recipient_or_admin(self):
         document = Document.objects.create(owner=self.owner)
