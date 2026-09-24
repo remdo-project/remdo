@@ -7,6 +7,6 @@
   {% if assets.manifest %}<link rel="manifest" href="{{ assets.manifest }}">{% endif %}
   {% for script in assets.scripts %}<script type="module" src="{{ script }}"></script>{% endfor %}
 {% endblock %}
-{% block header_session %}<span class="remdo-slot" data-slot="header-session"></span>{% endblock %}
+{% block header_links %}<span class="remdo-slot" data-slot="header-links"></span>{% endblock %}
 {% block content %}<div class="remdo-slot" id="root"></div>{% endblock %}
 {% block footer_end %}<span class="remdo-slot" data-slot="footer-status"></span>{% endblock %}

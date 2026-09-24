@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { registerSW } from 'virtual:pwa-register';
+import { config } from '#config';
 import { useQuery } from '@tanstack/react-query';
 import { apiConfiguration } from '#platform/http/api-client';
-import { Link, Outlet, useLocation, useMatches, useNavigate } from 'react-router-dom';
-import { isAppShellPath } from '#document-routes';
+import { Link, Outlet, useLocation, useMatches } from 'react-router-dom';
 import type { UIMatch } from 'react-router-dom';
 import type { SessionGateState } from '#client/app/session/client';
 import { LogoutProvider, useLogout } from '#client/app/session/useLogout';
@@ -46,51 +47,35 @@ function AppFrameContent() {
   const signedOut = sessionState?.status === 'unauthenticated';
   const connectionUnavailable = sessionState?.status === 'offline-unavailable';
   const logout = useLogout();
-  const navigate = useNavigate();
+  const authenticated = sessionState?.status === 'authenticated';
 
+  // Offline entry is only for a device with a signed-in account; confirmed
+  // logout removes it again.
   useEffect(() => {
-    pageElement('.remdo-header-links').hidden = connectionUnavailable;
-  }, [connectionUnavailable]);
-
-  // Server-rendered header links to app routes stay inside the running app
-  // rather than reloading it.
-  useEffect(() => {
-    const header = pageElement('.remdo-header');
-    const followInApp = (event: MouseEvent) => {
-      const link = (event.target as Element).closest('a');
-      if (!link || event.defaultPrevented || event.button !== 0
-        || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-        return;
-      }
-      const url = new URL(link.href);
-      if (url.origin !== globalThis.location.origin || !isAppShellPath(`${url.pathname}${url.search}`)) {
-        return;
-      }
-      event.preventDefault();
-      void navigate(`${url.pathname}${url.search}`);
-    };
-    header.addEventListener('click', followInApp);
-    return () => header.removeEventListener('click', followInApp);
-  }, [navigate]);
+    if (authenticated && config.isProd) {
+      registerSW({ immediate: true });
+    }
+  }, [authenticated]);
+  const headerLinks = connectionUnavailable ? null : (
+    <>
+      <a className="remdo-header-link" href="/about/">About</a>
+      {signedIn && (
+        <Link className="remdo-header-link" to="/sign-out">
+          Logout
+        </Link>
+      )}
+      {signedOut && (
+        <a className="remdo-header-link" href={createSignInPath(location.search)}>
+          Sign in
+        </a>
+      )}
+      <DevToolbarLinksSeam linkClassName="remdo-header-link" />
+    </>
+  );
 
   return (
     <>
-      {createPortal(
-        <>
-          {signedIn && (
-            <Link className="remdo-header-link" to="/sign-out">
-              Logout
-            </Link>
-          )}
-          {signedOut && (
-            <a className="remdo-header-link" href={createSignInPath(location.search)}>
-              Sign in
-            </a>
-          )}
-          <DevToolbarLinksSeam linkClassName="remdo-header-link" />
-        </>,
-        pageElement('[data-slot="header-session"]'),
-      )}
+      {createPortal(headerLinks, pageElement('[data-slot="header-links"]'))}
       {createPortal(
         <BuildStatus serverRevision={configuration?.buildRevision ?? ''} />,
         pageElement('[data-slot="footer-status"]'),

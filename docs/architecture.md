@@ -21,11 +21,15 @@ Delivery surface choice does not alter outliner semantics.
 
 ### Application Freshness
 
-The service worker stores the app page and serves it as the offline navigation
-fallback for [app routes](#gateway) only. The app page's HTML is identical for
-every visitor, so the stored copy is valid for any account. Public downloads,
-other server-rendered pages, and missing static assets retain their server
-responses.
+A device registers the service worker once it has a signed-in session. It
+removes the worker after a confirmed [logout](specs/access/access-control.md#logout) and whenever the server
+reports no session outside an unfinished logout. The worker stores the app page
+and serves it for [app route](#gateway) navigations without waiting for the server; the app
+then establishes its session state and content as it would online. The app
+page's HTML is identical for every visitor, so the stored copy is valid for any
+account.
+Public downloads, other server-rendered pages, and missing static assets retain
+their server responses.
 In Production, static HTTP responses require revalidation; dynamic and error
 responses are not stored in HTTP caches. Service-worker shell storage remains
 available offline. Collaboration and authentication HTTP endpoints remain
@@ -86,7 +90,7 @@ validates browser origins against the [configured trusted origins](specs/access/
 
 The gateway explicitly owns frontend assets, Django static assets, health
 probes, and collaboration endpoints. Django owns all other HTTP routes,
-including the app page at every app route (`/`, `/n/*`, and `/sign-out`),
+including the app routes ([Home](specs/outliner/home.md) at `/`, `/n/*`, and `/sign-out`),
 unknown routes, and their 404 responses. Normal HTTP routes have the
 same owner in development and production; development additionally serves
 frontend tooling and development-only routes.

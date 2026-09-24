@@ -21,8 +21,6 @@
     "tests/e2e/_support/local-persistence-browser.ts",
     "tools/{check-pnpm-policy,collab-server,generate-api-client}.ts",
     ".agents/skills/remdo-verify-change/tools/run-reviews.ts",
-    // Vite config is the only importer of the shared app-shell route declaration.
-    "src/document-routes/app-shell-routes.ts!",
     // Django's launcher consumes the server configuration projection.
     "tools/dev/**/*.ts",
     "tests/perf/**/*.bench.ts",

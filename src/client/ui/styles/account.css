@@ -102,3 +102,11 @@
   outline: 2px solid var(--remdo-accent);
   outline-offset: 2px;
 }
+
+.remdo-account-button-accent {
+  background: color-mix(in srgb, var(--remdo-accent) 40%, var(--mantine-color-dark-7));
+}
+
+.remdo-account-button-accent:hover {
+  background: color-mix(in srgb, var(--remdo-accent) 55%, var(--mantine-color-dark-7));
+}
