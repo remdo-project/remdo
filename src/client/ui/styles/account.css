@@ -97,6 +97,20 @@
   background: var(--mantine-color-dark-7);
 }
 
+/* Google's dark-theme button colors and spacing are fixed by its branding guidelines. */
+.remdo-google-button {
+  gap: 10px;
+  padding: 0 12px;
+  border-color: #8e918f;
+  background: #131314;
+  color: #e3e3e3;
+  font-weight: 500;
+}
+
+.remdo-google-button:hover {
+  background: color-mix(in srgb, #e3e3e3 8%, #131314);
+}
+
 .remdo-account-form :focus-visible,
 .remdo-account-button:focus-visible {
   outline: 2px solid var(--remdo-accent);

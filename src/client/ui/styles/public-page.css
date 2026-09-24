@@ -107,12 +107,6 @@
   color: var(--remdo-accent);
 }
 
-.remdo-home-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--mantine-spacing-sm);
-}
-
 .remdo-home-preview {
   margin: 0;
   overflow: hidden;

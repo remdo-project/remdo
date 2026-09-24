@@ -14,7 +14,7 @@ test('returning browsers revalidate files and retain server navigation responses
   const email = `cache-${testInfo.testId}@example.test`;
   python("import sys, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'remdo.settings'); import django; django.setup(); from accounts.models import User; User.objects.create_superuser(sys.argv[1], 'cache-password-1234')", email);
   await page.goto('/');
-  await page.getByRole('main').getByRole('link', { name: 'Sign in', exact: true }).click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Sign in', exact: true }).click();
   await page.getByLabel('Email:', { exact: true }).fill(email);
   await page.getByLabel('Password:', { exact: true }).fill('cache-password-1234');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();

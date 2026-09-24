@@ -14,18 +14,29 @@ links carrying bearer credentials, or a local-only no-login mode.
 ## Authenticated App Access
 
 A Django session identifies the signed-in user. The server supports
-email/password authentication. The
+email/password authentication and, when
+[configured](../runtime/configuration.md#google-sign-in), Google sign-in. The
 [deployment account bootstrap](../runtime/configuration.md#deployment-accounts)
 creates the configured accounts at startup, and operators create further
-accounts through Django administration. Public signup is closed.
+accounts through Django administration. Email/password signup is closed.
 Creating an account also creates one empty document titled **New Document**.
 Account and document creation succeed together. Later account updates and reads
 leave the document inventory unchanged.
 
+Google sign-in signs in to the account it is linked to. Otherwise it uses only
+an email address Google reports as verified: it signs in to the account whose
+email matches, case-insensitively, and links Google to it; that account keeps
+its password. Without a match, it creates an account for that email without a
+password. A staff or superuser account never signs in with Google, including an
+account linked before its promotion, and its email match creates no account.
+RemDo requests only basic identity and does not store Google access or refresh
+tokens.
+
 Allauth renders sign-in at `/accounts/login/` and validates credentials.
-Successful sign-in returns to the requested same-origin app destination,
-defaulting to Home. The app keeps an in-place signed-out screen after logout
-so offline logout does not require a server-rendered page.
+Sign-in and the public home offer **Sign in with Google**. Successful sign-in
+returns to the requested same-origin app destination, defaulting to Home. The
+app keeps an in-place signed-out screen after logout so offline logout does not
+require a server-rendered page.
 
 Production allauth sign-in retains the framework's rate limits. IP-based limits
 use the client address established by the trusted gateway or hosting edge, not

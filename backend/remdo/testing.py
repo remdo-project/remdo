@@ -1,4 +1,10 @@
-from .development import *  # noqa: F403
+import os
+
+# Fixture credentials enable Google sign-in; tests stub Google's endpoints.
+os.environ["GOOGLE_CLIENT_ID"] = "test-google-client-id"
+os.environ["GOOGLE_CLIENT_SECRET"] = "test-google-client-secret"
+
+from .development import *  # noqa: E402, F403
 
 # Tests authenticate synthetic users without production hashing cost.
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

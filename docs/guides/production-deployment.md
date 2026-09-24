@@ -150,3 +150,14 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
    generated in `.env`.
 3. Open `/admin/` on the application origin and sign in with that account.
 4. Open the application home and sign in with the same account.
+
+## Enable Google Sign-In
+
+1. In Google Cloud Console, configure the OAuth consent screen and create a
+   **Web application** OAuth client.
+2. Add `<APP_ORIGIN>/accounts/google/login/callback/` as an authorized redirect
+   URI, such as `https://remdo.com/accounts/google/login/callback/`.
+3. Set [`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`](../specs/runtime/configuration.md#google-sign-in)
+   in the service's **Environment** view on Render or in `.env` for the
+   self-hosted launcher, then redeploy.
+4. Confirm that the application home offers **Sign in with Google**.

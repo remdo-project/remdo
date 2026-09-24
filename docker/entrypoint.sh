@@ -102,8 +102,9 @@ for attempt in range(100):
 else:
     raise SystemExit("Django did not become ready.")
 PYREADY
-start_child collaboration env -u AUTH_SECRET -u DATABASE_URL node /app/collaboration.mjs
-start_child caddy env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET \
+start_child collaboration env -u AUTH_SECRET -u DATABASE_URL -u GOOGLE_CLIENT_SECRET \
+  node /app/collaboration.mjs
+start_child caddy env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET -u GOOGLE_CLIENT_SECRET \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 
 while :; do
