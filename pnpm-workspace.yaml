@@ -25,7 +25,8 @@ updateConfig:
   ignoreDependencies:
     # TODO(deps): retry TypeScript; version 7 is unsupported by @typescript-eslint.
     - typescript
-    # TODO(deps): retry jsdom; 30.1.1 breaks caret placement on empty notes in the editor selection and deletion unit specs.
+    # TODO(deps): retry jsdom after fixing Cmd/Ctrl+A on an empty note, which reaches the structural rung and then
+    # reverts to a caret (reproducible in Chromium); jsdom 30.1.1 reverts before the unit specs observe the rung.
     # Probe: pnpm update --latest jsdom && pnpm run test:unit src/client/editor/outline/selection/selection.spec.ts
     # src/client/editor/editing/deletion/deletion.spec.ts
     - jsdom
