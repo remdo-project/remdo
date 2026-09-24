@@ -26,9 +26,9 @@ interface Operation {
   run: (remdo: RemdoTestApi, targets: WorkloadTargets) => Promise<void>;
 }
 
-// Vitest 4's sampling (10 iterations, 500 ms); tinybench 6 defaults to 64 iterations, which pushes
-// each 8x5 benchmark past the per-test timeout.
-const BENCH_RUN_OPTIONS = { throws: true, iterations: 10, time: 500 };
+// Vitest 4's sampling and warmup; tinybench 6 defaults (64 iterations, 16 warmup iterations) push
+// the 8x5 workload past its timeouts.
+const BENCH_RUN_OPTIONS = { throws: true, iterations: 10, time: 500, warmupIterations: 5, warmupTime: 100 };
 
 const MIN_BENCH_DEPTH = 3;
 const MIN_BENCH_BRANCH_FACTOR = 3;
