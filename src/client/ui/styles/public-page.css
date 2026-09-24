@@ -52,50 +52,129 @@
   color: var(--remdo-accent);
 }
 
-.remdo-home-hero {
+.remdo-home {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
+  align-items: start;
+  gap: 3rem;
+  padding: clamp(3rem, 8vw, 5rem) clamp(var(--mantine-spacing-md), 6vw, 6rem);
+  font-size: var(--mantine-font-size-lg);
+  line-height: 1.55;
+}
+
+.remdo-home p,
+.remdo-home ul {
+  margin: 0;
+}
+
+.remdo-home-intro {
   display: flex;
   flex-direction: column;
-  gap: var(--mantine-spacing-md);
-  max-width: 760px;
-  margin-inline: auto;
-  padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
-  font-size: var(--mantine-font-size-md);
-  line-height: 1.6;
+  align-items: flex-start;
+  gap: var(--mantine-spacing-lg);
 }
 
-.remdo-home-hero p,
-.remdo-home-hero ul {
-  margin: 0;
-}
-
-.remdo-home-hero li::marker {
+.remdo-home-eyebrow {
   color: var(--remdo-accent);
+  font-size: var(--mantine-font-size-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.remdo-home-hero-title {
+.remdo-home-title {
   margin: 0;
-  font-size: 2.75rem;
-  line-height: 1.2;
+  color: var(--mantine-color-gray-0);
+  font-size: clamp(3rem, 7vw, 4.25rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
 }
 
-.remdo-home-hero-tagline {
-  font-size: var(--mantine-font-size-lg);
+.remdo-home-lead {
+  max-width: 34rem;
   color: var(--mantine-color-dark-1);
 }
 
-.remdo-home-hero-actions {
+.remdo-home-features {
+  display: grid;
+  gap: var(--mantine-spacing-xs);
+  padding-left: var(--mantine-spacing-lg);
+  color: var(--mantine-color-gray-0);
+  font-size: var(--mantine-font-size-md);
+}
+
+.remdo-home-features li::marker {
+  color: var(--remdo-accent);
+}
+
+.remdo-home-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--mantine-spacing-md);
+  gap: var(--mantine-spacing-sm);
 }
 
-.remdo-home-hero-actions > a:not(.remdo-account-button) {
-  color: var(--remdo-accent);
+.remdo-home-preview {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-lg);
+  background: var(--mantine-color-dark-7);
+  box-shadow: 0 16px 44px rgb(0 0 0 / 30%);
+  font-size: var(--mantine-font-size-md);
+}
+
+.remdo-home-preview-bar {
+  padding: var(--mantine-spacing-md) var(--mantine-spacing-lg);
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-dark-1);
   font-size: var(--mantine-font-size-sm);
-  text-decoration: none;
 }
 
-.remdo-home-hero-actions > a:not(.remdo-account-button):hover {
-  color: var(--remdo-accent-hover);
+.remdo-home-preview-bar strong {
+  color: var(--mantine-color-gray-0);
+}
+
+.remdo-home-outline {
+  padding: var(--mantine-spacing-lg) var(--mantine-spacing-xl);
+  list-style: circle;
+}
+
+.remdo-home-outline ul {
+  padding-left: var(--mantine-spacing-lg);
+}
+
+.remdo-home-outline li::marker {
+  color: var(--mantine-color-dark-2);
+  font-size: 0.75em;
+}
+
+.remdo-home-outline u {
+  color: var(--remdo-accent);
+  text-underline-offset: 0.2em;
+}
+
+.remdo-home-date {
+  padding: 0.05rem 0.3rem;
+  border-radius: var(--mantine-radius-xs);
+  background: color-mix(in srgb, var(--mantine-color-teal-8) 45%, transparent);
+  color: var(--mantine-color-teal-2);
+}
+
+.remdo-home-task::before {
+  content: '';
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-right: 0.5em;
+  border: 1.5px solid currentcolor;
+  border-radius: 2px;
+}
+
+.remdo-home-task[data-done] {
+  color: var(--mantine-color-dark-1);
+  text-decoration: line-through;
+}
+
+.remdo-home-task[data-done]::before {
+  background: currentcolor;
 }
