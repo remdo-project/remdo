@@ -42,16 +42,7 @@
 			}
 		}
 
-		@app_routes path / /n/* /sharing /sharing/ /sign-out /sign-out/
-		handle @app_routes {
-			route {
-				root * /srv/remdo
-				rewrite * /index.html
-				file_server
-			}
-		}
-
-		@app_assets path /index.html /app-assets/* /icons/* /logo.svg /icon-192.png /icon-512.png /icon-maskable-512.png /manifest.webmanifest /sw.js /workbox-*.js /registerSW.js
+		@app_assets path /app-assets/* /icons/* /logo.svg /icon-192.png /icon-512.png /icon-maskable-512.png /manifest.webmanifest /sw.js /workbox-*.js /registerSW.js
 		handle @app_assets {
 			root * /srv/remdo
 			file_server

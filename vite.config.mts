@@ -20,7 +20,7 @@ export default defineConfig({
     manifest: true,
     rollupOptions: {
       ...sharedConfig.build.rollupOptions,
-      input: ['index.html', 'src/client/ui/styles/shared.css'],
+      input: ['src/client/app/shell/main.tsx', 'src/client/ui/styles/shared.css'],
     },
     outDir: "dist",
     assetsDir: "app-assets",

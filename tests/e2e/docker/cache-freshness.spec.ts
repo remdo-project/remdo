@@ -32,10 +32,10 @@ test('returning browsers revalidate files and retain server navigation responses
   for (const url of ['/?next=/n/example', '/sign-out?freshness=probe', '/sign-out/?freshness=probe']) {
     const gatewayResponse = await page.request.get(url);
     expect(gatewayResponse.status(), url).toBe(200);
-    expect(await gatewayResponse.text()).toContain('<div id="root">');
+    expect(await gatewayResponse.text()).toContain('id="root"');
     const response = await page.goto(url);
     expect(response!.fromServiceWorker(), url).toBe(true);
-    expect(await response!.text()).toContain('<div id="root">');
+    expect(await response!.text()).toContain('id="root"');
   }
   const publicPage = await page.goto('/about/');
   expect(publicPage!.status()).toBe(200);
@@ -62,16 +62,16 @@ test('returning browsers revalidate files and retain server navigation responses
     await retiredRoutePage.close();
   }
 
-  for (const url of ['/', '/index.html', '/sw.js', '/manifest.webmanifest', '/logo.svg', '/django-static/admin/css/base.css']) {
+  for (const url of ['/sw.js', '/manifest.webmanifest', '/logo.svg', '/django-static/admin/css/base.css']) {
     const response = await page.request.get(url);
     expect(response.status(), url).toBe(200);
     expect(response.headers()['cache-control'], url).toBe('no-cache');
   }
   const asset = await page.locator('script[type="module"]').getAttribute('src');
   expect((await page.request.get(asset!)).headers()['cache-control']).toBe('no-cache');
-  for (const url of ['/health', '/api/current-user', '/api/schema', '/accounts/login/', '/api/not-a-route']) {
-    // maxRedirects: 0 keeps the header the route itself returns; an authenticated
-    // visit to /accounts/login/ redirects to a shell route served with no-cache.
+  for (const url of ['/', '/health', '/api/current-user', '/api/schema', '/accounts/login/', '/api/not-a-route']) {
+    // maxRedirects: 0 keeps the header the route itself returns rather than
+    // that of an authenticated /accounts/login/ visit's redirect target.
     const response = await page.request.get(url, { maxRedirects: 0 });
     expect(response.headers()['cache-control'], url).toContain('no-store');
   }
@@ -99,7 +99,7 @@ test('returning browsers revalidate files and retain server navigation responses
     expect(response!.headers()['cache-control'], url).toContain('no-store');
   }
   await page.goto('/about/');
-  await page.getByRole('link', { name: 'Sign out…', exact: true }).click();
+  await page.getByRole('link', { name: 'Logout', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible();
   // The offline discard and completion flow is owned by offline-documents.spec.ts;
   // this file covers only that the shell itself is served from the cache offline.

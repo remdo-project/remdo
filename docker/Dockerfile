@@ -17,7 +17,6 @@ COPY \
   pnpm-workspace.yaml \
   tsconfig.json \
   vite.config.mts \
-  index.html \
   ./
 
 COPY src ./src

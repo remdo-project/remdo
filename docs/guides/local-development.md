@@ -90,21 +90,10 @@ normal account administration.
 The reset revokes the stable users' sessions. It preserves unrelated local users
 and their data. Deleting the old documents also deletes their persisted content.
 
-### Run PWA Preview
-
-With Main Development running, run:
-
-```sh
-pnpm run dev:pwa
-```
-
-Open the URL printed by Vite. From a headless development machine, forward the
-working directory's port range with [`open-remdo-tunnel.sh`](../../tools/remote/open-remdo-tunnel.sh) and open the preview
-through `localhost`. Authentication flows that need the
-canonical app origin may return to the main development frontend.
-
 ## Run Local Docker
 
+Local Docker runs the production frontend build, including its service worker,
+so use it to check installed-app and offline entry behavior.
 Local Docker requires rootless Docker Engine 29.5 or newer.
 Run:
 

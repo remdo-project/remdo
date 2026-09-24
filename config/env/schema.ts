@@ -16,7 +16,6 @@ export const envSchema = {
   PUBLIC_HOST: str,
   PORT_BASE: port,
   PORT: port,
-  PREVIEW_PORT: port,
   COLLAB_ENABLED: boolish,
   COLLAB_SERVER_PORT: port,
   API_SERVER_PORT: port,

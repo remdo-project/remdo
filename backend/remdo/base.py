@@ -99,7 +99,7 @@ AUTH_PASSWORD_VALIDATORS = [
 STATIC_URL = "/django-static/"
 STATIC_ROOT = Path(__file__).resolve().parents[2] / "static"
 FRONTEND_MANIFEST = Path(__file__).resolve().parents[2] / "dist" / ".vite" / "manifest.json"
-FRONTEND_USE_SOURCE_STYLES = False
+FRONTEND_USE_SOURCE = False
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",

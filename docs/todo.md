@@ -32,7 +32,7 @@ short topic headings. Remove rejected or obsolete items and empty sections.
   [Production Deployment](guides/production-deployment.md), including health-prober compatibility with
   `ALLOWED_HOSTS`. Rootful Docker coverage is exercised by the default CI runner.
 - Reconsider the remaining simplifications withheld by the Django review:
-  `CenteredCardPage` and the [UI library default](../CONTRIBUTING.md#ui-libraries), SPA route enumeration,
+  `CenteredCardPage` and the [UI library default](../CONTRIBUTING.md#ui-libraries), app route enumeration,
   port-rule ownership, the always-Python `setup-pnpm` composite, the Docker
   build-revision mismatch block, long Docker specs, and `revokeServerSession`'s
   two-phase bound.
@@ -101,7 +101,7 @@ Code items assume no contract change:
 8. **Repeated internal-service constants and helpers.** The container port pair
    is hard-coded in three places after its configuration helper lost its
    Y-Sweet job; three credential-injecting WebSocket subclasses differ only by
-   header; and two origin-printing scripts spawn a runtime to echo values their
+   header; and an origin-printing script spawns a runtime to echo a value its
    caller already exports. Test-support consolidation belongs with
    [Tooling](#tooling)'s test-organization entry.
 

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
 import { config } from '../index.ts';
 import { onRollupWarning } from '../_internal/vite/onRollupWarning.ts';
-import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveLocalGatewayOrigin } from '../../src/platform/net/origins.ts';
+import { resolveApiServerOrigin, resolveCollabServerOrigin } from '../../src/platform/net/origins.ts';
 import { shouldProxyToDjango } from './gateway-routes.ts';
 import { APP_SHELL_ROUTE_PATTERNS } from '../../src/document-routes/app-shell-routes.ts';
 
@@ -12,7 +12,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 const host = config.env.HOST;
 const collabServerTarget = resolveCollabServerOrigin();
-const mainGatewayTarget = resolveLocalGatewayOrigin();
 const pwaNavigationFallbackAllowlist = [...APP_SHELL_ROUTE_PATTERNS];
 const stripInternalHeaders: ProxyOptions['configure'] = (proxy) => {
   const strip = (request: { removeHeader: (name: string) => void }) => {
@@ -25,7 +24,6 @@ const stripInternalHeaders: ProxyOptions['configure'] = (proxy) => {
 const privateRouteGuard: Plugin = {
   name: 'private-collaboration-routes',
   configureServer(server) { installPrivateRouteGuard(server); },
-  configurePreviewServer(server) { installPrivateRouteGuard(server); },
 };
 function installPrivateRouteGuard(server: Pick<import('vite').ViteDevServer, 'middlewares'>) {
   server.middlewares.use((req, res, next) => {
@@ -57,30 +55,10 @@ const devProxy = {
   '/': {
     ...apiProxy,
     bypass(req: { url?: string }) {
-      if (!shouldProxyToDjango(req.url ?? '/', 'development')) return req.url;
+      if (!shouldProxyToDjango(req.url ?? '/')) return req.url;
     },
   },
 } as const;
-const mainGatewayProxy = {
-  target: mainGatewayTarget,
-  changeOrigin: false,
-  configure: stripInternalHeaders,
-} as const;
-const previewProxy = {
-  '/src/client/ui/styles/': mainGatewayProxy,
-  '^/collaboration(?:$|\\?)': {
-    ...mainGatewayProxy,
-    ws: true,
-  },
-  '/': {
-    ...mainGatewayProxy,
-    xfwd: true,
-    bypass(req: { url?: string }) {
-      if (!shouldProxyToDjango(req.url ?? '/', 'preview')) return req.url;
-    },
-  },
-} as const;
-
 export function createViteSharedConfig() {
   return {
     build: {
@@ -120,7 +98,10 @@ export function createViteSharedConfig() {
           ],
         },
         workbox: {
-          navigateFallback: '/index.html',
+          navigateFallback: '/',
+          // Django renders the app page, so it is outside the build output.
+          // A new revision per build refreshes the stored page with the assets.
+          additionalManifestEntries: [{ url: '/', revision: String(Date.now()) }],
           navigateFallbackAllowlist: pwaNavigationFallbackAllowlist,
           runtimeCaching: [
             {
@@ -144,15 +125,6 @@ export function createViteSharedConfig() {
       },
       allowedHosts: true as const,
       proxy: devProxy,
-    },
-    preview: {
-      // Service workers require a trustworthy origin. Keep the manual PWA
-      // preview on IPv4 loopback; remote developers reach it through a tunnel.
-      host: '127.0.0.1',
-      // No port here: the PWA launcher (tools/dev/pwa.sh) owns the preview port
-      // via --port; deriving one from PORT would collide with the dev gateway.
-      strictPort: true,
-      proxy: previewProxy,
     },
     // Key the prebundle cache to the port block, like every other per-instance path. Sharing one
     // cache means a second dev server re-optimizes it under a running one, which keeps serving its

@@ -324,7 +324,7 @@ class LoginPageTests(TestCase):
                     }
                 )
             )
-            with override_settings(FRONTEND_USE_SOURCE_STYLES=False, FRONTEND_MANIFEST=manifest):
+            with override_settings(FRONTEND_USE_SOURCE=False, FRONTEND_MANIFEST=manifest):
                 response = self.client.get("/accounts/login/")
         self.assertContains(response, 'href="/app-assets/shared-test.css"')
         self.assertNotContains(response, "<script")

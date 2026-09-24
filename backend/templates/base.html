@@ -8,8 +8,10 @@
     <meta name="color-scheme" content="dark">
     <title>{% block head_title %}RemDo{% endblock %}</title>
     <link rel="icon" type="image/svg+xml" href="/logo.svg">
-    {% shared_styles_urls as stylesheets %}
-    {% for stylesheet in stylesheets %}<link rel="stylesheet" href="{{ stylesheet }}">{% endfor %}
+    {% block styles %}
+      {% shared_styles_urls as stylesheets %}
+      {% for stylesheet in stylesheets %}<link rel="stylesheet" href="{{ stylesheet }}">{% endfor %}
+    {% endblock %}
     {% block extra_head %}{% endblock %}
   </head>
   <body>
@@ -25,13 +27,15 @@
               <nav aria-label="Primary" class="remdo-header-navigation">
                 <div class="remdo-header-links">
                   <a class="remdo-header-link" href="/about/"{% if request.path == '/about/' %} aria-current="page"{% endif %}>About</a>
-                  {% if user.is_authenticated %}
-                    {% if user.is_staff %}<a class="remdo-header-link" href="/admin/">Admin</a>{% endif %}
-                    <a class="remdo-header-link" href="/sign-out/">Sign out…</a>
-                  {% else %}
-                    {% url 'account_login' as login_url %}
-                    <a class="remdo-header-link" href="{{ login_url }}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}"{% if request.path == login_url %} aria-current="page"{% endif %}>Sign in</a>
-                  {% endif %}
+                  {% block header_session %}
+                    {% if user.is_authenticated %}
+                      {% if user.is_staff %}<a class="remdo-header-link" href="/admin/">Admin</a>{% endif %}
+                      <a class="remdo-header-link" href="/sign-out/">Logout</a>
+                    {% else %}
+                      {% url 'account_login' as login_url %}
+                      <a class="remdo-header-link" href="{{ login_url }}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}"{% if request.path == login_url %} aria-current="page"{% endif %}>Sign in</a>
+                    {% endif %}
+                  {% endblock %}
                 </div>
               </nav>
             </div>
@@ -45,6 +49,7 @@
                 <a href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">Source</a>
               </nav>
             </div>
+            {% block footer_end %}{% endblock %}
           </footer>
         </div>
       </div>

@@ -46,7 +46,8 @@
   overflow: hidden;
 }
 
-.remdo-shell > main {
+.remdo-shell > main,
+.remdo-shell > .remdo-slot > main {
   width: 100%;
 }
 
@@ -64,4 +65,10 @@
     box-shadow: none;
     min-height: 100dvh;
   }
+}
+
+/* Server-rendered chrome regions the app fills; their contents lay out as if
+   they were direct children of the surrounding container. */
+.remdo-slot {
+  display: contents;
 }

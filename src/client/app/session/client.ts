@@ -7,6 +7,7 @@ const PENDING_SIGN_OUT_ORIGIN_KEY = 'remdo-pending-sign-out-origin';
 export const CONFIRMED_SIGN_OUT_KEY = 'remdo-sign-out-confirmed';
 const PENDING_SIGN_OUT_STORAGE_VALUE = '1';
 const SERVER_SIGN_OUT_TIMEOUT_MS = 1500;
+const SIGN_OUT_SESSION_CHECK_TIMEOUT_MS = 1500;
 
 type CurrentSession = NonNullable<Awaited<ReturnType<typeof getSession>>>;
 
@@ -210,13 +211,29 @@ function readAuthErrorStatus(error: unknown): number | null {
   return typeof status === 'number' ? status : null;
 }
 
-export async function resolveSessionGateState(): Promise<SessionGateState> {
+/**
+ * Logout must stay reachable when the server stalls, so a session check that
+ * outlasts the bound is cancelled and resolves as if the server were
+ * unreachable. Cancelling, rather than racing, keeps a late response from
+ * remembering the session and superseding the sign-out that follows.
+ */
+export async function resolveSignOutSessionGateState(): Promise<SessionGateState> {
+  const signal = AbortSignal.timeout(SIGN_OUT_SESSION_CHECK_TIMEOUT_MS);
+  try {
+    return await resolveSessionGateState(signal);
+  } catch (error) {
+    if (signal.aborted) return resolveUnavailableSessionGateState();
+    throw error;
+  }
+}
+
+export async function resolveSessionGateState(signal?: AbortSignal): Promise<SessionGateState> {
   if (hasPendingSignOut()) {
     return { status: 'unauthenticated' };
   }
 
   try {
-    const session = await getSession();
+    const session = await getSession(signal);
     if (session) {
       rememberAuthenticatedSession();
       return {

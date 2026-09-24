@@ -45,7 +45,8 @@ cache its last validated bootstrap for offline reopen.
 
 ## Logout
 
-Logout immediately ends local app access on one device, including offline.
+Users start logout from a sign-out confirmation. Logout immediately ends local
+app access on one device, including offline.
 Local cleanup and the server request are bounded so an unreachable server or
 undeletable database cannot stall local logout. Full logout requires server
 confirmation.
@@ -122,7 +123,8 @@ through Django administration.
 
 `/admin/` is the Django administration entry route. Django staff status permits
 entry; model permissions control the available administrative actions. An
-authenticated staff user sees an **Admin** link in the app toolbar. Anonymous
+authenticated staff user sees an **Admin** link in the
+[page header](../../architecture.md#shared-presentation). Anonymous
 visitors authenticate through the [shared allauth sign-in](#authenticated-app-access), preserving the
 requested same-origin administration destination. Authenticated nonstaff users
 are denied administration without ending their ordinary app session.
@@ -139,8 +141,7 @@ contract.
 
 Django enforces trusted origins supplied by the resolved [runtime configuration](../runtime/configuration.md#network-addressing).
 Production trusts only that origin. Development additionally trusts local
-aliases and the loopback PWA preview origin. Preview requests retain their
-browser-supplied `Origin`, so unrelated origins remain rejected.
+aliases.
 
 A server's canonical public port namespaces its session and CSRF cookies. Local
 stacks on shifted port ranges keep independent sessions while sharing one
