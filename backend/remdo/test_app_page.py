@@ -33,11 +33,7 @@ class AppPageTests(TestCase):
         signed_in = self.client.get("/n/example")
         self.assertEqual(signed_in.content, anonymous.content)
         self.assertNotIn("Cookie", signed_in.headers.get("Vary", ""))
-        self.assertContains(
-            signed_in,
-            '<a class="remdo-header-link" data-app-sign-out href="/sign-out/">Sign out…</a>',
-            html=True,
-        )
+        self.assertNotContains(signed_in, "/sign-out/")
         self.assertNotContains(signed_in, "/admin/")
 
     @override_settings(FRONTEND_USE_SOURCE=True)

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiConfiguration } from '#platform/http/api-client';
-import { Outlet, useLocation, useMatches, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useMatches, useNavigate } from 'react-router-dom';
 import { isAppShellPath } from '#document-routes';
 import type { UIMatch } from 'react-router-dom';
 import type { SessionGateState } from '#client/app/session/client';
@@ -42,15 +42,15 @@ function AppFrameContent() {
   const matches = useMatches();
   const location = useLocation();
   const sessionState = matches.findLast(hasSessionState)?.loaderData.sessionState ?? null;
+  const signedIn = sessionState?.status === 'authenticated' || sessionState?.status === 'offline-remembered';
   const signedOut = sessionState?.status === 'unauthenticated';
   const connectionUnavailable = sessionState?.status === 'offline-unavailable';
   const logout = useLogout();
   const navigate = useNavigate();
 
   useEffect(() => {
-    pageElement('[data-app-sign-out]').hidden = signedOut;
     pageElement('.remdo-header-links').hidden = connectionUnavailable;
-  }, [signedOut, connectionUnavailable]);
+  }, [connectionUnavailable]);
 
   // Server-rendered header links to app routes stay inside the running app
   // rather than reloading it.
@@ -77,6 +77,11 @@ function AppFrameContent() {
     <>
       {createPortal(
         <>
+          {signedIn && (
+            <Link className="remdo-header-link" to="/sign-out">
+              Logout
+            </Link>
+          )}
           {signedOut && (
             <a className="remdo-header-link" href={createSignInPath(location.search)}>
               Sign in

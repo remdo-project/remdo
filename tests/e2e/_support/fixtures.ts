@@ -271,7 +271,7 @@ expect.extend({
 });
 
 export async function signOutFromHeader(page: Page): Promise<void> {
-  await page.getByRole('link', { name: 'Sign out…', exact: true }).click();
+  await page.getByRole('link', { name: 'Logout', exact: true }).click();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
 }
 

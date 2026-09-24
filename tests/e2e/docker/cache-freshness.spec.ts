@@ -99,7 +99,7 @@ test('returning browsers revalidate files and retain server navigation responses
     expect(response!.headers()['cache-control'], url).toContain('no-store');
   }
   await page.goto('/about/');
-  await page.getByRole('link', { name: 'Sign out…', exact: true }).click();
+  await page.getByRole('link', { name: 'Logout', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible();
   // The offline discard and completion flow is owned by offline-documents.spec.ts;
   // this file covers only that the shell itself is served from the cache offline.

@@ -190,7 +190,7 @@ test.describe('Routing', () => {
       await new Promise(() => {});
     });
 
-    await page.getByRole('link', { name: 'Sign out…', exact: true }).click();
+    await page.getByRole('link', { name: 'Logout', exact: true }).click();
 
     await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible();
     await page.unrouteAll({ behavior: 'ignoreErrors' });
@@ -209,7 +209,7 @@ test.describe('Routing', () => {
 
     // The peer stops using its local data as soon as the broadcast lands; the
     // login view follows a loader round-trip, so allow for a slow one.
-    await expect(peer.getByRole('link', { name: 'Sign out…' })).toBeHidden({ timeout: 15_000 });
+    await expect(peer.getByRole('link', { name: 'Logout' })).toBeHidden({ timeout: 15_000 });
     await expect(peer.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible({ timeout: 15_000 });
     // The peer reaches the login view on the sign-out broadcast, which precedes
     // revocation; until it is confirmed the status reports an incomplete

@@ -5,7 +5,7 @@ test.describe('Admin link', () => {
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
     const navigation = page.getByRole('navigation', { name: 'Primary' });
-    await expect(navigation.getByRole('link')).toHaveText(['About', 'Sign out…']);
+    await expect(navigation.getByRole('link')).toHaveText(['About', 'Logout']);
 
     await navigation.getByRole('link', { name: 'About', exact: true }).click();
     await navigation.getByRole('link', { name: 'Admin', exact: true }).click();

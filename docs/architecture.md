@@ -40,11 +40,12 @@ and styles; account pages load their presentation assets without the editor
 runtime.
 
 The header links to About and to the current session action. Pages other than
-the app page link Admin for staff, then “Sign out…” when Django recognizes a
-session and “Sign in” otherwise. The app page shows “Sign out…” until the app
-reaches its [signed-out screen](specs/access/access-control.md#authenticated-app-access), which shows “Sign in” instead. Its
+the app page link Admin for staff, then “Logout” when Django recognizes a
+session and “Sign in” otherwise. On the app page, the app renders the session
+action once it knows its session state: “Logout” with a session and “Sign in”
+on its [signed-out screen](specs/access/access-control.md#authenticated-app-access). Its
 [connection-unavailable state](#offline-application-behavior) without
-remembered session state hides these links. “Sign out…” opens the
+remembered session state hides the header links. “Logout” opens the
 [sign-out confirmation](specs/access/access-control.md#logout).
 
 The footer links the [privacy policy](../content/pages/privacy.md) and the source repository. The app footer

@@ -71,8 +71,7 @@
   transition: color 150ms ease;
 }
 
-.remdo-header-links[hidden],
-.remdo-header-link[hidden] {
+.remdo-header-links[hidden] {
   display: none;
 }
 

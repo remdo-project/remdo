@@ -33,7 +33,7 @@ unauthenticatedTest('opens About from the native sign-in header', async ({ page 
 test('public pages link to Home through the brand and retain staff navigation', async ({ page }) => {
   await page.goto('/about/');
   const navigation = page.getByRole('navigation', { name: 'Primary' });
-  await expect(navigation.getByRole('link')).toHaveText(['About', 'Admin', 'Sign out…']);
+  await expect(navigation.getByRole('link')).toHaveText(['About', 'Admin', 'Logout']);
   // Entering from a Django page cold-loads the SPA and its session.
   await page.getByRole('link', { name: 'RemDo home', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible({ timeout: 15_000 });
@@ -42,7 +42,7 @@ test('public pages link to Home through the brand and retain staff navigation', 
 
 test('public-page sign-out link opens the app without revoking the session until confirmed', async ({ page }) => {
   await page.goto('/about/');
-  await page.getByRole('link', { name: 'Sign out…', exact: true }).click();
+  await page.getByRole('link', { name: 'Logout', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible({ timeout: 15_000 });
   await page.reload();
   await page.getByRole('link', { name: 'Cancel', exact: true }).click();
