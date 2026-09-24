@@ -1,28 +1,39 @@
 import { Alert, Button, Group, Stack, Text, TextInput } from '@mantine/core';
 import { useState } from 'react';
-import { useUserData } from '#client/app/user-data/user-data';
+import { NoteUnavailableError } from '#note-sdk';
+import type { DocumentNote } from '#note-sdk';
+import { useDocumentObservation } from '#client/app/user-data/user-data';
 import { RemdoDialog } from '#client/ui/RemdoDialog';
 
 type ShareState =
   | { status: 'idle' | 'pending' }
   | { status: 'error'; message: string };
 
-export function DocumentShareDialog({ docId, onClose }: { docId: string; onClose: () => void }) {
-  // Resolved per render: a document handle captures the listing snapshot it was
-  // built from, so a handle held from open time never shows a new grant.
-  const document = useUserData().getDocuments().getById(docId);
+function readSharing(note: DocumentNote) {
+  try {
+    return { name: note.getText(), recipients: note.getAccess().getChildren() };
+  } catch (error) {
+    if (!(error instanceof NoteUnavailableError)) throw error;
+    return null;
+  }
+}
+
+export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onClose: () => void }) {
+  useDocumentObservation(note);
+  const sharing = readSharing(note);
+  const [openingName] = useState(() => note.getText());
   const [email, setEmail] = useState('');
   const [state, setState] = useState<ShareState>({ status: 'idle' });
   const pending = state.status === 'pending';
 
   const submit = async () => {
     const recipient = email.trim();
-    if (!document || !recipient) {
+    if (!recipient) {
       return;
     }
     setState({ status: 'pending' });
     try {
-      await document.shareWith(recipient);
+      await note.shareWith(recipient);
       setEmail('');
       setState({ status: 'idle' });
     } catch (failure) {
@@ -33,16 +44,16 @@ export function DocumentShareDialog({ docId, onClose }: { docId: string; onClose
     }
   };
 
-  const recipients = document?.getAccess().getChildren() ?? [];
+  const recipients = sharing?.recipients ?? [];
 
   return (
-    <RemdoDialog onClose={onClose} title={document ? `Share “${document.getText()}”` : 'Share'} wide>
+    <RemdoDialog onClose={onClose} title={`Share “${sharing?.name ?? openingName}”`} wide>
       <Stack gap="lg">
         <Stack component="section" gap="sm">
           <Text component="h3" fw={600} size="sm">People with access</Text>
-          {recipients.length === 0
-            ? <Text c="dimmed" size="sm">Only you have access.</Text>
-            : recipients.map((recipient) => (
+          {!sharing && <Text c="dimmed" size="sm">This document is no longer available.</Text>}
+          {sharing && recipients.length === 0 && <Text c="dimmed" size="sm">Only you have access.</Text>}
+          {recipients.map((recipient) => (
                 <Stack gap={0} key={recipient.getId()}>
                   <Text size="sm">{recipient.getText()}</Text>
                   {recipient.getName() && <Text c="dimmed" size="xs">{recipient.getEmail()}</Text>}

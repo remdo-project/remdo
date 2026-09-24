@@ -6,14 +6,24 @@ import { HomeView } from './HomeView';
 import type { HomeViewProps } from './HomeView';
 
 const documentNote = (
-  { id, title, rename = vi.fn(), canRename = true, canShareWith = false }:
-  { id: string; title: string; rename?: () => unknown; canRename?: boolean; canShareWith?: boolean },
+  { id, title, rename = vi.fn(), remove = vi.fn(), canRename = true, canShareWith = false, canDelete = false }:
+  {
+    id: string;
+    title: string;
+    rename?: () => unknown;
+    remove?: () => unknown;
+    canRename?: boolean;
+    canShareWith?: boolean;
+    canDelete?: boolean;
+  },
 ): DocumentNote => ({
   getId: () => id,
   getText: () => title,
   canRename: () => canRename,
   canShareWith: () => canShareWith,
+  canDelete: () => canDelete,
   rename,
+  delete: remove,
 } as unknown as DocumentNote);
 
 const openRenameDialog = async (name: string) => {
@@ -205,6 +215,57 @@ describe('home view', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Project Roadmap' })[0]!);
     expect(await screen.findByRole('menuitem', { name: 'Rename…' })).toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Share…' })).toBeNull();
+  });
+
+  it('omits deletion for a document the user cannot delete', async () => {
+    const props = baseProps();
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: docId, canDelete: false });
+    renderHome(props);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Ideas' })[0]!);
+    expect(await screen.findByRole('menuitem', { name: 'Rename…' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Delete…' })).toBeNull();
+  });
+
+  it('deletes only after confirmation and focuses the heading once the row is gone', async () => {
+    const props = baseProps();
+    let view: ReturnType<typeof renderHome>;
+    // The listing reaches Home after the deletion settles, as a query cache
+    // notification does, so the dialog closes while the row still exists.
+    const remove = vi.fn().mockImplementation(async () => {
+      setTimeout(() => {
+        props.sources = [{ id: 'local', label: 'Local', documents: [{ id: 'doc-a', label: 'Project Roadmap' }] }];
+        view.rerender(<MantineProvider><HomeView {...props} /></MantineProvider>);
+      });
+    });
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canDelete: true, remove });
+    props.sources = [{ id: 'local', label: 'Local', documents: baseProps().sources[0]!.documents }];
+    view = renderHome(props);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Actions for Ideas' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Delete…' }));
+    expect(screen.getByRole('heading', { name: 'Delete “Ideas”?' })).toBeInTheDocument();
+    expect(remove).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Ideas')).toBeNull();
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Home' })).toHaveFocus());
+  });
+
+  it('keeps the document and shows the failure when the source refuses deletion', async () => {
+    const remove = vi.fn().mockRejectedValue(new Error('Could not delete the document. Please retry.'));
+    const props = baseProps();
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canDelete: true, remove });
+    renderHome(props);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Ideas' })[0]!);
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Delete…' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not delete the document. Please retry.');
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
   });
 
   it('omits the menu for a document that cannot be renamed', () => {

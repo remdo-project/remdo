@@ -110,6 +110,19 @@ Granting takes an email address and reports a rejected address against the
 address it was given. A grant appears among the recipients once the source
 accepts it, without reopening the surface.
 
+### Document deletion
+
+Only the owner can delete a document, from that document's [quick action menu](../outliner/menu.md),
+after a confirmation that names the document and states that deletion cannot
+be undone. Deletion removes the document for every user; RemDo keeps no trash or
+restore path. Deleting a document that is already
+gone succeeds. An owner may delete their last document.
+
+An open session of a deleted document discards edits the server has not
+acknowledged, without asking, and leaves for [Home](../outliner/home.md) with a notice that
+the document was deleted. A device discards its local copy of a deleted document
+once the server reports the document gone.
+
 ## Admin Role
 
 Django user permissions are the authorization source of truth for
@@ -150,6 +163,7 @@ browser hostname.
 ## Future
 
 - Consider grant revocation when extending sharing management.
+- Consider offering a readable export before document deletion.
 - Consider password changes when adding account self-service.
 - Add audit logging and rate limiting to future public-policy changes.
 - Define anonymous access and public documents.

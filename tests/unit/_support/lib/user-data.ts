@@ -8,7 +8,7 @@
 import { useSyncExternalStore } from 'react';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { createUserDataRootNote } from '#note-sdk';
-import type { UserDataNote, UserDocument } from '#note-sdk';
+import type { CollectionSource, UserDataNote, UserDocument } from '#note-sdk';
 
 export const TEST_USER_DATA_DOCUMENT = { id: 'testDoc', title: 'Test Document' } as const;
 
@@ -72,5 +72,27 @@ export function mockUserDataModule() {
     useUserDataStatus: getUserDataStatus,
     useUserData: useTestUserData,
     useUserDataRuntime: getUserDataRuntime,
+  };
+}
+
+/** A document list source whose replacement notifies every subscriber, as the live query cache does. */
+export function createObservableDocumentList(initial: readonly UserDocument[]) {
+  let items = [...initial];
+  const subscribers = new Set<() => void>();
+  const source: CollectionSource<UserDocument> = {
+    getChildren: () => items,
+    getById: (id) => items.find((item) => item.id === id) ?? null,
+    subscribe: (listener) => {
+      const subscriber = () => listener();
+      subscribers.add(subscriber);
+      return () => subscribers.delete(subscriber);
+    },
+  };
+  return {
+    source,
+    replace: (next: readonly UserDocument[]) => {
+      items = [...next];
+      for (const subscriber of subscribers) subscriber();
+    },
   };
 }

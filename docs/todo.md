@@ -240,9 +240,9 @@ Decisions requiring a contract owner's judgement:
   when a consumer needs to
   know whether an operation took effect. Evaluate query and app-resource reads
   in their own workflows using the [design principles and references](dev/sdk.md). Reassess
-  generated record/query APIs versus note-shaped application resources with Home
-  and Sharing consumers as Home, offline, and source requirements become
-  clearer; the cache library does not settle the public SDK shape.
+  generated record/query APIs versus [user data notes](specs/outliner/user-data.md)
+  with Home and Sharing consumers as Home, offline, and source requirements
+  become clearer; the cache library does not settle the public SDK shape.
 
   Keep model and API choices open to revision throughout this SDK initiative.
   Revisit them when consumer evidence reveals friction or a better fit, and
@@ -362,10 +362,14 @@ concrete unmet need.
   Grant revocation is unbuilt, so the surface lists recipients without removing
   them.
 
-- **Document deletion.** Decide permissions, effects on collaborators and
-  linked sources, and recovery or confirmation before adding deletion to
-  document menus. Document destruction is separate from structural note
-  deletion.
+- **Document deletion in open sessions.** [Document deletion](specs/access/access-control.md#document-deletion) ships from
+  Home row menus, but other sessions do not learn of it as specified. Django
+  does not notify the collaboration hub, which closes a deleted document's
+  connections only when its next store fails, and hub authorization maps a
+  missing document to the same denial as refused access. An open editor
+  therefore shows a connection error instead of leaving for Home, which has no
+  notice surface. Devices keep their encrypted local copy, since local
+  persistence has no per-document purge.
 
 - **Contextual menus across desktop and touch.** Keep the [note menu](specs/outliner/menu.md) available
   on both, with discoverable keyboard entry and an easily reachable More action.

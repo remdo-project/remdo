@@ -5,7 +5,7 @@ export class NoteUnavailableError extends Error {
   readonly noteId: NoteId;
 
   constructor(noteId: NoteId) {
-    super(`Note "${noteId}" is not available in the open document.`);
+    super(`Note "${noteId}" is not available.`);
     this.name = 'NoteUnavailableError';
     this.noteId = noteId;
   }

@@ -149,9 +149,6 @@ collaboration authorization.
   response cannot populate the next account's cache.
 - Cached bootstrap data is revalidated on online reads and reconnection;
   using the offline fallback does not make it indefinitely fresh.
-- Document creation completes when the server acknowledges the new metadata
-  and the result is available to the client. A later list-refresh
-  failure does not turn that successful creation into a failed operation.
 
 ### Collaboration credentials and paths
 

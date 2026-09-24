@@ -1,6 +1,6 @@
-import { createContext, use } from 'react';
+import { createContext, use, useEffect, useReducer } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { UserDataNote } from '#note-sdk';
+import type { DocumentNote, UserDataNote } from '#note-sdk';
 import type { UserDataRuntime } from './stored-user-data';
 
 export { resetUserDataRuntime as resetUserData } from './stored-user-data';
@@ -38,4 +38,15 @@ export function useUserDataStatus() {
       void documents.refetch();
     },
   };
+}
+
+/** Rerenders when the document's values, eligibility, or availability may have changed. */
+export function useDocumentObservation(note: DocumentNote): void {
+  const [, rerender] = useReducer((version: number) => version + 1, 0);
+  useEffect(() => {
+    const unsubscribe = note.subscribe(rerender);
+    // A change between render and subscribing sends no notification.
+    rerender();
+    return unsubscribe;
+  }, [note]);
 }

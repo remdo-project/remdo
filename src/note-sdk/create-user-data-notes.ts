@@ -10,6 +10,7 @@ import type {
 } from './documents';
 import type { CollectionNote, Note, NoteId } from './notes';
 import { createNoteAs } from './handle-utils';
+import { NoteUnavailableError } from './note-unavailable-error';
 
 const USER_DATA_ROOT_ID = 'user-data';
 const USER_DOCUMENT_SOURCES_ID = 'document-sources';
@@ -21,8 +22,9 @@ const USER_DOCUMENTS_TITLE = 'Documents';
 
 interface UserDataNoteActions {
   createDocument?: (title: string) => Promise<UserDocument>;
+  deleteDocument?: (documentId: NoteId) => Promise<void>;
   documentSources?: CollectionSource<DocumentSource>;
-  renameDocument?: (documentId: NoteId, title: string) => Promise<UserDocument>;
+  renameDocument?: (documentId: NoteId, title: string) => Promise<unknown>;
   shareDocument?: (documentId: NoteId, email: string) => Promise<DocumentAccessView>;
 }
 
@@ -41,6 +43,8 @@ interface DocumentAccessItem extends DocumentAccessView {
 export interface CollectionSource<Item extends { id: NoteId }> {
   getChildren: () => readonly Item[];
   getById: (itemId: NoteId) => Item | null;
+  /** Notifies when items may have changed; omitted by a source that never changes. */
+  subscribe?: (listener: () => void) => () => void;
 }
 
 type CollectionSourceInput<Item extends { id: NoteId }> = readonly Item[] | CollectionSource<Item>;
@@ -104,12 +108,19 @@ function createDocumentAccessHandle(document: UserDocument): CollectionNote<Docu
   });
 }
 
-function createProjectedDocumentHandle(
-  document: UserDocument,
+const unsubscribeNothing = () => {};
+
+function createDocumentHandle(
+  noteId: NoteId,
+  documents: CollectionSource<UserDocument>,
   actions: UserDataNoteActions,
 ): DocumentNote {
-  const noteId = document.id;
   const kind = () => 'document' as const;
+  const read = () => {
+    const document = documents.getById(noteId);
+    if (!document) throw new NoteUnavailableError(noteId);
+    return document;
+  };
 
   async function shareWith(email: string): Promise<DocumentAccessNote> {
     if (!actions.shareDocument) {
@@ -128,19 +139,30 @@ function createProjectedDocumentHandle(
     if (typeof title !== 'string') {
       throw new TypeError('document.rename(title) requires a document title.');
     }
-    return createProjectedDocumentHandle(await actions.renameDocument(noteId, title), actions);
+    await actions.renameDocument(noteId, title);
+    return createDocumentHandle(noteId, documents, actions);
+  }
+
+  async function deleteDocument(): Promise<void> {
+    if (!actions.deleteDocument) {
+      throw new Error('Deletion is not available for this document.');
+    }
+    await actions.deleteDocument(noteId);
   }
 
   const handle: DocumentNote = {
     getId: () => noteId,
     getKind: kind,
-    getText: () => document.title,
-    getAccess: () => createDocumentAccessHandle(document),
+    getText: () => read().title,
+    getAccess: () => createDocumentAccessHandle(read()),
     getChildren: () => [],
-    canShareWith: () => document.shareable === true,
+    canShareWith: () => documents.getById(noteId)?.shareable === true,
     shareWith,
-    canRename: () => Boolean(actions.renameDocument),
+    canRename: () => Boolean(actions.renameDocument) && documents.getById(noteId) !== null,
     rename,
+    canDelete: () => documents.getById(noteId)?.deletable === true && Boolean(actions.deleteDocument),
+    delete: deleteDocument,
+    subscribe: (listener) => documents.subscribe?.(listener) ?? unsubscribeNothing,
     as: createNoteAs(noteId, kind, () => handle),
   };
 
@@ -161,18 +183,17 @@ function createUserDocumentsHandle(
       throw new TypeError('documents.create(text) requires a document title.');
     }
     const created = await actions.createDocument(text);
-    return createProjectedDocumentHandle(created, actions);
+    return createDocumentHandle(created.id, documents, actions);
   }
 
   const handle: UserDocumentsNote = {
     getId: () => noteId,
     getKind: kind,
     getText: () => USER_DOCUMENTS_TITLE,
-    getChildren: () => documents.getChildren().map((document) => createProjectedDocumentHandle(document, actions)),
-    getById: (documentId) => {
-      const document = documents.getById(documentId);
-      return document ? createProjectedDocumentHandle(document, actions) : null;
-    },
+    getChildren: () => documents.getChildren().map((document) => createDocumentHandle(document.id, documents, actions)),
+    getById: (documentId) => (
+      documents.getById(documentId) ? createDocumentHandle(documentId, documents, actions) : null
+    ),
     create,
     as: createNoteAs(noteId, kind, () => handle),
   };
@@ -188,7 +209,7 @@ function createDocumentSourceHandle(
   const kind = () => 'document-source' as const;
   const documentActions = source.local ? actions : {};
   const documents = createCollectionHandle({
-    createItemNote: (document) => createProjectedDocumentHandle(document, documentActions),
+    createItemNote: (document) => createDocumentHandle(document.id, source.documents, documentActions),
     items: source.documents,
     noteId: `${noteId}/documents`,
     text: USER_DOCUMENTS_TITLE,

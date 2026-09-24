@@ -47,6 +47,7 @@ contract.
    - Zoom per [Zoom](./zoom.md), shortcut `Z`.
    - Rename… for a document, per [Document rename](./location-header.md#document-rename).
    - Share… for a document the current user owns, per [Document sharing](../access/access-control.md#document-sharing).
+   - Delete… for a document the current user owns, per [Document deletion](../access/access-control.md#document-deletion).
 4. Children actions:
    - Child list type actions per [List types](./list-types.md#type-conversion), showing only
      the two non-current options; hidden for leaf notes.

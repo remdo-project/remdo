@@ -18,6 +18,7 @@ function DocumentGroup({
   label,
   documents,
   onSelectDocument,
+  onDelete,
   onRename,
   onShare,
   resolveDocument,
@@ -25,6 +26,7 @@ function DocumentGroup({
   label: string;
   documents: readonly HomeDocumentEntry[];
   onSelectDocument: (docId: string) => void;
+  onDelete: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   onShare: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   resolveDocument: (docId: string) => DocumentNote | null;
@@ -38,7 +40,9 @@ function DocumentGroup({
           const label = formatNavigationLabel(document.label);
           return (
             <li className="home-doc-row" key={document.id}>
-              {note && <DocumentMenu label={label} note={note} onRename={onRename} onShare={onShare} />}
+              {note && (
+                <DocumentMenu label={label} note={note} onDelete={onDelete} onRename={onRename} onShare={onShare} />
+              )}
               <button
                 className="home-doc remdo-interaction-surface"
                 data-home-document-ref={document.id}
@@ -67,7 +71,7 @@ export function HomeView({
 }: HomeViewProps) {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
-  const { documentDialog, openRename, openShare } = useDocumentDialogs(headingRef);
+  const { documentDialog, openDelete, openRename, openShare } = useDocumentDialogs(headingRef);
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -101,6 +105,7 @@ export function HomeView({
             documents={group.documents}
             key={group.key}
             label={group.label}
+            onDelete={openDelete}
             onRename={openRename}
             onSelectDocument={onSelectDocument}
             onShare={openShare}

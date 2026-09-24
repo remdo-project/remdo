@@ -27,7 +27,7 @@ urlpatterns = [
     path("api/config", views.ConfigView.as_view()),
     path("api/current-user", views.CurrentUserView.as_view()),
     path("api/documents", views.DocumentListCreateView.as_view()),
-    path("api/documents/<str:document_id>", views.DocumentRenameView.as_view()),
+    path("api/documents/<str:document_id>", views.DocumentView.as_view()),
     path("api/documents/<str:document_id>/access", views.DocumentShareView.as_view()),
     path("internal/collaboration/documents/<str:document_id>/authorize", internal.authorize),
     path("internal/collaboration/documents/<str:document_id>/content", internal.content),

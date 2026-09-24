@@ -1,4 +1,4 @@
-import { QueryClient, queryOptions } from '@tanstack/react-query';
+import { hashKey, QueryClient, queryOptions } from '@tanstack/react-query';
 import { createUserDataRootNote } from '#note-sdk';
 import type { CollectionSource, UserDocument } from '#note-sdk';
 import type { DocumentAccessView } from '#domain/documents/access';
@@ -16,9 +16,15 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
       return requireData(await api.GET('/api/documents', { signal }));
     },
   });
+  const documentsQueryHash = hashKey(documentsQuery.queryKey);
   const documents: CollectionSource<UserDocument> = {
     getChildren: () => client.getQueryData(documentsQuery.queryKey) ?? [],
     getById: (id) => documents.getChildren().find((document) => document.id === id) ?? null,
+    subscribe: (listener) => client.getQueryCache().subscribe((event) => {
+      if (event.query.queryHash === documentsQueryHash && event.type === 'updated' && event.action.type === 'success') {
+        listener();
+      }
+    }),
   };
   const createDocumentOptions = {
     mutationKey: [globalThis.location.origin, userId, 'create-document'],
@@ -47,7 +53,7 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     // A rename is an explicit submission with a retryable dialog, so a failed
     // request is reported instead of queued for reconnect.
     networkMode: 'always' as const,
-    mutationFn: async ({ documentId, title }: { documentId: string; title: string }): Promise<UserDocument> => {
+    mutationFn: async ({ documentId, title }: { documentId: string; title: string }) => {
       lifetime.signal.throwIfAborted();
       const result = await api.PUT('/api/documents/{document_id}', {
         params: { path: { document_id: documentId } }, body: { title }, signal: lifetime.signal,
@@ -66,17 +72,34 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
       if (!result.response.ok) {
         throw new Error('Could not rename the document. Please retry.');
       }
-      const renamed = requireData(result);
-      // The rename response carries only identity and name; the listing owns
-      // the document's access and sharing state.
-      return { ...documents.getById(renamed.id), ...renamed };
+      return requireData(result);
     },
-    onSuccess: async (renamed: UserDocument) => {
+    onSuccess: async (renamed: { id: string; title: string }) => {
       await client.cancelQueries({ queryKey: documentsQuery.queryKey });
       lifetime.signal.throwIfAborted();
       client.setQueryData(documentsQuery.queryKey, (items = []) => items.map((document) => (
         document.id === renamed.id ? { ...document, title: renamed.title } : document
       )));
+      void client.invalidateQueries({ queryKey: documentsQuery.queryKey });
+    },
+  };
+  const deleteDocumentOptions = {
+    mutationKey: [globalThis.location.origin, userId, 'delete-document'],
+    networkMode: 'always' as const,
+    mutationFn: async (documentId: string): Promise<void> => {
+      lifetime.signal.throwIfAborted();
+      const result = await api.DELETE('/api/documents/{document_id}', {
+        params: { path: { document_id: documentId } }, signal: lifetime.signal,
+      });
+      lifetime.signal.throwIfAborted();
+      // A document that is already gone satisfies the request.
+      if (result.response.ok || result.response.status === 404) return;
+      throw new Error('Could not delete the document. Please retry.');
+    },
+    onSuccess: async (_: void, deletedId: string) => {
+      await client.cancelQueries({ queryKey: documentsQuery.queryKey });
+      lifetime.signal.throwIfAborted();
+      client.setQueryData(documentsQuery.queryKey, (items = []) => items.filter((document) => document.id !== deletedId));
       void client.invalidateQueries({ queryKey: documentsQuery.queryKey });
     },
   };
@@ -89,6 +112,9 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
         params: { path: { document_id: documentId } }, body: { email }, signal: lifetime.signal,
       });
       lifetime.signal.throwIfAborted();
+      if (result.response.status === 404) {
+        throw new Error('This document is no longer available.');
+      }
       if (result.response.status === 400) {
         throw new Error('Use the email of another account on this server.');
       }
@@ -109,6 +135,7 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     shareDocument: (documentId, email) => client.getMutationCache().build(client, shareDocumentOptions).execute({ documentId, email }),
     createDocument: (title) => client.getMutationCache().build(client, createDocumentOptions).execute(title),
     renameDocument: (documentId, title) => client.getMutationCache().build(client, renameDocumentOptions).execute({ documentId, title }),
+    deleteDocument: (documentId) => client.getMutationCache().build(client, deleteDocumentOptions).execute(documentId),
   });
 
   return {

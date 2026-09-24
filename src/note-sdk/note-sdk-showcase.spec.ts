@@ -8,6 +8,7 @@
  */
 import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import {
+  createObservableDocumentList,
   getTestUserData,
   meta,
   placeCaretAtNote,
@@ -191,6 +192,32 @@ describe('note SDK showcase', () => {
 
       expect(shared.getKind()).toBe('document-access');
       expect(shared.getText()).toBe('Bob');
+    });
+
+    it('observes a retained document through its source', () => {
+      const { source, replace: replaceListing } = createObservableDocumentList([
+        { id: 'doc', title: 'Draft', shareable: true },
+      ]);
+      const userData = createUserDataRootNote(source);
+      const document = userData.getDocuments().getById('doc')!;
+      const titles: Array<string | null> = [];
+      const unsubscribe = document.subscribe(() => {
+        try {
+          titles.push(document.getText());
+        } catch (error) {
+          if (!(error instanceof NoteUnavailableError)) throw error;
+          titles.push(null);
+        }
+      });
+
+      replaceListing([{ id: 'doc', title: 'Quarterly plan', shareable: true }]);
+      expect(document.getText()).toBe('Quarterly plan');
+      replaceListing([]);
+      expect(document.canShareWith()).toBe(false);
+      unsubscribe();
+      replaceListing([{ id: 'doc', title: 'Restored', shareable: true }]);
+
+      expect(titles).toEqual(['Quarterly plan', null]);
     });
 
     it('reads grouped document sources as collection notes', () => {

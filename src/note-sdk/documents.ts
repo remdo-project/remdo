@@ -34,6 +34,12 @@ export interface DocumentNote extends AddressableNote<'document'> {
   canRename: () => boolean;
   /** Changes this document's name through its source server. */
   rename: (title: string) => Promise<DocumentNote>;
+  /** Returns whether this document can be deleted. */
+  canDelete: () => boolean;
+  /** Deletes this document, its content, and its access grants through its source server. */
+  delete: () => Promise<void>;
+  /** Notifies when this document's values, eligibility, or availability may have changed. */
+  subscribe: (listener: () => void) => () => void;
 }
 
 export interface DocumentAccessNote extends AddressableNote<'document-access'> {
