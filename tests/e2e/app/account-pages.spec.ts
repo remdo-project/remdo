@@ -88,8 +88,7 @@ for (const width of [1280, 390]) {
 test('native sign-in accepts an existing admin session from another tab', async ({ page, context }) => {
   const account = createTestAuthAccount();
   await provisionDjangoUser({ ...account, admin: true });
-  await page.goto('/');
-  await page.waitForURL(/\/accounts\/login\//u);
+  await page.goto('/accounts/login/?next=%2F');
   const admin = await context.newPage();
   await admin.goto('/admin/');
   await admin.getByLabel('Email:', { exact: true }).fill(account.email);

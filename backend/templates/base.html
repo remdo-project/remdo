@@ -26,15 +26,15 @@
               </a>
               <nav aria-label="Primary" class="remdo-header-navigation">
                 <div class="remdo-header-links">
+                  {% block header_links %}
                   <a class="remdo-header-link" href="/about/"{% if request.path == '/about/' %} aria-current="page"{% endif %}>About</a>
-                  {% block header_session %}
-                    {% if user.is_authenticated %}
-                      {% if user.is_staff %}<a class="remdo-header-link" href="/admin/">Admin</a>{% endif %}
-                      <a class="remdo-header-link" href="/sign-out/">Logout</a>
-                    {% else %}
-                      {% url 'account_login' as login_url %}
-                      <a class="remdo-header-link" href="{{ login_url }}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}"{% if request.path == login_url %} aria-current="page"{% endif %}>Sign in</a>
-                    {% endif %}
+                  {% if user.is_authenticated %}
+                    {% if user.is_staff %}<a class="remdo-header-link" href="/admin/">Admin</a>{% endif %}
+                    <a class="remdo-header-link" href="/sign-out/">Logout</a>
+                  {% else %}
+                    {% url 'account_login' as login_url %}
+                    <a class="remdo-header-link" href="{{ login_url }}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}"{% if request.path == login_url %} aria-current="page"{% endif %}>Sign in</a>
+                  {% endif %}
                   {% endblock %}
                 </div>
               </nav>

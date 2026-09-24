@@ -2,22 +2,15 @@ import { MantineProvider } from '@mantine/core';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
-import { registerSW } from 'virtual:pwa-register';
 import { config } from '#config';
+import { unregisterServiceWorkers } from '#client/app/session/client';
 import { theme } from './theme';
 import '@mantine/core/styles.css';
 import '#client/ui/styles/shared.css';
 import './styles/interaction.css';
 
-if ('serviceWorker' in navigator) {
-  if (config.isProd) {
-    registerSW({ immediate: true });
-  } else {
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    for (const registration of registrations) {
-      await registration.unregister();
-    }
-  }
+if (!config.isProd) {
+  await unregisterServiceWorkers();
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

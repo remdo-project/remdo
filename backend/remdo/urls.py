@@ -8,13 +8,14 @@ from django.views.decorators.http import require_safe
 from documents import internal, views
 from drf_spectacular.views import SpectacularAPIView
 
-from .app_page import app_page
+from .app_page import app_page, home_page
 from .public_pages import public_page
 
 admin.site.login = secure_admin_login(require_safe(admin.site.login))
 
 urlpatterns = [
-    path("", app_page),
+    path("", home_page),
+    path("app-shell/", app_page),
     re_path(r"^n/", app_page),
     re_path(r"^sign-out/?$", app_page),
     path("accounts/login/", LoginView.as_view(), name="account_login"),

@@ -1,7 +1,10 @@
 # Home
 
-**Home** is the app landing page at `/`. Signed-out users see [sign-in](../access/access-control.md#authenticated-app-access);
-signed-in users browse their documents and jump between them.
+**Home** is the app landing page at `/`. A signed-out visit to `/` that reaches
+the [server](../../architecture.md#application-freshness) loads a server-rendered public introduction to
+RemDo with a [sign-in](../access/access-control.md#authenticated-app-access) entry, without the app runtime; a signed-out request
+carrying a post-sign-in destination goes directly to sign-in. Signed-in users
+browse their documents and jump between them.
 It sits one level above the [document-root view](./zoom.md#visibility-and-editing-boundary) — the document
 is a [note](./note-model.md), and Home is the surface from which its documents are reached.
 

@@ -6,13 +6,15 @@ import { config } from '../index.ts';
 import { onRollupWarning } from '../_internal/vite/onRollupWarning.ts';
 import { resolveApiServerOrigin, resolveCollabServerOrigin } from '../../src/platform/net/origins.ts';
 import { shouldProxyToDjango } from './gateway-routes.ts';
-import { APP_SHELL_ROUTE_PATTERNS } from '../../src/document-routes/app-shell-routes.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 const host = config.env.HOST;
+// Must match Django's app routes (backend/remdo/urls.py); a route missing
+// from either fails only offline or only online. Workbox matches pathname plus
+// search.
+const APP_ROUTE_PATTERN = /^(?:\/|\/n\/[^?]*|\/sign-out\/?)(?:\?.*)?$/u;
 const collabServerTarget = resolveCollabServerOrigin();
-const pwaNavigationFallbackAllowlist = [...APP_SHELL_ROUTE_PATTERNS];
 const stripInternalHeaders: ProxyOptions['configure'] = (proxy) => {
   const strip = (request: { removeHeader: (name: string) => void }) => {
     request.removeHeader('X-Remdo-Collaboration-Secret');
@@ -98,11 +100,13 @@ export function createViteSharedConfig() {
           ],
         },
         workbox: {
-          navigateFallback: '/',
           // Django renders the app page, so it is outside the build output.
           // A new revision per build refreshes the stored page with the assets.
-          additionalManifestEntries: [{ url: '/', revision: String(Date.now()) }],
-          navigateFallbackAllowlist: pwaNavigationFallbackAllowlist,
+          // `/` itself depends on the session, so the page is stored from a
+          // fixed address instead.
+          additionalManifestEntries: [{ url: '/app-shell/', revision: String(Date.now()) }],
+          navigateFallback: '/app-shell/',
+          navigateFallbackAllowlist: [APP_ROUTE_PATTERN],
           runtimeCaching: [
             {
               urlPattern: ({ url }) => url.pathname === '/collaboration',

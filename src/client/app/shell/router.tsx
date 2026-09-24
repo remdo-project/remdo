@@ -2,7 +2,13 @@ import { createBrowserRouter, redirect, redirectDocument } from 'react-router-do
 import AppFrame from './AppFrame';
 import AuthenticatedRoute from './AuthenticatedRoute';
 import { devRoutes } from './devRoutes';
-import { hasPendingSignOut, resolveSessionGateState, resolveSignOutSessionGateState } from '#client/app/session/client';
+import {
+  hasConfirmedSignOut,
+  hasPendingSignOut,
+  resolveSessionGateState,
+  resolveSignOutSessionGateState,
+  unregisterServiceWorkers,
+} from '#client/app/session/client';
 import type { SessionGateState } from '#client/app/session/client';
 import {
   createPostAuthNextSearch,
@@ -44,8 +50,13 @@ async function homeRouteLoader(request: Request): Promise<{ sessionState: Sessio
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
     if (!hasPendingSignOut()) {
-      throw redirectDocument(createSignInPath(new URL(request.url).search));
+      // A worker left from an earlier session keeps answering `/` with this
+      // page; without it, the server shows signed-out visitors the public home.
+      const search = new URL(request.url).search;
+      throw redirectDocument(await unregisterServiceWorkers() ? `/${search}` : createSignInPath(search));
     }
+    // Logout's own removal may not have finished before the app closed.
+    if (hasConfirmedSignOut()) void unregisterServiceWorkers();
     return { sessionState };
   }
 
@@ -115,6 +126,14 @@ const appRoutes = [
     path: '/',
     loader: ({ request }: { request: Request }) => homeRouteLoader(request),
     element: <HomeRoute />,
+    hydrateFallbackElement,
+  },
+  {
+    // The service worker stores the app page from this address; a visit to it
+    // has no app route to show.
+    path: 'app-shell',
+    loader: () => redirectDocument('/'),
+    element: hydrateFallbackElement,
     hydrateFallbackElement,
   },
   {

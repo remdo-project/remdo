@@ -183,10 +183,25 @@ export async function revokeServerSession(): Promise<boolean> {
       withSessionStorage((storage) => {
         storage.setItem(CONFIRMED_SIGN_OUT_KEY, generation);
       });
+      // A worker that survives holds no account data; it only shows the app's
+      // signed-out screen at `/` instead of the public home.
+      void unregisterServiceWorkers();
     }
     return true;
   } catch {
     // Keep the existing marker; a failed request must not recreate it after sign-in.
+    return false;
+  }
+}
+
+/** Reports whether no service worker remains registered for this origin. */
+export async function unregisterServiceWorkers(): Promise<boolean> {
+  if (!('serviceWorker' in navigator)) return true;
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    const results = await Promise.all(registrations.map((registration) => registration.unregister()));
+    return results.every(Boolean);
+  } catch {
     return false;
   }
 }

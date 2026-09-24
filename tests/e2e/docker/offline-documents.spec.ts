@@ -57,6 +57,9 @@ test('reopens persisted content offline and delivers offline edits after reconne
   await page.close();
 
   await withOfflinePage(context, async (offline) => {
+    // Online, the server decides what `/` shows; offline, the stored app page opens Home.
+    await offline.goto('/');
+    await expect(offline.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
     await offline.goto(`/n/${docId}`);
     await waitForEditableEditor(offline);
     await expect(offline.locator('.editor-input')).toContainText('Offline persisted document');
@@ -159,6 +162,27 @@ test('offline logout discards edits across tabs and isolates the next account', 
     await expect(offline.locator('.editor-input')).toHaveCount(0);
     await expect(offline.getByText('Owner private content', { exact: true })).toHaveCount(0);
   });
+});
+
+test('confirmed logout removes the offline entry so the root serves the public home', async ({ page }) => {
+  await signIn(page);
+  await waitForServiceWorkerControl(page);
+  await signOutFromHeader(page);
+  await expect(page.getByRole('status')).toContainText("You're signed out");
+  await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(0);
+  const response = await page.goto('/');
+  expect(response!.fromServiceWorker()).toBe(false);
+  await expect(page.getByRole('heading', { level: 1, name: 'RemDo' })).toBeVisible();
+});
+
+test('a session that ended elsewhere removes the offline entry so the root serves the public home', async ({ page, context }) => {
+  await signIn(page);
+  await waitForServiceWorkerControl(page);
+  await context.clearCookies();
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1, name: 'RemDo' })).toBeVisible();
+  await expect(page.locator('script[type="module"]')).toHaveCount(0);
+  expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(0);
 });
 
 test('native admin logout clears cached content and peer editors before another account signs in', async ({ page, context }, testInfo) => {
