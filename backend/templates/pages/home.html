@@ -3,10 +3,6 @@
   <meta name="description" content="RemDo is a keyboard-first collaborative outliner for organizing and connecting notes.">
   <link rel="canonical" href="{{ canonical }}">
 {% endblock %}
-{% block header_links %}
-  <a class="remdo-header-link" href="/about/">About</a>
-  <a class="remdo-account-button remdo-account-button-accent" href="{% url 'account_login' %}">Sign in</a>
-{% endblock %}
 {% block content %}
   <main class="remdo-home">
     <div class="remdo-home-intro">
@@ -34,7 +30,7 @@
       </div>
     </div>
     <figure aria-label="Example RemDo outline" class="remdo-home-preview" role="img">
-      <div class="remdo-home-preview-bar">Home <span>/</span> <strong>Today</strong></div>
+      <div class="remdo-home-preview-bar">Home / <strong>Today</strong></div>
       <ul class="remdo-home-outline">
         <li>
           <strong>Today</strong> · <span class="remdo-home-date">Sep 23, 2026</span>

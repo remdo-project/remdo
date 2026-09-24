@@ -54,10 +54,10 @@
 
 .remdo-home {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
   align-items: start;
   gap: 3rem;
-  padding: 5rem clamp(var(--mantine-spacing-md), 6vw, 6rem) 6rem;
+  padding: clamp(3rem, 8vw, 5rem) clamp(var(--mantine-spacing-md), 6vw, 6rem);
   font-size: var(--mantine-font-size-lg);
   line-height: 1.55;
 }
@@ -113,11 +113,6 @@
   gap: var(--mantine-spacing-sm);
 }
 
-.remdo-home .remdo-account-button {
-  min-height: 3rem;
-  font-size: var(--mantine-font-size-md);
-}
-
 .remdo-home-preview {
   margin: 0;
   overflow: hidden;
@@ -135,10 +130,6 @@
   font-size: var(--mantine-font-size-sm);
 }
 
-.remdo-home-preview-bar span {
-  margin-inline: var(--mantine-spacing-xs);
-}
-
 .remdo-home-preview-bar strong {
   color: var(--mantine-color-gray-0);
 }
@@ -150,7 +141,6 @@
 
 .remdo-home-outline ul {
   padding-left: var(--mantine-spacing-lg);
-  list-style: circle;
 }
 
 .remdo-home-outline li::marker {
@@ -187,11 +177,4 @@
 
 .remdo-home-task[data-done]::before {
   background: currentcolor;
-}
-
-@media (max-width: 48em) {
-  .remdo-home {
-    grid-template-columns: minmax(0, 1fr);
-    padding-block: 3rem 4rem;
-  }
 }
