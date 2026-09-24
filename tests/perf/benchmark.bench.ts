@@ -127,6 +127,8 @@ const OPERATIONS: Operation[] = [
       await pressKey(remdo, { key: 'Enter' });
     },
   },
+  // FIXME: repeating this reorder intermittently makes React report "Maximum update depth exceeded",
+  // failing roughly 1 in 4 default (8x3) bench runs. Probe: repeat pnpm run test:perf:bench.
   {
     name: 'reorder note (within parent)',
     run: async (remdo, targets) => {

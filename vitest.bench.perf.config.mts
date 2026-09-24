@@ -12,6 +12,9 @@ export default defineConfig({
     setupFiles: ['./tests/unit/_support/setup/index.ts'],
     benchmark: {
       include: ['tests/perf/**/*.bench.ts'],
+      // Hot editor helpers cross module-runner export getters; the warning is console output
+      // the shared console assertion would fail, and the overhead predates Vitest 5.
+      suppressExportGetterWarnings: true,
     },
     css: true,
     reporters: ['verbose'],
