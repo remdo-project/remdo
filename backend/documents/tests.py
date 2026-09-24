@@ -77,7 +77,7 @@ class DocumentFlowTests(TestCase):
         response = self.post("/api/documents", {"title": "Research"})
         self.assertEqual(response.status_code, 201)
         document = response.json()
-        self.assertRegex(document["id"], r"^[A-Za-z0-9]{20}$")
+        self.assertRegex(document["id"], r"^[1-9A-HJ-NP-Za-km-z]{10}$")
         self.assertIn(document, self.client.get("/api/documents").json())
         # A fresh HTTP client reads durable sessions and metadata, not process-local state.
         reopened = Client()

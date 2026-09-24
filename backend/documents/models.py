@@ -6,11 +6,15 @@ from django.db import models
 from django.db.models import Q
 
 DOCUMENT_TITLE_MAX_LENGTH = 500
+# Mirrors createUniqueNoteId in src/domain/notes/ids.ts.
+DOCUMENT_ID_ALPHABET = "".join(
+    char for char in string.ascii_letters + string.digits if char not in "0OIl"
+)
+DOCUMENT_ID_LENGTH = 10
 
 
 def document_id():
-    # Match the canonical note-ID alphabet and length ceiling; 20 characters provide 119 bits.
-    return "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(20))
+    return "".join(secrets.choice(DOCUMENT_ID_ALPHABET) for _ in range(DOCUMENT_ID_LENGTH))
 
 
 class DocumentQuerySet(models.QuerySet):
