@@ -3,45 +3,13 @@ import path from "node:path";
 import { config } from './config/index.ts';
 import { VITEST_DEFAULT_TEST_TIMEOUT_MS } from './tests/unit/_support/timeouts.ts';
 import { createViteSharedConfig } from './config/vite/shared.ts';
-import { configDefaults, defineConfig, defineProject } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 const isVitestUi = process.argv.includes('--ui');
 const isVitestList = process.argv.includes('list');
 const directlyRunsSkillTests = process.argv.some(argument =>
   /(?:^|[/\\])\.(?:agents|claude)[/\\]skills[/\\]/.test(argument));
 
-const shared = defineProject({
-  ...createViteSharedConfig(),
-  test: {
-    // Console spies must keep calls recorded while fixtures load; afterEach clears them.
-    clearMocks: false,
-    exclude: [
-      ...configDefaults.exclude,
-      '**/.agent/**',
-      '**/.pnpm-store/**',
-      '**/data/**',
-      ...(directlyRunsSkillTests ? [] : [
-        '**/.agents/skills/**/tests/**',
-        '**/.claude/skills/**/tests/**',
-      ]),
-      'tests/e2e/**',
-      'tests/perf/**',
-      ...(config.env.COLLAB_ENABLED ? [] : ['tests/unit/collab/**']),
-    ],
-    css: true,
-    // Date labels resolve their format from the runtime locale and zone
-    // (`formatDateNodeLabel`), so pin both to keep expected text
-    // machine-independent. LC_ALL is deliberately not set: it would leak into
-    // shell subprocesses that lack the locale. Node reads ICU's default from
-    // LANG, which every environment already accepts.
-    env: {
-      LANG: 'en_US.UTF-8',
-      TZ: 'UTC',
-    },
-    testTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
-    hookTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
-  }
-});
 
 // These tests exercise Node boundaries and do not need a DOM or an editor.
 const nodeTests = [
@@ -111,9 +79,35 @@ const domTests = [
 ];
 
 export default defineConfig({
-  ...shared,
+  ...createViteSharedConfig(),
   test: {
-    ...shared.test,
+    // Console spies must keep calls recorded while fixtures load; afterEach clears them.
+    clearMocks: false,
+    exclude: [
+      ...configDefaults.exclude,
+      '**/.agent/**',
+      '**/.pnpm-store/**',
+      '**/data/**',
+      ...(directlyRunsSkillTests ? [] : [
+        '**/.agents/skills/**/tests/**',
+        '**/.claude/skills/**/tests/**',
+      ]),
+      'tests/e2e/**',
+      'tests/perf/**',
+      ...(config.env.COLLAB_ENABLED ? [] : ['tests/unit/collab/**']),
+    ],
+    css: true,
+    // Date labels resolve their format from the runtime locale and zone
+    // (`formatDateNodeLabel`), so pin both to keep expected text
+    // machine-independent. LC_ALL is deliberately not set: it would leak into
+    // shell subprocesses that lack the locale. Node reads ICU's default from
+    // LANG, which every environment already accepts.
+    env: {
+      LANG: 'en_US.UTF-8',
+      TZ: 'UTC',
+    },
+    testTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
+    hookTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
     teardownTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
     slowTestThreshold: config.env.COLLAB_ENABLED ? 4000 : undefined,
     globalSetup: isVitestList ? undefined : './tests/global/collab-test-runtime.ts',
@@ -132,7 +126,6 @@ export default defineConfig({
     projects: [
       {
         test: {
-          ...shared.test,
           name: 'node',
           environment: 'node',
           include: nodeTests,
@@ -141,7 +134,6 @@ export default defineConfig({
       },
       {
         test: {
-          ...shared.test,
           name: 'dom',
           environment: 'jsdom',
           include: domTests,
@@ -150,10 +142,9 @@ export default defineConfig({
       },
       {
         test: {
-          ...shared.test,
           name: 'editor',
           environment: 'jsdom',
-          exclude: [...shared.test!.exclude!, ...nodeTests, ...domTests],
+          exclude: [...nodeTests, ...domTests],
           setupFiles: ['./tests/unit/_support/setup/index.ts'],
         },
       },

@@ -4,7 +4,6 @@ import { placeCaretAtNote, pressKey, typeText } from '#tests';
 import { REORDER_NOTES_DOWN_COMMAND } from '#client/editor/foundation/commands';
 import type { RemdoTestApi } from '#client/editor/dev';
 import { describe, it } from 'vitest';
-import { renderRemdoEditor } from '../unit/collab/_support/render-editor';
 import type { SerializedEditorState } from 'lexical';
 
 type WorkloadId = `${number}x${number}`;
@@ -176,24 +175,15 @@ const OPERATIONS: Operation[] = [
 
 describe(`editor performance (${selectedWorkloadId})`, () => {
   for (const operation of OPERATIONS) {
-    it(operation.name, async ({ bench }) => {
-      const [workload, mounted] = await Promise.all([
-        resolveWorkloadState(selectedWorkloadId),
-        renderRemdoEditor('main'),
-      ]);
-      const remdo = mounted.api;
-
-      try {
-        await bench(operation.name, {
-          beforeEach: async () => {
-            await remdo._bridge.applySerializedState(workload.stateJson);
-          },
-        }, async () => {
-          await operation.run(remdo, workload.targets);
-        }).run({ throws: true });
-      } finally {
-        mounted.unmount();
-      }
+    it(operation.name, async ({ bench, remdo }) => {
+      const workload = await resolveWorkloadState(selectedWorkloadId);
+      await bench(operation.name, {
+        beforeEach: async () => {
+          await remdo._bridge.applySerializedState(workload.stateJson);
+        },
+      }, async () => {
+        await operation.run(remdo, workload.targets);
+      }).run({ throws: true });
     });
   }
 });
