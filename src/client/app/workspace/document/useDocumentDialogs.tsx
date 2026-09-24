@@ -48,7 +48,7 @@ export function useDocumentDialogs(fallbackRef: { current: HTMLElement | null })
     documentDialog: target && {
       delete: <DocumentDeleteDialog key={target.note.getId()} note={target.note} onClose={close} />,
       rename: <DocumentRenameDialog key={target.note.getId()} note={target.note} onClose={close} />,
-      share: <DocumentShareDialog docId={target.note.getId()} key={target.note.getId()} onClose={close} />,
+      share: <DocumentShareDialog key={target.note.getId()} note={target.note} onClose={close} />,
     }[target.kind],
   };
 }

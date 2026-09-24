@@ -10,6 +10,8 @@ export function DocumentDeleteDialog({
   note: DocumentNote;
   onClose: () => void;
 }) {
+  // Read once: the live note throws once its document leaves the list.
+  const [name] = useState(() => note.getText());
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -26,7 +28,7 @@ export function DocumentDeleteDialog({
   };
 
   return (
-    <RemdoDialog isDismissable={!pending} onClose={onClose} title={`Delete “${note.getText()}”?`}>
+    <RemdoDialog isDismissable={!pending} onClose={onClose} title={`Delete “${name}”?`}>
       <Stack gap="md">
         <Text size="sm">
           The document and its content are deleted for everyone it is shared with. This cannot be undone.

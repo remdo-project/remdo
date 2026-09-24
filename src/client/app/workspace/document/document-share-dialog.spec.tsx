@@ -1,15 +1,11 @@
 import { MantineProvider } from '@mantine/core';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { createUserDataRootNote } from '#note-sdk';
-import type { UserDataNote, UserDocument } from '#note-sdk';
+import type { UserDocument } from '#note-sdk';
 import type { DocumentAccessView } from '#domain/documents/access';
+import { createObservableDocumentList } from '#tests';
 import { DocumentShareDialog } from './DocumentShareDialog';
-
-const routeState = vi.hoisted(() => ({ userData: null as UserDataNote | null }));
-vi.mock('#client/app/user-data/user-data', () => ({
-  useUserData: () => routeState.userData,
-}));
 
 const DOC: UserDocument = { id: 'doc-a', title: 'Project Roadmap', shareable: true, access: [] };
 
@@ -22,20 +18,14 @@ function renderDialog({
   shareDocument?: NonNullable<Parameters<typeof createUserDataRootNote>[1]>['shareDocument'];
   onClose?: () => void;
 } = {}) {
-  // A mutable listing, so the dialog re-resolves its document the way the live
-  // query cache updates it after a grant lands.
-  const listing = [...documents];
-  const source = {
-    getChildren: () => listing,
-    getById: (id: string) => listing.find((item) => item.id === id) ?? null,
-  };
-  routeState.userData = createUserDataRootNote(source, { shareDocument });
+  const { source, replace: replaceListing } = createObservableDocumentList(documents);
+  const note = createUserDataRootNote(source, { shareDocument }).getDocuments().getById('doc-a')!;
   const view = render(
     <MantineProvider>
-      <DocumentShareDialog docId="doc-a" onClose={onClose} />
+      <DocumentShareDialog note={note} onClose={onClose} />
     </MantineProvider>
   );
-  return { ...view, listing, onClose };
+  return { ...view, replaceListing, onClose };
 }
 
 const invite = (email: string) => {
@@ -58,10 +48,9 @@ describe('document share dialog', () => {
     const access: DocumentAccessView = {
       documentId: 'doc-a', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob',
     };
-    const { listing } = renderDialog({
+    const { replaceListing } = renderDialog({
       shareDocument: async () => {
-        // The live cache replaces the listing entry; the dialog must re-read it.
-        listing[0] = { ...DOC, access: [access] };
+        replaceListing([{ ...DOC, access: [access] }]);
         return access;
       },
     });
@@ -70,6 +59,49 @@ describe('document share dialog', () => {
 
     expect(await screen.findByText('Bob')).toBeInTheDocument();
     expect(screen.queryByText('Only you have access.')).toBeNull();
+  });
+
+  it('shows a rename and a grant made elsewhere while open', () => {
+    const { replaceListing } = renderDialog();
+
+    act(() => replaceListing([{
+      ...DOC,
+      title: 'Quarterly plan',
+      access: [{ documentId: 'doc-a', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' }],
+    }]));
+
+    expect(screen.getByRole('dialog', { name: /Quarterly plan/u })).toBeInTheDocument();
+    expect(screen.getByText('Bob')).toBeInTheDocument();
+  });
+
+  it('shows a change that lands before it starts observing', () => {
+    const { source, replace } = createObservableDocumentList([DOC]);
+    const lateSource = {
+      ...source,
+      subscribe: (listener: () => void) => {
+        replace([{ ...DOC, title: 'Quarterly plan' }]);
+        return source.subscribe!(listener);
+      },
+    };
+    const note = createUserDataRootNote(lateSource).getDocuments().getById('doc-a')!;
+
+    render(<MantineProvider><DocumentShareDialog note={note} onClose={vi.fn()} /></MantineProvider>);
+
+    expect(screen.getByRole('dialog', { name: /Quarterly plan/u })).toBeInTheDocument();
+  });
+
+  it('keeps naming a document that leaves the list and lets its source reject an invite', async () => {
+    const shareDocument = vi.fn().mockRejectedValue(new Error('This document is no longer available.'));
+    const { replaceListing } = renderDialog({ shareDocument });
+
+    act(() => replaceListing([]));
+
+    expect(screen.getByRole('dialog', { name: /Project Roadmap/u })).toBeInTheDocument();
+    expect(screen.getByText('This document is no longer available.')).toBeInTheDocument();
+    expect(screen.queryByText('Only you have access.')).toBeNull();
+    invite('bob@example.test');
+    expect(await screen.findByRole('alert')).toHaveTextContent('This document is no longer available.');
+    expect(shareDocument).toHaveBeenCalledWith('doc-a', 'bob@example.test');
   });
 
   it('reports a rejected address against the address it was given', async () => {

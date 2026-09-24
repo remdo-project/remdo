@@ -38,6 +38,8 @@ export interface DocumentNote extends AddressableNote<'document'> {
   canDelete: () => boolean;
   /** Deletes this document, its content, and its access grants through its source server. */
   delete: () => Promise<void>;
+  /** Notifies when this document's values, eligibility, or availability may have changed. */
+  subscribe: (listener: () => void) => () => void;
 }
 
 export interface DocumentAccessNote extends AddressableNote<'document-access'> {

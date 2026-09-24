@@ -152,6 +152,25 @@ describe('account metadata', () => {
     expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
   });
 
+  it('notifies document observers when the listing changes', async () => {
+    const runtime = account();
+    documentRequests((request) => request.method === 'PUT'
+      ? Response.json({ id: 'shared', title: 'Quarterly plan' })
+      : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
+    await runtime.client.query(runtime.documentsQuery);
+    const document = runtime.userData.getDocuments().getById('shared')!;
+    const titles: string[] = [];
+    const unsubscribe = document.subscribe(() => titles.push(document.getText()));
+
+    await document.rename('Quarterly plan');
+    runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Elsewhere', shareable: true }]);
+    unsubscribe();
+    runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Unobserved', shareable: true }]);
+
+    expect(titles).toContain('Quarterly plan');
+    expect(titles.at(-1)).toBe('Elsewhere');
+  });
+
   it('drops a deleted document from the listing, including one already gone', async () => {
     const runtime = account();
     const listing = [
@@ -183,6 +202,14 @@ describe('account metadata', () => {
     await expect(runtime.userData.getDocuments().getById('shared')!.delete())
       .rejects.toThrow('Could not delete the document. Please retry.');
     expect(runtime.userData.getDocuments().getById('shared')).not.toBeNull();
+  });
+
+  it('explains an invite to a document that is gone', async () => {
+    const runtime = account();
+    runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true }]);
+    documentRequests(() => new Response(null, { status: 404 }));
+    await expect(runtime.userData.getDocuments().getById('shared')!.shareWith('bob@example.test'))
+      .rejects.toThrow('This document is no longer available.');
   });
 
   it('explains a rejected recipient without changing document access', async () => {

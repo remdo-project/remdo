@@ -240,9 +240,9 @@ Decisions requiring a contract owner's judgement:
   when a consumer needs to
   know whether an operation took effect. Evaluate query and app-resource reads
   in their own workflows using the [design principles and references](dev/sdk.md). Reassess
-  generated record/query APIs versus note-shaped application resources with Home
-  and Sharing consumers as Home, offline, and source requirements become
-  clearer; the cache library does not settle the public SDK shape.
+  generated record/query APIs versus [user data notes](specs/outliner/user-data.md)
+  with Home and Sharing consumers as Home, offline, and source requirements
+  become clearer; the cache library does not settle the public SDK shape.
 
   Keep model and API choices open to revision throughout this SDK initiative.
   Revisit them when consumer evidence reveals friction or a better fit, and

@@ -11,7 +11,8 @@ export function DocumentRenameDialog({
   note: DocumentNote;
   onClose: () => void;
 }) {
-  const openingName = note.getText();
+  // Read once: the live note throws once its document leaves the list.
+  const [openingName] = useState(() => note.getText());
   const [draft, setDraft] = useState(openingName);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
