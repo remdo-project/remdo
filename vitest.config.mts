@@ -13,6 +13,8 @@ const directlyRunsSkillTests = process.argv.some(argument =>
 const shared = defineProject({
   ...createViteSharedConfig(),
   test: {
+    // Console spies must keep calls recorded while fixtures load; afterEach clears them.
+    clearMocks: false,
     exclude: [
       ...configDefaults.exclude,
       '**/.agent/**',
