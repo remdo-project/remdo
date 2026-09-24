@@ -82,8 +82,8 @@
   justify-content: center;
   min-height: 2.25rem;
   padding: 0 var(--mantine-spacing-lg);
-  border: 1px solid transparent;
-  border-radius: var(--mantine-radius-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
   background: var(--mantine-color-dark-6);
   color: var(--mantine-color-white);
   font: inherit;
@@ -104,9 +104,11 @@
 }
 
 .remdo-account-button-accent {
-  background: color-mix(in srgb, var(--remdo-accent) 40%, var(--mantine-color-dark-7));
+  border-color: transparent;
+  background: var(--remdo-accent);
+  color: var(--remdo-backdrop);
 }
 
 .remdo-account-button-accent:hover {
-  background: color-mix(in srgb, var(--remdo-accent) 55%, var(--mantine-color-dark-7));
+  background: var(--remdo-accent-hover);
 }
