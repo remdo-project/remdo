@@ -162,8 +162,8 @@ export function $computeOutlineSelectionSnapshot({
   const anchorSelectionKey = anchorSelectionItem ? anchorSelectionItem.getKey() : null;
   const isLadderStructural = ladderHasStructuralRung(nextProgression);
   const hasDirectionalUnlock = nextUnlock.pending && nextUnlock.reason === 'directional';
-  // Lexical normalizes the element range of an empty note's structural rung to a
-  // caret inside that note during the untagged handoff; that caret is still the rung.
+  // Lexical follows a tagged element-point range with an untagged, DOM-normalized one; for an
+  // empty note that is a caret inside the note, which is still the rung while the unlock is pending.
   const isCollapsedStructuralIntent =
     (isProgressiveTagged || hasDirectionalUnlock) &&
     $isRangeSelection(selection) &&
@@ -172,15 +172,14 @@ export function $computeOutlineSelectionSnapshot({
     isLadderStructural &&
     nextProgression.anchorKey === anchorSelectionKey;
 
-  // A progressive-tagged selection is left untouched: Lexical may follow a tagged element-point
-  // range with an untagged DOM-normalized text-point range, and keeping the directional unlock
-  // pending stops one anchor mismatch from discarding the logical ladder anchor during that handoff.
+  // A progressive-tagged selection is left untouched, and a pending directional unlock stops one
+  // anchor mismatch in the normalized handoff from discarding the logical ladder anchor.
   if (!isProgressiveTagged) {
     if ($isRangeSelection(selection)) {
       if (
         !hasDirectionalUnlock &&
         (!anchorSelectionKey ||
-          (selection.isCollapsed() && !isCollapsedStructuralIntent) ||
+          selection.isCollapsed() ||
           nextProgression.anchorKey !== anchorSelectionKey)
       ) {
         resetProgression();
