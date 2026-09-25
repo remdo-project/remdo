@@ -179,9 +179,9 @@ user. The application requests it through the OAuth authorization-code flow with
 PKCE; the user signs in and consents on RemDo. Consent and connected-app
 management name the application by the host serving its client metadata,
 followed by its declared name, and consent states that it can access and edit
-the user's documents. Applications identify themselves only by a client
-metadata document URL served over HTTPS. Staff and superuser accounts cannot grant or
-use delegated access, including a grant made before promotion.
+the user's documents. Applications identify themselves only by a client metadata
+document URL served over HTTPS. Staff and superuser accounts cannot grant or use
+delegated access, including a grant made before promotion.
 
 A delegated access token authenticates as its user on the RemDo API and on
 [collaboration connections](../../architecture.md#collaboration-credentials-and-paths),
