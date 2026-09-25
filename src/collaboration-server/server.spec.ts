@@ -198,6 +198,23 @@ it('serializes persistence requests so a deletion made during a save is committe
   expect(text(persisted)).toBe('');
 });
 
+it('shares one waiting save among persistence requests made during a save', async () => {
+  const provider = connect();
+  await expect.poll(() => provider.synced).toBe(true);
+  provider.document.getText('text').insert(0, 'first');
+  await expect.poll(() => provider.unsyncedChanges).toBe(0);
+  holdStore = new Promise(resolve => { releaseStore = resolve; });
+  const running = persist(provider);
+  await expect.poll(() => stores.length).toBe(1);
+  provider.document.getText('text').insert(5, ' second');
+  await expect.poll(() => provider.unsyncedChanges).toBe(0);
+  const waiting = Array.from({ length: 5 }, () => persist(provider));
+  releaseStore!();
+  expect(await Promise.all([running, ...waiting])).toEqual(Array.from({length: 6}).fill('persisted'));
+  expect(stores).toHaveLength(2);
+  expect(text(persisted)).toBe('first second');
+});
+
 function expectDiagnostics(messages: string[]) {
   const calls = vi.mocked(console.error).mock.calls;
   expect(new Set(calls.map(args => args[0]))).toEqual(new Set(messages));

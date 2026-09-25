@@ -53,6 +53,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
   const deleted = new WeakSet<Document>();
   const retries = new Map<Document, ReturnType<typeof setTimeout>>();
   const retryDelays = new Map<Document, number>();
+  const queuedSaves = new Map<Document, Promise<void>>();
   let revision = 0;
   let stopping = false;
   let server: Server;
@@ -109,6 +110,19 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
 
   function save(document: Document) {
     return document.saveMutex.runExclusive(() => writeState(document, Y.encodeStateAsUpdate(document)));
+  }
+
+  // A save not yet started already covers every update received before it
+  // starts, so later requests share it: at most one save runs and one waits.
+  function requestSave(document: Document) {
+    const queued = queuedSaves.get(document);
+    if (queued) return queued;
+    const next = document.saveMutex.runExclusive(() => {
+      queuedSaves.delete(document);
+      return writeState(document, Y.encodeStateAsUpdate(document));
+    });
+    queuedSaves.set(document, next);
+    return next;
   }
 
   async function flush(document: Document) {
@@ -183,7 +197,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
       const message = decodePersistenceMessage(payload);
       if (message?.type !== 'persist') return;
       try {
-        await save(document);
+        await requestSave(document);
         connection.sendStateless(encodePersistenceMessage({ type: 'persisted', id: message.id }));
       } catch {
         connection.sendStateless(encodePersistenceMessage({ type: 'persist-failed', id: message.id }));
