@@ -1,4 +1,5 @@
 import type { InitialConfigType } from '@lexical/react/LexicalComposer';
+import { defineExtension } from 'lexical';
 import { config } from '#config';
 import { editorNodes } from './nodes';
 import { editorTheme } from './theme';
@@ -17,3 +18,8 @@ export function createEditorInitialConfig(): InitialConfigType {
     },
   };
 }
+
+export const editorExtension = defineExtension({
+  name: 'remdo-editor',
+  ...createEditorInitialConfig(),
+});

@@ -1,11 +1,11 @@
-import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { useCallback, useEffect, useState } from 'react';
-import { createEditorInitialConfig } from '#client/editor/runtime/config';
+import { editorExtension } from '#client/editor/runtime/config';
 import { CollaborationPlugin, useOfflineDocumentUnavailable } from '#client/editor/runtime/collaboration';
 import { CheckListPlugin } from '#client/editor/features/list-types/CheckListPlugin';
 import { IndentationPlugin } from '#client/editor/editing/indentation/IndentationPlugin';
@@ -49,15 +49,10 @@ export default function Editor({
   onPendingDocumentImportError,
   onSelectHome,
 }: EditorProps) {
-  const editorInitialConfig = createEditorInitialConfig();
-
   return (
     <div className="editor-container">
-      {/* TODO(deps): migrate to LexicalExtensionComposer, which replaces LexicalComposer in Lexical 0.51; its
-          ReactExtension owns content-editable and editor bootstrapping, so the move needs its own review with
-          RichTextPlugin and CollaborationPluginV2. Probe: the migration passes test:e2e and test:collab. */}
-      {/* eslint-disable-next-line ts/no-deprecated -- tracked above. */}
-      <LexicalComposer initialConfig={editorInitialConfig}>
+      {/* RemDo renders its own ContentEditable under the offline gate. */}
+      <LexicalExtensionComposer extension={editorExtension} contentEditable={null}>
         <CollaborationPlugin docId={docId} accountId={accountId}>
           <EditorRuntime
             docId={docId}
@@ -66,7 +61,7 @@ export default function Editor({
             onSelectHome={onSelectHome}
           />
         </CollaborationPlugin>
-      </LexicalComposer>
+      </LexicalExtensionComposer>
     </div>
   );
 }
