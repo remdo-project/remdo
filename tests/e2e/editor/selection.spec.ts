@@ -1,5 +1,5 @@
 import { expect, test } from '#editor/fixtures';
-import { editorLocator, selectInlineRange, setCaretAtNoteTextNode, setCaretAtText } from '#editor/locators';
+import { editorLocator, noteRow, selectInlineRange, setCaretAtNoteTextNode, setCaretAtText } from '#editor/locators';
 
 test.describe('selection (structural highlight)', () => {
   test('toggles the structural highlight class', async ({ page, editor }) => {
@@ -17,6 +17,36 @@ test.describe('selection (structural highlight)', () => {
     await page.keyboard.press('Escape');
 
     await expect(input).not.toHaveClass(/editor-input--structural/);
+  });
+
+  test('keeps Cmd/Ctrl+A on an empty note structural after Lexical normalizes the DOM range', async ({ page, editor }) => {
+    await editor.load('empty-labels');
+    await setCaretAtText(page, 'child-of-empty');
+    // Lexical handles a dispatched selectionchange synchronously, unlike a native ArrowDown.
+    await noteRow(page, 'child-of-empty').evaluate((row) => {
+      const emptyNote = row.nextElementSibling!;
+      const range = document.createRange();
+      range.setStart(emptyNote, 0);
+      range.collapse(true);
+      document.getSelection()!.removeAllRanges();
+      document.getSelection()!.addRange(range);
+      document.dispatchEvent(new Event('selectionchange'));
+    });
+    const isCaretInEmptyNote = () => page.evaluate(() => {
+      const selection = document.getSelection();
+      return selection?.isCollapsed === true
+        && selection.anchorNode?.nodeName === 'LI'
+        && selection.anchorNode.textContent === '';
+    });
+    await expect.poll(isCaretInEmptyNote).toBe(true);
+
+    const input = editorLocator(page).locator('.editor-input');
+    await page.keyboard.press('ControlOrMeta+A');
+    await expect(input).toHaveClass(/editor-input--structural/);
+
+    // Lexical then normalizes the empty note's element range back to a caret inside it.
+    await expect.poll(isCaretInEmptyNote).toBe(true);
+    await expect(input).toHaveClass(/editor-input--structural/);
   });
 });
 
