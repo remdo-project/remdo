@@ -1245,6 +1245,9 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
+
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note1' });
   });
 
   it('returns to a caret when clicking the anchor note after Cmd/Ctrl+A at the document boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -1263,6 +1266,9 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note1' });
   });
 
   it('collapses a single-note range on an empty note back to a caret', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {

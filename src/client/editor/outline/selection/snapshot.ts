@@ -191,11 +191,10 @@ export function $computeOutlineSelectionSnapshot({
   // anchor mismatch in the normalized handoff from discarding the logical ladder anchor.
   if (!isProgressiveTagged) {
     if ($isRangeSelection(selection)) {
+      const isUserCaret = selection.isCollapsed() && !isCollapsedStructuralIntent;
       if (
-        !hasDirectionalUnlock &&
-        (!anchorSelectionKey ||
-          selection.isCollapsed() ||
-          nextProgression.anchorKey !== anchorSelectionKey)
+        isUserCaret ||
+        (!hasDirectionalUnlock && (!anchorSelectionKey || nextProgression.anchorKey !== anchorSelectionKey))
       ) {
         resetProgression();
       }
