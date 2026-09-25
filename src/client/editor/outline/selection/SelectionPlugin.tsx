@@ -65,19 +65,26 @@ export function SelectionPlugin() {
 
     // The directional unlock carries the ladder through Lexical's normalization of the DOM
     // selection a plan just wrote, which arrives in the first selectionchange after that write.
-    // It ends after that event's listeners (Lexical's included) run, immediately when the plan
-    // leaves the DOM selection unchanged, or on a no-op step; anything later is user input.
+    // It ends in a task after that event, so Lexical's listener and its microtask commit run first
+    // whatever the listener order; immediately when the plan leaves the DOM selection unchanged or
+    // is not applied; or on a no-op step. Anything later is user input.
     const clearUnlock = () => {
       unlockRef.current = { pending: false, reason: 'external' };
     };
     let domSelectionBeforePlan: DomSelectionPoints | null = null;
     let awaitingHandoff = false;
+    let handoffTimer: ReturnType<typeof setTimeout> | undefined;
     const endHandoff = () => {
       if (!awaitingHandoff) {
         return;
       }
       awaitingHandoff = false;
-      queueMicrotask(clearUnlock);
+      handoffTimer = setTimeout(clearUnlock);
+    };
+    const abandonPlan = () => {
+      ladderRef.current = INITIAL_PROGRESSIVE_STATE;
+      domSelectionBeforePlan = null;
+      clearUnlock();
     };
     const ownerDocument = editor.getRootElement()?.ownerDocument ?? document;
     ownerDocument.addEventListener('selectionchange', endHandoff);
@@ -243,9 +250,8 @@ export function SelectionPlugin() {
       // only apply the plan and roll the ladder back if the selection fails.
       $addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
 
-      const applied = $applyProgressivePlan(planResult);
-      if (!applied) {
-        ladderRef.current = INITIAL_PROGRESSIVE_STATE;
+      if (!$applyProgressivePlan(planResult)) {
+        abandonPlan();
       }
     };
 
@@ -379,13 +385,14 @@ export function SelectionPlugin() {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
           collapseSelectionToCaret(selection);
+        } else {
+          abandonPlan();
         }
         return;
       }
 
-      const applied = $applyProgressivePlan(result);
-      if (!applied) {
-        ladderRef.current = INITIAL_PROGRESSIVE_STATE;
+      if (!$applyProgressivePlan(result)) {
+        abandonPlan();
       }
     };
 
@@ -407,6 +414,7 @@ export function SelectionPlugin() {
     return () => {
       disposedRef.current = true;
       ownerDocument.removeEventListener('selectionchange', endHandoff);
+      clearTimeout(handoffTimer);
       renderStructuralHighlight(null, false);
       unregisterProgressionListener();
       unregisterSelectAll();
