@@ -132,6 +132,15 @@ class DelegatedAccessTests(TestCase):
         self.assertEqual(page.status_code, 403)
         self.assertContains(page, "Administrator accounts", status_code=403)
 
+    def test_only_client_metadata_documents_and_the_code_flow_can_grant(self):
+        self.client.force_login(self.user)
+        page = self.client.get(
+            f"/identity/o/authorize?{self.authorize_query(client_id='registered')}"
+        )
+        self.assertContains(page, "didn't identify itself", status_code=400)
+        device = self.client.post("/identity/o/api/device/code", {"client_id": CLIENT_ID})
+        self.assertEqual(device.status_code, 404)
+
     def refresh(self, token):
         return self.client.post(
             "/identity/o/api/token",

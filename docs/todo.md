@@ -239,12 +239,9 @@ it:
 
 - A stateless Node process hosts the note SDK server-side; MCP is a thin
   adapter over it, routed by the [gateway](architecture.md#gateway) at `/mcp`.
-- The host acts only with the caller's credential. Django decides access as
-  the OAuth authorization server and accepts the delegated bearer principal on
-  existing API and collaboration authorization; the hub enforces it; the host
-  holds no internal secret. Delegated access is the separate authentication
-  contract that [CSRF Protection](specs/access/access-control.md#csrf-protection)
-  requires for cross-site credentialed APIs.
+- The host acts only with the caller's
+  [delegated access](specs/access/access-control.md#delegated-access) credential,
+  which the hub enforces, and holds no internal secret.
 - Tools speak the adapter-neutral [note model](specs/outliner/note-model.md)
   (parent note, note subtree), not Lexical or document-specific terms.
 - A write reports success only after the database commits, through the

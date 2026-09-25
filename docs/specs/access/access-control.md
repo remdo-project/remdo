@@ -106,8 +106,8 @@ Users with full document access may [rename the document](../outliner/location-h
 each submission using the caller's current access; client metadata caches do not
 authorize changes.
 
-Django authorizes each [collaboration connection](../../architecture.md#collaboration-credentials-and-paths) using its session and trusted
-browser origin. Owners and direct grantees receive full document access; other
+Django authorizes each [collaboration connection](../../architecture.md#collaboration-credentials-and-paths) using its credential.
+Owners and direct grantees receive full document access; other
 users are denied before document content loads.
 
 ### Document sharing
@@ -162,8 +162,7 @@ Native forms submit Django's CSRF field; browser API requests send the token in
 `X-CSRFToken`. Missing or invalid tokens
 and untrusted origins are rejected before application handlers run. Tokens for
 cross-site credentialed APIs require a separate accepted authentication
-contract; [delegated access](#delegated-access) is that contract, and its bearer
-requests carry no ambient credential for CSRF protection to guard.
+contract.
 
 Django enforces trusted origins supplied by the resolved [runtime configuration](../runtime/configuration.md#network-addressing).
 Production trusts only that origin. Development additionally trusts local
@@ -180,8 +179,8 @@ user. The application requests it through the OAuth authorization-code flow with
 PKCE; the user signs in and consents on RemDo. Consent names the application as
 its client metadata identifies it and states that it can access and edit the
 user's documents. Applications identify themselves only by a client metadata
-document URL served over HTTPS. Staff and superuser accounts cannot grant
-delegated access.
+document URL served over HTTPS. Staff and superuser accounts cannot grant or
+use delegated access, including a grant made before promotion.
 
 A delegated access token authenticates as its user on the RemDo API and on
 [collaboration connections](../../architecture.md#collaboration-credentials-and-paths),
@@ -191,9 +190,7 @@ management accept only the browser session. Access tokens are short-lived; the
 application renews them with a refresh token that each renewal replaces.
 
 A signed-in user's **Connected apps** page lists the applications they granted
-and revokes each one. Revocation ends that application's tokens at once: later
-API requests and collaboration connections are denied, and established
-connections keep their authorization until disconnect.
+and revokes each one. Revocation ends that application's tokens at once.
 
 ## Future
 

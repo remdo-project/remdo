@@ -3,6 +3,7 @@
 import base64
 
 from allauth.idp.oidc.adapter import DefaultOIDCAdapter
+from allauth.idp.oidc.internal.cimd import is_cimd_url
 from allauth.idp.oidc.models import Client, PrivateKey, Token
 from allauth.idp.oidc.views import authorization
 from cryptography.fernet import Fernet, InvalidToken
@@ -11,6 +12,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
@@ -38,10 +40,7 @@ def delegated_user(authorization_header):
 
 class DelegatedAccessAuthentication(BaseAuthentication):
     def authenticate(self, request):
-        header = get_authorization_header(request).decode("latin-1")
-        if not header:
-            return None
-        user = delegated_user(header)
+        user = delegated_user(get_authorization_header(request).decode("latin-1"))
         return (user, None) if user else None
 
     def authenticate_header(self, request):
@@ -79,16 +78,16 @@ def signing_key_pem():
     affects no credential RemDo relies on.
     """
     fernet = _fernet()
-    stored, _ = SigningKey.objects.get_or_create(
-        pk=1, defaults={"encrypted_pem": fernet.encrypt(_generate_pem().encode()).decode()}
+    if stored := SigningKey.objects.filter(pk=1).first():
+        try:
+            return fernet.decrypt(stored.encrypted_pem.encode()).decode()
+        except InvalidToken:
+            pass
+    pem = _generate_pem()
+    SigningKey.objects.update_or_create(
+        pk=1, defaults={"encrypted_pem": fernet.encrypt(pem.encode()).decode()}
     )
-    try:
-        return fernet.decrypt(stored.encrypted_pem.encode()).decode()
-    except InvalidToken:
-        pem = _generate_pem()
-        stored.encrypted_pem = fernet.encrypt(pem.encode()).decode()
-        stored.save()
-        return pem
+    return pem
 
 
 class OIDCAdapter(DefaultOIDCAdapter):
@@ -99,8 +98,18 @@ class OIDCAdapter(DefaultOIDCAdapter):
         return [PrivateKey(pem=signing_key_pem())]
 
 
+def unavailable_grant(request):
+    raise Http404
+
+
 @never_cache
 def authorize(request):
+    client_id = request.GET.get("client_id")
+    # Applications identify themselves only by client metadata documents.
+    if client_id is not None and not is_cimd_url(client_id):
+        return render(
+            request, "accounts/delegation_refused.html", {"unknown_app": True}, status=400
+        )
     if request.user.is_authenticated and not may_delegate(request.user):
         return render(request, "accounts/delegation_refused.html", status=403)
     return authorization(request)

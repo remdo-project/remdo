@@ -3,7 +3,11 @@
 {% block content %}
   <h1 class="remdo-title">Connection unavailable</h1>
   <p class="remdo-description">
-    Administrator accounts can't connect third-party apps. Sign in with a regular
-    RemDo account to connect this app.
+    {% if unknown_app %}
+      This app didn't identify itself in a way RemDo accepts, so it can't be connected.
+    {% else %}
+      Administrator accounts can't connect third-party apps. Sign in with a regular
+      RemDo account to connect this app.
+    {% endif %}
   </p>
 {% endblock %}
