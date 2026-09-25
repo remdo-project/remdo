@@ -1229,6 +1229,82 @@ describe('selection plugin', () => {
     });
   });
 
+  it('returns to a caret when clicking the anchor note after a boundary no-op', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1');
+    for (let press = 0; press < 5; press += 1) {
+      await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    }
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
+    });
+
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    const note1Text = getNoteTextNode(remdo, 'note1');
+    await collapseDomSelectionAtNode(note1Text, 2);
+
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+    });
+
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note1' });
+  });
+
+  it('returns to a caret when clicking the anchor note after Cmd/Ctrl+A at the document boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1');
+    for (let press = 0; press < 3; press += 1) {
+      await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    }
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
+    });
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    const note1Text = getNoteTextNode(remdo, 'note1');
+    await collapseDomSelectionAtNode(note1Text, 2);
+
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+    });
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note1' });
+  });
+
+  it('starts an inline selection when dragging in another note after Cmd/Ctrl+A at the document boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1');
+    for (let press = 0; press < 4; press += 1) {
+      await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    }
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
+    });
+
+    const note2Text = getNoteTextNode(remdo, 'note2');
+    await dragDomSelectionBetweenRange(note2Text, 1, note2Text, 3);
+
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+    });
+  });
+
+  it('restarts the ladder in another note dragged after an inline Cmd/Ctrl+A rung', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1');
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'inline', note: 'note1' });
+    });
+
+    const note3Text = getNoteTextNode(remdo, 'note3');
+    await dragDomSelectionBetweenRange(note3Text, 1, note3Text, 3);
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'inline', note: 'note3' });
+    });
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note3' });
+  });
+
   it('collapses a single-note range on an empty note back to a caret', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
         await placeCaretAtNote(remdo, 'trailing');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });

@@ -40,6 +40,21 @@ const STRUCTURAL_OVERLAY: StructuralOverlayConfig = {
   heightVar: '--structural-selection-height',
 };
 
+interface DomSelectionPoints {
+  anchorNode: Node | null;
+  anchorOffset: number;
+  focusNode: Node | null;
+  focusOffset: number;
+}
+
+function isSameDomSelection(a: DomSelectionPoints, b: DomSelectionPoints | null): boolean {
+  return b !== null
+    && a.anchorNode === b.anchorNode
+    && a.anchorOffset === b.anchorOffset
+    && a.focusNode === b.focusNode
+    && a.focusOffset === b.focusOffset;
+}
+
 export function SelectionPlugin() {
   const [editor] = useLexicalComposerContext();
   const ladderRef = useRef(INITIAL_PROGRESSIVE_STATE);
@@ -47,6 +62,43 @@ export function SelectionPlugin() {
   useEffect(() => {
     const disposedRef = { current: false };
     installOutlineSelectionHelpers(editor);
+
+    // The directional unlock carries the ladder through Lexical's normalization of the DOM
+    // selection a plan just wrote, which arrives in the first selectionchange after that write.
+    // It ends in a task after that event, so Lexical's listener and its microtask commit run first
+    // whatever the listener order; immediately when the plan leaves the DOM selection unchanged or
+    // is not applied; or on a no-op step. Anything later is user input.
+    const clearUnlock = () => {
+      unlockRef.current = { pending: false, reason: 'external' };
+    };
+    let domSelectionBeforePlan: DomSelectionPoints | null = null;
+    let awaitingHandoff = false;
+    let handoffTimer: ReturnType<typeof setTimeout> | undefined;
+    const endHandoff = () => {
+      if (!awaitingHandoff) {
+        return;
+      }
+      awaitingHandoff = false;
+      handoffTimer = setTimeout(clearUnlock);
+    };
+    const armUnlock = () => {
+      clearTimeout(handoffTimer);
+      awaitingHandoff = false;
+      unlockRef.current = { pending: true, reason: 'directional' };
+    };
+    const abandonPlan = () => {
+      ladderRef.current = INITIAL_PROGRESSIVE_STATE;
+      domSelectionBeforePlan = null;
+      clearUnlock();
+    };
+    const ownerDocument = editor.getRootElement()?.ownerDocument ?? document;
+    ownerDocument.addEventListener('selectionchange', endHandoff);
+    const readDomSelection = (): DomSelectionPoints | null => {
+      const selection = editor.getRootElement()?.ownerDocument.getSelection();
+      return selection
+        ? { anchorNode: selection.anchorNode, anchorOffset: selection.anchorOffset, focusNode: selection.focusNode, focusOffset: selection.focusOffset }
+        : null;
+    };
 
     const $addUpdateTags = (tags: string | string[]) => {
       if (Array.isArray(tags)) {
@@ -146,6 +198,15 @@ export function SelectionPlugin() {
     });
 
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags, dirtyElements, dirtyLeaves }) => {
+      if (tags.has(PROGRESSIVE_SELECTION_TAG) && domSelectionBeforePlan) {
+        const unchanged = isSameDomSelection(domSelectionBeforePlan, readDomSelection());
+        domSelectionBeforePlan = null;
+        if (unchanged) {
+          clearUnlock();
+        } else {
+          awaitingHandoff = true;
+        }
+      }
       // The tree changed (collaboration, undo/redo, typing) when this update
       // touched any node — as opposed to a selection-only change such as a
       // Shift+Click extension. Only a tree change re-replays the ladder.
@@ -194,9 +255,8 @@ export function SelectionPlugin() {
       // only apply the plan and roll the ladder back if the selection fails.
       $addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
 
-      const applied = $applyProgressivePlan(planResult);
-      if (!applied) {
-        ladderRef.current = INITIAL_PROGRESSIVE_STATE;
+      if (!$applyProgressivePlan(planResult)) {
+        abandonPlan();
       }
     };
 
@@ -250,9 +310,10 @@ export function SelectionPlugin() {
           return false;
         }
 
-        unlockRef.current = { pending: true, reason: 'directional' };
+        armUnlock();
         event.preventDefault();
 
+        domSelectionBeforePlan = readDomSelection();
         $applyPlan(planResult);
 
         return true;
@@ -305,7 +366,7 @@ export function SelectionPlugin() {
     const $runDirectionalPlan = (direction: 'up' | 'down') => {
       const viewRootKey = getViewRoot(editor);
 
-      unlockRef.current = { pending: true, reason: 'directional' };
+      armUnlock();
 
       $addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
 
@@ -320,20 +381,23 @@ export function SelectionPlugin() {
       }
 
       if ('noop' in result) {
+        clearUnlock();
         return;
       }
 
+      domSelectionBeforePlan = readDomSelection();
       if ('collapse' in result) {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
           collapseSelectionToCaret(selection);
+        } else {
+          abandonPlan();
         }
         return;
       }
 
-      const applied = $applyProgressivePlan(result);
-      if (!applied) {
-        ladderRef.current = INITIAL_PROGRESSIVE_STATE;
+      if (!$applyProgressivePlan(result)) {
+        abandonPlan();
       }
     };
 
@@ -354,6 +418,8 @@ export function SelectionPlugin() {
 
     return () => {
       disposedRef.current = true;
+      ownerDocument.removeEventListener('selectionchange', endHandoff);
+      clearTimeout(handoffTimer);
       renderStructuralHighlight(null, false);
       unregisterProgressionListener();
       unregisterSelectAll();
