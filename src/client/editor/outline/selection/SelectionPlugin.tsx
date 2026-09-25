@@ -320,6 +320,8 @@ export function SelectionPlugin() {
       }
 
       if ('noop' in result) {
+        // No selection change follows, so no normalization handoff will consume the unlock.
+        unlockRef.current = { pending: false, reason: 'external' };
         return;
       }
 
