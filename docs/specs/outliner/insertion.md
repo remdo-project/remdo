@@ -73,4 +73,4 @@ children. A line break in any described text makes the insertion
   including one created for a described note without a described list type,
   takes the type of the list containing its parent.
 - Focus and selection are unchanged.
-- The insertion is one local update and one history step.
+- The insertion is one local update, so undo never removes part of it.

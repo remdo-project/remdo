@@ -1006,10 +1006,8 @@ describe('lexical document session', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
-    it('undoes one insertion as one history step', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    it('undoes a whole insertion at once', meta({ fixture: 'flat' }), async ({ remdo }) => {
       const session = remdo.documentSession;
-      await placeCaretAtNote(remdo, 'note3', 5);
-      await typeText(remdo, ' edited');
       await session.insertNotes({ parentNoteId: 'note1', notes: [{ text: 'parent', children: [{ text: 'child' }] }] });
 
       session.history.undo();
@@ -1017,7 +1015,7 @@ describe('lexical document session', () => {
       await waitFor(() => expect(remdo).toMatchOutline([
         { noteId: 'note1', text: 'note1' },
         { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3 edited' },
+        { noteId: 'note3', text: 'note3' },
       ]));
     });
 

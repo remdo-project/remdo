@@ -7,7 +7,6 @@ import {
   CAN_REDO_COMMAND,
   CAN_UNDO_COMMAND,
   COMMAND_PRIORITY_LOW,
-  HISTORY_PUSH_TAG,
   REDO_COMMAND,
   UNDO_COMMAND,
 } from 'lexical';
@@ -247,7 +246,7 @@ export function createLexicalDocumentSessionRuntime({
     }
   };
 
-  const updateDocument = <T>(operation: () => T, tag?: typeof HISTORY_PUSH_TAG): Promise<T> => {
+  const updateDocument = <T>(operation: () => T): Promise<T> => {
     if (!started || disposed || !sourceReady) {
       return Promise.reject(new IneligibleOperationError('The document is not available.'));
     }
@@ -263,7 +262,7 @@ export function createLexicalDocumentSessionRuntime({
           // Preserve Lexical's recovery even when the host reports without rethrowing.
           throw error;
         }
-      }, { onUpdate: () => resolve(result), tag });
+      }, { onUpdate: () => resolve(result) });
     });
   };
 
@@ -291,7 +290,7 @@ export function createLexicalDocumentSessionRuntime({
       return [];
     }
     return $appendNewNotes(parent ? $getOrCreateChildList(parent) : $requireRootContentList(), notes);
-  }, HISTORY_PUSH_TAG);
+  });
 
   const refresh = () => {
     pending = false;
