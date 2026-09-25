@@ -3,8 +3,7 @@ import path from 'node:path';
 import { placeCaretAtNote, pressKey, typeText } from '#tests';
 import { REORDER_NOTES_DOWN_COMMAND } from '#client/editor/foundation/commands';
 import type { RemdoTestApi } from '#client/editor/dev';
-import { bench, describe } from 'vitest';
-import { renderRemdoEditor } from '../unit/collab/_support/render-editor';
+import { describe, it } from 'vitest';
 import type { SerializedEditorState } from 'lexical';
 
 type WorkloadId = `${number}x${number}`;
@@ -27,15 +26,9 @@ interface Operation {
   run: (remdo: RemdoTestApi, targets: WorkloadTargets) => Promise<void>;
 }
 
-interface BenchmarkHarness {
-  remdo: RemdoTestApi;
-  workloadStateJson: string;
-  workloadTargets: WorkloadTargets;
-}
-
-interface BenchmarkIterationTask {
-  opts: object;
-}
+// Vitest 4's sampling and warmup; tinybench 6 defaults (64 iterations, 16 warmup iterations) push
+// the 8x5 workload past its timeouts.
+const BENCH_RUN_OPTIONS = { throws: true, iterations: 10, time: 500, warmupIterations: 5, warmupTime: 100 };
 
 const MIN_BENCH_DEPTH = 3;
 const MIN_BENCH_BRANCH_FACTOR = 3;
@@ -130,16 +123,6 @@ async function ensureStructuralSelection(remdo: RemdoTestApi, noteId: string): P
   await pressKey(remdo, { key: 'ArrowDown', shift: true });
 }
 
-function installWorkloadResetBeforeEach(
-  task: BenchmarkIterationTask,
-  harness: BenchmarkHarness
-): void {
-  const options = task.opts as { beforeEach?: () => Promise<void> };
-  options.beforeEach = async () => {
-    await harness.remdo._bridge.applySerializedState(harness.workloadStateJson);
-  };
-}
-
 const OPERATIONS: Operation[] = [
   {
     name: 'add note',
@@ -148,6 +131,8 @@ const OPERATIONS: Operation[] = [
       await pressKey(remdo, { key: 'Enter' });
     },
   },
+  // FIXME: repeating this reorder intermittently makes React report "Maximum update depth exceeded",
+  // failing roughly 1 in 4 default (8x3) bench runs. Probe: repeat pnpm run test:perf:bench.
   {
     name: 'reorder note (within parent)',
     run: async (remdo, targets) => {
@@ -195,53 +180,16 @@ const OPERATIONS: Operation[] = [
 ];
 
 describe(`editor performance (${selectedWorkloadId})`, () => {
-  let unmount: (() => void) | null = null;
-  let harness: BenchmarkHarness | null = null;
-
-  const ensureHarnessReady = async (): Promise<void> => {
-    if (harness) {
-      return;
-    }
-
-    const [workload, mounted] = await Promise.all([
-      resolveWorkloadState(selectedWorkloadId),
-      renderRemdoEditor('main'),
-    ]);
-
-    harness = {
-      remdo: mounted.api,
-      workloadStateJson: workload.stateJson,
-      workloadTargets: workload.targets,
-    };
-    unmount = mounted.unmount;
-  };
-
-  const cleanupHarness = (): void => {
-    if (!harness) {
-      return;
-    }
-
-    unmount?.();
-    harness = null;
-    unmount = null;
-  };
-
   for (const operation of OPERATIONS) {
-    bench(operation.name, async () => {
-      const remdo = harness!.remdo;
-      await operation.run(remdo, harness!.workloadTargets);
-    }, {
-      throws: true,
-      setup: async task => {
-        await ensureHarnessReady();
-        installWorkloadResetBeforeEach(task, harness!);
-      },
-      teardown: (_, mode) => {
-        if (mode !== 'run') {
-          return;
-        }
-        cleanupHarness();
-      },
+    it(operation.name, async ({ bench, remdo }) => {
+      const workload = await resolveWorkloadState(selectedWorkloadId);
+      await bench(operation.name, {
+        beforeEach: async () => {
+          await remdo._bridge.applySerializedState(workload.stateJson);
+        },
+      }, async () => {
+        await operation.run(remdo, workload.targets);
+      }).run(BENCH_RUN_OPTIONS);
     });
   }
 });

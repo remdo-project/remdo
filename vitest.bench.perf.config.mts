@@ -7,11 +7,17 @@ export default defineConfig({
   ...createViteSharedConfig(),
   test: {
     environment: 'jsdom',
+    // Console spies must keep calls recorded while fixtures load; afterEach clears them.
+    clearMocks: false,
     setupFiles: ['./tests/unit/_support/setup/index.ts'],
     benchmark: {
       include: ['tests/perf/**/*.bench.ts'],
+      // Hot editor helpers cross module-runner export getters; the warning is console output
+      // the shared console assertion would fail, and the overhead predates Vitest 5.
+      suppressExportGetterWarnings: true,
     },
     css: true,
+    reporters: ['verbose'],
     testTimeout: PERF_TIMEOUT_MS,
     hookTimeout: PERF_TIMEOUT_MS,
     teardownTimeout: PERF_TIMEOUT_MS,
