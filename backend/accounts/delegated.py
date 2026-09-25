@@ -98,6 +98,10 @@ class OIDCAdapter(DefaultOIDCAdapter):
         return [PrivateKey(pem=signing_key_pem())]
 
 
+def _refuse(request, reason):
+    return render(request, "accounts/delegation_refused.html", {reason: True}, status=400)
+
+
 def unavailable_grant(request):
     raise Http404
 
@@ -107,9 +111,14 @@ def authorize(request):
     client_id = request.GET.get("client_id")
     # Applications identify themselves only by client metadata documents.
     if client_id is not None and not is_cimd_url(client_id):
-        return render(
-            request, "accounts/delegation_refused.html", {"unknown_app": True}, status=400
-        )
+        return _refuse(request, "unknown_app")
+    # Only the consented code flow grants access: allauth would otherwise issue
+    # tokens without consent for prompt=none, or in the redirect for the
+    # implicit flow.
+    if request.GET.get("response_type", "code") != "code":
+        return _refuse(request, "unsupported")
+    if "none" in request.GET.get("prompt", "").split():
+        return _refuse(request, "unsupported")
     if request.user.is_authenticated and not may_delegate(request.user):
         return render(request, "accounts/delegation_refused.html", status=403)
     return authorization(request)

@@ -5,6 +5,8 @@
   <p class="remdo-description">
     {% if unknown_app %}
       This app didn't identify itself in a way RemDo accepts, so it can't be connected.
+    {% elif unsupported %}
+      This app asked to connect in a way RemDo doesn't support.
     {% else %}
       Administrator accounts can't connect third-party apps. Sign in with a regular
       RemDo account to connect this app.

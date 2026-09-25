@@ -141,6 +141,14 @@ class DelegatedAccessTests(TestCase):
         device = self.client.post("/identity/o/api/device/code", {"client_id": CLIENT_ID})
         self.assertEqual(device.status_code, 404)
 
+    def test_access_is_granted_only_after_consent_through_the_code_flow(self):
+        self.grant()
+        self.client.force_login(self.user)
+        queries = (self.authorize_query(prompt="none"), self.authorize_query(response_type="token"))
+        for query in queries:
+            response = self.client.get(f"/identity/o/authorize?{query}")
+            self.assertContains(response, "doesn't support", status_code=400)
+
     def refresh(self, token):
         return self.client.post(
             "/identity/o/api/token",
