@@ -53,6 +53,10 @@ export default function Editor({
 
   return (
     <div className="editor-container">
+      {/* TODO(deps): migrate to LexicalExtensionComposer, which replaces LexicalComposer in Lexical 0.51; its
+          ReactExtension owns content-editable and editor bootstrapping, so the move needs its own review with
+          RichTextPlugin and CollaborationPluginV2. Probe: the migration passes test:e2e and test:collab. */}
+      {/* eslint-disable-next-line ts/no-deprecated -- tracked above. */}
       <LexicalComposer initialConfig={editorInitialConfig}>
         <CollaborationPlugin docId={docId} accountId={accountId}>
           <EditorRuntime

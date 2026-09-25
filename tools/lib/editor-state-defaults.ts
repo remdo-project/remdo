@@ -26,6 +26,16 @@ const NODE_DEFAULTS = {
     indent: 0,
     direction: null,
   },
+  'note-body-wrapper': {
+    format: '',
+    indent: 0,
+    direction: null,
+  },
+  'note-body': {
+    format: '',
+    indent: 0,
+    direction: null,
+  },
   text: {
     detail: 0,
     format: 0,

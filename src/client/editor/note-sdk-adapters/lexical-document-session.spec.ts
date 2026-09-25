@@ -1,3 +1,4 @@
+/* eslint-disable ts/no-deprecated -- drives the undo-availability commands the session observes, where the deprecation is tracked. */
 import { waitFor } from '@testing-library/react';
 import { $createListItemNode, $createListNode } from '@lexical/list';
 import {

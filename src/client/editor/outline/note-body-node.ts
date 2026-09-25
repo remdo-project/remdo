@@ -85,7 +85,9 @@ export class BodyWrapperNode extends ListItemNode {
   // form is a plain element plus its NoteBodyNode child — the list item's
   // value/checked fields are deliberately omitted from the runtime shape.
   exportJSON(): SerializedListItemNode {
-    return ElementNode.prototype.exportJSON.call(this) as SerializedListItemNode;
+    // Lexical 0.51 exports from the instance's class schema, so drop the list item fields explicitly.
+    const { checked: _checked, value: _value, ...element } = ElementNode.prototype.exportJSON.call(this, false) as SerializedListItemNode;
+    return element as SerializedListItemNode;
   }
 }
 

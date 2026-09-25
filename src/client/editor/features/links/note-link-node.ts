@@ -110,7 +110,8 @@ export class NoteLinkNode extends LinkNode {
   }
 
   exportJSON(): SerializedLinkNode {
-    const base = ElementNode.prototype.exportJSON.call(this) as SerializedLinkNode;
+    // Lexical 0.51 exports from the instance's class schema, so drop LinkNode's persisted url.
+    const { url: _url, ...base } = ElementNode.prototype.exportJSON.call(this, false) as SerializedLinkNode;
     const { docId, noteId } = this.getLinkRef();
     const serialized = {
       ...base,
@@ -120,7 +121,7 @@ export class NoteLinkNode extends LinkNode {
       docId,
       noteId,
     };
-    return serialized;
+    return serialized as unknown as SerializedLinkNode;
   }
 
   createDOM(config: EditorConfig): HTMLElement {
