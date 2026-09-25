@@ -1,10 +1,9 @@
 import { $createLinkNode, AutoLinkNode, LinkNode } from '@lexical/link';
 import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { mergeRegister } from '@lexical/utils';
 import type { LinkMatcher } from '@lexical/link';
 import LinkifyIt from 'linkify-it';
-import { $getNodeByKey, TextNode } from 'lexical';
+import { $getNodeByKey, TextNode, mergeRegister } from 'lexical';
 import { useEffect } from 'react';
 import tlds from 'tlds';
 

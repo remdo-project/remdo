@@ -1,6 +1,5 @@
 import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
-import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import {
   $getNodeByKey,
@@ -9,6 +8,7 @@ import {
   COMMAND_PRIORITY_LOW,
   REDO_COMMAND,
   UNDO_COMMAND,
+  mergeRegister,
 } from 'lexical';
 import { useEffect, useMemo } from 'react';
 import type {

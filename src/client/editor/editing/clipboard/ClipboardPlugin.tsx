@@ -24,9 +24,9 @@ import {
   PASTE_TAG,
   PASTE_COMMAND,
   SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
+  mergeRegister,
 } from 'lexical';
 import { useEffect, useRef } from 'react';
-import { mergeRegister } from '@lexical/utils';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { $createNoteLinkNode } from '#client/editor/features/links/note-link-node';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-ids/note-id-state';

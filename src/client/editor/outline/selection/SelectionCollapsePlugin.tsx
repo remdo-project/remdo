@@ -1,5 +1,4 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import {
   COMMAND_PRIORITY_CRITICAL,
@@ -9,6 +8,7 @@ import {
   KEY_ARROW_UP_COMMAND,
   KEY_DOWN_COMMAND,
   KEY_ESCAPE_COMMAND,
+  mergeRegister,
 } from 'lexical';
 import { useEffect } from 'react';
 

@@ -1,5 +1,4 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { mergeRegister } from '@lexical/utils';
 import {
   $createNodeSelection,
   $getNodeByKey,
@@ -19,6 +18,7 @@ import {
   KEY_SPACE_COMMAND,
   KEY_TAB_COMMAND,
   SKIP_DOM_SELECTION_TAG,
+  mergeRegister,
 } from 'lexical';
 import type { LexicalNode } from 'lexical';
 import { useCallback, useEffect, useRef, useState } from 'react';

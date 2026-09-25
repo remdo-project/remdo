@@ -45,9 +45,6 @@ catalogs:
     '@lexical/react':
       specifier: ^0.51.0
       version: 0.51.0
-    '@lexical/utils':
-      specifier: ^0.51.0
-      version: 0.51.0
     '@lexical/yjs':
       specifier: ^0.51.0
       version: 0.51.0
@@ -291,9 +288,6 @@ importers:
       '@lexical/react':
         specifier: 'catalog:'
         version: 0.51.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(yjs@13.6.32)
-      '@lexical/utils':
-        specifier: 'catalog:'
-        version: 0.51.0(typescript@6.0.3)
       '@lexical/yjs':
         specifier: 'catalog:'
         version: 0.51.0(patch_hash=5b663e2cc3efb8fde3cdcd5b6e0a3aac720e512a36727a440b39dff762d2cb60)(typescript@6.0.3)(yjs@13.6.32)

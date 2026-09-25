@@ -1,8 +1,7 @@
 import { $isListItemNode, $isListNode, ListItemNode, ListNode, registerCheckList } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
-import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
+import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, mergeRegister } from 'lexical';
 import { useEffect } from 'react';
 
 import { $setNoteCheckedRecursively, $toggleNoteCheckedForTargets } from './checked-operations';

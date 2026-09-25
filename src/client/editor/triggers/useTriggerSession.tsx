@@ -1,5 +1,4 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { mergeRegister } from '@lexical/utils';
 import {
   $createRangeSelection,
   $getSelection,
@@ -16,6 +15,7 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
   SKIP_DOM_SELECTION_TAG,
+  mergeRegister,
 } from 'lexical';
 import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';

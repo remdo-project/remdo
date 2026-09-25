@@ -1,8 +1,7 @@
 import { ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getRoot, $hasUpdateTag, $setState } from 'lexical';
+import { $getRoot, $hasUpdateTag, $setState, mergeRegister } from 'lexical';
 import { useEffect, useRef } from 'react';
-import { mergeRegister } from '@lexical/utils';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 import { isWrapperItem } from '#client/editor/outline/list-structure';

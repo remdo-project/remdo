@@ -1,7 +1,6 @@
 import { LinkNode } from '@lexical/link';
 import type { SerializedLinkNode } from '@lexical/link';
-import { addClassNamesToElement, isHTMLAnchorElement } from '@lexical/utils';
-import { $applyNodeReplacement } from 'lexical';
+import { $applyNodeReplacement, addClassNamesToElement, isHTMLAnchorElement } from 'lexical';
 import type {
   DOMConversionMap,
   EditorConfig,

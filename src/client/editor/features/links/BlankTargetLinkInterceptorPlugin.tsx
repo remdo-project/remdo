@@ -1,7 +1,6 @@
-import { isHTMLAnchorElement } from '@lexical/utils';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect } from 'react';
-import { $getSelection, $isRangeSelection } from 'lexical';
+import { $getSelection, $isRangeSelection, isHTMLAnchorElement } from 'lexical';
 
 function findAnchor(startNode: Node): HTMLAnchorElement | null {
   let node: Node | null = startNode;

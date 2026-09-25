@@ -1,7 +1,6 @@
 import type { ListItemNode } from '@lexical/list';
 import { $createListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { mergeRegister } from '@lexical/utils';
 import {
   $createTextNode,
   $getSelection,
@@ -11,6 +10,7 @@ import {
   COMMAND_PRIORITY_HIGH,
   KEY_DOWN_COMMAND,
   KEY_ENTER_COMMAND,
+  mergeRegister,
 } from 'lexical';
 import type { RangeSelection } from 'lexical';
 import { useEffect } from 'react';

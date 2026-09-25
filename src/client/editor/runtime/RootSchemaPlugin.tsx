@@ -1,8 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getRoot, RootNode } from 'lexical';
+import { $getRoot, RootNode, mergeRegister } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 import { useLayoutEffect, useRef } from 'react';
-import { mergeRegister } from '@lexical/utils';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
 import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '#client/editor/outline/normalization';
 import { markSchemaValidationSkipOnce } from '#client/editor/foundation/schema-validation-skip-once';
