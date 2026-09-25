@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import re
+import socket
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlencode, urlsplit
 
@@ -9,7 +10,7 @@ from django.core.cache import cache
 from django.test import TestCase, override_settings
 from documents.models import Document
 
-from .delegated import signing_key_pem
+from .delegated import OIDCAdapter, signing_key_pem
 from .models import SigningKey, User
 
 CLIENT_ID = "https://claude.example/oauth/mcp-oauth-client-metadata"
@@ -34,7 +35,12 @@ def fetch_metadata(client_id):
     return CLIENT_METADATA
 
 
+def public_address(host, *args, **kwargs):
+    return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("1.1.1.1", 443))]
+
+
 @patch("allauth.idp.oidc.internal.cimd.fetch_metadata", fetch_metadata)
+@patch("accounts.delegated.socket.getaddrinfo", public_address)
 class DelegatedAccessTests(TestCase):
     def setUp(self):
         # CIMD fetches are rate limited through the cache, which outlives a test.
@@ -111,7 +117,9 @@ class DelegatedAccessTests(TestCase):
         self.assertEqual(
             self.authorize_collaboration(tokens["access_token"], other).status_code, 403
         )
-        self.assertEqual(self.documents("not-a-token").status_code, 403)
+        rejected = self.documents("not-a-token")
+        self.assertEqual(rejected.status_code, 401)
+        self.assertEqual(rejected["WWW-Authenticate"], "Bearer")
 
     def test_token_is_not_accepted_on_session_only_pages(self):
         tokens = self.grant()
@@ -125,7 +133,7 @@ class DelegatedAccessTests(TestCase):
         tokens = self.grant()
         self.user.is_staff = True
         self.user.save()
-        self.assertEqual(self.documents(tokens["access_token"]).status_code, 403)
+        self.assertEqual(self.documents(tokens["access_token"]).status_code, 401)
 
         self.client.force_login(self.user)
         page = self.client.get(f"/identity/o/authorize?{self.authorize_query()}")
@@ -140,11 +148,16 @@ class DelegatedAccessTests(TestCase):
         self.assertContains(page, "didn't identify itself", status_code=400)
         device = self.client.post("/identity/o/api/device/code", {"client_id": CLIENT_ID})
         self.assertEqual(device.status_code, 404)
+        self.assertEqual(self.client.get("/identity/o/logout").status_code, 404)
 
     def test_access_is_granted_only_after_consent_through_the_code_flow(self):
         self.grant()
         self.client.force_login(self.user)
-        queries = (self.authorize_query(prompt="none"), self.authorize_query(response_type="token"))
+        queries = (
+            self.authorize_query(prompt="none"),
+            self.authorize_query(prompt="login"),
+            self.authorize_query(response_type="token"),
+        )
         for query in queries:
             response = self.client.get(f"/identity/o/authorize?{query}")
             self.assertContains(response, "doesn't support", status_code=400)
@@ -172,7 +185,7 @@ class DelegatedAccessTests(TestCase):
         self.assertContains(self.client.get("/accounts/connected-apps/"), "No apps are connected.")
         self.client.logout()
         own = Document.objects.get(owner=self.user)
-        self.assertEqual(self.documents(tokens["access_token"]).status_code, 403)
+        self.assertEqual(self.documents(tokens["access_token"]).status_code, 401)
         self.assertEqual(self.authorize_collaboration(tokens["access_token"], own).status_code, 403)
 
 
@@ -185,3 +198,12 @@ class SigningKeyTests(TestCase):
         with override_settings(SECRET_KEY="another-secret-" + "x" * 40):
             self.assertNotEqual(signing_key_pem(), pem)
         self.assertEqual(SigningKey.objects.count(), 1)
+
+
+class ClientMetadataHostTests(TestCase):
+    def test_metadata_is_fetched_only_from_public_hosts(self):
+        adapter = OIDCAdapter()
+        self.assertFalse(adapter.is_cimd_url_allowed("https://localhost/metadata"))
+        self.assertFalse(adapter.is_cimd_url_allowed("https://10.0.0.1/metadata"))
+        with patch("accounts.delegated.socket.getaddrinfo", public_address):
+            self.assertTrue(adapter.is_cimd_url_allowed("https://claude.example/metadata"))

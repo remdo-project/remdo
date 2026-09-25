@@ -147,7 +147,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
     })],
     async onUpgrade({ request, socket }) {
       if (stopping || request.url !== '/collaboration'
-        || (!request.headers.origin && !request.headers.authorization
+        || (!request.headers.origin && !request.headers.authorization?.startsWith('Bearer ')
           && !authorizedOperator(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()] as string | undefined))) {
         socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
         // Hocuspocus uses an empty rejection to stop its default handler.
@@ -160,7 +160,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
       const headers: Record<string, string> = { ...internalHeaders };
       const authorization = requestHeaders.get('authorization');
       if (operator) headers['X-Remdo-Collaboration-Operator'] = '1';
-      else if (authorization) headers.Authorization = authorization;
+      else if (authorization?.startsWith('Bearer ')) headers.Authorization = authorization;
       else {
         headers.Cookie = requestHeaders.get('cookie') ?? '';
         headers.Origin = requestHeaders.get('origin') ?? '';

@@ -1,6 +1,9 @@
 """Delegated access: third-party applications acting as a user through OAuth."""
 
 import base64
+import ipaddress
+import socket
+from urllib.parse import urlsplit
 
 from allauth.idp.oidc.adapter import DefaultOIDCAdapter
 from allauth.idp.oidc.internal.cimd import is_cimd_url
@@ -18,6 +21,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from rest_framework.authentication import BaseAuthentication, get_authorization_header
+from rest_framework.exceptions import AuthenticationFailed
 
 from .models import SigningKey
 
@@ -27,24 +31,40 @@ def may_delegate(user):
     return user.is_active and not user.is_staff and not user.is_superuser
 
 
+def bearer_token(authorization_header):
+    scheme, _, value = authorization_header.partition(" ")
+    return value.strip() if scheme.lower() == "bearer" and value.strip() else None
+
+
 def delegated_user(authorization_header):
     """The user a bearer access token acts as, or None."""
-    scheme, _, value = authorization_header.partition(" ")
-    if scheme.lower() != "bearer" or not value:
+    value = bearer_token(authorization_header)
+    if value is None:
         return None
-    token = Token.objects.lookup(Token.Type.ACCESS_TOKEN, value.strip())
+    token = Token.objects.lookup(Token.Type.ACCESS_TOKEN, value)
     if token is None or token.user is None or not may_delegate(token.user):
         return None
     return token.user
 
 
 class DelegatedAccessAuthentication(BaseAuthentication):
+    """Bearer requests are authenticated only by their token."""
+
     def authenticate(self, request):
-        user = delegated_user(get_authorization_header(request).decode("latin-1"))
-        return (user, None) if user else None
+        header = get_authorization_header(request).decode("latin-1")
+        if bearer_token(header) is None:
+            return None
+        user = delegated_user(header)
+        if user is None:
+            raise AuthenticationFailed()
+        return (user, None)
 
     def authenticate_header(self, request):
-        return "Bearer"
+        # Browser requests keep their 403; a rejected token asks the
+        # application to renew it.
+        return (
+            "Bearer" if bearer_token(get_authorization_header(request).decode("latin-1")) else None
+        )
 
 
 class DelegatedAccessScheme(OpenApiAuthenticationExtension):
@@ -94,6 +114,15 @@ class OIDCAdapter(DefaultOIDCAdapter):
     # A grant acts as the whole user, whatever scopes the client requests.
     scope_display = {}
 
+    def is_cimd_url_allowed(self, url):
+        # Metadata is fetched before any client is authenticated, so it must
+        # not reach private or loopback hosts.
+        try:
+            addresses = socket.getaddrinfo(urlsplit(url).hostname, 443, proto=socket.IPPROTO_TCP)
+        except OSError:
+            return False
+        return all(ipaddress.ip_address(address[4][0]).is_global for address in addresses)
+
     def list_private_keys(self, **kwargs):
         return [PrivateKey(pem=signing_key_pem())]
 
@@ -102,7 +131,7 @@ def _refuse(request, reason):
     return render(request, "accounts/delegation_refused.html", {reason: True}, status=400)
 
 
-def unavailable_grant(request):
+def unavailable(request):
     raise Http404
 
 
@@ -117,7 +146,7 @@ def authorize(request):
     # implicit flow.
     if request.GET.get("response_type", "code") != "code":
         return _refuse(request, "unsupported")
-    if "none" in request.GET.get("prompt", "").split():
+    if {"none", "login"} & set(request.GET.get("prompt", "").split()):
         return _refuse(request, "unsupported")
     if request.user.is_authenticated and not may_delegate(request.user):
         return render(request, "accounts/delegation_refused.html", status=403)

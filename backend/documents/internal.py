@@ -2,7 +2,7 @@
 
 from functools import wraps
 
-from accounts.delegated import delegated_user
+from accounts.delegated import bearer_token, delegated_user
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
@@ -32,7 +32,7 @@ def authorize(request, document_id):
     if request.headers.get("X-Remdo-Collaboration-Operator") == "1":
         get_object_or_404(Document, pk=document_id)
         return JsonResponse({"operator": True})
-    if authorization := request.headers.get("Authorization"):
+    if bearer_token(authorization := request.headers.get("Authorization", "")):
         user = delegated_user(authorization)
     elif request.headers.get("Origin") in settings.CSRF_TRUSTED_ORIGINS:
         user = request.user

@@ -134,8 +134,8 @@ IDP_OIDC_ADAPTER = "accounts.delegated.OIDCAdapter"
 IDP_OIDC_CIMD_ENABLED = True
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
         "accounts.delegated.DelegatedAccessAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
