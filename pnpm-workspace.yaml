@@ -67,9 +67,11 @@ patchedDependencies:
   # SELECTION_CHANGE_COMMAND while the committed state is still frozen. The
   # v0.49.0 warning (facebook/lexical#8863) targets application code
   # dispatching from editor.read() and does not exclude that internal path.
-  # The guard spans the whole commit, so it also silences a mutation or update
-  # listener dispatching a mutating command; revisit when upstream fixes this.
+  # The patch applies the fix from facebook/lexical#9230, which still warns
+  # inside an explicit editor.read().
   # Regression: tests/e2e/editor/checklist.spec.ts structural-selection cases.
+  # TODO(deps): drop this patch on the first Lexical release containing
+  # facebook/lexical@c23a367. Probe: remove it and run the regression above.
   lexical@0.51.0: patches/lexical@0.51.0.patch
 allowBuilds:
   '@ast-grep/cli': true
