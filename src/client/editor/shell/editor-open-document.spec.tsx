@@ -14,7 +14,7 @@ vi.mock('#client/editor/runtime/collaboration/CollaborationProvider', async (imp
     ...actual,
     useCollaborationStatus: () => {
       const status = actual.useCollaborationStatus();
-      return status.docId === 'sessionReadiness'
+      return status.docId === 'readyOpenDocument'
         ? { ...status, hydrated: hydration.ready && status.hydrated }
         : status;
     },
@@ -25,7 +25,7 @@ vi.mock('./DevEditorSeam', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./DevEditorSeam')>();
   return {
     // Match production for this editor without disabling the harness's bridge.
-    DevEditorSeam: (props: Parameters<typeof actual.DevEditorSeam>[0]) => props.openDocument.documentId === 'sessionReadiness'
+    DevEditorSeam: (props: Parameters<typeof actual.DevEditorSeam>[0]) => props.openDocument.documentId === 'readyOpenDocument'
       ? null
       : <actual.DevEditorSeam {...props} />,
   };
@@ -50,16 +50,16 @@ function ImmediateSearchConsumer() {
 function EditorWithConsumer() {
   return (
     <MantineProvider>
-      <EditorViewProvider docId="sessionReadiness" onZoomNoteIdChange={() => {}}>
+      <EditorViewProvider docId="readyOpenDocument" onZoomNoteIdChange={() => {}}>
         <ImmediateSearchConsumer />
-        <Editor docId="sessionReadiness" statusPortalRoot={null} onSelectHome={() => {}} />
+        <Editor docId="readyOpenDocument" statusPortalRoot={null} onSelectHome={() => {}} />
       </EditorViewProvider>
     </MantineProvider>
   );
 }
 
 beforeEach(async () => {
-  await createCollabTestDocument('sessionReadiness');
+  await createCollabTestDocument('readyOpenDocument');
 });
 
 afterEach(() => {

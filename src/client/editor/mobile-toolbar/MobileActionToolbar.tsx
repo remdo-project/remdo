@@ -1,14 +1,13 @@
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { OpenDocument } from '#note-sdk';
 
 import { useCoarsePointer } from '#client/browser/useCoarsePointer';
 import { useVisualViewportBottom } from '#client/browser/useVisualViewportBottom';
 import type { MobileActionId } from './actions';
 import { runMobileAction } from './actions';
 import { useToolbarCapabilities } from './useToolbarCapabilities';
-import type { ToolbarCapabilities } from './useToolbarCapabilities';
+import type { ToolbarCapabilities, ToolbarOpenDocument } from './useToolbarCapabilities';
 import type { LaidOutAction } from './toolbar-layout';
 import { resolveToolbarLayout } from './toolbar-layout';
 
@@ -36,7 +35,7 @@ function disabledIds(capabilities: ToolbarCapabilities): Set<MobileActionId> {
 }
 
 interface MobileActionToolbarProps {
-  openDocument: Pick<OpenDocument, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'>;
+  openDocument: ToolbarOpenDocument;
   portalRoot: Element | null;
   focusEditor: () => void;
   openNoteMenu: () => void;

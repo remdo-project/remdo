@@ -291,7 +291,7 @@ saving.
   settled slice around the shared [note model](specs/outliner/note-model.md):
   addressed-note access and observation, observable action capabilities, and
   semantic operations. [Search](specs/outliner/search.md) requests results through
-  the session. The [mobile toolbar](specs/outliner/mobile-toolbar.md) and [quick action menu](specs/outliner/menu.md) consume its
+  the open document. The [mobile toolbar](specs/outliner/mobile-toolbar.md) and [quick action menu](specs/outliner/menu.md) consume its
   capabilities and operations; editor bindings resolve menu targets to stable
   note identity.
 
@@ -300,8 +300,9 @@ saving.
   are equally valid starting points when a consumer exposes a more important
   gap. Choose small slices by
   consumer value rather than a fixed PR sequence, following the
-  [consumer API principles](principles.md#consumer-apis) and the session's ownership boundaries. Preserve each
-  operation's owning behavior while reconsidering the SDK shape.
+  [consumer API principles](principles.md#consumer-apis) and the open
+  document's ownership boundaries. Preserve each operation's owning behavior
+  while reconsidering the SDK shape.
 
   Keep resource reads aligned with the [document registry](architecture.md#document-registry) and choose tools
   against a concrete consumer and the [performance work](#performance). Coordinate

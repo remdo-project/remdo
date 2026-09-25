@@ -1,8 +1,7 @@
 import { act, fireEvent, render, within } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { OpenDocument } from '#note-sdk';
 import { MobileActionToolbar } from './MobileActionToolbar';
-import type { ToolbarCapabilities } from './useToolbarCapabilities';
+import type { ToolbarCapabilities, ToolbarOpenDocument } from './useToolbarCapabilities';
 
 const browser = vi.hoisted(() => ({ coarsePointer: true }));
 const originalDocumentFonts = Object.getOwnPropertyDescriptor(document, 'fonts');
@@ -58,7 +57,7 @@ function createOpenDocument(initialCapabilities: ToolbarCapabilities | Error) {
     undo: vi.fn(),
     redo: vi.fn(),
   };
-  const openDocument: Pick<OpenDocument, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'> = {
+  const openDocument: ToolbarOpenDocument = {
     subscribeCapabilities: capabilities.subscribe,
     focus: { canToggleFold: () => capabilities.read().canToggleFold, toggleFold: operations.toggleFocusedFold },
     selection: {
@@ -79,7 +78,7 @@ function createOpenDocument(initialCapabilities: ToolbarCapabilities | Error) {
   return { capabilities, operations, openDocument };
 }
 
-function renderToolbar(openDocument: Pick<OpenDocument, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'>) {
+function renderToolbar(openDocument: ToolbarOpenDocument) {
   const portalRoot = document.createElement('div');
   portalRoot.dataset.mobileToolbarTestRoot = '';
   document.body.append(portalRoot);

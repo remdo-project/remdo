@@ -76,6 +76,5 @@ text makes the append
 
 ## Future
 
-- Add placement as first children and as siblings before or after an
-  editor note, named `prependChildren`, `insertBefore`, and `insertAfter`
-  alongside `appendChildren`, when a consumer needs them.
+- Add prepending as first children and inserting siblings before or after an
+  editor note when a consumer needs them.

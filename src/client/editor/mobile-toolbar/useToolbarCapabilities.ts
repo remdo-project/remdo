@@ -1,6 +1,8 @@
 import { useMemo, useSyncExternalStore } from 'react';
 import type { OpenDocument } from '#note-sdk';
 
+export type ToolbarOpenDocument = Pick<OpenDocument, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'>;
+
 export interface ToolbarCapabilities {
   canToggleFold: boolean;
   canDelete: boolean;
@@ -17,7 +19,7 @@ const UNAVAILABLE: ToolbarCapabilities = {
 
 /** React snapshot identity stays in the toolbar binding, outside the SDK. */
 export function useToolbarCapabilities(
-  openDocument: Pick<OpenDocument, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'>,
+  openDocument: ToolbarOpenDocument,
 ): ToolbarCapabilities {
   const getSnapshot = useMemo(() => {
     let current = UNAVAILABLE;
