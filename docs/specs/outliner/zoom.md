@@ -24,8 +24,8 @@ editing boundary, distinct from the editor's [selection](./selection.md).
 3. Zoom does not add a note kind or structural level. Note identity and
    collaboration semantics remain unchanged.
 4. Selection expansion, including Select All, stays inside the zoom boundary.
-5. Edits stay inside the zoom boundary: commands do not create, merge, move,
-   or target notes outside it.
+5. The viewer's editing commands stay inside the zoom boundary: they do not
+   create, merge, move, or target notes outside it.
 6. The current location renders through the [location header](./location-header.md),
    with its children in the outline below.
 7. A zoom root's direct children remain visible even when the root's stored

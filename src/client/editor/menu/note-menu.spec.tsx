@@ -155,6 +155,33 @@ describe('quick action menu (docs/specs/outliner/menu.md)', () => {
     expect(toggleFold).not.toHaveBeenCalled();
   });
 
+  it('hides Fold for the zoom root but not for its descendants', meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note1' } }), async ({ remdo }) => {
+    await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: getNoteKey(remdo, 'note1') });
+    await waitFor(() => expect(document.querySelector('[data-note-menu-note-id="note1"]')).not.toBeNull());
+    expect(document.querySelector('[data-note-menu-item="fold"]')).toBeNull();
+    fireEvent.keyDown(document.querySelector('[data-note-menu]')!, { key: 'Escape' });
+    await waitFor(() => expect(document.querySelector('[data-note-menu]')).toBeNull());
+
+    await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: getNoteKey(remdo, 'note2') });
+    await waitFor(() => expect(document.querySelector('[data-note-menu-note-id="note2"]')).not.toBeNull());
+    expect(document.querySelector('[data-note-menu-item="fold"]')).not.toBeNull();
+  });
+
+  it('closes without failing when its note loses the action before the menu refreshes', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: getNoteKey(remdo, 'note2') });
+    const convert = await waitFor(() => {
+      const element = document.querySelector('[data-note-menu-item="list-number"]');
+      expect(element).not.toBeNull();
+      return element as HTMLElement;
+    });
+
+    remdo.editor.update(() => $findNoteById('note3')!.remove(), { discrete: true });
+    fireEvent.click(convert);
+
+    await waitFor(() => expect(document.querySelector('[data-note-menu]')).toBeNull());
+    expect(remdo.documentSession.noteRef('note2').getChildListType()).toBeNull();
+  });
+
   it(
     'applies level 1 when fold to level is clicked',
     meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note1' } }),

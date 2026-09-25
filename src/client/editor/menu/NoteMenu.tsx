@@ -1,7 +1,9 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useEffect } from 'react';
 import { Header, Menu, MenuItem, MenuSection } from 'react-aria-components';
+import { IneligibleOperationError } from '#note-sdk';
 import type { DocumentSession, NoteListType, OpenDocumentNote } from '#note-sdk';
+import { useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 import { useNoteMenuState } from './useNoteMenuState';
 import { handleNoteMenuShortcut } from './note-menu-shortcuts';
 
@@ -38,10 +40,16 @@ interface NoteMenuProps {
 
 export function NoteMenu({ note, view, selection, editorRoot, closeMenu, focusRoot }: NoteMenuProps) {
   const state = useNoteMenuState(note);
+  const zoomNoteId = useZoomNoteId();
+  // Folding does not offer the zoom root, whose children stay visible anyway.
+  const canToggleFold = state !== null && state.canToggleFold && note.getId() !== zoomNoteId;
 
   const runAction = (operation: () => void | Promise<void>) => {
     focusRoot();
-    void operation();
+    // A collaborator may change the note after the menu opened; that race is not a failure.
+    void Promise.resolve(operation()).catch((error: unknown) => {
+      if (!(error instanceof IneligibleOperationError)) throw error;
+    });
     closeMenu();
   };
   const triggerFoldToggle = () => runAction(note.toggleFold);
@@ -53,7 +61,7 @@ export function NoteMenu({ note, view, selection, editorRoot, closeMenu, focusRo
   const convertChildList = (listType: NoteListType) => runAction(() => note.setChildListType(listType));
   const actions = {
     foldViewToLevel: triggerFoldViewToLevel,
-    toggleFold: state?.canToggleFold ? triggerFoldToggle : undefined,
+    toggleFold: canToggleFold ? triggerFoldToggle : undefined,
     zoom: triggerZoom,
     zoomOut: triggerZoomOut,
   };
@@ -102,7 +110,7 @@ export function NoteMenu({ note, view, selection, editorRoot, closeMenu, focusRo
           <MenuItem data-note-menu-item="toggle-checked" id="toggle-checked" onAction={triggerToggleChecked}>
             Toggle checked
           </MenuItem>
-          {state.canToggleFold
+          {canToggleFold
             ? (
                 <MenuItem data-note-menu-item="fold" id="fold" onAction={triggerFoldToggle}>
                   {renderShortcutLabel(foldLabel, 'F')}

@@ -229,16 +229,58 @@ Decisions requiring a contract owner's judgement:
 - **Public-release readiness.** Reassess the remaining requirements for
   admitting public users after collaboration and recovery work.
 
+### Claude MCP: save a conversation to RemDo
+
+Goal: a Claude web custom connector that saves a conversation outline into a
+RemDo document, minimal but useful for real work.
+
+Suggested approach; reconfirm each decision before specifying or implementing
+it:
+
+- A stateless Node process hosts the note SDK server-side; MCP is a thin
+  adapter over it, routed by the [gateway](architecture.md#gateway) at `/mcp`.
+- The host acts only with the caller's credential. Django decides access as
+  the OAuth authorization server and accepts the delegated bearer principal on
+  existing API and collaboration authorization; the hub enforces it; the host
+  holds no internal secret. Delegated access is the separate authentication
+  contract that [CSRF Protection](specs/access/access-control.md#csrf-protection)
+  requires for cross-site credentialed APIs.
+- Tools speak the adapter-neutral [note model](specs/outliner/note-model.md)
+  (parent note, note subtree), not Lexical or document-specific terms.
+- A write reports success only after the database commits, through the
+  [headless persistence barrier](architecture.md#hydration-vs-sync) made
+  available to user-authorized clients. Coordinate with durable collaboration
+  acknowledgements under [Operations](#operations).
+
+Steps, each moving its settled decisions into their owners and out of this
+entry:
+
+1. Headless SDK host replacing `withHeadlessCollabSession`, with the
+   user-authorized commit barrier. Addressed fold and child-list-type
+   operations still depend on browser command handlers.
+2. Delegated OAuth in Django, with revocation.
+3. MCP adapter over [session insertion](specs/outliner/insertion.md#session-insertion),
+   process wiring, and end-to-end coverage.
+4. Connect-Claude guide and trial on the hosted instance.
+
+Steps 1 and 2 are independent; step 3 depends on both. Open decisions: client
+registration (dynamic or pre-registered), default save target, and tools beyond
+saving.
+
 ### SDK
+
+- **Open document session scope.** Rename the
+  [open document session](specs/outliner/document-session.md) after what it
+  owns — cross-operation rules of the document API — and separate
+  interactive-editor context (focus, selection, view) from view-independent
+  document operations that headless hosts also provide.
 
 - **Simplify SDK consumer types.** Review consumers beyond the mobile toolbar
   for narrowing driven only by test setup and duplicate local types. Prefer
   existing public types at meaningful boundaries; retain narrower contracts
   when they provide a concrete benefit, following [SDK design](dev/sdk.md).
 
-- **SDK API validation.** Evaluate completion and unavailable-target outcomes
-  when a consumer needs to
-  know whether an operation took effect. Evaluate query and app-resource reads
+- **SDK API validation.** Evaluate query and app-resource reads
   in their own workflows using the [design principles and references](dev/sdk.md). Reassess
   generated record/query APIs versus [user data notes](specs/outliner/user-data.md)
   with Home and Sharing consumers as Home, offline, and source requirements

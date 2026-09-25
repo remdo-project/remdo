@@ -96,6 +96,7 @@ function MockEditor({
         toggleFold: () => Promise.resolve(),
         subscribe: () => noOp,
       }),
+      insertNotes: () => Promise.resolve([]),
       view: { zoomOut: noOp, foldToLevel: noOp },
       focus: { canToggleFold: () => false, toggleFold: noOp },
       selection: {

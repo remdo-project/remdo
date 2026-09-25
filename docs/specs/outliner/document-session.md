@@ -37,23 +37,19 @@ independent, can be released repeatedly, and may remain active through
 unavailability or a failed read to observe recovery. Notifications include
 changes in target or source availability and read failures, even when capability
 values remain false. Listeners may safely invoke session operations.
-Addressed-note observation includes changes to semantic eligibility, including
-those caused by a change of [zoom boundary](./zoom.md#definitions), even without a content edit.
 
 ## Operations and ownership
 
-Mutations target an addressed note, the currently focused note, the current
-selection, the current view, or document history. They resolve and validate their
-targets when executed and no-op when the source or target is unavailable. Edits
-obey the current [zoom editing boundary](./zoom.md#visibility-and-editing-boundary). An asynchronous mutation rejects on
-unexpected execution failure and resolves after its resulting local update
-commits, without waiting for listener delivery, collaboration, or persistence.
-
-Addressed checked toggling applies [List types' subtree semantics](./list-types.md#toggling) to that note
-independently of selection. Selection checked toggling uses the current selection,
-or the [menu's checked-target rule](./menu.md#actions) when supplied a note target.
+Mutations target an addressed note, the document, the currently focused note,
+the current selection, the current view, or document history. Addressed-note
+and document mutations are independent of the current view. An asynchronous
+mutation resolves once session reads reflect its change, which does not imply
+collaboration or persistence. It rejects with an ineligible-operation error,
+leaving the document unchanged, when its target is unavailable or ineligible. A
+synchronous mutation no-ops instead.
 
 Adapters own framework and storage mechanics. Consumer surfaces own which
 operations they offer and how they present and interact with them.
 Editor bindings resolve row or selection context to stable note identity before
 passing it to consumers.
+

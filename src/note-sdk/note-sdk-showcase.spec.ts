@@ -16,7 +16,7 @@ import {
   selectNoteRange,
   TEST_USER_DATA_DOCUMENT,
 } from '#tests';
-import { createUserDataRootNote, NoteUnavailableError } from '#note-sdk';
+import { createUserDataRootNote, IneligibleOperationError, NoteUnavailableError } from '#note-sdk';
 
 describe('note SDK showcase', () => {
   describe('open document session', () => {
@@ -96,6 +96,24 @@ describe('note SDK showcase', () => {
       await parent.setChildListType('check');
 
       expect(parent.getChildListType()).toBe('check');
+    });
+
+    it('appends an outline and addresses its new notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+      const session = remdo.documentSession;
+
+      const [summaryId] = await session.insertNotes({
+        notes: [{
+          text: 'Conversation summary',
+          childListType: 'check',
+          children: [{ text: 'Follow up' }],
+        }],
+      });
+      const summary = session.noteRef(summaryId!);
+      expect(summary.getText()).toBe('Conversation summary');
+      expect(summary.getChildListType()).toBe('check');
+
+      await expect(session.insertNotes({ parentNoteId: 'missing', notes: [{ text: 'Lost' }] }))
+        .rejects.toThrow(IneligibleOperationError);
     });
 
     it("observes text changes and handles an unavailable note", meta({ fixture: 'tree' }), async ({ remdo }) => {
