@@ -1,10 +1,10 @@
 import { waitFor } from '@testing-library/react';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { meta } from '#tests';
-import { createLexicalDocumentSessionRuntime } from '#client/editor/note-sdk-adapters/lexical-document-session';
+import { createLexicalOpenDocumentRuntime } from '#client/editor/note-sdk-adapters/lexical-open-document';
 import { createCollabPeer } from './_support/remdo-peers';
 
-describe('document session collaboration', () => {
+describe('open document collaboration', () => {
   it('observes a remote note edit and includes it in the next search', meta({
     collabDocId: 'sdkRemoteEdit',
     fixture: 'tree',
@@ -13,21 +13,21 @@ describe('document session collaboration', () => {
     await remdo.waitForSynced();
     const peer = await createCollabPeer(remdo);
     await peer.waitForSynced();
-    const runtime = createLexicalDocumentSessionRuntime({
+    const runtime = createLexicalOpenDocumentRuntime({
       editor: remdo.editor,
       docId: remdo.getCollabDocId(),
     });
     runtime.start();
     runtime.setSourceReady(true);
     onTestFinished(() => runtime.dispose());
-    const note = runtime.session.noteRef('note2');
+    const note = runtime.openDocument.noteRef('note2');
     const listener = vi.fn();
     note.subscribe(listener);
 
     expect(note.getText()).toBe('edited before join');
-    expect(peer.documentSession.noteRef('note2').getText()).toBe('edited before join');
+    expect(peer.openDocument.noteRef('note2').getText()).toBe('edited before join');
     const options = { query: 'updated', limit: 10, childPreviewLimit: 2 };
-    expect(await runtime.session.search(options)).toEqual({ flatResults: [], hasMore: false });
+    expect(await runtime.openDocument.search(options)).toEqual({ flatResults: [], hasMore: false });
 
     await peer.updateNoteText('note2', 'updated by peer');
 
@@ -35,7 +35,7 @@ describe('document session collaboration', () => {
       expect(note.getText()).toBe('updated by peer');
       expect(listener).toHaveBeenCalledOnce();
     });
-    const { flatResults } = await runtime.session.search(options);
+    const { flatResults } = await runtime.openDocument.search(options);
     expect(flatResults.map(({ note }) => ({ id: note.id, text: note.text })))
       .toEqual([{ id: 'note2', text: 'updated by peer' }]);
   });
@@ -47,10 +47,10 @@ describe('document session collaboration', () => {
     await remdo.waitForSynced();
     const peer = await createCollabPeer(remdo);
     await peer.waitForSynced();
-    const note = remdo.documentSession.noteRef('note2');
+    const note = remdo.openDocument.noteRef('note2');
     const listener = vi.fn();
     onTestFinished(note.subscribe(listener));
-    const remote = peer.documentSession.noteRef('note2');
+    const remote = peer.openDocument.noteRef('note2');
 
     await remote.toggleChecked();
     await remote.setChildListType('number');
@@ -60,7 +60,7 @@ describe('document session collaboration', () => {
       expect(note.getChecked()).toBe(true);
       expect(note.getChildListType()).toBe('number');
       expect(note.getFolded()).toBe(true);
-      expect(remdo.documentSession.noteRef('note3').getChecked()).toBe(true);
+      expect(remdo.openDocument.noteRef('note3').getChecked()).toBe(true);
       expect(listener).toHaveBeenCalled();
     });
   });

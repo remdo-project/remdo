@@ -1,1 +1,1 @@
-export { useLexicalDocumentSession } from './lexical-document-session';
+export { useLexicalOpenDocument } from './lexical-open-document';

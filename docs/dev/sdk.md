@@ -1,7 +1,7 @@
 # SDK design
 
 This document owns SDK contributor principles and API conventions. The
-[consumer API principles](../principles.md#consumer-apis) define the goal; the [open document session](../specs/outliner/document-session.md) and feature
+[consumer API principles](../principles.md#consumer-apis) define the goal; the [open document](../specs/outliner/open-document.md) and feature
 specifications own accepted behavior.
 
 ## Design principles
@@ -45,7 +45,7 @@ operations have an explicit completion contract.
   errors. A captured model node differs from a resolving reference; its reactive
   machinery and invalidation policies are not RemDo's lifetime contract.
 - [ProseMirror commands](https://prosemirror.net/docs/guide/#commands) — boolean applicability checks without execution.
-  They receive a usable editor state; they do not define unavailable-session
+  They receive a usable editor state; they do not define unavailable-source
   behavior or guarantee that a later operation takes effect.
 - [BlockNote content API](https://www.blocknotejs.org/docs/reference/editor/manipulating-content) and [events](https://www.blocknotejs.org/docs/reference/editor/events) — ID-based operations, read-time block data,
   and content/selection observation. These do not supply live per-note
@@ -56,4 +56,4 @@ operations have an explicit completion contract.
 - [Firestore references](https://firebase.google.com/docs/reference/js/firestore.documentreference), [operations](https://firebase.google.com/docs/reference/js/firestore), and [listeners](https://firebase.google.com/docs/firestore/query-data/listen) — separation of identity from
   delivered data. Asynchronous snapshots and backend-acknowledged writes
   illustrate different freshness and completion guarantees from the
-  opened-document session.
+  open document.

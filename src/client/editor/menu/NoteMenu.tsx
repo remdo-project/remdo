@@ -2,7 +2,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useEffect } from 'react';
 import { Header, Menu, MenuItem, MenuSection } from 'react-aria-components';
 import { IneligibleOperationError } from '#note-sdk';
-import type { DocumentSession, NoteListType, OpenDocumentNote } from '#note-sdk';
+import type { OpenDocument, NoteListType, OpenDocumentNote } from '#note-sdk';
 import { useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 import { useNoteMenuState } from './useNoteMenuState';
 import { handleNoteMenuShortcut } from './note-menu-shortcuts';
@@ -31,8 +31,8 @@ const renderShortcutLabel = (label: string, shortcut: string) => {
 
 interface NoteMenuProps {
   note: OpenDocumentNote;
-  view: DocumentSession['view'];
-  selection: DocumentSession['selection'];
+  view: OpenDocument['view'];
+  selection: OpenDocument['selection'];
   editorRoot: HTMLElement | null;
   closeMenu: () => void;
   focusRoot: () => void;

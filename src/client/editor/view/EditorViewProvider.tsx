@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
-import type { DocumentSession } from '#note-sdk';
+import type { OpenDocument } from '#note-sdk';
 import { areNotePathsEqual } from '#client/editor/outline/note-traversal';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 
@@ -20,8 +20,8 @@ const EditorViewContext = createContext<{
   requestZoomNoteId: (noteId: string | null) => void;
   isCurrentZoomRoute: () => boolean;
   setZoomPath: (path: NotePathItem[]) => void;
-  documentSession: DocumentSession | null;
-  registerDocumentSession: (session: DocumentSession) => () => void;
+  openDocument: OpenDocument | null;
+  registerOpenDocument: (openDocument: OpenDocument) => () => void;
 } | null>(null);
 
 export function EditorViewProvider({
@@ -69,15 +69,15 @@ export function EditorViewProvider({
     onZoomNoteIdChangeRef.current(noteId, latestZoomRequestIdRef.current);
   }, []);
 
-  const [registeredDocumentSession, setRegisteredDocumentSession] = useState<DocumentSession | null>(null);
-  const registerDocumentSession = useCallback((session: DocumentSession) => {
-    setRegisteredDocumentSession(session);
+  const [registeredOpenDocument, setRegisteredOpenDocument] = useState<OpenDocument | null>(null);
+  const registerOpenDocument = useCallback((openDocument: OpenDocument) => {
+    setRegisteredOpenDocument(openDocument);
     return () => {
-      setRegisteredDocumentSession((current) => current === session ? null : current);
+      setRegisteredOpenDocument((current) => current === openDocument ? null : current);
     };
   }, []);
-  const documentSession = registeredDocumentSession?.documentId === docId
-    ? registeredDocumentSession
+  const openDocument = registeredOpenDocument?.documentId === docId
+    ? registeredOpenDocument
     : null;
 
   const value = useMemo(() => ({
@@ -86,9 +86,9 @@ export function EditorViewProvider({
     requestZoomNoteId,
     isCurrentZoomRoute,
     setZoomPath,
-    documentSession,
-    registerDocumentSession,
-  }), [documentSession, isCurrentZoomRoute, registerDocumentSession, requestZoomNoteId, setZoomPath, zoomNoteId, zoomPath]);
+    openDocument,
+    registerOpenDocument,
+  }), [openDocument, isCurrentZoomRoute, registerOpenDocument, requestZoomNoteId, setZoomPath, zoomNoteId, zoomPath]);
 
   return (
     <EditorViewContext value={value}>{children}</EditorViewContext>
@@ -126,13 +126,13 @@ export function useEditorViewActions() {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- Safe: hook exposes provider-owned editor view state.
-export function useRegisterDocumentSession() {
+export function useRegisterOpenDocument() {
   const context = useEditorViewContext();
-  return context.registerDocumentSession;
+  return context.registerOpenDocument;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- Safe: hook reads provider-owned editor view state.
-export function useDocumentSession(): DocumentSession | null {
+export function useOpenDocument(): OpenDocument | null {
   const context = useEditorViewContext();
-  return context.documentSession;
+  return context.openDocument;
 }

@@ -1,4 +1,4 @@
-import type { DocumentSession } from '#note-sdk';
+import type { OpenDocument } from '#note-sdk';
 
 // The toolbar's inventory and display order are surface concerns
 // (docs/specs/outliner/mobile-toolbar.md). Execution delegates to named SDK
@@ -16,39 +16,39 @@ export type MobileActionId =
   | 'menu';
 
 export function runMobileAction(
-  session: Pick<DocumentSession, 'focus' | 'selection' | 'history'>,
+  openDocument: Pick<OpenDocument, 'focus' | 'selection' | 'history'>,
   id: MobileActionId,
   openNoteMenu: () => void,
 ): void {
   switch (id) {
     case 'indent':
-      session.selection.indent();
+      openDocument.selection.indent();
       return;
     case 'outdent':
-      session.selection.outdent();
+      openDocument.selection.outdent();
       return;
     case 'moveUp':
-      session.selection.moveUp();
+      openDocument.selection.moveUp();
       return;
     case 'moveDown':
-      session.selection.moveDown();
+      openDocument.selection.moveDown();
       return;
     case 'done':
       // This is the SDK's semantic operation, not Lexical ListItemNode.toggleChecked().
       // eslint-disable-next-line no-restricted-syntax
-      session.selection.toggleChecked();
+      openDocument.selection.toggleChecked();
       return;
     case 'fold':
-      session.focus.toggleFold();
+      openDocument.focus.toggleFold();
       return;
     case 'delete':
-      session.selection.delete();
+      openDocument.selection.delete();
       return;
     case 'undo':
-      session.history.undo();
+      openDocument.history.undo();
       return;
     case 'redo':
-      session.history.redo();
+      openDocument.history.redo();
       return;
     case 'menu':
       openNoteMenu();

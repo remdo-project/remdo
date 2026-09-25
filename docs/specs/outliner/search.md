@@ -18,7 +18,7 @@ zooming to a result.
 1. Search covers all [editor notes](./note-model.md#note-kinds) in the active
    document, including descendants hidden by [folding](./folding.md) and notes
    outside the current [zoom boundary](./zoom.md#definitions). Its note data comes
-   from the active [open document session](./document-session.md).
+   from the active [open document](./open-document.md).
 2. Runtime document-ID ownership and route/link identity are defined in
    [Note IDs](./note-ids.md) and [Links](./links.md), not in this search spec.
 

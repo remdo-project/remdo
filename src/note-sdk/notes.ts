@@ -6,7 +6,7 @@ import type {
 } from './documents';
 
 export type NoteId = string;
-/** Runtime kinds in the user-data resource graph; open-document notes use DocumentSession. */
+/** Runtime kinds in the user-data resource graph; open-document notes use OpenDocument. */
 export type NoteKind =
   | 'user-data'
   | 'document'

@@ -4,7 +4,7 @@ User data notes expose the signed-in account's
 [document list](../../architecture.md#document-registry) to consumers: its
 documents and each document's direct grants, under
 [Document Access](../access/access-control.md#document-access). The
-[open document session](./document-session.md) owns the notes inside an opened
+[open document](./open-document.md) owns the notes inside an opened
 document.
 
 ## State and observation
@@ -13,7 +13,7 @@ A document note is a live reference to one listed document by its
 [`docId`](../../architecture.md#document-identity); each value read resolves the
 current document list. Value reads of a document that is no longer listed
 produce the same identifiable unavailable-note error as an
-[open document session](./document-session.md#state-and-observation); its
+[open document](./open-document.md#state-and-observation); its
 capability reads return false.
 
 Observing a document note signals that its values, eligibility, or availability

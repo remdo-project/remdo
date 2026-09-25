@@ -1,7 +1,6 @@
 # Insertion
 
-Insertion creates notes from `Enter` and from
-[open document session](./document-session.md) consumers.
+Insertion creates notes from `Enter` and by appending described notes.
 
 With a **[caret selection](./selection.md#selection-states)** or an **[inline text
 selection](./selection.md#selection-states)**, `Enter` inserts new notes. The
@@ -56,17 +55,16 @@ When a paste inserts multiple notes, its placement follows the same
 start/middle/end rules as `Enter`. Clipboard details (including how multi-line
 plain text is interpreted and focus after paste) live in [Clipboard](./clipboard.md).
 
-## Session insertion
+## Appending notes
 
-Appending children to an [open document session](./document-session.md) note
-adds a described subtree as that note's last children; the
-[document root](./note-model.md#definitions) receives top-level notes. Each
+Appending adds described notes as the last children of a note; appending to the
+[document root](./note-model.md#definitions) adds top-level notes. Each
 described note supplies its plain text and optionally its checked state, its
 children, and the list type of those children. A line break in any described
-text makes the insertion
-[ineligible](./document-session.md#operations-and-ownership).
+text makes the append
+[ineligible](./open-document.md#operations-and-ownership).
 
-- The operation resolves with the directly inserted notes'
+- The append resolves with the directly appended notes'
   [`noteId`](./note-ids.md#creation) values in order, or with none for an empty
   description.
 - A described checked state applies to its own note only.
@@ -74,10 +72,9 @@ text makes the insertion
   including one created for a described note without a described list type,
   takes the type of the list containing its parent.
 - Focus and selection are unchanged.
-- The insertion is one local update, so undo never removes part of it.
+- The append is one local update, so undo never removes part of it.
 
 ## Future
 
-- Add session placement as first children and as siblings before or after an
-  editor note, named `prependChildren`, `insertBefore`, and `insertAfter`
-  alongside `appendChildren`, when a consumer needs them.
+- Add prepending as first children and inserting siblings before or after an
+  editor note when a consumer needs them.

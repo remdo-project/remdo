@@ -259,7 +259,7 @@ entry:
    user-authorized commit barrier. Addressed fold and child-list-type
    operations still depend on browser command handlers.
 2. Delegated OAuth in Django, with revocation.
-3. MCP adapter over [session insertion](specs/outliner/insertion.md#session-insertion),
+3. MCP adapter over [appending notes](specs/outliner/insertion.md#appending-notes),
    process wiring, and end-to-end coverage.
 4. Connect-Claude guide and trial on the hosted instance.
 
@@ -268,12 +268,6 @@ registration (dynamic or pre-registered), default save target, and tools beyond
 saving.
 
 ### SDK
-
-- **Open document session scope.** Narrow the
-  [open document session](specs/outliner/document-session.md) to an opened
-  document's lifecycle handle exposing its document root, and move
-  interactive-editor context (focus, selection, view, history) to an editor view
-  API that headless hosts do not provide.
 
 - **Simplify SDK consumer types.** Review consumers beyond the mobile toolbar
   for narrowing driven only by test setup and duplicate local types. Prefer
@@ -293,11 +287,11 @@ saving.
   the final choices and explicitly track any remaining gaps.
 
 - **Note-centered SDK consumer boundary.** The
-  [open document session](specs/outliner/document-session.md) now owns the first
+  [open document](specs/outliner/open-document.md) now owns the first
   settled slice around the shared [note model](specs/outliner/note-model.md):
   addressed-note access and observation, observable action capabilities, and
   semantic operations. [Search](specs/outliner/search.md) requests results through
-  the session. The [mobile toolbar](specs/outliner/mobile-toolbar.md) and [quick action menu](specs/outliner/menu.md) consume its
+  the open document. The [mobile toolbar](specs/outliner/mobile-toolbar.md) and [quick action menu](specs/outliner/menu.md) consume its
   capabilities and operations; editor bindings resolve menu targets to stable
   note identity.
 
@@ -306,8 +300,9 @@ saving.
   are equally valid starting points when a consumer exposes a more important
   gap. Choose small slices by
   consumer value rather than a fixed PR sequence, following the
-  [consumer API principles](principles.md#consumer-apis) and the session's ownership boundaries. Preserve each
-  operation's owning behavior while reconsidering the SDK shape.
+  [consumer API principles](principles.md#consumer-apis) and the open
+  document's ownership boundaries. Preserve each operation's owning behavior
+  while reconsidering the SDK shape.
 
   Keep resource reads aligned with the [document registry](architecture.md#document-registry) and choose tools
   against a concrete consumer and the [performance work](#performance). Coordinate

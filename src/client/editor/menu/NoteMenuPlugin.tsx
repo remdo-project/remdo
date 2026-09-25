@@ -2,7 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { mergeRegister } from '@lexical/utils';
 import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { DocumentSession, NoteId } from '#note-sdk';
+import type { OpenDocument, NoteId } from '#note-sdk';
 import { OPEN_NOTE_MENU_COMMAND } from '#client/editor/foundation/commands';
 import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
@@ -21,7 +21,7 @@ interface NoteMenuState {
 
 const DOUBLE_SHIFT_WINDOW_MS = 500;
 
-export function NoteMenuPlugin({ session }: { session: DocumentSession }) {
+export function NoteMenuPlugin({ openDocument }: { openDocument: OpenDocument }) {
   const [editor] = useLexicalComposerContext();
   const popupToken = useRef(Symbol('note-menu')).current;
   const rootRef = useRef(editor.getRootElement());
@@ -220,7 +220,7 @@ export function NoteMenuPlugin({ session }: { session: DocumentSession }) {
     );
   }, [closeMenu, editor, popupToken, setMenuState]);
 
-  const note = useMemo(() => menu ? session.noteRef(menu.noteId) : null, [menu, session]);
+  const note = useMemo(() => menu ? openDocument.noteRef(menu.noteId) : null, [menu, openDocument]);
 
   if (!portalRoot || !menu) {
     return null;
@@ -250,8 +250,8 @@ export function NoteMenuPlugin({ session }: { session: DocumentSession }) {
     >
       <NoteMenu
         note={note!}
-        view={session.view}
-        selection={session.selection}
+        view={openDocument.view}
+        selection={openDocument.selection}
         editorRoot={rootElement}
         closeMenu={closeMenu}
         focusRoot={focusRoot}

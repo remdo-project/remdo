@@ -48,8 +48,8 @@ describe('quick action menu (docs/specs/outliner/menu.md)', () => {
     await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: getNoteKey(remdo, 'note1') });
     await waitFor(() => expect(document.querySelector('[data-note-menu-note-id="note1"]')).not.toBeNull());
 
-    await remdo.documentSession.noteRef('note1').setChildListType('check');
-    await remdo.documentSession.noteRef('note1').toggleFold();
+    await remdo.openDocument.noteRef('note1').setChildListType('check');
+    await remdo.openDocument.noteRef('note1').toggleFold();
 
     await waitFor(() => {
       expect(document.querySelector('[data-note-menu-item="list-check"]')).toBeNull();
@@ -70,9 +70,9 @@ describe('quick action menu (docs/specs/outliner/menu.md)', () => {
 
     await waitFor(() => {
       expect(document.querySelector('[data-note-menu]')).toBeNull();
-      expect(remdo.documentSession.noteRef('note2').getFolded()).toBe(true);
+      expect(remdo.openDocument.noteRef('note2').getFolded()).toBe(true);
     });
-    expect(remdo.documentSession.noteRef('note1').getFolded()).toBe(false);
+    expect(remdo.openDocument.noteRef('note1').getFolded()).toBe(false);
   });
 
   it('closes when its addressed note disappears', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -179,7 +179,7 @@ describe('quick action menu (docs/specs/outliner/menu.md)', () => {
     fireEvent.click(convert);
 
     await waitFor(() => expect(document.querySelector('[data-note-menu]')).toBeNull());
-    expect(remdo.documentSession.noteRef('note2').getChildListType()).toBeNull();
+    expect(remdo.openDocument.noteRef('note2').getChildListType()).toBeNull();
   });
 
   it(
