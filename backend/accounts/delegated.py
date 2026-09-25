@@ -133,6 +133,7 @@ class OIDCAdapter(DefaultOIDCAdapter):
         data["response_types_supported"] = ["code"]
         data["grant_types_supported"] = ["authorization_code", "refresh_token"]
         data["scopes_supported"] = ["openid"]
+        data["client_id_metadata_document_supported"] = True
 
     def is_cimd_url_allowed(self, url):
         # Metadata is fetched before any client is authenticated, so it must

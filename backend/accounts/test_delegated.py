@@ -154,6 +154,8 @@ class DelegatedAccessTests(TestCase):
         self.assertNotIn("device_authorization_endpoint", discovery)
         self.assertNotIn("end_session_endpoint", discovery)
         self.assertEqual(discovery["scopes_supported"], ["openid"])
+        self.assertIs(discovery["client_id_metadata_document_supported"], True)
+        self.assertIn("none", discovery["token_endpoint_auth_methods_supported"])
 
     def test_access_is_granted_only_after_consent_through_the_code_flow(self):
         self.grant()
