@@ -157,8 +157,8 @@ Hocuspocus forwards the cookie and browser origin to Django before loading
 each requested document. Reconnecting repeats authorization; an established
 connection retains its authorization until disconnect.
 
-Private authorization, binary content load/store, and explicit persistence
-operations are loopback-only and require the internal collaboration secret.
+Private authorization and binary content load/store are loopback-only and
+require the internal collaboration secret.
 Public gateways block internal routes and remove internal credential headers
 from browser traffic. Operator tools use the internal credential without a
 browser session, and may open only registered documents.
@@ -226,7 +226,8 @@ headless consumers attach only the network provider.
   outages can extend that window.
 
 Headless writers require an explicit persistence barrier after synchronization
-while the document remains attached. It completes only after Django commits the
+while the document remains attached. Any connection authorized for the document
+may request it over that connection. It completes only after Django commits the
 full current state, including deletion-only changes, and rejects on persistence
 failure.
 
