@@ -103,6 +103,24 @@ test.describe('note links', () => {
     await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
   });
 
+  test('middle-clicking a note link navigates in the same tab', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.type(' @note2');
+    await page.keyboard.press('Enter');
+    const link = editorLocator(page).getByRole('link', { name: 'note2' });
+    await expect(link).toHaveCount(1);
+
+    let openedPages = 0;
+    page.context().on('page', () => {
+      openedPages += 1;
+    });
+    await link.click({ button: 'middle' });
+
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
+    expect(openedPages).toBe(0);
+  });
+
   test('clicking an external link opens a private tab', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
