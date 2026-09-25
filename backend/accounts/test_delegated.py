@@ -153,6 +153,7 @@ class DelegatedAccessTests(TestCase):
         self.assertEqual(discovery["response_types_supported"], ["code"])
         self.assertNotIn("device_authorization_endpoint", discovery)
         self.assertNotIn("end_session_endpoint", discovery)
+        self.assertEqual(discovery["scopes_supported"], ["openid"])
 
     def test_access_is_granted_only_after_consent_through_the_code_flow(self):
         self.grant()
@@ -177,6 +178,13 @@ class DelegatedAccessTests(TestCase):
             "/identity/o/authorize", {"request": signed, "scopes": "openid", "action": "grant"}
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_a_request_without_scope_reaches_consent_with_openid(self):
+        self.client.force_login(self.user)
+        query = self.authorize_query()
+        query = "&".join(part for part in query.split("&") if not part.startswith("scope="))
+        response = self.client.get(f"/identity/o/authorize?{query}", follow=True)
+        self.assertContains(response, 'name="scopes" value="openid"')
 
     def refresh(self, token):
         return self.client.post(

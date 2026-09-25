@@ -132,6 +132,7 @@ class OIDCAdapter(DefaultOIDCAdapter):
             data.pop(key, None)
         data["response_types_supported"] = ["code"]
         data["grant_types_supported"] = ["authorization_code", "refresh_token"]
+        data["scopes_supported"] = ["openid"]
 
     def is_cimd_url_allowed(self, url):
         # Metadata is fetched before any client is authenticated, so it must
@@ -167,6 +168,11 @@ def authorize(request):
         return _refuse(request, "unsupported")
     if {"none", "login"} & set(request.GET.get("prompt", "").split()):
         return _refuse(request, "unsupported")
+    # Consent requires a scope, and openid is the one these clients may request.
+    if client_id is not None and "scope" not in request.GET:
+        query = request.GET.copy()
+        query["scope"] = "openid"
+        return redirect(f"{request.path}?{query.urlencode()}")
     if request.user.is_authenticated and not may_delegate(request.user):
         return render(request, "accounts/delegation_refused.html", status=403)
     return authorization(request)
