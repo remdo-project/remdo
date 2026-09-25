@@ -63,7 +63,24 @@ export function SelectionPlugin() {
     const disposedRef = { current: false };
     installOutlineSelectionHelpers(editor);
 
+    // The directional unlock carries the ladder through Lexical's normalization of the DOM
+    // selection a plan just wrote, which arrives in the first selectionchange after that write.
+    // It ends after that event's listeners (Lexical's included) run, immediately when the plan
+    // leaves the DOM selection unchanged, or on a no-op step; anything later is user input.
+    const clearUnlock = () => {
+      unlockRef.current = { pending: false, reason: 'external' };
+    };
     let domSelectionBeforePlan: DomSelectionPoints | null = null;
+    let awaitingHandoff = false;
+    const endHandoff = () => {
+      if (!awaitingHandoff) {
+        return;
+      }
+      awaitingHandoff = false;
+      queueMicrotask(clearUnlock);
+    };
+    const ownerDocument = editor.getRootElement()?.ownerDocument ?? document;
+    ownerDocument.addEventListener('selectionchange', endHandoff);
     const readDomSelection = (): DomSelectionPoints | null => {
       const selection = editor.getRootElement()?.ownerDocument.getSelection();
       return selection
@@ -172,9 +189,10 @@ export function SelectionPlugin() {
       if (tags.has(PROGRESSIVE_SELECTION_TAG) && domSelectionBeforePlan) {
         const unchanged = isSameDomSelection(domSelectionBeforePlan, readDomSelection());
         domSelectionBeforePlan = null;
-        // Without a DOM selection change Lexical sends no normalization handoff to consume the unlock.
         if (unchanged) {
-          unlockRef.current = { pending: false, reason: 'external' };
+          clearUnlock();
+        } else {
+          awaitingHandoff = true;
         }
       }
       // The tree changed (collaboration, undo/redo, typing) when this update
@@ -352,8 +370,7 @@ export function SelectionPlugin() {
       }
 
       if ('noop' in result) {
-        // No selection change follows, so no normalization handoff will consume the unlock.
-        unlockRef.current = { pending: false, reason: 'external' };
+        clearUnlock();
         return;
       }
 
@@ -389,6 +406,7 @@ export function SelectionPlugin() {
 
     return () => {
       disposedRef.current = true;
+      ownerDocument.removeEventListener('selectionchange', endHandoff);
       renderStructuralHighlight(null, false);
       unregisterProgressionListener();
       unregisterSelectAll();

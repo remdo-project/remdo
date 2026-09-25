@@ -1288,6 +1288,23 @@ describe('selection plugin', () => {
     });
   });
 
+  it('restarts the ladder in another note dragged after an inline Cmd/Ctrl+A rung', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1');
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'inline', note: 'note1' });
+    });
+
+    const note3Text = getNoteTextNode(remdo, 'note3');
+    await dragDomSelectionBetweenRange(note3Text, 1, note3Text, 3);
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'inline', note: 'note3' });
+    });
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note3' });
+  });
+
   it('collapses a single-note range on an empty note back to a caret', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
         await placeCaretAtNote(remdo, 'trailing');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
