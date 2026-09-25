@@ -81,6 +81,11 @@ export function SelectionPlugin() {
       awaitingHandoff = false;
       handoffTimer = setTimeout(clearUnlock);
     };
+    const armUnlock = () => {
+      clearTimeout(handoffTimer);
+      awaitingHandoff = false;
+      unlockRef.current = { pending: true, reason: 'directional' };
+    };
     const abandonPlan = () => {
       ladderRef.current = INITIAL_PROGRESSIVE_STATE;
       domSelectionBeforePlan = null;
@@ -305,7 +310,7 @@ export function SelectionPlugin() {
           return false;
         }
 
-        unlockRef.current = { pending: true, reason: 'directional' };
+        armUnlock();
         event.preventDefault();
 
         domSelectionBeforePlan = readDomSelection();
@@ -361,7 +366,7 @@ export function SelectionPlugin() {
     const $runDirectionalPlan = (direction: 'up' | 'down') => {
       const viewRootKey = getViewRoot(editor);
 
-      unlockRef.current = { pending: true, reason: 'directional' };
+      armUnlock();
 
       $addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
 
