@@ -104,14 +104,14 @@ API and collaboration server remain loopback-only and are reached through it.
 App-owned HTTP surface that sits in front of collaboration infrastructure.
 
 - Auth: Django and allauth own browser session authentication at
-  `/api/auth/browser/v1` and administration
-  at `/admin/`.
+  `/api/auth/browser/v1`, administration at `/admin/`, and the authorization
+  server for [delegated access](specs/access/access-control.md#delegated-access).
 - Django authorizes each collaboration document connection under [Document Access](specs/access/access-control.md#document-access).
 - Private collaboration operations use an internal service credential, isolated
   from public gateway traffic.
 
-Django resolves the signed-in user from the session for ownership and document
-access decisions.
+Django resolves the user from the session or a delegated access token for
+ownership and document access decisions.
 
 ### Document identity
 
@@ -152,9 +152,10 @@ collaboration authorization.
 
 ### Collaboration credentials and paths
 
-The Django session cookie authenticates browser connections to `/collaboration`.
-Hocuspocus forwards the cookie and browser origin to Django before loading
-each requested document. Reconnecting repeats authorization; an established
+The Django session cookie authenticates browser connections to `/collaboration`,
+and a delegated access token authenticates other clients. Hocuspocus forwards
+the cookie and browser origin, or the token, to Django before loading each
+requested document. Reconnecting repeats authorization; an established
 connection retains its authorization until disconnect.
 
 Private authorization, binary content load/store, and explicit persistence

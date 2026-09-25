@@ -6,8 +6,9 @@ collaborative document state a user can access.
 
 ## Access Scope
 
-User-facing document access is authenticated by a session on the server that
-owns the document.
+User-facing document access is authenticated by a session, or a
+[delegated access](#delegated-access) token, on the server that owns the
+document.
 RemDo does not expose anonymous documents, public documents, document-access
 links carrying bearer credentials, or a local-only no-login mode.
 
@@ -161,7 +162,8 @@ Native forms submit Django's CSRF field; browser API requests send the token in
 `X-CSRFToken`. Missing or invalid tokens
 and untrusted origins are rejected before application handlers run. Tokens for
 cross-site credentialed APIs require a separate accepted authentication
-contract.
+contract; [delegated access](#delegated-access) is that contract, and its bearer
+requests carry no ambient credential for CSRF protection to guard.
 
 Django enforces trusted origins supplied by the resolved [runtime configuration](../runtime/configuration.md#network-addressing).
 Production trusts only that origin. Development additionally trusts local
@@ -170,6 +172,28 @@ aliases.
 A server's canonical public port namespaces its session and CSRF cookies. Local
 stacks on shifted port ranges keep independent sessions while sharing one
 browser hostname.
+
+## Delegated access
+
+A signed-in user can grant a third-party application access that acts as that
+user. The application requests it through the OAuth authorization-code flow with
+PKCE; the user signs in and consents on RemDo. Consent names the application as
+its client metadata identifies it and states that it can access and edit the
+user's documents. Applications identify themselves only by a client metadata
+document URL served over HTTPS. Staff and superuser accounts cannot grant
+delegated access.
+
+A delegated access token authenticates as its user on the RemDo API and on
+[collaboration connections](../../architecture.md#collaboration-credentials-and-paths),
+under that user's current [document access](#document-access), without a
+browser origin. Account pages, sign-out, administration, and connected-app
+management accept only the browser session. Access tokens are short-lived; the
+application renews them with a refresh token that each renewal replaces.
+
+A signed-in user's **Connected apps** page lists the applications they granted
+and revokes each one. Revocation ends that application's tokens at once: later
+API requests and collaboration connections are denied, and established
+connections keep their authorization until disconnect.
 
 ## Future
 
@@ -180,6 +204,7 @@ browser hostname.
 - Define anonymous access and public documents.
 - Define bearer-link access and its revocation, regeneration, and invalid-link behavior.
 - Define a local-only no-login mode.
+- Consider narrower delegated-access scopes or per-document grants.
 
 ## References
 

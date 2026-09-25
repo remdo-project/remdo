@@ -2,6 +2,7 @@
 
 from functools import wraps
 
+from accounts.delegated import delegated_user
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
@@ -31,15 +32,18 @@ def authorize(request, document_id):
     if request.headers.get("X-Remdo-Collaboration-Operator") == "1":
         get_object_or_404(Document, pk=document_id)
         return JsonResponse({"operator": True})
-    if (
-        request.headers.get("Origin") not in settings.CSRF_TRUSTED_ORIGINS
-        or not request.user.is_authenticated
-    ):
+    if authorization := request.headers.get("Authorization"):
+        user = delegated_user(authorization)
+    elif request.headers.get("Origin") in settings.CSRF_TRUSTED_ORIGINS:
+        user = request.user
+    else:
+        user = None
+    if user is None or not user.is_authenticated:
         return HttpResponse(status=403)
     document = get_object_or_404(Document, pk=document_id)
-    if not Document.objects.accessible_to(request.user).filter(pk=document.pk).exists():
+    if not Document.objects.accessible_to(user).filter(pk=document.pk).exists():
         return HttpResponse(status=403)
-    return JsonResponse({"userId": str(request.user.pk)})
+    return JsonResponse({"userId": str(user.pk)})
 
 
 @internal_only

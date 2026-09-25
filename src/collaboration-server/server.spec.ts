@@ -11,6 +11,7 @@ import { createProviderFactory } from '../collaboration/runtime';
 
 const secret = 'test-internal-secret';
 let authorizeStatus: number;
+let authorizeHeaders: Array<Record<string, string | string[] | undefined>>;
 let loadStatus: number;
 let storeStatus: number;
 let failedDocument: string | undefined;
@@ -37,6 +38,7 @@ const backend = createServer((request, response) => {
     }
     if (request.url?.endsWith('/authorize')) {
       authorizations++;
+      authorizeHeaders.push(request.headers);
       response.writeHead(authorizeStatus).end('{}');
     } else if (request.method === 'GET') {
       loaded++;
@@ -56,6 +58,7 @@ const backend = createServer((request, response) => {
 
 beforeEach(async () => {
   authorizeStatus = 200;
+  authorizeHeaders = [];
   loadStatus = 200;
   storeStatus = 204;
   failedDocument = undefined;
@@ -95,10 +98,10 @@ afterEach(async () => {
   await new Promise<void>((resolve, reject) => backend.close(error => error ? reject(error) : resolve()));
 });
 
-function connect(name = 'document') {
+function connect(name = 'document', headers: Record<string, string> = { [INTERNAL_SECRET_HEADER]: secret }) {
   class OperatorSocket extends WebSocket {
     constructor(url: string) {
-      super(url, { headers: { [INTERNAL_SECRET_HEADER]: secret } });
+      super(url, { headers });
     }
   }
   const provider = new HocuspocusProvider({
@@ -138,6 +141,15 @@ it('denies authorization before loading any document content', async () => {
   expect(loaded).toBe(0);
   expect(provider.synced).toBe(false);
   expectDiagnostics(['[onAuthenticate]']);
+});
+
+it('authorizes a bearer connection through Django without a browser origin', async () => {
+  const provider = connect('document', { Authorization: 'Bearer delegated-token' });
+  await expect.poll(() => provider.synced).toBe(true);
+  expect(authorizeHeaders).toHaveLength(1);
+  expect(authorizeHeaders[0]!.authorization).toBe('Bearer delegated-token');
+  expect(authorizeHeaders[0]!.cookie).toBeUndefined();
+  expect(authorizeHeaders[0]!['x-remdo-collaboration-operator']).toBeUndefined();
 });
 
 it('does not fabricate an empty synchronized document after a failed load', async () => {

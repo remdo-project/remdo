@@ -258,13 +258,12 @@ entry:
 1. Headless SDK host replacing `withHeadlessCollabSession`, with the
    user-authorized commit barrier. Addressed fold and child-list-type
    operations still depend on browser command handlers.
-2. Delegated OAuth in Django, with revocation.
-3. MCP adapter over [appending notes](specs/outliner/insertion.md#appending-notes),
+2. MCP adapter over [appending notes](specs/outliner/insertion.md#appending-notes),
+   using [delegated access](specs/access/access-control.md#delegated-access),
    process wiring, and end-to-end coverage.
-4. Connect-Claude guide and trial on the hosted instance.
+3. Connect-Claude guide and trial on the hosted instance.
 
-Steps 1 and 2 are independent; step 3 depends on both. Open decisions: client
-registration (dynamic or pre-registered), default save target, and tools beyond
+Step 2 depends on step 1. Open decisions: default save target and tools beyond
 saving.
 
 ### SDK

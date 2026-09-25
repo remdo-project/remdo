@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "allauth.headless",
+    "allauth.idp.oidc",
     "rest_framework",
     "drf_spectacular",
     "accounts",
@@ -129,8 +130,13 @@ if GOOGLE_CLIENT_ID:
             "SCOPE": ["openid", "email", "profile"],
         }
     }
+IDP_OIDC_ADAPTER = "accounts.delegated.OIDCAdapter"
+IDP_OIDC_CIMD_ENABLED = True
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "accounts.delegated.DelegatedAccessAuthentication",
+    ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
