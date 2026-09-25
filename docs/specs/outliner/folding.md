@@ -10,8 +10,8 @@ only; it never changes the underlying outline structure or note identities.
 
 ## Core behavior
 
-1. Single-note folding requires a note target with children that is not the
-   current [zoom root](./zoom.md#definitions). Without such a target,
+1. The viewer's single-note folding requires a note target with children that
+   is not the current [zoom root](./zoom.md#definitions). Without such a target,
    single-note folding is unavailable. Leaf notes and the current zoom root
    never show the row toggle.
 2. The toggle appears when the pointer is within a note's row bounds and inside

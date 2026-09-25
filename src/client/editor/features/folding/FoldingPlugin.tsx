@@ -176,6 +176,11 @@ export function FoldingPlugin() {
       if (!isFolded) {
         return;
       }
+      // The zoom root and its ancestors do not hide anything inside the view.
+      const viewRoot = $resolveViewRoot(editor);
+      if (viewRoot && (node.is(viewRoot) || !isContentDescendantOf(node, viewRoot))) {
+        return;
+      }
       const selection = $getSelection();
       const outlineSelection = editor.selection.get();
       if ($shouldCollapseSelection(selection, outlineSelection, node)) {
