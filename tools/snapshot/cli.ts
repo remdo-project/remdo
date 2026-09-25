@@ -6,7 +6,7 @@ import { $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
 
 import { prepareEditorStateForPersistence } from '#client/editor/runtime/editor-state-persistence';
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
-import { withHeadlessCollabSession } from '../../src/headless/collab-session';
+import { withHeadlessEditor } from '../../src/headless/headless-editor';
 
 const PATH_SEPARATOR_PATTERN = /[\\/]+/g;
 const LEADING_DOTS_PATTERN = /^\.+/;
@@ -110,7 +110,7 @@ async function runSave(
   filePath: string,
   writeMarkdown: boolean,
 ): Promise<void> {
-  await withHeadlessCollabSession(docId, (editor) => {
+  await withHeadlessEditor(docId, (editor) => {
     const editorState = editor.getEditorState().toJSON();
     const persistedState = prepareEditorStateForPersistence(editorState, docId);
     writeJson(filePath, persistedState);

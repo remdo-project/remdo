@@ -10,6 +10,7 @@ import { request } from '@playwright/test';
 import * as Y from 'yjs';
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
 import WebSocket from 'ws';
+import { requestPersistence } from '#collaboration/persistence-barrier';
 
 const container = process.env.DOCKER_TEST_CONTAINER!;
 const password = 'production-fixture-password-1234';
@@ -17,19 +18,6 @@ const email = 'admin@production.example.test';
 
 function docker(...args: string[]): string {
   return execFileSync('docker', args, { encoding: 'utf8' }).trim();
-}
-
-function flushDocument(name: string, docId: string): void {
-  docker('exec', name, 'python', '-c', `
-import sys
-from urllib.request import Request, urlopen
-from urllib.parse import quote
-from django.conf import settings
-request = Request('http://127.0.0.1:4004/internal/collaboration/flush/' + quote(sys.argv[1], safe=''),
-                  data=b'', headers={'X-Remdo-Collaboration-Secret': settings.COLLAB_INTERNAL_SECRET})
-with urlopen(request, timeout=15) as response:
-    assert response.status == 204
-`, docId);
 }
 
 async function openDocument(url: string, docId: string, headers: Record<string, string>) {
@@ -186,7 +174,13 @@ test('production launcher serves login, collaboration, and persistent data throu
   await expect(editor).toContainText('Persisted through Django production restart');
   await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Saved to server.*Server connected/u);
   const documentUrl = page.url();
-  flushDocument(container, new URL(documentUrl).pathname.split('/').at(-1)!);
+  const cookie = (await page.context().cookies()).map(({ name, value }) => `${name}=${value}`).join('; ');
+  const saved = await openDocument(origin, new URL(documentUrl).pathname.split('/').at(-1)!, { Origin: origin, Cookie: cookie });
+  try {
+    await requestPersistence(saved.provider);
+  } finally {
+    saved.close();
+  }
   await page.close();
   docker('restart', '--time', '15', container);
   expect(bundleDigest()).toBe(originalBundle);
@@ -350,12 +344,12 @@ test(`${hostedMode ? 'PostgreSQL' : 'SQLite'} document content survives restart 
     try {
       original.document.getText('content').insert(0, 'Persisted in SQL plus removed suffix');
       await expect.poll(() => original.provider.hasUnsyncedChanges).toBe(false);
-      flushDocument(hosted, docId);
+      await requestPersistence(original.provider);
       // A deletion-only update has no new Yjs state-vector clock. The explicit
       // save barrier must still commit it before the process exits.
       original.document.getText('content').delete('Persisted in SQL'.length, ' plus removed suffix'.length);
       await expect.poll(() => original.provider.hasUnsyncedChanges).toBe(false);
-      flushDocument(hosted, docId);
+      await requestPersistence(original.provider);
     } finally {
       original.close();
     }
@@ -367,7 +361,7 @@ test(`${hostedMode ? 'PostgreSQL' : 'SQLite'} document content survives restart 
       expect(restored.document.getText('content').toString()).toBe('Persisted in SQL');
       restored.document.getText('content').insert(restored.document.getText('content').length, ' after restart');
       await expect.poll(() => restored.provider.hasUnsyncedChanges).toBe(false);
-      flushDocument(hosted, docId);
+      await requestPersistence(restored.provider);
     } finally {
       restored.close();
     }

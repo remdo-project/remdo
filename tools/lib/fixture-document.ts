@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { SerializedEditorState } from 'lexical';
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
-import { waitForEditorUpdate, withHeadlessCollabSession } from '../../src/headless/collab-session';
+import { waitForEditorUpdate, withHeadlessEditor } from '../../src/headless/headless-editor';
 
 const execute = promisify(execFile);
 
@@ -24,12 +24,13 @@ export async function createFixtureDocuments(documents: FixtureDocument[]): Prom
   for (const [index, { content }] of documents.entries()) {
     if (!content) continue;
     const id = ids[index]!;
-    await withHeadlessCollabSession(id, (editor) => {
+    await withHeadlessEditor(id, async (editor, { persist }) => {
       const state = prepareEditorStateForRuntime(content, id);
       const loaded = waitForEditorUpdate(editor);
       editor.setEditorState(editor.parseEditorState(JSON.stringify(state)));
-      return loaded;
-    }, { waitForPersist: true });
+      await loaded;
+      await persist();
+    });
   }
   return ids;
 }

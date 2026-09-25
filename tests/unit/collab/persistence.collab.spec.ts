@@ -1,6 +1,9 @@
+import assert from 'node:assert';
+import { HocuspocusProvider } from '@hocuspocus/provider';
 import { describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
 import { config } from '#config';
+import { requestPersistence } from '#collaboration/persistence-barrier';
 import { createProviderFactory, asCollaborationProviderEvents, waitForSync } from '#collaboration/runtime';
 import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
 import { createCollabTestDocument } from './_support/documents';
@@ -9,14 +12,14 @@ import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 const headers = { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET };
 
 describe('database collaboration persistence', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
-  it('commits insertions and deletion-only edits before the explicit flush returns', async () => {
+  it('commits insertions and deletion-only edits before the persistence barrier resolves', async () => {
     const id = 'persistCollabTest';
     await createCollabTestDocument(id);
     const { provider, doc } = createProviderFactory({ visibleOrigin: resolveCollabServerOrigin() })(id, new Map());
+    assert(provider instanceof HocuspocusProvider);
     const persisted = async () => {
       await waitForSync(asCollaborationProviderEvents(provider));
-      const flushed = await fetch(`${resolveCollabServerOrigin()}/internal/collaboration/flush/${id}`, { method: 'POST', headers });
-      expect(flushed.status).toBe(204);
+      await requestPersistence(provider);
       const response = await fetch(`${resolveApiServerOrigin()}/internal/collaboration/documents/${id}/content`, { headers });
       expect(response.status).toBe(200);
       const stored = new Y.Doc();

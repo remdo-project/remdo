@@ -5,6 +5,7 @@ import { Server } from '@hocuspocus/server';
 import type { Document } from '@hocuspocus/server';
 import { Database } from '@hocuspocus/extension-database';
 import * as Y from 'yjs';
+import { decodePersistenceMessage, encodePersistenceMessage } from '#platform/net/persistence-barrier';
 
 export const INTERNAL_SECRET_HEADER = 'X-Remdo-Collaboration-Secret';
 export const DJANGO_REQUEST_TIMEOUT_MS = 10_000;
@@ -106,9 +107,13 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
     }, delay));
   }
 
+  function save(document: Document) {
+    return document.saveMutex.runExclusive(() => writeState(document, Y.encodeStateAsUpdate(document)));
+  }
+
   async function flush(document: Document) {
     try {
-      await document.saveMutex.runExclusive(() => writeState(document, Y.encodeStateAsUpdate(document)));
+      await save(document);
     } finally {
       await server.hocuspocus.unloadDocument(document);
     }
@@ -174,6 +179,16 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
       if (!response.ok) throw new AuthorizationUnavailable();
       return { operator };
     },
+    async onStateless({ connection, document, payload }) {
+      const message = decodePersistenceMessage(payload);
+      if (message?.type !== 'persist') return;
+      try {
+        await save(document);
+        connection.sendStateless(encodePersistenceMessage({ type: 'persisted', id: message.id }));
+      } catch {
+        connection.sendStateless(encodePersistenceMessage({ type: 'persist-failed', id: message.id }));
+      }
+    },
     async onChange({ document }) {
       if (!deleted.has(document)) dirty.set(document, ++revision);
     },
@@ -184,25 +199,9 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
       }
     },
     async onRequest({ request, response }) {
-      try {
-        if (request.url === '/ready' && request.method === 'GET') {
-          response.writeHead(stopping ? 503 : 200).end();
-        } else if (request.method === 'POST' && request.url?.startsWith('/internal/collaboration/flush/')) {
-          if (!authorizedOperator(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()] as string | undefined)) {
-            response.writeHead(403).end();
-          } else {
-            const id = decodeURIComponent(request.url.slice('/internal/collaboration/flush/'.length));
-            const document = server.hocuspocus.documents.get(id);
-            if (!document) response.writeHead(404).end();
-            else {
-              await flush(document);
-              response.writeHead(204).end();
-            }
-          }
-        } else response.writeHead(404).end();
-      } catch (error) {
-        response.writeHead(error instanceof DocumentDeleted ? 404 : 503).end();
-      }
+      if (request.url === '/ready' && request.method === 'GET') {
+        response.writeHead(stopping ? 503 : 200).end();
+      } else response.writeHead(404).end();
       // eslint-disable-next-line no-throw-literal
       throw null;
     },
