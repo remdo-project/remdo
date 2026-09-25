@@ -7,35 +7,23 @@ const COMMON_NODE_DEFAULTS = {
   version: 1,
 } as const satisfies DefaultEntry;
 
+const ELEMENT_DEFAULTS = {
+  format: '',
+  indent: 0,
+  direction: null,
+} as const satisfies DefaultEntry;
+
 const NODE_DEFAULTS = {
-  root: {
-    format: '',
-    indent: 0,
-    direction: null,
-  },
+  root: ELEMENT_DEFAULTS,
   list: {
-    format: '',
-    indent: 0,
-    direction: null,
+    ...ELEMENT_DEFAULTS,
     listType: 'bullet',
     start: 1,
     tag: 'ul',
   },
-  listitem: {
-    format: '',
-    indent: 0,
-    direction: null,
-  },
-  'note-body-wrapper': {
-    format: '',
-    indent: 0,
-    direction: null,
-  },
-  'note-body': {
-    format: '',
-    indent: 0,
-    direction: null,
-  },
+  listitem: ELEMENT_DEFAULTS,
+  'note-body-wrapper': ELEMENT_DEFAULTS,
+  'note-body': ELEMENT_DEFAULTS,
   text: {
     detail: 0,
     format: 0,
@@ -43,9 +31,7 @@ const NODE_DEFAULTS = {
     style: '',
   },
   'note-link': {
-    format: '',
-    indent: 0,
-    direction: null,
+    ...ELEMENT_DEFAULTS,
     rel: null,
     target: null,
     title: null,
