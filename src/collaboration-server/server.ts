@@ -145,7 +145,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
           await writeState(document, state);
         } catch (error) {
           // A deleted registry row is terminal. Let Hocuspocus finish unloading;
-          // explicit flushes still reject rather than acknowledge a SQL commit.
+          // persistence requests still fail rather than acknowledge a SQL commit.
           if (!(error instanceof DocumentDeleted)) throw error;
         }
       },

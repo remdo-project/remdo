@@ -257,9 +257,8 @@ entry:
 
 1. Delegated OAuth in Django, with revocation.
 2. MCP adapter over [appending notes](specs/outliner/insertion.md#appending-notes),
-   including a headless open-document host that opens the headless editor with
-   the caller's bearer credential and closes through the persistence barrier,
-   process wiring, and end-to-end coverage.
+   including a headless open-document host, process wiring, and end-to-end
+   coverage.
 3. Connect-Claude guide and trial on the hosted instance.
 
 Step 2 depends on step 1. Open decisions: client registration (dynamic or
