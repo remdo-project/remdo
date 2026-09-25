@@ -40,6 +40,21 @@ const STRUCTURAL_OVERLAY: StructuralOverlayConfig = {
   heightVar: '--structural-selection-height',
 };
 
+interface DomSelectionPoints {
+  anchorNode: Node | null;
+  anchorOffset: number;
+  focusNode: Node | null;
+  focusOffset: number;
+}
+
+function isSameDomSelection(a: DomSelectionPoints, b: DomSelectionPoints | null): boolean {
+  return b !== null
+    && a.anchorNode === b.anchorNode
+    && a.anchorOffset === b.anchorOffset
+    && a.focusNode === b.focusNode
+    && a.focusOffset === b.focusOffset;
+}
+
 export function SelectionPlugin() {
   const [editor] = useLexicalComposerContext();
   const ladderRef = useRef(INITIAL_PROGRESSIVE_STATE);
@@ -47,6 +62,14 @@ export function SelectionPlugin() {
   useEffect(() => {
     const disposedRef = { current: false };
     installOutlineSelectionHelpers(editor);
+
+    let domSelectionBeforePlan: DomSelectionPoints | null = null;
+    const readDomSelection = (): DomSelectionPoints | null => {
+      const selection = editor.getRootElement()?.ownerDocument.getSelection();
+      return selection
+        ? { anchorNode: selection.anchorNode, anchorOffset: selection.anchorOffset, focusNode: selection.focusNode, focusOffset: selection.focusOffset }
+        : null;
+    };
 
     const $addUpdateTags = (tags: string | string[]) => {
       if (Array.isArray(tags)) {
@@ -146,6 +169,14 @@ export function SelectionPlugin() {
     });
 
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags, dirtyElements, dirtyLeaves }) => {
+      if (tags.has(PROGRESSIVE_SELECTION_TAG) && domSelectionBeforePlan) {
+        const unchanged = isSameDomSelection(domSelectionBeforePlan, readDomSelection());
+        domSelectionBeforePlan = null;
+        // Without a DOM selection change Lexical sends no normalization handoff to consume the unlock.
+        if (unchanged) {
+          unlockRef.current = { pending: false, reason: 'external' };
+        }
+      }
       // The tree changed (collaboration, undo/redo, typing) when this update
       // touched any node — as opposed to a selection-only change such as a
       // Shift+Click extension. Only a tree change re-replays the ladder.
@@ -253,6 +284,7 @@ export function SelectionPlugin() {
         unlockRef.current = { pending: true, reason: 'directional' };
         event.preventDefault();
 
+        domSelectionBeforePlan = readDomSelection();
         $applyPlan(planResult);
 
         return true;
@@ -325,6 +357,7 @@ export function SelectionPlugin() {
         return;
       }
 
+      domSelectionBeforePlan = readDomSelection();
       if ('collapse' in result) {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
