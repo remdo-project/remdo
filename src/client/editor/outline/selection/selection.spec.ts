@@ -1247,6 +1247,24 @@ describe('selection plugin', () => {
     });
   });
 
+  it('returns to a caret when clicking the anchor note after Cmd/Ctrl+A at the document boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1');
+    for (let press = 0; press < 3; press += 1) {
+      await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    }
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
+    });
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    const note1Text = getNoteTextNode(remdo, 'note1');
+    await collapseDomSelectionAtNode(note1Text, 2);
+
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+    });
+  });
+
   it('collapses a single-note range on an empty note back to a caret', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
         await placeCaretAtNote(remdo, 'trailing');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });

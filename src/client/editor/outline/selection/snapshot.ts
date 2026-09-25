@@ -18,6 +18,7 @@ import {
 } from './resolve';
 import { $replayLadder, ladderHasStructuralRung } from './rungs';
 import type { ProgressivePlan } from './rungs';
+import { getNoteOwnText } from './note-body';
 import { getParentContentItem } from './tree';
 
 export interface ProgressiveUnlockState {
@@ -88,6 +89,18 @@ function $reshapeStructuralLadder(
   }
 
   return null;
+}
+
+function $isRungOnlyEmptyNote(
+  anchorItem: ListItemNode,
+  ladder: ProgressiveSelectionState,
+  boundaryKey: string | null
+): boolean {
+  const plan = $replayLadder(anchorItem, ladder.stack, boundaryKey);
+  return plan?.type === 'range'
+    && plan.startKey === anchorItem.getKey()
+    && plan.endKey === plan.startKey
+    && getNoteOwnText(anchorItem) === '';
 }
 
 interface OutlineSelectionSnapshot {
@@ -162,15 +175,17 @@ export function $computeOutlineSelectionSnapshot({
   const anchorSelectionKey = anchorSelectionItem ? anchorSelectionItem.getKey() : null;
   const isLadderStructural = ladderHasStructuralRung(nextProgression);
   const hasDirectionalUnlock = nextUnlock.pending && nextUnlock.reason === 'directional';
-  // Lexical follows a tagged element-point range with an untagged, DOM-normalized one; for an
-  // empty note that is a caret inside the note, which is still the rung while the unlock is pending.
-  const isCollapsedStructuralIntent =
-    (isProgressiveTagged || hasDirectionalUnlock) &&
+  const isCollapsedOnLadderAnchor =
     $isRangeSelection(selection) &&
     selection.isCollapsed() &&
     anchorSelectionKey !== null &&
     isLadderStructural &&
     nextProgression.anchorKey === anchorSelectionKey;
+  // Lexical follows a tagged element-point range with an untagged, DOM-normalized one. Only a rung
+  // covering a single childless empty note normalizes to a caret, so any other caret is user input.
+  const isCollapsedStructuralIntent =
+    isCollapsedOnLadderAnchor &&
+    (isProgressiveTagged || (hasDirectionalUnlock && $isRungOnlyEmptyNote(anchorSelectionItem!, nextProgression, boundaryKey)));
 
   // A progressive-tagged selection is left untouched, and a pending directional unlock stops one
   // anchor mismatch in the normalized handoff from discarding the logical ladder anchor.
