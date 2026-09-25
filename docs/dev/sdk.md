@@ -1,7 +1,7 @@
 # SDK design
 
 This document owns SDK contributor principles and API conventions. The
-[consumer API principles](../principles.md#consumer-apis) define the goal; the [open document session](../specs/outliner/document-session.md) and feature
+[consumer API principles](../principles.md#consumer-apis) define the goal; the [open document](../specs/outliner/open-document.md) and feature
 specifications own accepted behavior.
 
 ## Design principles
@@ -56,4 +56,4 @@ operations have an explicit completion contract.
 - [Firestore references](https://firebase.google.com/docs/reference/js/firestore.documentreference), [operations](https://firebase.google.com/docs/reference/js/firestore), and [listeners](https://firebase.google.com/docs/firestore/query-data/listen) — separation of identity from
   delivered data. Asynchronous snapshots and backend-acknowledged writes
   illustrate different freshness and completion guarantees from the
-  opened-document session.
+  open document.

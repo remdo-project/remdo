@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import type { DocumentSession } from '#note-sdk';
+import type { OpenDocument } from '#note-sdk';
 
 // Dev editor seam: the production-side entry that reaches the dev plugins. In
 // the production build `import.meta.env.DEV` is statically false, so the branch
@@ -12,13 +12,13 @@ const LazyDevPlugin = import.meta.env.DEV
   ? lazy(() => import('#client/editor/dev/DevPlugin').then((m) => ({ default: m.DevPlugin })))
   : null;
 
-export function DevEditorSeam({ session }: { session: DocumentSession }) {
+export function DevEditorSeam({ openDocument }: { openDocument: OpenDocument }) {
   if (!LazyDevPlugin) {
     return null;
   }
   return (
     <Suspense fallback={null}>
-      <LazyDevPlugin session={session} />
+      <LazyDevPlugin openDocument={openDocument} />
     </Suspense>
   );
 }

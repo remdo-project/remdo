@@ -3,14 +3,14 @@ export type {
   ChildPreview,
   DocumentSearchOptions,
   DocumentSearchResults,
-  DocumentSession,
+  OpenDocument,
   NoteListType,
   OpenDocumentNote,
   EditorNoteSnapshot,
   NewNote,
   OpenDocumentParentNote,
   SearchResult,
-} from './document-session';
+} from './open-document';
 export type {
   DocumentNote,
   DocumentSourceNote,

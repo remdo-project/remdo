@@ -1,7 +1,7 @@
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { DocumentSession } from '#note-sdk';
+import type { OpenDocument } from '#note-sdk';
 
 import { useCoarsePointer } from '#client/browser/useCoarsePointer';
 import { useVisualViewportBottom } from '#client/browser/useVisualViewportBottom';
@@ -36,7 +36,7 @@ function disabledIds(capabilities: ToolbarCapabilities): Set<MobileActionId> {
 }
 
 interface MobileActionToolbarProps {
-  session: Pick<DocumentSession, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'>;
+  openDocument: Pick<OpenDocument, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'>;
   portalRoot: Element | null;
   focusEditor: () => void;
   openNoteMenu: () => void;
@@ -52,13 +52,13 @@ export function MobileActionToolbar(props: MobileActionToolbarProps) {
 }
 
 function VisibleMobileActionToolbar({
-  session,
+  openDocument,
   portalRoot,
   focusEditor,
   openNoteMenu,
 }: MobileActionToolbarProps & { portalRoot: Element }) {
   const visualViewportBottom = useVisualViewportBottom();
-  const capabilities = useToolbarCapabilities(session);
+  const capabilities = useToolbarCapabilities(openDocument);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [fade, setFade] = useState<{ start: boolean; end: boolean }>({ start: false, end: false });
 
@@ -106,7 +106,7 @@ function VisibleMobileActionToolbar({
     if (action.disabled) {
       return;
     }
-    runMobileAction(session, action.id, openNoteMenu);
+    runMobileAction(openDocument, action.id, openNoteMenu);
     focusEditor();
   };
 

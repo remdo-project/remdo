@@ -12,7 +12,7 @@ import {
 } from 'lexical';
 import { useEffect, useMemo } from 'react';
 import type {
-  DocumentSession,
+  OpenDocument,
   NewNote,
   NoteId,
   OpenDocumentNote,
@@ -49,12 +49,12 @@ import { $resolveViewRoot, subscribeViewRoot } from '#client/editor/outline/view
 import { collectLexicalDocumentSearchResults } from './lexical-document-search';
 import { $appendNewNotes, hasLineBreak } from './lexical-note-insertion';
 
-interface LexicalDocumentSessionSource {
+interface LexicalOpenDocumentSource {
   editor: LexicalEditor;
   docId: string;
 }
 
-interface UseLexicalDocumentSessionOptions extends LexicalDocumentSessionSource {
+interface UseLexicalOpenDocumentOptions extends LexicalOpenDocumentSource {
   ready?: boolean;
 }
 
@@ -71,8 +71,8 @@ interface AddressedNoteObservation {
   values: AddressedNoteValues | null | undefined;
 }
 
-export interface LexicalDocumentSessionRuntime {
-  session: DocumentSession;
+export interface LexicalOpenDocumentRuntime {
+  openDocument: OpenDocument;
   start: () => () => void;
   setSourceReady: (ready: boolean) => void;
   dispose: () => void;
@@ -108,10 +108,10 @@ function addressedNoteValuesEqual(
       && left.text === right.text);
 }
 
-export function createLexicalDocumentSessionRuntime({
+export function createLexicalOpenDocumentRuntime({
   editor,
   docId,
-}: LexicalDocumentSessionSource): LexicalDocumentSessionRuntime {
+}: LexicalOpenDocumentSource): LexicalOpenDocumentRuntime {
   const capabilityListeners = new Set<() => void>();
   const addressedNotes = new Map<NoteId, AddressedNoteObservation>();
   let capabilityValues: CapabilityValues | null | undefined = null;
@@ -469,7 +469,7 @@ export function createLexicalDocumentSessionRuntime({
     return Object.freeze(handle);
   };
 
-  const documentNote: OpenDocumentParentNote = Object.freeze({
+  const rootNote: OpenDocumentParentNote = Object.freeze({
     getChildren: () => {
       if (!started || disposed || !sourceReady) {
         throw new NoteUnavailableError(docId);
@@ -481,7 +481,7 @@ export function createLexicalDocumentSessionRuntime({
     appendChildren: (notes: readonly NewNote[]) => appendChildren(null, notes),
   });
 
-  const session: DocumentSession = {
+  const openDocument: OpenDocument = {
     documentId: docId,
     search: async (options) => {
       if (disposed || !started || !sourceReady) {
@@ -507,7 +507,7 @@ export function createLexicalDocumentSessionRuntime({
       };
     },
     noteRef: createNoteRef,
-    document: documentNote,
+    root: rootNote,
     view: {
       zoomOut: () => {
         if (started && !disposed && sourceReady) editor.dispatchCommand(ZOOM_OUT_COMMAND, undefined);
@@ -617,18 +617,18 @@ export function createLexicalDocumentSessionRuntime({
     }
   };
 
-  return { dispose, session, setSourceReady, start };
+  return { dispose, openDocument, setSourceReady, start };
 }
 
-export function useLexicalDocumentSession({
+export function useLexicalOpenDocument({
   editor,
   docId,
   ready: sourceReady = false,
-}: UseLexicalDocumentSessionOptions): DocumentSession {
+}: UseLexicalOpenDocumentOptions): OpenDocument {
   const lifecycle = useMemo(
     () => ({
       generation: 0,
-      runtime: createLexicalDocumentSessionRuntime({ editor, docId }),
+      runtime: createLexicalOpenDocumentRuntime({ editor, docId }),
     }),
     [docId, editor],
   );
@@ -648,5 +648,5 @@ export function useLexicalDocumentSession({
     };
   }, [lifecycle, runtime]);
   useEffect(() => runtime.setSourceReady(sourceReady), [runtime, sourceReady]);
-  return runtime.session;
+  return runtime.openDocument;
 }

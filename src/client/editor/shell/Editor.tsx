@@ -30,8 +30,8 @@ import { NoteControlsPlugin } from '#client/editor/menu/NoteControlsPlugin';
 import { NoteMenuPlugin } from '#client/editor/menu/NoteMenuPlugin';
 import { MobileActionToolbarPlugin } from '#client/editor/mobile-toolbar/MobileActionToolbarPlugin';
 import { PendingDocumentImportPlugin } from '#client/editor/runtime/PendingDocumentImportPlugin';
-import { useLexicalDocumentSession } from '#client/editor/note-sdk-adapters';
-import { useRegisterDocumentSession } from '#client/editor/view/EditorViewProvider';
+import { useLexicalOpenDocument } from '#client/editor/note-sdk-adapters';
+import { useRegisterOpenDocument } from '#client/editor/view/EditorViewProvider';
 import './Editor.css';
 
 interface EditorProps {
@@ -75,8 +75,8 @@ function EditorRuntime({
 }: EditorProps) {
   const [editor] = useLexicalComposerContext();
   const [schemaReady, setSchemaReady] = useState(false);
-  const session = useLexicalDocumentSession({ editor, docId, ready: schemaReady });
-  const registerDocumentSession = useRegisterDocumentSession();
+  const openDocument = useLexicalOpenDocument({ editor, docId, ready: schemaReady });
+  const registerOpenDocument = useRegisterOpenDocument();
   const offlineDocumentUnavailable = useOfflineDocumentUnavailable();
   const handleSchemaReadyChange = useCallback((ready: boolean) => {
     setSchemaReady(ready);
@@ -86,8 +86,8 @@ function EditorRuntime({
     if (!schemaReady) {
       return;
     }
-    return registerDocumentSession(session);
-  }, [registerDocumentSession, schemaReady, session]);
+    return registerOpenDocument(openDocument);
+  }, [registerOpenDocument, schemaReady, openDocument]);
 
   return (
     <>
@@ -129,8 +129,8 @@ function EditorRuntime({
               <SelectionInputPlugin />
               <FoldingPlugin />
               <NoteControlsPlugin />
-              <NoteMenuPlugin session={session} />
-              <MobileActionToolbarPlugin session={session} />
+              <NoteMenuPlugin openDocument={openDocument} />
+              <MobileActionToolbarPlugin openDocument={openDocument} />
               <ZoomPlugin onSelectHome={onSelectHome} />
               <ZoomVisibilityPlugin />
               <CheckListPlugin />
@@ -138,7 +138,7 @@ function EditorRuntime({
               {onPendingDocumentImportError ? (
                 <PendingDocumentImportPlugin onError={onPendingDocumentImportError} />
               ) : null}
-              <DevEditorSeam session={session} />
+              <DevEditorSeam openDocument={openDocument} />
             </>
           ) : null}
         </>

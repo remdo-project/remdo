@@ -19,15 +19,15 @@ import {
 import { createUserDataRootNote, IneligibleOperationError, NoteUnavailableError } from '#note-sdk';
 
 describe('note SDK showcase', () => {
-  describe('open document session', () => {
+  describe('open document', () => {
     it('reads action eligibility directly and observes changes when needed', meta({ fixture: 'tree' }), async ({ remdo }) => {
-      const session = remdo.documentSession;
+      const openDocument = remdo.openDocument;
       await placeCaretAtNote(remdo, 'note1');
-      expect(session.focus.canToggleFold()).toBe(false);
+      expect(openDocument.focus.canToggleFold()).toBe(false);
 
-      let canFold = session.focus.canToggleFold();
-      const unsubscribe = session.subscribeCapabilities(() => {
-        canFold = session.focus.canToggleFold();
+      let canFold = openDocument.focus.canToggleFold();
+      const unsubscribe = openDocument.subscribeCapabilities(() => {
+        canFold = openDocument.focus.canToggleFold();
       });
       onTestFinished(unsubscribe);
       await placeCaretAtNote(remdo, 'note2');
@@ -35,11 +35,11 @@ describe('note SDK showcase', () => {
       unsubscribe();
 
       await placeCaretAtNote(remdo, 'note1');
-      expect(session.focus.canToggleFold()).toBe(false);
+      expect(openDocument.focus.canToggleFold()).toBe(false);
     });
 
     it('retains a reference and reads fresh text after an edit', meta({ fixture: 'tree' }), async ({ remdo }) => {
-      const note = remdo.documentSession.noteRef('note2');
+      const note = remdo.openDocument.noteRef('note2');
       const earlierText = note.getText();
 
       await remdo.updateNoteText('note2', 'changed');
@@ -49,7 +49,7 @@ describe('note SDK showcase', () => {
     });
 
     it("reads and toggles an addressed note's folded state", meta({ fixture: 'tree' }), async ({ remdo }) => {
-      const note = remdo.documentSession.noteRef('note2');
+      const note = remdo.openDocument.noteRef('note2');
 
       expect(note.getFolded()).toBe(false);
 
@@ -59,8 +59,8 @@ describe('note SDK showcase', () => {
     });
 
     it('discovers operations for a particular note, independent of focus', meta({ fixture: 'tree' }), ({ remdo }) => {
-      const parent = remdo.documentSession.noteRef('note2');
-      const leaf = remdo.documentSession.noteRef('note1');
+      const parent = remdo.openDocument.noteRef('note2');
+      const leaf = remdo.openDocument.noteRef('note1');
 
       expect(parent.canToggleFold()).toBe(true);
       expect(parent.canSetChildListType()).toBe(true);
@@ -69,28 +69,28 @@ describe('note SDK showcase', () => {
     });
 
     it('toggles an addressed subtree', meta({ fixture: 'tree' }), async ({ remdo }) => {
-      const note = remdo.documentSession.noteRef('note2');
+      const note = remdo.openDocument.noteRef('note2');
 
       await note.toggleChecked();
 
       expect(note.getChecked()).toBe(true);
-      expect(remdo.documentSession.noteRef('note3').getChecked()).toBe(true);
+      expect(remdo.openDocument.noteRef('note3').getChecked()).toBe(true);
     });
 
     it('uses a note target to choose the contextual selected range', meta({ fixture: 'flat' }), async ({ remdo }) => {
       await selectNoteRange(remdo, 'note1', 'note2');
 
-      remdo.documentSession.selection.toggleChecked({ noteId: 'note2' });
+      remdo.openDocument.selection.toggleChecked({ noteId: 'note2' });
 
       await vi.waitFor(() => {
-        expect(remdo.documentSession.noteRef('note1').getChecked()).toBe(true);
-        expect(remdo.documentSession.noteRef('note2').getChecked()).toBe(true);
-        expect(remdo.documentSession.noteRef('note3').getChecked()).toBe(false);
+        expect(remdo.openDocument.noteRef('note1').getChecked()).toBe(true);
+        expect(remdo.openDocument.noteRef('note2').getChecked()).toBe(true);
+        expect(remdo.openDocument.noteRef('note3').getChecked()).toBe(false);
       });
     });
 
     it('changes the list owned by an addressed parent', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
-      const parent = remdo.documentSession.noteRef('note1');
+      const parent = remdo.openDocument.noteRef('note1');
       expect(parent.getChildListType()).toBe('number');
 
       await parent.setChildListType('check');
@@ -99,24 +99,24 @@ describe('note SDK showcase', () => {
     });
 
     it('appends an outline and addresses its new notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
-      const session = remdo.documentSession;
+      const openDocument = remdo.openDocument;
 
-      const [summaryId] = await session.document.appendChildren([{
+      const [summaryId] = await openDocument.root.appendChildren([{
         text: 'Conversation summary',
         childListType: 'check',
         children: [{ text: 'Follow up' }],
       }]);
-      const summary = session.noteRef(summaryId!);
+      const summary = openDocument.noteRef(summaryId!);
       expect(summary.getChildListType()).toBe('check');
       expect(summary.getChildren().map((note) => note.getText())).toEqual(['Follow up']);
-      expect(session.document.getChildren().at(-1)!.getText()).toBe('Conversation summary');
+      expect(openDocument.root.getChildren().at(-1)!.getText()).toBe('Conversation summary');
 
-      await expect(session.noteRef('missing').appendChildren([{ text: 'Lost' }]))
+      await expect(openDocument.noteRef('missing').appendChildren([{ text: 'Lost' }]))
         .rejects.toThrow(IneligibleOperationError);
     });
 
     it("observes text changes and handles an unavailable note", meta({ fixture: 'tree' }), async ({ remdo }) => {
-      const note = remdo.documentSession.noteRef('note2');
+      const note = remdo.openDocument.noteRef('note2');
       let text: string | null = note.getText();
       const unsubscribe = note.subscribe(() => {
         try {
@@ -135,7 +135,7 @@ describe('note SDK showcase', () => {
       });
 
       await placeCaretAtNote(remdo, 'note2');
-      remdo.documentSession.selection.delete();
+      remdo.openDocument.selection.delete();
       await vi.waitFor(() => expect(text).toBeNull());
       unsubscribe();
     });

@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react';
-import type { DocumentSession } from '#note-sdk';
+import type { OpenDocument } from '#note-sdk';
 
 export interface ToolbarCapabilities {
   canToggleFold: boolean;
@@ -17,17 +17,17 @@ const UNAVAILABLE: ToolbarCapabilities = {
 
 /** React snapshot identity stays in the toolbar binding, outside the SDK. */
 export function useToolbarCapabilities(
-  session: Pick<DocumentSession, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'>,
+  openDocument: Pick<OpenDocument, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'>,
 ): ToolbarCapabilities {
   const getSnapshot = useMemo(() => {
     let current = UNAVAILABLE;
     return () => {
       try {
         const next = {
-          canToggleFold: session.focus.canToggleFold(),
-          canDelete: session.selection.canDelete(),
-          canUndo: session.history.canUndo(),
-          canRedo: session.history.canRedo(),
+          canToggleFold: openDocument.focus.canToggleFold(),
+          canDelete: openDocument.selection.canDelete(),
+          canUndo: openDocument.history.canUndo(),
+          canRedo: openDocument.history.canRedo(),
         };
         if (current.canToggleFold !== next.canToggleFold || current.canDelete !== next.canDelete
           || current.canUndo !== next.canUndo || current.canRedo !== next.canRedo) {
@@ -39,6 +39,6 @@ export function useToolbarCapabilities(
       }
       return current;
     };
-  }, [session]);
-  return useSyncExternalStore(session.subscribeCapabilities, getSnapshot, getSnapshot);
+  }, [openDocument]);
+  return useSyncExternalStore(openDocument.subscribeCapabilities, getSnapshot, getSnapshot);
 }

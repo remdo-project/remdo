@@ -7,7 +7,7 @@ import { vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { resetTestUserData } from '#tests';
 import type {
-  DocumentSession,
+  OpenDocument,
   NoteId,
   EditorNoteSnapshot,
   SearchResult,
@@ -15,7 +15,7 @@ import type {
 import type { NotePathItem } from '#client/editor/view/workspace';
 import {
   useEditorViewActions,
-  useRegisterDocumentSession,
+  useRegisterOpenDocument,
   useZoomNoteId,
 } from '#client/editor/view/EditorViewProvider';
 import DocumentRoute from '#client/app/workspace/DocumentRoute';
@@ -62,7 +62,7 @@ interface MockEditorProps {
 }
 
 let mockEditorInstanceCounter = 0;
-let documentSearches: Record<string, Mock<DocumentSession['search']>> = {};
+let documentSearches: Record<string, Mock<OpenDocument['search']>> = {};
 let documentAvailability: Record<string, boolean> = {};
 let availabilityCallbacks: Record<string, () => void> = {};
 let zoomPaths: Record<string, Record<string, NotePathItem[]>> = {};
@@ -72,16 +72,16 @@ function MockEditor({
 }: MockEditorProps) {
   const zoomNoteId = useZoomNoteId();
   const { setZoomPath } = useEditorViewActions();
-  const registerDocumentSession = useRegisterDocumentSession();
+  const registerOpenDocument = useRegisterOpenDocument();
   const [, refreshAvailability] = React.useReducer((value: number) => value + 1, 0);
   const available = documentAvailability[docId] ?? true;
-  const session = React.useMemo<DocumentSession>(() => {
+  const openDocument = React.useMemo<OpenDocument>(() => {
     const noOp = () => {};
     return {
       documentId: docId,
       search: mockDocumentSearch(docId),
       subscribeCapabilities: () => noOp,
-      document: { getChildren: () => [], appendChildren: () => Promise.resolve([]) },
+      root: { getChildren: () => [], appendChildren: () => Promise.resolve([]) },
       noteRef: (noteId) => ({
         getId: () => noteId,
         getChildren: () => [],
@@ -120,9 +120,9 @@ function MockEditor({
 
   React.useEffect(() => {
     if (available) {
-      return registerDocumentSession(session);
+      return registerOpenDocument(openDocument);
     }
-  }, [available, registerDocumentSession, session]);
+  }, [available, registerOpenDocument, openDocument]);
 
   React.useEffect(() => {
     availabilityCallbacks[docId] = refreshAvailability;
@@ -179,8 +179,8 @@ vi.mock('#client/editor/features/zoom/ZoomBreadcrumbs', () => ({
   ZoomBreadcrumbs: MockZoomBreadcrumbs,
 }));
 
-export function mockDocumentSearch(docId: string): Mock<DocumentSession['search']> {
-  return documentSearches[docId] ??= vi.fn<DocumentSession['search']>()
+export function mockDocumentSearch(docId: string): Mock<OpenDocument['search']> {
+  return documentSearches[docId] ??= vi.fn<OpenDocument['search']>()
     .mockResolvedValue({ flatResults: defaultResults(), hasMore: false });
 }
 
