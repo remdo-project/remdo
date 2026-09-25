@@ -63,8 +63,6 @@ interface AddressedNoteValues {
   checked: boolean;
   childListType: NoteListType | null;
   canToggleFold: boolean;
-  canToggleChecked: boolean;
-  canSetChildListType: boolean;
 }
 
 interface AddressedNoteObservation {
@@ -105,8 +103,6 @@ function addressedNoteValuesEqual(
       && left.checked === right.checked
       && left.childListType === right.childListType
       && left.canToggleFold === right.canToggleFold
-      && left.canToggleChecked === right.canToggleChecked
-      && left.canSetChildListType === right.canSetChildListType
       && left.text === right.text);
 }
 
@@ -168,15 +164,12 @@ export function createLexicalDocumentSessionRuntime({
     return editor.getEditorState().read(() => {
       const note = $findNoteById(noteId);
       if (!note) return null;
-      const childListType = $getNestedListType(note);
       return {
         folded: $isNoteFolded(note),
         text: getNoteOwnText(note),
         checked: $getNoteChecked(note) === true,
-        childListType,
-        canToggleChecked: true,
+        childListType: $getNestedListType(note),
         canToggleFold: noteHasChildren(note),
-        canSetChildListType: childListType !== null,
       };
     }, { editor });
   };
@@ -418,8 +411,8 @@ export function createLexicalDocumentSessionRuntime({
       getChecked: () => requireAddressedNote(noteId).checked,
       getChildListType: () => requireAddressedNote(noteId).childListType,
       canToggleFold: () => readAddressedNote(noteId)?.canToggleFold ?? false,
-      canToggleChecked: () => readAddressedNote(noteId)?.canToggleChecked ?? false,
-      canSetChildListType: () => readAddressedNote(noteId)?.canSetChildListType ?? false,
+      canToggleChecked: () => readAddressedNote(noteId) !== null,
+      canSetChildListType: () => (readAddressedNote(noteId)?.childListType ?? null) !== null,
       toggleFold: () => updateAddressedNote(noteId, (note) => {
         if (!noteHasChildren(note)) {
           throw new IneligibleOperationError('Only a note with children can fold.');

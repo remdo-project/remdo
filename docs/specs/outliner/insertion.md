@@ -62,17 +62,15 @@ An [open document session](./document-session.md) appends a described subtree as
 the last children of an addressed parent note, or as the last top-level notes of
 the document when no parent is given. Each described note supplies its plain
 text and optionally its checked state, its children, and the list type of those
-children.
+children. A line break in any described text makes the insertion
+[ineligible](./document-session.md#operations-and-ownership).
 
-- Every inserted note receives a fresh [`noteId`](./note-ids.md#creation). The
-  operation resolves with the IDs of the top-level inserted notes in order.
-- A described checked state applies to its own note only, not to its subtree.
+- The operation resolves with the top-level inserted notes'
+  [`noteId`](./note-ids.md#creation) values in order, or with none for an empty
+  description.
+- A described checked state applies to its own note only.
 - The parent's existing child list keeps its type. A missing child list,
   including one created for a described note without a described list type,
   takes the type of the list containing its parent.
-- Focus, selection, and the parent's fold state are unchanged.
+- Focus and selection are unchanged.
 - The insertion is one local update and one history step.
-
-A described text containing a line break makes the insertion
-[ineligible](./document-session.md#operations-and-ownership). An empty
-description resolves with no IDs.
