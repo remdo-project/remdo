@@ -177,10 +177,10 @@ browser hostname.
 A signed-in user can grant a third-party application access that acts as that
 user. The application requests it through the OAuth authorization-code flow with
 PKCE; the user signs in and consents on RemDo. Consent and connected-app
-management name the application by its declared name and the host serving its
-client metadata, and consent states that it can access and edit the user's
-documents. Applications identify themselves only by a client metadata
-document URL served over HTTPS. Staff and superuser accounts cannot grant or
+management name the application by the host serving its client metadata,
+followed by its declared name, and consent states that it can access and edit
+the user's documents. Applications identify themselves only by a client
+metadata document URL served over HTTPS. Staff and superuser accounts cannot grant or
 use delegated access, including a grant made before promotion.
 
 A delegated access token authenticates as its user on the RemDo API and on
@@ -191,7 +191,8 @@ management accept only the browser session. Access tokens are short-lived; the
 application renews them with a refresh token that each renewal replaces.
 
 A signed-in user's **Connected apps** page lists the applications they granted
-and revokes each one. Revocation ends that application's tokens at once.
+and revokes each one. Revocation ends that application's tokens at once;
+established collaboration connections keep their authorization until disconnect.
 
 ## Future
 

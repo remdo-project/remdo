@@ -7,5 +7,5 @@ register = template.Library()
 
 @register.filter
 def client_label(client):
-    """The self-declared name alongside the metadata host, which the app cannot forge."""
-    return f"{client.name} ({urlsplit(client.id).hostname})"
+    """The metadata host, which the app cannot forge, before its self-declared name."""
+    return f"{urlsplit(client.id).hostname} (“{client.name}”)"

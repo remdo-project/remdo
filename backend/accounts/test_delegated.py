@@ -169,7 +169,7 @@ class DelegatedAccessTests(TestCase):
     def test_consent_names_the_metadata_host_and_refuses_staff_on_submission(self):
         self.client.force_login(self.user)
         page = self.client.get(f"/identity/o/authorize?{self.authorize_query()}")
-        self.assertContains(page, "Claude (claude.example)")
+        self.assertContains(page, "claude.example (“Claude”)")
         signed = re.search(rb'name="request" value="([^"]+)"', page.content).group(1).decode()
         staff = User.objects.create_user(email="admin@example.test", is_staff=True)
         self.client.force_login(staff)
@@ -196,13 +196,14 @@ class DelegatedAccessTests(TestCase):
         tokens = self.grant()
         self.client.force_login(self.user)
         page = self.client.get("/accounts/connected-apps/")
-        self.assertContains(page, "Claude (claude.example)")
+        self.assertContains(page, "claude.example (“Claude”)")
         self.client.post("/accounts/connected-apps/", {"client": CLIENT_ID})
         self.assertContains(self.client.get("/accounts/connected-apps/"), "No apps are connected.")
         self.client.logout()
         own = Document.objects.get(owner=self.user)
         self.assertEqual(self.documents(tokens["access_token"]).status_code, 401)
         self.assertEqual(self.authorize_collaboration(tokens["access_token"], own).status_code, 403)
+        self.assertEqual(self.refresh(tokens["refresh_token"]).status_code, 400)
 
 
 class SigningKeyTests(TestCase):

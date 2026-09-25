@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import never_cache
@@ -102,10 +103,17 @@ def signing_key_pem():
         try:
             return fernet.decrypt(stored.encrypted_pem.encode()).decode()
         except InvalidToken:
-            pem = _generate_pem()
-            stored.encrypted_pem = fernet.encrypt(pem.encode()).decode()
-            stored.save()
-            return pem
+            pass
+        with transaction.atomic():
+            # Another worker may have replaced the key since it was read.
+            stored = SigningKey.objects.select_for_update().get(pk=1)
+            try:
+                return fernet.decrypt(stored.encrypted_pem.encode()).decode()
+            except InvalidToken:
+                pem = _generate_pem()
+                stored.encrypted_pem = fernet.encrypt(pem.encode()).decode()
+                stored.save()
+                return pem
     pem = _generate_pem()
     # Concurrent first uses keep whichever key was stored first.
     stored, created = SigningKey.objects.get_or_create(
