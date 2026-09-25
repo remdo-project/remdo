@@ -85,7 +85,8 @@ export class BodyWrapperNode extends ListItemNode {
   // form is a plain element plus its NoteBodyNode child — the list item's
   // value/checked fields are deliberately omitted from the runtime shape.
   exportJSON(): SerializedListItemNode {
-    return ElementNode.prototype.exportJSON.call(this) as SerializedListItemNode;
+    const { checked: _checked, value: _value, ...element } = super.exportJSON();
+    return element as SerializedListItemNode;
   }
 }
 

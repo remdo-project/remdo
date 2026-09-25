@@ -116,12 +116,9 @@
             ]
           },
           {
-            "format": "",
-            "indent": 0,
             "type": "note-body-wrapper",
             "children": [
               {
-                "format": "",
                 "type": "note-body",
                 "children": [
                   {
@@ -245,12 +242,10 @@
                     ]
                   },
                   {
-                    "format": "",
                     "indent": 1,
                     "type": "note-body-wrapper",
                     "children": [
                       {
-                        "format": "",
                         "type": "note-body",
                         "children": [
                           {
@@ -299,12 +294,10 @@
                     ]
                   },
                   {
-                    "format": "",
                     "indent": 1,
                     "type": "note-body-wrapper",
                     "children": [
                       {
-                        "format": "",
                         "type": "note-body",
                         "children": [
                           {

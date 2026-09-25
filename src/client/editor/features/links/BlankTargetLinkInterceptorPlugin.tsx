@@ -41,7 +41,7 @@ export function BlankTargetLinkInterceptorPlugin() {
       event.stopPropagation();
     };
 
-    const onMouseUp = (event: MouseEvent) => {
+    const onAuxClick = (event: MouseEvent) => {
       if (event.button === 1) {
         onClick(event);
       }
@@ -51,7 +51,7 @@ export function BlankTargetLinkInterceptorPlugin() {
     const unregisterRootListener = editor.registerRootListener((rootElement, prevRootElement) => {
       if (prevRootElement !== null) {
         prevRootElement.removeEventListener('click', onClick, true);
-        prevRootElement.removeEventListener('mouseup', onMouseUp, true);
+        prevRootElement.removeEventListener('auxclick', onAuxClick, true);
       }
       if (rootElement !== null) {
         // Capture-phase interception is intentional so Lexical's clickable-link plugin
@@ -59,7 +59,7 @@ export function BlankTargetLinkInterceptorPlugin() {
         // eslint-disable-next-line react/web-api-no-leaked-event-listener
         rootElement.addEventListener('click', onClick, true);
         // eslint-disable-next-line react/web-api-no-leaked-event-listener
-        rootElement.addEventListener('mouseup', onMouseUp, true);
+        rootElement.addEventListener('auxclick', onAuxClick, true);
       }
       currentRootElement = rootElement;
     });
@@ -67,7 +67,7 @@ export function BlankTargetLinkInterceptorPlugin() {
     return () => {
       if (currentRootElement !== null) {
         currentRootElement.removeEventListener('click', onClick, true);
-        currentRootElement.removeEventListener('mouseup', onMouseUp, true);
+        currentRootElement.removeEventListener('auxclick', onAuxClick, true);
       }
       unregisterRootListener();
     };
