@@ -10,7 +10,7 @@ import { readFixtureState } from '#tools/fixtures';
 import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
 import STABLE_AUTH_USERS from '../../../backend/fixtures/development-users.json';
 import { resetDevelopmentData } from '../../../tools/dev/reset-development-data';
-import { withHeadlessCollabSession } from '../../../src/headless/collab-session';
+import { withHeadlessEditor } from '../../../src/headless/headless-editor';
 
 async function documents(client: APIRequestContext) {
   const response = await client.get('/api/documents', { failOnStatusCode: true });
@@ -18,7 +18,7 @@ async function documents(client: APIRequestContext) {
 }
 
 async function readContent(id: string) {
-  const state = await withHeadlessCollabSession(id, (editor) => editor.getEditorState().toJSON());
+  const state = await withHeadlessEditor(id, (editor) => editor.getEditorState().toJSON());
   return stripEditorStateDefaults(prepareEditorStateForPersistence(state, id)).root;
 }
 

@@ -248,24 +248,21 @@ it:
 - Tools speak the adapter-neutral [note model](specs/outliner/note-model.md)
   (parent note, note subtree), not Lexical or document-specific terms.
 - A write reports success only after the database commits, through the
-  [headless persistence barrier](architecture.md#hydration-vs-sync) made
-  available to user-authorized clients. Coordinate with durable collaboration
-  acknowledgements under [Operations](#operations).
+  [headless persistence barrier](architecture.md#hydration-vs-sync).
+  Coordinate with durable collaboration acknowledgements under
+  [Operations](#operations).
 
 Steps, each moving its settled decisions into their owners and out of this
 entry:
 
-1. Headless SDK host replacing `withHeadlessCollabSession`, with the
-   user-authorized commit barrier. Addressed fold and child-list-type
-   operations still depend on browser command handlers.
-2. Delegated OAuth in Django, with revocation.
-3. MCP adapter over [appending notes](specs/outliner/insertion.md#appending-notes),
-   process wiring, and end-to-end coverage.
-4. Connect-Claude guide and trial on the hosted instance.
+1. Delegated OAuth in Django, with revocation.
+2. MCP adapter over [appending notes](specs/outliner/insertion.md#appending-notes),
+   including a headless open-document host, process wiring, and end-to-end
+   coverage.
+3. Connect-Claude guide and trial on the hosted instance.
 
-Steps 1 and 2 are independent; step 3 depends on both. Open decisions: client
-registration (dynamic or pre-registered), default save target, and tools beyond
-saving.
+Step 2 depends on step 1. Open decisions: client registration (dynamic or
+pre-registered), default save target, and tools beyond saving.
 
 ### SDK
 

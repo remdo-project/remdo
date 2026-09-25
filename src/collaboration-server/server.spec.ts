@@ -7,6 +7,7 @@ import WebSocket from 'ws';
 import * as Y from 'yjs';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { createCollaborationServer, INTERNAL_SECRET_HEADER } from './server';
+import { requestPersistence } from '../collaboration/persistence-barrier';
 import { createProviderFactory } from '../collaboration/runtime';
 
 const secret = 'test-internal-secret';
@@ -114,10 +115,8 @@ function connect(name = 'document') {
   return provider;
 }
 
-async function flush() {
-  return fetch(`${origin}/internal/collaboration/flush/document`, {
-    method: 'POST', headers: { [INTERNAL_SECRET_HEADER]: secret },
-  });
+function persist(provider: HocuspocusProvider) {
+  return requestPersistence(provider).then(() => 'persisted', () => 'failed');
 }
 
 function text(state: Uint8Array) {
@@ -151,17 +150,18 @@ it('does not fabricate an empty synchronized document after a failed load', asyn
   expectDiagnostics(['[onLoadDocument]']);
 });
 
-it('rejects an unsuccessful explicit flush and persists the same edits after recovery', async () => {
+it('rejects an unsuccessful persistence request and persists the same edits after recovery', async () => {
   const provider = connect();
   await expect.poll(() => provider.synced).toBe(true);
   provider.document.getText('text').insert(0, 'recover me');
   await expect.poll(() => provider.unsyncedChanges).toBe(0);
   storeStatus = 503;
-  expect((await flush()).status).toBe(503);
+  expect(await persist(provider)).toBe('failed');
   expect(persisted).toHaveLength(0);
   storeStatus = 204;
-  expect((await flush()).status).toBe(204);
+  expect(await persist(provider)).toBe('persisted');
   expect(text(persisted)).toBe('recover me');
+  expect(runtime.server.hocuspocus.documents.has('document')).toBe(true);
 });
 
 it('retains dirty content after disconnect and retries storage after a failure', async () => {
@@ -180,22 +180,39 @@ it('retains dirty content after disconnect and retries storage after a failure',
   expectDiagnostics(['[onStoreDocument]', 'Caught error during storeDocumentHooks. Document stays in memory to avoid data loss']);
 });
 
-it('serializes flushes so a deletion made during a save is committed afterwards', async () => {
+it('serializes persistence requests so a deletion made during a save is committed afterwards', async () => {
   const provider = connect();
   await expect.poll(() => provider.synced).toBe(true);
   provider.document.getText('text').insert(0, 'insert then delete');
   await expect.poll(() => provider.unsyncedChanges).toBe(0);
   holdStore = new Promise(resolve => { releaseStore = resolve; });
-  const first = flush();
+  const first = persist(provider);
   await expect.poll(() => stores.length).toBe(1);
   provider.document.getText('text').delete(0, 18);
   await expect.poll(() => provider.unsyncedChanges).toBe(0);
-  const second = flush();
+  const second = persist(provider);
   releaseStore!();
-  expect((await first).status).toBe(204);
-  expect((await second).status).toBe(204);
+  expect(await first).toBe('persisted');
+  expect(await second).toBe('persisted');
   expect(text(stores[0]!)).toBe('insert then delete');
   expect(text(persisted)).toBe('');
+});
+
+it('shares one waiting save among persistence requests made during a save', async () => {
+  const provider = connect();
+  await expect.poll(() => provider.synced).toBe(true);
+  provider.document.getText('text').insert(0, 'first');
+  await expect.poll(() => provider.unsyncedChanges).toBe(0);
+  holdStore = new Promise(resolve => { releaseStore = resolve; });
+  const running = persist(provider);
+  await expect.poll(() => stores.length).toBe(1);
+  provider.document.getText('text').insert(5, ' second');
+  await expect.poll(() => provider.unsyncedChanges).toBe(0);
+  const waiting = Array.from({ length: 5 }, () => persist(provider));
+  releaseStore!();
+  expect(await Promise.all([running, ...waiting])).toEqual(Array.from({length: 6}).fill('persisted'));
+  expect(stores).toHaveLength(2);
+  expect(text(persisted)).toBe('first second');
 });
 
 function expectDiagnostics(messages: string[]) {
@@ -225,11 +242,10 @@ it('retires deleted documents instead of retrying missing content or claiming a 
   await expect.poll(() => provider.unsyncedChanges).toBe(0);
   deletedDocument = 'document';
   const disconnected = new Promise<void>(resolve => provider.on('close', () => resolve()));
-  expect((await flush()).status).toBe(404);
+  expect(await persist(provider)).toBe('failed');
   await disconnected;
   provider.configuration.websocketProvider.disconnect();
   await expect.poll(() => runtime.server.hocuspocus.documents.has('document')).toBe(false);
-  expect((await flush()).status).toBe(404);
   const reconnect = connect();
   const denied = await new Promise<string>(resolve => reconnect.on('authenticationFailed', ({ reason }: { reason: string }) => resolve(reason)));
   expect(denied).toBe('permission-denied');
@@ -278,21 +294,21 @@ it('backs off repeated store failures and resets the delay after recovery', asyn
   storeStatus = 503;
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
   try {
-    expect((await flush()).status).toBe(503);
+    expect(await persist(provider)).toBe('failed');
     await vi.advanceTimersByTimeAsync(1000);
     await vi.waitFor(() => expect(stores).toHaveLength(2));
     // Acquiring the same save mutex ensures the prior retry finished. This
     // explicit failed save leaves its already-scheduled retry in place.
-    expect((await flush()).status).toBe(503);
+    expect(await persist(provider)).toBe('failed');
     await vi.advanceTimersByTimeAsync(1000);
     expect(stores).toHaveLength(3);
     await vi.advanceTimersByTimeAsync(1000);
     await vi.waitFor(() => expect(stores).toHaveLength(4));
     storeStatus = 204;
-    expect((await flush()).status).toBe(204);
+    expect(await persist(provider)).toBe('persisted');
     expect(text(persisted)).toBe('retry with backoff');
     storeStatus = 503;
-    expect((await flush()).status).toBe(503);
+    expect(await persist(provider)).toBe('failed');
     await vi.advanceTimersByTimeAsync(1000);
     await vi.waitFor(() => expect(stores).toHaveLength(7));
   } finally {
