@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { runMobileAction } from './actions';
 
-function createSession() {
+function createOpenDocument() {
   const operations = {
     indent: vi.fn(),
     outdent: vi.fn(),
@@ -13,7 +13,7 @@ function createSession() {
     undo: vi.fn(),
     redo: vi.fn(),
   };
-  const session = {
+  const openDocument = {
     focus: { canToggleFold: () => false, toggleFold: operations.toggleFocusedFold },
     selection: {
       canDelete: () => false,
@@ -26,24 +26,24 @@ function createSession() {
     },
     history: { canUndo: () => false, canRedo: () => false, undo: operations.undo, redo: operations.redo },
   };
-  return { operations, session };
+  return { operations, openDocument };
 }
 
 describe('mobile toolbar action delegation', () => {
   it('maps the toolbar inventory to named SDK operations', () => {
-    const { operations, session } = createSession();
+    const { operations, openDocument } = createOpenDocument();
     const openNoteMenu = vi.fn();
 
-    runMobileAction(session, 'indent', openNoteMenu);
-    runMobileAction(session, 'outdent', openNoteMenu);
-    runMobileAction(session, 'moveUp', openNoteMenu);
-    runMobileAction(session, 'moveDown', openNoteMenu);
-    runMobileAction(session, 'done', openNoteMenu);
-    runMobileAction(session, 'fold', openNoteMenu);
-    runMobileAction(session, 'delete', openNoteMenu);
-    runMobileAction(session, 'undo', openNoteMenu);
-    runMobileAction(session, 'redo', openNoteMenu);
-    runMobileAction(session, 'menu', openNoteMenu);
+    runMobileAction(openDocument, 'indent', openNoteMenu);
+    runMobileAction(openDocument, 'outdent', openNoteMenu);
+    runMobileAction(openDocument, 'moveUp', openNoteMenu);
+    runMobileAction(openDocument, 'moveDown', openNoteMenu);
+    runMobileAction(openDocument, 'done', openNoteMenu);
+    runMobileAction(openDocument, 'fold', openNoteMenu);
+    runMobileAction(openDocument, 'delete', openNoteMenu);
+    runMobileAction(openDocument, 'undo', openNoteMenu);
+    runMobileAction(openDocument, 'redo', openNoteMenu);
+    runMobileAction(openDocument, 'menu', openNoteMenu);
 
     expect(operations.indent).toHaveBeenCalledOnce();
     expect(operations.outdent).toHaveBeenCalledOnce();

@@ -104,7 +104,7 @@ export interface OpenDocumentNote extends OpenDocumentParentNote {
  * Current capability reads need no subscription and return false when the source
  * is unavailable. Unexpected read failures propagate.
  */
-export interface DocumentSession {
+export interface OpenDocument {
   readonly documentId: string;
   /** Notifies when action eligibility, source availability, or read failures may have changed. */
   readonly subscribeCapabilities: (listener: () => void) => () => void;
@@ -112,7 +112,7 @@ export interface DocumentSession {
   /** Searches current committed data; rejects when the source cannot be read. */
   readonly search: (options: DocumentSearchOptions) => Promise<DocumentSearchResults>;
   /** The document root, whose children are the top-level editor notes. */
-  readonly document: OpenDocumentParentNote;
+  readonly root: OpenDocumentParentNote;
   /** Returns a live reference without checking existence or creating a note. */
   readonly noteRef: (noteId: NoteId) => OpenDocumentNote;
   readonly view: {

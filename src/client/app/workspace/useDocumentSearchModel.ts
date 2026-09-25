@@ -15,7 +15,7 @@ import {
   useState,
 } from 'react';
 import type { DocumentSearchResults, SearchResult } from '#note-sdk';
-import { useDocumentSession } from '#client/editor/view/EditorViewProvider';
+import { useOpenDocument } from '#client/editor/view/EditorViewProvider';
 
 // Direct children shown in each result row's preview (the row reports "+N more"
 // for the remainder); kept beside the result limit since both bound the work the
@@ -112,12 +112,12 @@ export function useDocumentSearchModel({
 
   // The host registers only an available document. A request belongs to one
   // opening/query/source, so an older completion cannot restore stale results.
-  const documentSession = useDocumentSession();
+  const openDocument = useOpenDocument();
   const request = useMemo(
-    () => searchModeRequested && documentSession
+    () => searchModeRequested && openDocument
       ? { query: searchQuery }
       : null,
-    [documentSession, searchModeRequested, searchQuery],
+    [openDocument, searchModeRequested, searchQuery],
   );
   const [response, setResponse] = useState<{
     request: NonNullable<typeof request>;
@@ -125,7 +125,7 @@ export function useDocumentSearchModel({
   } | null>(null);
 
   useEffect(() => {
-    if (!request || !documentSession) {
+    if (!request || !openDocument) {
       return;
     }
     let current = true;
@@ -134,7 +134,7 @@ export function useDocumentSearchModel({
         setResponse({ request, results });
       }
     };
-    void documentSession.search({
+    void openDocument.search({
       query: request.query,
       limit: SEARCH_RESULT_LIMIT,
       childPreviewLimit: CHILD_PREVIEW_LIMIT,
@@ -142,7 +142,7 @@ export function useDocumentSearchModel({
     return () => {
       current = false;
     };
-  }, [documentSession, request]);
+  }, [openDocument, request]);
 
   const searchResults = request && response?.request === request ? response.results : null;
   const searchResultsPending = request !== null && response?.request !== request;

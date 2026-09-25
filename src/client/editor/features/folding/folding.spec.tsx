@@ -98,17 +98,17 @@ describe('folding (docs/specs/outliner/folding.md)', () => {
     expect(document.querySelector('.note-controls__button--folded')).toBeNull();
   });
 
-  it('keeps the caret when a session folds the zoom root or its ancestor', meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+  it('keeps the caret when the open document folds the zoom root or its ancestor', meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
     await waitFor(() => {
       expect(getNoteElement(remdo, 'note2')).toHaveAttribute('data-zoom-root', 'true');
     });
     await placeCaretAtNote(remdo, 'note3');
 
-    await remdo.documentSession.noteRef('note2').toggleFold();
-    await remdo.documentSession.noteRef('note1').toggleFold();
+    await remdo.openDocument.noteRef('note2').toggleFold();
+    await remdo.openDocument.noteRef('note1').toggleFold();
 
-    expect(remdo.documentSession.noteRef('note2').getFolded()).toBe(true);
-    expect(remdo.documentSession.noteRef('note1').getFolded()).toBe(true);
+    expect(remdo.openDocument.noteRef('note2').getFolded()).toBe(true);
+    expect(remdo.openDocument.noteRef('note1').getFolded()).toBe(true);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
   });
 

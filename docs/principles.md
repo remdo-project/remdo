@@ -59,7 +59,7 @@ The [search specification](specs/outliner/search.md) defines document-search beh
 
 ## Consumer APIs
 
-The [open document session](specs/outliner/document-session.md) defines the opened-document boundary.
+The [open document](specs/outliner/open-document.md) defines the opened-document boundary.
 
 1. Consumers should access notes, observe changes, and invoke supported
    operations through a simple, consistent, adapter-neutral API that is easy to

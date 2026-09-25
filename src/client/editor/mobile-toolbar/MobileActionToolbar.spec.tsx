@@ -1,8 +1,7 @@
 import { act, fireEvent, render, within } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DocumentSession } from '#note-sdk';
 import { MobileActionToolbar } from './MobileActionToolbar';
-import type { ToolbarCapabilities } from './useToolbarCapabilities';
+import type { ToolbarCapabilities, ToolbarOpenDocument } from './useToolbarCapabilities';
 
 const browser = vi.hoisted(() => ({ coarsePointer: true }));
 const originalDocumentFonts = Object.getOwnPropertyDescriptor(document, 'fonts');
@@ -45,7 +44,7 @@ function readyCapabilities(options: Partial<ToolbarCapabilities> = {}): ToolbarC
   return { canToggleFold: false, canDelete: false, canUndo: false, canRedo: false, ...options };
 }
 
-function createSession(initialCapabilities: ToolbarCapabilities | Error) {
+function createOpenDocument(initialCapabilities: ToolbarCapabilities | Error) {
   const capabilities = new MutableCapabilities(initialCapabilities);
   const operations = {
     indent: vi.fn(),
@@ -58,7 +57,7 @@ function createSession(initialCapabilities: ToolbarCapabilities | Error) {
     undo: vi.fn(),
     redo: vi.fn(),
   };
-  const session: Pick<DocumentSession, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'> = {
+  const openDocument: ToolbarOpenDocument = {
     subscribeCapabilities: capabilities.subscribe,
     focus: { canToggleFold: () => capabilities.read().canToggleFold, toggleFold: operations.toggleFocusedFold },
     selection: {
@@ -76,10 +75,10 @@ function createSession(initialCapabilities: ToolbarCapabilities | Error) {
       undo: operations.undo, redo: operations.redo,
     },
   };
-  return { capabilities, operations, session };
+  return { capabilities, operations, openDocument };
 }
 
-function renderToolbar(session: Pick<DocumentSession, 'subscribeCapabilities' | 'focus' | 'selection' | 'history'>) {
+function renderToolbar(openDocument: ToolbarOpenDocument) {
   const portalRoot = document.createElement('div');
   portalRoot.dataset.mobileToolbarTestRoot = '';
   document.body.append(portalRoot);
@@ -87,7 +86,7 @@ function renderToolbar(session: Pick<DocumentSession, 'subscribeCapabilities' | 
   const openNoteMenu = vi.fn();
   const result = render(
     <MobileActionToolbar
-      session={session}
+      openDocument={openDocument}
       portalRoot={portalRoot}
       focusEditor={focusEditor}
       openNoteMenu={openNoteMenu}
@@ -134,22 +133,22 @@ describe('mobile action toolbar', () => {
 
   it('does not subscribe or render for a fine pointer', () => {
     browser.coarsePointer = false;
-    const { capabilities, session } = createSession(readyCapabilities());
+    const { capabilities, openDocument } = createOpenDocument(readyCapabilities());
 
-    const { view } = renderToolbar(session);
+    const { view } = renderToolbar(openDocument);
 
     expect(capabilities.subscriberCount).toBe(0);
     expect(view.queryByRole('toolbar', { name: 'Note actions' })).toBeNull();
   });
 
   it('reflects capability changes using the surface-specific hide and disable rules', () => {
-    const { capabilities, session } = createSession(readyCapabilities({
+    const { capabilities, openDocument } = createOpenDocument(readyCapabilities({
       canToggleFold: true,
       canDelete: true,
       canUndo: true,
       canRedo: false,
     }));
-    const { view } = renderToolbar(session);
+    const { view } = renderToolbar(openDocument);
 
     expect(capabilities.subscriberCount).toBe(1);
     expect(view.getByRole('button', { name: 'Toggle fold' })).not.toHaveAttribute('aria-disabled');
@@ -168,11 +167,11 @@ describe('mobile action toolbar', () => {
   });
 
   it('delegates focus-targeted actions without reusing the earlier capability target', () => {
-    const { capabilities, operations, session } = createSession(readyCapabilities({
+    const { capabilities, operations, openDocument } = createOpenDocument(readyCapabilities({
       canToggleFold: true,
       canDelete: true,
     }));
-    const { focusEditor, openNoteMenu, view } = renderToolbar(session);
+    const { focusEditor, openNoteMenu, view } = renderToolbar(openDocument);
 
     fireEvent.click(view.getByRole('button', { name: 'Indent' }));
     fireEvent.click(view.getByRole('button', { name: 'Toggle fold' }));
@@ -191,8 +190,8 @@ describe('mobile action toolbar', () => {
   });
 
   it('keeps unavailable capabilities unavailable without disabling always-enabled actions', () => {
-    const { operations, session } = createSession(readyCapabilities());
-    const { focusEditor, view } = renderToolbar(session);
+    const { operations, openDocument } = createOpenDocument(readyCapabilities());
+    const { focusEditor, view } = renderToolbar(openDocument);
 
     expect(view.getByRole('button', { name: 'Toggle fold' })).toHaveAttribute('aria-disabled', 'true');
     expect(view.getByRole('button', { name: 'Delete' })).toHaveAttribute('aria-disabled', 'true');
@@ -204,8 +203,8 @@ describe('mobile action toolbar', () => {
   });
 
   it('disables conditional actions on a failed read and reflects recovery', () => {
-    const { capabilities, session } = createSession(new Error('Capability read failed'));
-    const { result, view } = renderToolbar(session);
+    const { capabilities, openDocument } = createOpenDocument(new Error('Capability read failed'));
+    const { result, view } = renderToolbar(openDocument);
     expect(view.getByRole('button', { name: 'Toggle fold' })).toHaveAttribute('aria-disabled', 'true');
     expect(view.queryByRole('button', { name: 'Undo' })).toBeNull();
 

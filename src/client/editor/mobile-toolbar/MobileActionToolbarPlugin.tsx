@@ -1,12 +1,12 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useCallback, useEffect, useState } from 'react';
-import type { DocumentSession } from '#note-sdk';
+import type { OpenDocument } from '#note-sdk';
 
 import { OPEN_NOTE_MENU_COMMAND } from '#client/editor/foundation/commands';
 import { MobileActionToolbar } from './MobileActionToolbar';
 
 /** Lexical host binding for the otherwise adapter-neutral toolbar surface. */
-export function MobileActionToolbarPlugin({ session }: { session: DocumentSession }) {
+export function MobileActionToolbarPlugin({ openDocument }: { openDocument: OpenDocument }) {
   const [editor] = useLexicalComposerContext();
   const [portalRoot, setPortalRoot] = useState<Element | null>(null);
 
@@ -24,7 +24,7 @@ export function MobileActionToolbarPlugin({ session }: { session: DocumentSessio
 
   return (
     <MobileActionToolbar
-      session={session}
+      openDocument={openDocument}
       portalRoot={portalRoot}
       focusEditor={focusEditor}
       openNoteMenu={openNoteMenu}
