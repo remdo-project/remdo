@@ -8,6 +8,7 @@ export type {
   OpenDocumentNote,
   EditorNoteSnapshot,
   NewNote,
+  OpenDocumentParentNote,
   SearchResult,
 } from './document-session';
 export type {

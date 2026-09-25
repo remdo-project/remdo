@@ -7,7 +7,7 @@ import { getContentSiblings } from '#client/editor/outline/list-structure';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { getNoteBody } from '#client/editor/outline/selection/body-region';
 import { getNestedList } from '#client/editor/outline/selection/tree';
-import { $requireContentItemNoteId, $resolveRootContentList } from '#client/editor/outline/schema';
+import { $getChildNoteIds, $requireContentItemNoteId, $resolveRootContentList } from '#client/editor/outline/schema';
 import { matchesPathQuery, tokenizeQuery } from '#client/search/query-match';
 
 interface WalkFrame {
@@ -85,7 +85,7 @@ export function collectLexicalDocumentSearchResults(
         children: nested
           ? Object.freeze({
               listType: nested.getListType(),
-              noteIds: Object.freeze(getContentSiblings(nested).map($requireContentItemNoteId)),
+              noteIds: Object.freeze($getChildNoteIds(nested)),
             })
           : null,
       });

@@ -81,8 +81,11 @@ function MockEditor({
       documentId: docId,
       search: mockDocumentSearch(docId),
       subscribeCapabilities: () => noOp,
+      document: { getChildren: () => [], appendChildren: () => Promise.resolve([]) },
       noteRef: (noteId) => ({
         getId: () => noteId,
+        getChildren: () => [],
+        appendChildren: () => Promise.resolve([]),
         getText: () => '',
         getFolded: () => false,
         getChecked: () => false,
@@ -96,7 +99,6 @@ function MockEditor({
         toggleFold: () => Promise.resolve(),
         subscribe: () => noOp,
       }),
-      insertNotes: () => Promise.resolve([]),
       view: { zoomOut: noOp, foldToLevel: noOp },
       focus: { canToggleFold: () => false, toggleFold: noOp },
       selection: {

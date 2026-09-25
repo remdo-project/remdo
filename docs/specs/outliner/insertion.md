@@ -58,14 +58,15 @@ plain text is interpreted and focus after paste) live in [Clipboard](./clipboard
 
 ## Session insertion
 
-An [open document session](./document-session.md) appends a described subtree as
-the last children of an addressed parent note, or as the last top-level notes of
-the document when no parent is given. Each described note supplies its plain
-text and optionally its checked state, its children, and the list type of those
-children. A line break in any described text makes the insertion
+Appending children to an [open document session](./document-session.md) note
+adds a described subtree as that note's last children; the
+[document root](./note-model.md#definitions) receives top-level notes. Each
+described note supplies its plain text and optionally its checked state, its
+children, and the list type of those children. A line break in any described
+text makes the insertion
 [ineligible](./document-session.md#operations-and-ownership).
 
-- The operation resolves with the top-level inserted notes'
+- The operation resolves with the directly inserted notes'
   [`noteId`](./note-ids.md#creation) values in order, or with none for an empty
   description.
 - A described checked state applies to its own note only.
@@ -74,3 +75,9 @@ children. A line break in any described text makes the insertion
   takes the type of the list containing its parent.
 - Focus and selection are unchanged.
 - The insertion is one local update, so undo never removes part of it.
+
+## Future
+
+- Add session placement as first children and as siblings before or after an
+  editor note, named `prependChildren`, `insertBefore`, and `insertAfter`
+  alongside `appendChildren`, when a consumer needs them.

@@ -269,11 +269,11 @@ saving.
 
 ### SDK
 
-- **Open document session scope.** Rename the
-  [open document session](specs/outliner/document-session.md) after what it
-  owns — cross-operation rules of the document API — and separate
-  interactive-editor context (focus, selection, view) from view-independent
-  document operations that headless hosts also provide.
+- **Open document session scope.** Narrow the
+  [open document session](specs/outliner/document-session.md) to an opened
+  document's lifecycle handle exposing its document root, and move
+  interactive-editor context (focus, selection, view, history) to an editor view
+  API that headless hosts do not provide.
 
 - **Simplify SDK consumer types.** Review consumers beyond the mobile toolbar
   for narrowing driven only by test setup and duplicate local types. Prefer

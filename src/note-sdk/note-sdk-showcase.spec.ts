@@ -101,18 +101,17 @@ describe('note SDK showcase', () => {
     it('appends an outline and addresses its new notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
       const session = remdo.documentSession;
 
-      const [summaryId] = await session.insertNotes({
-        notes: [{
-          text: 'Conversation summary',
-          childListType: 'check',
-          children: [{ text: 'Follow up' }],
-        }],
-      });
+      const [summaryId] = await session.document.appendChildren([{
+        text: 'Conversation summary',
+        childListType: 'check',
+        children: [{ text: 'Follow up' }],
+      }]);
       const summary = session.noteRef(summaryId!);
-      expect(summary.getText()).toBe('Conversation summary');
       expect(summary.getChildListType()).toBe('check');
+      expect(summary.getChildren().map((note) => note.getText())).toEqual(['Follow up']);
+      expect(session.document.getChildren().at(-1)!.getText()).toBe('Conversation summary');
 
-      await expect(session.insertNotes({ parentNoteId: 'missing', notes: [{ text: 'Lost' }] }))
+      await expect(session.noteRef('missing').appendChildren([{ text: 'Lost' }]))
         .rejects.toThrow(IneligibleOperationError);
     });
 

@@ -786,6 +786,7 @@ describe('lexical document session', () => {
     await expect(runtime.session.search(SEARCH_ALL)).rejects.toThrow('not available');
     expect(runtime.session.history.canUndo()).toBe(false);
     await expect(runtime.session.noteRef('note1').toggleFold()).rejects.toThrow(IneligibleOperationError);
+    expect(runtime.session.document.getChildren).toThrow(NoteUnavailableError);
 
     await typeText(remdo, 'fresh ');
     runtime.setSourceReady(true);
@@ -938,7 +939,7 @@ describe('lexical document session', () => {
     await expect(runtime.session.noteRef('note2').toggleFold()).rejects.toThrow(IneligibleOperationError);
     await expect(runtime.session.noteRef('note2').toggleChecked()).rejects.toThrow(IneligibleOperationError);
     await expect(runtime.session.noteRef('note2').setChildListType('check')).rejects.toThrow(IneligibleOperationError);
-    await expect(runtime.session.insertNotes({ notes: [{ text: 'new' }] })).rejects.toThrow(IneligibleOperationError);
+    await expect(runtime.session.document.appendChildren([{ text: 'new' }])).rejects.toThrow(IneligibleOperationError);
     runtime.session.noteRef('note2').zoom();
     runtime.session.view.zoomOut();
     runtime.session.view.foldToLevel(1);
@@ -964,15 +965,12 @@ describe('lexical document session', () => {
   describe('note insertion', () => {
     it('appends a described subtree under a parent and at the document end', meta({ fixture: 'tree' }), async ({ remdo }) => {
       const session = remdo.documentSession;
-      const [summary] = await session.insertNotes({
-        parentNoteId: 'note1',
-        notes: [{
-          text: 'Summary',
-          childListType: 'check',
-          children: [{ text: 'Done', checked: true }, { text: 'Open' }],
-        }],
-      });
-      const [first, second] = await session.insertNotes({ notes: [{ text: 'First' }, { text: 'Second' }] });
+      const [summary] = await session.noteRef('note1').appendChildren([{
+        text: 'Summary',
+        childListType: 'check',
+        children: [{ text: 'Done', checked: true }, { text: 'Open' }],
+      }]);
+      const [first, second] = await session.document.appendChildren([{ text: 'First' }, { text: 'Second' }]);
 
       expect(remdo).toMatchOutline([
         {
@@ -990,6 +988,19 @@ describe('lexical document session', () => {
       ]);
       expect(session.noteRef('note1').getChildListType()).toBe('bullet');
       expect(session.noteRef(summary!).getChildListType()).toBe('check');
+      expect(session.document.getChildren().map((note) => note.getId())).toEqual(['note1', 'note2', first, second]);
+      expect(session.noteRef(summary!).getChildren().map((note) => note.getText())).toEqual(['Done', 'Open']);
+    });
+
+    it('notifies a subscriber of the parent when its children change', meta({ fixture: 'tree' }), async ({ remdo }) => {
+      const parent = remdo.documentSession.noteRef('note2');
+      const listener = vi.fn();
+      onTestFinished(parent.subscribe(listener));
+
+      await parent.appendChildren([{ text: 'added' }]);
+
+      await waitFor(() => expect(listener).toHaveBeenCalledOnce());
+      expect(parent.getChildren().map((note) => note.getText())).toEqual(['note3', 'added']);
     });
 
     it('keeps the existing child list type, fold state, and caret', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -999,7 +1010,7 @@ describe('lexical document session', () => {
       await parent.toggleFold();
       await placeCaretAtNote(remdo, 'note1');
 
-      await session.insertNotes({ parentNoteId: 'note2', notes: [{ text: 'added' }] });
+      await parent.appendChildren([{ text: 'added' }]);
 
       expect(parent.getChildListType()).toBe('number');
       expect(parent.getFolded()).toBe(true);
@@ -1008,7 +1019,7 @@ describe('lexical document session', () => {
 
     it('undoes a whole insertion at once', meta({ fixture: 'flat' }), async ({ remdo }) => {
       const session = remdo.documentSession;
-      await session.insertNotes({ parentNoteId: 'note1', notes: [{ text: 'parent', children: [{ text: 'child' }] }] });
+      await session.noteRef('note1').appendChildren([{ text: 'parent', children: [{ text: 'child' }] }]);
 
       session.history.undo();
 
@@ -1023,11 +1034,11 @@ describe('lexical document session', () => {
       const session = remdo.documentSession;
       const before = remdo.getEditorState();
 
-      await expect(session.insertNotes({ parentNoteId: 'missing', notes: [{ text: 'orphan' }] }))
+      await expect(session.noteRef('missing').appendChildren([{ text: 'orphan' }]))
         .rejects.toThrow(IneligibleOperationError);
-      await expect(session.insertNotes({ notes: [{ text: 'valid', children: [{ text: 'two\nlines' }] }] }))
+      await expect(session.document.appendChildren([{ text: 'valid', children: [{ text: 'two\nlines' }] }]))
         .rejects.toThrow(IneligibleOperationError);
-      await expect(session.insertNotes({ parentNoteId: 'note1', notes: [] })).resolves.toEqual([]);
+      await expect(session.noteRef('note1').appendChildren([])).resolves.toEqual([]);
 
       expect(remdo.getEditorState()).toEqual(before);
     });
@@ -1040,10 +1051,9 @@ describe('lexical document session', () => {
       runtime.setSourceReady(true);
       onTestFinished(runtime.dispose);
 
-      const [parent] = await runtime.session.insertNotes({
-        parentNoteId: 'rootnote',
-        notes: [{ text: 'Parent', children: [{ text: 'Child' }] }],
-      });
+      const [parent] = await runtime.session.noteRef('rootnote').appendChildren([
+        { text: 'Parent', children: [{ text: 'Child' }] },
+      ]);
 
       const { flatResults } = await runtime.session.search({ ...SEARCH_ALL, query: 'Child' });
       expect(flatResults[0]!.path.map(({ id, text }) => [id === parent, text]))

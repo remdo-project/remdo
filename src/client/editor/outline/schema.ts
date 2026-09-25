@@ -6,7 +6,7 @@ import type { LexicalNode } from 'lexical';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 import { isBodyWrapper } from '#client/editor/outline/note-body-node';
 import { reportInvariant } from '#client/editor/foundation/invariant';
-import { findNearestListItem, getContentListItem, isChildrenWrapper } from './list-structure';
+import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from './list-structure';
 
 function failOutlineInvariant(message: string, context: Record<string, unknown>): never {
   reportInvariant({ message, context });
@@ -87,4 +87,8 @@ export function $requireContentItemNoteId(item: ListItemNode): string {
     });
   }
   return noteId;
+}
+
+export function $getChildNoteIds(list: ListNode): string[] {
+  return getContentSiblings(list).map($requireContentItemNoteId);
 }
