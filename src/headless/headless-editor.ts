@@ -10,13 +10,13 @@ import { HocuspocusProvider } from '@hocuspocus/provider';
 import WebSocket from 'ws';
 import { UndoManager } from 'yjs';
 import type { Doc, Transaction } from 'yjs';
-import type { CreateEditorArgs, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 
 import { config } from '#config';
 import { resolveCollabServerOrigin } from '#platform/net/origins';
 import { requestPersistence } from '#collaboration/persistence-barrier';
 import { CollabSession } from '#collaboration/session';
-import { createEditorInitialConfig } from '#client/editor/runtime/config';
+import { editorConfig } from '#client/editor/runtime/config';
 
 type SharedRootObserver = (
   events: Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
@@ -86,7 +86,7 @@ export async function withHeadlessEditor<T>(
     session.destroy();
     throw new Error('Collaboration provider unavailable');
   }
-  const editor = createEditor(createEditorInitialConfig() as CreateEditorArgs);
+  const editor = createEditor(editorConfig);
   const binding = createBindingV2__EXPERIMENTAL(editor, docId, syncDoc, docMap);
   const sharedRoot = binding.root as SharedRoot;
   const observer: SharedRootObserver = (events, transaction) => {

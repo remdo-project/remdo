@@ -1,4 +1,4 @@
-import type { InitialConfigType } from '@lexical/react/LexicalComposer';
+import type { CreateEditorArgs } from 'lexical';
 import { AutoLinkNode, LinkNode } from '@lexical/link';
 import { ListItemNode, ListNode } from '@lexical/list';
 
@@ -13,7 +13,7 @@ ensureNoteIdStateConfig();
 ensureFoldStateConfig();
 ensureCheckedStateConfig();
 
-export const editorNodes: InitialConfigType['nodes'] = [
+export const editorNodes: CreateEditorArgs['nodes'] = [
   ListNode,
   ListItemNode,
   BodyWrapperNode,

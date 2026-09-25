@@ -38,10 +38,6 @@ export class NoteBodyNode extends ElementNode {
   }
 }
 
-function $createNoteBodyNode(): NoteBodyNode {
-  return $create(NoteBodyNode);
-}
-
 export function $isNoteBodyNode(node: LexicalNode | null | undefined): node is NoteBodyNode {
   return node instanceof NoteBodyNode;
 }
@@ -86,6 +82,6 @@ export function isBodyWrapper(node: LexicalNode | null | undefined): node is Bod
 
 export function $createBodyWrapper(): BodyWrapperNode {
   const wrapper = $create(BodyWrapperNode);
-  wrapper.append($createNoteBodyNode());
+  wrapper.append($create(NoteBodyNode));
   return wrapper;
 }

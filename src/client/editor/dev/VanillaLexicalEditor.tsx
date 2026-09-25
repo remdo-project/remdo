@@ -13,7 +13,6 @@ import './VanillaLexicalEditor.css';
 const vanillaExtension = defineExtension({
   name: 'remdo-vanilla-lexical',
   namespace: 'remdo-vanilla-lexical',
-  theme: {},
   dependencies: [RichTextExtension, ListExtension, TabIndentationExtension],
   $initialEditorState: () => {
     const list = $createListNode('bullet');
@@ -21,9 +20,6 @@ const vanillaExtension = defineExtension({
     item.append($createTextNode(''));
     list.append(item);
     $getRoot().append(list);
-  },
-  onError(error) {
-    throw error;
   },
 });
 
