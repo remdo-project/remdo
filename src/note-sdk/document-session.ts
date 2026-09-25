@@ -50,13 +50,31 @@ export interface DocumentSearchOptions {
   childPreviewLimit: number;
 }
 
+/** One note to insert, with its descendants. */
+export interface NewNote {
+  /** Plain single-line text. */
+  readonly text: string;
+  readonly checked?: boolean;
+  /** Type of the list holding `children`; defaults to the type of the list containing this note. */
+  readonly childListType?: NoteListType;
+  readonly children?: readonly NewNote[];
+}
+
+/** A note that holds editor notes: the document root or an editor note. */
+export interface OpenDocumentParentNote {
+  /** References to the current direct children in order. */
+  readonly getChildren: () => readonly OpenDocumentNote[];
+  /** Appends notes as the last children; resolves with their IDs in order. */
+  readonly appendChildren: (notes: readonly NewNote[]) => Promise<NoteId[]>;
+}
+
 /**
  * A live, stable-ID reference to one editor note in the open document.
  * Value reads throw NoteUnavailableError when the note or source is unavailable.
  * Capability reads return false in those states; unexpected read failures propagate.
- * Operations revalidate their targets and no-op when unavailable.
+ * Operations reject with IneligibleOperationError when they cannot apply.
  */
-export interface OpenDocumentNote {
+export interface OpenDocumentNote extends OpenDocumentParentNote {
   /** Stable ID used to re-resolve the note in the current document revision. */
   readonly getId: () => NoteId;
   /** Returns the current content text. */
@@ -69,14 +87,14 @@ export interface OpenDocumentNote {
   readonly canToggleFold: () => boolean;
   readonly canToggleChecked: () => boolean;
   readonly canSetChildListType: () => boolean;
-  /** Revalidates the note and resolves after any local fold update commits. */
+  /** Resolves after the local fold update commits. */
   readonly toggleFold: () => Promise<void>;
   /** Toggles only this note's subtree, independently of selection. */
   readonly toggleChecked: () => Promise<void>;
-  /** Converts only this note's child list; no-ops for a leaf. */
+  /** Converts only this note's child list; rejects for a leaf. */
   readonly setChildListType: (listType: NoteListType) => Promise<void>;
   readonly zoom: () => void;
-  /** Notifies when this note's exposed values, eligibility, or readability may have changed. */
+  /** Notifies when this note's exposed values, children, eligibility, or readability may have changed. */
   readonly subscribe: (listener: () => void) => () => void;
 }
 
@@ -93,6 +111,8 @@ export interface DocumentSession {
 
   /** Searches current committed data; rejects when the source cannot be read. */
   readonly search: (options: DocumentSearchOptions) => Promise<DocumentSearchResults>;
+  /** The document root, whose children are the top-level editor notes. */
+  readonly document: OpenDocumentParentNote;
   /** Returns a live reference without checking existence or creating a note. */
   readonly noteRef: (noteId: NoteId) => OpenDocumentNote;
   readonly view: {

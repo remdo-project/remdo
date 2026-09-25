@@ -10,8 +10,8 @@ only; it never changes the underlying outline structure or note identities.
 
 ## Core behavior
 
-1. Single-note folding requires a note target with children that is not the
-   current [zoom root](./zoom.md#definitions). Without such a target,
+1. The viewer's single-note folding requires a note target with children that
+   is not the current [zoom root](./zoom.md#definitions). Without such a target,
    single-note folding is unavailable. Leaf notes and the current zoom root
    never show the row toggle.
 2. The toggle appears when the pointer is within a note's row bounds and inside
@@ -26,8 +26,9 @@ only; it never changes the underlying outline structure or note identities.
    like any other edit.
 5. If folding would hide the active selection, it collapses to the folded note
    (caret at end of its text). Hidden descendants are not selectable.
-6. If a child is inserted or moved under a folded parent, the parent
-   auto-expands. If a note loses its last child, it is no longer folded.
+6. If the viewer's editing command inserts or moves a child under a folded
+   parent, the parent auto-expands. If a note loses its last child, it is no
+   longer folded.
 7. On a middle [split](./insertion.md#default-behavior-caret-selection), folded
    state accompanies the existing children. When a merge transfers the removed
    note's children to a survivor that otherwise has no children, the survivor

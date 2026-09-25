@@ -81,8 +81,11 @@ function MockEditor({
       documentId: docId,
       search: mockDocumentSearch(docId),
       subscribeCapabilities: () => noOp,
+      document: { getChildren: () => [], appendChildren: () => Promise.resolve([]) },
       noteRef: (noteId) => ({
         getId: () => noteId,
+        getChildren: () => [],
+        appendChildren: () => Promise.resolve([]),
         getText: () => '',
         getFolded: () => false,
         getChecked: () => false,

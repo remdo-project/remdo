@@ -7,6 +7,8 @@ export type {
   NoteListType,
   OpenDocumentNote,
   EditorNoteSnapshot,
+  NewNote,
+  OpenDocumentParentNote,
   SearchResult,
 } from './document-session';
 export type {
@@ -18,3 +20,4 @@ export type { UserDocument } from '#domain/documents/user-data';
 export { createUserDataRootNote } from './create-user-data-notes';
 export type { CollectionSource, DocumentSource } from './create-user-data-notes';
 export { NoteUnavailableError } from './note-unavailable-error';
+export { IneligibleOperationError } from './ineligible-operation-error';

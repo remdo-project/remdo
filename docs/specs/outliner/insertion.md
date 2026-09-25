@@ -1,5 +1,8 @@
 # Insertion
 
+Insertion creates notes from `Enter` and from
+[open document session](./document-session.md) consumers.
+
 With a **[caret selection](./selection.md#selection-states)** or an **[inline text
 selection](./selection.md#selection-states)**, `Enter` inserts new notes. The
 selection is inside a single note, and actions apply to that note's text. Unless
@@ -52,3 +55,29 @@ children follow that trailing note and become its children. `Enter` from the
 When a paste inserts multiple notes, its placement follows the same
 start/middle/end rules as `Enter`. Clipboard details (including how multi-line
 plain text is interpreted and focus after paste) live in [Clipboard](./clipboard.md).
+
+## Session insertion
+
+Appending children to an [open document session](./document-session.md) note
+adds a described subtree as that note's last children; the
+[document root](./note-model.md#definitions) receives top-level notes. Each
+described note supplies its plain text and optionally its checked state, its
+children, and the list type of those children. A line break in any described
+text makes the insertion
+[ineligible](./document-session.md#operations-and-ownership).
+
+- The operation resolves with the directly inserted notes'
+  [`noteId`](./note-ids.md#creation) values in order, or with none for an empty
+  description.
+- A described checked state applies to its own note only.
+- The parent's existing child list keeps its type. A missing child list,
+  including one created for a described note without a described list type,
+  takes the type of the list containing its parent.
+- Focus and selection are unchanged.
+- The insertion is one local update, so undo never removes part of it.
+
+## Future
+
+- Add session placement as first children and as siblings before or after an
+  editor note, named `prependChildren`, `insertBefore`, and `insertAfter`
+  alongside `appendChildren`, when a consumer needs them.

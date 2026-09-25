@@ -13,11 +13,13 @@ import {
 import { useEffect, useMemo } from 'react';
 import type {
   DocumentSession,
+  NewNote,
   NoteId,
   OpenDocumentNote,
+  OpenDocumentParentNote,
   NoteListType,
 } from '#note-sdk';
-import { NoteUnavailableError } from '#note-sdk';
+import { IneligibleOperationError, NoteUnavailableError } from '#note-sdk';
 import { $toggleNoteCheckedForTargets } from '#client/editor/features/list-types/checked-operations';
 import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
 import { $getNestedListType } from '#client/editor/features/list-types/nested-list-type';
@@ -36,14 +38,16 @@ import {
 } from '#client/editor/foundation/commands';
 import { $canOfferFold } from '#client/editor/features/folding/fold-offer';
 import { $isNoteFolded } from '#client/editor/outline/fold-state';
-import { isWrapperItem } from '#client/editor/outline/list-structure';
+import { $getOrCreateChildList, isWrapperItem } from '#client/editor/outline/list-structure';
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { isWithinBoundary } from '#client/editor/outline/selection/tree';
+import { getNestedList, isWithinBoundary, noteHasChildren } from '#client/editor/outline/selection/tree';
+import { $getChildNoteIds, $requireRootContentList } from '#client/editor/outline/schema';
 import { $resolveViewRoot, subscribeViewRoot } from '#client/editor/outline/view-root';
 import { collectLexicalDocumentSearchResults } from './lexical-document-search';
+import { $appendNewNotes, hasLineBreak } from './lexical-note-insertion';
 
 interface LexicalDocumentSessionSource {
   editor: LexicalEditor;
@@ -59,9 +63,7 @@ interface AddressedNoteValues {
   text: string;
   checked: boolean;
   childListType: NoteListType | null;
-  canToggleFold: boolean;
-  canToggleChecked: boolean;
-  canSetChildListType: boolean;
+  childIds: readonly NoteId[];
 }
 
 interface AddressedNoteObservation {
@@ -101,9 +103,8 @@ function addressedNoteValuesEqual(
       && left.folded === right.folded
       && left.checked === right.checked
       && left.childListType === right.childListType
-      && left.canToggleFold === right.canToggleFold
-      && left.canToggleChecked === right.canToggleChecked
-      && left.canSetChildListType === right.canSetChildListType
+      && left.childIds.length === right.childIds.length
+      && left.childIds.every((childId, index) => childId === right.childIds[index])
       && left.text === right.text);
 }
 
@@ -158,6 +159,11 @@ export function createLexicalDocumentSessionRuntime({
     return $isListItemNode(focusNode) && !isWrapperItem(focusNode) ? focusNode : null;
   };
 
+  const $getNestedChildNoteIds = (note: ListItemNode): NoteId[] => {
+    const list = getNestedList(note);
+    return list ? $getChildNoteIds(list) : [];
+  };
+
   const readAddressedNote = (noteId: NoteId): AddressedNoteValues | null => {
     if (!started || disposed || !sourceReady) {
       return null;
@@ -165,16 +171,12 @@ export function createLexicalDocumentSessionRuntime({
     return editor.getEditorState().read(() => {
       const note = $findNoteById(noteId);
       if (!note) return null;
-      const childListType = $getNestedListType(note);
-      const withinView = isWithinBoundary(note, $resolveViewRoot(editor));
       return {
         folded: $isNoteFolded(note),
         text: getNoteOwnText(note),
         checked: $getNoteChecked(note) === true,
-        childListType,
-        canToggleChecked: withinView,
-        canToggleFold: withinView && $canOfferFold(editor, note),
-        canSetChildListType: withinView && childListType !== null,
+        childListType: $getNestedListType(note),
+        childIds: $getNestedChildNoteIds(note),
       };
     }, { editor });
   };
@@ -252,28 +254,53 @@ export function createLexicalDocumentSessionRuntime({
     }
   };
 
-  const updateAddressedNote = async (
-    noteId: NoteId,
-    operation: (note: ListItemNode) => void,
-  ): Promise<void> => {
+  const updateDocument = <T>(operation: () => T): Promise<T> => {
     if (!started || disposed || !sourceReady) {
-      return;
+      return Promise.reject(new IneligibleOperationError('The document is not available.'));
     }
-    await new Promise<void>((resolve, reject) => {
+    return new Promise<T>((resolve, reject) => {
+      let result: T;
       editor.update(() => {
         try {
-          const note = $findNoteById(noteId);
-          if (note && isWithinBoundary(note, $resolveViewRoot(editor))) {
-            operation(note);
-          }
+          result = operation();
         } catch (error) {
           reject(error);
+          // An ineligible operation throws before mutating, so nothing needs recovery.
+          if (error instanceof IneligibleOperationError) return;
           // Preserve Lexical's recovery even when the host reports without rethrowing.
           throw error;
         }
-      }, { onUpdate: resolve });
+      }, { onUpdate: () => resolve(result) });
     });
   };
+
+  const $requireNote = (noteId: NoteId): ListItemNode => {
+    const note = $findNoteById(noteId);
+    if (!note) {
+      throw new IneligibleOperationError(`Note "${noteId}" is not available.`);
+    }
+    return note;
+  };
+
+  const updateAddressedNote = (
+    noteId: NoteId,
+    operation: (note: ListItemNode) => void,
+  ): Promise<void> => updateDocument(() => {
+    operation($requireNote(noteId));
+  });
+
+  /** Inserts under the addressed note, or at the top level for the document root. */
+  const appendChildren = (parentNoteId: NoteId | null, notes: readonly NewNote[]): Promise<NoteId[]> =>
+    updateDocument(() => {
+      if (hasLineBreak(notes)) {
+        throw new IneligibleOperationError('Note text cannot contain a line break.');
+      }
+      const parent = parentNoteId === null ? null : $requireNote(parentNoteId);
+      if (notes.length === 0) {
+        return [];
+      }
+      return $appendNewNotes(parent ? $getOrCreateChildList(parent) : $requireRootContentList(), notes);
+    });
 
   const refresh = () => {
     pending = false;
@@ -388,20 +415,26 @@ export function createLexicalDocumentSessionRuntime({
   const createNoteRef = (noteId: NoteId): OpenDocumentNote => {
     const handle: OpenDocumentNote = {
       getId: () => noteId,
+      getChildren: () => requireAddressedNote(noteId).childIds.map(createNoteRef),
+      appendChildren: (notes) => appendChildren(noteId, notes),
       getText: () => requireAddressedNote(noteId).text,
       getFolded: () => requireAddressedNote(noteId).folded,
       getChecked: () => requireAddressedNote(noteId).checked,
       getChildListType: () => requireAddressedNote(noteId).childListType,
-      canToggleFold: () => readAddressedNote(noteId)?.canToggleFold ?? false,
-      canToggleChecked: () => readAddressedNote(noteId)?.canToggleChecked ?? false,
-      canSetChildListType: () => readAddressedNote(noteId)?.canSetChildListType ?? false,
+      canToggleFold: () => (readAddressedNote(noteId)?.childIds.length ?? 0) > 0,
+      canToggleChecked: () => readAddressedNote(noteId) !== null,
+      canSetChildListType: () => (readAddressedNote(noteId)?.childListType ?? null) !== null,
       toggleFold: () => updateAddressedNote(noteId, (note) => {
-        if ($canOfferFold(editor, note)) {
-          editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: note.getKey() });
+        if (!noteHasChildren(note)) {
+          throw new IneligibleOperationError('Only a note with children can fold.');
         }
+        editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: note.getKey() });
       }),
       toggleChecked: () => updateAddressedNote(noteId, (note) => $toggleNoteCheckedForTargets([note])),
       setChildListType: (listType) => updateAddressedNote(noteId, (note) => {
+        if ($getNestedListType(note) === null) {
+          throw new IneligibleOperationError('Only a note with children has a child list.');
+        }
         editor.dispatchCommand(SET_NESTED_LIST_TYPE_COMMAND, { listType, noteItemKey: note.getKey() });
       }),
       zoom: () => {
@@ -436,6 +469,18 @@ export function createLexicalDocumentSessionRuntime({
     return Object.freeze(handle);
   };
 
+  const documentNote: OpenDocumentParentNote = Object.freeze({
+    getChildren: () => {
+      if (!started || disposed || !sourceReady) {
+        throw new NoteUnavailableError(docId);
+      }
+      return editor.getEditorState()
+        .read(() => $getChildNoteIds($requireRootContentList()), { editor })
+        .map(createNoteRef);
+    },
+    appendChildren: (notes: readonly NewNote[]) => appendChildren(null, notes),
+  });
+
   const session: DocumentSession = {
     documentId: docId,
     search: async (options) => {
@@ -462,6 +507,7 @@ export function createLexicalDocumentSessionRuntime({
       };
     },
     noteRef: createNoteRef,
+    document: documentNote,
     view: {
       zoomOut: () => {
         if (started && !disposed && sourceReady) editor.dispatchCommand(ZOOM_OUT_COMMAND, undefined);
@@ -542,11 +588,8 @@ export function createLexicalDocumentSessionRuntime({
         }
       }),
       subscribeViewRoot(editor, () => {
-        addressedNotesDirty = addressedNotes.size > 0;
         if (capabilityListeners.size > 0) {
           capabilitiesDirty = true;
-        }
-        if (capabilitiesDirty || addressedNotesDirty) {
           schedule();
         }
       }),
