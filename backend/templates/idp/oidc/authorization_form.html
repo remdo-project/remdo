@@ -1,11 +1,11 @@
 {% extends "allauth/layouts/entrance.html" %}
-{% load allauth %}
-{% block head_title %}Connect {{ client.name }} · RemDo{% endblock %}
+{% load allauth delegated %}
+{% block head_title %}Connect {{ client|client_label }} · RemDo{% endblock %}
 {% block content %}
   <div>
-    <h1 class="remdo-title">Connect {{ client.name }}</h1>
+    <h1 class="remdo-title">Connect {{ client|client_label }}</h1>
     <p class="remdo-description">
-      {{ client.name }} will be able to access and edit your RemDo documents as you.
+      {{ client|client_label }} will be able to access and edit your RemDo documents as you.
       You can disconnect it at any time from <a href="/accounts/connected-apps/">Connected apps</a>.
     </p>
   </div>

@@ -149,6 +149,10 @@ class DelegatedAccessTests(TestCase):
         device = self.client.post("/identity/o/api/device/code", {"client_id": CLIENT_ID})
         self.assertEqual(device.status_code, 404)
         self.assertEqual(self.client.get("/identity/o/logout").status_code, 404)
+        discovery = self.client.get("/.well-known/openid-configuration").json()
+        self.assertEqual(discovery["response_types_supported"], ["code"])
+        self.assertNotIn("device_authorization_endpoint", discovery)
+        self.assertNotIn("end_session_endpoint", discovery)
 
     def test_access_is_granted_only_after_consent_through_the_code_flow(self):
         self.grant()
@@ -161,6 +165,18 @@ class DelegatedAccessTests(TestCase):
         for query in queries:
             response = self.client.get(f"/identity/o/authorize?{query}")
             self.assertContains(response, "doesn't support", status_code=400)
+
+    def test_consent_names_the_metadata_host_and_refuses_staff_on_submission(self):
+        self.client.force_login(self.user)
+        page = self.client.get(f"/identity/o/authorize?{self.authorize_query()}")
+        self.assertContains(page, "Claude (claude.example)")
+        signed = re.search(rb'name="request" value="([^"]+)"', page.content).group(1).decode()
+        staff = User.objects.create_user(email="admin@example.test", is_staff=True)
+        self.client.force_login(staff)
+        response = self.client.post(
+            "/identity/o/authorize", {"request": signed, "scopes": "openid", "action": "grant"}
+        )
+        self.assertEqual(response.status_code, 403)
 
     def refresh(self, token):
         return self.client.post(
@@ -180,7 +196,7 @@ class DelegatedAccessTests(TestCase):
         tokens = self.grant()
         self.client.force_login(self.user)
         page = self.client.get("/accounts/connected-apps/")
-        self.assertContains(page, "Claude")
+        self.assertContains(page, "Claude (claude.example)")
         self.client.post("/accounts/connected-apps/", {"client": CLIENT_ID})
         self.assertContains(self.client.get("/accounts/connected-apps/"), "No apps are connected.")
         self.client.logout()

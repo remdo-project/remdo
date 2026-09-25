@@ -1,5 +1,5 @@
 {% extends "allauth/layouts/entrance.html" %}
-{% load allauth %}
+{% load allauth delegated %}
 {% block head_title %}Connected apps · RemDo{% endblock %}
 {% block content %}
   <div>
@@ -11,7 +11,7 @@
       {% slot body %}
         {% csrf_token %}
         <input type="hidden" name="client" value="{{ client.pk }}">
-        <p>{{ client.name }}</p>
+        <p>{{ client|client_label }}</p>
       {% endslot %}
       {% slot actions %}
         {% element button type="submit" %}Disconnect{% endelement %}

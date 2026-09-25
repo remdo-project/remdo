@@ -176,9 +176,10 @@ browser hostname.
 
 A signed-in user can grant a third-party application access that acts as that
 user. The application requests it through the OAuth authorization-code flow with
-PKCE; the user signs in and consents on RemDo. Consent names the application as
-its client metadata identifies it and states that it can access and edit the
-user's documents. Applications identify themselves only by a client metadata
+PKCE; the user signs in and consents on RemDo. Consent and connected-app
+management name the application by its declared name and the host serving its
+client metadata, and consent states that it can access and edit the user's
+documents. Applications identify themselves only by a client metadata
 document URL served over HTTPS. Staff and superuser accounts cannot grant or
 use delegated access, including a grant made before promotion.
 

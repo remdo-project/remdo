@@ -102,17 +102,28 @@ def signing_key_pem():
         try:
             return fernet.decrypt(stored.encrypted_pem.encode()).decode()
         except InvalidToken:
-            pass
+            pem = _generate_pem()
+            stored.encrypted_pem = fernet.encrypt(pem.encode()).decode()
+            stored.save()
+            return pem
     pem = _generate_pem()
-    SigningKey.objects.update_or_create(
+    # Concurrent first uses keep whichever key was stored first.
+    stored, created = SigningKey.objects.get_or_create(
         pk=1, defaults={"encrypted_pem": fernet.encrypt(pem.encode()).decode()}
     )
-    return pem
+    return pem if created else fernet.decrypt(stored.encrypted_pem.encode()).decode()
 
 
 class OIDCAdapter(DefaultOIDCAdapter):
     # A grant acts as the whole user, whatever scopes the client requests.
     scope_display = {}
+
+    def populate_server_metadata(self, data):
+        # Advertise only the flow and endpoints delegated access accepts.
+        for key in ("device_authorization_endpoint", "end_session_endpoint"):
+            data.pop(key, None)
+        data["response_types_supported"] = ["code"]
+        data["grant_types_supported"] = ["authorization_code", "refresh_token"]
 
     def is_cimd_url_allowed(self, url):
         # Metadata is fetched before any client is authenticated, so it must

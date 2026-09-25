@@ -144,10 +144,10 @@ it('denies authorization before loading any document content', async () => {
 });
 
 it('authorizes a bearer connection through Django without a browser origin', async () => {
-  const provider = connect('document', { Authorization: 'Bearer delegated-token' });
+  const provider = connect('document', { Authorization: 'bearer delegated-token' });
   await expect.poll(() => provider.synced).toBe(true);
   expect(authorizeHeaders).toHaveLength(1);
-  expect(authorizeHeaders[0]!.authorization).toBe('Bearer delegated-token');
+  expect(authorizeHeaders[0]!.authorization).toBe('bearer delegated-token');
   expect(authorizeHeaders[0]!.cookie).toBeUndefined();
   expect(authorizeHeaders[0]!['x-remdo-collaboration-operator']).toBeUndefined();
 });
