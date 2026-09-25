@@ -39,6 +39,7 @@ export default function VanillaLexicalEditor() {
       <Container component="main" size="xl" py="xl">
         <section className="vanilla-lexical">
           <div className="vanilla-lexical-shell">
+            {/* eslint-disable-next-line ts/no-deprecated -- migrates with the editor shell, where the deprecation is tracked. */}
             <LexicalComposer initialConfig={initialConfig}>
               <RichTextPlugin
                 contentEditable={<ContentEditable className="vanilla-lexical-input" />}

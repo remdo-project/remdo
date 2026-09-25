@@ -1,7 +1,7 @@
 import { LinkNode } from '@lexical/link';
 import type { SerializedLinkNode } from '@lexical/link';
 import { addClassNamesToElement, isHTMLAnchorElement } from '@lexical/utils';
-import { $applyNodeReplacement, ElementNode } from 'lexical';
+import { $applyNodeReplacement } from 'lexical';
 import type {
   DOMConversionMap,
   EditorConfig,
@@ -110,17 +110,9 @@ export class NoteLinkNode extends LinkNode {
   }
 
   exportJSON(): SerializedLinkNode {
-    const base = ElementNode.prototype.exportJSON.call(this) as SerializedLinkNode;
+    const { url: _url, ...serialized } = super.exportJSON();
     const { docId, noteId } = this.getLinkRef();
-    const serialized = {
-      ...base,
-      rel: this.getRel(),
-      target: this.getTarget(),
-      title: this.getTitle(),
-      docId,
-      noteId,
-    };
-    return serialized;
+    return { ...serialized, docId, noteId } as unknown as SerializedLinkNode;
   }
 
   createDOM(config: EditorConfig): HTMLElement {

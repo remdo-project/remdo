@@ -130,6 +130,28 @@ test.describe('note links', () => {
     }
   });
 
+  test('middle-clicking an external link opens it once without an opener', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    const url = new URL('/logo.svg', page.url()).toString();
+    await page.keyboard.type(` ${url}`);
+    const link = editorLocator(page).getByRole('link', { name: url });
+    await expect(link).toHaveAttribute('target', '_blank');
+
+    await page.evaluate(() => {
+      const calls: string[][] = [];
+      (globalThis as unknown as { openCalls: string[][] }).openCalls = calls;
+      globalThis.open = (...args: unknown[]) => {
+        calls.push(args.map(String));
+        return null;
+      };
+    });
+    await link.click({ button: 'middle' });
+
+    await expect.poll(() => page.evaluate(() => (globalThis as unknown as { openCalls: string[][] }).openCalls))
+      .toEqual([[url, '_blank', 'noopener,noreferrer']]);
+  });
+
   test('inserts a note link from picker using pointer click', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);

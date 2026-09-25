@@ -245,23 +245,20 @@ it:
 - Tools speak the adapter-neutral [note model](specs/outliner/note-model.md)
   (parent note, note subtree), not Lexical or document-specific terms.
 - A write reports success only after the database commits, through the
-  [headless persistence barrier](architecture.md#hydration-vs-sync) made
-  available to user-authorized clients. Coordinate with durable collaboration
-  acknowledgements under [Operations](#operations).
+  [headless persistence barrier](architecture.md#hydration-vs-sync).
+  Coordinate with durable collaboration acknowledgements under
+  [Operations](#operations).
 
 Steps, each moving its settled decisions into their owners and out of this
 entry:
 
-1. Headless SDK host replacing `withHeadlessCollabSession`, with the
-   user-authorized commit barrier. Addressed fold and child-list-type
-   operations still depend on browser command handlers.
-2. MCP adapter over [appending notes](specs/outliner/insertion.md#appending-notes),
-   using [delegated access](specs/access/access-control.md#delegated-access),
-   process wiring, and end-to-end coverage.
-3. Connect-Claude guide and trial on the hosted instance.
+1. MCP adapter over [appending notes](specs/outliner/insertion.md#appending-notes),
+   including a headless open-document host, using
+   [delegated access](specs/access/access-control.md#delegated-access), process
+   wiring, and end-to-end coverage.
+2. Connect-Claude guide and trial on the hosted instance.
 
-Step 2 depends on step 1. Open decisions: default save target and tools beyond
-saving.
+Open decisions: default save target and tools beyond saving.
 
 ### SDK
 
@@ -329,26 +326,6 @@ saving.
   the [note menu](specs/outliner/menu.md) and the
   [mobile toolbar](specs/outliner/mobile-toolbar.md#actions) with the same
   add-or-focus semantics as the key gesture, and cover both surfaces.
-
-### Upstream reports
-
-- **Report the Lexical `updateEditorSync` warning upstream.** A commit that
-  moves the DOM selection emits a Lexical dev warning through an entirely
-  internal chain: `$commitPendingUpdates` → `$updateDOMSelection` →
-  `setDOMSelectionBaseAndExtent` → the browser's native `selectionchange` →
-  Lexical's `eventHandler` → `dispatchCommand(SELECTION_CHANGE_COMMAND)`, whose
-  `triggerCommandListeners` wraps the listener pump in `updateEditorSync`
-  whenever a listener set is non-empty — regardless of whether any listener
-  mutates. No repository-side change suppresses it; Lexical's own rich-text
-  listeners are enough to trigger it. The warning arrived in v0.49.0 with
-  [facebook/lexical#8863](https://github.com/facebook/lexical/pull/8863), whose
-  thread does not discuss this internal path, and no upstream issue reports it.
-  The [registered `lexical` patch](../pnpm-workspace.yaml) gates the warning on
-  `isCommittingPendingUpdates` meanwhile. That flag spans the whole commit, so
-  the patch also silences genuine repository-side mistakes — a mutation or
-  update listener dispatching a mutating command would now defer silently
-  instead of warning. File the upstream report, then drop the patch once a
-  release fixes it.
 
 ### UX direction
 

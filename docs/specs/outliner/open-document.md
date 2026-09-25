@@ -52,6 +52,10 @@ collaboration or persistence. It rejects with an ineligible-operation error,
 leaving the document unchanged, when its target is unavailable or ineligible. A
 synchronous mutation no-ops instead.
 
+A host without a viewer exposes the same open document. Its focus, selection,
+and history are empty and its view is the whole document, so their capability
+reads return false and their synchronous operations no-op.
+
 Adapters own framework and storage mechanics. Consumer surfaces own which
 operations they offer and how they present and interact with them.
 Editor bindings resolve row or selection context to stable note identity before

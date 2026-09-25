@@ -6,6 +6,7 @@ import {
   syncYjsStateToLexicalV2__EXPERIMENTAL,
 } from '@lexical/yjs';
 import { createEditor } from 'lexical';
+import { HocuspocusProvider } from '@hocuspocus/provider';
 import WebSocket from 'ws';
 import { UndoManager } from 'yjs';
 import type { Doc, Transaction } from 'yjs';
@@ -13,6 +14,7 @@ import type { CreateEditorArgs, LexicalEditor } from 'lexical';
 
 import { config } from '#config';
 import { resolveCollabServerOrigin } from '#platform/net/origins';
+import { requestPersistence } from '#collaboration/persistence-barrier';
 import { CollabSession } from '#collaboration/session';
 import { createEditorInitialConfig } from '#client/editor/runtime/config';
 
@@ -51,37 +53,24 @@ export function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {
   });
 }
 
-async function waitForPersistedData(docId: string): Promise<void> {
-  const response = await fetch(new URL(`/internal/collaboration/flush/${encodeURIComponent(docId)}`, resolveCollabServerOrigin()), {
-    method: 'POST',
-    headers: { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET },
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (!response.ok) throw new Error('Collaboration persistence failed.');
-}
-
-interface HeadlessCollabSessionOptions {
-  /** Wait for a database commit before closing a write session. */
-  waitForPersist?: boolean;
+interface HeadlessEditorControls {
+  /** Resolves after the database commits the document's current state. */
+  persist: () => Promise<void>;
 }
 
 /**
- * Attach a headless Lexical editor to a collab document and run `run(editor)`
- * once the initial Yjs state has synced into the editor. Used to read documents
- * out (snapshot) and to write fixture content in (dev data seeding) without a
- * browser.
+ * Attach a headless Lexical editor to a collab document and run
+ * `run(editor, controls)` once the initial Yjs state has synced into the
+ * editor. Used to read documents out (snapshot) and to write content in
+ * (dev data seeding) without a browser.
  *
- * `run` is invoked with a hydrated editor. If it mutates the editor (e.g.
- * `setEditorState`), it should return a promise that resolves once that update
- * has flushed (see `waitForEditorUpdate`); the session awaits `run`'s result
- * before the final sync, so the write reaches the server. Pass
- * `{ waitForPersist: true }` to additionally block until the server has committed
- * the document to the database.
+ * If `run` mutates the editor (e.g. `setEditorState`), it should await that
+ * update's flush (see `waitForEditorUpdate`) before calling `persist` or
+ * returning, so the write reaches the server.
  */
-export async function withHeadlessCollabSession<T>(
+export async function withHeadlessEditor<T>(
   docId: string,
-  run: (editor: LexicalEditor) => Promise<T> | T,
-  { waitForPersist = false }: HeadlessCollabSessionOptions = {},
+  run: (editor: LexicalEditor, controls: HeadlessEditorControls) => Promise<T> | T,
 ): Promise<T> {
   const docMap = new Map<string, Doc>();
   const session = new CollabSession({
@@ -93,7 +82,7 @@ export async function withHeadlessCollabSession<T>(
   session.attach(docMap);
   const provider = session.getProvider();
   const syncDoc = docMap.get(docId);
-  if (!provider || !syncDoc) {
+  if (!(provider instanceof HocuspocusProvider) || !syncDoc) {
     session.destroy();
     throw new Error('Collaboration provider unavailable');
   }
@@ -135,9 +124,13 @@ export async function withHeadlessCollabSession<T>(
     syncYjsStateToLexicalV2__EXPERIMENTAL(binding, provider);
     await initialUpdate;
 
-    result = await run(editor);
+    result = await run(editor, {
+      persist: async () => {
+        await session.awaitSynced();
+        await requestPersistence(provider);
+      },
+    });
     await session.awaitSynced();
-    if (waitForPersist) await waitForPersistedData(docId);
   } finally {
     sharedRoot.unobserveDeep(observer);
     removeUpdateListener();

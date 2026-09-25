@@ -32,12 +32,11 @@ import {
   REORDER_NOTES_UP_COMMAND,
   SET_NOTE_CHECKED_COMMAND,
   SET_NOTE_FOLD_COMMAND,
-  SET_NESTED_LIST_TYPE_COMMAND,
   ZOOM_OUT_COMMAND,
   ZOOM_TO_NOTE_COMMAND,
 } from '#client/editor/foundation/commands';
 import { $canOfferFold } from '#client/editor/features/folding/fold-offer';
-import { $isNoteFolded } from '#client/editor/outline/fold-state';
+import { $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
 import { $getOrCreateChildList, isWrapperItem } from '#client/editor/outline/list-structure';
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';
@@ -361,8 +360,12 @@ export function createLexicalOpenDocumentRuntime({
       return;
     }
     historyObserved = true;
+    // TODO(deps): Lexical 0.51 deprecates CAN_UNDO/REDO_COMMAND for HistoryExtension's canUndo/canRedo
+    // signals, but its Yjs collaboration still reports undo availability only through these commands.
+    // Probe: switch to the signals once @lexical/yjs exposes them and test:collab stays green.
     unregisterHistory = mergeRegister(
       editor.registerCommand(
+        // eslint-disable-next-line ts/no-deprecated -- collaboration still dispatches it; tracked above.
         CAN_UNDO_COMMAND,
         (nextCanUndo) => {
           canUndo = nextCanUndo;
@@ -375,6 +378,7 @@ export function createLexicalOpenDocumentRuntime({
         COMMAND_PRIORITY_LOW,
       ),
       editor.registerCommand(
+        // eslint-disable-next-line ts/no-deprecated -- collaboration still dispatches it; tracked above.
         CAN_REDO_COMMAND,
         (nextCanRedo) => {
           canRedo = nextCanRedo;
@@ -428,14 +432,15 @@ export function createLexicalOpenDocumentRuntime({
         if (!noteHasChildren(note)) {
           throw new IneligibleOperationError('Only a note with children can fold.');
         }
-        editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: note.getKey() });
+        $setNoteFolded(note, !$isNoteFolded(note));
       }),
       toggleChecked: () => updateAddressedNote(noteId, (note) => $toggleNoteCheckedForTargets([note])),
       setChildListType: (listType) => updateAddressedNote(noteId, (note) => {
-        if ($getNestedListType(note) === null) {
+        const childList = getNestedList(note);
+        if (!childList) {
           throw new IneligibleOperationError('Only a note with children has a child list.');
         }
-        editor.dispatchCommand(SET_NESTED_LIST_TYPE_COMMAND, { listType, noteItemKey: note.getKey() });
+        childList.setListType(listType);
       }),
       zoom: () => {
         if (started && !disposed && sourceReady && readAddressedNote(noteId)) {

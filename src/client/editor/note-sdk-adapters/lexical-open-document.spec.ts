@@ -1,3 +1,4 @@
+/* eslint-disable ts/no-deprecated -- drives the undo-availability commands the open document observes, where the deprecation is tracked. */
 import { waitFor } from '@testing-library/react';
 import { $createListItemNode, $createListNode } from '@lexical/list';
 import {
@@ -7,7 +8,6 @@ import {
   createEditor,
   CAN_UNDO_COMMAND,
   CAN_REDO_COMMAND,
-  COMMAND_PRIORITY_HIGH,
   REDO_COMMAND,
   UNDO_COMMAND,
 } from 'lexical';
@@ -901,19 +901,17 @@ describe('lexical open document', () => {
       runtime.start();
       runtime.setSourceReady(true);
       onTestFinished(runtime.dispose);
-      const failure = new Error('Failed fold operation');
-      const unregister = mounted.editor.registerCommand(SET_NOTE_FOLD_COMMAND, () => { throw failure; }, COMMAND_PRIORITY_HIGH);
-      onTestFinished(unregister);
-      const note = runtime.openDocument.noteRef('note2');
+      const failure = new Error('Failed append');
+      const before = mounted.editor.getEditorState().toJSON();
+      const unreadable = { get text(): string { throw failure; } };
       let outcome: unknown = 'pending';
-      const mutation = note.toggleFold();
+      const mutation = runtime.openDocument.noteRef('note2').appendChildren([unreadable]);
       void mutation.then(() => { outcome = 'resolved'; }, (error: unknown) => { outcome = error; });
       await flushObservations();
       expect(outcome).toBe(failure);
       expect(errors).toEqual([failure]);
-      expect(note.getFolded()).toBe(false);
+      expect(mounted.editor.getEditorState().toJSON()).toEqual(before);
 
-      unregister();
       mounted.editor.update(() => $setSingleNoteDocument('first', 'Later edit'), { discrete: true });
       await expect(mutation).rejects.toBe(failure);
       expect(runtime.openDocument.noteRef('first').getText()).toBe('Later edit');
@@ -1043,7 +1041,7 @@ describe('lexical open document', () => {
       expect(remdo.getEditorState()).toEqual(before);
     });
 
-    it('inserts through an editor without browser plugins', async () => {
+    it('appends, folds, and converts lists through an editor without browser plugins', async () => {
       const editor = createEditor(createEditorInitialConfig() as CreateEditorArgs);
       editor.update(() => $setSingleNoteDocument('rootnote', 'Root'), { discrete: true });
       const runtime = createLexicalOpenDocumentRuntime({ editor, docId: 'headless' });
@@ -1058,6 +1056,12 @@ describe('lexical open document', () => {
       const { flatResults } = await runtime.openDocument.search({ ...SEARCH_ALL, query: 'Child' });
       expect(flatResults[0]!.path.map(({ id, text }) => [id === parent, text]))
         .toEqual([[false, 'Root'], [true, 'Parent'], [false, 'Child']]);
+
+      const parentNote = runtime.openDocument.noteRef(parent!);
+      await parentNote.toggleFold();
+      await parentNote.setChildListType('number');
+      expect(parentNote.getFolded()).toBe(true);
+      expect(parentNote.getChildListType()).toBe('number');
     });
   });
 });

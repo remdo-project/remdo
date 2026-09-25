@@ -82,7 +82,7 @@ resetting shared working-directory data because the command deletes every
 email-matched stable user and their documents before creating fresh users and documents.
 
 The command creates fresh document IDs, loads the fixture contents, and waits
-for the collaboration persistence barrier to commit content to the database
+for the collaboration [persistence barrier](../architecture.md#hydration-vs-sync) to commit content to the database
 before completing. Fixture management commands
 are available only in Development and Verification; Production uses Django's
 normal account administration.

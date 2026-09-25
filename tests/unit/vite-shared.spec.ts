@@ -50,7 +50,7 @@ describe('vite shared config', () => {
       expect(await explorer.text()).toContain('<h1>Explorer</h1>');
       const logo = await fetch(new URL('/logo.svg?version=1', origin));
       expect(await logo.text()).toBe('<svg/>');
-      for (const url of ['/internal/collaboration/flush/private', '/%69nternal/collaboration/documents/private/content']) {
+      for (const url of ['/internal/collaboration/documents/private/authorize', '/%69nternal/collaboration/documents/private/content']) {
         const before = receivedHeaders.length;
         const response = await fetch(new URL(url, origin));
         expect(response.status).toBe(404);

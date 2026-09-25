@@ -15,12 +15,12 @@
                 "version": 1
               }
             ],
+            "indent": 0,
+            "value": 1,
             "direction": null,
             "format": "",
-            "indent": 0,
             "type": "listitem",
-            "version": 1,
-            "value": 1
+            "version": 1
           },
           {
             "children": [
@@ -38,30 +38,30 @@
                         "version": 1
                       }
                     ],
+                    "indent": 1,
+                    "value": 1,
                     "direction": null,
                     "format": "",
-                    "indent": 1,
                     "type": "listitem",
-                    "version": 1,
-                    "value": 1
+                    "version": 1
                   }
                 ],
+                "listType": "bullet",
+                "start": 1,
+                "tag": "ul",
                 "direction": null,
                 "format": "",
                 "indent": 0,
                 "type": "list",
-                "version": 1,
-                "listType": "bullet",
-                "start": 1,
-                "tag": "ul"
+                "version": 1
               }
             ],
+            "indent": 0,
+            "value": 2,
             "direction": null,
             "format": "",
-            "indent": 0,
             "type": "listitem",
-            "version": 1,
-            "value": 2
+            "version": 1
           },
           {
             "children": [
@@ -75,22 +75,22 @@
                 "version": 1
               }
             ],
+            "indent": 0,
+            "value": 2,
             "direction": null,
             "format": "",
-            "indent": 0,
             "type": "listitem",
-            "version": 1,
-            "value": 2
+            "version": 1
           }
         ],
+        "listType": "bullet",
+        "start": 1,
+        "tag": "ul",
         "direction": null,
         "format": "",
         "indent": 0,
         "type": "list",
-        "version": 1,
-        "listType": "bullet",
-        "start": 1,
-        "tag": "ul"
+        "version": 1
       }
     ],
     "direction": null,
