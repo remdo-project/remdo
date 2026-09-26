@@ -90,22 +90,23 @@ export default async function collabTestRuntime() {
     ],
   });
 
-  const stopApi = await startRemdoApiServer();
+  const started: Array<() => Promise<void>> = [await startRemdoApiServer()];
   try {
-    const stopCollab = await ensureCollabServer({
+    started.unshift(await ensureCollabServer({
       port: config.env.COLLAB_SERVER_PORT,
       reuseExisting: false,
-    });
+    }));
     const mcp = createMcpServer({
       origin: resolveMcpServerOrigin(),
       apiOrigin: resolveApiServerOrigin(),
       appOrigin: config.env.APP_ORIGIN,
     });
     await mcp.listen();
-    return () => stopAll([mcp.stop, stopCollab, stopApi]);
+    started.unshift(mcp.stop);
+    return () => stopAll(started);
   } catch (error) {
     try {
-      await stopApi();
+      await stopAll(started);
     } catch (stopError) {
       throw new AggregateError([error, stopError], 'Collaboration test runtime startup failed');
     }

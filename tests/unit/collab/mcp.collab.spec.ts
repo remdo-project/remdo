@@ -13,7 +13,7 @@ import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 const execute = promisify(execFile);
 const endpoint = new URL('/mcp', resolveMcpServerOrigin());
 
-async function delegatedToken(email = TEST_AUTH_ACCOUNT.email): Promise<string> {
+async function delegatedToken(email: string = TEST_AUTH_ACCOUNT.email): Promise<string> {
   await ensureCollabTestUser();
   const { stdout } = await execute('./tools/django.sh', ['create_delegated_token', email]);
   return stdout.trim();

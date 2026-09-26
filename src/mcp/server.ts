@@ -135,9 +135,13 @@ export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions)
   });
 
   return {
-    listen: () => new Promise<void>((resolve) => {
+    listen: () => new Promise<void>((resolve, reject) => {
       const { hostname, port } = new URL(origin);
-      http.listen(Number(port), hostname, resolve);
+      http.once('error', reject);
+      http.listen(Number(port), hostname, () => {
+        http.off('error', reject);
+        resolve();
+      });
     }),
     stop: () => new Promise<void>((resolve, reject) => http.close((error) => error ? reject(error) : resolve())),
   };
