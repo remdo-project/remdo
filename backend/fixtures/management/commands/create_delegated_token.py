@@ -7,7 +7,7 @@ from django.utils import timezone
 
 
 class Command(BaseCommand):
-    help = "Internal fixture setup: print a fresh delegated access token for an account."
+    help = "Internal fixture setup: print a fresh delegated access token, creating the account if needed."
 
     def add_arguments(self, parser):
         parser.add_argument("email")
@@ -16,7 +16,7 @@ class Command(BaseCommand):
         value = secrets.token_urlsafe(32)
         token = Token(
             type=Token.Type.ACCESS_TOKEN,
-            user=User.objects.get(email=email),
+            user=User.objects.get_or_create(email=email)[0],
             expires_at=timezone.now() + timezone.timedelta(hours=1),
         )
         token.set_value(value)

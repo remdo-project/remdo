@@ -13,9 +13,9 @@ import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 const execute = promisify(execFile);
 const endpoint = new URL('/mcp', resolveMcpServerOrigin());
 
-async function delegatedToken(): Promise<string> {
+async function delegatedToken(email = TEST_AUTH_ACCOUNT.email): Promise<string> {
   await ensureCollabTestUser();
-  const { stdout } = await execute('./tools/django.sh', ['create_delegated_token', TEST_AUTH_ACCOUNT.email]);
+  const { stdout } = await execute('./tools/django.sh', ['create_delegated_token', email]);
   return stdout.trim();
 }
 
@@ -38,8 +38,10 @@ async function storedText(documentId: string): Promise<string> {
   const response = await fetch(new URL(`/internal/collaboration/documents/${documentId}/content`, resolveApiServerOrigin()), {
     headers: { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET, Host: new URL(config.env.APP_ORIGIN).host },
   });
+  const state = new Uint8Array(await response.arrayBuffer());
+  if (state.length === 0) return '';
   const document = new Y.Doc();
-  Y.applyUpdate(document, new Uint8Array(await response.arrayBuffer()));
+  Y.applyUpdate(document, state);
   const text = document.get('root-v2', Y.XmlElement).toString();
   document.destroy();
   return text;
@@ -91,5 +93,14 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(appended.isError).toBe(true);
     const malformed = await call(client, 'append_children', { parent: 'missingdoc_', notes: [{ text: 'Lost' }] });
     expect(malformed.isError).toBe(true);
+  });
+
+  it("refuses to write to another user's document", async () => {
+    const owner = await connect(await delegatedToken('mcp-owner@example.test'));
+    const { documentId } = (await call(owner, 'create_document', { title: 'Private' })).value as { documentId: string };
+    const other = await connect(await delegatedToken());
+    const appended = await call(other, 'append_children', { parent: documentId, notes: [{ text: 'Intrusion' }] });
+    expect(appended.isError).toBe(true);
+    expect(await storedText(documentId)).not.toContain('Intrusion');
   });
 });
