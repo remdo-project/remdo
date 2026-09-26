@@ -17,12 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Lint Dockerfile
-        uses: hadolint/hadolint-action@v3.3.0
-        with:
-          config: .hadolint.yaml
-          dockerfile: docker/Dockerfile
       - uses: ./.github/actions/setup-pnpm
+      - run: pnpm run lint:dockerfile
       - run: pnpm run audit:policy
       - run: pnpm run audit:unused:prod
       - run: pnpm run lint

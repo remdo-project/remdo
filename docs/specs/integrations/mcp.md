@@ -6,6 +6,10 @@ It is reached at `/mcp` on the server's public origin over the Streamable HTTP
 transport, and follows the MCP authorization specification with RemDo as its
 authorization server.
 
+The server identifies itself with the product name, the app origin as its
+website, and the app icons, so clients show RemDo's current icon without
+inferring one from a favicon.
+
 ## Tools
 
 The server exposes the [open document](../outliner/open-document.md) and
@@ -18,7 +22,9 @@ after what it delegates to, whose owner defines its behavior.
   document root, and an editor note by its
   [`noteAddress`](../outliner/note-ids.md#global-addresses). Results that
   identify documents or notes include their URLs.
-- A failed tool call returns a tool error.
+- Each tool declares a title and whether it only reads or changes the user's
+  data, so clients can require confirmation before changes.
+- A failed tool call returns a tool error naming its cause.
 - Tool calls open as many documents at once as the server's memory allows; a
   call that cannot open one within a bounded wait fails as busy.
 
