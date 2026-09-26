@@ -19,6 +19,7 @@ export const envSchema = {
   COLLAB_ENABLED: boolish,
   COLLAB_SERVER_PORT: port,
   API_SERVER_PORT: port,
+  MCP_SERVER_PORT: port,
   DEV_DOCUMENT_ID: str,
   COLLAB_INTERNAL_SECRET: str,
   // Django's SECRET_KEY; tools/env.defaults.sh supplies the development value.

@@ -18,3 +18,7 @@ export function resolveApiServerOrigin(): string {
 export function resolveCollabServerOrigin(): string {
   return createHttpOrigin(INTERNAL_SERVICE_HOST, config.env.COLLAB_SERVER_PORT);
 }
+
+export function resolveMcpServerOrigin(): string {
+  return createHttpOrigin(INTERNAL_SERVICE_HOST, config.env.MCP_SERVER_PORT);
+}

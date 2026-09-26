@@ -46,7 +46,7 @@ caller-supplied forwarding values.
 Sign-in remembers the session across browser restarts without a remember-me
 choice, subject to session expiry and logout.
 
-The SQL-backed user role and [document registry](../../architecture.md#document-registry) are the
+The server's user role and [document registry](../../architecture.md#document-registry) are the
 authorization sources of truth. Session UI and [client metadata caches](../../architecture.md#document-registry) may expose
 their results but do not authorize a request.
 
@@ -203,7 +203,6 @@ established collaboration connections keep their authorization until disconnect.
 - Define anonymous access and public documents.
 - Define bearer-link access and its revocation, regeneration, and invalid-link behavior.
 - Define a local-only no-login mode.
-- Consider narrower delegated-access scopes or per-document grants.
 
 ## References
 

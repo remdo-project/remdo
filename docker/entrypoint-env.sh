@@ -20,9 +20,10 @@ remdo_configure_internal_services() {
   if [ "${REMDO_DEV_CONTAINER:-false}" != "true" ]; then
     API_SERVER_PORT=4011
     COLLAB_SERVER_PORT=4004
+    MCP_SERVER_PORT=4013
   fi
 
-  export API_SERVER_PORT COLLAB_SERVER_PORT
+  export API_SERVER_PORT COLLAB_SERVER_PORT MCP_SERVER_PORT
 }
 
 remdo_configure_caddy_env() {

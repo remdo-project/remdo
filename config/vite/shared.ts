@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
 import { config } from '../index.ts';
 import { onRollupWarning } from '../_internal/vite/onRollupWarning.ts';
-import { resolveApiServerOrigin, resolveCollabServerOrigin } from '../../src/platform/net/origins.ts';
+import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveMcpServerOrigin } from '../../src/platform/net/origins.ts';
 import { shouldProxyToDjango } from './gateway-routes.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -53,6 +53,11 @@ const devProxy = {
     changeOrigin: false,
     configure: stripInternalHeaders,
     ws: true,
+  },
+  '^/mcp(?:$|[/?])': {
+    target: resolveMcpServerOrigin(),
+    changeOrigin: false,
+    configure: stripInternalHeaders,
   },
   '/': {
     ...apiProxy,

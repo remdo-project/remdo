@@ -60,7 +60,7 @@ function killIfRunning(pid: number): void {
   }
 }
 
-const services = ['api', 'caddy', 'collaboration'] as const;
+const services = ['api', 'caddy', 'collaboration', 'mcp'] as const;
 const lifecycleCases = [
   {
     exitCode: 130,
@@ -98,6 +98,13 @@ const lifecycleCases = [
     title: 'fails the instance when collaboration exits unexpectedly',
     type: 'exit',
   },
+  {
+    exitCode: 23,
+    failedService: 'mcp',
+    failedStatus: 23,
+    title: 'fails the instance when mcp exits unexpectedly',
+    type: 'exit',
+  },
 ] as const;
 
 it.each(lifecycleCases)('$title', async (lifecycleCase) => {
@@ -118,7 +125,8 @@ it.each(lifecycleCases)('$title', async (lifecycleCase) => {
   for (const name of ['caddy']) {
     writeFakeBin(binDir, name, `exec "\${REMDO_FAKE_CHILD:?}" ${name}\n`);
   }
-  writeFakeBin(binDir, 'node', `exec "\${REMDO_FAKE_CHILD:?}" collaboration\n`);
+  writeFakeBin(binDir, 'node', `case "\${1:-}" in */mcp.mjs) service=mcp ;; *) service=collaboration ;; esac
+exec "\${REMDO_FAKE_CHILD:?}" "$service"\n`);
   writeFakeBin(binDir, 'gunicorn', `exec "\${REMDO_FAKE_CHILD:?}" api\n`);
   writeFakeBin(binDir, 'python', `if [ "\${1:-}" = manage.py ]; then
   printf 'django %s admin=%s user=%s\\n' "\${2:-}" "\${REMDO_ADMIN_PASSWORD+x}" "\${REMDO_USER_PASSWORD+x}" >> "\${REMDO_FAKE_EVENTS:?}"
@@ -181,6 +189,7 @@ fi
       'django setup_configured_users admin=x user=x',
       'api credentials auth=x database=x collaboration=x admin= user= google=x',
       'collaboration credentials auth= database= collaboration=x admin= user= google=',
+      'mcp credentials auth= database= collaboration= admin= user= google=',
       'caddy credentials auth= database=x collaboration= admin= user= google=',
     ]));
     expect(child.exitCode, stderr).toBeNull();

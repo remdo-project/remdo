@@ -42,6 +42,13 @@
 			}
 		}
 
+		@mcp path /mcp
+		handle @mcp {
+			reverse_proxy 127.0.0.1:{env.MCP_SERVER_PORT} {
+				header_down Cache-Control "no-store"
+			}
+		}
+
 		@app_assets path /app-assets/* /icons/* /logo.svg /icon-192.png /icon-512.png /icon-maskable-512.png /manifest.webmanifest /sw.js /workbox-*.js /registerSW.js
 		handle @app_assets {
 			root * /srv/remdo

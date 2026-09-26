@@ -3,7 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { config } from '../../config';
-import { INTERNAL_SERVICE_HOST } from '../../src/platform/net/origins';
+import { createMcpServer } from '../../src/mcp/server';
+import { INTERNAL_SERVICE_HOST, resolveApiServerOrigin, resolveMcpServerOrigin } from '../../src/platform/net/origins';
 import { ensureCollabServer } from '../../tools/lib/collab-server-helper';
 import { isPortOpen } from '../../tools/lib/net';
 import { startRemdoApiServer } from '../../tools/lib/remdo-api-server-helper';
@@ -81,19 +82,31 @@ export default async function collabTestRuntime() {
         label: 'RemDo API',
         port: config.env.API_SERVER_PORT,
       },
+      {
+        host: INTERNAL_SERVICE_HOST,
+        label: 'MCP',
+        port: config.env.MCP_SERVER_PORT,
+      },
     ],
   });
 
-  const stopApi = await startRemdoApiServer();
+  const started: Array<() => Promise<void>> = [await startRemdoApiServer()];
   try {
-    const stopCollab = await ensureCollabServer({
+    started.unshift(await ensureCollabServer({
       port: config.env.COLLAB_SERVER_PORT,
       reuseExisting: false,
+    }));
+    const mcp = createMcpServer({
+      origin: resolveMcpServerOrigin(),
+      apiOrigin: resolveApiServerOrigin(),
+      appOrigin: config.env.APP_ORIGIN,
     });
-    return () => stopAll([stopCollab, stopApi]);
+    await mcp.listen();
+    started.unshift(mcp.stop);
+    return () => stopAll(started);
   } catch (error) {
     try {
-      await stopApi();
+      await stopAll(started);
     } catch (stopError) {
       throw new AggregateError([error, stopError], 'Collaboration test runtime startup failed');
     }

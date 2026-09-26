@@ -165,6 +165,20 @@ class OIDCAdapter(DefaultOIDCAdapter):
         return [PrivateKey(pem=signing_key_pem())]
 
 
+@require_http_methods(["GET"])
+def protected_resource_metadata(request):
+    """Names RemDo as the authorization server for its MCP server."""
+    origin = request.build_absolute_uri("/").rstrip("/")
+    return JsonResponse(
+        {
+            "resource": f"{origin}/mcp",
+            "authorization_servers": [origin],
+            "bearer_methods_supported": ["header"],
+            "scopes_supported": ["openid"],
+        }
+    )
+
+
 def _refuse(request, reason):
     return render(request, "accounts/delegation_refused.html", {reason: True}, status=400)
 

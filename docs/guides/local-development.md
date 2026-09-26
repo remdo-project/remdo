@@ -61,7 +61,8 @@ Run:
 pnpm run dev
 ```
 
-The command starts the web gateway, Django API, and collaboration server. Django
+The command starts the web gateway, Django API, collaboration server, and MCP
+server. Django
 applies pending migrations before listening and reloads when Python code changes.
 Startup creates missing [development accounts](../../backend/fixtures/development-users.json): Admin is an administrator and
 User is a regular user. Sign in with `admin@example.test` / `admin-password-1234`

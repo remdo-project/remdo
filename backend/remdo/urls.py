@@ -1,4 +1,11 @@
-from accounts.delegated import authorize, connected_apps, revoke, token, unavailable
+from accounts.delegated import (
+    authorize,
+    connected_apps,
+    protected_resource_metadata,
+    revoke,
+    token,
+    unavailable,
+)
 from accounts.views import LoginView, admin_logout, google_callback
 from allauth.account.decorators import secure_admin_login
 from allauth.account.views import AccountInactiveView
@@ -25,6 +32,7 @@ urlpatterns = [
     path("accounts/login/", LoginView.as_view(), name="account_login"),
     path("accounts/inactive/", AccountInactiveView.as_view(), name="account_inactive"),
     path("accounts/connected-apps/", connected_apps),
+    path(".well-known/oauth-protected-resource/mcp", protected_resource_metadata),
     path("identity/o/authorize", authorize),
     path("identity/o/api/token", token),
     path("identity/o/api/revoke", revoke),

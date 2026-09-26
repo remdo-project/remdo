@@ -122,4 +122,37 @@ describe('vite shared config', () => {
       fs.rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it('forwards MCP requests to the MCP server and other routes to Django', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-vite-mcp-'));
+    const listen = (body: string) => {
+      const server = http.createServer((_req, res) => res.end(body));
+      return new Promise<http.Server>((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
+    };
+    const [django, mcp] = await Promise.all([listen('django'), listen('mcp')]);
+    const address = (server: http.Server) => `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const shared = createViteSharedConfig();
+    const proxy = Object.fromEntries(Object.entries(shared.server.proxy).map(([route, options]) =>
+      [route, { ...options, target: route.includes('/mcp') ? address(mcp) : address(django) }]));
+    const server = await createServer({
+      ...shared,
+      configFile: false as const,
+      root,
+      optimizeDeps: { noDiscovery: true, include: [] },
+      server: { proxy, host: '127.0.0.1', port: 0, watch: null, hmr: false as const },
+    });
+    try {
+      await server.listen();
+      const origin = server.resolvedUrls!.local[0]!;
+      const read = async (url: string) => (await fetch(new URL(url, origin), { method: 'POST' })).text();
+      expect(await read('/mcp')).toBe('mcp');
+      expect(await read('/mcp-docs')).toBe('django');
+      expect(await read('/.well-known/oauth-protected-resource/mcp')).toBe('django');
+    }
+    finally {
+      await server.close();
+      await Promise.all([django, mcp].map((backend) => new Promise<void>((resolve) => backend.close(() => resolve()))));
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

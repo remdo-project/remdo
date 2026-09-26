@@ -11,6 +11,8 @@ import * as Y from 'yjs';
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
 import WebSocket from 'ws';
 import { requestPersistence } from '#collaboration/persistence-barrier';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
 const container = process.env.DOCKER_TEST_CONTAINER!;
 const password = 'production-fixture-password-1234';
@@ -409,6 +411,57 @@ print(len(DocumentContent.objects.get(document_id=sys.argv[1]).state) > 0)
 });
 }
 
+
+test('MCP saves an outline through the gateway with a delegated token', async () => {
+  const hosted = process.env.DOCKER_HOSTED_CONTAINER!;
+  const base = `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}`;
+  // The hosted gateway serves only its public host, which Node fetch cannot send.
+  const api = await request.newContext({ baseURL: base, extraHTTPHeaders: { Host: 'remdo.onrender.com' } });
+  const gatewayFetch = async (url: string | URL, init?: RequestInit) => {
+    const response = await api.fetch(String(url), {
+      method: init?.method ?? 'GET',
+      headers: Object.fromEntries(new Headers(init?.headers).entries()),
+      data: typeof init?.body === 'string' ? init.body : undefined,
+    });
+    return new Response(new Uint8Array(await response.body()), { status: response.status(), headers: response.headers() });
+  };
+  await waitForHealth(api);
+  const token = docker('exec', hosted, 'python', 'manage.py', 'shell', '-c', `
+import secrets
+from datetime import timedelta
+from accounts.models import User
+from allauth.idp.oidc.models import Token
+from django.utils import timezone
+user, _ = User.objects.get_or_create(email="mcp@production.example.test")
+value = secrets.token_urlsafe(32)
+token = Token(type=Token.Type.ACCESS_TOKEN, user=user, expires_at=timezone.now() + timedelta(hours=1))
+token.set_value(value)
+token.save()
+print(value)
+`).split('\n').at(-1)!;
+  const unauthorized = await gatewayFetch(new URL('/mcp', base), { method: 'POST' });
+  expect(unauthorized.status).toBe(401);
+
+  const client = new Client({ name: 'docker-test', version: '1' });
+  await client.connect(new StreamableHTTPClientTransport(new URL('/mcp', base), {
+    requestInit: { headers: { Authorization: `Bearer ${token}` } },
+    fetch: gatewayFetch,
+  }));
+  try {
+    const call = async (name: string, args: Record<string, unknown>) => {
+      const response = await client.callTool({ name, arguments: args });
+      expect(response.isError, JSON.stringify(response.content)).not.toBe(true);
+      return JSON.parse((response.content as Array<{ text: string }>)[0]!.text) as unknown;
+    };
+    const { documentId } = await call('create_document', { title: 'From Claude' }) as { documentId: string };
+    const [saved] = await call('append_children', { parent: documentId, notes: [{ text: 'Summary' }] }) as Array<{ url: string }>;
+    expect(saved!.url).toMatch(new RegExp(`/n/${documentId}_`));
+  }
+  finally {
+    await client.close();
+    await api.dispose();
+  }
+});
 
 test('startup refuses missing or corrupt secrets over an existing dataset', async () => {
   test.setTimeout(45_000);

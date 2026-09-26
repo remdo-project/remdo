@@ -148,6 +148,7 @@ const srcElements = [
   element('collaboration', `${SRC}/collaboration`),
   element('platform', `${SRC}/platform`),
   element('headless', `${SRC}/headless`),
+  element('mcp', `${SRC}/mcp`),
   element('document-routes', `${SRC}/document-routes`),
   element('unowned', SRC),
 ] as const;
@@ -219,6 +220,9 @@ export const srcBoundaries = {
     { from: { element: { type: 'document-routes' } },
       allow: { to: { element: { type: ['document-routes', 'domain'] } } } },
 
+    { from: { element: { type: 'mcp' } },
+      allow: { to: { element: { type: ['mcp', 'headless', 'note-sdk', 'document-routes', 'platform'] } } } },
+
     // Headless collab is a composition owner: it binds collaboration, the
     // editor initial config, and operator authentication in one process.
     { from: { element: { type: 'headless' } },
@@ -226,6 +230,7 @@ export const srcBoundaries = {
         'headless',
         'collaboration',
         'client-editor',
+        'note-sdk',
         'platform',
       ] } } } },
   ],

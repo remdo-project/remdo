@@ -14,6 +14,7 @@ const directlyRunsSkillTests = process.argv.some(argument =>
 // These tests exercise Node boundaries and do not need a DOM or an editor.
 const nodeTests = [
   'src/collaboration-server/server.spec.ts',
+  'src/mcp/server.spec.ts',
   'tests/unit/editor-state-defaults.spec.ts',
   'src/client/editor/runtime/editor-state-persistence.spec.ts',
   'src/client/editor/runtime/serialized-editor-state.spec.ts',

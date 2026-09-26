@@ -28,15 +28,18 @@ interface SharedRoot {
   unobserveDeep: (callback: SharedRootObserver) => void;
 }
 
-function createInternalProviderFactory() {
-  class OperatorWebSocket extends WebSocket {
+function createHeadlessProviderFactory(authorization: string | undefined) {
+  const headers = authorization
+    ? { Authorization: authorization }
+    : { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET };
+  class HeadlessWebSocket extends WebSocket {
     constructor(url: string | URL) {
-      super(url, { headers: { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET } });
+      super(url, { headers });
     }
   }
   return createProviderFactory({
     visibleOrigin: resolveCollabServerOrigin(),
-    WebSocketPolyfill: OperatorWebSocket as unknown as typeof globalThis.WebSocket,
+    WebSocketPolyfill: HeadlessWebSocket as unknown as typeof globalThis.WebSocket,
   });
 }
 
@@ -53,31 +56,30 @@ export function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {
   });
 }
 
-interface HeadlessEditorControls {
-  /** Resolves after the database commits the document's current state. */
-  persist: () => Promise<void>;
+interface HeadlessEditorOptions {
+  /** A delegated `Bearer` credential; operator tools omit it. */
+  authorization?: string;
 }
 
 /**
- * Attach a headless Lexical editor to a collab document and run
- * `run(editor, controls)` once the initial Yjs state has synced into the
- * editor. Used to read documents out (snapshot) and to write content in
- * (dev data seeding) without a browser.
+ * Attach a headless Lexical editor to a collab document and run `run(editor)`
+ * once the initial Yjs state has synced into the editor. It resolves only after
+ * any write `run` made is durable.
  *
  * If `run` mutates the editor (e.g. `setEditorState`), it should await that
- * update's flush (see `waitForEditorUpdate`) before calling `persist` or
- * returning, so the write reaches the server.
+ * update's flush (see `waitForEditorUpdate`) before returning.
  */
 export async function withHeadlessEditor<T>(
   docId: string,
-  run: (editor: LexicalEditor, controls: HeadlessEditorControls) => Promise<T> | T,
+  run: (editor: LexicalEditor) => Promise<T> | T,
+  { authorization }: HeadlessEditorOptions = {},
 ): Promise<T> {
   const docMap = new Map<string, Doc>();
   const session = new CollabSession({
     enabled: true,
     docId,
     origin: resolveCollabServerOrigin(),
-    providerFactory: createInternalProviderFactory(),
+    providerFactory: createHeadlessProviderFactory(authorization),
   });
   session.attach(docMap);
   const provider = session.getProvider();
@@ -116,6 +118,11 @@ export async function withHeadlessEditor<T>(
     );
   });
 
+  let wrote = false as boolean;
+  const recordWrite = (_update: Uint8Array, origin: unknown) => {
+    if (origin === binding) wrote = true;
+  };
+
   let result: T;
   try {
     void provider.connect();
@@ -124,14 +131,12 @@ export async function withHeadlessEditor<T>(
     syncYjsStateToLexicalV2__EXPERIMENTAL(binding, provider);
     await initialUpdate;
 
-    result = await run(editor, {
-      persist: async () => {
-        await session.awaitSynced();
-        await requestPersistence(provider);
-      },
-    });
+    syncDoc.on('update', recordWrite);
+    result = await run(editor);
     await session.awaitSynced();
+    if (wrote) await requestPersistence(provider);
   } finally {
+    syncDoc.off('update', recordWrite);
     sharedRoot.unobserveDeep(observer);
     removeUpdateListener();
     session.destroy();

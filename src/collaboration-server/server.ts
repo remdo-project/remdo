@@ -1,14 +1,13 @@
 import { Buffer } from 'node:buffer';
 import { timingSafeEqual } from 'node:crypto';
-import { request as httpRequest } from 'node:http';
 import { Server } from '@hocuspocus/server';
 import type { Document } from '@hocuspocus/server';
 import { Database } from '@hocuspocus/extension-database';
 import * as Y from 'yjs';
+import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { decodePersistenceMessage, encodePersistenceMessage } from '#platform/net/persistence-barrier';
 
 export const INTERNAL_SECRET_HEADER = 'X-Remdo-Collaboration-Secret';
-export const DJANGO_REQUEST_TIMEOUT_MS = 10_000;
 
 interface ServerOptions {
   port: number;
@@ -16,29 +15,6 @@ interface ServerOptions {
   secret: string;
   appOrigin: string;
 }
-
-// Node fetch ignores a caller-supplied Host. The internal loopback connection
-// must preserve Django's canonical public host without widening ALLOWED_HOSTS.
-function requestDjango(url: URL, options: {
-  method?: string;
-  headers: Record<string, string>;
-  body?: Buffer;
-  signal: AbortSignal;
-}): Promise<{ ok: boolean; status: number; body: Buffer }> {
-  return new Promise((resolve, reject) => {
-    const request = httpRequest(url, options, (response) => {
-      void (async () => {
-        const chunks: Buffer[] = [];
-        for await (const chunk of response) chunks.push(Buffer.from(chunk));
-        resolve({ ok: response.statusCode! >= 200 && response.statusCode! < 300, status: response.statusCode!, body: Buffer.concat(chunks) });
-      })().catch(reject);
-    });
-    request.once('error', reject);
-    request.end(options.body);
-  });
-}
-
-const isBearer = (authorization: string | null | undefined) => /^bearer \S/iu.test(authorization ?? '');
 
 class AuthorizationUnavailable extends Error {
   readonly reason = 'collaboration.service-unavailable';
