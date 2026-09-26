@@ -18,9 +18,6 @@ engineStrict: true
 
 updateNotifier: false
 
-# TODO(deps): retry the package.json packageManager pin past pnpm 11.27.0; 11.27.1 and 12.6.0 hang Playwright
-# mid-run and leak its web servers, likely via the pnpm exec signal change (pnpm#7374).
-# Probe: corepack use pnpm@latest && pnpm run test:e2e tests/e2e/editor/links.spec.ts.
 updateConfig:
   ignoreDependencies:
     # TODO(deps): retry TypeScript; version 7 is unsupported by @typescript-eslint.

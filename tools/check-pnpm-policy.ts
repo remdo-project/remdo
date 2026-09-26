@@ -107,7 +107,8 @@ const normalizeNodeSeries = (raw: string, description: string): string => {
 try {
   const workspaceRaw = fs.readFileSync('pnpm-workspace.yaml', 'utf8');
   const workspace = workspaceRaw.split(/\r?\n/u);
-  const lockfile = fs.readFileSync('pnpm-lock.yaml', 'utf8').split(/\r?\n/u);
+  // pnpm 12 prepends a package-manager document; project entries live in the last one.
+  const lockfile = fs.readFileSync('pnpm-lock.yaml', 'utf8').split(/^---$/mu).at(-1)!.split(/\r?\n/u);
   const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8')) as {
     engines?: {
       node?: string;

@@ -182,8 +182,8 @@ Decisions requiring a contract owner's judgement:
 
 ### Dependencies
 
-- **Dependabot pnpm 11 version updates.** When GitHub's [supported-ecosystems table](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
-  lists pnpm v11, add `.github/dependabot.yml` for the root pnpm workspace,
+- **Dependabot pnpm 12 version updates.** When GitHub's [supported-ecosystems table](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
+  lists pnpm v12, add `.github/dependabot.yml` for the root pnpm workspace,
   verify that its first update preserves workspace catalogs and passes a frozen
   lockfile install, and narrow or retire `remdo-deps-refresh` so dependency
   update discovery has one owner.
