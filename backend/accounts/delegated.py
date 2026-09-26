@@ -3,15 +3,16 @@
 import base64
 import ipaddress
 import socket
+from functools import wraps
 from urllib.parse import urlsplit
 
 from allauth.core import context
 from allauth.core.internal.httpkit import extract_basic_auth
+from allauth.idp.oidc import views as allauth_views
 from allauth.idp.oidc.adapter import DefaultOIDCAdapter
 from allauth.idp.oidc.internal.cimd import is_cimd_url
 from allauth.idp.oidc.models import Client, PrivateKey, Token
 from allauth.idp.oidc.views import authorization
-from allauth.idp.oidc.views import token as allauth_token
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -172,14 +173,23 @@ def unavailable(request):
     raise Http404
 
 
-@csrf_exempt
-def token(request):
-    # allauth logs rejected client IDs verbatim, from the form or Basic credentials.
-    basic_client_id, _ = extract_basic_auth(request.headers)
-    for client_id in (request.POST.get("client_id", ""), basic_client_id or ""):
-        if not client_id.isprintable():
-            return JsonResponse({"error": "invalid_client"}, status=400)
-    return allauth_token(request)
+def printable_client_id(view):
+    """allauth logs rejected client IDs verbatim, from the form or Basic credentials."""
+
+    @csrf_exempt
+    @wraps(view)
+    def checked(request):
+        basic_client_id, _ = extract_basic_auth(request.headers)
+        for client_id in (request.POST.get("client_id", ""), basic_client_id or ""):
+            if not client_id.isprintable():
+                return JsonResponse({"error": "invalid_client"}, status=400)
+        return view(request)
+
+    return checked
+
+
+token = printable_client_id(allauth_views.token)
+revoke = printable_client_id(allauth_views.revoke)
 
 
 @never_cache

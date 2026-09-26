@@ -208,16 +208,12 @@ class DelegatedAccessTests(TestCase):
         fetch.assert_not_called()
         self.assertFalse(Client.objects.exists())
 
-    def test_token_requests_with_control_characters_in_the_client_id_are_refused(self):
+    def test_client_ids_with_control_characters_are_refused_before_allauth(self):
         forged = "https:\nforged"
-        basic = base64.b64encode(f"{forged}:secret".encode()).decode()
-        for response in (
-            self.client.post("/identity/o/api/token", {"client_id": forged}),
-            self.client.post(
-                "/identity/o/api/token", {}, headers={"Authorization": f"Basic {basic}"}
-            ),
-        ):
-            self.assertEqual(response.status_code, 400)
+        basic = {"Authorization": "Basic " + base64.b64encode(f"{forged}:x".encode()).decode()}
+        for path in ("/identity/o/api/token", "/identity/o/api/revoke"):
+            self.assertEqual(self.client.post(path, {"client_id": forged}).status_code, 400)
+            self.assertEqual(self.client.post(path, {}, headers=basic).status_code, 400)
 
     def test_a_stored_client_renews_after_its_metadata_expires(self):
         tokens = self.grant()
