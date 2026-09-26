@@ -4,7 +4,7 @@ import { afterEach, expect, it } from 'vitest';
 import { createMcpServer } from './server';
 
 let currentUserStatus: number;
-let documentsResponse: { status: number; body: string };
+let documentsResponse: { status: number; body: string } | 'unreachable';
 const stops: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
@@ -12,8 +12,10 @@ afterEach(async () => {
 });
 
 async function start() {
+  documentsResponse = { status: 200, body: '[]' };
   const django = http.createServer((req, res) => {
     if (req.url === '/api/current-user') res.writeHead(currentUserStatus).end('{}');
+    else if (documentsResponse === 'unreachable') res.socket!.destroy();
     else res.writeHead(documentsResponse.status).end(documentsResponse.body);
   });
   await new Promise<void>((resolve) => django.listen(0, '127.0.0.1', resolve));
@@ -97,21 +99,20 @@ it('marks reads as read-only and additive writes as non-destructive so clients c
   });
 });
 
-it('reports rejected API requests with their cause and the next step', async () => {
+it.each([
+  [{ status: 400, body: '{"title":["Invalid title."]}' }, 'RemDo rejected the request as invalid: {"title":["Invalid title."]}'],
+  [{ status: 400, body: '<!doctype html><title>Bad Request</title>' }, 'RemDo rejected the request as invalid.'],
+  [{ status: 401, body: '' }, 'RemDo no longer accepts this authorization. Reconnect RemDo.'],
+  [{ status: 403, body: '{}' }, 'The user is not allowed to do this in RemDo.'],
+  [{ status: 413, body: '' }, 'RemDo could not complete the request (413).'],
+  [{ status: 502, body: '' }, 'RemDo is unavailable. Try again later.'],
+  ['unreachable' as const, 'RemDo is unavailable. Try again later.'],
+])('reports API outcome %j as a tool error naming its cause', async (outcome, message) => {
   const post = await start();
   currentUserStatus = 200;
-  const callCreate = async () => rpc(post, 'tools/call', { name: 'create_document', arguments: { title: 'Plan' } }) as
-    Promise<{ isError?: boolean; content: Array<{ text: string }> }>;
+  documentsResponse = outcome;
 
-  documentsResponse = { status: 400, body: '{"title":["Invalid title."]}' };
-  expect(await callCreate()).toMatchObject({
-    isError: true,
-    content: [{ text: 'RemDo rejected the request as invalid: {"title":["Invalid title."]}' }],
-  });
+  const result = await rpc(post, 'tools/call', { name: 'create_document', arguments: { title: 'Plan' } });
 
-  documentsResponse = { status: 502, body: '' };
-  expect(await callCreate()).toMatchObject({
-    isError: true,
-    content: [{ text: 'RemDo is unavailable (502). Try again later.' }],
-  });
+  expect(result).toEqual({ isError: true, content: [{ type: 'text', text: message }] });
 });

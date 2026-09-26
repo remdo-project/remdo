@@ -25,13 +25,29 @@ const newNote: z.ZodType<NewNote> = z.lazy(() => z.object({
   children: z.array(newNote).optional(),
 }));
 
+const UNAVAILABLE = 'RemDo is unavailable. Try again later.';
+
+const additiveWrite = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
+
+function fieldErrors(body: string): string | null {
+  try {
+    const errors: unknown = JSON.parse(body);
+    return errors && typeof errors === 'object' ? JSON.stringify(errors) : null;
+  } catch {
+    return null;
+  }
+}
+
 function rejection(status: number, body: string): string {
+  if (status >= 500) return UNAVAILABLE;
   switch (status) {
-    case 400: return `RemDo rejected the request as invalid: ${body}`;
+    case 400: {
+      const errors = fieldErrors(body);
+      return errors ? `RemDo rejected the request as invalid: ${errors}` : 'RemDo rejected the request as invalid.';
+    }
     case 401: return 'RemDo no longer accepts this authorization. Reconnect RemDo.';
     case 403: return 'The user is not allowed to do this in RemDo.';
-    case 429: return 'RemDo is limiting requests. Try again later.';
-    default: return `RemDo is unavailable (${status}). Try again later.`;
+    default: return `RemDo could not complete the request (${status}).`;
   }
 }
 
@@ -61,6 +77,8 @@ export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions)
       },
       body: body === undefined ? undefined : Buffer.from(JSON.stringify(body)),
       signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
+    }).catch(() => {
+      throw new Error(UNAVAILABLE);
     });
     if (!response.ok) throw new Error(rejection(response.status, response.body.toString()));
     return JSON.parse(response.body.toString()) as unknown;
@@ -91,7 +109,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions)
       title: 'Create document',
       description: 'Create a RemDo document owned by the user and return its documentId.',
       inputSchema: { title: z.string().describe('Document title.') },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: additiveWrite,
     }, ({ title }) => respond(async () => {
       const { id } = await callApi(authorization, '/api/documents', 'POST', { title }) as { id: string };
       return { documentId: id, title, url: documentUrl(id) };
@@ -102,7 +120,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions)
       description: 'Append notes as the last children of a note (by noteAddress) '
         + 'or as the last top-level notes of a document (by documentId).',
       inputSchema: { parent: z.string().describe('A documentId or a noteAddress.'), notes: z.array(newNote) },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: additiveWrite,
     }, ({ parent, notes }) => respond(async () => {
       const ref = parseDocumentRef(parent);
       if (!ref) throw new Error('The parent is not a documentId or a noteAddress.');
