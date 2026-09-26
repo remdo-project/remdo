@@ -72,7 +72,7 @@ verification retains them.
 
 Django defaults to SQLite under `DATA_DIR`, keeping standalone production and
 local development self-contained. `DATABASE_URL` selects an external PostgreSQL
-database.
+database; its connections persist across requests and are checked before reuse.
 
 [Verification](../testing/test-harness.md#database-isolation) owns its databases
 and does not use an operator-supplied database URL.

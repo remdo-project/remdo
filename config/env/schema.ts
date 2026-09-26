@@ -7,6 +7,7 @@ const boolish = z
 
 const port = z.coerce.number().int().min(0).max(65_535).default(0);
 const str = z.string().default('');
+const count = z.coerce.number().int().min(1).default(1);
 
 export const envSchema = {
   NODE_ENV: str,
@@ -20,6 +21,7 @@ export const envSchema = {
   COLLAB_SERVER_PORT: port,
   API_SERVER_PORT: port,
   MCP_SERVER_PORT: port,
+  MCP_DOCUMENT_SLOTS: count,
   DEV_DOCUMENT_ID: str,
   COLLAB_INTERNAL_SECRET: str,
   // Django's SECRET_KEY; tools/env.defaults.sh supplies the development value.

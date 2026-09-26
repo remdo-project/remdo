@@ -61,3 +61,38 @@ remdo_configure_caddy_env() {
   CADDY_FORWARDED_PROTO="${app_origin_protocol%:}"
   export APP_ORIGIN CADDY_SITE_ADDRESS CADDY_FORWARDED_PROTO
 }
+
+# Print the container memory limit in bytes, or "max" when unlimited. cgroup v1
+# reports "unlimited" as a near-2^63 page-rounded value.
+remdo_container_memory_limit() {
+  cgroup_root="$1"
+  if [ -r "${cgroup_root}/memory.max" ]; then
+    cat "${cgroup_root}/memory.max"
+  elif [ -r "${cgroup_root}/memory/memory.limit_in_bytes" ]; then
+    v1_limit="$(cat "${cgroup_root}/memory/memory.limit_in_bytes")"
+    if [ "${v1_limit}" -ge 4611686018427387904 ]; then echo max; else echo "${v1_limit}"; fi
+  fi
+}
+
+# Node sizes each heap from the container limit on its own, so the two Node
+# services together could claim more memory than the instance has. Split what
+# the Python API and the gateway leave (~256 MB measured under load) instead.
+# MCP gets a slot per open document: ~32 MB baseline, and a 2000-note document
+# measured ~9 MB of MCP heap, allowed 16 MB.
+remdo_configure_node_heaps() {
+  memory_limit="$1"
+  collaboration_heap_mb=""
+  mcp_heap_mb=""
+  case "${memory_limit}" in
+    ''|max) return 0 ;;
+  esac
+  node_heap_mb=$((memory_limit / 1048576 - 256))
+  if [ "${node_heap_mb}" -lt 192 ]; then
+    echo "RemDo needs a memory limit of at least 448 MB." >&2
+    return 1
+  fi
+  mcp_heap_mb=$((node_heap_mb / 4))
+  collaboration_heap_mb=$((node_heap_mb - mcp_heap_mb))
+  MCP_DOCUMENT_SLOTS=$(((mcp_heap_mb - 32) / 16))
+  export MCP_DOCUMENT_SLOTS
+}

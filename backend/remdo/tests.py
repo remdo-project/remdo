@@ -26,6 +26,7 @@ def google_login_url():
 
 print(json.dumps({
     'database': settings.DATABASES['default']['ENGINE'],
+    'persistent': [settings.DATABASES['default'].get('CONN_MAX_AGE'), settings.DATABASES['default'].get('CONN_HEALTH_CHECKS')],
     'debug': settings.DEBUG,
     'data': str(settings.DATA_DIR),
     'origin': settings.APP_ORIGIN,
@@ -110,10 +111,9 @@ class ConfigurationTests(SimpleTestCase):
 
     def test_database_selection(self):
         self.assertEqual(self.settings()["database"], "django.db.backends.sqlite3")
-        self.assertEqual(
-            self.settings(DATABASE_URL="postgresql://test:testing@localhost/remdo")["database"],
-            "django.db.backends.postgresql",
-        )
+        postgres = self.settings(DATABASE_URL="postgresql://test:testing@localhost/remdo")
+        self.assertEqual(postgres["database"], "django.db.backends.postgresql")
+        self.assertEqual(postgres["persistent"], [600, True])
 
     def test_production_client_address_trust_matches_the_hosting_boundary(self):
         for environment, expected in (

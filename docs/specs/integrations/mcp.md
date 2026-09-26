@@ -25,6 +25,8 @@ after what it delegates to, whose owner defines its behavior.
 - Each tool declares a title and whether it only reads or changes the user's
   data, so clients can require confirmation before changes.
 - A failed tool call returns a tool error naming its cause.
+- Tool calls open as many documents at once as the server's memory allows; a
+  call that cannot open one within a bounded wait fails as busy.
 
 ## References
 

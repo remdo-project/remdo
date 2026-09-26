@@ -26,6 +26,7 @@ async function start() {
     origin,
     apiOrigin: `http://127.0.0.1:${(django.address() as AddressInfo).port}`,
     appOrigin: 'https://remdo.example',
+    documentSlots: 1,
   });
   await server.listen();
   stops.push(server.stop);

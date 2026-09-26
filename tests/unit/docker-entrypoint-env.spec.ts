@@ -1,5 +1,8 @@
 /* eslint-disable node/no-process-env */
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 function runEntryPointEnv(command: string, overrides: NodeJS.ProcessEnv): ReturnType<typeof spawnSync> {
@@ -150,5 +153,46 @@ describe('docker entrypoint internal services', () => {
       '4651',
       '4644',
     ]);
+  });
+});
+
+describe('docker entrypoint Node heaps', () => {
+  function heaps(memoryLimit: string) {
+    const result = runEntryPointEnv(
+      String.raw`remdo_configure_node_heaps '${memoryLimit}' && printf "%s %s %s" "$collaboration_heap_mb" "$mcp_heap_mb" "$MCP_DOCUMENT_SLOTS"`,
+      {},
+    );
+    return { status: result.status, heaps: String(result.stdout), error: String(result.stderr) };
+  }
+
+  it('splits the memory the other services leave between collaboration and MCP document slots', () => {
+    expect(heaps(String(512 * 2 ** 20))).toMatchObject({ status: 0, heaps: '192 64 2' });
+    expect(heaps(String(2048 * 2 ** 20))).toMatchObject({ status: 0, heaps: '1344 448 26' });
+    expect(heaps(String(448 * 2 ** 20))).toMatchObject({ status: 0, heaps: '144 48 1' });
+  });
+
+  it('leaves Node defaults without a container memory limit', () => {
+    expect(heaps('max')).toMatchObject({ status: 0, heaps: '  ' });
+    expect(heaps('')).toMatchObject({ status: 0, heaps: '  ' });
+  });
+
+  it('reads the container limit from cgroup v2 or v1', () => {
+    const limit = (files: Record<string, string>) => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-cgroup-'));
+      for (const [name, value] of Object.entries(files)) {
+        fs.mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
+        fs.writeFileSync(path.join(root, name), `${value}\n`);
+      }
+      return String(runEntryPointEnv(`remdo_container_memory_limit '${root}'`, {}).stdout).trim();
+    };
+    expect(limit({ 'memory.max': '536870912' })).toBe('536870912');
+    expect(limit({ 'memory.max': 'max' })).toBe('max');
+    expect(limit({ 'memory/memory.limit_in_bytes': '536870912' })).toBe('536870912');
+    expect(limit({ 'memory/memory.limit_in_bytes': '9223372036854771712' })).toBe('max');
+    expect(limit({})).toBe('');
+  });
+
+  it('refuses a memory limit too small for the services', () => {
+    expect(heaps(String(384 * 2 ** 20))).toMatchObject({ status: 1, error: 'RemDo needs a memory limit of at least 448 MB.\n' });
   });
 });

@@ -7,6 +7,7 @@ const server = createMcpServer({
   origin: resolveMcpServerOrigin(),
   apiOrigin: resolveApiServerOrigin(),
   appOrigin: config.env.APP_ORIGIN,
+  documentSlots: config.env.MCP_DOCUMENT_SLOTS,
 });
 await server.listen();
 function stop() {
