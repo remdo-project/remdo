@@ -6,6 +6,10 @@ It is reached at `/mcp` on the server's public origin over the Streamable HTTP
 transport, and follows the MCP authorization specification with RemDo as its
 authorization server.
 
+The server identifies itself with the product name, the app origin as its
+website, and the app icons, so clients show RemDo's current icon without
+inferring one from a favicon.
+
 ## Tools
 
 The server exposes the [open document](../outliner/open-document.md) and

@@ -57,7 +57,16 @@ export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions)
   }
 
   function createTools(authorization: string) {
-    const server = new McpServer({ name: 'remdo', version: '1' });
+    const server = new McpServer({
+      name: 'remdo',
+      title: 'RemDo',
+      version: '1',
+      websiteUrl: appOrigin,
+      icons: [
+        { src: new URL('/icon-192.png', appOrigin).href, mimeType: 'image/png', sizes: ['192x192'] },
+        { src: new URL('/logo.svg', appOrigin).href, mimeType: 'image/svg+xml', sizes: ['any'] },
+      ],
+    });
 
     server.registerTool('list_documents', {
       description: 'List the RemDo documents the user can access.',
