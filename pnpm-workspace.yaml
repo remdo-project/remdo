@@ -22,7 +22,7 @@ updateConfig:
   ignoreDependencies:
     # TODO(deps): retry TypeScript; typescript-eslint rejects 7.0 and tracks 7.1+ in typescript-eslint#10940.
     - typescript
-    # TODO(deps): retry workbox-build; version 7.4.1 causes a provenance downgrade.
+    # TODO(deps): retry workbox-build; 7.4.1 pulls @trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1, a trust downgrade.
     - workbox-build
 
 overrides:
