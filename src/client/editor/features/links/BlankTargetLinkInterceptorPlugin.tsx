@@ -17,19 +17,14 @@ export function BlankTargetLinkInterceptorPlugin() {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    const interceptLink = (event: MouseEvent, isMiddle: boolean) => {
+    const onClick = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Node)) {
         return;
       }
 
       const anchor = findAnchor(target);
-      if (anchor === null || anchor.href.length === 0) {
-        return;
-      }
-      const opensBlank = anchor.target === '_blank';
-      // Lexical 0.51 opens a middle-clicked link in a new tab; RemDo keeps other links in this tab.
-      if (!opensBlank && !isMiddle) {
+      if (anchor === null || anchor.target !== '_blank' || anchor.href.length === 0) {
         return;
       }
 
@@ -40,22 +35,14 @@ export function BlankTargetLinkInterceptorPlugin() {
         return;
       }
 
-      if (opensBlank) {
-        globalThis.open(anchor.href, '_blank', 'noopener,noreferrer');
-      } else {
-        globalThis.open(anchor.href, '_self');
-      }
+      globalThis.open(anchor.href, '_blank', 'noopener,noreferrer');
       event.preventDefault();
       event.stopPropagation();
     };
 
-    const onClick = (event: MouseEvent) => {
-      interceptLink(event, false);
-    };
-
     const onAuxClick = (event: MouseEvent) => {
       if (event.button === 1) {
-        interceptLink(event, true);
+        onClick(event);
       }
     };
 
