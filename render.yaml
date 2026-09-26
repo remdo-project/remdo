@@ -12,7 +12,7 @@ projects:
     - type: web
       name: remdo
       runtime: docker
-      plan: starter
+      plan: standard
       region: frankfurt
       branch: main
       dockerfilePath: ./docker/Dockerfile
