@@ -11,8 +11,8 @@ anything written via the memory/remember workflows — are a per-machine cache,
 
 ## Agent CLIs from Bash
 
-Run `codex exec`, `claude -p`, and `grok -p` with `< /dev/null` so they do not
-wait on the Bash tool's open stdin.
+Give `codex exec`, `claude -p`, and `grok -p` explicit stdin — the piped
+input or `< /dev/null` — so they do not wait on the Bash tool's open stdin.
 
 ## Code comments
 
