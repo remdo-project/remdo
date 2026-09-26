@@ -14,6 +14,7 @@
   "entry": [
     "tools/snapshot/cli.ts!",
     "src/collaboration-server/main.ts!",
+    "src/mcp/main.ts!",
     // Django renders the app page that loads this Vite entry.
     "src/client/app/shell/main.tsx!",
     "playwright.docker.config.ts",

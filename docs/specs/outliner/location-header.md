@@ -39,7 +39,7 @@ Rename follows [Document Access](../access/access-control.md#document-access) an
   failure retains the draft and shows an error for explicit retry.
 - **Commit.** Submission requires acceptance by the server that owns the document;
   an unavailable source retains the draft for retry without queuing the rename.
-  Concurrent renames resolve to the last server-committed whole name. Users with
+  Concurrent renames resolve to the last server-accepted whole name. Users with
   access see it in open document views and lists after synchronization.
 - **Return.** Closing follows the [menu's focus restoration](./menu.md#behavior) and preserves the
   current destination and Home browsing position when still available.

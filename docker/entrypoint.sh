@@ -62,7 +62,7 @@ stop_children() {
   trap - INT TERM
 
   # Keep Django alive until collaboration has finished its SQL persistence.
-  for stopping_name in caddy collaboration api; do
+  for stopping_name in caddy mcp collaboration api; do
     for managed_child in $managed_children; do
       child_name="${managed_child%%:*}"
       child_pid="${managed_child#*:}"
@@ -104,6 +104,8 @@ else:
 PYREADY
 start_child collaboration env -u AUTH_SECRET -u DATABASE_URL -u GOOGLE_CLIENT_SECRET \
   node /app/collaboration.mjs
+start_child mcp env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET -u DATABASE_URL -u GOOGLE_CLIENT_SECRET \
+  node /app/mcp.mjs
 start_child caddy env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET -u GOOGLE_CLIENT_SECRET \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 

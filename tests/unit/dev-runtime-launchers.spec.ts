@@ -122,6 +122,7 @@ describe('development runtime launchers', () => {
       APP_ORIGIN: 'http://localhost:4640',
       API_SERVER_PORT: '4651',
       COLLAB_SERVER_PORT: '4644',
+      MCP_SERVER_PORT: '4653',
       DJANGO_SETTINGS_MODULE: 'remdo.development',
       REMDO_GATEWAY_BIND_ADDRESS: '127.0.0.1',
       REMDO_DEV_CONTAINER: 'true',

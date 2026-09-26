@@ -210,8 +210,8 @@ Decisions requiring a contract owner's judgement:
   receipt in the collaboration server before SQL persistence. The accepted crash
   window can lose acknowledged edits and grows during database outages. Design
   durable-save acknowledgements and their browser/logout semantics when stronger
-  guarantees are required; headless writes already require a committed
-  persistence barrier.
+  guarantees are required; headless hosts already report writes complete only
+  after a committed persistence barrier.
 
 - **Backup and recovery.** Define and verify coherent recovery
   for [supported deployments](guides/production-deployment.md), covering application metadata, document content,
@@ -234,31 +234,17 @@ Decisions requiring a contract owner's judgement:
 Goal: a Claude web custom connector that saves a conversation outline into a
 RemDo document, minimal but useful for real work.
 
-Suggested approach; reconfirm each decision before specifying or implementing
-it:
+- The [MCP server](specs/integrations/mcp.md) exposes listing documents,
+  creating a document, and appending children. Expose the remaining operations
+  it covers, such as children reads, search, renaming, deletion, and sharing.
+- Write the Connect-Claude guide and try the connector on the hosted instance.
 
-- A stateless Node process hosts the note SDK server-side; MCP is a thin
-  adapter over it, routed by the [gateway](architecture.md#gateway) at `/mcp`.
-- The host acts only with the caller's
-  [delegated access](specs/access/access-control.md#delegated-access) credential,
-  which the hub enforces, and holds no internal secret.
-- Tools speak the adapter-neutral [note model](specs/outliner/note-model.md)
-  (parent note, note subtree), not Lexical or document-specific terms.
-- A write reports success only after the database commits, through the
-  [headless persistence barrier](architecture.md#hydration-vs-sync).
-  Coordinate with durable collaboration acknowledgements under
-  [Operations](#operations).
+### Delegated access
 
-Steps, each moving its settled decisions into their owners and out of this
-entry:
-
-1. MCP adapter over [appending notes](specs/outliner/insertion.md#appending-notes),
-   including a headless open-document host, using
-   [delegated access](specs/access/access-control.md#delegated-access), process
-   wiring, and end-to-end coverage.
-2. Connect-Claude guide and trial on the hosted instance.
-
-Open decisions: default save target and tools beyond saving.
+- **Limit connected apps.** Let users limit what connected apps can access, for
+  example per document from the share dialog. Until then, a connected app can
+  use every operation the [MCP server](specs/integrations/mcp.md) exposes,
+  including deleting and sharing documents once those are exposed.
 
 ### SDK
 

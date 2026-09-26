@@ -21,7 +21,7 @@ if [[ "${APP_ORIGIN}" =~ :([0-9]+)$ ]]; then
 fi
 CONTAINER_NAME="remdo-${PORT}"
 case "${PORT}" in
-  4004|4011)
+  4004|4011|4013)
     echo "APP_ORIGIN cannot use container-reserved port ${PORT}." >&2
     exit 1
     ;;

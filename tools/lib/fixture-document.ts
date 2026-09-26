@@ -24,12 +24,11 @@ export async function createFixtureDocuments(documents: FixtureDocument[]): Prom
   for (const [index, { content }] of documents.entries()) {
     if (!content) continue;
     const id = ids[index]!;
-    await withHeadlessEditor(id, async (editor, { persist }) => {
+    await withHeadlessEditor(id, (editor) => {
       const state = prepareEditorStateForRuntime(content, id);
       const loaded = waitForEditorUpdate(editor);
       editor.setEditorState(editor.parseEditorState(JSON.stringify(state)));
-      await loaded;
-      await persist();
+      return loaded;
     });
   }
   return ids;

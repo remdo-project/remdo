@@ -281,3 +281,10 @@ class ClientMetadataHostTests(TestCase):
                 self.allowed("https://claude.example/metadata", "/identity/o/api/token")
             )
         lookup.assert_not_called()
+
+
+class ProtectedResourceMetadataTests(TestCase):
+    def test_mcp_metadata_names_remdo_as_its_authorization_server(self):
+        metadata = self.client.get("/.well-known/oauth-protected-resource/mcp").json()
+        self.assertEqual(metadata["resource"], "http://testserver/mcp")
+        self.assertEqual(metadata["authorization_servers"], ["http://testserver"])

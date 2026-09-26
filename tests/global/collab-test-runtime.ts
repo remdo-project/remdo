@@ -3,7 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { config } from '../../config';
-import { INTERNAL_SERVICE_HOST } from '../../src/platform/net/origins';
+import { createMcpServer } from '../../src/mcp/server';
+import { INTERNAL_SERVICE_HOST, resolveApiServerOrigin } from '../../src/platform/net/origins';
 import { ensureCollabServer } from '../../tools/lib/collab-server-helper';
 import { isPortOpen } from '../../tools/lib/net';
 import { startRemdoApiServer } from '../../tools/lib/remdo-api-server-helper';
@@ -81,6 +82,11 @@ export default async function collabTestRuntime() {
         label: 'RemDo API',
         port: config.env.API_SERVER_PORT,
       },
+      {
+        host: INTERNAL_SERVICE_HOST,
+        label: 'MCP',
+        port: config.env.MCP_SERVER_PORT,
+      },
     ],
   });
 
@@ -90,7 +96,13 @@ export default async function collabTestRuntime() {
       port: config.env.COLLAB_SERVER_PORT,
       reuseExisting: false,
     });
-    return () => stopAll([stopCollab, stopApi]);
+    const mcp = createMcpServer({
+      port: config.env.MCP_SERVER_PORT,
+      apiOrigin: resolveApiServerOrigin(),
+      appOrigin: config.env.APP_ORIGIN,
+    });
+    await mcp.listen();
+    return () => stopAll([mcp.stop, stopCollab, stopApi]);
   } catch (error) {
     try {
       await stopApi();
