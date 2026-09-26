@@ -5,10 +5,12 @@ import ipaddress
 import socket
 from urllib.parse import urlsplit
 
+from allauth.core import context
 from allauth.idp.oidc.adapter import DefaultOIDCAdapter
 from allauth.idp.oidc.internal.cimd import is_cimd_url
 from allauth.idp.oidc.models import Client, PrivateKey, Token
 from allauth.idp.oidc.views import authorization
+from allauth.idp.oidc.views import token as allauth_token
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -16,9 +18,11 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from rest_framework.authentication import BaseAuthentication, get_authorization_header
@@ -136,10 +140,21 @@ class OIDCAdapter(DefaultOIDCAdapter):
         data["client_id_metadata_document_supported"] = True
 
     def is_cimd_url_allowed(self, url):
-        # Metadata is fetched before any client is authenticated, so it must
-        # not reach private or loopback hosts.
+        # The token endpoint looks clients up before authenticating anyone, so
+        # metadata is fetched only while a signed-in user authorizes, and only
+        # from public hosts on the default port. Stored clients keep working.
+        request = context.request
+        if (
+            request is None
+            or request.path != reverse("idp:oidc:authorization")
+            or not request.user.is_authenticated
+        ):
+            return False
+        parsed = urlsplit(url)
+        if parsed.port is not None:
+            return False
         try:
-            addresses = socket.getaddrinfo(urlsplit(url).hostname, 443, proto=socket.IPPROTO_TCP)
+            addresses = socket.getaddrinfo(parsed.hostname, 443, proto=socket.IPPROTO_TCP)
         except OSError:
             return False
         return all(ipaddress.ip_address(address[4][0]).is_global for address in addresses)
@@ -156,11 +171,23 @@ def unavailable(request):
     raise Http404
 
 
+def _printable(value):
+    return value is None or value.isprintable()
+
+
+@csrf_exempt
+def token(request):
+    # allauth logs rejected client IDs verbatim.
+    if not _printable(request.POST.get("client_id")):
+        return JsonResponse({"error": "invalid_client"}, status=400)
+    return allauth_token(request)
+
+
 @never_cache
 def authorize(request):
     client_id = request.GET.get("client_id")
     # Applications identify themselves only by client metadata documents.
-    if client_id is not None and not is_cimd_url(client_id):
+    if client_id is not None and not (is_cimd_url(client_id) and _printable(client_id)):
         return _refuse(request, "unknown_app")
     # Only the consented code flow grants access: allauth would otherwise issue
     # tokens without consent for prompt=none, or in the redirect for the

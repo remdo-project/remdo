@@ -2,12 +2,15 @@ import base64
 import hashlib
 import re
 import socket
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlencode, urlsplit
 
+from allauth.core.context import request_context
+from allauth.idp.oidc.models import Client
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from documents.models import Document
 
 from .delegated import OIDCAdapter, signing_key_pem
@@ -188,6 +191,30 @@ class DelegatedAccessTests(TestCase):
         response = self.client.get(f"/identity/o/authorize?{query}", follow=True)
         self.assertContains(response, 'name="scopes" value="openid"')
 
+    def test_anonymous_token_requests_fetch_no_metadata_and_store_no_client(self):
+        fetch = Mock(side_effect=fetch_metadata)
+        with patch("allauth.idp.oidc.internal.cimd.fetch_metadata", fetch):
+            response = self.client.post(
+                "/identity/o/api/token",
+                {
+                    "grant_type": "authorization_code",
+                    "code": "forged",
+                    "client_id": CLIENT_ID,
+                    "redirect_uri": REDIRECT_URI,
+                    "code_verifier": VERIFIER,
+                },
+            )
+        self.assertEqual(response.status_code, 401)
+        fetch.assert_not_called()
+        self.assertFalse(Client.objects.exists())
+        forged = self.client.post("/identity/o/api/token", {"client_id": "https:\nforged"})
+        self.assertEqual(forged.status_code, 400)
+
+    def test_a_stored_client_renews_after_its_metadata_expires(self):
+        tokens = self.grant()
+        Client.objects.filter(pk=CLIENT_ID).update(data={"cimd": True, "updated_at": 0})
+        self.assertEqual(self.refresh(tokens["refresh_token"]).status_code, 200)
+
     def refresh(self, token):
         return self.client.post(
             "/identity/o/api/token",
@@ -228,9 +255,23 @@ class SigningKeyTests(TestCase):
 
 
 class ClientMetadataHostTests(TestCase):
-    def test_metadata_is_fetched_only_from_public_hosts(self):
-        adapter = OIDCAdapter()
-        self.assertFalse(adapter.is_cimd_url_allowed("https://localhost/metadata"))
-        self.assertFalse(adapter.is_cimd_url_allowed("https://10.0.0.1/metadata"))
+    def allowed(self, url, path="/identity/o/authorize", signed_in=True):
+        request = RequestFactory().get(path)
+        request.user = User(email="owner@example.test") if signed_in else AnonymousUser()
+        with request_context(request):
+            return OIDCAdapter().is_cimd_url_allowed(url)
+
+    def test_metadata_is_fetched_only_from_public_hosts_on_the_default_port(self):
+        self.assertFalse(self.allowed("https://localhost/metadata"))
+        self.assertFalse(self.allowed("https://10.0.0.1/metadata"))
         with patch("accounts.delegated.socket.getaddrinfo", public_address):
-            self.assertTrue(adapter.is_cimd_url_allowed("https://claude.example/metadata"))
+            self.assertTrue(self.allowed("https://claude.example/metadata"))
+            self.assertFalse(self.allowed("https://claude.example:8443/metadata"))
+
+    def test_metadata_is_fetched_only_while_a_signed_in_user_authorizes(self):
+        with patch("accounts.delegated.socket.getaddrinfo") as lookup:
+            self.assertFalse(self.allowed("https://claude.example/metadata", signed_in=False))
+            self.assertFalse(
+                self.allowed("https://claude.example/metadata", "/identity/o/api/token")
+            )
+        lookup.assert_not_called()
