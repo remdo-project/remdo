@@ -9,6 +9,11 @@ anything written via the memory/remember workflows — are a per-machine cache,
 `MEMORY.md` plus one file per memory). Do **not** write them under this repo's
 `.claude/` (e.g. `.claude/projects/.../memory/`) or under any worktree.
 
+## Agent CLIs from Bash
+
+Run `codex exec`, `claude -p`, and `grok -p` with `< /dev/null` so they do not
+wait on the Bash tool's open stdin.
+
 ## Code comments
 
 Default to no comment. A comment earns its place only by carrying what the code
