@@ -38,6 +38,8 @@ function requestDjango(url: URL, options: {
   });
 }
 
+const isBearer = (authorization: string | null | undefined) => /^bearer \S/iu.test(authorization ?? '');
+
 class AuthorizationUnavailable extends Error {
   readonly reason = 'collaboration.service-unavailable';
   constructor() { super('collaboration.service-unavailable'); }
@@ -166,7 +168,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
     })],
     async onUpgrade({ request, socket }) {
       if (stopping || request.url !== '/collaboration'
-        || (!request.headers.origin && !authorizedOperator(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()] as string | undefined))) {
+        || (!request.headers.origin && !isBearer(request.headers.authorization)
+          && !authorizedOperator(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()] as string | undefined))) {
         socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
         // Hocuspocus uses an empty rejection to stop its default handler.
         // eslint-disable-next-line no-throw-literal
@@ -176,7 +179,9 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
     async onAuthenticate({ documentName, requestHeaders }) {
       const operator = authorizedOperator(requestHeaders.get(INTERNAL_SECRET_HEADER) ?? undefined);
       const headers: Record<string, string> = { ...internalHeaders };
+      const authorization = requestHeaders.get('authorization');
       if (operator) headers['X-Remdo-Collaboration-Operator'] = '1';
+      else if (isBearer(authorization)) headers.Authorization = authorization!;
       else {
         headers.Cookie = requestHeaders.get('cookie') ?? '';
         headers.Origin = requestHeaders.get('origin') ?? '';

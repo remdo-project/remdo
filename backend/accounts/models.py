@@ -39,3 +39,9 @@ def create_starter_document(sender, instance, created, raw, **kwargs):
         from documents.models import Document
 
         Document.objects.create(owner=instance, title="New Document")
+
+
+class SigningKey(models.Model):
+    """The delegated-access ID-token signing key, encrypted with the auth secret."""
+
+    encrypted_pem = models.TextField()

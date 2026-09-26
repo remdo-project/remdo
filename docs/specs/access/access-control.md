@@ -6,8 +6,9 @@ collaborative document state a user can access.
 
 ## Access Scope
 
-User-facing document access is authenticated by a session on the server that
-owns the document.
+User-facing document access is authenticated by a session, or a
+[delegated access](#delegated-access) token, on the server that owns the
+document.
 RemDo does not expose anonymous documents, public documents, document-access
 links carrying bearer credentials, or a local-only no-login mode.
 
@@ -105,8 +106,8 @@ Users with full document access may [rename the document](../outliner/location-h
 each submission using the caller's current access; client metadata caches do not
 authorize changes.
 
-Django authorizes each [collaboration connection](../../architecture.md#collaboration-credentials-and-paths) using its session and trusted
-browser origin. Owners and direct grantees receive full document access; other
+Django authorizes each [collaboration connection](../../architecture.md#collaboration-credentials-and-paths) using its credential.
+Owners and direct grantees receive full document access; other
 users are denied before document content loads.
 
 ### Document sharing
@@ -171,6 +172,28 @@ A server's canonical public port namespaces its session and CSRF cookies. Local
 stacks on shifted port ranges keep independent sessions while sharing one
 browser hostname.
 
+## Delegated access
+
+A signed-in user can grant a third-party application access that acts as that
+user. The application requests it through the OAuth authorization-code flow with
+PKCE; the user signs in and consents on RemDo. Consent and connected-app
+management name the application by the host serving its client metadata,
+followed by its declared name, and consent states that it can access and edit
+the user's documents. Applications identify themselves only by a client metadata
+document URL served over HTTPS. Staff and superuser accounts cannot grant or use
+delegated access, including a grant made before promotion.
+
+A delegated access token authenticates as its user on the RemDo API and on
+[collaboration connections](../../architecture.md#collaboration-credentials-and-paths),
+under that user's current [document access](#document-access), without a
+browser origin. Account pages, sign-out, administration, and connected-app
+management accept only the browser session. Access tokens are short-lived; the
+application renews them with a refresh token that each renewal replaces.
+
+A signed-in user's **Connected apps** page lists the applications they granted
+and revokes each one. Revocation ends that application's tokens at once;
+established collaboration connections keep their authorization until disconnect.
+
 ## Future
 
 - Consider grant revocation when extending sharing management.
@@ -180,6 +203,7 @@ browser hostname.
 - Define anonymous access and public documents.
 - Define bearer-link access and its revocation, regeneration, and invalid-link behavior.
 - Define a local-only no-login mode.
+- Consider narrower delegated-access scopes or per-document grants.
 
 ## References
 

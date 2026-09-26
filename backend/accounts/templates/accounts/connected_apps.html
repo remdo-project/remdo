@@ -1,0 +1,23 @@
+{% extends "allauth/layouts/entrance.html" %}
+{% load allauth delegated %}
+{% block head_title %}Connected apps · RemDo{% endblock %}
+{% block content %}
+  <div>
+    <h1 class="remdo-title">Connected apps</h1>
+    <p class="remdo-description">These apps can access and edit your documents as you.</p>
+  </div>
+  {% for client in clients %}
+    {% element form method="post" %}
+      {% slot body %}
+        {% csrf_token %}
+        <input type="hidden" name="client" value="{{ client.pk }}">
+        <p>{{ client|client_label }}</p>
+      {% endslot %}
+      {% slot actions %}
+        {% element button type="submit" %}Disconnect{% endelement %}
+      {% endslot %}
+    {% endelement %}
+  {% empty %}
+    <p class="remdo-description">No apps are connected.</p>
+  {% endfor %}
+{% endblock %}

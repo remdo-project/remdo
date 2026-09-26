@@ -1,0 +1,24 @@
+{% extends "allauth/layouts/entrance.html" %}
+{% load allauth delegated %}
+{% block head_title %}Connect {{ client|client_label }} · RemDo{% endblock %}
+{% block content %}
+  <div>
+    <h1 class="remdo-title">Connect {{ client|client_label }}</h1>
+    <p class="remdo-description">
+      {{ client|client_label }} will be able to access and edit your RemDo documents as you.
+      You can disconnect it at any time from <a href="/accounts/connected-apps/">Connected apps</a>.
+    </p>
+  </div>
+  {% url 'idp:oidc:authorization' as authorize_url %}
+  {% element form method="post" action=authorize_url %}
+    {% slot body %}
+      {% csrf_token %}
+      {{ form.request }}
+      {% for scope in form.scopes.initial %}<input type="hidden" name="scopes" value="{{ scope }}">{% endfor %}
+    {% endslot %}
+    {% slot actions %}
+      {% element button name="action" value="grant" type="submit" %}Allow{% endelement %}
+      {% element button name="action" value="cancel" type="submit" %}Cancel{% endelement %}
+    {% endslot %}
+  {% endelement %}
+{% endblock %}

@@ -1,3 +1,4 @@
+from accounts.delegated import authorize, connected_apps, revoke, token, unavailable
 from accounts.views import LoginView, admin_logout, google_callback
 from allauth.account.decorators import secure_admin_login
 from allauth.account.views import AccountInactiveView
@@ -23,6 +24,16 @@ urlpatterns = [
     re_path(r"^sign-out/?$", app_page),
     path("accounts/login/", LoginView.as_view(), name="account_login"),
     path("accounts/inactive/", AccountInactiveView.as_view(), name="account_inactive"),
+    path("accounts/connected-apps/", connected_apps),
+    path("identity/o/authorize", authorize),
+    path("identity/o/api/token", token),
+    path("identity/o/api/revoke", revoke),
+    # Delegated access grants only through the authorization-code flow, and
+    # sign-out goes through the app's own flow.
+    path("identity/o/device", unavailable),
+    path("identity/o/api/device/code", unavailable),
+    path("identity/o/logout", unavailable),
+    path("", include("allauth.idp.urls")),
     path("admin/logout/", admin_logout),
     path("admin/", admin.site.urls),
     path("api/auth/", include("accounts.headless_urls")),
