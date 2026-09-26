@@ -4,11 +4,10 @@ import { Server } from '@hocuspocus/server';
 import type { Document } from '@hocuspocus/server';
 import { Database } from '@hocuspocus/extension-database';
 import * as Y from 'yjs';
-import { requestDjango } from '#platform/net/django-request';
+import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { decodePersistenceMessage, encodePersistenceMessage } from '#platform/net/persistence-barrier';
 
 export const INTERNAL_SECRET_HEADER = 'X-Remdo-Collaboration-Secret';
-export const DJANGO_REQUEST_TIMEOUT_MS = 10_000;
 
 interface ServerOptions {
   port: number;
@@ -16,8 +15,6 @@ interface ServerOptions {
   secret: string;
   appOrigin: string;
 }
-
-const isBearer = (authorization: string | null | undefined) => /^bearer \S/iu.test(authorization ?? '');
 
 class AuthorizationUnavailable extends Error {
   readonly reason = 'collaboration.service-unavailable';

@@ -1,6 +1,10 @@
 import { Buffer } from 'node:buffer';
 import { request as httpRequest } from 'node:http';
 
+export const DJANGO_REQUEST_TIMEOUT_MS = 10_000;
+
+export const isBearer = (authorization: string | null | undefined) => /^bearer \S/iu.test(authorization ?? '');
+
 // Node fetch ignores a caller-supplied Host. The internal loopback connection
 // must preserve Django's canonical public host without widening ALLOWED_HOSTS.
 export function requestDjango(url: URL, options: {

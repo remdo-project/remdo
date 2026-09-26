@@ -6,10 +6,8 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { NewNote } from '#note-sdk';
-import { requestDjango } from '#platform/net/django-request';
+import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { withHeadlessOpenDocument } from '../headless/open-document';
-
-const DJANGO_REQUEST_TIMEOUT_MS = 10_000;
 
 interface ServerOptions {
   port: number;
@@ -35,7 +33,7 @@ async function respond(run: () => Promise<unknown>): Promise<CallToolResult> {
 }
 
 export function createMcpServer({ port, apiOrigin, appOrigin }: ServerOptions) {
-  const host = new URL(appOrigin).host;
+  const { host, protocol } = new URL(appOrigin);
   const resourceMetadata = new URL('/.well-known/oauth-protected-resource/mcp', appOrigin).href;
   const documentUrl = (documentId: string, noteId?: string) =>
     new URL(`/n/${noteId ? `${documentId}_${noteId}` : documentId}`, appOrigin).href;
@@ -46,7 +44,7 @@ export function createMcpServer({ port, apiOrigin, appOrigin }: ServerOptions) {
       headers: {
         Authorization: authorization,
         Host: host,
-        'X-Forwarded-Proto': new URL(appOrigin).protocol.slice(0, -1),
+        'X-Forwarded-Proto': protocol.slice(0, -1),
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       },
       body: body === undefined ? undefined : Buffer.from(JSON.stringify(body)),
@@ -95,7 +93,7 @@ export function createMcpServer({ port, apiOrigin, appOrigin }: ServerOptions) {
 
   async function handleMcp(request: IncomingMessage, response: ServerResponse) {
     const authorization = request.headers.authorization;
-    if (!authorization || !/^bearer \S/iu.test(authorization)) {
+    if (!authorization || !isBearer(authorization)) {
       challenge(response, false);
       return;
     }
@@ -117,9 +115,7 @@ export function createMcpServer({ port, apiOrigin, appOrigin }: ServerOptions) {
 
   const http = createServer((request, response) => {
     const path = new URL(request.url ?? '/', 'http://localhost').pathname;
-    if (path === '/ready' && request.method === 'GET') {
-      response.writeHead(200).end();
-    } else if (path === '/mcp') {
+    if (path === '/mcp') {
       handleMcp(request, response).catch(() => {
         if (!response.headersSent) response.writeHead(500).end();
       });
@@ -130,7 +126,6 @@ export function createMcpServer({ port, apiOrigin, appOrigin }: ServerOptions) {
 
   return {
     listen: () => new Promise<void>((resolve) => http.listen(port, '127.0.0.1', resolve)),
-    address: () => http.address(),
     stop: () => new Promise<void>((resolve, reject) => http.close((error) => error ? reject(error) : resolve())),
   };
 }

@@ -90,8 +90,8 @@ validates browser origins against the [configured trusted origins](specs/access/
 ### Gateway
 
 The gateway explicitly owns frontend assets, Django static assets, health
-probes, collaboration endpoints, and the [MCP server](specs/integrations/mcp.md)
-at `/mcp`. Django owns all other HTTP routes,
+probes, collaboration endpoints, and the [MCP server](specs/integrations/mcp.md).
+Django owns all other HTTP routes,
 including the app routes ([Home](specs/outliner/home.md) at `/`, `/n/*`, and `/sign-out`),
 unknown routes, and their 404 responses. Normal HTTP routes have the
 same owner in development and production; development additionally serves
@@ -228,11 +228,13 @@ headless consumers attach only the network provider.
   process crash can lose acknowledged edits before a save completes. Database
   outages can extend that window.
 
-A headless host reports a write complete only after a persistence barrier,
-requested after synchronization while the document remains attached. Any
-connection authorized for the document may request it over that connection. It
-completes only after Django commits the full current state, including
-deletion-only changes, and rejects on persistence failure.
+A [host without a
+viewer](specs/outliner/open-document.md#operations-and-ownership), such as the
+[MCP server](specs/integrations/mcp.md), reports a write complete only after a
+persistence barrier, requested after synchronization while the document remains
+attached. Any connection authorized for the document may request it over that
+connection. It completes only after Django commits the full current state,
+including deletion-only changes, and rejects on persistence failure.
 
 ## Offline Application Behavior
 

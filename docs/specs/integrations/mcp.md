@@ -9,17 +9,16 @@ authorization server.
 ## Tools
 
 The server exposes the [open document](../outliner/open-document.md) and
-[user data](../outliner/user-data.md) operations that act without a viewer as
-tools. Each tool is named after the operation it delegates to, whose owner
-defines its behavior.
+[user data](../outliner/user-data.md) reads and operations that act without a
+viewer, excluding observation and capability reads, as tools. Each tool is named
+after what it delegates to, whose owner defines its behavior.
 
 - A tool addresses a document by its
   [`documentId`](../outliner/note-ids.md#definitions), which also addresses the
   document root, and an editor note by its
   [`noteAddress`](../outliner/note-ids.md#global-addresses). Results that
   identify documents or notes include their URLs.
-- An unavailable or ineligible target, or a rejected operation, returns a tool
-  error.
+- A failed tool call returns a tool error.
 
 ## References
 
