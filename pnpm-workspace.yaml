@@ -20,7 +20,7 @@ updateNotifier: false
 
 updateConfig:
   ignoreDependencies:
-    # TODO(deps): retry TypeScript; version 7 is unsupported by @typescript-eslint.
+    # TODO(deps): retry TypeScript; typescript-eslint rejects 7.0 and tracks 7.1+ in typescript-eslint#10940.
     - typescript
     # TODO(deps): retry workbox-build; version 7.4.1 causes a provenance downgrade.
     - workbox-build
