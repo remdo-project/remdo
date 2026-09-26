@@ -460,6 +460,22 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     });
   });
 
+  it('typing an external URL with credentials links the whole URL', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = 'https://user:pass@example.com/path';
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe(url);
+      expect(linkNode.getURL()).toBe(url);
+    });
+  });
+
   it('typing a long-TLD www URL creates a regular link', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const text = 'www.example.technology/';

@@ -2,7 +2,7 @@ import { $createLinkNode, AutoLinkNode, LinkNode } from '@lexical/link';
 import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { LinkMatcher } from '@lexical/link';
-import LinkifyIt from 'linkify-it';
+import { LinkifyIt } from 'linkify-it';
 import { $getNodeByKey, TextNode, mergeRegister } from 'lexical';
 import { useEffect } from 'react';
 import tlds from 'tlds';
@@ -18,7 +18,7 @@ const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
 
 const linkify = new LinkifyIt()
   .tlds(tlds)
-  .set({ fuzzyEmail: false, fuzzyIP: false, fuzzyLink: true });
+  .set({ fuzzyEmail: false, fuzzyIP: false, fuzzyLink: true, urlAuth: true });
 
 interface MatchResult {
   attributes: typeof EXTERNAL_LINK_ATTRIBUTES;
@@ -59,10 +59,6 @@ function normalizeExternalUrl(url: string): string | null {
 }
 
 const externalUrlMatcher: LinkMatcher = (text): MatchResult | null => {
-  if (!linkify.pretest(text)) {
-    return null;
-  }
-
   const match = linkify.match(text)?.find(isSupportedExternalMatch);
   if (!match) {
     return null;
