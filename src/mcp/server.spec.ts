@@ -46,4 +46,7 @@ it('challenges missing and rejected tokens but reports an unavailable RemDo as u
 
   currentUserStatus = 502;
   expect((await post('Bearer valid')).status).toBe(503);
+
+  await stops.shift()!();
+  expect((await post('Bearer valid')).status).toBe(503);
 });
