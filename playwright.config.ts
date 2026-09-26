@@ -18,7 +18,9 @@ export default defineConfig({
     },
     collaborationWebServer,
     {
-      command: 'pnpm exec vite',
+      // Not `pnpm exec vite`: from pnpm 11.27.1 that wrapper exits while Vite, which watches stdin
+      // for its parent's exit outside CI, keeps running orphaned, and the run stalls.
+      command: 'vite',
       name: 'app',
       url: apiHealthURL,
     },
