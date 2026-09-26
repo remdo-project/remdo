@@ -6,7 +6,7 @@ export const PENDING_SIGN_OUT_STORAGE_KEY = 'remdo-pending-sign-out';
 const PENDING_SIGN_OUT_ORIGIN_KEY = 'remdo-pending-sign-out-origin';
 export const CONFIRMED_SIGN_OUT_KEY = 'remdo-sign-out-confirmed';
 const PENDING_SIGN_OUT_STORAGE_VALUE = '1';
-const SERVER_SIGN_OUT_TIMEOUT_MS = 1500;
+const SERVER_SIGN_OUT_TIMEOUT_MS = 5000;
 const SIGN_OUT_SESSION_CHECK_TIMEOUT_MS = 1500;
 
 type CurrentSession = NonNullable<Awaited<ReturnType<typeof getSession>>>;

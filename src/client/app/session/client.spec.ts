@@ -321,7 +321,7 @@ describe('auth client session gate', () => {
     const { rememberPendingSignOut, revokeServerSession, hasConfirmedSignOut } = await import('./client');
     rememberPendingSignOut();
     const logout = revokeServerSession();
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(5000);
     await logout;
     expect(hasConfirmedSignOut()).toBe(false);
     vi.useRealTimers();
