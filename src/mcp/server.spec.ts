@@ -25,9 +25,13 @@ async function start() {
   });
   await server.listen();
   stops.push(server.stop);
-  return (authorization?: string) => fetch(new URL('/mcp', origin), {
+  return (authorization?: string, body?: unknown) => fetch(new URL('/mcp', origin), {
     method: 'POST',
-    headers: authorization ? { Authorization: authorization } : {},
+    headers: {
+      ...(authorization ? { Authorization: authorization } : {}),
+      ...(body === undefined ? {} : { Accept: 'application/json, text/event-stream', 'Content-Type': 'application/json' }),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
 
@@ -49,4 +53,27 @@ it('challenges missing and rejected tokens but reports an unavailable RemDo as u
 
   await stops.shift()!();
   expect((await post('Bearer valid')).status).toBe(503);
+});
+
+it('identifies itself with the app icon so clients do not guess it from a favicon', async () => {
+  const post = await start();
+  currentUserStatus = 200;
+
+  const response = await post('Bearer valid', {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'initialize',
+    params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'test', version: '1' } },
+  });
+
+  const data = (await response.text()).split('\n').find((line) => line.startsWith('data: '))!;
+  const { result } = JSON.parse(data.slice('data: '.length)) as { result: { serverInfo: unknown } };
+  expect(result.serverInfo).toMatchObject({
+    title: 'RemDo',
+    websiteUrl: 'https://remdo.example',
+    icons: [
+      { src: 'https://remdo.example/icon-192.png', mimeType: 'image/png', sizes: ['192x192'] },
+      { src: 'https://remdo.example/logo.svg', mimeType: 'image/svg+xml', sizes: ['any'] },
+    ],
+  });
 });
