@@ -1,6 +1,5 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { mergeRegister } from '@lexical/utils';
-import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
+import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND, mergeRegister } from 'lexical';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { OpenDocument, NoteId } from '#note-sdk';
 import { OPEN_NOTE_MENU_COMMAND } from '#client/editor/foundation/commands';

@@ -1,7 +1,6 @@
 import { ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { isAnyPopupActive } from '#client/editor/triggers/active-popup';
-import { mergeRegister } from '@lexical/utils';
 import {
   $getSelection,
   $isLineBreakNode,
@@ -18,6 +17,7 @@ import {
   KEY_ENTER_COMMAND,
   KEY_ESCAPE_COMMAND,
   SELECT_ALL_COMMAND,
+  mergeRegister,
 } from 'lexical';
 import type { LexicalEditor, Point } from 'lexical';
 import { useEffect } from 'react';

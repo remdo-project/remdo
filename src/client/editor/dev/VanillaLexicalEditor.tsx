@@ -1,37 +1,27 @@
-import type { InitialConfigType } from '@lexical/react/LexicalComposer';
-import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import { TabIndentationExtension } from '@lexical/extension';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
-import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
+import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { ListPlugin } from '@lexical/react/LexicalListPlugin';
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin';
 import { TreeView } from '@lexical/react/LexicalTreeView';
-import { $createListItemNode, $createListNode, ListItemNode, ListNode } from '@lexical/list';
+import { $createListItemNode, $createListNode, ListExtension } from '@lexical/list';
+import { RichTextExtension } from '@lexical/rich-text';
 import { Container } from '@mantine/core';
-import { $createTextNode, $getRoot } from 'lexical';
+import { $createTextNode, $getRoot, defineExtension } from 'lexical';
 import { DevVisibilityGate } from '#client/dev/DevVisibility';
 import './VanillaLexicalEditor.css';
 
-const initialConfig: InitialConfigType = {
+const vanillaExtension = defineExtension({
+  name: 'remdo-vanilla-lexical',
   namespace: 'remdo-vanilla-lexical',
-  theme: {},
-  nodes: [ListNode, ListItemNode],
-  editorState(editor) {
-    editor.update(() => {
-      const root = $getRoot();
-      root.clear();
-      const list = $createListNode('bullet');
-      const item = $createListItemNode();
-      item.append($createTextNode(''));
-      list.append(item);
-      root.append(list);
-    });
+  dependencies: [RichTextExtension, ListExtension, TabIndentationExtension],
+  $initialEditorState: () => {
+    const list = $createListNode('bullet');
+    const item = $createListItemNode();
+    item.append($createTextNode(''));
+    list.append(item);
+    $getRoot().append(list);
   },
-  onError(error) {
-    throw error;
-  },
-};
+});
 
 export default function VanillaLexicalEditor() {
   return (
@@ -39,17 +29,18 @@ export default function VanillaLexicalEditor() {
       <Container component="main" size="xl" py="xl">
         <section className="vanilla-lexical">
           <div className="vanilla-lexical-shell">
-            {/* eslint-disable-next-line ts/no-deprecated -- migrates with the editor shell, where the deprecation is tracked. */}
-            <LexicalComposer initialConfig={initialConfig}>
-              <RichTextPlugin
-                contentEditable={<ContentEditable className="vanilla-lexical-input" />}
-                placeholder={<div className="vanilla-lexical-placeholder">Type some rich text...</div>}
-                ErrorBoundary={LexicalErrorBoundary}
-              />
-              <ListPlugin />
-              <TabIndentationPlugin />
+            <LexicalExtensionComposer
+              extension={vanillaExtension}
+              contentEditable={(
+                <ContentEditable
+                  className="vanilla-lexical-input"
+                  aria-placeholder="Type some rich text..."
+                  placeholder={<div className="vanilla-lexical-placeholder">Type some rich text...</div>}
+                />
+              )}
+            >
               <VanillaTreeView />
-            </LexicalComposer>
+            </LexicalExtensionComposer>
           </div>
         </section>
       </Container>

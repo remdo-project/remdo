@@ -1,7 +1,6 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { LexicalEditor } from 'lexical';
-import { COMMAND_PRIORITY_LOW } from 'lexical';
-import { mergeRegister } from '@lexical/utils';
+import { COMMAND_PRIORITY_LOW, mergeRegister } from 'lexical';
 import { useEffect } from 'react';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '#client/editor/foundation/commands';
 import { moveNotesDownInRange, moveNotesUpInRange } from '#client/editor/outline/note-ops';

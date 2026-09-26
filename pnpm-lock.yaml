@@ -33,6 +33,9 @@ catalogs:
     '@lexical/eslint-plugin':
       specifier: ^0.51.0
       version: 0.51.0
+    '@lexical/extension':
+      specifier: ^0.51.0
+      version: 0.51.0
     '@lexical/link':
       specifier: ^0.51.0
       version: 0.51.0
@@ -45,7 +48,7 @@ catalogs:
     '@lexical/react':
       specifier: ^0.51.0
       version: 0.51.0
-    '@lexical/utils':
+    '@lexical/rich-text':
       specifier: ^0.51.0
       version: 0.51.0
     '@lexical/yjs':
@@ -279,6 +282,9 @@ importers:
       '@lexical/clipboard':
         specifier: 'catalog:'
         version: 0.51.0(typescript@6.0.3)
+      '@lexical/extension':
+        specifier: 'catalog:'
+        version: 0.51.0(typescript@6.0.3)
       '@lexical/link':
         specifier: 'catalog:'
         version: 0.51.0(typescript@6.0.3)
@@ -291,7 +297,7 @@ importers:
       '@lexical/react':
         specifier: 'catalog:'
         version: 0.51.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(yjs@13.6.32)
-      '@lexical/utils':
+      '@lexical/rich-text':
         specifier: 'catalog:'
         version: 0.51.0(typescript@6.0.3)
       '@lexical/yjs':

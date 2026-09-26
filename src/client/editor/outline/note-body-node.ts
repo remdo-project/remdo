@@ -1,9 +1,7 @@
 import { ListItemNode } from '@lexical/list';
 import type { SerializedListItemNode } from '@lexical/list';
-import { $applyNodeReplacement, ElementNode } from 'lexical';
-import type { EditorConfig, LexicalNode, SerializedElementNode } from 'lexical';
-
-export type SerializedNoteBodyNode = SerializedElementNode;
+import { $create, ElementNode } from 'lexical';
+import type { EditorConfig, LexicalNode } from 'lexical';
 
 /**
  * A note body is a rich-text region attached to a note (see
@@ -14,16 +12,8 @@ export type SerializedNoteBodyNode = SerializedElementNode;
  * never mistaken for a content note.
  */
 export class NoteBodyNode extends ElementNode {
-  static getType(): string {
-    return 'note-body';
-  }
-
-  static clone(node: NoteBodyNode): NoteBodyNode {
-    return new NoteBodyNode(node.__key);
-  }
-
-  static importJSON(serializedNode: SerializedNoteBodyNode): NoteBodyNode {
-    return $createNoteBodyNode().updateFromJSON(serializedNode);
+  $config() {
+    return this.config('note-body', { extends: ElementNode });
   }
 
   createDOM(config: EditorConfig): HTMLElement {
@@ -46,10 +36,6 @@ export class NoteBodyNode extends ElementNode {
   canBeEmpty(): true {
     return true;
   }
-}
-
-function $createNoteBodyNode(): NoteBodyNode {
-  return $applyNodeReplacement(new NoteBodyNode());
 }
 
 export function $isNoteBodyNode(node: LexicalNode | null | undefined): node is NoteBodyNode {
@@ -95,7 +81,7 @@ export function isBodyWrapper(node: LexicalNode | null | undefined): node is Bod
 }
 
 export function $createBodyWrapper(): BodyWrapperNode {
-  const wrapper = $applyNodeReplacement(new BodyWrapperNode());
-  wrapper.append($createNoteBodyNode());
+  const wrapper = $create(BodyWrapperNode);
+  wrapper.append($create(NoteBodyNode));
   return wrapper;
 }

@@ -14,8 +14,7 @@ import {
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { IneligibleOperationError, NoteUnavailableError } from '#note-sdk';
 import { createMountedLexicalEditor, getNoteKey, meta, placeCaretAtNote, selectNoteRange, typeText } from '#tests';
-import type { CreateEditorArgs } from 'lexical';
-import { createEditorInitialConfig } from '#client/editor/runtime/config';
+import { editorConfig } from '#client/editor/runtime/config';
 import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
 import {
   DELETE_SELECTED_NOTES_COMMAND,
@@ -1042,7 +1041,7 @@ describe('lexical open document', () => {
     });
 
     it('appends, folds, and converts lists through an editor without browser plugins', async () => {
-      const editor = createEditor(createEditorInitialConfig() as CreateEditorArgs);
+      const editor = createEditor(editorConfig);
       editor.update(() => $setSingleNoteDocument('rootnote', 'Root'), { discrete: true });
       const runtime = createLexicalOpenDocumentRuntime({ editor, docId: 'headless' });
       runtime.start();
