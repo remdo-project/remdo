@@ -199,6 +199,13 @@ Decisions requiring a contract owner's judgement:
   harness. Use the evidence to select bounded optimizations rather than
   presupposing an index, worker, or library.
 
+- **Server capacity under load.** Measure a production image under a burst of
+  concurrent [MCP](specs/integrations/mcp.md) saves alongside simulated editors:
+  peak memory per process, CPU, and save latency across document sizes. Use the
+  results to size the hosted instance and to decide whether to reduce
+  whole-document saves, cache open documents in the headless host, split the
+  collaboration hub, or run the MCP server as a separate service.
+
 ### Operations
 
 - **Expired Django sessions after integration.** Define how supported
