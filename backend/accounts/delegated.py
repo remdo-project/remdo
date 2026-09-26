@@ -153,11 +153,11 @@ class OIDCAdapter(DefaultOIDCAdapter):
         ):
             return False
         parsed = urlsplit(url)
-        if parsed.port is not None:
-            return False
         try:
+            if parsed.port is not None:
+                return False
             addresses = socket.getaddrinfo(parsed.hostname, 443, proto=socket.IPPROTO_TCP)
-        except OSError:
+        except OSError, ValueError:
             return False
         return all(ipaddress.ip_address(address[4][0]).is_global for address in addresses)
 

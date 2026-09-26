@@ -272,6 +272,7 @@ class ClientMetadataHostTests(TestCase):
         with patch("accounts.delegated.socket.getaddrinfo", public_address):
             self.assertTrue(self.allowed("https://claude.example/metadata"))
             self.assertFalse(self.allowed("https://claude.example:8443/metadata"))
+            self.assertFalse(self.allowed("https://claude.example:abc/metadata"))
 
     def test_metadata_is_fetched_only_while_a_signed_in_user_authorizes(self):
         with patch("accounts.delegated.socket.getaddrinfo") as lookup:
