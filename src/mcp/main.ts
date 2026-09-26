@@ -1,10 +1,10 @@
 import process from 'node:process';
 import { config } from '#config';
-import { resolveApiServerOrigin } from '#platform/net/origins';
+import { resolveApiServerOrigin, resolveMcpServerOrigin } from '#platform/net/origins';
 import { createMcpServer } from './server';
 
 const server = createMcpServer({
-  port: config.env.MCP_SERVER_PORT,
+  origin: resolveMcpServerOrigin(),
   apiOrigin: resolveApiServerOrigin(),
   appOrigin: config.env.APP_ORIGIN,
 });

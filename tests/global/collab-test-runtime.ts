@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { config } from '../../config';
 import { createMcpServer } from '../../src/mcp/server';
-import { INTERNAL_SERVICE_HOST, resolveApiServerOrigin } from '../../src/platform/net/origins';
+import { INTERNAL_SERVICE_HOST, resolveApiServerOrigin, resolveMcpServerOrigin } from '../../src/platform/net/origins';
 import { ensureCollabServer } from '../../tools/lib/collab-server-helper';
 import { isPortOpen } from '../../tools/lib/net';
 import { startRemdoApiServer } from '../../tools/lib/remdo-api-server-helper';
@@ -97,7 +97,7 @@ export default async function collabTestRuntime() {
       reuseExisting: false,
     });
     const mcp = createMcpServer({
-      port: config.env.MCP_SERVER_PORT,
+      origin: resolveMcpServerOrigin(),
       apiOrigin: resolveApiServerOrigin(),
       appOrigin: config.env.APP_ORIGIN,
     });

@@ -75,9 +75,21 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(listed.map(({ documentId }) => documentId)).toContain(created.documentId);
   });
 
+  it('appends again to a document that already has notes', async () => {
+    const client = await connect(await delegatedToken());
+    const { documentId } = (await call(client, 'create_document', { title: 'Twice' })).value as { documentId: string };
+    const first = await call(client, 'append_children', { parent: documentId, notes: [{ text: 'First' }] });
+    const [note] = first.value as Array<{ noteAddress: string }>;
+    const second = await call(client, 'append_children', { parent: note!.noteAddress, notes: [{ text: 'Second' }] });
+    expect(second).toMatchObject({ isError: false });
+    expect(await storedText(documentId)).toContain('Second');
+  });
+
   it('reports an unavailable document as a tool error', async () => {
     const client = await connect(await delegatedToken());
     const appended = await call(client, 'append_children', { parent: 'missingdoc', notes: [{ text: 'Lost' }] });
     expect(appended.isError).toBe(true);
+    const malformed = await call(client, 'append_children', { parent: 'missingdoc_', notes: [{ text: 'Lost' }] });
+    expect(malformed.isError).toBe(true);
   });
 });

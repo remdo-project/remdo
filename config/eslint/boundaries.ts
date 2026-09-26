@@ -221,7 +221,7 @@ export const srcBoundaries = {
       allow: { to: { element: { type: ['document-routes', 'domain'] } } } },
 
     { from: { element: { type: 'mcp' } },
-      allow: { to: { element: { type: ['mcp', 'headless', 'note-sdk', 'platform'] } } } },
+      allow: { to: { element: { type: ['mcp', 'headless', 'note-sdk', 'document-routes', 'platform'] } } } },
 
     // Headless collab is a composition owner: it binds collaboration, the
     // editor initial config, and operator authentication in one process.

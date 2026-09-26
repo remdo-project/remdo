@@ -7,10 +7,12 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { NewNote } from '#note-sdk';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
+import { parseDocumentRef } from '#document-routes';
 import { withHeadlessOpenDocument } from '../headless/open-document';
 
 interface ServerOptions {
-  port: number;
+  /** The loopback origin this server listens on. */
+  origin: string;
   apiOrigin: string;
   appOrigin: string;
 }
@@ -32,7 +34,7 @@ async function respond(run: () => Promise<unknown>): Promise<CallToolResult> {
   }
 }
 
-export function createMcpServer({ port, apiOrigin, appOrigin }: ServerOptions) {
+export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions) {
   const { host, protocol } = new URL(appOrigin);
   const resourceMetadata = new URL('/.well-known/oauth-protected-resource/mcp', appOrigin).href;
   const documentUrl = (documentId: string, noteId?: string) =>
@@ -77,7 +79,9 @@ export function createMcpServer({ port, apiOrigin, appOrigin }: ServerOptions) {
         + 'or as the last top-level notes of a document (by documentId).',
       inputSchema: { parent: z.string().describe('A documentId or a noteAddress.'), notes: z.array(newNote) },
     }, ({ parent, notes }) => respond(async () => {
-      const [documentId, noteId] = parent.split('_') as [string, string | undefined];
+      const ref = parseDocumentRef(parent);
+      if (!ref) throw new Error('The parent is not a documentId or a noteAddress.');
+      const { docId: documentId, noteId } = ref;
       const noteIds = await withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
         (noteId ? openDocument.noteRef(noteId) : openDocument.root).appendChildren(notes));
       return noteIds.map((id) => ({ noteAddress: `${documentId}_${id}`, url: documentUrl(documentId, id) }));
@@ -97,10 +101,16 @@ export function createMcpServer({ port, apiOrigin, appOrigin }: ServerOptions) {
       challenge(response, false);
       return;
     }
-    try {
-      await callApi(authorization, '/api/current-user');
-    } catch {
+    const check = await requestDjango(new URL('/api/current-user', apiOrigin), {
+      headers: { Authorization: authorization, Host: host },
+      signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
+    });
+    if (check.status === 401 || check.status === 403) {
       challenge(response, true);
+      return;
+    }
+    if (!check.ok) {
+      response.writeHead(503).end();
       return;
     }
     const server = createTools(authorization);
@@ -125,7 +135,10 @@ export function createMcpServer({ port, apiOrigin, appOrigin }: ServerOptions) {
   });
 
   return {
-    listen: () => new Promise<void>((resolve) => http.listen(port, '127.0.0.1', resolve)),
+    listen: () => new Promise<void>((resolve) => {
+      const { hostname, port } = new URL(origin);
+      http.listen(Number(port), hostname, resolve);
+    }),
     stop: () => new Promise<void>((resolve, reject) => http.close((error) => error ? reject(error) : resolve())),
   };
 }
