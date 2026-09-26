@@ -22,7 +22,9 @@ after what it delegates to, whose owner defines its behavior.
   document root, and an editor note by its
   [`noteAddress`](../outliner/note-ids.md#global-addresses). Results that
   identify documents or notes include their URLs.
-- A failed tool call returns a tool error.
+- Each tool declares a title and whether it only reads or changes the user's
+  data, so clients can require confirmation before changes.
+- A failed tool call returns a tool error naming its cause.
 
 ## References
 
