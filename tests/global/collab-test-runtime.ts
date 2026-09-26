@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { config } from '../../config';
 import { createMcpServer } from '../../src/mcp/server';
+import { documentSlotsForHeap } from '../../src/mcp/document-slots';
 import { INTERNAL_SERVICE_HOST, resolveApiServerOrigin, resolveMcpServerOrigin } from '../../src/platform/net/origins';
 import { ensureCollabServer } from '../../tools/lib/collab-server-helper';
 import { isPortOpen } from '../../tools/lib/net';
@@ -100,6 +101,7 @@ export default async function collabTestRuntime() {
       origin: resolveMcpServerOrigin(),
       apiOrigin: resolveApiServerOrigin(),
       appOrigin: config.env.APP_ORIGIN,
+      documentSlots: documentSlotsForHeap(),
     });
     await mcp.listen();
     started.unshift(mcp.stop);

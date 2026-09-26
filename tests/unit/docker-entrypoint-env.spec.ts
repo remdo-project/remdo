@@ -152,3 +152,27 @@ describe('docker entrypoint internal services', () => {
     ]);
   });
 });
+
+describe('docker entrypoint Node heaps', () => {
+  function heaps(memoryLimit: string) {
+    const result = runEntryPointEnv(
+      String.raw`remdo_configure_node_heaps '${memoryLimit}' && printf "%s %s" "$collaboration_heap_mb" "$mcp_heap_mb"`,
+      {},
+    );
+    return { status: result.status, heaps: String(result.stdout), error: String(result.stderr) };
+  }
+
+  it('splits the memory the other services leave between collaboration and MCP', () => {
+    expect(heaps(String(512 * 2 ** 20))).toMatchObject({ status: 0, heaps: '192 64' });
+    expect(heaps(String(2048 * 2 ** 20))).toMatchObject({ status: 0, heaps: '1344 448' });
+  });
+
+  it('leaves Node defaults without a container memory limit', () => {
+    expect(heaps('max')).toMatchObject({ status: 0, heaps: ' ' });
+    expect(heaps('')).toMatchObject({ status: 0, heaps: ' ' });
+  });
+
+  it('refuses a memory limit too small for the services', () => {
+    expect(heaps(String(256 * 2 ** 20))).toMatchObject({ status: 1, error: 'RemDo needs a memory limit of at least 384 MB.\n' });
+  });
+});

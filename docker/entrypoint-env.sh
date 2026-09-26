@@ -61,3 +61,22 @@ remdo_configure_caddy_env() {
   CADDY_FORWARDED_PROTO="${app_origin_protocol%:}"
   export APP_ORIGIN CADDY_SITE_ADDRESS CADDY_FORWARDED_PROTO
 }
+
+# Node sizes each heap from the container limit on its own, so the two Node
+# services together could claim more memory than the instance has. Split what
+# the Python API and the gateway leave (~256 MB measured under load) instead.
+remdo_configure_node_heaps() {
+  memory_limit="$1"
+  collaboration_heap_mb=""
+  mcp_heap_mb=""
+  case "${memory_limit}" in
+    ''|max) return 0 ;;
+  esac
+  node_heap_mb=$((memory_limit / 1048576 - 256))
+  if [ "${node_heap_mb}" -lt 128 ]; then
+    echo "RemDo needs a memory limit of at least 384 MB." >&2
+    return 1
+  fi
+  mcp_heap_mb=$((node_heap_mb / 4))
+  collaboration_heap_mb=$((node_heap_mb - mcp_heap_mb))
+}

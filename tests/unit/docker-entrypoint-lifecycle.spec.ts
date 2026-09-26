@@ -125,7 +125,7 @@ it.each(lifecycleCases)('$title', async (lifecycleCase) => {
   for (const name of ['caddy']) {
     writeFakeBin(binDir, name, `exec "\${REMDO_FAKE_CHILD:?}" ${name}\n`);
   }
-  writeFakeBin(binDir, 'node', `case "\${1:-}" in */mcp.mjs) service=mcp ;; *) service=collaboration ;; esac
+  writeFakeBin(binDir, 'node', `case "$*" in *mcp.mjs) service=mcp ;; *) service=collaboration ;; esac
 exec "\${REMDO_FAKE_CHILD:?}" "$service"\n`);
   writeFakeBin(binDir, 'gunicorn', `exec "\${REMDO_FAKE_CHILD:?}" api\n`);
   writeFakeBin(binDir, 'python', `if [ "\${1:-}" = manage.py ]; then

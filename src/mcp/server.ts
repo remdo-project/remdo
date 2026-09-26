@@ -9,12 +9,15 @@ import type { NewNote } from '#note-sdk';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { parseDocumentRef } from '#document-routes';
 import { withHeadlessOpenDocument } from '../headless/open-document';
+import { createDocumentSlots } from './document-slots';
 
 interface ServerOptions {
   /** The loopback origin this server listens on. */
   origin: string;
   apiOrigin: string;
   appOrigin: string;
+  /** Documents that tool calls may hold open at once. */
+  documentSlots: number;
 }
 
 const newNote: z.ZodType<NewNote> = z.lazy(() => z.object({
@@ -34,7 +37,8 @@ async function respond(run: () => Promise<unknown>): Promise<CallToolResult> {
   }
 }
 
-export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions) {
+export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }: ServerOptions) {
+  const withDocumentSlot = createDocumentSlots(documentSlots);
   const { host, protocol } = new URL(appOrigin);
   const resourceMetadata = new URL('/.well-known/oauth-protected-resource/mcp', appOrigin).href;
   const documentUrl = (documentId: string, noteId?: string) =>
@@ -82,8 +86,8 @@ export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions)
       const ref = parseDocumentRef(parent);
       if (!ref) throw new Error('The parent is not a documentId or a noteAddress.');
       const { docId: documentId, noteId } = ref;
-      const noteIds = await withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
-        (noteId ? openDocument.noteRef(noteId) : openDocument.root).appendChildren(notes));
+      const noteIds = await withDocumentSlot(() => withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
+        (noteId ? openDocument.noteRef(noteId) : openDocument.root).appendChildren(notes)));
       return noteIds.map((id) => ({ noteAddress: `${documentId}_${id}`, url: documentUrl(documentId, id) }));
     }));
 

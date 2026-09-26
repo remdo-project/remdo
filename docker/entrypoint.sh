@@ -25,6 +25,7 @@ export XDG_DATA_HOME XDG_CONFIG_HOME
 
 remdo_configure_internal_services
 remdo_configure_caddy_env
+remdo_configure_node_heaps "$(cat /sys/fs/cgroup/memory.max 2>/dev/null || true)"
 
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
@@ -103,9 +104,9 @@ else:
     raise SystemExit("Django did not become ready.")
 PYREADY
 start_child collaboration env -u AUTH_SECRET -u DATABASE_URL -u GOOGLE_CLIENT_SECRET \
-  node /app/collaboration.mjs
+  node ${collaboration_heap_mb:+"--max-old-space-size=${collaboration_heap_mb}"} /app/collaboration.mjs
 start_child mcp env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET -u DATABASE_URL -u GOOGLE_CLIENT_SECRET \
-  node /app/mcp.mjs
+  node ${mcp_heap_mb:+"--max-old-space-size=${mcp_heap_mb}"} /app/mcp.mjs
 start_child caddy env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET -u GOOGLE_CLIENT_SECRET \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 

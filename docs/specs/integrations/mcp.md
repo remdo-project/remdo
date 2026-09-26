@@ -19,6 +19,8 @@ after what it delegates to, whose owner defines its behavior.
   [`noteAddress`](../outliner/note-ids.md#global-addresses). Results that
   identify documents or notes include their URLs.
 - A failed tool call returns a tool error.
+- Tool calls open as many documents at once as the server's memory allows; a
+  call that cannot open one within a bounded wait fails as busy.
 
 ## References
 
