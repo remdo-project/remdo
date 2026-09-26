@@ -6,6 +6,7 @@ import socket
 from urllib.parse import urlsplit
 
 from allauth.core import context
+from allauth.core.internal.httpkit import extract_basic_auth
 from allauth.idp.oidc.adapter import DefaultOIDCAdapter
 from allauth.idp.oidc.internal.cimd import is_cimd_url
 from allauth.idp.oidc.models import Client, PrivateKey, Token
@@ -171,15 +172,13 @@ def unavailable(request):
     raise Http404
 
 
-def _printable(value):
-    return value is None or value.isprintable()
-
-
 @csrf_exempt
 def token(request):
-    # allauth logs rejected client IDs verbatim.
-    if not _printable(request.POST.get("client_id")):
-        return JsonResponse({"error": "invalid_client"}, status=400)
+    # allauth logs rejected client IDs verbatim, from the form or Basic credentials.
+    basic_client_id, _ = extract_basic_auth(request.headers)
+    for client_id in (request.POST.get("client_id", ""), basic_client_id or ""):
+        if not client_id.isprintable():
+            return JsonResponse({"error": "invalid_client"}, status=400)
     return allauth_token(request)
 
 
@@ -187,7 +186,7 @@ def token(request):
 def authorize(request):
     client_id = request.GET.get("client_id")
     # Applications identify themselves only by client metadata documents.
-    if client_id is not None and not (is_cimd_url(client_id) and _printable(client_id)):
+    if client_id is not None and not (is_cimd_url(client_id) and client_id.isprintable()):
         return _refuse(request, "unknown_app")
     # Only the consented code flow grants access: allauth would otherwise issue
     # tokens without consent for prompt=none, or in the redirect for the
