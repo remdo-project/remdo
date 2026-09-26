@@ -32,16 +32,18 @@ Docker E2E resolves a writable Chromium cache as part of its command.
 
 ### Prepare Docker
 
-PostgreSQL verification and Docker E2E require Docker with Compose and initially
+PostgreSQL verification, Docker E2E, and `pnpm run verify` require Docker.
+PostgreSQL verification and Docker E2E also require Compose and initially
 download the official PostgreSQL image. Docker E2E publishes its isolated test
 ports on loopback. Rootless and rootful daemons are supported. Other checks use
 SQLite and require no database service.
 
 ## Run Verification
 
-Prefer changed variants locally for unit and collaboration tests. They use
-Git-based dependency heuristics and pass when they find no tests. Use an
-unsuffixed command with a file or filter for known relationships the heuristic
+Prefer changed variants locally for unit and collaboration tests. They select
+tests by Git-based dependency heuristics from the changes since the branch left
+`origin/main`, including uncommitted changes, and pass when they find no tests.
+Use an unsuffixed command with a file or filter for known relationships the heuristic
 cannot discover; without one, it runs the complete group used by CI.
 
 - `./tools/django.sh test` — run Django authentication, CSRF, document
@@ -64,9 +66,10 @@ cannot discover; without one, it runs the complete group used by CI.
 - `pnpm run lint` — check the source as written: types, code, styles,
   documentation, agent instructions, and the dependency graph; use for the
   default static feedback.
-- `pnpm run verify` — run lint, dependency-policy and unused-code checks, the
-  production development-boundary check, backend checks, and generated API
-  verification; use before a commit or handoff.
+- `pnpm run verify` — run lint, Dockerfile lint, dependency-policy and
+  unused-code checks, the production development-boundary check, backend
+  checks, and generated API verification; use for
+  [handoff verification](../dev/testing.md#verification-lifecycle).
 
 ### Verify PostgreSQL
 

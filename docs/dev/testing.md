@@ -43,15 +43,48 @@ substitutes for automated coverage.
 
 ## Verification lifecycle
 
-Before each commit or uncommitted handoff, run likely affected tests and
-applicable static checks.
-
 Local test selection intentionally optimizes feedback time rather than
-completeness. Also run explicitly selected tests for known relationships it
-cannot discover. CI runs complete repository verification and must pass before integration.
+completeness. CI runs complete repository verification and must pass before
+integration.
 
+While iterating, run the tests that exercise the edited behavior, and select
+dependent tests against the branch base rather than only uncommitted changes.
 Pass test paths directly, as `pnpm run test:unit <path>...`; a scoped run costs
-seconds where the whole suite costs minutes.
+seconds where the whole suite costs minutes. During iteration, rerun a passing
+test only after a change it exercises.
+
+Before each commit, run likely affected tests and applicable static checks.
+Also run explicitly selected tests for known relationships that selection
+cannot discover. A commit that changes the test harness, service startup, or
+dependencies runs every complete group.
+
+**Handoff verification** runs once before handing a change to the developer,
+after its last edit:
+
+- complete static verification, including backend and generated API checks;
+- the complete [unit test](../specs/testing/test-harness.md#unit-tests) group,
+  which covers tests coupled to the change through routes, paths, or
+  subprocesses that dependency selection cannot discover;
+- each further complete group whose surface the change touches:
+  - [Collaboration tests](../specs/testing/test-harness.md#collaboration-tests):
+    collaboration sessions, persistence, collaboration server, or snapshot
+    tooling;
+  - [Browser E2E](../specs/testing/test-harness.md#browser-e2e-tests):
+    user-visible text or labels, routes, server-rendered templates, or
+    authentication and session flow;
+  - [Docker E2E](../specs/testing/test-harness.md#docker-e2e-tests): container
+    image, gateway, service worker, offline or cache behavior, or production
+    settings;
+  - backend tests: backend;
+  - every group: test harness, service startup, or dependencies.
+
+CI covers complete groups a change does not trigger.
+
+When a test outside the change fails, rerun it alone once. If it passes, report
+it as a suspected flake with both results; a passing rerun does not establish a
+flake. If it fails again, compare it once against the base commit before
+reporting it as pre-existing. Repeating complete groups substitutes for neither
+step.
 
 ## Empirical checks
 
