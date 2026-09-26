@@ -91,7 +91,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions)
       title: 'Create document',
       description: 'Create a RemDo document owned by the user and return its documentId.',
       inputSchema: { title: z.string().describe('Document title.') },
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     }, ({ title }) => respond(async () => {
       const { id } = await callApi(authorization, '/api/documents', 'POST', { title }) as { id: string };
       return { documentId: id, title, url: documentUrl(id) };
@@ -102,7 +102,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions)
       description: 'Append notes as the last children of a note (by noteAddress) '
         + 'or as the last top-level notes of a document (by documentId).',
       inputSchema: { parent: z.string().describe('A documentId or a noteAddress.'), notes: z.array(newNote) },
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     }, ({ parent, notes }) => respond(async () => {
       const ref = parseDocumentRef(parent);
       if (!ref) throw new Error('The parent is not a documentId or a noteAddress.');

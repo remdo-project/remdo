@@ -84,7 +84,7 @@ it('identifies itself with the app icon so clients do not guess it from a favico
   });
 });
 
-it('marks reads as read-only and writes as changing user data so clients can gate confirmation', async () => {
+it('marks reads as read-only and additive writes as non-destructive so clients can gate confirmation', async () => {
   const post = await start();
   currentUserStatus = 200;
 
@@ -92,8 +92,8 @@ it('marks reads as read-only and writes as changing user data so clients can gat
 
   expect(Object.fromEntries(tools.map(({ name, title, annotations }) => [name, { title, annotations }]))).toMatchObject({
     list_documents: { title: 'List documents', annotations: { readOnlyHint: true } },
-    create_document: { title: 'Create document', annotations: { readOnlyHint: false, destructiveHint: true } },
-    append_children: { title: 'Append notes', annotations: { readOnlyHint: false, destructiveHint: true } },
+    create_document: { title: 'Create document', annotations: { readOnlyHint: false, destructiveHint: false } },
+    append_children: { title: 'Append notes', annotations: { readOnlyHint: false, destructiveHint: false } },
   });
 });
 
