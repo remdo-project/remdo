@@ -25,6 +25,16 @@ const newNote: z.ZodType<NewNote> = z.lazy(() => z.object({
   children: z.array(newNote).optional(),
 }));
 
+function rejection(status: number, body: string): string {
+  switch (status) {
+    case 400: return `RemDo rejected the request as invalid: ${body}`;
+    case 401: return 'RemDo no longer accepts this authorization. Reconnect RemDo.';
+    case 403: return 'The user is not allowed to do this in RemDo.';
+    case 429: return 'RemDo is limiting requests. Try again later.';
+    default: return `RemDo is unavailable (${status}). Try again later.`;
+  }
+}
+
 async function respond(run: () => Promise<unknown>): Promise<CallToolResult> {
   try {
     return { content: [{ type: 'text', text: JSON.stringify(await run()) }] };
@@ -52,7 +62,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions)
       body: body === undefined ? undefined : Buffer.from(JSON.stringify(body)),
       signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
     });
-    if (!response.ok) throw new Error(`RemDo rejected the request (${response.status}).`);
+    if (!response.ok) throw new Error(rejection(response.status, response.body.toString()));
     return JSON.parse(response.body.toString()) as unknown;
   }
 
@@ -69,24 +79,30 @@ export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions)
     });
 
     server.registerTool('list_documents', {
-      description: 'List the RemDo documents the user can access.',
+      title: 'List documents',
+      description: 'List the RemDo documents the user can access, with their documentIds and URLs.',
+      annotations: { readOnlyHint: true, openWorldHint: false },
     }, () => respond(async () => {
       const documents = await callApi(authorization, '/api/documents') as Array<{ id: string; title: string }>;
       return documents.map(({ id, title }) => ({ documentId: id, title, url: documentUrl(id) }));
     }));
 
     server.registerTool('create_document', {
-      description: 'Create a RemDo document.',
-      inputSchema: { title: z.string() },
+      title: 'Create document',
+      description: 'Create a RemDo document owned by the user and return its documentId.',
+      inputSchema: { title: z.string().describe('Document title.') },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     }, ({ title }) => respond(async () => {
       const { id } = await callApi(authorization, '/api/documents', 'POST', { title }) as { id: string };
       return { documentId: id, title, url: documentUrl(id) };
     }));
 
     server.registerTool('append_children', {
+      title: 'Append notes',
       description: 'Append notes as the last children of a note (by noteAddress) '
         + 'or as the last top-level notes of a document (by documentId).',
       inputSchema: { parent: z.string().describe('A documentId or a noteAddress.'), notes: z.array(newNote) },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     }, ({ parent, notes }) => respond(async () => {
       const ref = parseDocumentRef(parent);
       if (!ref) throw new Error('The parent is not a documentId or a noteAddress.');
