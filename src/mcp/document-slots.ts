@@ -1,14 +1,4 @@
-import { getHeapStatistics } from 'node:v8';
-
-const BASELINE_HEAP_MB = 32;
-// A 2000-note (300 KB) document measured ~9 MB of MCP heap while open.
-const DOCUMENT_HEAP_MB = 16;
 const SLOT_WAIT_MS = 30_000;
-
-/** How many documents fit in this process's heap limit at once. */
-export function documentSlotsForHeap(heapLimitBytes = getHeapStatistics().heap_size_limit): number {
-  return Math.max(1, Math.floor((heapLimitBytes / 2 ** 20 - BASELINE_HEAP_MB) / DOCUMENT_HEAP_MB));
-}
 
 /**
  * Run document work with at most `slots` documents open at once. Work that

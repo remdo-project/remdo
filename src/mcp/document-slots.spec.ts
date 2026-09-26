@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { createDocumentSlots, documentSlotsForHeap } from './document-slots';
+import { createDocumentSlots } from './document-slots';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -10,12 +10,6 @@ function deferred() {
   const promise = new Promise<void>((r) => { resolve = r; });
   return { promise, resolve };
 }
-
-it('sizes slots from the heap limit and keeps at least one', () => {
-  expect(documentSlotsForHeap(64 * 2 ** 20)).toBe(2);
-  expect(documentSlotsForHeap(448 * 2 ** 20)).toBe(26);
-  expect(documentSlotsForHeap(16 * 2 ** 20)).toBe(1);
-});
 
 it('starts queued work when a slot frees', async () => {
   const withSlot = createDocumentSlots(1);

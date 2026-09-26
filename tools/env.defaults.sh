@@ -75,6 +75,8 @@ remdo_configure_environment() {
   : "${COLLAB_ENABLED:=true}"
   : "${DEV_DOCUMENT_ID:=devDoc}"
   : "${CI:=false}"
+  # The production entrypoint replaces it with a count sized from MCP's memory.
+  : "${MCP_DOCUMENT_SLOTS:=2}"
   : "${DATA_DIR:=${REMDO_ROOT%/}/data}"
   case "${DATA_DIR}" in
     /*) ;;
@@ -97,7 +99,7 @@ remdo_configure_environment() {
     remdo_assert_browser_safe_port "${VITEST_PORT}"
   fi
 
-  export NODE_ENV HOST PUBLIC_HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI TMPDIR
+  export NODE_ENV HOST PUBLIC_HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI TMPDIR MCP_DOCUMENT_SLOTS
   export VITEST_PORT COLLAB_SERVER_PORT API_SERVER_PORT MCP_SERVER_PORT
   export AUTH_SECRET COLLAB_INTERNAL_SECRET APP_ORIGIN
   if [ "$1" = production ]; then

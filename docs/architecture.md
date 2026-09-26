@@ -80,7 +80,7 @@ A production instance treats its gateway, API, collaboration server, and MCP
 server as one failure domain. An unexpected process exit identifies the
 failed service, stops the remaining processes, and ends the instance
 unsuccessfully so its environment can restart the complete instance. Under a
-container memory limit of at least 384 MB, the collaboration and MCP servers
+container memory limit of at least 448 MB, the collaboration and MCP servers
 split what the API and gateway leave into fixed heap budgets, so neither can
 claim the other's memory; a smaller limit fails startup. When selected,
 PostgreSQL runs as a separate service with its own lifecycle.

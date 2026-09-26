@@ -25,7 +25,7 @@ export XDG_DATA_HOME XDG_CONFIG_HOME
 
 remdo_configure_internal_services
 remdo_configure_caddy_env
-remdo_configure_node_heaps "$(cat /sys/fs/cgroup/memory.max 2>/dev/null || true)"
+remdo_configure_node_heaps "$(remdo_container_memory_limit /sys/fs/cgroup)"
 
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
