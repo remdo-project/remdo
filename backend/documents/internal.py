@@ -49,11 +49,9 @@ def authorize(request, document_id):
 @internal_only
 @require_GET
 def session_user(request):
-    # Browsers omit Origin from same-origin stream requests; a present foreign
-    # Origin identifies a cross-site page riding the session cookie.
-    origin = request.headers.get("Origin")
-    if not request.user.is_authenticated or (
-        origin is not None and origin not in settings.CSRF_TRUSTED_ORIGINS
+    if (
+        not request.user.is_authenticated
+        or request.headers.get("Origin") not in settings.CSRF_TRUSTED_ORIGINS
     ):
         return HttpResponse(status=403)
     return JsonResponse({"userId": str(request.user.pk)})

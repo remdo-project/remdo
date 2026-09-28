@@ -323,20 +323,26 @@ describe('account metadata', () => {
 });
 
 describe('document-list change stream', () => {
-  class FakeEventSource extends EventTarget {
-    static readonly CLOSED = 2;
-    static opened: FakeEventSource[] = [];
-    readyState = 0;
-    constructor(readonly url: string) {
+  class FakeWebSocket extends EventTarget {
+    static readonly CONNECTING = 0;
+    static readonly OPEN = 1;
+    static readonly CLOSED = 3;
+    static opened: FakeWebSocket[] = [];
+    readyState = FakeWebSocket.CONNECTING;
+    constructor(readonly url: URL) {
       super();
-      FakeEventSource.opened.push(this);
+      FakeWebSocket.opened.push(this);
     }
 
-    close() { this.readyState = FakeEventSource.CLOSED; }
-    emit(type: 'open' | 'message') { this.dispatchEvent(new Event(type)); }
-    reject() {
-      this.readyState = FakeEventSource.CLOSED;
-      this.dispatchEvent(new Event('error'));
+    connect() {
+      this.readyState = FakeWebSocket.OPEN;
+      this.dispatchEvent(new Event('open'));
+    }
+
+    notify() { this.dispatchEvent(new Event('message')); }
+    close() {
+      this.readyState = FakeWebSocket.CLOSED;
+      this.dispatchEvent(new Event('close'));
     }
   }
 
@@ -348,12 +354,12 @@ describe('document-list change stream', () => {
     runtimeCleanup.push(new QueryObserver(runtime.client, runtime.documentsQuery).subscribe(() => {}));
     const stop = runtime.watchDocumentList();
     const title = () => runtime.userData.getDocuments().getById('shared')?.getText();
-    return { runtime, stop, title, listings: () => listings };
+    return { runtime, stop, title };
   }
 
   beforeEach(() => {
-    FakeEventSource.opened = [];
-    vi.stubGlobal('EventSource', FakeEventSource);
+    FakeWebSocket.opened = [];
+    vi.stubGlobal('WebSocket', FakeWebSocket);
   });
   afterEach(() => {
     for (const cleanup of runtimeCleanup.splice(0)) cleanup();
@@ -363,9 +369,10 @@ describe('document-list change stream', () => {
   it('rereads the list when another source reports a change', async () => {
     const { title } = watchedAccount(['Draft', 'Renamed elsewhere']);
     await vi.waitFor(() => expect(title()).toBe('Draft'));
-    expect(FakeEventSource.opened.map((stream) => stream.url)).toEqual(['/collaboration']);
+    expect(FakeWebSocket.opened.map((socket) => socket.url.href))
+      .toEqual([`ws://${location.host}/collaboration?document-list`]);
 
-    FakeEventSource.opened[0]!.emit('message');
+    FakeWebSocket.opened[0]!.notify();
     await vi.waitFor(() => expect(title()).toBe('Renamed elsewhere'));
   });
 
@@ -373,36 +380,55 @@ describe('document-list change stream', () => {
     const { title } = watchedAccount(['Draft', 'Renamed while offline']);
     await vi.waitFor(() => expect(title()).toBe('Draft'));
 
-    FakeEventSource.opened[0]!.emit('open');
+    FakeWebSocket.opened[0]!.connect();
     await vi.waitFor(() => expect(title()).toBe('Renamed while offline'));
   });
 
-  it('reopens a rejected stream after a growing delay', async () => {
+  it('reopens a closed stream after a growing delay', async () => {
     vi.useFakeTimers();
     watchedAccount(['Draft']);
-    FakeEventSource.opened[0]!.reject();
+    FakeWebSocket.opened[0]!.close();
     await vi.advanceTimersByTimeAsync(999);
-    expect(FakeEventSource.opened).toHaveLength(1);
+    expect(FakeWebSocket.opened).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(1);
-    expect(FakeEventSource.opened).toHaveLength(2);
+    expect(FakeWebSocket.opened).toHaveLength(2);
 
-    FakeEventSource.opened[1]!.reject();
+    FakeWebSocket.opened[1]!.close();
     await vi.advanceTimersByTimeAsync(1999);
-    expect(FakeEventSource.opened).toHaveLength(2);
+    expect(FakeWebSocket.opened).toHaveLength(2);
     await vi.advanceTimersByTimeAsync(1);
-    expect(FakeEventSource.opened).toHaveLength(3);
+    expect(FakeWebSocket.opened).toHaveLength(3);
   });
 
-  it('closes the stream and cancels a pending reopen when stopped or signed out', async () => {
+  it('closes the stream without reopening when stopped or signed out', async () => {
     vi.useFakeTimers();
     const { stop } = watchedAccount(['Draft']);
-    FakeEventSource.opened[0]!.reject();
+    FakeWebSocket.opened[0]!.connect();
     stop();
-    await vi.advanceTimersByTimeAsync(60_000);
-    expect(FakeEventSource.opened).toHaveLength(1);
+    expect(FakeWebSocket.opened[0]!.readyState).toBe(FakeWebSocket.CLOSED);
+
+    const pending = watchedAccount(['Draft']);
+    FakeWebSocket.opened[1]!.close();
+    pending.stop();
 
     const { runtime } = watchedAccount(['Draft']);
+    FakeWebSocket.opened[2]!.connect();
     runtime.dispose();
-    expect(FakeEventSource.opened[1]!.readyState).toBe(FakeEventSource.CLOSED);
+    expect(FakeWebSocket.opened[2]!.readyState).toBe(FakeWebSocket.CLOSED);
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(FakeWebSocket.opened).toHaveLength(3);
+  });
+
+  it('closes a stream stopped while connecting once it connects', async () => {
+    vi.useFakeTimers();
+    const { stop } = watchedAccount(['Draft']);
+    stop();
+    expect(FakeWebSocket.opened[0]!.readyState).toBe(FakeWebSocket.CONNECTING);
+
+    FakeWebSocket.opened[0]!.connect();
+    expect(FakeWebSocket.opened[0]!.readyState).toBe(FakeWebSocket.CLOSED);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(FakeWebSocket.opened).toHaveLength(1);
   });
 });

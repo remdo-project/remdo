@@ -1,13 +1,12 @@
 import { Buffer } from 'node:buffer';
-import { createServer, request as httpRequest } from 'node:http';
-import type { IncomingMessage } from 'node:http';
+import { createServer } from 'node:http';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
 import WebSocket from 'ws';
 import * as Y from 'yjs';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { createCollaborationServer, INTERNAL_SECRET_HEADER } from './server';
+import { createCollaborationServer, DOCUMENT_LIST_PATH, INTERNAL_SECRET_HEADER } from './server';
 import { requestPersistence } from '../collaboration/persistence-barrier';
 import { createProviderFactory } from '../collaboration/runtime';
 
@@ -338,14 +337,15 @@ it('backs off repeated store failures and resets the delay after recovery', asyn
   }
 });
 
-function openDocumentListStream(headers: Record<string, string>) {
-  return new Promise<IncomingMessage>((resolve, reject) => {
-    httpRequest(`${origin}/collaboration`, { headers }, resolve).once('error', reject).end();
+function openDocumentListSocket(headers: Record<string, string>) {
+  const socket = new WebSocket(`${origin.replace('http:', 'ws:')}${DOCUMENT_LIST_PATH}`, { headers });
+  return new Promise<{ socket: WebSocket; status: number }>((resolve) => {
+    socket.once('open', () => resolve({ socket, status: 101 }));
+    socket.once('unexpected-response', (_request, response) => {
+      response.resume();
+      resolve({ socket, status: response.statusCode! });
+    });
   });
-}
-
-function nextEvent(stream: IncomingMessage) {
-  return new Promise<string>((resolve) => stream.once('data', (chunk: Buffer) => resolve(chunk.toString())));
 }
 
 async function notifyDocumentListChanged(userIds: string[], headers = { [INTERNAL_SECRET_HEADER]: secret }) {
@@ -355,31 +355,27 @@ async function notifyDocumentListChanged(userIds: string[], headers = { [INTERNA
   return response.status;
 }
 
-it('relays a document-list notice only to the notified account\'s signed-in streams', async () => {
-  const alice = await openDocumentListStream({ Cookie: 'user=alice', Origin: 'http://remdo.test' });
-  const bob = await openDocumentListStream({ Cookie: 'user=bob' });
-  expect([alice.statusCode, bob.statusCode]).toEqual([200, 200]);
-  expect(alice.headers['content-type']).toBe('text/event-stream');
+it('relays a document-list notice only to the notified account\'s signed-in sockets', async () => {
+  const alice = await openDocumentListSocket({ Cookie: 'user=alice', Origin: 'http://remdo.test' });
+  const bob = await openDocumentListSocket({ Cookie: 'user=bob', Origin: 'http://remdo.test' });
+  expect([alice.status, bob.status]).toEqual([101, 101]);
   expect(sessionHeaders.map(({ cookie, origin }) => [cookie, origin]))
-    .toEqual([['user=alice', 'http://remdo.test'], ['user=bob', undefined]]);
-  const bobEvents: string[] = [];
-  bob.on('data', (chunk: Buffer) => bobEvents.push(chunk.toString()));
+    .toEqual([['user=alice', 'http://remdo.test'], ['user=bob', 'http://remdo.test']]);
+  const bobMessages: string[] = [];
+  bob.socket.on('message', (data: Buffer) => bobMessages.push(data.toString()));
 
-  const aliceEvent = nextEvent(alice);
+  const aliceMessage = once(alice.socket, 'message');
   expect(await notifyDocumentListChanged(['alice'])).toBe(204);
-  expect(await aliceEvent).toBe('data: changed\n\n');
-  expect(bobEvents).toEqual([]);
+  expect(String((await aliceMessage)[0])).toBe('changed');
+  expect(bobMessages).toEqual([]);
 
-  const ended = once(bob, 'end');
-  bob.resume();
-  alice.resume();
+  const closed = Promise.all([once(alice.socket, 'close'), once(bob.socket, 'close')]);
   await runtime.stop();
-  await ended;
+  await closed;
 });
 
-it('rejects a document-list stream without a session and a notice without the internal secret', async () => {
-  const stream = await openDocumentListStream({});
-  expect(stream.statusCode).toBe(403);
-  stream.resume();
+it('rejects a document-list socket without a session and a notice without the internal secret', async () => {
+  const { status } = await openDocumentListSocket({ Origin: 'http://remdo.test' });
+  expect(status).toBe(403);
   expect(await notifyDocumentListChanged(['alice'], { [INTERNAL_SECRET_HEADER]: 'wrong' })).toBe(403);
 });

@@ -142,30 +142,38 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
   });
 
   function watchDocumentList(): () => void {
-    let stream: EventSource;
+    const url = new URL('/collaboration?document-list', location.origin);
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+    let socket: WebSocket;
+    let stopped = false;
     let reopenTimer: ReturnType<typeof setTimeout> | undefined;
     let reopenDelay = MIN_REOPEN_DELAY_MS;
     const open = () => {
-      stream = new EventSource('/collaboration');
-      // Changes made while disconnected send no notice.
-      stream.addEventListener('open', () => {
+      const opened = new WebSocket(url);
+      socket = opened;
+      opened.addEventListener('open', () => {
+        if (stopped) {
+          opened.close();
+          return;
+        }
         reopenDelay = MIN_REOPEN_DELAY_MS;
+        // Changes made while disconnected send no notice.
         void client.invalidateQueries({ queryKey: documentsQuery.queryKey }, { cancelRefetch: false });
       });
-      stream.addEventListener('message', () => {
+      opened.addEventListener('message', () => {
         void client.invalidateQueries({ queryKey: documentsQuery.queryKey });
       });
-      // EventSource reconnects by itself only after a dropped connection; a
-      // rejected response, such as while the hub restarts, closes it for good.
-      stream.addEventListener('error', () => {
-        if (stream.readyState !== EventSource.CLOSED) return;
+      opened.addEventListener('close', () => {
+        if (stopped) return;
         reopenTimer = setTimeout(open, reopenDelay);
         reopenDelay = Math.min(reopenDelay * 2, MAX_REOPEN_DELAY_MS);
       });
     };
     const stop = () => {
+      stopped = true;
       clearTimeout(reopenTimer);
-      stream.close();
+      // Closing a connecting socket logs a browser warning; its open handler closes it instead.
+      if (socket.readyState !== WebSocket.CONNECTING) socket.close();
       lifetime.signal.removeEventListener('abort', stop);
     };
     lifetime.signal.addEventListener('abort', stop);
