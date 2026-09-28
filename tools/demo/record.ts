@@ -1,8 +1,9 @@
 #!/usr/bin/env tsx
+import { execFile } from 'node:child_process';
 import { mkdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import { isDeepStrictEqual } from 'node:util';
+import { isDeepStrictEqual, promisify } from 'node:util';
 import type { Browser, BrowserContext, Page } from 'playwright';
 import { chromium } from 'playwright';
 import { config } from '#config';
@@ -15,7 +16,8 @@ import { readOutline, Stage } from './stage';
 const USAGE = [
   'Usage: pnpm demo:record [origin]',
   'Resets the origin\'s user account, whose password REMDO_USER_PASSWORD holds, then records',
-  'the demo video to $DATA_DIR/demo/demo.webm. The origin defaults to https://remdo.com.',
+  'the demo video to $DATA_DIR/demo/demo.mp4 with its poster demo.jpg, encoding them with ffmpeg.',
+  'The origin defaults to https://remdo.com.',
 ].join('\n');
 const VIEWPORT = { width: 1280, height: 720 };
 const END_STATE_TIMEOUT_MS = 15_000;
@@ -58,6 +60,20 @@ async function confirmEndState(browser: Browser, context: BrowserContext, origin
   }
 }
 
+const run = promisify(execFile);
+
+async function ffmpeg(...args: string[]): Promise<void> {
+  await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args]);
+}
+
+// H.264 in MP4 with its index first plays everywhere and starts before the
+// download completes; the final frame shows the finished outline.
+async function encodeForWeb(recording: string, video: string, poster: string): Promise<void> {
+  await ffmpeg('-i', recording, '-c:v', 'libx264', '-preset', 'slow', '-crf', '22',
+    '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', '-f', 'mp4', video);
+  await ffmpeg('-sseof', '-0.5', '-i', recording, '-frames:v', '1', '-q:v', '3', '-f', 'image2', poster);
+}
+
 async function main(): Promise<void> {
   const [originArgument = 'https://remdo.com', ...extra] = process.argv.slice(2);
   if (extra.length > 0) {
@@ -72,9 +88,14 @@ async function main(): Promise<void> {
   const account = demoAccount(origin, password);
 
   const outputDir = path.join(config.env.DATA_DIR, 'demo');
-  const output = path.join(outputDir, 'demo.webm');
-  const partial = `${output}.partial`;
+  const recording = path.join(outputDir, 'recording.webm');
+  const video = path.join(outputDir, 'demo.mp4');
+  const poster = path.join(outputDir, 'demo.jpg');
+  const partials = [`${video}.partial`, `${poster}.partial`] as const;
   await mkdir(outputDir, { recursive: true });
+  await run('ffmpeg', ['-version']).catch(() => {
+    throw new Error('ffmpeg with libx264 must be on PATH.');
+  });
 
   const { document } = await resetDemoAccount(origin, account);
   const browser = await chromium.launch();
@@ -84,7 +105,7 @@ async function main(): Promise<void> {
     await openDocument(page, origin, document.id);
     await page.locator('.editor-container [data-lexical-editor]').focus();
 
-    await page.screencast.start({ path: partial, size: VIEWPORT });
+    await page.screencast.start({ path: recording, size: VIEWPORT });
     try {
       const stage = new Stage(page);
       await stage.captionActions();
@@ -93,11 +114,13 @@ async function main(): Promise<void> {
       await page.screencast.stop();
     }
     await confirmEndState(browser, context, origin, document.id, outlining.endState);
-    await rename(partial, output);
-    console.info(`Recorded ${output}`);
+    await encodeForWeb(recording, ...partials);
+    await rename(partials[0], video);
+    await rename(partials[1], poster);
+    console.info(`Recorded ${video} and ${poster}`);
   } finally {
     await browser.close();
-    await rm(partial, { force: true });
+    await Promise.all([recording, ...partials].map(async (file) => rm(file, { force: true })));
   }
 }
 

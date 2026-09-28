@@ -140,6 +140,14 @@ Both unset leaves it disabled and unrouted; setting only one fails at startup.
 Google must allow `<APP_ORIGIN>/accounts/google/login/callback/` as a redirect
 URI.
 
+## Home video
+
+`HOME_VIDEO_URL` locates the [demo video](../demo/demo-video.md), in MP4, that the
+signed-out [Home](../outliner/home.md#public-introduction) offers; its poster
+image is the same URL with a `.jpg` path extension. Unset offers no video.
+Development defaults it to the local recording under [`DATA_DIR`](#persistence)
+when one exists at startup and the development server serves source files.
+
 ## Request diagnostics
 
 Production Django request errors reach standard error with status, exception type,

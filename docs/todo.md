@@ -272,7 +272,7 @@ slices that each produce a usable video and that later slices extend:
    frames into one video with layout changes over time, keeping each pane a
    real viewport resized to its area. Choose between composing with ffmpeg from
    a recorded layout timeline and recording a local stage page that renders
-   both frame streams; ffmpeg is not yet a development prerequisite.
+   both frame streams.
 2. **Collaboration.** Decide whether the two sessions share the `user` account
    or the chapter needs a second demo account shared into the document, which
    the reset and deployment accounts do not provide.
@@ -294,8 +294,7 @@ slices that each produce a usable video and that later slices extend:
    [delegated access](specs/access/access-control.md#delegated-access), not to
    demo recording.
 
-Open questions: whether a local-origin run also serves as a
-CI smoke check, and where published videos live.
+Open question: whether a local-origin run also serves as a CI smoke check.
 
 ### Delegated access
 

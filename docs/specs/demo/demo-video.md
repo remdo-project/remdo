@@ -12,7 +12,8 @@ A run takes a target RemDo origin, which defaults to
 1. [Reset the account](../../guides/production-deployment.md#reset-the-demo-account).
 2. Perform each [chapter](#chapters) in order through the target's real user
    interfaces and confirm its end state.
-3. Return the video file.
+3. Return the video, playable by current major browsers, and a poster image
+   showing its final frame.
 
 ## Authenticity
 

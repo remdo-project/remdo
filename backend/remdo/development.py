@@ -7,6 +7,10 @@ from .base import *  # noqa: F403
 
 DEBUG = True
 FRONTEND_USE_SOURCE = os.environ.get("REMDO_DEV_CONTAINER") != "true"
+_local_demo_video = base.DATA_DIR / "demo" / "demo.mp4"
+# Vite serves checkout files under /@fs/, so the public home can play a local recording.
+if not HOME_VIDEO_URL and FRONTEND_USE_SOURCE and _local_demo_video.is_file():  # noqa: F405
+    HOME_VIDEO_URL = f"/@fs{_local_demo_video}"
 INSTALLED_APPS = [*base.INSTALLED_APPS, "fixtures"]
 # Fixture workers share one loopback address and authenticate independently.
 ACCOUNT_RATE_LIMITS = False

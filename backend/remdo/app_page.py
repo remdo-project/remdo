@@ -1,3 +1,6 @@
+from pathlib import PurePosixPath
+from urllib.parse import urlsplit, urlunsplit
+
 from django.conf import settings
 from django.contrib.auth.views import redirect_to_login
 from django.shortcuts import render
@@ -18,4 +21,16 @@ def home_page(request):
         return app_page(request)
     if "next" in request.GET or "doc" in request.GET:
         return redirect_to_login(request.get_full_path())
-    return render(request, "pages/home.html", {"canonical": f"{settings.APP_ORIGIN}/"})
+    return render(
+        request,
+        "pages/home.html",
+        {"canonical": f"{settings.APP_ORIGIN}/", "video": _home_video(settings.HOME_VIDEO_URL)},
+    )
+
+
+def _home_video(url):
+    if not url:
+        return None
+    parts = urlsplit(url)
+    poster_path = str(PurePosixPath(parts.path).with_suffix(".jpg"))
+    return {"url": url, "poster": urlunsplit(parts._replace(path=poster_path))}
