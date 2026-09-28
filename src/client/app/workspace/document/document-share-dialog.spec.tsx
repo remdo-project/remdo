@@ -1,10 +1,9 @@
-import { MantineProvider } from '@mantine/core';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { createUserDataRootNote } from '#note-sdk';
 import type { UserDocument } from '#note-sdk';
 import type { DocumentAccessView } from '#domain/documents/access';
-import { createObservableDocumentList } from '#tests';
+import { TestMantineProvider, createObservableDocumentList } from '#tests';
 import { DocumentShareDialog } from './DocumentShareDialog';
 
 const DOC: UserDocument = { id: 'doc-a', title: 'Project Roadmap', shareable: true, access: [] };
@@ -21,9 +20,9 @@ function renderDialog({
   const { source, replace: replaceListing } = createObservableDocumentList(documents);
   const note = createUserDataRootNote(source, { shareDocument }).getDocuments().getById('doc-a')!;
   const view = render(
-    <MantineProvider>
+    <TestMantineProvider>
       <DocumentShareDialog note={note} onClose={onClose} />
-    </MantineProvider>
+    </TestMantineProvider>
   );
   return { ...view, replaceListing, onClose };
 }
@@ -85,7 +84,7 @@ describe('document share dialog', () => {
     };
     const note = createUserDataRootNote(lateSource).getDocuments().getById('doc-a')!;
 
-    render(<MantineProvider><DocumentShareDialog note={note} onClose={vi.fn()} /></MantineProvider>);
+    render(<TestMantineProvider><DocumentShareDialog note={note} onClose={vi.fn()} /></TestMantineProvider>);
 
     expect(screen.getByRole('dialog', { name: /Quarterly plan/u })).toBeInTheDocument();
   });

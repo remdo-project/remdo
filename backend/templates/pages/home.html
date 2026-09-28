@@ -26,6 +26,13 @@
       </ul>
       {% include "accounts/google_login.html" %}
     </div>
+    {% if video %}
+    <figure class="remdo-home-preview remdo-home-video">
+      <video aria-label="RemDo demo" controls playsinline poster="{{ video.poster }}" preload="none">
+        <source src="{{ video.url }}" type="video/mp4">
+      </video>
+    </figure>
+    {% else %}
     <figure aria-label="Example RemDo outline" class="remdo-home-preview" role="img">
       <div class="remdo-home-preview-bar">Home / <strong>Today</strong></div>
       <ul class="remdo-home-outline">
@@ -51,5 +58,6 @@
         </li>
       </ul>
     </figure>
+    {% endif %}
   </main>
 {% endblock %}

@@ -102,6 +102,24 @@ class HomePageTests(TestCase):
         self.assertIn("no-store", response.headers["Cache-Control"])
         self.assertEqual(self.client.post("/").status_code, 405)
 
+    def test_public_home_shows_the_example_outline_without_a_video(self):
+        response = self.client.get("/")
+        self.assertContains(response, 'aria-label="Example RemDo outline"')
+        self.assertNotContains(response, "<video")
+
+    @override_settings(HOME_VIDEO_URL="https://share.example.test/media/demo.mp4?v=2")
+    def test_public_home_offers_the_configured_video_with_its_poster(self):
+        response = self.client.get("/")
+        self.assertContains(
+            response,
+            '<source src="https://share.example.test/media/demo.mp4?v=2" type="video/mp4">',
+            html=True,
+        )
+        self.assertContains(response, 'poster="https://share.example.test/media/demo.jpg?v=2"')
+        self.assertContains(response, 'preload="none"')
+        self.assertNotContains(response, "autoplay")
+        self.assertNotContains(response, 'aria-label="Example RemDo outline"')
+
     def test_signed_out_entry_targets_go_to_sign_in(self):
         for url in ("/?next=%2Fn%2Fexample", "/?doc=example"):
             with self.subTest(url=url):

@@ -37,6 +37,8 @@ projects:
             property: connectionString
         - key: APP_ORIGIN
           value: https://remdo.com
+        - key: HOME_VIDEO_URL
+          sync: false
         - key: GOOGLE_CLIENT_ID
           sync: false
         - key: GOOGLE_CLIENT_SECRET
@@ -77,6 +79,8 @@ projects:
             property: connectionString
         - key: APP_ORIGIN
           value: https://test.remdo.com
+        - key: HOME_VIDEO_URL
+          sync: false
         - key: GOOGLE_CLIENT_ID
           sync: false
         - key: GOOGLE_CLIENT_SECRET

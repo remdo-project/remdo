@@ -13,6 +13,12 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 - **Home:** The landing view. It is not a document and holds no editable outline.
   Home is reached from any document via the leftmost [breadcrumb](./zoom.md#breadcrumbs) crumb.
 
+## Public introduction
+
+When a [home video](../runtime/configuration.md#home-video) is configured, the
+public introduction offers it with its poster, playing it only when the visitor
+starts it. Otherwise, it shows an example outline.
+
 ## Signed-in behavior
 
 1. Home shows document navigation and actions, without a document editor or its

@@ -6,7 +6,9 @@ import type { LexicalNode } from 'lexical';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 import { isBodyWrapper } from '#client/editor/outline/note-body-node';
 import { reportInvariant } from '#client/editor/foundation/invariant';
-import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from './list-structure';
+import { findNearestListItem, getBodyWrapper, getContentListItem, getContentSiblings, isChildrenWrapper } from './list-structure';
+import { isEmptyNoteBody } from './selection/note-body';
+import { noteHasChildren } from './selection/tree';
 
 function failOutlineInvariant(message: string, context: Record<string, unknown>): never {
   reportInvariant({ message, context });
@@ -34,6 +36,14 @@ export function $resolveRootContentList(): ListNode | null {
     return null;
   }
   return firstChild;
+}
+
+export function $getDocumentPlaceholder(): ListItemNode | null {
+  const notes = getContentSiblings($requireRootContentList());
+  const note = notes.length === 1 ? notes[0]! : null;
+  return note && isEmptyNoteBody(note) && getBodyWrapper(note) === null && !noteHasChildren(note)
+    ? note
+    : null;
 }
 
 export function resolveContentItemFromNode(node: LexicalNode | null): ListItemNode | null {

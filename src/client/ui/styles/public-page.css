@@ -117,6 +117,13 @@
   font-size: var(--mantine-font-size-md);
 }
 
+.remdo-home-video video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
 .remdo-home-preview-bar {
   padding: var(--mantine-spacing-md) var(--mantine-spacing-lg);
   background: var(--mantine-color-dark-6);

@@ -6,7 +6,11 @@ os.environ["GOOGLE_CLIENT_SECRET"] = "test-google-client-secret"
 # Tests fail on purpose; their errors stay out of the operator's project.
 os.environ["SENTRY_DSN"] = ""
 
+from . import base  # noqa: E402
 from .development import *  # noqa: E402, F403
+
+# Tests stay independent of a local demo recording.
+HOME_VIDEO_URL = base.HOME_VIDEO_URL
 
 # Tests authenticate synthetic users without production hashing cost.
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

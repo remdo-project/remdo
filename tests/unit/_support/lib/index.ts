@@ -8,3 +8,4 @@ export * from './selection';
 export * from './lexical';
 export * from './test-meta';
 export * from './user-data';
+export * from './mantine';
