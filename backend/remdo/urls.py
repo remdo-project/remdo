@@ -1,6 +1,7 @@
 from accounts.delegated import (
     authorize,
     connected_apps,
+    mcp_user,
     protected_resource_metadata,
     revoke,
     token,
@@ -48,6 +49,7 @@ urlpatterns = [
     path("api/health", views.HealthView.as_view()),
     path("api/config", views.ConfigView.as_view()),
     path("api/current-user", views.CurrentUserView.as_view()),
+    path("api/mcp/current-user", mcp_user),
     path("api/documents", views.DocumentListCreateView.as_view()),
     path("api/documents/<str:document_id>", views.DocumentView.as_view()),
     path("api/documents/<str:document_id>/access", views.DocumentShareView.as_view()),

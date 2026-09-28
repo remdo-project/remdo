@@ -21,7 +21,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import Http404, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
@@ -56,15 +56,25 @@ def bearer_token(authorization_header):
     return value.strip() if scheme.lower() == "bearer" and value.strip() else None
 
 
-def delegated_user(authorization_header):
-    """The user a bearer access token acts as, or None."""
+def mcp_resource():
+    return f"{settings.APP_ORIGIN}/mcp"
+
+
+def delegated_token(authorization_header):
+    """The bearer access token that may act as its user, or None."""
     value = bearer_token(authorization_header)
     if value is None:
         return None
     token = Token.objects.lookup(Token.Type.ACCESS_TOKEN, value)
     if token is None or token.user is None or not may_delegate(token.user):
         return None
-    return token.user
+    return token
+
+
+def delegated_user(authorization_header):
+    """The user a bearer access token acts as, or None."""
+    token = delegated_token(authorization_header)
+    return token and token.user
 
 
 class DelegatedAccessAuthentication(BaseAuthentication):
@@ -184,12 +194,22 @@ def protected_resource_metadata(request):
     origin = request.build_absolute_uri("/").rstrip("/")
     return JsonResponse(
         {
-            "resource": f"{origin}/mcp",
+            "resource": mcp_resource(),
             "authorization_servers": [origin],
             "bearer_methods_supported": ["header"],
             "scopes_supported": ["openid"],
         }
     )
+
+
+@never_cache
+@require_http_methods(["GET"])
+def mcp_user(request):
+    """The user an access token issued for the MCP server (RFC 8707) acts as."""
+    token = delegated_token(request.headers.get("Authorization", ""))
+    if token is None or mcp_resource() not in token.get_resources():
+        return HttpResponse(status=401)
+    return JsonResponse({"userId": str(token.user.pk)})
 
 
 def _refuse(request, reason):

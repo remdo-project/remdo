@@ -191,11 +191,11 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       challenge(response, false);
       return;
     }
-    const check = await requestDjango(new URL('/api/current-user', apiOrigin), {
+    const check = await requestDjango(new URL('/api/mcp/current-user', apiOrigin), {
       headers: { Authorization: authorization, Host: host },
       signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
     }).catch(() => null);
-    if (check?.status === 401 || check?.status === 403) {
+    if (check?.status === 401) {
       challenge(response, true);
       return;
     }
