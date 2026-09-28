@@ -108,6 +108,7 @@ export interface components {
             buildRevision: string;
             csrfCookieName: string;
             csrfToken: string;
+            errorReportingDsn: string;
         };
         CurrentUser: {
             readonly userId: string;

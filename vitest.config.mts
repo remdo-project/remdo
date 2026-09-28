@@ -50,6 +50,7 @@ const nodeTests = [
   'tests/unit/django-template-storage-keys.spec.ts',
   'tests/unit/vite-logger.spec.ts',
   'tests/unit/vite-shared.spec.ts',
+  'tests/unit/server-error-reporting.spec.ts',
 ];
 
 // These tests need a DOM but not the shared RemDo editor fixture.
@@ -71,6 +72,7 @@ const domTests = [
 
   'src/client/app/dev/*.spec.tsx',
   'src/client/app/session/*.spec.{ts,tsx}',
+  'src/client/app/shell/error-reporting.spec.ts',
   'src/client/app/sharing/*.spec.tsx',
   'src/client/app/user-data/*.spec.{ts,tsx}',
   'src/client/app/workspace/document/home-view.spec.tsx',

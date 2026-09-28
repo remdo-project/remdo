@@ -4,6 +4,9 @@ from urllib.parse import urlsplit
 
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
+from sentry_sdk.utils import BadDsn, Dsn
+
+from . import error_reporting
 
 
 def required(name):
@@ -31,6 +34,17 @@ try:
     cookie_namespace = origin.port or (443 if origin.scheme == "https" else 80)
 except ValueError as error:
     raise ImproperlyConfigured("APP_ORIGIN must be an exact HTTP(S) origin.") from error
+
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "").strip()
+if SENTRY_DSN:
+    try:
+        sentry_dsn = Dsn(SENTRY_DSN)
+    except BadDsn as error:
+        raise ImproperlyConfigured("SENTRY_DSN must be a Sentry DSN.") from error
+    # Startup configuration hands the DSN to browsers.
+    if sentry_dsn.secret_key:
+        raise ImproperlyConfigured("SENTRY_DSN must not include a secret key.")
+    error_reporting.start(SENTRY_DSN, BUILD_REVISION, origin.hostname)
 
 CSRF_TRUSTED_ORIGINS = [APP_ORIGIN]
 ALLOWED_HOSTS = [origin.hostname]

@@ -20,6 +20,8 @@
     "playwright.docker.config.ts",
     // Browser tests import this fixture through Vite URLs inside page.evaluate.
     "tests/e2e/_support/local-persistence-browser.ts",
+    // The server error-reporting spec runs this fixture as a child process.
+    "tests/unit/_support/server-failure.ts",
     "tools/{check-pnpm-policy,collab-server,generate-api-client}.ts",
     ".agents/skills/remdo-verify-change/tools/run-reviews.ts",
     // Django's launcher consumes the server configuration projection.

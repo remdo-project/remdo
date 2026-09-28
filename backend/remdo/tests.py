@@ -212,6 +212,24 @@ class ConfigurationTests(SimpleTestCase):
             self.assertEqual(results[-1]["cookie"], f"remdo_session_{base}")
         self.assertNotEqual(results[0]["cookie"], results[1]["cookie"])
 
+    def test_error_reporting_follows_the_dsn_except_under_verification(self):
+        dsn = "https://publickey@ingest.example/7"
+        report = "from django.conf import settings; print(json.dumps(settings.SENTRY_DSN))"
+        for module, expected in (
+            ("remdo.settings", dsn),
+            ("remdo.development", dsn),
+            ("remdo.testing", ""),
+        ):
+            with self.subTest(module=module):
+                self.assertEqual(
+                    self.settings(
+                        report="import json; " + report,
+                        DJANGO_SETTINGS_MODULE=module,
+                        SENTRY_DSN=dsn,
+                    ),
+                    expected,
+                )
+
     def test_invalid_backend_configuration_fails_at_startup(self):
         for overrides, message in (
             ({"DATA_DIR": ""}, "DATA_DIR is required"),
@@ -220,6 +238,11 @@ class ConfigurationTests(SimpleTestCase):
             ({"APP_ORIGIN": "http://user:password@localhost"}, "APP_ORIGIN must be an exact"),
             ({"GOOGLE_CLIENT_ID": "client"}, "must be set together"),
             ({"GOOGLE_CLIENT_SECRET": "secret"}, "must be set together"),
+            ({"SENTRY_DSN": "not-a-dsn"}, "SENTRY_DSN must be a Sentry DSN"),
+            (
+                {"SENTRY_DSN": "https://public:secret@ingest.example/7"},
+                "SENTRY_DSN must not include a secret key",
+            ),
         ):
             with self.subTest(overrides=overrides):
                 result = subprocess.run(

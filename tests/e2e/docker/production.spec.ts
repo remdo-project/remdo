@@ -577,3 +577,65 @@ print(document.pk)
     document.destroy();
   }
 });
+
+test('the gateway forwards browser error reports to the configured project without client headers', async ({ request: api }) => {
+  await waitForHealth(api);
+  expect((await api.post('/api/error-reports', { data: 'envelope' })).status()).toBe(404);
+
+  // A second gateway from the image's Caddyfile, configured as startup would
+  // configure it for a DSN, in front of a fake Sentry ingest.
+  const result = JSON.parse(docker('exec', container, 'python', '-c', `
+import json, subprocess, threading, time
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
+
+received = []
+class Ingest(BaseHTTPRequestHandler):
+    def do_POST(self):
+        body = self.rfile.read(int(self.headers['Content-Length'])).decode()
+        received.append({'path': self.path, 'headers': sorted(self.headers.keys()), 'body': body})
+        self.send_response(429)
+        self.send_header('X-Sentry-Rate-Limits', '60:error')
+        self.end_headers()
+    def log_message(self, *args):
+        pass
+
+ingest = HTTPServer(('127.0.0.1', 7102), Ingest)
+threading.Thread(target=ingest.serve_forever, daemon=True).start()
+gateway = subprocess.Popen(['sh', '-c', '''
+. /usr/local/share/remdo/entrypoint-env.sh
+SENTRY_DSN=http://publickey@127.0.0.1:7102/7 remdo_configure_error_report_forwarding
+CADDY_SITE_ADDRESS=http://127.0.0.1:7101 exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+'''], stderr=subprocess.DEVNULL)
+try:
+    request = Request('http://127.0.0.1:7101/api/error-reports', method='POST', data=b'{}\\n{"type":"event"}\\n{}\\n', headers={
+        'Content-Type': 'text/plain;charset=UTF-8',
+        'Cookie': 'remdo_session=private-session',
+        'Referer': 'https://remdo.example/n/document?code=private-query',
+        'X-Forwarded-For': '198.51.100.7',
+        'CF-Connecting-IP': '198.51.100.7',
+    })
+    for _ in range(100):
+        try:
+            urlopen(request)
+        except HTTPError as reply:
+            status, limits = reply.code, reply.headers['X-Sentry-Rate-Limits']
+            break
+        except OSError:
+            time.sleep(0.1)
+finally:
+    gateway.terminate()
+print(json.dumps({'status': status, 'limits': limits, 'received': received}))
+`));
+
+  expect(result).toEqual({
+    status: 429,
+    limits: '60:error',
+    received: [{
+      path: '/api/7/envelope/',
+      headers: ['Accept-Encoding', 'Content-Length', 'Content-Type', 'Host', 'User-Agent'],
+      body: '{}\n{"type":"event"}\n{}\n',
+    }],
+  });
+});

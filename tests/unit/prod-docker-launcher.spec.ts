@@ -107,6 +107,7 @@ describe('prod Docker launcher', () => {
         DATABASE_URL: '',
         GOOGLE_CLIENT_ID: '',
         GOOGLE_CLIENT_SECRET: '',
+        SENTRY_DSN: '',
         HOST: '',
         REMDO_ADMIN_PASSWORD: '',
         PATH: `${binDir}:${process.env.PATH}`,
@@ -399,6 +400,15 @@ describe('prod Docker launcher', () => {
     expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toMatchObject({
       GOOGLE_CLIENT_ID: 'launcher-google-client',
       GOOGLE_CLIENT_SECRET: 'launcher-google-secret',
+    });
+  });
+
+  it('forwards the configured error reporting project to the container', () => {
+    const { result, dockerCalls } = runLauncher({ SENTRY_DSN: 'https://publickey@ingest.example/7' });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toMatchObject({
+      SENTRY_DSN: 'https://publickey@ingest.example/7',
     });
   });
 

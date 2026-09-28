@@ -49,6 +49,22 @@
 			}
 		}
 
+		@error_reports {
+			method POST
+			path /api/error-reports
+			expression "{$SENTRY_ENVELOPE_ORIGIN}" != ""
+		}
+		handle @error_reports {
+			rewrite * {$SENTRY_ENVELOPE_PATH}
+			reverse_proxy {$SENTRY_ENVELOPE_ORIGIN} {
+				# Browser cookies, addresses, and forwarding headers stay here.
+				header_up -*
+				header_up Host {upstream_hostport}
+				header_up Content-Type application/x-sentry-envelope
+				header_down Cache-Control "no-store"
+			}
+		}
+
 		@app_assets path /app-assets/* /icons/* /logo.svg /icon-192.png /icon-512.png /icon-maskable-512.png /manifest.webmanifest /sw.js /workbox-*.js /registerSW.js
 		handle @app_assets {
 			root * /srv/remdo

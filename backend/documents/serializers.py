@@ -75,6 +75,7 @@ class ConfigSerializer(serializers.Serializer):
     buildRevision = serializers.CharField(allow_blank=True)
     csrfCookieName = serializers.CharField()
     csrfToken = serializers.CharField()
+    errorReportingDsn = serializers.CharField(allow_blank=True)
 
 
 class HealthSerializer(serializers.Serializer):

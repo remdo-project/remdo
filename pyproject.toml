@@ -12,6 +12,7 @@ dependencies = [
     "markdown>=3.11",
     "psycopg[binary]>=3.3.6",
     "pyyaml>=6.0.3",
+    "sentry-sdk>=2.70.0",
 ]
 
 [tool.ruff]

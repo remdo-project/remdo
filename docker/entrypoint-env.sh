@@ -60,6 +60,22 @@ remdo_configure_caddy_env() {
 
   CADDY_FORWARDED_PROTO="${app_origin_protocol%:}"
   export APP_ORIGIN CADDY_SITE_ADDRESS CADDY_FORWARDED_PROTO
+  remdo_configure_error_report_forwarding
+}
+
+# Browsers report through the gateway, which forwards to the envelope endpoint
+# of the SENTRY_DSN project: <scheme>://<key>@<host>[/<prefix>]/<project>.
+remdo_configure_error_report_forwarding() {
+  SENTRY_ENVELOPE_ORIGIN=""
+  SENTRY_ENVELOPE_PATH=""
+  if [ -n "${SENTRY_DSN:-}" ]; then
+    dsn_location="${SENTRY_DSN#*://}"
+    dsn_location="${dsn_location#*@}"
+    dsn_path="/${dsn_location#*/}"
+    SENTRY_ENVELOPE_ORIGIN="${SENTRY_DSN%%://*}://${dsn_location%%/*}"
+    SENTRY_ENVELOPE_PATH="${dsn_path%/*}/api/${dsn_path##*/}/envelope/"
+  fi
+  export SENTRY_ENVELOPE_ORIGIN SENTRY_ENVELOPE_PATH
 }
 
 # Print the container memory limit in bytes, or "max" when unlimited. cgroup v1

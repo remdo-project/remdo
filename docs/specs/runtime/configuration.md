@@ -140,6 +140,29 @@ Both unset leaves it disabled and unrouted; setting only one fails at startup.
 Google must allow `<APP_ORIGIN>/accounts/google/login/callback/` as a redirect
 URI.
 
+## Error reporting
+
+`SENTRY_DSN` enables error reporting to that Sentry project; verification
+ignores it. Without reporting, no process loads a reporter. A malformed value,
+or one with a secret key, fails at startup, since browsers receive the DSN.
+**Deterministic.**
+
+The API, collaboration server, MCP server, and browser app report unhandled
+failures; the browser app also reports errors that an error boundary catches. A
+failing server process still exits unsuccessfully, after a bounded delivery
+attempt. Reports identify the build revision and the
+[`APP_ORIGIN`](#network-addressing) host. **Deterministic.**
+
+The browser app loads reporter code only when startup configuration enables
+reporting, and sends reports through the instance's gateway. **Deterministic.**
+
+Beyond the [diagnostics principle](../../principles.md#data-and-trust), reports
+and their delivery exclude user identity, client addresses, cookies, request
+headers other than the user agent, URL query strings and fragments, and command
+lines. **Deterministic.** Reporting covers errors only, without tracing,
+profiling, or session tracking. Production frontend source maps are public so
+that browser reports resolve to source.
+
 ## Request diagnostics
 
 Production Django request errors reach standard error with status, exception type,

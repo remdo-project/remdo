@@ -100,5 +100,6 @@ class ConfigView(APIView):
                 "csrfCookieName": settings.CSRF_COOKIE_NAME,
                 "buildRevision": settings.BUILD_REVISION,
                 "csrfToken": get_token(request),
+                "errorReportingDsn": settings.SENTRY_DSN,
             }
         )

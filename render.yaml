@@ -41,6 +41,8 @@ projects:
           sync: false
         - key: GOOGLE_CLIENT_SECRET
           sync: false
+        - key: SENTRY_DSN
+          sync: false
 
   - name: test
     databases:
@@ -78,4 +80,6 @@ projects:
         - key: GOOGLE_CLIENT_ID
           sync: false
         - key: GOOGLE_CLIENT_SECRET
+          sync: false
+        - key: SENTRY_DSN
           sync: false
