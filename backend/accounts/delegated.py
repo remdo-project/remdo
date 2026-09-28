@@ -21,7 +21,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import Http404, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
@@ -190,6 +190,16 @@ def protected_resource_metadata(request):
             "scopes_supported": ["openid"],
         }
     )
+
+
+@never_cache
+@require_http_methods(["GET"])
+def mcp_user(request):
+    """The user an access token issued for the MCP server acts as."""
+    user = delegated_user(request.headers.get("Authorization", ""), resource=mcp_resource())
+    if user is None:
+        return HttpResponse(status=401)
+    return JsonResponse({"userId": str(user.pk)})
 
 
 def _refuse(request, reason):

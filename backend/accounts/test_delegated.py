@@ -111,13 +111,7 @@ class DelegatedAccessTests(TestCase):
         )
 
     def authorize_mcp(self, token):
-        return self.client.get(
-            "/internal/mcp/authorize",
-            headers={
-                "X-Remdo-Collaboration-Secret": settings.COLLAB_INTERNAL_SECRET,
-                **self.bearer(token),
-            },
-        )
+        return self.client.get("/api/mcp/current-user", headers=self.bearer(token))
 
     def test_the_mcp_server_accepts_only_tokens_issued_for_it(self):
         bound = self.grant(resource=mcp_resource())["access_token"]
@@ -136,11 +130,6 @@ class DelegatedAccessTests(TestCase):
         tokens = self.grant(resource=mcp_resource())
         renewed = self.refresh(tokens["refresh_token"]).json()
         self.assertEqual(self.authorize_mcp(renewed["access_token"]).status_code, 200)
-
-    def test_mcp_authorization_requires_the_internal_secret(self):
-        token = self.grant(resource=mcp_resource())["access_token"]
-        response = self.client.get("/internal/mcp/authorize", headers=self.bearer(token))
-        self.assertEqual(response.status_code, 403)
 
     def test_granted_token_acts_as_the_user_on_the_api_and_collaboration(self):
         tokens = self.grant()

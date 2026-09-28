@@ -112,8 +112,8 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
   `/api/auth/browser/v1`, administration at `/admin/`, and the authorization
   server for [delegated access](specs/access/access-control.md#delegated-access).
 - Django authorizes each collaboration document connection under [Document Access](specs/access/access-control.md#document-access).
-- Private collaboration operations and the MCP server's token check use an
-  internal service credential, isolated from public gateway traffic.
+- Private collaboration operations use an internal service credential, isolated
+  from public gateway traffic.
 
 Django resolves the user from the session or a delegated access token for
 ownership and document access decisions.

@@ -13,9 +13,7 @@ afterEach(async () => {
 
 async function start() {
   const django = http.createServer((req, res) => {
-    if (req.url === '/internal/mcp/authorize') {
-      res.writeHead(req.headers['x-remdo-collaboration-secret'] === 'internal-secret' ? authorizeStatus : 403).end('{}');
-    }
+    if (req.url === '/api/mcp/current-user') res.writeHead(authorizeStatus).end('{}');
     else if (documentsResponse === 'dropped') req.socket.destroy();
     else res.writeHead(documentsResponse.status).end(documentsResponse.body);
   });
@@ -29,7 +27,6 @@ async function start() {
     origin,
     apiOrigin: `http://127.0.0.1:${(django.address() as AddressInfo).port}`,
     appOrigin: 'https://remdo.example',
-    internalSecret: 'internal-secret',
     documentSlots: 1,
   });
   await server.listen();

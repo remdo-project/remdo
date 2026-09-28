@@ -1,6 +1,7 @@
 from accounts.delegated import (
     authorize,
     connected_apps,
+    mcp_user,
     protected_resource_metadata,
     revoke,
     token,
@@ -48,12 +49,12 @@ urlpatterns = [
     path("api/health", views.HealthView.as_view()),
     path("api/config", views.ConfigView.as_view()),
     path("api/current-user", views.CurrentUserView.as_view()),
+    path("api/mcp/current-user", mcp_user),
     path("api/documents", views.DocumentListCreateView.as_view()),
     path("api/documents/<str:document_id>", views.DocumentView.as_view()),
     path("api/documents/<str:document_id>/access", views.DocumentShareView.as_view()),
     path("internal/collaboration/documents/<str:document_id>/authorize", internal.authorize),
     path("internal/collaboration/documents/<str:document_id>/content", internal.content),
-    path("internal/mcp/authorize", internal.authorize_mcp),
     path("api/schema", SpectacularAPIView.as_view()),
     re_path(r"^(?P<slug>[a-z0-9]+(?:-[a-z0-9]+)*)/$", public_page, name="public_page"),
 ]

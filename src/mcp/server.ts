@@ -17,8 +17,6 @@ interface ServerOptions {
   origin: string;
   apiOrigin: string;
   appOrigin: string;
-  /** Authenticates this server to Django's loopback operations. */
-  internalSecret: string;
   /** Documents that tool calls may hold open at once. */
   documentSlots: number;
 }
@@ -81,7 +79,7 @@ async function respond(run: () => Promise<unknown>): Promise<CallToolResult> {
   }
 }
 
-export function createMcpServer({ origin, apiOrigin, appOrigin, internalSecret, documentSlots }: ServerOptions) {
+export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }: ServerOptions) {
   const withDocumentSlot = createDocumentSlots(documentSlots);
   const { host, protocol } = new URL(appOrigin);
   const resourceMetadata = new URL('/.well-known/oauth-protected-resource/mcp', appOrigin).href;
@@ -193,8 +191,8 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, internalSecret, 
       challenge(response, false);
       return;
     }
-    const check = await requestDjango(new URL('/internal/mcp/authorize', apiOrigin), {
-      headers: { Authorization: authorization, Host: host, 'X-Remdo-Collaboration-Secret': internalSecret },
+    const check = await requestDjango(new URL('/api/mcp/current-user', apiOrigin), {
+      headers: { Authorization: authorization, Host: host },
       signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
     }).catch(() => null);
     if (check?.status === 401) {

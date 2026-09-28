@@ -429,12 +429,14 @@ test('MCP saves an outline through the gateway with a delegated token', async ()
   const token = docker('exec', hosted, 'python', 'manage.py', 'shell', '-c', `
 import secrets
 from datetime import timedelta
+from accounts.delegated import mcp_resource
 from accounts.models import User
 from allauth.idp.oidc.models import Token
 from django.utils import timezone
 user, _ = User.objects.get_or_create(email="mcp@production.example.test")
 value = secrets.token_urlsafe(32)
 token = Token(type=Token.Type.ACCESS_TOKEN, user=user, expires_at=timezone.now() + timedelta(hours=1))
+token.set_resources([mcp_resource()])
 token.set_value(value)
 token.save()
 print(value)

@@ -100,7 +100,6 @@ export default async function collabTestRuntime() {
       origin: resolveMcpServerOrigin(),
       apiOrigin: resolveApiServerOrigin(),
       appOrigin: config.env.APP_ORIGIN,
-      internalSecret: config.env.COLLAB_INTERNAL_SECRET,
       documentSlots: config.env.MCP_DOCUMENT_SLOTS,
     });
     await mcp.listen();
