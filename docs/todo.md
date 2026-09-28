@@ -250,7 +250,6 @@ RemDo document, minimal but useful for real work.
   does not expose the document root's list type.
 - Expose search once server-side search spans a user's documents; searching a
   single document adds little over reading it whole.
-- Write the Connect-Claude guide and try the connector on the hosted instance.
 - **Headless append failure modes.** `append_children` never settles while
   collaboration authorization keeps failing: each reconnect clears the connect
   deadline, and the abandoned session appends once Django recovers, which can

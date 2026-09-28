@@ -3,6 +3,8 @@ title: About RemDo
 description: A keyboard-first collaborative outliner.
 ---
 
+<!-- markdownlint-disable relative-links -->
+
 RemDo is an open-source workspace for people whose work depends on information
 spread across many tools. A useful detail might be in meeting notes, an email
 thread, a calendar invitation, or a shared document. Finding one piece often
@@ -16,7 +18,8 @@ moving everything into another system.
 
 Today, RemDo is a keyboard-first collaborative outliner for organizing and
 connecting notes. You can structure information, link notes and documents,
-search within documents, edit together in real time, and work offline. The
+search within documents, edit together in real time, and work offline. You can
+also [connect an AI assistant](/docs/mcp/) such as Claude. The
 broader cross-tool model, including email, calendars, and external files, is
 still under development.
 
