@@ -34,6 +34,8 @@ async function call(client: Client, name: string, args: Record<string, unknown> 
   return { isError: response.isError === true, value: response.isError ? content!.text : JSON.parse(content!.text) as unknown };
 }
 
+const noteUrl = (address: string) => new URL(`/n/${address}`, config.env.APP_ORIGIN).href;
+
 async function storedText(documentId: string): Promise<string> {
   const response = await fetch(new URL(`/internal/collaboration/documents/${documentId}/content`, resolveApiServerOrigin()), {
     headers: { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET, Host: new URL(config.env.APP_ORIGIN).host },
@@ -75,9 +77,8 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     const read = await client.callTool({ name: 'read_document', arguments: { documentId: created.documentId } });
     const [outline] = read.content as Array<{ text: string }>;
-    const url = (address: string) => new URL(`/n/${address}`, config.env.APP_ORIGIN).href;
-    expect(outline!.text).toContain(`Document: ${url(created.documentId)}`);
-    expect(outline!.text).toContain(`- [Summary](${url(summary!.noteAddress)})`);
+    expect(outline!.text).toContain(`Document: ${noteUrl(created.documentId)}`);
+    expect(outline!.text).toContain(`- [Summary](${noteUrl(summary!.noteAddress)})`);
     expect(outline!.text).toMatch(/\n {2}- \[Decision\]\(/);
 
     const listed = (await call(client, 'list_documents')).value as Array<{ documentId: string }>;
@@ -94,13 +95,13 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(await storedText(documentId)).toContain('Second');
   });
 
-  it('reads a new document as empty without storing anything', async () => {
+  it('reads a new document without storing or linking its generated note', async () => {
     const client = await connect(await delegatedToken());
     const { documentId } = (await call(client, 'create_document', { title: 'Untouched' })).value as { documentId: string };
     const read = await client.callTool({ name: 'read_document', arguments: { documentId } });
     expect(read.isError).toBeFalsy();
     const [outline] = read.content as Array<{ text: string }>;
-    expect(outline!.text).toBe(`Document: ${new URL(`/n/${documentId}`, config.env.APP_ORIGIN).href}\n\n`);
+    expect(outline!.text).toBe(`Document: ${noteUrl(documentId)}\n\n- `);
     expect(await storedText(documentId)).toBe('');
   });
 

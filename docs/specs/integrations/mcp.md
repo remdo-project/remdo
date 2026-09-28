@@ -24,9 +24,10 @@ operation's owner defines its behavior.
   [`noteAddress`](../outliner/note-ids.md#global-addresses). Results that
   identify documents or notes include their URLs.
 - Reading a document returns every editor note in document order with its
-  nesting, content text, checked state, list type, body text, and URL. Reading
-  does not change the document, so it omits the URL of a note whose ID load-time
-  normalization would first have to store, and an empty document has no notes.
+  nesting, each list's type, and each note's content text, checked state, body
+  text, and URL. Reading does not change the document, so it omits the URL of a
+  note whose ID [load-time normalization](../outliner/note-ids.md#persisted-json-and-normalization)
+  would first have to store.
 - Each tool declares a title and whether it only reads or changes the user's
   data, so clients can require confirmation before changes.
 - A failed tool call returns a tool error naming its cause.

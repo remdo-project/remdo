@@ -11,8 +11,6 @@ import {
 } from '#tests';
 import { createNoteIdAvoiding } from '#domain/notes/ids';
 import { noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
-import { $normalizeNoteIdsOnLoad } from '#client/editor/runtime/note-ids/note-id-normalization';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 
 
 
@@ -100,25 +98,6 @@ describe('note id normalization on load', () => {
       expect(first?.noteId).toBe('duplicated');
       expect(second?.noteId).toEqual(expect.any(String));
       expect(second?.noteId).not.toBe('duplicated');
-    }
-  );
-
-  it(
-    'reports the noteIds it generates',
-    meta({
-      fixture: 'flat',
-      expectedConsoleIssues: ['runtime.invariant note-id-normalized duplicate-note-id path=1'],
-    }),
-    async ({ remdo }) => {
-      let generated: ReadonlySet<string> = new Set();
-      await remdo.mutate(() => {
-        $setState($findNoteById('note2')!, noteIdState, 'note1');
-        generated = $normalizeNoteIdsOnLoad($getRoot(), remdo.getCollabDocId());
-      });
-
-      const secondId = readOutline(remdo)[1]?.noteId;
-      expect(secondId).not.toBe('note1');
-      expect([...generated]).toEqual([secondId]);
     }
   );
 

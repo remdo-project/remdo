@@ -41,10 +41,10 @@ import { $getOrCreateChildList, isWrapperItem } from '#client/editor/outline/lis
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
-import { getNoteBody } from '#client/editor/outline/selection/body-region';
+import { getNoteBodyText } from '#client/editor/outline/selection/body-region';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getNestedList, isWithinBoundary, noteHasChildren } from '#client/editor/outline/selection/tree';
-import { $getChildNoteIds, $isBlankRoot, $requireRootContentList } from '#client/editor/outline/schema';
+import { $getChildNoteIds, $requireRootContentList } from '#client/editor/outline/schema';
 import { $resolveViewRoot, subscribeViewRoot } from '#client/editor/outline/view-root';
 import { collectLexicalDocumentSearchResults } from './lexical-document-search';
 import { $appendNewNotes, hasLineBreak } from './lexical-note-insertion';
@@ -176,7 +176,7 @@ export function createLexicalOpenDocumentRuntime({
       return {
         folded: $isNoteFolded(note),
         text: getNoteOwnText(note),
-        body: getNoteBody(note)?.getTextContent() ?? null,
+        body: getNoteBodyText(note),
         checked: $getNoteChecked(note) === true,
         childListType: $getNestedListType(note),
         childIds: $getNestedChildNoteIds(note),
@@ -485,7 +485,7 @@ export function createLexicalOpenDocumentRuntime({
         throw new NoteUnavailableError(docId);
       }
       return editor.getEditorState()
-        .read(() => $isBlankRoot() ? [] : $getChildNoteIds($requireRootContentList()), { editor })
+        .read(() => $getChildNoteIds($requireRootContentList()), { editor })
         .map(createNoteRef);
     },
     appendChildren: (notes: readonly NewNote[]) => appendChildren(null, notes),

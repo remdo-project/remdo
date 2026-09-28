@@ -9,7 +9,7 @@ import { isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { isBodyWrapper } from '#client/editor/outline/note-body-node';
 import { reportInvariant } from '#client/editor/foundation/invariant';
 
-function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, generatedIds: Set<string>, path: number[]) {
+function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, path: number[]) {
   // A children-wrapper is not a note. (Body-wrappers are already skipped by the
   // sole caller before this point.)
   if (isChildrenWrapper(item)) {
@@ -23,7 +23,6 @@ function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, genera
   } else {
     normalized = createNoteIdAvoiding(usedIds);
     $setState(item, noteIdState, normalized);
-    generatedIds.add(normalized);
     const reason = noteId ? 'duplicate-note-id' : 'missing-note-id';
     const pathLabel = `path=${path.join('.')}`;
     reportInvariant({ message: `note-id-normalized ${reason} ${pathLabel}` });
@@ -32,7 +31,7 @@ function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, genera
   usedIds.add(normalized);
 }
 
-function $normalizeListNoteIds(list: ListNode, usedIds: Set<string>, generatedIds: Set<string>) {
+function $normalizeListNoteIds(list: ListNode, usedIds: Set<string>, prefix: number[] = []) {
   const stack: Array<{
     children: ReturnType<ListNode['getChildren']>;
     childIndex: number;
@@ -43,7 +42,7 @@ function $normalizeListNoteIds(list: ListNode, usedIds: Set<string>, generatedId
       children: list.getChildren(),
       childIndex: 0,
       noteIndex: 0,
-      prefix: [],
+      prefix,
     },
   ];
 
@@ -82,20 +81,24 @@ function $normalizeListNoteIds(list: ListNode, usedIds: Set<string>, generatedId
 
     const path = [...frame.prefix, frame.noteIndex];
     frame.noteIndex += 1;
-    $normalizeNoteIdOnLoad(child, usedIds, generatedIds, path);
+    $normalizeNoteIdOnLoad(child, usedIds, path);
   }
 }
 
-/** Backfills missing and duplicate noteIds, returning the ones it generated. */
-export function $normalizeNoteIdsOnLoad(root: RootNode, docId: string): ReadonlySet<string> {
+function $normalizeNoteIds(root: RootNode, usedIds: Set<string>) {
+  const rootChildren = root.getChildren();
+  const list = rootChildren.find($isListNode);
+  if (!$isListNode(list)) {
+    return;
+  }
+
+  $normalizeListNoteIds(list, usedIds);
+}
+
+export function $normalizeNoteIdsOnLoad(root: RootNode, docId: string): void {
   const used = new Set<string>();
   if (docId.length > 0) {
     used.add(docId);
   }
-  const generated = new Set<string>();
-  const list = root.getChildren().find($isListNode);
-  if (list) {
-    $normalizeListNoteIds(list, used, generated);
-  }
-  return generated;
+  $normalizeNoteIds(root, used);
 }
