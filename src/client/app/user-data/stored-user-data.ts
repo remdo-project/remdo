@@ -6,6 +6,9 @@ import { DOCUMENT_TITLE_MAX_LENGTH } from '#domain/documents/user-data';
 import { api, requireData } from '#platform/http/api-client';
 import { currentUserBootstrapQuery } from './current-user-bootstrap';
 
+const MIN_REOPEN_DELAY_MS = 1000;
+const MAX_REOPEN_DELAY_MS = 60_000;
+
 export function createUserDataRuntime(userId: string, client = new QueryClient()) {
   const lifetime = new AbortController();
   const bootstrapQuery = currentUserBootstrapQuery(userId);
@@ -138,12 +141,45 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     deleteDocument: (documentId) => client.getMutationCache().build(client, deleteDocumentOptions).execute(documentId),
   });
 
+  function watchDocumentList(): () => void {
+    let stream: EventSource;
+    let reopenTimer: ReturnType<typeof setTimeout> | undefined;
+    let reopenDelay = MIN_REOPEN_DELAY_MS;
+    const open = () => {
+      stream = new EventSource('/collaboration');
+      // Changes made while disconnected send no notice.
+      stream.addEventListener('open', () => {
+        reopenDelay = MIN_REOPEN_DELAY_MS;
+        void client.invalidateQueries({ queryKey: documentsQuery.queryKey }, { cancelRefetch: false });
+      });
+      stream.addEventListener('message', () => {
+        void client.invalidateQueries({ queryKey: documentsQuery.queryKey });
+      });
+      // EventSource reconnects by itself only after a dropped connection; a
+      // rejected response, such as while the hub restarts, closes it for good.
+      stream.addEventListener('error', () => {
+        if (stream.readyState !== EventSource.CLOSED) return;
+        reopenTimer = setTimeout(open, reopenDelay);
+        reopenDelay = Math.min(reopenDelay * 2, MAX_REOPEN_DELAY_MS);
+      });
+    };
+    const stop = () => {
+      clearTimeout(reopenTimer);
+      stream.close();
+      lifetime.signal.removeEventListener('abort', stop);
+    };
+    lifetime.signal.addEventListener('abort', stop);
+    open();
+    return stop;
+  }
+
   return {
     userId,
     client,
     bootstrapQuery,
     documentsQuery,
     userData,
+    watchDocumentList,
     dispose: () => {
       // QueryClient cancels reads. Mutations have a separate lifetime because
       // TanStack Query intentionally does not cancel server-side mutations.

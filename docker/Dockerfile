@@ -56,6 +56,9 @@ RUN uv sync --locked --no-dev --no-install-project
 ############################
 FROM python:3.14-alpine AS runner
 ENV DATA_DIR=/data DJANGO_SETTINGS_MODULE=remdo.settings
+# Django settings require the hub port, and `docker exec` commands skip the
+# entrypoint that derives it; entrypoint-env.sh still pins it for services.
+ENV COLLAB_SERVER_PORT=4004
 ENV PATH=/app/.venv/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
 WORKDIR /app/backend
 # hadolint ignore=DL3018

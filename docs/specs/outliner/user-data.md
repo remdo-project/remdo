@@ -20,6 +20,11 @@ Observing a document note signals that its values, eligibility, or availability
 should be reread. Each subscription is independent, can be released repeatedly,
 and remains active while the document is unlisted.
 
+While connected to its server, the document list reflects changes that other
+sessions, delegated clients, and other accounts make to the account's listed
+documents without user action. Reconnecting rereads the list, covering changes
+missed while disconnected.
+
 ## Operations
 
 Creating, [renaming](./location-header.md#document-rename),

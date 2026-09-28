@@ -321,3 +321,88 @@ describe('account metadata', () => {
     expect(bob.client).not.toBe(alice.client);
   });
 });
+
+describe('document-list change stream', () => {
+  class FakeEventSource extends EventTarget {
+    static readonly CLOSED = 2;
+    static opened: FakeEventSource[] = [];
+    readyState = 0;
+    constructor(readonly url: string) {
+      super();
+      FakeEventSource.opened.push(this);
+    }
+
+    close() { this.readyState = FakeEventSource.CLOSED; }
+    emit(type: 'open' | 'message') { this.dispatchEvent(new Event(type)); }
+    reject() {
+      this.readyState = FakeEventSource.CLOSED;
+      this.dispatchEvent(new Event('error'));
+    }
+  }
+
+  const runtimeCleanup: Array<() => void> = [];
+  function watchedAccount(titles: string[]) {
+    const runtime = account();
+    let listings = 0;
+    documentRequests(() => Response.json([{ id: 'shared', title: titles[Math.min(listings++, titles.length - 1)], shareable: false }]));
+    runtimeCleanup.push(new QueryObserver(runtime.client, runtime.documentsQuery).subscribe(() => {}));
+    const stop = runtime.watchDocumentList();
+    const title = () => runtime.userData.getDocuments().getById('shared')?.getText();
+    return { runtime, stop, title, listings: () => listings };
+  }
+
+  beforeEach(() => {
+    FakeEventSource.opened = [];
+    vi.stubGlobal('EventSource', FakeEventSource);
+  });
+  afterEach(() => {
+    for (const cleanup of runtimeCleanup.splice(0)) cleanup();
+    vi.useRealTimers();
+  });
+
+  it('rereads the list when another source reports a change', async () => {
+    const { title } = watchedAccount(['Draft', 'Renamed elsewhere']);
+    await vi.waitFor(() => expect(title()).toBe('Draft'));
+    expect(FakeEventSource.opened.map((stream) => stream.url)).toEqual(['/collaboration']);
+
+    FakeEventSource.opened[0]!.emit('message');
+    await vi.waitFor(() => expect(title()).toBe('Renamed elsewhere'));
+  });
+
+  it('rereads the list when the stream connects, covering changes missed while disconnected', async () => {
+    const { title } = watchedAccount(['Draft', 'Renamed while offline']);
+    await vi.waitFor(() => expect(title()).toBe('Draft'));
+
+    FakeEventSource.opened[0]!.emit('open');
+    await vi.waitFor(() => expect(title()).toBe('Renamed while offline'));
+  });
+
+  it('reopens a rejected stream after a growing delay', async () => {
+    vi.useFakeTimers();
+    watchedAccount(['Draft']);
+    FakeEventSource.opened[0]!.reject();
+    await vi.advanceTimersByTimeAsync(999);
+    expect(FakeEventSource.opened).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(FakeEventSource.opened).toHaveLength(2);
+
+    FakeEventSource.opened[1]!.reject();
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(FakeEventSource.opened).toHaveLength(2);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(FakeEventSource.opened).toHaveLength(3);
+  });
+
+  it('closes the stream and cancels a pending reopen when stopped or signed out', async () => {
+    vi.useFakeTimers();
+    const { stop } = watchedAccount(['Draft']);
+    FakeEventSource.opened[0]!.reject();
+    stop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(FakeEventSource.opened).toHaveLength(1);
+
+    const { runtime } = watchedAccount(['Draft']);
+    runtime.dispose();
+    expect(FakeEventSource.opened[1]!.readyState).toBe(FakeEventSource.CLOSED);
+  });
+});

@@ -90,6 +90,7 @@ class ConfigurationTests(SimpleTestCase):
             "AUTH_SECRET": "configuration-test-auth-" + "x" * 32,
             "APP_ORIGIN": "https://remdo.example",
             "COLLAB_INTERNAL_SECRET": "configuration-test-collab-" + "x" * 32,
+            "COLLAB_SERVER_PORT": "4004",
         }
 
     def settings(self, report=REPORT, **overrides):

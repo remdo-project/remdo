@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer';
-import { createServer } from 'node:http';
+import { createServer, request as httpRequest } from 'node:http';
+import type { IncomingMessage } from 'node:http';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
@@ -20,6 +21,7 @@ let deletedDocument: string | undefined;
 let savedDocuments: Map<string, Uint8Array>;
 let loaded: number;
 let authorizations: number;
+let sessionHeaders: Array<Record<string, string | string[] | undefined>>;
 const runtimeCleanup: Array<() => void> = [];
 let stores: Uint8Array[];
 let persisted: Uint8Array;
@@ -32,6 +34,13 @@ const backend = createServer((request, response) => {
   void (async () => {
     expect(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()]).toBe(secret);
     expect(request.headers.host).toBe('remdo.test');
+    if (request.url === '/internal/collaboration/session') {
+      sessionHeaders.push(request.headers);
+      const userId = /user=(\w+)/u.exec(request.headers.cookie ?? '')?.[1];
+      if (userId) response.writeHead(200).end(JSON.stringify({ userId }));
+      else response.writeHead(403).end();
+      return;
+    }
     const name = request.url!.split('/')[4]!;
     if (name === deletedDocument) {
       response.writeHead(404).end();
@@ -67,6 +76,7 @@ beforeEach(async () => {
   savedDocuments = new Map();
   loaded = 0;
   authorizations = 0;
+  sessionHeaders = [];
   stores = [];
   persisted = new Uint8Array();
   holdStore = undefined;
@@ -326,4 +336,50 @@ it('backs off repeated store failures and resets the delay after recovery', asyn
   } finally {
     vi.useRealTimers();
   }
+});
+
+function openDocumentListStream(headers: Record<string, string>) {
+  return new Promise<IncomingMessage>((resolve, reject) => {
+    httpRequest(`${origin}/collaboration`, { headers }, resolve).once('error', reject).end();
+  });
+}
+
+function nextEvent(stream: IncomingMessage) {
+  return new Promise<string>((resolve) => stream.once('data', (chunk: Buffer) => resolve(chunk.toString())));
+}
+
+async function notifyDocumentListChanged(userIds: string[], headers = { [INTERNAL_SECRET_HEADER]: secret }) {
+  const response = await fetch(`${origin}/internal/document-list-changed`, {
+    method: 'POST', headers, body: JSON.stringify({ userIds }),
+  });
+  return response.status;
+}
+
+it('relays a document-list notice only to the notified account\'s signed-in streams', async () => {
+  const alice = await openDocumentListStream({ Cookie: 'user=alice', Origin: 'http://remdo.test' });
+  const bob = await openDocumentListStream({ Cookie: 'user=bob' });
+  expect([alice.statusCode, bob.statusCode]).toEqual([200, 200]);
+  expect(alice.headers['content-type']).toBe('text/event-stream');
+  expect(sessionHeaders.map(({ cookie, origin }) => [cookie, origin]))
+    .toEqual([['user=alice', 'http://remdo.test'], ['user=bob', undefined]]);
+  const bobEvents: string[] = [];
+  bob.on('data', (chunk: Buffer) => bobEvents.push(chunk.toString()));
+
+  const aliceEvent = nextEvent(alice);
+  expect(await notifyDocumentListChanged(['alice'])).toBe(204);
+  expect(await aliceEvent).toBe('data: changed\n\n');
+  expect(bobEvents).toEqual([]);
+
+  const ended = once(bob, 'end');
+  bob.resume();
+  alice.resume();
+  await runtime.stop();
+  await ended;
+});
+
+it('rejects a document-list stream without a session and a notice without the internal secret', async () => {
+  const stream = await openDocumentListStream({});
+  expect(stream.statusCode).toBe(403);
+  stream.resume();
+  expect(await notifyDocumentListChanged(['alice'], { [INTERNAL_SECRET_HEADER]: 'wrong' })).toBe(403);
 });
