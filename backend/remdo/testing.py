@@ -4,7 +4,11 @@ import os
 os.environ["GOOGLE_CLIENT_ID"] = "test-google-client-id"
 os.environ["GOOGLE_CLIENT_SECRET"] = "test-google-client-secret"
 
+from . import base  # noqa: E402
 from .development import *  # noqa: E402, F403
+
+# Tests stay independent of a local demo recording.
+HOME_VIDEO_URL = base.HOME_VIDEO_URL
 
 # Tests authenticate synthetic users without production hashing cost.
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

@@ -121,6 +121,7 @@ LOGIN_REDIRECT_URL = "/"
 HEADLESS_CLIENTS = ("browser",)
 HEADLESS_ADAPTER = "accounts.adapters.HeadlessAdapter"
 HEADLESS_SERVE_SPECIFICATION = True
+HOME_VIDEO_URL = os.environ.get("HOME_VIDEO_URL", "").strip()
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
 if bool(GOOGLE_CLIENT_ID) != bool(GOOGLE_CLIENT_SECRET):
