@@ -49,10 +49,6 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
   // The stream shares the WebSocket endpoint's path so every gateway, proxy,
   // and service-worker rule for collaboration already routes it.
   async function openDocumentListStream(request: IncomingMessage, response: ServerResponse) {
-    if (stopping) {
-      response.writeHead(503).end();
-      return;
-    }
     const headers: Record<string, string> = { ...internalHeaders, Cookie: request.headers.cookie ?? '' };
     if (request.headers.origin) headers.Origin = request.headers.origin;
     let session: Awaited<ReturnType<typeof requestDjango>>;
@@ -64,14 +60,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
       response.writeHead(503).end();
       return;
     }
-    if (session.status === 403) {
-      response.writeHead(403).end();
-      return;
-    }
-    // Shutdown may begin while the session request is pending.
-    // eslint-disable-next-line ts/no-unnecessary-condition
     if (!session.ok || stopping || response.destroyed) {
-      response.writeHead(503).end();
+      response.writeHead(session.status === 403 ? 403 : 503).end();
       return;
     }
     const { userId } = JSON.parse(session.body.toString()) as { userId: string };

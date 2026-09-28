@@ -14,6 +14,16 @@ export async function createUserDocument(page: Page, title: string): Promise<Use
   return response.json() as Promise<UserDocument>;
 }
 
+export async function shareUserDocument(page: Page, documentId: string, email: string): Promise<void> {
+  const config = await page.request.get('/api/config', { failOnStatusCode: true });
+  const { csrfToken } = await config.json() as components['schemas']['Config'];
+  const response = await page.request.post(`/api/documents/${documentId}/access`, {
+    headers: { 'X-CSRFToken': csrfToken, Origin: new URL(config.url()).origin },
+    data: { email },
+  });
+  await expect(response).toBeOK();
+}
+
 export async function expectCollaborationDenied(page: Page, documentId: string): Promise<void> {
   const outcome = await page.evaluate(async (docId) => {
     const runtimePath = '/src/collaboration/runtime.ts';

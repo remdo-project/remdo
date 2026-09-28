@@ -1,4 +1,4 @@
-import { createUserDocument } from '../_support/documents';
+import { createUserDocument, shareUserDocument } from '../_support/documents';
 import { expect, test, withPageGuards } from '#e2e/fixtures';
 import { createAuthenticatedContext } from '../_support/auth-context';
 import { createTestAuthAccount } from '#tests-common/auth-account';
@@ -22,13 +22,7 @@ test('Home lists documents created and shared by other sources without reloading
       await recipientPage.goto('/');
       await expect(recipientPage.getByRole('group', { name: 'Current Server', exact: true })).toBeVisible();
       await expect(listedDocument(recipientPage, created.id)).toHaveCount(0);
-      const config = await page.request.get('/api/config');
-      const { csrfToken } = await config.json() as { csrfToken: string };
-      const shared = await page.request.post(`/api/documents/${created.id}/access`, {
-        headers: { 'X-CSRFToken': csrfToken, Origin: new URL(config.url()).origin },
-        data: { email: recipient.email },
-      });
-      expect(shared.ok()).toBe(true);
+      await shareUserDocument(page, created.id, recipient.email);
       await expect(listedDocument(recipientPage, created.id)).toContainText('Created by another client');
     }, testInfo);
   } finally {

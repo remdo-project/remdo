@@ -15,7 +15,7 @@ def document_audience(document):
 
 
 def notify_document_list_changed(user_ids):
-    body = json.dumps({"userIds": sorted(str(user_id) for user_id in user_ids)}).encode()
+    body = json.dumps({"userIds": [str(user_id) for user_id in user_ids]}).encode()
 
     def send():
         request = Request(

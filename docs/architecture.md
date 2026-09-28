@@ -147,10 +147,9 @@ collaboration authorization.
   access-critical metadata, and the current per-user document list. Yjs
   documents hold collaborative document content. Browser-facing app resources
   use authenticated HTTP reads and established server-state cache tooling.
-- Change notices: after committing a document creation, rename, deletion, or
-  grant made through the RemDo API, the registry notifies the
-  [Collab Hub](#collab-hub) of each affected account: the owner and every
-  grantee. A notice carries no document data.
+- Change notices: after committing a document-list change made through the
+  RemDo API, the registry notifies the [Collab Hub](#collab-hub) of each
+  account whose list the change affects. A notice carries no document data.
 - User bootstrap: `/api/current-user` returns the account identity consumed
   under [Authenticated App Access](specs/access/access-control.md#authenticated-app-access). `/api/documents` lists the
   caller's accessible documents.
@@ -199,9 +198,10 @@ The hub saves complete binary Yjs state and serializes saves per document.
 Temporary save failures retain dirty state for retries; dirty documents remain
 loaded. A missing registry row terminates its document connections and releases
 the cached state without retrying or acknowledging a commit.
-The hub relays each registry change notice to the notified account's connected
-browser sessions, which reread their document list. Delivery is best effort: a
-session also rereads its list whenever its change stream connects.
+The hub relays each registry change notice, best effort, to the notified
+account's connected browser sessions; the
+[document list](specs/outliner/user-data.md#state-and-observation) recovers
+missed notices on reconnect.
 Graceful shutdown attempts every loaded document save while Django remains
 available and reports any persistence failure.
 
