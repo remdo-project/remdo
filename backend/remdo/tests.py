@@ -125,6 +125,7 @@ import json
 from types import ModuleType
 import sentry_sdk
 from django.core.handlers.wsgi import WSGIHandler
+from django.core.exceptions import SuspiciousOperation
 from django.test import override_settings
 from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
@@ -134,12 +135,15 @@ def fail(request, document):
     confidential_local = 'private-local-value'
     raise RuntimeError('reported-exception-message')
 
+@csrf_exempt
+def suspicious(request, document):
+    raise SuspiciousOperation('reported-suspicious-request')
+
 routes = ModuleType('reporting_routes')
-routes.urlpatterns = [path('fail/<str:document>', fail)]
+routes.urlpatterns = [path('fail/<str:document>', fail), path('suspicious/<str:document>', suspicious)]
 body = b'private-form-field=private-form-value'
 environ = {
     'REQUEST_METHOD': 'POST',
-    'PATH_INFO': '/fail/document-id',
     'QUERY_STRING': 'code=private-query-value',
     'SERVER_NAME': 'remdo.example',
     'SERVER_PORT': '443',
@@ -156,7 +160,9 @@ environ = {
 }
 statuses = []
 with override_settings(ROOT_URLCONF=routes):
-    WSGIHandler()(environ, lambda status, headers: statuses.append(status))
+    for route in ('/fail/document-id', '/suspicious/document-id'):
+        request = {**environ, 'PATH_INFO': route, 'wsgi.input': io.BytesIO(body)}
+        WSGIHandler()(request, lambda status, headers: statuses.append(status))
 sentry_sdk.flush()
 print(json.dumps(statuses))
 """
@@ -324,9 +330,11 @@ class ConfigurationTests(SimpleTestCase):
             BUILD_REVISION="reporting-test-revision",
         )
 
-        self.assertEqual(statuses, ["500 Internal Server Error"])
-        [(item_type, event)] = ingest.items()
-        self.assertEqual(item_type, "event")
+        self.assertEqual(statuses, ["500 Internal Server Error", "400 Bad Request"])
+        items = ingest.items()
+        self.assertEqual([item_type for item_type, _ in items], ["event", "event"])
+        [(_, event), (_, logged)] = items
+        self.assertEqual(logged["logger"], "django.security.SuspiciousOperation")
         [exception] = event["exception"]["values"]
         self.assertEqual(exception["type"], "RuntimeError")
         self.assertEqual(exception["value"], "reported-exception-message")
@@ -334,8 +342,8 @@ class ConfigurationTests(SimpleTestCase):
         self.assertEqual(event["environment"], "remdo.example")
         self.assertEqual(event["request"]["url"], "https://remdo.example/fail/document-id")
         self.assertEqual(event["request"]["headers"], {"User-Agent": "reporting-test-agent"})
-        self.assertNotIn("private-", json.dumps(event))
-        self.assertNotIn("198.51.100.7", json.dumps(event))
+        self.assertNotIn("private-", json.dumps(items))
+        self.assertNotIn("198.51.100.7", json.dumps(items))
 
     def test_public_configuration_exposes_the_reporting_project(self):
         dsn = "https://publickey@ingest.example/7"

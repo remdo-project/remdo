@@ -18,6 +18,11 @@ def scrub_event(event, hint):
         }
         for field in ("cookies", "query_string", "data", "env"):
             request.pop(field, None)
+    # Logging records from Django's request handling carry the request, whose
+    # text form includes the query string.
+    event.get("extra", {}).pop("request", None)
+    for breadcrumb in event.get("breadcrumbs", {}).get("values", []):
+        breadcrumb.get("data", {}).pop("request", None)
     return event
 
 
