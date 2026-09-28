@@ -70,11 +70,10 @@ async function ffmpeg(...args: string[]): Promise<void> {
 }
 
 // H.264 in MP4 with its index first plays everywhere and starts before the
-// download completes; the final frame shows the finished outline.
-async function encodeForWeb(recording: string, preset: string, video: string, poster: string): Promise<void> {
+// download completes.
+async function encodeForWeb(recording: string, preset: string, video: string): Promise<void> {
   await ffmpeg('-i', recording, '-c:v', 'libx264', '-preset', preset, '-crf', '22',
     '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', '-f', 'mp4', video);
-  await ffmpeg('-sseof', '-0.5', '-i', recording, '-frames:v', '1', '-q:v', '3', '-f', 'image2', poster);
 }
 
 async function main(): Promise<void> {
@@ -116,11 +115,12 @@ async function main(): Promise<void> {
       const stage = new Stage(page, mode.pace);
       await stage.captionActions();
       await outlining.run(stage);
+      await page.screenshot({ path: partials[1], type: 'jpeg', quality: 85 });
     } finally {
       await page.screencast.stop();
     }
     await confirmEndState(browser, context, origin, document.id, outlining.endState);
-    await encodeForWeb(recording, mode.preset, ...partials);
+    await encodeForWeb(recording, mode.preset, partials[0]);
     await rename(partials[0], video);
     await rename(partials[1], poster);
     console.info(`Recorded ${video} and ${poster}`);
