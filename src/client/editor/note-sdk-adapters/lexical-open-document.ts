@@ -43,7 +43,7 @@ import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selecti
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { getNoteBodyText } from '#client/editor/outline/selection/body-region';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { getNestedList, isWithinBoundary, noteHasChildren } from '#client/editor/outline/selection/tree';
+import { getNestedList, isWithinBoundary, noteHasChildren, removeNoteSubtree } from '#client/editor/outline/selection/tree';
 import { forEachContentItemInOutline } from '#client/editor/outline/list-traversal';
 import { $getChildNoteIds, $getDocumentPlaceholder, $requireContentItemNoteId, $requireRootContentList } from '#client/editor/outline/schema';
 import { $resolveViewRoot, subscribeViewRoot } from '#client/editor/outline/view-root';
@@ -325,7 +325,7 @@ export function createLexicalOpenDocumentRuntime({
       }
       const placeholder = $getDocumentPlaceholder();
       const noteIds = $appendNewNotes($requireRootContentList(), notes);
-      placeholder?.remove();
+      if (placeholder) removeNoteSubtree(placeholder);
       return noteIds;
     });
 

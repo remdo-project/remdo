@@ -1,6 +1,7 @@
 /* eslint-disable ts/no-deprecated -- drives the undo-availability commands the open document observes, where the deprecation is tracked. */
 import { waitFor } from '@testing-library/react';
 import { $createListItemNode, $createListNode } from '@lexical/list';
+import type { ListNode } from '@lexical/list';
 import {
   $createTextNode,
   $getRoot,
@@ -1014,6 +1015,26 @@ describe('lexical open document', () => {
 
       expect(remdo).toMatchOutline([{ noteId: first!, text: 'First' }, { noteId: second!, text: 'Second' }]);
       expect(remdo).toMatchSelection({ state: 'caret', note: first! });
+    });
+
+    it('replaces a placeholder together with its empty child list in a headless editor', async () => {
+      const editor = createEditor(editorConfig);
+      editor.update(() => {
+        $getRoot().clear().append($createListNode('bullet').append(
+          $createNote('blank', ''),
+          $createListItemNode().append($createListNode('bullet')),
+        ));
+      }, { discrete: true });
+      const runtime = createLexicalOpenDocumentRuntime({ editor, docId: 'headless' });
+      runtime.start();
+      runtime.setSourceReady(true);
+      onTestFinished(runtime.dispose);
+
+      const [first] = await runtime.openDocument.root.appendChildren([{ text: 'First' }]);
+
+      expect(editor.getEditorState().read(() => $getRoot().getFirstChild<ListNode>()!.getChildren().map((item) => item.getTextContent())))
+        .toEqual(['First']);
+      expect(runtime.openDocument.root.getChildren().map((note) => note.getId())).toEqual([first]);
     });
 
     it('keeps a sole empty note that has a body or receives the append', meta({ fixture: 'flat' }), async ({ remdo }) => {
