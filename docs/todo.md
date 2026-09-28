@@ -264,25 +264,19 @@ RemDo document, minimal but useful for real work.
 
 ### Demo videos
 
-No [demo video](specs/demo/demo-video.md) recording exists yet. Build it in
+[Demo videos](specs/demo/demo-video.md) record the outlining scenario; the
+recording has run only against local development so far. Build the rest in
 slices that each produce a usable video and that later slices extend:
 
-1. **Outlining, one pane.** A Playwright script with its own config and package
-   script, recording through `page.screencast` with `showActions` and
-   `showChapter`, which cover annotations without other tooling. Reuse
-   `tools/hosted-demo-reset.ts` for the reset and its `REMDO_USER_PASSWORD` for
-   sign-in. Run it against a local development origin while iterating, which
-   first needs the `user` account there: `setup_configured_users` runs only at
-   container startup. Add a [task guide](documentation.md#documentation-layout) once it runs.
-2. **Two-pane composition.** Compose two sessions' timestamped screencast
+1. **Two-pane composition.** Compose two sessions' timestamped screencast
    frames into one video with layout changes over time, keeping each pane a
    real viewport resized to its area. Choose between composing with ffmpeg from
    a recorded layout timeline and recording a local stage page that renders
    both frame streams; ffmpeg is not yet a development prerequisite.
-3. **Collaboration.** Decide whether the two sessions share the `user` account
+2. **Collaboration.** Decide whether the two sessions share the `user` account
    or the scenario needs a second demo account shared into the document, which
    the reset and deployment accounts do not provide.
-4. **Claude.** Choose how the conversation pane is driven:
+3. **Claude.** Choose how the conversation pane is driven:
    1. **(Recommended)** The Claude API's MCP connector pointed at the target's
       `/mcp`, rendered in a repository-owned chat pane that names Claude and
       the API without imitating claude.ai. It uses the same model with real MCP
