@@ -94,9 +94,16 @@ it('marks reads as read-only and additive writes as non-destructive so clients c
   const { tools } = await rpc(post, 'tools/list', {}) as { tools: Array<{ name: string; title?: string; annotations?: object }> };
 
   expect(Object.fromEntries(tools.map(({ name, title, annotations }) => [name, { title, annotations }]))).toMatchObject({
-    list_documents: { title: 'List documents', annotations: { readOnlyHint: true } },
-    create_document: { title: 'Create document', annotations: { readOnlyHint: false, destructiveHint: false } },
-    append_children: { title: 'Append notes', annotations: { readOnlyHint: false, destructiveHint: false } },
+    list_documents: { title: 'List documents', annotations: { title: 'List documents', readOnlyHint: true } },
+    read_document: { title: 'Read document', annotations: { title: 'Read document', readOnlyHint: true } },
+    create_document: {
+      title: 'Create document',
+      annotations: { title: 'Create document', readOnlyHint: false, destructiveHint: false },
+    },
+    append_children: {
+      title: 'Append notes',
+      annotations: { title: 'Append notes', readOnlyHint: false, destructiveHint: false },
+    },
   });
 });
 
