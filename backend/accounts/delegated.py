@@ -11,7 +11,6 @@ from allauth.core.internal.httpkit import extract_basic_auth
 from allauth.idp.oidc import views as allauth_views
 from allauth.idp.oidc.adapter import DefaultOIDCAdapter
 from allauth.idp.oidc.internal.cimd import is_cimd_url
-from allauth.idp.oidc.internal.resources import is_resources_subset
 from allauth.idp.oidc.models import Client, PrivateKey, Token
 from allauth.idp.oidc.views import authorization
 from cryptography.fernet import Fernet, InvalidToken
@@ -48,23 +47,21 @@ def mcp_resource():
     return f"{settings.APP_ORIGIN}/mcp"
 
 
-def delegated_user(authorization_header, resource=None):
-    """The user a bearer access token acts as, or None.
-
-    With a resource, the token must have been issued for it (RFC 8707).
-    """
+def delegated_token(authorization_header):
+    """The bearer access token that may act as its user, or None."""
     value = bearer_token(authorization_header)
     if value is None:
         return None
     token = Token.objects.lookup(Token.Type.ACCESS_TOKEN, value)
     if token is None or token.user is None or not may_delegate(token.user):
         return None
-    if resource is not None:
-        granted = token.get_resources()
-        # allauth treats a token without resources as unrestricted; an audience check must not.
-        if not granted or not is_resources_subset([resource], granted):
-            return None
-    return token.user
+    return token
+
+
+def delegated_user(authorization_header):
+    """The user a bearer access token acts as, or None."""
+    token = delegated_token(authorization_header)
+    return token and token.user
 
 
 class DelegatedAccessAuthentication(BaseAuthentication):
@@ -195,11 +192,11 @@ def protected_resource_metadata(request):
 @never_cache
 @require_http_methods(["GET"])
 def mcp_user(request):
-    """The user an access token issued for the MCP server acts as."""
-    user = delegated_user(request.headers.get("Authorization", ""), resource=mcp_resource())
-    if user is None:
+    """The user an access token issued for the MCP server (RFC 8707) acts as."""
+    token = delegated_token(request.headers.get("Authorization", ""))
+    if token is None or mcp_resource() not in token.get_resources():
         return HttpResponse(status=401)
-    return JsonResponse({"userId": str(user.pk)})
+    return JsonResponse({"userId": str(token.user.pk)})
 
 
 def _refuse(request, reason):

@@ -122,7 +122,8 @@ class DelegatedAccessTests(TestCase):
 
         unbound = self.grant()["access_token"]
         other = self.grant(resource="https://other.example/api")["access_token"]
-        for token in (unbound, other, "not-a-token"):
+        whole_origin = self.grant(resource=f"{settings.APP_ORIGIN}/")["access_token"]
+        for token in (unbound, other, whole_origin, "not-a-token"):
             self.assertEqual(self.authorize_mcp(token).status_code, 401)
         self.assertEqual(self.documents(unbound).status_code, 200)
 
