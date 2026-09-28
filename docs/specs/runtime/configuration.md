@@ -153,8 +153,8 @@ failing server process still exits unsuccessfully, after a bounded delivery
 attempt. Reports identify the build revision and the
 [`APP_ORIGIN`](#network-addressing) host. **Deterministic.**
 
-The browser app loads reporter code only when startup configuration enables
-reporting, and sends reports through the instance's gateway. **Deterministic.**
+The browser app sends reports through the instance's gateway.
+**Deterministic.**
 
 Beyond the [diagnostics principle](../../principles.md#data-and-trust), reports
 and their delivery exclude user identity, client addresses, cookies, request
@@ -166,5 +166,5 @@ that browser reports resolve to source.
 ## Request diagnostics
 
 Production Django request errors reach standard error with status, exception type,
-and code locations when available. Within the [diagnostics principle](../../principles.md#data-and-trust),
-they also exclude all other request data, exception messages, and source excerpts.
+and code locations when available. Beyond the [diagnostics principle](../../principles.md#data-and-trust),
+they exclude request data, exception messages, and source excerpts.

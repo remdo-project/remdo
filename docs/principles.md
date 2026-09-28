@@ -16,11 +16,10 @@ RemDo's product principles are assumptions that outrank current implementation d
 2. The trust story should stay simple enough to verify.
 3. Delegate security-critical work when that improves confidence and preserves
    self-hosting simplicity.
-4. An instance sends data only to services its operator configures; RemDo has
-   no built-in telemetry. Configured services, such as hosting, databases, and
-   error reporting, share the instance's trust tier, and the operator discloses
-   them to users.
-5. Logs and diagnostic output never disclose credentials, authentication
+4. An instance sends data only to services its operator configures. Configured
+   services, such as hosting, databases, and error reporting, share the
+   instance's trust tier, and the operator discloses them to users.
+5. Logs and diagnostic output never disclose real credentials, authentication
    tokens, or other secrets. Production diagnostics may include exception
    messages and request routes, which can incidentally quote user content; they
    exclude request and document bodies, local variables, and session

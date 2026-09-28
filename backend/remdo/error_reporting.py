@@ -1,5 +1,7 @@
 import sentry_sdk
+from django.core.exceptions import ImproperlyConfigured
 from sentry_sdk.integrations.argv import ArgvIntegration
+from sentry_sdk.utils import BadDsn, Dsn
 
 KEPT_REQUEST_HEADERS = {"user-agent"}
 
@@ -20,6 +22,13 @@ def scrub_event(event, hint):
 
 
 def start(dsn, release, environment):
+    try:
+        parsed = Dsn(dsn)
+    except BadDsn as error:
+        raise ImproperlyConfigured("SENTRY_DSN must be a Sentry DSN.") from error
+    # Startup configuration hands the DSN to browsers.
+    if parsed.secret_key:
+        raise ImproperlyConfigured("SENTRY_DSN must not include a secret key.")
     sentry_sdk.init(
         dsn=dsn,
         release=release or None,
