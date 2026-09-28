@@ -1,10 +1,10 @@
-import { MantineProvider } from '@mantine/core';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createCollabTestDocument } from '#tests-collab/documents';
 import { EditorViewProvider, useOpenDocument } from '#client/editor/view/EditorViewProvider';
 import Editor from './Editor';
+import { TestMantineProvider } from '#tests';
 
 const hydration = vi.hoisted(() => ({ ready: false }));
 
@@ -49,12 +49,12 @@ function ImmediateSearchConsumer() {
 
 function EditorWithConsumer() {
   return (
-    <MantineProvider>
+    <TestMantineProvider>
       <EditorViewProvider docId="readyOpenDocument" onZoomNoteIdChange={() => {}}>
         <ImmediateSearchConsumer />
         <Editor docId="readyOpenDocument" statusPortalRoot={null} onSelectHome={() => {}} />
       </EditorViewProvider>
-    </MantineProvider>
+    </TestMantineProvider>
   );
 }
 

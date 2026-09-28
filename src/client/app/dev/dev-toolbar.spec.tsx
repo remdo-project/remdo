@@ -1,16 +1,16 @@
-import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { DevToolbarLinks } from './DevToolbar';
+import { TestMantineProvider } from '#tests';
 
 function renderDevToolbarLinks() {
   return render(
-    <MantineProvider>
+    <TestMantineProvider>
       <MemoryRouter>
         <DevToolbarLinks />
       </MemoryRouter>
-    </MantineProvider>
+    </TestMantineProvider>
   );
 }
 

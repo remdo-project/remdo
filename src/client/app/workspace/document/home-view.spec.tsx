@@ -1,9 +1,9 @@
-import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { DocumentNote } from '#note-sdk';
 import { HomeView } from './HomeView';
 import type { HomeViewProps } from './HomeView';
+import { TestMantineProvider } from '#tests';
 
 const documentNote = (
   { id, title, rename = vi.fn(), remove = vi.fn(), canRename = true, canShareWith = false, canDelete = false }:
@@ -59,9 +59,9 @@ const baseProps = (): HomeViewProps => ({
 
 const renderHome = (props: HomeViewProps) =>
   render(
-    <MantineProvider>
+    <TestMantineProvider>
       <HomeView {...props} />
-    </MantineProvider>
+    </TestMantineProvider>
   );
 
 describe('home view', () => {
@@ -212,7 +212,7 @@ describe('home view', () => {
     expect(await screen.findByRole('menuitem', { name: 'Share…' })).toBeInTheDocument();
 
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Project Roadmap' })[0]!);
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Actions for Project Roadmap' }))[0]!);
     expect(await screen.findByRole('menuitem', { name: 'Rename…' })).toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Share…' })).toBeNull();
   });
@@ -235,7 +235,7 @@ describe('home view', () => {
     const remove = vi.fn().mockImplementation(async () => {
       setTimeout(() => {
         props.sources = [{ id: 'local', label: 'Local', documents: [{ id: 'doc-a', label: 'Project Roadmap' }] }];
-        view.rerender(<MantineProvider><HomeView {...props} /></MantineProvider>);
+        view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
       });
     });
     props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canDelete: true, remove });

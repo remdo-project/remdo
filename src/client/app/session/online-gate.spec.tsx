@@ -1,9 +1,9 @@
-import { MantineProvider } from '@mantine/core';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import OnlineGate from '#client/app/session/OnlineGate';
 import type { SessionGateState } from '#client/app/session/client';
+import { TestMantineProvider } from '#tests';
 
 /**
  * Renders OnlineGate against a loader that returns `offline-unavailable` until
@@ -38,15 +38,18 @@ async function renderUnavailableGate(failuresBeforeRecovery: number) {
     { initialEntries: ['/'] },
   );
 
+  // Rendering only after the mount load settles commits the gate, including the
+  // effect that subscribes to `online`, inside `render`'s act. Otherwise that
+  // effect runs in a later scheduler task, and a busy runner can dispatch the
+  // reconnect signal before anything listens.
+  await vi.waitFor(() => expect(router.state.initialized).toBe(true));
   render(
-    <MantineProvider>
+    <TestMantineProvider>
       <RouterProvider router={router} />
-    </MantineProvider>,
+    </TestMantineProvider>,
   );
 
-  await vi.waitFor(() =>
-    expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument(),
-  );
+  expect(screen.getByRole('heading', { name: 'Connection unavailable' })).toBeInTheDocument();
   expect(loaderCalls.count).toBe(1);
 
   return { loaderCalls };
@@ -101,6 +104,7 @@ describe('online gate reconnect revalidation', () => {
     const { loaderCalls } = await renderUnavailableGate(2);
 
     await fireReconnectAndDrainLadder();
+    expect(loaderCalls.count).toBeGreaterThan(1);
 
     await expectRecoveredGate();
     // A retry beyond the failed reconnect revalidation was needed (>= 3), and the

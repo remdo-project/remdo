@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 Object.defineProperty(globalThis, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation((query) => ({
-    matches: false,
+    matches: query === '(prefers-reduced-motion: reduce)',
     media: query,
     onchange: null,
     addEventListener: vi.fn(),

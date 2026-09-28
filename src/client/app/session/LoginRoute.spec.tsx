@@ -1,10 +1,10 @@
-import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useLayoutEffect } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import { CONFIRMED_SIGN_OUT_KEY, PENDING_SIGN_OUT_STORAGE_KEY, forgetPendingSignOut } from './client';
 import LoginRoute from './LoginRoute';
+import { TestMantineProvider } from '#tests';
 
 const signOutMock = vi.hoisted(() => vi.fn());
 vi.mock('./session-http', () => ({ getSession: vi.fn(), signOut: signOutMock }));
@@ -37,7 +37,7 @@ it('observes logout confirmation arriving between render and subscription', asyn
     path: '/',
     element: <><LoginRoute /><ConfirmFromPeer /></>,
   }]);
-  render(<MantineProvider><RouterProvider router={router} /></MantineProvider>);
+  render(<TestMantineProvider><RouterProvider router={router} /></TestMantineProvider>);
 
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent("You're signed out"));
   // A settled sign-out offers the ordinary link to the server-rendered form.
@@ -46,7 +46,7 @@ it('observes logout confirmation arriving between render and subscription', asyn
 
 function renderLoginRoute() {
   const router = createMemoryRouter([{ path: '/', element: <LoginRoute /> }]);
-  render(<MantineProvider><RouterProvider router={router} /></MantineProvider>);
+  render(<TestMantineProvider><RouterProvider router={router} /></TestMantineProvider>);
 }
 
 it('finishes an unsettled sign-out before handing off to the credential form', async () => {

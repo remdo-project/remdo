@@ -1,4 +1,3 @@
-import { MantineProvider } from '@mantine/core';
 import type { ReactNode } from 'react';
 import { act, fireEvent, render, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -9,6 +8,7 @@ import { forgetAuthenticatedSession } from './client';
 import { LOGGED_OUT_STATE_KEY, LogoutProvider, useLogout } from './useLogout';
 import { logoutCurrentUser } from './logout';
 import UnsyncedLogoutDialog from '#client/ui/UnsyncedLogoutDialog';
+import { TestMantineProvider } from '#tests';
 
 vi.mock('#collaboration/unsynced-local-changes', () => ({
   hasUnsyncedLocalChanges: vi.fn(() => false),
@@ -67,14 +67,14 @@ function renderHarness(extra?: ReactNode) {
   const container = document.createElement('div');
   document.body.append(container);
   const view = render(
-    <MantineProvider>
+    <TestMantineProvider>
       <MemoryRouter>
         <LogoutProvider>
           <LogoutHarness />
           {extra}
         </LogoutProvider>
       </MemoryRouter>
-    </MantineProvider>,
+    </TestMantineProvider>,
     { baseElement: container, container }
   );
   // Mantine portals the modal outside this render's container.
@@ -128,14 +128,14 @@ describe('logout with unsynced local edits', () => {
     // A second caller in the same frame must reach the same controller rather
     // than set state nothing shows.
     render(
-      <MantineProvider>
+      <TestMantineProvider>
         <MemoryRouter>
           <LogoutProvider>
             <LogoutHarness />
             <SecondLogoutCaller />
           </LogoutProvider>
         </MemoryRouter>
-      </MantineProvider>,
+      </TestMantineProvider>,
       { baseElement: container, container }
     );
 

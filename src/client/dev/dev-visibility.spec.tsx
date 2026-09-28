@@ -1,19 +1,19 @@
-import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   DevVisibilityControl,
   DevVisibilityGate,
 } from './DevVisibility';
+import { TestMantineProvider } from '#tests';
 
 function renderVisibilityHarness() {
   return render(
-    <MantineProvider>
+    <TestMantineProvider>
       <DevVisibilityControl />
       <DevVisibilityGate>
         <section>Dev panel</section>
       </DevVisibilityGate>
-    </MantineProvider>
+    </TestMantineProvider>
   );
 }
 
