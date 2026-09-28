@@ -106,12 +106,14 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
     server.registerTool('read_document', {
       title: 'Read document',
       description: 'Read a whole RemDo document as a nested Markdown list. Each note links to its URL, '
-        + 'whose last path segment is the noteAddress; a note\'s body follows it as an indented blockquote.',
+        + 'whose last path segment is the noteAddress; a note without a link cannot be addressed until '
+        + 'the document is opened in RemDo. A note\'s body follows it as an indented blockquote.',
       inputSchema: { documentId: z.string().describe('A documentId.') },
       annotations: { readOnlyHint: true, openWorldHint: false },
     }, ({ documentId }) => respond(async () => {
-      const outline = await withDocumentSlot(() => withHeadlessOpenDocument(documentId, authorization, async (openDocument) =>
-        renderOutline(openDocument.root, (noteId) => documentUrl(documentId, noteId)), { readOnly: true }));
+      const outline = await withDocumentSlot(() => withHeadlessOpenDocument(documentId, authorization, async (openDocument, unstoredNoteIds) =>
+        renderOutline(openDocument.root, (noteId) => unstoredNoteIds.has(noteId) ? null : documentUrl(documentId, noteId)),
+      { readOnly: true }));
       return `Document: ${documentUrl(documentId)}\n\n${outline}`;
     }));
 

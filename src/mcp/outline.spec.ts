@@ -1,9 +1,12 @@
 import { $createTextNode } from 'lexical';
 import { expect, it } from 'vitest';
+import type { OpenDocumentNote } from '#note-sdk';
 import { meta } from '#tests';
 import { $addNoteBody } from '#client/editor/features/note-body/note-body-ops';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { renderOutline } from './outline';
+
+const url = (noteId: string) => `https://remdo.example/n/doc_${noteId}`;
 
 it('renders list types, checked state, bodies, and note links as nested Markdown', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
   await remdo.mutate(() => {
@@ -12,7 +15,7 @@ it('renders list types, checked state, bodies, and note links as nested Markdown
   await remdo.updateNoteText('note5', 'see [ref]');
   await remdo.openDocument.noteRef('note3').toggleChecked();
 
-  expect(renderOutline(remdo.openDocument.root, (noteId) => `https://remdo.example/n/doc_${noteId}`)).toBe([
+  expect(renderOutline(remdo.openDocument.root, url)).toBe([
     '- [note1](https://remdo.example/n/doc_note1)',
     '  1. [note2](https://remdo.example/n/doc_note2)',
     '- [x] [note3](https://remdo.example/n/doc_note3)',
@@ -21,4 +24,32 @@ it('renders list types, checked state, bodies, and note links as nested Markdown
     String.raw`- [see \[ref\]](https://remdo.example/n/doc_note5)`,
     '  - [note6](https://remdo.example/n/doc_note6)',
   ].join('\n'));
+});
+
+it('leaves notes without a URL unlinked', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  await remdo.updateNoteText('note2', 'see [ref]');
+  expect(renderOutline(remdo.openDocument.root, (noteId) => noteId === 'note2' ? null : url(noteId))).toBe([
+    '- [note1](https://remdo.example/n/doc_note1)',
+    String.raw`- see \[ref\]`,
+    '- [note3](https://remdo.example/n/doc_note3)',
+  ].join('\n'));
+});
+
+it('renders outlines nested deeper than the call stack', () => {
+  const depth = 20_000;
+  let children: OpenDocumentNote[] = [];
+  for (let level = depth - 1; level >= -1; level--) {
+    const nested = children;
+    children = [{
+      getId: () => `n${level}`,
+      getText: () => `n${level}`,
+      getChecked: () => false,
+      getBody: () => null,
+      getChildListType: () => null,
+      getChildren: () => nested,
+    } as unknown as OpenDocumentNote];
+  }
+  const lines = renderOutline(children[0]!, () => null).split('\n');
+  expect(lines).toHaveLength(depth);
+  expect(lines.at(-1)).toBe(`${'  '.repeat(depth - 1)}- n${depth - 1}`);
 });
