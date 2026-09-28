@@ -28,11 +28,18 @@ const newNote: z.ZodType<NewNote> = z.lazy(() => z.object({
   children: z.array(newNote).optional(),
 }));
 
+const MAX_REQUEST_BYTES = 1024 * 1024;
+const MAX_APPENDED_NOTES = 1000;
+
 const UNAVAILABLE = 'RemDo is unavailable. Try again later.';
 const UNCONFIRMED = 'RemDo did not confirm whether the request took effect. '
   + 'Check with list_documents before retrying.';
 
 const additiveWrite = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } satisfies ToolAnnotations;
+
+function countNotes(notes: readonly NewNote[]): number {
+  return notes.reduce((count, note) => count + 1 + countNotes(note.children ?? []), 0);
+}
 
 function isJson(body: string): boolean {
   try {
@@ -124,9 +131,16 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       title: 'Append notes',
       description: 'Append notes as the last children of a note (by noteAddress) '
         + 'or as the last top-level notes of a document (by documentId).',
-      inputSchema: { parent: z.string().describe('A documentId or a noteAddress.'), notes: z.array(newNote) },
+      inputSchema: {
+        parent: z.string().describe('A documentId or a noteAddress.'),
+        notes: z.array(newNote).describe(`At most ${MAX_APPENDED_NOTES} notes, counting nested children.`),
+      },
       annotations: additiveWrite,
     }, ({ parent, notes }) => respond(async () => {
+      if (countNotes(notes) > MAX_APPENDED_NOTES) {
+        throw new Error(`Append at most ${MAX_APPENDED_NOTES} notes per call, counting nested children; `
+          + 'split the outline across calls.');
+      }
       const ref = parseDocumentRef(parent);
       if (!ref) throw new Error('The parent is not a documentId or a noteAddress.');
       const { docId: documentId, noteId } = ref;
@@ -162,7 +176,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       return;
     }
     const server = createTools(authorization);
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, maxRequestBodySize: MAX_REQUEST_BYTES });
     response.on('close', () => {
       void transport.close();
       void server.close();
