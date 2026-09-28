@@ -1,11 +1,10 @@
 /* eslint-disable react-refresh/only-export-components -- Shared render harness for route component tests. */
-import { MantineProvider } from '@mantine/core';
 import { render, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { vi } from 'vitest';
 import type { Mock } from 'vitest';
-import { resetTestUserData } from '#tests';
+import { TestMantineProvider, resetTestUserData } from '#tests';
 import type {
   OpenDocument,
   NoteId,
@@ -225,9 +224,9 @@ export function renderDocumentRouteWithResult(initialEntry: string = createDocum
   );
 
   const result = render(
-    <MantineProvider>
+    <TestMantineProvider>
       <RouterProvider router={router} />
-    </MantineProvider>
+    </TestMantineProvider>
   );
 
   return { router, result };

@@ -1,10 +1,9 @@
-import { MantineProvider } from '@mantine/core';
 import { act, render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { createDocumentPath, parseDocumentRef } from '#document-routes';
 import { getTestBridgeRegistry } from '#client/editor/dev/testBridgeRegistry';
 import { readFixture } from '#tools/fixtures';
-import { getTestUserData } from '#tests';
+import { TestMantineProvider, getTestUserData } from '#tests';
 import DocumentRoute from '#client/app/workspace/DocumentRoute';
 import Home from '#client/app/workspace/Home';
 import { createCollabTestDocument } from '../collab/_support/documents';
@@ -34,7 +33,7 @@ export async function renderZoomNavigation(initialNoteId: string | null = 'note1
     },
   ], { initialEntries: [createDocumentPath(docId)] });
   const nextEditor = getTestBridgeRegistry().waitForNext();
-  render(<MantineProvider><RouterProvider router={router} /></MantineProvider>);
+  render(<TestMantineProvider><RouterProvider router={router} /></TestMantineProvider>);
   const api = await nextEditor;
   await api._bridge.waitForCollaborationReady();
   await act(async () => {
