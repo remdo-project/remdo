@@ -5,7 +5,7 @@ export interface OutlineNote {
   children?: OutlineNote[];
 }
 
-export interface Scenario {
+export interface Chapter {
   run: (stage: Stage) => Promise<void>;
   endState: OutlineNote[];
 }

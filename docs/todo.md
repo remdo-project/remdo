@@ -262,9 +262,9 @@ RemDo document, minimal but useful for real work.
   `src/platform/net/django-request.ts` was confirmed only against gunicorn;
   fakes and the Docker E2E path did not reproduce the crash deterministically.
 
-### Demo videos
+### Demo video
 
-[Demo videos](specs/demo/demo-video.md) record the outlining scenario; the
+The [demo video](specs/demo/demo-video.md) records the outlining chapter; the
 recording has run only against local development so far. Build the rest in
 slices that each produce a usable video and that later slices extend:
 
@@ -274,7 +274,7 @@ slices that each produce a usable video and that later slices extend:
    a recorded layout timeline and recording a local stage page that renders
    both frame streams; ffmpeg is not yet a development prerequisite.
 2. **Collaboration.** Decide whether the two sessions share the `user` account
-   or the scenario needs a second demo account shared into the document, which
+   or the chapter needs a second demo account shared into the document, which
    the reset and deployment accounts do not provide.
 3. **Claude.** Choose how the conversation pane is driven:
    1. **(Recommended)** The Claude API's MCP connector pointed at the target's
@@ -294,7 +294,7 @@ slices that each produce a usable video and that later slices extend:
    [delegated access](specs/access/access-control.md#delegated-access), not to
    demo recording.
 
-Open questions: whether a local-origin run of each scenario also serves as a
+Open questions: whether a local-origin run also serves as a
 CI smoke check, and where published videos live.
 
 ### Delegated access

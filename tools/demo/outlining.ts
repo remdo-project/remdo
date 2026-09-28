@@ -1,10 +1,10 @@
-import type { Scenario, Stage } from './stage';
+import type { Chapter, Stage } from './stage';
 
 async function runMenuAction(stage: Stage, shortcut: string): Promise<void> {
   await stage.sequence(['Shift', 'Shift', shortcut]);
 }
 
-export const outlining: Scenario = {
+export const outlining: Chapter = {
   async run(stage) {
     await stage.chapter('Capture', 'Type an outline without leaving the keyboard');
     await stage.type('Launch plan');

@@ -12,20 +12,13 @@ import { outlining } from './outlining';
 import type { OutlineNote } from './stage';
 import { readOutline, Stage } from './stage';
 
-const scenarios = { outlining };
-type ScenarioName = keyof typeof scenarios;
-
 const USAGE = [
-  `Usage: pnpm demo:record <${Object.keys(scenarios).join('|')}> [origin]`,
+  'Usage: pnpm demo:record [origin]',
   'Resets the origin\'s user account, whose password REMDO_USER_PASSWORD holds, then records',
-  'the scenario to $DATA_DIR/demo/<scenario>.webm. The origin defaults to https://remdo.com.',
+  'the demo video to $DATA_DIR/demo/demo.webm. The origin defaults to https://remdo.com.',
 ].join('\n');
 const VIEWPORT = { width: 1280, height: 720 };
 const END_STATE_TIMEOUT_MS = 15_000;
-
-function isScenarioName(name: string | undefined): name is ScenarioName {
-  return name !== undefined && Object.hasOwn(scenarios, name);
-}
 
 async function signIn(browser: Browser, origin: string, account: DemoAccount): Promise<BrowserContext> {
   const context = await browser.newContext({ viewport: VIEWPORT, locale: 'en-US' });
@@ -66,11 +59,10 @@ async function confirmEndState(browser: Browser, context: BrowserContext, origin
 }
 
 async function main(): Promise<void> {
-  const [name, originArgument = 'https://remdo.com', ...extra] = process.argv.slice(2);
-  if (!isScenarioName(name) || extra.length > 0) {
+  const [originArgument = 'https://remdo.com', ...extra] = process.argv.slice(2);
+  if (extra.length > 0) {
     throw new Error(USAGE);
   }
-  const scenario = scenarios[name];
   const origin = new URL(originArgument).origin;
   // eslint-disable-next-line node/no-process-env -- a deployment secret, absent from the development config schema.
   const password = process.env.REMDO_USER_PASSWORD;
@@ -80,7 +72,7 @@ async function main(): Promise<void> {
   const account = demoAccount(origin, password);
 
   const outputDir = path.join(config.env.DATA_DIR, 'demo');
-  const output = path.join(outputDir, `${name}.webm`);
+  const output = path.join(outputDir, 'demo.webm');
   const partial = `${output}.partial`;
   await mkdir(outputDir, { recursive: true });
 
@@ -96,11 +88,11 @@ async function main(): Promise<void> {
     try {
       const stage = new Stage(page);
       await stage.captionActions();
-      await scenario.run(stage);
+      await outlining.run(stage);
     } finally {
       await page.screencast.stop();
     }
-    await confirmEndState(browser, context, origin, document.id, scenario.endState);
+    await confirmEndState(browser, context, origin, document.id, outlining.endState);
     await rename(partial, output);
     console.info(`Recorded ${output}`);
   } finally {

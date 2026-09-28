@@ -1,39 +1,40 @@
-# Demo videos
+# Demo video
 
-Demo videos are scripted, repeatable recordings of RemDo in use.
+The demo video is a scripted, repeatable recording of RemDo in use that
+covers its main capabilities in one run.
 
 ## Recording run
 
-A run takes a scenario and a target RemDo origin, which defaults to
+A run takes a target RemDo origin, which defaults to
 `https://remdo.com`, and acts as that origin's
 [`user` account](../runtime/configuration.md#deployment-accounts).
 
 1. [Reset the account](../../guides/production-deployment.md#reset-the-demo-account).
-2. Perform the scenario through the target's real user interfaces and confirm
-   its end state.
-3. Return one video file for the scenario.
+2. Perform each [chapter](#chapters) in order through the target's real user
+   interfaces and confirm its end state.
+3. Return the video file.
 
 ## Authenticity
 
 Everything a recording shows is live behavior of the target origin and of the
-services a scenario names, except annotations, which are visibly distinct
+services a chapter names, except annotations, which are visibly distinct
 from the product.
 
 ## Presentation
 
 - **Panes.** A recording shows one or two panes side by side, each a separate
-  browser session. A pane appears or disappears within a recording as the
-  scenario requires. With one pane, the page occupies the whole frame and lays
+  browser session. A pane appears or disappears within a recording as a chapter
+  requires. With one pane, the page occupies the whole frame and lays
   itself out for that size rather than being scaled or cropped.
 - **Annotations.** Each keystroke and pointer action is captioned as it
-  happens, with a visible pointer for pointer actions. Chapter titles introduce
-  each scenario step.
+  happens, with a visible pointer for pointer actions. A title introduces each
+  chapter.
 - **Pacing.** Typing and transitions run at a speed a viewer can follow, and
   each result stays visible long enough to read.
 
-## Scenarios
+## Chapters
 
-The scenarios form the supported set.
+The video contains these chapters in order.
 
 - **Outlining.** One pane creates a nested outline, then indents, reorders,
   folds, and zooms it using the keyboard. End state: the document holds the
