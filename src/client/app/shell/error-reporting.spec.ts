@@ -72,9 +72,11 @@ describe('browser error reporting', () => {
     await vi.waitFor(() => expect(sent).toHaveLength(1));
     const [request] = sent as [SentRequest];
     expect(request.path).toBe('/api/error-reports');
-    expect(reportedEvent(request)).toMatchObject({
+    const event = reportedEvent(request) as { request: { headers: unknown } };
+    expect(event.request.headers).toEqual({ 'User-Agent': navigator.userAgent });
+    expect(event).toMatchObject({
       exception: { values: [{ type: 'Error', value: 'render failure' }] },
-      request: { url: `${location.origin}/n/document-id`, headers: { 'User-Agent': navigator.userAgent } },
+      request: { url: `${location.origin}/n/document-id` },
       contexts: { react: { componentStack: expect.stringContaining('NoteBody') } },
       breadcrumbs: [{ category: 'navigation', data: { from: '/n/previous-id', to: '/n/document-id' } }],
     });
