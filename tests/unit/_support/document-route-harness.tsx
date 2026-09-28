@@ -87,6 +87,7 @@ function MockEditor({
         getChildren: () => [],
         appendChildren: () => Promise.resolve([]),
         getText: () => '',
+        getBody: () => null,
         getFolded: () => false,
         getChecked: () => false,
         getChildListType: () => null,

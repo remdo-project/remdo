@@ -9,6 +9,7 @@ import type { NewNote } from '#note-sdk';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { parseDocumentRef } from '#document-routes';
 import { withHeadlessOpenDocument } from '../headless/open-document';
+import { renderOutline } from './outline';
 import { createDocumentSlots } from './document-slots';
 
 interface ServerOptions {
@@ -62,7 +63,8 @@ function rejection(status: number, body: string): string {
 
 async function respond(run: () => Promise<unknown>): Promise<CallToolResult> {
   try {
-    return { content: [{ type: 'text', text: JSON.stringify(await run()) }] };
+    const result = await run();
+    return { content: [{ type: 'text', text: typeof result === 'string' ? result : JSON.stringify(result) }] };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'The operation failed.';
     return { isError: true, content: [{ type: 'text', text: message }] };
@@ -125,6 +127,23 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
     }, ({ title }) => respond(async () => {
       const { id } = await callApi(authorization, '/api/documents', 'POST', { title }) as { id: string };
       return { documentId: id, title, url: documentUrl(id) };
+    }));
+
+    server.registerTool('read_document', {
+      title: 'Read document',
+      description: 'Read a whole RemDo document as a nested Markdown list. Each note links to its URL, '
+        + 'whose last path segment is the noteAddress; a note without a link cannot be addressed until '
+        + 'the document is opened in RemDo. A note\'s body follows it as an indented blockquote.',
+      inputSchema: { documentId: z.string().describe('A documentId.') },
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    }, ({ documentId: input }) => respond(async () => {
+      const ref = parseDocumentRef(input);
+      if (!ref || ref.noteId) throw new Error('The documentId is not valid.');
+      const documentId = ref.docId;
+      const outline = await withDocumentSlot(() => withHeadlessOpenDocument(documentId, authorization, async (openDocument, isStored) =>
+        renderOutline(openDocument.root, (noteId) => isStored(noteId) ? documentUrl(documentId, noteId) : null),
+      { readOnly: true }));
+      return `Document: ${documentUrl(documentId)}\n\n${outline}`;
     }));
 
     server.registerTool('append_children', {

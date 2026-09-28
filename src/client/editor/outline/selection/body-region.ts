@@ -16,6 +16,10 @@ export function getNoteBody(note: ListItemNode): NoteBodyNode | null {
   return $isNoteBodyNode(body) ? body : null;
 }
 
+export function getNoteBodyText(note: ListItemNode): string | null {
+  return getNoteBody(note)?.getTextContent() ?? null;
+}
+
 export function $getNoteBodyFromNode(node: LexicalNode | null): NoteBodyNode | null {
   let current: LexicalNode | null = node;
   while (current) {

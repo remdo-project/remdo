@@ -1,6 +1,6 @@
 import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
-import type { LexicalEditor } from 'lexical';
+import type { EditorState, LexicalEditor, NodeKey } from 'lexical';
 import {
   $getNodeByKey,
   CAN_REDO_COMMAND,
@@ -41,9 +41,11 @@ import { $getOrCreateChildList, isWrapperItem } from '#client/editor/outline/lis
 import { $resolveFocusNoteKey } from '#client/editor/outline/note-context';
 import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
+import { getNoteBodyText } from '#client/editor/outline/selection/body-region';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getNestedList, isWithinBoundary, noteHasChildren } from '#client/editor/outline/selection/tree';
-import { $getChildNoteIds, $requireRootContentList } from '#client/editor/outline/schema';
+import { forEachContentItemInOutline } from '#client/editor/outline/list-traversal';
+import { $getChildNoteIds, $requireContentItemNoteId, $requireRootContentList } from '#client/editor/outline/schema';
 import { $resolveViewRoot, subscribeViewRoot } from '#client/editor/outline/view-root';
 import { collectLexicalDocumentSearchResults } from './lexical-document-search';
 import { $appendNewNotes, hasLineBreak } from './lexical-note-insertion';
@@ -60,6 +62,7 @@ interface UseLexicalOpenDocumentOptions extends LexicalOpenDocumentSource {
 interface AddressedNoteValues {
   folded: boolean;
   text: string;
+  body: string | null;
   checked: boolean;
   childListType: NoteListType | null;
   childIds: readonly NoteId[];
@@ -104,7 +107,8 @@ function addressedNoteValuesEqual(
       && left.childListType === right.childListType
       && left.childIds.length === right.childIds.length
       && left.childIds.every((childId, index) => childId === right.childIds[index])
-      && left.text === right.text);
+      && left.text === right.text
+      && left.body === right.body);
 }
 
 export function createLexicalOpenDocumentRuntime({
@@ -163,16 +167,34 @@ export function createLexicalOpenDocumentRuntime({
     return list ? $getChildNoteIds(list) : [];
   };
 
+  // Reading a whole document addresses every note, so each lookup must not walk the outline.
+  let noteKeyIndex: { state: EditorState; keys: Map<NoteId, NodeKey> } | null = null;
+  const $findIndexedNote = (state: EditorState, noteId: NoteId): ListItemNode | null => {
+    if (noteKeyIndex?.state !== state) {
+      const keys = new Map<NoteId, NodeKey>();
+      forEachContentItemInOutline($requireRootContentList(), (item) => {
+        const itemNoteId = $requireContentItemNoteId(item);
+        if (!keys.has(itemNoteId)) keys.set(itemNoteId, item.getKey());
+      });
+      noteKeyIndex = { state, keys };
+    }
+    const key = noteKeyIndex.keys.get(noteId);
+    const note = key === undefined ? null : $getNodeByKey(key);
+    return $isListItemNode(note) ? note : null;
+  };
+
   const readAddressedNote = (noteId: NoteId): AddressedNoteValues | null => {
     if (!started || disposed || !sourceReady) {
       return null;
     }
-    return editor.getEditorState().read(() => {
-      const note = $findNoteById(noteId);
+    const state = editor.getEditorState();
+    return state.read(() => {
+      const note = $findIndexedNote(state, noteId);
       if (!note) return null;
       return {
         folded: $isNoteFolded(note),
         text: getNoteOwnText(note),
+        body: getNoteBodyText(note),
         checked: $getNoteChecked(note) === true,
         childListType: $getNestedListType(note),
         childIds: $getNestedChildNoteIds(note),
@@ -422,6 +444,7 @@ export function createLexicalOpenDocumentRuntime({
       getChildren: () => requireAddressedNote(noteId).childIds.map(createNoteRef),
       appendChildren: (notes) => appendChildren(noteId, notes),
       getText: () => requireAddressedNote(noteId).text,
+      getBody: () => requireAddressedNote(noteId).body,
       getFolded: () => requireAddressedNote(noteId).folded,
       getChecked: () => requireAddressedNote(noteId).checked,
       getChildListType: () => requireAddressedNote(noteId).childListType,

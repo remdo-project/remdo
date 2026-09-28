@@ -17,6 +17,7 @@ import {
   TEST_USER_DATA_DOCUMENT,
 } from '#tests';
 import { createUserDataRootNote, IneligibleOperationError, NoteUnavailableError } from '#note-sdk';
+import type { NoteListType, OpenDocumentParentNote } from '#note-sdk';
 
 describe('note SDK showcase', () => {
   describe('open document', () => {
@@ -113,6 +114,34 @@ describe('note SDK showcase', () => {
 
       await expect(openDocument.noteRef('missing').appendChildren([{ text: 'Lost' }]))
         .rejects.toThrow(IneligibleOperationError);
+    });
+
+    it('walks a document through children reads, including bodies', meta({ fixture: 'editor-showcase' }), ({ remdo }) => {
+      interface OutlineEntry { text: string; body: string | null; childListType: NoteListType | null; children: OutlineEntry[] }
+      const walk = (parent: OpenDocumentParentNote): OutlineEntry[] => parent.getChildren().map((note) => ({
+        text: note.getText(),
+        body: note.getBody(),
+        childListType: note.getChildListType(),
+        children: walk(note),
+      }));
+
+      const outline = walk(remdo.openDocument.root);
+
+      expect(outline.find(({ text }) => text === 'Note with body')).toEqual({
+        text: 'Note with body',
+        body: 'Body has rich text and a note link\nSecond body line\nThird body line',
+        childListType: null,
+        children: [],
+      });
+      expect(outline.find(({ text }) => text === 'Checklist')).toEqual({
+        text: 'Checklist',
+        body: null,
+        childListType: 'check',
+        children: [
+          { text: 'Done task', body: 'Done task body', childListType: null, children: [] },
+          { text: 'Open task', body: null, childListType: null, children: [] },
+        ],
+      });
     });
 
     it("observes text changes and handles an unavailable note", meta({ fixture: 'tree' }), async ({ remdo }) => {

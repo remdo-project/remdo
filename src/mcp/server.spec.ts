@@ -156,3 +156,14 @@ it('refuses to append more than 1000 notes, counting nested children, before ope
     }],
   });
 });
+
+it('rejects a read of anything but a documentId before opening a document', async () => {
+  const post = await start();
+  currentUserStatus = 200;
+  for (const documentId of ['', 'doc_note', 'doc/..']) {
+    expect(await rpc(post, 'tools/call', { name: 'read_document', arguments: { documentId } })).toMatchObject({
+      isError: true,
+      content: [{ text: 'The documentId is not valid.' }],
+    });
+  }
+});

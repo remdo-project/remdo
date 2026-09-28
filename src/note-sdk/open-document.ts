@@ -79,6 +79,8 @@ export interface OpenDocumentNote extends OpenDocumentParentNote {
   readonly getId: () => NoteId;
   /** Returns the current content text. */
   readonly getText: () => string;
+  /** Returns the body's plain text, or null when the note has none. */
+  readonly getBody: () => string | null;
   /** Returns the current stored fold state. */
   readonly getFolded: () => boolean;
   readonly getChecked: () => boolean;
