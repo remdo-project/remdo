@@ -110,7 +110,10 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
         + 'the document is opened in RemDo. A note\'s body follows it as an indented blockquote.',
       inputSchema: { documentId: z.string().describe('A documentId.') },
       annotations: { readOnlyHint: true, openWorldHint: false },
-    }, ({ documentId }) => respond(async () => {
+    }, ({ documentId: input }) => respond(async () => {
+      const ref = parseDocumentRef(input);
+      if (!ref || ref.noteId) throw new Error('The documentId is not valid.');
+      const documentId = ref.docId;
       const outline = await withDocumentSlot(() => withHeadlessOpenDocument(documentId, authorization, async (openDocument, isStored) =>
         renderOutline(openDocument.root, (noteId) => isStored(noteId) ? documentUrl(documentId, noteId) : null),
       { readOnly: true }));

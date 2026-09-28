@@ -116,3 +116,14 @@ it('reports rejected API requests with their cause and the next step', async () 
     content: [{ text: 'RemDo is unavailable (502). Try again later.' }],
   });
 });
+
+it('rejects a read of anything but a documentId before opening a document', async () => {
+  const post = await start();
+  currentUserStatus = 200;
+  for (const documentId of ['', 'doc_note', 'doc/..']) {
+    expect(await rpc(post, 'tools/call', { name: 'read_document', arguments: { documentId } })).toMatchObject({
+      isError: true,
+      content: [{ text: 'The documentId is not valid.' }],
+    });
+  }
+});
