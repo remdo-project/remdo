@@ -15,7 +15,11 @@ import { readOutline, Stage } from './stage';
 const scenarios = { outlining };
 type ScenarioName = keyof typeof scenarios;
 
-const USAGE = `Usage: pnpm demo:record <${Object.keys(scenarios).join('|')}> [origin], default origin https://remdo.com`;
+const USAGE = [
+  `Usage: pnpm demo:record <${Object.keys(scenarios).join('|')}> [origin]`,
+  'Resets the origin\'s user account, whose password REMDO_USER_PASSWORD holds, then records',
+  'the scenario to $DATA_DIR/demo/<scenario>.webm. The origin defaults to https://remdo.com.',
+].join('\n');
 const VIEWPORT = { width: 1280, height: 720 };
 const END_STATE_TIMEOUT_MS = 15_000;
 
