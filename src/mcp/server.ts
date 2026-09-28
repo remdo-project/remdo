@@ -111,7 +111,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       annotations: { readOnlyHint: true, openWorldHint: false },
     }, ({ documentId }) => respond(async () => {
       const outline = await withDocumentSlot(() => withHeadlessOpenDocument(documentId, authorization, async (openDocument) =>
-        renderOutline(openDocument.root, (noteId) => documentUrl(documentId, noteId))));
+        renderOutline(openDocument.root, (noteId) => documentUrl(documentId, noteId)), { readOnly: true }));
       return `Document: ${documentUrl(documentId)}\n\n${outline}`;
     }));
 

@@ -94,6 +94,14 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(await storedText(documentId)).toContain('Second');
   });
 
+  it('reads a new document without storing its normalization', async () => {
+    const client = await connect(await delegatedToken());
+    const { documentId } = (await call(client, 'create_document', { title: 'Untouched' })).value as { documentId: string };
+    const read = await client.callTool({ name: 'read_document', arguments: { documentId } });
+    expect(read.isError).toBeFalsy();
+    expect(await storedText(documentId)).toBe('');
+  });
+
   it('reports an unavailable document as a tool error', async () => {
     const client = await connect(await delegatedToken());
     const appended = await call(client, 'append_children', { parent: 'missingdoc', notes: [{ text: 'Lost' }] });

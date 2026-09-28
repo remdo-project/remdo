@@ -59,6 +59,8 @@ export function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {
 interface HeadlessEditorOptions {
   /** A delegated `Bearer` credential; operator tools omit it. */
   authorization?: string;
+  /** Keep editor changes local instead of syncing them to the document. */
+  readOnly?: boolean;
 }
 
 /**
@@ -72,7 +74,7 @@ interface HeadlessEditorOptions {
 export async function withHeadlessEditor<T>(
   docId: string,
   run: (editor: LexicalEditor) => Promise<T> | T,
-  { authorization }: HeadlessEditorOptions = {},
+  { authorization, readOnly = false }: HeadlessEditorOptions = {},
 ): Promise<T> {
   const docMap = new Map<string, Doc>();
   const session = new CollabSession({
@@ -104,7 +106,7 @@ export async function withHeadlessEditor<T>(
     );
   };
   sharedRoot.observeDeep(observer);
-  const removeUpdateListener = editor.registerUpdateListener((payload) => {
+  const removeUpdateListener = readOnly ? () => {} : editor.registerUpdateListener((payload) => {
     const { prevEditorState, editorState, dirtyElements, dirtyLeaves, normalizedNodes, tags } = payload;
     syncLexicalUpdateToYjsV2__EXPERIMENTAL(
       binding,

@@ -7,7 +7,8 @@ import { $normalizeNoteIdsOnLoad } from '#client/editor/runtime/note-ids/note-id
 import { withHeadlessEditor } from './headless-editor';
 
 // The same load-time normalization the browser editor applies, so an empty or
-// legacy document exposes at least one addressable note.
+// legacy document exposes at least one addressable note. A read-only open keeps
+// it in memory.
 function normalizeLoadedDocument(editor: LexicalEditor, docId: string): void {
   editor.update(() => {
     const root = $getRoot();
@@ -21,6 +22,7 @@ export function withHeadlessOpenDocument<T>(
   docId: string,
   authorization: string,
   run: (openDocument: OpenDocument) => Promise<T>,
+  { readOnly = false }: { readOnly?: boolean } = {},
 ): Promise<T> {
   return withHeadlessEditor(docId, async (editor) => {
     normalizeLoadedDocument(editor, docId);
@@ -32,5 +34,5 @@ export function withHeadlessOpenDocument<T>(
     } finally {
       runtime.dispose();
     }
-  }, { authorization });
+  }, { authorization, readOnly });
 }
