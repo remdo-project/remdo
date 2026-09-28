@@ -99,7 +99,7 @@ and deploys every update without waiting for CI. Deploy the current committed
 state with:
 
 ```sh
-pnpm deploy:test
+pnpm hosted:deploy-test
 ```
 
 The command refuses a dirty working tree, reads the remote deployment pointer,
@@ -113,6 +113,20 @@ Test data is disposable and its free database expires. To reset it, stop the
 application, delete its database, and sync the blueprint to recreate it and
 redeploy. Metadata and document content reset together. The reset does not
 require shell access.
+
+### Reset the Demo Account
+
+To return a Render service's [`user` account](../specs/runtime/configuration.md#deployment-accounts)
+to a single empty document, for example before recording a demo, run from a
+development checkout:
+
+```sh
+pnpm hosted:demo-reset [origin]
+```
+
+The origin defaults to `https://remdo.com`. Supply the target service's
+`REMDO_USER_PASSWORD` through the environment or `.env`, passing the test
+service's value inline when resetting `https://test.remdo.com`.
 
 ## Upgrade an Existing Instance
 
