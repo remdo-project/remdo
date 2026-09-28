@@ -1,8 +1,8 @@
-"""Loopback collaboration operations, authenticated independently of browser sessions."""
+"""Loopback operations for RemDo's own services, authenticated independently of browser sessions."""
 
 from functools import wraps
 
-from accounts.delegated import bearer_token, delegated_user
+from accounts.delegated import bearer_token, delegated_user, mcp_resource
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
@@ -43,6 +43,15 @@ def authorize(request, document_id):
     document = get_object_or_404(Document, pk=document_id)
     if not Document.objects.accessible_to(user).filter(pk=document.pk).exists():
         return HttpResponse(status=403)
+    return JsonResponse({"userId": str(user.pk)})
+
+
+@internal_only
+@require_GET
+def authorize_mcp(request):
+    user = delegated_user(request.headers.get("Authorization", ""), resource=mcp_resource())
+    if user is None:
+        return HttpResponse(status=401)
     return JsonResponse({"userId": str(user.pk)})
 
 

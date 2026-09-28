@@ -13,7 +13,7 @@ from django.core.cache import cache
 from django.test import RequestFactory, TestCase, override_settings
 from documents.models import Document
 
-from .delegated import OIDCAdapter, signing_key_pem
+from .delegated import OIDCAdapter, mcp_resource, signing_key_pem
 from .models import SigningKey, User
 
 CLIENT_ID = "https://claude.example/oauth/mcp-oauth-client-metadata"
@@ -64,9 +64,10 @@ class DelegatedAccessTests(TestCase):
             }
         )
 
-    def grant(self):
+    def grant(self, resource=None):
+        requested = {} if resource is None else {"resource": resource}
         self.client.force_login(self.user)
-        page = self.client.get(f"/identity/o/authorize?{self.authorize_query()}")
+        page = self.client.get(f"/identity/o/authorize?{self.authorize_query(**requested)}")
         self.assertEqual(page.status_code, 200, page.content[:500])
         signed = re.search(rb'name="request" value="([^"]+)"', page.content).group(1).decode()
         response = self.client.post(
@@ -88,6 +89,7 @@ class DelegatedAccessTests(TestCase):
                 "redirect_uri": REDIRECT_URI,
                 "client_id": CLIENT_ID,
                 "code_verifier": VERIFIER,
+                **requested,
             },
         )
         self.assertEqual(token.status_code, 200, token.content[:500])
@@ -107,6 +109,38 @@ class DelegatedAccessTests(TestCase):
                 **self.bearer(token),
             },
         )
+
+    def authorize_mcp(self, token):
+        return self.client.get(
+            "/internal/mcp/authorize",
+            headers={
+                "X-Remdo-Collaboration-Secret": settings.COLLAB_INTERNAL_SECRET,
+                **self.bearer(token),
+            },
+        )
+
+    def test_the_mcp_server_accepts_only_tokens_issued_for_it(self):
+        bound = self.grant(resource=mcp_resource())["access_token"]
+        response = self.authorize_mcp(bound)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"userId": str(self.user.pk)})
+        self.assertEqual(self.documents(bound).status_code, 200)
+
+        unbound = self.grant()["access_token"]
+        other = self.grant(resource="https://other.example/api")["access_token"]
+        for token in (unbound, other, "not-a-token"):
+            self.assertEqual(self.authorize_mcp(token).status_code, 401)
+        self.assertEqual(self.documents(unbound).status_code, 200)
+
+    def test_renewal_keeps_a_token_bound_to_the_mcp_server(self):
+        tokens = self.grant(resource=mcp_resource())
+        renewed = self.refresh(tokens["refresh_token"]).json()
+        self.assertEqual(self.authorize_mcp(renewed["access_token"]).status_code, 200)
+
+    def test_mcp_authorization_requires_the_internal_secret(self):
+        token = self.grant(resource=mcp_resource())["access_token"]
+        response = self.client.get("/internal/mcp/authorize", headers=self.bearer(token))
+        self.assertEqual(response.status_code, 403)
 
     def test_granted_token_acts_as_the_user_on_the_api_and_collaboration(self):
         tokens = self.grant()
@@ -286,5 +320,5 @@ class ClientMetadataHostTests(TestCase):
 class ProtectedResourceMetadataTests(TestCase):
     def test_mcp_metadata_names_remdo_as_its_authorization_server(self):
         metadata = self.client.get("/.well-known/oauth-protected-resource/mcp").json()
-        self.assertEqual(metadata["resource"], "http://testserver/mcp")
+        self.assertEqual(metadata["resource"], f"{settings.APP_ORIGIN}/mcp")
         self.assertEqual(metadata["authorization_servers"], ["http://testserver"])

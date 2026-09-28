@@ -268,9 +268,7 @@ RemDo document, minimal but useful for real work.
 - **Limit connected apps.** Let users limit what connected apps can access, for
   example per document from the share dialog. Until then, a connected app can
   use every operation the [MCP server](specs/integrations/mcp.md) exposes,
-  including deleting notes once that is exposed. Access tokens
-  are also not yet bound to the MCP server as their audience, so any delegated
-  token is accepted there.
+  including deleting notes once that is exposed.
 
 ### SDK
 

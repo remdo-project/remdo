@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { afterEach, expect, it } from 'vitest';
 import { createMcpServer } from './server';
 
-let currentUserStatus: number;
+let authorizeStatus: number;
 let documentsResponse: { status: number; body: string } | 'dropped';
 const stops: Array<() => Promise<void>> = [];
 
@@ -13,7 +13,9 @@ afterEach(async () => {
 
 async function start() {
   const django = http.createServer((req, res) => {
-    if (req.url === '/api/current-user') res.writeHead(currentUserStatus).end('{}');
+    if (req.url === '/internal/mcp/authorize') {
+      res.writeHead(req.headers['x-remdo-collaboration-secret'] === 'internal-secret' ? authorizeStatus : 403).end('{}');
+    }
     else if (documentsResponse === 'dropped') req.socket.destroy();
     else res.writeHead(documentsResponse.status).end(documentsResponse.body);
   });
@@ -27,6 +29,7 @@ async function start() {
     origin,
     apiOrigin: `http://127.0.0.1:${(django.address() as AddressInfo).port}`,
     appOrigin: 'https://remdo.example',
+    internalSecret: 'internal-secret',
     documentSlots: 1,
   });
   await server.listen();
@@ -55,12 +58,12 @@ it('challenges missing and rejected tokens but reports an unavailable RemDo as u
   expect(missing.status).toBe(401);
   expect(missing.headers.get('WWW-Authenticate')).toBe(`Bearer ${metadata}`);
 
-  currentUserStatus = 401;
+  authorizeStatus = 401;
   const rejected = await post('Bearer stale');
   expect(rejected.status).toBe(401);
   expect(rejected.headers.get('WWW-Authenticate')).toBe(`Bearer ${metadata}, error="invalid_token"`);
 
-  currentUserStatus = 502;
+  authorizeStatus = 502;
   expect((await post('Bearer valid')).status).toBe(503);
 
   await stops.shift()!();
@@ -69,7 +72,7 @@ it('challenges missing and rejected tokens but reports an unavailable RemDo as u
 
 it('identifies itself with the app icon and tells clients how to use RemDo', async () => {
   const post = await start();
-  currentUserStatus = 200;
+  authorizeStatus = 200;
 
   const result = await rpc(post, 'initialize', {
     protocolVersion: '2025-11-25',
@@ -89,7 +92,7 @@ it('identifies itself with the app icon and tells clients how to use RemDo', asy
 
 it('marks reads as read-only and additive writes as non-destructive so clients can gate confirmation', async () => {
   const post = await start();
-  currentUserStatus = 200;
+  authorizeStatus = 200;
 
   const { tools } = await rpc(post, 'tools/list', {}) as { tools: Array<{ name: string; title?: string; annotations?: object }> };
 
@@ -110,7 +113,7 @@ it.each([
   ['dropped' as const, 'RemDo did not confirm whether the request took effect. Check with list_documents before retrying.'],
 ])('reports API outcome %j as a tool error naming its cause', async (outcome, message) => {
   const post = await start();
-  currentUserStatus = 200;
+  authorizeStatus = 200;
   documentsResponse = outcome;
 
   const result = await rpc(post, 'tools/call', { name: 'create_document', arguments: { title: 'Plan' } });
@@ -120,7 +123,7 @@ it.each([
 
 it('reports a dropped read as unavailable because it cannot have changed anything', async () => {
   const post = await start();
-  currentUserStatus = 200;
+  authorizeStatus = 200;
   documentsResponse = 'dropped';
 
   const result = await rpc(post, 'tools/call', { name: 'list_documents', arguments: {} });
@@ -130,7 +133,7 @@ it('reports a dropped read as unavailable because it cannot have changed anythin
 
 it('refuses a request body over 1 MiB before running any tool', async () => {
   const post = await start();
-  currentUserStatus = 200;
+  authorizeStatus = 200;
 
   const response = await post('Bearer valid', {
     jsonrpc: '2.0',
@@ -144,7 +147,7 @@ it('refuses a request body over 1 MiB before running any tool', async () => {
 
 it('refuses to append more than 1000 notes, counting nested children, before opening the document', async () => {
   const post = await start();
-  currentUserStatus = 200;
+  authorizeStatus = 200;
   const notes = [...Array.from({ length: 999 }, () => ({ text: 'Point' })), { text: 'Section', children: [{ text: 'Detail' }] }];
 
   const result = await rpc(post, 'tools/call', { name: 'append_children', arguments: { parent: 'missingdoc', notes } });
@@ -160,7 +163,7 @@ it('refuses to append more than 1000 notes, counting nested children, before ope
 
 it('rejects a read of anything but a documentId before opening a document', async () => {
   const post = await start();
-  currentUserStatus = 200;
+  authorizeStatus = 200;
   for (const documentId of ['', 'doc_note', 'doc/..']) {
     expect(await rpc(post, 'tools/call', { name: 'read_document', arguments: { documentId } })).toMatchObject({
       isError: true,

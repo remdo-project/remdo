@@ -53,6 +53,7 @@ urlpatterns = [
     path("api/documents/<str:document_id>/access", views.DocumentShareView.as_view()),
     path("internal/collaboration/documents/<str:document_id>/authorize", internal.authorize),
     path("internal/collaboration/documents/<str:document_id>/content", internal.content),
+    path("internal/mcp/authorize", internal.authorize_mcp),
     path("api/schema", SpectacularAPIView.as_view()),
     re_path(r"^(?P<slug>[a-z0-9]+(?:-[a-z0-9]+)*)/$", public_page, name="public_page"),
 ]
