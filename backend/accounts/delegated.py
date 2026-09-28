@@ -10,6 +10,7 @@ from allauth.core import context
 from allauth.core.internal.httpkit import extract_basic_auth
 from allauth.idp.oidc import views as allauth_views
 from allauth.idp.oidc.adapter import DefaultOIDCAdapter
+from allauth.idp.oidc.internal import clientkit
 from allauth.idp.oidc.internal.cimd import is_cimd_url
 from allauth.idp.oidc.models import Client, PrivateKey, Token
 from allauth.idp.oidc.views import authorization
@@ -31,6 +32,18 @@ from rest_framework.authentication import BaseAuthentication, get_authorization_
 from rest_framework.exceptions import AuthenticationFailed
 
 from .models import SigningKey
+
+
+def _is_loopback(parsed_uri):
+    # allauth lets only IP-literal loopback redirects change port, but native
+    # clients such as Claude Code register http://localhost/callback and listen
+    # on an ephemeral port. PKCE binds the code to the client either way.
+    # TODO: Retire this patch once allauth accepts localhost as loopback; probe:
+    # delete it and run accounts.test_delegated.
+    return parsed_uri.scheme == "http" and parsed_uri.hostname in ("localhost", "127.0.0.1", "::1")
+
+
+clientkit.is_loopback = _is_loopback
 
 
 def may_delegate(user):

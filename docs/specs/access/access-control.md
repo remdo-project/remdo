@@ -180,7 +180,9 @@ PKCE; the user signs in and consents on RemDo. Consent and connected-app
 management name the application by the host serving its client metadata,
 followed by its declared name, and consent states that it can access and edit
 the user's documents. Applications identify themselves only by a client metadata
-document URL served over HTTPS. Staff and superuser accounts cannot grant or use
+document URL served over HTTPS. A registered `http` redirect URI on `localhost`,
+`127.0.0.1`, or `::1` accepts any port, so native applications can receive the
+grant on an ephemeral local port. Staff and superuser accounts cannot grant or use
 delegated access, including a grant made before promotion.
 
 A delegated access token authenticates as its user on the RemDo API and on
